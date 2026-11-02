@@ -240,7 +240,7 @@ final class TabPicker {
     @SuppressLint("ClickableViewAccessibility")
     private static View row(LinearLayout list, String tab, boolean on) {
         Context context = list.getContext();
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        ScreenColors colors = ScreenColors.current();
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);

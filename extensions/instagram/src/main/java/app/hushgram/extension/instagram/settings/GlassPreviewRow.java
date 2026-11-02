@@ -36,7 +36,7 @@ final class GlassPreviewRow extends Preference {
     @Override
     protected void onBindView(View view) {
         if (!(view instanceof GlassPreview)) return;
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        ScreenColors colors = ScreenColors.current();
         ((GlassPreview) view).setBase(colors.background);
     }
 

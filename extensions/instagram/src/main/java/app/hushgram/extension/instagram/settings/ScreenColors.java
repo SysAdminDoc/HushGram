@@ -40,6 +40,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.preference.ImmediateAction;
 
 /** Shared black and charcoal surfaces, in Instagram's own blues, for HushGram's settings and runtime controls. */
@@ -73,6 +74,18 @@ public final class ScreenColors {
     @Nullable
     static volatile ScreenColors shown;
     public static final ScreenColors DEFAULT = new ScreenColors(SettingsStatus.pureBlack());
+    /** Black cards and dialogs, for the black look (#455). */
+    static final ScreenColors BLACK = new ScreenColors(true);
+
+    /**
+     * The colours to paint with now: the screen's own, or the black ones while Black settings page
+     * is on, or {@link #DEFAULT}. Read each time, so a flip of the switch shows on the next bind.
+     */
+    public static ScreenColors current() {
+        ScreenColors colors = shown;
+        if (colors != null) return colors;
+        return Utils.settingsReady() && Settings.SETTINGS_BLACK_LOOK.savedValue() ? BLACK : DEFAULT;
+    }
 
     /**
      * [pureBlack]: the build has Pure black dark mode, so the cards and dialogs go black like
@@ -640,16 +653,14 @@ public final class ScreenColors {
 
     /** Paints a row with the colours on show, if there are any. */
     static void row(View row, Preference preference) {
-        ScreenColors colors = shown;
-        ScreenColors used = colors == null ? DEFAULT : colors;
+        ScreenColors used = current();
         used.paintRow(row, preference);
         NewRowDots.paint(row, preference, used.accent);
     }
 
     /** Paints a section title with the colours on show, if there are any. */
     static void heading(View row) {
-        ScreenColors colors = shown;
-        (colors == null ? DEFAULT : colors).paintHeading(row);
+        current().paintHeading(row);
     }
 
     /** Paints both recovery actions even if the ordinary settings page failed to initialize. */
@@ -660,20 +671,17 @@ public final class ScreenColors {
 
     /** Paints a dialog with the colours on show, if there are any. */
     public static void dialog(@Nullable AlertDialog dialog) {
-        ScreenColors colors = shown;
-        (colors == null ? DEFAULT : colors).paint(dialog);
+        current().paint(dialog);
     }
 
     /** Styles a runtime dialog's own input without changing its validation or input type. */
     public static void styleField(EditText field) {
-        ScreenColors colors = shown;
-        (colors == null ? DEFAULT : colors).paintField(field);
+        current().paintField(field);
     }
 
     /** Styles an existing action without replacing its content, listeners or accessibility delegate. */
     public static void styleAction(TextView action, boolean primary) {
-        ScreenColors colors = shown;
-        (colors == null ? DEFAULT : colors).paintAction(action, primary);
+        current().paintAction(action, primary);
     }
 
     private void paintAction(TextView action, boolean primary) {
@@ -706,7 +714,7 @@ public final class ScreenColors {
 
     /** Compact actions retain the shared interaction states without becoming filled buttons. */
     public static void styleIconAction(View action) {
-        ScreenColors colors = shown == null ? DEFAULT : shown;
+        ScreenColors colors = current();
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(Color.TRANSPARENT);
         surface.setCornerRadius(dp(action, 8));

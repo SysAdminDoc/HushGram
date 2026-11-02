@@ -308,6 +308,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private String lastCategory;
     /** The button at the top that switches between the list of categories and one long list. */
     @Nullable private Row viewToggle;
+    /** HushGram's name over the page while the black look is on and nothing is searched (#455). */
+    @Nullable private Preference header;
     /** Before you sign in, while no tap has hidden it. The home page's, like the status card. */
     @Nullable private Preference beforeSignIn;
     @Nullable private String restoredCategory;
@@ -536,6 +538,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             return true;
         });
+        header = new SettingsHeader(context);
+        header.setOrder(-60);
         Preference status = statusCard(context);
         status.setOrder(-40);
         screen.addPreference(status);
@@ -648,6 +652,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         || L10n.t("Pure black dark mode isn't in this build").equals(row.getTitle())) {
                     aliases.append(" amoled oled black theme");
                 }
+                if (Settings.SETTINGS_BLACK_LOOK.key.equals(key)) aliases.append(" amoled oled dark theme layout");
                 if (NotificationsCategory.movedFromProfiles(key)) aliases.append(' ').append(L10n.t("Profiles"));
                 if (Settings.HIDE_REELS_TAB.key.equals(key) || Settings.SHOW_REELS_TAB.key.equals(key)) {
                     aliases.append(' ').append(L10n.t("Reels"));
@@ -843,6 +848,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     void rebindRows() {
         ListView list = listView();
         if (list != null) list.invalidateViews();
+    }
+
+    /** Black settings page shows at once: the header, the category lines and every row's colours (#455). */
+    void applyLook() {
+        filterSettings();
+        rebindRows();
     }
 
     /** Page entry shouldn't focus the search field or move a restored viewport to show it. */
@@ -1268,11 +1279,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         // Search reveals matching rows without changing the sections the person expanded.
         boolean listing = pages && terms.length == 0;
         showTitle(terms.length > 0 ? L10n.t("Search settings") : null);
-        for (Preference top : new Preference[]{statusCard, beforeSignIn, viewToggle, search}) {
+        boolean black = Settings.SETTINGS_BLACK_LOOK.savedValue();
+        for (Preference top : new Preference[]{header, statusCard, beforeSignIn, viewToggle, search}) {
             if (top == null) continue;
             // A tap hid the notice for good and took it off the screen. It stays off.
             if (top == beforeSignIn && Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) continue;
-            boolean hidden = top == statusCard && !HushgramPause.isPaused();
+            boolean hidden = top == statusCard ? !HushgramPause.isPaused() : top == header && (!black || terms.length > 0);
             if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
@@ -1318,7 +1330,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     else if (!expanded && lastCarouselSave.getParent() == group) group.removePreference(lastCarouselSave);
                 }
             }
-            if (group instanceof Heading) ((Heading) group).display(listing && !held, expanded);
+            if (group instanceof Heading) ((Heading) group).display(listing && !held, expanded, black);
             if (filled) {
                 if (group.getParent() != screen) screen.addPreference(group);
             } else if (group.getParent() == screen) screen.removePreference(group);
@@ -2583,16 +2595,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             float density = context.getResources().getDisplayMetrics().density;
             int inset = Math.round(18 * density);
             int gap = Math.round(4 * density);
-            android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
-            for (boolean focused : new boolean[]{true, false}) {
-                android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
-                surface.setColor(ScreenColors.DEFAULT.card);
-                surface.setCornerRadius(Math.round(10 * density));
-                surface.setStroke(Math.round(density), focused ? ScreenColors.DEFAULT.heading : ScreenColors.DEFAULT.outline);
-                states.addState(focused ? new int[]{android.R.attr.state_focused} : new int[]{},
-                        new android.graphics.drawable.InsetDrawable(surface, inset, gap, inset, gap));
-            }
-            row.setBackground(states);
+            paint(row);
             row.setAddStatesFromChildren(true);
             row.setPaddingRelative(inset + Math.round(14 * density), gap, inset + Math.round(4 * density), gap);
             row.setMinimumHeight(touch + 2 * gap);
@@ -2676,6 +2679,41 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             });
             return row;
+        }
+
+        /**
+         * The field's card in the colours on show, outlined in the heading blue while it has focus. The
+         * row keeps the card colour in its tag, so a bind while typing keeps its drawable.
+         */
+        private void paint(View row) {
+            ScreenColors colors = ScreenColors.current();
+            row.setTag(colors.card);
+            float density = row.getResources().getDisplayMetrics().density;
+            int inset = Math.round(18 * density);
+            int gap = Math.round(4 * density);
+            android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
+            for (boolean focused : new boolean[]{true, false}) {
+                android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
+                surface.setColor(colors.card);
+                surface.setCornerRadius(Math.round(10 * density));
+                surface.setStroke(Math.round(density), focused ? colors.heading : colors.outline);
+                states.addState(focused ? new int[]{android.R.attr.state_focused} : new int[]{},
+                        new android.graphics.drawable.InsetDrawable(surface, inset, gap, inset, gap));
+            }
+            // An inset background sets the view's padding to its insets. Keep the row's own.
+            int start = row.getPaddingStart(), top = row.getPaddingTop();
+            int end = row.getPaddingEnd(), bottom = row.getPaddingBottom();
+            row.setBackground(states);
+            row.setPaddingRelative(start, top, end, bottom);
+        }
+
+        /**
+         * A flip of Black settings page repaints the card each row view was built with (#455). The list
+         * keeps more than one view of this row, so the colour is read off the view, not the row.
+         */
+        @Override protected void onBindView(View view) {
+            super.onBindView(view);
+            if (!Integer.valueOf(ScreenColors.current().card).equals(view.getTag())) paint(view);
         }
     }
 
@@ -6081,6 +6119,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         private final int buttonLayout;
         boolean collapsible;
         boolean expanded;
+        /** Its row on the list of categories shows the title alone, for the black look (#455). */
+        boolean compact;
 
         Heading(Context context) {
             super(context);
@@ -6090,13 +6130,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             setPersistent(false);
         }
 
-        void display(boolean collapsible, boolean expanded) {
-            if (this.collapsible == collapsible && this.expanded == expanded) return;
+        void display(boolean collapsible, boolean expanded, boolean compact) {
+            if (this.collapsible == collapsible && this.expanded == expanded && this.compact == compact) return;
             this.collapsible = collapsible;
             this.expanded = expanded;
+            this.compact = compact;
             setLayoutResource(collapsible ? buttonLayout : headingLayout);
             setSelectable(collapsible);
-            setSummary(collapsible ? intro : null);
+            setSummary(collapsible && !compact ? intro : null);
             notifyChanged();
         }
 
@@ -6218,7 +6259,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             cancel.setContentDescription(cancelDescription);
             cancel.setAllCaps(false);
             cancel.setTextSize(14);
-            ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+            ScreenColors colors = ScreenColors.current();
             cancel.setTextColor(ScreenColors.dimmedWhenDisabled(colors.heading));
             ScreenColors.styleIconAction(cancel);
             int touch = Math.round(48 * view.getResources().getDisplayMetrics().density);
@@ -6254,7 +6295,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** Compact edit forms keep the input first and let their help scroll above the actions. */
     private static View editDialogBody(EditTextPreference preference) {
         Context context = preference.getContext();
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        ScreenColors colors = ScreenColors.current();
         int pad = Math.round(20 * context.getResources().getDisplayMetrics().density);
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -6856,7 +6897,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
         @Override protected View onCreateDialogView() {
             Context context = getContext();
-            ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+            ScreenColors colors = ScreenColors.current();
             int pad = Math.round(20 * context.getResources().getDisplayMetrics().density);
             android.widget.LinearLayout content = new android.widget.LinearLayout(context);
             content.setOrientation(android.widget.LinearLayout.VERTICAL);
@@ -7491,7 +7532,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             SeekBar slider = slider(view);
             if (slider == null) return;
             TextView summary = view.findViewById(android.R.id.summary);
-            ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+            ScreenColors colors = ScreenColors.current();
             slider.setProgressTintList(ScreenColors.dimmedWhenDisabled(colors.accent));
             slider.setThumbTintList(ScreenColors.dimmedWhenDisabled(colors.accent));
             slider.setOnSeekBarChangeListener(null);
@@ -8311,7 +8352,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         /** The two choices as cards, each saying what it does under its name. */
         @Override
         protected ListAdapter choices(Context dialogContext) {
-            return new ChoiceCards(ScreenColors.DEFAULT,
+            return new ChoiceCards(ScreenColors.current(),
                     new CharSequence[]{L10n.t(getContext(), "Copy quick report"),
                             L10n.t(getContext(), "Save full report")},
                     new CharSequence[]{L10n.t(getContext(), "Copy a short report to the clipboard."),

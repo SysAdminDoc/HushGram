@@ -55,5 +55,13 @@ final class EntryCategory {
             return true;
         });
         entry.addPreference(descriptions);
+        SwitchPreference black = toggle(context, Settings.SETTINGS_BLACK_LOOK, L10n.t("Black settings page"),
+                L10n.t("Black rows and dialogs, HushGram's name at the top, and each category on one line."));
+        black.setOnPreferenceChangeListener((preference, value) -> {
+            // Posted, so the page redraws with the value this change saves.
+            Utils.runOnMainThread(page::applyLook);
+            return true;
+        });
+        entry.addPreference(black);
     }
 }
