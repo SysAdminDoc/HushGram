@@ -60,9 +60,22 @@ public class StoryZoomPlayTest {
     @Test
     public void aStoryHeldFirstStaysPausedForTheZoom() {
         Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
-        StoryZoomPlay.paused("long_press");
+        StoryZoomPlay.paused(StoryZoomPlay.HOLD);
         assertFalse(StoryZoomPlay.keepPlaying());
         StoryZoomPlay.resumed();
+        assertTrue(StoryZoomPlay.keepPlaying());
+    }
+
+    /**
+     * Leaving the viewer pauses it, and the next story plays without a resume, so that pause never
+     * gets cleared. Counted as a hold, it kept every pinch after the first visit paused.
+     */
+    @Test
+    public void leavingTheViewerIsNotAHold() {
+        Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
+        StoryZoomPlay.paused("fragment_paused");
+        assertTrue(StoryZoomPlay.keepPlaying());
+        StoryZoomPlay.paused("dialog");
         assertTrue(StoryZoomPlay.keepPlaying());
     }
 

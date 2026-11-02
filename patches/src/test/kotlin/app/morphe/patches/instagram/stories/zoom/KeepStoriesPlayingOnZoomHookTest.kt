@@ -10,6 +10,7 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -17,6 +18,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -102,6 +104,21 @@ class KeepStoriesPlayingOnZoomHookTest {
                 assertEquals("$label: ${method.name} changed", method.code().map(::text), changed.code().map(::text))
             }
         }
+
+        // The extension counts only this reason as a story held still, so the build has to send it.
+        val holders = FixtureDex.classesLoading(bundle, HOLD)
+        val holdContext = PatchContexts.of(FixtureDex.withStringPools(bundle, holders))
+        val holds = holders.flatMap { it.methods }.filter { method ->
+            holdContext.loadsString(method, HOLD) && method.code().any { pausesTheViewer(it) }
+        }
+        assertTrue("$label: nothing pauses the viewer as \"$HOLD\"", holds.isNotEmpty())
+    }
+
+    /** A call on the viewer taking just a reason, as its pauses do. */
+    private fun pausesTheViewer(instruction: Instruction): Boolean {
+        val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+        return called.definingClass == VIEWER && called.returnType == "V" &&
+            called.parameterTypes.map(CharSequence::toString).let { it == listOf(STRING) || it == listOf(VIEWER, STRING) }
     }
 
     private fun code(context: BytecodePatchContext, at: Located): List<Instruction> =
@@ -137,6 +154,10 @@ class KeepStoriesPlayingOnZoomHookTest {
 
     private companion object {
         const val VIEWER = "Linstagram/features/stories/fragment/ReelViewerFragment;"
+        const val STRING = "Ljava/lang/String;"
+
+        /** StoryZoomPlay.HOLD: the reason the viewer is paused with while a story is held still. */
+        const val HOLD = "long_pressed"
 
         /** A runnable whose run() loads the reason a pinch pauses with. */
         fun pinchRunner(reason: String = PINCH_REASON): ClassDef = ImmutableClassDef(
