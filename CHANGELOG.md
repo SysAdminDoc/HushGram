@@ -43,7 +43,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
-* **Instagram:** `See who a story mentions` pauses the story while its list is open. A photo used to run out its time under the list and the story moved on, so the list named the one before and a visit to a profile could close it. Close or Back plays the story on, and going Home and back leaves it paused. Reported in #403.
+* **Instagram:** `See who a story mentions` pauses the story while its list is open. A photo used to run out its time under the list and the story moved on, so the list named the one before and a visit to a profile could close it. Close or Back plays the story on. It stays paused while you go Home and back, and while you look at a profile you opened from the list. Reported in #403.
 * **Instagram:** Reels auto scroll now moves on right as a reel ends, not after it starts over. Instagram leaves that early move to a server setting, and with it off the first second of the reel played again while the next one slid in. The `Keep Reels auto scroll on` patch turns it on for every account. Reported in #473.
 * **Instagram:** `Seek bar on feed videos` no longer leaves a video stuck after a drag. The video pauses while your finger is on the bar and plays on from the spot you let go, the way Instagram's own feed scrubber does it. Reported in #472.
 * **Instagram:** With `Glass tab bar` and `Hide the tab bar on Reels`, the reel stays put when the pill slides away or comes back. It used to grow into the pill's spot and jump back, so the video moved every time. Now the reel runs behind the pill the way `Run Reels behind the tab bar` does, with its caption, buttons and seek bar kept above the pill's spot. There's still no black band once the pill is gone. Reported in #466 and #467.

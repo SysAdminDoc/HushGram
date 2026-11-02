@@ -782,16 +782,20 @@ public class StoryMentionsTest {
 
     @Test
     public void backPlaysTheStoryOnAsCloseDoes() {
-        StoryMentions.viewerShown(new Object());
+        // Held here: the viewer is only weakly held, and a GC between the calls would leave nothing to hold.
+        Object viewer = new Object();
+        StoryMentions.viewerShown(viewer);
         bind(ANA);
         openedList().cancel();
         idle();
         assertEquals(Arrays.asList("hold", "play"), playback.asked);
+        assertEquals(Arrays.asList(viewer, viewer), playback.viewers);
     }
 
     /**
-     * #403: a profile opened from the list doesn't play the story. Instagram plays it as the story
-     * comes back, and the list opening again holds it again.
+     * #403: a profile opened from the list doesn't play the story, and neither does the resume
+     * Instagram makes as the story comes back. On the S22 a video played on from that resume under
+     * the list that opened again, and ran the story out.
      */
     @Test
     public void aProfileFromTheListHoldsTheStoryAgainAsItComesBack() {
@@ -802,10 +806,12 @@ public class StoryMentionsTest {
         tapAccount(first, "Ana Lima, @ana");
         idle();
         assertEquals("the profile doesn't play it", Collections.singletonList("hold"), playback.asked);
-        assertFalse("and nothing holds Instagram's resume back with the list gone", StoryMentions.holdsStory(viewer));
         controller.pause();
         idle();
         controller.resume();
+        StoryMentions.viewerShown(viewer);
+        assertTrue("the resume as the story comes back waits for the list", StoryMentions.holdsStory(viewer));
+        assertFalse("another viewer's doesn't", StoryMentions.holdsStory(new Object()));
         idle();
         AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
         assertNotSame(first, again);
@@ -813,6 +819,51 @@ public class StoryMentionsTest {
         assertEquals(Arrays.asList("hold", "hold"), playback.asked);
         assertSame(viewer, playback.viewers.get(1));
         assertTrue(StoryMentions.holdsStory(viewer));
+
+        shadowOf(Looper.getMainLooper()).idleFor(StoryMentions.COMEBACK_HOLD_MS, TimeUnit.MILLISECONDS);
+        assertEquals("the list came back, so nothing plays it", Arrays.asList("hold", "hold"), playback.asked);
+        again.cancel();
+        idle();
+        assertEquals("Back plays it on", Arrays.asList("hold", "hold", "play"), playback.asked);
+        assertFalse(StoryMentions.holdsStory(viewer));
+    }
+
+    /** #403: a story back from a profile whose list doesn't open again plays on after a moment. */
+    @Test
+    public void theStoryPlaysWhenItsListStaysAway() {
+        Object viewer = new Object();
+        StoryMentions.viewerShown(viewer);
+        bind(ANA, BO);
+        tapAccount(openedList(), "Ana Lima, @ana");
+        idle();
+        assertTrue(StoryMentions.holdsStory(viewer));
+        idle();
+        assertEquals(Collections.singletonList("hold"), playback.asked);
+
+        shadowOf(Looper.getMainLooper()).idleFor(StoryMentions.COMEBACK_HOLD_MS, TimeUnit.MILLISECONDS);
+        assertEquals(Arrays.asList("hold", "play"), playback.asked);
+        assertSame(viewer, playback.viewers.get(1));
+        assertFalse("Instagram's resumes run again", StoryMentions.holdsStory(viewer));
+    }
+
+    /** A resume while the profile still has the screen leaves the story held until it comes back. */
+    @Test
+    public void aResumeBehindTheProfileWaitsForTheStoryToComeBack() {
+        Object viewer = new Object();
+        StoryMentions.viewerShown(viewer);
+        bind(ANA, BO);
+        tapAccount(openedList(), "Ana Lima, @ana");
+        controller.pause();
+        idle();
+        assertTrue(StoryMentions.holdsStory(viewer));
+        shadowOf(Looper.getMainLooper()).idleFor(StoryMentions.COMEBACK_HOLD_MS, TimeUnit.MILLISECONDS);
+        assertEquals("nothing plays it under the profile", Collections.singletonList("hold"), playback.asked);
+
+        controller.resume();
+        idle();
+        assertTrue("the list is open again", ShadowDialog.getLatestDialog().isShowing());
+        shadowOf(Looper.getMainLooper()).idleFor(StoryMentions.COMEBACK_HOLD_MS, TimeUnit.MILLISECONDS);
+        assertEquals(Arrays.asList("hold", "hold"), playback.asked);
     }
 
     /** #403: Home and back leaves the list up, and the resume Instagram makes as the story returns waits for it. */
@@ -848,11 +899,13 @@ public class StoryMentionsTest {
     @Test
     public void aHoldThatThrowsStillOpensTheList() {
         playback.throwing = true;
-        StoryMentions.viewerShown(new Object());
+        Object viewer = new Object();
+        StoryMentions.viewerShown(viewer);
         bind(ANA);
         assertTrue(openedList().isShowing());
         String missing = HookStatus.missing(FamilyNames.STORY_MENTIONS).toString();
         assertTrue(missing, missing.contains("story mentions list") && missing.contains("IllegalStateException"));
+        assertEquals(Collections.singletonList(viewer), playback.viewers);
     }
 
     @Test

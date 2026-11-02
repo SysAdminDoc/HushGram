@@ -23,6 +23,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.text.Layout;
 import android.text.TextUtils;
@@ -170,11 +172,20 @@ public final class StoryMentions {
         final long at = SystemClock.uptimeMillis();
         /** The activity the story and its list show in. */
         final WeakReference<Activity> story;
+        /** The viewer whose story the list held, held on until the list opens again or stays away. */
+        final WeakReference<Object> viewer;
         boolean away;
+        /** The story's activity is behind the profile right now. */
+        boolean behind;
+        /** The story still waits for the list, and a resume Instagram made was skipped for it. */
+        boolean holding;
+        boolean skipped;
 
-        BackToList(List<Mention> people, Activity story) {
+        BackToList(List<Mention> people, Activity story, @Nullable Object viewer) {
             for (Mention person : people) usernames.add(person.username);
             this.story = new WeakReference<>(story);
+            this.viewer = new WeakReference<>(viewer);
+            holding = viewer != null;
         }
 
         boolean matches(List<Mention> people) {
@@ -200,13 +211,17 @@ public final class StoryMentions {
         @Override
         public void onActivityPaused(Activity activity) {
             BackToList waiting = backToList;
-            if (waiting != null && waiting.story.get() == activity) waiting.away = true;
+            if (waiting == null || waiting.story.get() != activity) return;
+            waiting.away = true;
+            waiting.behind = true;
         }
 
         @Override
         public void onActivityResumed(Activity activity) {
             BackToList waiting = backToList;
-            if (waiting == null || !waiting.away || waiting.story.get() != activity) return;
+            if (waiting == null || waiting.story.get() != activity) return;
+            waiting.behind = false;
+            if (!waiting.away) return;
             Window window = activity.getWindow();
             View decor = window == null ? null : window.peekDecorView();
             if (decor == null) return;
@@ -261,20 +276,47 @@ public final class StoryMentions {
         viewer = new WeakReference<>(shown);
     }
 
+    /** How long a story back from a profile waits for its list to open again before it plays on. */
+    static final long COMEBACK_HOLD_MS = 1000L;
+
     /**
      * Called first thing in the story viewer's resume, which plays its story again. True while a
      * list opened over [resuming]'s story shows, so the story waits under it the way Instagram's
      * own resume waits for its sheets and keyboard, a trip to Home and back included. Before, a
      * photo ran out its time under the list and the story moved on, so the list named the story
      * before, and a visit to a profile and back then ended it (#403).
+     *
+     * Also true while a list left for a profile waits to open again over that story. Instagram
+     * resumes the story as it comes back, before the list can open, and a pause right after that
+     * resume didn't stop a video: it played on under the list and ran the story out. If the list
+     * hasn't opened again [COMEBACK_HOLD_MS] after the story is back in front, the story plays.
      */
     public static boolean holdsStory(Object resuming) {
         try {
+            if (resuming == null) return false;
             Dialog list = heldList.get();
-            return resuming != null && heldViewer.get() == resuming && list != null && list.isShowing();
+            if (heldViewer.get() == resuming && list != null && list.isShowing()) return true;
+            BackToList waiting = backToList;
+            if (waiting == null || !waiting.holding || waiting.stale() || waiting.viewer.get() != resuming) return false;
+            waiting.skipped = true;
+            new Handler(Looper.getMainLooper()).postDelayed(() -> playIfTheListStaysAway(waiting), COMEBACK_HOLD_MS);
+            return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
             return false;
+        }
+    }
+
+    /** The story [waiting] held is back in front and its list didn't open again, so it plays on. */
+    private static void playIfTheListStaysAway(BackToList waiting) {
+        if (!waiting.holding || !waiting.skipped || waiting.behind) return;
+        waiting.holding = false;
+        Object held = waiting.viewer.get();
+        if (held == null) return;
+        try {
+            playback().play(held);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
         }
     }
 
@@ -293,8 +335,7 @@ public final class StoryMentions {
 
     /**
      * [list] closed, so the story it held may play again. It plays now when Close or Back ended
-     * the list. When a tap opened a profile, Instagram plays it as the story comes back, and the
-     * list opening again holds it again.
+     * the list. When a tap opened a profile, the list waiting to come back holds it instead.
      */
     private static void release(DialogInterface list, boolean play) {
         if (heldList.get() != list) return;
@@ -343,6 +384,7 @@ public final class StoryMentions {
             if (waiting.away) backToList = null;
         } else if (waiting.away) {
             backToList = null;
+            waiting.holding = false;
             Activity activity = activityOf(pill);
             list(activity != null ? activity : pill.getContext(), pill.people);
         }
@@ -916,7 +958,7 @@ public final class StoryMentions {
         for (Mention person : people) {
             rows.addView(row(themed, person, () -> {
                 leaving[0] = true;
-                backToList = new BackToList(people, activity);
+                backToList = new BackToList(people, activity, heldList.get() == dialog ? heldViewer.get() : null);
                 watch(activity);
                 dialog.dismiss();
                 openProfile(activity, person.username);
