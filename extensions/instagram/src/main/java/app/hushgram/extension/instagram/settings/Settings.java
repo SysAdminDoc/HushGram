@@ -130,10 +130,11 @@ public class Settings extends BaseSettings {
 
     /**
      * The black look for HushGram's page (#455): black rows and dialogs, HushGram's name at the top
-     * and each category on one line. Off to start. A settings-page choice, read saved even during Pause.
+     * and each category on one line. On to start (the reporter asked for it as the default). A
+     * settings-page choice, read saved even during Pause.
      */
     public static final BooleanSetting SETTINGS_BLACK_LOOK =
-            new BooleanSetting("hushgram_settings_black_look", FALSE);
+            new BooleanSetting("hushgram_settings_black_look", TRUE);
 
     /** A settings-page choice, read saved even during Pause. Existing backup names stay the default. */
     public static final BooleanSetting DATE_SETTINGS_EXPORT =

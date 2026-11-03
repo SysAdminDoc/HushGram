@@ -41,8 +41,8 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * Black settings page (#455): off to start, and once on, black cards and dialogs, HushGram's name at
- * the top and one line per category, all at once and back again when it's turned off.
+ * Black settings page (#455): on to start, with black cards and dialogs, HushGram's name at the top
+ * and one line per category, and the classic page back at once when it's turned off.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37}, qualifiers = "w320dp-h640dp-xhdpi")
@@ -135,11 +135,22 @@ public class BlackSettingsPageTest {
         return ((GradientDrawable) surface).getColor().getDefaultColor();
     }
 
-    @Test public void itStartsOffAndThePageStaysAsItWas() throws Exception {
+    @Test public void itStartsOnWithTheHeaderBlackCardsAndOneLineCategories() throws Exception {
         open();
         SwitchPreference black = blackSwitch();
         assertEquals("Black settings page", black.getTitle().toString());
-        assertFalse(black.isChecked());
+        assertTrue("on by default", black.isChecked());
+        assertSame(ScreenColors.BLACK, ScreenColors.current());
+        assertEquals("the header leads the page", SettingsHeader.KEY,
+                page.getPreferenceScreen().getPreference(0).getKey());
+        assertNull("one line per category", categoryRow("Feed").getSummary());
+        assertEquals(Color.BLACK, cardColor(render(categoryRow("Feed"), null)));
+    }
+
+    @Test public void turnedOffThePageKeepsItsClassicLook() throws Exception {
+        Settings.SETTINGS_BLACK_LOOK.save(false);
+        open();
+        assertFalse(blackSwitch().isChecked());
         assertSame(ScreenColors.DEFAULT, ScreenColors.current());
         assertNull("no header", page.getPreferenceScreen().findPreference(SettingsHeader.KEY));
         assertEquals("hushgram_settings_search", page.getPreferenceScreen().getPreference(0).getKey());
@@ -147,6 +158,7 @@ public class BlackSettingsPageTest {
     }
 
     @Test public void turningItOnBlackensTheCardsAndShortensTheCategoriesAtOnce() throws Exception {
+        Settings.SETTINGS_BLACK_LOOK.save(false);
         open();
         int charcoal = cardColor(render(categoryRow("Feed"), null));
         flip(true);
@@ -187,12 +199,13 @@ public class BlackSettingsPageTest {
         assertTrue("the icon sits above the name", view.getHeight() > name.getHeight() + version.getHeight());
     }
 
-    @Test public void aSearchSetsTheHeaderAsideAndFindsTheSwitchByAmoled() throws Exception {
+    @Test public void aSearchKeepsTheHeaderAndFindsTheSwitchByAmoled() throws Exception {
         Settings.SETTINGS_BLACK_LOOK.save(true);
         open();
         page.searchSettings("amoled");
         ShadowLooper.idleMainLooper();
-        assertNull(page.getPreferenceScreen().findPreference(SettingsHeader.KEY));
+        assertEquals("the header stays put while typing", SettingsHeader.KEY,
+                page.getPreferenceScreen().getPreference(0).getKey());
         assertTrue("a search for amoled finds it", positionOf(blackSwitch()) > 0);
         page.searchSettings("");
         ShadowLooper.idleMainLooper();
@@ -200,6 +213,7 @@ public class BlackSettingsPageTest {
     }
 
     @Test public void theSearchFieldsCardFollowsTheSwitchOnItsNextBind() throws Exception {
+        Settings.SETTINGS_BLACK_LOOK.save(false);
         open();
         Preference search = page.findPreference("hushgram_settings_search");
         View field = render(search, null);

@@ -51,6 +51,8 @@ public class CategoryPagesSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.CATEGORY_PAGES.resetToDefault();
+        // The classic page's order and category lines; BlackSettingsPageTest covers the black one.
+        Settings.SETTINGS_BLACK_LOOK.save(false);
         Settings.START_ON_FOLLOWING.resetToDefault();
         Settings.ONLY_FOLLOWING.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -67,6 +69,7 @@ public class CategoryPagesSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.CATEGORY_PAGES.resetToDefault();
+        Settings.SETTINGS_BLACK_LOOK.resetToDefault();
         Settings.START_ON_FOLLOWING.resetToDefault();
         Settings.ONLY_FOLLOWING.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();

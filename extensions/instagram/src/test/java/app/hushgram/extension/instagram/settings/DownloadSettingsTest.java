@@ -1214,7 +1214,7 @@ public class DownloadSettingsTest {
                 assertEquals(key + " doesn't resize above the keyboard", WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
                         mode & WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
                 assertTrue(key + "'s field has no outlined surface", row.getEditText().getBackground() instanceof GradientDrawable);
-                assertEquals(ScreenColors.DEFAULT.dialog,
+                assertEquals(ScreenColors.current().dialog,
                         ((GradientDrawable) row.getEditText().getBackground()).getColor().getDefaultColor());
             } finally {
                 row.getDialog().dismiss();

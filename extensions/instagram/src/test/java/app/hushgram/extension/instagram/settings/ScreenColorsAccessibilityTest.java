@@ -165,7 +165,7 @@ public class ScreenColorsAccessibilityTest {
 
     @Test @Config(sdk = {28, 37})
     public void freshActionsPaintEnabledFillAndOutlineBeforeAnyStateToggle() {
-        ScreenColors colors = ScreenColors.DEFAULT;
+        ScreenColors colors = ScreenColors.current();
         for (int theme : new int[]{android.R.style.Theme_Material_Light_NoActionBar,
                 android.R.style.Theme_Material_NoActionBar}) {
             for (boolean primary : new boolean[]{true, false}) {

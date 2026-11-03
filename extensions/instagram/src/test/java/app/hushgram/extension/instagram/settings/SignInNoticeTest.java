@@ -50,9 +50,10 @@ public class SignInNoticeTest {
     public void aFreshScreenShowsTheNoticeBelowSearchAndTheViewSwitch() {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             PreferenceScreen screen = DownloadSettingsTest.pageIn(controller).getPreferenceScreen();
-            assertEquals("hushgram_settings_search", screen.getPreference(0).getKey());
-            assertEquals("hushgram_view_toggle", screen.getPreference(1).getKey());
-            Preference notice = screen.getPreference(2);
+            assertEquals(SettingsHeader.KEY, screen.getPreference(0).getKey());
+            assertEquals("hushgram_settings_search", screen.getPreference(1).getKey());
+            assertEquals("hushgram_view_toggle", screen.getPreference(2).getKey());
+            Preference notice = screen.getPreference(3);
             assertEquals(HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY, notice.getKey());
             assertEquals("Before you sign in", String.valueOf(notice.getTitle()));
             String summary = String.valueOf(notice.getSummary());

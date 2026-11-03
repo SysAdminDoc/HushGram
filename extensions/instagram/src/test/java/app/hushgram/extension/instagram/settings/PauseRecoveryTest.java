@@ -78,7 +78,8 @@ public class PauseRecoveryTest {
                 page.searchSettings("");
                 Preference status = statusCard(page);
                 page.searchSettings("zzzz no settings");
-                assertSame(status, page.getPreferenceScreen().getPreference(2));
+                // The black page's header, the search field and the view toggle sit above it.
+                assertSame(status, page.getPreferenceScreen().getPreference(3));
                 assertNull(page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY));
                 page.searchSettings("coffee");
                 assertSame(status, statusCard(page));

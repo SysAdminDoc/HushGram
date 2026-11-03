@@ -35,6 +35,8 @@ final class SettingsHeader extends Preference {
     SettingsHeader(Context context) {
         super(context);
         setKey(KEY);
+        // What it shows, for anything that reads rows by their titles.
+        setTitle("HushGram");
         setPersistent(false);
         setSelectable(false);
     }

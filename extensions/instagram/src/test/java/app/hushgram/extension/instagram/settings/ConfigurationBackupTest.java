@@ -115,7 +115,7 @@ public class ConfigurationBackupTest {
         assertEquals(11, values.length());
         assertFalse(values.getJSONObject(Settings.DATE_SETTINGS_EXPORT.key).getBoolean("value"));
         assertFalse(values.getJSONObject(Settings.DESCRIPTIONS_BEHIND_INFO.key).getBoolean("value"));
-        assertFalse(values.getJSONObject(Settings.SETTINGS_BLACK_LOOK.key).getBoolean("value"));
+        assertTrue(values.getJSONObject(Settings.SETTINGS_BLACK_LOOK.key).getBoolean("value"));
         assertTrue(values.getJSONObject(Settings.HIDE_ADS.key).getBoolean("value"));
         assertTrue(values.has(BaseSettings.DEBUG.key));
         assertEquals("OFF", values.getJSONObject(Settings.NAVIGATION_SETTINGS_TARGET.key).getString("value"));

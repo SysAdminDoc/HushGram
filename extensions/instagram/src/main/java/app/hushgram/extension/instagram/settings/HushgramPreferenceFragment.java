@@ -1305,7 +1305,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (top == null) continue;
             // A tap hid the notice for good and took it off the screen. It stays off.
             if (top == beforeSignIn && Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) continue;
-            boolean hidden = top == statusCard ? !HushgramPause.isPaused() : top == header && (!black || terms.length > 0);
+            // The header stays while searching. Taking a row off above the field moved the field's
+            // place in the list mid-word, and a hardware keyboard's next key was dropped.
+            boolean hidden = top == statusCard ? !HushgramPause.isPaused() : top == header && !black;
             if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
