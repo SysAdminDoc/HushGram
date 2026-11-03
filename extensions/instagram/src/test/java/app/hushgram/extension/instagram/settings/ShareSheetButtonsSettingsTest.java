@@ -55,6 +55,12 @@ public class ShareSheetButtonsSettingsTest {
         assertTrue(PatchFamily.SHARE_SHEET.choices().contains(Settings.HIDDEN_SHARE_SHEET_BUTTONS));
     }
 
+    /** Instagram builds these two on one kind of sheet only, so the list says where to look for them. */
+    @Test public void aButtonThatShowsOnOneKindOfSheetSaysWhere() {
+        assertTrue(HushgramPreferenceFragment.shareSheetButtonLabel("reply_to_author").contains("posts and reels"));
+        assertTrue(HushgramPreferenceFragment.shareSheetButtonLabel("profile_card_download").contains("on profiles"));
+    }
+
     @Test public void theChoiceIsInABackupOnlyWithThePatch() {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.SHARE_SHEET);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDDEN_SHARE_SHEET_BUTTONS.key));

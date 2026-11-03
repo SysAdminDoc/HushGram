@@ -858,8 +858,8 @@ public final class L10nTranslations {
                 "Herunterladen bei Reels");
         table.put("Download on stories",
                 "Herunterladen bei Stories");
-        table.put("Download profile card",
-                "Profilkarte herunterladen");
+        table.put("Download profile card (on profiles)",
+                "Profilkarte herunterladen (in Profilen)");
         table.put("Download quality",
                 "Download-Qualit\u00e4t");
         table.put("Download video covers",
@@ -2273,8 +2273,8 @@ public final class L10nTranslations {
                 "Entfernt Tracking-Zus\u00e4tze aus Links, die du kopierst oder teilst, und \u00f6ffnet Links in der Biografie ohne Instagrams Klick-Tracker. Der Link \u00f6ffnet weiterhin denselben Beitrag, dasselbe Reel oder Profil.");
         table.put("Reopen the media and save again.",
                 "\u00d6ffne das Medium erneut und speichere es noch einmal.");
-        table.put("Reply to author",
-                "Dem Autor antworten");
+        table.put("Reply to author (posts and reels)",
+                "Dem Autor antworten (Beitr\u00e4ge und Reels)");
         table.put("Reply with a comment's GIF",
                 "Mit dem GIF eines Kommentars antworten");
         table.put("Report a problem",
@@ -4101,8 +4101,8 @@ public final class L10nTranslations {
                 "Descargar en los reels");
         table.put("Download on stories",
                 "Descargar en las historias");
-        table.put("Download profile card",
-                "Descargar tarjeta de perfil");
+        table.put("Download profile card (on profiles)",
+                "Descargar tarjeta de perfil (en perfiles)");
         table.put("Download quality",
                 "Calidad de descarga");
         table.put("Download video covers",
@@ -5516,8 +5516,8 @@ public final class L10nTranslations {
                 "Quita las etiquetas de seguimiento de los enlaces que copias o compartes y abre los enlaces de la biograf\u00eda sin el rastreador de clics de Instagram. El enlace sigue abriendo la misma publicaci\u00f3n, reel o perfil.");
         table.put("Reopen the media and save again.",
                 "Vuelve a abrir el contenido y gu\u00e1rdalo otra vez.");
-        table.put("Reply to author",
-                "Responder al autor");
+        table.put("Reply to author (posts and reels)",
+                "Responder al autor (publicaciones y reels)");
         table.put("Reply with a comment's GIF",
                 "Responder con el GIF de un comentario");
         table.put("Report a problem",
@@ -7344,8 +7344,8 @@ public final class L10nTranslations {
                 "Unduh di reel");
         table.put("Download on stories",
                 "Unduh di cerita");
-        table.put("Download profile card",
-                "Unduh kartu profil");
+        table.put("Download profile card (on profiles)",
+                "Unduh kartu profil (di profil)");
         table.put("Download quality",
                 "Kualitas unduhan");
         table.put("Download video covers",
@@ -8759,8 +8759,8 @@ public final class L10nTranslations {
                 "Menghapus tag pelacak dari tautan yang kamu salin atau bagikan, dan membuka tautan di bio tanpa pelacak klik Instagram. Tautan tetap membuka postingan, reel, atau profil yang sama.");
         table.put("Reopen the media and save again.",
                 "Buka kembali media dan simpan lagi.");
-        table.put("Reply to author",
-                "Balas ke penulis");
+        table.put("Reply to author (posts and reels)",
+                "Balas ke penulis (postingan dan reel)");
         table.put("Reply with a comment's GIF",
                 "Balas dengan GIF komentar");
         table.put("Report a problem",
@@ -10587,8 +10587,8 @@ public final class L10nTranslations {
                 "Scarica sui reel");
         table.put("Download on stories",
                 "Scarica sulle storie");
-        table.put("Download profile card",
-                "Scarica la scheda del profilo");
+        table.put("Download profile card (on profiles)",
+                "Scarica la scheda del profilo (nei profili)");
         table.put("Download quality",
                 "Qualit\u00e0 del download");
         table.put("Download video covers",
@@ -12002,8 +12002,8 @@ public final class L10nTranslations {
                 "Rimuove i tag di tracciamento dai link che copi o condividi e apre i link della bio senza il tracker dei clic di Instagram. Il link apre comunque lo stesso post, reel o profilo.");
         table.put("Reopen the media and save again.",
                 "Riapri il contenuto e salva di nuovo.");
-        table.put("Reply to author",
-                "Rispondi all'autore");
+        table.put("Reply to author (posts and reels)",
+                "Rispondi all'autore (post e reel)");
         table.put("Reply with a comment's GIF",
                 "Rispondi con la GIF di un commento");
         table.put("Report a problem",
@@ -13830,8 +13830,8 @@ public final class L10nTranslations {
                 "\ub9b4\uc2a4 \ub2e4\uc6b4\ub85c\ub4dc \uba54\ub274 \ucd94\uac00");
         table.put("Download on stories",
                 "\uc2a4\ud1a0\ub9ac \ub2e4\uc6b4\ub85c\ub4dc \uba54\ub274 \ucd94\uac00");
-        table.put("Download profile card",
-                "\ud504\ub85c\ud544 \uce74\ub4dc \ub2e4\uc6b4\ub85c\ub4dc");
+        table.put("Download profile card (on profiles)",
+                "\ud504\ub85c\ud544 \uce74\ub4dc \ub2e4\uc6b4\ub85c\ub4dc (\ud504\ub85c\ud544\uc5d0\uc11c)");
         table.put("Download quality",
                 "\ub2e4\uc6b4\ub85c\ub4dc \ud654\uc9c8");
         table.put("Download video covers",
@@ -15245,8 +15245,8 @@ public final class L10nTranslations {
                 "\ubcf5\uc0ac\ud558\uac70\ub098 \uacf5\uc720\ud558\ub294 \ub9c1\ud06c\uc5d0\uc11c \ucd94\uc801 \ud0dc\uadf8\ub97c \uc81c\uac70\ud558\uace0, \uc18c\uac1c\uc758 \ub9c1\ud06c\ub97c Instagram\uc758 \ud074\ub9ad \ucd94\uc801 \uc5c6\uc774 \uc5fd\ub2c8\ub2e4. \ub9c1\ud06c\ub294 \uac19\uc740 \uac8c\uc2dc\ubb3c, \ub9b4\uc2a4, \ud504\ub85c\ud544\uc744 \uadf8\ub300\ub85c \uc5fd\ub2c8\ub2e4.");
         table.put("Reopen the media and save again.",
                 "\ubbf8\ub514\uc5b4\ub97c \ub2e4\uc2dc \uc5f4\uace0 \uc800\uc7a5\ud558\uc138\uc694");
-        table.put("Reply to author",
-                "\uc791\uc131\uc790\uc5d0\uac8c \ub2f5\uc7a5");
+        table.put("Reply to author (posts and reels)",
+                "\uc791\uc131\uc790\uc5d0\uac8c \ub2f5\uc7a5 (\uac8c\uc2dc\ubb3c \ubc0f \ub9b4\uc2a4)");
         table.put("Reply with a comment's GIF",
                 "\ub313\uae00\uc758 GIF\ub85c \ub2f5\uae00 \ub2ec\uae30");
         table.put("Report a problem",
@@ -17073,8 +17073,8 @@ public final class L10nTranslations {
                 "Baixar nos reels");
         table.put("Download on stories",
                 "Baixar nos stories");
-        table.put("Download profile card",
-                "Baixar cart\u00e3o do perfil");
+        table.put("Download profile card (on profiles)",
+                "Baixar cart\u00e3o do perfil (em perfis)");
         table.put("Download quality",
                 "Qualidade do download");
         table.put("Download video covers",
@@ -18488,8 +18488,8 @@ public final class L10nTranslations {
                 "Remove os par\u00e2metros de rastreamento dos links que voc\u00ea copia ou compartilha e abre links da bio sem o rastreador de cliques do Instagram. O destino continua sendo a mesma publica\u00e7\u00e3o, reel ou perfil.");
         table.put("Reopen the media and save again.",
                 "Abra a m\u00eddia novamente e salve outra vez.");
-        table.put("Reply to author",
-                "Responder ao autor");
+        table.put("Reply to author (posts and reels)",
+                "Responder ao autor (posts e reels)");
         table.put("Reply with a comment's GIF",
                 "Responder com o GIF de um coment\u00e1rio");
         table.put("Report a problem",
@@ -20316,8 +20316,8 @@ public final class L10nTranslations {
                 "Reels'te indir");
         table.put("Download on stories",
                 "Hikayelerde indir");
-        table.put("Download profile card",
-                "Profil kart\u0131n\u0131 indir");
+        table.put("Download profile card (on profiles)",
+                "Profil kart\u0131n\u0131 indir (profillerde)");
         table.put("Download quality",
                 "\u0130ndirme kalitesi");
         table.put("Download video covers",
@@ -21731,8 +21731,8 @@ public final class L10nTranslations {
                 "Kopyalad\u0131\u011f\u0131n veya payla\u015ft\u0131\u011f\u0131n ba\u011flant\u0131lardan izleme etiketlerini kald\u0131r\u0131r ve biyografideki ba\u011flant\u0131lar\u0131 Instagram'\u0131n t\u0131klama izleyicisi olmadan a\u00e7ar. Ba\u011flant\u0131 yine ayn\u0131 g\u00f6nderiyi, reels'i veya profili a\u00e7ar.");
         table.put("Reopen the media and save again.",
                 "Medyay\u0131 yeniden a\u00e7\u0131p tekrar kaydet.");
-        table.put("Reply to author",
-                "Yazara yan\u0131t ver");
+        table.put("Reply to author (posts and reels)",
+                "Yazara yan\u0131t ver (g\u00f6nderiler ve reels)");
         table.put("Reply with a comment's GIF",
                 "Yorumun GIF'iyle yan\u0131tla");
         table.put("Report a problem",
@@ -23559,8 +23559,8 @@ public final class L10nTranslations {
                 "T\u1ea3i xu\u1ed1ng tr\u00ean reel");
         table.put("Download on stories",
                 "T\u1ea3i xu\u1ed1ng tr\u00ean tin");
-        table.put("Download profile card",
-                "T\u1ea3i th\u1ebb trang c\u00e1 nh\u00e2n");
+        table.put("Download profile card (on profiles)",
+                "T\u1ea3i th\u1ebb trang c\u00e1 nh\u00e2n (tr\u00ean trang c\u00e1 nh\u00e2n)");
         table.put("Download quality",
                 "Ch\u1ea5t l\u01b0\u1ee3ng t\u1ea3i xu\u1ed1ng");
         table.put("Download video covers",
@@ -24974,8 +24974,8 @@ public final class L10nTranslations {
                 "G\u1ee1 th\u1ebb theo d\u00f5i kh\u1ecfi li\u00ean k\u1ebft b\u1ea1n sao ch\u00e9p ho\u1eb7c chia s\u1ebb v\u00e0 m\u1edf li\u00ean k\u1ebft trong ti\u1ec3u s\u1eed m\u00e0 kh\u00f4ng qua tr\u00ecnh theo d\u00f5i l\u01b0\u1ee3t nh\u1ea5p c\u1ee7a Instagram. Li\u00ean k\u1ebft v\u1eabn m\u1edf \u0111\u00fang b\u00e0i vi\u1ebft, reel ho\u1eb7c trang c\u00e1 nh\u00e2n \u0111\u00f3.");
         table.put("Reopen the media and save again.",
                 "H\u00e3y m\u1edf l\u1ea1i n\u1ed9i dung v\u00e0 l\u01b0u l\u1ea1i.");
-        table.put("Reply to author",
-                "Tr\u1ea3 l\u1eddi t\u00e1c gi\u1ea3");
+        table.put("Reply to author (posts and reels)",
+                "Tr\u1ea3 l\u1eddi t\u00e1c gi\u1ea3 (b\u00e0i vi\u1ebft v\u00e0 reel)");
         table.put("Reply with a comment's GIF",
                 "Tr\u1ea3 l\u1eddi b\u1eb1ng GIF c\u1ee7a b\u00ecnh lu\u1eadn");
         table.put("Report a problem",
@@ -26802,8 +26802,8 @@ public final class L10nTranslations {
                 "Reels \u4e0b\u8f09\u9078\u9805");
         table.put("Download on stories",
                 "\u9650\u6642\u52d5\u614b\u4e0b\u8f09\u9078\u9805");
-        table.put("Download profile card",
-                "\u4e0b\u8f09\u500b\u4eba\u6a94\u6848\u5361\u7247");
+        table.put("Download profile card (on profiles)",
+                "\u4e0b\u8f09\u500b\u4eba\u6a94\u6848\u5361\u7247 (\u5728\u500b\u4eba\u6a94\u6848)");
         table.put("Download quality",
                 "\u4e0b\u8f09\u756b\u8cea");
         table.put("Download video covers",
@@ -28217,8 +28217,8 @@ public final class L10nTranslations {
                 "\u79fb\u9664\u8907\u88fd\u6216\u5206\u4eab\u9023\u7d50\u4e2d\u7684\u8ffd\u8e64\u6a19\u8a18\uff0c\u4e26\u7565\u904e Instagram \u7684\u9ede\u64ca\u8ffd\u8e64\u5668\u958b\u555f\u500b\u4eba\u7c21\u4ecb\u9023\u7d50\u3002\u9023\u7d50\u4ecd\u6703\u958b\u555f\u76f8\u540c\u7684\u8cbc\u6587\u3001Reel \u6216\u500b\u4eba\u6a94\u6848\u3002");
         table.put("Reopen the media and save again.",
                 "\u8acb\u91cd\u65b0\u958b\u555f\u5a92\u9ad4\u5f8c\u518d\u6b21\u5132\u5b58\u3002");
-        table.put("Reply to author",
-                "\u56de\u8986\u4f5c\u8005");
+        table.put("Reply to author (posts and reels)",
+                "\u56de\u8986\u4f5c\u8005 (\u8cbc\u6587\u548c\u9023\u7e8c\u77ed\u7247)");
         table.put("Reply with a comment's GIF",
                 "\u7528\u7559\u8a00\u7684 GIF \u56de\u8986");
         table.put("Report a problem",

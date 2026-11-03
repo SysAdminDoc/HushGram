@@ -5079,11 +5079,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             case "whatsapp_status":
                 return L10n.t("WhatsApp status");
             case "reply_to_author":
-                return L10n.t("Reply to author");
+                return L10n.t("Reply to author (posts and reels)");
             case "watch_on_tv":
                 return L10n.t("Watch on TV");
             case "profile_card_download":
-                return L10n.t("Download profile card");
+                return L10n.t("Download profile card (on profiles)");
             case "line":
                 return L10n.t("LINE");
             case "kakaotalk":
