@@ -4121,7 +4121,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         })) {
             row.setSummary(viewingHistorySummary(ViewingHistory.entries(application), System.currentTimeMillis()));
         }
-        return mark(row, SettingsIcons.PERSON);
+        // The history clock: the list holds posts, reels and stories as well as people.
+        return mark(row, SettingsIcons.UPDATES);
     }
 
     /** What the viewing history row says for [rows], newest first, at [now]. */

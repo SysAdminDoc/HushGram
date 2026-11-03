@@ -142,6 +142,8 @@ final class SettingsIcons {
             {UPDATES, "expired", "time"},
             {STORAGE, "cache"},
             {DELETE, "clear"},
+            // After clear, so Clear viewing history keeps the bin.
+            {UPDATES, "history"},
             {MENU, "menu"},
     };
 }

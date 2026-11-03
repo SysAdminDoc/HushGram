@@ -42,12 +42,14 @@ final class BackupCategory {
         page.importConfiguration.setSummary(L10n.t("Choose a settings file. All valid choices apply together, and ones "
                 + "this version doesn't know are skipped. The Undo row shows how long you can undo."));
         page.importConfiguration.setOnPreferenceClickListener(p -> { page.pickConfiguration(true); return true; });
-        backup.addPreference(mark(page.importConfiguration, SettingsIcons.EXPORT));
+        // A settings file comes in, so the download arrow, where it used to wear Export's own mark.
+        backup.addPreference(mark(page.importConfiguration, SettingsIcons.DOWNLOADS));
         page.undoConfiguration = new Row(context);
         page.undoConfiguration.setKey("hushgram_undo_configuration");
         page.undoConfiguration.setPersistent(false);
         page.undoConfiguration.setTitle(L10n.t("Undo settings import"));
-        backup.addPreference(mark(page.undoConfiguration, SettingsIcons.DELETE));
+        // Undo puts the earlier settings back for a while, which the history clock says better than a bin.
+        backup.addPreference(mark(page.undoConfiguration, SettingsIcons.UPDATES));
         page.showConfiguration();
     }
 }

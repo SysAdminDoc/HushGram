@@ -352,6 +352,14 @@ public class SettingsCardsTest {
         assertSame(fallback, SettingsIcons.forKey(null, fallback));
     }
 
+    @Test public void aHistoryRowWearsTheClockAndClearingOneKeepsTheBin() {
+        String fallback = SettingsIcons.FEED;
+        assertSame(SettingsIcons.UPDATES, SettingsIcons.forKey(Settings.VIEWING_HISTORY.key, fallback));
+        assertSame(SettingsIcons.DELETE, SettingsIcons.forKey(HushgramPreferenceFragment.CLEAR_VIEWING_HISTORY, fallback));
+        assertSame("an earlier word still wins", SettingsIcons.DOWNLOADS,
+                SettingsIcons.forKey(HushgramPreferenceFragment.CLEAR_DOWNLOAD_HISTORY, fallback));
+    }
+
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
     public void textWrapsAndTheCardsGrowAtTwiceTheSize() throws Exception {
         RuntimeEnvironment.setFontScale(2f);
