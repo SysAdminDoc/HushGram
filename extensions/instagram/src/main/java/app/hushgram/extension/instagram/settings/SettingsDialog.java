@@ -115,7 +115,7 @@ public final class SettingsDialog extends DialogFragment {
         };
         Window window = dialog.getWindow();
         if (window != null) {
-            window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.BLACK));
+            window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(ScreenColors.current().background));
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             // With three-button navigation Android lays a grey scrim under the buttons; the
             // screen is black edge to edge, so the scrim only shows as a grey band. Android 9 has

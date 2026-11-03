@@ -419,7 +419,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             list.setItemsCanFocus(true);
             list.setDivider(null);
             list.setDividerHeight(0);
-            list.setBackgroundColor(Color.BLACK);
+            list.setBackgroundColor(ScreenColors.current().background);
             // The last row ends with room under it instead of on the gesture bar, and the room
             // scrolls with the rows.
             list.setClipToPadding(false);
