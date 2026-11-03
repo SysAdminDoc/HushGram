@@ -373,7 +373,9 @@ public final class Unfollowers {
                 write(file(application, hash(viewer)), after);
                 writeLast(application, hash(viewer));
                 try {
-                    FollowerHistory.add(historyFile(application, hash(viewer)), FollowerHistory.changes(before, followers, when));
+                    List<FollowerHistory.Change> changes = FollowerHistory.changes(before, followers, when);
+                    FollowerHistory.add(historyFile(application, hash(viewer)), changes);
+                    FollowerAlert.raise(application, changes);
                 } catch (Throwable failure) {
                     HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, SAVE, failure);
                 }

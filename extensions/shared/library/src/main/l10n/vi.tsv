@@ -1632,3 +1632,17 @@ Select text	Chọn văn bản
 Select text to copy	Chọn văn bản để sao chép
 # context: that switch summary (#492)
 Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	Thêm Chọn văn bản vào menu bình luận, chi tiết bài viết và menu hồ sơ. Văn bản mở trong một cửa sổ để bạn chọn một phần và sao chép. Liên kết vẫn bấm được.
+# context: notification channel name (#492)
+Unfollow alerts	Thông báo bỏ theo dõi
+# context: that channel description (#492)
+Who stopped following you, after you open your Followers list	Ai đã bỏ theo dõi bạn, sau khi bạn mở danh sách người theo dõi
+# context: unfollow notification title, one person (#492)
+1 person stopped following you	1 người đã bỏ theo dõi bạn
+# context: unfollow notification title, several people (#492)
+%1$d people stopped following you	%1$d người đã bỏ theo dõi bạn
+# context: names then a count of the rest (#492)
+%1$s and %2$d more	%1$s và %2$d người nữa
+# context: settings switch title (#492)
+Notify me of unfollowers	Báo cho tôi khi có người bỏ theo dõi
+# context: that switch summary (#492)
+After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	Sau khi bạn cuộn danh sách người theo dõi của mình đến cuối, hiện thông báo cho biết ai đã rời đi kể từ lần trước. Không yêu cầu thêm gì từ Instagram.

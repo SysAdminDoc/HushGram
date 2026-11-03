@@ -1715,3 +1715,17 @@ Select text	Pilih teks
 Select text to copy	Pilih teks untuk disalin
 # context: that switch summary (#492)
 Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	Menambahkan Pilih teks ke menu komentar, detail postingan, dan menu profil. Teks dibuka di jendela tempat kamu bisa memilih sebagian dan menyalinnya. Tautan di dalamnya bisa dibuka.
+# context: notification channel name (#492)
+Unfollow alerts	Notifikasi berhenti mengikuti
+# context: that channel description (#492)
+Who stopped following you, after you open your Followers list	Siapa yang berhenti mengikutimu, setelah kamu membuka daftar pengikut
+# context: unfollow notification title, one person (#492)
+1 person stopped following you	1 orang berhenti mengikutimu
+# context: unfollow notification title, several people (#492)
+%1$d people stopped following you	%1$d orang berhenti mengikutimu
+# context: names then a count of the rest (#492)
+%1$s and %2$d more	%1$s dan %2$d lainnya
+# context: settings switch title (#492)
+Notify me of unfollowers	Beri tahu saya soal yang berhenti mengikuti
+# context: that switch summary (#492)
+After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	Setelah kamu menggulir daftar pengikutmu sampai akhir, menampilkan notifikasi berisi siapa yang pergi sejak terakhir kali. Tidak ada permintaan tambahan ke Instagram.

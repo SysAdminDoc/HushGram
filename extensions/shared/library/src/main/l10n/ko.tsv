@@ -1714,3 +1714,17 @@ Select text	텍스트 선택
 Select text to copy	복사할 텍스트 선택
 # context: that switch summary (#492)
 Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	댓글 메뉴, 게시물 상세 정보, 프로필 메뉴에 텍스트 선택을 추가합니다. 텍스트가 창에 열리며 일부만 선택해 복사할 수 있어요. 링크도 열립니다.
+# context: notification channel name (#492)
+Unfollow alerts	언팔로우 알림
+# context: that channel description (#492)
+Who stopped following you, after you open your Followers list	팔로워 목록을 연 뒤 나를 언팔로우한 사람
+# context: unfollow notification title, one person (#492)
+1 person stopped following you	1명이 팔로우를 취소했어요
+# context: unfollow notification title, several people (#492)
+%1$d people stopped following you	%1$d명이 팔로우를 취소했어요
+# context: names then a count of the rest (#492)
+%1$s and %2$d more	%1$s 외 %2$d명
+# context: settings switch title (#492)
+Notify me of unfollowers	언팔로우 알림 받기
+# context: that switch summary (#492)
+After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	내 팔로워 목록을 끝까지 스크롤하면 지난번 이후 떠난 사람을 알림으로 알려 줍니다. Instagram에 추가로 요청하는 것은 없어요.

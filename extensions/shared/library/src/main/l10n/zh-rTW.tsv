@@ -1718,3 +1718,17 @@ Select text	選取文字
 Select text to copy	選取要複製的文字
 # context: that switch summary (#492)
 Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	在留言選單、貼文詳細資料和個人檔案選單加入「選取文字」。文字會在視窗中開啟，你可以選取一部分來複製。連結也能點開。
+# context: notification channel name (#492)
+Unfollow alerts	取消追蹤通知
+# context: that channel description (#492)
+Who stopped following you, after you open your Followers list	你開啟追蹤者清單後，誰取消了追蹤你
+# context: unfollow notification title, one person (#492)
+1 person stopped following you	有 1 人取消追蹤你
+# context: unfollow notification title, several people (#492)
+%1$d people stopped following you	有 %1$d 人取消追蹤你
+# context: names then a count of the rest (#492)
+%1$s and %2$d more	%1$s 和另外 %2$d 人
+# context: settings switch title (#492)
+Notify me of unfollowers	通知我有人取消追蹤
+# context: that switch summary (#492)
+After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	你把自己的追蹤者清單捲到底後，會用通知告訴你自上次以來誰離開了。不會向 Instagram 多要求任何東西。

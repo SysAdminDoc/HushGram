@@ -1715,3 +1715,17 @@ Select text	Text auswählen
 Select text to copy	Text zum Kopieren auswählen
 # context: that switch summary (#492)
 Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	Fügt dem Menü eines Kommentars, den Details eines Beitrags und dem Profilmenü „Text auswählen“ hinzu. Der Text öffnet sich in einem Fenster, in dem du einen Teil markieren und kopieren kannst. Links funktionieren dort.
+# context: notification channel name (#492)
+Unfollow alerts	Entfolgen-Hinweise
+# context: that channel description (#492)
+Who stopped following you, after you open your Followers list	Wer dir nicht mehr folgt, nachdem du deine Follower-Liste öffnest
+# context: unfollow notification title, one person (#492)
+1 person stopped following you	1 Person folgt dir nicht mehr
+# context: unfollow notification title, several people (#492)
+%1$d people stopped following you	%1$d Personen folgen dir nicht mehr
+# context: names then a count of the rest (#492)
+%1$s and %2$d more	%1$s und %2$d weitere
+# context: settings switch title (#492)
+Notify me of unfollowers	Über Entfolgende benachrichtigen
+# context: that switch summary (#492)
+After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	Zeigt eine Benachrichtigung, wer gegangen ist, nachdem du deine eigene Follower-Liste bis zum Ende gescrollt hast. Bei Instagram wird nichts zusätzlich angefragt.

@@ -57,6 +57,8 @@ final class ProfilesCategory {
                     profiles.addPreference(toggle(context, Settings.TRACK_UNFOLLOWERS, L10n.t("Recent unfollowers"),
                             L10n.t("Each time you scroll your own Followers list to the end, compares it with the last time "
                                     + "and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.")));
+                    profiles.addPreference(toggle(context, Settings.NOTIFY_UNFOLLOWS, L10n.t("Notify me of unfollowers"),
+                            L10n.t("After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.")));
                     Preference unfollowersList = unfollowersRow(context);
                     profiles.addPreference(unfollowersList);
                     Preference followerHistory = followerHistoryRow(context);

@@ -1846,6 +1846,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_track_unfollowers", FALSE);
 
     /**
+     * Notify me of unfollowers (#492): a notification when a Followers list you scrolled to the end is
+     * missing people the one before had ({@link app.hushgram.extension.instagram.profile.FollowerAlert}).
+     * Works with Recent unfollowers. Off to start.
+     */
+    public static final BooleanSetting NOTIFY_UNFOLLOWS =
+            new BooleanSetting("hushgram_notify_unfollows", FALSE);
+
+    /**
      * Suggested for you and the Discover people button on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions}). Read each time Instagram
      * builds or binds a profile's header, so off or paused, the suggestions are back on the next one.
