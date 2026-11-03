@@ -110,6 +110,24 @@ public class ReportProblemTest {
         assertTrue(query(cut).get("bug_description").startsWith("What happened:"));
     }
 
+    @Test
+    public void aPhoneNameCutShortNeverKeepsHalfACharacter() throws Exception {
+        String face = new String(Character.toChars(0x1F600));
+        StringBuilder emoji = new StringBuilder();
+        for (int i = 0; i < 3500; i++) emoji.append(face);
+        // One of the two lands the cut between the halves of an emoji, whatever the share is.
+        for (String model : new String[]{emoji.toString(), "x" + emoji}) {
+            ReportProblem.Facts odd = new ReportProblem.Facts("HushGram", "0.0.9", "Instagram", "450.0.0.50.77", 1,
+                    "Acme", model, "16", 36, null);
+            String url = ReportProblem.issueUrl(FORM, odd);
+            assertTrue(url.length() <= ReportProblem.MAX_LENGTH);
+            String device = query(url).get("device");
+            assertTrue(device, device.startsWith("Acme "));
+            assertFalse("half an emoji went out as a question mark", device.contains("?"));
+            assertTrue(device.endsWith(face));
+        }
+    }
+
     /** The query's parameters in order, decoded. */
     private static Map<String, String> query(String url) throws UnsupportedEncodingException {
         Map<String, String> fields = new LinkedHashMap<>();

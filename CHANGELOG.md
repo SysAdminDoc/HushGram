@@ -49,6 +49,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Show and reorder tabs` works with a screen reader. Each tab's handle offers Move up and Move down, and TalkBack tells you where the tab landed. The first tab isn't offered Move up, nor the last Move down. Follows #207.
 * **Instagram:** A greyed-out slider now says which switch to turn on, in place of a value it can't change, the way the greyed-out choice rows already do.
 * **Instagram:** The line under a greyed-out setting is easier to read. It faded as much as the title did, and it's the line that tells you what to turn on first.
+* **Instagram:** `Report a problem` no longer leaves a stray question mark when it has to shorten a very long phone name with emoji in it.
 * **Instagram:** `Import settings` lets you pick any file. A settings file that came through a chat or a download often carries some other type, and the picker used to grey it out. A file that isn't a settings file is still refused.
 * **Instagram:** In Morphe Manager's patch list, `Control taps and volume on Reels` now sits under Playback next to its switches, and `Hide rows in Instagram's settings` under Settings, so no group runs past 16 patches.
 * **Tooling:** `preflight.ps1 -Version` now refuses a source census past its 14 days. Until now the index push was the first thing to say so, after the gate, the walk and the publish.

@@ -193,7 +193,13 @@ public final class ReportProblem {
         int share = Math.max(40, MAX_LENGTH / 3 / Math.max(1, fields(form, facts, 0).size()));
         for (Map.Entry<String, String> field : fields(form, facts, 0).entrySet()) {
             String value = field.getValue();
-            cut.put(field.getKey(), value.length() > share ? value.substring(0, share) : value);
+            if (value.length() <= share) {
+                cut.put(field.getKey(), value);
+                continue;
+            }
+            // Never keep half of an emoji or other paired character; the link would carry a "?".
+            int end = Character.isHighSurrogate(value.charAt(share - 1)) ? share - 1 : share;
+            cut.put(field.getKey(), value.substring(0, end));
         }
         String url = url(form, cut);
         return url.length() <= MAX_LENGTH ? url : url(form, new LinkedHashMap<>());
