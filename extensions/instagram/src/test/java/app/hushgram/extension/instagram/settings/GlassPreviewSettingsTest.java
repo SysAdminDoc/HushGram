@@ -27,6 +27,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.instagram.misc.GlassPreview;
@@ -158,6 +159,30 @@ public class GlassPreviewSettingsTest {
         view.draw(new Canvas(bitmap));
         assertTrue(standard > 0);
         assertTrue(Color.alpha(view.pillTint()) > standard);
+    }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theBackdropStaysBrightWhenTheSampleRedraws() throws Exception {
+        open();
+        GlassPreview view = (GlassPreview) ((GlassPreviewRow) row("hushgram_glass_preview")).onCreateView(null);
+        view.setBase(Color.BLACK);
+        view.measure(View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        int[] corners = new int[3];
+        int[] tints = {100, 40, 0};
+        for (int draw = 0; draw < tints.length; draw++) {
+            // The black settings page under the row, as on the phone.
+            bitmap.eraseColor(Color.BLACK);
+            view.live(GlassPreview.TINT, tints[draw]);
+            view.draw(new Canvas(bitmap));
+            corners[draw] = bitmap.getPixel(2, 2);
+        }
+        assertTrue("the first draw shows the blue end of the scene: " + Integer.toHexString(corners[0]),
+                Color.blue(corners[0]) > 200);
+        assertEquals("a redraw keeps the scene as bright", corners[0], corners[1]);
+        assertEquals("a redraw keeps the scene as bright", corners[0], corners[2]);
     }
 
     private int indexOf(Preference preference) {

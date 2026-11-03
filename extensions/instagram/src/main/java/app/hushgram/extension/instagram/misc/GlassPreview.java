@@ -132,6 +132,8 @@ public final class GlassPreview extends View {
         paint.setColor(pillTint());
         canvas.drawRoundRect(pill, round, round, paint);
         boolean dark = GlassTabBar.isDark(base);
+        // A shader is drawn at the paint color's alpha, so it starts from opaque rather than the tint's.
+        paint.setColor(0xffffffff);
         paint.setShader(new LinearGradient(0, pill.top, 0, pill.bottom, dark ? 0x30ffffff : 0x66ffffff, 0x00ffffff,
                 Shader.TileMode.CLAMP));
         canvas.drawRoundRect(pill, round, round, paint);
@@ -156,6 +158,8 @@ public final class GlassPreview extends View {
     /** Colorful circles and bars, so blur and bend have something to act on. */
     private void drawScene(Canvas canvas, int width, int height) {
         paint.setStyle(Paint.Style.FILL);
+        // The last draw leaves the translucent edge color on the paint, which would fade the backdrop on every redraw.
+        paint.setColor(0xffffffff);
         paint.setShader(new LinearGradient(0, 0, width, height, SCENE[0], SCENE[2], Shader.TileMode.CLAMP));
         canvas.drawRect(0, 0, width, height, paint);
         paint.setShader(null);
