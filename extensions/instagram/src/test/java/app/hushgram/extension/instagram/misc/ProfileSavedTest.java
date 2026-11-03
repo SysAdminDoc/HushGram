@@ -58,26 +58,36 @@ public class ProfileSavedTest {
      * Instagram ran.
      */
     @Test
-    public void aKeptRowLetsTheProfilesTabsGoWithTheScreen() throws Exception {
-        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+    public void aKeptRowLetsTheProfileScreenGoWhenItCloses() throws Exception {
+        try {
             int before = ProfileSaved.rememberedForTests();
-            WeakReference<ViewGroup> tabs = remembered(controller.get());
-            assertEquals(before + 1, ProfileSaved.rememberedForTests());
-            for (int attempt = 0; attempt < 50 && (tabs.get() != null || ProfileSaved.rememberedForTests() != before); attempt++) {
+            WeakReference<?>[] held = shownThenClosed(before);
+            for (int attempt = 0; attempt < 100 && (held[0].get() != null || held[1].get() != null
+                    || ProfileSaved.rememberedForTests() != before); attempt++) {
                 System.gc();
                 Thread.sleep(5);
             }
-            assertNull("the kept row held the tabs it was keyed on", tabs.get());
+            assertNull("the kept row held the tabs it was keyed on", held[1].get());
+            assertNull("the kept row held the profile's activity", held[0].get());
             assertEquals(before, ProfileSaved.rememberedForTests());
         } finally {
             HookStatus.clear();
         }
     }
 
-    /** Made in a method of its own, so no local of the test keeps the tabs reachable. */
-    private static WeakReference<ViewGroup> remembered(Activity activity) {
+    /**
+     * Puts tabs on a profile screen, keeps a row for them the way a look does, then closes the screen.
+     * Made in a method of its own, so no local of the test keeps the activity or the tabs reachable.
+     */
+    private static WeakReference<?>[] shownThenClosed(int before) {
+        ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
+        Activity activity = controller.get();
         LinearLayout tabs = new LinearLayout(activity);
+        activity.setContentView(tabs);
         ProfileSaved.rememberForTests(activity, tabs);
-        return new WeakReference<>(tabs);
+        assertEquals(before + 1, ProfileSaved.rememberedForTests());
+        WeakReference<?>[] held = {new WeakReference<>(activity), new WeakReference<ViewGroup>(tabs)};
+        controller.close();
+        return held;
     }
 }
