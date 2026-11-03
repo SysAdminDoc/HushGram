@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -64,10 +65,13 @@ public final class ChatReelsExit {
             if (!(pager instanceof View)) return;
             View view = (View) pager;
             if (!ChatReels.fromChat(source)) {
-                PAGERS.remove(view);
+                if (PAGERS.remove(view) != null) {
+                    Logger.printDebug(() -> "Chat reels: a chat's pager set up again for " + source + ", no longer watched");
+                }
                 return;
             }
             PAGERS.put(view, Boolean.TRUE);
+            Logger.printDebug(() -> "Chat reels: watching a chat's pager, attached " + view.isAttachedToWindow());
             if (view.isAttachedToWindow()) {
                 watch(view);
             } else {
@@ -94,7 +98,12 @@ public final class ChatReelsExit {
         Activity activity = activityOf(pager.getContext());
         Window window = activity == null ? null : activity.getWindow();
         View decor = window == null ? null : window.peekDecorView();
-        if (decor == null || pager.getRootView() != decor || WRAPPED.containsKey(window)) return;
+        if (decor == null || pager.getRootView() != decor || WRAPPED.containsKey(window)) {
+            boolean wrapped = window != null && WRAPPED.containsKey(window);
+            Logger.printDebug(() -> "Chat reels: window not wrapped for the pager, "
+                    + (decor == null ? "no window" : wrapped ? "already wrapped" : "pager outside the activity's window"));
+            return;
+        }
         Window.Callback inner = window.getCallback();
         if (inner == null) return;
         window.setCallback((Window.Callback) Proxy.newProxyInstance(ChatReelsExit.class.getClassLoader(),
@@ -210,6 +219,7 @@ public final class ChatReelsExit {
                     tracking = pagerAt(decor, event.getRawX(), event.getRawY());
                     downX = event.getRawX();
                     downY = event.getRawY();
+                    if (tracking == null) Logger.printDebug(() -> "Chat reels: no chat pager under the finger");
                     return false;
                 case MotionEvent.ACTION_UP:
                     View pager = tracking;
@@ -219,7 +229,11 @@ public final class ChatReelsExit {
                     float dx = Math.abs(event.getRawX() - downX);
                     if (dy < EXIT_SHARE * pager.getHeight() || dy <= 2 * dx) return false;
                     View list = listOf(pager);
-                    return list != null && !list.canScrollVertically(1) && dragging(list);
+                    boolean more = list != null && list.canScrollVertically(1);
+                    boolean held = list != null && dragging(list);
+                    Logger.printDebug(() -> "Chat reels: swipe up at the pager, list " + (list != null)
+                            + ", more below " + more + ", dragging " + held);
+                    return list != null && !more && held;
                 case MotionEvent.ACTION_POINTER_DOWN:
                 case MotionEvent.ACTION_CANCEL:
                     tracking = null;
