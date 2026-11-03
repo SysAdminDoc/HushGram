@@ -63,6 +63,7 @@ Every HushGram release, newest first.
 * **Instagram:** The last settings row stops above the gesture bar instead of sitting on it.
 * **Instagram:** The viewing history page follows `Black settings page`, its search box matches the one on the settings page, the picked tab is underlined, long names end in an ellipsis and an empty list shows an icon.
 * **Instagram:** `Show and reorder tabs` draws its drag handles instead of using a text symbol that changed with the phone's font.
+* **Instagram:** The main settings page no longer shows a thin grey line down each screen edge. The restart bar and the viewing history search now line up with the cards.
 * **Tooling:** `preflight.ps1 -Version` now refuses a source census past its 14 days. Until now the index push was the first thing to say so, after the gate, the walk and the publish.
 * **Tooling:** `count_tests.py --description` prints only the validation sentence on stdout and its counts on stderr, so saving its output gives `release_notes.py` the one line it wants.
 
