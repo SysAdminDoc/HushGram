@@ -55,8 +55,22 @@ public final class StorySeekBar {
      */
     static final String COMPOSER = "reel_viewer_message_composer_container";
 
-    /** What the bar sits above, the first name found on screen. */
-    private static final String[] ANCHORS = {FOOTER, COMPOSER};
+    /**
+     * Your own story's toolbar (#490): Activity with the viewers' faces, Share, Send, Mention and
+     * More. The story's item binder finds it in the same toolbar as the Send message row, so it's
+     * normally inside {@link #FOOTER}; it's looked up on its own in case a build moves it out.
+     */
+    static final String SELF_TOOLBAR = "self_reel_item_toolbar_container";
+
+    /**
+     * The "Say something..." line story comments put just above your own story's toolbar (#490).
+     * It isn't part of the toolbar, so the bar has to clear it too, but only while it sits in the
+     * bottom half of the viewer.
+     */
+    static final String COMMENT_LINE = "story_comments_add_comment_text";
+
+    /** What the bar sits above: the highest of these on screen. */
+    private static final String[] ANCHORS = {FOOTER, SELF_TOOLBAR, COMPOSER, COMMENT_LINE};
 
     /** How often the bar catches up with the video. */
     static final long TICK_MS = 250;
@@ -146,6 +160,11 @@ public final class StorySeekBar {
     }
 
     @VisibleForTesting
+    static void idForTests(android.content.Context context, String name, int id) {
+        ids.putForTests(context.getPackageName(), name, id);
+    }
+
+    @VisibleForTesting
     @Nullable
     static SeekBar barForTests() {
         Overlay overlay = current;
@@ -166,7 +185,9 @@ public final class StorySeekBar {
     private static final class Overlay implements SeekBar.OnSeekBarChangeListener, Runnable {
         final WeakReference<Object> viewer;
         @Nullable GlassSeekBar bar;
-        @Nullable WeakReference<View> anchor;
+        /** The view found for each of {@link #ANCHORS}, by index. */
+        @SuppressWarnings("unchecked")
+        final WeakReference<View>[] anchors = new WeakReference[ANCHORS.length];
         boolean dragging;
         boolean removed;
 
@@ -254,19 +275,32 @@ public final class StorySeekBar {
             return seek;
         }
 
-        /** Keeps the bar just above the story's bottom row while it shows, else a little above the bottom. */
+        /**
+         * Keeps the bar just above the story's bottom row while it shows, else a little above the
+         * bottom. The row is the highest of {@link #ANCHORS} on screen, so on your own story the bar
+         * clears the toolbar and the "Say something..." line over it, and on someone else's the Send
+         * message row.
+         */
         private void place(Object owner, SeekBar seek) {
             ViewGroup parent = (ViewGroup) seek.getParent();
             if (parent == null) return;
             int bottom = dp(seek, BOTTOM_DP);
-            View box = parent.getHeight() > 0 ? anchor(owner, parent) : null;
-            if (box != null) {
-                int[] at = new int[2];
+            if (parent.getHeight() > 0) {
+                findAnchors(owner, parent);
                 int[] frame = new int[2];
-                box.getLocationInWindow(at);
                 parent.getLocationInWindow(frame);
-                int above = frame[1] + parent.getHeight() - at[1];
-                if (above > 0 && above < parent.getHeight()) bottom = above;
+                int highest = 0;
+                for (int i = 0; i < ANCHORS.length; i++) {
+                    View box = anchors[i] == null ? null : anchors[i].get();
+                    if (box == null) continue;
+                    int[] at = new int[2];
+                    box.getLocationInWindow(at);
+                    int above = frame[1] + parent.getHeight() - at[1];
+                    if (above <= 0 || above >= parent.getHeight()) continue;
+                    if (ANCHORS[i].equals(COMMENT_LINE) && above * 2 > parent.getHeight()) continue;
+                    highest = Math.max(highest, above);
+                }
+                if (highest > 0) bottom = highest;
             }
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) seek.getLayoutParams();
             if (params.bottomMargin != bottom) {
@@ -276,40 +310,38 @@ public final class StorySeekBar {
         }
 
         /**
-         * The story's bottom row on screen over [parent], by the first of {@link #ANCHORS} found there,
-         * or null. While a swipe moves to the next person's stories, both pages hold a row, so the one
-         * overlapping [parent] most wins. The row found last is kept while it still covers half of
-         * [parent], so the bar doesn't hop between the two rows mid-swipe.
+         * Fills {@link #anchors} with each of {@link #ANCHORS} on screen over [parent], or null, in
+         * one walk of the viewer. While a swipe moves to the next person's stories, both pages hold
+         * one, so the one overlapping [parent] most wins. The one found last is kept while it still
+         * covers half of [parent], so the bar doesn't hop between the two pages mid-swipe.
          */
-        @Nullable
-        private View anchor(Object owner, ViewGroup parent) {
-            View known = anchor == null ? null : anchor.get();
-            int kept = known == null ? 0 : overlap(known, parent);
-            if (kept > 0 && kept * 2 >= Math.min(known.getWidth(), parent.getWidth())) return known;
-            anchor = null;
-            View view = player.view(owner);
-            if (view == null) return null;
+        private void findAnchors(Object owner, ViewGroup parent) {
+            int[] wanted = new int[ANCHORS.length];
+            boolean any = false;
+            View view = null;
+            for (int i = 0; i < ANCHORS.length; i++) {
+                View known = anchors[i] == null ? null : anchors[i].get();
+                int kept = known == null ? 0 : overlap(known, parent);
+                if (kept > 0 && kept * 2 >= Math.min(known.getWidth(), parent.getWidth())) continue;
+                anchors[i] = null;
+                if (view == null) view = player.view(owner);
+                if (view == null) return;
+                wanted[i] = ids.resolve(view.getResources(), view.getContext().getPackageName(), ANCHORS[i], false);
+                any |= wanted[i] != 0;
+            }
+            if (!any) return;
             ArrayList<View> found = new ArrayList<>();
-            for (String name : ANCHORS) {
-                int id = ids.resolve(view.getResources(), view.getContext().getPackageName(), name, false);
-                if (id == 0) continue;
-                found.clear();
-                collect(view, id, found);
-                View best = null;
-                int most = 0;
-                for (View candidate : found) {
-                    int across = overlap(candidate, parent);
-                    if (across > most) {
-                        best = candidate;
-                        most = across;
-                    }
-                }
-                if (best != null) {
-                    anchor = new WeakReference<>(best);
-                    return best;
+            collect(view, wanted, found);
+            int[] most = new int[ANCHORS.length];
+            for (View candidate : found) {
+                int across = overlap(candidate, parent);
+                if (across <= 0) continue;
+                for (int i = 0; i < ANCHORS.length; i++) {
+                    if (wanted[i] == 0 || candidate.getId() != wanted[i] || across <= most[i]) continue;
+                    most[i] = across;
+                    anchors[i] = new WeakReference<>(candidate);
                 }
             }
-            return null;
         }
 
         void remove() {
@@ -369,12 +401,20 @@ public final class StorySeekBar {
         }
     }
 
-    /** Every view under [view], itself included, whose id is [id]. */
-    private static void collect(View view, int id, List<View> into) {
-        if (view.getId() == id) into.add(view);
+    /** Every view under [view], itself included, whose id is one of [ids] other than 0. */
+    private static void collect(View view, int[] ids, List<View> into) {
+        int own = view.getId();
+        if (own != View.NO_ID) {
+            for (int id : ids) {
+                if (id != 0 && id == own) {
+                    into.add(view);
+                    break;
+                }
+            }
+        }
         if (!(view instanceof ViewGroup)) return;
         ViewGroup group = (ViewGroup) view;
-        for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), id, into);
+        for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), ids, into);
     }
 
     /** How far across [view] covers [parent] from side to side, in pixels, or 0 when it doesn't show. */

@@ -210,6 +210,73 @@ public class StorySeekBarTest {
         assertEquals("the swipe done, the next person's row", 240, margin(bar()));
     }
 
+    /**
+     * #490: on your own story the "Say something..." line sits over the toolbar row, outside it, and
+     * the bar clears both. With the line gone the bar comes back down to the row.
+     */
+    @Test
+    public void onYourOwnStoryTheBarClearsTheSaySomethingLineOverTheToolbar() {
+        int footerId = View.generateViewId();
+        StorySeekBar.footerIdForTests(activity, footerId);
+        LinearLayout footer = new LinearLayout(activity);
+        footer.setId(footerId);
+        viewerView.addView(footer, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 100, Gravity.BOTTOM));
+        int lineId = View.generateViewId();
+        StorySeekBar.idForTests(activity, StorySeekBar.COMMENT_LINE, lineId);
+        View line = new View(activity);
+        line.setId(lineId);
+        FrameLayout.LayoutParams lineParams = new FrameLayout.LayoutParams(150, 40, Gravity.BOTTOM | Gravity.START);
+        lineParams.bottomMargin = 100;
+        viewerView.addView(line, lineParams);
+        idle();
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals("above the line over the 100 pixel row", 140, margin(bar()));
+
+        line.setVisibility(View.GONE);
+        tick();
+        idle();
+        assertEquals("the line gone, back above the 120 pixel box under it", 120, margin(bar()));
+    }
+
+    /** #490: a story comments line high up the story isn't the bottom row, so the bar stays down. */
+    @Test
+    public void aSaySomethingLineHighUpTheStoryDoesNotLiftTheBar() {
+        int lineId = View.generateViewId();
+        StorySeekBar.idForTests(activity, StorySeekBar.COMMENT_LINE, lineId);
+        View line = new View(activity);
+        line.setId(lineId);
+        FrameLayout.LayoutParams lineParams = new FrameLayout.LayoutParams(150, 40, Gravity.TOP | Gravity.START);
+        lineParams.topMargin = 20;
+        viewerView.addView(line, lineParams);
+        idle();
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals("still above the 120 pixel Send message box", 120, margin(bar()));
+    }
+
+    /** #490: your own story's toolbar counts on its own too, for a build that moves it out of the footer. */
+    @Test
+    public void yourOwnStorysToolbarOutsideTheFooterStillLiftsTheBar() {
+        int footerId = View.generateViewId();
+        StorySeekBar.footerIdForTests(activity, footerId);
+        LinearLayout footer = new LinearLayout(activity);
+        footer.setId(footerId);
+        viewerView.addView(footer, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 100, Gravity.BOTTOM));
+        int selfId = View.generateViewId();
+        StorySeekBar.idForTests(activity, StorySeekBar.SELF_TOOLBAR, selfId);
+        LinearLayout self = new LinearLayout(activity);
+        self.setId(selfId);
+        viewerView.addView(self, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 150, Gravity.BOTTOM));
+        idle();
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals("above the taller of the two rows", 150, margin(bar()));
+    }
+
     private static int margin(SeekBar bar) {
         return ((FrameLayout.LayoutParams) bar.getLayoutParams()).bottomMargin;
     }
