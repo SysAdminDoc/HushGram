@@ -155,6 +155,60 @@ public class ViewingHistorySettingsTest {
         }
     }
 
+    /**
+     * The page wears the settings' own look, Black settings page included: the search is the
+     * settings' field with a magnifier, the picked tab is underlined, a long row ends in an
+     * ellipsis, and an empty page shows a mark over its words.
+     */
+    @Test public void thePageFollowsTheSettingsLookAndShowsEachState() throws Exception {
+        long now = System.currentTimeMillis();
+        Context context = RuntimeEnvironment.getApplication();
+        ViewingHistory.clear(context);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        Settings.SETTINGS_BLACK_LOOK.save(true);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment settings = DownloadSettingsTest.pageIn(controller);
+            Preference row = settings.findPreference(HushgramPreferenceFragment.VIEWING_HISTORY_ROW);
+            ViewingHistoryPage none = ViewingHistoryPage.open(controller.get(), row);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            assertTrue(String.valueOf(none.empty.getText()), String.valueOf(none.empty.getText()).startsWith("Nothing here yet."));
+            assertNotNull("an empty page shows a mark over its words", none.empty.getCompoundDrawablesRelative()[1]);
+            none.dialog.dismiss();
+
+            ViewingHistoryRows.add(context, Kind.POST, "1_1", "someone_with_a_very_long_name_that_runs_on_and_on", now - 1_000L);
+            ViewingHistoryPage page = ViewingHistoryPage.open(controller.get(), row);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            ScreenColors black = ScreenColors.current();
+            assertEquals("the field takes the black look's surface", android.graphics.Color.BLACK,
+                    ((android.graphics.drawable.GradientDrawable) page.search.getBackground()).getColor().getDefaultColor());
+            assertEquals(black.hint, page.search.getHintTextColors()
+                    .getColorForState(new int[]{android.R.attr.state_enabled}, 0));
+            assertNotNull("a magnifier at the field's start", page.search.getCompoundDrawablesRelative()[0]);
+
+            page.tabs[2].performClick();
+            for (int at = 0; at < page.tabs.length; at++) {
+                android.graphics.drawable.Drawable line = ((android.graphics.drawable.RippleDrawable) page.tabs[at].getBackground())
+                        .getDrawable(0).getCurrent();
+                if (at == 2) assertNotNull("the picked tab is underlined", line);
+                else assertNull("tab " + at + " isn't picked, so no line", line);
+            }
+
+            page.tabs[0].performClick();
+            android.widget.LinearLayout shown = (android.widget.LinearLayout) page.list.getAdapter().getView(0, null, page.list);
+            for (int at = 0; at < shown.getChildCount(); at++) {
+                assertEquals(android.text.TextUtils.TruncateAt.END, ((android.widget.TextView) shown.getChildAt(at)).getEllipsize());
+            }
+
+            page.search.setText("nobody");
+            assertEquals("Nothing matches.", String.valueOf(page.empty.getText()));
+            assertNotNull(page.empty.getCompoundDrawablesRelative()[1]);
+        } finally {
+            Settings.SETTINGS_BLACK_LOOK.resetToDefault();
+        }
+    }
+
     @Test public void aRowLeadsToItsPostOrItsPerson() {
         assertEquals("the world record egg's real address", "https://www.instagram.com/p/BsOGulcndj-/",
                 String.valueOf(ViewingHistoryPage.link(ViewingHistoryRows.row(Kind.POST, "1949525278281554174_2", "amy"))));

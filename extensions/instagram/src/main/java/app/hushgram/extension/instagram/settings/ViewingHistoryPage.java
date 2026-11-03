@@ -13,12 +13,17 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.preference.Preference;
 import android.text.Editable;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.format.DateUtils;
 import android.util.TypedValue;
@@ -66,12 +71,14 @@ final class ViewingHistoryPage {
     final EditText search;
     final ListView list;
     final TextView empty;
+    private final ScreenColors palette = ScreenColors.current();
     private final Rows rows;
+    private final Drawable nothingYet;
+    private final Drawable nothingMatches;
     private List<ViewingHistory.Row> all = Collections.emptyList();
     private Kind kind;
 
     private ViewingHistoryPage(Context context, Preference row) {
-        ScreenColors palette = ScreenColors.DEFAULT;
         dialog = new Dialog(context, android.R.style.Theme_Material_NoActionBar);
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -100,13 +107,21 @@ final class ViewingHistoryPage {
         search.setSingleLine(true);
         search.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-        search.setTextColor(palette.title);
-        search.setHintTextColor(palette.summary);
-        search.setBackgroundTintList(ColorStateList.valueOf(palette.outline));
+        // The settings' own field, outlined on its surface and blue while it has focus, in place of
+        // the bare underline it had.
+        ScreenColors.styleField(search);
+        // A magnifier at its start, as the settings search has. A compound drawable isn't read, and
+        // the hint already names the field.
+        Drawable glass = SettingsIcons.icon(context, SettingsIcons.SEARCH, palette.summary);
+        glass.setBounds(0, 0, Dim.dp(20), Dim.dp(20));
+        search.setCompoundDrawablesRelative(glass, null, null, null);
+        search.setCompoundDrawablePadding(Dim.dp(12));
         LinearLayout.LayoutParams searchSpace = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         searchSpace.setMarginStart(Dim.dp(16));
         searchSpace.setMarginEnd(Dim.dp(16));
+        searchSpace.topMargin = Dim.dp(4);
+        searchSpace.bottomMargin = Dim.dp(4);
         root.addView(search, searchSpace);
 
         HorizontalScrollView tabScroll = new HorizontalScrollView(context);
@@ -121,7 +136,7 @@ final class ViewingHistoryPage {
             tab.setGravity(Gravity.CENTER);
             tab.setMinHeight(Dim.dp(48));
             tab.setPaddingRelative(Dim.dp(12), 0, Dim.dp(12), 0);
-            tab.setBackground(ripple(palette));
+            tab.setBackground(tabSurface(palette));
             tab.setOnClickListener(v -> pick(wanted));
             tabs[at] = tab;
             tabRow.addView(tab, new LinearLayout.LayoutParams(
@@ -145,6 +160,11 @@ final class ViewingHistoryPage {
         empty.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         empty.setGravity(Gravity.CENTER);
         empty.setPadding(Dim.dp(32), Dim.dp(32), Dim.dp(32), Dim.dp(32));
+        empty.setCompoundDrawablePadding(Dim.dp(12));
+        // A mark over the words, so an empty page reads as empty at a glance: the history clock
+        // before anything's been seen, the magnifier when a search or tab leaves nothing.
+        nothingYet = emptyMark(context, SettingsIcons.UPDATES);
+        nothingMatches = emptyMark(context, SettingsIcons.SEARCH);
         body.addView(empty, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
         list.setEmptyView(empty);
@@ -165,7 +185,7 @@ final class ViewingHistoryPage {
         dialog.setContentView(root);
         Window window = dialog.getWindow();
         if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.BLACK));
+            window.setBackgroundDrawable(new ColorDrawable(palette.background));
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.setNavigationBarContrastEnforced(false);
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
@@ -199,7 +219,6 @@ final class ViewingHistoryPage {
 
     private void pick(@Nullable Kind wanted) {
         kind = wanted;
-        ScreenColors palette = ScreenColors.DEFAULT;
         for (int at = 0; at < TABS.length; at++) {
             boolean picked = TABS[at] == wanted;
             tabs[at].setSelected(picked);
@@ -215,6 +234,7 @@ final class ViewingHistoryPage {
         Context context = dialog.getContext();
         empty.setText(all.isEmpty() ? HushgramPreferenceFragment.viewingHistorySummary(all, System.currentTimeMillis())
                 : L10n.t(context, "Nothing matches."));
+        empty.setCompoundDrawablesRelative(null, all.isEmpty() ? nothingYet : nothingMatches, null, null);
     }
 
     /** The rows of [kind] (null for all of them) whose poster or id holds [query], in their order. */
@@ -273,6 +293,29 @@ final class ViewingHistoryPage {
 
     private static RippleDrawable ripple(ScreenColors palette) {
         return new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(palette.heading)), null, new ColorDrawable(Color.WHITE));
+    }
+
+    /**
+     * A tab's press ripple over a 2dp line in the heading blue under its words, drawn only while
+     * the tab is picked, so the picked tab shows by more than its colour.
+     */
+    static RippleDrawable tabSurface(ScreenColors palette) {
+        GradientDrawable line = new GradientDrawable();
+        line.setColor(palette.heading);
+        LayerDrawable under = new LayerDrawable(new Drawable[]{line});
+        under.setLayerGravity(0, Gravity.BOTTOM | Gravity.FILL_HORIZONTAL);
+        under.setLayerHeight(0, Dim.dp(2));
+        under.setLayerInsetRelative(0, Dim.dp(12), 0, Dim.dp(12), Dim.dp(6));
+        StateListDrawable picked = new StateListDrawable();
+        picked.addState(new int[]{android.R.attr.state_selected}, under);
+        return new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(palette.heading)), picked,
+                new ColorDrawable(Color.WHITE));
+    }
+
+    private Drawable emptyMark(Context context, String icon) {
+        Drawable mark = SettingsIcons.icon(context, icon, palette.hint);
+        mark.setBounds(0, 0, Dim.dp(40), Dim.dp(40));
+        return mark;
     }
 
     private static ImageButton iconButton(Context context, ScreenColors palette, String icon, String label, View.OnClickListener tap) {
@@ -341,11 +384,15 @@ final class ViewingHistoryPage {
             who.setTextColor(palette.title);
             who.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
             who.setSingleLine(true);
+            // A long name or a long "Reel, 3 hours ago" in a wordy language ends in an ellipsis
+            // instead of being cut off mid-letter at the row's edge.
+            who.setEllipsize(TextUtils.TruncateAt.END);
             row.addView(who);
             TextView what = new TextView(context);
             what.setTextColor(palette.summary);
             what.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
             what.setSingleLine(true);
+            what.setEllipsize(TextUtils.TruncateAt.END);
             row.addView(what);
             return row;
         }
