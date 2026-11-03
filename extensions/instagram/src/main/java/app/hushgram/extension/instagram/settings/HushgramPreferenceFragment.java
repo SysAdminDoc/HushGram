@@ -420,6 +420,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             list.setDivider(null);
             list.setDividerHeight(0);
             list.setBackgroundColor(Color.BLACK);
+            // The last row ends with room under it instead of on the gesture bar, and the room
+            // scrolls with the rows.
+            list.setClipToPadding(false);
+            list.setPaddingRelative(list.getPaddingStart(), list.getPaddingTop(), list.getPaddingEnd(),
+                    Math.round(24 * list.getResources().getDisplayMetrics().density));
             // A layout calls this too, so the bar learns when the header comes and goes as well as scrolls.
             list.setOnScrollListener(new android.widget.AbsListView.OnScrollListener() {
                 @Override public void onScrollStateChanged(android.widget.AbsListView view, int state) {
