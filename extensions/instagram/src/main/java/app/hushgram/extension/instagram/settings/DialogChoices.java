@@ -81,8 +81,16 @@ final class DialogChoices extends BaseAdapter {
                 background.setColor(colors.choiceFill(android.graphics.Color.TRANSPARENT));
                 background.setStroke(Math.round(density), colors.interactionOutline(android.graphics.Color.TRANSPARENT));
                 background.setCornerRadius(Math.round(8 * density));
+                // The picked row's tint sits inside the panel's rounded corners instead of running
+                // into its edges, and the radio keeps its place. The press shows in the same shape:
+                // masked by the clear background of a row that isn't picked, it didn't show at all.
+                int inset = Math.round(12 * density);
+                GradientDrawable press = new GradientDrawable();
+                press.setColor(android.graphics.Color.WHITE);
+                press.setCornerRadius(Math.round(8 * density));
                 choice.setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading),
-                        background, null).mutate());
+                        new InsetDrawable(background, inset, 0, inset, 0),
+                        new InsetDrawable(press, inset, 0, inset, 0)).mutate());
                 // A native choice is a compact full-width row, with room to grow when text wraps.
                 int verticalPadding = (int) (8 * density);
                 choice.setPaddingRelative(Math.round(24 * density), verticalPadding,

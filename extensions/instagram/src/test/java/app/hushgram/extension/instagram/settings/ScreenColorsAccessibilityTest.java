@@ -116,6 +116,22 @@ public class ScreenColorsAccessibilityTest {
         assertNotEquals(Color.BLACK, charcoal.dialog);
     }
 
+    @Test public void anUnpickedChoiceStillShowsItsPressInsideThePanel() {
+        Activity activity = controller.get();
+        CheckedTextView choice = new CheckedTextView(activity);
+        choice.setText("Smaller file");
+        new DialogChoices(singleRow(choice), ScreenColors.DEFAULT).getView(0, null, new FrameLayout(activity));
+        assertFalse(choice.isChecked());
+        RippleDrawable ripple = (RippleDrawable) choice.getBackground();
+        Drawable mask = ripple.findDrawableByLayerId(android.R.id.mask);
+        assertNotNull("A clear unpicked row masks its ripple to nothing without a mask of its own", mask);
+        assertTrue(ripple.getDrawable(0) instanceof InsetDrawable);
+        assertTrue(mask instanceof InsetDrawable);
+        mask.setBounds(0, 0, dp(160), dp(48));
+        assertEquals("The press keeps to the picked row's shape", dp(12),
+                ((InsetDrawable) mask).getDrawable().getBounds().left);
+    }
+
     private static void readable(ScreenColors colors) {
         for (int surface : new int[]{colors.background, colors.card, colors.dialog}) {
             contrast("title", colors.title, surface, 4.5);
