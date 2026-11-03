@@ -2663,6 +2663,12 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;)Z calling static LX/*;->*(Ljava/lang/Object;I)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
 start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;II)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;II)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
+# Fill the screen on a screen wider than 9:16 (#491): the reel item layout (05DP.A0o on 453, the one
+# method opening the purge flag below) asks ReelFill.wide with the item's shape in front of its
+# compare with a bit over 9:16, and on a yes lays the reel out over the whole item as on a phone. Left
+# out, a 16:10 cover screen keeps reels in a 9:16 column with black sides; twice or elsewhere, it
+# isn't the check the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->wide(F)Z in instance (LX/*;)LX/*; pooled holding android_purge_26_q2_ClipsItemInsetsComponent_render
 
 # Tap a feed video to pause it (#137) asks FeedTapPause.tapped first thing in the feed's tap handler,
 # the one instance (View, Media, five objects, int, boolean) void method that loads the handler's

@@ -23,8 +23,12 @@ import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import app.morphe.util.ControlFlow
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -32,6 +36,13 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 internal const val FILL_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fill(Ljava/lang/Object;F)Z"
 internal const val FIT_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fit()Z"
 internal const val STORY_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->story()Z"
+internal const val WIDE_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->wide(F)Z"
+
+/** The purge flag Instagram's reel item layout, which keeps a reel 9:16 on a wider screen, names first. */
+internal const val REEL_INSETS = "android_purge_26_q2_ClipsItemInsetsComponent_render"
+
+/** 9:16 as a float's bits, the shape that layout compares the screen's and the item's with. */
+private const val NINE_SIXTEENTHS = 0x3f100000
 
 /** The trace section Instagram's story viewer opens while it fits a story to the screen's shape. */
 internal const val STORY_ASPECT_RATIO = "ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio"
@@ -119,6 +130,75 @@ internal fun BytecodePatchContext.fitReelScreen() {
         """,
         ExternalLabel("instagram", decision.getInstruction(0)),
     )
+}
+
+/**
+ * Fill the screen on a screen wider than 9:16 (#491). On a foldable or a large screen, Instagram's
+ * reel item layout (the render opening [REEL_INSETS], 05DP.A0o on 453) first checks the screen is
+ * wider than 9:16, then compares the item's own shape with a constant a bit over 9:16 and lays the
+ * reel out in a 9:16 column with insets at the sides (or a 9:16 box on a narrower item), so the crop
+ * decision sees a 9:16 viewer and [fillReelScreen] has nothing to fill. The ask goes in front of that
+ * constant with the item's shape, and a yes jumps to where the screen check sends a phone: the plain
+ * whole-item layout, after which the crop decision fills the reel within its cap. The constant
+ * writes its register, so nothing reads that register's old value, and nothing jumps to it.
+ */
+internal fun BytecodePatchContext.fillWideReelScreen() {
+    val renders = classesLoadingString(REEL_INSETS).flatMap { it.methods }.filter { loadsString(it, REEL_INSETS) }
+    val found = renders.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: expected one method opening \"$REEL_INSETS\", found ${renders.size}")
+    val types = found.parameterTypes.map(CharSequence::toString)
+    val render = mutableClassDefBy(found.definingClass).methods.single {
+        it.name == found.name && it.returnType == found.returnType && it.parameterTypes.map(CharSequence::toString) == types
+    }
+    val code = render.implementation?.instructions?.toList().orEmpty()
+    val wide = findWideReelCheck(code)
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel item layout doesn't compare the screen and then the item with 9:16")
+    val plain = ControlFlow.of(render).normal[wide.screenBranch].first()
+    if (wide.constant in render.jumpTargets()) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: something jumps to the reel item layout's 9:16 compare")
+    }
+    val answer = render.freeLocalsAt(
+        FULL_SCREEN_BARS_PATCH, wide.constant, 1, targets = listOf(plain), highest = 255, except = listOf(wide.shape),
+    ).first()
+    render.addInstructionsWithLabels(
+        wide.constant,
+        """
+            invoke-static/range { v${wide.shape} .. v${wide.shape} }, $WIDE_HOOK
+            move-result v$answer
+            if-nez v$answer, :plain
+        """,
+        ExternalLabel("plain", render.getInstruction(plain)),
+    )
+}
+
+/**
+ * Where the reel item layout checks shapes: [screenBranch] is the if-lez after the screen's shape is
+ * compared with a 9:16 const/high16, and [constant] the first const after it a bit over 9:16 that a
+ * cmpl-float compares with the float a div-float just put in [shape], the item's width over its height.
+ */
+internal data class WideReelCheck(val screenBranch: Int, val constant: Int, val shape: Int)
+
+internal fun findWideReelCheck(code: List<Instruction>): WideReelCheck? {
+    fun literal(at: Int): Int? = (code.getOrNull(at) as? NarrowLiteralInstruction)
+        ?.takeIf { it.opcode == Opcode.CONST_HIGH16 || it.opcode == Opcode.CONST }?.narrowLiteral
+    fun compares(at: Int, register: Int): ThreeRegisterInstruction? = (code.getOrNull(at) as? ThreeRegisterInstruction)
+        ?.takeIf { it.opcode == Opcode.CMPL_FLOAT && it.registerC == register }
+    fun branches(at: Int, register: Int) = code.getOrNull(at)?.let {
+        it.opcode == Opcode.IF_LEZ && (it as OneRegisterInstruction).registerA == register
+    } == true
+
+    val screen = code.indices.firstOrNull { at ->
+        literal(at) == NINE_SIXTEENTHS &&
+            compares(at + 1, (code[at] as OneRegisterInstruction).registerA)?.let { branches(at + 2, it.registerA) } == true
+    } ?: return null
+    val constant = (screen + 3 until code.size).firstOrNull { at ->
+        val value = literal(at)?.let(java.lang.Float::intBitsToFloat) ?: return@firstOrNull false
+        val divide = code[at - 1] as? ThreeRegisterInstruction
+        val compare = compares(at + 1, (code[at] as OneRegisterInstruction).registerA)
+        value > 0.5625f && value < 0.6f && divide?.opcode == Opcode.DIV_FLOAT &&
+            compare != null && compare.registerB == divide.registerA && branches(at + 2, compare.registerA)
+    } ?: return null
+    return WideReelCheck(screen + 2, constant, (code[constant - 1] as ThreeRegisterInstruction).registerA)
 }
 
 /** The story layout's pieces: the tall-screen check, the card layout and the whole-screen layout. */

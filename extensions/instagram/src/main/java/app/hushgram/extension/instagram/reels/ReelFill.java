@@ -25,6 +25,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * a black band above and below (#371). So a reel whose bar is hidden fills too: every reel with the
  * switch for all reels, only reposted ones with the switch for those.
  *
+ * <p>On a foldable or a large screen wider than 9:16, such as a 16:10 cover screen, Instagram keeps a
+ * reel in a 9:16 column before the crop decision runs, so Fill also answers there ({@link #wide}, #491).
+ *
  * <p>Show the whole reel (piko #2183) goes the other way and asks first, before Instagram's early
  * crop for media it lets crop: true makes every reel fit inside the viewer with bars where its shape
  * differs, so nothing is cut at the sides. It doesn't need Full screen Reels and wins over Fill.
@@ -48,6 +51,12 @@ public final class ReelFill {
 
     /** What a story laid out over the whole screen is counted under. */
     static final String COUNT_STORY = "stories laid out full screen";
+
+    /** What a reel given the whole width of a screen wider than 9:16 is counted under. */
+    static final String COUNT_WIDE = "reels laid out full width";
+
+    /** The shape Instagram keeps a reel to on a foldable or large screen of another shape. */
+    static final float REEL_SHAPE = 9f / 16f;
 
     private ReelFill() {
     }
@@ -83,6 +92,30 @@ public final class ReelFill {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "reel fill", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Asked as Instagram lays a reel out on a foldable or a large screen whose shape isn't 9:16 (#491),
+     * with the shape of the room the reel has, its width over its height. Instagram then puts the reel
+     * in a 9:16 column with empty sides, or a 9:16 box with empty bands on a narrower screen, so the
+     * crop decision never sees anything to fill. True when Fill the screen and Full screen Reels are on,
+     * Show the whole reel is off and the room is no more than {@link #MOST_CROP} percent off 9:16 either
+     * way, which lays the reel out over all of it like on a phone; the crop decision then fills it within
+     * the same cap. False keeps Instagram's column, and so does anything that throws. A tablet held
+     * sideways is far past the cap and keeps it.
+     */
+    public static boolean wide(float shape) {
+        try {
+            if (!Utils.settingsReady() || Settings.FIT_REEL_SCREEN.get()) return false;
+            if (!Settings.FILL_REEL_SCREEN.get() || !Settings.FULL_SCREEN_REELS.get()) return false;
+            float off = Math.abs(shape - REEL_SHAPE) / REEL_SHAPE * 100f;
+            if (!(off <= MOST_CROP)) return false;
+            HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_WIDE);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "reel width", failure);
             return false;
         }
     }

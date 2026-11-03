@@ -9,8 +9,10 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -20,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
@@ -35,7 +38,7 @@ import java.io.File
 class ReelFillHookTest {
     @Test
     fun theHookIsInTheExtension() {
-        for (hook in listOf(FILL_HOOK, FIT_HOOK, STORY_HOOK)) {
+        for (hook in listOf(FILL_HOOK, FIT_HOOK, STORY_HOOK, WIDE_HOOK)) {
             val method = ExtensionDex.classDef(hook.substringBefore("->")).methods.single {
                 "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook.substringAfter("->")
             }
@@ -56,6 +59,50 @@ class ReelFillHookTest {
      */
     @Test
     fun eachDeclaredBuildLaysStoriesOutFullScreen() = eachDeclaredBundle(::laysStoriesOut)
+
+    /**
+     * #491: the reel item layout asks with the item's shape in front of its compare with a bit over
+     * 9:16, and a yes goes where the screen check sends a phone, the plain whole-item layout.
+     */
+    @Test
+    fun eachDeclaredBuildGivesWideScreensTheWholeWidth() = eachDeclaredBundle(::fillsWideScreens)
+
+    private fun fillsWideScreens(bundle: File, label: String) {
+        val loading = FixtureDex.classesLoading(bundle, REEL_INSETS)
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading))
+        val render = loading.map { it.type }.toSet().flatMap { context.mutableClassDefBy(it).methods }
+            .single { context.loadsString(it, REEL_INSETS) }
+        val before = render.code()
+        val check = findWideReelCheck(before) ?: throw AssertionError("$label: no 9:16 checks")
+        assertEquals("$label: the screen is compared with 9:16", 0.5625f,
+            java.lang.Float.intBitsToFloat((before[check.screenBranch - 2] as NarrowLiteralInstruction).narrowLiteral), 0f)
+        assertEquals("$label: the item with a bit more", 0.5675f,
+            java.lang.Float.intBitsToFloat((before[check.constant] as NarrowLiteralInstruction).narrowLiteral), 0.0001f)
+        val plain = ControlFlow.of(render).normal[check.screenBranch].first()
+        assertTrue("$label: the plain layout comes after the column", plain > check.constant)
+        val native = NeutralNativePath(render)
+
+        context.fillWideReelScreen()
+
+        val code = render.code()
+        val ask = check.constant
+        assertEquals("$label: three instructions added", before.count { it.opcode != Opcode.NOP } + 3, code.count { it.opcode != Opcode.NOP })
+        assertEquals("$label: one ask", 1, code.count { it.referenceText() == WIDE_HOOK })
+        assertEquals("$label: in front of the item's compare", WIDE_HOOK, code[ask].referenceText())
+        assertEquals("$label: an invoke-static/range", Opcode.INVOKE_STATIC_RANGE, code[ask].opcode)
+        val call = code[ask] as RegisterRangeInstruction
+        assertEquals("$label: on the item's shape", listOf(check.shape), listOf(call.startRegister).take(call.registerCount))
+        assertEquals("$label: the answer", Opcode.MOVE_RESULT, code[ask + 1].opcode)
+        val answer = (code[ask + 1] as OneRegisterInstruction).registerA
+        assertTrue("$label: not the shape's register", answer != check.shape)
+        assertEquals("$label: a yes jumps", Opcode.IF_NEZ, code[ask + 2].opcode)
+        assertEquals("$label: on the answer", answer, (code[ask + 2] as OneRegisterInstruction).registerA)
+        val flow = ControlFlow.of(render)
+        assertEquals("$label: to the plain layout", plain + 3, flow.normal[ask + 2].first())
+        assertEquals("$label: the screen check still goes there", plain + 3, flow.normal[check.screenBranch].first())
+        assertEquals("$label: a no reaches Instagram's compare", before[check.constant].opcode, code[ask + 3].opcode)
+        native.assertPreserved(label, render, (ask until ask + 3).toSet())
+    }
 
     private fun laysStoriesOut(bundle: File, label: String) {
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, STORY_ASPECT_RATIO)))

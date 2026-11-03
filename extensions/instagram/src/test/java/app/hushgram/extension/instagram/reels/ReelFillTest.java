@@ -142,6 +142,46 @@ public class ReelFillTest {
         assertTrue(ReelFill.fill(null, BAR_GONE));
     }
 
+    /** #491: a 9:16 reel on a 1248x1972 cover screen has room 12.5% wider than it. */
+    private static final float COVER_SCREEN = 1248f / 1972f;
+
+    /** The same 12.5% the other way, room narrower than 9:16. */
+    private static final float NARROW_ROOM = ReelFill.REEL_SHAPE * 0.875f;
+
+    /** #491: on a screen wider than 9:16 the reel gets the whole width, within the same cap either way. */
+    @Test
+    public void aWideScreenGivesTheReelItsWholeWidth() {
+        assertTrue("16:10 cover screen", ReelFill.wide(COVER_SCREEN));
+        assertTrue("narrower room, same distance", ReelFill.wide(NARROW_ROOM));
+        assertTrue("already 9:16", ReelFill.wide(ReelFill.REEL_SHAPE));
+        assertTrue("right at the cap, wide side", ReelFill.wide(ReelFill.REEL_SHAPE * 1.249f));
+        assertTrue("right at the cap, narrow side", ReelFill.wide(ReelFill.REEL_SHAPE * 0.751f));
+    }
+
+    @Test
+    public void roomPastTheCapKeepsInstagramsColumn() {
+        assertFalse("a 16:10 tablet held sideways", ReelFill.wide(1.6f));
+        assertFalse("a square screen", ReelFill.wide(1f));
+        assertFalse("past the cap, wide side", ReelFill.wide(ReelFill.REEL_SHAPE * 1.26f));
+        assertFalse("past the cap, narrow side", ReelFill.wide(ReelFill.REEL_SHAPE * 0.74f));
+        assertFalse(ReelFill.wide(Float.NaN));
+        assertFalse(ReelFill.wide(Float.POSITIVE_INFINITY));
+    }
+
+    @Test
+    public void theWideSideNeedsBothSwitchesAndShowTheWholeReelWins() {
+        Settings.FIT_REEL_SCREEN.save(true);
+        assertFalse("Show the whole reel wins", ReelFill.wide(COVER_SCREEN));
+        Settings.FIT_REEL_SCREEN.save(false);
+        Settings.FILL_REEL_SCREEN.save(false);
+        assertFalse(ReelFill.wide(COVER_SCREEN));
+        Settings.FILL_REEL_SCREEN.save(true);
+        Settings.FULL_SCREEN_REELS.save(false);
+        assertFalse(ReelFill.wide(COVER_SCREEN));
+        Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(true);
+        assertFalse("hiding the comment bar alone doesn't change a wide screen's column", ReelFill.wide(COVER_SCREEN));
+    }
+
     /** piko #2183: Show the whole reel answers on its own switch, with or without Full screen Reels. */
     @Test
     public void showTheWholeReelFitsOnItsOwnSwitch() {
