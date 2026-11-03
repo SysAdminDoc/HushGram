@@ -8,8 +8,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.ColorFilter;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 
@@ -43,7 +41,6 @@ public final class ReelTextButton {
     /** Instagram's Lens and search glyphs, by name since the numbers change from build to build. */
     static final String[] ICON_NAMES = {"instagram_visual_search_outline_24", "instagram_visual_search_pano_outline_24",
             "instagram_text_bg_outline_24", "instagram_search_outline_24"};
-    private static final int ON_MEDIA = 0xFFFFFFFF;
 
     /** Instagram's glyph, looked up once: 0 until then, -1 when this build has none. */
     static volatile int glyph;
@@ -155,7 +152,7 @@ public final class ReelTextButton {
             return null;
         }
         if (drawable == null) return null;
-        drawable.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
+        ReelNotInterestedButton.tint(drawable, filter);
         return ReelNotInterestedButton.centered(resources, drawable);
     }
 

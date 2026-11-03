@@ -58,6 +58,7 @@ public final class ReelNotInterestedButton {
     static final String[] ICON_NAMES = {"instagram_eye_off_outline_24", "instagram_eye_off_outline_32"};
     /** The square a column glyph is drawn in, which shows it about as big as Comment, Save and Download. */
     static final int GLYPH_DP = 26;
+    /** The column's white over the media, for a glyph Instagram hands no filter of its own. */
     private static final int ON_MEDIA = 0xFFFFFFFF;
     /** How many viewers' delegates are remembered at once. */
     private static final int REMEMBERED = 8;
@@ -262,8 +263,13 @@ public final class ReelNotInterestedButton {
             return null;
         }
         if (drawable == null) return null;
-        drawable.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
+        tint(drawable, filter);
         return centered(resources, drawable);
+    }
+
+    /** Tints a column glyph with Instagram's filter for the column, or the column's white without one. */
+    static void tint(Drawable glyph, @Nullable ColorFilter filter) {
+        glyph.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
     }
 
     /** [glyph] drawn {@link #GLYPH_DP} square in the middle of the box the column gives it. */

@@ -7,8 +7,6 @@ package app.hushgram.extension.instagram.download;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.ColorFilter;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 
 import androidx.annotation.Nullable;
@@ -48,7 +46,6 @@ public final class ReelBlockButton {
     static final String[] ICON_NAMES = {"instagram_circle_block_outline_24", "instagram_circle_block_filled_24"};
     /** The Reels tab's module name, which Instagram's own block sheet is opened with. */
     static final String MODULE = "clips_viewer_clips_tab";
-    private static final int ON_MEDIA = 0xFFFFFFFF;
 
     /** Instagram's glyph, looked up once: 0 until then, -1 when this build has none. */
     static volatile int glyph;
@@ -221,7 +218,7 @@ public final class ReelBlockButton {
             return null;
         }
         if (drawable == null) return null;
-        drawable.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
+        ReelNotInterestedButton.tint(drawable, filter);
         return ReelNotInterestedButton.centered(resources, drawable);
     }
 

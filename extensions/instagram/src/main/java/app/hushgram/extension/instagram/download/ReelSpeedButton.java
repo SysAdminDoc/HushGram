@@ -7,8 +7,6 @@ package app.hushgram.extension.instagram.download;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.ColorFilter;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.view.Menu;
 import android.view.View;
@@ -48,7 +46,6 @@ public final class ReelSpeedButton {
             "instagram_timer_outline_24", "instagram_timer_pano_outline_24"};
     /** The speeds offered, in the order the menu lists them. */
     static final float[] SPEEDS = {0.5f, 1f, 1.5f, 1.75f, 2f, 3f};
-    private static final int ON_MEDIA = 0xFFFFFFFF;
 
     /** Instagram's glyph, looked up once: 0 until then, -1 when this build has none. */
     static volatile int glyph;
@@ -206,7 +203,7 @@ public final class ReelSpeedButton {
             return null;
         }
         if (drawable == null) return null;
-        drawable.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
+        ReelNotInterestedButton.tint(drawable, filter);
         return ReelNotInterestedButton.centered(resources, drawable);
     }
 

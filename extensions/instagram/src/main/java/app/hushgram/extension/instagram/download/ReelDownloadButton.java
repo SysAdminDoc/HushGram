@@ -8,8 +8,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.ColorFilter;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.widget.PopupMenu;
@@ -67,8 +65,6 @@ public final class ReelDownloadButton {
     static final String[] ICON_NAMES = {"instagram_download_outline_44", "instagram_download_outline_24"};
     /** The kind of an ordinary reel, as the reel's item names it. Ads and cards have other kinds. */
     static final String ORGANIC = "ORGANIC";
-    /** The column's icons are white over the video unless Instagram skips dark mode there. */
-    private static final int ON_MEDIA = 0xFFFFFFFF;
     private static final int ICON_DP = 24;
     /**
      * How Litho packs a dimension in a long: a plain double is in dp, and a NaN carrying these bits
@@ -360,7 +356,8 @@ public final class ReelDownloadButton {
         if (drawable == null) {
             drawable = new FeedDownloadButton.Glyph(Math.round(ICON_DP * resources.getDisplayMetrics().density));
         }
-        drawable.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
+        // The column's icons are white over the video unless Instagram skips dark mode there.
+        ReelNotInterestedButton.tint(drawable, filter);
         return drawable;
     }
 

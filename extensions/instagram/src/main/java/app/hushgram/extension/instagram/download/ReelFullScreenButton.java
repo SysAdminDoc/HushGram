@@ -7,8 +7,6 @@ package app.hushgram.extension.instagram.download;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.ColorFilter;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 
 import androidx.annotation.Nullable;
@@ -42,7 +40,6 @@ public final class ReelFullScreenButton {
     static final String COUNT_REFUSED = "reel full screen button not placed";
     /** Instagram's full screen glyphs, by name since the numbers change from build to build. */
     static final String[] ICON_NAMES = {"instagram_fullscreen_outline_24", "instagram_fullscreen_pano_outline_24"};
-    private static final int ON_MEDIA = 0xFFFFFFFF;
 
     /** Instagram's glyph, looked up once: 0 until then, -1 when this build has none. */
     static volatile int glyph;
@@ -146,7 +143,7 @@ public final class ReelFullScreenButton {
             return null;
         }
         if (drawable == null) return null;
-        drawable.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
+        ReelNotInterestedButton.tint(drawable, filter);
         return ReelNotInterestedButton.centered(resources, drawable);
     }
 
