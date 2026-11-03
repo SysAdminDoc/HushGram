@@ -68,7 +68,9 @@ public class ProfileExtrasSettingsTest {
         SwitchPreference save = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SAVE_PROFILE_PICTURES.key);
         assertNotNull(extras);
         assertEquals("Profile extras button", extras.getTitle().toString());
-        assertEquals("Puts a button next to the three dots on profiles that opens HushGram's profile actions. The rows in the three-dot menu stay too.",
+        assertEquals("Puts a button next to the three dots on profiles that opens HushGram's profile actions. "
+                        + "Needs Save profile picture, View profile picture or Copy username and bio on. "
+                        + "The rows in the three-dot menu stay too.",
                 extras.getSummary().toString());
         assertSame(save.getParent(), extras.getParent());
         assertFalse(extras.isChecked());

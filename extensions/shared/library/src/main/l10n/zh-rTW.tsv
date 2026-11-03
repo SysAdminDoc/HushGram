@@ -776,7 +776,7 @@ Bio copied	已複製個人簡介
 Copy bio	複製個人簡介
 Copy username and bio	複製使用者名稱與個人簡介
 Profile extras button	個人檔案額外選項按鈕
-Puts a button next to the three dots on profiles that opens HushGram's profile actions. The rows in the three-dot menu stay too.	在個人檔案的三點按鈕旁新增按鈕，開啟 HushGram 的個人檔案操作。三點選單中的選項仍會保留。
+Puts a button next to the three dots on profiles that opens HushGram's profile actions. Needs Save profile picture, View profile picture or Copy username and bio on. The rows in the three-dot menu stay too.	在個人檔案的三點按鈕旁新增按鈕，開啟 HushGram 的個人檔案操作。需開啟「儲存個人檔案相片」、「檢視個人檔案相片」或「複製使用者名稱與個人簡介」其中一項。三點選單中的選項仍會保留。
 HushGram profile actions	HushGram 個人檔案操作
 Nothing to do for this profile	此個人檔案沒有可用的操作
 Couldn't copy the bio	無法複製個人簡介

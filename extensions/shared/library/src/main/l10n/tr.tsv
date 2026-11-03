@@ -772,7 +772,7 @@ Bio copied	Biyografi kopyalandı
 Copy bio	Biyografiyi kopyala
 Copy username and bio	Kullanıcı adını ve biyografiyi kopyala
 Profile extras button	Profil ekstra düğmesi
-Puts a button next to the three dots on profiles that opens HushGram's profile actions. The rows in the three-dot menu stay too.	Profillerde üç noktanın yanına HushGram'ın profil eylemlerini açan bir düğme koyar. Üç nokta menüsündeki satırlar da kalır.
+Puts a button next to the three dots on profiles that opens HushGram's profile actions. Needs Save profile picture, View profile picture or Copy username and bio on. The rows in the three-dot menu stay too.	Profillerde üç noktanın yanına HushGram'ın profil eylemlerini açan bir düğme koyar. Profil fotoğrafını kaydet, Profil fotoğrafını görüntüle veya Kullanıcı adını ve biyografiyi kopyala açık olmalı. Üç nokta menüsündeki satırlar da kalır.
 HushGram profile actions	HushGram profil eylemleri
 Nothing to do for this profile	Yapılacak bir şey yok
 Couldn't copy the bio	Biyografi kopyalanamadı

@@ -772,7 +772,7 @@ Bio copied	Presentación copiada
 Copy bio	Copiar presentación
 Copy username and bio	Copiar nombre de usuario y presentación
 Profile extras button	Botón de extras del perfil
-Puts a button next to the three dots on profiles that opens HushGram's profile actions. The rows in the three-dot menu stay too.	Pone un botón junto a los tres puntos de los perfiles que abre las acciones de perfil de HushGram. Las filas del menú de tres puntos también se quedan.
+Puts a button next to the three dots on profiles that opens HushGram's profile actions. Needs Save profile picture, View profile picture or Copy username and bio on. The rows in the three-dot menu stay too.	Pone un botón junto a los tres puntos de los perfiles que abre las acciones de perfil de HushGram. Necesita Guardar foto del perfil, Ver foto del perfil o Copiar nombre de usuario y presentación. Las filas del menú de tres puntos también se quedan.
 HushGram profile actions	Acciones de perfil de HushGram
 Nothing to do for this profile	Nada que hacer en este perfil
 Couldn't copy the bio	No se pudo copiar la presentación
