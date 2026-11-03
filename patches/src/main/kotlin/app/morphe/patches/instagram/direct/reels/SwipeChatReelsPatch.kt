@@ -156,13 +156,23 @@ internal const val REPLY_CURRENT_INFO = "ClipsViewerDirectReplyBarController_get
 internal const val REPLY_CURRENT_ITEM = "ClipsViewerDirectReplyBarController_getCurrentClipsItem"
 
 /**
+ * The purge marker of the reply bar's page select (0T5D.Fxj on 453's 385914557), which the viewer calls
+ * as each page is selected and which hands the page on to the hint update. Redex keeps the name.
+ */
+internal const val REPLY_PAGE = "ClipsViewerDirectReplyBarController_onPageSelected"
+
+internal const val CHAT_REELS_NOTICE = "$EXTENSION_PACKAGE/direct/ChatReelsNotice;"
+internal const val NOTICE_PAGE = "$CHAT_REELS_NOTICE->page(Ljava/lang/Object;I)V"
+
+/**
  * Swiping up on a reel opened from a chat goes through the other reels shared in that chat before
  * any suggested reels (#350), and with the second switch stops after them (#390). In the default
  * selection with both switches off. The first answers Instagram's own test, so the chain, its order
  * and Back to the chat are Instagram's. With the second switch on, a pull down at a chat's first reel
  * loads nothing, and a swipe up past its last reel goes back to the chat (#390). Whatever the
  * switches, a repeat tap on media in a chat waits for the first tap's viewer instead of opening
- * another (#390).
+ * another (#390). With Messages after a reel on, a banner over the viewer says when the other person
+ * wrote after the reel on screen, and a tap on it goes back to the chat at that message (#489).
  */
 @Suppress("unused")
 val swipeChatReelsPatch = bytecodePatch(
@@ -188,10 +198,12 @@ val swipeChatReelsPatch = bytecodePatch(
         val viewers = findChatViewers()
         val collector = findReelCollector(read)
         val replies = findReplyBar(collector)
+        val page = findReplyPage(collector, replies)
         checkAddTakesReels(placeholders, collector)
         chainChatReels(read)
         skipSentReels(collector)
         giveSwipedReelsTheirReplies(collector, replies)
+        pointOutMessagesAfterReels(collector, replies, page)
         leaveOutSentReels(placeholders)
         stopAfterChatReels(end)
         stopMoreReels(more)
@@ -1283,6 +1295,97 @@ internal fun BytecodePatchContext.giveSwipedReelsTheirReplies(collector: ReelCol
             check-cast p0, ${found.item.definingClass}
             invoke-virtual { p0, p1 }, ${found.item}
             move-result-object p0
+            return-object p0
+        """,
+    )
+}
+
+/** The reply bar's page select, 0T5D.Fxj on 453's 385914557 ([REPLY_PAGE]). */
+internal class ReplyPage(val select: MutableMethod)
+
+/**
+ * Finds the reply bar's page select before anything changes. The [REPLY_PAGE] marker sits in one method
+ * of the class holding [replies]' hint update: an instance method taking an int page first and returning
+ * nothing, which hands that page on to the hint update with nothing jumping to its first instruction.
+ * The [collector]'s message time is text, for the extension's bridge to answer. Fails when any of it
+ * isn't so.
+ */
+internal fun BytecodePatchContext.findReplyPage(collector: ReelCollector, replies: ReplyBar): ReplyPage {
+    val marked = typesMarked(REPLY_PAGE).flatMap { type -> classDefBy(type).methods.filter { REPLY_PAGE in it.markers() } }
+    val select = marked.singleOrNull() ?: refuse("expected one method holding the $REPLY_PAGE marker, found ${marked.size}")
+    val controller = replies.hint.definingClass
+    val where = "${select.definingClass}->${select.name}"
+    if (select.definingClass != controller) refuse("the $REPLY_PAGE marker sits in ${select.definingClass}, not in the reply bar $controller")
+    val takes = select.parameterTypes.map(CharSequence::toString)
+    if (AccessFlags.STATIC.isSet(select.accessFlags) || takes.firstOrNull() != "I" || select.returnType != "V") {
+        refuse("$where isn't an instance method taking a page first and returning nothing")
+    }
+    val code = select.implementation ?: refuse("$where has no code")
+    val self = code.registerCount - 1 - takes.sumOf { if (it == "J" || it == "D") 2 else 1 }
+    val hint = replyCall(replies.hint)
+    val hands = code.instructions.any { instruction ->
+        val call = instruction as? ReferenceInstruction
+        if (call == null || "${call.reference}" != hint) return@any false
+        when (instruction) {
+            is FiveRegisterInstruction -> instruction.registerCount == 2 && instruction.registerC == self && instruction.registerD == self + 1
+            is RegisterRangeInstruction -> instruction.registerCount == 2 && instruction.startRegister == self
+            else -> false
+        }
+    }
+    if (!hands) refuse("$where doesn't hand its page to $hint")
+    if (0 in select.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
+    val time = collector.fields.time
+    if (time.type != "Ljava/lang/String;") refuse("the message keeps its time as ${time.type}, not as text")
+    return ReplyPage(mutableClassDefBy(controller).methods.single { it.name == select.name && it.parameterTypes.map(CharSequence::toString) == takes })
+}
+
+/**
+ * Points out a message sent after the reel on screen (#489). Swiping through a chat's reels, what the
+ * other person wrote between them went by unseen. The reply bar's page select hands the controller and
+ * its page to [NOTICE_PAGE] first, and the extension, which the collector already hands each of the
+ * chat's messages through [RECEIVED], shows a banner over the viewer when the other person wrote after
+ * that reel; a tap goes back to the chat at that message. Nothing is sent. Also writes the extension's
+ * bridges answering a message's time and whether an object is a message, from the fields the chat
+ * history reads, and the controller's [VIEWER_SOURCE] and adapter.
+ */
+internal fun BytecodePatchContext.pointOutMessagesAfterReels(collector: ReelCollector, replies: ReplyBar, found: ReplyPage) {
+    found.select.addInstructions(0, "invoke-static/range { p0 .. p1 }, $NOTICE_PAGE")
+
+    val stubs = mutableClassDefBy(CHAT_REELS_NOTICE).methods
+    fun bridge(name: String, returns: String) = stubs.singleOrNull {
+        it.name == name && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;") && it.returnType == returns &&
+            AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("the extension has no public static $name bridge for messages after a reel")
+    val fields = collector.fields
+    val controller = replies.hint.definingClass
+    bridge("timeOf", "Ljava/lang/String;").addInstructions(
+        0,
+        """
+            check-cast p0, ${fields.owner}
+            iget-object p0, p0, ${fields.time.definingClass}->${fields.time.name}:${fields.time.type}
+            return-object p0
+        """,
+    )
+    bridge("isMessage", "Z").addInstructions(
+        0,
+        """
+            instance-of p0, p0, ${fields.owner}
+            return p0
+        """,
+    )
+    bridge("sourceOf", "Ljava/lang/Object;").addInstructions(
+        0,
+        """
+            check-cast p0, $controller
+            iget-object p0, p0, ${replies.source}
+            return-object p0
+        """,
+    )
+    bridge("adapterOf", "Ljava/lang/Object;").addInstructions(
+        0,
+        """
+            check-cast p0, $controller
+            iget-object p0, p0, ${replies.adapter}
             return-object p0
         """,
     )

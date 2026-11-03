@@ -788,6 +788,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_only_received_chat_reels", FALSE, parent(SWIPE_CHAT_REELS));
 
     /**
+     * While swiping through a chat's reels, a banner says when the other person sent a message after the
+     * reel on screen, and a tap on it goes back to the chat at that message
+     * ({@link app.hushgram.extension.instagram.direct.ChatReelsNotice}, #489). A child of Swipe through a
+     * chat's reels. Off to start.
+     */
+    public static final BooleanSetting MESSAGES_AFTER_CHAT_REELS =
+            new BooleanSetting("hushgram_messages_after_chat_reels", FALSE, parent(SWIPE_CHAT_REELS));
+
+    /**
      * Long pressing a chat's name offers to jump to its first message or to a date, paging back
      * through the chat on its own ({@link app.hushgram.extension.instagram.direct.ChatPager}, #246).
      * Off to start.

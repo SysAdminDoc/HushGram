@@ -1604,6 +1604,10 @@ Red story mentions	Rote Story-Erwähnungen
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Zeigt den Text der Erwähnungs-Kapsel in Rot statt Weiß, damit er auf hellen Stories auffällt.
 Only received reels	Nur erhaltene Reels
 Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Beim Durchwischen der Reels eines Chats werden die übersprungen, die du dort gesendet hast, es geht also nur durch die Reels der anderen Person. Funktioniert mit eingeschaltetem Durch die Reels eines Chats wischen.
+# context: Messages settings (#489), and the banner over a reel opened from a chat when the other person wrote after it; a tap goes back to the chat
+Messages after a reel	Nachrichten nach einem Reel
+While you swipe through a chat's reels, a banner says when the other person sent a message after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe through a chat's reels on.	Beim Durchwischen der Reels eines Chats zeigt ein Banner an, wenn die andere Person nach dem Reel auf dem Bildschirm eine Nachricht gesendet hat. Tippe darauf, um zum Chat bei dieser Nachricht zurückzukehren. Funktioniert, wenn Durch die Reels eines Chats wischen an ist.
+New message after this reel	Neue Nachricht nach diesem Reel
 Hide the audio icon on posts	Audio-Symbol bei Beiträgen ausblenden
 Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	Entfernt das Lautsprecher-Symbol von Videos in deinem Feed. Ein Tipp auf das Video schaltet den Ton weiterhin ein oder aus. Beiträge, die schon auf dem Bildschirm sind, ändern sich, wenn sie neu geladen werden.
 Light when paused	Hell bei Pause

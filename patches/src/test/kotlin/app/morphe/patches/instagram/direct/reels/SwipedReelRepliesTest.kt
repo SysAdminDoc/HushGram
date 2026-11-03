@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -57,6 +58,66 @@ class SwipedReelRepliesTest {
         val wanted = listOf(COLLECTED, REPLY_TO, REPLY_INFO).map { it.substringAfter("->") } +
             listOf("messageOf(Ljava/lang/Object;)Ljava/lang/String;", "count(Ljava/lang/Object;)I", "item(Ljava/lang/Object;I)Ljava/lang/Object;")
         for (hook in wanted) assertTrue("$hook is not in the extension: $declared", hook in declared)
+        val notice = ExtensionDex.classDef(CHAT_REELS_NOTICE).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        val bridges = listOf(NOTICE_PAGE.substringAfter("->"), "timeOf(Ljava/lang/Object;)Ljava/lang/String;", "isMessage(Ljava/lang/Object;)Z",
+            "sourceOf(Ljava/lang/Object;)Ljava/lang/Object;", "adapterOf(Ljava/lang/Object;)Ljava/lang/Object;")
+        for (hook in bridges) assertTrue("$hook is not in the extension: $notice", hook in notice)
+    }
+
+    /**
+     * Messages after a reel (#489): the bar's page select hands the controller and its page to the
+     * extension first, and the bridges read a message's time, whether an object is a message, and the
+     * controller's source and adapter.
+     */
+    @Test
+    fun thePageSelectHandsItsPageToTheNoticeFirst() {
+        val context = context()
+        val collector = collector()
+        val replies = context.findReplyBar(collector)
+        val found = context.findReplyPage(collector, replies)
+        assertEquals("select", found.select.name)
+        val before = found.select.visualCode().map { it.opcode }
+
+        context.pointOutMessagesAfterReels(collector, replies, found)
+
+        val code = found.select.visualCode()
+        assertEquals("the hook, then Instagram's", listOf(Opcode.INVOKE_STATIC_RANGE) + before, code.map { it.opcode })
+        assertEquals(NOTICE_PAGE, code[0].text())
+        val range = code[0] as RegisterRangeInstruction
+        assertEquals("handed p0 and p1, the controller and the page", listOf(1, 2), listOf(range.startRegister, range.registerCount))
+        assertEquals("$bar->hint(I)V", code[2].text())
+
+        val bridges = context.mutableClassDefBy(CHAT_REELS_NOTICE).methods.groupBy { it.name }
+        fun bridge(name: String) = bridges.getValue(name).single().visualCode()
+        assertEquals(listOf("Lfixture/Message;", "Lfixture/Message;->time:Ljava/lang/String;"), bridge("timeOf").take(2).map { it.text() })
+        assertEquals(Opcode.RETURN_OBJECT, bridge("timeOf")[2].opcode)
+        assertEquals(listOf(Opcode.INSTANCE_OF, Opcode.RETURN), bridge("isMessage").take(2).map { it.opcode })
+        assertEquals("Lfixture/Message;", bridge("isMessage")[0].text())
+        assertEquals(listOf(bar, "$bar->source:$VIEWER_SOURCE"), bridge("sourceOf").take(2).map { it.text() })
+        assertEquals(Opcode.RETURN_OBJECT, bridge("sourceOf")[2].opcode)
+        assertEquals(listOf(bar, "$bar->adapter:$adapter"), bridge("adapterOf").take(2).map { it.text() })
+        assertEquals(Opcode.RETURN_OBJECT, bridge("adapterOf")[2].opcode)
+    }
+
+    @Test
+    fun aPageSelectItCantReadFailsBeforeAnythingChanges() {
+        val cases = listOf(
+            context(pages = 0) to "expected one method holding the $REPLY_PAGE marker, found 0",
+            context(pages = 2) to "expected one method holding the $REPLY_PAGE marker, found 2",
+            context(pageApart = true) to "the $REPLY_PAGE marker sits in Lfixture/Pages;, not in the reply bar $bar",
+            context(handsPage = false) to "$bar->select doesn't hand its page to $bar->hint(I)V",
+            context(pageJumped = true) to "a jump or exception handler enters $bar->select at its first instruction",
+        )
+        for ((context, expected) in cases) {
+            val collector = collector()
+            val replies = context.findReplyBar(collector)
+            assertRefused(expected) { context.findReplyPage(collector, replies) }
+        }
+        val collector = collector(time = "J")
+        val context = context()
+        assertRefused("the message keeps its time as J, not as text") { context.findReplyPage(collector, context.findReplyBar(collector)) }
     }
 
     /**
@@ -165,7 +226,7 @@ class SwipedReelRepliesTest {
     }
 
     /** Shaped like 453's 02YM.A01 where it builds a 0W3G: the info built, then a goto on to Instagram's use of it. */
-    private fun collector(itemType: String = item, jumped: Boolean = false): ReelCollector {
+    private fun collector(itemType: String = item, jumped: Boolean = false, time: String = "Ljava/lang/String;"): ReelCollector {
         val body = if (jumped) {
             """
                 invoke-virtual {p1}, $wrapper->reel()$item
@@ -194,7 +255,7 @@ class SwipedReelRepliesTest {
         val fields = MessageFields(
             "Lfixture/Message;",
             ImmutableFieldReference("Lfixture/Message;", "id", "Ljava/lang/String;"),
-            ImmutableFieldReference("Lfixture/Message;", "time", "Ljava/lang/String;"),
+            ImmutableFieldReference("Lfixture/Message;", "time", time),
             ImmutableFieldReference("Lfixture/Message;", "sender", "Ljava/lang/String;"),
             ImmutableFieldReference("Lfixture/Message;", "sent", "Z"),
             ImmutableFieldReference("Lfixture/Message;", "text", "Ljava/lang/String;"),
@@ -221,7 +282,27 @@ class SwipedReelRepliesTest {
         sources: Int = 1,
         inits: Int = 1,
         joined: Boolean = true,
+        pages: Int = 1,
+        pageApart: Boolean = false,
+        handsPage: Boolean = true,
+        pageJumped: Boolean = false,
     ): BytecodePatchContext {
+        val pageOwner = if (pageApart) "Lfixture/Pages;" else bar
+        val handed = if (handsPage) "p1" else "p2"
+        val again = if (pageJumped) "if-eqz p2, :top" else ""
+        // Shaped like 453's 0T5D.Fxj: its marker, then the page handed on to the hint update.
+        val select = List(pages) { index ->
+            method(
+                pageOwner, if (index == 0) "select" else "select$index", listOf("I", "I"), "V", 1, final,
+                """
+                    :top
+                    const-string v0, "${marker(REPLY_PAGE)}"
+                    invoke-virtual {p0, $handed}, $bar->hint(I)V
+                    $again
+                    return-void
+                """,
+            )
+        }
         val other = if (joined) "const/4 v1, 0x0\ngoto :join" else "return-void"
         val hint = List(hints) { index ->
             method(
@@ -276,7 +357,7 @@ class SwipedReelRepliesTest {
         val barFields = List(sources) { ImmutableField(bar, if (it == 0) "source" else "source$it", VIEWER_SOURCE, final, null, null, null) } +
             ImmutableField(bar, "adapter", adapter, final, null, null, null) +
             ImmutableField(bar, "first", "Ljava/lang/Object;", final, null, null, null)
-        val barMethods = hint + current + show + if (apart) emptyList() else listOf(currentItem)
+        val barMethods = hint + current + show + (if (apart) emptyList() else listOf(currentItem)) + (if (pageApart) emptyList() else select)
         val constructors = List(inits) { index ->
             val takes = if (index == 0) listOf("Lfixture/Sender;", "Ljava/lang/String;", "Ljava/lang/String;", "Ljava/util/List;") else emptyList()
             val stores = if (index == 0) {
@@ -294,7 +375,8 @@ class SwipedReelRepliesTest {
         }
         val classes: List<ClassDef> = listOf(classDef(bar, barMethods, barFields), classDef(info, constructors)) +
             (if (apart) listOf(classDef(itemOwner, listOf(currentItem))) else emptyList()) +
-            ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS))
+            (if (pageApart) listOf(classDef(pageOwner, select)) else emptyList()) +
+            ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS)) + ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS_NOTICE))
         return PatchContexts.of(classes)
     }
 

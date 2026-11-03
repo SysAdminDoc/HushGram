@@ -58,6 +58,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * keeps the tapped reel's. {@link #collected(Object, Object)} remembers each message's reply info as
  * the opener adds the chat's messages, and {@link #replyTo(Object, Object, Object, int)} and
  * {@link #replyInfo(Object, Object, Object)} hand the bar the one for the reel on screen (#488).
+ * {@link #received(Object, Object)} also hands each message to {@link ChatReelsNotice}, whose banner
+ * says when the other person wrote after the reel on screen (#489).
  */
 public final class ChatReels {
     /** The name of Instagram's viewer source for a reel opened from a chat. */
@@ -140,6 +142,7 @@ public final class ChatReels {
         try {
             HookStatus.invoked(FamilyNames.CHAT_REELS);
             if (message == null || !Utils.settingsReady() || HushgramPause.isPaused()) return true;
+            ChatReelsNotice.note(message, wrapper);
             if (!Settings.ONLY_RECEIVED_CHAT_REELS.get()) return true;
             sent = sentByViewer(message);
             id = sent ? itemId(message) : null;
@@ -388,6 +391,11 @@ public final class ChatReels {
         taps++;
     }
 
+    /** How many taps on media in a chat went on to open, so {@link ChatReelsNotice} starts over after a new one. */
+    static int tapCount() {
+        return taps;
+    }
+
     /** Stub: the patch writes this, answering the message [info], a reply info, quotes. */
     @Nullable
     public static String messageOf(Object info) {
@@ -470,6 +478,7 @@ public final class ChatReels {
             opening = message;
             openedAt = now;
             tapped();
+            ChatReelsNotice.opened(view);
             watch(message, view);
             return true;
         } catch (Throwable failure) {

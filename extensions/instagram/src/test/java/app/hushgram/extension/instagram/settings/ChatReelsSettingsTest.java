@@ -90,6 +90,37 @@ public class ChatReelsSettingsTest {
         PauseForTests.resume();
         assertTrue(Settings.STOP_AFTER_CHAT_REELS.get());
     }
+    /** Messages after a reel (#489) sits right under Only received reels, off to start, rests with the swipe switch off and while paused. */
+    @Test public void messagesAfterAReelStartsOffUnderOnlyReceivedReelsAndRestsWithTheSwipeSwitch() throws Exception {
+        try {
+            open(true);
+            SwitchPreference received = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.ONLY_RECEIVED_CHAT_REELS.key);
+            SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MESSAGES_AFTER_CHAT_REELS.key);
+            assertNotNull(row);
+            assertEquals("Messages after a reel", row.getTitle().toString());
+            assertTrue(String.valueOf(row.getSummary()), String.valueOf(row.getSummary()).contains("Tap it to go back to the chat"));
+            PreferenceGroup section = StoryTimeSettingsTest.sectionOf(page.getPreferenceScreen(), row);
+            assertEquals("Messages", String.valueOf(section.getTitle()));
+            assertEquals("right under Only received reels", indexIn(section, received) + 1, indexIn(section, row));
+            assertFalse(row.isChecked());
+            assertFalse(Settings.MESSAGES_AFTER_CHAT_REELS.get());
+            assertFalse("rests while the swipe switch is off", Settings.MESSAGES_AFTER_CHAT_REELS.isAvailable());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.MESSAGES_AFTER_CHAT_REELS.key));
+
+            Settings.SWIPE_CHAT_REELS.save(true);
+            assertTrue(Settings.MESSAGES_AFTER_CHAT_REELS.isAvailable());
+            Settings.MESSAGES_AFTER_CHAT_REELS.save(true);
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse(Settings.MESSAGES_AFTER_CHAT_REELS.get());
+            assertTrue(Settings.MESSAGES_AFTER_CHAT_REELS.savedValue());
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+            assertTrue(Settings.MESSAGES_AFTER_CHAT_REELS.get());
+        } finally {
+            Settings.MESSAGES_AFTER_CHAT_REELS.resetToDefault();
+        }
+    }
     private static int indexIn(PreferenceGroup section, Preference row) {
         for (int i = 0; i < section.getPreferenceCount(); i++) {
             if (section.getPreference(i) == row) return i;
@@ -104,7 +135,8 @@ public class ChatReelsSettingsTest {
         assertEquals("Messages", String.valueOf(StoryTimeSettingsTest.sectionOf(page.getPreferenceScreen(), row).getTitle()));
         assertFalse(row.isChecked());
         assertFalse(Settings.SWIPE_CHAT_REELS.get());
-        assertEquals(Arrays.asList(Settings.SWIPE_CHAT_REELS, Settings.STOP_AFTER_CHAT_REELS, Settings.ONLY_RECEIVED_CHAT_REELS), PatchFamily.CHAT_REELS.switches);
+        assertEquals(Arrays.asList(Settings.SWIPE_CHAT_REELS, Settings.STOP_AFTER_CHAT_REELS, Settings.ONLY_RECEIVED_CHAT_REELS,
+                Settings.MESSAGES_AFTER_CHAT_REELS), PatchFamily.CHAT_REELS.switches);
         assertEquals("Swipe through a chat's reels", PatchFamily.CHAT_REELS.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SWIPE_CHAT_REELS.key));
 

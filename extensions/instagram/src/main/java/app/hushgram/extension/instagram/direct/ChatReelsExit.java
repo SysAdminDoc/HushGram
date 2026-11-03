@@ -116,7 +116,7 @@ public final class ChatReelsExit {
      * view whose context's activity holds the window [pager] is in, the content view at the latest.
      */
     @Nullable
-    private static Activity ownerOf(View pager) {
+    static Activity ownerOf(View pager) {
         View root = pager.getRootView();
         for (Object at = pager; at instanceof View; at = ((View) at).getParent()) {
             Activity activity = activityOf(((View) at).getContext());
@@ -157,6 +157,23 @@ public final class ChatReelsExit {
             }
         }
         return null;
+    }
+
+    /** The chat pager on screen, the one in the focused window first, or null. */
+    @Nullable
+    static View shownPager() {
+        View shown = null;
+        for (View pager : new ArrayList<>(PAGERS.keySet())) {
+            if (pager == null || !pager.isShown()) continue;
+            if (pager.hasWindowFocus()) return pager;
+            if (shown == null) shown = pager;
+        }
+        return shown;
+    }
+
+    /** Whether [view] is a chat's Reels pager. */
+    static boolean isChatPager(View view) {
+        return PAGERS.containsKey(view);
     }
 
     /** [pager]'s list, the RecyclerView a ViewPager2 pages with, or null. */

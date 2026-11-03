@@ -809,6 +809,11 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljav
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->collected(Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media; Lkotlin/jvm/functions/Function3;->invoke(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; LX/*;->*()Ljava/util/ArrayList;
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->replyTo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)Ljava/lang/Object; in instance (I)V holding android_purge_26_q3_ClipsViewerDirectReplyBarController_updateHintText
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->replyInfo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in static (LX/*;)LX/*; holding android_purge_26_q3_ClipsViewerDirectReplyBarController_getCurrentClipsReshareInfo
+# Messages after a reel (#489): the reply bar's page select (0T5D.Fxj, onPageSelected) hands the controller
+# and its page to ChatReelsNotice.page first, so the banner over the viewer follows the reel on screen. Left
+# out, the banner never shows; twice or elsewhere, it shows for some other reel.
+start-call Lapp/hushgram/extension/instagram/direct/ChatReelsNotice;->page(Ljava/lang/Object;I)V in instance (II)V holding android_purge_26_q3_ClipsViewerDirectReplyBarController_onPageSelected
+once-call Lapp/hushgram/extension/instagram/direct/ChatReelsNotice;->page(Ljava/lang/Object;I)V in instance (II)V holding android_purge_26_q3_ClipsViewerDirectReplyBarController_onPageSelected
 # Stop after the chat's reels answers every read of the viewer config's refresh permission (A3G on
 # 453's 385914557, #390) through ChatReels.refresh: twice in the Reels tab adapter's fragment for a
 # position (0Idq.A00), once in the pager setup holding its trace name (01WS.A0j), the refresh

@@ -798,12 +798,19 @@ public final class ChatPager {
         /** How deep under a row Instagram's old-end row is looked for. */
         private static final int END_DEPTH = 3;
         private final View list;
+        /** How the rows' messages are read: Chat history's bridges, or Swipe through a chat's reels' (#489). */
+        private final ChatHistory.Reader reader;
         private List<ChatHistory.Entry> lastEntries;
         /** Which end the oldest message sits at once the rows have shown it: 0 not known, 1 the first row, 2 the last. */
         private int oldSide;
 
         ListSource(View list) {
+            this(list, ChatHistory.LIVE);
+        }
+
+        ListSource(View list, ChatHistory.Reader reader) {
             this.list = list;
+            this.reader = reader;
         }
 
         /** The biggest RecyclerView under [root] that holds rows. */
@@ -916,7 +923,7 @@ public final class ChatPager {
         @Override public List<ChatHistory.Entry> entries() {
             Object adapter = adapter();
             int count = count();
-            List<ChatHistory.Entry> entries = ChatHistory.read(adapter, count, ChatHistory.LIVE);
+            List<ChatHistory.Entry> entries = ChatHistory.read(adapter, count, reader);
             int placed = 0;
             for (ChatHistory.Entry entry : entries) {
                 if (entry.position >= 0) placed++;

@@ -1604,6 +1604,10 @@ Red story mentions	Kırmızı hikaye bahsetmeleri
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Bahsetme etiketinin yazısını beyaz yerine kırmızı çizer, böylece parlak hikayelerde öne çıkar.
 Only received reels	Yalnızca alınan reels
 Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Bir sohbetin reels'lerinde gezinirken orada gönderdiklerin atlanır, yalnızca karşı tarafın paylaştıkları gösterilir. Sohbetin reels'lerinde kaydır açıkken çalışır.
+# context: Messages settings (#489), and the banner over a reel opened from a chat when the other person wrote after it; a tap goes back to the chat
+Messages after a reel	Reels videosundan sonraki mesajlar
+While you swipe through a chat's reels, a banner says when the other person sent a message after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe through a chat's reels on.	Bir sohbetin reels videolarında kaydırırken, karşı taraf ekrandaki videodan sonra mesaj gönderdiyse bir afiş bunu gösterir. Sohbette o mesaja dönmek için afişe dokun. Bir sohbetin reels videolarında kaydır açıkken çalışır.
+New message after this reel	Bu videodan sonra yeni mesaj
 Hide the audio icon on posts	Gönderilerdeki ses simgesini gizle
 Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	Akışındaki videolardan hoparlör simgesini kaldırır. Videoya dokunmak sesi yine açıp kapatır. Ekranda zaten olan gönderiler yeniden yüklendiğinde değişir.
 Light when paused	Duraklatınca aydınlık
