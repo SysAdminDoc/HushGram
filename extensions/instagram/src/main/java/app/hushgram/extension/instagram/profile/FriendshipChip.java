@@ -749,7 +749,8 @@ final class FriendshipChip {
             if (bounds.isEmpty()) return;
             float inset = outline.getStrokeWidth() / 2;
             shape.set(bounds.left + inset, bounds.top + inset, bounds.right - inset, bounds.bottom - inset);
-            float radius = shape.height() / 2;
+            // Instagram's own profile buttons are rounded rectangles, and so is the chip under them.
+            float radius = Math.min(shape.height() / 2, dp(8));
             canvas.drawRoundRect(shape, radius, radius, outline);
 
             boolean rtl = getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;

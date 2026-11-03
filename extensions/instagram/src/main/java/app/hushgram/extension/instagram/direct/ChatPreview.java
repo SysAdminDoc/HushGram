@@ -482,7 +482,7 @@ public final class ChatPreview {
             bubble.setTextIsSelectable(true);
             GradientDrawable surface = new GradientDrawable();
             surface.setColor(line.mine ? colors.accent : colors.card);
-            surface.setCornerRadius(dp(context, 16));
+            surface.setCornerRadius(dp(context, 12));
             bubble.setBackground(surface);
             bubble.setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 8));
             bubble.setMaxWidth((int) (context.getResources().getDisplayMetrics().widthPixels * 0.6f));

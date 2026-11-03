@@ -711,12 +711,17 @@ public final class CarouselArrows {
         }
     }
 
-    /** A round arrow button: a light disc with a dark chevron, so it reads on dark and bright pages alike. */
+    /**
+     * An arrow button: a light rounded square with a dark chevron, so it reads on dark and bright
+     * pages alike. Its corners are HushGram's 8 dp, like the rest of what it adds.
+     */
     static final class Arrow extends View {
+        static final float CORNER = 8;
         private final boolean forward;
         private final Paint disc = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint chevron = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path path = new Path();
+        private final RectF square = new RectF();
 
         Arrow(Context context, boolean forward) {
             super(context);
@@ -735,7 +740,8 @@ public final class CarouselArrows {
                 public void getOutline(View view, Outline outline) {
                     int radius = Math.round(radius(view));
                     int x = view.getWidth() / 2, y = view.getHeight() / 2;
-                    outline.setOval(x - radius, y - radius, x + radius, y + radius);
+                    outline.setRoundRect(x - radius, y - radius, x + radius, y + radius,
+                            CORNER * view.getResources().getDisplayMetrics().density);
                 }
             });
         }
@@ -747,7 +753,9 @@ public final class CarouselArrows {
         @Override
         protected void onDraw(Canvas canvas) {
             float x = getWidth() / 2f, y = getHeight() / 2f, radius = radius(this);
-            canvas.drawCircle(x, y, radius, disc);
+            float corner = CORNER * getResources().getDisplayMetrics().density;
+            square.set(x - radius, y - radius, x + radius, y + radius);
+            canvas.drawRoundRect(square, corner, corner, disc);
             float reach = radius * 0.32f, lean = forward ? 1 : -1;
             chevron.setStrokeWidth(radius * 0.15f);
             path.reset();

@@ -998,7 +998,7 @@ public final class StoryMentions {
         sheet.setPadding(0, Dim.dp(20), 0, Dim.dp(16));
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(colors.dialog);
-        float corner = Dim.dp(20);
+        float corner = Dim.dp(12);
         surface.setCornerRadii(new float[] {corner, corner, corner, corner, 0, 0, 0, 0});
         sheet.setBackground(surface);
 
@@ -1041,7 +1041,7 @@ public final class StoryMentions {
         close.setMinimumHeight(Dim.dp(48));
         GradientDrawable outline = new GradientDrawable();
         outline.setColor(Color.TRANSPARENT);
-        outline.setCornerRadius(Dim.dp(24));
+        outline.setCornerRadius(Dim.dp(12));
         outline.setStroke(Dim.dp(1), colors.outline);
         close.setBackground(new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(colors.heading)), outline, null));
         LinearLayout.LayoutParams wide = new LinearLayout.LayoutParams(
