@@ -163,6 +163,9 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(opacityFound instanceof HushgramPreferenceFragment.SliderRow);
         HushgramPreferenceFragment.SliderRow opacity = (HushgramPreferenceFragment.SliderRow) opacityFound;
         assertEquals("Tint intensity", String.valueOf(opacity.getTitle()));
+        assertEquals("Turn on Glass tab bar to use this slider.", String.valueOf(opacity.getSummary()));
+        ((SwitchPreference) row(Settings.GLASS_TAB_BAR.key)).setChecked(true);
+        ShadowLooper.idleMainLooper();
         assertEquals("100% (standard)", String.valueOf(opacity.getSummary()));
         assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), opacity).getTitle()));
         assertFalse("a change shows on the bar at once", Settings.GLASS_TAB_BAR_OPACITY.rebootApp);
@@ -256,6 +259,9 @@ public class TabBarAndBatterySettingsTest {
             if (Settings.GLASS_TAB_BAR_BLUR_RADIUS.key.equals(key)) strengthAt = i;
         }
         assertEquals("right after Blur behind the tab bar", blurAt + 1, strengthAt);
+        assertEquals("Turn on Glass tab bar to use this slider.", String.valueOf(strength.getSummary()));
+        ((SwitchPreference) row(Settings.GLASS_TAB_BAR.key)).setChecked(true);
+        ShadowLooper.idleMainLooper();
         assertEquals("18 dp (standard)", String.valueOf(strength.getSummary()));
         assertFalse("the row opens no dialog, the slider is the control", strength.isSelectable());
         assertFalse(Settings.GLASS_TAB_BAR_BLUR_RADIUS.rebootApp);

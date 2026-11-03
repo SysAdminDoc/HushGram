@@ -12,6 +12,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
+import android.preference.SwitchPreference;
 import android.view.View;
 
 import java.util.Arrays;
@@ -65,6 +66,7 @@ public class GlassPreviewSettingsTest {
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
+        Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
         Settings.GLASS_TAB_BAR_BLUR_RADIUS.resetToDefault();
     }
 
@@ -80,12 +82,27 @@ public class GlassPreviewSettingsTest {
         return page.getPreferenceScreen().findPreference(key);
     }
 
+    /** Turns the switch at [key] on the way a tap does, so the rows under it hear about it. */
+    private void check(String key) {
+        ((SwitchPreference) row(key)).setChecked(true);
+        ShadowLooper.idleMainLooper();
+    }
+
     @Test public void theRefractionSliderStartsOnTheStandardBendAndSavesWithoutARestart() throws Exception {
         open();
         Preference found = row(Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.key);
         assertTrue(found instanceof HushgramPreferenceFragment.SliderRow);
         HushgramPreferenceFragment.SliderRow slider = (HushgramPreferenceFragment.SliderRow) found;
         assertEquals("Refraction intensity", String.valueOf(slider.getTitle()));
+        // Greyed out, the slider names the nearest switch that would wake it, from the bar itself inward.
+        assertFalse(slider.isEnabled());
+        assertEquals("Turn on Glass tab bar to use this slider.", String.valueOf(slider.getSummary()));
+        check(Settings.GLASS_TAB_BAR.key);
+        assertEquals("Turn on Liquid glass look to use this slider.", String.valueOf(slider.getSummary()));
+        check(Settings.GLASS_TAB_BAR_LIQUID.key);
+        assertEquals("Turn on Bend light at the edges to use this slider.", String.valueOf(slider.getSummary()));
+        check(Settings.GLASS_TAB_BAR_REFRACT.key);
+        assertTrue(slider.isEnabled());
         assertEquals("100% (standard)", String.valueOf(slider.getSummary()));
         assertEquals(100, (int) Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.defaultValue);
         assertEquals(0, slider.valueAt(0));
@@ -105,6 +122,30 @@ public class GlassPreviewSettingsTest {
     @Test public void theTintSliderIsNamedForWhatItDoes() throws Exception {
         open();
         assertEquals("Tint intensity", String.valueOf(row(Settings.GLASS_TAB_BAR_OPACITY.key).getTitle()));
+    }
+
+    /** A greyed-out slider says which switch to turn on, in place of a value it can't change. */
+    @Test public void aGreyedOutSliderNamesTheSwitchItWaitsOn() throws Exception {
+        open();
+        HushgramPreferenceFragment.SliderRow tint = (HushgramPreferenceFragment.SliderRow) row(Settings.GLASS_TAB_BAR_OPACITY.key);
+        HushgramPreferenceFragment.SliderRow blur = (HushgramPreferenceFragment.SliderRow) row(Settings.GLASS_TAB_BAR_BLUR_RADIUS.key);
+        assertFalse(tint.isEnabled());
+        assertEquals("Turn on Glass tab bar to use this slider.", String.valueOf(tint.getSummary()));
+        assertEquals("the switch two levels up is the one resting",
+                "Turn on Glass tab bar to use this slider.", String.valueOf(blur.getSummary()));
+
+        ((SwitchPreference) row(Settings.GLASS_TAB_BAR.key)).setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(tint.isEnabled());
+        assertEquals("100% (standard)", String.valueOf(tint.getSummary()));
+        assertTrue(blur.isEnabled());
+        assertEquals(blur.label(Settings.GLASS_TAB_BAR_BLUR_RADIUS.get()), String.valueOf(blur.getSummary()));
+
+        ((SwitchPreference) row(Settings.GLASS_TAB_BAR_BLUR.key)).setChecked(false);
+        ShadowLooper.idleMainLooper();
+        assertFalse(blur.isEnabled());
+        assertEquals("Turn on Blur behind the tab bar to use this slider.", String.valueOf(blur.getSummary()));
+        assertEquals("the tint slider waits on nothing that's off", "100% (standard)", String.valueOf(tint.getSummary()));
     }
 
     /** The sample's glass sits on what the bar sits on: black in Instagram's dark theme, white in its light one. */

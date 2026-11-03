@@ -5823,6 +5823,28 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /**
+     * Which switch a greyed-out slider waits on: "Turn on Glass tab bar to use this slider." The switch
+     * named is the one resting, found by walking up from the slider's own parent while that parent is
+     * itself held by one above it, and it's named by its row's title on this page. Null when no row on
+     * the page can name it, and the slider's summary keeps showing its value.
+     */
+    @Nullable
+    private String sliderReason(Setting<?> setting) {
+        for (Setting<?> parent : setting.getParentSettings()) {
+            boolean on = parent instanceof BooleanSetting && ((BooleanSetting) parent).savedValue();
+            if (on && parent.isAvailable()) continue;
+            if (!parent.isAvailable()) {
+                String above = sliderReason(parent);
+                if (above != null) return above;
+            }
+            Preference row = findPreference(parent.key);
+            CharSequence title = row == null ? null : row.getTitle();
+            if (title != null && title.length() > 0) return L10n.f("Turn on %1$s to use this slider.", title);
+        }
+        return null;
+    }
+
     @Override
     protected void updatePreferenceAvailability(Preference preference, Setting<?> setting) {
         super.updatePreferenceAvailability(preference, setting);
@@ -5842,6 +5864,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     ? L10n.t("Removes For you from the choices at the top of Home, so it stays on Following or "
                             + "Favorites. Needs Start Home on Following. Restart Instagram to see the change.")
                     : L10n.t("Turn on Start Home on Following to use this choice."));
+        } else if (preference instanceof SliderRow) {
+            ((SliderRow) preference).showSummary(setting.isAvailable() ? null : sliderReason(setting));
         } else if (preference instanceof PlaybackQualityRow) {
             ((PlaybackQualityRow) preference).showSummary();
         } else if (preference instanceof TapToPlayScopeRow) {
@@ -7699,6 +7723,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         private final String format;
         /** Told the value as the thumb moves, and -1 once it's let go, by a row that shows the change (#391). */
         @Nullable java.util.function.IntConsumer live;
+        /** Why the slider is greyed out, shown in place of its value, or null while it can be used. */
+        @Nullable private String reason;
 
         SliderRow(Context context, IntegerSetting setting, int step, String format) {
             super(context);
@@ -7707,6 +7733,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             this.format = format;
             setKey(setting.key);
             setSelectable(false);
+        }
+
+        /**
+         * Shows [reason] as the summary while the slider is greyed out, and the value again once it's
+         * null, the way the rows of choices that wait on a switch say which one.
+         */
+        void showSummary(@Nullable String reason) {
+            this.reason = reason;
+            setSummary(reason != null ? reason : label(valueOf(getText())));
         }
 
         /** [text] as a value inside the setting's range, or its default when it isn't a number. */
@@ -7737,7 +7772,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         @Override
         public void setText(String text) {
             super.setText(text);
-            setSummary(label(valueOf(text)));
+            setSummary(reason != null ? reason : label(valueOf(text)));
         }
 
         /** Saves [value] as the row's text, through the page's listener as any other row's change goes. */

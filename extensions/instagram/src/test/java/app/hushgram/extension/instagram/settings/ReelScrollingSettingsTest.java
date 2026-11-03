@@ -112,7 +112,7 @@ public class ReelScrollingSettingsTest {
         assertTrue(countFound instanceof HushgramPreferenceFragment.SliderRow);
         HushgramPreferenceFragment.SliderRow count = (HushgramPreferenceFragment.SliderRow) countFound;
         assertEquals("Reels before swiping stops", String.valueOf(count.getTitle()));
-        assertEquals("20 reels (standard)", String.valueOf(count.getSummary()));
+        assertEquals("Turn on Stop after a set number of reels to use this slider.", String.valueOf(count.getSummary()));
         SeekBar countSlider = sliderOf(count);
         assertEquals("5 to 100 reels in steps of 5", 19, countSlider.getMax());
         assertEquals(3, countSlider.getProgress());
@@ -121,7 +121,7 @@ public class ReelScrollingSettingsTest {
         assertTrue(breakFound instanceof HushgramPreferenceFragment.SliderRow);
         HushgramPreferenceFragment.SliderRow pause = (HushgramPreferenceFragment.SliderRow) breakFound;
         assertEquals("Time away before swiping comes back", String.valueOf(pause.getTitle()));
-        assertEquals("15 minutes in the background (standard)", String.valueOf(pause.getSummary()));
+        assertEquals("Turn on Stop after a set number of reels to use this slider.", String.valueOf(pause.getSummary()));
         SeekBar breakSlider = sliderOf(pause);
         assertEquals("5 to 120 minutes in steps of 5", 23, breakSlider.getMax());
         assertEquals(2, breakSlider.getProgress());
@@ -130,9 +130,14 @@ public class ReelScrollingSettingsTest {
         assertFalse(count.isEnabled());
         assertFalse(pause.isEnabled());
         assertFalse(Settings.REEL_CAP_COUNT.isAvailable());
-        Settings.REEL_CAP.save(true);
+        ((SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REEL_CAP.key)).setChecked(true);
+        ShadowLooper.idleMainLooper();
         assertTrue(Settings.REEL_CAP_COUNT.isAvailable());
         assertTrue(Settings.REEL_CAP_BREAK.isAvailable());
+        assertTrue(count.isEnabled());
+        assertTrue(pause.isEnabled());
+        assertEquals("20 reels (standard)", String.valueOf(count.getSummary()));
+        assertEquals("15 minutes in the background (standard)", String.valueOf(pause.getSummary()));
 
         PreferenceGroup reels = count.getParent();
         String[] keys = new String[reels.getPreferenceCount()];
