@@ -7,10 +7,13 @@ package app.hushgram.extension.instagram.settings;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.os.Build;
+import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -219,6 +222,13 @@ final class TabPicker {
     }
 
     /**
+     * The actions a screen reader is offered on a row's handle in place of the drag, which it can't do
+     * (#207). Their ids sit above the standard ones, as a custom action's must.
+     */
+    static final int MOVE_UP = 0x7f3a0001;
+    static final int MOVE_DOWN = 0x7f3a0002;
+
+    /**
      * Moves [list]'s row at [index] one place up, the first staying where it is. The row above moves
      * down past it instead, so a dragged row stays attached and its touch goes on.
      */
@@ -267,7 +277,49 @@ final class TabPicker {
         int side = dp(context, 48);
         row.addView(handle, new LinearLayout.LayoutParams(side, side));
         handle.setOnTouchListener(new Drag(list, row));
+        handle.setAccessibilityDelegate(new Mover(list, row, tab));
         return row;
+    }
+
+    /**
+     * Move up and Move down on a row's handle for a screen reader, which can't drag (#207). The first
+     * row isn't offered Move up, nor the last Move down. A move tells the reader where the row landed
+     * through the handle's state, the way a slider's row tells it the value, since the reader's focus
+     * stays on the handle.
+     */
+    private static final class Mover extends View.AccessibilityDelegate {
+        private final LinearLayout list;
+        private final View row;
+        private final String tab;
+
+        Mover(LinearLayout list, View row, String tab) {
+            this.list = list;
+            this.row = row;
+            this.tab = tab;
+        }
+
+        @Override public void onInitializeAccessibilityNodeInfo(View handle, AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(handle, info);
+            int at = list.indexOfChild(row);
+            if (at > 0) info.addAction(new AccessibilityNodeInfo.AccessibilityAction(MOVE_UP, L10n.t("Move up")));
+            if (at >= 0 && at < list.getChildCount() - 1) {
+                info.addAction(new AccessibilityNodeInfo.AccessibilityAction(MOVE_DOWN, L10n.t("Move down")));
+            }
+        }
+
+        @Override public boolean performAccessibilityAction(View handle, int action, Bundle arguments) {
+            if (action != MOVE_UP && action != MOVE_DOWN) return super.performAccessibilityAction(handle, action, arguments);
+            int was = list.indexOfChild(row);
+            if (action == MOVE_UP) moveUp(list, was);
+            else moveDown(list, was);
+            int now = list.indexOfChild(row);
+            if (now == was) return false;
+            String landed = L10n.f("%1$s is now %2$d of %3$d", HushgramPreferenceFragment.tabLabel(tab), now + 1,
+                    list.getChildCount());
+            if (Build.VERSION.SDK_INT >= 30) handle.setStateDescription(landed);
+            else handle.announceForAccessibility(landed);
+            return true;
+        }
     }
 
     /** A drag on a row's handle: past half a row up or down, the row trades places with its neighbour. */

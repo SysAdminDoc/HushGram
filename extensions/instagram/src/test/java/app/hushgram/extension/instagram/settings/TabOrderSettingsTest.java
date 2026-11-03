@@ -19,6 +19,7 @@ import android.os.SystemClock;
 import android.preference.Preference;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 
@@ -36,6 +37,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
 
@@ -182,6 +184,39 @@ public class TabOrderSettingsTest {
         assertEquals(Arrays.asList("[x] Home", "[x] Search", "[x] Reels", "[x] Messages", "[x] Create",
                 "[x] Profile", "[ ] Activity"), shown(list(dialog)));
         assertEquals("Drag to move Home", String.valueOf(TabPicker.handle(list(dialog).getChildAt(0)).getContentDescription()));
+    }
+
+    /** A screen reader can't drag, so each handle offers Move up and Move down and says where the tab landed (#207). */
+    @Test @Config(sdk = 37) public void aScreenReaderMovesATabWithActionsOnItsHandle() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        AlertDialog dialog = openList();
+        LinearLayout list = list(dialog);
+        View home = TabPicker.handle(list.getChildAt(0));
+        assertEquals(Arrays.asList("Move down"), moves(home));
+        assertEquals(Arrays.asList("Move up", "Move down"), moves(TabPicker.handle(list.getChildAt(1))));
+        assertEquals(Arrays.asList("Move up"), moves(TabPicker.handle(list.getChildAt(list.getChildCount() - 1))));
+
+        assertFalse("the first row has nowhere up to go", home.performAccessibilityAction(TabPicker.MOVE_UP, null));
+        assertEquals("[x] Home", shown(list).get(0));
+        assertTrue(home.performAccessibilityAction(TabPicker.MOVE_DOWN, null));
+        assertEquals(Arrays.asList("[x] Search", "[x] Home"), shown(list).subList(0, 2));
+        assertEquals("Home is now 2 of 7", String.valueOf(home.getStateDescription()));
+        assertEquals(Arrays.asList("Move up", "Move down"), moves(home));
+        assertEquals("nothing is saved before OK", "", Settings.TAB_ORDER.get());
+
+        press(dialog, DialogInterface.BUTTON_POSITIVE);
+        assertEquals("SEARCH,FEED,CLIPS,DIRECT,CREATION,PROFILE,NEWS", Settings.TAB_ORDER.get());
+    }
+
+    /** The move actions [handle] offers a screen reader, by label. */
+    private static List<String> moves(View handle) {
+        List<String> labels = new ArrayList<>();
+        for (AccessibilityNodeInfo.AccessibilityAction action : handle.createAccessibilityNodeInfo().getActionList()) {
+            if (action.getId() == TabPicker.MOVE_UP || action.getId() == TabPicker.MOVE_DOWN) {
+                labels.add(String.valueOf(action.getLabel()));
+            }
+        }
+        return labels;
     }
 
     /** #298: Messages on Instagram's own bar comes off with Hide the Messages tab, and its box puts it back. */
