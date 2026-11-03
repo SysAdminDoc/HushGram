@@ -53,6 +53,11 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * <p>The patch also asks {@link #open(Object, View)} first on every tap on media in a chat. On a slow
  * phone a shared post or reel takes a while to open, and each tap while it loads starts another
  * open, so the viewers stack and Back has to close each one (#390).
+ *
+ * <p>The reply bar under a reel from a chat answers the message that shared it, but Instagram only
+ * keeps the tapped reel's. {@link #collected(Object, Object)} remembers each message's reply info as
+ * the opener adds the chat's messages, and {@link #replyTo(Object, Object, Object, int)} and
+ * {@link #replyInfo(Object, Object, Object)} hand the bar the one for the reel on screen (#488).
  */
 public final class ChatReels {
     /** The name of Instagram's viewer source for a reel opened from a chat. */
@@ -75,6 +80,17 @@ public final class ChatReels {
     };
     /** The application the activity watcher is registered on. */
     @Nullable private static Application watched;
+
+    /** How many reels of the chat last opened keep their messages for the reply bar at most. */
+    static final int REPLIES_KEPT = 500;
+    /** How many of one reel's messages are kept at most. */
+    static final int MESSAGES_KEPT = 50;
+    /** The taps on media in a chat that went on to open, counted, so a new one starts the replies over. */
+    private static volatile int taps;
+    /** The tap the remembered replies came after. Guarded by {@link #REPLIES}. */
+    private static int repliesTap = -1;
+    /** The reply info of each of a reel's messages in the chat, by the reel's media id and then the message, oldest first. */
+    private static final Map<String, Map<String, Object>> REPLIES = new Kept<>(REPLIES_KEPT);
 
     private ChatReels() {
     }
@@ -248,6 +264,161 @@ public final class ChatReels {
     }
 
     /**
+     * Remembers [info], the reply info Instagram just built for one of a chat's messages, the one in
+     * [wrapper], so a reel swiped to from that chat gets the reply bar and reactions for its own message
+     * (#488). Instagram keeps only the tapped reel's info and asks for it by position, so past the first
+     * reel its bar hid and a reaction quoted the tapped message. Nothing while the switch is off,
+     * HushGram is paused or the settings aren't ready, and nothing is ever sent. Never throws.
+     */
+    public static void collected(@Nullable Object info, @Nullable Object wrapper) {
+        try {
+            HookStatus.invoked(FamilyNames.CHAT_REELS);
+            if (info == null || wrapper == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
+            if (!Settings.SWIPE_CHAT_REELS.get()) return;
+            Object reel = reel(wrapper);
+            if (reel != null) rememberReply(mediaId(reel), messageOf(info), info);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels reply", failure);
+        }
+    }
+
+    /** Remembers [info] as the reply info of [message], a message holding the reel [media], starting over after a new tap. */
+    static void rememberReply(@Nullable String media, @Nullable String message, Object info) {
+        if (media == null || message == null || message.isEmpty()) return;
+        synchronized (REPLIES) {
+            int tap = taps;
+            if (repliesTap != tap) {
+                REPLIES.clear();
+                repliesTap = tap;
+            }
+            Map<String, Object> messages = REPLIES.remove(media);
+            if (messages == null) messages = new Kept<>(MESSAGES_KEPT);
+            messages.remove(message);
+            messages.put(message, info);
+            REPLIES.put(media, messages);
+        }
+    }
+
+    /**
+     * The reply info for the reel at [position] of [adapter], a viewer's adapter, when the reply bar
+     * updates for that page: [instagram], Instagram's own, or the info of the reel's own message in the
+     * chat (see {@link #reply(String, String)}). [instagram] for any viewer but a chat's ([source] is its
+     * ClipsViewerSource), with the switch off, while HushGram is paused, before the settings are ready
+     * and on any failure. Never throws.
+     */
+    @Nullable
+    public static Object replyTo(@Nullable Object instagram, @Nullable Object source, @Nullable Object adapter, int position) {
+        try {
+            HookStatus.invoked(FamilyNames.CHAT_REELS);
+            if (adapter == null || position < 0 || !replies(source)) return instagram;
+            if (position >= count(adapter)) return instagram;
+            Object own = ownReply(instagram, item(adapter, position));
+            if (own == null) return instagram;
+            HookStatus.counted(FamilyNames.CHAT_REELS, "reply bar given a swiped reel's message");
+            return own;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels reply bar", failure);
+            return instagram;
+        }
+    }
+
+    /**
+     * The reply info a reply typed or a reaction sent on [item], the reel on screen, quotes:
+     * [instagram], Instagram's own, or the info of the reel's own message in the chat (see
+     * {@link #reply(String, String)}). [instagram] for any viewer but a chat's ([source] is its
+     * ClipsViewerSource), with the switch off, while HushGram is paused, before the settings are ready
+     * and on any failure. Never throws.
+     */
+    @Nullable
+    public static Object replyInfo(@Nullable Object instagram, @Nullable Object source, @Nullable Object item) {
+        try {
+            HookStatus.invoked(FamilyNames.CHAT_REELS);
+            if (!replies(source)) return instagram;
+            Object own = ownReply(instagram, item);
+            if (own == null) return instagram;
+            HookStatus.counted(FamilyNames.CHAT_REELS, "reply moved to a swiped reel's message");
+            return own;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels reply", failure);
+            return instagram;
+        }
+    }
+
+    /** Whether a viewer whose ClipsViewerSource is [source] gets its reels' own messages on the reply bar. */
+    private static boolean replies(@Nullable Object source) {
+        return fromChat(source) && Utils.settingsReady() && !HushgramPause.isPaused() && Settings.SWIPE_CHAT_REELS.get();
+    }
+
+    /** The info of [item]'s own message in the chat in place of [instagram], or null to keep Instagram's. */
+    @Nullable
+    private static Object ownReply(@Nullable Object instagram, @Nullable Object item) {
+        if (item == null) return null;
+        return reply(mediaId(item), instagram == null ? null : messageOf(instagram));
+    }
+
+    /**
+     * The reply info of a message in the chat holding the reel [media], the one remembered last, or null
+     * to keep Instagram's: when none is remembered since the last tap, or when [instagram], the message
+     * Instagram's info quotes, is one of them already.
+     */
+    @Nullable
+    static Object reply(@Nullable String media, @Nullable String instagram) {
+        if (media == null) return null;
+        synchronized (REPLIES) {
+            if (repliesTap != taps) return null;
+            Map<String, Object> messages = REPLIES.get(media);
+            if (messages == null || messages.isEmpty()) return null;
+            if (instagram != null && messages.containsKey(instagram)) return null;
+            Object last = null;
+            for (Object info : messages.values()) last = info;
+            return last;
+        }
+    }
+
+    /** Forgets every remembered reply, for tests. */
+    static void forgetReplies() {
+        synchronized (REPLIES) {
+            REPLIES.clear();
+            repliesTap = -1;
+        }
+    }
+
+    /** Counts a tap on media in a chat that goes on to open, for tests and {@link #open(Object, View)}. */
+    static void tapped() {
+        taps++;
+    }
+
+    /** Stub: the patch writes this, answering the message [info], a reply info, quotes. */
+    @Nullable
+    public static String messageOf(Object info) {
+        return null;
+    }
+
+    /** Stub: the patch writes this, answering how many reels [adapter], a viewer's adapter, holds. */
+    public static int count(Object adapter) {
+        return 0;
+    }
+
+    /** Stub: the patch writes this, answering the reel item at [position] of [adapter], a viewer's adapter, or null. */
+    @Nullable
+    public static Object item(Object adapter, int position) {
+        return null;
+    }
+
+    /** A map dropping its eldest entry past [limit] entries. */
+    private static final class Kept<V> extends LinkedHashMap<String, V> {
+        private final int limit;
+
+        Kept(int limit) {
+            this.limit = limit;
+        }
+
+        @Override protected boolean removeEldestEntry(Map.Entry<String, V> eldest) {
+            return size() > limit;
+        }
+    }
+
+    /**
      * Whether the viewer skips putting in one of Instagram's cached reels: yes while the switch is on
      * and [source], the viewer's ClipsViewerSource, is a chat's. No for any other viewer, and while
      * the switch is off, HushGram is paused or the settings aren't ready. Never throws.
@@ -298,6 +469,7 @@ public final class ChatReels {
             }
             opening = message;
             openedAt = now;
+            tapped();
             watch(message, view);
             return true;
         } catch (Throwable failure) {

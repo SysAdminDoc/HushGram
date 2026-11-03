@@ -17,6 +17,8 @@ import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.f
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.otherBuilds
 import app.morphe.patches.instagram.direct.seen.visualCode
 import app.morphe.patches.instagram.direct.seen.visualReference
+import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
+import app.morphe.patches.instagram.misc.extension.markers
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -311,9 +313,24 @@ class OnlyReceivedReelsTest {
         classes += more
         classes[CHAT_REELS] = ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS))
 
+        // The reply bar under a reel opened from a chat, and the reply info class it answers (#488).
+        val replyMarkers = setOf(REPLY_HINT, REPLY_CURRENT_INFO, REPLY_CURRENT_ITEM)
+        val replyClasses = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            val holds = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) in replyMarkers }
+            if (!holds) return@forEach
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { m -> m.markers().any { it in replyMarkers } }) replyClasses += ImmutableClassDef.of(classDef)
+            }
+        }
+        for (classDef in replyClasses) classes[classDef.type] = classDef
+        val infos = replyClasses.flatMap { c -> c.methods.filter { REPLY_CURRENT_INFO in it.markers() }.map { it.returnType } }
+        classes += FixtureDex.classes(bundle, infos.toSet() - classes.keys)
+
         val context = PatchContexts.of(classes.values)
-        val found = try {
-            context.findReelCollector(context.findChatReels(), context.findMessageFields())
+        val (found, replies) = try {
+            val found = context.findReelCollector(context.findChatReels(), context.findMessageFields())
+            found to context.findReplyBar(found)
         } catch (failure: PatchException) {
             throw AssertionError("$name: ${failure.message}", failure)
         }
@@ -330,6 +347,17 @@ class OnlyReceivedReelsTest {
             .count { m -> m.visualCode().any { it.text() == RECEIVED } }
         assertEquals("$name: methods hooked", 1, hooked)
         assertBridges(name, context.mutableClassDefBy(CHAT_REELS).methods, found)
+
+        // Each info the collector builds goes to the extension, and the bar asks it twice (#488).
+        context.giveSwipedReelsTheirReplies(found, replies)
+        val replied = found.collect.implementation!!.instructions.toList()
+        assertEquals("$name: added for the reply bar", before + 8, replied.count { it.opcode != Opcode.NOP })
+        assertEquals("$name: infos handed over", 1, replied.count { it.text() == COLLECTED })
+        val all = classes.keys.flatMap { type -> context.mutableClassDefBy(type).methods }
+        for (hook in listOf(REPLY_TO, REPLY_INFO)) {
+            assertEquals("$name: methods asking $hook", 1, all.count { m -> m.visualCode().any { it.text() == hook } })
+        }
+        assertEquals("$name: the hint update asks", replies.hint.name, all.single { m -> m.visualCode().any { it.text() == REPLY_TO } }.name)
 
         // The adapter's add takes the reel items the wrappers answer.
         val adds = PatchContexts.of(FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, ADD_REELS)))

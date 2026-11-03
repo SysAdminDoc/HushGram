@@ -799,6 +799,16 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->received(Ljava/la
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;Z)V holding ClipsViewerAdapter.addClipsItems
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;Z)V holding android_purge_26_q2_ClipsViewerAdapter_updateClipsItems
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;I)V holding android_purge_26_q2_ClipsViewerAdapter_insertClipsItemsAtPosition
+# Swipe through a chat's reels (#488) also hands ChatReels.collected each reply info the same collector
+# builds (0W3G), with the message's wrapper, right after its constructor. The reply bar's hint update
+# (0T5D.A19, updateHintText) asks ChatReels.replyTo where its two ways to the page's info meet, and its
+# reply info for the reel on screen (0T5D.A03, getCurrentClipsReshareInfo) asks ChatReels.replyInfo the
+# same way, so a reel swiped to past the tapped one shows the bar and quotes its own message. Left out,
+# the bar hides past the first reel and a reaction quotes the tapped message; twice or elsewhere, some
+# other reply quotes the wrong message.
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->collected(Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media; Lkotlin/jvm/functions/Function3;->invoke(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; LX/*;->*()Ljava/util/ArrayList;
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->replyTo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)Ljava/lang/Object; in instance (I)V holding android_purge_26_q3_ClipsViewerDirectReplyBarController_updateHintText
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->replyInfo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in static (LX/*;)LX/*; holding android_purge_26_q3_ClipsViewerDirectReplyBarController_getCurrentClipsReshareInfo
 # Stop after the chat's reels answers every read of the viewer config's refresh permission (A3G on
 # 453's 385914557, #390) through ChatReels.refresh: twice in the Reels tab adapter's fragment for a
 # position (0Idq.A00), once in the pager setup holding its trace name (01WS.A0j), the refresh
