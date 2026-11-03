@@ -150,6 +150,24 @@ public class ChatReelsExitTest {
         assertEquals(1, activity.backs);
     }
 
+    /**
+     * A pager Instagram set up again for a later viewer, carrying a context that isn't the viewer's
+     * activity, still leaves: the window comes from the views it sits in (#390, the second viewer).
+     */
+    @Test
+    public void aKeptPagerWithAnotherContextStillLeaves() {
+        root.removeView(pager);
+        pager = new FrameLayout(activity.getApplicationContext());
+        list = new RecyclerView(activity.getApplicationContext());
+        list.scrollState = ChatReelsExit.DRAGGING;
+        pager.addView(list, new FrameLayout.LayoutParams(1080, 1920));
+        root.addView(pager, new FrameLayout.LayoutParams(1080, 1920));
+        ChatReelsExit.viewer(pager, Source.DIRECT);
+        show();
+        swipe(1600, 1000, 0);
+        assertEquals("Back", 1, activity.backs);
+    }
+
     /** One watcher per window, however many pagers, which another wrapper looks through to the activity. */
     @Test
     public void theWindowIsWrappedOnce() {

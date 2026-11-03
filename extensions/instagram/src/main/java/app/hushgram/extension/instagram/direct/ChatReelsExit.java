@@ -93,15 +93,13 @@ public final class ChatReelsExit {
         }
     }
 
-    /** Wraps the callback of [pager]'s activity window once, when [pager] is in that window. */
+    /** Wraps the callback of the activity window showing [pager] once. */
     private static void watch(View pager) {
-        Activity activity = activityOf(pager.getContext());
+        Activity activity = ownerOf(pager);
         Window window = activity == null ? null : activity.getWindow();
-        View decor = window == null ? null : window.peekDecorView();
-        if (decor == null || pager.getRootView() != decor || WRAPPED.containsKey(window)) {
-            boolean wrapped = window != null && WRAPPED.containsKey(window);
+        if (window == null || WRAPPED.containsKey(window)) {
             Logger.printDebug(() -> "Chat reels: window not wrapped for the pager, "
-                    + (decor == null ? "no window" : wrapped ? "already wrapped" : "pager outside the activity's window"));
+                    + (window == null ? "no activity window holds it" : "already wrapped"));
             return;
         }
         Window.Callback inner = window.getCallback();
@@ -109,6 +107,23 @@ public final class ChatReelsExit {
         window.setCallback((Window.Callback) Proxy.newProxyInstance(ChatReelsExit.class.getClassLoader(),
                 new Class<?>[]{Window.Callback.class}, new Watcher(inner, activity)));
         WRAPPED.put(window, Boolean.TRUE);
+    }
+
+    /**
+     * The activity whose window shows [pager]. A pager Instagram keeps and sets up again for a
+     * later viewer can carry a context that isn't that viewer's activity (the second chat reels
+     * viewer of a process, #390), so this looks up from [pager] through its parents to the first
+     * view whose context's activity holds the window [pager] is in, the content view at the latest.
+     */
+    @Nullable
+    private static Activity ownerOf(View pager) {
+        View root = pager.getRootView();
+        for (Object at = pager; at instanceof View; at = ((View) at).getParent()) {
+            Activity activity = activityOf(((View) at).getContext());
+            Window window = activity == null ? null : activity.getWindow();
+            if (window != null && window.peekDecorView() == root) return activity;
+        }
+        return null;
     }
 
     @Nullable
