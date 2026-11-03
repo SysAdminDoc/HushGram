@@ -19,6 +19,10 @@ import android.net.Uri;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.TypefaceSpan;
 
 import java.util.Set;
 
@@ -35,9 +39,11 @@ final class AboutCategory {
         PreferenceCategory about = category(screen, L10n.t("About"), SettingsIcons.ABOUT,
                 L10n.t("Your version, the source code and licenses."));
         page.about = about;
-        about.addPreference(mark(info(context, L10n.t("Version"), L10n.f("HushGram %1$s on Instagram %2$s",
-                L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName()))
-                + "\n" + L10n.isolate(Utils.getSourceBuildIdentity())), SettingsIcons.ABOUT));
+        Preference version = info(context, L10n.t("Version"), "");
+        version.setSummary(versionSummary(L10n.f("HushGram %1$s on Instagram %2$s",
+                L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName())),
+                L10n.isolate(Utils.getSourceBuildIdentity())));
+        about.addPreference(mark(version, SettingsIcons.ABOUT));
 
         Preference source = new Row(context);
         source.setTitle(L10n.t("Source code and issues"));
@@ -67,5 +73,18 @@ final class AboutCategory {
             return true;
         });
         about.addPreference(mark(licenses, SettingsIcons.LICENSE));
+    }
+
+    /**
+     * The versions, then the build identity in a smaller fixed-width face, so the long hash reads as
+     * one code to copy into a report rather than a sentence broken over three lines.
+     */
+    static CharSequence versionSummary(String versions, String identity) {
+        SpannableStringBuilder summary = new SpannableStringBuilder(versions).append('\n');
+        int start = summary.length();
+        summary.append(identity);
+        summary.setSpan(new TypefaceSpan("monospace"), start, summary.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        summary.setSpan(new RelativeSizeSpan(0.9f), start, summary.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return summary;
     }
 }
