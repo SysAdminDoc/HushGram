@@ -16,7 +16,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -575,6 +581,49 @@ public class ConfigurationBackupTest {
         ConfigurationBackup.undo();
         assertEquals(PlaybackQuality.DATA_SAVER, Settings.PLAYBACK_QUALITY.savedValue());
         assertFalse(ConfigurationBackup.canUndo());
+    }
+
+    /**
+     * The page reads whether Undo is on offer, and its deadline, on the main thread. An import holds
+     * the class lock from its validation through its commit, including while it asks the page's leave
+     * to commit, and those reads mustn't wait on it.
+     */
+    @Test public void undoReadsDoNotWaitOnAnImportHoldingTheLock() throws Exception {
+        CountDownLatch asked = new CountDownLatch(1);
+        CountDownLatch answer = new CountDownLatch(1);
+        AtomicReference<Throwable> failed = new AtomicReference<>();
+        Thread importing = new Thread(() -> {
+            try {
+                ConfigurationBackup.restore(file(entry(Settings.HIDE_ADS.key, "boolean", false)), () -> {
+                    asked.countDown();
+                    try {
+                        return answer.await(10, TimeUnit.SECONDS);
+                    } catch (InterruptedException interrupted) {
+                        return false;
+                    }
+                });
+            } catch (Throwable failure) {
+                failed.set(failure);
+            }
+        });
+        ExecutorService reader = Executors.newSingleThreadExecutor();
+        try {
+            importing.start();
+            assertTrue("the import asked for leave", asked.await(10, TimeUnit.SECONDS));
+            Callable<Boolean> canUndo = ConfigurationBackup::canUndo;
+            Callable<Long> token = ConfigurationBackup::undoToken;
+            Callable<Long> deadline = () -> ConfigurationBackup.undoDeadline(1);
+            assertFalse(reader.submit(canUndo).get(5, TimeUnit.SECONDS));
+            assertEquals(0L, (long) reader.submit(token).get(5, TimeUnit.SECONDS));
+            assertEquals(0L, (long) reader.submit(deadline).get(5, TimeUnit.SECONDS));
+        } finally {
+            answer.countDown();
+            importing.join(10_000);
+            reader.shutdownNow();
+        }
+        assertNull(String.valueOf(failed.get()), failed.get());
+        assertFalse(Settings.HIDE_ADS.savedValue());
+        assertTrue(ConfigurationBackup.canUndo());
     }
 
     private void rejected(byte[] bytes) throws Exception {

@@ -61,6 +61,12 @@ public final class ConfigurationBackup {
     static final int MAX_WORDS_TEXT = 4096;
     private static final SettingsJson.Limits LIMITS =
             new SettingsJson.Limits(4, 2048, MAX_WORDS_TEXT, MAX_ENTRIES, MAX_BYTES);
+    /**
+     * Guards the Undo state below. It's a lock of its own, never the class's: an import holds the class
+     * lock from its validation through its disk commit, and the page reads whether Undo is on offer, and
+     * its deadline, on the main thread, which mustn't wait on that.
+     */
+    private static final Object UNDO = new Object();
     private static Map<Setting<?>, Object> undoValues;
     private static Map<Setting<?>, Object> importedValues;
     private static Map<Setting<?>, Long> importedRevisions;
@@ -509,9 +515,11 @@ public final class ConfigurationBackup {
     }
 
     /** Expiry and process lifetime bound the snapshot; there is no disk copy of Undo. */
-    public static synchronized boolean canUndo() {
-        if (undoValues != null && SystemClock.elapsedRealtime() >= undoUntil) forgetUndo();
-        return undoValues != null;
+    public static boolean canUndo() {
+        synchronized (UNDO) {
+            if (undoValues != null && SystemClock.elapsedRealtime() >= undoUntil) forgetUndo();
+            return undoValues != null;
+        }
     }
 
     /** Consumed before a commit, including a failed Undo. The caller reports rollback explicitly. */
@@ -519,12 +527,16 @@ public final class ConfigurationBackup {
         return undo(undoToken());
     }
 
-    public static synchronized long undoToken() {
-        return canUndo() ? undoId : 0;
+    public static long undoToken() {
+        synchronized (UNDO) {
+            return canUndo() ? undoId : 0;
+        }
     }
 
-    public static synchronized long undoDeadline(long token) {
-        return token != 0 && token == undoToken() ? undoUntil : 0;
+    public static long undoDeadline(long token) {
+        synchronized (UNDO) {
+            return token != 0 && token == undoToken() ? undoUntil : 0;
+        }
     }
 
     /** A queued action belongs to the import it offered, never a later restore point. */
@@ -537,10 +549,17 @@ public final class ConfigurationBackup {
         if (undoDeadline(token) == 0) return null;
         synchronized (Setting.class) {
             requirePermission(mayCommit);
-            Map<Setting<?>, Object> values = undoValues;
-            Map<Setting<?>, Object> expected = importedValues;
-            Map<Setting<?>, Long> revisions = importedRevisions;
-            forgetUndo();
+            Map<Setting<?>, Object> values;
+            Map<Setting<?>, Object> expected;
+            Map<Setting<?>, Long> revisions;
+            synchronized (UNDO) {
+                // The deadline can pass while the page's permission is checked.
+                if (undoDeadline(token) == 0) return null;
+                values = undoValues;
+                expected = importedValues;
+                revisions = importedRevisions;
+                forgetUndo();
+            }
             Map<Setting<?>, Object> before = new LinkedHashMap<>();
             boolean restart = false;
             int skipped = 0;
@@ -567,12 +586,11 @@ public final class ConfigurationBackup {
     }
 
     private static void offerUndo(Map<Setting<?>, Object> values) {
-        undoValues = values;
-        importedValues = new LinkedHashMap<>();
-        importedRevisions = new LinkedHashMap<>();
+        Map<Setting<?>, Object> imported = new LinkedHashMap<>();
+        Map<Setting<?>, Long> revisions = new LinkedHashMap<>();
         for (Setting<?> setting : values.keySet()) {
-            importedValues.put(setting, setting.savedValue());
-            importedRevisions.put(setting, setting.savedRevision());
+            imported.put(setting, setting.savedValue());
+            revisions.put(setting, setting.savedRevision());
         }
         int timeout = (int) UNDO_WINDOW_MS;
         Context context = Utils.getContext();
@@ -581,16 +599,23 @@ public final class ConfigurationBackup {
             if (accessibility != null) timeout = accessibility.getRecommendedTimeoutMillis(timeout,
                     AccessibilityManager.FLAG_CONTENT_TEXT | AccessibilityManager.FLAG_CONTENT_CONTROLS);
         }
-        undoId++;
-        undoUntil = SystemClock.elapsedRealtime() + timeout;
+        synchronized (UNDO) {
+            undoValues = values;
+            importedValues = imported;
+            importedRevisions = revisions;
+            undoId++;
+            undoUntil = SystemClock.elapsedRealtime() + timeout;
+        }
         Utils.runOnMainThreadDelayed(ConfigurationBackup::canUndo, timeout);
     }
 
-    static synchronized void forgetUndo() {
-        undoValues = null;
-        importedValues = null;
-        importedRevisions = null;
-        undoUntil = 0;
+    static void forgetUndo() {
+        synchronized (UNDO) {
+            undoValues = null;
+            importedValues = null;
+            importedRevisions = null;
+            undoUntil = 0;
+        }
     }
 
     private static String type(Object value) throws IOException {
