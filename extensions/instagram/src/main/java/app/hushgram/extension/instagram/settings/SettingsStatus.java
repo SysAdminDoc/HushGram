@@ -689,6 +689,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Preview chats patch. */
+    public static boolean previewChats() {
+        return false;
+    }
+
     /** Rewritten by the View live anonymously patch. */
     public static boolean liveSeen() {
         return false;

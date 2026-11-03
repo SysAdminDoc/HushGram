@@ -40,6 +40,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.VIEW_ONCE_MARK)
                 || build.contains(PatchFamily.CHAT_REELS)
                 || build.contains(PatchFamily.CHAT_HISTORY)
+                || build.contains(PatchFamily.PREVIEW_CHATS)
                 || build.contains(PatchFamily.ASK_BEFORE_CALL)
                 || build.contains(PatchFamily.MESSAGE_BOX)
                 || build.contains(PatchFamily.PLUS_MENU)
@@ -90,6 +91,11 @@ final class MessagesCategory {
                         L10n.t("Mark as read button in chats"),
                         L10n.t("A check mark shows at the top of a chat while it hasn't told the other person you've "
                                 + "seen it. Tap it and they see Seen.")));
+            }
+            if (build.contains(PatchFamily.PREVIEW_CHATS)) {
+                messages.addPreference(toggle(context, Settings.PREVIEW_CHATS, L10n.t("Preview chats"),
+                        L10n.t("Long press a chat in your messages and tap Preview to read its newest messages without "
+                                + "opening it, so nobody sees Seen. You can reply from there too.")));
             }
             if (build.contains(PatchFamily.TYPING)) {
                 messages.addPreference(toggle(context, Settings.HIDE_TYPING, L10n.t("Hide that you're typing"),

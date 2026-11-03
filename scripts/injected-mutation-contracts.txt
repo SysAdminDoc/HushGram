@@ -129,6 +129,18 @@ once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->hold(Ljava/lang/
 once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->offerMarkRead(Ljava/util/List;Ljava/lang/Object;)V in static (Lcom/instagram/common/session/UserSession;Lcom/instagram/direct/capabilities/Capabilities;LX/*;LX/*;Ljava/util/List;Z)V holding LX/*;->*:LX/*;
 once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->markRead(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;L*;L*;L*;L*;Lcom/instagram/model/direct/DirectShareTarget;Lcom/instagram/model/direct/DirectThreadKey;L*;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function0;ZZZ)V holding group_thread_deletion_click_clicked
 once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->markReadTogether(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V in instance (Landroid/content/DialogInterface;I)V holding multiple_thread_mark_read
+# Preview chats (#477) hands ChatPreview.offer the rows first thing in the same builder that adds Mark
+# as unread (0EBl.A03 on 453), and ChatPreview.open the tapped row, the account and the chat key first
+# thing in the same tap handler (05JK.A03 on 453), so either patch can go in first. ChatPreview.label
+# gets the rows and their labels right before the one return of the label builder (05JK.A02 on 453,
+# the static method giving the thread debug row its label), on every path into it. Left out, the row
+# isn't offered, reads [DEBUG] Thread info, or does nothing; twice or elsewhere, it isn't the hook the
+# patch wrote. NativePreviewChatsTest checks all three on every fixture build.
+start-call Lapp/hushgram/extension/instagram/direct/ChatPreview;->offer(Ljava/util/List;Ljava/lang/Object;)V in static (Lcom/instagram/common/session/UserSession;Lcom/instagram/direct/capabilities/Capabilities;LX/*;LX/*;Ljava/util/List;Z)V holding LX/*;->*:LX/*;
+once-call Lapp/hushgram/extension/instagram/direct/ChatPreview;->offer(Ljava/util/List;Ljava/lang/Object;)V in static (Lcom/instagram/common/session/UserSession;Lcom/instagram/direct/capabilities/Capabilities;LX/*;LX/*;Ljava/util/List;Z)V holding LX/*;->*:LX/*;
+once-call Lapp/hushgram/extension/instagram/direct/ChatPreview;->label(Ljava/util/List;[Ljava/lang/String;)V in static (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Ljava/util/List;Z)[Ljava/lang/String; pooled holding [DEBUG]\sThread\sinfo
+start-call Lapp/hushgram/extension/instagram/direct/ChatPreview;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;L*;L*;L*;L*;Lcom/instagram/model/direct/DirectShareTarget;Lcom/instagram/model/direct/DirectThreadKey;L*;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function0;ZZZ)V holding group_thread_deletion_click_clicked
+once-call Lapp/hushgram/extension/instagram/direct/ChatPreview;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;L*;L*;L*;L*;Lcom/instagram/model/direct/DirectShareTarget;Lcom/instagram/model/direct/DirectThreadKey;L*;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function0;ZZZ)V holding group_thread_deletion_click_clicked
 # Its Keep chats unread here (#184) hands ThreadSeen.keepUnread(Object, Object) the receipt and the
 # chat store first in the static method the mutation queue reports each state of a chat's seen
 # receipt to (0Aqb.A02 on 451). About fifteen static methods of this shape hold both state names, one

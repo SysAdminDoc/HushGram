@@ -383,6 +383,35 @@ public class ThreadSeenTest {
         assertNothingReported();
     }
 
+    /** A chat preview's Mark as read sends the receipt for the ids it read, and says so when it can't. */
+    @Test
+    public void aPreviewMarksItsChatReadUpToTheMessageItShows() {
+        Key key = new Key("t1");
+        assertEquals(ThreadSeen.MARK_SENT, ThreadSeen.markChat(SESSION, key, "m1", "s1", chats, clock));
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+        assertEquals(List.of(key), chats.cleared);
+        assertEquals("Marked as read", toast());
+        assertFalse(hold(receipt("t1", "m1")));
+
+        ShadowToast.reset();
+        assertEquals(ThreadSeen.MARK_NOTHING, ThreadSeen.markChat(SESSION, new Key("t2"), null, "s1", chats, clock));
+        assertEquals(ThreadSeen.MARK_NOTHING, ThreadSeen.markChat(SESSION, new Key("t2"), "m2", null, chats, clock));
+        assertEquals("Couldn't mark as read", toast());
+
+        chats.sendThrows = true;
+        assertEquals(ThreadSeen.MARK_FAILED, ThreadSeen.markChat(SESSION, new Key("t3"), "m3", "s1", chats, clock));
+        assertTrue(hold(receipt("t3", "m3")));
+        assertEquals(1, chats.sent.size());
+    }
+
+    /** Unpatched, the preview's Mark as read sends nothing and reports it didn't. */
+    @Test
+    public void unpatchedPreviewMarkSendsNothing() {
+        assertFalse(ThreadSeen.canMarkRead());
+        assertFalse(ThreadSeen.markReadNow(SESSION, new Key("t1"), "m1", "s1"));
+        assertTrue(marksOnFile().isEmpty());
+    }
+
     @Test
     public void aFailedSendTakesItsMarkBackAndIsReported() {
         chats.sendThrows = true;

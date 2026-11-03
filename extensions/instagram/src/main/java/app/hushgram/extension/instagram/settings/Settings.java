@@ -786,6 +786,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting JUMP_IN_CHAT = new BooleanSetting("hushgram_jump_in_chat", FALSE);
 
     /**
+     * Preview in a chat's long press menu, which shows the chat's newest messages from what the
+     * phone keeps, with a reply box, without opening the chat
+     * ({@link app.hushgram.extension.instagram.direct.ChatPreview}, #477). Read each time the menu
+     * opens. Off to start.
+     */
+    public static final BooleanSetting PREVIEW_CHATS = new BooleanSetting("hushgram_preview_chats", FALSE);
+
+    /**
      * Long pressing a chat's name offers Export chat, which loads the whole chat and saves it as a
      * text file in Downloads, HushGram folder ({@link app.hushgram.extension.instagram.direct.ChatExport}, #247).
      * Off to start.

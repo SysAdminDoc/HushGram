@@ -24,6 +24,7 @@ import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -109,26 +110,39 @@ internal fun BytecodePatchContext.findChatHistory(): ChatHistoryTargets {
                 AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
         } ?: refuse("the extension has no public static $hook")
     }
+    val bridges = messageStubs(CHAT_HISTORY_PATCH, extension)
+    return ChatHistoryTargets(resume, pause, fields, bridges)
+}
+
+/**
+ * The message readers in [extension], each a public static stub taking Instagram's message as an
+ * Object, by name: isMessage, id, sender, text, time, kind and sentByViewer. Throws naming [patch]
+ * when one is missing.
+ */
+internal fun BytecodePatchContext.messageStubs(patch: String, extension: ClassDef): Map<String, MutableMethod> {
     val stubs = mutableClassDefBy(extension).methods
     val wanted = mapOf(
         "isMessage" to "Z", "id" to STRING, "sender" to STRING, "text" to STRING, "time" to STRING, "kind" to STRING,
         "sentByViewer" to "Z",
     )
-    val bridges = wanted.mapValues { (name, returns) ->
+    return wanted.mapValues { (name, returns) ->
         stubs.singleOrNull {
             it.name == name && it.parameterTypes.map(Any::toString) == listOf(OBJECT) && it.returnType == returns &&
                 AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
-        } ?: refuse("the extension has no public static $name bridge")
+        } ?: throw PatchException("$patch: the extension has no public static $name bridge")
     }
-    return ChatHistoryTargets(resume, pause, fields, bridges)
 }
 
 /** Puts the two hooks in and writes the bridge bodies. */
 internal fun writeChatHistory(found: ChatHistoryTargets) {
-    val f = found.fields
     found.resume.addInstructions(0, "invoke-static/range { p0 .. p0 }, $PAGER_OPENED")
     found.pause.addInstructions(0, "invoke-static/range { p0 .. p0 }, $PAGER_CLOSED")
-    fun body(name: String, text: String) = found.bridges.getValue(name).addInstructionsWithLabels(0, text.trimIndent())
+    writeMessageBridges(found.fields, found.bridges)
+}
+
+/** Writes the bodies of the message readers [messageStubs] found, each reading its field off [f]'s message class. */
+internal fun writeMessageBridges(f: MessageFields, bridges: Map<String, MutableMethod>) {
+    fun body(name: String, text: String) = bridges.getValue(name).addInstructionsWithLabels(0, text.trimIndent())
     body("isMessage", """
         instance-of p0, p0, ${f.owner}
         return p0

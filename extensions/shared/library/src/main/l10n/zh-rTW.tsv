@@ -1643,3 +1643,26 @@ Takes the little round pictures off posts and reels that show a friend liked, co
 # context: a switch for foldable phones and tablets. Instagram normally moves its tab bar to a rail down the side on a wide screen; this keeps the narrow phone layout instead.
 Phone layout on big screens	大螢幕使用手機版面
 On a foldable or tablet, Instagram keeps its phone layout across the whole screen, with the tab bar at the bottom instead of down the side. Restart Instagram to see the change.	在摺疊手機或平板上，Instagram 會在整個螢幕維持手機版面，分頁列留在底部而不是側邊。請重新啟動 Instagram 以套用變更。
+# context: a switch on the Messages page. It adds a Preview row to the menu a long press on a chat in the inbox opens; Preview shows the chat's newest messages in a box without opening the chat, so no seen receipt goes out. "Seen" is Instagram's own read receipt label in a chat.
+Preview chats	預覽聊天
+Long press a chat in your messages and tap Preview to read its newest messages without opening it, so nobody sees Seen. You can reply from there too.	在訊息中長按聊天並點擊「預覽」，就能在不開啟聊天的情況下閱讀最新訊息，對方不會看到「已讀」。您也可以直接在那裡回覆。
+# context: the row in a chat's long press menu and the title of the box it opens, which shows the chat's newest messages without opening the chat.
+Preview	預覽
+# context: the hint in the reply field at the bottom of the chat preview box.
+Write a message	輸入訊息
+# context: shown in the chat preview box while its messages load.
+Loading	載入中
+Nothing here yet	這裡還沒有內容
+# context: the chat preview box, and a short toast, when the chat's messages can't be read. Toasts stay short.
+Couldn't load this chat	無法載入這個聊天
+# context: a short toast after a reply typed in the chat preview box went out.
+Sent	已傳送
+Couldn't send	無法傳送
+# context: what a message with no text shows as in the chat preview box, by what it holds.
+Photo or video	相片或影片
+GIF or sticker	GIF 或貼圖
+# context: a view once photo or video in the chat preview box shows only this label, never the photo or video. Use Instagram's own wording for view once.
+View once message	限看一次的訊息
+Attachment	附件
+# context: the button next to the reply field in the chat preview box.
+Send	傳送

@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.direct;
 import android.content.Context;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -530,24 +531,71 @@ public final class ThreadSeen {
 
     static boolean markRead(Object chosen, Object markAsRead, Object session, Object thread, Object key,
                             BooleanSupplier on, Chats chats, LongSupplier clock) {
-        ReadMarks waiting = null;
-        String account = null;
-        String id = null;
         String message = null;
-        long now = 0;
+        String sender = null;
         try {
             HookStatus.invoked(FamilyNames.THREAD_SEEN);
             if (chosen == null || chosen != markAsRead || !on.getAsBoolean()) return false;
+            Object last = chats.lastMessage(thread);
+            if (last != null) {
+                message = chats.messageId(last);
+                sender = chats.senderId(last);
+            }
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, MARK, t);
+            toast(() -> L10n.t("Couldn't mark as read"));
+            return false;
+        }
+        // A failure lets Instagram's own code for the row run.
+        return markChat(session, key, message, sender, chats, clock) != MARK_FAILED;
+    }
+
+    /**
+     * Whether a chat's preview can mark it read here: the patch is in and the receipts are held.
+     * With them let through, Instagram marks a chat read the moment it's opened, and the bridges
+     * the mark goes through are only written alongside the hold.
+     */
+    public static boolean canMarkRead() {
+        try {
+            return SettingsStatus.threadSeen() && switchedOn();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, MARK, t);
+            return false;
+        }
+    }
+
+    /**
+     * Marks a chat read from its preview, up to [message] from [sender], the newest message the
+     * preview shows, the way the long press menu's Mark as read does. True when the receipt went
+     * out. Never throws.
+     */
+    public static boolean markReadNow(Object session, Object key, String message, String sender) {
+        if (!canMarkRead()) return false;
+        return markChat(session, key, message, sender, INSTAGRAM, CLOCK) == MARK_SENT;
+    }
+
+    /** What {@link #markChat} did: sent the receipt, found nothing to mark, or failed. */
+    static final int MARK_SENT = 0;
+    static final int MARK_NOTHING = 1;
+    static final int MARK_FAILED = 2;
+
+    /**
+     * Lets the receipt for [message] from [sender] through the hold, sends it and clears the chat's
+     * unread mark.
+     */
+    static int markChat(Object session, Object key, String message, String sender, Chats chats, LongSupplier clock) {
+        ReadMarks waiting = null;
+        String account = null;
+        String id = null;
+        long now = 0;
+        try {
             account = chats.accountId(session);
             id = chats.threadId(key);
-            Object last = chats.lastMessage(thread);
-            message = last == null ? null : chats.messageId(last);
-            String sender = last == null ? null : chats.senderId(last);
             ReadMarks marks = marks();
             if (isEmpty(account) || isEmpty(id) || isEmpty(message) || isEmpty(sender) || marks == null) {
                 Logger.printDebug(() -> "Messages: a chat marked read has no message to mark");
                 toast(() -> L10n.t("Couldn't mark as read"));
-                return true;
+                return MARK_NOTHING;
             }
             now = clock.getAsLong();
             boolean fresh = !marks.allows(account, id, message, now);
@@ -562,7 +610,7 @@ public final class ThreadSeen {
                 HookStatus.threw(FamilyNames.THREAD_SEEN, MARK, t);
             }
             toast(() -> L10n.t("Marked as read"));
-            return true;
+            return MARK_SENT;
         } catch (Throwable t) {
             if (waiting != null) {
                 try {
@@ -573,7 +621,7 @@ public final class ThreadSeen {
             }
             HookStatus.threw(FamilyNames.THREAD_SEEN, MARK, t);
             toast(() -> L10n.t("Couldn't mark as read"));
-            return false;
+            return MARK_FAILED;
         }
     }
 

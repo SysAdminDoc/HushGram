@@ -1640,3 +1640,26 @@ Takes the little round pictures off posts and reels that show a friend liked, co
 # context: a switch for foldable phones and tablets. Instagram normally moves its tab bar to a rail down the side on a wide screen; this keeps the narrow phone layout instead.
 Phone layout on big screens	Handy-Layout auf großen Bildschirmen
 On a foldable or tablet, Instagram keeps its phone layout across the whole screen, with the tab bar at the bottom instead of down the side. Restart Instagram to see the change.	Auf einem Foldable oder Tablet behält Instagram sein Handy-Layout auf dem ganzen Bildschirm, mit der Tab-Leiste unten statt an der Seite. Starte Instagram neu, um die Änderung zu sehen.
+# context: a switch on the Messages page. It adds a Preview row to the menu a long press on a chat in the inbox opens; Preview shows the chat's newest messages in a box without opening the chat, so no seen receipt goes out. "Seen" is Instagram's own read receipt label in a chat.
+Preview chats	Chat-Vorschau
+Long press a chat in your messages and tap Preview to read its newest messages without opening it, so nobody sees Seen. You can reply from there too.	Halte einen Chat in deinen Nachrichten gedrückt und tippe auf Vorschau, um seine neuesten Nachrichten zu lesen, ohne ihn zu öffnen. So sieht niemand Gesehen. Du kannst von dort auch antworten.
+# context: the row in a chat's long press menu and the title of the box it opens, which shows the chat's newest messages without opening the chat.
+Preview	Vorschau
+# context: the hint in the reply field at the bottom of the chat preview box.
+Write a message	Nachricht schreiben
+# context: shown in the chat preview box while its messages load.
+Loading	Wird geladen
+Nothing here yet	Hier ist noch nichts
+# context: the chat preview box, and a short toast, when the chat's messages can't be read. Toasts stay short.
+Couldn't load this chat	Chat konnte nicht geladen werden
+# context: a short toast after a reply typed in the chat preview box went out.
+Sent	Gesendet
+Couldn't send	Senden fehlgeschlagen
+# context: what a message with no text shows as in the chat preview box, by what it holds.
+Photo or video	Foto oder Video
+GIF or sticker	GIF oder Sticker
+# context: a view once photo or video in the chat preview box shows only this label, never the photo or video. Use Instagram's own wording for view once.
+View once message	Nachricht zum einmaligen Ansehen
+Attachment	Anhang
+# context: the button next to the reply field in the chat preview box.
+Send	Senden
