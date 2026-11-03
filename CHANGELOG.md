@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Don't report Blend visits` is a new Ghost mode patch. With its switch on under Messages, opening a Blend from a chat doesn't post the "visited the Blend" line there. Ghost mode turns it on with the others. Starts off. Asked for in #474.
 * **Instagram:** `Page dots on a pill`, `Seek bar on feed videos` and `Seek bar on stories` can now look See-through or Frosted glass (Android 12 and up) as well as Solid. The pill no longer covers a carousel's seek bar. Asked for in #471.
 * **Instagram:** `Speed button on stories` is a new patch. Turn it on under Stories for a 1x button by a video story's three dots. Taps step through 1.5x, 2x and back to 1x, and later stories keep that speed. Starts off. Asked for in #469.
 * **Instagram:** `Read messages without the seen receipt` adds `Mark as read button in chats` under Messages. A check mark next to a chat's call buttons marks it Seen for the other person when you tap it. Starts on. Asked for in #458.

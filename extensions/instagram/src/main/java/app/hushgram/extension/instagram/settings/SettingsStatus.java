@@ -566,6 +566,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Don't report Blend visits patch. */
+    public static boolean blendVisits() {
+        return false;
+    }
+
     /** Rewritten by the Allow screenshots patch. */
     public static boolean screenshotBlock() {
         return false;

@@ -32,7 +32,8 @@
               "View DM photos and videos anonymously",
               "Hide that you're typing",
               "Hide your active status",
-              "Don't report screenshots"
+              "Don't report screenshots",
+              "Don't report Blend visits"
             ]
           }
         ]
@@ -50,7 +51,8 @@
               "View DM photos and videos anonymously",
               "Hide that you're typing",
               "Hide your active status",
-              "Don't report screenshots"
+              "Don't report screenshots",
+              "Don't report Blend visits"
             ]
           }
         },
@@ -234,6 +236,7 @@
           "Show when someone was last active",
           "Lock your messages",
           "Don't report screenshots",
+          "Don't report Blend visits",
           "Allow screenshots",
           "Keep in chat",
           "Mark one-time photos and videos",

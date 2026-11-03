@@ -266,6 +266,12 @@ start-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z 
 shared-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z in instance (JLjava/lang/String;Ljava/util/List;)V class-holding ScreenshotDetectorByContent Started\snew\sscreenshot\ssession
 start-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z in static (L*;Ljava/lang/String;Ljava/util/List;)V holding Reporting\sscreenshot:\s%s\s->\s%s
 shared-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z in static (L*;Ljava/lang/String;Ljava/util/List;)V holding Reporting\sscreenshot:\s%s\s->\s%s
+# Don't report Blend visits asks BlendVisits.quiet() first in the static request for a Blend's reels
+# (the one method loading clips/get_blend_medias/), handing it the boolean Instagram sends as
+# force_disable_visitation_xma. Left out, opening a Blend posts the visit message in its chat; twice
+# or elsewhere, it isn't the hook.
+start-call Lapp/hushgram/extension/instagram/direct/BlendVisits;->quiet(I)Z in static (Lcom/instagram/common/session/UserSession;Ljava/lang/Boolean;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)L*; pooled holding clips/get_blend_medias/
+once-call Lapp/hushgram/extension/instagram/direct/BlendVisits;->quiet(I)Z in static (Lcom/instagram/common/session/UserSession;Ljava/lang/Boolean;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)L*; pooled holding clips/get_blend_medias/
 #
 # The patch fingerprint picks the method that puts a sponsored item into a feed by
 # "cross_surface_duplicate_ad" and "Is ad pod", a static method answering a boolean. "Is ad pod" has

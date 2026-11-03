@@ -310,8 +310,8 @@ Hide the Muse card	Muse kartını gizle
 Removes the Meet Muse card, with its Try Muse button, from Home and your profile. Your other cards stay.	Meet Muse kartını ve Try Muse düğmesini Ana Sayfa'dan ve profilinden kaldırır. Diğer kartların kalır.
 Hide the Muse button on your profile	Profilinde Muse düğmesini gizle
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	Muse düğmesini profilinin üst çubuğundan kaldırır. Kullanıcı adın ve menü kalır.
-Hide Blend on reels	Reels'te Blend'i gizle
-Removes the Blend invite button from reels. Everything else on a reel stays.	Blend davet düğmesini Reels'ten kaldırır. Reels'in geri kalanı olduğu gibi kalır.
+Hide Blend on reels	Reels'te Derleme'yi gizle
+Removes the Blend invite button from reels. Everything else on a reel stays.	Derleme davet düğmesini Reels'ten kaldırır. Reels'in geri kalanı olduğu gibi kalır.
 Explore	Keşfet
 Hide the Explore grid	Keşfet ızgarasını gizle
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Arama sekmesindeki çubuğun altındaki gönderi ve reels ızgarasını gizler. Arama, son aramalar ve sonuçlar kalır.
@@ -1631,3 +1631,6 @@ Turn on Seek bar on stories to use this choice.	Bu seçimi kullanmak için Hikay
 A white bar and handle, as they've always been.	Her zamanki gibi beyaz bir çubuk ve tutamaç.
 A fainter bar and handle, so more of the video shows through.	Videonun daha fazlası görünsün diye daha soluk bir çubuk ve tutamaç.
 A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead.	Altındaki videoyu bulanıklaştıran buzlu cam bir şerit üzerinde beyaz bir çubuk. Android 12 öncesinde şerit bunun yerine saydam olur.
+# context: Instagram's Blend, the shared reels feed in a chat, as Instagram names it in this language (Turkish Instagram: Derleme).
+Don't report Blend visits	Derleme ziyaretlerini bildirme
+Opening a Blend doesn't tell the chat it belongs to that you visited it. The Blend and its reels open as usual.	Bir Derleme'yi açman, ait olduğu sohbete onu ziyaret ettiğini bildirmez. Derleme ve Reels videoları her zamanki gibi açılır.

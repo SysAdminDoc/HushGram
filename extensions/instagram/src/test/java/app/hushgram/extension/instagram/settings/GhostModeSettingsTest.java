@@ -44,10 +44,14 @@ public class GhostModeSettingsTest {
     /** A method, not a static field, so the settings load once the rule has given them a context. */
     private static BooleanSetting[] ghostSwitches() {
         return new BooleanSetting[] {Settings.VIEW_STORIES_ANONYMOUSLY, Settings.VIEW_LIVE_ANONYMOUSLY,
-                Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.VIEW_DM_MEDIA_ANONYMOUSLY, Settings.HIDE_TYPING, Settings.HIDE_SCREENSHOTS};
+                Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.VIEW_DM_MEDIA_ANONYMOUSLY, Settings.HIDE_TYPING, Settings.HIDE_SCREENSHOTS,
+                Settings.HIDE_BLEND_VISITS};
     }
-    private static final EnumSet<PatchFamily> ALL_GHOST = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.STORY_SEEN,
-            PatchFamily.LIVE_SEEN, PatchFamily.THREAD_SEEN, PatchFamily.DM_MEDIA_SEEN, PatchFamily.TYPING, PatchFamily.SCREENSHOT_REPORTS);
+    /** A method too: PatchFamily loads the settings, and a static field would load them with no context. */
+    private static EnumSet<PatchFamily> allGhost() {
+        return EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.STORY_SEEN, PatchFamily.LIVE_SEEN, PatchFamily.THREAD_SEEN,
+                PatchFamily.DM_MEDIA_SEEN, PatchFamily.TYPING, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.BLEND_VISITS);
+    }
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
     private ActivityController<Activity> controller;
@@ -105,7 +109,7 @@ public class GhostModeSettingsTest {
     }
 
     @Test public void theSwitchListFollowsTheBuild() {
-        assertEquals(Arrays.asList(ghostSwitches()), GhostMode.switches(ALL_GHOST));
+        assertEquals(Arrays.asList(ghostSwitches()), GhostMode.switches(allGhost()));
         assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.HIDE_TYPING),
                 GhostMode.switches(EnumSet.of(PatchFamily.TYPING, PatchFamily.NOTES_ROW, PatchFamily.THREAD_SEEN)));
         assertTrue(GhostMode.switches(null).isEmpty());
@@ -120,7 +124,7 @@ public class GhostModeSettingsTest {
     }
 
     @Test public void itSitsFirstUnderAdsAndPrivacyAndStartsAsTheSwitchesAre() throws Exception {
-        open(ALL_GHOST);
+        open(allGhost());
         SwitchPreference row = ghost();
         assertNotNull(row);
         assertFalse("every ghost switch starts off", row.isChecked());
@@ -138,7 +142,7 @@ public class GhostModeSettingsTest {
 
     /** #251: Ghost mode turns all its switches until you pick some, and a pick naming none of them means all. */
     @Test public void itTurnsAllOfThemUntilYouPick() {
-        List<BooleanSetting> all = GhostMode.switches(ALL_GHOST);
+        List<BooleanSetting> all = GhostMode.switches(allGhost());
         assertEquals(all, GhostMode.picked(all));
         Settings.GHOST_MODE_PICKS.save("hushgram_no_such_switch");
         assertEquals("a pick naming none of them means all", all, GhostMode.picked(all));
@@ -159,7 +163,7 @@ public class GhostModeSettingsTest {
 
     /** #251: the row under Ghost mode picks its switches, and Ghost mode then turns only those. */
     @Test public void theRowUnderItPicksWhichSwitchesItTurns() throws Exception {
-        open(ALL_GHOST);
+        open(allGhost());
         Preference picks = page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.GHOST_PICKS_ROW);
         assertNotNull(picks);
         assertEquals("Switches Ghost mode turns", picks.getTitle().toString());
@@ -172,13 +176,17 @@ public class GhostModeSettingsTest {
         ListView list = dialog.getListView();
         assertEquals(ghostSwitches().length, list.getCount());
         assertEquals("View stories anonymously", String.valueOf(list.getAdapter().getItem(0)));
-        for (int i = 0; i < ghostSwitches().length; i++) assertTrue("every one starts checked", list.isItemChecked(i));
+        // The dialog checks a row as it lays it out, and the rows below the fold aren't laid out yet.
+        for (int i = 0; i < ghostSwitches().length; i++) {
+            list.getAdapter().getView(i, null, list);
+            assertTrue("every one starts checked", list.isItemChecked(i));
+        }
         // Leave out everything but View stories anonymously and Hide that you're typing.
         for (int i = 0; i < ghostSwitches().length; i++) {
             if (ghostSwitches()[i] != Settings.VIEW_STORIES_ANONYMOUSLY && ghostSwitches()[i] != Settings.HIDE_TYPING) tap(list, i);
         }
         assertEquals(Arrays.asList(Settings.VIEW_STORIES_ANONYMOUSLY, Settings.HIDE_TYPING),
-                GhostMode.picked(GhostMode.switches(ALL_GHOST)));
+                GhostMode.picked(GhostMode.switches(allGhost())));
         assertEquals(own(Settings.VIEW_STORIES_ANONYMOUSLY).getTitle() + ", " + own(Settings.HIDE_TYPING).getTitle()
                 + ". The others stay as you set them.", picks.getSummary().toString());
 
@@ -202,21 +210,21 @@ public class GhostModeSettingsTest {
 
     /** #251: the last check can't come off, since Ghost mode would have nothing left to turn. */
     @Test public void theLastPickStays() throws Exception {
-        open(ALL_GHOST);
+        open(allGhost());
         page.pickGhostMode();
         ListView list = latest().getListView();
         for (int i = 1; i < ghostSwitches().length; i++) tap(list, i);
-        assertEquals(Arrays.asList(ghostSwitches()[0]), GhostMode.picked(GhostMode.switches(ALL_GHOST)));
+        assertEquals(Arrays.asList(ghostSwitches()[0]), GhostMode.picked(GhostMode.switches(allGhost())));
         tap(list, 0);
         assertTrue("the last check stays", list.isItemChecked(0));
         assertEquals("Ghost mode needs at least one switch to turn.", ShadowToast.getTextOfLatestToast());
-        assertEquals(Arrays.asList(ghostSwitches()[0]), GhostMode.picked(GhostMode.switches(ALL_GHOST)));
+        assertEquals(Arrays.asList(ghostSwitches()[0]), GhostMode.picked(GhostMode.switches(allGhost())));
         tap(list, 3);
-        assertEquals(Arrays.asList(ghostSwitches()[0], ghostSwitches()[3]), GhostMode.picked(GhostMode.switches(ALL_GHOST)));
+        assertEquals(Arrays.asList(ghostSwitches()[0], ghostSwitches()[3]), GhostMode.picked(GhostMode.switches(allGhost())));
     }
 
     @Test public void aTapTurnsEverySwitchAndEachRowShowsIt() throws Exception {
-        open(ALL_GHOST);
+        open(allGhost());
         SwitchPreference row = ghost();
         row.getOnPreferenceChangeListener().onPreferenceChange(row, true);
         for (BooleanSetting setting : ghostSwitches()) {
@@ -237,7 +245,7 @@ public class GhostModeSettingsTest {
     }
 
     @Test public void itFollowsTheOwnSwitchesAndPauseStillWins() throws Exception {
-        open(ALL_GHOST);
+        open(allGhost());
         SwitchPreference row = ghost();
         for (BooleanSetting setting : ghostSwitches()) own(setting).setChecked(true);
         Utils.awaitBackgroundTasksForTests();
@@ -259,7 +267,7 @@ public class GhostModeSettingsTest {
     }
 
     @Test public void searchFindsItByName() throws Exception {
-        open(ALL_GHOST);
+        open(allGhost());
         page.searchSettings("ghost");
         assertNotNull(ghost());
         assertNull(own(Settings.HIDE_ADS).getParent());

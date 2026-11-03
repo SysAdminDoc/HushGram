@@ -107,6 +107,7 @@ public class NeutralDefaultsSettingsTest {
                 Settings.HIDE_HOME_FEED, Settings.STOP_TAB_SWIPING, Settings.TURN_OFF_HDR_BOOSTS, Settings.STOP_VIDEO_LOOPING, Settings.DONT_SAVE_RECENT_SEARCHES, Settings.DATA_SAVER, Settings.CLEAR_MEDIA_CACHE, Settings.GROUP_NOTIFICATIONS,
                 Settings.LOCK_MESSAGES, Settings.LOCK_APP,
                 Settings.HIDE_SCREENSHOTS,
+                Settings.HIDE_BLEND_VISITS,
                 Settings.ALLOW_SCREENSHOTS,
                 Settings.KEEP_IN_CHAT, Settings.MARK_VIEW_ONCE,
                 Settings.VIEW_LIVE_ANONYMOUSLY, Settings.NOTO_EMOJI, Settings.ACCENT_COLOR, Settings.ACCENT_BADGES, Settings.ACCENT_ICONS, Settings.LAUNCH_SCREEN,
@@ -127,7 +128,7 @@ public class NeutralDefaultsSettingsTest {
                 PatchFamily.ASK_BEFORE_LIKE, PatchFamily.ASK_BEFORE_REFRESH, PatchFamily.SAVE_TRAY,
                 PatchFamily.PROFILE_HIGHLIGHTS, PatchFamily.THREADS_BUTTON, PatchFamily.PROFILE_NOTES, PatchFamily.PROFILE_POSTS_LIST, PatchFamily.NOTES_ROW, PatchFamily.INBOX_SEARCH, PatchFamily.INBOX_SUGGESTIONS, PatchFamily.INSTANTS, PatchFamily.SWIPE_TO_CREATE,
                 PatchFamily.REEL_SCROLLING, PatchFamily.SWIPE_TO_PROFILE, PatchFamily.REEL_ORIGIN, PatchFamily.STORY_RING, PatchFamily.FULL_RESOLUTION, PatchFamily.HOME_FEED, PatchFamily.FEED_SUGGESTIONS,
-                PatchFamily.TAB_SWIPE, PatchFamily.TAB_BAR_LAYOUT, PatchFamily.HDR_BOOST, PatchFamily.STOP_LOOPING, PatchFamily.RECENT_SEARCHES, PatchFamily.DATA_SAVER, PatchFamily.MEDIA_CACHE, PatchFamily.NOTIFICATION_GROUPS, PatchFamily.MESSAGES_LOCK, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.SCREENSHOT_BLOCK, PatchFamily.KEEP_IN_CHAT, PatchFamily.VIEW_ONCE_MARK, PatchFamily.LIVE_SEEN,
+                PatchFamily.TAB_SWIPE, PatchFamily.TAB_BAR_LAYOUT, PatchFamily.HDR_BOOST, PatchFamily.STOP_LOOPING, PatchFamily.RECENT_SEARCHES, PatchFamily.DATA_SAVER, PatchFamily.MEDIA_CACHE, PatchFamily.NOTIFICATION_GROUPS, PatchFamily.MESSAGES_LOCK, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.BLEND_VISITS, PatchFamily.SCREENSHOT_BLOCK, PatchFamily.KEEP_IN_CHAT, PatchFamily.VIEW_ONCE_MARK, PatchFamily.LIVE_SEEN,
                 PatchFamily.EMOJI_STYLE, PatchFamily.ACCENT_COLOR, PatchFamily.LAUNCH_SCREEN, PatchFamily.FONT, PatchFamily.APP_ICON,
                 PatchFamily.REEL_WATCH_HISTORY, PatchFamily.STORY_AUTO_ADVANCE, PatchFamily.STORY_SOUND, PatchFamily.STORY_SWIPE_REPLY, PatchFamily.STORY_UPLOAD_QUALITY, PatchFamily.STORY_FONTS, PatchFamily.FEED_SOUND, PatchFamily.FEED_TAP_PAUSE, PatchFamily.LONG_PRESS_ZOOM, PatchFamily.ROUNDED_POST_CORNERS, PatchFamily.CAROUSEL_ARROWS, PatchFamily.AMBIENT_LIGHT, PatchFamily.FULL_SCREEN_BARS, PatchFamily.STORY_TIME, PatchFamily.STORY_MENTIONS, PatchFamily.STORY_FOLLOW, PatchFamily.STORY_DOWNLOAD,
                 PatchFamily.POST_TIME, PatchFamily.HIDDEN_LIKE_COUNTS, PatchFamily.BACK_LEAVES_HOME, PatchFamily.HOME_PLACE, PatchFamily.STORY_LOOP, PatchFamily.SMOOTH_STORY_OPEN, PatchFamily.STORY_ZOOM_PLAY, PatchFamily.STORY_SEEN, PatchFamily.SPOOF_LOCATION, PatchFamily.APP_PROXY, PatchFamily.SETUP_POPUPS, PatchFamily.AD_DATA_REMINDER,
@@ -297,6 +298,8 @@ public class NeutralDefaultsSettingsTest {
         assertEquals("once", app.hushgram.extension.instagram.direct.KeepInChat.viewMode("once", new Object()));
         assertFalse(app.hushgram.extension.instagram.direct.ScreenshotBlock.lift());
         assertFalse(app.hushgram.extension.instagram.direct.ScreenshotReports.hold());
+        assertFalse(app.hushgram.extension.instagram.direct.BlendVisits.quiet(0));
+        assertTrue(app.hushgram.extension.instagram.direct.BlendVisits.quiet(1));
         assertEquals(0, SwipeToCreate.enabled());
         assertEquals(0, SwipeToCreate.hold(-1f, 0f, "swipe"));
         assertEquals(0, app.hushgram.extension.instagram.feed.BackLeavesHome.leave());

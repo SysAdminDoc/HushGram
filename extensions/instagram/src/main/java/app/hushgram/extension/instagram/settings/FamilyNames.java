@@ -152,6 +152,7 @@ public final class FamilyNames {
     private FamilyNames() {
     }
     public static final String SCREENSHOT_REPORTS = "Don't report screenshots";
+    public static final String BLEND_VISITS = "Don't report Blend visits";
     public static final String SCREENSHOT_BLOCK = "Allow screenshots";
     public static final String KEEP_IN_CHAT = "Keep in chat";
     public static final String VIEW_ONCE_MARK = "Mark one-time photos and videos";

@@ -34,6 +34,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.LAST_ACTIVE)
                 || build.contains(PatchFamily.MESSAGES_LOCK)
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
+                || build.contains(PatchFamily.BLEND_VISITS)
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
                 || build.contains(PatchFamily.VIEW_ONCE_MARK)
@@ -116,6 +117,11 @@ final class MessagesCategory {
             if (build.contains(PatchFamily.SCREENSHOT_REPORTS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_SCREENSHOTS, L10n.t("Don't report screenshots"),
                         L10n.t("Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.")));
+            }
+            if (build.contains(PatchFamily.BLEND_VISITS)) {
+                messages.addPreference(toggle(context, Settings.HIDE_BLEND_VISITS, L10n.t("Don't report Blend visits"),
+                        L10n.t("Opening a Blend doesn't tell the chat it belongs to that you visited it. The Blend "
+                                + "and its reels open as usual.")));
             }
             if (build.contains(PatchFamily.SCREENSHOT_BLOCK)) {
                 messages.addPreference(toggle(context, Settings.ALLOW_SCREENSHOTS, L10n.t("Allow screenshots"),

@@ -1634,3 +1634,6 @@ Turn on Seek bar on stories to use this choice.	請啟用「限時動態拖曳�
 A white bar and handle, as they've always been.	白色拖曳列與控點，與以往相同。
 A fainter bar and handle, so more of the video shows through.	較淡的拖曳列與控點，能看到更多影片。
 A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead.	白色拖曳列置於毛玻璃條上，會模糊其下方的影片。Android 12 以前此條改為半透明。
+# context: Instagram's Blend, the shared reels feed in a chat, as Instagram names it in this language (Turkish Instagram: Derleme).
+Don't report Blend visits	不回報 Blend 造訪
+Opening a Blend doesn't tell the chat it belongs to that you visited it. The Blend and its reels open as usual.	開啟 Blend 時，不會告訴它所屬的聊天室你造訪過。Blend 和其中的 Reels 照常開啟。

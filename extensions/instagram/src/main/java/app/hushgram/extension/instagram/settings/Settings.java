@@ -733,6 +733,12 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_SCREENSHOTS = new BooleanSetting("hushgram_hide_screenshots", FALSE);
 
     /**
+     * Opening a Blend doesn't tell its chat you visited it
+     * ({@link app.hushgram.extension.instagram.direct.BlendVisits}). Off to start.
+     */
+    public static final BooleanSetting HIDE_BLEND_VISITS = new BooleanSetting("hushgram_hide_blend_visits", FALSE);
+
+    /**
      * Screenshots and screen recordings work wherever Instagram blocks them, like disappearing
      * photos and videos ({@link app.hushgram.extension.instagram.direct.ScreenshotBlock}). Off to start.
      */
