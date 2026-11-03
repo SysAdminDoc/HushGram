@@ -183,6 +183,7 @@ public final class GlassPreview extends View {
     }
 
     /** Draws the scene blurred inside the pill, with the edge bend over it where Android 13 allows. */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.S)
     private boolean drawBlurred(Canvas canvas, int width, int height, float round) {
         RenderNode node = scene;
         if (node == null) {
