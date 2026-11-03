@@ -1229,4 +1229,35 @@ public class ReelClearModeTest {
         assertEquals(List.of("reel 0 OVERFLOW_MENU"), viewer.turnedOn);
         assertTrue(ReelClearMode.wanted());
     }
+
+    /**
+     * Don't vibrate in clear mode (#480): the buzz Instagram plays drawing a reel's exit button is
+     * skipped only with its switch on, whatever Keep clear mode on says, and plays while paused or
+     * unready.
+     */
+    @Test
+    public void theExitButtonsBuzzIsSkippedOnlyWithItsSwitchOn() {
+        try {
+            assertFalse("starts off", Settings.QUIET_REEL_CLEAR_MODE.defaultValue);
+            assertFalse("off plays the buzz", ReelClearMode.quiet());
+
+            Settings.QUIET_REEL_CLEAR_MODE.save(true);
+            assertTrue(ReelClearMode.quiet());
+            Settings.KEEP_REEL_CLEAR_MODE.save(false);
+            assertTrue("clear mode you turn on yourself is quiet too", ReelClearMode.quiet());
+            Settings.KEEP_REEL_CLEAR_MODE.save(true);
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse("paused plays the buzz", ReelClearMode.quiet());
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+
+            SettingsContextRule.withoutContext(() -> assertFalse("unready plays the buzz", ReelClearMode.quiet()));
+            assertTrue("and quiet again once resumed and ready", ReelClearMode.quiet());
+            assertFalse("nothing threw", reported("clear mode vibration"));
+        } finally {
+            Settings.QUIET_REEL_CLEAR_MODE.resetToDefault();
+        }
+    }
 }

@@ -85,6 +85,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * reason, newest first, while {@link #current} holds back any reel but the one tapped, so a viewer
  * showing another reel does nothing. Instagram's menu row needs Keep clear mode on for none of this.
  *
+ * <p>Instagram buzzes each time it draws a reel's exit button, so with Keep clear mode on every
+ * swipe buzzes (#480). The patch asks {@link #quiet} right before that buzz, and Don't vibrate in
+ * clear mode skips it. No other vibration goes through here.
+ *
  * <p>Leaving clear mode yourself, by its exit button or the menu, forgets it, and the next reels
  * show their buttons. What is kept is small and holds no view: whether clear mode is wanted, the
  * reason your turn-on gave (an enum constant), a few reel ids, and for the length of the wait the
@@ -559,6 +563,21 @@ public final class ReelClearMode {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "clear mode seek bar", failure);
             return true;
+        }
+    }
+
+    /**
+     * The hook, right before Instagram buzzes while it draws a reel's exit button, which happens for
+     * every reel that opens in clear mode, so with Keep clear mode on for every swipe (#480). Yes
+     * skips the buzz. Anything else, or a failure here, lets it play.
+     */
+    public static boolean quiet() {
+        try {
+            HookStatus.invoked(FAMILY);
+            return Utils.settingsReady() && Settings.QUIET_REEL_CLEAR_MODE.get();
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "clear mode vibration", failure);
+            return false;
         }
     }
 

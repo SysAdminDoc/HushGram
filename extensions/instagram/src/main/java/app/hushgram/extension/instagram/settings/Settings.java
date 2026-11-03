@@ -2309,6 +2309,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_reel_clear_mode", FALSE, parent(KEEP_REEL_CLEAR_MODE));
 
     /**
+     * No vibration when a reel opens in clear mode. Instagram buzzes each time it draws a reel's
+     * exit button, which Keep clear mode on brings on every swipe (#480,
+     * {@link app.hushgram.extension.instagram.reels.ReelClearMode#quiet}). Read each time, so a
+     * change needs no restart. Off to start.
+     */
+    public static final BooleanSetting QUIET_REEL_CLEAR_MODE =
+            new BooleanSetting("hushgram_quiet_reel_clear_mode", FALSE);
+
+    /**
      * The top bar of a reels viewer staying in place while you swipe through reels (#411,
      * {@link app.hushgram.extension.instagram.reels.ReelsTopBarScroll}). Read at each scroll, so a
      * change needs no restart. Off to start.

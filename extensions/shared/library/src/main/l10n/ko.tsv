@@ -1070,6 +1070,9 @@ Turn on Instagram's clear mode on a reel and the next reels open in it too. Leav
 # context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
 Start every reel in clear mode	모든 릴스를 클리어 모드로 시작
 Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	첫 릴스부터 탭하지 않아도 클리어 모드로 열립니다. 직접 끄면 다음 릴스에는 버튼이 다시 표시됩니다. 스크린샷 허용이 켜져 있지 않으면 Instagram은 클리어 모드에서 스크린샷을 막습니다.
+# context: Reels settings: a switch under Start every reel in clear mode (#480). It stops the short vibration Instagram plays when a reel opens in clear mode; Keep clear mode on is HushGram's switch of that name, so use the same words as that row
+Don't vibrate in clear mode	클리어 모드에서 진동 끄기
+Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode on, that's every swipe.	릴스가 클리어 모드로 열릴 때 Instagram이 내는 짧은 진동을 끕니다. 클리어 모드 유지가 켜져 있으면 넘길 때마다 진동합니다.
 Unlock with	잠금 해제 방법
 Phone lock	휴대폰 잠금
 HushGram PIN	HushGram PIN

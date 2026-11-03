@@ -106,11 +106,41 @@ public class ReelClearModeSettingsTest {
         assertTrue(Settings.START_REEL_CLEAR_MODE.isAvailable());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.START_REEL_CLEAR_MODE.key));
     }
+    /**
+     * Don't vibrate in clear mode (#480) sits right under Start every reel in clear mode, starts off,
+     * works with Keep clear mode on off too, and is kept in a backup.
+     */
+    @Test public void dontVibrateSitsUnderStartAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.QUIET_REEL_CLEAR_MODE.key);
+        assertNotNull(row);
+        assertTrue(row instanceof SwitchPreference);
+        assertEquals("Don't vibrate in clear mode", row.getTitle().toString());
+        assertEquals("Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode "
+                + "on, that's every swipe.", row.getSummary().toString());
+        PreferenceGroup reels = (PreferenceGroup) row.getParent();
+        int start = -1;
+        int quiet = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            String key = reels.getPreference(i).getKey();
+            if (Settings.START_REEL_CLEAR_MODE.key.equals(key)) start = i;
+            if (Settings.QUIET_REEL_CLEAR_MODE.key.equals(key)) quiet = i;
+        }
+        assertEquals("right after Start every reel in clear mode", start + 1, quiet);
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertEquals(Boolean.FALSE, Settings.QUIET_REEL_CLEAR_MODE.defaultValue);
+        assertFalse("read each time, so no restart", Settings.QUIET_REEL_CLEAR_MODE.rebootApp);
+        assertTrue("doesn't wait for Keep clear mode on", Settings.QUIET_REEL_CLEAR_MODE.isAvailable());
+        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.QUIET_REEL_CLEAR_MODE));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.QUIET_REEL_CLEAR_MODE.key));
+    }
     @Test public void withoutCleanUpReelsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_CLEAR_MODE.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.START_REEL_CLEAR_MODE.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.QUIET_REEL_CLEAR_MODE.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.KEEP_REEL_CLEAR_MODE.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.START_REEL_CLEAR_MODE.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.QUIET_REEL_CLEAR_MODE.key));
     }
 }

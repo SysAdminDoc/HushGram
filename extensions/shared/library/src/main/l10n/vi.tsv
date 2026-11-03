@@ -1041,6 +1041,9 @@ Keep clear mode on	Giữ chế độ xem sạch luôn bật
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	Bật chế độ xem sạch của Instagram trên một reel thì các reel kế tiếp cũng mở ở chế độ đó. Tự thoát chế độ xem sạch thì các reel kế tiếp hiện lại nút.
 Start every reel in clear mode	Bắt đầu mọi reel ở chế độ xem sạch
 Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	Reel mở ở chế độ xem sạch từ reel đầu tiên, không cần nhấn. Tự thoát thì các reel kế tiếp hiện lại nút. Instagram chặn ảnh chụp màn hình ở chế độ xem sạch trừ khi Cho phép chụp màn hình đang bật.
+# context: Reels settings: a switch under Start every reel in clear mode (#480). It stops the short vibration Instagram plays when a reel opens in clear mode; Keep clear mode on is HushGram's switch of that name, so use the same words as that row
+Don't vibrate in clear mode	Không rung ở chế độ xem sạch
+Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode on, that's every swipe.	Tắt rung ngắn mà Instagram phát khi một reel mở ở chế độ xem sạch. Khi bật Giữ chế độ xem sạch luôn bật, việc này xảy ra mỗi lần vuốt.
 Unlock with	Mở khóa bằng
 Phone lock	Khóa điện thoại
 HushGram PIN	PIN HushGram

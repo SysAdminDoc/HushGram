@@ -6,9 +6,11 @@ package app.morphe.patches.instagram.reels.cleanup
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
@@ -53,6 +55,7 @@ internal const val CLEAR_MODE_SCRUBBER = "$CLEAR_MODE->scrubber(II)Z"
 internal const val CLEAR_MODE_CHROME_ALPHA = "$CLEAR_MODE->chrome(FF)F"
 internal const val CLEAR_MODE_SETTLED = "$CLEAR_MODE->settled(Ljava/lang/Object;Ljava/lang/Object;)V"
 internal const val CLEAR_MODE_READY = "$CLEAR_MODE->ready(Ljava/lang/Object;)V"
+internal const val CLEAR_MODE_QUIET = "$CLEAR_MODE->quiet()Z"
 internal const val CLEAR_MODE_ENTER_STUB = "enter"
 internal const val CLEAR_MODE_ID_STUB = "reelId"
 
@@ -96,6 +99,9 @@ internal const val VIEW_PAGER = "Landroidx/viewpager2/widget/ViewPager2;"
 /** What the reel's state names its clear mode flag with in its toString, right before appending it. */
 internal const val CLEAR_MODE_FLAG_NAME = ", isFullscreenViewActive="
 
+/** What Instagram's haptics helper buzzes through (#480). */
+internal const val VIBRATOR = "Landroid/os/Vibrator;"
+
 private const val OBJECT = "Ljava/lang/Object;"
 private const val STRING = "Ljava/lang/String;"
 
@@ -114,8 +120,9 @@ private const val STRING = "Ljava/lang/String;"
  * was asked for through the extension, with the one it holds, right after reading that one, and
  * stores what comes back. The pager listener's scroll state change hands the extension the pager
  * and the state right after reading the pager. The viewer's setup hands the extension the handler
- * right after setting its turn-on action. The extension's two stubs are filled with the handler's
- * turn-on and the reel's getId.
+ * right after setting its turn-on action. The exit button's render also buzzes as it draws, and the
+ * extension is asked right before that call whether to skip it (#480). The extension's two stubs
+ * are filled with the handler's turn-on and the reel's getId.
  *
  * Everything is found by Instagram's own markers and checked before anything changes, so a build
  * that differs stops the patch saying what it couldn't find, and nothing is half done.
@@ -156,6 +163,12 @@ internal class ClearModeHooks(
     /** The exit button's render, and the field of its class holding the reel. */
     val button: Method,
     val buttonReel: String,
+    /**
+     * The index of the render's buzz and the local the hook asks the extension into, or null where
+     * the render's buzz couldn't be told apart, which leaves Don't vibrate in clear mode out (#480).
+     */
+    val buzz: Int?,
+    val quiet: Int,
     /** The handler, the reason's enum and the reel, as types. */
     val handler: String,
     val reason: String,
@@ -187,7 +200,8 @@ internal class ClearModeHooks(
     val readyHandler: Int,
     /**
      * How many instructions the turn-on, the turn-off, the viewer's turn-on, the row, the chrome
-     * setter, the scroll state change and the viewer's setup had when their places were found.
+     * setter, the scroll state change, the viewer's setup and the exit button's render had when
+     * their places were found.
      */
     val lengths: List<Int>,
 )
@@ -281,6 +295,7 @@ internal fun BytecodePatchContext.findClearMode(): ClearModeHooks {
     val buttonReel = reels.singleOrNull()
         ?: stop("the exit button ${button.definingClass} holds the reel in ${reels.size} fields, expected one")
     if (button.localRegisterCount() < 1) stop("${button.describe()} has no local register for the hook")
+    val (buzz, quiet) = clearModeBuzz(button) ?: (null to 0)
 
     // The seek bar row's render: an instance method taking the scope, in a class holding its state,
     // whose state holds the reel's. The reel's state is the class whose toString names the clear mode flag.
@@ -419,13 +434,58 @@ internal fun BytecodePatchContext.findClearMode(): ClearModeHooks {
 
     return ClearModeHooks(
         enable, entered, dismiss, left, enabled, current, kept.registerA, paged, button,
-        buttonReel.describe(), handler, reason, item,
+        buttonReel.describe(), buzz, quiet, handler, reason, item,
         row, scrubber, shown, borrowed, rowState.describe(), reelState.describe(), flag.describe(),
         chrome, hold, alpha,
         scrolled, settle, pager, scrollState,
         setup, ready, readyHandler,
-        listOf(enable, dismiss, enabled, row, chrome, scrolled, setup).map { it.body().size },
+        listOf(enable, dismiss, enabled, row, chrome, scrolled, setup, button).map { it.body().size },
     )
+}
+
+/**
+ * Where the exit button's [render] buzzes (#480): the one call to a method answering nothing that
+ * runs Android's vibrate itself or through a method of its own class (Instagram 453's haptics
+ * helper buzzes for 30 ms through one more of its own methods), and the lowest local the hook may
+ * ask the extension into there. A build where that isn't one call, or the hook can't go in front of
+ * it, warns and leaves only Don't vibrate in clear mode out, so Keep clear mode on goes in all the same.
+ */
+private fun BytecodePatchContext.clearModeBuzz(render: Method): Pair<Int, Int>? {
+    fun leftOut(why: String): Nothing? {
+        patchLog.warning("$KEEP: ${render.describe()} $why. Don't vibrate in clear mode does nothing in this build.")
+        return null
+    }
+    val code = render.body()
+    val buzzes = code.indices.filter { at ->
+        val call = code[at].methodReference() ?: return@filter false
+        call.returnType == "V" && vibrates(call, 1)
+    }
+    val buzz = buzzes.singleOrNull() ?: return leftOut("buzzes ${buzzes.size} times, expected once")
+    if (buzz + 1 >= code.size) return leftOut("ends at its buzz")
+    if (buzz in render.jumpTargets()) return leftOut("jumps to its buzz, so the hook would be skipped")
+    val quiet = try {
+        render.freeLocalsAt(KEEP, buzz, 1, targets = listOf(buzz + 1), highest = 255).single()
+    } catch (busy: PatchException) {
+        return leftOut("has no local free at its buzz (${busy.message})")
+    }
+    return buzz to quiet
+}
+
+/**
+ * Whether [call] is Android's vibrate, or a method of the app whose code makes such a call, or
+ * makes a call to a method of its own class that does, up to [depth] calls further down.
+ */
+private fun BytecodePatchContext.vibrates(call: MethodReference, depth: Int): Boolean {
+    if (call.definingClass == VIBRATOR) return call.name == "vibrate"
+    val method = classDefByOrNull(call.definingClass)?.methods?.firstOrNull {
+        it.name == call.name && it.returnType == call.returnType &&
+            it.parameterTypes.map(Any::toString) == call.parameterTypes.map(Any::toString)
+    } ?: return false
+    return method.body().any { inner ->
+        val next = inner.methodReference() ?: return@any false
+        (next.definingClass == VIBRATOR && next.name == "vibrate") ||
+            (depth > 0 && next.definingClass == call.definingClass && vibrates(next, depth - 1))
+    }
 }
 
 /** The names an enum's initializer gives its constants, as the strings it loads. */
@@ -546,12 +606,13 @@ private val THROWS = setOf(Opcode.THROW)
 
 /**
  * Each hook reads registers the find phase checked and borrows none but the exit button's, which
- * goes in first where no local holds anything yet, and the seek bar row's, a local nothing reads
- * past its test. The two handler hooks and the viewer's go in with a plain insert on purpose: the
- * handler's own branch around a missing action keeps landing past the hook. Those three, the row's,
- * the chrome setter's, the scroll state change's and the setup's go in by the index the find phase
- * read, which holds only while each method is as long as it was, so one that changed in between
- * stops the patch before any hook is in.
+ * goes in first where no local holds anything yet, the seek bar row's, a local nothing reads past
+ * its test, and the exit button's buzz check, a local nothing reads past the buzz. The two handler
+ * hooks and the viewer's go in with a plain insert on purpose: the handler's own branch around a
+ * missing action keeps landing past the hook. Those three, the row's, the chrome setter's, the
+ * scroll state change's, the setup's and the buzz check go in by the index the find phase read,
+ * which holds only while each method is as long as it was, so one that changed in between stops
+ * the patch before any hook is in.
  */
 internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
     val enable = changing(found.enable)
@@ -561,7 +622,8 @@ internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
     val chrome = changing(found.chrome)
     val scrolled = changing(found.scrolled)
     val setup = changing(found.setup)
-    listOf(enable, dismiss, enabled, row, chrome, scrolled, setup).forEachIndexed { at, method ->
+    val button = changing(found.button)
+    listOf(enable, dismiss, enabled, row, chrome, scrolled, setup, button).forEachIndexed { at, method ->
         if (method.body().size != found.lengths[at]) stop("${method.describe()} changed after its hook's place was found")
     }
     enable.addInstructions(found.entered, "invoke-static/range { p0 .. p1 }, $CLEAR_MODE_ENTERED")
@@ -576,7 +638,21 @@ internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
         """,
     )
     changing(found.paged).addInstructions(0, "invoke-static { }, $CLEAR_MODE_PAGED")
-    changing(found.button).addInstructions(
+    // A yes skips the render's buzz to the instruction after it (#480). It goes in before the hook at
+    // the top, which would move it.
+    found.buzz?.let { buzz ->
+        val quiet = found.quiet
+        button.addInstructionsWithLabels(
+            buzz,
+            """
+                invoke-static { }, $CLEAR_MODE_QUIET
+                move-result v$quiet
+                if-nez v$quiet, :quiet
+            """,
+            ExternalLabel("quiet", button.getInstruction(buzz + 1)),
+        )
+    }
+    button.addInstructions(
         0,
         """
             move-object/from16 v0, p0

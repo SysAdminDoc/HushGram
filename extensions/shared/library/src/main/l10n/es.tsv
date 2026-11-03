@@ -1071,6 +1071,9 @@ Turn on Instagram's clear mode on a reel and the next reels open in it too. Leav
 # context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
 Start every reel in clear mode	Empezar cada reel en modo limpio
 Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	Los reels se abren en modo limpio desde el primero, sin tocar nada. Sal tú mismo y los siguientes reels vuelven a mostrar sus botones. Instagram bloquea las capturas en modo limpio salvo que Permitir capturas de pantalla esté activado.
+# context: Reels settings: a switch under Start every reel in clear mode (#480). It stops the short vibration Instagram plays when a reel opens in clear mode; Keep clear mode on is HushGram's switch of that name, so use the same words as that row
+Don't vibrate in clear mode	No vibrar en modo limpio
+Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode on, that's every swipe.	Quita la vibración corta que Instagram hace cuando un reel se abre en modo limpio. Con Mantener el modo limpio, pasa en cada deslizamiento.
 Unlock with	Desbloquear con
 Phone lock	Bloqueo del teléfono
 HushGram PIN	PIN de HushGram

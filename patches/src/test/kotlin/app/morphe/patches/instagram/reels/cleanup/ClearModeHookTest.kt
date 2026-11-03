@@ -73,9 +73,10 @@ class ClearModeHookTest {
     private val floatValue = "Ljava/lang/Number;->floatValue()F"
     private val scrollState = "Lfixture/ScrollState;"
     private val pagerHost = "Lfixture/PagerHost;"
+    private val haptics = "Lfixture/Haptics;"
     private val hooks = listOf(
         CLEAR_MODE_ENTERED, CLEAR_MODE_LEFT, CLEAR_MODE_CURRENT, CLEAR_MODE_PAGED, CLEAR_MODE_BUILT, CLEAR_MODE_SCRUBBER, CLEAR_MODE_CHROME_ALPHA,
-        CLEAR_MODE_SETTLED, CLEAR_MODE_READY,
+        CLEAR_MODE_SETTLED, CLEAR_MODE_READY, CLEAR_MODE_QUIET,
     )
 
     private fun marker(name: String, quarter: String = "q3") = "android_purge_26_${quarter}_$name"
@@ -152,6 +153,19 @@ class ClearModeHookTest {
         assertEquals("the button itself isn't what the reel is read from", 2, (render[0] as TwoRegisterInstruction).registerB)
         assertEquals("$button->reel:$item", render[1].referenceText())
         assertCall("the exit button's hook", render[2], CLEAR_MODE_BUILT, listOf(0))
+        // Its buzz (#480): the extension is asked into v1, the local nothing reads past the buzz, right
+        // before the call, and a yes jumps to what follows it.
+        val quiet = render.indexOfFirst { it.referenceText() == CLEAR_MODE_QUIET }
+        assertEquals("the haptics helper isn't read just before", "$haptics->get()$haptics", render[quiet - 2].referenceText())
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, render[quiet - 1].opcode)
+        assertCall("the buzz's hook", render[quiet], CLEAR_MODE_QUIET, emptyList())
+        assertEquals(Opcode.MOVE_RESULT, render[quiet + 1].opcode)
+        assertEquals("the answer isn't in the free local", 1, (render[quiet + 1] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.IF_NEZ, render[quiet + 2].opcode)
+        assertEquals(1, (render[quiet + 2] as OneRegisterInstruction).registerA)
+        assertEquals("the buzz doesn't follow", "$haptics->tap()V", render[quiet + 3].referenceText())
+        assertEquals("a yes doesn't skip the buzz alone", quiet + 4, render.target(quiet + 2))
+        assertEquals("the render asks once", 1, render.count { it.referenceText() == CLEAR_MODE_QUIET })
 
         // The seek bar row: the reel state's flag, read off this through the row's state into v0,
         // the one local nothing reads past the test, goes to the extension with Instagram's answer,
@@ -350,6 +364,37 @@ class ClearModeHookTest {
     }
 
     /**
+     * An exit button whose buzz can't be told apart or hooked (#480) leaves Don't vibrate in clear
+     * mode out and nothing else: every other hook goes in, and the render buzzes as Instagram has it.
+     * A buzz three calls down isn't one.
+     */
+    @Test
+    fun aBuzzThePatchCantPlaceLeavesOnlyItsHookOut() {
+        for ((shape, what) in listOf(
+            Shape(buzzes = 0) to "no buzz",
+            Shape(buzzes = 2) to "two buzzes",
+            Shape(jumpToBuzz = true) to "a jump onto the buzz",
+            Shape(buzzBusy = true) to "no free local",
+            Shape(buzzDeep = true) to "a buzz too deep",
+        )) {
+            val classes = classes(shape)
+            val context = PatchContexts.of(classes)
+            val stock = classes.single { it.type == button }.methods.single().implementation!!.instructions.toList()
+
+            context.keepClearMode()
+
+            val written = context.written(classes)
+            for (method in listOf("enable", "dismiss", "enabled", "onPageSelected", "updateChrome", "onScrollStateChanged", "setup")) {
+                assertTrue("$what: $method has no hook: $written", method in written)
+            }
+            val render = context.method(button, "render")
+            assertCall("$what: the exit button's hook", render[2], CLEAR_MODE_BUILT, listOf(0))
+            assertTrue("$what: the buzz was hooked", render.none { it.referenceText() == CLEAR_MODE_QUIET })
+            assertEquals("$what: the render changed past its first hook", stock.map { it.opcode }, render.drop(3).map { it.opcode })
+        }
+    }
+
+    /**
      * The handler's and the viewer's hooks go in by the index the find phase read. A method that
      * grew between the two would take its hook in the wrong place, so the patch stops instead.
      */
@@ -357,7 +402,7 @@ class ClearModeHookTest {
     fun aMethodChangedAfterItsPlaceWasFoundStopsThePatch() {
         for (changed in listOf(
             handler to "enable", handler to "dismiss", actions to "enabled", row to "render", holder to "updateChrome",
-            listener to "onScrollStateChanged", actions to "setup",
+            listener to "onScrollStateChanged", actions to "setup", button to "render",
         )) {
             val classes = classes()
             val context = PatchContexts.of(classes)
@@ -435,7 +480,9 @@ class ClearModeHookTest {
         val rowFields = holders.single { it.type == scrubberRow.definingClass }.instanceFields.map { it.type }.filter { it.startsWith("L") }.toSet()
         val heldFields = FixtureDex.classes(bundle, rowFields).values.flatMap { held -> held.instanceFields.map { it.type } }.filter { it.startsWith("L") }
         val built = scrubberRow.code().filter { it.opcode == Opcode.NEW_INSTANCE }.mapNotNull { it.type() }
-        val extra = FixtureDex.classes(bundle, setOf(reasonType, itemType, stateType) + rowFields + heldFields + built).values +
+        // What the exit button's render calls, among them the haptics helper it buzzes through (#480).
+        val called = render.code().mapNotNull { it.methodRef()?.definingClass }.filter { it.startsWith("LX/") }
+        val extra = FixtureDex.classes(bundle, setOf(reasonType, itemType, stateType) + rowFields + heldFields + built + called).values +
             FixtureDex.classesHolding(bundle, CLEAR_MODE_FLAG_NAME)
         val context = PatchContexts.of((holders + extra + ExtensionDex.classDef(CLEAR_MODE)).distinctBy { it.type })
 
@@ -498,7 +545,7 @@ class ClearModeHookTest {
 
         // The exit button: its own reel, read off this into the first local, first thing.
         val newRender = after(render)
-        assertEquals("$name: the exit button's render grew", render.code().size + 3, newRender.size)
+        assertEquals("$name: the exit button's render grew", render.code().size + 6, newRender.size)
         assertEquals("$name: the render's first instruction", Opcode.MOVE_OBJECT_FROM16, newRender[0].opcode)
         assertEquals("$name: this is what the reel is read from", render.implementation!!.registerCount - 2, (newRender[0] as TwoRegisterInstruction).registerB)
         val reelField = (newRender[1] as ReferenceInstruction).reference as FieldReference
@@ -506,6 +553,18 @@ class ClearModeHookTest {
         assertEquals("$name: the field holds a reel", itemType, reelField.type)
         assertEquals("$name: the exit button's hook", CLEAR_MODE_BUILT, newRender[2].referenceText())
         assertEquals("$name: the reel handed over is the one read", listOf(0), newRender[2].registers())
+        // Its buzz (#480): asked about once, into a local, and a yes skips the one call to the haptics helper.
+        val quiet = newRender.indexOfFirst { it.referenceText() == CLEAR_MODE_QUIET }
+        assertEquals("$name: the render asks about its buzz once", 1, newRender.count { it.referenceText() == CLEAR_MODE_QUIET })
+        val quietLocal = (newRender[quiet + 1] as OneRegisterInstruction).registerA
+        assertEquals("$name: the answer is kept", Opcode.MOVE_RESULT, newRender[quiet + 1].opcode)
+        assertTrue("$name: the answer is in a local", quietLocal < render.implementation!!.registerCount - 2)
+        assertEquals("$name: the answer is tested", Opcode.IF_NEZ, newRender[quiet + 2].opcode)
+        assertEquals("$name: the test is of the answer", quietLocal, (newRender[quiet + 2] as OneRegisterInstruction).registerA)
+        val buzz = newRender[quiet + 3].methodRef()
+        assertEquals("$name: the buzz answers nothing", "V", buzz?.returnType)
+        assertTrue("$name: the buzz is the haptics helper's", context.classDefBy(buzz!!.definingClass).fields.any { it.type == VIBRATOR })
+        assertEquals("$name: a yes skips the buzz alone", quiet + 4, newRender.target(quiet + 2))
 
         // The seek bar row: the reel state's flag, read off this through the row's state, goes in with
         // Instagram's unboxed answer right before the row tests it, and the row tests what comes back.
@@ -626,6 +685,10 @@ class ClearModeHookTest {
         val buttonTakesScope: Boolean = true,
         val buttonReels: Int = 1,
         val buttonLocals: Boolean = true,
+        val buzzes: Int = 1,
+        val jumpToBuzz: Boolean = false,
+        val buzzBusy: Boolean = false,
+        val buzzDeep: Boolean = false,
         val rows: Int = 1,
         val rowTakesScope: Boolean = true,
         val flagNames: Int = 1,
@@ -895,14 +958,44 @@ class ClearModeHookTest {
             ),
         )
 
+        // 453's render (09Xm.A0o) reads the haptics helper into v0 and buzzes through it; the busy
+        // shape keeps v1 for after the buzz, so no local is free there.
         val local = if (shape.buttonLocals) "v0" else "p1"
         val renderParameters = if (shape.buttonTakesScope) listOf(scope) else listOf(scope, "I")
+        val tap = "invoke-virtual { $local }, $haptics->${if (shape.buzzDeep) "tapDeep" else "tap"}()V\n"
         val render = method(button, "render", renderParameters, component, if (shape.buttonLocals) 3 + renderParameters.size else 2, """
             const-string $local, "${marker(CLEAR_MODE_BUTTON)}"
             invoke-static { $local }, $purge
+            ${if (shape.buzzBusy) "const/4 v1, 0x1" else ""}
+            invoke-static { }, $haptics->get()$haptics
+            move-result-object $local
+            ${if (shape.jumpToBuzz) "if-eqz $local, :buzz\n:buzz" else ""}
+            ${tap.repeat(shape.buzzes)}
+            ${if (shape.buzzBusy) "invoke-static { v1 }, Lfixture/Log;->kept(I)V" else ""}
             const/4 $local, 0x0
             return-object $local
         """)
+        // The helper buzzes for 30 ms through a method of its own; tapDeep goes through one more.
+        val hapticsClass = classDef(
+            haptics,
+            listOf(
+                method(haptics, "get", emptyList(), haptics, 1, "const/4 v0, 0x0\nreturn-object v0",
+                    AccessFlags.PUBLIC.value or AccessFlags.STATIC.value),
+                method(haptics, "tap", emptyList(), "V", 4, """
+                    const-wide/16 v0, 0x1e
+                    const/4 v2, 0x0
+                    invoke-virtual { p0, v0, v1, v2 }, $haptics->buzz(JZ)V
+                    return-void
+                """),
+                method(haptics, "tapDeep", emptyList(), "V", 1, "invoke-virtual { p0 }, $haptics->tap()V\nreturn-void"),
+                method(haptics, "buzz", listOf("J", "Z"), "V", 5, """
+                    iget-object v0, p0, $haptics->vibrator:$VIBRATOR
+                    invoke-virtual { v0, p1, p2 }, $VIBRATOR->vibrate(J)V
+                    return-void
+                """),
+            ),
+            fields = listOf(field(haptics, "vibrator", VIBRATOR)),
+        )
         val buttonFields = (0 until shape.buttonReels).map { field(button, if (it == 0) "reel" else "other", item) } +
             listOf(field(button, "state", "Lfixture/State;"), field(button, "exited", "Z"))
 
@@ -1094,6 +1187,7 @@ class ClearModeHookTest {
             classDef(listener, listOf(paged) + scrolls, fields = listOf(field(listener, "host", pagerHost))),
             if (shape.stateInApp) stateClass else null,
             classDef(button, listOf(render), fields = buttonFields),
+            hapticsClass,
             rowClass,
             rowStateClass,
             reelStateClass,
