@@ -971,6 +971,9 @@ Start stories with sound	스토리를 소리와 함께 시작
 Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, so on silent or with the volume down, stories stay quiet.	스토리가 Instagram의 스피커를 누른 것처럼 소리가 켜진 채로 열립니다. 휴대전화의 벨소리 모드와 볼륨은 그대로 적용되므로 무음이거나 볼륨이 꺼져 있으면 스토리는 조용한 상태로 유지됩니다.
 Stop swipe up to reply	위로 스와이프해 답장하기 끄기
 A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.	다른 사람의 스토리에서 위로 스와이프해도 더 이상 답장 상자와 반응이 열리지 않습니다. 답장하려면 메시지 보내기를 누르세요.
+# context: Stories switch; Send message is Instagram's reply field at the bottom of someone else's story, beside its heart (like) and share buttons. Use Instagram's own label for it.
+Hide the reply box on stories	스토리에서 답장 상자 숨기기
+Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are.	다른 사람의 스토리 아래쪽에 있는 메시지 보내기 상자를 없앱니다. 옆의 좋아요와 공유 버튼은 그 자리에 그대로 있습니다.
 # context: toast when Download all is tapped while another post is still saving; it waits its turn
 Queued. It starts once the post before it is saved.	대기 중입니다. 앞의 게시물 저장이 끝나면 시작됩니다.
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting

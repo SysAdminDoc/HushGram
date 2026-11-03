@@ -96,6 +96,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyReplyBox() {
+        return false;
+    }
+
     public static boolean storyFonts() {
         return false;
     }

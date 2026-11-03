@@ -325,6 +325,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_story_swipe_reply", FALSE);
 
     /**
+     * The Send message box stays off the bottom of other people's stories
+     * ({@link app.hushgram.extension.instagram.stories.StoryReplyBox}). Read before each frame, and
+     * a viewer opened with it on puts the box back the next time it opens with it off. Off to start.
+     */
+    public static final BooleanSetting HIDE_STORY_REPLY_BOX =
+            new BooleanSetting("hushgram_hide_story_reply_box", FALSE);
+
+    /**
      * The font files picked in settings show up in the story text editor alongside Instagram's own fonts
      * ({@link app.hushgram.extension.instagram.stories.StoryFonts}). Read each time the editor lists
      * its fonts. Off to start, and turned on when a font is added.

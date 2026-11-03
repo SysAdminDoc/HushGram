@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Hide the reply box on stories` is a new patch. With its switch on under Stories, the Send message box comes off the bottom of other people's stories, and the like and share buttons stay right where they were. Starts off. Asked for in #486.
 * **Instagram:** `Full screen Reels and Home` adds `Stories fill the screen` under Stories. On a tall phone a story covers the whole screen with the reply bar over it, the way shorter phones show it, instead of a rounded card that stops above the bar. Starts off. Asked for in #436.
 * **Instagram:** Two more icons can sit beside a reel. `Speed button on reels` opens a short list (0.5x, 1x, 1.5x, 1.75x, 2x and 3x) so you don't have to dig through the three dots, and with `Keep the reel speed` on the next reels play at what you picked. `Full screen button on reels` does what Full screen in the reel's menu does, in one tap. For every reel to open that way, turn on `Start every reel in clear mode`. Both start off and live under Reels. Asked for in #480.
 * **Instagram:** `Don't vibrate in clear mode` under Reels stops the little buzz Instagram plays when a reel opens in clear mode. With `Keep clear mode on` you'd feel it on every swipe. It starts off and changes take effect right away. Asked for in #480.

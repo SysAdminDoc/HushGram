@@ -972,6 +972,9 @@ Start stories with sound	Iniciar las historias con sonido
 Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, so on silent or with the volume down, stories stay quiet.	Las historias se abren con el sonido activado, igual que al tocar el altavoz de Instagram. El timbre y el volumen del teléfono siguen contando, así que en silencio o con el volumen bajado las historias se quedan mudas.
 Stop swipe up to reply	Desactivar deslizar hacia arriba para responder
 A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.	Deslizar hacia arriba en la historia de otra persona ya no abre el cuadro de respuesta ni sus reacciones. Toca Enviar mensaje para responder.
+# context: Stories switch; Send message is Instagram's reply field at the bottom of someone else's story, beside its heart (like) and share buttons. Use Instagram's own label for it.
+Hide the reply box on stories	Ocultar el cuadro de respuesta en las historias
+Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are.	Quita el cuadro Enviar mensaje de la parte inferior de las historias de otras personas. Los botones de me gusta y compartir que tiene al lado se quedan donde están.
 # context: toast when Download all is tapped while another post is still saving; it waits its turn
 Queued. It starts once the post before it is saved.	En cola. Empieza en cuanto se guarde la publicación anterior.
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting

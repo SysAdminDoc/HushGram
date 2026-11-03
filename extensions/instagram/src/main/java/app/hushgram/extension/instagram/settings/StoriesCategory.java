@@ -146,6 +146,11 @@ final class StoriesCategory {
                     L10n.t("A swipe up on someone's story no longer opens the reply box and its reactions. "
                             + "Tap Send message to reply.")));
         }
+        if (build.contains(PatchFamily.STORY_REPLY_BOX)) {
+            stories.add(toggle(context, Settings.HIDE_STORY_REPLY_BOX, L10n.t("Hide the reply box on stories"),
+                    L10n.t("Takes the Send message box off the bottom of other people's stories. The like and "
+                            + "share buttons next to it stay where they are.")));
+        }
         if (build.contains(PatchFamily.STORY_TIME)) {
             stories.add(toggle(context, Settings.SHOW_STORY_TIME, L10n.t("Show a story's exact time"),
                     L10n.t("A story's header shows its time the way the choice below says, instead of how long ago. "
