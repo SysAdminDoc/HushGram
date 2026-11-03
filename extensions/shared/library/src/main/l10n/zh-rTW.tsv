@@ -510,7 +510,7 @@ Makes the seek bar thicker, with a round white handle and the time above it, ove
 Seek bar like DM videos	使用私訊影片樣式的進度列
 Gives reels the seek bar of a video in a chat, a thin gray line that turns white as it plays, with a big round white handle. The time shows above it. Drag it to seek. When Bigger seek bar is on too, this look wins. It also keeps the bar on short reels.	讓 Reels 使用聊天影片的進度列：播放時由灰轉白的細線，搭配大型白色圓形拖曳鈕，上方顯示時間。拖曳即可跳轉。同時啟用「加大 Reels 進度列」時，會優先使用此樣式。也會保留短 Reels 的進度列。
 Blur the bars around a reel	模糊 Reel 周圍的留白
-A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead of black bars, and the strip under the tab bar and the band behind the clock show the reel blurred too. Open Reels again after a change.	未填滿螢幕的 Reel 會在上下顯示自身的模糊影像，取代黑邊；分頁列下方與時鐘後方也會顯示模糊的 Reel。變更後請重新開啟 Reels。
+A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead of black bars, and the strip under the tab bar and the band behind the clock show the reel blurred too. The copy shows only where a reel leaves room, as with Show the whole reel on. Open Reels again after a change.	未填滿螢幕的 Reel 會在上下顯示自身的模糊影像，取代黑邊；分頁列下方與時鐘後方也會顯示模糊的 Reel。模糊影像只會出現在 Reel 留有空間的地方，例如開啟「顯示完整的 Reels」時。變更後請重新開啟 Reels。
 # Chosen navigation long-press settings entry. Account tab availability varies.
 Settings entry	設定入口
 Open settings with a tab long press	長按分頁開啟設定

@@ -80,6 +80,7 @@ public class ReelBlurBarsSettingsTest {
         assertEquals("Blur the bars around a reel", row.getTitle().toString());
         assertEquals("A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead "
                 + "of black bars, and the strip under the tab bar and the band behind the clock show the reel blurred too. "
+                + "The copy shows only where a reel leaves room, as with Show the whole reel on. "
                 + "Open Reels again after a change.",
                 row.getSummary().toString());
         PreferenceGroup reels = row.getParent();

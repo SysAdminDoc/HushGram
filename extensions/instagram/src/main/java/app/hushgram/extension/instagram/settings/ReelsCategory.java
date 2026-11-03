@@ -230,7 +230,7 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.BLUR_REEL_BARS, L10n.t("Blur the bars around a reel"),
                     L10n.t("A reel that doesn't fill the screen shows a blurred copy of itself above and below it "
                             + "instead of black bars, and the strip under the tab bar and the band behind the clock show the reel "
-                            + "blurred too. "
+                            + "blurred too. The copy shows only where a reel leaves room, as with Show the whole reel on. "
                             + "Open Reels again after a change.")));
         }
         if (build.contains(PatchFamily.REEL_AUTO_SCROLL)) {
