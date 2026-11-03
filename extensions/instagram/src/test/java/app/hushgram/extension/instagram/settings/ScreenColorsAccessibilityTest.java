@@ -326,6 +326,22 @@ public class ScreenColorsAccessibilityTest {
         assertTrue("Unavailable text must keep the disabled visual state",
                 Color.alpha(color(disabledTitle.getTextColors(), false, false))
                         < Color.alpha(color(enabledTitle.getTextColors(), true, false)));
+        // A greyed-out row's summary says what to turn on first, so it still has to read.
+        TextView disabledSummary = disabled.findViewById(android.R.id.summary);
+        int reason = color(disabledSummary.getTextColors(), false, false);
+        assertTrue("The reason line still looks unavailable", Color.alpha(reason) < 0xFF);
+        for (ScreenColors look : new ScreenColors[]{new ScreenColors(false), new ScreenColors(true)}) {
+            contrast("disabled summary on the card", over(reason, look.card), look.card, 4.5);
+            contrast("disabled summary on the page", over(reason, look.background), look.background, 4.5);
+        }
+    }
+
+    /** [foreground] drawn over [background], the colour the screen actually shows. */
+    private static int over(int foreground, int background) {
+        float a = Color.alpha(foreground) / 255f;
+        return Color.rgb(Math.round(Color.red(foreground) * a + Color.red(background) * (1 - a)),
+                Math.round(Color.green(foreground) * a + Color.green(background) * (1 - a)),
+                Math.round(Color.blue(foreground) * a + Color.blue(background) * (1 - a)));
     }
 
     @Test public void stylingPreservesEachCheckedAndUncheckedItemAndItsNativeCallback() {

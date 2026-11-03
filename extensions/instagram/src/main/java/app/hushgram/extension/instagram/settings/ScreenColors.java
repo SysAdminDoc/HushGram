@@ -125,6 +125,16 @@ public final class ScreenColors {
         return new ColorStateList(new int[][]{{-android.R.attr.state_enabled}, {}}, new int[]{dimmed, color});
     }
 
+    /**
+     * [color] for a disabled row's summary, at 75%. The summary is where a greyed-out row says
+     * what to turn on first, and at 38% it read at about 2:1 on the card. The title and switch
+     * keep the 38% that shows the row is off.
+     */
+    static ColorStateList readableWhenDisabled(int color) {
+        int dimmed = (color & 0x00FFFFFF) | 0xC0000000;
+        return new ColorStateList(new int[][]{{-android.R.attr.state_enabled}, {}}, new int[]{dimmed, color});
+    }
+
     /** Native list navigation uses selected/activated as well as focused. Keep each visible. */
     ColorStateList interactionOutline(int normal) {
         return interactionOutline(normal, heading);
@@ -188,7 +198,7 @@ public final class ScreenColors {
         }
         TextView summary = row.findViewById(android.R.id.summary);
         if (summary != null) {
-            summary.setTextColor(dimmedWhenDisabled(this.summary));
+            summary.setTextColor(readableWhenDisabled(this.summary));
             summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, overview ? 12 : 13);
             summary.setLineSpacing(0, 1);
         }
