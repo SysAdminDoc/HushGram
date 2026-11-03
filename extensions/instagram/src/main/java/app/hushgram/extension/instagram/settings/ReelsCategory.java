@@ -280,6 +280,16 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.TEXT_BUTTON_ON_REELS, L10n.t("Copy text button on reels"),
                     L10n.t("Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, so you "
                             + "can select and copy its text.")));
+            if (build.contains(PatchFamily.KEEP_REEL_SPEED)) {
+                reels.add(toggle(context, Settings.SPEED_BUTTON_ON_REELS, L10n.t("Speed button on reels"),
+                        L10n.t("Puts a speed icon beside a reel. Tap it to pick a speed from 0.5x to 3x. With Keep "
+                                + "the reel speed on, the next reels play at it too.")));
+            }
+            if (build.contains(PatchFamily.REEL_DECLUTTER)) {
+                reels.add(toggle(context, Settings.FULL_SCREEN_BUTTON_ON_REELS, L10n.t("Full screen button on reels"),
+                        L10n.t("Puts a Full screen icon beside a reel, so one tap does what Full screen in its menu "
+                                + "does. Start every reel in clear mode opens every reel that way.")));
+            }
         }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"), SettingsIcons.REELS,

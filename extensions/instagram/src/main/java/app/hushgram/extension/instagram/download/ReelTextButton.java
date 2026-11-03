@@ -123,6 +123,17 @@ public final class ReelTextButton {
         return Utils.settingsReady() && Settings.TEXT_BUTTON_ON_REELS.get();
     }
 
+    /** Whether the icon shows in [column], so an icon in front of it leaves More's margin to it. Never throws. */
+    static boolean shows(@Nullable Object column) {
+        try {
+            if (column == null || !enabled() || glyph < 0) return false;
+            Object item = ReelDownloadButton.bridge.item(column);
+            return item != null && ReelDownloadButton.ORGANIC.equals(ReelDownloadButton.bridge.kind(item));
+        } catch (Throwable failure) {
+            return false;
+        }
+    }
+
     /**
      * A fresh copy of Instagram's glyph, tinted with [filter] when Instagram tints the column's
      * icons, else white like them. Null when the build has no such glyph.

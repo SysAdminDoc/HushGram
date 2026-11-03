@@ -6,11 +6,14 @@ package app.hushgram.extension.instagram.reels;
 
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
+
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Keep the reel speed: the speed you lock with Instagram's own 2x lock (hold the edge of a reel, then
@@ -36,6 +39,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * speed. Ads play at normal speed, as Instagram plays them. The speed lives in memory only, so it's gone when Instagram
  * restarts, and nothing is kept or set while the switch is off, HushGram is paused, the settings
  * aren't ready, or anything here fails.
+ *
+ * <p>The speed icon beside a reel (#480) sets the reel on screen through the player maybeResumePlayer
+ * handed over last ({@link #choose}), with the switch off too, and with it on keeps the pick the way
+ * a lock keeps a speed.
  */
 public final class ReelSpeed {
     static final float NORMAL = 1f;
@@ -45,6 +52,9 @@ public final class ReelSpeed {
 
     /** Counted under the patch's name for each reel started at the kept speed. */
     static final String APPLIED = "reel started at the kept speed";
+
+    /** Counted under the patch's name for each speed picked with the speed icon (#480). */
+    static final String PICKED = "speed picked with the speed icon";
 
     /** The reasons Instagram ends a lock with when you end it yourself: sliding it off, or the speed menu. */
     static final String SLID_OFF = "swipe_down";
@@ -86,6 +96,13 @@ public final class ReelSpeed {
     /** The reel maybeResumePlayer is about to play, handed over just before its player. */
     private static final ThreadLocal<Object> RESUMING = new ThreadLocal<>();
 
+    /** The player maybeResumePlayer played last, weakly: the reel on screen, for the speed icon (#480). */
+    @Nullable
+    private static volatile WeakReference<Object> onScreen;
+
+    /** The speed the reel on screen plays at, as far as this class saw it set, switch on or off. */
+    private static volatile float playing = NORMAL;
+
     private ReelSpeed() {
     }
 
@@ -106,6 +123,7 @@ public final class ReelSpeed {
     public static void speedSet(float speed) {
         try {
             HookStatus.invoked(FAMILY);
+            playing = speed;
             if (!on()) {
                 drop();
                 return;
@@ -235,6 +253,12 @@ public final class ReelSpeed {
             HookStatus.invoked(FAMILY);
             Object item = RESUMING.get();
             RESUMING.remove();
+            if (player != null) {
+                WeakReference<Object> held = onScreen;
+                // Another player starts at normal speed until something sets it.
+                if (held == null || held.get() != player) playing = NORMAL;
+                onScreen = new WeakReference<>(player);
+            }
             if (!on()) {
                 drop();
                 return;
@@ -247,15 +271,53 @@ public final class ReelSpeed {
             HookStatus.bound(FAMILY, "reel start");
             if (item != null && access.ad(item)) {
                 access.setSpeed(player, NORMAL);
+                playing = NORMAL;
                 Logger.printDebug(() -> "Reel speed: an ad started, set back to normal speed");
                 return;
             }
             access.setSpeed(player, speed);
+            playing = speed;
             HookStatus.counted(FAMILY, APPLIED);
             Logger.printDebug(() -> "Reel speed: a reel started, set to the kept " + speed + "x");
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "reel start", failure);
         }
+    }
+
+    // ------------------------------------------------------------------ the speed icon (#480)
+
+    /**
+     * The speed icon's pick: [speed] goes on the reel on screen through the player's own setter. With
+     * the switch on it's kept for the next reels the way a lock keeps one, and normal speed forgets
+     * it. False when HushGram is paused or no reel has played since Instagram started. Never throws.
+     */
+    public static boolean choose(float speed) {
+        try {
+            if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
+            WeakReference<Object> held = onScreen;
+            Object player = held == null ? null : held.get();
+            if (player == null) return false;
+            access.setSpeed(player, speed);
+            playing = speed;
+            boolean keep = on();
+            if (keep) {
+                synchronized (LOCK) {
+                    lastSpeed = speed;
+                    kept = same(speed, NORMAL) ? NORMAL : speed;
+                }
+            }
+            HookStatus.counted(FAMILY, PICKED);
+            Logger.printDebug(() -> "Reel speed: picked " + speed + "x" + (keep ? ", the next reels start at it" : ""));
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "speed pick", failure);
+            return false;
+        }
+    }
+
+    /** The speed the reel on screen plays at, as far as this class saw it set. */
+    public static float playing() {
+        return playing;
     }
 
     // ------------------------------------------------------------------ the rule
@@ -287,6 +349,8 @@ public final class ReelSpeed {
     static void forget() {
         drop();
         RESUMING.remove();
+        onScreen = null;
+        playing = NORMAL;
         access = PATCHED;
     }
 }

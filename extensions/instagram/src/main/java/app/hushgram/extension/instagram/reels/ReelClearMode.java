@@ -14,14 +14,17 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Keep clear mode on (#138): once you turn Instagram's clear mode on for a reel, the next reels you
@@ -77,6 +80,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * it's carried like your own. Leaving it yourself stops the starting too, until another Reels
  * viewer is set up, and a reel that couldn't be carried to gets it started instead.
  *
+ * <p>The Full screen icon beside a reel (#480) asks for clear mode on its own reel ({@link #fullScreen}).
+ * {@link #ready} keeps the last few viewers' handlers, weakly, and each is asked with the menu row's
+ * reason, newest first, while {@link #current} holds back any reel but the one tapped, so a viewer
+ * showing another reel does nothing. Instagram's menu row needs Keep clear mode on for none of this.
+ *
  * <p>Leaving clear mode yourself, by its exit button or the menu, forgets it, and the next reels
  * show their buttons. What is kept is small and holds no view: whether clear mode is wanted, the
  * reason your turn-on gave (an enum constant), a few reel ids, and for the length of the wait the
@@ -121,6 +129,14 @@ public final class ReelClearMode {
     private static final int REACHED = 3;
     /** A reel Instagram hasn't built an exit button for yet: its button may still come (#233). */
     private static final int NOT_BUILT = 4;
+    /** Another reel than the one the Full screen icon was tapped on (#480). */
+    private static final int OTHER_REEL = 5;
+
+    /** Counted under the patch's name for each reel the Full screen icon put in clear mode (#480). */
+    static final String FULL_SCREEN = "reels put in clear mode by the Full screen icon";
+
+    /** How many Reels viewers' handlers are kept for the Full screen icon, newest first (#480). */
+    static final int VIEWERS = 4;
 
     /** What this class does to Instagram and reads from it. {@link #PATCHED} is the patch's; tests stand in. */
     interface Viewer {
@@ -274,6 +290,13 @@ public final class ReelClearMode {
     /** You left clear mode yourself in that viewer, so it isn't started there again. */
     private static volatile boolean declined;
 
+    /** The handlers the last Reels viewers were set up with, weakly, newest first, for the Full screen icon (#480). */
+    private static final ArrayDeque<WeakReference<Object>> HANDLERS = new ArrayDeque<>();
+
+    /** The reel the Full screen icon was tapped on, by id, while it asks the handlers for it (#480). */
+    @Nullable
+    private static volatile String aiming;
+
     private ReelClearMode() {
     }
 
@@ -376,6 +399,17 @@ public final class ReelClearMode {
             if (id == null) {
                 outcome = NO_BUTTON;
                 return null;
+            }
+            String aim = aiming;
+            if (aim != null) {
+                // The Full screen icon's turn-on lands only on the reel it was tapped on (#480).
+                if (!aim.equals(id)) {
+                    outcome = OTHER_REEL;
+                    return null;
+                }
+                outcome = REACHED;
+                reached = id;
+                return item;
             }
             boolean same = id.equals(from);
             if (!same) landed = true;
@@ -491,6 +525,7 @@ public final class ReelClearMode {
     public static void ready(@Nullable Object handler) {
         try {
             HookStatus.invoked(FAMILY);
+            if (handler != null) remember(handler);
             if (handler == null || !startsOn()) {
                 starting = null;
                 return;
@@ -543,6 +578,73 @@ public final class ReelClearMode {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "clear mode buttons", failure);
             return asked;
+        }
+    }
+
+    // ------------------------------------------------------------------ the Full screen icon (#480)
+
+    /**
+     * The Full screen icon's tap on [item]'s column: asks each Reels viewer's handler, newest first,
+     * to turn clear mode on with the reason Instagram's menu row gives, and {@link #current} lets the
+     * turn-on land only on [item], so a viewer showing another reel does nothing. With Keep clear mode
+     * on, a reel put in it is carried like your own. True when Instagram turned it on. Never throws.
+     */
+    public static boolean fullScreen(@Nullable Object item) {
+        try {
+            if (item == null || carrying || !Utils.settingsReady() || HushgramPause.isPaused()) return false;
+            String id = access.id(item);
+            if (id == null) return false;
+            Object[] handlers;
+            synchronized (HANDLERS) {
+                handlers = HANDLERS.stream().map(WeakReference::get).filter(Objects::nonNull).toArray();
+            }
+            for (Object handler : handlers) {
+                Object reason = access.reason(handler);
+                if (reason == null) continue;
+                outcome = NOTHING;
+                reached = null;
+                aiming = id;
+                carrying = true;
+                try {
+                    access.enter(handler, reason);
+                } finally {
+                    carrying = false;
+                    aiming = null;
+                }
+                int found = outcome;
+                String got = reached;
+                outcome = NOTHING;
+                reached = null;
+                if (found != REACHED || got == null) continue;
+                HookStatus.counted(FAMILY, FULL_SCREEN);
+                if (on()) {
+                    HookStatus.bound(FAMILY, "clear mode");
+                    wanted = true;
+                    source = reason;
+                    shown = got;
+                    clearRetry();
+                }
+                Logger.printDebug(() -> "Clear mode: turned on by the Full screen icon");
+                return true;
+            }
+            Logger.printDebug(() -> "Clear mode: the Full screen icon reached no viewer showing its reel ("
+                    + handlers.length + " viewers)");
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "full screen icon", failure);
+            return false;
+        }
+    }
+
+    /** Keeps [handler] first among the viewers' handlers, weakly, dropping the oldest and any gone. */
+    private static void remember(Object handler) {
+        synchronized (HANDLERS) {
+            HANDLERS.removeIf(held -> {
+                Object kept = held.get();
+                return kept == null || kept == handler;
+            });
+            HANDLERS.addFirst(new WeakReference<>(handler));
+            while (HANDLERS.size() > VIEWERS) HANDLERS.removeLast();
         }
     }
 
@@ -795,6 +897,10 @@ public final class ReelClearMode {
             BUILT.clear();
             lastBuilt = null;
         }
+        synchronized (HANDLERS) {
+            HANDLERS.clear();
+        }
+        aiming = null;
         access = PATCHED;
     }
 }

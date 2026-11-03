@@ -1665,3 +1665,17 @@ Attachment	Allegato
 Send	Invia
 Dim stories too	Attenua anche le storie
 Burn-in guard also fades the top and bottom of a story while you watch without touching, the eye button too. Any tap brings them back.	La protezione burn-in attenua anche la parte alta e bassa di una storia mentre guardi senza toccare, occhio compreso. Qualsiasi tocco le riporta.
+# context: Reels settings: a switch for a speed icon beside each reel that opens a list of speeds, after Copy text button on reels (#480). Keep the reel speed is HushGram's switch of that name
+Speed button on reels	Pulsante velocità sui reel
+Puts a speed icon beside a reel. Tap it to pick a speed from 0.5x to 3x. With Keep the reel speed on, the next reels play at it too.	Mette un'icona della velocità accanto a un reel. Toccala per scegliere una velocità da 0,5x a 3x. Con Mantieni la velocità dei reel attivo, anche i reel successivi vanno a quella velocità.
+# context: Reels settings: a switch for an icon beside each reel that does what Instagram's own Full screen row in the reel's menu does (#480). Full screen is Instagram's term for it (bundled 453 string packs: Vollbild, pantalla completa, layar penuh, schermo intero, 전체 화면, tela cheia, tam ekran, toàn màn hình, 全螢幕); Start every reel in clear mode is HushGram's switch of that name
+Full screen button on reels	Pulsante Schermo intero sui reel
+Puts a Full screen icon beside a reel, so one tap does what Full screen in its menu does. Start every reel in clear mode opens every reel that way.	Mette un'icona Schermo intero accanto a un reel, così un tocco fa quello che fa Schermo intero nel suo menu. Avvia ogni reel in modalità pulita apre ogni reel così.
+# context: TalkBack label of the speed icon beside a reel (#480)
+Playback speed	Velocità di riproduzione
+# context: TalkBack label of the Full screen icon beside a reel, Instagram's own term (#480)
+Full screen	Schermo intero
+# context: toast when a speed picked from that icon's list couldn't be set (#480)
+Speed didn't change	Velocità non cambiata
+# context: toast when a tap on the Full screen icon couldn't open the reel full screen (#480)
+Full screen didn't open	Schermo intero non aperto

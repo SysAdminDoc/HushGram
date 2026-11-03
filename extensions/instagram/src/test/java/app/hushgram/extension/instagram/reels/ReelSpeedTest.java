@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.reels;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
@@ -281,6 +282,55 @@ public class ReelSpeedTest {
         ReelSpeed.resuming(reels.player("ad"));
         ReelSpeed.resuming(reels.player("alone"));
         assertEquals(List.of("ad 1.0", "alone 2.0"), reels.set);
+    }
+
+    /** The speed icon (#480): a pick goes on the reel on screen and, with the switch on, on the next reels too. */
+    @Test
+    public void aPickedSpeedPlaysNowAndIsKeptForTheNextReels() {
+        assertFalse("before any reel played there's nothing to set", ReelSpeed.choose(2f));
+        assertEquals(1f, ReelSpeed.playing(), 0f);
+        Object first = reels.player("first");
+        play(new Object(), first);
+        assertTrue(ReelSpeed.choose(1.75f));
+        assertEquals(List.of("first 1.75"), reels.set);
+        assertEquals(1.75f, ReelSpeed.playing(), 0f);
+        assertEquals("kept like a lock", 1.75f, ReelSpeed.kept(), 0f);
+        assertTrue(String.join("\n", HookStatus.report()).contains(ReelSpeed.PICKED));
+
+        playNext("second");
+        assertEquals(List.of("first 1.75", "second 1.75"), reels.set);
+        assertEquals(1.75f, ReelSpeed.playing(), 0f);
+        assertTrue("normal speed forgets it", ReelSpeed.choose(1f));
+        assertEquals(1f, ReelSpeed.kept(), 0f);
+        playNext("third");
+        assertEquals("the third starts as Instagram starts it", 3, reels.set.size());
+    }
+
+    @Test
+    public void withTheSwitchOffAPickPlaysOnTheReelAloneAndPausedNothingChanges() {
+        Settings.KEEP_REEL_SPEED.save(false);
+        Object first = reels.player("first");
+        play(new Object(), first);
+        assertTrue(ReelSpeed.choose(3f));
+        assertEquals(3f, ReelSpeed.playing(), 0f);
+        assertEquals("nothing kept", 1f, ReelSpeed.kept(), 0f);
+        play(new Object(), first);
+        assertEquals("the same player resumed still plays at it", 3f, ReelSpeed.playing(), 0f);
+        playNext("second");
+        assertEquals(List.of("first 3.0"), reels.set);
+        assertEquals("another player starts at normal speed", 1f, ReelSpeed.playing(), 0f);
+
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ReelSpeed.choose(2f));
+        assertEquals(List.of("first 3.0"), reels.set);
+    }
+
+    @Test
+    public void aFailingPickIsReportedNotThrown() {
+        playNext("first");
+        reels.failure = new IllegalStateException("the setter failed");
+        assertFalse(ReelSpeed.choose(2f));
+        assertTrue(String.join("\n", HookStatus.report()).contains("speed pick"));
     }
 
     /** Until the patch fills the stubs in, no reel is an ad and setting a speed does nothing. */

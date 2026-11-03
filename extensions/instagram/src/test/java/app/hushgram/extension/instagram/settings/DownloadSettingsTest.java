@@ -99,6 +99,8 @@ public class DownloadSettingsTest {
         Settings.REEL_BLOCK_BUTTON.resetToDefault();
         Settings.HIDE_SOUND_REELS.resetToDefault();
         Settings.TEXT_BUTTON_ON_REELS.resetToDefault();
+        Settings.SPEED_BUTTON_ON_REELS.resetToDefault();
+        Settings.FULL_SCREEN_BUTTON_ON_REELS.resetToDefault();
         Settings.HIDDEN_SOUNDS.resetToDefault();
         Settings.HOLD_TO_DOWNLOAD.resetToDefault();
         Settings.HOLD_FINGERS.resetToDefault();
@@ -260,6 +262,54 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.TEXT_BUTTON_ON_REELS.key));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.TEXT_BUTTON_ON_REELS.key));
+        }
+    }
+
+    /**
+     * Speed button on reels and Full screen button on reels (#480) sit right after Copy text under
+     * Reels, each only with the patch its tap goes through. They start off, have their own switches
+     * and go in a settings file.
+     */
+    @Test
+    public void theSpeedAndFullScreenButtonsSitAfterCopyTextWithTheirPatches() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.KEEP_REEL_SPEED, PatchFamily.REEL_DECLUTTER);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference speed = reels.findPreference(Settings.SPEED_BUTTON_ON_REELS.key);
+            assertTrue("the speed button isn't under Reels", speed instanceof SwitchPreference);
+            assertEquals("Speed button on reels", String.valueOf(speed.getTitle()));
+            assertTrue(String.valueOf(speed.getSummary()).contains("0.5x to 3x"));
+            assertFalse("it starts off", ((SwitchPreference) speed).isChecked());
+            Preference full = reels.findPreference(Settings.FULL_SCREEN_BUTTON_ON_REELS.key);
+            assertTrue("the Full screen button isn't under Reels", full instanceof SwitchPreference);
+            assertEquals("Full screen button on reels", String.valueOf(full.getTitle()));
+            assertTrue("it points at the switch that opens every reel that way",
+                    String.valueOf(full.getSummary()).contains("Start every reel in clear mode"));
+            assertFalse("it starts off", ((SwitchPreference) full).isChecked());
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, Settings.TEXT_BUTTON_ON_REELS.key) + 1, indexOfKey(rows, Settings.SPEED_BUTTON_ON_REELS.key));
+            assertEquals(indexOfKey(rows, Settings.SPEED_BUTTON_ON_REELS.key) + 1, indexOfKey(rows, Settings.FULL_SCREEN_BUTTON_ON_REELS.key));
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertTrue("neither waits for Download on reels", speed.isEnabled() && full.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SPEED_BUTTON_ON_REELS.key));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_BUTTON_ON_REELS.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            assertEquals("no speed icon without Keep the reel speed", -1, indexOfKey(rows, Settings.SPEED_BUTTON_ON_REELS.key));
+            assertEquals("no Full screen icon without clear mode's patch", -1, indexOfKey(rows, Settings.FULL_SCREEN_BUTTON_ON_REELS.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.SPEED_BUTTON_ON_REELS.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_BUTTON_ON_REELS.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.KEEP_REEL_SPEED, PatchFamily.REEL_DECLUTTER);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            assertEquals("no column to put them in without the reel download", -1, indexOfKey(rows, Settings.SPEED_BUTTON_ON_REELS.key));
+            assertEquals(-1, indexOfKey(rows, Settings.FULL_SCREEN_BUTTON_ON_REELS.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_BUTTON_ON_REELS.key));
         }
     }
 

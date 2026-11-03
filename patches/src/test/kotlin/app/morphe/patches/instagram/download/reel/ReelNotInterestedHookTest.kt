@@ -79,6 +79,15 @@ class ReelNotInterestedHookTest {
         for (needed in listOf(TEXT_ON, TEXT_LITHO, TEXT_LITHO_ABOVE_MORE).map { it.substringAfter("->") }) {
             assertTrue("$TEXT_TYPE has no public static $needed", needed in texts)
         }
+        for ((type, hooks) in listOf(
+            SPEED_ICON_TYPE to listOf(SPEED_ICON_ON, SPEED_ICON_LITHO, SPEED_ICON_LITHO_ABOVE_MORE),
+            FULL_SCREEN_ICON_TYPE to listOf(FULL_SCREEN_ICON_ON, FULL_SCREEN_ICON_LITHO, FULL_SCREEN_ICON_LITHO_ABOVE_MORE),
+        )) {
+            val declared = ExtensionDex.classDef(type).methods
+                .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
+                .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }.toSet()
+            for (needed in hooks.map { it.substringAfter("->") }) assertTrue("$type has no public static $needed", needed in declared)
+        }
     }
 
     @Test
@@ -121,6 +130,8 @@ class ReelNotInterestedHookTest {
         classes[SOUND_TYPE] = ExtensionDex.classDef(SOUND_TYPE)
         classes[HIDDEN_SOUNDS] = ExtensionDex.classDef(HIDDEN_SOUNDS)
         classes[TEXT_TYPE] = ExtensionDex.classDef(TEXT_TYPE)
+        classes[SPEED_ICON_TYPE] = ExtensionDex.classDef(SPEED_ICON_TYPE)
+        classes[FULL_SCREEN_ICON_TYPE] = ExtensionDex.classDef(FULL_SCREEN_ICON_TYPE)
         val context = PatchContexts.of(classes.values.toList())
 
         val site = context.findReelButtonSite()
@@ -243,6 +254,43 @@ class ReelNotInterestedHookTest {
         val withoutText = PatchContexts.of(classes.values.filter { it.type != TEXT_TYPE })
         val noText = runCatching { withoutText.findTextStarts(site) }.exceptionOrNull()
         assertTrue("$name: an extension without the icon is refused before anything changes", noText is PatchException)
+
+        // The speed icon (#480) goes in front of the text icon's block, then Full screen in front of it.
+        val speedStarts = context.findPlayerIconStarts(site, SPEED_ICON_TYPE, "speed")
+        assertEquals("$name: the speed icon starts where the text icon does", textAsks, speedStarts.map { it.second })
+        context.addPlayerIcons(site, speedStarts, SPEED_ICON_ON, SPEED_ICON_LITHO, SPEED_ICON_LITHO_ABOVE_MORE)
+        val sped = renderOf().instructions()
+        assertEquals("$name: fourteen more for speed at each place", texted.size + 28, sped.size)
+        val speedAsks = sped.indices.filter { sped[it].names(SPEED_ICON_ON) }
+        assertEquals("$name: the speed on() at both places", 2, speedAsks.size)
+        assertEquals("$name: its lithoAboveMore() over More alone", 1, sped.count { it.names(SPEED_ICON_LITHO_ABOVE_MORE) })
+        speedAsks.zip(site.sites.sortedBy { it.at }).forEach { (at, place) ->
+            assertTrue("$name: the text icon's block follows right after", sped[at + 14].names(TEXT_ON))
+            val litho = if (place.aboveMore) SPEED_ICON_LITHO_ABOVE_MORE else SPEED_ICON_LITHO
+            assertTrue("$name: $litho eight after on()", sped[at + 8].names(litho))
+            assertTrue("$name: the speed icon is added by the column's own add", sped[at + 13].names(site.add.toString()))
+        }
+        val fullStarts = context.findPlayerIconStarts(site, FULL_SCREEN_ICON_TYPE, "Full screen")
+        assertEquals("$name: the Full screen icon starts where the speed icon does", speedAsks, fullStarts.map { it.second })
+        context.addPlayerIcons(site, fullStarts, FULL_SCREEN_ICON_ON, FULL_SCREEN_ICON_LITHO, FULL_SCREEN_ICON_LITHO_ABOVE_MORE)
+        val full = renderOf().instructions()
+        assertEquals("$name: fourteen more for Full screen at each place", sped.size + 28, full.size)
+        val fullAsks = full.indices.filter { full[it].names(FULL_SCREEN_ICON_ON) }
+        assertEquals("$name: the Full screen on() at both places", 2, fullAsks.size)
+        assertEquals("$name: its lithoAboveMore() over More alone", 1, full.count { it.names(FULL_SCREEN_ICON_LITHO_ABOVE_MORE) })
+        fullAsks.zip(site.sites.sortedBy { it.at }).forEach { (at, place) ->
+            assertTrue("$name: the speed icon's block follows right after", full[at + 14].names(SPEED_ICON_ON))
+            assertTrue("$name: then the text icon's", full[at + 28].names(TEXT_ON))
+            assertTrue("$name: then Download's, after sound, Block and Not interested", full[at + 84].names(REEL_BUTTON_ON))
+            val litho = if (place.aboveMore) FULL_SCREEN_ICON_LITHO_ABOVE_MORE else FULL_SCREEN_ICON_LITHO
+            assertTrue("$name: $litho eight after on()", full[at + 8].names(litho))
+            assertTrue("$name: the Full screen icon is added by the column's own add", full[at + 13].names(site.add.toString()))
+        }
+        for (type in listOf(SPEED_ICON_TYPE, FULL_SCREEN_ICON_TYPE)) {
+            val without = PatchContexts.of(classes.values.filter { it.type != type })
+            val refused = runCatching { without.findPlayerIconStarts(site, type, type) }.exceptionOrNull()
+            assertTrue("$name: an extension without $type is refused before anything changes", refused is PatchException)
+        }
         val withoutList = PatchContexts.of(classes.values.filter { it.type != HIDDEN_SOUNDS })
         val noList = runCatching { withoutList.findSoundStarts(site) }.exceptionOrNull()
         assertTrue("$name: an extension without the list is refused before anything changes", noList is PatchException)

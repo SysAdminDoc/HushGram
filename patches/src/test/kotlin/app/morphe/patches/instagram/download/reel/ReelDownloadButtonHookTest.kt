@@ -11,6 +11,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.reels.cleanup.CLEAR_MODE_DISMISS
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -67,11 +68,17 @@ class ReelDownloadButtonHookTest {
     private fun check(bundle: File, name: String) {
         val markers = setOf(COLUMN_MARKER, SAVE_MARKER, SAVE_COUNT_MARKER, TINT_MARKER, SAVE_ICON_MARKER, SHARE_MARKER, MORE_MARKER)
         val classes = LinkedHashMap<String, ClassDef>()
+        // What clear mode's dismiss takes first, its reel: the Full screen icon (#480) hands it the column's item.
+        val clearModeReels = mutableSetOf<String>()
         FixtureDex.forEach(bundle) { dex ->
-            val holds = dex.stringSection.any { string ->
-                string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
+            val found = dex.stringSection.mapNotNull { string ->
+                if (string.startsWith("android_purge_")) PURGE_MARKER.find(string)?.groupValues?.get(1) else null
+            }.toSet()
+            if (CLEAR_MODE_DISMISS in found) {
+                dex.classes.flatMap { it.methods }.filter { CLEAR_MODE_DISMISS in it.markers() }
+                    .forEach { clearModeReels += it.parameterTypes.first().toString() }
             }
-            if (!holds) return@forEach
+            if (found.none { it in markers }) return@forEach
             for (classDef in dex.classes) {
                 if (classDef.methods.any { method -> method.markers().any { it in markers } }) classes[classDef.type] = ImmutableClassDef.of(classDef)
             }
@@ -93,6 +100,7 @@ class ReelDownloadButtonHookTest {
         assertEquals("$name: Save is added in two places", 2, site.sites.size)
         assertEquals("$name: the item's Media", MEDIA, site.media.type)
         assertEquals("$name: the item is what the getter answers", site.itemType, site.item.returnType)
+        assertEquals("$name: the item is the reel clear mode's dismiss takes", setOf(site.itemType), clearModeReels)
         assertTrue("$name: the column's filter is its own", site.tint.definingClass == site.column && site.tintPrivate)
 
         // Where the gap under the icon comes from. Save sets one margin of nine, its bottom, to the

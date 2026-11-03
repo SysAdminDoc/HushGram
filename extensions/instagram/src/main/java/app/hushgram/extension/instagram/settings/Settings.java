@@ -2891,6 +2891,19 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting TEXT_BUTTON_ON_REELS = new BooleanSetting("hushgram_text_button_on_reels", FALSE);
 
     /**
+     * A speed icon in the column beside a reel whose tap picks the reel's speed from 0.5x to 3x
+     * (#480), kept for the next reels with Keep the reel speed on. Starts off, so the column stays
+     * Instagram's own.
+     */
+    public static final BooleanSetting SPEED_BUTTON_ON_REELS = new BooleanSetting("hushgram_speed_button_on_reels", FALSE);
+
+    /**
+     * A Full screen icon in the column beside a reel whose tap turns on Instagram's own Full screen,
+     * its clear mode, for that reel (#480). Starts off, so the column stays Instagram's own.
+     */
+    public static final BooleanSetting FULL_SCREEN_BUTTON_ON_REELS = new BooleanSetting("hushgram_full_screen_button_on_reels", FALSE);
+
+    /**
      * The sounds Hide reels by sound hides, a line for each: the sound's id, a tab, its title, a tab
      * and who made it. Empty to start. It reads empty while HushGram is paused, and a backup leaves it
      * out, like Hidden accounts.

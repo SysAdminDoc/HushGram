@@ -1665,3 +1665,17 @@ Attachment	Ek
 Send	Gönder
 Dim stories too	Hikayeleri de karart
 Burn-in guard also fades the top and bottom of a story while you watch without touching, the eye button too. Any tap brings them back.	Ekran yanığı koruması, dokunmadan izlerken bir hikayenin üstünü ve altını da soldurur, göz tuşu dahil. Herhangi bir dokunuş geri getirir.
+# context: Reels settings: a switch for a speed icon beside each reel that opens a list of speeds, after Copy text button on reels (#480). Keep the reel speed is HushGram's switch of that name
+Speed button on reels	Reels'te hız düğmesi
+Puts a speed icon beside a reel. Tap it to pick a speed from 0.5x to 3x. With Keep the reel speed on, the next reels play at it too.	Bir reel'in yanına hız simgesi koyar. 0,5x ile 3x arasında bir hız seçmek için dokun. Reel hızını koru açıksa sonraki reel'ler de bu hızda oynar.
+# context: Reels settings: a switch for an icon beside each reel that does what Instagram's own Full screen row in the reel's menu does (#480). Full screen is Instagram's term for it (bundled 453 string packs: Vollbild, pantalla completa, layar penuh, schermo intero, 전체 화면, tela cheia, tam ekran, toàn màn hình, 全螢幕); Start every reel in clear mode is HushGram's switch of that name
+Full screen button on reels	Reels'te tam ekran düğmesi
+Puts a Full screen icon beside a reel, so one tap does what Full screen in its menu does. Start every reel in clear mode opens every reel that way.	Bir reel'in yanına Tam ekran simgesi koyar, böylece tek dokunuş menüsündeki Tam ekran ile aynı işi yapar. Her reel'i temiz modda başlat her reel'i böyle açar.
+# context: TalkBack label of the speed icon beside a reel (#480)
+Playback speed	Oynatma hızı
+# context: TalkBack label of the Full screen icon beside a reel, Instagram's own term (#480)
+Full screen	Tam ekran
+# context: toast when a speed picked from that icon's list couldn't be set (#480)
+Speed didn't change	Hız değişmedi
+# context: toast when a tap on the Full screen icon couldn't open the reel full screen (#480)
+Full screen didn't open	Tam ekran açılmadı

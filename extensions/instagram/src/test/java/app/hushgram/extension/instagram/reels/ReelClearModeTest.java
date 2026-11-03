@@ -27,7 +27,9 @@ import org.robolectric.shadows.ShadowLooper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -82,11 +84,28 @@ public class ReelClearModeTest {
         /** A reel whose id can't be read. */
         Reel unreadable;
 
+        /** The handlers asked to turn clear mode on, in order. */
+        final List<Object> askedHandlers = new ArrayList<>();
+        /** Another viewer's handler and the reel its own pager is on, when a test opens more than one. */
+        final Map<Object, Reel> pageOf = new IdentityHashMap<>();
+
         @Override
         public void enter(Object handler, Object source) {
             asked++;
+            askedHandlers.add(handler);
             if (enterFailure != null) throw enterFailure;
-            turnOn(handler, source);
+            Reel own = pageOf.get(handler);
+            if (own == null) {
+                turnOn(handler, source);
+                return;
+            }
+            Reel was = page;
+            page = own;
+            try {
+                turnOn(handler, source);
+            } finally {
+                page = was;
+            }
         }
 
         void turnOn(Object handler, Object source) {
@@ -1114,5 +1133,100 @@ public class ReelClearModeTest {
         ReelClearMode.paged();
         viewer.runPosted();
         assertEquals("not tried again", 1, viewer.asked);
+    }
+
+    // ------------------------------------------------------------------ the Full screen icon (#480)
+
+    private static boolean fullScreens(int times) {
+        return HookStatus.report().toString().contains(ReelClearMode.FULL_SCREEN + " " + times);
+    }
+
+    @Test
+    public void theFullScreenIconPutsItsReelInClearModeAndKeepCarriesIt() {
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        assertTrue(ReelClearMode.fullScreen(first));
+        assertEquals("Instagram's turn-on, with its menu row's reason", List.of("reel 0 OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(HookStatus.report().toString(), fullScreens(1));
+        assertTrue("Keep clear mode on carries it like your own", ReelClearMode.wanted());
+
+        Reel second = reel("reel 1");
+        swipe(first, second);
+        assertEquals(List.of("reel 0 OVERFLOW_MENU", "reel 1 OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(counted(1));
+    }
+
+    @Test
+    public void withKeepOffTheIconPutsOnlyItsReelInClearMode() {
+        Settings.KEEP_REEL_CLEAR_MODE.save(false);
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        assertTrue(ReelClearMode.fullScreen(first));
+        assertEquals(List.of("reel 0 OVERFLOW_MENU"), viewer.turnedOn);
+        assertFalse(ReelClearMode.wanted());
+
+        swipe(first, reel("reel 1"));
+        assertEquals("the next reel shows its buttons", 1, viewer.asked);
+        assertEquals(1, viewer.turnedOn.size());
+    }
+
+    @Test
+    public void theIconLandsOnlyOnTheReelItWasTappedOnNewestViewerFirst() {
+        Reel tapped = reel("tapped");
+        Reel other = reel("other");
+        Object older = new Object();
+        Object newer = new Object();
+        viewer.pageOf.put(older, tapped);
+        viewer.pageOf.put(newer, other);
+        ReelClearMode.ready(older);
+        ReelClearMode.ready(newer);
+
+        assertTrue(ReelClearMode.fullScreen(tapped));
+        assertEquals("the newest viewer is asked first, then the one showing the reel", List.of(newer, older), viewer.askedHandlers);
+        assertEquals("only the tapped reel went into clear mode", List.of("tapped OVERFLOW_MENU"), viewer.turnedOn);
+
+        viewer.askedHandlers.clear();
+        ReelClearMode.ready(older);
+        assertTrue(ReelClearMode.fullScreen(tapped));
+        assertEquals("a viewer opened again is the newest", List.of(older), viewer.askedHandlers);
+
+        Reel gone = reel("gone");
+        assertFalse("no viewer shows a reel scrolled away from", ReelClearMode.fullScreen(gone));
+        assertEquals(2, viewer.turnedOn.size());
+    }
+
+    @Test
+    public void noViewerNoReasonPausedOrFailingDoesNothing() {
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        assertFalse("no viewer yet", ReelClearMode.fullScreen(first));
+        assertFalse(ReelClearMode.fullScreen(null));
+        assertEquals(0, viewer.asked);
+
+        ReelClearMode.ready(viewer.handler);
+        viewer.menuReason = null;
+        assertFalse("a handler with no menu row reason isn't asked", ReelClearMode.fullScreen(first));
+        assertEquals(0, viewer.asked);
+
+        viewer.menuReason = Reason.OVERFLOW_MENU;
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ReelClearMode.fullScreen(first));
+        assertEquals(0, viewer.asked);
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        viewer.enterFailure = new IllegalStateException("the handler changed");
+        assertFalse(ReelClearMode.fullScreen(first));
+        assertTrue(reported("full screen icon"));
+        assertFalse(ReelClearMode.wanted());
+
+        // What failed left nothing behind: your own turn-on still works as Instagram's.
+        viewer.enterFailure = null;
+        tapClearMode();
+        assertEquals(List.of("reel 0 OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(ReelClearMode.wanted());
     }
 }
