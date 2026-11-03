@@ -418,6 +418,8 @@ Opening someone's profile takes you on to their posts as a scrolling list of ful
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	릴스 사이에 표시되는 팔로우할 사람 및 크리에이터 추천 카드를 숨깁니다. 릴스 자체는 모두 정상적으로 재생됩니다
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	유료 광고 파트너십 라벨이 있는 릴스와 Instagram이 홍보됨으로 표시한 릴스를 제외합니다. 광고는 별도의 스위치가 있습니다.
 Turn on Start Home on Following to use this choice.	이 옵션을 사용하려면 ‘팔로잉에서 홈 시작’을 활성화하세요
+# context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
+Turn on %1$s to use this slider.	이 슬라이더를 사용하려면 ‘%1$s’을(를) 활성화하세요.
 Turn on Story ring size to use this choice.	이 옵션을 사용하려면 ‘스토리 링 크기’을 활성화하세요
 Turn on Default playback quality to use this choice.	이 옵션을 사용하려면 ‘기본 재생 화질’을 활성화하세요
 Updating remembered positions...	저장된 위치를 업데이트하는 중...
@@ -945,6 +947,10 @@ The tab bar keeps Instagram's order.	하단바는 Instagram의 순서를 유지�
 Tabs go in this order: %1$s. Restart Instagram to see the change.	탭 순서: %1$s. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Show and reorder tabs	탭 표시 및 순서 변경
 Drag to move %1$s	드래그해서 %1$s 이동
+Move up	위로 이동
+Move down	아래로 이동
+# context: Show and reorder tabs: what a screen reader is told after Move up or Move down on a row's handle; %1$s is the tab, %2$d its new place and %3$d how many tabs the list holds (#207)
+%1$s is now %2$d of %3$d	%1$s이(가) 이제 %3$d개 중 %2$d번째입니다
 Reset	초기화
 Create	만들기
 Start tab	시작 탭

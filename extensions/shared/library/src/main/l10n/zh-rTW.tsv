@@ -422,6 +422,8 @@ Opening someone's profile takes you on to their posts as a scrolling list of ful
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	隱藏 Instagram 在 Reels 之間插入的推薦用戶與創作者卡片。每則 Reel 仍會播放。
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	隱藏標示「付費合作夥伴」或 Instagram 標記為加強推廣的 Reels。廣告另有獨立開關。
 Turn on Start Home on Following to use this choice.	請啟用「首頁預設顯示追蹤中」以使用此選項。
+# context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
+Turn on %1$s to use this slider.	請啟用「%1$s」以使用此滑桿。
 Turn on Story ring size to use this choice.	請啟用「限時動態光圈尺寸」以使用此選項。
 Turn on Default playback quality to use this choice.	請啟用「預設播放畫質」以使用此選項。
 Updating remembered positions...	正在更新記住的播放位置…
@@ -944,6 +946,10 @@ The tab bar keeps Instagram's order.	分頁列維持 Instagram 原本的順序�
 Tabs go in this order: %1$s. Restart Instagram to see the change.	分頁順序：%1$s。請重新啟動 Instagram 以套用變更。
 Show and reorder tabs	顯示與排列分頁
 Drag to move %1$s	拖曳以移動 %1$s
+Move up	上移
+Move down	下移
+# context: Show and reorder tabs: what a screen reader is told after Move up or Move down on a row's handle; %1$s is the tab, %2$d its new place and %3$d how many tabs the list holds (#207)
+%1$s is now %2$d of %3$d	%1$s 現在位於第 %2$d 項，共 %3$d 項
 Reset	重設
 Create	建立
 Start tab	啟動分頁

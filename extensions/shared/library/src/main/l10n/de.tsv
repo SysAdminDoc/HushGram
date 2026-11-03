@@ -417,6 +417,8 @@ Opening someone's profile takes you on to their posts as a scrolling list of ful
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	Die Karten mit Personen und Creators zum Folgen, die Instagram zwischen Reels einfügt. Jedes Reel wird weiter abgespielt.
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	Lässt Reels mit dem Hinweis „Bezahlte Partnerschaft“ weg, und Reels, die Instagram als beworben markiert. Werbung hat einen eigenen Schalter.
 Turn on Start Home on Following to use this choice.	Aktiviere „Startseite mit Gefolgt öffnen“, um diese Auswahl zu nutzen.
+# context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
+Turn on %1$s to use this slider.	Aktiviere „%1$s“, um diesen Regler zu nutzen.
 Turn on Story ring size to use this choice.	Aktiviere „Größe der Story-Ringe“, um diese Auswahl zu nutzen.
 Turn on Default playback quality to use this choice.	Aktiviere „Standard-Wiedergabequalität“, um diese Auswahl zu nutzen.
 Updating remembered positions...	Gespeicherte Wiedergabepositionen werden aktualisiert...
@@ -946,6 +948,10 @@ The tab bar keeps Instagram's order.	Die Tab-Leiste behält Instagrams Reihenfol
 Tabs go in this order: %1$s. Restart Instagram to see the change.	Die Tabs stehen in dieser Reihenfolge: %1$s. Starte Instagram neu, um die Änderung zu sehen.
 Show and reorder tabs	Tabs zeigen und ordnen
 Drag to move %1$s	Ziehen, um %1$s zu verschieben
+Move up	Nach oben
+Move down	Nach unten
+# context: Show and reorder tabs: what a screen reader is told after Move up or Move down on a row's handle; %1$s is the tab, %2$d its new place and %3$d how many tabs the list holds (#207)
+%1$s is now %2$d of %3$d	%1$s ist jetzt %2$d von %3$d
 Reset	Zurücksetzen
 Create	Erstellen
 Start tab	Starttab

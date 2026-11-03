@@ -417,6 +417,8 @@ Opening someone's profile takes you on to their posts as a scrolling list of ful
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	Le schede di persone e creator da seguire che Instagram mette tra i reel. Tutti i reel vengono comunque riprodotti.
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	Esclude i reel con l'etichetta Partnership a pagamento e i reel che Instagram segna come sponsorizzati. Gli annunci hanno un interruttore a parte.
 Turn on Start Home on Following to use this choice.	Attiva Apri la Home su Seguiti per usare questa scelta.
+# context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
+Turn on %1$s to use this slider.	Attiva %1$s per usare questo cursore.
 Turn on Story ring size to use this choice.	Attiva Dimensione dei cerchi delle storie per usare questa scelta.
 Turn on Default playback quality to use this choice.	Attiva Qualità di riproduzione predefinita per usare questa scelta.
 Updating remembered positions...	Aggiornamento delle posizioni memorizzate...
@@ -946,6 +948,10 @@ The tab bar keeps Instagram's order.	La barra delle schede mantiene l'ordine di 
 Tabs go in this order: %1$s. Restart Instagram to see the change.	Le schede vanno in quest'ordine: %1$s. Riavvia Instagram per vedere la modifica.
 Show and reorder tabs	Mostra e riordina le schede
 Drag to move %1$s	Trascina per spostare %1$s
+Move up	Sposta su
+Move down	Sposta giù
+# context: Show and reorder tabs: what a screen reader is told after Move up or Move down on a row's handle; %1$s is the tab, %2$d its new place and %3$d how many tabs the list holds (#207)
+%1$s is now %2$d of %3$d	%1$s ora è %2$d di %3$d
 Reset	Ripristina
 Create	Crea
 Start tab	Scheda iniziale
