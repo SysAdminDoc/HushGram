@@ -186,6 +186,20 @@ public class TabOrderSettingsTest {
         assertEquals("Drag to move Home", String.valueOf(TabPicker.handle(list(dialog).getChildAt(0)).getContentDescription()));
     }
 
+    /** Each handle is the settings' own three-line icon in a 48dp square, not a glyph that changes with the font. */
+    @Test public void eachHandleIsTheSettingsIconInAFullTouchSquare() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        LinearLayout list = list(openList());
+        int side = Math.round(48 * RuntimeEnvironment.getApplication().getResources().getDisplayMetrics().density);
+        for (int i = 0; i < list.getChildCount(); i++) {
+            View handle = TabPicker.handle(list.getChildAt(i));
+            assertTrue(String.valueOf(handle), handle instanceof android.widget.ImageView);
+            assertNotNull(((android.widget.ImageView) handle).getDrawable());
+            assertEquals(side, handle.getLayoutParams().width);
+            assertEquals(side, handle.getLayoutParams().height);
+        }
+    }
+
     /** A screen reader can't drag, so each handle offers Move up and Move down and says where the tab landed (#207). */
     @Test @Config(sdk = 37) public void aScreenReaderMovesATabWithActionsOnItsHandle() throws Exception {
         open(PatchFamily.REELS_TAB);

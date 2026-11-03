@@ -15,8 +15,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
@@ -268,11 +268,13 @@ final class TabPicker {
         box.setEnabled(!fixed);
         row.addView(box, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
-        TextView handle = new TextView(context);
-        handle.setText("≡");
-        handle.setTextSize(26);
-        handle.setTextColor(colors.summary);
-        handle.setGravity(Gravity.CENTER);
+        // The settings' own three-line icon, drawn like every other icon there, in place of a text
+        // glyph whose weight and size changed with the phone's font.
+        ImageView handle = new ImageView(context);
+        handle.setImageDrawable(SettingsIcons.icon(context, SettingsIcons.MENU, colors.summary));
+        handle.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int inset = dp(context, 12);
+        handle.setPadding(inset, inset, inset, inset);
         handle.setContentDescription(L10n.f("Drag to move %1$s", HushgramPreferenceFragment.tabLabel(tab)));
         int side = dp(context, 48);
         row.addView(handle, new LinearLayout.LayoutParams(side, side));
