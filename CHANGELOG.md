@@ -45,7 +45,7 @@ Every HushGram release, newest first.
 
 * **Instagram:** `Hide the Map bubble` is a new switch under Messages. It takes only the Map bubble out of the row of notes, and your notes stay. It starts off. Asked for in #432.
 * **Instagram:** `Glass tab bar` has a `Refraction intensity` slider for how hard the liquid pill bends what's behind its edge, and a preview that changes as you drag. The opacity slider is now `Tint intensity`. Asked for in #391.
-* **Instagram:** The `Glass tab bar` preview now sits on the colour the bar itself sits on, so it shows light glass in Instagram's light theme and dark glass in the dark one. It used to show dark glass to everyone. Follows #391.
+* **Instagram:** The `Glass tab bar` preview now draws its glass on black in the dark theme and on white in the light theme, like the real bar. It used to draw it on black in both. Follows #391.
 * **Instagram:** `Show and reorder tabs` works with a screen reader. Each tab's handle offers Move up and Move down, and TalkBack tells you where the tab landed. The first tab isn't offered Move up, nor the last Move down. Follows #207.
 * **Instagram:** A greyed-out slider now says which switch to turn on, in place of a value it can't change, the way the greyed-out choice rows already do.
 * **Instagram:** `Import settings` lets you pick any file. A settings file that came through a chat or a download often carries some other type, and the picker used to grey it out. A file that isn't a settings file is still refused.
