@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.misc;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
@@ -15,6 +16,7 @@ import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -56,8 +58,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * (three on some profiles, four with Reposts) and one more for the bookmark, which is drawn in the last slot on
  * the layout's overlay, with the layout's touch listener answering for that slot.
  *
- * <p>Tapping it does what you'd do by hand: opens the menu at the top right and taps Saved in it.
- * Instagram's own code opens Saved, so nothing in its bytecode is touched. The menu is a Jetpack Compose
+ * <p>Tapping it opens Instagram's Saved screen through its own {@code instagram://saved} link, which works in
+ * any language. A build with no answer to the link does what you'd do by hand instead: opens the menu at the
+ * top right and taps Saved in it. Nothing in Instagram's bytecode is touched. The menu is a Jetpack Compose
  * screen, which describes its rows as accessibility nodes whether or not a screen reader is on, so the row
  * is found by the label it carries, Saved, and a build that moves it still works. Every view is found by the
  * name Instagram gives it, and the profile counts as yours when it has the Create New button at the top
@@ -305,8 +308,37 @@ public final class ProfileSaved {
         }
     }
 
-    /** Opens the menu, then taps Saved in it as soon as the menu has filled in. */
+    /** Instagram's own link to the Saved screen, answered by its SavedUrlHandlerActivity in every language. */
+    static final String SAVED_LINK = "instagram://saved";
+
+    /**
+     * Opens Instagram's Saved screen through its {@code instagram://saved} link, the way the search button
+     * opens Search. The language doesn't matter and no menu opens. False when nothing in this app answers
+     * the link. Never throws.
+     */
+    static boolean openSavedScreen(Activity activity) {
+        try {
+            Intent link = new Intent(Intent.ACTION_VIEW, Uri.parse(SAVED_LINK)).setPackage(activity.getPackageName());
+            if (link.resolveActivity(activity.getPackageManager()) == null) return false;
+            activity.startActivity(link);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SAVED_ON_PROFILE, "link", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Opens Saved. Instagram's own link comes first. A build with no answer to it falls back to the menu
+     * and its row labelled Saved, which is only found while the label is English or HushGram's translation.
+     */
     static void open(Activity activity) {
+        if (openSavedScreen(activity)) return;
+        openThroughMenu(activity);
+    }
+
+    /** Opens the menu, then taps Saved in it as soon as the menu has filled in. */
+    static void openThroughMenu(Activity activity) {
         View decor = activity.getWindow().getDecorView();
         try {
             View menu = menuButton(decor);

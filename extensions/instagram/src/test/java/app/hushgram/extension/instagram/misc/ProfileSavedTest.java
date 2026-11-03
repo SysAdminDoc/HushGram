@@ -11,7 +11,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import static org.robolectric.Shadows.shadowOf;
+
 import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.ResolveInfo;
+import android.net.Uri;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
@@ -43,6 +49,36 @@ public class ProfileSavedTest {
     public void theChildLookupIsFoundOnce() {
         assertNotNull(ProfileSaved.childId());
         assertSame(ProfileSaved.childId(), ProfileSaved.childId());
+    }
+
+    /**
+     * In a language HushGram has no table for, the menu row can't be found by its label, so the tap goes to
+     * Instagram's own Saved link instead, with no menu involved.
+     */
+    @Test
+    public void openingSavedAsksInstagramsOwnSavedLinkWithoutTheMenu() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Intent link = new Intent(Intent.ACTION_VIEW, Uri.parse("instagram://saved")).setPackage(activity.getPackageName());
+        ResolveInfo answer = new ResolveInfo();
+        answer.activityInfo = new ActivityInfo();
+        answer.activityInfo.packageName = activity.getPackageName();
+        answer.activityInfo.name = "com.instagram.urlhandlers.saved.SavedUrlHandlerActivity";
+        shadowOf(activity.getPackageManager()).addResolveInfoForIntent(link, answer);
+
+        ProfileSaved.open(activity);
+
+        Intent started = shadowOf(activity).getNextStartedActivity();
+        assertNotNull("Saved was asked for", started);
+        assertEquals("instagram://saved", String.valueOf(started.getData()));
+        assertEquals(activity.getPackageName(), started.getPackage());
+        assertEquals("the screen was never held back for a menu", 1f, activity.getWindow().getDecorView().getAlpha(), 0f);
+    }
+
+    @Test
+    public void withNothingAnsweringTheLinkOpenSavedScreenSaysSo() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        assertFalse(ProfileSaved.openSavedScreen(activity));
+        assertNull(shadowOf(activity).getNextStartedActivity());
     }
 
     @Test
