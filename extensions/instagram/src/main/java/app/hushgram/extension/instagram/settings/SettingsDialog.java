@@ -243,11 +243,16 @@ public final class SettingsDialog extends DialogFragment {
         bar.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setMinHeight(dp(56));
-        bar.setPaddingRelative(dp(20), dp(12), dp(20), dp(12));
+        bar.setPaddingRelative(dp(16), dp(12), dp(20), dp(12));
+        // A restart arrow and the heading blue's edge mark it as something to tap, not a notice.
+        android.graphics.drawable.Drawable arrow = SettingsIcons.icon(getContext(), SettingsIcons.TOOLS, palette.heading);
+        arrow.setBounds(0, 0, dp(24), dp(24));
+        bar.setCompoundDrawablesRelative(arrow, null, null, null);
+        bar.setCompoundDrawablePadding(dp(14));
         android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
         surface.setColor(palette.card);
-        surface.setCornerRadius(dp(16));
-        surface.setStroke(dp(1), palette.outline);
+        surface.setCornerRadius(dp(12));
+        surface.setStroke(dp(1), palette.heading);
         bar.setBackground(new android.graphics.drawable.RippleDrawable(
                 android.content.res.ColorStateList.valueOf(ScreenColors.half(palette.heading)), surface, surface));
         bar.setFocusable(true);
