@@ -1634,3 +1634,6 @@ A white bar on a strip of frosted glass that blurs the video under it. Before An
 # context: Instagram's Blend, the shared reels feed in a chat, as Instagram names it in this language (Turkish Instagram: Derleme).
 Don't report Blend visits	Non segnalare le visite a Blend
 Opening a Blend doesn't tell the chat it belongs to that you visited it. The Blend and its reels open as usual.	Aprire un Blend non dice alla chat a cui appartiene che l'hai visitato. Il Blend e i suoi reel si aprono come sempre.
+# context: the little round profile pictures in a corner of a feed post or reel showing that a friend liked, commented on or reshared it. Instagram's own setting for them comes from its server, not the app.
+Hide activity bubbles	Nascondi le bolle delle attività
+Takes the little round pictures off posts and reels that show a friend liked, commented on or reshared them. Posts already on screen change when they load again.	Toglie le piccole immagini rotonde da post e reel che mostrano che un amico ha messo Mi piace, ha commentato o li ha ricondivisi. I post già sullo schermo cambiano quando si ricaricano.

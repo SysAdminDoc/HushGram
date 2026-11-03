@@ -2135,6 +2135,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_follow", FALSE);
 
     /**
+     * The little round pictures on posts and reels showing a friend liked, commented on or reshared
+     * them ({@link app.hushgram.extension.instagram.feed.ActivityBubbles}). Read as each post is
+     * built, so posts already on screen change when they load again. Off to start.
+     */
+    public static final BooleanSetting HIDE_ACTIVITY_BUBBLES =
+            new BooleanSetting("hushgram_hide_activity_bubbles", FALSE);
+
+    /**
      * The caption on feed posts and in the Reels viewer
      * ({@link app.hushgram.extension.instagram.feed.HideCaptions}). Read before each frame of a
      * resumed screen, so it needs no restart. Off to start.

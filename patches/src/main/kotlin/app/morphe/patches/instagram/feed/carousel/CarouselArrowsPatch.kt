@@ -50,7 +50,7 @@ val carouselArrowsPatch = bytecodePatch(
     name = "Carousel arrows",
     description = "Puts a back and a next arrow on a post's carousel in Home and Following, so a tap moves to the " +
         "next photo or video without a swipe, and can move its page dots onto a round pill over the photo. " +
-        "Both start off. Turn them on in HushGram settings > Feed.",
+        "The pill can be solid, see-through or frosted glass. Both start off. Turn them on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)

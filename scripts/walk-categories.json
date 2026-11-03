@@ -99,7 +99,8 @@
           "Hide Follow on feed posts",
           "Hide captions",
           "Hide the audio icon on posts",
-          "Keep Home's top bar"
+          "Keep Home's top bar",
+          "Hide activity bubbles"
         ]
       },
       "anchors": [

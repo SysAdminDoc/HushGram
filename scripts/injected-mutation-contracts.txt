@@ -2711,6 +2711,14 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/l
 
 # Feed Subscribe has a native eligibility branch inside the header, without a Subscribe view id.
 once-call Lapp/hushgram/extension/instagram/feed/FeedFollowButton;->showSubscribe(I)Z holding null\scannot\sbe\scast\sto\snon-null\stype\sinstagram.features.feed.ui.rows.mediaheader.domain.uicontract.MediaHeaderUiState
+# Hide activity bubbles (#475) hands ActivityBubbles.hide() each read of the two flags behind
+# Instagram's own hide activity bubbles setting: in the per-item check of the class whose constructor
+# reads that setting's rollout (07JI.A01 on 453), its has-the-setting read and its hide read, and the
+# hide read in the feed's bubble builder (00i2.A03) and the Reels one (08zr.A01). Left out, the
+# bubbles stay with the switch on; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/ActivityBubbles;->hide(I)Z in static (Lcom/instagram/common/session/UserSession;L*;Ljava/lang/String;)Z sites 2 pooled class-holding android_purge_26_q2_FriendlyViewerExperimentUtil_hasHideActivityBubblesSettingWithNoProfileException
+once-call Lapp/hushgram/extension/instagram/feed/ActivityBubbles;->hide(I)Z in (L*;Lcom/instagram/common/session/UserSession;L*;L*;IZZZZZ)L*; pooled holding feed_timeline_fan_club feed_contextual_chain
+once-call Lapp/hushgram/extension/instagram/feed/ActivityBubbles;->hide(I)Z in (L*;L*;Lcom/instagram/common/session/UserSession;L*;L*;I)L*; pooled holding clips_viewer itas-android
 # Chat history tools (#246) hands ChatPager.opened to the chat screen's onResume and ChatPager.closed
 # to its onPause, the same pair of methods the chat lock hooks (the one pair logging the thread
 # controller's DirectThreadController.onResume and .onPause). Not first in the method: both patches

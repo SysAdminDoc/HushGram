@@ -108,6 +108,7 @@ public class NeutralDefaultsSettingsTest {
                 Settings.LOCK_MESSAGES, Settings.LOCK_APP,
                 Settings.HIDE_SCREENSHOTS,
                 Settings.HIDE_BLEND_VISITS,
+                Settings.HIDE_ACTIVITY_BUBBLES,
                 Settings.ALLOW_SCREENSHOTS,
                 Settings.KEEP_IN_CHAT, Settings.MARK_VIEW_ONCE,
                 Settings.VIEW_LIVE_ANONYMOUSLY, Settings.NOTO_EMOJI, Settings.ACCENT_COLOR, Settings.ACCENT_BADGES, Settings.ACCENT_ICONS, Settings.LAUNCH_SCREEN,
@@ -137,7 +138,7 @@ public class NeutralDefaultsSettingsTest {
                 PatchFamily.PROFILE_SUGGESTIONS, PatchFamily.REELS_SUGGESTIONS, PatchFamily.PAID_PARTNERSHIP_REELS, PatchFamily.AI_LABELED_REELS, PatchFamily.CAPTION_WORD_REELS, PatchFamily.LOW_VIEW_REELS, PatchFamily.STORY_PRIORITY, PatchFamily.REEL_POST_TIME, PatchFamily.DOUBLE_TAP_LIKE,
                 PatchFamily.REELS_TAB, PatchFamily.REEL_SEEK_BAR, PatchFamily.REEL_BLUR_BARS, PatchFamily.REEL_TAP_AND_VOLUME, PatchFamily.REEL_AUTO_SCROLL,
                 PatchFamily.VIDEO_DOWNLOAD, PatchFamily.TAP_TO_PLAY,
-                PatchFamily.HIDE_CAPTIONS, PatchFamily.HOME_TOP_BAR, PatchFamily.KEEP_REELS_TOP_BAR, PatchFamily.GLASS_TAB_BAR, PatchFamily.SAVED_ON_PROFILE, PatchFamily.COMMENT_EMOJI_ROW, PatchFamily.COMMENT_KEYBOARD, PatchFamily.FEED_FOLLOW, PatchFamily.FEED_AUDIO_ICON, PatchFamily.STOP_HEARTBEAT);
+                PatchFamily.HIDE_CAPTIONS, PatchFamily.HOME_TOP_BAR, PatchFamily.KEEP_REELS_TOP_BAR, PatchFamily.GLASS_TAB_BAR, PatchFamily.SAVED_ON_PROFILE, PatchFamily.COMMENT_EMOJI_ROW, PatchFamily.COMMENT_KEYBOARD, PatchFamily.FEED_FOLLOW, PatchFamily.ACTIVITY_BUBBLES, PatchFamily.FEED_AUDIO_ICON, PatchFamily.STOP_HEARTBEAT);
     }
 
     @After public void restore() throws Exception {
@@ -300,6 +301,8 @@ public class NeutralDefaultsSettingsTest {
         assertFalse(app.hushgram.extension.instagram.direct.ScreenshotReports.hold());
         assertFalse(app.hushgram.extension.instagram.direct.BlendVisits.quiet(0));
         assertTrue(app.hushgram.extension.instagram.direct.BlendVisits.quiet(1));
+        assertFalse(app.hushgram.extension.instagram.feed.ActivityBubbles.hide(0));
+        assertTrue(app.hushgram.extension.instagram.feed.ActivityBubbles.hide(1));
         assertEquals(0, SwipeToCreate.enabled());
         assertEquals(0, SwipeToCreate.hold(-1f, 0f, "swipe"));
         assertEquals(0, app.hushgram.extension.instagram.feed.BackLeavesHome.leave());
