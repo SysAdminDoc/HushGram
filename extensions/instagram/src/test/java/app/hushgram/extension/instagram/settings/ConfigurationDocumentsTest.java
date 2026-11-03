@@ -211,6 +211,8 @@ public class ConfigurationDocumentsTest {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
             ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
             assertEquals(Intent.ACTION_OPEN_DOCUMENT, picked.intent.getAction());
+            // A settings file that came through a chat or a download often carries another type, so none is asked for.
+            assertEquals("*/*", picked.intent.getType());
             Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_CANCELED, null);
             assertTrue(page.findPreference("hushgram_import_configuration").isEnabled());
             assertTrue(Settings.HIDE_ADS.savedValue());

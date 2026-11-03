@@ -1777,8 +1777,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         documentRequest = importing ? IMPORT_CONFIGURATION : EXPORT_CONFIGURATION;
         documentCode = ++documentSequence;
         showConfiguration();
+        // A settings file that came through a chat or a download often carries some other type, or none,
+        // and a picker filtered to JSON greys it out. Import takes any file; the reader refuses one that
+        // isn't a settings file. Export still names the file's type, so it's saved as JSON.
         Intent picker = new Intent(importing ? Intent.ACTION_OPEN_DOCUMENT : Intent.ACTION_CREATE_DOCUMENT)
-                .addCategory(Intent.CATEGORY_OPENABLE).setType("application/json");
+                .addCategory(Intent.CATEGORY_OPENABLE).setType(importing ? "*/*" : "application/json");
         if (!importing) picker.putExtra(Intent.EXTRA_TITLE,
                 ConfigurationBackup.fileName(new Date(), Settings.DATE_SETTINGS_EXPORT.savedValue()));
         try {
