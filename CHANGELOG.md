@@ -53,6 +53,15 @@ Every HushGram release, newest first.
 * **Instagram:** `Report a problem` no longer leaves a stray question mark when it has to shorten a very long phone name with emoji in it.
 * **Instagram:** `Import settings` lets you pick any file. A settings file that came through a chat or a download often carries some other type, and the picker used to grey it out. A file that isn't a settings file is still refused.
 * **Instagram:** In Morphe Manager's patch list, `Control taps and volume on Reels` now sits under Playback next to its switches, and `Hide rows in Instagram's settings` under Settings, so no group runs past 16 patches.
+* **Instagram:** The chat preview bubble, the story mentions sheet and its Close button use the same corners as the rest of HushGram. The friendship chip and the carousel arrows aren't round pills anymore.
+* **Instagram:** In a settings dialog, the picked choice keeps its tint inside the panel's corners, and pressing a choice that isn't picked shows the press. It didn't show at all before.
+* **Instagram:** The bar that shows up after you flip a switch that needs a restart now looks like something to tap, with a restart icon and a blue outline.
+* **Instagram:** Empty text fields show their placeholder in a softer color than saved text, so it doesn't read as something you typed. `Home header text` now says `Your words` until you type.
+* **Instagram:** Each row on the Layout page has an icon that fits it. `Import HushGram settings` shows a download arrow, and `Undo settings import` and `Viewing history` show the history clock.
+* **Instagram:** `Version` in About puts the build identity on its own line in a fixed-width font, so it's easier to read and copy.
+* **Instagram:** The last settings row stops above the gesture bar instead of sitting on it.
+* **Instagram:** The viewing history page follows `Black settings page`, its search box matches the one on the settings page, the picked tab is underlined, long names end in an ellipsis and an empty list shows an icon.
+* **Instagram:** `Show and reorder tabs` draws its drag handles instead of using a text symbol that changed with the phone's font.
 * **Tooling:** `preflight.ps1 -Version` now refuses a source census past its 14 days. Until now the index push was the first thing to say so, after the gate, the walk and the publish.
 * **Tooling:** `count_tests.py --description` prints only the validation sentence on stdout and its counts on stderr, so saving its output gives `release_notes.py` the one line it wants.
 
