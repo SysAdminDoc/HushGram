@@ -16,6 +16,7 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 
 import org.junit.After;
@@ -156,6 +157,61 @@ public class StorySeekBarTest {
         assertEquals(Gravity.BOTTOM, params.gravity);
         assertEquals("just above the 120 pixel Send message box", 120, params.bottomMargin);
         assertTrue(player.calls.isEmpty());
+    }
+
+    /**
+     * #486: on Instagram 453 the Send message box sits in the row along the story's bottom, and the
+     * old box's name only lives in a stub that's never inflated. The bar sits above that row, and
+     * moves up with it when a larger font makes the row taller.
+     */
+    @Test
+    public void onInstagram453TheBarSitsAboveTheStoryBottomRow() {
+        int footerId = View.generateViewId();
+        StorySeekBar.footerIdForTests(activity, footerId);
+        LinearLayout footer = new LinearLayout(activity);
+        footer.setId(footerId);
+        viewerView.addView(footer, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 181, Gravity.BOTTOM));
+        idle();
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals("above the 181 pixel row, not the 120 pixel box", 181, margin(bar()));
+
+        footer.getLayoutParams().height = 260;
+        footer.requestLayout();
+        idle();
+        tick();
+        idle();
+        assertEquals("a taller row moves the bar up", 260, margin(bar()));
+    }
+
+    /** #486: mid-swipe to the next person's stories both pages hold a bottom row, and the one on screen counts. */
+    @Test
+    public void theBottomRowOnScreenWinsOverTheNextPersonsMidSwipe() {
+        int footerId = View.generateViewId();
+        StorySeekBar.footerIdForTests(activity, footerId);
+        LinearLayout next = new LinearLayout(activity);
+        next.setId(footerId);
+        viewerView.addView(next, 0, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 240, Gravity.BOTTOM));
+        LinearLayout shown = new LinearLayout(activity);
+        shown.setId(footerId);
+        viewerView.addView(shown, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 181, Gravity.BOTTOM));
+        idle();
+        next.setTranslationX(content.getWidth());
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals("the row on screen, not the one past its edge", 181, margin(bar()));
+
+        next.setTranslationX(0);
+        shown.setTranslationX(-content.getWidth());
+        tick();
+        idle();
+        assertEquals("the swipe done, the next person's row", 240, margin(bar()));
+    }
+
+    private static int margin(SeekBar bar) {
+        return ((FrameLayout.LayoutParams) bar.getLayoutParams()).bottomMargin;
     }
 
     /** #471: Seek bar look's choice for stories reaches the bar as it follows the video. */

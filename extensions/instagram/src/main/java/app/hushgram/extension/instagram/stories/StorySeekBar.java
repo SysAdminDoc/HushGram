@@ -14,6 +14,8 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 
 import app.hushgram.extension.instagram.feed.GlassSeekBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -28,8 +30,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The story viewer, ReelViewerFragment, tells {@link #resumed} and {@link #paused} when it comes
  * on screen and goes. While it's resumed, a seek bar sits over the bottom of the viewer, just above
- * the Send message box ({@link #COMPOSER}) when that's showing, under any sheet opened over the
- * story, and every {@link #TICK_MS} it shows
+ * the row along the story's bottom ({@link #FOOTER}) when that's showing, under any sheet opened over
+ * the story, and every {@link #TICK_MS} it shows
  * where the story's video is. A photo has no length, so the bar hides for it. Dragging pauses the
  * story the way a press and hold does; letting go moves the video to that point and plays on, and
  * Instagram's own segment along the top follows the video. A live story's player refuses a seek, so
@@ -40,8 +42,21 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * story as Instagram plays it.
  */
 public final class StorySeekBar {
-    /** The story viewer's Send message box, which the bar sits above. */
+    /**
+     * The row along the bottom of a story on Instagram 453 (#486), which the bar sits above: the Send
+     * message box with the like and share buttons, or your own story's toolbar. A larger font or
+     * display size makes it taller, so the bar follows its top rather than a fixed height.
+     */
+    static final String FOOTER = "reel_item_toolbar_footer_container";
+
+    /**
+     * The Send message box as builds before 453 name it, for when there's no {@link #FOOTER}. On 453
+     * it sits in a stub that's never inflated.
+     */
     static final String COMPOSER = "reel_viewer_message_composer_container";
+
+    /** What the bar sits above, the first name found on screen. */
+    private static final String[] ANCHORS = {FOOTER, COMPOSER};
 
     /** How often the bar catches up with the video. */
     static final long TICK_MS = 250;
@@ -126,6 +141,11 @@ public final class StorySeekBar {
     }
 
     @VisibleForTesting
+    static void footerIdForTests(android.content.Context context, int id) {
+        ids.putForTests(context.getPackageName(), FOOTER, id);
+    }
+
+    @VisibleForTesting
     @Nullable
     static SeekBar barForTests() {
         Overlay overlay = current;
@@ -146,7 +166,7 @@ public final class StorySeekBar {
     private static final class Overlay implements SeekBar.OnSeekBarChangeListener, Runnable {
         final WeakReference<Object> viewer;
         @Nullable GlassSeekBar bar;
-        @Nullable WeakReference<View> composer;
+        @Nullable WeakReference<View> anchor;
         boolean dragging;
         boolean removed;
 
@@ -234,13 +254,13 @@ public final class StorySeekBar {
             return seek;
         }
 
-        /** Keeps the bar just above the Send message box while it shows, else a little above the bottom. */
+        /** Keeps the bar just above the story's bottom row while it shows, else a little above the bottom. */
         private void place(Object owner, SeekBar seek) {
             ViewGroup parent = (ViewGroup) seek.getParent();
             if (parent == null) return;
             int bottom = dp(seek, BOTTOM_DP);
-            View box = composer(owner);
-            if (box != null && box.isShown() && box.getHeight() > 0 && parent.getHeight() > 0) {
+            View box = parent.getHeight() > 0 ? anchor(owner, parent) : null;
+            if (box != null) {
                 int[] at = new int[2];
                 int[] frame = new int[2];
                 box.getLocationInWindow(at);
@@ -255,17 +275,41 @@ public final class StorySeekBar {
             }
         }
 
+        /**
+         * The story's bottom row on screen over [parent], by the first of {@link #ANCHORS} found there,
+         * or null. While a swipe moves to the next person's stories, both pages hold a row, so the one
+         * overlapping [parent] most wins. The row found last is kept while it still covers half of
+         * [parent], so the bar doesn't hop between the two rows mid-swipe.
+         */
         @Nullable
-        private View composer(Object owner) {
-            View known = composer == null ? null : composer.get();
-            if (known != null && known.isAttachedToWindow()) return known;
+        private View anchor(Object owner, ViewGroup parent) {
+            View known = anchor == null ? null : anchor.get();
+            int kept = known == null ? 0 : overlap(known, parent);
+            if (kept > 0 && kept * 2 >= Math.min(known.getWidth(), parent.getWidth())) return known;
+            anchor = null;
             View view = player.view(owner);
             if (view == null) return null;
-            int id = ids.resolve(view.getResources(), view.getContext().getPackageName(), COMPOSER, false);
-            if (id == 0) return null;
-            View found = view.findViewById(id);
-            composer = found == null ? null : new WeakReference<>(found);
-            return found;
+            ArrayList<View> found = new ArrayList<>();
+            for (String name : ANCHORS) {
+                int id = ids.resolve(view.getResources(), view.getContext().getPackageName(), name, false);
+                if (id == 0) continue;
+                found.clear();
+                collect(view, id, found);
+                View best = null;
+                int most = 0;
+                for (View candidate : found) {
+                    int across = overlap(candidate, parent);
+                    if (across > most) {
+                        best = candidate;
+                        most = across;
+                    }
+                }
+                if (best != null) {
+                    anchor = new WeakReference<>(best);
+                    return best;
+                }
+            }
+            return null;
         }
 
         void remove() {
@@ -323,6 +367,24 @@ public final class StorySeekBar {
                 HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
             }
         }
+    }
+
+    /** Every view under [view], itself included, whose id is [id]. */
+    private static void collect(View view, int id, List<View> into) {
+        if (view.getId() == id) into.add(view);
+        if (!(view instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), id, into);
+    }
+
+    /** How far across [view] covers [parent] from side to side, in pixels, or 0 when it doesn't show. */
+    private static int overlap(View view, View parent) {
+        if (!view.isShown() || view.getWidth() <= 0 || view.getHeight() <= 0) return 0;
+        int[] at = new int[2];
+        int[] frame = new int[2];
+        view.getLocationInWindow(at);
+        parent.getLocationInWindow(frame);
+        return Math.max(0, Math.min(at[0] + view.getWidth(), frame[0] + parent.getWidth()) - Math.max(at[0], frame[0]));
     }
 
     private static int dp(View view, int value) {
