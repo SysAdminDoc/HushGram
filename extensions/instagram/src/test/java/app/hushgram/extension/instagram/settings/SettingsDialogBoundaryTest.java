@@ -197,8 +197,9 @@ public class SettingsDialogBoundaryTest {
         assertTrue("recovery must leave focus in the ordinary page",
                 page.getView().findViewById(android.R.id.list).hasFocus());
         ShadowLooper.idleMainLooper();
+        // The page's own header names it with Black settings page on, and the bar's title steps aside.
         assertTrue("a screen reader must return to the page heading",
-                text(dialog.getView(), "HushGram").isAccessibilityFocused());
+                dialog.getView().findViewWithTag(SettingsHeader.NAME).isAccessibilityFocused());
         assertNull(text(dialog.getView(), "Retry"));
         retry.performClick();
         assertSame(page, dialog.getChildFragmentManager().findFragmentById(SettingsDialog.CONTAINER_ID));

@@ -15,6 +15,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -279,10 +280,20 @@ public final class SettingsDialog extends DialogFragment {
         if (bar != null) bar.setVisibility(owed ? View.VISIBLE : View.GONE);
     }
 
-    /** Shows the search title, and HushGram again for null. */
-    void showTitle(@androidx.annotation.Nullable CharSequence title) {
+    /**
+     * Shows the search title, and HushGram again for null. While [pageHeader], the page's own header
+     * has HushGram's name and icon on the screen, so the bar leaves the name off rather than show it
+     * twice. Once the header scrolls away the bar names the screen again. Runs on every scroll.
+     */
+    void showTitle(@androidx.annotation.Nullable CharSequence title, boolean pageHeader) {
         TextView bar = heading;
-        if (bar != null) bar.setText(title == null ? "HushGram" : title);
+        if (bar == null) return;
+        CharSequence text = title == null ? "HushGram" : title;
+        // A new text asks for a layout, which a scroll in the middle of one shouldn't.
+        if (!TextUtils.equals(text, bar.getText())) bar.setText(text);
+        // Invisible rather than gone, so the bar keeps its height and a search doesn't move the rows.
+        int shown = title == null && pageHeader ? View.INVISIBLE : View.VISIBLE;
+        if (bar.getVisibility() != shown) bar.setVisibility(shown);
     }
 
     /** Clears a search before Back closes the dialog. Expanding a section adds no Back level. */
@@ -467,9 +478,13 @@ public final class SettingsDialog extends DialogFragment {
             if (recovering) {
                 View list = container.findViewById(android.R.id.list);
                 if (list != null) list.requestFocus();
-                TextView pageHeading = heading;
+                TextView barTitle = heading;
                 owner.post(() -> {
-                    if (canOpenPage(owner) && !failed && heading == pageHeading) {
+                    if (!canOpenPage(owner) || failed || heading != barTitle) return;
+                    // The bar's title, or the header's name while the page shows it in its place.
+                    View pageHeading = barTitle.getVisibility() == View.VISIBLE
+                            ? barTitle : container.findViewWithTag(SettingsHeader.NAME);
+                    if (pageHeading != null) {
                         pageHeading.performAccessibilityAction(
                                 AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null);
                     }
@@ -494,6 +509,8 @@ public final class SettingsDialog extends DialogFragment {
     }
 
     private void showFailure(View owner) {
+        // No page, so no header: the bar names the screen again.
+        showTitle(null, false);
         ScreenColors palette = ScreenColors.DEFAULT;
         ScrollView scroll = new ScrollView(getContext());
         LinearLayout content = new LinearLayout(getContext());

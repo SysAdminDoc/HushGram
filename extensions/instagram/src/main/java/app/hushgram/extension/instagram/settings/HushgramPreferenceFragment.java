@@ -420,8 +420,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             list.setDivider(null);
             list.setDividerHeight(0);
             list.setBackgroundColor(Color.BLACK);
+            // A layout calls this too, so the bar learns when the header comes and goes as well as scrolls.
+            list.setOnScrollListener(new android.widget.AbsListView.OnScrollListener() {
+                @Override public void onScrollStateChanged(android.widget.AbsListView view, int state) {
+                }
+
+                @Override public void onScroll(android.widget.AbsListView view, int first, int count, int total) {
+                    showTitle();
+                }
+            });
         }
-        showTitle(null);
+        showTitle();
     }
 
     @Override public void onViewStateRestored(Bundle state) {
@@ -892,8 +901,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         body.requestFocus();
     }
 
-    private void showTitle(@Nullable CharSequence title) {
-        if (getParentFragment() instanceof SettingsDialog) ((SettingsDialog) getParentFragment()).showTitle(title);
+    /** The bar's title: the search while there is one, else HushGram unless the header shows it. */
+    private void showTitle() {
+        if (!(getParentFragment() instanceof SettingsDialog)) return;
+        boolean searching = !searchText(searchQuery).trim().isEmpty();
+        ((SettingsDialog) getParentFragment()).showTitle(
+                searching ? L10n.t("Search settings") : null, headerNameShown());
+    }
+
+    /**
+     * Whether some of the header's HushGram name is on the screen. A search that starts scrolls its
+     * field to the top and the header away, and so can a reader, and then the bar names the page.
+     */
+    private boolean headerNameShown() {
+        ListView list = listView();
+        if (list == null || header == null || header.getParent() != getPreferenceScreen()) return false;
+        View name = list.findViewWithTag(SettingsHeader.NAME);
+        return name != null && name.isShown() && name.getLocalVisibleRect(new android.graphics.Rect());
     }
 
     /** Keeps the screen's Restart now bar in step with what waits on a restart. */
@@ -1300,7 +1324,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         rankForSearch(terms);
         // Search reveals matching rows without changing the sections the person expanded.
         boolean listing = pages && terms.length == 0;
-        showTitle(terms.length > 0 ? L10n.t("Search settings") : null);
         boolean black = Settings.SETTINGS_BLACK_LOOK.savedValue();
         for (Preference top : new Preference[]{header, statusCard, beforeSignIn, viewToggle, search}) {
             if (top == null) continue;
@@ -1313,6 +1336,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
         }
+        // After the header's turn, since the bar leaves HushGram's name to it.
+        showTitle();
         if (viewToggle != null) {
             CharSequence label = pages ? L10n.t("Show all settings as a list") : L10n.t("Show settings by category");
             if (!label.equals(viewToggle.getTitle())) {
