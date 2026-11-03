@@ -2639,10 +2639,11 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fit()Z in instance 
 # Stories fill the screen (#436), under Stories: the story layout class (0BmY on 453, whose methods
 # load the aspect-ratio string below between them) asks ReelFill.story first in its static
 # tall-screen check, answering false (no card) on a yes, and first in its static card layout, handing
-# the story to the whole-screen layout on a yes. Left out, a tall phone keeps the rounded card above
+# the story to the whole-screen layout on a yes. The check (A0G) is told from its sibling A0F, which
+# has its shape, by the null check it opens with. Left out, a tall phone keeps the rounded card above
 # an opaque reply bar; twice or elsewhere, it isn't the check the patch wrote.
-start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;)Z pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
-once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;)Z pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
+start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;)Z calling static LX/*;->*(Ljava/lang/Object;I)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
+once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;)Z calling static LX/*;->*(Ljava/lang/Object;I)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
 start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;II)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;II)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
 
