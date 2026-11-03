@@ -74,7 +74,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Export a chat as text` now finds a chat's messages. It used to say there were none. Each message is now read from its own row, so an export holds only that chat
 * **Instagram:** `Export a chat as text` and `Jump to the first message` now load a long chat all the way back instead of stopping at the newest page. Shared reels and voice messages read as plain words
 * **Instagram:** `Ask before a call`, `Ask before a like` and `Ask before a refresh` no longer let some presses through unasked. A long press on a tab or on your profile's menu button got the same fix
-* **Instagram:** Scrolling the feed past carousel posts no longer stutters with `Carousel arrows` or `Page dots on a pill` on
+* **Instagram:** With `Carousel arrows` or `Page dots on a pill` on, the feed no longer stutters past carousel posts, and Instagram no longer freezes. Reported in #425 and #417.
 * **Instagram:** The time above a reel's seek bar no longer loses its top half with `Run Reels behind the tab bar` on
 * **Instagram:** `Save folder` no longer turns a typed path into a folder on internal storage. For an SD card it points you to `Choose a folder`, and once you've picked one it says `Save folder` isn't in use
 * **Instagram:** A reel opened from the feed or a profile no longer sits between black bands with `Hide the comment bar on all reels` or `Hide the comment bar on reposted reels` on. Square reels still fit
