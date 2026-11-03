@@ -25,9 +25,9 @@ private const val OBJECT = "Ljava/lang/Object;"
 
 /**
  * The extension's account id bridge and the body that goes in it: the session's own getUserId().
- * "Read messages without the seen receipt" and "Lock your messages" both need it, and either can be
- * in a build without the other, so each finds it for itself and [write] puts the body in once,
- * whichever of them gets there first.
+ * "Read messages without the seen receipt", "Lock your messages" and "Preview chats" need it, and any
+ * of them can be in a build without the others, so each finds it for itself and [write] puts the body
+ * in once, whichever of them gets there first.
  */
 internal class AccountIdBridge(val stub: MutableMethod, val getter: String) {
     val body = """

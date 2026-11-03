@@ -207,6 +207,33 @@ public class ChatPreviewTest {
         assertNull(ChatPreview.read(SESSION, KEY, fake));
     }
 
+    /** Instagram doesn't mark a message just sent from this phone as the account's, so its sender says so. */
+    @Test
+    public void aReplyJustSentShowsAsYours() {
+        fake.messages.add(new Message("from the server", 1_000_000L, true));
+        fake.messages.add(new Message("their answer", 2_000_000L, false));
+        Message sent = new Message("just sent", 3_000_000L, false);
+        sent.sender = "me";
+        fake.messages.add(sent);
+
+        fake.account = "me";
+        assertMine(true, false, true);
+        fake.account = null;
+        assertMine(true, false, true);
+        fake.accountThrows = true;
+        assertMine(true, false, true);
+
+        // With no account id and nothing marked, there's nothing to tell a fresh reply by.
+        fake.messages.remove(0);
+        assertMine(false, false);
+    }
+
+    private void assertMine(boolean... expected) {
+        List<ChatPreview.Line> lines = ChatPreview.read(SESSION, KEY, fake);
+        assertEquals(expected.length, lines.size());
+        for (int at = 0; at < expected.length; at++) assertEquals(lines.get(at).text, expected[at], lines.get(at).mine);
+    }
+
     @Test
     public void aMessageWithNoTextShowsWhatItHolds() {
         assertEquals("hi", ChatPreview.describe("hi", "MEDIA"));
@@ -461,11 +488,13 @@ public class ChatPreviewTest {
         final long micros;
         final boolean mine;
         String kind = "TEXT";
+        String sender;
 
         Message(String text, long micros, boolean mine) {
             this.text = text;
             this.micros = micros;
             this.mine = mine;
+            this.sender = mine ? "me" : "them";
         }
     }
 
@@ -477,6 +506,8 @@ public class ChatPreviewTest {
         boolean sendThrows;
         boolean readThrows;
         boolean idThrows;
+        String account;
+        boolean accountThrows;
 
         @Override
         public List<Object> messages(Object session, Object key) {
@@ -524,7 +555,13 @@ public class ChatPreviewTest {
 
         @Override
         public String sender(Object message) {
-            return "s1";
+            return ((Message) message).sender;
+        }
+
+        @Override
+        public String account(Object session) {
+            if (accountThrows) throw new ClassCastException("not a session");
+            return account;
         }
     }
 }

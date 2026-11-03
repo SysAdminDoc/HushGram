@@ -78,6 +78,8 @@ public final class ChatPreview {
         String id(Object message);
 
         String sender(Object message);
+
+        String account(Object session);
     }
 
     static final Access PATCHED = new Access() {
@@ -124,6 +126,11 @@ public final class ChatPreview {
         @Override
         public String sender(Object message) {
             return PreviewMessages.sender(message);
+        }
+
+        @Override
+        public String account(Object session) {
+            return InstagramChats.accountId(session);
         }
     };
 
@@ -240,17 +247,54 @@ public final class ChatPreview {
     static List<Line> read(Object session, Object key, Access access) {
         List<Object> all = access.messages(session, key);
         if (all == null) return null;
-        List<Line> lines = new ArrayList<>();
+        List<Object> messages = new ArrayList<>();
         for (Object message : new ArrayList<>(all)) {
             if (message == null || !access.isMessage(message)) continue;
             String kind = access.kind(message);
             if (kind != null && kind.toUpperCase(Locale.ROOT).contains("ACTION_LOG")) continue;
-            lines.add(new Line(describe(access.text(message), kind), micros(access.time(message)),
-                    access.mine(message), message));
+            messages.add(message);
+        }
+        String you = you(session, messages, access);
+        List<Line> lines = new ArrayList<>();
+        for (Object message : messages) {
+            boolean mine = access.mine(message) || (you != null && you.equals(sender(message, access)));
+            lines.add(new Line(describe(access.text(message), access.kind(message)), micros(access.time(message)),
+                    mine, message));
         }
         Collections.sort(lines, Comparator.comparingLong(line -> line.micros));
         if (lines.size() <= SHOWN) return lines;
         return new ArrayList<>(lines.subList(lines.size() - SHOWN, lines.size()));
+    }
+
+    /**
+     * The signed-in account's id: the session's own, or when this build couldn't read it, the sender
+     * of a message Instagram marked as the account's. Instagram sets that mark on messages the server
+     * sent back, not on one just sent from this phone, so the id is what tells a fresh reply is yours.
+     */
+    static String you(Object session, List<Object> messages, Access access) {
+        try {
+            String id = access.account(session);
+            if (id != null && !id.isEmpty()) return id;
+        } catch (Throwable t) {
+            // Logged, then a marked message still says who the account is.
+            HookStatus.threw(FamilyNames.PREVIEW_CHATS, LOAD, t);
+        }
+        for (Object message : messages) {
+            if (!access.mine(message)) continue;
+            String id = sender(message, access);
+            if (id != null && !id.isEmpty()) return id;
+        }
+        return null;
+    }
+
+    /** The message's sender id, or null when it can't be read. */
+    private static String sender(Object message, Access access) {
+        try {
+            return access.sender(message);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.PREVIEW_CHATS, LOAD, t);
+            return null;
+        }
     }
 
     /**

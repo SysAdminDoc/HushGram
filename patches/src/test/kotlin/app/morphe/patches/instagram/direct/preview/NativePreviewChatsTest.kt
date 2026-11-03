@@ -98,17 +98,27 @@ class NativePreviewChatsTest {
         val bridges = context.mutableClassDefBy(PREVIEW_MESSAGES).methods.filter { it.name != "<init>" }
         assertEquals(9, bridges.size)
         for (bridge in bridges) assertCallsInstagram(name, bridge, classes)
+        assertTrue("$name: the account id bridge is written, so the box knows the account's own messages",
+            found.accountId.written())
+        assertCallsInstagram(name, found.accountId.stub, classes)
     }
 
-    /** Instagram's Mark as read hooks the same builder and tap handler, and patches apply in either order. */
+    /**
+     * Instagram's Mark as read hooks the same builder and tap handler, and patches apply in either
+     * order. Both write the account id bridge, and it gets its body (one cast) once.
+     */
     @Test fun markAsReadAndPreviewApplyInEitherOrder() = fixtures { bundle ->
         PatchContexts.of(previewClasses(bundle).values).apply {
-            writePreview(findPreview())
+            val found = findPreview()
+            writePreview(found)
             readWithoutSeenReceipt()
+            assertEquals(1, found.accountId.stub.visualCode().count { it.opcode == Opcode.CHECK_CAST })
         }
         PatchContexts.of(previewClasses(bundle).values).apply {
             readWithoutSeenReceipt()
-            writePreview(findPreview())
+            val found = findPreview()
+            writePreview(found)
+            assertEquals(1, found.accountId.stub.visualCode().count { it.opcode == Opcode.CHECK_CAST })
         }
     }
 

@@ -20,8 +20,10 @@ import app.morphe.patches.instagram.direct.keep.USER_SESSION
 import app.morphe.patches.instagram.direct.seen.CAPABILITIES
 import app.morphe.patches.instagram.direct.seen.ChatMenuActionsFingerprint
 import app.morphe.patches.instagram.direct.seen.MARK_AS_UNREAD
+import app.morphe.patches.instagram.direct.seen.AccountIdBridge
 import app.morphe.patches.instagram.direct.seen.STORE_SEEN_MISSING
 import app.morphe.patches.instagram.direct.seen.THREAD_KEY
+import app.morphe.patches.instagram.direct.seen.findAccountId
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -109,6 +111,8 @@ internal class PreviewTargets(
     val messages: MutableMethod,
     val send: MutableMethod,
     val readers: Map<String, MutableMethod>,
+    /** The session's account id, so the box can tell the account's own messages from the stored sender. */
+    val accountId: AccountIdBridge,
 )
 
 /**
@@ -227,9 +231,10 @@ internal fun BytecodePatchContext.findPreview(): PreviewTargets {
     val messages = stub("messages", listOf(OBJECT, OBJECT, "Z"), LIST)
     val send = stub("send", listOf(OBJECT, OBJECT, STRING, STRING), "V")
     val readers = messageStubs(PREVIEW_CHATS_PATCH, bridges)
+    val accountId = findAccountId(PREVIEW_CHATS_PATCH)
 
     return PreviewTargets(builder, rows, builderLocals, menu, labels, labelRows, labelAt, labelArray,
-        action, chosen, key, session, actionLocals, store, sender, fields, messages, send, readers)
+        action, chosen, key, session, actionLocals, store, sender, fields, messages, send, readers, accountId)
 }
 
 /**
@@ -377,4 +382,5 @@ internal fun writePreview(found: PreviewTargets) {
         """,
     )
     writeMessageBridges(found.fields, found.readers)
+    found.accountId.write()
 }
