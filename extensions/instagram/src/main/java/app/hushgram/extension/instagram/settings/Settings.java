@@ -2336,6 +2336,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_burn_in_light_when_paused", FALSE);
 
     /**
+     * Burn-in guard's Dim stories too (#479): the story viewer's header, progress bar and reply bar dim
+     * as a reel's controls do, HushGram's own header buttons with them. Read at each look, so a change
+     * needs no restart. On to start, so turning Burn-in guard on covers stories as Hushfacebook's does.
+     */
+    public static final BooleanSetting BURN_IN_STORIES =
+            new BooleanSetting("hushgram_burn_in_stories", TRUE);
+
+    /**
      * Download in every reel's more menu, saving the reel through the save pipeline below instead
      * of Instagram's own save, which only some reels offer and which stamps a watermark on.
      */

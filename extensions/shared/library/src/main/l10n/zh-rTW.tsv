@@ -1666,3 +1666,5 @@ View once message	限看一次的訊息
 Attachment	附件
 # context: the button next to the reply field in the chat preview box.
 Send	傳送
+Dim stories too	限時動態也調暗
+Burn-in guard also fades the top and bottom of a story while you watch without touching, the eye button too. Any tap brings them back.	不碰螢幕觀看限時動態時，防烙印保護也會讓上方和下方變暗，眼睛按鈕也一樣。輕觸任何地方即可恢復。

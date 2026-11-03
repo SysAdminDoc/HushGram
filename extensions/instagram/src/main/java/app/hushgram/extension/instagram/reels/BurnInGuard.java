@@ -17,6 +17,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 
@@ -37,6 +38,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.download.FeedDownloadButton;
+import app.hushgram.extension.instagram.feed.GlassSeekBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -67,8 +69,15 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * {@link #SHIFT_EVERY_MS}. It's one view's translation, the content frame's, which Instagram doesn't
  * animate, where each control's would be fought over with Instagram's own animations.
  *
- * <p>Both run only while the Reels screen shows ({@link FullScreenBars#screenOf}), with the choice on,
- * HushGram not paused and the activity in front. Anywhere else nothing dims and the content goes back
+ * <p>Stories (#479), with Dim stories too on ({@link #stories}): while the story viewer fills the
+ * window with no reel drawn over it, its progress bar, header (with HushGram's eye, Download and speed
+ * buttons) and reply bar or own-story toolbar dim the same way ({@link #STORY_DIMMED_IDS}), and
+ * HushGram's seek bar beside the viewer with them. Every finger on a story is a touch, since a tap
+ * there moves to the next story or back, and typing a reply keeps them bright. Stay dim when I tap and
+ * Light when paused stay with Reels. The shift moves a story too: it's the same window.
+ *
+ * <p>Both run only while the Reels screen ({@link FullScreenBars#screenOf}) or a story shows, with the
+ * choice on, HushGram not paused and the activity in front. Anywhere else nothing dims and the content goes back
  * where it was. A view whose alpha, or a content frame whose translation, something else changed
  * after HushGram wrote it is left the way that left it. The window getting focus back counts as a
  * touch, so coming back from the settings or another screen doesn't land on dimmed controls.
@@ -133,6 +142,28 @@ public final class BurnInGuard {
     /** The reels' pager: a finger landing in it, on none of {@link #WAKING_IDS}, is on the reel itself. */
     static final String REEL_ID = "clips_viewer_view_pager";
 
+    /**
+     * The story viewer's root (#479), which Instagram puts in the main screen's container of screens,
+     * so the same window as Reels. Everything dimmed on a story is inside it.
+     */
+    static final String STORY_ID = "reel_viewer_root";
+
+    /**
+     * The ids of what dims on a story, as Instagram 453 names them (#479): the progress bar, the header
+     * (picture, name, time and the row of buttons at its end, where HushGram's eye, Download and speed
+     * buttons go), and at the bottom the Send message bar or your own story's toolbar. A view inside
+     * one already dimmed is left alone, as on Reels.
+     */
+    static final String[] STORY_DIMMED_IDS = {
+            "reel_viewer_progress_bar", "reel_viewer_header_container", "reel_viewer_header",
+            "reel_header_extras_container", "reel_viewer_message_composer_container", "reel_item_toolbar_container",
+            "viewer_reel_item_toolbar_container", "self_reel_item_toolbar_container",
+            "reel_item_toolbar_footer_container"
+    };
+
+    /** What the guard looks after on the screen in front: nothing, the Reels screen, or a story (#479). */
+    enum Guarded { NONE, REELS, STORY }
+
     /** Where the content goes, in steps: where Instagram put it, then once around it. */
     private static final int[][] PLACES = {
             {0, 0}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}, {0, -1}, {1, -1}
@@ -143,6 +174,7 @@ public final class BurnInGuard {
     static final String COUNT_QUIET = "Reels tap on the video, Save or Download left the controls dimmed";
     static final String COUNT_PAUSED = "Reels controls kept bright while the reel is paused";
     static final String COUNT_STAY_DIM = "Reels touch left the controls dimmed (Stay dim when I tap)";
+    static final String COUNT_STORY_DIMMED = "Story controls dimmed while idle";
 
     private static final HashMap<String, Integer> IDS = new HashMap<>();
     private static volatile boolean registered;
@@ -166,14 +198,16 @@ public final class BurnInGuard {
     private static long touchedAt;
     /** A finger is on the screen: holding still is still a touch, and the wait starts when it lifts. */
     private static boolean fingerDown;
-    /** The last pass found the Reels screen with the choice on. */
-    private static boolean guarding;
+    /** What the last pass found to look after, with the choice on. */
+    private static Guarded guarded = Guarded.NONE;
     /** The last pass dimmed the controls, and nothing has brought them back since. */
     private static boolean dimming;
     /** The finger now down went down on the reel itself or on Save or Download, and hasn't swiped. */
     private static boolean quiet;
     /** The reel on screen was paused by a tap (#457): with Light when paused on, the controls stay bright until it plays. */
     private static boolean paused;
+    /** The last pass found a reply to the story being typed (#479). */
+    private static boolean wasTyping;
     /** Where on the screen that finger went down. */
     private static float quietX, quietY;
     /** When the next timed pass is due, or -1 when none is. */
@@ -216,6 +250,11 @@ public final class BurnInGuard {
         return Settings.BURN_IN_LIGHT_WHEN_PAUSED.get();
     }
 
+    /** Dim stories too (#479): the guard looks after a story the way it does the Reels screen. */
+    static boolean stories() {
+        return Settings.BURN_IN_STORIES.get();
+    }
+
     /**
      * The Reels tap just paused the reel on screen (#457). With Light when paused on and the guard
      * watching Reels, the controls come back now and stay until a tap on the reel plays it again or a
@@ -223,7 +262,7 @@ public final class BurnInGuard {
      */
     public static void reelPaused() {
         try {
-            if (!guarding || !lightWhenPaused() || front.get() == null) return;
+            if (guarded != Guarded.REELS || !lightWhenPaused() || front.get() == null) return;
             paused = true;
             HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_PAUSED);
             passSoon();
@@ -294,10 +333,11 @@ public final class BurnInGuard {
         }
         observed = new WeakReference<>(null);
         front = new WeakReference<>(null);
-        guarding = false;
+        guarded = Guarded.NONE;
         fingerDown = false;
         quiet = false;
         paused = false;
+        wasTyping = false;
         schedule(Long.MAX_VALUE);
     }
 
@@ -314,20 +354,24 @@ public final class BurnInGuard {
             View decor = window == null ? null : window.peekDecorView();
             BurnInMode mode = mode();
             watchLayouts(mode != BurnInMode.OFF);
-            boolean on = mode != BurnInMode.OFF && decor != null
-                    && FullScreenBars.screenOf(decor) == FullScreenBars.Screen.REELS;
+            Guarded where = mode == BurnInMode.OFF || decor == null ? Guarded.NONE : guardedOn(decor);
+            boolean on = where != Guarded.NONE;
             long now = SystemClock.uptimeMillis();
             if (on) {
                 watch(window);
-                // Coming onto the Reels screen starts the wait.
-                if (!guarding) touchedAt = now;
+                // Coming onto the Reels screen or a story, or from one to the other, starts the wait.
+                if (where != guarded) touchedAt = now;
             }
-            guarding = on;
+            guarded = where;
             long wait = idleAfter();
-            boolean holding = on && paused && lightWhenPaused();
+            // Typing a reply to a story: the keyboard takes the fingers, so the wait starts once it's done.
+            boolean typing = where == Guarded.STORY && typing(decor);
+            if (typing || wasTyping) touchedAt = now;
+            wasTyping = typing;
+            boolean holding = typing || where == Guarded.REELS && paused && lightWhenPaused();
             boolean dim = on && !fingerDown && !holding && now - touchedAt >= wait;
             if (dim) {
-                dimAll(decor);
+                dimAll(decor, where);
                 dimming = true;
             } else {
                 undim();
@@ -349,13 +393,100 @@ public final class BurnInGuard {
     }
 
     /**
-     * Dims each of {@link #DIMMED_IDS} shown in [root], the first one on each path down, and the
-     * views without an id beside the button column ({@link #COLUMN_ID}).
+     * What [decor] shows that the guard looks after (#479): a story when the story viewer fills the
+     * window and no reel is drawn over it, as long as Dim stories too is on, else the Reels screen as
+     * {@link FullScreenBars#screenOf} finds it. A story with Dim stories too off is nothing to look
+     * after, since it covers whatever reel is under it.
      */
-    private static void dimAll(View root) {
-        int[] ids = new int[DIMMED_IDS.length];
-        for (int i = 0; i < ids.length; i++) ids[i] = id(root.getContext(), DIMMED_IDS[i]);
-        int column = id(root.getContext(), COLUMN_ID);
+    static Guarded guardedOn(View decor) {
+        View story = storyRoot(decor);
+        boolean reels = FullScreenBars.screenOf(decor) == FullScreenBars.Screen.REELS;
+        if (story != null) {
+            int viewerId = FullScreenBars.id(decor.getContext(), FullScreenBars.VIEWER);
+            View viewer = viewerId == 0 ? null : decor.findViewById(viewerId);
+            boolean reelOver = reels && viewer != null && drawnOver(viewer, story);
+            if (!reelOver) return stories() ? Guarded.STORY : Guarded.NONE;
+        }
+        return reels ? Guarded.REELS : Guarded.NONE;
+    }
+
+    /** The story viewer's root in [decor] while it fills the window, or null. */
+    @Nullable
+    private static View storyRoot(View decor) {
+        View story = find(decor, STORY_ID);
+        return story != null && FullScreenBars.fills(story, decor) ? story : null;
+    }
+
+    @Nullable
+    private static View find(View root, String name) {
+        int id = id(root.getContext(), name);
+        return id == 0 ? null : root.findViewById(id);
+    }
+
+    /**
+     * Whether [top] is drawn over [under]: where their paths up meet, [top]'s branch comes later in the
+     * children, and a later child draws over an earlier one.
+     */
+    static boolean drawnOver(View top, View under) {
+        Map<ViewParent, View> path = new IdentityHashMap<>();
+        View child = under;
+        for (ViewParent parent = under.getParent(); parent instanceof ViewGroup; parent = parent.getParent()) {
+            path.put(parent, child);
+            child = (View) parent;
+        }
+        child = top;
+        for (ViewParent parent = top.getParent(); parent instanceof ViewGroup; parent = parent.getParent()) {
+            View other = path.get(parent);
+            if (other != null) {
+                ViewGroup group = (ViewGroup) parent;
+                return group.indexOfChild(child) > group.indexOfChild(other);
+            }
+            child = (View) parent;
+        }
+        return false;
+    }
+
+    /**
+     * Typing a reply to the story (#479): the Send message box has the focus, so the keyboard is up
+     * and the fingers are on it, where no touch reaches this window.
+     */
+    private static boolean typing(View decor) {
+        View focus = decor.findFocus();
+        return focus != null && focus.onCheckIsTextEditor();
+    }
+
+    /** Dims what dims on [where] in [decor]: the Reels screen's controls, or a story's (#479). */
+    private static void dimAll(View decor, Guarded where) {
+        if (where == Guarded.STORY) {
+            View story = storyRoot(decor);
+            if (story == null) return;
+            dimAll(story, STORY_DIMMED_IDS, COUNT_STORY_DIMMED);
+            dimSeekBar(story);
+        } else {
+            dimAll(decor, DIMMED_IDS, COUNT_DIMMED);
+        }
+    }
+
+    /**
+     * HushGram's seek bar on stories, which sits beside the viewer in the frame holding it (see
+     * {@link app.hushgram.extension.instagram.stories.StorySeekBar}), dims with the story's controls.
+     */
+    private static void dimSeekBar(View story) {
+        if (!(story.getParent() instanceof ViewGroup)) return;
+        ViewGroup parent = (ViewGroup) story.getParent();
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View view = parent.getChildAt(i);
+            if (view instanceof GlassSeekBar && view.getVisibility() == View.VISIBLE) dim(view, COUNT_STORY_DIMMED);
+        }
+    }
+
+    /**
+     * Dims each of [names] shown in [root], the first one on each path down, and the views without an
+     * id beside the button column ({@link #COLUMN_ID}) when it's one of them.
+     */
+    private static void dimAll(View root, String[] names, String count) {
+        int[] ids = ids(root.getContext(), names);
+        int column = names == DIMMED_IDS ? id(root.getContext(), COLUMN_ID) : 0;
         Set<View> beside = Collections.newSetFromMap(new IdentityHashMap<>());
         ArrayDeque<View> pending = new ArrayDeque<>();
         pending.add(root);
@@ -364,7 +495,7 @@ public final class BurnInGuard {
             View view = pending.poll();
             if (view.getVisibility() != View.VISIBLE || beside.contains(view)) continue;
             if (dims(view, ids)) {
-                dim(view);
+                dim(view, count);
                 if (column != 0 && view.getId() == column) dimBeside(view, beside);
                 continue;
             }
@@ -382,7 +513,7 @@ public final class BurnInGuard {
         for (int i = 0; i < parent.getChildCount(); i++) {
             View view = parent.getChildAt(i);
             if (view == column || view.getId() != View.NO_ID || view.getVisibility() != View.VISIBLE) continue;
-            if (beside.add(view)) dim(view);
+            if (beside.add(view)) dim(view, COUNT_DIMMED);
         }
     }
 
@@ -393,13 +524,14 @@ public final class BurnInGuard {
         return false;
     }
 
-    private static void dim(View view) {
+    /** Dims [view], counting it under [count] the first time. */
+    private static void dim(View view, String count) {
         float alpha = view.getAlpha();
         float[] held = DIMMED.get(view);
         if (held == null) {
             held = new float[]{alpha, alpha * IDLE_LEVEL};
             DIMMED.put(view, held);
-            HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_DIMMED);
+            HookStatus.counted(FamilyNames.REEL_DECLUTTER, count);
         } else if (alpha != held[1]) {
             // Instagram set its own since; that's what the dim is taken from now.
             held[0] = alpha;
@@ -487,7 +619,7 @@ public final class BurnInGuard {
      * nothing; the focus coming back still does, which is how a choice made in the settings is seen.
      */
     static void touched(int action) {
-        if (action < 0 && guarding && stayDim()) {
+        if (action < 0 && guarded == Guarded.REELS && stayDim()) {
             // Stay dim: a sheet or the share screen closing leaves the controls as they are, and the
             // pass still sees a choice changed in the settings.
             if (front.get() != null) passSoon();
@@ -498,7 +630,7 @@ public final class BurnInGuard {
         if (action == MotionEvent.ACTION_DOWN) fingerDown = true;
         else if (lifted) fingerDown = false;
         undim();
-        if (lifted && (guarding || action < 0) && front.get() != null) passSoon();
+        if (lifted && (guarded != Guarded.NONE || action < 0) && front.get() != null) passSoon();
     }
 
     /**
@@ -509,7 +641,9 @@ public final class BurnInGuard {
      */
     static void seen(MotionEvent event) {
         int action = event.getActionMasked();
-        if (paused && guarding && action == MotionEvent.ACTION_DOWN && landing(event.getRawX(), event.getRawY()) == 1) {
+        // On a story every finger is a touch: a tap there moves to the next story or back (#479).
+        boolean reels = guarded == Guarded.REELS;
+        if (paused && reels && action == MotionEvent.ACTION_DOWN && landing(event.getRawX(), event.getRawY()) == 1) {
             // A tap on the reel plays it again: the wait starts over from here.
             paused = false;
             touchedAt = SystemClock.uptimeMillis();
@@ -519,14 +653,14 @@ public final class BurnInGuard {
             passSoon();
             return;
         }
-        if (guarding && stayDim()) {
+        if (reels && stayDim()) {
             quiet = false;
             fingerDown = false;
             if (action == MotionEvent.ACTION_DOWN) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_STAY_DIM);
             return;
         }
         if (action == MotionEvent.ACTION_DOWN) {
-            quiet = guarding && quietAt(event.getRawX(), event.getRawY());
+            quiet = reels && quietAt(event.getRawX(), event.getRawY());
             if (quiet) {
                 quietX = event.getRawX();
                 quietY = event.getRawY();
@@ -661,7 +795,8 @@ public final class BurnInGuard {
         if (DIMMED.isEmpty()) return;
         for (Map.Entry<View, float[]> entry : DIMMED.entrySet()) {
             View view = entry.getKey();
-            if (view != null && view.getAlpha() != entry.getValue()[1]) dim(view);
+            // Already counted when it was first dimmed.
+            if (view != null && view.getAlpha() != entry.getValue()[1]) dim(view, COUNT_DIMMED);
         }
     }
 
@@ -748,10 +883,11 @@ public final class BurnInGuard {
 
         @Override public void onGlobalLayout() {
             View decor = observed.get();
-            if (dimming && decor != null) {
+            Guarded where = guarded;
+            if (dimming && decor != null && where != Guarded.NONE) {
                 try {
-                    // Still on Reels: a layout that opened another screen is left to the pass, which brings them back.
-                    if (FullScreenBars.screenOf(decor) == FullScreenBars.Screen.REELS) dimAll(decor);
+                    // Still where it dimmed: a layout that opened another screen is left to the pass, which brings them back.
+                    if (guardedOn(decor) == where) dimAll(decor, where);
                 } catch (Throwable failure) {
                     HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard layout dim", failure);
                 }

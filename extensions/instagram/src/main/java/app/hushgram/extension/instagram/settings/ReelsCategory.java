@@ -125,6 +125,9 @@ final class ReelsCategory {
                         L10n.t("Pause a reel and Burn-in guard brings the buttons back to full brightness until you play "
                                 + "it again or swipe on. The wait then starts over.")));
             }
+            reels.add(toggle(context, Settings.BURN_IN_STORIES, L10n.t("Dim stories too"),
+                    L10n.t("Burn-in guard also fades the top and bottom of a story while you watch without "
+                            + "touching, the eye button too. Any tap brings them back.")));
             reels.add(toggle(context, Settings.KEEP_REEL_CLEAR_MODE, L10n.t("Keep clear mode on"),
                     L10n.t("Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear "
                             + "mode yourself and the next reels show their buttons again.")));

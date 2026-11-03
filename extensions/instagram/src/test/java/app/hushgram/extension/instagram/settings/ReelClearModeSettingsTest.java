@@ -69,10 +69,10 @@ public class ReelClearModeSettingsTest {
         int keep = -1;
         for (int i = 0; i < reels.getPreferenceCount(); i++) {
             String key = reels.getPreference(i).getKey();
-            if (Settings.BURN_IN_STAY_DIM.key.equals(key)) guard = i;
+            if (Settings.BURN_IN_STORIES.key.equals(key)) guard = i;
             if (Settings.KEEP_REEL_CLEAR_MODE.key.equals(key)) keep = i;
         }
-        assertEquals("right after Burn-in guard's Stay dim when I tap", guard + 1, keep);
+        assertEquals("right after Burn-in guard's Dim stories too", guard + 1, keep);
         assertFalse(((SwitchPreference) row).isChecked());
         assertFalse(Settings.KEEP_REEL_CLEAR_MODE.get());
         assertEquals(Boolean.FALSE, Settings.KEEP_REEL_CLEAR_MODE.defaultValue);

@@ -76,7 +76,7 @@ val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban " +
         "Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Save button, the " +
-        "Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons while you aren't " +
+        "Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons, and a story's, while you aren't " +
         "touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels, and can start every reel in it. " +
         "Starts off. Turn it on in HushGram settings > Reels.",
 ) {
