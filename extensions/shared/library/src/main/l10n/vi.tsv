@@ -1596,3 +1596,7 @@ Full screen	Toàn màn hình
 Speed didn't change	Không đổi được tốc độ
 # context: toast when a tap on the Full screen icon couldn't open the reel full screen (#480)
 Full screen didn't open	Không mở được toàn màn hình
+# context: Stories switch that lays a story over the whole screen on tall phones (#436)
+Stories fill the screen	Tin lấp đầy màn hình
+# context: that switch's summary (#436)
+On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Trên màn hình dài, tin phủ kín toàn màn hình với thanh trả lời nằm trên, như trên điện thoại ngắn hơn, thay vì một thẻ bo góc phía trên thanh.

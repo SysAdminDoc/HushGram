@@ -1398,6 +1398,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_full_screen_messages", FALSE);
 
     /**
+     * Stories over the whole screen (#436): on a screen taller than 9:16 a story shows behind the
+     * reply bar, the way it does on a shorter phone, instead of as a rounded card above it. Off to
+     * start.
+     */
+    public static final BooleanSetting FILL_STORY_SCREEN =
+            new BooleanSetting("hushgram_fill_story_screen", FALSE);
+
+    /**
      * Which bars the three switches above hide (#231): both to start, or only the status bar or only the
      * navigation bar ({@link app.hushgram.extension.instagram.reels.HiddenBars}). Read each time a
      * screen hides them.

@@ -1682,3 +1682,7 @@ Full screen	全螢幕
 Speed didn't change	速度未變更
 # context: toast when a tap on the Full screen icon couldn't open the reel full screen (#480)
 Full screen didn't open	無法開啟全螢幕
+# context: Stories switch that lays a story over the whole screen on tall phones (#436)
+Stories fill the screen	限時動態填滿螢幕
+# context: that switch's summary (#436)
+On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	在較長的螢幕上，限時動態會像在較短的手機上一樣覆蓋整個螢幕，回覆列疊在上方，而不是以圓角卡片顯示在回覆列上方。

@@ -1679,3 +1679,7 @@ Full screen	Layar penuh
 Speed didn't change	Kecepatan tidak berubah
 # context: toast when a tap on the Full screen icon couldn't open the reel full screen (#480)
 Full screen didn't open	Layar penuh tidak terbuka
+# context: Stories switch that lays a story over the whole screen on tall phones (#436)
+Stories fill the screen	Cerita memenuhi layar
+# context: that switch's summary (#436)
+On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Di layar yang tinggi, cerita menutupi seluruh layar dengan bilah balasan di atasnya seperti di ponsel yang lebih pendek, bukan kartu membulat di atas bilah.

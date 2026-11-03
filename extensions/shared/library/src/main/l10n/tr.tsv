@@ -1679,3 +1679,7 @@ Full screen	Tam ekran
 Speed didn't change	Hız değişmedi
 # context: toast when a tap on the Full screen icon couldn't open the reel full screen (#480)
 Full screen didn't open	Tam ekran açılmadı
+# context: Stories switch that lays a story over the whole screen on tall phones (#436)
+Stories fill the screen	Hikayeler ekranı doldursun
+# context: that switch's summary (#436)
+On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Uzun bir ekranda hikaye, çubuğun üstünde yuvarlak köşeli bir kart yerine daha kısa telefonlardaki gibi tüm ekranı kaplar ve yanıt çubuğu üstünde durur.

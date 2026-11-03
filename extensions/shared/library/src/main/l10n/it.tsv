@@ -1679,3 +1679,7 @@ Full screen	Schermo intero
 Speed didn't change	Velocità non cambiata
 # context: toast when a tap on the Full screen icon couldn't open the reel full screen (#480)
 Full screen didn't open	Schermo intero non aperto
+# context: Stories switch that lays a story over the whole screen on tall phones (#436)
+Stories fill the screen	Le storie riempiono lo schermo
+# context: that switch's summary (#436)
+On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Su uno schermo alto la storia copre tutto lo schermo, con la barra di risposta sopra come sui telefoni più corti, invece di una scheda arrotondata sopra la barra.

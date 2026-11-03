@@ -12,20 +12,29 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.string
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsConstString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 internal const val FILL_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fill(Ljava/lang/Object;F)Z"
 internal const val FIT_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fit()Z"
+internal const val STORY_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->story()Z"
+
+/** The trace section Instagram's story viewer opens while it fits a story to the screen's shape. */
+internal const val STORY_ASPECT_RATIO = "ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio"
 
 /** The purge flag Instagram's reel crop decision names first thing. */
 internal const val SHOULD_CROP = "android_purge_26_q2_ClipsMediaResizingUtils_shouldCropDynamic"
@@ -111,3 +120,103 @@ internal fun BytecodePatchContext.fitReelScreen() {
         ExternalLabel("instagram", decision.getInstruction(0)),
     )
 }
+
+/** The story layout's pieces: the tall-screen check, the card layout and the whole-screen layout. */
+internal data class StoryLayout(val tall: MethodReference, val card: MethodReference, val full: MethodReference)
+
+/**
+ * Finds the story layout (#436), 0BmY on 453. The method opening [STORY_ASPECT_RATIO] asks a static
+ * `(Context, item)Z` check whether this story gets a card, lays the card out with a static
+ * `(Context, holder, int, int)V` method (the picture 9:16 with rounded corners, the reply bar below
+ * it) and the whole screen with a static `(holder)V` one. The check is the call whose answer the
+ * last if-eqz before the card call reads.
+ */
+internal fun BytecodePatchContext.findStoryLayout(): StoryLayout {
+    val opening = classesLoadingString(STORY_ASPECT_RATIO).flatMap { it.methods }.filter { loadsString(it, STORY_ASPECT_RATIO) }
+    val entry = opening.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: expected one method opening \"$STORY_ASPECT_RATIO\", found ${opening.size}")
+    val owner = entry.definingClass
+    val code = entry.implementation?.instructions?.toList().orEmpty()
+    fun ownCall(at: Int): MethodReference? = code[at].takeIf {
+        it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE
+    }?.let { ((it as ReferenceInstruction).reference as? MethodReference)?.takeIf { call -> call.definingClass == owner } }
+    fun MethodReference.takes() = parameterTypes.map(CharSequence::toString)
+
+    val cards = code.indices.filter { at ->
+        val call = ownCall(at)
+        call != null && call.returnType == "V" && call.takes().size == 4 && call.takes()[0] == CONTEXT &&
+            call.takes()[2] == "I" && call.takes()[3] == "I"
+    }
+    val cardAt = cards.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story layout calls ${cards.size} (Context, holder, int, int) layouts, not one")
+    val card = ownCall(cardAt)!!
+    val holder = card.takes()[1]
+    val fulls = code.indices.mapNotNull { ownCall(it) }.filter { it.returnType == "V" && it.takes() == listOf(holder) }
+        .distinctBy { it.toString() }
+    val full = fulls.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story layout calls ${fulls.size} ($holder) layouts, not one")
+    val branch = (cardAt - 1 downTo 2).firstOrNull { code[it].opcode == Opcode.IF_EQZ }
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: nothing decides on the story card before it's laid out")
+    val tall = ownCall(branch - 2)
+    val answer = code[branch - 1]
+    if (tall == null || tall.returnType != "Z" || tall.takes().size != 2 || tall.takes()[0] != CONTEXT ||
+        answer.opcode != Opcode.MOVE_RESULT ||
+        (answer as OneRegisterInstruction).registerA != (code[branch] as OneRegisterInstruction).registerA
+    ) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the story card's if-eqz doesn't read a (Context, item) check")
+    }
+    return StoryLayout(tall, card, full)
+}
+
+/**
+ * Stories fill the screen (#436). [STORY_HOOK] goes in at the first instruction of the tall-screen
+ * check, which then answers false, and of the card layout, which then lays out the whole screen
+ * instead and returns. The check's other askers (the viewer fragment and its footer) then treat the
+ * screen as a shorter one too, and the card layout's other callers get the whole screen. A first
+ * local is free in both, and nothing jumps back to either first instruction.
+ */
+internal fun BytecodePatchContext.fillStoryScreen() {
+    val layout = findStoryLayout()
+    val methods = mutableClassDefBy(layout.card.definingClass).methods
+    fun own(call: MethodReference) = methods.singleOrNull {
+        it.name == call.name && it.returnType == call.returnType &&
+            it.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString) &&
+            AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story layout's $call isn't a static method of its class")
+    val tall = own(layout.tall)
+    val card = own(layout.card)
+    for ((what, method) in listOf("tall-screen check" to tall, "card layout" to card)) {
+        method.requireLocals(FULL_SCREEN_BARS_PATCH, 1)
+        if (0 in method.jumpTargets()) {
+            throw PatchException("$FULL_SCREEN_BARS_PATCH: something jumps back to the story $what's first instruction")
+        }
+    }
+    val holder = card.parameterRegisterNumber(1)
+    if (holder > 15) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the story card layout keeps its holder in v$holder, past what an invoke names")
+    }
+    tall.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $STORY_HOOK
+            move-result v0
+            if-eqz v0, :instagram
+            const/4 v0, 0x0
+            return v0
+        """,
+        ExternalLabel("instagram", tall.getInstruction(0)),
+    )
+    card.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $STORY_HOOK
+            move-result v0
+            if-eqz v0, :instagram
+            invoke-static { v$holder }, ${layout.full}
+            return-void
+        """,
+        ExternalLabel("instagram", card.getInstruction(0)),
+    )
+}
+
+private const val CONTEXT = "Landroid/content/Context;"

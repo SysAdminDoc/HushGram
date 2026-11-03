@@ -1679,3 +1679,7 @@ Full screen	Tela cheia
 Speed didn't change	A velocidade não mudou
 # context: toast when a tap on the Full screen icon couldn't open the reel full screen (#480)
 Full screen didn't open	A tela cheia não abriu
+# context: Stories switch that lays a story over the whole screen on tall phones (#436)
+Stories fill the screen	Stories preenchem a tela
+# context: that switch's summary (#436)
+On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Em uma tela alta, o story cobre a tela inteira, com a barra de resposta por cima como em celulares mais curtos, em vez de um cartão arredondado acima da barra.

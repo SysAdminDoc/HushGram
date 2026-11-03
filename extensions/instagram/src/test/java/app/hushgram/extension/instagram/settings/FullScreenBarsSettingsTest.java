@@ -40,6 +40,7 @@ public class FullScreenBarsSettingsTest {
         Settings.FIT_REEL_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
         Settings.FULL_SCREEN_MESSAGES.resetToDefault();
+        Settings.FILL_STORY_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HIDES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -55,6 +56,7 @@ public class FullScreenBarsSettingsTest {
         Settings.FIT_REEL_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
         Settings.FULL_SCREEN_MESSAGES.resetToDefault();
+        Settings.FILL_STORY_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HIDES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -102,7 +104,33 @@ public class FullScreenBarsSettingsTest {
         assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_MESSAGES.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_HIDES.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.FIT_REEL_SCREEN.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FILL_STORY_SCREEN.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_HIDES.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FILL_STORY_SCREEN.key));
+    }
+
+    /** #436: Stories fill the screen sits under Stories, starts off, needs no other switch, is backed up and answers off while paused. */
+    @Test public void storiesFillTheScreenIsUnderStoriesAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.FULL_SCREEN_BARS));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.FILL_STORY_SCREEN.key);
+        assertNotNull(row);
+        assertEquals("Stories fill the screen", row.getTitle().toString());
+        assertEquals("On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter "
+                + "phones, instead of a rounded card above the bar.", row.getSummary().toString());
+        assertEquals("Stories", ((PreferenceGroup) row.getParent()).getTitle().toString());
+        assertFalse(Settings.FILL_STORY_SCREEN.defaultValue);
+        assertFalse(Settings.FILL_STORY_SCREEN.get());
+        assertFalse(app.hushgram.extension.instagram.reels.ReelFill.story());
+        assertTrue("needs no other switch", Settings.FILL_STORY_SCREEN.isAvailable());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FILL_STORY_SCREEN.key));
+
+        Settings.FILL_STORY_SCREEN.save(true);
+        assertTrue(app.hushgram.extension.instagram.reels.ReelFill.story());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.FILL_STORY_SCREEN.get());
+        assertFalse("a paused story keeps Instagram's card", app.hushgram.extension.instagram.reels.ReelFill.story());
+        assertTrue(Settings.FILL_STORY_SCREEN.savedValue());
     }
 
     /** #231: Bars to hide sits right under Full screen Reels, starts at both and waits for a switch. */

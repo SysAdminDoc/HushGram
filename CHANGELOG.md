@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Full screen Reels and Home` adds `Stories fill the screen` under Stories. On a tall phone a story covers the whole screen with the reply bar over it, the way shorter phones show it, instead of a rounded card that stops above the bar. Starts off. Asked for in #436.
 * **Instagram:** Two more icons can sit beside a reel. `Speed button on reels` opens a short list (0.5x, 1x, 1.5x, 1.75x, 2x and 3x) so you don't have to dig through the three dots, and with `Keep the reel speed` on the next reels play at what you picked. `Full screen button on reels` does what Full screen in the reel's menu does, in one tap. For every reel to open that way, turn on `Start every reel in clear mode`. Both start off and live under Reels. Asked for in #480.
 * **Instagram:** `Burn-in guard` dims stories now too. Watch a story without touching and its progress bar, name row and reply box fade with the eye, Download and speed buttons, then come back on your next tap. Typing a reply keeps them bright. There's a `Dim stories too` switch under Reels if you'd rather keep stories as they are. Asked for in #479.
 * **Instagram:** `Preview chats` is a new patch. Turn it on under Messages, then long press a chat and tap Preview to read its newest messages without opening it, so nobody sees Seen. You can type a reply right there, and Mark as read is in the box when `Read messages without the seen receipt` is on. Starts off. Asked for in #477.

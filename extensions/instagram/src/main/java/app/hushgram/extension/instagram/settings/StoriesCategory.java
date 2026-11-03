@@ -116,6 +116,11 @@ final class StoriesCategory {
                             + "1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you "
                             + "change it or restart Instagram. Ads play at normal speed.")));
         }
+        if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
+            stories.add(toggle(context, Settings.FILL_STORY_SCREEN, L10n.t("Stories fill the screen"),
+                    L10n.t("On a tall screen a story covers the whole screen, with the reply bar on top of it like "
+                            + "on shorter phones, instead of a rounded card above the bar.")));
+        }
         if (build.contains(PatchFamily.AMBIENT_LIGHT)) {
             stories.add(onFlip(toggle(context, Settings.AMBIENT_LIGHT_STORIES, L10n.t("Ambient light in stories"),
                     L10n.t("Fills the bands above and below a story that doesn't fill the screen with a soft glow in "

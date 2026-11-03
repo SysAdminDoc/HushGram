@@ -49,6 +49,20 @@ public class ReelFillTest {
         Settings.FIT_REEL_SCREEN.resetToDefault();
         Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.resetToDefault();
         Settings.HIDE_REEL_COMMENT_BAR.resetToDefault();
+        Settings.FILL_STORY_SCREEN.resetToDefault();
+    }
+
+    /** #436: stories answer on their own switch, whatever the reel switches say. */
+    @Test
+    public void storiesFillTheScreenOnTheirOwnSwitch() {
+        assertFalse("off to start", ReelFill.story());
+        Settings.FILL_STORY_SCREEN.save(true);
+        assertTrue(ReelFill.story());
+        Settings.FULL_SCREEN_REELS.save(false);
+        Settings.FILL_REEL_SCREEN.save(false);
+        assertTrue("doesn't need Full screen Reels", ReelFill.story());
+        Settings.FILL_STORY_SCREEN.save(false);
+        assertFalse(ReelFill.story());
     }
 
     @Test

@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -34,7 +35,7 @@ import java.io.File
 class ReelFillHookTest {
     @Test
     fun theHookIsInTheExtension() {
-        for (hook in listOf(FILL_HOOK, FIT_HOOK)) {
+        for (hook in listOf(FILL_HOOK, FIT_HOOK, STORY_HOOK)) {
             val method = ExtensionDex.classDef(hook.substringBefore("->")).methods.single {
                 "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook.substringAfter("->")
             }
@@ -48,6 +49,65 @@ class ReelFillHookTest {
     /** piko #2183: Show the whole reel asks first, and a yes answers false (fit) before anything else runs. */
     @Test
     fun eachDeclaredBuildAsksFitFirst() = eachDeclaredBundle(::fitsFirst)
+
+    /**
+     * #436: the story layout's tall-screen check asks first and answers false on a yes, and its card
+     * layout asks first and lays out the whole screen instead. On no both run as Instagram wrote them.
+     */
+    @Test
+    fun eachDeclaredBuildLaysStoriesOutFullScreen() = eachDeclaredBundle(::laysStoriesOut)
+
+    private fun laysStoriesOut(bundle: File, label: String) {
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, STORY_ASPECT_RATIO)))
+        val layout = context.findStoryLayout()
+        val methods = context.mutableClassDefBy(layout.card.definingClass).methods
+        fun own(call: MethodReference) = methods.single {
+            it.name == call.name && it.returnType == call.returnType &&
+                it.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString)
+        }
+        val tall = own(layout.tall)
+        val card = own(layout.card)
+        assertEquals("$label: the whole-screen layout takes the card's holder", listOf(card.parameterTypes[1].toString()),
+            layout.full.parameterTypes.map(CharSequence::toString))
+        val holder = card.parameterRegisterNumber(1)
+        val before = listOf(tall, card).associateWith { it.code() }
+        val natives = listOf(tall, card).associateWith { NeutralNativePath(it) }
+
+        context.fillStoryScreen()
+
+        for ((what, method) in listOf("$label tall-screen check" to tall, "$label card layout" to card)) {
+            val stock = before.getValue(method)
+            val code = method.code()
+            assertEquals("$what: five instructions added", stock.count { it.opcode != Opcode.NOP } + 5, code.count { it.opcode != Opcode.NOP })
+            assertEquals("$what: one ask", 1, code.count { it.referenceText() == STORY_HOOK })
+            assertEquals("$what: asked first", STORY_HOOK, code[0].referenceText())
+            assertEquals("$what: an invoke-static", Opcode.INVOKE_STATIC, code[0].opcode)
+            assertEquals("$what: with nothing", 0, (code[0] as FiveRegisterInstruction).registerCount)
+            assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
+            assertEquals("$what: in the first local", 0, (code[1] as OneRegisterInstruction).registerA)
+            assertEquals("$what: a no goes on", Opcode.IF_EQZ, code[2].opcode)
+            assertEquals("$what: on the answer", 0, (code[2] as OneRegisterInstruction).registerA)
+            assertEquals("$what: then Instagram's first instruction", stock[0].opcode, code[5].opcode)
+            natives.getValue(method).assertPreserved(what, method, (0 until 5).toSet())
+        }
+
+        val check = tall.code()
+        assertEquals("$label tall-screen check: past the return", 2 + 1 + 1, (check[2] as OffsetInstruction).codeOffset)
+        assertEquals("$label tall-screen check: a yes answers", Opcode.CONST_4, check[3].opcode)
+        assertEquals("$label tall-screen check: no card", 0, (check[3] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$label tall-screen check: into the answer", 0, (check[3] as OneRegisterInstruction).registerA)
+        assertEquals("$label tall-screen check: and returns it", Opcode.RETURN, check[4].opcode)
+        assertEquals("$label tall-screen check: returning the answer", 0, (check[4] as OneRegisterInstruction).registerA)
+
+        val cardCode = card.code()
+        assertEquals("$label card layout: past the return", 2 + 3 + 1, (cardCode[2] as OffsetInstruction).codeOffset)
+        assertEquals("$label card layout: a yes lays out the whole screen", layout.full.toString(), cardCode[3].referenceText())
+        assertEquals("$label card layout: with an invoke-static", Opcode.INVOKE_STATIC, cardCode[3].opcode)
+        assertEquals("$label card layout: on the holder", listOf(holder), (cardCode[3] as FiveRegisterInstruction).let {
+            listOf(it.registerC).take(it.registerCount)
+        })
+        assertEquals("$label card layout: and returns", Opcode.RETURN_VOID, cardCode[4].opcode)
+    }
 
     private fun eachDeclaredBundle(check: (File, String) -> Unit) {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
