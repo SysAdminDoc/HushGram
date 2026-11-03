@@ -288,6 +288,49 @@ public class ChatPreviewTest {
         assertEquals(Arrays.asList("hey", "on my way"), bubbles(box));
     }
 
+    /** Tapping the reply field before the chat finishes loading: the load mustn't take the typing away. */
+    @Test
+    public void theChatLoadingLeavesTheReplyFieldFocused() throws Exception {
+        for (int at = 0; at < 12; at++) fake.messages.add(new Message("line " + at, 1_000 + at, at % 2 == 0));
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        AlertDialog box = ChatPreview.show(activity, SESSION, KEY, false);
+        EditText field = find(box.getWindow().getDecorView(), EditText.class);
+        assertTrue(field.requestFocus());
+        settle();
+        assertTrue("the read landing keeps the field focused", field.isFocused());
+
+        field.setText("still here");
+        sendButton(box).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ChatPreview.RELOAD_MS));
+        settle();
+        assertTrue("the reload after Send keeps it too", field.isFocused());
+    }
+
+    /** The keyboard shortens the box: the chat gives up the room and the reply field stays on screen. */
+    @Test
+    public void theKeyboardShrinksTheChatNotTheReplyField() throws Exception {
+        for (int at = 0; at < 30; at++) {
+            fake.messages.add(new Message("message number " + at, 1_000 + at, at % 2 == 0));
+        }
+        AlertDialog box = box(false);
+        EditText field = find(box.getWindow().getDecorView(), EditText.class);
+        View composer = (View) field.getParent();
+        LinearLayout root = (LinearLayout) composer.getParent();
+        ChatPreview.Capped scroll = find(root, ChatPreview.Capped.class);
+        View list = scroll.getChildAt(0);
+
+        int width = root.getResources().getDisplayMetrics().widthPixels;
+        int tall = root.getResources().getDisplayMetrics().heightPixels;
+        lay(root, width, tall);
+        int keyboardUp = tall * 2 / 5;
+        lay(root, width, keyboardUp);
+
+        assertTrue("the reply field keeps its height", field.getHeight() > 0);
+        assertTrue("the composer fits in the box", composer.getHeight() > 0 && composer.getBottom() <= keyboardUp);
+        assertTrue("a long chat scrolls", list.getHeight() > scroll.getHeight());
+        assertEquals("the newest message stays in view", list.getHeight() - scroll.getHeight(), scroll.getScrollY());
+    }
+
     @Test
     public void aReplyThatFailsSaysSoAndKeepsTheText() throws Exception {
         AlertDialog box = box(false);
@@ -351,6 +394,12 @@ public class ChatPreviewTest {
         AlertDialog box = ChatPreview.show(activity, SESSION, KEY, canMark);
         settle();
         return box;
+    }
+
+    private static void lay(View root, int width, int height) {
+        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, width, height);
     }
 
     /** Lets the box's read finish and its answer land on the main thread. */

@@ -12,7 +12,6 @@ import android.text.InputType;
 import android.text.format.DateUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -326,7 +325,7 @@ public final class ChatPreview {
         list.addView(status);
 
         int most = (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.5f);
-        ScrollView scroll = new Capped(activity, most);
+        Capped scroll = new Capped(activity, most);
         scroll.addView(list);
 
         EditText field = new EditText(activity);
@@ -351,8 +350,9 @@ public final class ChatPreview {
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(activity, 20), gap, dp(activity, 20), 0);
+        // Weighted, so when the keyboard shortens the box the chat gives up the room, not the reply field.
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         LinearLayout.LayoutParams composerAt = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         composerAt.topMargin = gap;
@@ -395,7 +395,7 @@ public final class ChatPreview {
     }
 
     /** Reads the chat off the main thread and fills the box with it, if the box is still up. */
-    private static void load(AlertDialog box, LinearLayout list, TextView status, ScrollView scroll,
+    private static void load(AlertDialog box, LinearLayout list, TextView status, Capped scroll,
                              Object session, Object key, List<List<Line>> shown) {
         Utils.runOnBackgroundThread(() -> {
             List<Line> lines;
@@ -410,7 +410,7 @@ public final class ChatPreview {
                 if (!box.isShowing()) return;
                 if (read != null) shown.set(0, read);
                 fill(list, status, read);
-                scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+                scroll.showEnd();
             });
         });
     }
@@ -471,13 +471,40 @@ public final class ChatPreview {
         return (int) (value * context.getResources().getDisplayMetrics().density + 0.5f);
     }
 
-    /** A scroll view no taller than [most], so the reply box stays on screen under a long chat. */
+    /**
+     * A scroll view no taller than [most], so the reply box stays on screen under a long chat. It shows
+     * the newest message without fullScroll, which hands focus to the last bubble and takes it from the
+     * reply field, so typing went nowhere.
+     */
     static final class Capped extends ScrollView {
         private final int most;
+        private boolean toEnd;
 
         Capped(Context context, int most) {
             super(context);
             this.most = most;
+        }
+
+        /** Scrolls to the newest message on the next layout and leaves focus where it is. */
+        void showEnd() {
+            toEnd = true;
+            requestLayout();
+        }
+
+        @Override
+        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            // The keyboard shortened the box: keep the newest message just above the reply field.
+            if (h < oldh) toEnd = true;
+            super.onSizeChanged(w, h, oldw, oldh);
+        }
+
+        @Override
+        protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            super.onLayout(changed, l, t, r, b);
+            if (toEnd && getChildCount() > 0) {
+                toEnd = false;
+                scrollTo(0, getChildAt(0).getHeight());
+            }
         }
 
         @Override
