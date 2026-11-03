@@ -148,6 +148,20 @@ public class GlassPreviewSettingsTest {
         assertEquals("the tint slider waits on nothing that's off", "100% (standard)", String.valueOf(tint.getSummary()));
     }
 
+    /** A switch that's greyed out itself can't be turned on, so it isn't named even when nothing above it can be. */
+    @Test public void aGreyedOutSwitchIsNeverTheOneNamed() throws Exception {
+        open();
+        HushgramPreferenceFragment.SliderRow blur = (HushgramPreferenceFragment.SliderRow) row(Settings.GLASS_TAB_BAR_BLUR_RADIUS.key);
+        // A row with no title can't name its switch. Removing the row wouldn't do it, since the
+        // page still finds rows kept for search.
+        row(Settings.GLASS_TAB_BAR.key).setTitle("");
+        assertFalse(Settings.GLASS_TAB_BAR_BLUR.isAvailable());
+
+        page.updatePreferenceAvailability(blur, Settings.GLASS_TAB_BAR_BLUR_RADIUS);
+        assertFalse(blur.isEnabled());
+        assertEquals(blur.label(Settings.GLASS_TAB_BAR_BLUR_RADIUS.get()), String.valueOf(blur.getSummary()));
+    }
+
     /** The sample's glass sits on what the bar sits on: black in Instagram's dark theme, white in its light one. */
     @Test @Config(qualifiers = "night") public void theSampleIsDarkGlassInTheDarkTheme() throws Exception {
         open();

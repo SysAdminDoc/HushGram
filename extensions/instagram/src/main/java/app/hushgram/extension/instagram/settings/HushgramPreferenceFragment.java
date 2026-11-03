@@ -5835,8 +5835,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             boolean on = parent instanceof BooleanSetting && ((BooleanSetting) parent).savedValue();
             if (on && parent.isAvailable()) continue;
             if (!parent.isAvailable()) {
+                // A greyed-out switch can't be turned on, so it's never the one named. When nothing
+                // above it has a row here either, the next parent gets its turn.
                 String above = sliderReason(parent);
                 if (above != null) return above;
+                continue;
             }
             Preference row = findPreference(parent.key);
             CharSequence title = row == null ? null : row.getTitle();
