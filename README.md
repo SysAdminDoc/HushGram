@@ -242,9 +242,9 @@ Watched-story sorting leaves your own story and Instagram's special tray entries
 Inside Instagram, long-press the Instagram logo at the top of your feed. A tap still does what Instagram made it do, and the long press works while HushGram is paused. From your home screen, long-press Instagram's icon and tap **HushGram settings**. Or open **Settings and activity** from the menu on your profile and tap **HushGram settings** at the top. The shortcut works before you sign in too. Under **Settings entry** you can also pick a tab, or your profile's menu button, whose long press opens HushGram. Every way in has a switch there, so you can keep just the one you like. The last one still on can't be turned off.
 
 <p>
-  <img src="assets/settings-switches.png" alt="HushGram settings with Search first and Feed expanded on the main page" width="270">
+  <img src="assets/settings-switches.png" alt="HushGram's main settings page with its header, search and the Feed category open" width="270">
   <img src="assets/settings-pause-and-diagnostics.png" alt="HushGram Pause and diagnostics controls" width="270">
-  <img src="assets/settings-about.png" alt="HushGram About section expanded beneath its button" width="270">
+  <img src="assets/settings-about.png" alt="HushGram's About category open, with the version and build identity" width="270">
 </p>
 
 Search is at the top of settings, with **Show all settings as a list** directly below it. Tap a category to expand its controls underneath. Tap it again to collapse them. You can keep several sections open on the same page, or show every setting at once. The controls you see depend on the patches you picked. The screenshots show a native rendering preview of the v0.0.17 settings.
