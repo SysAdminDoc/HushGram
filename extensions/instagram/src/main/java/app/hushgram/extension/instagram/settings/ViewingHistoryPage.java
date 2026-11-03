@@ -118,8 +118,9 @@ final class ViewingHistoryPage {
         search.setCompoundDrawablePadding(Dim.dp(12));
         LinearLayout.LayoutParams searchSpace = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        searchSpace.setMarginStart(Dim.dp(16));
-        searchSpace.setMarginEnd(Dim.dp(16));
+        // The settings search's 18dp side inset, so both fields sit in the same place.
+        searchSpace.setMarginStart(Dim.dp(18));
+        searchSpace.setMarginEnd(Dim.dp(18));
         searchSpace.topMargin = Dim.dp(4);
         searchSpace.bottomMargin = Dim.dp(4);
         root.addView(search, searchSpace);

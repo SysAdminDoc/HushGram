@@ -317,7 +317,9 @@ public final class ScreenColors {
                 first ? radius : 0, first ? radius : 0,
                 last ? radius : 0, last ? radius : 0,
                 last ? radius : 0, last ? radius : 0});
-        int side = overview ? 0 : dp(row, 18);
+        // Full-bleed rows push their side strokes off the screen as they do the top one, so the
+        // main page has no hairline down either edge.
+        int side = overview ? -dp(row, 1) : dp(row, 18);
         Drawable inset = new InsetDrawable(surface, side, overview ? -dp(row, 1) : first ? dp(row, 4) : -dp(row, 1),
                 side, !overview && last ? dp(row, 4) : 0);
         row.setBackground(preference.isSelectable()

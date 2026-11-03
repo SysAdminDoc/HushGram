@@ -275,7 +275,8 @@ public final class SettingsDialog extends DialogFragment {
     private LinearLayout.LayoutParams restartBarSpace() {
         LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        space.setMargins(dp(12), dp(8), dp(12), dp(8));
+        // The cards' and the search field's 18dp side inset, so the bar lines up with them.
+        space.setMargins(dp(18), dp(8), dp(18), dp(8));
         return space;
     }
 
