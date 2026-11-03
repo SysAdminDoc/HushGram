@@ -532,6 +532,7 @@
         "op": "any",
         "patches": [
           "Remove the empty space at the bottom",
+          "Phone layout on big screens",
           "Emoji style",
           "Accent color",
           "HushGram launch screen",

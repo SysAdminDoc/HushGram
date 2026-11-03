@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Phone layout on big screens` is a new patch. On a foldable's inner screen or a tablet, turn it on under Layout and Instagram keeps the phone layout it uses on the cover screen, with the tab bar along the bottom. Restart Instagram after flipping it. Starts off. Asked for in #478.
 * **Instagram:** `Hide activity bubbles` is a new patch. Turn it on under Feed and the little round pictures showing a friend liked, commented on or reshared a post or reel go away. Starts off. Asked for in #475.
 * **Instagram:** `Don't report Blend visits` is a new Ghost mode patch. With its switch on under Messages, opening a Blend from a chat doesn't post the "visited the Blend" line there. Ghost mode turns it on with the others. Starts off. Asked for in #474.
 * **Instagram:** `Page dots on a pill`, `Seek bar on feed videos` and `Seek bar on stories` can now look See-through or Frosted glass (Android 12 and up) as well as Solid. The pill no longer covers a carousel's seek bar. Asked for in #471.

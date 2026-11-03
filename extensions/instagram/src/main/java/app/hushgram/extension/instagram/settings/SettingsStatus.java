@@ -235,6 +235,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Phone layout on big screens patch. */
+    public static boolean phoneLayout() {
+        return false;
+    }
+
     public static boolean emojiStyle() {
         return false;
     }

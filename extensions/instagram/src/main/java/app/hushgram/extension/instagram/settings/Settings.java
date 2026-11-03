@@ -1338,6 +1338,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_remove_bottom_space", FALSE, true);
 
     /**
+     * Instagram's phone layout on a foldable or tablet, with the tab bar at the bottom: every window
+     * sorts as narrow and the hinge sensor is left out
+     * ({@link app.hushgram.extension.instagram.misc.PhoneLayout}). Instagram decides its layout as
+     * it starts, so a change needs a restart. Off to start.
+     */
+    public static final BooleanSetting PHONE_LAYOUT =
+            new BooleanSetting("hushgram_phone_layout", FALSE, true);
+
+    /**
      * Instagram's tab bar is drawn as a floating, rounded glass pill
      * ({@link app.hushgram.extension.instagram.misc.GlassTabBar}). Instagram builds the bar as it
      * starts, so a change takes a restart. Off to start.

@@ -1637,3 +1637,6 @@ Opening a Blend doesn't tell the chat it belongs to that you visited it. The Ble
 # context: the little round profile pictures in a corner of a feed post or reel showing that a friend liked, commented on or reshared it. Instagram's own setting for them comes from its server, not the app.
 Hide activity bubbles	Aktivitätsblasen ausblenden
 Takes the little round pictures off posts and reels that show a friend liked, commented on or reshared them. Posts already on screen change when they load again.	Entfernt die kleinen runden Bilder von Beiträgen und Reels, die zeigen, dass ein Freund sie geliked, kommentiert oder erneut geteilt hat. Beiträge, die schon zu sehen sind, ändern sich, wenn sie neu laden.
+# context: a switch for foldable phones and tablets. Instagram normally moves its tab bar to a rail down the side on a wide screen; this keeps the narrow phone layout instead.
+Phone layout on big screens	Handy-Layout auf großen Bildschirmen
+On a foldable or tablet, Instagram keeps its phone layout across the whole screen, with the tab bar at the bottom instead of down the side. Restart Instagram to see the change.	Auf einem Foldable oder Tablet behält Instagram sein Handy-Layout auf dem ganzen Bildschirm, mit der Tab-Leiste unten statt an der Seite. Starte Instagram neu, um die Änderung zu sehen.

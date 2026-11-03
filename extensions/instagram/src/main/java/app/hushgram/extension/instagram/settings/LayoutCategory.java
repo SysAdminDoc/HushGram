@@ -32,7 +32,7 @@ final class LayoutCategory {
     private LayoutCategory() { }
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
-        if (build.contains(PatchFamily.BOTTOM_SPACE) || build.contains(PatchFamily.EMOJI_STYLE)
+        if (build.contains(PatchFamily.BOTTOM_SPACE) || build.contains(PatchFamily.PHONE_LAYOUT) || build.contains(PatchFamily.EMOJI_STYLE)
                 || build.contains(PatchFamily.ACCENT_COLOR) || build.contains(PatchFamily.LAUNCH_SCREEN)
                 || build.contains(PatchFamily.HEADER_TEXT) || build.contains(PatchFamily.FONT) || build.contains(PatchFamily.APP_ICON)
                 || build.contains(PatchFamily.SETTINGS_ROWS) || build.contains(PatchFamily.REFRESH_RATE)) {
@@ -42,6 +42,12 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE, L10n.t("Remove the empty space at the bottom"),
                         L10n.t("Removes the empty gap under Instagram's tab bar that appears when your phone hides "
                                 + "its navigation bar or Instagram is in a pop-up window. Restart Instagram to see "
+                                + "the change.")));
+            }
+            if (build.contains(PatchFamily.PHONE_LAYOUT)) {
+                layout.addPreference(toggle(context, Settings.PHONE_LAYOUT, L10n.t("Phone layout on big screens"),
+                        L10n.t("On a foldable or tablet, Instagram keeps its phone layout across the whole screen, "
+                                + "with the tab bar at the bottom instead of down the side. Restart Instagram to see "
                                 + "the change.")));
             }
             if (build.contains(PatchFamily.FONT)) layout.addPreference(page.fontRow(context));

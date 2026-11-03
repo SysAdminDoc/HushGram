@@ -1554,3 +1554,6 @@ Opening a Blend doesn't tell the chat it belongs to that you visited it. The Ble
 # context: the little round profile pictures in a corner of a feed post or reel showing that a friend liked, commented on or reshared it. Instagram's own setting for them comes from its server, not the app.
 Hide activity bubbles	Ẩn bong bóng hoạt động
 Takes the little round pictures off posts and reels that show a friend liked, commented on or reshared them. Posts already on screen change when they load again.	Gỡ các ảnh tròn nhỏ trên bài viết và reel cho biết một người bạn đã thích, bình luận hoặc chia sẻ lại. Bài viết đang hiện trên màn hình sẽ đổi khi tải lại.
+# context: a switch for foldable phones and tablets. Instagram normally moves its tab bar to a rail down the side on a wide screen; this keeps the narrow phone layout instead.
+Phone layout on big screens	Bố cục điện thoại trên màn hình lớn
+On a foldable or tablet, Instagram keeps its phone layout across the whole screen, with the tab bar at the bottom instead of down the side. Restart Instagram to see the change.	Trên máy gập hoặc máy tính bảng, Instagram giữ bố cục điện thoại trên toàn màn hình, với thanh tab ở dưới thay vì ở bên cạnh. Hãy khởi động lại Instagram để thấy thay đổi.

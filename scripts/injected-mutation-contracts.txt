@@ -1706,6 +1706,15 @@ once-call Lapp/hushgram/extension/instagram/share/ShareButton;->hideInReels()Z i
 # room under the tab bar comes back; twice or elsewhere, it isn't the guess. RemoveBottomSpaceHookTest
 # checks on the 449 fixture that it lands right after the read.
 once-call Lapp/hushgram/extension/instagram/misc/BottomSpace;->navigationBarHeight(I)I in instance (Landroid/view/View;LX/*;)LX/*; holding WindowInsetsManager
+# Phone layout on big screens (#478) hands PhoneLayout.width the width first thing in the window
+# width class factory (01qk.A00 on 453, the one static int-to-enum method loading 600 and 840), and
+# PhoneLayout.foldable what hasSystemFeature answered in the big screen helper's hinge check
+# (01qi.A0A, the one Context check loading the hinge feature). Left out, a foldable or tablet keeps
+# the rail down the side with the switch on; twice or elsewhere, it isn't the hook the patch wrote.
+# PhoneLayoutHookTest checks both on every fixture build.
+start-call Lapp/hushgram/extension/instagram/misc/PhoneLayout;->width(I)I in static (I)LX/*; holding const:0x258 const:0x348
+once-call Lapp/hushgram/extension/instagram/misc/PhoneLayout;->width(I)I in static (I)LX/*; holding const:0x258 const:0x348
+once-call Lapp/hushgram/extension/instagram/misc/PhoneLayout;->foldable(I)Z in instance (Landroid/content/Context;)Z holding android.hardware.sensor.hinge_angle
 # Emoji style hands the replace strategy EmojiCompat's process was given to EmojiStyle.replaceStrategy
 # first thing in process (00Zx.A04 on 450, the one method holding both strings below) and keeps the
 # answer. Left out, every emoji Instagram's config leaves to the phone stays the phone's; anywhere
