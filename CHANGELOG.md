@@ -60,6 +60,7 @@ Every HushGram release, newest first.
 
 * **Instagram:** With `Ambient light` on, playing a video you sent from your gallery in a chat no longer crashes Instagram. The chat's rounded video frame wraps whatever it's given, and the glow kept putting itself back inside a new wrapper on every frame until the app ran out of room. Reported in #485.
 * **Instagram:** `Seek bar on stories` sits above a story's bottom row again. Instagram moved the Send message box, like and share into a new row, and the bar ended up drawn over them. Reported in #486.
+* **Instagram:** `Ambient light in stories` now glows under the status bar and the gesture bar too. Instagram's story viewer stops short of both, so the glow ended at its edges and the strips above and below a story stayed black. Reported in #487.
 * **Instagram:** `Saved on your profile` no longer keeps every profile screen you've looked at in memory for as long as Instagram runs. The bookmark's row held on to the tabs it was keyed on.
 * **Instagram:** The settings page no longer waits on an import that's still running to find out whether Undo is on offer.
 * **Instagram:** `See who a story mentions` pauses the story while its list is open. A photo used to move on under it. Close or Back plays it on, and it stays paused while you visit a profile from the list. Reported in #403.

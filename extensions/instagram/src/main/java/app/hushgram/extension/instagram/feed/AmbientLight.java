@@ -61,6 +61,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * background is wrapped in a {@link Glow} that draws the original first and then each light's glow
  * around it, and is put back the moment the stage has no lights left.
  *
+ * <p>A story's stage stops at the status bar and the gesture bar, so the black under them stayed
+ * black (#487). A story light also lights the nearest view round its stage that spans the window
+ * ({@link #bandsHostOf}): that view's glow is the same one, reaching to the window's edges, drawn
+ * everywhere but over the stage, which draws its own part. A picture that fills its stage glows
+ * only there.
+ *
  * <p>Every {@link AmbientSpeed#sampleMillis} each light on screen takes a small copy of its picture
  * (a video's own frame, or the window's pixels for a photo). The colors along its edges are carried
  * out into a ring, blurred and faded with distance, and the glow fades to them over
@@ -270,6 +276,32 @@ public final class AmbientLight {
         return null;
     }
 
+    /**
+     * The view whose background lights the bands under the system bars round a story's [stage]
+     * (#487): the nearest of its parents, up to the activity's content view, that spans the window
+     * from side to side and from top to bottom. On Instagram that is the container the story viewer's
+     * own container sits in, between the status bar and the gesture bar. Null when the stage spans the
+     * window itself or no parent does. The window's own views above the content (an action bar, the
+     * frame that keeps content off the system bars) are left alone: they aren't Instagram's, and a
+     * window that keeps its content off the bars paints them itself.
+     */
+    @Nullable
+    static ViewGroup bandsHostOf(ViewGroup stage) {
+        View root = stage.getRootView();
+        int width = root.getWidth(), height = root.getHeight();
+        int[] at = new int[2];
+        stage.getLocationInWindow(at);
+        if (at[1] <= 0 && at[1] + stage.getHeight() >= height) return null;
+        ViewParent parent = stage.getParent();
+        for (int i = 0; i < STAGE_DEPTH && parent instanceof ViewGroup && parent != root; i++, parent = parent.getParent()) {
+            ViewGroup group = (ViewGroup) parent;
+            group.getLocationInWindow(at);
+            if (at[0] <= 0 && at[0] + group.getWidth() >= width && at[1] <= 0 && at[1] + group.getHeight() >= height) return group;
+            if (group.getId() == android.R.id.content) break;
+        }
+        return null;
+    }
+
     /** The first video, or with [video] false the first photo, that shows under [view]. */
     @Nullable
     static View storyMediaIn(View view, boolean video, int[] budget) {
@@ -313,9 +345,11 @@ public final class AmbientLight {
         }
         if (lights.size() >= MAX_LIGHTS) return false;
         Glow glow = glowOn(stage);
-        Light light = new Light(owner, media, anchor, stage, kind);
+        ViewGroup host = kind == Kind.STORY ? bandsHostOf(stage) : null;
+        Light light = new Light(owner, media, anchor, stage, host, kind);
         lights.put(media, light);
         glow.lights.add(light);
+        if (host != null) glowOn(host).lights.add(light);
         light.place(media, stage);
         HookStatus.counted(FamilyNames.AMBIENT_LIGHT, kind == Kind.STORY ? COUNT_STORIES : COUNT_LIT);
         if (!logged) {
@@ -343,19 +377,24 @@ public final class AmbientLight {
         return fresh;
     }
 
-    /** Puts out [media]'s light, and gives its stage its own background back when it was the last. */
+    /** Puts out [media]'s light, and gives its stage and host their own backgrounds back when it was the last. */
     private static void drop(View media, Light light) {
         lights.remove(media);
-        ViewGroup stage = light.stage.get();
-        Glow glow = stage == null ? null : glows.get(stage);
+        putOut(light.stage.get(), light);
+        putOut(light.host(), light);
+    }
+
+    /** Takes [light] off the glow [view] wears, and gives [view] its own background back when it was the last. */
+    private static void putOut(@Nullable View view, Light light) {
+        Glow glow = view == null ? null : glows.get(view);
         if (glow == null) return;
         glow.lights.remove(light);
         if (!glow.lights.isEmpty()) {
             glow.invalidateSelf();
             return;
         }
-        glows.remove(stage);
-        glow.takeOff(stage);
+        glows.remove(view);
+        glow.takeOff(view);
     }
 
     /** Whether [view] sits somewhere under [ancestor]. */
@@ -378,14 +417,20 @@ public final class AmbientLight {
             Light light = entry.getValue();
             if (media == null) continue;
             ViewGroup stage = light.stage.get();
+            ViewGroup host = light.host();
             boolean story = light.kind == Kind.STORY;
             if (stage == null || !media.isAttachedToWindow() || !stage.isAttachedToWindow() || !under(media, stage)
+                    || (light.host != null && (host == null || !host.isAttachedToWindow() || !under(stage, host)))
                     || (story ? !stories || !media.isShown() : !feed || (light.kind == Kind.REEL && blurred))) {
                 drop(media, light);
                 continue;
             }
             Glow glow = glowOn(stage);
-            if (light.place(media, stage)) glow.invalidateSelf();
+            Glow bands = host == null ? null : glowOn(host);
+            if (light.place(media, stage)) {
+                glow.invalidateSelf();
+                if (bands != null) bands.invalidateSelf();
+            }
         }
     }
 
@@ -452,6 +497,9 @@ public final class AmbientLight {
         View stage = light.stage.get();
         Glow glow = stage == null ? null : glows.get(stage);
         if (glow != null) glow.invalidateSelf();
+        View host = light.host();
+        Glow bands = host == null ? null : glows.get(host);
+        if (bands != null) bands.invalidateSelf();
     }
 
     /** Whether two copies are close enough that the glow stays as it is. */
@@ -539,6 +587,13 @@ public final class AmbientLight {
         return light == null ? null : new Rect(light.lit);
     }
 
+    /** Where [media]'s picture is on the host lighting the bands round its stage, empty without one. */
+    @Nullable
+    static Rect hostLitForTests(View media) {
+        Light light = lights.get(media);
+        return light == null ? null : new Rect(light.hostLit);
+    }
+
     /** The face's color at cell [x], [y] as it shows now, or 0 with no face. */
     static int faceForTests(View media, int x, int y) {
         Light light = lights.get(media);
@@ -579,8 +634,14 @@ public final class AmbientLight {
         final Kind kind;
         /** For a story, the frame its picture sits in, which tells a picture that took another's place. */
         final WeakReference<View> anchor;
+        /** For a story, the view round its stage that lights the bands under the system bars, or null without one. */
+        @Nullable final WeakReference<ViewGroup> host;
         /** Where the picture is on the stage, empty while it fills the stage or doesn't show. */
         final Rect lit = new Rect();
+        /** Where the picture is on the host, empty without one or while it doesn't show. */
+        final Rect hostLit = new Rect();
+        /** Where the stage is on the host: its own glow draws there, so the host's leaves it alone. */
+        final Rect hostStage = new Rect();
         /** For a story's photo, where the picture is inside its view, which is all the copy takes. */
         final Rect inView = new Rect();
         /** How far the glow reaches past the picture, in pixels. */
@@ -593,26 +654,35 @@ public final class AmbientLight {
         int fadeMillis;
         boolean fading, asking;
         int taken;
-        private final Rect at = new Rect();
+        private final Rect at = new Rect(), onHost = new Rect(), stageOnHost = new Rect();
         private final Matrix transform = new Matrix();
         private final RectF content = new RectF();
 
-        Light(Activity owner, View media, @Nullable View anchor, ViewGroup stage, Kind kind) {
+        Light(Activity owner, View media, @Nullable View anchor, ViewGroup stage, @Nullable ViewGroup host, Kind kind) {
             this.owner = new WeakReference<>(owner);
             this.media = new WeakReference<>(media);
             this.anchor = new WeakReference<>(anchor);
             this.stage = new WeakReference<>(stage);
+            this.host = host == null ? null : new WeakReference<>(host);
             this.kind = kind;
         }
 
+        /** The host lighting the bands round the stage, or null without one or once it's gone. */
+        @Nullable
+        ViewGroup host() {
+            return host == null ? null : host.get();
+        }
+
         /**
-         * Finds where [media]'s picture is on [stage] now. A picture less than half across the screen,
-         * like a carousel's next page, gets no glow. True when it moved, or the spread changed.
+         * Finds where [media]'s picture is on [stage] now, and on the host round it. A picture less
+         * than half across the screen, like a carousel's next page, gets no glow. A picture filling
+         * its stage glows on the host only. True when it moved, or the spread changed.
          */
         boolean place(View media, ViewGroup stage) {
             at.setEmpty();
             inView.setEmpty();
             boolean story = kind == Kind.STORY;
+            boolean fills = false;
             if (media.isShown() && media.getGlobalVisibleRect(at) && at.width() * 2 >= media.getWidth()) {
                 at.setEmpty();
                 if (kind != Kind.POST && media instanceof TextureView) {
@@ -635,20 +705,40 @@ public final class AmbientLight {
                     at.set(0, 0, media.getWidth(), media.getHeight());
                 }
                 stage.offsetDescendantRectToMyCoords(media, at);
-                if (at.width() >= stage.getWidth() * FILLS && at.height() >= stage.getHeight() * FILLS) at.setEmpty();
+                fills = at.width() >= stage.getWidth() * FILLS && at.height() >= stage.getHeight() * FILLS;
             } else {
                 // The search above may have left the part that shows.
                 at.setEmpty();
             }
-            int reach = Math.round(Settings.AMBIENT_LIGHT_SPREAD.get().dp * stage.getResources().getDisplayMetrics().density);
-            // A story's bands can be deeper than the glow reaches, so the glow reaches the stage's edge.
-            if (story && !at.isEmpty()) {
-                reach = Math.max(reach, Math.max(Math.max(at.left, at.top), Math.max(stage.getWidth() - at.right, stage.getHeight() - at.bottom)));
+            onHost.setEmpty();
+            stageOnHost.setEmpty();
+            ViewGroup band = host();
+            if (band != null && !at.isEmpty() && band.isAttachedToWindow() && under(stage, band)) {
+                stageOnHost.set(0, 0, stage.getWidth(), stage.getHeight());
+                band.offsetDescendantRectToMyCoords(stage, stageOnHost);
+                onHost.set(at);
+                onHost.offset(stageOnHost.left, stageOnHost.top);
             }
-            if (at.equals(lit) && reach == spread) return false;
+            if (fills) at.setEmpty();
+            int reach = Math.round(Settings.AMBIENT_LIGHT_SPREAD.get().dp * stage.getResources().getDisplayMetrics().density);
+            // A story's bands can be deeper than the glow reaches, so the glow reaches the edge of the
+            // host, or of the stage without one. Both draw it the same way, so it runs on unbroken.
+            if (story && !onHost.isEmpty()) {
+                reach = Math.max(reach, farthest(onHost, band));
+            } else if (story && !at.isEmpty()) {
+                reach = Math.max(reach, farthest(at, stage));
+            }
+            if (at.equals(lit) && onHost.equals(hostLit) && stageOnHost.equals(hostStage) && reach == spread) return false;
             lit.set(at);
+            hostLit.set(onHost);
+            hostStage.set(stageOnHost);
             spread = reach;
             return true;
+        }
+
+        /** The widest gap between [rect] and [view]'s edges, in [view]'s pixels. */
+        private static int farthest(Rect rect, View view) {
+            return Math.max(Math.max(rect.left, rect.top), Math.max(view.getWidth() - rect.right, view.getHeight() - rect.bottom));
         }
 
         /** Writes the face as it shows at [now], partway from before to shown. True while it is still fading. */
@@ -755,13 +845,18 @@ public final class AmbientLight {
         @Override
         public void draw(@NonNull Canvas canvas) {
             if (original != null) original.draw(canvas);
+            View on = stage.get();
             long now = SystemClock.uptimeMillis();
             boolean fading = false;
             for (Light light : lights) {
-                if (light.face == null || light.lit.isEmpty()) continue;
+                // On a story's host the glow fills the bands round the stage, which draws its own part.
+                boolean bands = on != null && light.stage.get() != on;
+                Rect lit = bands ? light.hostLit : light.lit;
+                if (light.face == null || lit.isEmpty()) continue;
                 fading |= light.blend(now);
-                Rect lit = light.lit;
                 int spread = light.spread;
+                int saved = bands ? canvas.save() : 0;
+                if (bands) canvas.clipOutRect(light.hostStage);
                 xs[0] = lit.left - spread;
                 xs[1] = lit.left;
                 xs[2] = lit.right;
@@ -779,6 +874,7 @@ public final class AmbientLight {
                         canvas.drawBitmap(light.face, from, to, paint);
                     }
                 }
+                if (bands) canvas.restoreToCount(saved);
             }
             if (fading) {
                 unscheduleSelf(again);
