@@ -202,6 +202,14 @@ public class TabOrderSettingsTest {
         assertEquals(Arrays.asList("[x] Search", "[x] Home"), shown(list).subList(0, 2));
         assertEquals("Home is now 2 of 7", String.valueOf(home.getStateDescription()));
         assertEquals(Arrays.asList("Move up", "Move down"), moves(home));
+
+        View search = TabPicker.handle(list.getChildAt(0));
+        assertTrue(search.performAccessibilityAction(TabPicker.MOVE_DOWN, null));
+        assertEquals("Search is now 2 of 7", String.valueOf(search.getStateDescription()));
+        assertNull("Home went back to 1 without moving itself, so it stops saying 2 of 7", home.getStateDescription());
+        assertTrue(home.performAccessibilityAction(TabPicker.MOVE_DOWN, null));
+        assertEquals("Home is now 2 of 7", String.valueOf(home.getStateDescription()));
+        assertNull(search.getStateDescription());
         assertEquals("nothing is saved before OK", "", Settings.TAB_ORDER.get());
 
         press(dialog, DialogInterface.BUTTON_POSITIVE);

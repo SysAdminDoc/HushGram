@@ -316,8 +316,15 @@ final class TabPicker {
             if (now == was) return false;
             String landed = L10n.f("%1$s is now %2$d of %3$d", HushgramPreferenceFragment.tabLabel(tab), now + 1,
                     list.getChildCount());
-            if (Build.VERSION.SDK_INT >= 30) handle.setStateDescription(landed);
-            else handle.announceForAccessibility(landed);
+            if (Build.VERSION.SDK_INT >= 30) {
+                // Only the row just moved tells a place. A row pushed along by another move would go on
+                // saying where it once landed, and clearing first means landing on the same place twice
+                // still changes the state, so the reader speaks it again.
+                for (int i = 0; i < list.getChildCount(); i++) handle(list.getChildAt(i)).setStateDescription(null);
+                handle.setStateDescription(landed);
+            } else {
+                handle.announceForAccessibility(landed);
+            }
             return true;
         }
     }
