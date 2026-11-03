@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.comment.SelectText;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -265,6 +266,12 @@ public final class PostInfo {
                 copy(activity, "copy caption", L10n.t(activity, "Caption"), caption,
                         L10n.t(activity, "Caption copied"), L10n.t(activity, "Couldn't copy the caption"));
             }));
+            if (SelectText.on()) {
+                rows.addView(row(themed, L10n.t(activity, "Select text"), () -> {
+                    dialog.dismiss();
+                    SelectText.show(activity, L10n.t(activity, "Caption"), caption);
+                }));
+            }
             String words = withoutHashtags(caption);
             if (words != null) {
                 rows.addView(row(themed, L10n.t(activity, "Copy caption without hashtags"), () -> {

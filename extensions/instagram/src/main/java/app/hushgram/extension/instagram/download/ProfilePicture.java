@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.comment.SelectText;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -175,8 +176,8 @@ public final class ProfilePicture {
         try {
             HookStatus.invoked(FamilyNames.PROFILE_PICTURE);
             if (sheet == null || user == null || context == null) return;
-            boolean saving = on(), viewing = viewing(), copying = copying();
-            if (!saving && !viewing && !copying) return;
+            boolean saving = on(), viewing = viewing(), copying = copying(), selecting = SelectText.on();
+            if (!saving && !viewing && !copying && !selecting) return;
             String owner = reads.username(user);
             List<MediaSave.Rendition> sizes = saving || viewing ? sizes(user, reads) : Collections.emptyList();
             if (saving && !sizes.isEmpty() && !reads.addRow(sheet, context, new Row(context, sizes, owner, save),
@@ -187,15 +188,21 @@ public final class ProfilePicture {
                     L10n.t(context, "View profile picture"))) {
                 HookStatus.counted(FamilyNames.PROFILE_PICTURE, VIEW_NOT_ADDED);
             }
-            if (!copying) return;
-            if (owner != null && !owner.isEmpty() && !reads.addRow(sheet, context, new CopyRow(context, owner, false),
+            if (!copying && !selecting) return;
+            if (copying && owner != null && !owner.isEmpty() && !reads.addRow(sheet, context, new CopyRow(context, owner, false),
                     L10n.t(context, "Copy username"))) {
                 HookStatus.counted(FamilyNames.PROFILE_PICTURE, COPY_NOT_ADDED);
             }
             String bio = reads.biography(user);
             if (bio == null || bio.isEmpty()) {
                 HookStatus.counted(FamilyNames.PROFILE_PICTURE, NO_BIO);
-            } else if (!reads.addRow(sheet, context, new CopyRow(context, bio, true), L10n.t(context, "Copy bio"))) {
+                return;
+            }
+            if (copying && !reads.addRow(sheet, context, new CopyRow(context, bio, true), L10n.t(context, "Copy bio"))) {
+                HookStatus.counted(FamilyNames.PROFILE_PICTURE, COPY_NOT_ADDED);
+            }
+            if (selecting && !reads.addRow(sheet, context, SelectText.opener(context, L10n.t(context, "Bio"), bio),
+                    L10n.t(context, "Select text"))) {
                 HookStatus.counted(FamilyNames.PROFILE_PICTURE, COPY_NOT_ADDED);
             }
         } catch (Throwable failure) {

@@ -2101,6 +2101,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting COPY_COMMENT_AUTHORS =
             new BooleanSetting("hushgram_copy_comment_authors", FALSE);
 
+    /**
+     * Select text to copy (#492): a comment's menu, a post's details and a profile's menu get a Select text row
+     * ({@link app.hushgram.extension.instagram.comment.SelectText}). Off until enabled.
+     */
+    public static final BooleanSetting SELECT_TEXT =
+            new BooleanSetting("hushgram_select_text", FALSE);
+
     /** An explicit Save action for a photo the comment itself carries. Off until enabled. */
     public static final BooleanSetting SAVE_COMMENT_PHOTOS =
             new BooleanSetting("hushgram_save_comment_photos", FALSE);

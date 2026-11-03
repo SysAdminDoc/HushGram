@@ -1701,3 +1701,17 @@ Full screen didn't open	Schermo intero non aperto
 Stories fill the screen	Le storie riempiono lo schermo
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Su uno schermo alto la storia copre tutto lo schermo, con la barra di risposta sopra come sui telefoni più corti, invece di una scheda arrotondata sopra la barra.
+# context: a button in the select-text window that copies the whole text (#492)
+Copy all	Copia tutto
+# context: toast after Copy all in the select-text window (#492)
+Copied	Copiato
+# context: title of the window showing one comment (#492)
+Comment	Commento
+# context: toast when the select-text window fails (#492)
+Couldn't open the text	Impossibile aprire il testo
+# context: menu row that opens text for selecting (#492)
+Select text	Seleziona testo
+# context: settings switch title (#492)
+Select text to copy	Seleziona testo da copiare
+# context: that switch summary (#492)
+Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	Aggiunge Seleziona testo al menu di un commento, ai dettagli di un post e al menu di un profilo. Apre il testo in una finestra dove puoi selezionarne una parte e copiarla. I link funzionano.

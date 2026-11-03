@@ -1704,3 +1704,17 @@ Full screen didn't open	無法開啟全螢幕
 Stories fill the screen	限時動態填滿螢幕
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	在較長的螢幕上，限時動態會像在較短的手機上一樣覆蓋整個螢幕，回覆列疊在上方，而不是以圓角卡片顯示在回覆列上方。
+# context: a button in the select-text window that copies the whole text (#492)
+Copy all	全部複製
+# context: toast after Copy all in the select-text window (#492)
+Copied	已複製
+# context: title of the window showing one comment (#492)
+Comment	留言
+# context: toast when the select-text window fails (#492)
+Couldn't open the text	無法開啟文字
+# context: menu row that opens text for selecting (#492)
+Select text	選取文字
+# context: settings switch title (#492)
+Select text to copy	選取要複製的文字
+# context: that switch summary (#492)
+Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	在留言選單、貼文詳細資料和個人檔案選單加入「選取文字」。文字會在視窗中開啟，你可以選取一部分來複製。連結也能點開。

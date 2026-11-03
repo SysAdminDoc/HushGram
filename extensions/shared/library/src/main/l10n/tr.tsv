@@ -1701,3 +1701,17 @@ Full screen didn't open	Tam ekran açılmadı
 Stories fill the screen	Hikayeler ekranı doldursun
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Uzun bir ekranda hikaye, çubuğun üstünde yuvarlak köşeli bir kart yerine daha kısa telefonlardaki gibi tüm ekranı kaplar ve yanıt çubuğu üstünde durur.
+# context: a button in the select-text window that copies the whole text (#492)
+Copy all	Tümünü kopyala
+# context: toast after Copy all in the select-text window (#492)
+Copied	Kopyalandı
+# context: title of the window showing one comment (#492)
+Comment	Yorum
+# context: toast when the select-text window fails (#492)
+Couldn't open the text	Metin açılamadı
+# context: menu row that opens text for selecting (#492)
+Select text	Metni seç
+# context: settings switch title (#492)
+Select text to copy	Kopyalamak için metin seç
+# context: that switch summary (#492)
+Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	Bir yorumun menüsüne, gönderi ayrıntılarına ve profil menüsüne Metni seç ekler. Metin bir pencerede açılır, bir kısmını seçip kopyalayabilirsin. Bağlantılar çalışır.

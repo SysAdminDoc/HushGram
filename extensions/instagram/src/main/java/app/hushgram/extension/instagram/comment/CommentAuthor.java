@@ -38,7 +38,7 @@ public final class CommentAuthor {
     };
 
     public static List<?> rows(List<?> rows, Object comment, Context context) {
-        return rows(rows, comment, context, NATIVE);
+        return SelectText.rows(rows(rows, comment, context, NATIVE), comment, context);
     }
 
     static List<?> rows(List<?> rows, Object comment, Context context, NativeRows nativeRows) {
@@ -84,7 +84,13 @@ public final class CommentAuthor {
      * exactly as before, exceptions included.
      */
     public static String label(Context context, int id, Object row) {
-        if (row instanceof AuthorRow) {
+        if (row instanceof AuthorRow && SelectText.isSelect(CommentAuthorNative.callback(row))) {
+            try {
+                return L10n.t(context, "Select text");
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.COMMENT_COPY, "select text label", failure);
+            }
+        } else if (row instanceof AuthorRow) {
             try {
                 return L10n.t(context, "Copy username");
             } catch (Throwable failure) {

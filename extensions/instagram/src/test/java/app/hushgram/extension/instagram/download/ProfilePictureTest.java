@@ -83,6 +83,7 @@ public class ProfilePictureTest {
         Settings.SAVE_PROFILE_PICTURES.resetToDefault();
         Settings.VIEW_PROFILE_PICTURES.resetToDefault();
         Settings.COPY_PROFILE_TEXT.resetToDefault();
+        Settings.SELECT_TEXT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -291,6 +292,7 @@ public class ProfilePictureTest {
 
     @Test public void theCopySwitchStartsOff() {
         Settings.COPY_PROFILE_TEXT.resetToDefault();
+        Settings.SELECT_TEXT.resetToDefault();
         assertFalse(Settings.COPY_PROFILE_TEXT.get());
     }
 
@@ -300,6 +302,19 @@ public class ProfilePictureTest {
         ProfilePicture.offer(sheet, user, context, reads, save, viewer);
         assertEquals(Arrays.asList("Save profile picture", "View profile picture", "Copy username", "Copy bio"),
                 new ArrayList<>(reads.rows.keySet()));
+    }
+
+    /** Select text adds one row on its own, and it opens the bio in a window where the text can be selected. */
+    @Test public void selectTextAloneAddsOneRowThatOpensTheBio() {
+        Settings.SAVE_PROFILE_PICTURES.save(false);
+        Settings.SELECT_TEXT.save(true);
+        android.app.Activity screen = org.robolectric.Robolectric.buildActivity(android.app.Activity.class).setup().get();
+        ProfilePicture.offer(sheet, user, screen, reads, save, viewer);
+        assertEquals(Collections.singletonList("Select text"), new ArrayList<>(reads.rows.keySet()));
+        reads.rows.get("Select text").onClick(null);
+        android.app.AlertDialog dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+        assertTrue(dialog.isShowing());
+        assertTrue(dialog.getWindow().getDecorView().findViewById(android.R.id.content) != null);
     }
 
     /** With only the copy switch on, the picture's sizes aren't read at all. */

@@ -1701,3 +1701,17 @@ Full screen didn't open	Layar penuh tidak terbuka
 Stories fill the screen	Cerita memenuhi layar
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Di layar yang tinggi, cerita menutupi seluruh layar dengan bilah balasan di atasnya seperti di ponsel yang lebih pendek, bukan kartu membulat di atas bilah.
+# context: a button in the select-text window that copies the whole text (#492)
+Copy all	Salin semua
+# context: toast after Copy all in the select-text window (#492)
+Copied	Tersalin
+# context: title of the window showing one comment (#492)
+Comment	Komentar
+# context: toast when the select-text window fails (#492)
+Couldn't open the text	Teks tidak bisa dibuka
+# context: menu row that opens text for selecting (#492)
+Select text	Pilih teks
+# context: settings switch title (#492)
+Select text to copy	Pilih teks untuk disalin
+# context: that switch summary (#492)
+Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	Menambahkan Pilih teks ke menu komentar, detail postingan, dan menu profil. Teks dibuka di jendela tempat kamu bisa memilih sebagian dan menyalinnya. Tautan di dalamnya bisa dibuka.

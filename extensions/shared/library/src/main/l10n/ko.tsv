@@ -1700,3 +1700,17 @@ Full screen didn't open	전체 화면을 열지 못했습니다
 Stories fill the screen	스토리로 화면 채우기
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	세로로 긴 화면에서 스토리가 답장 바 위의 둥근 카드 대신, 짧은 휴대폰처럼 화면 전체를 덮고 답장 바가 그 위에 표시됩니다.
+# context: a button in the select-text window that copies the whole text (#492)
+Copy all	모두 복사
+# context: toast after Copy all in the select-text window (#492)
+Copied	복사됨
+# context: title of the window showing one comment (#492)
+Comment	댓글
+# context: toast when the select-text window fails (#492)
+Couldn't open the text	텍스트를 열지 못했어요
+# context: menu row that opens text for selecting (#492)
+Select text	텍스트 선택
+# context: settings switch title (#492)
+Select text to copy	복사할 텍스트 선택
+# context: that switch summary (#492)
+Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.	댓글 메뉴, 게시물 상세 정보, 프로필 메뉴에 텍스트 선택을 추가합니다. 텍스트가 창에 열리며 일부만 선택해 복사할 수 있어요. 링크도 열립니다.
