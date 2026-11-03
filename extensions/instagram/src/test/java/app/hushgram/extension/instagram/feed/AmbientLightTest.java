@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -20,6 +21,7 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.DrawableWrapper;
 import android.os.Looper;
 import android.view.TextureView;
 import android.view.View;
@@ -294,6 +296,64 @@ public class AmbientLightTest {
         assertTrue(String.valueOf(background), background instanceof AmbientLight.Glow);
         assertSame(white, ((AmbientLight.Glow) background).original);
         assertEquals(1, AmbientLight.litForTests());
+    }
+
+    /** Instagram's rounded frame: its background setter wraps what it's given in a drawable of its own (#485). */
+    static final class WrappingList extends LinearLayout {
+        int given;
+
+        WrappingList(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setBackground(Drawable background) {
+            given++;
+            super.setBackground(background == null ? null : new DrawableWrapper(background) {});
+        }
+    }
+
+    @Test
+    public void aStageThatWrapsItsBackgroundKeepsOneGlowFrameAfterFrame() {
+        FrameLayout roundedRoot = new FrameLayout(activity);
+        WrappingList rounded = new WrappingList(activity);
+        rounded.setOrientation(LinearLayout.VERTICAL);
+        rounded.setBackground(black);
+        Drawable stock = rounded.getBackground();
+        rounded.addView(new View(activity), new LinearLayout.LayoutParams(WIDTH, HEADER));
+        FrameLayout holder = new FrameLayout(activity);
+        MediaFrameLayout picture = new MediaFrameLayout(activity);
+        holder.addView(picture, new FrameLayout.LayoutParams(WIDTH, MEDIA));
+        rounded.addView(holder, new LinearLayout.LayoutParams(WIDTH, MEDIA));
+        rounded.addView(new View(activity), new LinearLayout.LayoutParams(WIDTH, FOOTER));
+        roundedRoot.addView(rounded, new FrameLayout.LayoutParams(WIDTH, HEADER + MEDIA + FOOTER));
+        activity.setContentView(roundedRoot);
+        root = roundedRoot;
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+        assertEquals(1, AmbientLight.litForTests());
+        Drawable worn = rounded.getBackground();
+        int given = rounded.given;
+        for (int i = 0; i < 30; i++) frame();
+
+        assertSame("the stage keeps the glow it was given", worn, rounded.getBackground());
+        assertEquals("and is never handed another", given, rounded.given);
+        assertTrue(String.valueOf(worn), worn instanceof DrawableWrapper);
+        Drawable glow = ((DrawableWrapper) worn).getDrawable();
+        assertTrue(String.valueOf(glow), glow instanceof AmbientLight.Glow);
+        assertSame("one glow over the stage's own background", stock, ((AmbientLight.Glow) glow).original);
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        int above = drawn(rounded).getPixel(WIDTH / 2, HEADER - 4);
+        assertTrue("it glows through the wrapper: " + hex(above), Color.blue(above) > 80 && Color.red(above) < 20);
+
+        Settings.AMBIENT_LIGHT.save(false);
+        AmbientLight.switchChanged(activity);
+        shadowOf(Looper.getMainLooper()).idle();
+
+        Drawable back = rounded.getBackground();
+        assertTrue(String.valueOf(back), back instanceof DrawableWrapper);
+        assertSame("off, the stage wraps its own background once, as before", black, ((DrawableWrapper) back).getDrawable());
     }
 
     @Test

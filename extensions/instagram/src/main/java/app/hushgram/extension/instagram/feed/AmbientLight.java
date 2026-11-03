@@ -17,6 +17,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.DrawableWrapper;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -331,7 +332,7 @@ public final class AmbientLight {
     /** The glow [stage] wears, wrapping its background now. A background Instagram set since is wrapped afresh. */
     static Glow glowOn(ViewGroup stage) {
         Glow glow = glows.get(stage);
-        if (glow != null && stage.getBackground() == glow) return glow;
+        if (glow != null && glow.wornBy(stage)) return glow;
         Glow fresh = new Glow(stage, stage.getBackground());
         if (glow != null) {
             fresh.lights.addAll(glow.lights);
@@ -677,6 +678,8 @@ public final class AmbientLight {
      */
     static final class Glow extends Drawable implements Drawable.Callback {
         @Nullable final Drawable original;
+        /** What the stage held right after the glow went on: the glow, or the stage's wrapper around it. */
+        @Nullable private Drawable worn;
         final List<Light> lights = new ArrayList<>();
         private final WeakReference<View> stage;
         private final Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -692,18 +695,46 @@ public final class AmbientLight {
             if (original != null) setBounds(original.getBounds());
         }
 
-        /** Sets the glow as [stage]'s background, keeping its padding. */
+        /**
+         * Sets the glow as [stage]'s background, keeping its padding, and notes what the stage
+         * holds then. Instagram's rounded frame wraps whatever its background setter is given in a
+         * drawable of its own (#485), so that can be the wrapper rather than the glow.
+         */
         void wear(View stage) {
             keepPadding(stage, this);
+            worn = stage.getBackground();
             if (original != null) original.setCallback(this);
+        }
+
+        /**
+         * Whether [stage] still holds what it held once the glow went on. Asking for the glow
+         * itself fails on a stage that wrapped it, and wrapping it again each frame nested deeper
+         * every frame until drawing overflowed its stack.
+         */
+        boolean wornBy(View stage) {
+            return stage.getBackground() == worn;
         }
 
         /** Gives [stage] its original background back when it still wears this glow. */
         void takeOff(View stage) {
             unscheduleSelf(again);
-            if (stage.getBackground() != this) return;
+            if (!wornBy(stage)) return;
             release();
-            keepPadding(stage, original);
+            keepPadding(stage, givenBack());
+        }
+
+        /**
+         * What [takeOff] hands the stage. A stage that wrapped the glow had wrapped the original
+         * the same way, so it gets what it wrapped and wraps that once, as it did before the glow,
+         * rather than a wrapper inside a wrapper each time a post lights and goes out.
+         */
+        @Nullable
+        private Drawable givenBack() {
+            if (worn != this && worn instanceof DrawableWrapper && ((DrawableWrapper) worn).getDrawable() == this
+                    && original != null && original.getClass() == worn.getClass()) {
+                return ((DrawableWrapper) original).getDrawable();
+            }
+            return original;
         }
 
         /** Lets go of the original, which a new glow or the stage takes over. */
