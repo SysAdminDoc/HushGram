@@ -5,6 +5,8 @@
 package app.hushgram.extension.instagram.settings;
 
 import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.Color;
 import android.preference.Preference;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,8 +38,17 @@ final class GlassPreviewRow extends Preference {
     @Override
     protected void onBindView(View view) {
         if (!(view instanceof GlassPreview)) return;
-        ScreenColors colors = ScreenColors.current();
-        ((GlassPreview) view).setBase(colors.background);
+        ((GlassPreview) view).setBase(barBase(view.getContext()));
+    }
+
+    /**
+     * What the bar itself sits on: black in Instagram's dark theme and white in its light one, which is
+     * what the bar falls back to when Instagram gives it no plain colour. The settings page is black in
+     * either theme, so its own colour showed dark glass to someone whose bar is light.
+     */
+    static int barBase(Context context) {
+        int night = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        return night == Configuration.UI_MODE_NIGHT_YES ? Color.BLACK : Color.WHITE;
     }
 
     /** The sample, once the list has made it. */

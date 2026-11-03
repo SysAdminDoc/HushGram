@@ -57,6 +57,11 @@ public final class GlassPreview extends View {
         invalidate();
     }
 
+    /** The color the sample's glass sits on. */
+    public int base() {
+        return base;
+    }
+
     /** Draws [slider] at [value] until released with -1, ahead of the saved value. */
     public void live(int slider, int value) {
         if (slider < 0 || slider >= live.length) return;

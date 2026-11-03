@@ -107,6 +107,23 @@ public class GlassPreviewSettingsTest {
         assertEquals("Tint intensity", String.valueOf(row(Settings.GLASS_TAB_BAR_OPACITY.key).getTitle()));
     }
 
+    /** The sample's glass sits on what the bar sits on: black in Instagram's dark theme, white in its light one. */
+    @Test @Config(qualifiers = "night") public void theSampleIsDarkGlassInTheDarkTheme() throws Exception {
+        open();
+        GlassPreviewRow sample = (GlassPreviewRow) row("hushgram_glass_preview");
+        GlassPreview view = (GlassPreview) sample.onCreateView(null);
+        sample.onBindView(view);
+        assertEquals(Color.BLACK, view.base());
+    }
+
+    @Test @Config(qualifiers = "notnight") public void theSampleIsLightGlassInTheLightTheme() throws Exception {
+        open();
+        GlassPreviewRow sample = (GlassPreviewRow) row("hushgram_glass_preview");
+        GlassPreview view = (GlassPreview) sample.onCreateView(null);
+        sample.onBindView(view);
+        assertEquals(Color.WHITE, view.base());
+    }
+
     @Test public void theSampleSitsAboveTheBlurTintAndBendSlidersAndFollowsThem() throws Exception {
         open();
         Preference sample = row("hushgram_glass_preview");
