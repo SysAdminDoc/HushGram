@@ -23,6 +23,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.view.PixelCopy;
+import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -68,7 +69,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * only there.
  *
  * <p>Every {@link AmbientSpeed#sampleMillis} each light on screen takes a small copy of its picture
- * (a video's own frame, or the window's pixels for a photo). The colors along its edges are carried
+ * (a video's own frame, or the window's pixels for a photo). A story video Instagram still plays on a
+ * SurfaceView is copied from that view's own layer, since the window only has a hole where it shows
+ * (#492). The colors along its edges are carried
  * out into a ring, blurred and faded with distance, and the glow fades to them over
  * {@link AmbientSpeed#fadeMillis}. A copy that barely changed leaves the glow as it is. While Blur
  * the bars around Reels is on, reels are left to it.
@@ -111,6 +114,7 @@ public final class AmbientLight {
     static final String HOOK = "ambient light";
     static final String COUNT_LIT = "pictures lit";
     static final String COUNT_STORIES = "story pictures lit";
+    static final String COUNT_SURFACE_STORIES = "story videos read off a SurfaceView";
     static final String NO_COPY = "copies that failed";
 
     /** Copies [source]'s picture into [into], then answers whether it worked. Tests stand in for the screen. */
@@ -126,6 +130,11 @@ public final class AmbientLight {
             return;
         }
         try {
+            if (source instanceof SurfaceView) {
+                // The video's own layer: the window's pixels have only a hole where it shows.
+                PixelCopy.request((SurfaceView) source, into, result -> done.accept(result == PixelCopy.SUCCESS), main);
+                return;
+            }
             PixelCopy.request(owner.getWindow(), inWindow, into, result -> done.accept(result == PixelCopy.SUCCESS), main);
         } catch (IllegalArgumentException noSurface) {
             done.accept(false);
@@ -302,11 +311,16 @@ public final class AmbientLight {
         return null;
     }
 
-    /** The first video, or with [video] false the first photo, that shows under [view]. */
+    /**
+     * The first video, or with [video] false the first photo, that shows under [view]. A video is a
+     * TextureView, or a SurfaceView when Instagram chose one before a switch could keep it off (the
+     * player was made before the settings were read, or before the switch went on).
+     */
     @Nullable
     static View storyMediaIn(View view, boolean video, int[] budget) {
         if (budget[0]-- <= 0 || view.getVisibility() != View.VISIBLE) return null;
-        if (video ? view instanceof TextureView : view instanceof ImageView && ((ImageView) view).getDrawable() != null) {
+        if (video ? view instanceof TextureView || view instanceof SurfaceView
+                : view instanceof ImageView && ((ImageView) view).getDrawable() != null) {
             return view.getWidth() > 0 && view.getHeight() > 0 ? view : null;
         }
         if (view instanceof ViewGroup) {
@@ -332,7 +346,10 @@ public final class AmbientLight {
             Light old = entry.getValue();
             if (old.kind == Kind.STORY && old.anchor.get() == frame && entry.getKey() != media) drop(entry.getKey(), old);
         }
-        if (media != null) light(owner, media, Kind.STORY, frame, storyStageOf(media, window));
+        if (media != null && light(owner, media, Kind.STORY, frame, storyStageOf(media, window))
+                && media instanceof SurfaceView) {
+            HookStatus.counted(FamilyNames.AMBIENT_LIGHT, COUNT_SURFACE_STORIES);
+        }
     }
 
     /** Lights [media] on [stage], if it isn't already and there's room. True when it was. */

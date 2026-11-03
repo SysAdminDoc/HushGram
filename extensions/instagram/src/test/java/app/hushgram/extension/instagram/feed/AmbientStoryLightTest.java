@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.feed;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -19,6 +20,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -322,6 +324,36 @@ public class AmbientStoryLightTest {
         assertEquals("one light, the video's", 1, AmbientLight.litForTests());
         assertEquals(new Rect(0, 120, WIDTH, 520), AmbientLight.litRectForTests(video));
         assertNull(AmbientLight.litRectForTests(photo));
+    }
+
+    @Test
+    public void aVideoStoryOnASurfaceViewGlowsFromItsOwnPicture() {
+        // #492: Instagram can still play a story's video on a SurfaceView, with its poster photo left
+        // in the frame. The video wins, and its copy is asked of the video's own view.
+        photo.setImageDrawable(picture(90, 160));
+        SurfaceView video = new SurfaceView(activity);
+        frame.addView(video, new FrameLayout.LayoutParams(WIDTH, 400, Gravity.CENTER));
+        View[] asked = new View[1];
+        AmbientLight.samplerForTests((owner, source, inWindow, into, done) -> {
+            asked[0] = source;
+            int[] pixels = new int[into.getWidth() * into.getHeight()];
+            for (int i = 0; i < pixels.length; i++) pixels[i] = i < pixels.length / 2 ? top : bottom;
+            into.setPixels(pixels, 0, into.getWidth(), 0, 0, into.getWidth(), into.getHeight());
+            done.accept(true);
+        });
+        laidOut();
+
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+
+        assertEquals("one light, the video's", 1, AmbientLight.litForTests());
+        assertEquals(new Rect(0, 120, WIDTH, 520), AmbientLight.litRectForTests(video));
+        assertNull(AmbientLight.litRectForTests(photo));
+        assertSame(video, asked[0]);
+        int above = glowOnly().getPixel(WIDTH / 2, 120 - 8);
+        assertTrue("the band above shows the video's top: " + hex(above), Color.blue(above) > 60 && Color.red(above) < 30);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AmbientLight.COUNT_SURFACE_STORIES + " 1"));
     }
 
     @Test
