@@ -2636,6 +2636,15 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fill(Ljava/lang/Obj
 # reels keep being cut at the sides; twice or elsewhere, it isn't the check the patch wrote.
 start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fit()Z in instance (Lcom/instagram/clips/intf/ClipsViewerSource;Lcom/instagram/common/session/UserSession;LX/*;LX/*;Ljava/lang/Boolean;IIZZ)Z holding android_purge_26_q2_ClipsMediaResizingUtils_shouldCropDynamic android_purge_26_q2_ClipsMediaResizingUtils_getCropPercentage
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fit()Z in instance (Lcom/instagram/clips/intf/ClipsViewerSource;Lcom/instagram/common/session/UserSession;LX/*;LX/*;Ljava/lang/Boolean;IIZZ)Z holding android_purge_26_q2_ClipsMediaResizingUtils_shouldCropDynamic android_purge_26_q2_ClipsMediaResizingUtils_getCropPercentage
+# Stories fill the screen (#436), under Stories: the story layout class (0BmY on 453, whose methods
+# load the aspect-ratio string below between them) asks ReelFill.story first in its static
+# tall-screen check, answering false (no card) on a yes, and first in its static card layout, handing
+# the story to the whole-screen layout on a yes. Left out, a tall phone keeps the rounded card above
+# an opaque reply bar; twice or elsewhere, it isn't the check the patch wrote.
+start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;)Z pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
+once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;)Z pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
+start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;II)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
+once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;II)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
 
 # Tap a feed video to pause it (#137) asks FeedTapPause.tapped first thing in the feed's tap handler,
 # the one instance (View, Media, five objects, int, boolean) void method that loads the handler's
