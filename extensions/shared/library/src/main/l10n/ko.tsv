@@ -1575,6 +1575,8 @@ No accounts yet	아직 계정이 없습니다
 %1$d account	계정 %1$d개
 %1$d accounts	계정 %1$d개
 Home header text	홈 상단 문구
+# context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
+Your words	원하는 문구
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Instagram 로고 대신 홈 상단에 표시할 나만의 문구입니다. 최대 %1$d자까지 입력할 수 있습니다. 비워 두면 로고가 유지됩니다.
 Instagram's logo stays at the top of Home.	홈 상단에 Instagram 로고가 유지됩니다.
 The top of Home says %1$s.	홈 상단에 %1$s 문구가 표시됩니다.

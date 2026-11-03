@@ -1493,6 +1493,8 @@ No accounts yet	Chưa có tài khoản nào
 %1$d account	%1$d tài khoản
 %1$d accounts	%1$d tài khoản
 Home header text	Chữ ở đầu trang chủ
+# context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
+Your words	Chữ của bạn
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Chữ của riêng bạn ở đầu trang chủ, thay cho logo Instagram. Tối đa %1$d ký tự. Để trống để giữ logo.
 Instagram's logo stays at the top of Home.	Logo Instagram vẫn ở đầu trang chủ.
 The top of Home says %1$s.	Đầu trang chủ ghi %1$s.

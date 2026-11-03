@@ -1579,6 +1579,8 @@ No accounts yet	尚未加入帳號
 %1$d account	%1$d 個帳號
 %1$d accounts	%1$d 個帳號
 Home header text	首頁頂端文字
+# context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
+Your words	你的文字
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	在首頁頂端顯示你自己的文字，取代 Instagram 標誌。最多 %1$d 個字元。留空即可保留標誌。
 Instagram's logo stays at the top of Home.	首頁頂端保留 Instagram 標誌。
 The top of Home says %1$s.	首頁頂端顯示「%1$s」。

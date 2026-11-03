@@ -1576,6 +1576,8 @@ No accounts yet	Nenhuma conta ainda
 %1$d account	%1$d conta
 %1$d accounts	%1$d contas
 Home header text	Texto no topo do Início
+# context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
+Your words	Seu texto
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Palavras suas no topo do Início, no lugar do logo do Instagram. Até %1$d caracteres. Deixe em branco para manter o logo.
 Instagram's logo stays at the top of Home.	O logo do Instagram continua no topo do Início.
 The top of Home says %1$s.	O topo do Início diz %1$s.

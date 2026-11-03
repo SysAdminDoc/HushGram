@@ -2665,7 +2665,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             field.setBackground(null);
             field.setPaddingRelative(0, Math.round(10 * density), 0, Math.round(10 * density));
             field.setTextColor(ScreenColors.DEFAULT.title);
-            field.setHintTextColor(ScreenColors.DEFAULT.summary);
             field.setHint(L10n.t("Search settings"));
             field.setContentDescription(L10n.t("Search settings"));
             // A magnifier at the field's start, as every row starts with an icon. A screen reader
@@ -6158,7 +6157,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();
         field.setSingleLine(true);
-        field.setHint("HushGram");
+        field.setHint(L10n.t("Your words"));
         field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(HeaderText.MAX_LENGTH * 2)});
         row.setText(Settings.HEADER_TEXT.savedValue());
         return row;

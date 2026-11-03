@@ -116,6 +116,21 @@ public class ScreenColorsAccessibilityTest {
         assertNotEquals(Color.BLACK, charcoal.dialog);
     }
 
+    @Test public void anEmptyFieldsPlaceholderStaysReadableAndQuieterThanSavedText() {
+        for (ScreenColors colors : new ScreenColors[]{ScreenColors.DEFAULT, new ScreenColors(true), new ScreenColors(false)}) {
+            for (int surface : new int[]{colors.background, colors.card, colors.dialog}) {
+                contrast("placeholder", colors.hint, surface, 4.5);
+            }
+            assertTrue("A placeholder must read quieter than a saved summary",
+                    luminance(colors.hint) < luminance(colors.summary));
+        }
+        EditText field = new EditText(controller.get());
+        field.setHint("Your words");
+        ScreenColors.styleField(field);
+        assertEquals(ScreenColors.current().hint,
+                field.getHintTextColors().getColorForState(new int[]{android.R.attr.state_enabled}, 0));
+    }
+
     @Test public void anUnpickedChoiceStillShowsItsPressInsideThePanel() {
         Activity activity = controller.get();
         CheckedTextView choice = new CheckedTextView(activity);

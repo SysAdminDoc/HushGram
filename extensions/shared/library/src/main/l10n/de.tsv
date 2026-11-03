@@ -1576,6 +1576,8 @@ No accounts yet	Noch keine Konten
 %1$d account	%1$d Konto
 %1$d accounts	%1$d Konten
 Home header text	Text oben auf der Startseite
+# context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
+Your words	Dein Text
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Eigene Worte oben auf der Startseite statt des Instagram-Logos. Bis zu %1$d Zeichen. Lass es leer, um das Logo zu behalten.
 Instagram's logo stays at the top of Home.	Oben auf der Startseite bleibt das Instagram-Logo.
 The top of Home says %1$s.	Oben auf der Startseite steht %1$s.

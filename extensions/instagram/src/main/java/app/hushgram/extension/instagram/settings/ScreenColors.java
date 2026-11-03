@@ -54,6 +54,11 @@ public final class ScreenColors {
     public final int title;
     /** Row summaries and a dialog's message. */
     public final int summary;
+    /**
+     * A dialog field's placeholder. Quieter than {@link #summary}, so an example in an empty field
+     * doesn't read as a value already saved, and still 4.5:1 on every surface.
+     */
+    public final int hint;
     /** Section titles. */
     public final int heading;
     /** A switch that's on, and the buttons of a dialog. */
@@ -97,6 +102,7 @@ public final class ScreenColors {
         dialog = pureBlack ? Color.BLACK : 0xFF18161D;
         title = 0xFFF8F5F8;
         summary = 0xFFAAA5AF;
+        hint = 0xFF8C8792;
         // Instagram's own blues (AccentColor.role): its link on a dark screen, 7:1 on the charcoal,
         // and its Prism indigo button fill, which white text reads on at 5:1.
         heading = 0xFF85A1FF;
@@ -608,7 +614,7 @@ public final class ScreenColors {
      * the framework's teal, so they take the accent the buttons have.
      */
     void paintField(EditText field) {
-        field.setHintTextColor(dimmedWhenDisabled(summary));
+        field.setHintTextColor(dimmedWhenDisabled(hint));
         GradientDrawable outline = new GradientDrawable();
         outline.setColor(dialog);
         outline.setCornerRadius(dp(field, 12));

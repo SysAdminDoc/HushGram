@@ -1576,6 +1576,8 @@ No accounts yet	Ancora nessun account
 %1$d account	%1$d account
 %1$d accounts	%1$d account
 Home header text	Testo in alto nella Home
+# context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
+Your words	Il tuo testo
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Parole tue in alto nella Home, al posto del logo di Instagram. Fino a %1$d caratteri. Lascia vuoto per tenere il logo.
 Instagram's logo stays at the top of Home.	Il logo di Instagram resta in alto nella Home.
 The top of Home says %1$s.	In alto nella Home c'è scritto %1$s.

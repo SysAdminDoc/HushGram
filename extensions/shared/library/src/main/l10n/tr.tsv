@@ -1576,6 +1576,8 @@ No accounts yet	Henüz hesap yok
 %1$d account	%1$d hesap
 %1$d accounts	%1$d hesap
 Home header text	Ana Sayfa üst yazısı
+# context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
+Your words	Kendi yazın
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Ana Sayfa'nın üstünde Instagram logosu yerine kendi sözlerin. En fazla %1$d karakter. Logoyu tutmak için boş bırak.
 Instagram's logo stays at the top of Home.	Ana Sayfa'nın üstünde Instagram logosu kalır.
 The top of Home says %1$s.	Ana Sayfa'nın üstünde %1$s yazıyor.

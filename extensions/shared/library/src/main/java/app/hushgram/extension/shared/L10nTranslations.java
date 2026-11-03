@@ -54,7 +54,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildDe() {
-        Map<String, String> table = new HashMap<>(3122);
+        Map<String, String> table = new HashMap<>(3124);
         fillDe0(table);
         fillDe1(table);
         fillDe2(table);
@@ -3267,6 +3267,8 @@ public final class L10nTranslations {
                 "Deine Story-Schriftarten");
         table.put("Your version, the source code and licenses.",
                 "Deine Version, der Quellcode und die Lizenzen.");
+        table.put("Your words",
+                "Dein Text");
         table.put("Zoomed photo",
                 "Vergr\u00f6\u00dfertes Foto");
         table.put("the home screen icon you picked",
@@ -3279,17 +3281,17 @@ public final class L10nTranslations {
                 "der Fix f\u00fcr neu signierte Builds");
         table.put("the removed advertising ID permissions",
                 "die entfernten Berechtigungen f\u00fcr die Werbe-ID");
-        table.put("the start-up fix for x86 devices",
-                "der Startfix f\u00fcr x86-Ger\u00e4te");
     }
 
     private static void fillDe26(Map<String, String> table) {
+        table.put("the start-up fix for x86 devices",
+                "der Startfix f\u00fcr x86-Ger\u00e4te");
         table.put("this sound",
                 "diesem Sound");
     }
 
     private static Map<String, String> buildEs() {
-        Map<String, String> table = new HashMap<>(3122);
+        Map<String, String> table = new HashMap<>(3124);
         fillEs0(table);
         fillEs1(table);
         fillEs2(table);
@@ -6502,6 +6504,8 @@ public final class L10nTranslations {
                 "Tus fuentes de historias");
         table.put("Your version, the source code and licenses.",
                 "Tu versi\u00f3n, el c\u00f3digo fuente y las licencias.");
+        table.put("Your words",
+                "Tu texto");
         table.put("Zoomed photo",
                 "Foto ampliada");
         table.put("the home screen icon you picked",
@@ -6514,17 +6518,17 @@ public final class L10nTranslations {
                 "el arreglo para la nueva firma");
         table.put("the removed advertising ID permissions",
                 "los permisos del ID de publicidad eliminados");
-        table.put("the start-up fix for x86 devices",
-                "el arreglo de inicio para dispositivos x86");
     }
 
     private static void fillEs26(Map<String, String> table) {
+        table.put("the start-up fix for x86 devices",
+                "el arreglo de inicio para dispositivos x86");
         table.put("this sound",
                 "este sonido");
     }
 
     private static Map<String, String> buildIn() {
-        Map<String, String> table = new HashMap<>(3122);
+        Map<String, String> table = new HashMap<>(3124);
         fillIn0(table);
         fillIn1(table);
         fillIn2(table);
@@ -9737,6 +9741,8 @@ public final class L10nTranslations {
                 "Font ceritamu");
         table.put("Your version, the source code and licenses.",
                 "Versimu, kode sumber, dan lisensi.");
+        table.put("Your words",
+                "Teksmu");
         table.put("Zoomed photo",
                 "Foto yang diperbesar");
         table.put("the home screen icon you picked",
@@ -9749,17 +9755,17 @@ public final class L10nTranslations {
                 "perbaikan build yang ditandatangani ulang");
         table.put("the removed advertising ID permissions",
                 "izin ID iklan yang dihapus");
-        table.put("the start-up fix for x86 devices",
-                "perbaikan saat mulai untuk perangkat x86");
     }
 
     private static void fillIn26(Map<String, String> table) {
+        table.put("the start-up fix for x86 devices",
+                "perbaikan saat mulai untuk perangkat x86");
         table.put("this sound",
                 "suara ini");
     }
 
     private static Map<String, String> buildIt() {
-        Map<String, String> table = new HashMap<>(3122);
+        Map<String, String> table = new HashMap<>(3124);
         fillIt0(table);
         fillIt1(table);
         fillIt2(table);
@@ -12972,6 +12978,8 @@ public final class L10nTranslations {
                 "I tuoi caratteri per le storie");
         table.put("Your version, the source code and licenses.",
                 "La tua versione, il codice sorgente e le licenze.");
+        table.put("Your words",
+                "Il tuo testo");
         table.put("Zoomed photo",
                 "Foto ingrandita");
         table.put("the home screen icon you picked",
@@ -12984,17 +12992,17 @@ public final class L10nTranslations {
                 "la correzione per la build firmata di nuovo");
         table.put("the removed advertising ID permissions",
                 "i permessi dell'ID pubblicitario rimossi");
-        table.put("the start-up fix for x86 devices",
-                "la correzione di avvio per i dispositivi x86");
     }
 
     private static void fillIt26(Map<String, String> table) {
+        table.put("the start-up fix for x86 devices",
+                "la correzione di avvio per i dispositivi x86");
         table.put("this sound",
                 "questo audio");
     }
 
     private static Map<String, String> buildKo() {
-        Map<String, String> table = new HashMap<>(3122);
+        Map<String, String> table = new HashMap<>(3124);
         fillKo0(table);
         fillKo1(table);
         fillKo2(table);
@@ -16207,6 +16215,8 @@ public final class L10nTranslations {
                 "\ub0b4 \uc2a4\ud1a0\ub9ac \uae00\uaf34");
         table.put("Your version, the source code and licenses.",
                 "\uc0ac\uc6a9 \uc911\uc778 \ubc84\uc804, \uc18c\uc2a4 \ucf54\ub4dc, \ub77c\uc774\uc120\uc2a4\uc785\ub2c8\ub2e4.");
+        table.put("Your words",
+                "\uc6d0\ud558\ub294 \ubb38\uad6c");
         table.put("Zoomed photo",
                 "\ud655\ub300\ub41c \uc0ac\uc9c4");
         table.put("the home screen icon you picked",
@@ -16219,17 +16229,17 @@ public final class L10nTranslations {
                 "\ub2e4\uc2dc \uc11c\uba85\ub41c \ube4c\ub4dc \uc218\uc815");
         table.put("the removed advertising ID permissions",
                 "\uad11\uace0 ID \uad8c\ud55c \uc81c\uac70");
-        table.put("the start-up fix for x86 devices",
-                "x86 \uae30\uae30\uc5d0 \ub300\ud55c \uc2dc\uc791 \ubb38\uc81c \uc218\uc815");
     }
 
     private static void fillKo26(Map<String, String> table) {
+        table.put("the start-up fix for x86 devices",
+                "x86 \uae30\uae30\uc5d0 \ub300\ud55c \uc2dc\uc791 \ubb38\uc81c \uc218\uc815");
         table.put("this sound",
                 "\uc774 \uc0ac\uc6b4\ub4dc");
     }
 
     private static Map<String, String> buildPt_rBR() {
-        Map<String, String> table = new HashMap<>(3122);
+        Map<String, String> table = new HashMap<>(3124);
         fillPt_rBR0(table);
         fillPt_rBR1(table);
         fillPt_rBR2(table);
@@ -19442,6 +19452,8 @@ public final class L10nTranslations {
                 "Suas fontes de stories");
         table.put("Your version, the source code and licenses.",
                 "Sua vers\u00e3o, o c\u00f3digo-fonte e as licen\u00e7as.");
+        table.put("Your words",
+                "Seu texto");
         table.put("Zoomed photo",
                 "Foto ampliada");
         table.put("the home screen icon you picked",
@@ -19454,17 +19466,17 @@ public final class L10nTranslations {
                 "a corre\u00e7\u00e3o para vers\u00e3o reassinada");
         table.put("the removed advertising ID permissions",
                 "as permiss\u00f5es do ID de publicidade removidas");
-        table.put("the start-up fix for x86 devices",
-                "a corre\u00e7\u00e3o de inicializa\u00e7\u00e3o para dispositivos x86");
     }
 
     private static void fillPt_rBR26(Map<String, String> table) {
+        table.put("the start-up fix for x86 devices",
+                "a corre\u00e7\u00e3o de inicializa\u00e7\u00e3o para dispositivos x86");
         table.put("this sound",
                 "este som");
     }
 
     private static Map<String, String> buildTr() {
-        Map<String, String> table = new HashMap<>(3122);
+        Map<String, String> table = new HashMap<>(3124);
         fillTr0(table);
         fillTr1(table);
         fillTr2(table);
@@ -22677,6 +22689,8 @@ public final class L10nTranslations {
                 "Hikaye yaz\u0131 tiplerin");
         table.put("Your version, the source code and licenses.",
                 "S\u00fcr\u00fcm\u00fcn, kaynak kodu ve lisanslar.");
+        table.put("Your words",
+                "Kendi yaz\u0131n");
         table.put("Zoomed photo",
                 "Yak\u0131nla\u015ft\u0131r\u0131lm\u0131\u015f foto\u011fraf");
         table.put("the home screen icon you picked",
@@ -22689,17 +22703,17 @@ public final class L10nTranslations {
                 "yeniden imzalanm\u0131\u015f s\u00fcr\u00fcm d\u00fczeltmesi");
         table.put("the removed advertising ID permissions",
                 "kald\u0131r\u0131lan reklam kimli\u011fi izinleri");
-        table.put("the start-up fix for x86 devices",
-                "x86 cihazlar i\u00e7in a\u00e7\u0131l\u0131\u015f d\u00fczeltmesi");
     }
 
     private static void fillTr26(Map<String, String> table) {
+        table.put("the start-up fix for x86 devices",
+                "x86 cihazlar i\u00e7in a\u00e7\u0131l\u0131\u015f d\u00fczeltmesi");
         table.put("this sound",
                 "bu ses");
     }
 
     private static Map<String, String> buildVi() {
-        Map<String, String> table = new HashMap<>(3122);
+        Map<String, String> table = new HashMap<>(3124);
         fillVi0(table);
         fillVi1(table);
         fillVi2(table);
@@ -25912,6 +25926,8 @@ public final class L10nTranslations {
                 "Ph\u00f4ng ch\u1eef tin c\u1ee7a b\u1ea1n");
         table.put("Your version, the source code and licenses.",
                 "Phi\u00ean b\u1ea3n, m\u00e3 ngu\u1ed3n v\u00e0 gi\u1ea5y ph\u00e9p c\u1ee7a b\u1ea1n.");
+        table.put("Your words",
+                "Ch\u1eef c\u1ee7a b\u1ea1n");
         table.put("Zoomed photo",
                 "\u1ea2nh ph\u00f3ng to");
         table.put("the home screen icon you picked",
@@ -25924,17 +25940,17 @@ public final class L10nTranslations {
                 "b\u1ea3n s\u1eeda cho b\u1ea3n d\u1ef1ng \u0111\u00e3 k\u00fd l\u1ea1i");
         table.put("the removed advertising ID permissions",
                 "c\u00e1c quy\u1ec1n ID qu\u1ea3ng c\u00e1o \u0111\u00e3 g\u1ee1");
-        table.put("the start-up fix for x86 devices",
-                "b\u1ea3n s\u1eeda l\u1ed7i kh\u1edfi \u0111\u1ed9ng cho thi\u1ebft b\u1ecb x86");
     }
 
     private static void fillVi26(Map<String, String> table) {
+        table.put("the start-up fix for x86 devices",
+                "b\u1ea3n s\u1eeda l\u1ed7i kh\u1edfi \u0111\u1ed9ng cho thi\u1ebft b\u1ecb x86");
         table.put("this sound",
                 "\u00e2m thanh n\u00e0y");
     }
 
     private static Map<String, String> buildZh_rTW() {
-        Map<String, String> table = new HashMap<>(3122);
+        Map<String, String> table = new HashMap<>(3124);
         fillZh_rTW0(table);
         fillZh_rTW1(table);
         fillZh_rTW2(table);
@@ -29147,6 +29163,8 @@ public final class L10nTranslations {
                 "\u4f60\u7684\u9650\u6642\u52d5\u614b\u5b57\u578b");
         table.put("Your version, the source code and licenses.",
                 "\u67e5\u770b\u7248\u672c\u3001\u539f\u59cb\u78bc\u8207\u6388\u6b0a\u689d\u6b3e\u3002");
+        table.put("Your words",
+                "\u4f60\u7684\u6587\u5b57");
         table.put("Zoomed photo",
                 "\u653e\u5927\u7684\u7167\u7247");
         table.put("the home screen icon you picked",
@@ -29159,11 +29177,11 @@ public final class L10nTranslations {
                 "\u91cd\u65b0\u7c3d\u7f72\u7248\u672c\u4fee\u6b63");
         table.put("the removed advertising ID permissions",
                 "\u5df2\u79fb\u9664\u7684\u5ee3\u544a ID \u6b0a\u9650");
-        table.put("the start-up fix for x86 devices",
-                "x86 \u88dd\u7f6e\u555f\u52d5\u4fee\u6b63");
     }
 
     private static void fillZh_rTW26(Map<String, String> table) {
+        table.put("the start-up fix for x86 devices",
+                "x86 \u88dd\u7f6e\u555f\u52d5\u4fee\u6b63");
         table.put("this sound",
                 "\u6b64\u97f3\u8a0a");
     }
