@@ -29,7 +29,7 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val PROFILE_EXTRAS = "$EXTENSION_PACKAGE/download/ProfileExtras;"
-internal const val EXTRAS_BOUND = "$PROFILE_EXTRAS->bound(Landroid/view/View;Landroid/view/View;)V"
+internal const val EXTRAS_BOUND = "$PROFILE_EXTRAS->bound(Landroid/view/View;Landroid/view/View;Ljava/lang/Object;)V"
 internal const val EXTRAS_SCREEN = "$PROFILE_EXTRAS->screen(Landroid/view/View;Ljava/lang/Object;)V"
 internal const val EXTRAS_MODEL_USER = "modelUser"
 
@@ -54,6 +54,8 @@ internal class ProfileExtrasSite(
     val ties: List<ProfileExtrasTie>,
     /** Where the screen's view model keeps the account, the same read Show if a profile follows you has. */
     val user: ProfileUser,
+    /** What the About this account button needs, or null when this build can't have it. */
+    val about: AboutAccountSite?,
 )
 
 /**
@@ -93,9 +95,9 @@ internal fun BytecodePatchContext.findProfileExtras(): ProfileExtrasSite {
     val left = rowField(code, fill, rows[3], bar.type) ?: refuse("the left row isn't read off a field of the bar")
     val right = rowField(code, fill, rows[4], bar.type) ?: refuse("the right row isn't read off a field of the bar")
     if (left.name == right.name) refuse("the bar's two rows are the same field ${left.name}")
-    // The entry hook writes v0 and v1 before the bind's own code runs, so both must be locals.
+    // The entry hook writes v0, v1 and v2 before the bind's own code runs, so all three must be locals.
     val words = binder.parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2L else 1L } + 1
-    if ((binder.implementation?.registerCount ?: 0) - words < 2) refuse("${binder.name} has fewer than two locals for the hook")
+    if ((binder.implementation?.registerCount ?: 0) - words < 3) refuse("${binder.name} has fewer than three locals for the hook")
     // The screen's hook goes right after each call, which would split an answer from its move-result.
     if (binder.returnType != "V") refuse("${binder.name} answers ${binder.returnType}, so a hook after its calls would split the answer off")
 
@@ -131,7 +133,7 @@ internal fun BytecodePatchContext.findProfileExtras(): ProfileExtrasSite {
     if (extension.methods.none { it.name == EXTRAS_MODEL_USER && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Ljava/lang/Object;" }) {
         refuse("the extension has no $EXTRAS_MODEL_USER to fill in")
     }
-    return ProfileExtrasSite(binder.name, parameters, binder.returnType, "${bar.type}->${right.name}:$BAR_GROUP", ties, user)
+    return ProfileExtrasSite(binder.name, parameters, binder.returnType, "${bar.type}->${right.name}:$BAR_GROUP", ties, user, findAboutAccount().takeIf { binder.parameterTypes.firstOrNull()?.toString() == USER_SESSION })
 }
 
 private fun tieAt(method: Method, steps: List<Instruction>, call: Int, barField: String): ProfileExtrasTie {
@@ -205,8 +207,9 @@ internal fun BytecodePatchContext.applyProfileExtras(site: ProfileExtrasSite) {
         0,
         """
             move-object/from16 v0, p0
+            move-object/from16 v2, p1
             iget-object v1, v0, ${site.right}
-            invoke-static { v0, v1 }, $EXTRAS_BOUND
+            invoke-static { v0, v1, v2 }, $EXTRAS_BOUND
         """,
     )
     for (tie in site.ties.sortedByDescending { it.call }) {
@@ -215,6 +218,7 @@ internal fun BytecodePatchContext.applyProfileExtras(site: ProfileExtrasSite) {
         }
         method.addInstructions(tie.call + 1, "invoke-static { v${tie.bar}, v${tie.screen} }, $EXTRAS_SCREEN")
     }
+    site.about?.let { applyAboutAccount(it) }
     // Answers an Object, so its ways out may meet at one return.
     mutableClassDefBy(PROFILE_EXTRAS).methods.single { it.name == EXTRAS_MODEL_USER }.addInstructionsWithLabels(
         0,

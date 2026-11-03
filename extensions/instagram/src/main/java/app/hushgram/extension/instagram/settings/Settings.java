@@ -2154,6 +2154,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_profile_extras_button", FALSE);
 
     /**
+     * An (i) on a profile, next to the three dots, opens Instagram's About this account for that
+     * account ({@link app.hushgram.extension.instagram.download.ProfileExtras}). Instagram dropped
+     * its own. Off until enabled.
+     */
+    public static final BooleanSetting ABOUT_ACCOUNT_BUTTON =
+            new BooleanSetting("hushgram_about_account_button", FALSE);
+
+    /**
      * A voice message's menu in a chat gets Save
      * ({@link app.hushgram.extension.instagram.download.VoiceMessage}). Off until enabled.
      */

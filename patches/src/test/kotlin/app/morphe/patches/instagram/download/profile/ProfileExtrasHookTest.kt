@@ -14,6 +14,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.instagram.profile.threads.PROFILE_ACTION_BAR
 import app.morphe.patches.instagram.profile.threads.USER_DETAIL
+import app.morphe.patches.instagram.profile.threads.USER_SESSION
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -25,7 +26,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import app.morphe.patches.instagram.download.USER
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -76,7 +79,8 @@ class ProfileExtrasHookTest {
         }.map { it.definingClass }.toSet()
         val callerClasses = FixtureDex.classes(bundle, callers).values
         val modelReads = accountReadClasses(bundle, base)
-        val context = PatchContexts.of((base + callerClasses + modelReads).distinctBy { it.type } + ExtensionDex.classDef(PROFILE_EXTRAS))
+        val aboutClasses = FixtureDex.classesLoading(bundle, ABOUT_SCREEN) + FixtureDex.classes(bundle, setOf(USER_SESSION)).values
+        val context = PatchContexts.of((base + callerClasses + modelReads + aboutClasses).distinctBy { it.type } + ExtensionDex.classDef(PROFILE_EXTRAS))
         val site = context.findProfileExtras()
         assertTrue("$label: a caller binds the bar", site.ties.isNotEmpty())
 
@@ -87,12 +91,12 @@ class ProfileExtrasHookTest {
 
         val binder = context.method(PROFILE_ACTION_BAR, site.name, site.parameters)
         val code = binder.code()
-        assertEquals("$label: the bind hands over first", listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC),
-            code.take(3).map { it.opcode })
-        assertEquals("$label: bound", EXTRAS_BOUND, code[2].referenceText())
-        assertEquals("$label: the right row", site.right, code[1].referenceText())
+        assertEquals("$label: the bind hands over first", listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC),
+            code.take(4).map { it.opcode })
+        assertEquals("$label: bound", EXTRAS_BOUND, code[3].referenceText())
+        assertEquals("$label: the right row", site.right, code[2].referenceText())
         assertEquals("$label: bound once", 1, code.count { it.referenceText() == EXTRAS_BOUND })
-        binderBefore.assertPreserved(label, binder, setOf(0, 1, 2))
+        binderBefore.assertPreserved(label, binder, setOf(0, 1, 2, 3))
 
         for (tie in site.ties) {
             val method = context.method(tie.owner, tie.method, tie.parameters)
@@ -111,6 +115,20 @@ class ProfileExtrasHookTest {
         val steps = listOfNotNull(site.user.field, site.user.live, site.user.getValue, site.user.holderField).map { it.toString() }
         assertTrue("$label: the account read's steps: $read", read.containsAll(steps))
         assertEquals("$label: ends at the account", "Lcom/instagram/user/model/User;", read.last())
+
+        // #492: the About this account button. 453 has the call, so it must be found there; the stubs then
+        // answer yes, read the account's id and call Instagram's own opener with the session.
+        val about = site.about
+        if (label.contains("-453.")) assertNotNull("$label: the About this account call", about)
+        if (about != null) {
+            val available = context.method(PROFILE_EXTRAS, "aboutAvailable", emptyList()).code()
+            assertEquals("$label: aboutAvailable says yes", Opcode.CONST_4, available.first().opcode)
+            val opener = context.method(PROFILE_EXTRAS, "openAbout", listOf("Landroid/content/Context;", "Ljava/lang/Object;", "Ljava/lang/String;", "Ljava/lang/String;"))
+            val calls = opener.code().mapNotNull { it.referenceText() }
+            assertTrue("$label: openAbout calls ${about.owner}->${about.name}: $calls", calls.any { it.startsWith("${about.owner}->${about.name}(") })
+            val id = context.method(PROFILE_EXTRAS, "userId", listOf("Ljava/lang/Object;")).code().mapNotNull { it.referenceText() }
+            assertEquals("$label: userId reads the id getter", "$USER->${about.idGetter}()Ljava/lang/String;", id.last())
+        }
     }
 
     /** What the model's fields and methods name, with the classes above those and what those classes keep, which the read is found through. */

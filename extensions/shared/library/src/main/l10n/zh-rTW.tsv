@@ -1732,3 +1732,7 @@ Who stopped following you, after you open your Followers list	你開啟追蹤者
 Notify me of unfollowers	通知我有人取消追蹤
 # context: that switch summary (#492)
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	你把自己的追蹤者清單捲到底後，會用通知告訴你自上次以來誰離開了。不會向 Instagram 多要求任何東西。
+# context: settings switch title and button label, the row Instagram calls About this account (#492)
+About this account	關於這個帳號
+About this account button	「關於這個帳號」按鈕
+Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	在個人檔案的三個點旁放一個 (i),為該帳號開啟 Instagram 的「關於這個帳號」。Instagram 已移除原本的按鈕。

@@ -1729,3 +1729,7 @@ Who stopped following you, after you open your Followers list	Quem deixou de seg
 Notify me of unfollowers	Avisar quem deixar de me seguir
 # context: that switch summary (#492)
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	Depois que você rola sua lista de seguidores até o fim, mostra uma notificação com quem saiu desde a última vez. Nada extra é pedido ao Instagram.
+# context: settings switch title and button label, the row Instagram calls About this account (#492)
+About this account	Sobre esta conta
+About this account button	Botão Sobre esta conta
+Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	Coloca um (i) ao lado dos três pontos de um perfil que abre o Sobre esta conta do Instagram para essa conta. O Instagram tirou o dele.

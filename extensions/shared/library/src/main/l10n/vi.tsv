@@ -1646,3 +1646,7 @@ Who stopped following you, after you open your Followers list	Ai đã bỏ theo 
 Notify me of unfollowers	Báo cho tôi khi có người bỏ theo dõi
 # context: that switch summary (#492)
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	Sau khi bạn cuộn danh sách người theo dõi của mình đến cuối, hiện thông báo cho biết ai đã rời đi kể từ lần trước. Không yêu cầu thêm gì từ Instagram.
+# context: settings switch title and button label, the row Instagram calls About this account (#492)
+About this account	Giới thiệu về tài khoản này
+About this account button	Nút Giới thiệu về tài khoản này
+Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	Đặt một (i) cạnh ba chấm trên hồ sơ để mở Giới thiệu về tài khoản này của Instagram cho tài khoản đó. Instagram đã bỏ nút của chính nó.

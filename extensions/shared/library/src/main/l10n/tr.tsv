@@ -1729,3 +1729,7 @@ Who stopped following you, after you open your Followers list	Takipçi listeni a
 Notify me of unfollowers	Takibi bırakanları bildir
 # context: that switch summary (#492)
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	Kendi takipçi listeni sonuna kadar kaydırdığında, son seferden beri kimlerin ayrıldığını bildirimle gösterir. Instagram'dan fazladan bir şey istenmez.
+# context: settings switch title and button label, the row Instagram calls About this account (#492)
+About this account	Bu hesap hakkında
+About this account button	Bu hesap hakkında düğmesi
+Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	Profilde üç noktanın yanına, o hesap için Instagram'ın Bu hesap hakkında ekranını açan bir (i) koyar. Instagram kendi düğmesini kaldırdı.

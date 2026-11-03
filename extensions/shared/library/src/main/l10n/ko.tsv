@@ -1728,3 +1728,7 @@ Who stopped following you, after you open your Followers list	팔로워 목록�
 Notify me of unfollowers	언팔로우 알림 받기
 # context: that switch summary (#492)
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	내 팔로워 목록을 끝까지 스크롤하면 지난번 이후 떠난 사람을 알림으로 알려 줍니다. Instagram에 추가로 요청하는 것은 없어요.
+# context: settings switch title and button label, the row Instagram calls About this account (#492)
+About this account	이 계정 정보
+About this account button	이 계정 정보 버튼
+Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	프로필의 점 세 개 옆에 (i)를 넣어 해당 계정의 Instagram 이 계정 정보를 엽니다. Instagram이 기본 버튼을 없앴습니다.

@@ -62,6 +62,99 @@ public final class ProfileExtras {
     private static final class State {
         WeakReference<ViewGroup> row = new WeakReference<>(null);
         Object user;
+        /** The signed-in session the bar was bound with, which Instagram's About this account is opened through. */
+        Object session;
+    }
+
+    static final String ABOUT_PLACED = "about this account button placed";
+    static final String ABOUT_OPENED = "about this account opened";
+
+    /** Filled in by the patch: whether this build has the call that opens About this account. */
+    public static boolean aboutAvailable() {
+        return false;
+    }
+
+    /** Filled in by the patch: an account's id, or null. */
+    @Nullable
+    public static String userId(Object user) {
+        return null;
+    }
+
+    /** Filled in by the patch: opens Instagram's About this account for [id] from [context], through [session], with no referer. */
+    public static void openAbout(Context context, Object session, String id, @Nullable String referer) {
+    }
+
+    /** What opens the screen. A test swaps it. */
+    interface Opener {
+        void open(Context context, Object session, String id);
+    }
+
+    static java.util.function.Function<Object, String> ids = ProfileExtras::userId;
+
+    static java.util.function.BooleanSupplier available = ProfileExtras::aboutAvailable;
+
+    static Opener opener = (context, session, id) -> openAbout(context, session, id, null);
+
+    /** Whether the About this account button is switched on and usable. */
+    static boolean aboutWanted() {
+        try {
+            return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.ABOUT_ACCOUNT_BUTTON.get()
+                    && available.getAsBoolean();
+        } catch (Throwable failure) {
+            HookStatus.threw(ROUTE, "about this account switch", failure);
+            return false;
+        }
+    }
+
+    /** The button: a circled i of its own kind, so it's told from the profile extras one. */
+    static final class AboutButton extends ImageView {
+        AboutButton(Context context) {
+            super(context);
+        }
+    }
+
+    @Nullable
+    static AboutButton findAbout(ViewGroup row) {
+        for (int i = 0; i < row.getChildCount(); i++) {
+            if (row.getChildAt(i) instanceof AboutButton) return (AboutButton) row.getChildAt(i);
+        }
+        return null;
+    }
+
+    /** The tap: opens About this account for the account the bar shows. Never throws. */
+    static void pressAbout(View button, @Nullable View bar) {
+        try {
+            if (!aboutWanted() || bar == null) return;
+            State state = stateOf(bar);
+            if (state.user == null || state.session == null) return;
+            String id = ids.apply(state.user);
+            if (id == null || id.isEmpty()) return;
+            HookStatus.counted(ROUTE, ABOUT_OPENED);
+            opener.open(activityOf(button), state.session, id);
+        } catch (Throwable failure) {
+            HookStatus.threw(ROUTE, "about this account tap", failure);
+            Logger.printException(() -> "Profile extras: About this account failed to open", failure);
+        }
+    }
+
+    private static AboutButton createAbout(Context context, View bar, @Nullable View neighbor) {
+        AboutButton button = new AboutButton(context);
+        button.setImageDrawable(new Info(context.getResources().getDisplayMetrics().density,
+                FeedDownloadButton.iconColor(context)));
+        button.setScaleType(ImageView.ScaleType.CENTER);
+        HomeHeader.padLike(button, neighbor);
+        button.setClickable(true);
+        button.setFocusable(true);
+        button.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        TypedValue ripple = new TypedValue();
+        if (context.getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, ripple, true)
+                && ripple.resourceId != 0) {
+            button.setBackgroundResource(ripple.resourceId);
+        }
+        button.setContentDescription(L10n.t(context, "About this account"));
+        final WeakReference<View> owner = new WeakReference<>(bar);
+        button.setOnClickListener(view -> pressAbout(view, owner.get()));
+        return button;
     }
 
     private static final WeakHashMap<View, State> BARS = new WeakHashMap<>();
@@ -89,11 +182,13 @@ public final class ProfileExtras {
      * behind the bind, which empties the row and fills it again before the queued work runs. Never
      * throws, and does nothing to the bar itself.
      */
-    public static void bound(View bar, View row) {
+    public static void bound(View bar, View row, Object session) {
         try {
             HookStatus.invoked(ROUTE);
             if (bar == null || !(row instanceof ViewGroup)) return;
-            stateOf(bar).row = new WeakReference<>((ViewGroup) row);
+            State state = stateOf(bar);
+            state.row = new WeakReference<>((ViewGroup) row);
+            state.session = session;
             bar.post(() -> place(bar));
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras bind", failure);
@@ -186,28 +281,49 @@ public final class ProfileExtras {
             View existing = find(row);
             if (!wanted() || state.user == null) {
                 if (existing != null) row.removeView(existing);
-                return;
-            }
-            if (existing != null) {
+                existing = null;
+            } else if (existing != null) {
                 if (row.indexOfChild(existing) != 0) {
                     row.removeView(existing);
                     row.addView(existing, 0, params(row));
                 }
-                return;
+            } else {
+                View neighbor = row.getChildCount() > 0 ? row.getChildAt(0) : null;
+                existing = create(row.getContext(), bar, neighbor);
+                row.addView(existing, 0, params(row));
+                HookStatus.counted(ROUTE, PLACED);
             }
-            View neighbor = row.getChildCount() > 0 ? row.getChildAt(0) : null;
-            row.addView(create(row.getContext(), bar, neighbor), 0, params(row));
-            HookStatus.counted(ROUTE, PLACED);
+            placeAbout(row, bar, state, existing != null ? 1 : 0);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras button", failure);
             Logger.printException(() -> "Profile extras: could not put the button on the profile's top bar", failure);
         }
     }
 
+    /** Puts the About this account button at [index] of the row, leaves it there, or takes it out. */
+    private static void placeAbout(ViewGroup row, View bar, State state, int index) {
+        AboutButton existing = findAbout(row);
+        if (!aboutWanted() || state.user == null || state.session == null) {
+            if (existing != null) row.removeView(existing);
+            return;
+        }
+        if (existing != null) {
+            if (row.indexOfChild(existing) != index) {
+                row.removeView(existing);
+                row.addView(existing, Math.min(index, row.getChildCount()), params(row));
+            }
+            return;
+        }
+        View neighbor = row.getChildCount() > index ? row.getChildAt(index) : null;
+        row.addView(createAbout(row.getContext(), bar, neighbor), Math.min(index, row.getChildCount()), params(row));
+        HookStatus.counted(ROUTE, ABOUT_PLACED);
+    }
+
     @Nullable
     static ImageView find(ViewGroup row) {
         for (int i = 0; i < row.getChildCount(); i++) {
             View child = row.getChildAt(i);
+            if (child instanceof AboutButton) continue;
             if (child instanceof ImageView && ((ImageView) child).getDrawable() instanceof Info) return (ImageView) child;
         }
         return null;

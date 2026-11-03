@@ -1729,3 +1729,7 @@ Who stopped following you, after you open your Followers list	Siapa yang berhent
 Notify me of unfollowers	Beri tahu saya soal yang berhenti mengikuti
 # context: that switch summary (#492)
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	Setelah kamu menggulir daftar pengikutmu sampai akhir, menampilkan notifikasi berisi siapa yang pergi sejak terakhir kali. Tidak ada permintaan tambahan ke Instagram.
+# context: settings switch title and button label, the row Instagram calls About this account (#492)
+About this account	Tentang akun ini
+About this account button	Tombol Tentang akun ini
+Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	Menaruh (i) di samping tiga titik pada profil yang membuka Tentang akun ini milik Instagram untuk akun tersebut. Instagram sudah menghapus miliknya.
