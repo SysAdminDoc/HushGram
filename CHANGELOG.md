@@ -84,6 +84,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** Five descriptions say what their settings really do. `Locked chats` unlock the way `Unlock with` is set, which can be your own PIN or fingerprint only. `Open links in external browser` keeps Facebook, Messenger and Threads links in the app too, along with Instagram's and ads. `Keep a viewing history` notes who posted each item. Photos get their usual name only when `Name saves by account and post time` doesn't rename them, and `Follower history` only logs with `Recent unfollowers` on.
 * **Settings:** Cancelling a switch that asks before it changes now takes the turned-down value back out of storage too. Before, the row went back but the next start used the value you'd said no to.
 * **Instagram:** `Show it as a chip` stays greyed out while `Show if a profile follows you` is off, and so does the choice of where the chip goes. Neither did anything with the label off, though both looked ready.
 * **Instagram:** `Profile extras button` stays greyed out until `Save profile picture`, `View profile picture` or `Copy username and bio` is on. It used to look ready with all three off, though the button never showed up on profiles that way.

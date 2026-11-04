@@ -218,7 +218,7 @@ Cancel saving this video	取消儲存此影片
 Cancel saving this photo	取消儲存此照片
 Download on reels	Reels 下載選項
 Adds Download to every reel's more menu, saved at your download quality. Off or paused, Instagram's own menu returns.	在每則 Reel 的更多選單中新增「下載」，並依下載畫質設定儲存。關閉或暫停後會還原 Instagram 原本的選單。
-Videos are named %1$s. Photos are always named %2$s followed by the date and time.	影片檔名為 %1$s。照片一律以 %2$s 加上日期與時間命名。
+Videos are named %1$s. Photos are named %2$s followed by the date and time.	影片檔名為 %1$s。照片以 %2$s 加上日期與時間命名。
 Download	下載
 Download as video	下載為影片
 Download as photo	下載為照片
@@ -290,7 +290,7 @@ Stop Reels scrolling	停用 Reels 捲動
 A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	在 Reels 滑動不再切換至下一則，下拉也不會載入新影片。已開啟的 Reel 仍會播放。請重新啟動 Instagram 以套用變更。
 Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	將 Reel 鎖定為 2 倍速（按住邊緣後向下滑動），之後的 Reels 也會以 2 倍速播放。滑動解除鎖定，或按住邊緣後放開，即可恢復正常速度。
 Open links in external browser	在外部瀏覽器中開啟連結
-Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.	點擊的網頁連結會在慣用瀏覽器開啟，略過 Instagram 的點擊追蹤器。Instagram 頁面與廣告仍在應用程式內開啟。
+Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.	點擊的網頁連結會在慣用瀏覽器開啟，略過 Instagram 的點擊追蹤器。廣告與 Meta 自家網站（Instagram、Facebook、Messenger、Threads）仍在應用程式內開啟。
 Feed	動態首頁
 Hide suggested accounts	隱藏建議帳號
 Hide paid partnership Reels	隱藏付費合作 Reels
@@ -889,7 +889,7 @@ Full tick	完整震動
 This chat is locked	此聊天已鎖定
 Unlock this chat	解鎖此聊天
 Locked chats	已鎖定的聊天
-Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	鎖定個別聊天。每次開啟時，都會要求指紋、臉部或螢幕鎖定驗證；通知只會顯示收到新訊息。
+Lock single chats. A locked chat opens only once you unlock it the way Unlock with says, and its notifications say only that a message came.	鎖定個別聊天。已鎖定的聊天要依「解鎖方式」的設定解鎖後才會開啟；通知只會顯示收到新訊息。
 Open a chat in Instagram, then come back here to lock it.	先在 Instagram 開啟聊天，再回到此處鎖定。
 %1$s (opened last)	%1$s（最近開啟）
 %1$s is locked	已鎖定 %1$s
@@ -1428,7 +1428,7 @@ Shows your feed blurred under Home's top bar, like frosted glass.	在首頁頂�
 Keep the Reels top bar	固定 Reels 頂端列
 Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.	滑動瀏覽 Reels 時讓 Reels 標題、好友分頁和旁邊的按鈕留在頂端，不會滑走。
 Keep a viewing history	保留瀏覽紀錄
-Remembers the posts, reels, stories and profiles that come up on screen, newest first, on this phone only. Nothing is sent anywhere, and nothing is read about other accounts. Turn it off and it stops at once. Clear it below.	只在這支手機上記住畫面上出現過的貼文、Reels、限時動態和個人檔案，最新的排在最前面。不會傳送到任何地方，也不會讀取其他帳號的資料。關閉後會立即停止。可在下方清除。
+Remembers the posts, reels, stories and profiles that come up on screen, and who posted them, newest first, on this phone only. Nothing is sent anywhere, and nothing more is asked of Instagram. Turn it off and it stops at once. Clear it below.	只在這支手機上記住畫面上出現過的貼文、Reels、限時動態和個人檔案，以及發布者，最新的排在最前面。不會傳送到任何地方，也不會再向 Instagram 索取任何資料。關閉後會立即停止。可在下方清除。
 Viewing history	瀏覽紀錄
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	目前還沒有內容。開啟保留瀏覽紀錄後，你看過的內容會顯示在這裡。
 Post	貼文
@@ -1545,7 +1545,7 @@ Preview of the tab bar	分頁列預覽
 Keep stories playing while zooming	縮放時繼續播放限時動態
 A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.	用兩指縮放限時動態時會繼續播放。若先按住不放，縮放時會維持暫停。
 Follower history	追蹤者紀錄
-Nothing logged yet. Each time you scroll your own Followers list to the end, changes since the last time are added here.	尚未記錄任何內容。每次你把自己的追蹤者清單捲到底，自上次以來的變動就會加到這裡。
+Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers list to the end, changes since the last time are added here.	尚未記錄任何內容。啟用「最近取消追蹤者」後，每次你把自己的追蹤者清單捲到底，自上次以來的變動就會加到這裡。
 %1$s unfollowed you, %2$s	%1$s 已取消追蹤你，%2$s
 %1$s followed you again, %2$s	%1$s 再次追蹤你，%2$s
 %1$s started following you, %2$s	%1$s 開始追蹤你，%2$s

@@ -1079,7 +1079,7 @@ public class DownloadSettingsTest {
             assertEquals("Download file name", String.valueOf(name.getTitle()));
             assertTrue(String.valueOf(name.getDialogMessage()).contains("{shortcode}"));
             // The photo prefix is HushGram's own, so the summary doesn't call it Instagram's.
-            assertEquals("Videos are named " + L10n.isolate("IG_VID_{date}") + ". Photos are always named "
+            assertEquals("Videos are named " + L10n.isolate("IG_VID_{date}") + ". Photos are named "
                     + L10n.isolate("IG_IMG_") + " followed by the date and time.", String.valueOf(name.getSummary()));
             String message = String.valueOf(name.getDialogMessage());
             assertTrue(message, message.contains(L10n.isolate("{date}")) && message.contains(L10n.isolate("{video_id}"))

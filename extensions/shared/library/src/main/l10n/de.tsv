@@ -213,7 +213,7 @@ Cancel saving this video	Speichern dieses Videos abbrechen
 Cancel saving this photo	Speichern dieses Fotos abbrechen
 Download on reels	Herunterladen bei Reels
 Adds Download to every reel's more menu, saved at your download quality. Off or paused, Instagram's own menu returns.	Fügt dem Mehr-Menü jedes Reels die Option Herunterladen hinzu, gespeichert in deiner Download-Qualität. Ausgeschaltet oder pausiert kommt Instagrams eigenes Menü zurück.
-Videos are named %1$s. Photos are always named %2$s followed by the date and time.	Videos heißen %1$s. Fotos heißen immer %2$s, gefolgt von Datum und Uhrzeit.
+Videos are named %1$s. Photos are named %2$s followed by the date and time.	Videos heißen %1$s. Fotos heißen %2$s, gefolgt von Datum und Uhrzeit.
 Download	Herunterladen
 Download as video	Als Video herunterladen
 Download as photo	Als Foto herunterladen
@@ -285,7 +285,7 @@ Stop Reels scrolling	Scrollen in Reels stoppen
 A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	Ein Wischen in Reels wechselt nicht mehr zum nächsten Reel, und Herunterziehen lädt keine neuen. Das geöffnete Reel spielt weiter. Starte Instagram neu, um die Änderung zu sehen.
 Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	Sperre ein Reel auf 2x (Rand gedrückt halten, dann nach unten wischen), dann laufen auch die nächsten Reels mit 2x. Wische die Sperre weg oder halte den Rand und lass los, um zur normalen Geschwindigkeit zurückzukehren.
 Open links in external browser	Links im externen Browser öffnen
-Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.	Weblinks, auf die du tippst, öffnen sich in deinem üblichen Browser, ohne Instagrams Klick-Tracker. Instagram-Seiten und Werbung öffnen sich weiter in der App.
+Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.	Weblinks, auf die du tippst, öffnen sich in deinem üblichen Browser, ohne Instagrams Klick-Tracker. Werbung und Metas eigene Seiten (Instagram, Facebook, Messenger, Threads) öffnen sich weiter in der App.
 Feed	Feed
 Hide suggested accounts	Vorgeschlagene Konten ausblenden
 Hide paid partnership Reels	Reels mit bezahlter Partnerschaft ausblenden
@@ -891,7 +891,7 @@ Full tick	Voller Tick
 This chat is locked	Dieser Chat ist gesperrt
 Unlock this chat	Diesen Chat entsperren
 Locked chats	Gesperrte Chats
-Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	Einzelne Chats sperren. Ein gesperrter Chat fragt bei jedem Öffnen nach Fingerabdruck, Gesicht oder Displaysperre, und seine Benachrichtigungen sagen nur, dass eine Nachricht kam.
+Lock single chats. A locked chat opens only once you unlock it the way Unlock with says, and its notifications say only that a message came.	Einzelne Chats sperren. Ein gesperrter Chat öffnet sich erst, wenn du ihn so entsperrst, wie „Entsperren mit“ es vorgibt, und seine Benachrichtigungen sagen nur, dass eine Nachricht kam.
 Open a chat in Instagram, then come back here to lock it.	Öffne einen Chat in Instagram und komm dann hierher zurück, um ihn zu sperren.
 %1$s (opened last)	%1$s (zuletzt geöffnet)
 %1$s is locked	%1$s ist gesperrt
@@ -1425,7 +1425,7 @@ Shows your feed blurred under Home's top bar, like frosted glass.	Zeigt deinen F
 Keep the Reels top bar	Obere Leiste bei Reels fixieren
 Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.	Hält den Reels-Titel, den Freunde-Tab und die Schaltflächen daneben oben, während du durch Reels wischst, statt sie wegzuschieben.
 Keep a viewing history	Verlauf der angesehenen Inhalte führen
-Remembers the posts, reels, stories and profiles that come up on screen, newest first, on this phone only. Nothing is sent anywhere, and nothing is read about other accounts. Turn it off and it stops at once. Clear it below.	Merkt sich die Beiträge, Reels, Storys und Profile, die auf dem Bildschirm erscheinen, die neuesten zuerst, nur auf diesem Handy. Es wird nichts gesendet und nichts über andere Konten gelesen. Beim Ausschalten hört es sofort auf. Unten kannst du die Liste löschen.
+Remembers the posts, reels, stories and profiles that come up on screen, and who posted them, newest first, on this phone only. Nothing is sent anywhere, and nothing more is asked of Instagram. Turn it off and it stops at once. Clear it below.	Merkt sich die Beiträge, Reels, Storys und Profile, die auf dem Bildschirm erscheinen, und wer sie gepostet hat, die neuesten zuerst, nur auf diesem Handy. Es wird nichts gesendet und nichts weiter bei Instagram abgefragt. Beim Ausschalten hört es sofort auf. Unten kannst du die Liste löschen.
 Viewing history	Verlauf der angesehenen Inhalte
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Noch nichts da. Sobald das Führen des Verlaufs an ist, erscheint hier, was du dir ansiehst.
 Post	Beitrag
@@ -1542,7 +1542,7 @@ Preview of the tab bar	Vorschau der Tab-Leiste
 Keep stories playing while zooming	Stories beim Zoomen weiterspielen
 A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.	Eine Story läuft weiter, während du sie mit zwei Fingern zoomst. Halte sie vorher gedrückt, bleibt sie beim Zoomen pausiert.
 Follower history	Follower-Verlauf
-Nothing logged yet. Each time you scroll your own Followers list to the end, changes since the last time are added here.	Noch nichts erfasst. Jedes Mal, wenn du deine eigene Followerliste bis zum Ende scrollst, werden die Änderungen seit dem letzten Mal hier ergänzt.
+Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers list to the end, changes since the last time are added here.	Noch nichts erfasst. Mit „Kürzlich entfolgt“ werden jedes Mal, wenn du deine eigene Followerliste bis zum Ende scrollst, die Änderungen seit dem letzten Mal hier ergänzt.
 %1$s unfollowed you, %2$s	%1$s folgt dir nicht mehr, %2$s
 %1$s followed you again, %2$s	%1$s folgt dir wieder, %2$s
 %1$s started following you, %2$s	%1$s folgt dir jetzt, %2$s

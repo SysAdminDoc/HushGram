@@ -213,7 +213,7 @@ Cancel saving this video	Cancelar el guardado de este video
 Cancel saving this photo	Cancelar el guardado de esta foto
 Download on reels	Descargar en los reels
 Adds Download to every reel's more menu, saved at your download quality. Off or paused, Instagram's own menu returns.	Añade Descargar al menú de más opciones de cada reel, con tu calidad de descarga. Desactivado o en pausa, vuelve el menú propio de Instagram.
-Videos are named %1$s. Photos are always named %2$s followed by the date and time.	Los videos se llaman %1$s. Las fotos siempre se llaman %2$s seguido de la fecha y la hora.
+Videos are named %1$s. Photos are named %2$s followed by the date and time.	Los videos se llaman %1$s. Las fotos se llaman %2$s seguido de la fecha y la hora.
 Download	Descargar
 Download as video	Descargar como video
 Download as photo	Descargar como foto
@@ -285,7 +285,7 @@ Stop Reels scrolling	Detener el desplazamiento en Reels
 A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	Deslizar en Reels ya no pasa al siguiente reel, y deslizar hacia abajo no carga nuevos. El reel que abriste se sigue reproduciendo. Reinicia Instagram para ver el cambio.
 Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	Bloquea un reel a 2x (mantén pulsado el borde y desliza hacia abajo) y los siguientes reels también se reproducen a 2x. Desliza el bloqueo para quitarlo, o mantén pulsado el borde y suelta, para volver a la velocidad normal.
 Open links in external browser	Abrir enlaces en el navegador externo
-Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.	Los enlaces web que tocas se abren en tu navegador habitual, sin el rastreador de clics de Instagram. Las páginas de Instagram y los anuncios se siguen abriendo en la app.
+Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.	Los enlaces web que tocas se abren en tu navegador habitual, sin el rastreador de clics de Instagram. Los anuncios y los sitios de Meta (Instagram, Facebook, Messenger, Threads) se siguen abriendo en la app.
 Feed	Feed
 Hide suggested accounts	Ocultar cuentas sugeridas
 Hide paid partnership Reels	Ocultar reels de colaboraciones pagadas
@@ -891,7 +891,7 @@ Full tick	Toque completo
 This chat is locked	Este chat está bloqueado
 Unlock this chat	Desbloquear este chat
 Locked chats	Chats bloqueados
-Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	Bloquea chats sueltos. Un chat bloqueado pide tu huella, tu cara o el bloqueo de pantalla cada vez que lo abres, y sus notificaciones solo dicen que llegó un mensaje.
+Lock single chats. A locked chat opens only once you unlock it the way Unlock with says, and its notifications say only that a message came.	Bloquea chats sueltos. Un chat bloqueado solo se abre cuando lo desbloqueas como indica «Desbloquear con», y sus notificaciones solo dicen que llegó un mensaje.
 Open a chat in Instagram, then come back here to lock it.	Abre un chat en Instagram y vuelve aquí para bloquearlo.
 %1$s (opened last)	%1$s (el último que abriste)
 %1$s is locked	%1$s está bloqueado
@@ -1425,7 +1425,7 @@ Shows your feed blurred under Home's top bar, like frosted glass.	Muestra tu fee
 Keep the Reels top bar	Fijar la barra superior de Reels
 Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.	Mantiene arriba el título Reels, la pestaña Amigos y los botones de al lado mientras deslizas entre reels, en vez de ocultarlos.
 Keep a viewing history	Guardar un historial de lo visto
-Remembers the posts, reels, stories and profiles that come up on screen, newest first, on this phone only. Nothing is sent anywhere, and nothing is read about other accounts. Turn it off and it stops at once. Clear it below.	Recuerda las publicaciones, reels, historias y perfiles que aparecen en pantalla, los más recientes primero, solo en este teléfono. No se envía nada y no se lee nada de otras cuentas. Si lo apagas, se detiene al instante. Abajo puedes borrarlo.
+Remembers the posts, reels, stories and profiles that come up on screen, and who posted them, newest first, on this phone only. Nothing is sent anywhere, and nothing more is asked of Instagram. Turn it off and it stops at once. Clear it below.	Recuerda las publicaciones, reels, historias y perfiles que aparecen en pantalla, y quién los publicó, los más recientes primero, solo en este teléfono. No se envía nada y no se le pide nada más a Instagram. Si lo apagas, se detiene al instante. Abajo puedes borrarlo.
 Viewing history	Historial de lo visto
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Aún no hay nada. Con el historial activado, aquí aparece lo que miras.
 Post	Publicación
@@ -1542,7 +1542,7 @@ Preview of the tab bar	Vista previa de la barra de pestañas
 Keep stories playing while zooming	Mantener las historias en reproducción al hacer zoom
 A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.	Una historia sigue reproduciéndose mientras la amplías con dos dedos. Si la mantienes pulsada antes, se queda en pausa mientras haces zoom.
 Follower history	Historial de seguidores
-Nothing logged yet. Each time you scroll your own Followers list to the end, changes since the last time are added here.	Aún no hay nada registrado. Cada vez que desplazas tu propia lista de seguidores hasta el final, los cambios desde la última vez se añaden aquí.
+Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers list to the end, changes since the last time are added here.	Aún no hay nada registrado. Con «Dejaron de seguirte» activado, cada vez que desplazas tu propia lista de seguidores hasta el final, los cambios desde la última vez se añaden aquí.
 %1$s unfollowed you, %2$s	%1$s dejó de seguirte, %2$s
 %1$s followed you again, %2$s	%1$s volvió a seguirte, %2$s
 %1$s started following you, %2$s	%1$s empezó a seguirte, %2$s

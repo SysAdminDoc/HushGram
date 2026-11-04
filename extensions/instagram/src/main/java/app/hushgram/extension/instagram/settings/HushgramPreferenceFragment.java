@@ -3385,8 +3385,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setKey(LOCKED_CHATS_ROW);
         row.setPersistent(false);
         row.setTitle(L10n.t("Locked chats"));
-        row.setSummary(L10n.t("Lock single chats. A locked chat asks for your fingerprint, face or screen lock each "
-                + "time you open it, and its notifications say only that a message came."));
+        row.setSummary(L10n.t("Lock single chats. A locked chat opens only once you unlock it the way Unlock with "
+                + "says, and its notifications say only that a message came."));
         row.setOnPreferenceClickListener(tapped -> {
             showLockedChats();
             return true;
@@ -4154,8 +4154,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** What the history row says for [changes], newest first. */
     static String followerHistorySummary(java.util.List<FollowerHistory.Change> changes) {
         if (changes.isEmpty()) {
-            return L10n.t("Nothing logged yet. Each time you scroll your own Followers list to the end, "
-                    + "changes since the last time are added here.");
+            return L10n.t("Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers "
+                    + "list to the end, changes since the last time are added here.");
         }
         java.text.DateFormat day = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM);
         StringBuilder text = new StringBuilder();
@@ -6414,7 +6414,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (FileNameTemplate.usesShortcode(template)) {
             return L10n.f("Videos and photos use %1$s. Unknown codes are left out.", L10n.isolate(template));
         }
-        return L10n.f("Videos are named %1$s. Photos are always named %2$s followed by the date and time.",
+        return L10n.f("Videos are named %1$s. Photos are named %2$s followed by the date and time.",
                 L10n.isolate(template), L10n.isolate(FileNameTemplate.PHOTO_PREFIX));
     }
 

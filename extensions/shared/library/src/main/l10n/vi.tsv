@@ -211,7 +211,7 @@ Cancel saving this video	Hủy lưu video này
 Cancel saving this photo	Hủy lưu ảnh này
 Download on reels	Tải xuống trên reel
 Adds Download to every reel's more menu, saved at your download quality. Off or paused, Instagram's own menu returns.	Thêm Tải xuống vào menu thêm của mọi reel, lưu ở chất lượng tải xuống của bạn. Khi tắt hoặc tạm dừng, menu của Instagram trở lại.
-Videos are named %1$s. Photos are always named %2$s followed by the date and time.	Video được đặt tên %1$s. Ảnh luôn được đặt tên %2$s kèm ngày giờ.
+Videos are named %1$s. Photos are named %2$s followed by the date and time.	Video được đặt tên %1$s. Ảnh được đặt tên %2$s kèm ngày giờ.
 Download	Tải xuống
 Download as video	Tải xuống dạng video
 Download as photo	Tải xuống dạng ảnh
@@ -283,7 +283,7 @@ Stop Reels scrolling	Ngừng cuộn Reels
 A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	Vuốt trong Reels không chuyển sang reel kế tiếp nữa và kéo xuống không tải reel mới. Reel bạn đã mở vẫn phát. Hãy khởi động lại Instagram để thấy thay đổi.
 Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	Khóa reel ở tốc độ 2x (giữ mép màn hình rồi trượt xuống), các reel kế tiếp cũng phát ở 2x. Trượt khóa ra, hoặc giữ mép màn hình rồi thả, để về tốc độ bình thường.
 Open links in external browser	Mở liên kết trong trình duyệt ngoài
-Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.	Liên kết web bạn nhấn sẽ mở trong trình duyệt thường dùng, không qua trình theo dõi lượt nhấp của Instagram. Trang Instagram và quảng cáo vẫn mở trong ứng dụng.
+Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.	Liên kết web bạn nhấn sẽ mở trong trình duyệt thường dùng, không qua trình theo dõi lượt nhấp của Instagram. Quảng cáo và các trang của Meta (Instagram, Facebook, Messenger, Threads) vẫn mở trong ứng dụng.
 Feed	Bảng feed
 Hide suggested accounts	Ẩn tài khoản gợi ý
 Hide paid partnership Reels	Ẩn reel hợp tác trả phí
@@ -875,7 +875,7 @@ Full tick	Rung đầy đủ
 This chat is locked	Cuộc trò chuyện này đã khóa
 Unlock this chat	Mở khóa cuộc trò chuyện này
 Locked chats	Cuộc trò chuyện đã khóa
-Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	Khóa từng cuộc trò chuyện. Cuộc trò chuyện đã khóa yêu cầu vân tay, khuôn mặt hoặc khóa màn hình mỗi lần mở, và thông báo của nó chỉ cho biết có tin nhắn đến.
+Lock single chats. A locked chat opens only once you unlock it the way Unlock with says, and its notifications say only that a message came.	Khóa từng cuộc trò chuyện. Cuộc trò chuyện đã khóa chỉ mở sau khi bạn mở khóa theo cách đã chọn ở Mở khóa bằng, và thông báo của nó chỉ cho biết có tin nhắn đến.
 Open a chat in Instagram, then come back here to lock it.	Hãy mở một cuộc trò chuyện trong Instagram rồi quay lại đây để khóa.
 %1$s (opened last)	%1$s (mở gần nhất)
 %1$s is locked	%1$s đã khóa
@@ -1366,7 +1366,7 @@ Shows your feed blurred under Home's top bar, like frosted glass.	Hiện bảng 
 Keep the Reels top bar	Giữ thanh trên cùng của Reels
 Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.	Giữ tiêu đề Reels, tab Bạn bè và các nút bên cạnh ở trên cùng khi bạn vuốt qua các reel, thay vì trượt đi.
 Keep a viewing history	Giữ lịch sử đã xem
-Remembers the posts, reels, stories and profiles that come up on screen, newest first, on this phone only. Nothing is sent anywhere, and nothing is read about other accounts. Turn it off and it stops at once. Clear it below.	Ghi nhớ bài viết, reel, tin và trang cá nhân hiện trên màn hình, mới nhất trước, chỉ trên điện thoại này. Không gửi đi đâu và không đọc gì về tài khoản khác. Tắt đi là dừng ngay. Xóa ở bên dưới.
+Remembers the posts, reels, stories and profiles that come up on screen, and who posted them, newest first, on this phone only. Nothing is sent anywhere, and nothing more is asked of Instagram. Turn it off and it stops at once. Clear it below.	Ghi nhớ bài viết, reel, tin và trang cá nhân hiện trên màn hình, cùng người đã đăng, mới nhất trước, chỉ trên điện thoại này. Không gửi đi đâu và không hỏi thêm gì từ Instagram. Tắt đi là dừng ngay. Xóa ở bên dưới.
 Viewing history	Lịch sử đã xem
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Chưa có gì. Khi Giữ lịch sử đã xem bật, những gì bạn xem sẽ hiện ở đây.
 # context: the kind of item in the viewing history list: Post, Reel, Story
@@ -1459,7 +1459,7 @@ Preview of the tab bar	Xem trước thanh tab
 Keep stories playing while zooming	Giữ tin phát khi thu phóng
 A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.	Tin tiếp tục phát khi bạn chụm để thu phóng. Giữ yên trước thì tin vẫn tạm dừng khi bạn thu phóng.
 Follower history	Lịch sử người theo dõi
-Nothing logged yet. Each time you scroll your own Followers list to the end, changes since the last time are added here.	Chưa ghi gì. Mỗi lần bạn cuộn danh sách Người theo dõi của mình đến cuối, thay đổi so với lần trước được thêm vào đây.
+Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers list to the end, changes since the last time are added here.	Chưa ghi gì. Khi Người bỏ theo dõi gần đây bật, mỗi lần bạn cuộn danh sách Người theo dõi của mình đến cuối, thay đổi so với lần trước được thêm vào đây.
 %1$s unfollowed you, %2$s	%1$s đã bỏ theo dõi bạn, %2$s
 %1$s followed you again, %2$s	%1$s đã theo dõi lại bạn, %2$s
 %1$s started following you, %2$s	%1$s bắt đầu theo dõi bạn, %2$s
