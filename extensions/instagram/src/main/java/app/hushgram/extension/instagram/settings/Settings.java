@@ -2186,10 +2186,11 @@ public class Settings extends BaseSettings {
     /**
      * A button next to the three dots on a profile opens a menu of the profile actions switched on
      * above ({@link app.hushgram.extension.instagram.download.ProfileExtras}). The three-dot menu
-     * keeps its rows. Off until enabled.
+     * keeps its rows. Off until enabled, and greyed until one of those actions is on.
      */
     public static final BooleanSetting PROFILE_EXTRAS_BUTTON =
-            new BooleanSetting("hushgram_profile_extras_button", FALSE);
+            new BooleanSetting("hushgram_profile_extras_button", FALSE,
+                    parentsAny(SAVE_PROFILE_PICTURES, VIEW_PROFILE_PICTURES, COPY_PROFILE_TEXT));
 
     /**
      * An (i) on a profile, next to the three dots, opens Instagram's About this account for that

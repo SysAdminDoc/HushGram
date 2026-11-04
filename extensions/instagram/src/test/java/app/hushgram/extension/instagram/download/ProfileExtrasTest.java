@@ -199,6 +199,21 @@ public class ProfileExtrasTest {
         assertNull(button());
     }
 
+    @Test public void theRowIsGreyedUntilOneOfItsActionsIsOn() {
+        Settings.SAVE_PROFILE_PICTURES.save(false);
+        Settings.VIEW_PROFILE_PICTURES.save(false);
+        Settings.COPY_PROFILE_TEXT.save(false);
+        assertFalse(Settings.PROFILE_EXTRAS_BUTTON.isAvailable());
+        Settings.SAVE_PROFILE_PICTURES.save(true);
+        assertTrue("Save profile picture alone is enough", Settings.PROFILE_EXTRAS_BUTTON.isAvailable());
+        Settings.SAVE_PROFILE_PICTURES.save(false);
+        Settings.VIEW_PROFILE_PICTURES.save(true);
+        assertTrue("View profile picture alone is enough", Settings.PROFILE_EXTRAS_BUTTON.isAvailable());
+        Settings.VIEW_PROFILE_PICTURES.save(false);
+        Settings.COPY_PROFILE_TEXT.save(true);
+        assertTrue("Copy username and bio alone is enough", Settings.PROFILE_EXTRAS_BUTTON.isAvailable());
+    }
+
     @Test public void withoutAnAccountThereIsNoButton() {
         right.removeAllViews();
         right.addView(dots);
