@@ -3109,6 +3109,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_video_looping", FALSE);
 
     /**
+     * A feed video or reel playing with sound keeps playing when you leave Instagram or turn the
+     * screen off, with a media notification to pause or stop it
+     * ({@link app.hushgram.extension.instagram.media.BackgroundPlay}). Read as you leave, so a
+     * change counts from the next time. Off to start.
+     */
+    public static final BooleanSetting KEEP_PLAYING_IN_BACKGROUND =
+            new BooleanSetting("hushgram_keep_playing_in_background", FALSE);
+
+    /**
      * Videos, reels and video stories start at the quality in {@link #PLAYBACK_QUALITY}, through
      * the custom-quality setter of Instagram's DASH format evaluator
      * ({@link app.hushgram.extension.instagram.media.QualityChoice}). The switch starts on, and the

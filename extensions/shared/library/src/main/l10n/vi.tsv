@@ -1667,3 +1667,12 @@ Keeps %1$s	Giữ %1$s
 Keeps your phone's languages: %1$s	Giữ các ngôn ngữ của điện thoại: %1$s
 Keeps %1$s. Didn't recognize: %2$s	Giữ %1$s. Không nhận ra: %2$s
 Didn't recognize: %1$s	Không nhận ra: %1$s
+# context: Playback settings switch and the background playback notification, its channel and its buttons (#497)
+Keep playing in the background	Tiếp tục phát trong nền
+A video or reel playing with sound keeps going when you leave Instagram or turn the screen off. A notification lets you pause or stop it.	Video hoặc reel đang phát có tiếng sẽ tiếp tục khi bạn rời Instagram hoặc tắt màn hình. Một thông báo cho phép bạn tạm dừng hoặc dừng nó.
+Background playback	Phát trong nền
+The video playing while Instagram is in the background, with buttons to pause or stop it	Video đang phát khi Instagram ở chế độ nền, kèm nút tạm dừng hoặc dừng
+Playing in the background	Đang phát trong nền
+Paused in the background	Đã tạm dừng trong nền
+Play	Phát
+Stop	Dừng

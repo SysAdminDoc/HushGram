@@ -1753,3 +1753,12 @@ Keeps %1$s	保留 %1$s
 Keeps your phone's languages: %1$s	保留手機的語言：%1$s
 Keeps %1$s. Didn't recognize: %2$s	保留 %1$s。無法辨識：%2$s
 Didn't recognize: %1$s	無法辨識：%1$s
+# context: Playback settings switch and the background playback notification, its channel and its buttons (#497)
+Keep playing in the background	在背景繼續播放
+A video or reel playing with sound keeps going when you leave Instagram or turn the screen off. A notification lets you pause or stop it.	有聲音播放中的影片或 Reel，在你離開 Instagram 或關閉螢幕時會繼續播放。通知可讓你暫停或停止播放。
+Background playback	背景播放
+The video playing while Instagram is in the background, with buttons to pause or stop it	Instagram 在背景時正在播放的影片，附有暫停或停止按鈕
+Playing in the background	正在背景播放
+Paused in the background	已在背景暫停
+Play	播放
+Stop	停止

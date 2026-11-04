@@ -285,6 +285,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Keep playing in the background patch. */
+    public static boolean backgroundPlay() {
+        return false;
+    }
+
     public static boolean mediaCache() {
         return false;
     }

@@ -1557,6 +1557,27 @@ once-call Lapp/hushgram/extension/instagram/media/ResumePlayback;->seeking(Ljava
 once-call Lapp/hushgram/extension/instagram/media/ResumePlayback;->sessionEnded(Ljava/lang/Object;)V in static (LX/*;LX/*;Ljava/lang/String;)V calling instance LX/*;->onUserSessionWillEnd(Z)V holding Lcom/instagram/common/session/UserSession;->isLoggedOut:Z Check\sfailed.
 once-call Lapp/hushgram/extension/instagram/media/ResumePlayback;->sessionEnded(Ljava/lang/Object;)V in static (LX/*;LX/*;Ljava/lang/String;)V holding Lcom/instagram/common/session/UserSession;->isLoggedOut:Z Lcom/instagram/common/session/UserSession;->sessionState:LX/*; UserSessionManager Check\sfailed.
 #
+# Keep playing in the background (#497) asks hold() in IgVideoPlayerImpl's pause and its stop and
+# returns when it answers yes. Both start with Resume long videos' stopped() when that patch is on,
+# and the hold goes in right after it, so its rules are once-call; each claims the other's method.
+# The pause and the stop are picked the way Resume's rules pick them. playInternal tells started()
+# right after Tap to play's allowStart() guard, so once-call too. Nothing else hooks the release or
+# the volume setter, so released() and volume() come first there: the release is the player's one
+# other method taking a string and answering nothing that calls a (String, boolean) method, its
+# stop, and the volume setter the one taking a float and an int that clamps with Math.max.
+# IgFragmentActivity's onUserLeaveHint tells leaving(), the one call to it in the APK. Left out, a
+# video still pauses when you leave Instagram with the switch on, or the notification never shows;
+# twice or elsewhere, it isn't the hook the patch wrote. The four BackgroundPlay stubs the patch
+# fills are the extension's own methods, so they get no rule; BackgroundPlayPatchTest checks them.
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->hold(Ljava/lang/Object;Ljava/lang/String;)Z in instance (Ljava/lang/String;)V calling instance LX/*;->*(Ljava/lang/String;)V class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->hold(Ljava/lang/Object;Ljava/lang/String;)Z in instance (Ljava/lang/String;Z)V holding clips_pip ig_text
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->started(Ljava/lang/Object;)V in static (L*;Ljava/lang/String;ZZ)V holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->released(Ljava/lang/Object;)V in instance (Ljava/lang/String;)V calling instance LX/*;->*(Ljava/lang/String;Z)V class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->released(Ljava/lang/Object;)V in instance (Ljava/lang/String;)V calling instance LX/*;->*(Ljava/lang/String;Z)V class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling static Ljava/lang/Math;->max(FF)F class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling static Ljava/lang/Math;->max(FF)F class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+single-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->leaving(Landroid/app/Activity;)V in onUserLeaveHint
+#
 # Default playback quality tells firstChoice() about the DASH format evaluator right after its
 # choice of a track first keeps its tracks, so the call isn't first. The choice is the one method
 # holding "initializeCachedInitSegments" on 449, and "CachedSegmentManager" with it. Left out,

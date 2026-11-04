@@ -1749,3 +1749,12 @@ Keeps %1$s	%1$s 유지
 Keeps your phone's languages: %1$s	휴대폰의 언어 유지: %1$s
 Keeps %1$s. Didn't recognize: %2$s	%1$s 유지. 인식하지 못함: %2$s
 Didn't recognize: %1$s	인식하지 못함: %1$s
+# context: Playback settings switch and the background playback notification, its channel and its buttons (#497)
+Keep playing in the background	백그라운드에서 계속 재생
+A video or reel playing with sound keeps going when you leave Instagram or turn the screen off. A notification lets you pause or stop it.	소리와 함께 재생 중인 동영상이나 릴스는 Instagram을 나가거나 화면을 꺼도 계속 재생됩니다. 알림에서 일시정지하거나 중지할 수 있습니다.
+Background playback	백그라운드 재생
+The video playing while Instagram is in the background, with buttons to pause or stop it	Instagram이 백그라운드에 있는 동안 재생 중인 동영상과 일시정지 및 중지 버튼
+Playing in the background	백그라운드에서 재생 중
+Paused in the background	백그라운드에서 일시정지됨
+Play	재생
+Stop	중지

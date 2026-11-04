@@ -1750,3 +1750,12 @@ Keeps %1$s	Mempertahankan %1$s
 Keeps your phone's languages: %1$s	Mempertahankan bahasa ponselmu: %1$s
 Keeps %1$s. Didn't recognize: %2$s	Mempertahankan %1$s. Tidak dikenali: %2$s
 Didn't recognize: %1$s	Tidak dikenali: %1$s
+# context: Playback settings switch and the background playback notification, its channel and its buttons (#497)
+Keep playing in the background	Tetap putar di latar belakang
+A video or reel playing with sound keeps going when you leave Instagram or turn the screen off. A notification lets you pause or stop it.	Video atau reel yang diputar dengan suara tetap berjalan saat kamu keluar dari Instagram atau mematikan layar. Notifikasi memungkinkanmu menjeda atau menghentikannya.
+Background playback	Pemutaran latar belakang
+The video playing while Instagram is in the background, with buttons to pause or stop it	Video yang diputar saat Instagram berada di latar belakang, dengan tombol untuk menjeda atau menghentikannya
+Playing in the background	Diputar di latar belakang
+Paused in the background	Dijeda di latar belakang
+Play	Putar
+Stop	Hentikan

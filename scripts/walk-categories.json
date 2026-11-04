@@ -392,7 +392,8 @@
           "Start reels with sound",
           "Default playback quality",
           "Data saver",
-          "Stop videos looping"
+          "Stop videos looping",
+          "Keep playing in the background"
         ]
       },
       "anchors": [

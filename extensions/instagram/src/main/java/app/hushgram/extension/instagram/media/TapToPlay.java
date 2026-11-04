@@ -199,6 +199,21 @@ public final class TapToPlay {
         }
     }
 
+    /**
+     * Play in the background playback notification, for [engine], the IgGrootPlayer of the video
+     * it holds ({@link BackgroundPlay}). The button is a tap on that video, so its next start goes
+     * ahead, and it stays armed the way a tapped video does.
+     */
+    static void tappedFromNotification(@Nullable Object engine) {
+        try {
+            if (engine == null || !on()) return;
+            ARMED.add(engine, SystemClock.uptimeMillis());
+            HELD.remove(engine);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.TAP_TO_PLAY, "notification play", failure);
+        }
+    }
+
     /** The hook, first thing where IgGrootPlayer is prepared with a video. A new video waits for a tap. */
     public static void rebound(@Nullable Object player) {
         try {

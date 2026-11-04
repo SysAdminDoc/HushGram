@@ -48,6 +48,7 @@ import app.hushgram.extension.instagram.feed.HideCaptions;
 import app.hushgram.extension.instagram.feed.FollowingFeed;
 import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.instagram.feed.StoryCorners;
+import app.hushgram.extension.instagram.media.BackgroundPlay;
 import app.hushgram.extension.instagram.metaai.MuseCard;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.RefreshRate;
@@ -176,6 +177,7 @@ public final class SettingsEntry {
         LaunchScreen.install(context);
         AppIcon.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
+        if (SettingsStatus.backgroundPlay()) BackgroundPlay.watch(context);
         // A save Android stopped halfway left a pending gallery row, a work file or a notification.
         SaveLeftovers.sweepAfterStart(context);
         // With the patch in, the media cache is cleared on the way to the background once it's too large.

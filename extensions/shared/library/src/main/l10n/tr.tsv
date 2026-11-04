@@ -1750,3 +1750,12 @@ Keeps %1$s	%1$s korunuyor
 Keeps your phone's languages: %1$s	Telefonunun dilleri korunuyor: %1$s
 Keeps %1$s. Didn't recognize: %2$s	%1$s korunuyor. Tanınmadı: %2$s
 Didn't recognize: %1$s	Tanınmadı: %1$s
+# context: Playback settings switch and the background playback notification, its channel and its buttons (#497)
+Keep playing in the background	Arka planda oynatmaya devam et
+A video or reel playing with sound keeps going when you leave Instagram or turn the screen off. A notification lets you pause or stop it.	Sesli oynatılan bir video veya reel, Instagram'dan çıktığında ya da ekranı kapattığında devam eder. Bir bildirimle duraklatabilir veya durdurabilirsin.
+Background playback	Arka planda oynatma
+The video playing while Instagram is in the background, with buttons to pause or stop it	Instagram arka plandayken oynatılan video, duraklatma ve durdurma düğmeleriyle
+Playing in the background	Arka planda oynatılıyor
+Paused in the background	Arka planda duraklatıldı
+Play	Oynat
+Stop	Durdur

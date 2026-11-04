@@ -799,11 +799,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     if (family == PatchFamily.FOLLOWING_FEED) aliases.append(" following home feed");
                     if (Settings.REEL_AUTO_ADVANCE.key.equals(key)) aliases.append(" auto advance autoloop loop next reels");
                     if (Settings.STOP_VIDEO_LOOPING.key.equals(key)) aliases.append(" autoloop loop replay repeat reels");
+                    if (Settings.KEEP_PLAYING_IN_BACKGROUND.key.equals(key)) {
+                        aliases.append(" background audio minimized screen off notification music");
+                    }
                     if (family == PatchFamily.REEL_DECLUTTER || family == PatchFamily.REEL_DOWNLOAD
                             || family == PatchFamily.REEL_WATCH_HISTORY || family == PatchFamily.REELS_TAB
                             || family == PatchFamily.KEEP_REEL_SPEED || family == PatchFamily.TAP_TO_PLAY
                             || family == PatchFamily.PLAYBACK_QUALITY || family == PatchFamily.RESUME_LONG_VIDEOS
-                            || family == PatchFamily.REEL_TAP_AND_VOLUME
+                            || family == PatchFamily.REEL_TAP_AND_VOLUME || family == PatchFamily.BACKGROUND_PLAY
                             || Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.key.equals(key)) aliases.append(" reels");
                 }
                 searchAliases.put(row, aliases.toString());

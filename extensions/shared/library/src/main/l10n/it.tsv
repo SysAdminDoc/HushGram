@@ -1750,3 +1750,12 @@ Keeps %1$s	Mantiene %1$s
 Keeps your phone's languages: %1$s	Mantiene le lingue del telefono: %1$s
 Keeps %1$s. Didn't recognize: %2$s	Mantiene %1$s. Non riconosciuto: %2$s
 Didn't recognize: %1$s	Non riconosciuto: %1$s
+# context: Playback settings switch and the background playback notification, its channel and its buttons (#497)
+Keep playing in the background	Continua la riproduzione in background
+A video or reel playing with sound keeps going when you leave Instagram or turn the screen off. A notification lets you pause or stop it.	Un video o un reel in riproduzione con l'audio continua quando esci da Instagram o spegni lo schermo. Una notifica ti permette di metterlo in pausa o fermarlo.
+Background playback	Riproduzione in background
+The video playing while Instagram is in the background, with buttons to pause or stop it	Il video in riproduzione mentre Instagram è in background, con i pulsanti per metterlo in pausa o fermarlo
+Playing in the background	In riproduzione in background
+Paused in the background	In pausa in background
+Play	Riproduci
+Stop	Interrompi

@@ -31,7 +31,7 @@ final class PlaybackCategory {
                 || build.contains(PatchFamily.RESUME_LONG_VIDEOS) || build.contains(PatchFamily.REEL_TAP_AND_VOLUME)
                 || build.contains(PatchFamily.REEL_SOUND)
                 || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.DATA_SAVER)
-                || build.contains(PatchFamily.STOP_LOOPING)) {
+                || build.contains(PatchFamily.STOP_LOOPING) || build.contains(PatchFamily.BACKGROUND_PLAY)) {
             PreferenceCategory playback = category(screen, L10n.t("Playback"), SettingsIcons.PLAYBACK,
                     L10n.t("Media quality, auto-play and controls."));
             if (build.contains(PatchFamily.TAP_TO_PLAY)) {
@@ -61,6 +61,12 @@ final class PlaybackCategory {
                 playback.addPreference(toggle(context, Settings.STOP_VIDEO_LOOPING, L10n.t("Stop videos looping"),
                         L10n.t("Feed videos and reels stop at their last frame instead of playing again. Reels still "
                                 + "loop while auto scroll is on, so it can move on.")));
+            }
+            if (build.contains(PatchFamily.BACKGROUND_PLAY)) {
+                playback.addPreference(toggle(context, Settings.KEEP_PLAYING_IN_BACKGROUND,
+                        L10n.t("Keep playing in the background"),
+                        L10n.t("A video or reel playing with sound keeps going when you leave Instagram or turn the "
+                                + "screen off. A notification lets you pause or stop it.")));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),
