@@ -42,6 +42,11 @@ Every HushGram release, newest first.
 * **Instagram:** `Stories priority` is a new patch. Type the accounts you care about under Stories, one to a line, and when one has a story you haven't watched it goes first in Home's stories row, in your order. Asked for in #451.
 * **Instagram:** `Hide reels with few views` is a new patch. Under Reels it leaves out reels under a view count you type (1,000 to start) or a like count (10). Instagram hides most view counts now, so likes matter more. Asked for in #444.
 * **Instagram:** `Hide Suggested for you on follow lists` now also takes the suggested people off the Follow requests screen. Your real requests stay. Asked for in #441.
+* **Instagram:** `Swipe through a chat's reels` adds `Messages after a reel`. When someone wrote after the reel you're on, a banner says so, and a tap takes you back to the chat at that message. Starts off. Asked for in #489.
+* **Instagram:** `Select text to copy` is a new switch under Comments. Comments, captions and bios get a Select text row in their menus, so you can copy just the part you want. Starts off. Asked for in #492.
+* **Instagram:** `Notify me of unfollowers` sits beside Recent unfollowers. Once you scroll your own Followers list to the end, a notification names whoever left since last time. It never checks in the background. Starts off. Asked for in #492.
+* **Instagram:** `Save profile picture` adds `About this account button`, an (i) next to a profile's three dots that opens Instagram's About this account page for it, since Instagram took its own button away. Starts off. Asked for in #492.
+* **Instagram:** `Ambient light` now reaches under the tab bar on the Reels tab, on Instagram's own bar and around a docked glass pill, so the glow doesn't stop at the bar. Asked for in #487.
 
 ### Improvements
 
@@ -113,6 +118,12 @@ Every HushGram release, newest first.
 * **Instagram:** Tapping a story sticker to edit it again now keeps the font you picked from your phone. With two or more of them, it used to switch to the first one
 * **Instagram:** With `Pure black dark mode`, the Likes list is black all the way down. Its rows stayed dark gray under a black header. A row still shows gray while you press it. Reported in #248
 * **Instagram:** With `Pure black dark mode`, new notifications are black too. Instagram tinted their rows gray in dark mode until you'd seen them, and that could cover half the page. Light mode keeps its blue. Reported in #374
+* **Instagram:** `Seek bar on stories` sits above the Activity, Share and Send row and the comment line on your own story, instead of on top of them. Reported in #490 and #492.
+* **Instagram:** `Full screen Reels and Home` lets Fill the screen use the whole width on a foldable's cover screen or any screen wider than a phone's, where it used to leave empty sides. Asked for in #491.
+* **Instagram:** `Swipe through a chat's reels` shows the reply bar past the first reel again. A reply or reaction quotes the reel on screen, not the one you tapped. Reported in #488.
+* **Instagram:** `Ambient light` lights the screen around story videos that Instagram plays on a SurfaceView. It used to light the picture behind them. Reported in #492.
+* **Instagram:** The Saved bookmark on your profile opens your saved posts through Instagram's own link, in any language. Before, it could open settings. Reported in #492.
+* **Instagram:** The `Blur the bars around Reels` summary says the blur only shows where a reel leaves room. The share sheet's button list says Reply to author is on posts and reels, and Download profile card on profiles. From #492.
 
 ## 0.0.18 (2026-10-31)
 
