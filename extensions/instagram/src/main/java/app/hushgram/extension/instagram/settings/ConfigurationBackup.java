@@ -137,6 +137,11 @@ public final class ConfigurationBackup {
         if (PatchFamily.CAPTION_WORD_REELS.inBuild()) {
             settings.put(Settings.REELS_BLOCKED_WORDS.key, Settings.REELS_BLOCKED_WORDS);
             settings.put(Settings.REELS_KEPT_LANGUAGES.key, Settings.REELS_KEPT_LANGUAGES);
+            // Also on Home, both of them: their rows show only with Home's reads in the build.
+            if (PatchFamily.feedTypesInBuild()) {
+                settings.put(Settings.HIDE_CAPTION_WORD_HOME.key, Settings.HIDE_CAPTION_WORD_HOME);
+                settings.put(Settings.HIDE_OTHER_LANGUAGE_HOME.key, Settings.HIDE_OTHER_LANGUAGE_HOME);
+            }
         }
         if (PatchFamily.LOW_VIEW_REELS.inBuild()) {
             settings.put(Settings.MIN_REEL_VIEWS.key, Settings.MIN_REEL_VIEWS);

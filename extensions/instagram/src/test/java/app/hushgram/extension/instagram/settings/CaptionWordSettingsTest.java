@@ -133,6 +133,7 @@ public class CaptionWordSettingsTest {
             hide.setChecked(true);
             ShadowLooper.idleMainLooper();
             assertTrue(home.isEnabled());
+            assertTrue("a backup keeps it", ConfigurationBackup.eligible().containsKey(Settings.HIDE_CAPTION_WORD_HOME.key));
             page.searchSettings("hide reels by caption words");
             assertNotNull("the patch's name finds it", home.getParent());
             page.searchSettings("");
@@ -142,6 +143,8 @@ public class CaptionWordSettingsTest {
             PatchFamily.feedTypesForTests = false;
             open(true);
             assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_HOME.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_CAPTION_WORD_HOME.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_OTHER_LANGUAGE_HOME.key));
         } finally {
             PatchFamily.feedTypesForTests = null;
         }
@@ -177,6 +180,7 @@ public class CaptionWordSettingsTest {
             assertTrue(kept.isEnabled());
             assertTrue(otherHome.isEnabled());
             assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REELS_KEPT_LANGUAGES.key));
+            assertTrue("a backup keeps Also on Home", ConfigurationBackup.eligible().containsKey(Settings.HIDE_OTHER_LANGUAGE_HOME.key));
             page.searchSettings("hide reels by caption words");
             assertNotNull("the patch's name finds the languages row", kept.getParent());
             page.searchSettings("");
