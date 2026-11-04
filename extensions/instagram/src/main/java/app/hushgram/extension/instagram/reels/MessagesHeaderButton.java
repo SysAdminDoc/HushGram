@@ -182,7 +182,7 @@ public final class MessagesHeaderButton {
                 // A toast shows two lines at most on Android 12 and newer, so it says what to do and stops.
                 Utils.showToastLong(Settings.SHOW_MESSAGES_TAB.get()
                         ? L10n.t("Restart Instagram to put Messages on your tab bar.")
-                        : L10n.t("To open Messages here, turn on Show the Messages tab and restart."));
+                        : L10n.t("Turn on Show the Messages tab and restart."));
                 return;
             }
             if (SearchHeaderButton.switchTo(activity, messages) == 0) {

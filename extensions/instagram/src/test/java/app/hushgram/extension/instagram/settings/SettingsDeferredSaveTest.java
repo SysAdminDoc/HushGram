@@ -76,7 +76,7 @@ public class SettingsDeferredSaveTest {
             assertEquals(UnlockWith.PHONE_LOCK, Settings.UNLOCK_WITH.savedValue());
             assertEquals(UnlockWith.PHONE_LOCK, Setting.preferences.getEnum(Settings.UNLOCK_WITH.key, UnlockWith.PHONE_LOCK));
             assertEquals(UnlockWith.PHONE_LOCK.name(), row.getValue());
-            assertEquals("The setting couldn't finish updating. Its saved value is shown.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Couldn't finish that change. Showing what's saved.", ShadowToast.getTextOfLatestToast());
         }
     }
 

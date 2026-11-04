@@ -154,7 +154,7 @@ public class StoryFontsSettingsTest {
         finish();
         assertEquals(List.of(existing), StoryFonts.names(RuntimeEnvironment.getApplication()));
         assertFalse(Settings.STORY_FONTS.savedValue());
-        assertEquals("That file isn't a font HushGram can use. Nothing was added.", ShadowToast.getTextOfLatestToast());
+        assertEquals("That file isn't a usable font. Nothing was added.", ShadowToast.getTextOfLatestToast());
     }
 
     @Test public void anEmojiFontCloseFailureKeepsThePreviousFile() throws Exception {
@@ -165,7 +165,7 @@ public class StoryFontsSettingsTest {
         finish();
         assertArrayEquals(FONT, Files.readAllBytes(emojiFile().toPath()));
         assertFalse(Settings.STORY_EMOJI.savedValue());
-        assertEquals("That file isn't a font HushGram can use. Story emoji haven't changed.", ShadowToast.getTextOfLatestToast());
+        assertEquals("That file isn't a usable font. Emoji didn't change.", ShadowToast.getTextOfLatestToast());
     }
 
     @Test public void aStoryFontResultAfterTheSettingsRelockAddsNothing() throws Exception {
@@ -221,7 +221,7 @@ public class StoryFontsSettingsTest {
             File[] added = directory.listFiles((parent, name) -> !name.endsWith(".tmp") && !name.equals(existing));
             assertNotNull(added);
             assertEquals(accept ? 1 : 0, added.length);
-            if (!accept) assertEquals("The setting couldn't finish updating. Its saved value is shown.", ShadowToast.getTextOfLatestToast());
+            if (!accept) assertEquals("Couldn't finish that change. Showing what's saved.", ShadowToast.getTextOfLatestToast());
             else assertTrue(ShadowToast.getTextOfLatestToast().startsWith("Added "));
         }
     }
@@ -249,7 +249,7 @@ public class StoryFontsSettingsTest {
             assertEquals(accept, ((SwitchPreference) page.findPreference(Settings.STORY_EMOJI.key)).isChecked());
             assertArrayEquals(accept ? font(2) : FONT, Files.readAllBytes(emojiFile().toPath()));
             assertEquals(accept ? "Emoji font saved. Emoji in story text draw in it."
-                    : "The setting couldn't finish updating. Its saved value is shown.", ShadowToast.getTextOfLatestToast());
+                    : "Couldn't finish that change. Showing what's saved.", ShadowToast.getTextOfLatestToast());
         }
     }
 

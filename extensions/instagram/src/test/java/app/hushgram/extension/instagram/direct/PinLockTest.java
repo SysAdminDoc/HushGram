@@ -585,7 +585,7 @@ public class PinLockTest {
         assertNull("a PIN dialog showed", ShadowAlertDialog.getLatestAlertDialog());
         // The test phone has no screen lock, which the phone's path answers with a toast and an open.
         assertTrue(opened[0]);
-        assertEquals("Set a screen lock on your phone so HushGram can lock your messages.",
+        assertEquals("Set a phone screen lock so HushGram can lock messages.",
                 ShadowToast.getTextOfLatestToast());
     }
 

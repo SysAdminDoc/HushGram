@@ -55,7 +55,7 @@ final class AboutCategory {
             } catch (ActivityNotFoundException | SecurityException missing) {
                 // No browser, or none switched on. Uncaught, Android's exception closed Instagram.
                 Logger.printInfo(() -> "No app opened the source code link");
-                Utils.showToastLong(L10n.f("No app on this phone can open the link. The address is %1$s.",
+                Utils.showToastLong(L10n.f("No app can open this link: %1$s",
                         L10n.isolate(SOURCE_ADDRESS)));
             }
             return true;

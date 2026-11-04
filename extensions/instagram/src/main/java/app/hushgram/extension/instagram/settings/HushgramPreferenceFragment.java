@@ -1248,7 +1248,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             showGhostMode();
             Utils.showToastShort(GhostMode.message(picked, on,
-                    L10n.t("Couldn't change every Ghost mode switch. Check them below.")));
+                    L10n.t("Ghost mode partly changed. Check the switches below.")));
             return false;
         });
         row.setChecked(GhostMode.on(GhostMode.picked(ghostSwitches)));
@@ -1533,7 +1533,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         } finally {
             row.setPersistent(persistent);
         }
-        if (!saved) Utils.showToastShort(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
+        if (!saved) Utils.showToastShort(L10n.t("Couldn't finish that change. Showing what's saved."));
         else {
             HushgramPreferenceFragment owner = mutationOwner(row);
             if (owner != null) owner.noteRestartPending(setting, before);
@@ -1658,7 +1658,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     private static void changeFailed() {
-        Utils.showToastLong(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
+        Utils.showToastLong(L10n.t("Couldn't finish that change. Showing what's saved."));
     }
 
     /**
@@ -1733,7 +1733,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         } catch (ActivityNotFoundException | SecurityException missing) {
             // No browser, or none switched on. Uncaught, Android's exception closed Instagram.
             Logger.printInfo(() -> "No app opened the support link");
-            Utils.showToastLong(L10n.f("No app on this phone can open the link. The address is %1$s.",
+            Utils.showToastLong(L10n.f("No app can open this link: %1$s",
                     L10n.isolate(SUPPORT_ADDRESS)));
         }
     }
@@ -1821,9 +1821,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             documentCode = 0;
             fontRequestRevision = -1;
             if (!importing) ExportStatus.CONFIGURATION.finish(configurationExportToken,
-                    L10n.t("This phone has no file picker. Your settings haven't changed."));
+                    L10n.t("There's no file picker. Your settings haven't changed."));
             showConfiguration();
-            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
         }
     }
 
@@ -1881,8 +1881,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Uri uri = data == null ? null : data.getData();
         if (uri == null || !"content".equals(uri.getScheme())) {
             if (request == EXPORT_CONFIGURATION) ExportStatus.CONFIGURATION.finish(configurationExportToken,
-                    L10n.t("Couldn't use that settings file. Your settings haven't changed."));
-            Utils.showToastLong(L10n.t("Couldn't use that settings file. Your settings haven't changed."));
+                    L10n.t("Couldn't use that file. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("Couldn't use that file. Your settings haven't changed."));
             showConfiguration();
             return;
         }
@@ -1914,7 +1914,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             documentCode = 0;
             fontRequestRevision = -1;
             showConfiguration();
-            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
         }
     }
 
@@ -2033,7 +2033,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         } catch (ActivityNotFoundException | SecurityException failure) {
             documentRequest = 0;
             documentCode = 0;
-            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
         }
     }
 
@@ -2137,7 +2137,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         } catch (ActivityNotFoundException | SecurityException failure) {
             documentRequest = 0;
             documentCode = 0;
-            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
         }
     }
 
@@ -2162,7 +2162,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             documentRequest = 0;
             documentCode = 0;
             showConfiguration();
-            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("There's no file picker. Your settings haven't changed."));
         }
     }
 
@@ -2171,7 +2171,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Context context = getContext();
         if (context == null || !allowMutation()) return;
         if (!SaveTree.keep(context, tree)) {
-            Utils.showToastLong(L10n.t("Couldn't use that folder. Saves still go where they did."));
+            Utils.showToastLong(L10n.t("Couldn't use that folder. Saves go where they did."));
             return;
         }
         Utils.showToastShort(L10n.f("Folder set to %1$s.", L10n.isolate(SaveTree.label(context, tree))));
@@ -2340,23 +2340,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private void fontFinished(FontResult result) {
         if (result.verdict == FontVerdict.HELD) Utils.showToastLong(heldMessage());
         else if (result.verdict == FontVerdict.STALE || result.verdict == FontVerdict.SAVE_FAILED) {
-            Utils.showToastShort(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
+            Utils.showToastShort(L10n.t("Couldn't finish that change. Showing what's saved."));
         } else if (result.verdict == FontVerdict.UNREACHED) {
             Utils.showToastLong(L10n.t("Couldn't download the emoji. Try again."));
         } else if (result.verdict == FontVerdict.INVALID) {
             Utils.showToastLong(result.request == PICK_FONT
-                    ? L10n.t("That file isn't a font HushGram can use. Your font hasn't changed.")
+                    ? L10n.t("That file isn't a usable font. Yours didn't change.")
                     : result.request == PICK_STORY_FONT
-                    ? L10n.t("That file isn't a font HushGram can use. Nothing was added.")
+                    ? L10n.t("That file isn't a usable font. Nothing was added.")
                     : result.request == PICK_EMOJI
                     ? L10n.t("No color emoji in that file. Nothing changed.")
-                    : L10n.t("That file isn't a font HushGram can use. Story emoji haven't changed."));
+                    : L10n.t("That file isn't a usable font. Emoji didn't change."));
         } else if (result.request == PICK_EMOJI) {
             Utils.showToastLong(L10n.t("Emoji saved. Restart Instagram to see them."));
         } else if (result.request == PICK_FONT) {
             Utils.showToastLong(L10n.t("Font saved. Restart Instagram to see it."));
         } else if (result.request == PICK_STORY_FONT) {
-            Utils.showToastLong(L10n.f("Added %1$s. Pick it in the story text editor alongside Instagram's fonts.",
+            Utils.showToastLong(L10n.f("Added %1$s. Pick it in the story text editor.",
                     L10n.isolate(result.name)));
             if (isAdded() && getView() != null && !Fonts.importActive() && documentRequest == 0 && asyncChangesAllowed()) showStoryFonts();
         } else Utils.showToastLong(L10n.t("Emoji font saved. Emoji in story text draw in it."));
@@ -2463,7 +2463,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         : L10n.t("Couldn't save or fully restore the settings. Check the shown values and try Undo."));
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Configuration import failed before applying settings");
-                showImportFeedback(L10n.t("Couldn't use that settings file. Your settings haven't changed."));
+                showImportFeedback(L10n.t("Couldn't use that file. Your settings haven't changed."));
             } finally { configurationFinished(); }
         })) configurationQueueFull();
     }
@@ -2567,7 +2567,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             } catch (Exception failure) {
                 Logger.printException(() -> "Could not update resume history", failure);
-                Utils.showToastLong(L10n.t("Couldn't update the remembered playback positions."));
+                Utils.showToastLong(L10n.t("Couldn't update remembered playback positions."));
             } finally {
                 Utils.runOnMainThread(() -> {
                     changingPositions = false;
@@ -2577,7 +2577,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         })) {
             changingPositions = false;
             showClearPositions();
-            Utils.showToastLong(L10n.t("Couldn't update the remembered playback positions."));
+            Utils.showToastLong(L10n.t("Couldn't update remembered playback positions."));
         }
     }
 
@@ -2965,14 +2965,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      */
     void restartNow() {
         if (Fonts.importActive()) {
-            Utils.showToastLong(L10n.t("A save or an export is still running. Restart once it's done."));
+            Utils.showToastLong(L10n.t("Still saving or exporting. Restart once it's done."));
             return;
         }
         Activity activity = getActivity();
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
         switch (RestartNow.restart(activity, currentPage())) {
             case BUSY:
-                Utils.showToastLong(L10n.t(activity, "A save or an export is still running. Restart once it's done."));
+                Utils.showToastLong(L10n.t(activity, "Still saving or exporting. Restart once it's done."));
                 break;
             case FAILED:
                 Utils.showToastLong(L10n.t(activity, "Couldn't restart Instagram. Close it and open it again."));
@@ -3672,7 +3672,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     if (!allowMutation()) return;
                     String name = HiddenAccounts.add(field.getText().toString());
                     if (name == null) {
-                        Utils.showToastShort(L10n.t("A username is up to 30 letters, numbers, dots and underscores"));
+                        Utils.showToastShort(L10n.t("Up to 30 letters, numbers, dots and underscores"));
                     } else {
                         Utils.showToastShort(L10n.f("Posts from @%1$s are hidden", name));
                     }
@@ -3685,7 +3685,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** A chat's change couldn't be saved: its check goes back to [saved], what the list still holds, and a toast says so. */
     private static void notSaved(AlertDialog dialog, int position, boolean saved) {
         setChecked(dialog, position, saved);
-        Utils.showToastShort(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
+        Utils.showToastShort(L10n.t("Couldn't finish that change. Showing what's saved."));
     }
 
     private static void setChecked(AlertDialog dialog, int position, boolean checked) {
@@ -6064,7 +6064,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setOnPreferenceChangeListener((preference, typed) -> {
             String text = typed == null ? "" : typed.toString().trim();
             if (text.isEmpty() || SpoofLocation.parse(text) != null) return true;
-            Utils.showToastShort(L10n.t("That isn't a place. Type a latitude and a longitude with a comma between them."));
+            Utils.showToastShort(L10n.t("That isn't a place. Type latitude, longitude."));
             return false;
         });
         return row;
@@ -6136,7 +6136,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             String raw = typed == null ? "" : typed.toString();
             String domain = SharingDomain.normalize(raw);
             if (domain == null) {
-                Utils.showToastShort(L10n.t("That isn't a domain. Type one like example.com, or leave it blank."));
+                Utils.showToastShort(L10n.t("That isn't a domain. Try one like example.com."));
                 return false;
             }
             if (domain.equals(raw)) return true;
@@ -6916,7 +6916,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         @Override String validationError() {
-            return L10n.t("That isn't a domain. Type one like example.com, or leave it blank.");
+            return L10n.t("That isn't a domain. Try one like example.com.");
         }
     }
 
@@ -7156,7 +7156,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         @Override String validationError() {
-            return L10n.t("That isn't a place. Type a latitude and a longitude with a comma between them.");
+            return L10n.t("That isn't a place. Type latitude, longitude.");
         }
     }
 

@@ -69,9 +69,9 @@ final class QualityPicker {
         try {
             String label = HushgramPreferenceFragment.playbackQualityLabel(quality);
             if (Settings.PLAYBACK_QUALITY.save(quality)) {
-                Utils.showToastShort(L10n.f("Playback quality: %1$s. The next video you open uses it.", label));
+                Utils.showToastShort(L10n.f("Playback quality: %1$s. The next video uses it.", label));
             } else {
-                Utils.showToastShort(L10n.t("Couldn't save the playback quality. Open HushGram settings to set it."));
+                Utils.showToastShort(L10n.t("Couldn't save the quality. Set it in HushGram settings."));
             }
         } catch (Throwable t) {
             Logger.printException(() -> "Quality picker: could not save the pick", t);

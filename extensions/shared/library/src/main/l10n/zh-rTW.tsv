@@ -98,7 +98,7 @@ Joining the picture and sound	正在合併影像與聲音
 Licenses	授權條款
 Link expired. Reopen the item and try again.	連結已過期。請重新開啟該項目後再試一次。
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	除了 Meta，沒有人知道哪些行為會導致帳號停權。修補過的 Instagram 無法通過 Google 對 Play 商店來源的檢查，也沒有任何修補程式能改變這點。若不想讓帳號承擔風險，可以先使用備用帳號。同一簽署金鑰的更新可直接覆蓋安裝，保留 Instagram 資料與登入狀態。已取得 Root 權限的手機可透過 Root Mount 安裝，保留既有登入狀態。
-No app on this phone can open the link. The address is %1$s.	手機上沒有可開啟此連結的應用程式。網址為 %1$s。
+No app can open this link: %1$s	手機上沒有可開啟此連結的應用程式。網址為 %1$s。
 Not saved: that isn't an Instagram photo or video	未儲存：這不是 Instagram 照片或影片
 Not saved: the file is over 512 MB	未儲存：檔案超過 512 MB
 OK	確認
@@ -131,10 +131,10 @@ Removes tracking tags from links you copy or share, and opens bio links without 
 Tap to hide this.	點擊即可隱藏。
 Couldn't hide this notice. Try again.	無法隱藏此通知，請再試一次。
 Tap to turn it back on.	點擊即可重新啟用。
-The diagnostic report couldn't be saved yet. Try again in a moment.	目前還無法儲存診斷報告，請稍後再試。
-The diagnostic report couldn't be saved. Try again.	無法儲存診斷報告，請再試一次。
+The report isn't saved yet. Try again in a moment.	目前還無法儲存診斷報告，請稍後再試。
+Couldn't save the diagnostic report. Try again.	無法儲存診斷報告，請再試一次。
 The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.	無法移除檔案 %1$s。請從 %2$s 刪除它，以重新啟用 HushGram。
-The setting couldn't finish updating. Its saved value is shown.	未能完成更新設定，目前顯示的是已儲存的值。
+Couldn't finish that change. Showing what's saved.	未能完成更新設定，目前顯示的是已儲存的值。
 There's no diagnostic data to clear.	沒有可清除的診斷資料。
 There's no diagnostic data to put back.	沒有可還原的診斷資料。
 Try again, or go back to Instagram.	請再試一次，或返回 Instagram。
@@ -434,7 +434,7 @@ HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to cle
 Remembered playback positions restored.	已還原記住的播放位置。
 Undo has expired.	復原期限已過。
 You cleared the remembered playback positions.	您已清除記住的播放位置。
-Couldn't update the remembered playback positions.	無法更新記住的播放位置。
+Couldn't update remembered playback positions.	無法更新記住的播放位置。
 Settings backup	設定備份
 Export HushGram settings	匯出 HushGram 設定
 Choose a file for your installed patches' settings. Accounts and history stay on this device.	選擇檔案以儲存已安裝修補程式的設定。帳號與記錄仍留在此裝置上。
@@ -443,8 +443,8 @@ Choose a settings file. All valid choices apply together, and ones this version 
 Undo settings import	復原設定匯入
 Undo is available until %1$s. Restarting Instagram discards Undo.	可在 %1$s 前復原。重新啟動 Instagram 後將無法復原。
 No settings import to undo.	沒有可復原的設定匯入。
-This phone has no file picker. Your settings haven't changed.	這支手機沒有檔案選擇器。您的設定未變更。
-Couldn't use that settings file. Your settings haven't changed.	無法使用此設定檔案。您的設定未變更。
+There's no file picker. Your settings haven't changed.	這支手機沒有檔案選擇器。您的設定未變更。
+Couldn't use that file. Your settings haven't changed.	無法使用此設定檔案。您的設定未變更。
 HushGram settings exported.	已匯出 HushGram 設定。
 Couldn't export HushGram settings. Try another file.	無法匯出 HushGram 設定，請嘗試其他檔案。
 Settings restored.	已還原設定。
@@ -563,8 +563,8 @@ New message	新訊息
 Notifications	通知
 Puts every notification from Instagram in one group that shows how many it holds, so they don't fill your notification shade. Tapping one still opens it.	將所有 Instagram 通知合併為一組並顯示數量，避免佔滿通知欄。點擊通知仍可開啟對應內容。
 Right away	立即
-Set a screen lock on your phone so HushGram can lock Instagram.	請先在手機上設定螢幕鎖定，HushGram 才能鎖定 Instagram。
-Set a screen lock on your phone so HushGram can lock your messages.	請先在手機上設定螢幕鎖定，HushGram 才能鎖定私訊。
+Set a phone screen lock so HushGram can lock Instagram.	請先在手機上設定螢幕鎖定，HushGram 才能鎖定 Instagram。
+Set a phone screen lock so HushGram can lock messages.	請先在手機上設定螢幕鎖定，HushGram 才能鎖定私訊。
 Hides the cards between posts that ask you to rate what you saw.	隱藏貼文之間請您評價所看內容的卡片。
 Hides the rows of products to shop and live shopping that Instagram puts between posts, and the shop tiles in Explore. Posts with tagged products don't show the shopping bag.	隱藏 Instagram 在貼文之間插入的商品與直播購物橫列，以及探索中的商店方塊。標註商品的貼文也不會顯示購物袋。
 Unlock	解鎖
@@ -573,8 +573,8 @@ Unlock your messages	解鎖您的訊息
 Your inbox and chats stay covered until your fingerprint, face or screen lock says it's you. Message notifications say only that a message came.	收件匣與聊天會被遮住，直到透過指紋、臉部或螢幕鎖定驗證身分。私訊通知只會顯示收到新訊息。
 Your messages are locked	您的私訊已鎖定
 Allow screenshots	允許截圖
-Couldn't change every Ghost mode switch. Check them below.	無法變更所有幽靈模式開關，請在下方確認。
-Couldn't change every Ghost mode switch. Open HushGram settings to check them.	無法變更所有幽靈模式開關，請開啟 HushGram 設定確認。
+Ghost mode partly changed. Check the switches below.	無法變更所有幽靈模式開關，請在下方確認。
+Ghost mode partly changed. Check HushGram settings.	無法變更所有幽靈模式開關，請開啟 HushGram 設定確認。
 Don't report screenshots	不回報截圖
 Ghost mode	幽靈模式
 Ghost mode is off, and so is each of its switches.	幽靈模式與其所有開關皆已關閉。
@@ -622,7 +622,7 @@ Loads smaller photos and starts videos, reels and stories at the lowest quality.
 Place	位置
 Send downloads to another app	將下載傳送至其他應用程式
 Send to	傳送至
-Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	已傳送至其他應用程式。若要改在此儲存，請關閉「下載」中的「將下載傳送至其他應用程式」。
+Sent to another app. Change this in Downloads.	已傳送至其他應用程式。若要改在此儲存，請關閉「下載」中的「將下載傳送至其他應用程式」。
 Spoof location	偽裝位置
 Stop after a set number of reels	觀看設定數量的 Reels 後停止
 # context: Reels settings: two sliders under Stop after a set number of reels (#405). The first picks how many reels play before swiping stops, %1$d is 5 to 100; the second how long Instagram stays in the background before swiping comes back, %1$d is 5 to 120 minutes
@@ -640,8 +640,8 @@ Home, Reels and Explore open again when the countdown ends. Messages and your pr
 # context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59
 Time for a break. Home, Reels and Explore open again in %1$s.	該休息一下了。首頁、Reels 與探索將在 %1$s 後重新開放。
 Storage	儲存空間
-That isn't a place. Type a latitude and a longitude with a comma between them.	這不是有效的位置。請輸入緯度與經度，並以逗號分隔。
-That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.	已觀看 %1$d 則 Reels。Instagram 在背景停留 %2$d 分鐘之前，將停用 Reels 滑動。
+That isn't a place. Type latitude, longitude.	這不是有效的位置。請輸入緯度與經度，並以逗號分隔。
+%1$d reels. Swipe again after %2$d minutes away.	已看 %1$d 則 Reels。離開 %2$d 分鐘後可再滑動。
 The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.	以度為單位輸入緯度與經度，並以逗號分隔，例如 40.758, -73.9855。北緯與東經為正，南緯與西經為負。在地圖應用程式中長按地點即可查看兩者。
 Turn off HDR brightness boosts	停用 HDR 亮度提升
 What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	從搜尋開啟的內容不會加入最近搜尋，應用程式與 Instagram 端皆適用。既有搜尋記錄會保留，直到您清除。
@@ -696,7 +696,7 @@ Sharing domain	分享網域
 Start a video call?	要開始視訊通話嗎？
 Start a voice call?	要開始語音通話嗎？
 Tapping a call button in a chat asks first, so a stray tap doesn't ring anyone. Call starts it, Cancel doesn't.	點擊聊天中的通話按鈕時先詢問，避免誤觸撥號。「撥打」會開始通話，「取消」則不會。
-That isn't a domain. Type one like example.com, or leave it blank.	這不是有效的網域。請輸入 example.com 之類的網域，或留空。
+That isn't a domain. Try one like example.com.	這不是有效的網域。請輸入 example.com 之類的網域，或留空。
 The heart plays %1$s when you double tap a post.	雙擊貼文時，愛心會播放 %1$s。
 The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	雙擊貼文時彈出的愛心會播放下方選擇的動畫。這些是 Instagram 為 Rings 創作者製作的動畫。
 Turn on Change the like animation to use this choice.	請啟用「更改『按讚』動畫」以使用此選項。
@@ -799,9 +799,9 @@ No accounts are hidden yet. Add a username to take that account's posts out of H
 Add a username	新增使用者名稱
 Hide their posts	隱藏對方的貼文
 Posts from @%1$s are hidden	已隱藏 @%1$s 的貼文
-Posts from @%1$s are hidden from Home and Following	已從首頁與追蹤中隱藏 @%1$s 的貼文
+@%1$s is hidden in Home and Following	已從首頁與追蹤中隱藏 @%1$s 的貼文
 Posts from @%1$s show again	已重新顯示 @%1$s 的貼文
-A username is up to 30 letters, numbers, dots and underscores	使用者名稱最多可含 30 個字母、數字、句點與底線
+Up to 30 letters, numbers, dots and underscores	使用者名稱最多可含 30 個字母、數字、句點與底線
 # context: a row in a post's menu that puts the post's author on Hidden accounts
 Hide posts from this account	隱藏此帳號的貼文
 Couldn't hide this account	無法隱藏此帳號
@@ -908,8 +908,8 @@ Open a chat in Instagram, then come back here to pin it.	先在 Instagram 開啟
 Pick the playback quality with a tab long press	長按分頁選擇播放畫質
 Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	長按分頁會保留 Instagram 原本的操作。選擇一個分頁，改為選擇播放畫質。
 Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	長按 %1$s 會選擇播放畫質，取代該分頁原本的操作。一般點擊與其他分頁不受影響。需啟用「預設播放畫質」。若同一分頁也用來開啟 HushGram，會優先開啟 HushGram。
-Playback quality: %1$s. The next video you open uses it.	播放畫質：%1$s。下一部開啟的影片會使用此畫質。
-Couldn't save the playback quality. Open HushGram settings to set it.	無法儲存播放畫質，請開啟 HushGram 設定進行設定。
+Playback quality: %1$s. The next video uses it.	播放畫質：%1$s。下一部開啟的影片會使用此畫質。
+Couldn't save the quality. Set it in HushGram settings.	無法儲存播放畫質，請開啟 HushGram 設定進行設定。
 Support HushGram	支持 HushGram
 Hide the Home tab	隱藏首頁分頁
 Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	從分頁列移除首頁。原本開啟首頁的位置會改為開啟「啟動分頁」，因此請選擇分頁列上首頁以外的分頁，否則首頁仍會保留。請重新啟動 Instagram 以套用變更。
@@ -930,7 +930,7 @@ Adds a magnifier at the top of Home that opens Search, like the Search tab does.
 Messages button on Home's header	首頁頂端的私訊按鈕
 Adds a Messages button at the top of Home when Instagram moved Messages to your tab bar. A tap opens your messages like the tab does. Restart Instagram to see the change.	當 Instagram 將私訊移到分頁列時，在首頁頂端加入私訊按鈕。點擊後如同私訊分頁一樣開啟私訊。請重新啟動 Instagram 以套用變更。
 # context: toasts when the Messages button on Home's header can't open Messages because it isn't on the swiping tab bar
-To open Messages here, turn on Show the Messages tab and restart.	若要在此開啟私訊，請啟用「顯示私訊分頁」並重新啟動。
+Turn on Show the Messages tab and restart.	若要在此開啟私訊，請啟用「顯示私訊分頁」並重新啟動。
 Restart Instagram to put Messages on your tab bar.	請重新啟動 Instagram，將私訊加入分頁列。
 Center the logo on Home's header	將首頁頂端標誌置中
 Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden or added. A feed's name shown there is centered too. Restart Instagram to see the change.	將 Instagram 標誌置於首頁頂端中央，即使隱藏或新增頂端按鈕也適用。該處顯示的動態名稱也會置中。請重新啟動 Instagram 以套用變更。
@@ -938,8 +938,8 @@ Center the name on profiles	將個人檔案名稱置中
 Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.	將使用者名稱置於個人檔案頂端列中央，自己與他人的個人檔案皆適用。按鈕仍留在原位。
 Center titles on other screens	將其他畫面的標題置中
 Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.	在兩側按鈕允許的空間內，將通知等其他畫面的頂端標題置中。按鈕仍留在原位。
-Search isn't on your tab bar, so this button can't open it here.	搜尋不在分頁列上，因此此按鈕無法在這裡開啟搜尋。
-To open Search here, turn off Hide the Search tab and restart.	若要在此開啟搜尋，請關閉「隱藏搜尋分頁」並重新啟動。
+This button needs Search on your tab bar.	搜尋不在分頁列上，因此此按鈕無法在這裡開啟搜尋。
+Turn off Hide the Search tab and restart.	若要在此開啟搜尋，請關閉「隱藏搜尋分頁」並重新啟動。
 Restart Instagram to bring Search back to your tab bar.	請重新啟動 Instagram，將搜尋加回分頁列。
 Tab order	分頁順序
 The tab bar keeps Instagram's order.	分頁列維持 Instagram 原本的順序。
@@ -1130,13 +1130,15 @@ A carousel post's page sits a little in from the edges, with the start of the ne
 Large	大
 Small	小
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
-HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	Instagram 啟動時持續當機，因此 HushGram 已自動暫停。所有開關會維持停用，直到您在 HushGram 設定中重新啟用。
+Instagram kept crashing, so HushGram paused itself.	Instagram 一直當機，HushGram 已自動暫停。
+# context: the second toast after safe mode paused HushGram, saying where to turn it back on
+Turn it back on in HushGram settings.	請到 HushGram 設定重新開啟。
 # context: a toast when a save couldn't reach Instagram's servers or the connection dropped
 Download failed. Check your connection and try again.	下載失敗，請檢查連線後再試一次。
 # context: a toast when a save arrived incomplete or couldn't be written to the phone
 Download didn't finish. Check your connection and free storage, then try again.	下載未完成，請檢查連線與可用儲存空間後再試一次。
 Some changes apply when Instagram restarts. Tap to restart it now.	部分變更會在重新啟動 Instagram 後生效。點擊即可立即重新啟動。
-A save or an export is still running. Restart once it's done.	仍有儲存或匯出作業進行中，請待完成後再重新啟動。
+Still saving or exporting. Restart once it's done.	仍有儲存或匯出作業進行中，請待完成後再重新啟動。
 Couldn't restart Instagram. Close it and open it again.	無法重新啟動 Instagram，請關閉後再次開啟。
 Already saved. Download again within 30 seconds for a copy.	已儲存過。若要另存副本，請在 30 秒內再次下載。
 Already saved %1$d. Download again within 30 seconds for those.	已有 %1$d 項儲存過。若要再次儲存這些項目，請在 30 秒內再次下載。
@@ -1163,10 +1165,10 @@ Instagram's own font. You can also pick your phone's font or a .ttf or .otf file
 Instagram's text uses your phone's font. Restart Instagram to see a change.	Instagram 文字使用手機字型。請重新啟動 Instagram 以套用變更。
 Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Instagram 文字使用所選字型檔案。再次選擇即可變更檔案。請重新啟動 Instagram 以套用變更。
 # context: toasts after a font file is picked in the Font list
-That file isn't a font HushGram can use. Your font hasn't changed.	HushGram 無法使用此字型檔案，您的字型未變更。
+That file isn't a usable font. Yours didn't change.	HushGram 無法使用此字型檔案，您的字型未變更。
 Font saved. Restart Instagram to see it.	已儲存字型。請重新啟動 Instagram 以套用。
 # context: toast when Instagram starts and the picked font file won't load
-Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	無法載入字型檔案，因此顯示 Instagram 字型。請在 HushGram 設定 > 版面配置中重新選擇。
+Couldn't load your font. Pick it again in Layout.	無法載入您的字型，請在「版面配置」重新選擇。
 # context: Reels switch title; it leaves out reels that carry Instagram's own AI label
 Hide AI-labeled reels	隱藏標示為 AI 的 Reels
 # context: the line under the Hide AI-labeled reels switch
@@ -1339,7 +1341,7 @@ Puts Instagram's logo and every bar's title at the start of the bar, where Insta
 %1$d rows are left off Instagram's Settings and activity.	Instagram「設定和動態」中已隱藏 %1$d 個項目。
 Add .ttf or .otf files from your phone. Uncheck one to take it out.	從手機新增 .ttf 或 .otf 字型檔。取消勾選即可移除。
 Add a font file	新增字型檔
-Added %1$s. Pick it in the story text editor alongside Instagram's fonts.	%1$s 已新增。可在限時動態文字編輯器中與 Instagram 字型一起選用。
+Added %1$s. Pick it in the story text editor.	%1$s 已新增。可在限時動態文字編輯器中與 Instagram 字型一起選用。
 Adds the fonts below to the story text editor alongside Instagram's own fonts, which all stay. Pick one there like any other font.	將下方字型加入限時動態文字編輯器，與 Instagram 原有字型並列（原有字型皆會保留）。你可以像選用其他字型一樣選用它們。
 Badges in the accent color	徽章使用強調色
 Emoji font in story text	限時動態文字的表情符號字型
@@ -1356,8 +1358,8 @@ Show the whole reel	顯示完整的 Reels
 Every reel fits inside the screen, with black bars where its shape differs, so nothing is cut off at the sides. Works without Full screen Reels and wins over Fill the screen.	每支 Reels 都會完整放進螢幕，形狀不同的地方顯示黑邊，左右不會被裁切。不需要開啟全螢幕 Reels，並且優先於填滿螢幕。
 Removed from your story fonts	已從限時動態字型中移除
 Rows in Instagram's settings	Instagram 設定中的項目
-That file isn't a font HushGram can use. Nothing was added.	HushGram 無法使用此字型檔，因此未新增任何內容。
-That file isn't a font HushGram can use. Story emoji haven't changed.	HushGram 無法使用此字型檔，限時動態的表情符號字型未變更。
+That file isn't a usable font. Nothing was added.	HushGram 無法使用此字型檔，因此未新增任何內容。
+That file isn't a usable font. Emoji didn't change.	HushGram 無法使用此字型檔，限時動態的表情符號字型未變更。
 That reel isn't on their profile. It might be a trial reel.	該 Reel 不在對方的個人檔案中，可能是測試用 Reel。
 The red dots and counts for new messages and notifications take the color you picked. Restart Instagram to see the change.	新訊息和通知的紅點與數字會改用你選擇的顏色。請重新啟動 Instagram 以套用變更。
 Icons in the accent color	圖示使用強調色
@@ -1385,7 +1387,7 @@ Photos and videos go to %1$s. Tap to pick another folder.	相片和影片會存�
 HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.	HushGram 已無法存取 %1$s，因此儲存的內容會放在 Movies 和 Pictures。請重新選擇資料夾。
 Use Movies and Pictures	使用 Movies 和 Pictures
 Stop using the folder you picked. Saves go back to Movies and Pictures.	停止使用你選擇的資料夾。儲存的內容會改回放在 Movies 和 Pictures。
-Couldn't use that folder. Saves still go where they did.	無法使用該資料夾。儲存的內容仍會存到原本的位置。
+Couldn't use that folder. Saves go where they did.	無法使用該資料夾。儲存的內容仍會存到原本的位置。
 Saves go to Movies and Pictures again.	儲存的內容已改回放在 Movies 和 Pictures。
 %1$s didn't take this save, so it went to Movies and Pictures.	%1$s 無法存放這次儲存的內容，因此改放在 Movies 和 Pictures。
 Start reels with sound	Reels 預設開啟聲音

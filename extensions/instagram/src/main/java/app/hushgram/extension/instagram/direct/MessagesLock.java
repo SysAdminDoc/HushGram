@@ -1045,8 +1045,8 @@ public final class MessagesLock {
         if (keyguard == null || !keyguard.isDeviceSecure()) {
             HookStatus.counted(FamilyNames.MESSAGES_LOCK, NO_PHONE_LOCK);
             Utils.showToastLong(wholeApp()
-                    ? L10n.t("Set a screen lock on your phone so HushGram can lock Instagram.")
-                    : L10n.t("Set a screen lock on your phone so HushGram can lock your messages."));
+                    ? L10n.t("Set a phone screen lock so HushGram can lock Instagram.")
+                    : L10n.t("Set a phone screen lock so HushGram can lock messages."));
             confirmed.run();
             return;
         }

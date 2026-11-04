@@ -444,8 +444,9 @@ public final class SettingsEntry {
     static void sayWhyPaused() {
         try {
             if (HushgramPause.reason() != HushgramPause.Reason.CRASH_LOOP || !pauseSaid.compareAndSet(false, true)) return;
-            Utils.showToastLong(L10n.t("HushGram paused itself because Instagram kept crashing as it started. "
-                    + "Its switches stay off until you turn it back on in HushGram settings."));
+            // Two toasts, since a toast shows two lines and the way back on is the half that matters.
+            Utils.showToastLong(L10n.t("Instagram kept crashing, so HushGram paused itself."));
+            Utils.showToastLong(L10n.t("Turn it back on in HushGram settings."));
         } catch (Throwable failure) {
             Logger.printException(() -> "Settings entry: could not say why HushGram is paused", failure);
         }

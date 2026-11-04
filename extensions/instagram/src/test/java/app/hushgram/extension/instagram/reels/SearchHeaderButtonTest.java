@@ -266,7 +266,7 @@ public class SearchHeaderButtonTest {
         assertNull("nothing answers the link here", shadowOf(activity).getNextStartedActivity());
         assertTrue(report(), report().contains(SearchHeaderButton.SWIPING + " 1"));
         // Android 12 and newer show two lines of a toast, so the toast is what to do and nothing else.
-        assertEquals("To open Search here, turn off Hide the Search tab and restart.",
+        assertEquals("Turn off Hide the Search tab and restart.",
                 String.valueOf(ShadowToast.getTextOfLatestToast()));
         assertSame(Tab.FEED, ReelsTab.tab(Tab.SEARCH));
 
@@ -275,7 +275,7 @@ public class SearchHeaderButtonTest {
         button.performClick();
         ShadowLooper.idleMainLooper();
         assertTrue("no switch was asked for", switched.isEmpty());
-        assertEquals("Search isn't on your tab bar, so this button can't open it here.",
+        assertEquals("This button needs Search on your tab bar.",
                 String.valueOf(ShadowToast.getTextOfLatestToast()));
 
         // Turned off since Instagram started: Search is back after a restart, so that's what it says.

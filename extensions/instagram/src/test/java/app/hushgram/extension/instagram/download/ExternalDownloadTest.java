@@ -126,7 +126,7 @@ public class ExternalDownloadTest {
         assertTrue(ExternalDownload.handOff(application, "https://www.instagram.com/p/B/", FamilyNames.REEL_DOWNLOAD));
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertEquals(1, ShadowToast.shownToastCount());
-        assertEquals("Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.",
+        assertEquals("Sent to another app. Change this in Downloads.",
                 String.valueOf(ShadowToast.getTextOfLatestToast()));
 
         assertTrue(ExternalDownload.handOff(application, "https://www.instagram.com/p/BA/", FamilyNames.VIDEO_DOWNLOAD));

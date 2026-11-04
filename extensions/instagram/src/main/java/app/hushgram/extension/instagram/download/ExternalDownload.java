@@ -135,7 +135,7 @@ public final class ExternalDownload {
         if (toldWhy) return;
         toldWhy = true;
         Utils.showToastLong(L10n.t(context,
-                "Sent to another app. To save here instead, turn off Send downloads to another app under Downloads."));
+                "Sent to another app. Change this in Downloads."));
     }
 
     /** Whether this run's toast has said which switch sends downloads away. */

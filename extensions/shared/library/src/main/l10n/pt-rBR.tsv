@@ -22,14 +22,14 @@ Copy a short report to the clipboard.	Copie um relatório curto para a área de 
 Copy quick report	Copiar relatório rápido
 Copying to the gallery	Copiando para a galeria
 Couldn't find this chat's messages.	Mensagens não encontradas.
-Couldn't put back the diagnostic data. Try again.	Não foi possível restaurar os dados de diagnóstico. Tente de novo.
+Couldn't put back the diagnostic data. Try again.	Erro ao restaurar o diagnóstico. Tente de novo.
 Couldn't save the chat.	A conversa não foi salva.
-Couldn't start the report export. Try again shortly.	Não foi possível iniciar a exportação do relatório. Tente de novo daqui a pouco.
+Couldn't start the report export. Try again shortly.	A exportação não começou. Tente daqui a pouco.
 Couldn't turn HushGram back on. Try again.	Não foi possível reativar o HushGram. Tente novamente.
 Debug logging	Registro de depuração
-Diagnostic data cleared. Tap again to put it back.	Dados de diagnóstico apagados. Toque de novo para restaurá-los.
+Diagnostic data cleared. Tap again to put it back.	Diagnóstico apagado. Toque de novo para restaurar.
 Diagnostic data put back.	Dados de diagnóstico restaurados.
-Diagnostic report copied to the clipboard.	Relatório de diagnóstico copiado para a área de transferência.
+Diagnostic report copied to the clipboard.	Relatório copiado para a área de transferência.
 Download failed	Falha no download
 Downloading	Baixando
 Empties the activity log and any kept crash that a diagnostic report would include.	Limpa o registro de atividades e qualquer falha salva que seria incluída no relatório de diagnóstico.
@@ -61,7 +61,7 @@ These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Estas configu
 Stop the wait	Parar a espera
 Keep waiting	Continuar esperando
 Use the highest refresh rate	Usar a maior taxa de atualização
-Wait stopped. These settings stay locked.	Espera parada. Estas configurações continuam bloqueadas.
+Wait stopped. These settings stay locked.	Espera parada. Configurações seguem bloqueadas.
 Settings are open	Configurações abertas
 They lock again at %1$s. Tap to lock them now or turn the lock off.	Elas bloqueiam de novo às %1$s. Toque para bloquear agora ou desligar o bloqueio.
 # context: the wait of a settings lock when it is exactly one hour; %1$d is the number
@@ -71,7 +71,7 @@ They lock again at %1$s. Tap to lock them now or turn the lock off.	Elas bloquei
 Turn the lock off	Desligar o bloqueio
 Settings locked	Configurações bloqueadas
 Lock turned off	Bloqueio desligado
-These settings are locked. Ask to unlock first.	Estas configurações estão bloqueadas. Peça para desbloquear primeiro.
+These settings are locked. Ask to unlock first.	Configurações bloqueadas. Peça para desbloquear.
 Full report saved to %1$s	Relatório completo salvo em %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, com os avisos dos projetos em que o HushGram se baseia
 Gray out stories you've watched	Deixar em cinza os Stories que você já viu
@@ -93,7 +93,7 @@ Joining the picture and sound	Juntando a imagem e o som
 Licenses	Licenças
 Link expired. Reopen the item and try again.	Link expirado. Reabra o item e tente novamente.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Ninguém fora da Meta sabe exatamente quais fatores levam à suspensão de uma conta. Uma versão modificada do Instagram não passa na verificação do Google que confirma se o app veio da Play Store, e nenhum patch altera isso. Se não quiser arriscar sua conta principal, teste primeiro com uma conta secundária. Instalar uma atualização por cima usando a mesma chave de assinatura preserva os dados do Instagram e sua sessão. Em um celular com root, a instalação pelo Root Mount também preserva a sessão atual.
-No app on this phone can open the link. The address is %1$s.	Nenhum aplicativo neste dispositivo consegue abrir o link. O endereço é %1$s.
+No app can open this link: %1$s	Nenhum app consegue abrir este link: %1$s
 Not saved: that isn't an Instagram photo or video	Não salvo: isso não é uma foto nem um vídeo do Instagram
 Not saved: the file is over 512 MB	Não foi salvo: o arquivo tem mais de 512 MB
 OK	OK
@@ -126,10 +126,10 @@ Removes tracking tags from links you copy or share, and opens bio links without 
 Tap to hide this.	Toque para ocultar isto.
 Couldn't hide this notice. Try again.	Não foi possível ocultar este aviso. Tente novamente.
 Tap to turn it back on.	Toque para reativar.
-The diagnostic report couldn't be saved yet. Try again in a moment.	O relatório de diagnóstico ainda não pôde ser salvo. Tente de novo em instantes.
-The diagnostic report couldn't be saved. Try again.	Não foi possível salvar o relatório de diagnóstico. Tente de novo.
+The report isn't saved yet. Try again in a moment.	O relatório ainda não foi salvo. Tente daqui a pouco.
+Couldn't save the diagnostic report. Try again.	Não deu para salvar o relatório. Tente de novo.
 The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.	Não foi possível remover o arquivo %1$s. Exclua-o de %2$s para reativar o HushGram.
-The setting couldn't finish updating. Its saved value is shown.	Não foi possível concluir a atualização da configuração. O valor salvo está sendo mostrado.
+Couldn't finish that change. Showing what's saved.	A mudança não terminou. Mostrando o que está salvo.
 There's no diagnostic data to clear.	Não há dados de diagnóstico para limpar.
 There's no diagnostic data to put back.	Não há dados de diagnóstico para restaurar.
 Try again, or go back to Instagram.	Tente novamente ou volte para o Instagram.
@@ -429,7 +429,7 @@ HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to cle
 Remembered playback positions restored.	Posições de reprodução salvas restauradas.
 Undo has expired.	O prazo para restaurar terminou.
 You cleared the remembered playback positions.	Você apagou as posições de reprodução salvas.
-Couldn't update the remembered playback positions.	Não foi possível atualizar as posições de reprodução salvas.
+Couldn't update remembered playback positions.	Não deu para atualizar as posições de reprodução.
 Settings backup	Backup das configurações
 Export HushGram settings	Exportar configurações do HushGram
 Choose a file for your installed patches' settings. Accounts and history stay on this device.	Escolha um arquivo para as configurações dos patches instalados. As contas e o histórico ficam neste dispositivo.
@@ -438,10 +438,10 @@ Choose a settings file. All valid choices apply together, and ones this version 
 Undo settings import	Desfazer importação das configurações
 Undo is available until %1$s. Restarting Instagram discards Undo.	Você pode desfazer até %1$s. Reiniciar o Instagram descarta essa opção.
 No settings import to undo.	Não há importação de configurações para desfazer.
-This phone has no file picker. Your settings haven't changed.	Este celular não tem seletor de arquivos. Suas configurações não mudaram.
-Couldn't use that settings file. Your settings haven't changed.	Não foi possível usar esse arquivo de configurações. Suas configurações não mudaram.
+There's no file picker. Your settings haven't changed.	Não há seletor de arquivos. Configurações sem mudança.
+Couldn't use that file. Your settings haven't changed.	Não deu para usar o arquivo. Configurações sem mudança.
 HushGram settings exported.	Configurações do HushGram exportadas.
-Couldn't export HushGram settings. Try another file.	Não foi possível exportar as configurações do HushGram. Tente outro arquivo.
+Couldn't export HushGram settings. Try another file.	Erro ao exportar. Tente outro arquivo.
 Settings restored.	Configurações restauradas.
 Imported %1$d settings. Skipped %2$d that this version doesn't know.	%1$d configurações importadas. %2$d ignoradas porque esta versão não as conhece.
 Imported %1$d settings.	%1$d configurações importadas.
@@ -558,8 +558,8 @@ New message	Nova mensagem
 Notifications	Notificações
 Puts every notification from Instagram in one group that shows how many it holds, so they don't fill your notification shade. Tapping one still opens it.	Coloca cada notificação do Instagram em um grupo que mostra quantas ele tem, para elas não encherem sua aba de notificações. Tocar em uma ainda abre a notificação.
 Right away	Na hora
-Set a screen lock on your phone so HushGram can lock Instagram.	Configure um bloqueio de tela no seu celular para o HushGram poder bloquear o Instagram.
-Set a screen lock on your phone so HushGram can lock your messages.	Configure um bloqueio de tela no seu celular para o HushGram poder bloquear suas mensagens.
+Set a phone screen lock so HushGram can lock Instagram.	Use bloqueio de tela para travar o Instagram.
+Set a phone screen lock so HushGram can lock messages.	Use bloqueio de tela para travar as mensagens.
 Hides the cards between posts that ask you to rate what you saw.	Esconde os cartões entre posts que pedem para você avaliar o que viu.
 Hides the rows of products to shop and live shopping that Instagram puts between posts, and the shop tiles in Explore. Posts with tagged products don't show the shopping bag.	Esconde as fileiras de produtos para comprar e de compras ao vivo que o Instagram coloca entre os posts, e os blocos de lojas no Explorar. Posts com produtos marcados não mostram a sacola de compras.
 Unlock	Desbloquear
@@ -568,8 +568,8 @@ Unlock your messages	Desbloquear suas mensagens
 Your inbox and chats stay covered until your fingerprint, face or screen lock says it's you. Message notifications say only that a message came.	Sua caixa de entrada e suas conversas ficam cobertas até sua digital, seu rosto ou o bloqueio de tela confirmar que é você. As notificações de mensagem dizem só que chegou uma mensagem.
 Your messages are locked	Suas mensagens estão bloqueadas
 Allow screenshots	Permitir capturas de tela
-Couldn't change every Ghost mode switch. Check them below.	Não deu para mudar todas as chaves do modo fantasma. Confira abaixo.
-Couldn't change every Ghost mode switch. Open HushGram settings to check them.	Não deu para mudar todas as chaves do modo fantasma. Confira nas configurações do HushGram.
+Ghost mode partly changed. Check the switches below.	O modo fantasma mudou só em parte. Confira abaixo.
+Ghost mode partly changed. Check HushGram settings.	O modo fantasma mudou só em parte. Confira o HushGram.
 Don't report screenshots	Não avisar sobre capturas de tela
 Ghost mode	Modo fantasma
 Ghost mode is off, and so is each of its switches.	O modo fantasma está desativado, e cada uma das chaves dele também.
@@ -601,7 +601,7 @@ That's a trial reel, so it isn't on their profile	É um reel de teste, então n�
 That reel isn't on their profile. It might be a trial reel.	Esse reel não está no perfil. Talvez seja um reel de teste.
 Clear saved copies now	Limpar as cópias salvas agora
 Clear the media cache	Limpar o cache de mídia
-Couldn't clear the saved copies. Try again.	Não foi possível limpar as cópias salvas. Tente de novo.
+Couldn't clear the saved copies. Try again.	Erro ao limpar as cópias salvas. Tente de novo.
 Don't save recent searches	Não salvar pesquisas recentes
 Download cover	Baixar capa
 Download audio	Baixar áudio
@@ -618,7 +618,7 @@ Loads smaller photos and starts videos, reels and stories at the lowest quality.
 Place	Lugar
 Send downloads to another app	Enviar downloads para outro app
 Send to	Enviar para
-Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	Enviado para outro app. Para salvar aqui, desative Enviar downloads para outro app em Downloads.
+Sent to another app. Change this in Downloads.	Enviado para outro app. Mude isso em Downloads.
 Spoof location	Falsificar localização
 Stop after a set number of reels	Parar depois de um número de reels
 # context: Reels settings: two sliders under Stop after a set number of reels (#405). The first picks how many reels play before swiping stops, %1$d is 5 to 100; the second how long Instagram stays in the background before swiping comes back, %1$d is 5 to 120 minutes
@@ -636,8 +636,8 @@ Home, Reels and Explore open again when the countdown ends. Messages and your pr
 # context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59
 Time for a break. Home, Reels and Explore open again in %1$s.	Hora de uma pausa. Início, Reels e Explorar abrem de novo em %1$s.
 Storage	Armazenamento
-That isn't a place. Type a latitude and a longitude with a comma between them.	Isso não é um lugar. Digite uma latitude e uma longitude separadas por vírgula.
-That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.	Já são %1$d reels. Deslizar no Reels está desativado até o Instagram ficar %2$d minutos em segundo plano.
+That isn't a place. Type latitude, longitude.	Isso não é um lugar. Digite latitude, longitude.
+%1$d reels. Swipe again after %2$d minutes away.	%1$d reels. Volte após %2$d minutos fora.
 The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.	A latitude e a longitude em graus, separadas por vírgula, como 40.758, -73.9855. Norte e leste são positivos, sul e oeste negativos. Um app de mapas mostra as duas quando você toca e segura um ponto.
 Turn off HDR brightness boosts	Desativar o reforço de brilho HDR
 What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	O que você abre pela pesquisa não entra em Recentes, nem no app nem do lado do Instagram. As pesquisas que já estão lá ficam até você limpá-las.
@@ -692,7 +692,7 @@ Sharing domain	Domínio de compartilhamento
 Start a video call?	Iniciar uma chamada de vídeo?
 Start a voice call?	Iniciar uma chamada de voz?
 Tapping a call button in a chat asks first, so a stray tap doesn't ring anyone. Call starts it, Cancel doesn't.	Tocar em um botão de chamada em uma conversa pergunta antes, para que um toque sem querer não ligue para ninguém. Ligar inicia a chamada, Cancelar não.
-That isn't a domain. Type one like example.com, or leave it blank.	Isso não é um domínio. Digite um como example.com ou deixe em branco.
+That isn't a domain. Try one like example.com.	Isso não é um domínio. Tente algo como example.com.
 The heart plays %1$s when you double tap a post.	O coração toca %1$s quando você toca duas vezes em um post.
 The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	O coração que aparece quando você toca duas vezes em um post toca a animação que você escolher abaixo. São animações que o Instagram fez para seus criadores do Rings.
 Turn on Change the like animation to use this choice.	Ative Mudar a animação de curtida para usar esta escolha.
@@ -795,9 +795,9 @@ No accounts are hidden yet. Add a username to take that account's posts out of H
 Add a username	Adicionar um nome de usuário
 Hide their posts	Ocultar os posts
 Posts from @%1$s are hidden	Os posts de @%1$s estão ocultos
-Posts from @%1$s are hidden from Home and Following	Os posts de @%1$s estão ocultos no Início e em Seguindo
+@%1$s is hidden in Home and Following	@%1$s está oculto no Início e em Seguindo
 Posts from @%1$s show again	Os posts de @%1$s voltam a aparecer
-A username is up to 30 letters, numbers, dots and underscores	Um nome de usuário tem até 30 letras, números, pontos e sublinhados
+Up to 30 letters, numbers, dots and underscores	Até 30 letras, números, pontos e sublinhados
 # context: a row in a post's menu that puts the post's author on Hidden accounts
 Hide posts from this account	Ocultar publicações desta conta
 Couldn't hide this account	Não foi possível ocultar esta conta
@@ -910,8 +910,8 @@ Open a chat in Instagram, then come back here to pin it.	Abra uma conversa no In
 Pick the playback quality with a tab long press	Escolher a qualidade de reprodução ao manter uma aba pressionada
 Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	Manter uma aba pressionada continua usando a ação do Instagram. Escolha uma para escolher a qualidade de reprodução no lugar dela.
 Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Mantenha %1$s pressionado para escolher a qualidade de reprodução no lugar da ação normal dessa aba. Os toques normais e as outras abas ficam como estão. É preciso que a Qualidade de reprodução padrão esteja ativada. Se a mesma aba abrir o HushGram, isso vem primeiro.
-Playback quality: %1$s. The next video you open uses it.	Qualidade de reprodução: %1$s. O próximo vídeo que você abrir vai usá-la.
-Couldn't save the playback quality. Open HushGram settings to set it.	Não foi possível salvar a qualidade de reprodução. Abra as configurações do HushGram para defini-la.
+Playback quality: %1$s. The next video uses it.	Qualidade: %1$s. Vale a partir do próximo vídeo.
+Couldn't save the quality. Set it in HushGram settings.	Qualidade não salva. Defina no HushGram.
 Support HushGram	Apoie o HushGram
 Hide the Home tab	Ocultar a aba Início
 Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	Tira o Início da barra de abas. A Aba inicial abre onde o Início abriria, então escolha uma diferente do Início que esteja na barra, ou o Início fica. Reinicie o Instagram para ver a mudança.
@@ -932,17 +932,17 @@ Adds a magnifier at the top of Home that opens Search, like the Search tab does.
 Messages button on Home's header	Botão de Mensagens no cabeçalho da Página inicial
 Adds a Messages button at the top of Home when Instagram moved Messages to your tab bar. A tap opens your messages like the tab does. Restart Instagram to see the change.	Adiciona um botão de Mensagens no topo da Página inicial quando o Instagram moveu as Mensagens para a sua barra de abas. Um toque abre suas mensagens como a aba. Reinicie o Instagram para ver a mudança.
 # context: toasts when the Messages button on Home's header can't open Messages because it isn't on the swiping tab bar
-To open Messages here, turn on Show the Messages tab and restart.	Para abrir as Mensagens aqui, ative Mostrar a aba Mensagens e reinicie.
-Restart Instagram to put Messages on your tab bar.	Reinicie o Instagram para colocar as Mensagens na sua barra de abas.
+Turn on Show the Messages tab and restart.	Ative Mostrar a aba Mensagens e reinicie.
+Restart Instagram to put Messages on your tab bar.	Reinicie o Instagram para ver Mensagens na barra.
 Center the logo on Home's header	Centralizar o logo no cabeçalho da Página inicial
 Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden or added. A feed's name shown there is centered too. Restart Instagram to see the change.	Coloca o logo do Instagram no meio do topo da Página inicial, mesmo com botões do cabeçalho ocultos ou adicionados. O nome de um feed mostrado ali também fica centralizado. Reinicie o Instagram para ver a mudança.
 Center the name on profiles	Centralizar o nome nos perfis
 Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.	Coloca o nome de usuário no meio da barra no topo de um perfil, o seu e o de outras pessoas. Os botões ficam onde estão.
 Center titles on other screens	Centralizar títulos em outras telas
 Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.	Coloca o título no meio da barra no topo de outras telas, como as notificações, até onde os botões ao lado deixam. Os botões ficam onde estão.
-Search isn't on your tab bar, so this button can't open it here.	A Pesquisa não está na sua barra de abas, então este botão não consegue abri-la aqui.
-To open Search here, turn off Hide the Search tab and restart.	Para abrir a Pesquisa aqui, desative Ocultar a aba Pesquisar e reinicie.
-Restart Instagram to bring Search back to your tab bar.	Reinicie o Instagram para a Pesquisa voltar à sua barra de abas.
+This button needs Search on your tab bar.	Este botão precisa da Pesquisa na barra de abas.
+Turn off Hide the Search tab and restart.	Desative Ocultar a aba Pesquisar e reinicie.
+Restart Instagram to bring Search back to your tab bar.	Reinicie o Instagram para a Pesquisa voltar.
 Tab order	Ordem das abas
 The tab bar keeps Instagram's order.	A barra de abas mantém a ordem do Instagram.
 Tabs go in this order: %1$s. Restart Instagram to see the change.	As abas ficam nesta ordem: %1$s. Reinicie o Instagram para ver a mudança.
@@ -1136,14 +1136,16 @@ A carousel post's page sits a little in from the edges, with the start of the ne
 Large	Grande
 Small	Pequeno
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
-HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	O HushGram foi pausado automaticamente porque o Instagram fechava com erro ao iniciar. As opções dele ficam desativadas até você reativá-lo nas Configurações do HushGram.
+Instagram kept crashing, so HushGram paused itself.	O Instagram travava muito e o HushGram se pausou.
+# context: the second toast after safe mode paused HushGram, saying where to turn it back on
+Turn it back on in HushGram settings.	Ative de novo nas Configurações do HushGram.
 # context: a toast when a save couldn't reach Instagram's servers or the connection dropped
 Download failed. Check your connection and try again.	Falha no download. Verifique sua conexão e tente novamente.
 # context: a toast when a save arrived incomplete or couldn't be written to the phone
 Download didn't finish. Check your connection and free storage, then try again.	O download não terminou. Verifique sua conexão e o espaço livre e tente novamente.
 Some changes apply when Instagram restarts. Tap to restart it now.	Algumas mudanças são aplicadas quando o Instagram reinicia. Toque para reiniciá-lo agora.
-A save or an export is still running. Restart once it's done.	Um salvamento ou uma exportação ainda está em andamento. Reinicie quando terminar.
-Couldn't restart Instagram. Close it and open it again.	Não foi possível reiniciar o Instagram. Feche e abra de novo.
+Still saving or exporting. Restart once it's done.	Salvando ou exportando. Reinicie ao terminar.
+Couldn't restart Instagram. Close it and open it again.	O Instagram não reiniciou. Feche e abra de novo.
 Already saved. Download again within 30 seconds for a copy.	Já foi salvo. Baixe de novo em até 30 segundos para uma cópia.
 Already saved %1$d. Download again within 30 seconds for those.	Já salvos %1$d. Baixe de novo em até 30 segundos para esses.
 Skip what's already saved	Pular o que já foi salvo
@@ -1151,7 +1153,7 @@ Remembers what you save while it's on, so a post, carousel page, reel or story i
 Clear download history	Apagar histórico de downloads
 Forgets everything Skip what's already saved remembers, for all your accounts. Your saved files stay.	Esquece tudo o que Pular o que já foi salvo lembra, em todas as suas contas. Seus arquivos salvos continuam onde estão.
 Download history cleared.	Histórico de downloads apagado.
-Couldn't clear the download history. Try again.	Não foi possível apagar o histórico de downloads. Tente de novo.
+Couldn't clear the download history. Try again.	Erro ao apagar o histórico de downloads. Tente de novo.
 Loading the picture...	Carregando a foto...
 # context: the settings row right above Support HushGram that opens a new bug report on GitHub
 Report a problem	Relatar um problema
@@ -1169,10 +1171,10 @@ Instagram's own font. You can also pick your phone's font or a .ttf or .otf file
 Instagram's text uses your phone's font. Restart Instagram to see a change.	O texto do Instagram usa a fonte do seu celular. Reinicie o Instagram para ver uma mudança.
 Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	O texto do Instagram usa o arquivo de fonte que você escolheu. Escolha de novo para trocar o arquivo. Reinicie o Instagram para ver uma mudança.
 # context: toasts after a font file is picked in the Font list
-That file isn't a font HushGram can use. Your font hasn't changed.	Esse arquivo não é uma fonte que o HushGram consiga usar. Sua fonte não mudou.
+That file isn't a usable font. Yours didn't change.	Fonte inválida. A sua não mudou.
 Font saved. Restart Instagram to see it.	Fonte salva. Reinicie o Instagram para vê-la.
 # context: toast when Instagram starts and the picked font file won't load
-Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	Não foi possível carregar seu arquivo de fonte, então a fonte do Instagram aparece. Escolha de novo em Configurações do HushGram > Layout.
+Couldn't load your font. Pick it again in Layout.	Sua fonte não carregou. Escolha de novo em Layout.
 # context: Reels switch title; it leaves out reels that carry Instagram's own AI label
 Hide AI-labeled reels	Ocultar reels com rótulo de IA
 # context: the line under the Hide AI-labeled reels switch
@@ -1260,7 +1262,7 @@ The liquid pill's rim bends what's behind it like real glass, so what passes und
 All of them. Tap to leave some out, and Ghost mode leaves those as you set them.	Todas. Toque para deixar algumas de fora, e o modo fantasma deixa essas como você configurou.
 %1$s. The others stay as you set them.	%1$s. As outras ficam como você configurou.
 Switches Ghost mode turns	Chaves que o modo fantasma muda
-Ghost mode needs at least one switch to turn.	O modo fantasma precisa de pelo menos uma chave para mudar.
+Ghost mode needs at least one switch to turn.	O modo fantasma precisa de ao menos uma chave.
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	Ativar ou desativar o modo fantasma ao manter uma aba pressionada
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Manter uma aba pressionada continua usando a ação do Instagram. Escolha uma para ativar ou desativar o modo fantasma no lugar dela.
@@ -1346,16 +1348,16 @@ Add .ttf or .otf files from your phone. Uncheck one to take it out.	Adicione arq
 No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.	Nenhuma fonte adicionada ainda. Adicione um arquivo .ttf ou .otf e ele aparece no editor de texto dos stories junto com as fontes do Instagram.
 Add a font file	Adicionar um arquivo de fonte
 Removed from your story fonts	Removida das suas fontes de stories
-That file isn't a font HushGram can use. Nothing was added.	Esse arquivo não é uma fonte que o HushGram consiga usar. Nada foi adicionado.
-Added %1$s. Pick it in the story text editor alongside Instagram's fonts.	%1$s adicionada. Escolha no editor de texto dos stories junto com as fontes do Instagram.
+That file isn't a usable font. Nothing was added.	Fonte inválida. Nada foi adicionado.
+Added %1$s. Pick it in the story text editor.	%1$s adicionada. Escolha no editor de texto do story.
 # context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
 Logo and titles at the start	Logo e títulos no início
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Coloca o logo do Instagram e o título de cada barra no início da barra, onde o Instagram mostrava antes. Ative se o Instagram centraliza eles para você. Tem prioridade sobre as chaves de centralizar acima. Reinicie o Instagram para ver a mudança na Página inicial.
 # context: Emoji font in story text, a switch under Stories after Your story fonts; turning it on opens the phone's file picker for an emoji font file (.ttf), used only for emoji typed in Instagram's story text editor (#275)
 Emoji font in story text	Fonte de emoji no texto do story
 Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	Os emojis que você digita no texto do story usam um arquivo de fonte de emoji que você escolhe. Ao ativar, ele pede o arquivo. Desativado, os emojis do Instagram voltam.
-That file isn't a font HushGram can use. Story emoji haven't changed.	Esse arquivo não é uma fonte que o HushGram consegue usar. Os emojis do story não mudaram.
-Emoji font saved. Emoji in story text draw in it.	Fonte de emoji salva. Os emojis no texto do story agora usam ela.
+That file isn't a usable font. Emoji didn't change.	Fonte inválida. Os emojis não mudaram.
+Emoji font saved. Emoji in story text draw in it.	Fonte de emoji salva. Já vale nos stories.
 Rows in Instagram's settings	Linhas nas configurações do Instagram
 Every row of Instagram's Settings and activity shows. Untick the ones you don't use.	Todas as linhas de Configurações e atividade do Instagram aparecem. Desmarque as que você não usa.
 %1$d row is left off Instagram's Settings and activity.	%1$d linha foi tirada de Configurações e atividade do Instagram.
@@ -1382,7 +1384,7 @@ Photos and videos go to %1$s. Tap to pick another folder.	Fotos e vídeos vão p
 HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.	O HushGram não consegue mais acessar %1$s, então o que você salva vai para Movies e Pictures. Escolha a pasta de novo.
 Use Movies and Pictures	Usar Movies e Pictures
 Stop using the folder you picked. Saves go back to Movies and Pictures.	Parar de usar a pasta escolhida. O que você salva volta para Movies e Pictures.
-Couldn't use that folder. Saves still go where they did.	Não deu para usar essa pasta. O que você salva continua indo para onde ia.
+Couldn't use that folder. Saves go where they did.	Não deu para usar a pasta. Salva onde salvava antes.
 Saves go to Movies and Pictures again.	O que você salva volta a ir para Movies e Pictures.
 %1$s didn't take this save, so it went to Movies and Pictures.	%1$s não aceitou este salvamento, então ele foi para Movies e Pictures.
 Start reels with sound	Iniciar reels com som

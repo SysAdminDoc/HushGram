@@ -110,7 +110,7 @@ public class SupportRowSettingsTest {
         assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
         ShadowLooper.idleMainLooper();
         String tip = String.valueOf(ShadowToast.getTextOfLatestToast());
-        assertTrue(tip, tip.startsWith("No app on this phone can open the link. The address is "));
+        assertTrue(tip, tip.startsWith("No app can open this link: "));
         assertTrue(tip, tip.contains("ko-fi.com/X8K126YVER"));
     }
 

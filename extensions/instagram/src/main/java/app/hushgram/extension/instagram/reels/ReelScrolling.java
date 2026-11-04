@@ -185,8 +185,7 @@ public final class ReelScrolling {
             HookStatus.counted(FamilyNames.REEL_SCROLLING, CAPPED);
             Logger.printDebug(() -> "Reels scrolling: " + cap + " reels played, swipes are off");
             setInput(pager, false);
-            Utils.showToastLong(L10n.f("That's %1$d reels. Swiping in Reels is off until Instagram has been in the "
-                    + "background for %2$d minutes.", cap, breakMillis() / 60_000));
+            Utils.showToastLong(L10n.f("%1$d reels. Swipe again after %2$d minutes away.", cap, breakMillis() / 60_000));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_SCROLLING, PAGE, failure);
         }

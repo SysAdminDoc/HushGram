@@ -184,7 +184,7 @@ public class FontSettingsTest {
         finish();
         assertEquals(FontChoice.INSTAGRAM, Settings.FONT.savedValue());
         assertEquals(FontChoice.INSTAGRAM.name(), row.getValue());
-        assertEquals("That file isn't a font HushGram can use. Your font hasn't changed.", ShadowToast.getTextOfLatestToast());
+        assertEquals("That file isn't a usable font. Yours didn't change.", ShadowToast.getTextOfLatestToast());
         assertFalse(FontsForTests.kept().exists());
 
         row.getOnPreferenceChangeListener().onPreferenceChange(row, FontChoice.FILE.name());
@@ -244,7 +244,7 @@ public class FontSettingsTest {
         finish();
         assertArrayEquals(before, Files.readAllBytes(FontsForTests.kept().toPath()));
         assertEquals(FontChoice.FILE, Settings.FONT.savedValue());
-        assertEquals("That file isn't a font HushGram can use. Your font hasn't changed.",
+        assertEquals("That file isn't a usable font. Yours didn't change.",
                 ShadowToast.getTextOfLatestToast());
         assertOnlyLiveFontRemains();
     }
@@ -370,7 +370,7 @@ public class FontSettingsTest {
         assertEquals(FontChoice.SYSTEM.name(), row().getValue());
         assertArrayEquals(before, Files.readAllBytes(FontsForTests.kept().toPath()));
         assertFalse(page.restartActionAvailable());
-        assertEquals("The setting couldn't finish updating. Its saved value is shown.", ShadowToast.getTextOfLatestToast());
+        assertEquals("Couldn't finish that change. Showing what's saved.", ShadowToast.getTextOfLatestToast());
         assertOnlyLiveFontRemains();
     }
 
@@ -391,7 +391,7 @@ public class FontSettingsTest {
             assertEquals(FontChoice.SYSTEM, Setting.preferences.getEnum(Settings.FONT.key, FontChoice.INSTAGRAM));
             assertEquals(FontChoice.SYSTEM.name(), row().getValue());
             assertFalse(page.restartActionAvailable());
-            assertEquals("The setting couldn't finish updating. Its saved value is shown.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Couldn't finish that change. Showing what's saved.", ShadowToast.getTextOfLatestToast());
         }
     }
 
@@ -432,7 +432,7 @@ public class FontSettingsTest {
             assertEquals(FontChoice.FILE, Setting.preferences.getEnum(Settings.FONT.key, FontChoice.INSTAGRAM));
             assertEquals(FontChoice.FILE.name(), row().getValue());
             assertFalse(Fonts.restartPending());
-            assertEquals("The setting couldn't finish updating. Its saved value is shown.", ShadowToast.getTextOfLatestToast());
+            assertEquals("Couldn't finish that change. Showing what's saved.", ShadowToast.getTextOfLatestToast());
         }
     }
 

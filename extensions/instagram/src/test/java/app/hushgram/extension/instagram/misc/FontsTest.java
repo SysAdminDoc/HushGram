@@ -151,7 +151,7 @@ public class FontsTest {
         assertSame(bold, Fonts.prismTypeface(bold));
         assertSame(bold, Fonts.prismTypeface(bold));
         assertEquals(1, ShadowToast.shownToastCount());
-        assertTrue(ShadowToast.getTextOfLatestToast(), ShadowToast.getTextOfLatestToast().startsWith("Couldn't load your font file"));
+        assertEquals("Couldn't load your font. Pick it again in Layout.", ShadowToast.getTextOfLatestToast());
 
         Fonts.resetForTests();
         keep(TRUE_TYPE);

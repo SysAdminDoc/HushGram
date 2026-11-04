@@ -199,8 +199,8 @@ public final class LogBufferManager {
     private static void clipboardFailed(String token, Exception ex) {
         // The exception's own text stays in the log. It can carry a path or a signed URL,
         // and a reader on a phone cannot act on it from a toast.
-        ExportStatus.DIAGNOSTICS.finish(token, L10n.t("The diagnostic report couldn't be saved. Try again."));
-        Utils.showToastLong(say(exportFailedMessage, L10n.t("The diagnostic report couldn't be saved. Try again.")));
+        ExportStatus.DIAGNOSTICS.finish(token, L10n.t("Couldn't save the diagnostic report. Try again."));
+        Utils.showToastLong(say(exportFailedMessage, L10n.t("Couldn't save the diagnostic report. Try again.")));
         Logger.printException(() -> "Failed to export diagnostics", ex);
     }
 
@@ -212,8 +212,8 @@ public final class LogBufferManager {
         }
         Context context = Utils.getContext();
         if (context == null) {
-            ExportStatus.DIAGNOSTICS.finish(token, L10n.t("The diagnostic report couldn't be saved yet. Try again in a moment."));
-            Utils.showToastLong(say(noContextMessage, L10n.t("The diagnostic report couldn't be saved yet. Try again in a moment.")));
+            ExportStatus.DIAGNOSTICS.finish(token, L10n.t("The report isn't saved yet. Try again in a moment."));
+            Utils.showToastLong(say(noContextMessage, L10n.t("The report isn't saved yet. Try again in a moment.")));
             return;
         }
         Context application = context.getApplicationContext();
@@ -225,10 +225,10 @@ public final class LogBufferManager {
                     ExportStatus.DIAGNOSTICS.finish(token, L10n.t("Diagnostic report saved."));
                     Utils.showToastLong(String.format(say(savedToMessage, L10n.t("Full report saved to %1$s")), L10n.isolate(saved)));
                 } catch (Exception ex) {
-                    Utils.showToastLong(say(exportFailedMessage, L10n.t("The diagnostic report couldn't be saved. Try again.")));
+                    Utils.showToastLong(say(exportFailedMessage, L10n.t("Couldn't save the diagnostic report. Try again.")));
                     Logger.printException(() -> "Failed to save diagnostics", ex);
                 } finally {
-                    ExportStatus.DIAGNOSTICS.finish(token, L10n.t("The diagnostic report couldn't be saved. Try again."));
+                    ExportStatus.DIAGNOSTICS.finish(token, L10n.t("Couldn't save the diagnostic report. Try again."));
                 }
                 return null;
             });

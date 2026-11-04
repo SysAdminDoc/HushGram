@@ -321,7 +321,7 @@ public class MessagesHeaderButtonTest {
         assertTrue("no switch was asked for", switched.isEmpty());
         assertTrue(report(), report().contains(MessagesHeaderButton.SWIPING + " 1"));
         // Android 12 and newer show two lines of a toast, so the toast is what to do and nothing else.
-        assertEquals("To open Messages here, turn on Show the Messages tab and restart.",
+        assertEquals("Turn on Show the Messages tab and restart.",
                 String.valueOf(ShadowToast.getTextOfLatestToast()));
 
         Settings.SHOW_MESSAGES_TAB.save(true);

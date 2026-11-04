@@ -155,7 +155,7 @@ public class HiddenAccountsSettingsTest {
     @Test public void aNameThatCantBeAUsernameIsTurnedDown() throws Exception {
         open(true);
         type("two words");
-        assertEquals("A username is up to 30 letters, numbers, dots and underscores", ShadowToast.getTextOfLatestToast());
+        assertEquals("Up to 30 letters, numbers, dots and underscores", ShadowToast.getTextOfLatestToast());
         assertTrue(HiddenAccounts.saved().isEmpty());
         assertEquals("", Settings.HIDDEN_ACCOUNTS.savedValue());
         assertTrue("back on the list", shadowOf(latest()).getMessage().toString().startsWith("No accounts are hidden yet."));

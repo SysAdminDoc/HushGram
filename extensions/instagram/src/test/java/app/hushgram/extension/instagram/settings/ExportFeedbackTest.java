@@ -221,7 +221,7 @@ public class ExportFeedbackTest {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(host);
             LogBufferManager.exportToFile();
             finish();
-            assertEquals("The diagnostic report couldn't be saved. Try again.", page.findPreference(DIAGNOSTICS).getSummary());
+            assertEquals("Couldn't save the diagnostic report. Try again.", page.findPreference(DIAGNOSTICS).getSummary());
             assertTrue(page.findPreference(DIAGNOSTICS).isEnabled());
         } finally { Utils.setContext(application); }
     }
@@ -254,7 +254,7 @@ public class ExportFeedbackTest {
             Preference row = page.findPreference(CONFIGURATION);
             row.getOnPreferenceClickListener().onPreferenceClick(row);
             finish();
-            assertEquals("This phone has no file picker. Your settings haven't changed.", row.getSummary());
+            assertEquals("There's no file picker. Your settings haven't changed.", row.getSummary());
             assertTrue(row.isEnabled());
             assertFalse(ExportStatus.CONFIGURATION.active());
         }

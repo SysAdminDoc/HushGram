@@ -91,7 +91,7 @@ Joining the picture and sound	Đang ghép hình và âm thanh
 Licenses	Giấy phép
 Link expired. Reopen the item and try again.	Liên kết đã hết hạn. Hãy mở lại mục đó và thử lại.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Ngoài Meta ra thì không ai biết điều gì khiến tài khoản bị đình chỉ. Instagram đã vá không qua được bước Google kiểm tra ứng dụng có đến từ Play Store hay không và không bản vá nào đổi được điều đó. Nếu không muốn mạo hiểm với tài khoản, hãy thử bằng một tài khoản phụ trước. Cài bản cập nhật đè lên với cùng khóa ký sẽ giữ dữ liệu Instagram và đăng nhập của bạn. Trên điện thoại đã root, cài đặt bằng Root Mount sẽ giữ phiên đăng nhập hiện có.
-No app on this phone can open the link. The address is %1$s.	Không mở được liên kết. Địa chỉ là %1$s.
+No app can open this link: %1$s	Không mở được liên kết. Địa chỉ là %1$s.
 Not saved: that isn't an Instagram photo or video	Chưa lưu: đây không phải ảnh hay video Instagram
 Not saved: the file is over 512 MB	Chưa lưu: tệp lớn hơn 512 MB
 OK	OK
@@ -124,10 +124,10 @@ Removes tracking tags from links you copy or share, and opens bio links without 
 Tap to hide this.	Nhấn để ẩn mục này.
 Couldn't hide this notice. Try again.	Không ẩn được thông báo này. Hãy thử lại.
 Tap to turn it back on.	Nhấn để bật lại.
-The diagnostic report couldn't be saved yet. Try again in a moment.	Chưa lưu được báo cáo chẩn đoán. Thử lại sau giây lát.
-The diagnostic report couldn't be saved. Try again.	Không lưu được báo cáo chẩn đoán. Hãy thử lại.
+The report isn't saved yet. Try again in a moment.	Chưa lưu được báo cáo chẩn đoán. Thử lại sau giây lát.
+Couldn't save the diagnostic report. Try again.	Không lưu được báo cáo chẩn đoán. Hãy thử lại.
 The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.	Không xóa được tệp %1$s. Hãy xóa tệp đó khỏi %2$s để bật lại HushGram.
-The setting couldn't finish updating. Its saved value is shown.	Cài đặt chưa cập nhật xong. Giá trị đã lưu đang hiện.
+Couldn't finish that change. Showing what's saved.	Cài đặt chưa cập nhật xong. Giá trị đã lưu đang hiện.
 There's no diagnostic data to clear.	Không có dữ liệu chẩn đoán để xóa.
 There's no diagnostic data to put back.	Không có dữ liệu chẩn đoán để khôi phục.
 Try again, or go back to Instagram.	Hãy thử lại hoặc quay lại Instagram.
@@ -429,7 +429,7 @@ HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to cle
 Remembered playback positions restored.	Đã khôi phục vị trí phát đã nhớ.
 Undo has expired.	Đã hết hạn hoàn tác.
 You cleared the remembered playback positions.	Bạn đã xóa vị trí phát đã nhớ.
-Couldn't update the remembered playback positions.	Không cập nhật được vị trí phát đã nhớ.
+Couldn't update remembered playback positions.	Không cập nhật được vị trí phát đã nhớ.
 Settings backup	Sao lưu cài đặt
 Export HushGram settings	Xuất cài đặt HushGram
 Choose a file for your installed patches' settings. Accounts and history stay on this device.	Chọn một tệp cho cài đặt của các bản vá đã cài. Tài khoản và lịch sử vẫn ở trên thiết bị này.
@@ -438,8 +438,8 @@ Choose a settings file. All valid choices apply together, and ones this version 
 Undo settings import	Hoàn tác nhập cài đặt
 Undo is available until %1$s. Restarting Instagram discards Undo.	Có thể hoàn tác đến %1$s. Khởi động lại Instagram sẽ bỏ khả năng hoàn tác.
 No settings import to undo.	Không có lần nhập cài đặt nào để hoàn tác.
-This phone has no file picker. Your settings haven't changed.	Điện thoại không có bộ chọn tệp. Cài đặt không đổi.
-Couldn't use that settings file. Your settings haven't changed.	Không dùng được tệp đó. Cài đặt của bạn không đổi.
+There's no file picker. Your settings haven't changed.	Điện thoại không có bộ chọn tệp. Cài đặt không đổi.
+Couldn't use that file. Your settings haven't changed.	Không dùng được tệp đó. Cài đặt của bạn không đổi.
 HushGram settings exported.	Đã xuất cài đặt HushGram.
 Couldn't export HushGram settings. Try another file.	Không xuất được cài đặt HushGram. Hãy thử tệp khác.
 Settings restored.	Đã khôi phục cài đặt.
@@ -558,8 +558,8 @@ New message	Tin nhắn mới
 Notifications	Thông báo
 Puts every notification from Instagram in one group that shows how many it holds, so they don't fill your notification shade. Tapping one still opens it.	Gộp mọi thông báo từ Instagram vào một nhóm hiện số lượng, để chúng không chiếm đầy thanh thông báo. Nhấn vào một thông báo vẫn mở nó.
 Right away	Ngay lập tức
-Set a screen lock on your phone so HushGram can lock Instagram.	Hãy đặt khóa màn hình để HushGram khóa Instagram.
-Set a screen lock on your phone so HushGram can lock your messages.	Hãy đặt khóa màn hình để HushGram khóa tin nhắn.
+Set a phone screen lock so HushGram can lock Instagram.	Hãy đặt khóa màn hình để HushGram khóa Instagram.
+Set a phone screen lock so HushGram can lock messages.	Hãy đặt khóa màn hình để HushGram khóa tin nhắn.
 Hides the cards between posts that ask you to rate what you saw.	Ẩn các thẻ giữa bài viết hỏi bạn đánh giá những gì vừa xem.
 Hides the rows of products to shop and live shopping that Instagram puts between posts, and the shop tiles in Explore. Posts with tagged products don't show the shopping bag.	Ẩn các hàng sản phẩm để mua sắm và mua sắm trực tiếp mà Instagram chèn giữa bài viết, cùng ô cửa hàng trong Khám phá. Bài viết có gắn thẻ sản phẩm không hiện túi mua sắm.
 Unlock	Mở khóa
@@ -568,8 +568,8 @@ Unlock your messages	Mở khóa tin nhắn của bạn
 Your inbox and chats stay covered until your fingerprint, face or screen lock says it's you. Message notifications say only that a message came.	Hộp thư và cuộc trò chuyện của bạn vẫn bị che cho đến khi vân tay, khuôn mặt hoặc khóa màn hình xác nhận là bạn. Thông báo tin nhắn chỉ cho biết có tin nhắn đến.
 Your messages are locked	Tin nhắn của bạn đã khóa
 Allow screenshots	Cho phép chụp màn hình
-Couldn't change every Ghost mode switch. Check them below.	Không đổi hết công tắc Chế độ ẩn. Kiểm tra bên dưới.
-Couldn't change every Ghost mode switch. Open HushGram settings to check them.	Không đổi hết công tắc Chế độ ẩn. Hãy kiểm tra lại.
+Ghost mode partly changed. Check the switches below.	Không đổi hết công tắc Chế độ ẩn. Kiểm tra bên dưới.
+Ghost mode partly changed. Check HushGram settings.	Không đổi hết công tắc Chế độ ẩn. Hãy kiểm tra lại.
 Don't report screenshots	Không báo chụp màn hình
 Ghost mode	Chế độ ẩn
 Ghost mode is off, and so is each of its switches.	Chế độ ẩn đang tắt, các công tắc của nó cũng vậy.
@@ -618,7 +618,7 @@ Loads smaller photos and starts videos, reels and stories at the lowest quality.
 Place	Địa điểm
 Send downloads to another app	Gửi bản tải xuống đến ứng dụng khác
 Send to	Gửi đến
-Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	Đã gửi sang app khác. Tắt gửi tải xuống để lưu ở đây.
+Sent to another app. Change this in Downloads.	Đã gửi sang app khác. Tắt gửi tải xuống để lưu ở đây.
 Spoof location	Giả mạo vị trí
 Stop after a set number of reels	Dừng sau một số reel nhất định
 Reels before swiping stops	Số reel trước khi dừng vuốt
@@ -633,8 +633,8 @@ Time for a break	Đến giờ nghỉ rồi
 Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	Trang chủ, Reels và Khám phá mở lại khi đếm ngược kết thúc. Tin nhắn và trang cá nhân vẫn dùng được.
 Time for a break. Home, Reels and Explore open again in %1$s.	Đến giờ nghỉ rồi. Trang chủ, Reels và Khám phá mở lại sau %1$s.
 Storage	Bộ nhớ
-That isn't a place. Type a latitude and a longitude with a comma between them.	Nhập vĩ độ và kinh độ, cách nhau bằng dấu phẩy.
-That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.	%1$d reel. Vuốt tắt đến khi nền %2$d phút.
+That isn't a place. Type latitude, longitude.	Nhập vĩ độ và kinh độ, cách nhau bằng dấu phẩy.
+%1$d reels. Swipe again after %2$d minutes away.	%1$d reel. Rời app %2$d phút để vuốt tiếp.
 The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.	Vĩ độ và kinh độ theo độ, cách nhau bằng dấu phẩy, ví dụ 40.758, -73.9855. Bắc và đông là số dương, nam và tây là số âm. Ứng dụng bản đồ hiện cả hai khi bạn nhấn giữ một điểm.
 Turn off HDR brightness boosts	Tắt tăng độ sáng HDR
 What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	Nội dung bạn mở từ tìm kiếm không vào mục Gần đây, cả trong ứng dụng và phía Instagram. Nội dung tìm đã có vẫn ở đó cho đến khi bạn xóa.
@@ -687,7 +687,7 @@ Sharing domain	Tên miền chia sẻ
 Start a video call?	Bắt đầu cuộc gọi video?
 Start a voice call?	Bắt đầu cuộc gọi thoại?
 Tapping a call button in a chat asks first, so a stray tap doesn't ring anyone. Call starts it, Cancel doesn't.	Nhấn nút gọi trong cuộc trò chuyện sẽ hỏi trước, để lỡ chạm không làm ai đổ chuông. Gọi sẽ bắt đầu, Hủy thì không.
-That isn't a domain. Type one like example.com, or leave it blank.	Không phải tên miền. Ví dụ example.com, hoặc để trống.
+That isn't a domain. Try one like example.com.	Không phải tên miền. Ví dụ example.com, hoặc để trống.
 The heart plays %1$s when you double tap a post.	Trái tim phát %1$s khi bạn nhấn đúp vào bài viết.
 The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	Trái tim hiện lên khi bạn nhấn đúp vào bài viết sẽ phát hiệu ứng bạn chọn bên dưới. Đó là các hiệu ứng Instagram làm cho nhà sáng tạo Rings.
 Turn on Change the like animation to use this choice.	Hãy bật Đổi hiệu ứng thích để dùng lựa chọn này.
@@ -790,9 +790,9 @@ No accounts are hidden yet. Add a username to take that account's posts out of H
 Add a username	Thêm tên người dùng
 Hide their posts	Ẩn bài viết của họ
 Posts from @%1$s are hidden	Bài viết từ @%1$s đã bị ẩn
-Posts from @%1$s are hidden from Home and Following	Bài viết từ @%1$s đã ẩn khỏi trang chủ
+@%1$s is hidden in Home and Following	Bài viết từ @%1$s đã ẩn khỏi trang chủ
 Posts from @%1$s show again	Bài viết từ @%1$s hiện lại
-A username is up to 30 letters, numbers, dots and underscores	Tối đa 30 chữ cái, số, dấu chấm và gạch dưới
+Up to 30 letters, numbers, dots and underscores	Tối đa 30 chữ cái, số, dấu chấm và gạch dưới
 Hide posts from this account	Ẩn bài viết từ tài khoản này
 Couldn't hide this account	Không ẩn được tài khoản này
 %1$d mentions	%1$d lượt nhắc
@@ -893,8 +893,8 @@ Open a chat in Instagram, then come back here to pin it.	Hãy mở một cuộc 
 Pick the playback quality with a tab long press	Chọn chất lượng phát bằng cách nhấn giữ tab
 Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	Nhấn giữ tab vẫn dùng thao tác riêng của Instagram. Hãy chọn một tab để chọn chất lượng phát.
 Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Nhấn giữ %1$s để chọn chất lượng phát thay cho thao tác thường của tab đó. Nhấn bình thường và các tab khác không đổi. Cần bật Chất lượng phát mặc định. Nếu cùng tab mở HushGram thì mục đó được ưu tiên.
-Playback quality: %1$s. The next video you open uses it.	Chất lượng phát: %1$s. Video sau sẽ dùng mức này.
-Couldn't save the playback quality. Open HushGram settings to set it.	Không lưu được chất lượng. Hãy đặt trong cài đặt.
+Playback quality: %1$s. The next video uses it.	Chất lượng phát: %1$s. Video sau sẽ dùng mức này.
+Couldn't save the quality. Set it in HushGram settings.	Không lưu được chất lượng. Hãy đặt trong cài đặt.
 Support HushGram	Ủng hộ HushGram
 Hide the Home tab	Ẩn tab Trang chủ
 Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	Gỡ Trang chủ khỏi thanh tab. Tab bắt đầu của bạn mở ở nơi Trang chủ sẽ mở, nên hãy chọn một tab khác Trang chủ có trên thanh, nếu không Trang chủ vẫn ở lại. Hãy khởi động lại Instagram để thấy thay đổi.
@@ -914,7 +914,7 @@ Search button on Home's header	Nút Tìm kiếm ở đầu trang chủ
 Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too. Restart Instagram to see the change.	Thêm kính lúp ở đầu trang chủ để mở Tìm kiếm, như tab Tìm kiếm. Dùng được cả khi tab Tìm kiếm bị ẩn. Hãy khởi động lại Instagram để thấy thay đổi.
 Messages button on Home's header	Nút Tin nhắn ở đầu trang chủ
 Adds a Messages button at the top of Home when Instagram moved Messages to your tab bar. A tap opens your messages like the tab does. Restart Instagram to see the change.	Thêm nút Tin nhắn ở đầu trang chủ khi Instagram chuyển Tin nhắn lên thanh tab của bạn. Nhấn để mở tin nhắn như tab. Hãy khởi động lại Instagram để thấy thay đổi.
-To open Messages here, turn on Show the Messages tab and restart.	Để mở Tin nhắn, bật Hiện tab Tin nhắn rồi khởi động lại.
+Turn on Show the Messages tab and restart.	Để mở Tin nhắn, bật Hiện tab Tin nhắn rồi khởi động lại.
 Restart Instagram to put Messages on your tab bar.	Khởi động lại Instagram để Tin nhắn lên thanh tab.
 Center the logo on Home's header	Căn giữa logo ở đầu trang chủ
 Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden or added. A feed's name shown there is centered too. Restart Instagram to see the change.	Đặt logo Instagram ở giữa đầu trang chủ, kể cả khi nút trên đầu bị ẩn hoặc thêm. Tên bảng feed hiện ở đó cũng được căn giữa. Hãy khởi động lại Instagram để thấy thay đổi.
@@ -922,8 +922,8 @@ Center the name on profiles	Căn giữa tên trên trang cá nhân
 Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.	Đặt tên người dùng ở giữa thanh trên cùng của trang cá nhân, của bạn và của người khác. Các nút vẫn ở nguyên vị trí.
 Center titles on other screens	Căn giữa tiêu đề ở màn hình khác
 Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.	Đặt tiêu đề ở giữa thanh trên cùng của các màn hình khác, như thông báo, trong chừng mực các nút bên cạnh cho phép. Các nút vẫn ở nguyên vị trí.
-Search isn't on your tab bar, so this button can't open it here.	Tìm kiếm không ở thanh tab nên nút này không mở được.
-To open Search here, turn off Hide the Search tab and restart.	Để mở Tìm kiếm, tắt Ẩn tab Tìm kiếm rồi khởi động lại.
+This button needs Search on your tab bar.	Tìm kiếm không ở thanh tab nên nút này không mở được.
+Turn off Hide the Search tab and restart.	Để mở Tìm kiếm, tắt Ẩn tab Tìm kiếm rồi khởi động lại.
 Restart Instagram to bring Search back to your tab bar.	Khởi động lại Instagram để Tìm kiếm về thanh tab.
 Tab order	Thứ tự tab
 The tab bar keeps Instagram's order.	Thanh tab giữ thứ tự của Instagram.
@@ -1105,11 +1105,13 @@ Peek at the next carousel page	Ló trang ảnh nhiều trang kế tiếp
 A carousel post's page sits a little in from the edges, with the start of the next page showing at the right.	Trang của bài viết ảnh nhiều trang thụt vào một chút so với mép, phần đầu của trang kế tiếp hiện ở bên phải.
 Large	Lớn
 Small	Nhỏ
-HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	HushGram tạm dừng do Instagram sập. Hãy bật lại.
+Instagram kept crashing, so HushGram paused itself.	Instagram liên tục sập nên HushGram tự tạm dừng.
+# context: the second toast after safe mode paused HushGram, saying where to turn it back on
+Turn it back on in HushGram settings.	Bật lại trong Cài đặt HushGram.
 Download failed. Check your connection and try again.	Tải xuống thất bại. Hãy kiểm tra kết nối và thử lại.
 Download didn't finish. Check your connection and free storage, then try again.	Tải xuống chưa xong. Hãy kiểm tra kết nối và bộ nhớ trống rồi thử lại.
 Some changes apply when Instagram restarts. Tap to restart it now.	Một số thay đổi áp dụng khi Instagram khởi động lại. Nhấn để khởi động lại ngay.
-A save or an export is still running. Restart once it's done.	Đang lưu hoặc xuất. Hãy khởi động lại khi xong.
+Still saving or exporting. Restart once it's done.	Đang lưu hoặc xuất. Hãy khởi động lại khi xong.
 Couldn't restart Instagram. Close it and open it again.	Không khởi động lại được Instagram. Đóng rồi mở lại.
 Already saved. Download again within 30 seconds for a copy.	Đã lưu rồi. Tải lại trong 30 giây để có thêm một bản.
 Already saved %1$d. Download again within 30 seconds for those.	Đã lưu %1$d rồi. Tải lại trong 30 giây để lấy chúng.
@@ -1131,9 +1133,9 @@ A font file	Một tệp phông chữ
 Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.	Phông chữ riêng của Instagram. Bạn cũng có thể chọn phông chữ của điện thoại hoặc tệp .ttf hay .otf. Hãy khởi động lại Instagram để thấy thay đổi.
 Instagram's text uses your phone's font. Restart Instagram to see a change.	Văn bản của Instagram dùng phông chữ của điện thoại. Hãy khởi động lại Instagram để thấy thay đổi.
 Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Văn bản của Instagram dùng tệp phông chữ bạn đã chọn. Hãy chọn lại để đổi tệp. Hãy khởi động lại Instagram để thấy thay đổi.
-That file isn't a font HushGram can use. Your font hasn't changed.	Tệp không phải phông dùng được. Phông không đổi.
+That file isn't a usable font. Yours didn't change.	Tệp không phải phông dùng được. Phông không đổi.
 Font saved. Restart Instagram to see it.	Đã lưu phông chữ. Hãy khởi động lại Instagram để xem.
-Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	Không tải được phông. Chọn lại ở cài đặt > Bố cục.
+Couldn't load your font. Pick it again in Layout.	Không tải được phông. Chọn lại ở Bố cục.
 Hide AI-labeled reels	Ẩn reel có nhãn AI
 Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Bỏ các reel mang nhãn AI của chính Instagram. Reel không có nhãn đó vẫn hiện, kể cả khi do AI tạo.
 Save every page without asking	Lưu mọi trang mà không hỏi
@@ -1290,13 +1292,13 @@ Add .ttf or .otf files from your phone. Uncheck one to take it out.	Thêm tệp 
 No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.	Chưa thêm phông chữ nào. Hãy thêm tệp .ttf hoặc .otf và nó sẽ hiện trong trình soạn văn bản tin cùng với phông chữ của Instagram.
 Add a font file	Thêm tệp phông chữ
 Removed from your story fonts	Đã gỡ khỏi phông chữ tin của bạn
-That file isn't a font HushGram can use. Nothing was added.	Tệp không phải phông dùng được. Chưa thêm gì.
-Added %1$s. Pick it in the story text editor alongside Instagram's fonts.	Đã thêm %1$s. Chọn trong trình soạn tin.
+That file isn't a usable font. Nothing was added.	Tệp không phải phông dùng được. Chưa thêm gì.
+Added %1$s. Pick it in the story text editor.	Đã thêm %1$s. Chọn trong trình soạn tin.
 Logo and titles at the start	Logo và tiêu đề ở đầu thanh
 Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Đặt logo Instagram và tiêu đề của mọi thanh ở đầu thanh, nơi Instagram từng hiện chúng. Hãy bật nếu Instagram căn giữa chúng cho bạn. Nó được ưu tiên hơn các công tắc căn giữa ở trên. Hãy khởi động lại Instagram để thấy thay đổi trên trang chủ.
 Emoji font in story text	Phông chữ emoji trong văn bản tin
 Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	Emoji bạn gõ trong văn bản tin được vẽ từ tệp phông chữ emoji bạn chọn. Bật lên sẽ yêu cầu chọn tệp. Khi tắt, emoji của Instagram quay lại.
-That file isn't a font HushGram can use. Story emoji haven't changed.	Tệp không phải phông dùng được. Emoji không đổi.
+That file isn't a usable font. Emoji didn't change.	Tệp không phải phông dùng được. Emoji không đổi.
 Emoji font saved. Emoji in story text draw in it.	Đã lưu phông emoji. Emoji trong tin sẽ dùng nó.
 Rows in Instagram's settings	Các hàng trong cài đặt của Instagram
 Every row of Instagram's Settings and activity shows. Untick the ones you don't use.	Mọi hàng trong Cài đặt và hoạt động của Instagram đều hiện. Bỏ tích những hàng bạn không dùng.
@@ -1324,7 +1326,7 @@ Photos and videos go to %1$s. Tap to pick another folder.	Ảnh và video vào %
 HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.	HushGram không truy cập được %1$s nữa nên bản lưu vào Movies và Pictures. Hãy chọn lại thư mục.
 Use Movies and Pictures	Dùng Movies và Pictures
 Stop using the folder you picked. Saves go back to Movies and Pictures.	Ngừng dùng thư mục bạn đã chọn. Bản lưu quay lại Movies và Pictures.
-Couldn't use that folder. Saves still go where they did.	Không dùng được thư mục đó. Bản lưu vẫn vào nơi cũ.
+Couldn't use that folder. Saves go where they did.	Không dùng được thư mục đó. Bản lưu vẫn vào nơi cũ.
 Saves go to Movies and Pictures again.	Bản lưu lại vào Movies và Pictures.
 %1$s didn't take this save, so it went to Movies and Pictures.	%1$s không nhận bản lưu này nên nó vào Movies và Pictures.
 Start reels with sound	Bắt đầu reel có tiếng

@@ -313,7 +313,7 @@ public class LogBufferManagerClipboardTest {
         Utils.awaitBackgroundTasksForTests();
         ShadowLooper.idleMainLooper();
 
-        assertEquals("The diagnostic report couldn't be saved. Try again.", ShadowToast.getTextOfLatestToast());
+        assertEquals("Couldn't save the diagnostic report. Try again.", ShadowToast.getTextOfLatestToast());
         assertEquals("before", clipText(clipboard));
     }
 

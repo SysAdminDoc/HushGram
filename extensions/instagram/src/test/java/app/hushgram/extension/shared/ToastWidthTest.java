@@ -26,10 +26,8 @@ import java.util.regex.Pattern;
 /**
  * Every toast fits the two lines Android 12 and later show, in English and in every table. The
  * S22 fits about 34 characters a line and word wrap breaks before that, so this wraps at 28. A
- * longer toast loses its end with nothing on screen to say so.
- *
- * <p>Toasts from before this test sit in toast-width-baseline.txt until they're shortened. The
- * list only shrinks: a new long toast fails, and so does a listed one that fits now or is gone.
+ * longer toast loses its end with nothing on screen to say so. A message that needs more goes out
+ * as two toasts, the way safe mode says it paused HushGram.
  */
 public class ToastWidthTest {
     private static final int WIDTH = 28;
@@ -41,21 +39,12 @@ public class ToastWidthTest {
     /** A placeholder's text is unknown, so it counts as a long-ish name. */
     private static final String FILLED = "XXXXXXXX";
 
-    static final String BASELINE = "extensions/instagram/src/test/resources/toast-width-baseline.txt";
-
     @Test
     public void everyToastFitsTwoLinesInEveryLanguage() throws IOException {
         Set<String> found = longToasts(toastKeys());
         report(found);
-        Set<String> listed = baseline();
-        Set<String> added = new TreeSet<>(found);
-        added.removeAll(listed);
-        Set<String> fitting = new TreeSet<>(listed);
-        fitting.removeAll(found);
         assertTrue("Toasts past two lines of " + WIDTH + " characters. Shorten them:\n"
-                + String.join("\n", added), added.isEmpty());
-        assertTrue("These fit now or are gone, so take them off " + BASELINE + ":\n"
-                + String.join("\n", fitting), fitting.isEmpty());
+                + String.join("\n", found), found.isEmpty());
     }
 
     @Test
@@ -144,20 +133,7 @@ public class ToastWidthTest {
         return lines;
     }
 
-    private static Set<String> baseline() throws IOException {
-        Set<String> listed = new TreeSet<>();
-        File file = new File(L10nCatalogTest.root(), BASELINE);
-        for (String line : new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8).split("\r?\n")) {
-            if (line.isEmpty() || line.startsWith("#")) continue;
-            int tab = line.indexOf('\t');
-            assertTrue(BASELINE + ": a row with no tab: " + line, tab > 0);
-            String english = L10nCatalogTest.decodeField(line.substring(tab + 1));
-            assertTrue(BASELINE + ": listed twice: " + line, listed.add(line.substring(0, tab) + "\t" + encode(english)));
-        }
-        return listed;
-    }
-
-    /** What the scan found, for trimming the baseline when a test run changes it. */
+    /** What the scan found, so a failing run's list can be read whole. */
     private static void report(Set<String> found) throws IOException {
         File out = new File("build/reports/toast-width.txt");
         if (!out.getParentFile().isDirectory() && !out.getParentFile().mkdirs()) return;

@@ -351,7 +351,7 @@ public class ConfigurationDocumentsTest {
             finish();
             assertTrue(Settings.HIDE_ADS.savedValue());
             assertFalse(ConfigurationBackup.canUndo());
-            assertEquals("Couldn't use that settings file. Your settings haven't changed.",
+            assertEquals("Couldn't use that file. Your settings haven't changed.",
                     page.findPreference("hushgram_import_configuration").getSummary().toString());
         }
     }
