@@ -12,6 +12,7 @@ import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.profile.threads.USER_SESSION
 import app.morphe.patches.instagram.stories.seen.hashedIdGetters
+import app.morphe.util.returnEarly
 import com.android.tools.smali.dexlib2.AccessFlags
 
 /** The Bloks screen Instagram's About this account opens, which names the one method that opens it. */
@@ -68,13 +69,7 @@ internal fun BytecodePatchContext.findAboutAccount(): AboutAccountSite? {
  */
 internal fun BytecodePatchContext.applyAboutAccount(site: AboutAccountSite) {
     val methods = mutableClassDefBy(PROFILE_EXTRAS).methods
-    methods.single { it.name == "aboutAvailable" }.addInstructions(
-        0,
-        """
-            const/4 v0, 0x1
-            return v0
-        """,
-    )
+    methods.single { it.name == "aboutAvailable" }.returnEarly(true)
     methods.single { it.name == "userId" }.addInstructions(
         0,
         """
