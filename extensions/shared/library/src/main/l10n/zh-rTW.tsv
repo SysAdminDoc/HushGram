@@ -1626,7 +1626,7 @@ Couldn't save the choice	無法儲存選擇
 Red story mentions	紅色限時動態標註
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	將標註標籤的文字改用紅色而非白色，在明亮的限時動態上更醒目。
 Only received reels	僅限收到的 Reels
-Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	滑動瀏覽聊天室的 Reels 時，會略過你在該處傳送的，只瀏覽對方分享的 Reels。需開啟「滑動瀏覽聊天室的 Reels」才會生效。
+Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	滑動瀏覽聊天室的 Reels 時，會略過你在該處傳送的，只瀏覽對方分享的 Reels。需開啟「在聊天室的 Reels 之間滑動」才會生效。
 # context: Messages settings (#489), and the banner over a reel opened from a chat when the other person wrote after it; a tap goes back to the chat
 Messages after a reel	Reels 之後的訊息
 While you swipe through a chat's reels, a banner says when the other person sent a message after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe through a chat's reels on.	在聊天室的 Reels 之間滑動時，若對方在畫面上的 Reel 之後傳了訊息，會出現橫幅提示。點一下即可回到聊天室的那則訊息。需開啟「在聊天室的 Reels 之間滑動」才會生效。

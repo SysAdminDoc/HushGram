@@ -386,7 +386,7 @@ Layout	레이아웃
 Remove the empty space at the bottom	하단에서 빈 공간 제거
 Removes the empty gap under Instagram's tab bar that appears when your phone hides its navigation bar or Instagram is in a pop-up window. Restart Instagram to see the change.	휴대폰이 탐색 막대를 숨기거나 Instagram이 팝업 창에 있을 때 하단바 아래에 생기는 빈 공간을 없앱니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Only accounts you follow	나를 팔로우하는 계정만
-Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.	홈 상단의 선택지에서 추천을 없애서 팔로잉이나 즐겨찾기에 머물게 합니다. Start Home on Following이 필요합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.	홈 상단의 선택지에서 추천을 없애서 팔로잉이나 즐겨찾기에 머물게 합니다. ‘팔로잉에서 홈 시작’이 필요합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Instagram logo on Home	홈의 Instagram 로고
 Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.	홈 상단에 피드 이름 대신 Instagram 로고를 유지합니다. 탭하면 피드를 바꿀 수 있습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Profiles	프로필
@@ -423,7 +423,7 @@ Leaves out reels with a Paid partnership label, and reels Instagram marks as boo
 Turn on Start Home on Following to use this choice.	이 옵션을 사용하려면 ‘팔로잉에서 홈 시작’을 활성화하세요
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	이 슬라이더를 사용하려면 ‘%1$s’을(를) 활성화하세요.
-Turn on Story ring size to use this choice.	이 옵션을 사용하려면 ‘스토리 링 크기’을 활성화하세요
+Turn on Story ring size to use this choice.	이 옵션을 사용하려면 ‘스토리 링 사이즈’를 활성화하세요
 Turn on Default playback quality to use this choice.	이 옵션을 사용하려면 ‘기본 재생 화질’을 활성화하세요
 Updating remembered positions...	저장된 위치를 업데이트하는 중...
 Undo cleared positions	위치 지우기 실행 취소
@@ -616,7 +616,7 @@ Tells Instagram your phone is at %1$s.	Instagram에 내 휴대폰이 %1$s에 있
 Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.	Instagram에 내 휴대폰이 아래에 설정한 장소에 있다고 알립니다. 위치 스티커, 근처 장소, 지도에 적용되며 사진은 자체 위치를 유지합니다.
 No place set. Until there is one, Instagram is told 0, 0 while Spoof location is on.	설정된 장소가 없습니다. 장소를 정할 때까지 위치 위장이 켜져 있으면 Instagram에는 0, 0으로 알립니다.
 Only on mobile data	모바일 데이터에서만
-Loads smaller photos and starts videos, reels and stories at the lowest quality. Grid thumbnails stay as they are. It takes priority over Full resolution photos and the quality above.	더 작은 사진을 불러오고 동영상, 릴스, 스토리를 가장 낮은 화질로 시작합니다. 격자 미리보기는 그대로입니다. Full resolution photos와 위의 화질보다 우선합니다.
+Loads smaller photos and starts videos, reels and stories at the lowest quality. Grid thumbnails stay as they are. It takes priority over Full resolution photos and the quality above.	더 작은 사진을 불러오고 동영상, 릴스, 스토리를 가장 낮은 화질로 시작합니다. 격자 미리보기는 그대로입니다. ‘원본 해상도 사진’과 위의 화질보다 우선합니다.
 Place	장소
 Send downloads to another app	다운로드를 다른 앱으로 보내기
 Send to	보낼 앱
@@ -1622,7 +1622,7 @@ Couldn't save the choice	선택을 저장할 수 없습니다
 Red story mentions	빨간색 스토리 멘션
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	멘션 알약의 글자를 흰색 대신 빨간색으로 표시해서 밝은 스토리에서도 눈에 띄게 합니다.
 Only received reels	받은 릴스만
-Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	채팅의 릴스를 넘길 때 내가 보낸 릴스는 건너뛰고 상대방이 공유한 릴스만 보여줍니다. 채팅의 릴스 넘기기를 켜 두면 작동합니다.
+Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	채팅의 릴스를 넘길 때 내가 보낸 릴스는 건너뛰고 상대방이 공유한 릴스만 보여줍니다. ‘채팅의 릴스 넘겨보기’를 켜 두면 작동합니다.
 # context: Messages settings (#489), and the banner over a reel opened from a chat when the other person wrote after it; a tap goes back to the chat
 Messages after a reel	릴스 다음 메시지
 While you swipe through a chat's reels, a banner says when the other person sent a message after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe through a chat's reels on.	채팅의 릴스를 넘겨볼 때 화면의 릴스 다음에 상대방이 보낸 메시지가 있으면 배너로 알려 줍니다. 배너를 누르면 채팅의 그 메시지로 돌아갑니다. 채팅의 릴스 넘겨보기가 켜져 있을 때 작동합니다.

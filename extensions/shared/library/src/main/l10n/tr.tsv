@@ -385,7 +385,7 @@ Layout	Düzen
 Remove the empty space at the bottom	Alttaki boş alanı kaldır
 Removes the empty gap under Instagram's tab bar that appears when your phone hides its navigation bar or Instagram is in a pop-up window. Restart Instagram to see the change.	Telefonun gezinme çubuğunu gizlediğinde veya Instagram açılır pencerede olduğunda Instagram'ın sekme çubuğunun altında oluşan boş boşluğu kaldırır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Only accounts you follow	Yalnızca takip ettiğin hesaplar
-Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.	Ana Sayfa'nın üstündeki seçeneklerden Senin için'i kaldırır, böylece Takip edilenler veya Favoriler'de kalır. Start Home on Following gerekir. Değişikliği görmek için Instagram'ı yeniden başlat.
+Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.	Ana Sayfa'nın üstündeki seçeneklerden Senin için'i kaldırır, böylece Takip edilenler veya Favoriler'de kalır. Ana Sayfa'yı Takip Edilenler ile aç seçeneğinin açık olması gerekir. Değişikliği görmek için Instagram'ı yeniden başlat.
 Instagram logo on Home	Ana sayfada Instagram logosu
 Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.	Ana Sayfa'nın üstünde akışın adı yerine Instagram logosunu tutar. Akışı değiştirmek için üzerine dokun. Değişikliği görmek için Instagram'ı yeniden başlat.
 Profiles	Profiller
@@ -419,7 +419,7 @@ Show profile posts as a list	Profil gönderilerini liste olarak göster
 Opening someone's profile takes you on to their posts as a scrolling list of full posts. Go Back for the grid. Your own profile keeps its grid.	Birinin profilini açtığında doğrudan gönderilerine, tam gönderilerden oluşan kaydırılabilir bir listeye geçersin. Izgara için Geri'ye dön. Kendi profilin ızgara olarak kalır.
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	Instagram'ın reel'ler arasına koyduğu, takip edilecek kişi ve içerik üreticisi kartları. Her reel oynatılmaya devam eder.
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	Ücretli ortaklık etiketi taşıyan reel'leri ve Instagram'ın öne çıkarılmış olarak işaretlediği reel'leri dışarıda bırakır. Reklamların kendi anahtarı var.
-Turn on Start Home on Following to use this choice.	Bu seçimi kullanmak için Ana sayfayı Takip edilenler ile başlat seçeneğini açın.
+Turn on Start Home on Following to use this choice.	Bu seçimi kullanmak için Ana Sayfa'yı Takip Edilenler ile aç seçeneğini açın.
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	Bu kaydırıcıyı kullanmak için %1$s seçeneğini açın.
 Turn on Story ring size to use this choice.	Bu seçimi kullanmak için Hikâye halkası boyutu seçeneğini açın.
@@ -617,7 +617,7 @@ Tells Instagram your phone is at %1$s.	Instagram'a telefonunun %1$s konumunda ol
 Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.	Instagram'a telefonunun aşağıda belirlenen yerde olduğunu söyler. Konum çıkartması, yakındaki yerler ve haritalar için geçerlidir. Fotoğraflar kendi konumlarını korur.
 No place set. Until there is one, Instagram is told 0, 0 while Spoof location is on.	Yer ayarlanmadı. Bir yer olana kadar, Konumu taklit et açıkken Instagram'a 0, 0 söylenir.
 Only on mobile data	Yalnızca mobil veride
-Loads smaller photos and starts videos, reels and stories at the lowest quality. Grid thumbnails stay as they are. It takes priority over Full resolution photos and the quality above.	Daha küçük fotoğraflar yükler ve videoları, reels'leri ve hikâyeleri en düşük kalitede başlatır. Izgara küçük resimleri olduğu gibi kalır. Full resolution photos ve yukarıdaki kaliteye göre önceliklidir.
+Loads smaller photos and starts videos, reels and stories at the lowest quality. Grid thumbnails stay as they are. It takes priority over Full resolution photos and the quality above.	Daha küçük fotoğraflar yükler ve videoları, reels'leri ve hikâyeleri en düşük kalitede başlatır. Izgara küçük resimleri olduğu gibi kalır. Tam çözünürlüklü fotoğraflar ve yukarıdaki kaliteye göre önceliklidir.
 Place	Yer
 Send downloads to another app	İndirmeleri başka bir uygulamaya gönder
 Send to	Gönderilecek uygulama
@@ -1430,7 +1430,7 @@ Keeps the Reels title, the Friends tab and the buttons beside them at the top wh
 Keep a viewing history	Görüntüleme geçmişi tut
 Remembers the posts, reels, stories and profiles that come up on screen, and who posted them, newest first, on this phone only. Nothing is sent anywhere, and nothing more is asked of Instagram. Turn it off and it stops at once. Clear it below.	Ekranda görünen gönderileri, reels'leri, hikayeleri ve profilleri, kimin paylaştığıyla birlikte, yalnızca bu telefonda, en yeniler üstte olacak şekilde hatırlar. Hiçbir yere gönderilmez ve Instagram'dan fazladan hiçbir şey istenmez. Kapatınca hemen durur. Aşağıdan temizleyebilirsin.
 Viewing history	Görüntüleme geçmişi
-Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Henüz bir şey yok. Görüntüleme geçmişi açıkken baktıkların burada görünür.
+Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Henüz bir şey yok. Görüntüleme geçmişi tut açıkken baktıkların burada görünür.
 Post	Gönderi
 Reel	Reels
 Story	Hikaye
@@ -1623,7 +1623,7 @@ Couldn't save the choice	Seçim kaydedilemedi
 Red story mentions	Kırmızı hikaye bahsetmeleri
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Bahsetme etiketinin yazısını beyaz yerine kırmızı çizer, böylece parlak hikayelerde öne çıkar.
 Only received reels	Yalnızca alınan reels
-Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Bir sohbetin reels'lerinde gezinirken orada gönderdiklerin atlanır, yalnızca karşı tarafın paylaştıkları gösterilir. Sohbetin reels'lerinde kaydır açıkken çalışır.
+Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Bir sohbetin reels'lerinde gezinirken orada gönderdiklerin atlanır, yalnızca karşı tarafın paylaştıkları gösterilir. Bir sohbetin reels videolarında kaydır açıkken çalışır.
 # context: Messages settings (#489), and the banner over a reel opened from a chat when the other person wrote after it; a tap goes back to the chat
 Messages after a reel	Reels videosundan sonraki mesajlar
 While you swipe through a chat's reels, a banner says when the other person sent a message after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe through a chat's reels on.	Bir sohbetin reels videolarında kaydırırken, karşı taraf ekrandaki videodan sonra mesaj gönderdiyse bir afiş bunu gösterir. Sohbette o mesaja dönmek için afişe dokun. Bir sohbetin reels videolarında kaydır açıkken çalışır.

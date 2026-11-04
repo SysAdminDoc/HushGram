@@ -267,7 +267,7 @@ A double tap on a reel doesn't like it. Turn this off to keep double tap to like
 Hide the Reels tab	Ocultar la pestaña de Reels
 Takes Reels off the tab bar. Reels in your feed and reels people send you still open. Restart Instagram to see the change.	Quita Reels de la barra de pestañas. Los reels de tu feed y los que te envían se siguen abriendo. Reinicia Instagram para ver el cambio.
 Show the Reels tab	Mostrar la pestaña Reels
-Puts Reels back on the tab bar if Instagram left it off yours. Hide the Reels tab wins if both are on. Restart Instagram to see the change.	Vuelve a poner Reels en la barra de pestañas si Instagram lo dejó fuera de la tuya. Ocultar la pestaña Reels tiene prioridad si ambos están activados. Reinicia Instagram para ver el cambio.
+Puts Reels back on the tab bar if Instagram left it off yours. Hide the Reels tab wins if both are on. Restart Instagram to see the change.	Vuelve a poner Reels en la barra de pestañas si Instagram lo dejó fuera de la tuya. «Ocultar la pestaña de Reels» tiene prioridad si ambos están activados. Reinicia Instagram para ver el cambio.
 Show the Messages tab	Mostrar la pestaña Mensajes
 Puts Messages on the tab bar, before Profile, if Instagram left it off yours. Tab order can move it. Restart Instagram to see the change.	Pone Mensajes en la barra de pestañas, antes de Perfil, si Instagram no lo incluyó en la tuya. Puedes moverlo con Orden de las pestañas. Reinicia Instagram para ver el cambio.
 Hide the Messages tab	Ocultar la pestaña Mensajes
@@ -385,7 +385,7 @@ Layout	Diseño
 Remove the empty space at the bottom	Quitar el espacio vacío de abajo
 Removes the empty gap under Instagram's tab bar that appears when your phone hides its navigation bar or Instagram is in a pop-up window. Restart Instagram to see the change.	Quita el hueco vacío bajo la barra de pestañas de Instagram que aparece cuando tu teléfono oculta su barra de navegación o Instagram está en una ventana emergente. Reinicia Instagram para ver el cambio.
 Only accounts you follow	Solo cuentas que sigues
-Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.	Quita Para ti de las opciones de la parte de arriba de Inicio, así que se queda en Siguiendo o Favoritos. Necesita Start Home on Following. Reinicia Instagram para ver el cambio.
+Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.	Quita Para ti de las opciones de la parte de arriba de Inicio, así que se queda en Seguidos o Favoritos. Necesita «Abrir Inicio en Seguidos». Reinicia Instagram para ver el cambio.
 Instagram logo on Home	Logo de Instagram en Inicio
 Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.	Mantiene el logo de Instagram arriba de Inicio en lugar del nombre del feed. Tócalo para cambiar de feed. Reinicia Instagram para ver el cambio.
 Profiles	Perfiles
@@ -419,7 +419,7 @@ Show profile posts as a list	Mostrar las publicaciones del perfil como lista
 Opening someone's profile takes you on to their posts as a scrolling list of full posts. Go Back for the grid. Your own profile keeps its grid.	Al abrir el perfil de alguien, pasas directamente a sus publicaciones en una lista desplazable de publicaciones completas. Vuelve atrás para ver la cuadrícula. Tu propio perfil conserva su cuadrícula.
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	Las tarjetas de personas y creadores para seguir que Instagram pone entre los reels. Todos los reels se siguen reproduciendo.
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	Omite los reels con la etiqueta Colaboración pagada y los que Instagram marca como promocionados. Los anuncios tienen su propio interruptor.
-Turn on Start Home on Following to use this choice.	Activa «Abrir Inicio en Siguiendo» para usar esta opción.
+Turn on Start Home on Following to use this choice.	Activa «Abrir Inicio en Seguidos» para usar esta opción.
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	Activa «%1$s» para usar este control deslizante.
 Turn on Story ring size to use this choice.	Activa «Tamaño de los anillos de historias» para usar esta opción.
@@ -617,7 +617,7 @@ Tells Instagram your phone is at %1$s.	Le dice a Instagram que tu teléfono est�
 Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.	Le dice a Instagram que tu teléfono está en el lugar indicado abajo, para la pegatina de ubicación, los lugares cercanos y los mapas. Las fotos conservan sus propios lugares.
 No place set. Until there is one, Instagram is told 0, 0 while Spoof location is on.	No hay ningún lugar definido. Hasta que lo haya, a Instagram se le dice 0, 0 mientras Falsificar ubicación esté activado.
 Only on mobile data	Solo con datos móviles
-Loads smaller photos and starts videos, reels and stories at the lowest quality. Grid thumbnails stay as they are. It takes priority over Full resolution photos and the quality above.	Carga fotos más pequeñas y empieza los videos, reels e historias con la calidad más baja. Las miniaturas de la cuadrícula no cambian. Tiene prioridad sobre Full resolution photos y la calidad de arriba.
+Loads smaller photos and starts videos, reels and stories at the lowest quality. Grid thumbnails stay as they are. It takes priority over Full resolution photos and the quality above.	Carga fotos más pequeñas y empieza los videos, reels e historias con la calidad más baja. Las miniaturas de la cuadrícula no cambian. Tiene prioridad sobre «Fotos a resolución completa» y la calidad de arriba.
 Place	Lugar
 Send downloads to another app	Enviar descargas a otra app
 Send to	Enviar a
@@ -1122,7 +1122,7 @@ Active at %1$s	Activo a las %1$s
 Active yesterday at %1$s	Activo ayer a las %1$s
 Active %1$s at %2$s	Activo el %1$s a las %2$s
 Rounded corners on posts	Esquinas redondeadas en publicaciones
-Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	Redondea las esquinas de la foto, el video y las páginas del carrusel de una publicación en Inicio y Siguiendo. Las publicaciones a las que llegues después de un cambio lo muestran. Las historias, los perfiles y Explorar se quedan como estaban.
+Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	Redondea las esquinas de la foto, el video y las páginas del carrusel de una publicación en Inicio y Seguidos. Las publicaciones a las que llegues después de un cambio lo muestran. Las historias, los perfiles y Explorar se quedan como estaban.
 Corner size	Tamaño de las esquinas
 Rounded corners on Reels	Esquinas redondeadas en Reels
 Rounded corners on stories	Esquinas redondeadas en las historias
@@ -1430,7 +1430,7 @@ Keeps the Reels title, the Friends tab and the buttons beside them at the top wh
 Keep a viewing history	Guardar un historial de lo visto
 Remembers the posts, reels, stories and profiles that come up on screen, and who posted them, newest first, on this phone only. Nothing is sent anywhere, and nothing more is asked of Instagram. Turn it off and it stops at once. Clear it below.	Recuerda las publicaciones, reels, historias y perfiles que aparecen en pantalla, y quién los publicó, los más recientes primero, solo en este teléfono. No se envía nada y no se le pide nada más a Instagram. Si lo apagas, se detiene al instante. Abajo puedes borrarlo.
 Viewing history	Historial de lo visto
-Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Aún no hay nada. Con el historial activado, aquí aparece lo que miras.
+Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Aún no hay nada. Con «Guardar un historial de lo visto» activado, aquí aparece lo que miras.
 Post	Publicación
 Reel	Reel
 Story	Historia
@@ -1623,7 +1623,7 @@ Couldn't save the choice	No se pudo guardar la elección
 Red story mentions	Menciones de historias en rojo
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Dibuja el texto de la etiqueta de menciones en rojo en lugar de blanco, para que destaque en historias claras.
 Only received reels	Solo reels recibidos
-Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Al pasar por los reels de un chat se saltan los que enviaste allí, así que solo recorre los que compartió la otra persona. Funciona con Deslizar por los reels de un chat activado.
+Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Al pasar por los reels de un chat se saltan los que enviaste allí, así que solo recorre los que compartió la otra persona. Funciona con «Desliza por los reels de un chat» activado.
 # context: Messages settings (#489), and the banner over a reel opened from a chat when the other person wrote after it; a tap goes back to the chat
 Messages after a reel	Mensajes después de un reel
 While you swipe through a chat's reels, a banner says when the other person sent a message after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe through a chat's reels on.	Mientras deslizas por los reels de un chat, un aviso te indica cuándo la otra persona envió un mensaje después del reel en pantalla. Tócalo para volver al chat en ese mensaje. Funciona con Desliza por los reels de un chat activado.

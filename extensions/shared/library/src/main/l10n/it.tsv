@@ -1430,7 +1430,7 @@ Keeps the Reels title, the Friends tab and the buttons beside them at the top wh
 Keep a viewing history	Tieni una cronologia di ciò che guardi
 Remembers the posts, reels, stories and profiles that come up on screen, and who posted them, newest first, on this phone only. Nothing is sent anywhere, and nothing more is asked of Instagram. Turn it off and it stops at once. Clear it below.	Ricorda i post, i reel, le storie e i profili che compaiono sullo schermo, e chi li ha pubblicati, i più recenti per primi, solo su questo telefono. Non viene inviato nulla e a Instagram non si chiede nient'altro. Se la spegni, si ferma subito. Più sotto puoi cancellarla.
 Viewing history	Cronologia di ciò che guardi
-Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Ancora niente. Con la cronologia attiva, qui compare ciò che guardi.
+Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Ancora niente. Con «Tieni una cronologia di ciò che guardi» attivo, qui compare quello che vedi.
 Post	Post
 Reel	Reel
 Story	Storia
@@ -1537,7 +1537,7 @@ Menu button on Home's header	Pulsante Menu nell'intestazione della Home
 Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.	Aggiunge in alto nella Home un pulsante Menu con la cronologia, la modalità fantasma e le impostazioni di HushGram. Riavvia Instagram per vedere la modifica.
 HushGram menu	Menu di HushGram
 Seek bar button on feed videos	Pulsante della barra di scorrimento nei video del feed
-Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Aggiunge un piccolo pulsante in basso a sinistra in un video del feed che mostra o nasconde la sua barra di scorrimento. Funziona con la barra nei video del feed attiva o disattivata.
+Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Aggiunge un piccolo pulsante in basso a sinistra in un video del feed che mostra o nasconde la sua barra di scorrimento. Funziona con Barra di scorrimento nei video del feed attiva o disattivata.
 Seek bar	Barra di scorrimento
 Tint intensity	Intensità della tinta
 Refraction intensity	Intensità della rifrazione
@@ -1623,7 +1623,7 @@ Couldn't save the choice	Impossibile salvare la scelta
 Red story mentions	Menzioni delle storie in rosso
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Scrive il testo dell'etichetta delle menzioni in rosso invece che in bianco, così risalta sulle storie chiare.
 Only received reels	Solo reel ricevuti
-Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Scorrendo i reel di una chat vengono saltati quelli che hai inviato tu, quindi passa solo quelli condivisi dall'altra persona. Funziona con Scorri i reel di una chat attivo.
+Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Scorrendo i reel di una chat vengono saltati quelli che hai inviato tu, quindi passa solo quelli condivisi dall'altra persona. Funziona con Scorri tra i reel di una chat attivo.
 # context: Messages settings (#489), and the banner over a reel opened from a chat when the other person wrote after it; a tap goes back to the chat
 Messages after a reel	Messaggi dopo un reel
 While you swipe through a chat's reels, a banner says when the other person sent a message after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe through a chat's reels on.	Mentre scorri i reel di una chat, un banner ti avvisa quando l'altra persona ha inviato un messaggio dopo il reel sullo schermo. Toccalo per tornare alla chat su quel messaggio. Funziona con Scorri tra i reel di una chat attivo.
