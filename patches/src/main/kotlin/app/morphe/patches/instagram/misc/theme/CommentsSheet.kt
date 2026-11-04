@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.originalName
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -64,10 +65,15 @@ internal fun BytecodePatchContext.blackenCommentsSheet(hooks: BottomSheetHooks) 
     host.methods.single { it.same(hooks.dragged) }.hookReturns("invoke-static { p0 }, $REPAINT_COMMENTS_SHEET")
 }
 
+/**
+ * Puts [call] before each return-void on the return's own label, so the paths that branch onto
+ * the return run it too. The 454 set-up method jumps onto its last return from seven places,
+ * three of them after the sheet is fully set up.
+ */
 private fun app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.hookReturns(call: String) {
     val returns = implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.map { it.index }
     if (returns.isEmpty()) throw PatchException("$PATCH_NAME: $name returns nowhere")
-    returns.asReversed().forEach { addInstructions(it, call) }
+    returns.asReversed().forEach { addInstructionsAtControlFlowLabel(it, call) }
 }
 
 /**

@@ -14,12 +14,17 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import app.morphe.patches.instagram.misc.extension.originalName
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -89,15 +94,89 @@ class CommentsSheetHookTest {
             context.blackenCommentsSheet(hooks)
 
             val patched = context.mutableClassDefBy(BOTTOM_SHEET_HOST)
-            val calls = listOf(hooks.setUp, hooks.dragged).map { hook ->
+            val label = "${build.parentFile.name}/${build.name}"
+            val hooked = listOf(hooks.setUp, hooks.dragged).map { hook ->
                 patched.methods.single { it.name == hook.name && it.parameterTypes.map(Any::toString) == hook.parameterTypes.map(Any::toString) }
-                    .implementation!!.instructions.count {
-                        (it as? ReferenceInstruction)?.reference?.toString()
-                            ?.startsWith("Lapp/hushgram/extension/instagram/misc/CommentsSheet;") == true
-                    }
             }
-            assertEquals("${build.parentFile.name}/${build.name}: one hook per return", returns, calls)
+            val calls = hooked.map { method -> method.implementation!!.instructions.count(::isHook) }
+            assertEquals("$label: one hook per return", returns, calls)
+            for (method in hooked) {
+                val instructions = method.implementation!!.instructions.toList()
+                instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.forEach {
+                    assertTrue("$label/${method.name}: return ${it.index} has no hook before it", isHook(instructions[it.index - 1]))
+                }
+                assertEquals("$label/${method.name}: jumps that skip the hook", 0, jumpsOntoAReturn(method))
+            }
         }
+    }
+
+    /** A return something branches onto gets the hook on the branch's path too, not only the fall-through's. */
+    @Test
+    fun aReturnABranchLandsOnRunsTheHookOnThatBranch() {
+        val ctx = "Landroid/content/Context;"
+        val fragment = "Landroidx/fragment/app/Fragment;"
+        // if-eqz on the last parameter jumps straight onto the return, past the nop.
+        fun branching(name: String, registers: Int, vararg parameters: String) = ImmutableMethod(
+            BOTTOM_SHEET_HOST, name, parameters.map { ImmutableMethodParameter(it, null, null) }, "V", AccessFlags.PUBLIC.value, null, null,
+            ImmutableMethodImplementation(
+                registers,
+                listOf(
+                    ImmutableInstruction21t(Opcode.IF_EQZ, registers - 1, 3),
+                    ImmutableInstruction10x(Opcode.NOP),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ),
+                null, null,
+            ),
+        )
+        val host = ImmutableClassDef(
+            BOTTOM_SHEET_HOST, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, emptyList(),
+            listOf(branching("A0W", 4, ctx, fragment, "I"), branching("F5J", 3, "I", "I")),
+        )
+        val context = PatchContexts.of(listOf(host))
+        val hooks = context.findBottomSheetHooks()
+        assertEquals(1, jumpsOntoAReturn(hooks.setUp))
+        assertEquals(1, jumpsOntoAReturn(hooks.dragged))
+
+        context.blackenCommentsSheet(hooks)
+
+        for (name in listOf("A0W", "F5J")) {
+            val method = context.mutableClassDefBy(BOTTOM_SHEET_HOST).methods.single { it.name == name }
+            val instructions = method.implementation!!.instructions.toList()
+            val branch = instructions.first() as OffsetInstruction
+            val landing = instructions[addresses(instructions).indexOf(branch.codeOffset)]
+            assertTrue("$name: the branch lands on ${landing.opcode}, not the hook", isHook(landing))
+            assertEquals(name, 0, jumpsOntoAReturn(method))
+        }
+    }
+
+    private fun isHook(instruction: Instruction) =
+        (instruction as? ReferenceInstruction)?.reference?.toString()?.startsWith("Lapp/hushgram/extension/instagram/misc/CommentsSheet;") == true
+
+    private fun addresses(instructions: List<Instruction>): List<Int> {
+        var address = 0
+        return instructions.map { instruction -> address.also { address += instruction.codeUnits } }
+    }
+
+    /** How many branches, switch cases and catch handlers in [method] land straight on a return-void. */
+    private fun jumpsOntoAReturn(method: Method): Int {
+        val implementation = method.implementation!!
+        val instructions = implementation.instructions.toList()
+        val addresses = addresses(instructions)
+        val indexAt = addresses.withIndex().associate { (index, address) -> address to index }
+        fun onReturn(target: Int) = indexAt[target]?.let { instructions[it].opcode == Opcode.RETURN_VOID } == true
+        var jumps = 0
+        instructions.forEachIndexed { index, instruction ->
+            if (instruction !is OffsetInstruction) return@forEachIndexed
+            val target = addresses[index] + instruction.codeOffset
+            if (instruction.opcode == Opcode.PACKED_SWITCH || instruction.opcode == Opcode.SPARSE_SWITCH) {
+                val payload = instructions[indexAt.getValue(target)] as SwitchPayload
+                jumps += payload.switchElements.count { onReturn(addresses[index] + it.offset) }
+            } else if (onReturn(target)) {
+                jumps++
+            }
+        }
+        implementation.tryBlocks.forEach { block -> jumps += block.exceptionHandlers.count { onReturn(it.handlerCodeAddress) } }
+        return jumps
     }
 
     /**
