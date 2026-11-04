@@ -430,7 +430,8 @@ final class Mp4Join {
                 if (group[1] == 0) continue;
                 long bytes = 0;
                 for (int i = sample; i < sample + group[1]; i++) bytes += sizes.get(i);
-                if (start < 0 || start + bytes > length) {
+                // Subtracted, since a 64-bit offset near the top plus the bytes wraps below the length.
+                if (start < 0 || start > length - bytes) {
                     throw new IOException("a chunk's samples run past the end of the " + kind + " file");
                 }
                 sample += (int) group[1];
@@ -524,7 +525,7 @@ final class Mp4Join {
                 decodeTime += sampleDuration & 0xFFFFFFFFL;
                 bytes += sampleSize;
             }
-            if (start < 0 || start + bytes > length) {
+            if (start < 0 || start > length - bytes) {
                 throw new IOException("a fragment's samples run past the end of the " + kind + " file");
             }
             addRun(start, sizes.size, description);

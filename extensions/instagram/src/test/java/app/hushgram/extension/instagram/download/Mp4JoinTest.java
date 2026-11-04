@@ -430,6 +430,13 @@ public class Mp4JoinTest {
         Files.write(plainCut.toPath(), Arrays.copyOf(plain, plain.length - 100));
         assertRefused("samples run past the end of the audio file", picture, plainCut);
 
+        // A 64-bit chunk offset so near the top that adding its samples' bytes wraps below the length.
+        byte[] wide = FragmentedMp4ForTests.plain(true, false, aacSound());
+        java.nio.ByteBuffer.wrap(wide).putLong(indexOf(wide, "co64") + 16, 0x7FFF_FFFF_FFFF_FFF0L);
+        File wraps = temp.newFile("wraps.mp4");
+        Files.write(wraps.toPath(), wide);
+        assertRefused("samples run past the end of the audio file", picture, wraps);
+
         // Cut inside the last mdat, which its moof, read first, already points past.
         byte[] whole = vp9Picture().build();
         File cut = temp.newFile("cut.mp4");
