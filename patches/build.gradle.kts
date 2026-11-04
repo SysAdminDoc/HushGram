@@ -10,8 +10,14 @@ import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.internal.tasks.testing.filter.DefaultTestFilter
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.security.KeyFactory
 import java.security.MessageDigest
+import java.security.Signature
+import java.security.spec.EdECPrivateKeySpec
+import java.security.spec.NamedParameterSpec
+import java.security.spec.X509EncodedKeySpec
 import java.time.Instant
+import java.util.Base64
 import java.util.Collections
 import java.util.UUID
 import java.util.zip.CRC32
@@ -127,6 +133,50 @@ fun pinBundleTimestamp(bundle: File, epochSeconds: Long, buildIdentity: String) 
         }
     }
     bundle.writeBytes(rebuilt.toByteArray())
+}
+
+/**
+ * Signs the bundle with MorpheSig1, the signature morphe-patcher 2.1 checks and Morphe Manager 2.3
+ * pins per source: Ed25519 over "MorpheSig1" and the SHA-256 of the archive with an empty comment,
+ * stored in the zip comment as "MorpheSig1 <public key> <signature>".
+ *
+ * <p>scripts/bundle_signature.py checks it the same way. The private key is the Base64 seed the
+ * Morphe patches plugin 2.1 reads from MORPHE_SIGNING_KEY. A blank key leaves the bundle unsigned,
+ * and a key that isn't the one morphe-signing.pub publishes fails the build.
+ */
+fun signBundle(bundle: File, privateKey: String?, publicKey: String) {
+    val bytes = bundle.readBytes()
+    // The end of central directory record is the last one whose comment reaches the end.
+    fun length(at: Int) = (bytes[at].toInt() and 0xFF) or ((bytes[at + 1].toInt() and 0xFF) shl 8)
+    val end = (bytes.size - 22 downTo maxOf(0, bytes.size - 22 - 0xFFFF)).firstOrNull {
+        bytes[it] == 0x50.toByte() && bytes[it + 1] == 0x4b.toByte() && bytes[it + 2] == 5.toByte() &&
+            bytes[it + 3] == 6.toByte() && length(it + 20) == bytes.size - it - 22
+    } ?: throw GradleException("$bundle is not a zip archive")
+    val unsigned = bytes.copyOf(end + 22).also { it[end + 20] = 0; it[end + 21] = 0 }
+    if (privateKey.isNullOrBlank()) {
+        if (unsigned.size != bytes.size) bundle.writeBytes(unsigned)
+        return
+    }
+    val message = "MorpheSig1".toByteArray(Charsets.US_ASCII) + MessageDigest.getInstance("SHA-256").digest(unsigned)
+    val keys = KeyFactory.getInstance("Ed25519")
+    val signature = Signature.getInstance("Ed25519").run {
+        initSign(keys.generatePrivate(EdECPrivateKeySpec(NamedParameterSpec.ED25519, Base64.getDecoder().decode(privateKey.trim()))))
+        update(message)
+        sign()
+    }
+    // A raw Ed25519 public key behind its fixed X.509 prefix.
+    val x509 = byteArrayOf(0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00) +
+        Base64.getDecoder().decode(publicKey)
+    val matches = Signature.getInstance("Ed25519").run {
+        initVerify(keys.generatePublic(X509EncodedKeySpec(x509)))
+        update(message)
+        verify(signature)
+    }
+    if (!matches) throw GradleException("MORPHE_SIGNING_KEY is not the key morphe-signing.pub publishes")
+    val comment = "MorpheSig1 $publicKey ${Base64.getEncoder().encodeToString(signature)}".toByteArray(Charsets.US_ASCII)
+    unsigned[end + 20] = (comment.size and 0xFF).toByte()
+    unsigned[end + 21] = (comment.size shr 8).toByte()
+    bundle.writeBytes(unsigned + comment)
 }
 
 /**
@@ -1168,6 +1218,12 @@ tasks {
         // Why the stamp is zero, when the tree is the reason, said where the stamp is written: a
         // release needs a bundle a clean checkout reproduces, and only this build saw the tree.
         val unheldChanges = if (sourceDateEpochFromEnvironment == null) uncommittedChanges else emptyList()
+        // Signed only once a key pair exists, so until morphe-signing.pub is committed every build
+        // stays unsigned the way Morphe Manager 2.2 and older expect.
+        val signingKey = providers.environmentVariable("MORPHE_SIGNING_KEY")
+        val signingPublic = rootProject.file("morphe-signing.pub")
+        inputs.property("bundleSigned", signingKey.map { it.isNotBlank() }.orElse(false))
+        inputs.files(signingPublic).withPropertyName("bundleSigningPublicKey")
         doLast {
             verifyCanonicalIdentity.call()
             // Emptied first, so the directory never holds a bundle of another version or a
@@ -1184,6 +1240,12 @@ tasks {
             val identity = Regex("\"id\"\\s*:\\s*\"(hg1:[0-9a-f]{64})\"").find(canonicalText)?.groupValues?.get(1)
                 ?: throw GradleException("The canonical production inputs have no build identity.")
             pinBundleTimestamp(releaseBundle, pinnedEpoch, identity)
+            // After the pin, which rewrites the archive, and before the checksum of what ships.
+            if (signingPublic.isFile) {
+                signBundle(releaseBundle, signingKey.orNull, signingPublic.readText().trim())
+            } else if (!signingKey.orNull.isNullOrBlank()) {
+                throw GradleException("MORPHE_SIGNING_KEY is set, but there's no morphe-signing.pub to publish its key.")
+            }
             if (unheldChanges == null) {
                 logger.warn("git couldn't say whether the working tree matches HEAD, so $releaseBundleName is " +
                     "stamped 0 rather than a commit's time, and a clean checkout won't reproduce it.")
