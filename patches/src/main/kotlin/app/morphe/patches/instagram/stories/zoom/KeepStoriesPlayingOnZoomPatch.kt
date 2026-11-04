@@ -154,6 +154,10 @@ internal fun BytecodePatchContext.findStoryZoomPause(): StoryZoomPause {
     val playback = findViewerPlayback(PATCH)
     val pause = playback.pause
     val resume = playback.resume
+    // The pinch's pause calls the resume from its own class, so the resume must be reachable from there.
+    if (!reaches(pinch.definingClass, resume)) {
+        refuse("$STORY_VIEWER->${resume.name} can't be called from ${pinch.definingClass}, where the pinch's pause plays the story")
+    }
     val fields = pinch.implementation?.instructions?.toList().orEmpty()
         .filter { it.opcode == Opcode.IGET_OBJECT }
         .mapNotNull { (it as? ReferenceInstruction)?.reference as? FieldReference }
@@ -163,6 +167,13 @@ internal fun BytecodePatchContext.findStoryZoomPause(): StoryZoomPause {
     val viewerField = fields.singleOrNull()
         ?: refuse("expected the pinch pause to read one $STORY_VIEWER field, found ${fields.size}")
     return StoryZoomPause(pinch.located(), pause.located(), resume.located(), viewerField, dragAnswer(resume))
+}
+
+/** Whether code in [caller] may call [method]: public, its own class, or a package mate unless private. */
+private fun reaches(caller: String, method: Method): Boolean = when {
+    AccessFlags.PUBLIC.isSet(method.accessFlags) || caller == method.definingClass -> true
+    AccessFlags.PRIVATE.isSet(method.accessFlags) -> false
+    else -> caller.substringBeforeLast('/') == method.definingClass.substringBeforeLast('/')
 }
 
 private fun dragAnswer(resume: Method): Int {

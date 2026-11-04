@@ -31,6 +31,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
@@ -64,6 +65,16 @@ class KeepStoriesPlayingOnZoomHookTest {
     @Test
     fun aBuildWithoutTheViewerFailsThePatch() =
         refuses("no $VIEWER loads \"$PAUSE_MARK\"", listOf(pinchRunner()))
+
+    /** The pinch's pause plays the story through the viewer's resume, so a resume it can't call fails the patch. */
+    @Test
+    fun aResumeThePinchCantCallFailsThePatch() {
+        for (flags in listOf(AccessFlags.PRIVATE.value, 0)) {
+            refuses("$VIEWER->A01 can't be called from Lfixture/PinchPause;", listOf(pinchRunner(), viewer(flags)))
+        }
+        // A public one gets past it, to the pinch's read of the viewer the fixture leaves out.
+        refuses("expected the pinch pause to read one $VIEWER field, found 0", listOf(pinchRunner(), viewer(AccessFlags.PUBLIC.value)))
+    }
 
     @Test
     fun eachDeclaredBuildHooksThePinchPause() {
@@ -232,6 +243,24 @@ class KeepStoriesPlayingOnZoomHookTest {
                         null, null,
                     ),
                 ),
+            ),
+        )
+
+        /** The story viewer: its static pause and, shaped like 454's, an instance resume with [resumeFlags]. */
+        fun viewer(resumeFlags: Int): ClassDef = ImmutableClassDef(
+            VIEWER, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+            listOf(
+                marked("A00", listOf(VIEWER, STRING), AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, PAUSE_MARK, 3),
+                marked("A01", listOf(STRING, "Z"), resumeFlags, RESUME_MARK, 4),
+            ),
+        )
+
+        private fun marked(name: String, parameters: List<String>, flags: Int, mark: String, registers: Int) = ImmutableMethod(
+            VIEWER, name, parameters.map { ImmutableMethodParameter(it, null, null) }, "V", flags, null, null,
+            ImmutableMethodImplementation(
+                registers,
+                listOf(ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(mark)), ImmutableInstruction10x(Opcode.RETURN_VOID)),
+                null, null,
             ),
         )
     }
