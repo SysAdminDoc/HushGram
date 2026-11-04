@@ -420,7 +420,10 @@ class KeepReelsAutoScrollHookTest {
                 if (wanted && classDef.type !in found) found[classDef.type] = ImmutableClassDef.of(classDef)
             }
         }
-        assertEquals("${label}: what reads the timer or the preference besides their own classes", setOf(checkMethod.text()), stateReaders)
+        // 454's static copy of the check (09FH.A02 on 386014758) reads the timer and the preference too.
+        val stateCopies = stateReaders - checkMethod.text()
+        assertTrue("${label}: the check reads the timer or the preference", checkMethod.text() in stateReaders)
+        assertTrue("${label}: at most one copy of the check reads them too: $stateCopies", stateCopies.size <= 1)
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, found.values) + ExtensionDex.classDef(SETTINGS_STATUS))
         val sites = context.findReelAutoScroll()
         assertEquals("${label}: the getter", "${getter.definingClass}->${getter.name}", "${sites.getter.definingClass}->${sites.getter.name}")
@@ -454,7 +457,21 @@ class KeepReelsAutoScrollHookTest {
         assertTrue("${label}: at most one copy of the check reads the memory", checkCopies.size <= 1)
         assertEquals("${label}: what reads the memory besides the check", known,
             (outside - checkCopies.toSet()).map { m -> known.single { it in m.markers() } }.sorted())
-        outside.forEach { assertMemoryReadsAnswered("${label}: ${it.text()}", context.method(it), memoryText, reads = 1) }
+        (outside - checkCopies.toSet()).forEach { assertMemoryReadsAnswered("${label}: ${it.text()}", context.method(it), memoryText, reads = 1) }
+        assertTrue("${label}: the copies reading the timer are copies of the check: $stateCopies", stateCopies.all { s -> checkCopies.any { it.text() == s } })
+        assertEquals("${label}: the copies answered like the check", checkCopies.map { "${it.definingClass}->${it.name}" },
+            sites.checkCopies.map { "${it.definingClass}->${it.name}" })
+        // A copy's memory read is answered where it's read and again at every return, as the check's answer is.
+        checkCopies.forEach { copy ->
+            val code = context.method(copy).code()
+            val reads = code.indices.filter { code[it].opcode == Opcode.IGET_BOOLEAN && code[it].referenceText() == memoryText }
+            val returns = code.indices.filter { code[it].opcode == Opcode.RETURN }
+            assertEquals("${label}: ${copy.text()} reads", 1, reads.size)
+            reads.forEach { assertEquals("${label}: ${copy.text()} answers its read at $it", AUTO_SCROLL_ANSWER, code[it + 1].referenceText()) }
+            returns.forEach { assertEquals("${label}: ${copy.text()} answers its return at $it", AUTO_SCROLL_ANSWER, code[it - 2].referenceText()) }
+            assertEquals("${label}: ${copy.text()} answer calls", reads.size + returns.size, code.count { it.referenceText() == AUTO_SCROLL_ANSWER })
+            assertEquals("${label}: ${copy.text()} other hooks", 0, code.count { it.referenceText() in hooks - AUTO_SCROLL_ANSWER })
+        }
         assertEquals("${label}: reads answered", outside.map { "${it.definingClass}->${it.name}" }.sorted(),
             sites.memoryReads.map { "${it.method.definingClass}->${it.method.name}" }.sorted())
         val resets = found.values.flatMap { type -> type.methods.filter { m -> m.code().any { it.referenceText() == memoryText && !it.opcode.setsRegister() } } }

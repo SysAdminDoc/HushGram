@@ -232,7 +232,8 @@ internal class ProfilePanel(
  *   field, which the switch reads too.
  * - The tab-change method is the one other method calling the gate. It is an instance method
  *   answering nothing whose first two parameters are a tab. Before the gate it asks the host's tab
- *   (a call of the host taking nothing and answering a tab) and loads the tab it's compared with,
+ *   (a call of the host taking nothing and answering a tab, or on 454 a call of the host asking
+ *   whether its tab is the one handed, beside which sits the getter) and loads the tab it's compared with,
  *   which the touch check loads as well. After the gate it fetches the container with a static call
  *   taking the controller, which the host keeps in one field and which keeps the container in one.
  *   The controller is the panel setter's first parameter.
@@ -313,10 +314,13 @@ internal fun BytecodePatchContext.findProfilePanel(): ProfilePanel {
     val tab = parameters[0]
     val body = tabChange.implementation!!.instructions.toList()
     val ask = body.indexOfFirst { it.called()?.matches(gateCall) == true }
-    val currentTab = (0 until ask).reversed().firstNotNullOfOrNull { at ->
-        body[at].takeIf { it.opcode == Opcode.INVOKE_VIRTUAL }?.called()
-            ?.takeIf { it.definingClass == tabChange.definingClass && it.parameterTypes.isEmpty() && it.returnType == tab }
-    } ?: refuse("$host doesn't ask the host's tab before the gate")
+    val hostCalls = (0 until ask).reversed().mapNotNull { at ->
+        body[at].takeIf { it.opcode == Opcode.INVOKE_VIRTUAL }?.called()?.takeIf { it.definingClass == tabChange.definingClass }
+    }
+    val currentTab = hostCalls.firstOrNull { it.parameterTypes.isEmpty() && it.returnType == tab }
+        ?: hostCalls.firstOrNull { it.parameterTypes.map(CharSequence::toString) == listOf(tab) && it.returnType == "Z" }
+            ?.let { isTab -> tabGetterBeside(classDefBy(tabChange.definingClass), isTab, tab) }
+        ?: refuse("$host doesn't ask the host's tab before the gate")
     val reelsTab = (0 until ask).reversed().firstNotNullOfOrNull { at ->
         body[at].takeIf { it.opcode == Opcode.SGET_OBJECT }?.field()?.takeIf { it.definingClass == tab && it.type == tab }
     } ?: refuse("$host loads no tab to compare with before the gate")
@@ -353,6 +357,25 @@ internal fun BytecodePatchContext.findProfilePanel(): ProfilePanel {
     return ProfilePanel(
         touch, toggle, panel, panelOn, position, setter, tabChange, currentTab, reelsTab, controllerRef, containerRef,
     )
+}
+
+/**
+ * The host's tab getter, for a build whose tab-change method asks "is the tab this one?" (454's
+ * 01zc.A0U) instead of the tab itself: the host's one instance method taking nothing and answering a
+ * tab that reads the same tab stack field first as that question does (01zc.A08).
+ */
+private fun tabGetterBeside(host: ClassDef, isTab: MethodReference, tab: String): MethodReference {
+    val where = "${host.type}->${isTab.name}"
+    fun Method.firstObjectRead() = implementation?.instructions?.firstOrNull { it.opcode == Opcode.IGET_OBJECT }?.field()
+    val question = host.methods.singleOrNull { it.matches(isTab) } ?: refuse("$where isn't in ${host.type}")
+    val stack = question.firstObjectRead() ?: refuse("$where reads no field of the host")
+    val getters = host.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.isEmpty() && method.returnType == tab &&
+            method.firstObjectRead()?.matches(stack) == true
+    }
+    val getter = getters.singleOrNull()
+        ?: refuse("expected one tab getter of ${host.type} reading $stack first, as $where does, found ${getters.size}")
+    return ImmutableMethodReference(getter.definingClass, getter.name, getter.parameterTypes, getter.returnType)
 }
 
 /**

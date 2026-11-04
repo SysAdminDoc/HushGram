@@ -154,7 +154,7 @@ internal fun BytecodePatchContext.findPaidPartnershipReels(): PaidPartnershipSit
  *
  * Every source of Reels answers a page through one interface's method: the instance methods taking
  * the UserSession and answering a List that call the Reels item converter, by [TO_CLIPS_ITEM], or
- * a static helper that does. The response a source hands back doesn't say which screen asked for
+ * a static helper that does, or (on 454) a static wrapper answering the converter's item. The response a source hands back doesn't say which screen asked for
  * it: one response class serves the Reels tab, a hashtag, an audio page, Saved and shared reels
  * alike. The viewer's network callback ([REELS_PAGE_ARRIVED]) does. It asks the source for its page,
  * and for a fallback list when the page is empty, and holds the module name its fetcher
@@ -177,13 +177,18 @@ internal fun BytecodePatchContext.findReelsPage(patch: String): ReelsPageSites {
     if (!AccessFlags.PUBLIC.isSet(mediaField.accessFlags)) refuse("$itemType's post field ${mediaField.name} isn't public")
 
     val pages = linkedSetOf<Method>()
-    callersOf(converter).forEach { caller ->
-        when {
-            caller.isPage() -> pages += caller
-            AccessFlags.STATIC.isSet(caller.accessFlags) && caller.returnType == "V" ->
-                callersOf(caller).filter { it.isPage() }.forEach { pages += it }
+    fun pagesCalling(called: Method, wrapped: Boolean) {
+        callersOf(called).forEach { caller ->
+            val static = AccessFlags.STATIC.isSet(caller.accessFlags)
+            when {
+                caller.isPage() -> pages += caller
+                static && caller.returnType == "V" -> callersOf(caller).filter { it.isPage() }.forEach { pages += it }
+                // 454 wraps the converter in a static (item, UserSession) helper answering the item.
+                static && !wrapped && caller.returnType == itemType -> pagesCalling(caller, true)
+            }
         }
     }
+    pagesCalling(converter, false)
     if (pages.isEmpty()) refuse("nothing answering a page of Reels items from a UserSession calls the Reels item converter")
     val names = pages.map { it.name }.distinct()
     val pageName = names.singleOrNull() ?: refuse("expected every page of Reels items to share one name, found $names")

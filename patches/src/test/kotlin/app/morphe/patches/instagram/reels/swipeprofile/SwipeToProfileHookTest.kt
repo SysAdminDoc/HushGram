@@ -192,6 +192,21 @@ class SwipeToProfileHookTest {
         assertEquals(panel.reelsTab.toString(), (reels as ReferenceInstruction).reference.toString())
     }
 
+    /** A tab change asking "is it Reels?" (454) hands the extension the host's getter reading the same tab stack. */
+    @Test
+    fun aTabChangeAskingWhetherItsReelsReadsTheTabThroughTheGetterBesideTheQuestion() {
+        val context = PatchContexts.of(panelClasses(tabQuestion = true) + ExtensionDex.classDef(SWIPE_TARGETS))
+
+        val panel = context.findProfilePanel()
+        context.hookProfilePanel(panel)
+
+        assertEquals("$HOST->A08()$TAB", panel.currentTab.toString())
+        assertEquals("$TAB->A08:$TAB", panel.reelsTab.toString())
+        val tab = context.mutableClassDefBy(SWIPE_TARGETS).methods.single { it.name == "tab" }.implementation!!.instructions.toList()
+        assertEquals(panel.currentTab.toString(), (tab[1] as ReferenceInstruction).reference.toString())
+        assertPanelHooked("stand-in", context, panel, returns = 2)
+    }
+
     /** The setup's new-tab-bar answer and the holder go to the extension right after the answer is read, and the tab hook follows the panel setter. */
     @Test
     fun theSetUpBuildsTheRightPanelThroughTheExtension() {
@@ -637,7 +652,9 @@ class SwipeToProfileHookTest {
          * host's setup asks the new-tab-bar gate, flips the answer unless [flip] is false and, on
          * no, jumps ahead to read the holder's view, check it for null and build the right panel on
          * it (on a constant instead when [builtOnView] is false), then hands the panels to the
-         * setter [setterCalls] times.
+         * setter [setterCalls] times. With [tabQuestion] the tab change asks the host whether its
+         * tab is Reels (A0U, 454's shape) instead of asking its tab, and the host's getter A08 reads
+         * the same tab stack first; A09 stays as a getter that doesn't.
          */
         fun panelClasses(
             gates: Int = 1,
@@ -651,6 +668,7 @@ class SwipeToProfileHookTest {
             flip: Boolean = true,
             builtOnView: Boolean = true,
             setterCalls: Int = 1,
+            tabQuestion: Boolean = false,
         ): List<ClassDef> {
             val public = AccessFlags.PUBLIC.value
             val publicFinal = public or AccessFlags.FINAL.value
@@ -794,9 +812,10 @@ class SwipeToProfileHookTest {
                     ),
                 ),
             )
+            val stack = "$HOST->A02:Ljava/util/Stack;"
             val host = ImmutableClassDef(
                 HOST, publicFinal, "Ljava/lang/Object;", null, null, null,
-                listOf(field(HOST, "A03", CONTROLLER)),
+                listOf(field(HOST, "A03", CONTROLLER), field(HOST, "A02", "Ljava/util/Stack;")),
                 listOfNotNull(
                     assembled(
                         HOST, "A09", emptyList(), TAB, publicFinal, 2,
@@ -805,14 +824,50 @@ class SwipeToProfileHookTest {
                             return-object v0
                         """,
                     ),
+                    if (tabQuestion) {
+                        assembled(
+                            HOST, "A08", emptyList(), TAB, publicFinal, 2,
+                            """
+                                iget-object v0, p0, $stack
+                                invoke-virtual { v0 }, Ljava/util/Stack;->peek()Ljava/lang/Object;
+                                move-result-object v0
+                                check-cast v0, $TAB
+                                return-object v0
+                            """,
+                        )
+                    } else {
+                        null
+                    },
+                    if (tabQuestion) {
+                        assembled(
+                            HOST, "A0U", listOf(TAB), "Z", publicFinal, 2,
+                            """
+                                iget-object v0, p0, $stack
+                                invoke-virtual { v0 }, Ljava/util/Stack;->peek()Ljava/lang/Object;
+                                move-result-object v0
+                                if-ne v0, p1, :no
+                                const/4 v0, 0x1
+                                return v0
+                                :no
+                                const/4 v0, 0x0
+                                return v0
+                            """,
+                        )
+                    } else {
+                        null
+                    },
                     assembled(
                         HOST, "A0O", listOf(TAB, TAB, "Ljava/lang/Integer;"), "V", publicFinal, 8,
                         """
                             if-eq p1, p2, :same
                             sget-object v0, $TAB->A08:$TAB
-                            invoke-virtual { p0 }, $HOST->A09()$TAB
-                            move-result-object v1
-                            if-ne v1, v0, :done
+                        """ + (
+                            if (tabQuestion) {
+                                "invoke-virtual { p0, v0 }, $HOST->A0U($TAB)Z\nmove-result v1\nif-eqz v1, :done\n"
+                            } else {
+                                "invoke-virtual { p0 }, $HOST->A09()$TAB\nmove-result-object v1\nif-ne v1, v0, :done\n"
+                            }
+                            ) + """
                             const/4 v2, 0x0
                             const/4 v3, 0x0
                             invoke-virtual { v2, v3 }, $PANEL_GATE

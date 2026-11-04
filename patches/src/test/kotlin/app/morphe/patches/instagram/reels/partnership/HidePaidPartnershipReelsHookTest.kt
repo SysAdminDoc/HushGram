@@ -63,6 +63,7 @@ class HidePaidPartnershipReelsHookTest {
     private val string = "Ljava/lang/String;"
     private val convert = "$converter->convert(Lfixture/ServerItem;$session)$item"
     private val fill = "$helpers->fill(${session}Ljava/util/AbstractCollection;Ljava/util/Iterator;)V"
+    private val wrap = "$helpers->wrap(Lfixture/ServerItem;$session)$item"
 
     /** The hook and the three stubs the patch fills are in the PaidPartnershipReels the bundle ships, public and static. */
     @Test
@@ -110,6 +111,27 @@ class HidePaidPartnershipReelsHookTest {
             assertTrue("$type->$name was hooked", method.code().none { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
         }
         assertStubsFilled("the stand-in", context, item, "post", "partnership", "boost")
+    }
+
+    /**
+     * 454 has its pages and the static helper call the converter through a static wrapper answering
+     * the item (08Cx.A02 on 386014758), so the pages behind the wrapper are still the pages and the
+     * hook goes in the same callback.
+     */
+    @Test
+    fun pagesCallingTheConverterThroughAWrapperAreStillPages() {
+        val context = PatchContexts.of(classes(pageWrapped = true))
+
+        val sites = context.findPaidPartnershipReels()
+        context.hidePaidPartnershipReels(sites)
+
+        assertEquals(source, sites.pageInterface)
+        assertEquals(item, sites.itemType)
+        assertHookAtJoin("the wrapped stand-in", context.mutableClassDefBy(callback).methods.single { it.name == "success" }, sites, "page")
+        for ((type, name) in listOf(direct to "page", helped to "page", helpers to "wrap", helpers to "fill", converter to "convert")) {
+            val method = context.mutableClassDefBy(type).methods.single { it.name == name }
+            assertTrue("$type->$name was hooked", method.code().none { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
+        }
     }
 
     /**
@@ -263,21 +285,30 @@ class HidePaidPartnershipReelsHookTest {
                     }
                 }
             }
-            val helperMethods = callers.flatMap { it.methods }.filter { method ->
-                AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
-                    method.code().any { (it.reference() as? MethodReference)?.calls(converterMethod) == true }
-            }
-            val helped = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                if (dex.methodSection.none { reference -> helperMethods.any { reference.calls(it) } }) return@forEach
-                for (classDef in dex.classes) {
-                    val callsHelper = classDef.methods.any { method ->
-                        method.code().any { instruction -> (instruction.reference() as? MethodReference)?.let { ref -> helperMethods.any { ref.calls(it) } } == true }
+            fun classesCallingAny(targets: List<Method>): List<ClassDef> {
+                val found = mutableListOf<ClassDef>()
+                if (targets.isEmpty()) return found
+                FixtureDex.forEach(bundle) { dex ->
+                    if (dex.methodSection.none { reference -> targets.any { reference.calls(it) } }) return@forEach
+                    for (classDef in dex.classes) {
+                        if (classDef.methods.any { it.callsAny(targets) }) found += ImmutableClassDef.of(classDef)
                     }
-                    if (callsHelper) helped += ImmutableClassDef.of(classDef)
                 }
+                return found
             }
-            val pageClasses = (callers + helped).filter { classDef -> classDef.methods.any { it.isPageShaped() && it.callsAny(listOf(converterMethod) + helperMethods) } }
+            // 454 wraps the converter in a static helper answering the item (08Cx.A02 on 386014758).
+            val wrapperMethods = callers.flatMap { it.methods }.filter { method ->
+                AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == itemType && method.callsAny(listOf(converterMethod))
+            }
+            val wrapped = classesCallingAny(wrapperMethods)
+            val converted = listOf(converterMethod) + wrapperMethods
+            val helperMethods = (callers + wrapped).distinctBy { it.type }.flatMap { it.methods }.filter { method ->
+                AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.callsAny(converted)
+            }
+            val helped = classesCallingAny(helperMethods)
+            val pageCalls = converted + helperMethods
+            val pageClasses = (callers + wrapped + helped).distinctBy { it.type }
+                .filter { classDef -> classDef.methods.any { it.isPageShaped() && it.callsAny(pageCalls) } }
             val ancestors = mutableSetOf<String>()
             val next = ArrayDeque(pageClasses.map { it.type })
             while (next.isNotEmpty()) parents[next.removeFirst()].orEmpty().filter { it in parents && ancestors.add(it) }.forEach(next::addLast)
@@ -285,7 +316,7 @@ class HidePaidPartnershipReelsHookTest {
             val success = markedBy(REELS_PAGE_ARRIVED).single()
             val fetch = markedBy(REELS_FETCH).single()
             val callbackClass = marked.getValue(REELS_PAGE_ARRIVED).single()
-            val kept = (converterClasses + callers + helped + callbackClass + marked.getValue(REELS_FETCH) +
+            val kept = (converterClasses + callers + wrapped + helped + callbackClass + marked.getValue(REELS_FETCH) +
                 FixtureDex.classes(bundle, ancestors + itemType + MEDIA).values).distinctBy { it.type } +
                 ExtensionDex.classDef(PAID_PARTNERSHIP_REELS)
             val context = PatchContexts.of(kept)
@@ -297,7 +328,7 @@ class HidePaidPartnershipReelsHookTest {
                 .filter { method -> method.code().any { it.referenceText() == PARTNERSHIP_PAGE_FILTER } }
             assertEquals("${bundle.name}: the methods hooked", listOf("${success.definingClass}->${success.name}"), hooked.map { "${it.definingClass}->${it.name}" })
             assertEquals("${bundle.name}: the callback's page source", success.parameterTypes.single().toString(), sites.pageInterface)
-            val pageName = pageClasses.flatMap { it.methods }.filter { it.isPageShaped() && it.callsAny(listOf(converterMethod) + helperMethods) }
+            val pageName = pageClasses.flatMap { it.methods }.filter { it.isPageShaped() && it.callsAny(pageCalls) }
                 .map { it.name }.distinct().single()
             assertHookAtJoin(bundle.name, hooked.single(), sites, pageName)
             assertEquals("${bundle.name}: the field the fetcher fills from getModuleName", moduleFieldOf(fetch, callbackClass), sites.moduleField)
@@ -485,6 +516,7 @@ class HidePaidPartnershipReelsHookTest {
         pageAnswers: String = list,
         helpedName: String = "page",
         helpedInterface: String? = source,
+        pageWrapped: Boolean = false,
         successMarks: Int = 1,
         successTakes: String = source,
         fallback: Boolean = true,
@@ -523,12 +555,13 @@ class HidePaidPartnershipReelsHookTest {
         val interfaces = listOf(source, otherSource).map { type ->
             interfaceDef(type, listOf("page", "older", "items").map { abstractMethod(type, it, listOf(session), pageAnswers) })
         }
+        val pageConverts = if (pageWrapped) wrap else convert
         val directSource = classDef(direct, listOf(
             method(direct, "page", listOf(session), pageAnswers, 2, body = """
                 iget-object v0, p0, $direct->items:$pageAnswers
                 if-nez v0, :done
                 const/4 v1, 0x0
-                invoke-static { v1, p1 }, $convert
+                invoke-static { v1, p1 }, $pageConverts
                 move-result-object v1
                 new-instance v0, Ljava/util/ArrayList;
                 invoke-direct { v0 }, Ljava/util/ArrayList;-><init>()V
@@ -540,12 +573,17 @@ class HidePaidPartnershipReelsHookTest {
                 return-object v0
             """),
         ), fields = listOf("items" to pageAnswers), interfaces = listOf(source))
-        val helperClass = classDef(helpers, listOf(
+        val helperClass = classDef(helpers, listOfNotNull(
             method(helpers, "fill", listOf(session, "Ljava/util/AbstractCollection;", "Ljava/util/Iterator;"), "V", 1, static = true, body = """
                 const/4 v0, 0x0
-                invoke-static { v0, p0 }, $convert
+                invoke-static { v0, p0 }, $pageConverts
                 return-void
             """),
+            if (pageWrapped) method(helpers, "wrap", listOf("Lfixture/ServerItem;", session), item, 0, static = true, body = """
+                invoke-static { p0, p1 }, $convert
+                move-result-object p0
+                return-object p0
+            """) else null,
         ))
         val helpedSource = classDef(helped, listOf(
             method(helped, helpedName, listOf(session), pageAnswers, 2, body = """

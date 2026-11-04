@@ -38,14 +38,15 @@ internal const val CREATE_ZOOM_CONFIG = "ClipsZoomUtil_createZoomConfig"
 /**
  * isLithoZoomableComponentEnabled: a reel's video sits in Instagram's zoomable component, and the
  * Reels gesture detector hands it a two-finger move. Read once, into the session's zoom settings.
+ * 454 renumbered it from 453's 0x8105f500011b5e.
  */
-internal const val ZOOMABLE_FLAG = 0x8105f500011b5eL
+internal const val ZOOMABLE_FLAG = 0x8105d100011b36L
 
 /**
  * isLithoZoomGestureEnabled: a second finger on a reel starts a zoom instead of being ignored. Read
- * right after [ZOOMABLE_FLAG], into the same settings.
+ * right after [ZOOMABLE_FLAG], into the same settings. 454 renumbered it from 453's 0x208105f500021b5f.
  */
-internal const val ZOOM_GESTURE_FLAG = 0x208105f500021b5fL
+internal const val ZOOM_GESTURE_FLAG = 0x208105d100021b37L
 
 /**
  * Lets two fingers zoom into a playing reel, through Instagram's own zoom for Reels, which it keeps

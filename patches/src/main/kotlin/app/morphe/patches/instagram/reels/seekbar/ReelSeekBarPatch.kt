@@ -55,16 +55,18 @@ internal const val LISTEN = "$EXTENSION_PACKAGE/reels/ReelSeekTouch;->listen(Lan
  * Reels progress controller keeps its limits. The first two read an ad's own minimum in the same
  * place, picked in a branch.
  */
-// 451: 0x82091900291476. 452 moved it to 0x82090f00291471, and 453 to 0x8208fe00291415 (config index -10, slot -5); same three readers.
-internal const val ORGANIC_MIN_SECONDS = 0x8208fe00291415L
+// 451: 0x82091900291476. 452 moved it to 0x82090f00291471, 453 to 0x8208fe00291415 (config index -10, slot -5),
+// and 454 to 0x8208d0002913a8; same three readers.
+internal const val ORGANIC_MIN_SECONDS = 0x8208d0002913a8L
 internal const val ORGANIC_MIN_SECONDS_READS = 3
 
 /**
  * Whether a short ordinary reel's bar is the hidden kind, shown only while you hold the reel. 450
  * reads it once, where the seek bar row's state is worked out, in the same place as the ads' flag.
  */
-// 451: 0x8109190010330c. 452 moved it to 0x81090f00103271, 453 to 0x8108fe00103259, read by the same seek bar row state.
-internal const val ORGANIC_LAZY = 0x8108fe00103259L
+// 451: 0x8109190010330c. 452 moved it to 0x81090f00103271, 453 to 0x8108fe00103259 and 454 to 0x8108d00010323f,
+// read by the same seek bar row state.
+internal const val ORGANIC_LAZY = 0x8108d00010323fL
 internal const val ORGANIC_LAZY_READS = 1
 
 /** The markers, after Instagram's release prefix, of the methods that prove the reads are the seek bar's. */

@@ -139,12 +139,16 @@ internal class AudioState(
  * [currentList] (a no-argument call on the controller) hands over a list, [indexOf] gives the current
  * position, [holderAt] the view holder there, the controller's [factoryField] holds what [playerFor]
  * turns that holder into a player, [stateOf] gives the player's audio state, and [flag] is its sound-on
- * boolean. [stateOf] is an interface call when [stateOfInterface] is set.
+ * boolean. [stateOf] is an interface call when [stateOfInterface] is set. On 454 there's no [indexOf]:
+ * the list (an interface, so [holderInterface]) hands over its current holder from a call taking nothing.
+ * Some 454 builds keep [indexOf] but answer the list as an interface, cast to [listCast] before it's asked.
  */
 internal class PlayerAudio(
     val currentList: MethodReference,
-    val indexOf: MethodReference,
+    val indexOf: MethodReference?,
     val holderAt: MethodReference,
+    val holderInterface: Boolean,
+    val listCast: String?,
     val factoryField: FieldReference,
     val playerFor: MethodReference,
     val stateOf: MethodReference,
@@ -378,7 +382,8 @@ private fun BytecodePatchContext.findAudioState(run: Method, runCode: List<Instr
         val declared = classDefByOrNull(field.definingClass)?.fields?.singleOrNull { it.name == field.name && it.type == field.type } ?: return false
         return open(field.definingClass, declared.accessFlags)
     }
-    if (!reaches(p.currentList) || !reaches(p.indexOf) || !reaches(p.holderAt) || !reaches(p.playerFor) ||
+    if (!reaches(p.currentList) || p.indexOf?.let { reaches(it) } == false || !reaches(p.holderAt, p.holderInterface) || !reaches(p.playerFor) ||
+        p.listCast?.let { classDefByOrNull(it) != null && open(it, AccessFlags.PUBLIC.value) } == false ||
         !reaches(p.stateOf, p.stateOfInterface) || !fieldOpen(p.factoryField) || !fieldOpen(p.flag)
     ) {
         refuse("$where can't reach the player's audio state from its own class")
@@ -389,7 +394,8 @@ private fun BytecodePatchContext.findAudioState(run: Method, runCode: List<Instr
 /**
  * While the current reel has a player, the audio toggle reads the sound flag on the player's own state
  * object and flips that, then the session's. The player comes from the controller: its current list,
- * the position in it, the holder at that position, then the controller's factory field turns that
+ * the position in it, the holder at that position (on 454 the list hands over its current holder
+ * itself, see [holderChain]), then the controller's factory field turns that
  * holder into the player, whose state object holds the flag. Found as the one boolean read straight
  * before an xor with 1 whose object came from a no-argument call on that player, with the controller's
  * chain in front of it exactly as written above. Null when the toggle doesn't read it that way.
@@ -412,7 +418,7 @@ private fun findPlayerAudio(code: List<Instruction>, controller: String): Player
         if (stateOf.parameterTypes.isNotEmpty() || stateOf.returnType != flag.definingClass) continue
         val playerRegister = (code[taken - 1] as? FiveRegisterInstruction)?.registerC ?: continue
         // The player is what the controller's factory made of the holder, a few calls up.
-        val j = (taken - 2 downTo 8).firstOrNull { at ->
+        val j = (taken - 2 downTo 6).firstOrNull { at ->
             code[at].opcode == Opcode.INVOKE_VIRTUAL && code[at].methodReference()?.returnType == stateOf.definingClass &&
                 (code[at + 1] as? OneRegisterInstruction)?.registerA == playerRegister && code[at + 1].opcode == Opcode.MOVE_RESULT_OBJECT
         } ?: continue
@@ -426,21 +432,59 @@ private fun findPlayerAudio(code: List<Instruction>, controller: String): Player
         ) continue
         if (code[j - 2].opcode != Opcode.IF_EQZ || code[j - 3].opcode != Opcode.MOVE_RESULT_OBJECT) continue
         if (make.registerD != (code[j - 3] as OneRegisterInstruction).registerA) continue
-        val holderAt = code[j - 4].methodReference() ?: continue
-        val index = code[j - 5] as? OneRegisterInstruction
-        val indexOf = code[j - 6].methodReference() ?: continue
-        val list = code[j - 8].methodReference() ?: continue
-        val at4 = code[j - 4] as? FiveRegisterInstruction ?: continue
-        if (code[j - 4].opcode != Opcode.INVOKE_VIRTUAL || holderAt.parameterTypes.map(Any::toString) != listOf("I") ||
-            code[j - 5].opcode != Opcode.MOVE_RESULT || index == null || at4.registerCount != 2 || at4.registerD != index.registerA ||
-            code[j - 6].opcode != Opcode.INVOKE_VIRTUAL || indexOf.parameterTypes.isNotEmpty() || indexOf.returnType != "I" ||
-            indexOf.definingClass != holderAt.definingClass || code[j - 7].opcode != Opcode.MOVE_RESULT_OBJECT ||
-            code[j - 8].opcode != Opcode.INVOKE_VIRTUAL || list.definingClass != controller || list.parameterTypes.isNotEmpty() ||
-            list.returnType != holderAt.definingClass || playerFor.parameterTypes[0] != holderAt.returnType
-        ) continue
-        found += PlayerAudio(list, indexOf, holderAt, factoryField, playerFor, stateOf, interfaceCall, flag)
+        val chain = holderChain(code, j - 4, controller) ?: continue
+        if (playerFor.parameterTypes[0] != chain.holderAt.returnType) continue
+        found += PlayerAudio(chain.list, chain.indexOf, chain.holderAt, chain.holderInterface, chain.listCast, factoryField, playerFor, stateOf, interfaceCall, flag)
     }
-    return found.distinctBy { "${it.currentList}${it.holderAt}${it.playerFor}${it.stateOf}${it.flag}" }.singleOrNull()
+    return found.distinctBy { "${it.currentList}${it.listCast}${it.holderAt}${it.playerFor}${it.stateOf}${it.flag}" }.singleOrNull()
+}
+
+private class HolderChain(
+    val list: MethodReference,
+    val indexOf: MethodReference?,
+    val holderAt: MethodReference,
+    val holderInterface: Boolean,
+    val listCast: String? = null,
+)
+
+/**
+ * The holder the factory takes, asked at [at], and the controller's list it came from. Through 453 the
+ * list's position and the holder there (`indexOf()I` then `holderAt(I)`, virtual calls on one class); on
+ * 454 the list is an interface whose no-argument call hands over the current holder. Either way the list
+ * is a no-argument virtual call on the controller, answering the holder call's class. Other 454 builds keep
+ * the position and the holder there but answer the list as an interface and check-cast it to the class
+ * asking them; the cast is kept so the hook can repeat it.
+ */
+private fun holderChain(code: List<Instruction>, at: Int, controller: String): HolderChain? {
+    val ask = code.getOrNull(at) as? FiveRegisterInstruction ?: return null
+    val holderAt = code[at].methodReference() ?: return null
+    val holderInterface = code[at].opcode == Opcode.INVOKE_INTERFACE
+    if (!holderInterface && code[at].opcode != Opcode.INVOKE_VIRTUAL) return null
+    fun listAt(call: Int, cast: Boolean = false): MethodReference? {
+        val list = code.getOrNull(call)?.methodReference() ?: return null
+        if (code[call].opcode != Opcode.INVOKE_VIRTUAL || code.getOrNull(call + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) return null
+        return list.takeIf { it.definingClass == controller && it.parameterTypes.isEmpty() && (cast || it.returnType == holderAt.definingClass) }
+    }
+    if (holderAt.parameterTypes.isEmpty()) {
+        val listTaken = code.getOrNull(at - 1) as? OneRegisterInstruction ?: return null
+        if (ask.registerCount != 1 || code[at - 1].opcode != Opcode.MOVE_RESULT_OBJECT || ask.registerC != listTaken.registerA) return null
+        return listAt(at - 2)?.let { HolderChain(it, null, holderAt, holderInterface) }
+    }
+    val index = code.getOrNull(at - 1) as? OneRegisterInstruction ?: return null
+    val indexOf = code.getOrNull(at - 2)?.methodReference() ?: return null
+    if (holderInterface || holderAt.parameterTypes.map(Any::toString) != listOf("I") || code[at - 1].opcode != Opcode.MOVE_RESULT ||
+        ask.registerCount != 2 || ask.registerD != index.registerA || code[at - 2].opcode != Opcode.INVOKE_VIRTUAL ||
+        indexOf.parameterTypes.isNotEmpty() || indexOf.returnType != "I" || indexOf.definingClass != holderAt.definingClass
+    ) return null
+    val cast = code.getOrNull(at - 3)?.takeIf { it.opcode == Opcode.CHECK_CAST }
+    if (cast == null) return listAt(at - 4)?.let { HolderChain(it, indexOf, holderAt, false) }
+    val castTo = (cast as ReferenceInstruction).reference.toString()
+    val castRegister = (cast as OneRegisterInstruction).registerA
+    val taken = code.getOrNull(at - 4) as? OneRegisterInstruction ?: return null
+    if (castTo != holderAt.definingClass || castRegister != ask.registerC || code[at - 4].opcode != Opcode.MOVE_RESULT_OBJECT ||
+        taken.registerA != castRegister || (code[at - 2] as? FiveRegisterInstruction)?.registerC != castRegister
+    ) return null
+    return listAt(at - 5, cast = true)?.let { HolderChain(it, indexOf, holderAt, false, castTo) }
 }
 
 /**
@@ -452,6 +496,14 @@ internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
     val (direction, state, self) = site.scratch
     val audio = site.audio
     val player = audio.player
+    val holder = player.indexOf?.let { indexOf ->
+        """
+            ${player.listCast?.let { "check-cast v$direction, $it" } ?: ""}
+            invoke-virtual { v$direction }, $indexOf
+            move-result v$state
+            invoke-virtual { v$direction, v$state }, ${player.holderAt}
+        """
+    } ?: "${if (player.holderInterface) "invoke-interface" else "invoke-virtual"} { v$direction }, ${player.holderAt}"
     mutable(site.run).apply {
         addInstructionsWithLabels(
             site.index,
@@ -462,9 +514,7 @@ internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
                 invoke-virtual { v$state }, ${player.currentList}
                 move-result-object v$direction
                 if-eqz v$direction, :session
-                invoke-virtual { v$direction }, ${player.indexOf}
-                move-result v$state
-                invoke-virtual { v$direction, v$state }, ${player.holderAt}
+                $holder
                 move-result-object v$direction
                 if-eqz v$direction, :session
                 iget-object v$state, v$self, ${audio.controllerField}

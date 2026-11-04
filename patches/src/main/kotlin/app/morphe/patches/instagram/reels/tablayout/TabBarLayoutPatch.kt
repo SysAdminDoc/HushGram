@@ -47,9 +47,11 @@ private const val LIST = "Ljava/util/List;"
  * Messages on it and a sideways swipe between every tab. Only two methods load it: the gate the
  * patch hooks, which reads it as a boolean, and one that reads a string from it. 452 had it as
  * 0x2081080a00102a78. The 453 retarget first took 0x208102ea00060a8d, a pending DM inbox gate of
- * the same shape that the tab host never asks, so the choice did nothing on 453.
+ * the same shape that the tab host never asks, so the choice did nothing on 453. 454 moved it from
+ * 453's 0x208107fa00102a5c, read by the same gate (00PP.A04 on 386014758), which now asks for the
+ * config through Bbu instead of BbW.
  */
-internal const val NEW_TAB_BAR_FLAG = 0x208107fa00102a5cL
+internal const val NEW_TAB_BAR_FLAG = 0x208107cd00102a43L
 
 /**
  * Picks the tab bar, newer or classic, instead of leaving it to Instagram (#356). Included in the

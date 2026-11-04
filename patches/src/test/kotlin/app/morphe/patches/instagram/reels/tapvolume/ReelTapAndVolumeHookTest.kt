@@ -220,6 +220,53 @@ class ReelTapAndVolumeHookTest {
         assertEquals("only the hook is new", original, code.map { it.describe() }.filterIndexed { at, _ -> at !in added })
     }
 
+    /** On 454 the toggle's list hands over its current holder itself, and the hook asks it the same way, through the interface. */
+    @Test
+    fun aListHandingOverItsCurrentHolderIsAskedTheWayTheToggleAsksIt() {
+        val context = PatchContexts.of(volumeClasses(holderAsked = true))
+
+        var site: VolumeSite? = null
+        context.apply { site = findVolumeSite().also { applyKeepMuted(it) } }
+
+        assertEquals(null, site!!.audio.player.indexOf)
+        val code = context.volumeRun().code()
+        val ask = code.indexOfFirst { it.referenceText() == KEEP_MUTED }
+        val hook = code.subList(site!!.index, ask)
+        assertEquals(
+            "the player's state first, then the session's",
+            listOf(
+                "$runnable->ctl:$volumeController", "$volumeController->list()$vList", "$vList->current()$vHolder",
+                "$runnable->ctl:$volumeController", "$volumeController->factory:$vFactory", "$vFactory->make($vHolder)$vPlayer",
+                "$vPlayer->state()$vPState", "$vPState->flag:Z",
+                "$runnable->ctl:$volumeController", "$volumeController->session:$userSession",
+                "$audioState->of($userSession)$audioState", "$audioState->isOn()Z", "$runnable->A00:I",
+            ),
+            hook.mapNotNull { it.referenceText() },
+        )
+        assertEquals("through the interface", Opcode.INVOKE_INTERFACE, hook.single { it.referenceText() == "$vList->current()$vHolder" }.opcode)
+        assertEquals("every step that can be null falls back", 8, hook.count { it.opcode == Opcode.IF_EQZ })
+    }
+
+    /** Some 454 builds answer the list as an interface and cast it back before asking the position; the hook casts it too. */
+    @Test
+    fun aListAnsweredAsAnInterfaceIsCastBackBeforeTheHookAsksIt() {
+        val context = PatchContexts.of(volumeClasses(listCast = true))
+
+        var site: VolumeSite? = null
+        context.apply { site = findVolumeSite().also { applyKeepMuted(it) } }
+
+        assertEquals(vList, site!!.audio.player.listCast)
+        val code = context.volumeRun().code()
+        val ask = code.indexOfFirst { it.referenceText() == KEEP_MUTED }
+        val hook = code.subList(site!!.index, ask)
+        val listed = hook.indexOfFirst { it.referenceText() == "$volumeController->list()$vListIntf" }
+        val cast = hook.indexOfFirst { it.opcode == Opcode.CHECK_CAST }
+        val position = hook.indexOfFirst { it.referenceText() == "$vList->pos()I" }
+        assertTrue("the list, its cast, then its position: $listed, $cast, $position", listed in 0 until cast && cast < position)
+        assertEquals("cast to the class asking the position", vList, hook[cast].referenceText())
+        assertEquals("the one cast the toggle makes", 1, hook.count { it.opcode == Opcode.CHECK_CAST })
+    }
+
     /** A runnable the patch cannot read fails at patch time, saying what it found, and nothing is changed. */
     @Test
     fun aVolumeRunnableThePatchCantReadFailsBeforeAnythingChanges() {
@@ -305,8 +352,8 @@ class ReelTapAndVolumeHookTest {
                 assertEquals("$what: the direction, read from this, last", site.direction.toString(), code[ask - 1].referenceText())
                 assertEquals(
                     "$what: the player's state first, then the session's",
-                    listOf(
-                        site.audio.controllerField, player.currentList, player.indexOf, player.holderAt,
+                    listOfNotNull(
+                        site.audio.controllerField, player.currentList, player.listCast, player.indexOf, player.holderAt,
                         site.audio.controllerField, player.factoryField, player.playerFor, player.stateOf, player.flag,
                         site.audio.controllerField, site.audio.sessionField, site.audio.state, site.audio.isOn, site.direction,
                     ).map { it.toString() },
@@ -401,6 +448,7 @@ class ReelTapAndVolumeHookTest {
     private val hiddenAudioState = "Lother/pkg/AudioState;"
     private val userSession = "Lcom/instagram/common/session/UserSession;"
     private val vList = "Lfixture/VList;"
+    private val vListIntf = "Lfixture/VListIntf;"
     private val vHolder = "Lfixture/VHolder;"
     private val vFactory = "Lfixture/VFactory;"
     private val vPlayer = "Lfixture/VPlayer;"
@@ -420,7 +468,17 @@ class ReelTapAndVolumeHookTest {
         toggles: Int = 1,
         flipsByTwo: Boolean = false,
         stateReachable: Boolean = true,
+        holderAsked: Boolean = false,
+        listCast: Boolean = false,
     ): List<ClassDef> {
+        // 454's toggle asks its list (an interface) for the current holder instead of a position and the holder there.
+        // Other 454 builds keep the position, but the controller answers the list as an interface the toggle casts back.
+        val holder = if (holderAsked) {
+            "invoke-interface { v1 }, $vList->current()$vHolder"
+        } else {
+            (if (listCast) "check-cast v1, $vList\n" else "") +
+                "invoke-virtual { v1 }, $vList->pos()I\nmove-result v0\ninvoke-virtual { v1, v0 }, $vList->at(I)$vHolder"
+        }
         val state = if (stateReachable) audioState else hiddenAudioState
         val adjust = """
             ${if (directionIsConstant) "const/4 v1, 0x1" else "iget v1, p0, $runnable->A00:I"}
@@ -452,11 +510,9 @@ class ReelTapAndVolumeHookTest {
             method(volumeController, name, listOf("I"), "V", 9, body = """
                 const-string v0, "$toggleMarker"
                 invoke-static { v0 }, $trace
-                invoke-virtual { p0 }, $volumeController->list()$vList
+                invoke-virtual { p0 }, $volumeController->list()${if (listCast) vListIntf else vList}
                 move-result-object v1
-                invoke-virtual { v1 }, $vList->pos()I
-                move-result v0
-                invoke-virtual { v1, v0 }, $vList->at(I)$vHolder
+                $holder
                 move-result-object v5
                 if-eqz v5, :noplayer
                 iget-object v0, p0, $volumeController->factory:$vFactory
@@ -493,12 +549,17 @@ class ReelTapAndVolumeHookTest {
             classDef(runnable, kept, fields = listOf("A00" to "I", "audio" to audio, "ctl" to volumeController)),
             classDef(
                 volumeController,
-                controllerMethods + (if (toggles == 0) emptyList() else listOf(pub("list", volumeController, vList, emptyList()))),
+                controllerMethods + (if (toggles == 0) emptyList() else listOf(pub("list", volumeController, if (listCast) vListIntf else vList, emptyList()))),
                 fields = listOf("session" to userSession, "factory" to vFactory),
             ),
             classDef(state, stateMethods, public = stateReachable),
-            classDef(vList, listOf(pub("pos", vList, "I", emptyList()), pub("at", vList, vHolder, listOf("I")))),
+            if (holderAsked) {
+                classDef(vList, listOf(pub("current", vList, vHolder, emptyList())), isInterface = true)
+            } else {
+                classDef(vList, listOf(pub("pos", vList, "I", emptyList()), pub("at", vList, vHolder, listOf("I"))))
+            },
             classDef(vHolder, emptyList()),
+            classDef(vListIntf, emptyList(), isInterface = true),
             classDef(vFactory, listOf(pub("make", vFactory, vPlayer, listOf(vHolder)))),
             classDef(vPlayer, listOf(pub("state", vPlayer, vPState, emptyList()))),
             classDef(vPState, emptyList(), fields = listOf("flag" to "Z")),
@@ -526,9 +587,18 @@ class ReelTapAndVolumeHookTest {
         return ImmutableMethod.of(mutable)
     }
 
-    private fun classDef(type: String, methods: List<Method>, fields: List<Pair<String, String>> = emptyList(), public: Boolean = true): ClassDef =
+    private fun classDef(
+        type: String,
+        methods: List<Method>,
+        fields: List<Pair<String, String>> = emptyList(),
+        public: Boolean = true,
+        isInterface: Boolean = false,
+    ): ClassDef =
         ImmutableClassDef(
-            type, (if (public) AccessFlags.PUBLIC.value else 0) or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
+            type,
+            (if (public) AccessFlags.PUBLIC.value else 0) or
+                if (isInterface) AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value else AccessFlags.FINAL.value,
+            "Ljava/lang/Object;", null, null, null,
             fields.map { (name, fieldType) -> ImmutableField(type, name, fieldType, AccessFlags.PUBLIC.value, null, null, null) },
             methods,
         )

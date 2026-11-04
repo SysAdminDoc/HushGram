@@ -133,6 +133,8 @@ internal class MethodSite(val definingClass: String, val name: String, val param
 internal class ReelAutoScrollSites(
     /** The plugin's check of whether auto scroll is on: every return is answered. */
     val isActive: MethodSite,
+    /** Static copies of the check Redex put beside it (09FH.A02 on 454's 386014758): every return is answered too. */
+    val checkCopies: List<MethodSite>,
     /** The saved preference's getter: every return goes through [AUTO_SCROLL_SAVED]. */
     val getter: MethodSite,
     /** The plugin's handler for its switches, and the register of its choice, read first thing. */
@@ -268,6 +270,15 @@ internal fun BytecodePatchContext.findReelAutoScroll(): ReelAutoScrollSites {
         }
         MemoryRead(method.site(), index, (read as TwoRegisterInstruction).registerA)
     }
+    // A copy answers what the check does from the memory, the timer and the getter; 454's reads the timer
+    // too, so its memory read alone isn't enough and every return goes through the check's answer.
+    val checkCopies = reads.map { it.first }.distinctBy { it.text() }.filter { method ->
+        method.text() != isActive.text() && method.isStatic() && method.returnType == "Z" &&
+            method.parameters() == listOf(USER_SESSION) && method.code().any { it.calls(getter) }
+    }
+    if (checkCopies.any { copy -> copy.code().none { it.opcode == Opcode.RETURN } }) {
+        refuse("a copy of ${isActive.text()} in ${checkCopies.map { it.text() }} has no return to answer at")
+    }
     val others = callers.filter { (_, method) -> method.text() != click.text() }
     val pauses = others.filter { (_, method) ->
         method.name == "onPause" && !method.isStatic() && method.parameters().isEmpty() && method.returnType == "V" &&
@@ -303,7 +314,8 @@ internal fun BytecodePatchContext.findReelAutoScroll(): ReelAutoScrollSites {
     val timer = findTimerChoices(isActive, click, getter.parameters().single())
     val install = findScrollerInstall(isActive)
     // Every index here was read off Instagram's own code, so no method may be changed in two places.
-    val changed = listOf(isActive.site(), getter.site(), click.site(), toggle.site(), timer.method) + memoryReads.map { it.method }
+    val changed = listOf(isActive.site(), getter.site(), click.site(), toggle.site(), timer.method) + memoryReads.map { it.method } +
+        checkCopies.map { it.site() }
     if (changed.any { it.toString() == install.builder.toString() }) {
         refuse("${install.builder} builds the Reels auto scroller and is changed for something else too")
     }
@@ -312,7 +324,7 @@ internal fun BytecodePatchContext.findReelAutoScroll(): ReelAutoScrollSites {
     }
 
     return ReelAutoScrollSites(
-        isActive.site(), getter.site(), click.site(), click.parameterRegisterNumber(click.parameterTypes.lastIndex), clickKeeps,
+        isActive.site(), checkCopies.map { it.site() }, getter.site(), click.site(), click.parameterRegisterNumber(click.parameterTypes.lastIndex), clickKeeps,
         toggle.site(), toggleAt, toggleChoice, memoryReads, timer, install,
     )
 }
@@ -386,6 +398,8 @@ internal fun BytecodePatchContext.keepReelAutoScroll(sites: ReelAutoScrollSites)
         )
     }
     mutable(sites.isActive).filterEveryBooleanReturn(PATCH, AUTO_SCROLL_ANSWER)
+    // A copy's memory read is answered above already; the answer gives the same back for what it gave.
+    sites.checkCopies.forEach { mutable(it).filterEveryBooleanReturn(PATCH, AUTO_SCROLL_ANSWER) }
     mutable(sites.getter).filterEveryBooleanReturn(PATCH, AUTO_SCROLL_SAVED)
 }
 
