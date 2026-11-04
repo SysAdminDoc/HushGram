@@ -50,7 +50,8 @@ import java.util.zip.ZipFile;
  * id, with the same type and a value in every configuration the stock table gives it; every file
  * a patched value names has to be in the patched archive; and every value the patches changed has
  * to point at something the patched table has. A style keeps its parent, and a file keeps the bytes
- * the stock archive has for it, since no patch writes either. A failure names the id and exits 1.
+ * the stock archive has for it, since no patch writes either, past the few files listed in
+ * {@code WRITTEN_BY_PATCHES}. A failure names the id and exits 1.
  *
  * <p>What the patches changed is reported, not failed: each rewritten value with its old and new
  * value (the AMOLED dark theme's palette and sheet colors), each entry the rebuild renamed (it
@@ -62,6 +63,13 @@ import java.util.zip.ZipFile;
  */
 public final class ResourceTableCheck {
     private static final int SHOWN = 40;
+    /**
+     * The resource files a patch rewrites on purpose, by type and name. Their bytes may differ from
+     * the stock file's; their path and presence are still held like every other file's.
+     */
+    private static final Set<String> WRITTEN_BY_PATCHES = Set.of(
+            // Pure black fills the notification and Likes rows black (PureBlackPatch's ROW_DRAWABLE).
+            "drawable/elevated_bg_simple_row_dark");
 
     private final Map<Integer, String> stockNames = new HashMap<>();
     /**
@@ -83,6 +91,7 @@ public final class ResourceTableCheck {
     private final List<String> added = new ArrayList<>();
     private final List<String> moved = new ArrayList<>();
     private final List<String> absentInStock = new ArrayList<>();
+    private final List<String> writtenFiles = new ArrayList<>();
     private int stockResources;
     private int stockValues;
     private int patchedResources;
@@ -290,10 +299,14 @@ public final class ResourceTableCheck {
                     }
                     if (stockPath == null || stockFile == null) continue;
                     if (!stockPath.equals(path)) moved.add(where + " " + stockPath + " -> " + path);
-                    // No patch writes a resource file, so a file whose bytes changed is one the
-                    // rebuild swapped or damaged (a path clash loses content as well as paths).
+                    // Past the files a patch writes, a file whose bytes changed is one the rebuild
+                    // swapped or damaged (a path clash loses content as well as paths).
                     if (stockFile.getCrc() != file.getCrc() || stockFile.getSize() != file.getSize()) {
-                        failures.add(where + ": " + path + " is not the file the stock archive holds for it");
+                        if (WRITTEN_BY_PATCHES.contains(label(resource))) {
+                            writtenFiles.add(where + " " + path);
+                        } else {
+                            failures.add(where + ": " + path + " is not the file the stock archive holds for it");
+                        }
                     }
                 }
             }
@@ -428,6 +441,7 @@ public final class ResourceTableCheck {
                 files, moved.size(), absentInStock.size()));
         for (String line : moved) lines.add("  moved " + line);
         for (String line : absentInStock) lines.add("  absent in both " + line);
+        for (String line : writtenFiles) lines.add("  written by a patch " + line);
         if (failures.isEmpty()) {
             lines.add(String.format(Locale.ROOT, "[resources] every one of the stock table's %d resources resolves in the patched table, with its type and a value in each of its configurations, and every file and reference the patched values name is there",
                     stockResources));
