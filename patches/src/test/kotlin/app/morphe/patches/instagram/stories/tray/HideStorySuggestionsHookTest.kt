@@ -98,6 +98,7 @@ class HideStorySuggestionsHookTest {
             classes(askerHolds = "Something else") to "nothing asking $items->A07 holds \"$INVALID_NETEGO\"",
             classes(loopsToStart = true) to "something in $items->A07 jumps back to its start",
             classes(inlined = true, readsTwice = true) to "expected $store->A0X to read the netego once, found 2",
+            classes(inlined = true, readsOverItem = true) to "$store->A0X keeps the netego over the item it read it from",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -223,6 +224,7 @@ class HideStorySuggestionsHookTest {
         loopsToStart: Boolean = false,
         inlined: Boolean = false,
         readsTwice: Boolean = false,
+        readsOverItem: Boolean = false,
     ): List<ClassDef> {
         val mapper = method(
             mapperType, "A00", listOf("Ljava/lang/String;"), "Ljava/lang/Integer;", 2, static,
@@ -283,18 +285,20 @@ class HideStorySuggestionsHookTest {
             """,
         )
         // 454's copy of the check's netego half: the reader asked in place, and a null leaves the item out.
-        val readsInPlace = { name: String, times: Int ->
+        // With [readsOverItem] the first keeps the answer in the item's own register.
+        val readsInPlace = { name: String, times: Int, answer: Int ->
             method(
                 store, name, listOf("Ljava/util/Collection;"), "Ljava/util/List;", 3, AccessFlags.PUBLIC.value,
                 listOf("const-string v0, \"$askerHolds\"", "const/4 v1, 0x0").plus(
-                    List(times) { listOf("invoke-static {v1}, $readerCall", "move-result-object v2", "if-eqz v2, :invalid") }.flatten(),
+                    List(times) { listOf("invoke-static {v1}, $readerCall", "move-result-object v$answer", "if-eqz v$answer, :invalid") }.flatten(),
                 ).plus(listOf("const/4 v0, 0x1", ":invalid", "const/4 v2, 0x0", "return-object v2")).joinToString("\n"),
             )
         }
+        val askers = listOf(readsInPlace("A0X", if (readsTwice) 2 else 1, if (readsOverItem) 1 else 2), readsInPlace("A0Y", 1, 2))
         return listOf(
             classDef(mapperType, listOf(mapper, names)),
             classDef(items, listOfNotNull(reader, if (readers > 1) secondReader else null, if (inlined) null else check)),
-            classDef(store, if (inlined) listOf(readsInPlace("A0X", if (readsTwice) 2 else 1), readsInPlace("A0Y", 1)) else listOf(asker)),
+            classDef(store, if (inlined) askers else listOf(asker)),
         )
     }
 
