@@ -925,8 +925,8 @@ public final class ThreadSeen {
 
     /**
      * The chats given a seen choice of their own. Null before Instagram's context is set. Unlike
-     * {@link #marks()}, Instagram's other processes read the file too, so a chat held by its own
-     * choice stays held wherever its receipt goes out. Only the main process writes it.
+     * {@link #marks()}, Instagram's other processes read the file too, as it stood when they started,
+     * the way they read every setting. Only the main process writes it.
      */
     private static SeenChoices choices() {
         synchronized (LOCK) {
