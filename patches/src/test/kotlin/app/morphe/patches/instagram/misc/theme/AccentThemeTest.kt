@@ -458,9 +458,24 @@ class AccentThemeTest {
             assertEquals("$case: the icons' field", "$MERGED_LOGO_BAR->A0W:I", (code[at + 2] as ReferenceInstruction).reference.toString())
         }
 
+        // 454's outlined read: the static the constructor asks calls getColor on the Context it's handed.
+        val outlined = PatchContexts.of(listOf(header(outlined = true), iconColors(), extension()))
+        outlined.tintHeaderIcons()
+        val outlinedCode = outlined.mutableClassDefBy(MERGED_LOGO_BAR).methods.single { it.name == "<init>" }.code()
+        val outlinedAt = outlinedCode.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == HEADER_ICONS }
+        assertEquals(
+            "outlined read",
+            listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IPUT),
+            outlinedCode.subList(outlinedAt - 2, outlinedAt + 3).map { it.opcode },
+        )
+        val outlinedHook = outlinedCode[outlinedAt] as FiveRegisterInstruction
+        assertEquals("outlined read: the Context it handed on and the color", listOf(2, 0), listOf(outlinedHook.registerC, outlinedHook.registerD))
+
         for ((case, classes) in listOf(
             "the icons' color kept twice" to listOf(header(stored = 2), extension()),
             "a jump onto the store" to listOf(header(jumpOnto = true), extension()),
+            "a static answering the resource, not its color" to listOf(header(outlined = true), iconColors(getColor = false), extension()),
+            "a static the patch can't read" to listOf(header(outlined = true), extension()),
         )) {
             val untouched = PatchContexts.of(classes)
             untouched.tintHeaderIcons()
@@ -480,7 +495,14 @@ class AccentThemeTest {
     fun everyBuildHandsHomesHeaderIconColorToTheExtension() {
         for ((code, bundle) in builds()) {
             val bar = FixtureDex.classes(bundle, setOf(MERGED_LOGO_BAR)).getValue(MERGED_LOGO_BAR)
-            val context = PatchContexts.of(listOf(bar, extension()))
+            // Some 454 builds outline the getColor into a static the constructor asks
+            // (`LX/0BPb;->A03` on 386014704), so the classes its statics live in come along.
+            val asked = bar.methods.filter { it.name == "<init>" }.flatMapTo(HashSet()) { method ->
+                method.code().filter { it.opcode == Opcode.INVOKE_STATIC }
+                    .map { ((it as ReferenceInstruction).reference as MethodReference).definingClass }
+            } - MERGED_LOGO_BAR
+            val helpers = FixtureDex.classes(bundle, asked).values
+            val context = PatchContexts.of(listOf(bar) + helpers + extension())
             context.tintHeaderIcons()
             val hooked = context.mutableClassDefBy(MERGED_LOGO_BAR).methods.filter { it.name == "<init>" }.flatMap { method ->
                 val body = method.code()
@@ -490,7 +512,19 @@ class AccentThemeTest {
             val (body, at) = hooked.single()
             val hook = body[at] as FiveRegisterInstruction
             val read = body[at - 2] as FiveRegisterInstruction
-            assertEquals("$code: Context.getColor before it", "getColor", ((read as ReferenceInstruction).reference as MethodReference).name)
+            val readCall = (read as ReferenceInstruction).reference as MethodReference
+            val getColor = if (read.opcode == Opcode.INVOKE_STATIC) {
+                // The outlined read: its body calls Context.getColor on the Context it was handed.
+                val outlined = helpers.single { it.type == readCall.definingClass }.methods.single {
+                    it.name == readCall.name && it.parameterTypes.map(Any::toString) == listOf(CONTEXT)
+                }
+                val own = outlined.implementation!!.registerCount - 1
+                outlined.code().singleOrNull { (it as? ReferenceInstruction)?.reference?.toString() == "$CONTEXT->getColor(I)I" }
+                    ?.takeIf { (it as FiveRegisterInstruction).registerC == own }
+            } else {
+                read.takeIf { readCall.toString() == "$CONTEXT->getColor(I)I" }
+            }
+            assertTrue("$code: Context.getColor before it, or in the static it asks: $readCall", getColor != null)
             assertEquals("$code: the color's own Context", read.registerC, hook.registerC)
             assertEquals("$code: the color read", Opcode.MOVE_RESULT, body[at - 1].opcode)
             assertEquals("$code: the hook's answer", listOf(Opcode.MOVE_RESULT, Opcode.IPUT), listOf(body[at + 1].opcode, body[at + 2].opcode))
@@ -820,13 +854,17 @@ class AccentThemeTest {
          * 32-bit builds do. Its tint reads the color over media on the fall through of its test of the
          * state and the icons' color where that test lands, then goes back to one setColorFilter.
          */
-        fun header(stored: Int = 1, overMediaRead: Boolean = false, jumpOnto: Boolean = false): ClassDef {
+        fun header(stored: Int = 1, overMediaRead: Boolean = false, jumpOnto: Boolean = false, outlined: Boolean = false): ClassDef {
             val init = buildString {
                 appendLine("invoke-direct { p0 }, Ljava/lang/Object;-><init>()V")
                 if (jumpOnto) appendLine("if-eqz p2, :store")
                 repeat(stored) {
-                    appendLine("const v0, 0x7f060001")
-                    appendLine("invoke-virtual { p1, v0 }, $CONTEXT->getColor(I)I")
+                    if (outlined) {
+                        appendLine("invoke-static { p1 }, $ICON_COLORS->A03($CONTEXT)I")
+                    } else {
+                        appendLine("const v0, 0x7f060001")
+                        appendLine("invoke-virtual { p1, v0 }, $CONTEXT->getColor(I)I")
+                    }
                     appendLine("move-result v0")
                     if (it == 0) appendLine(":store")
                     appendLine("iput v0, p0, $MERGED_LOGO_BAR->A0W:I")
@@ -856,6 +894,19 @@ class AccentThemeTest {
                 method(MERGED_LOGO_BAR, "<init>", listOf(CONTEXT, "Landroid/util/AttributeSet;", "I"), 1, init, static = false),
                 method(MERGED_LOGO_BAR, "A07", listOf("Landroid/widget/ImageView;", "I"), 1, tint, static = false),
             )
+        }
+
+        const val ICON_COLORS = "Lfixture/IconColors;"
+
+        /**
+         * The static 454 outlines the header's color read into (`LX/0BPb;->A03` on 386014704): it asks
+         * another static for the resource on its Context and answers Context.getColor of it, or with
+         * [getColor] false the resource itself.
+         */
+        fun iconColors(getColor: Boolean = true): ClassDef {
+            val read = if (getColor) "invoke-virtual { p0, v0 }, $CONTEXT->getColor(I)I\nmove-result v0\n" else ""
+            val body = "invoke-static { p0 }, $ICON_COLORS->A0T($CONTEXT)I\nmove-result v0\n${read}return v0"
+            return classOf(ICON_COLORS, method(ICON_COLORS, "A03", listOf(CONTEXT), 1, body, static = true, returns = "I"))
         }
 
         fun method(type: String, name: String, parameters: List<String>, locals: Int, body: String, static: Boolean, returns: String = "V"): Method {

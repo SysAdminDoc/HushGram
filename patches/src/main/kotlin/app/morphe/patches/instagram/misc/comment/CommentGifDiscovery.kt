@@ -75,7 +75,7 @@ private fun gifGetters(classes: Map<String, ClassDef>, model: String, vararg key
     val parsed = models.filter { !treeBacked(it, classes) }.one("parsed $model")
     val fields = mutableSetOf<String>()
     return keys.map { (key, returns) ->
-        val read = hashGetter(tree, key, returns)
+        val read = hashGetter(tree, key, returns, classes)
         val getter = type.methods.filter { it.matches(read) && AccessFlags.ABSTRACT.isSet(it.accessFlags) }
             .one("$model $key getter")
         if (!AccessFlags.PUBLIC.isSet(getter.accessFlags)) refuse("$model $key getter isn't public")

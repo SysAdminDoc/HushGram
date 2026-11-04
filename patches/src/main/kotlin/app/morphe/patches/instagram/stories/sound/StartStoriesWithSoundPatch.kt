@@ -76,7 +76,7 @@ val startStoriesWithSoundPatch = bytecodePatch(
     description = "Opens stories with their sound on, the same as tapping Instagram's speaker. Your phone's ringer " +
         "and volume still count. Starts off. Turn it on in HushGram settings > Stories.",
 ) {
-    category("Stories")
+    category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

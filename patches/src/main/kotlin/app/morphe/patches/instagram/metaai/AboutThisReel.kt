@@ -29,8 +29,11 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 internal const val ABOUT_THIS_REEL = "$EXTENSION_PACKAGE/metaai/MetaAi;->aboutThisReel(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val ASK_META_AI_BOX = "$EXTENSION_PACKAGE/metaai/MetaAi;->askMetaAiBox(Landroid/view/ViewGroup;Landroid/view/View;)V"
 
-/** The server flag Instagram's About this reel summary factory reads (450 and 451) to pick how it fetches the summary. */
-internal const val SUMMARY_FLAG = 0x8110a600115abdL
+/**
+ * The server flag Instagram's About this reel summary factory reads to pick how it fetches the
+ * summary (`LX/0bws;->A02` on 454's 386014758; 453 had 0x8110a600115abd).
+ */
+internal const val SUMMARY_FLAG = 0x81106500115afcL
 
 /** Two strings the summary row's binder holds on 450 and 451, the method that adds its Ask Meta AI box. */
 internal val SUMMARY_ROW_STRINGS = listOf("overflow_open", "defer_eligibility_enabled")

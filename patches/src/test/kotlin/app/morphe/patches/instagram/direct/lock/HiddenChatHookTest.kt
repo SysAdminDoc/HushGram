@@ -27,6 +27,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -99,11 +100,11 @@ class HiddenChatHookTest {
             val starter = rows.starters.single()
             for ((method, at) in rows.writes) {
                 val code = method.visualCode()
-                val start = code.getOrNull(at + 1)
+                val start = code.getOrNull(startAt(code, at))
                 assertTrue("$name: ${method.signature()}@$at doesn't start the row factory next",
                     start?.opcode == Opcode.INVOKE_STATIC && (start.visualReference() as? MethodReference)?.signature() == starter.signature())
                 assertEquals("$name: on the holder it wrote to", (code[at] as TwoRegisterInstruction).registerB, (start as FiveRegisterInstruction).registerC)
-                assertEquals(1, start.registerCount)
+                assertEquals(starter.parameterTypes.size, start.registerCount)
             }
             // The flag the starter checks: screens' onPause turn it off, so a redraw while you're in
             // HushGram settings waits for the inbox's resume, which starts the factory again.
@@ -124,7 +125,7 @@ class HiddenChatHookTest {
         for (site in listOf(found.badge, found.folders)) {
             assertEquals(Opcode.INVOKE_STATIC_RANGE, site.method.visualCode()[site.at].opcode)
         }
-        assertEquals(Opcode.INVOKE_STATIC, found.redraw.visualCode()[2].opcode)
+        assertEquals(Opcode.INVOKE_STATIC, found.redraw.visualCode().dropLast(1).last().opcode)
     }
 
     @Test
@@ -501,16 +502,28 @@ class HiddenChatHookTest {
         }
         assertEquals("$name: every write is of the same list", 1, puts.map { text(it) }.toSet().size)
         val put = puts.first()
-        // Right after each write Instagram starts the row factory on the holder. The redraw bridge
-        // takes the same two steps.
+        // Right after each write Instagram starts the row factory on the holder (454 loads the reason
+        // its starter logs first). The redraw bridge takes the same two steps.
         val starts = writes.map { write ->
-            val start = write.site.method.visualCode()[write.site.at + 1]
+            val code = write.site.method.visualCode()
+            val start = code[startAt(code, write.site.at)]
             assertEquals("$name: the writer starts the row factory next", "${Opcode.INVOKE_STATIC.name} ${starter.signature()}", text(start))
             assertEquals("$name: on the holder", write.holder, (start as FiveRegisterInstruction).registerC)
-            assertEquals(1, start.registerCount)
+            assertEquals(starter.parameterTypes.size, start.registerCount)
+            if (start.registerCount > 1) {
+                val reason = reasonAt(code, write.site.at)
+                assertEquals("$name: with the reason loaded right before", (code[reason] as OneRegisterInstruction).registerA, start.registerD)
+                if (reason > write.site.at + 1) {
+                    assertEquals("$name: and the callback built before it", (code[reason - 2] as OneRegisterInstruction).registerA, start.registerE)
+                }
+            }
             start
         }
         val start = starts.first()
+        val reasonLoad = writes.first().let { write ->
+            val code = write.site.method.visualCode()
+            code[reasonAt(code, write.site.at)].takeIf { starter.parameterTypes.size > 1 }
+        }
         // The starter does nothing while a flag of its holder is off, and the holder's resume turns
         // the flag on and starts the factory again.
         val starterCode = starter.visualCode()
@@ -525,9 +538,12 @@ class HiddenChatHookTest {
                 code.any { (it.visualReference() as? MethodReference)?.signature() == starter.signature() }
         }
         assertEquals("$name: one method of the holder turns the flag on and starts the factory", 1, resumes.size)
-        assertTrue("$name: the starter is a public static call taking its holder",
+        assertTrue("$name: the starter is a public static call taking its holder (and on 454 a reason and a callback)",
             AccessFlags.STATIC.isSet(starter.accessFlags) && AccessFlags.PUBLIC.isSet(starter.accessFlags) &&
-                starter.parameterTypes.map(Any::toString) == listOf(starter.definingClass))
+                starter.parameterTypes.map(Any::toString).let {
+                    it == listOf(starter.definingClass) ||
+                        it == listOf(starter.definingClass, "Ljava/lang/String;", "Lkotlin/jvm/functions/Function0;")
+                })
         // The folders: a folder's chats, just read into the hooked register by the snapshot's own
         // folder count, which the snapshot calls.
         val counterCode = counter.visualCode()
@@ -579,10 +595,19 @@ class HiddenChatHookTest {
         assertEquals("$name: writes the holder's list as the subscriber does", text(put), text(redraw[1]))
         assertEquals("$name: the list handed over", listParameter, (redraw[1] as TwoRegisterInstruction).registerA)
         assertEquals("$name: into the holder", holderParameter, redraw[1].let { (it as TwoRegisterInstruction).registerB })
-        assertEquals("$name: then starts the row factory as the subscriber does", text(start), text(redraw[2]))
-        assertEquals("$name: on the holder", holderParameter, (redraw[2] as FiveRegisterInstruction).registerC)
-        assertEquals(1, (redraw[2] as FiveRegisterInstruction).registerCount)
-        assertEquals("$name: and returns", Opcode.RETURN_VOID, redraw[3].opcode)
+        val call = if (reasonLoad == null) 2 else 4
+        if (reasonLoad != null) {
+            assertEquals("$name: loads the subscriber's reason", text(reasonLoad), text(redraw[2]))
+            assertEquals("$name: and no callback", Opcode.CONST_4, redraw[3].opcode)
+            assertEquals(0, (redraw[3] as NarrowLiteralInstruction).narrowLiteral)
+            val handed = redraw[call] as FiveRegisterInstruction
+            assertEquals("$name: hands the reason", (redraw[2] as OneRegisterInstruction).registerA, handed.registerD)
+            assertEquals("$name: and the callback", (redraw[3] as OneRegisterInstruction).registerA, handed.registerE)
+        }
+        assertEquals("$name: then starts the row factory as the subscriber does", text(start), text(redraw[call]))
+        assertEquals("$name: on the holder", holderParameter, (redraw[call] as FiveRegisterInstruction).registerC)
+        assertEquals(starter.parameterTypes.size, (redraw[call] as FiveRegisterInstruction).registerCount)
+        assertEquals("$name: and returns", Opcode.RETURN_VOID, redraw[call + 1].opcode)
 
         val code = badge.visualCode()
         val at = found.badge.at
@@ -624,6 +649,20 @@ class HiddenChatHookTest {
         assertEquals(site.register, (code[site.at + 1] as OneRegisterInstruction).registerA)
         assertEquals("$name: nothing else around the $what moved", before, code.take(site.at).map(::text) + code.drop(site.at + 2).map(::text))
         assertEquals("$name: the filter is called once there", 1, code.count { it.visualReference()?.toString() == filter })
+    }
+
+    /**
+     * Where the starter is called after the write at [at]: next, or past the reason 454's starter
+     * logs, and before that the callback (a constant, a new instance and its constructor) it logs too.
+     */
+    private fun startAt(code: List<Instruction>, at: Int): Int = reasonAt(code, at).let { if (code.getOrNull(it)?.opcode == Opcode.CONST_STRING) it + 1 else it }
+
+    /** Where 454's reason would be loaded after the write at [at], past the callback built for the starter. */
+    private fun reasonAt(code: List<Instruction>, at: Int): Int {
+        var next = at + 1
+        if (code.getOrNull(next)?.opcode in setOf(Opcode.CONST_4, Opcode.CONST_16) && code.getOrNull(next + 1)?.opcode == Opcode.NEW_INSTANCE) next++
+        if (code.getOrNull(next)?.opcode == Opcode.NEW_INSTANCE && code.getOrNull(next + 1)?.opcode == Opcode.INVOKE_DIRECT) next += 2
+        return next
     }
 
     private fun text(instruction: Instruction): String = when (val reference = instruction.visualReference()) {

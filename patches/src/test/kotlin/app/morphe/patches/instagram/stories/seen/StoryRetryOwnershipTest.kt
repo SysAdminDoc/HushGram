@@ -87,7 +87,7 @@ class StoryRetryOwnershipTest {
     val owner = classes.single { it.type == found.queue!!.owner }
     val run = owner.methods.single { it.name == found.queue!!.run }
     val count = run.call(2)
-    val pending = owner.methods.single { it.toString() == run.call(17).toString() }.reference(4)
+    val pending = owner.methods.single { it.toString() == run.call(18).toString() }.reference(4)
     val changed = storyQueueMethod(owner.type, count.name, emptyList(), "I", 2, """
         iget-object v0, p0, $pending
         invoke-virtual { v0 }, Ljava/util/AbstractMap;->clear()V
@@ -104,7 +104,7 @@ class StoryRetryOwnershipTest {
     val found = PatchContexts.of(classes).findStorySeen()
     val owner = classes.single { it.type == found.queue!!.owner }
     val run = owner.methods.single { it.name == found.queue!!.run }
-    val pending = owner.methods.single { it.toString() == run.call(17).toString() }.reference(4)
+    val pending = owner.methods.single { it.toString() == run.call(18).toString() }.reference(4)
     val getter = owner.methods.single { it.name == found.sessionGetter && it.returnType == USER_SESSION }
     val changed = storyQueueMethod(owner.type, getter.name, emptyList(), USER_SESSION, 2, """
         iget-object v0, p0, $pending
@@ -218,7 +218,7 @@ class StoryRetryOwnershipTest {
 
     private fun forInputs(check: (List<ClassDef>) -> Unit) {
         check(StorySeenHookTest().standIns())
-        for (bundle in Fixtures.files { it.name == "instagram-453.0.0.57.79-385914557.apks" }) {
+        for (bundle in Fixtures.files { it.name == "instagram-454.0.0.54.77-386014758.apks" }) {
             check(StorySeenHookTest().keptFixtureClasses(bundle))
         }
     }

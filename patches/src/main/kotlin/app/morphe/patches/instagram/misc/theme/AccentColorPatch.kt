@@ -119,25 +119,32 @@ internal class AccentReads(
 /**
  * Finds every method the patch changes and checks the extension before anything changes.
  *
- * The loader is the one static `(Context, int)ColorStateList` loading [INFLATE_FAILED]. The color
+ * The loader is the one static `(Context, int)ColorStateList` loading [INFLATE_FAILED], or on 454
+ * the one static `(Theme, Resources, int)ColorStateList` loading it, which the Context form now
+ * calls (`LX/00Pr;->A01` on 386014758). The color
  * reads are the statics taking a Context and an attribute that end by calling an attribute
  * resolver (a static of that shape calling Theme.resolveAttribute and reading TypedValue's
  * resourceId, with no getColor of its own) on their own two parameters, calling getColor on the
  * Context with its answer and returning that. A const and a static check may come first. 450 and
- * 451 have two of them in every build, and any other count means a build this wasn't written for.
+ * 451 have two of them in every build, one beside the resolver and one elsewhere. Some 454 builds
+ * inline the one beside the resolver into its callers (453's `LX/00nY;->A0a` on 385914557 has no
+ * counterpart on 386014758), so there the read elsewhere is all that's left (`LX/0129;->A06` on
+ * 386014758), while others keep both (386014704). Any other count, or a lone read beside the
+ * resolver, means a build this wasn't written for.
  *
  * Both reads ask one resolver, and its class holds the other two kinds. The fallback resolver is
- * its one static `(Context, int, int)int` calling the resolver and asking for no color, and the
+ * its one static `(Context, int, int)int` calling the resolver, or holding it inlined, and asking
+ * for no color, and the
  * fallback reads are the statics of that shape ending the way the color reads do with it, two in
  * every 451 build. The value read is its one static `(Context, int)int` that resolves its own
  * attribute against the theme and returns TypedValue.data straight from the TypedValue it filled.
  */
 internal fun BytecodePatchContext.findAccentReads(): AccentReads {
     val loaders = classesLoadingString(INFLATE_FAILED).flatMap { classDef ->
-        classDef.methods.filter { it.isStaticContextAnd(COLOR_STATE_LIST) && loadsString(it, INFLATE_FAILED) }
+        classDef.methods.filter { it.isColorStateListLoader() && loadsString(it, INFLATE_FAILED) }
     }
     val loader = loaders.singleOrNull()
-        ?: refuse("expected one static (Context, int) ColorStateList loading \"$INFLATE_FAILED\", found ${loaders.size}")
+        ?: refuse("expected one static (Context, int) or (Theme, Resources, int) ColorStateList loading \"$INFLATE_FAILED\", found ${loaders.size}")
     if (loader.code().none { it.opcode == Opcode.RETURN_OBJECT }) refuse("${loader.where()} returns no object")
 
     val resolvers = classesCalling(THEME, "resolveAttribute").flatMap { classDef ->
@@ -149,12 +156,15 @@ internal fun BytecodePatchContext.findAccentReads(): AccentReads {
             classDef.methods.filter { it.readsColorThrough(resolver) }
         }
     }.distinctBy { it.where() }
-    if (reads.size != 2) {
+    if (reads.size !in 1..2) {
         refuse("expected two statics reading a theme attribute's color, found ${reads.size}: ${reads.joinToString { it.where() }}")
     }
     val resolver = reads.map { it.resolverCalled() }.distinct().singleOrNull()
         ?.let { called -> resolvers.single { it.definingClass == called.first && it.name == called.second } }
         ?: refuse("the two color reads ask different resolvers: ${reads.joinToString { it.where() }}")
+    if (reads.size == 1 && reads.single().definingClass == resolver.definingClass) {
+        refuse("expected two statics reading a theme attribute's color, or one outside ${resolver.definingClass}, found ${reads.single().where()}")
+    }
     val resolverClass = classDefByOrNull(resolver.definingClass) ?: refuse("no class ${resolver.definingClass}")
 
     val fallbackResolvers = resolverClass.methods.filter { it.resolvesWithFallback(resolver) }
@@ -276,6 +286,11 @@ private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
             it.returnType == method.returnType
     }
 
+/** ResourcesCompat's loader: a static ColorStateList taking a Context and an id, or a theme, its resources and an id. */
+private fun Method.isColorStateListLoader(): Boolean =
+    isStaticContextAnd(COLOR_STATE_LIST) || AccessFlags.STATIC.isSet(accessFlags) && returnType == COLOR_STATE_LIST &&
+        parameterTypes.map(Any::toString) == listOf(THEME, RESOURCES, "I") && implementation != null
+
 private fun Method.isStaticContextAnd(returns: String): Boolean =
     AccessFlags.STATIC.isSet(accessFlags) && returnType == returns &&
         parameterTypes.map(Any::toString) == listOf(CONTEXT, "I") && implementation != null
@@ -293,12 +308,38 @@ private fun Method.resolvesAttribute(): Boolean {
         }
 }
 
-/** A static (Context, int, int) int in the resolver's class calling the resolver and asking for no color. */
-private fun Method.resolvesWithFallback(resolver: Method): Boolean =
-    AccessFlags.STATIC.isSet(accessFlags) && returnType == "I" && implementation != null &&
-        parameterTypes.map(Any::toString) == listOf(CONTEXT, "I", "I") &&
-        code().any { it.opcode == Opcode.INVOKE_STATIC && it.calls(resolver.definingClass, resolver.name) } &&
-        code().none { it.calls(CONTEXT, "getColor") }
+/**
+ * A static (Context, int, int) int in the resolver's class asking for no color, that either calls the
+ * resolver or holds the resolver inlined. Inlined, it resolves its own attribute against the theme,
+ * reads TypedValue.resourceId and returns its own fallback, both parameters never written
+ * (`LX/02Xz;->A0e` on 386014758, where 453's `LX/00nY;->A0f` called the resolver).
+ */
+private fun Method.resolvesWithFallback(resolver: Method): Boolean {
+    if (!AccessFlags.STATIC.isSet(accessFlags) || returnType != "I" || implementation == null) return false
+    if (parameterTypes.map(Any::toString) != listOf(CONTEXT, "I", "I")) return false
+    val code = code()
+    if (code.any { it.calls(CONTEXT, "getColor") }) return false
+    if (code.any { it.opcode == Opcode.INVOKE_STATIC && it.calls(resolver.definingClass, resolver.name) }) return true
+    val attribute = parameterRegisterNumber(1)
+    val fallback = parameterRegisterNumber(2)
+    val untouched = { register: Int ->
+        code.none { instruction ->
+            instruction.opcode.setsRegister() && (instruction as? OneRegisterInstruction)?.registerA?.let {
+                it == register || instruction.opcode.setsWideRegister() && it + 1 == register
+            } == true
+        }
+    }
+    return untouched(attribute) && untouched(fallback) &&
+        code.any {
+            it.opcode == Opcode.INVOKE_VIRTUAL && it.calls(THEME, "resolveAttribute") && (it as FiveRegisterInstruction).registerD == attribute
+        } &&
+        code.any { instruction ->
+            instruction.opcode == Opcode.IGET && ((instruction as ReferenceInstruction).reference as FieldReference).let {
+                it.definingClass == TYPED_VALUE && it.name == "resourceId"
+            }
+        } &&
+        code.any { it.opcode == Opcode.RETURN && (it as OneRegisterInstruction).registerA == fallback }
+}
 
 /**
  * A static (Context, int) int that resolves its own attribute against the theme, asks for no color

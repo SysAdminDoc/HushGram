@@ -118,11 +118,11 @@ internal fun BytecodePatchContext.findReadHere(chat: String): ReadHereTargets {
             } == true
     }
     answer.requireThisIntact(THREAD_SEEN_PATCH, asks)
-    val flags = asks.mapNotNull { code[it].call() }.distinctBy { it.name }
-    val declared = chatClass.methods.mapTo(mutableSetOf()) { it.name }
-    flags.filter { it.name !in declared }.one("Mark as unread flag the summary checks")
     // The check takes the account's id, the newest item's id and its sender's id, in that order.
     val newest = newestItem(answer, code, compare, (code[compare] as FiveRegisterInstruction).registerE)
+    val flags = (asks.mapNotNull { code[it].call() } + inlinedFlags(summary, answer, code, compare, newest)).distinctBy { it.name }
+    val declared = chatClass.methods.mapTo(mutableSetOf()) { it.name }
+    flags.filter { it.name !in declared }.one("Mark as unread flag the summary checks")
     val check = code[compare].call()!!
     val key = summary.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == THREAD_KEY
@@ -166,6 +166,61 @@ internal fun BytecodePatchContext.findReadHere(chat: String): ReadHereTargets {
         """,
     ))
     return ReadHereTargets(unread, flags, seen, bridges)
+}
+
+private val FIELD_READS = setOf(
+    Opcode.IGET, Opcode.IGET_WIDE, Opcode.IGET_OBJECT, Opcode.IGET_BOOLEAN, Opcode.IGET_BYTE, Opcode.IGET_CHAR, Opcode.IGET_SHORT,
+)
+
+/**
+ * The summary's flags [answer] runs inlined instead of asking: 454 inlines two of the three (03rs.Eiq on
+ * 386014758 tests EJT's field and reads Ea5's Mark as unread value in place, and still asks EJS). Each
+ * of those getters locks the summary's holder, the object the answer locks too, and answers from what
+ * it reads off it. So every read off that holder before the answer turns to the newest item has to
+ * start a stretch, up to the next holder read or call on the summary, that makes exactly one getter's
+ * references in order. Anything else is a check the hook couldn't ask, and it refuses.
+ */
+private fun inlinedFlags(
+    summary: ClassDef,
+    answer: Method,
+    code: List<Instruction>,
+    compare: Int,
+    newest: List<FieldReference>,
+): List<Method> {
+    val self = answer.localRegisterCount()
+    fun Instruction.readOff(register: Int) = opcode in FIELD_READS && (this as TwoRegisterInstruction).registerB == register
+    // The newest item is read through the holder too, from the chain's second field on.
+    val stop = code.indices.take(compare).firstOrNull { code[it].field() in newest.drop(1) } ?: compare
+    val loads = code.indices.take(stop).filter { code[it].opcode == Opcode.IGET_OBJECT && code[it].readOff(self) }
+    if (loads.isEmpty()) return emptyList()
+    val load = loads.singleOrNull() ?: refuse("summary's answer reads more than one holder before the newest item")
+    val holder = (code[load] as OneRegisterInstruction).registerA
+    if ((load + 1 until stop).any { code[it].writes(holder) }) refuse("summary's answer replaces its holder before the newest item")
+    val getters = summary.methods.filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null && it.parameterTypes.isEmpty() && it.returnType == "Z"
+    }.mapNotNull { getter -> lockedBody(getter, code[load].field()!!)?.let { getter to it } }
+    fun Instruction.asksSummary() = opcode == Opcode.INVOKE_VIRTUAL && (this as FiveRegisterInstruction).registerC == self &&
+        call()?.definingClass == summary.type
+    return (load + 1 until stop).filter { code[it].readOff(holder) }.map { start ->
+        val end = (start + 1 until stop).firstOrNull { code[it].readOff(holder) || code[it].asksSummary() } ?: stop
+        val references = code.subList(start, end).mapNotNull { it.visualReference()?.toString() }
+        getters.filter { it.second == references }.map { it.first }.one("summary flag inlined at $start of its unread answer")
+    }
+}
+
+/**
+ * The references [getter]'s body makes while it holds the summary's [holder] locked, when that's all it
+ * is: a read of the holder off `this`, the lock, the body, the unlock and the return.
+ */
+private fun lockedBody(getter: Method, holder: FieldReference): List<String>? {
+    val code = getter.visualCode()
+    if (code.size < 4 || code[0].opcode != Opcode.IGET_OBJECT || code[0].field() != holder) return null
+    val held = (code[0] as TwoRegisterInstruction).registerA
+    if ((code[0] as TwoRegisterInstruction).registerB != getter.localRegisterCount()) return null
+    if (code[1].opcode != Opcode.MONITOR_ENTER || (code[1] as OneRegisterInstruction).registerA != held) return null
+    val exit = code.indices.firstOrNull { code[it].opcode == Opcode.MONITOR_EXIT && (code[it] as OneRegisterInstruction).registerA == held }
+    if (exit == null || exit < 3 || code.getOrNull(exit + 1)?.opcode != Opcode.RETURN) return null
+    return code.subList(2, exit).mapNotNull { it.visualReference()?.toString() }
 }
 
 /**

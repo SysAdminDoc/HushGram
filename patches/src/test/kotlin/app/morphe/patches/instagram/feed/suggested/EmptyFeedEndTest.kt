@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -26,7 +27,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -194,10 +194,10 @@ class EmptyFeedEndTest {
 
     /**
      * In each build of the declared version, the declared bundle and the other builds of it, the home
-     * feed adapter reads its flag twice, in its model builder and its empty check, and both reads go
-     * past the extension with the feed handed over first. The feed's empty check is public, so the
-     * extension's stub can ask it. On 451's 385713073 that's LX/05cW reading LX/05cY;->A02:Z in A05
-     * and asking LX/05Gi;->A0D()Z.
+     * feed adapter reads its flag three times, and every read goes past the extension with the feed
+     * handed over first. The feed's empty check is public, so the extension's stub can ask it. On
+     * 454's 386014758 that's LX/07ca reading LX/07cb;->A02:Z in its builder A06 at 261, in its empty
+     * check A1M, and in the copy of A1M Redex inlined into A06 at 1834, and asking LX/06gS;->A0D()Z.
      */
     @Test
     fun eachBuildEndsTheEmptiedFeed() {
@@ -209,12 +209,9 @@ class EmptyFeedEndTest {
         var checked = 0
         for (bundle in bundles + others) {
             val where = "${bundle.parentFile.name}/${bundle.name}"
-            val classes = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                for (classDef in dex.classes) {
-                    if (classDef.methods.any { it.holds(BUILD_MODELS) || it.holds(FOLLOWING_FEED) }) classes += ImmutableClassDef.of(classDef)
-                }
-            }
+            // Some builds ask a string pool for the Following feed's name, so the slice takes those askers and the pool.
+            val classes = (FixtureDex.classesHolding(bundle, BUILD_MODELS) + FixtureDex.classesLoading(bundle, FOLLOWING_FEED))
+                .distinctBy { it.type }.toMutableList()
             val found = PatchContexts.of(classes.distinctBy { it.type }).findFeedEnd()
             // The feed's class and its supers, for the stub's empty check.
             val feedTypes = generateSequence(found.empty.definingClass) { type ->
@@ -231,7 +228,7 @@ class EmptyFeedEndTest {
                 val code = method.implementation?.instructions?.toList().orEmpty()
                 code.indices.filter { code[it].reads(end.flag.toString()) }.map { code to it }
             }
-            assertEquals("$where: ${end.adapter} reads ${end.flag}", 2, reads.size)
+            assertEquals("$where: ${end.adapter} reads ${end.flag}", 3, reads.size)
             for ((code, at) in reads) {
                 assertTrue("$where: right after the read", code[at + 1].calls(FEED_ENDED))
                 assertEquals(Opcode.MOVE_RESULT, code[at + 2].opcode)
@@ -251,7 +248,7 @@ class EmptyFeedEndTest {
                 }
                 assertEquals("$where: $hook asked once", 1, asked.size)
                 val (shows, code, at) = asked.single()
-                assertTrue("$where: in the show check", shows.holds(FOLLOWING_FEED))
+                assertTrue("$where: in the show check", context.loadsString(shows, FOLLOWING_FEED))
                 assertEquals(Opcode.MOVE_RESULT, code[at - 1].opcode)
                 val question = (code[at - 2] as ReferenceInstruction).reference as MethodReference
                 val expected = if (hook == END_CARD_RULE) "Ljava/lang/String;" else shows.definingClass
@@ -374,12 +371,7 @@ class EmptyFeedEndTest {
         var checked = 0
         for (bundle in bundles + others) {
             val where = "${bundle.parentFile.name}/${bundle.name}"
-            val policies = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                for (classDef in dex.classes) {
-                    if (classDef.methods.any { it.holds(FOLLOWING_FEED) }) policies += ImmutableClassDef.of(classDef)
-                }
-            }
+            val policies = FixtureDex.classesLoading(bundle, FOLLOWING_FEED)
             val interfaces = PatchContexts.of(policies.distinctBy { it.type }).findLoadMoreRow().first.interfaces.toSet()
             assertTrue("$where: the load more row implements an interface", interfaces.isNotEmpty())
             val askers = mutableListOf<ClassDef>()
@@ -438,10 +430,6 @@ class EmptyFeedEndTest {
 
     private fun Instruction.reads(reference: String) =
         ((this as? ReferenceInstruction)?.reference as? FieldReference)?.toString() == reference
-
-    private fun Method.holds(string: String): Boolean = implementation?.instructions?.any {
-        ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == string
-    } == true
 
     private fun BytecodePatchContext.code(name: String): List<Instruction> =
         classDefBy(adapter).methods.single { it.name == name }.implementation!!.instructions.toList()

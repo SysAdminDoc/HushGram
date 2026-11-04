@@ -3,8 +3,8 @@
   "fixtures": [
     {
       "package": "com.instagram.android",
-      "versionName": "453.0.0.57.79",
-      "versionCode": "385914557",
+      "versionName": "454.0.0.54.77",
+      "versionCode": "386014758",
       "families": [
         {
           "family": "sanitizeSharingLinks",

@@ -6,17 +6,16 @@ package app.morphe.patches.instagram.ads
 
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.Method
-import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 /**
  * The strings only the ad-insert method holds: it writes the "Is ad pod" key into its debug map and
  * flags a "cross_surface_duplicate_ad". No other method in Instagram 449 or 450 carries both. They're
- * matched exactly, where the fingerprint this replaced matched any string containing them; each
- * is an exact constant in the insert on 449 and 450 (395, 438), so both find the same method.
+ * matched exactly, where the fingerprint this replaced matched any string containing them. Some
+ * 454 builds ask Redex's string pool for them, so a pooled load counts the same as a constant.
  */
 internal val AD_INJECTOR_STRINGS = listOf("cross_surface_duplicate_ad", "Is ad pod")
 
@@ -30,18 +29,17 @@ internal data class AdInjector(val type: String, val name: String, val parameter
  * at patch time rather than guarding the wrong method.
  */
 internal fun BytecodePatchContext.findAdInjector(): AdInjector {
-    val found = classesHolding(*AD_INJECTOR_STRINGS.toTypedArray()).flatMap { classDef ->
-        classDef.methods.filter { it.isAdInjector() }
-            .map { AdInjector(classDef.type, it.name, it.parameterTypes.map(CharSequence::toString)) }
-    }
+    val loading = AD_INJECTOR_STRINGS.drop(1).map { string -> classesLoadingString(string).mapTo(HashSet()) { it.type } }
+    val found = classesLoadingString(AD_INJECTOR_STRINGS.first()).distinctBy { it.type }
+        .filter { classDef -> loading.all { classDef.type in it } }
+        .flatMap { classDef ->
+            classDef.methods.filter { isAdInjector(it) }
+                .map { AdInjector(classDef.type, it.name, it.parameterTypes.map(CharSequence::toString)) }
+        }
     return found.singleOrNull()
         ?: throw PatchException("Hide ads: ${found.size} methods that put an ad into a feed in this Instagram build, not one")
 }
 
-private fun Method.isAdInjector(): Boolean =
-    AccessFlags.STATIC.isSet(accessFlags) && returnType == "Z" && parameterTypes.size == 3 &&
-        AD_INJECTOR_STRINGS.all { string ->
-            implementation?.instructions?.any {
-                ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == string
-            } == true
-        }
+private fun BytecodePatchContext.isAdInjector(method: Method): Boolean =
+    AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" && method.parameterTypes.size == 3 &&
+        AD_INJECTOR_STRINGS.all { string -> loadsString(method, string) }

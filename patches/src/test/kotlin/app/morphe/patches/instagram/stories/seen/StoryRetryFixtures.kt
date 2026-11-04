@@ -148,6 +148,7 @@ internal fun storyQueueBase(owner: String, request: String, session: Boolean = t
         if-eqz v0, :done
         invoke-interface { v2 }, Ljava/util/Iterator;->next()Ljava/lang/Object;
         move-result-object v7
+        invoke-static { v7 }, LX/04Zi;->A0C(Ljava/lang/Object;)V
         check-cast v7, Ljava/lang/String;
         invoke-virtual { p0, v7 }, $owner->A04(Ljava/lang/String;)Ljava/lang/Object;
         move-result-object v5
@@ -175,7 +176,7 @@ internal fun storyQueueBase(owner: String, request: String, session: Boolean = t
         move-exception v0
         monitor-exit v6
         throw v0
-    """, monitor = true, protected = 2 to 34)
+    """, monitor = true, protected = 2 to 35)
     val fields = listOf("lock" to "Ljava/lang/Object;", "pending" to "Ljava/util/LinkedHashMap;",
         "flight" to "Ljava/util/Map;", "account" to USER_SESSION).map { (name, type) ->
         ImmutableField(owner, name, type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)

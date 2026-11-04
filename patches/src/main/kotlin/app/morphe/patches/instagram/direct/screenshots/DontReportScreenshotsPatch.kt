@@ -14,11 +14,13 @@ import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.direct.ghost.ghostModeEntryPatch
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsConstString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
@@ -46,15 +48,25 @@ internal object ContentDetectorFingerprint : Fingerprint(
     custom = { method, _ -> method.loadsConstString(DETECTOR_SESSION) },
 )
 
-/** The folder detector's static (detector, path, list) report, the one method logging [FOLDER_REPORT]. */
-internal object FolderReportFingerprint : Fingerprint(
-    returnType = "V",
-    filters = listOf(string(FOLDER_REPORT)),
-    custom = { method, _ ->
-        AccessFlags.STATIC.isSet(method.accessFlags) &&
-            method.parameterTypes.map(CharSequence::toString).drop(1) == listOf("Ljava/lang/String;", "Ljava/util/List;")
-    },
-)
+/**
+ * The folder detector's static (detector, path, list) report, the one method logging [FOLDER_REPORT].
+ * Some 454 builds ask a string pool for the line, so it's found by the string it loads, not a fingerprint.
+ */
+private fun BytecodePatchContext.findFolderReport(): MutableMethod {
+    val found = classesLoadingString(FOLDER_REPORT).distinctBy { it.type }.flatMap { classDef ->
+        classDef.methods.filter {
+            it.returnType == "V" && AccessFlags.STATIC.isSet(it.accessFlags) &&
+                it.parameterTypes.map(CharSequence::toString).drop(1) == listOf("Ljava/lang/String;", "Ljava/util/List;") &&
+                loadsString(it, FOLDER_REPORT)
+        }
+    }
+    val report = found.singleOrNull()
+        ?: refuse("expected exactly one folder screenshot report in this Instagram build, found ${found.size}")
+    val parameters = report.parameterTypes.map(CharSequence::toString)
+    return mutableClassDefBy(report.definingClass).methods.single {
+        it.name == report.name && it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == parameters
+    }
+}
 
 @Suppress("unused")
 val dontReportScreenshotsPatch = bytecodePatch(
@@ -89,7 +101,7 @@ internal fun BytecodePatchContext.findScreenshotReports(): List<MutableMethod> {
             !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
     }
     val content = found.singleOrNull() ?: refuse("expected one screenshot hand-off in the media detector, found ${found.size}")
-    val folder = uniqueMethod(SCREENSHOT_REPORTS_PATCH, "folder screenshot report", FolderReportFingerprint)
+    val folder = findFolderReport()
     for ((what, method) in listOf("media detector's hand-off" to content, "folder screenshot report" to folder)) {
         if (0 in method.jumpTargets()) refuse("something jumps back to the $what's first instruction")
         method.requireLocals(SCREENSHOT_REPORTS_PATCH, 1)

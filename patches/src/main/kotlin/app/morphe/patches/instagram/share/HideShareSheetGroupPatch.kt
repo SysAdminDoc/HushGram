@@ -250,13 +250,18 @@ internal fun BytecodePatchContext.findActionList(): ActionListSite {
     return site
 }
 
-/** Whether this is the call that asks for the share sheet's button names. */
+/**
+ * Whether this is the call that asks for the share sheet's button names. Up to 453 it takes the Gen
+ * AI metadata, the sheet type, a string and three booleans; 454 dropped the metadata and the string
+ * for a holder of its own, so there it's the holder, the sheet type and the booleans.
+ */
 private fun Instruction.isPickerCall(): Boolean {
     if (opcode != Opcode.INVOKE_VIRTUAL && opcode != Opcode.INVOKE_VIRTUAL_RANGE) return false
     val call = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
     val types = call.parameterTypes.map(CharSequence::toString)
-    return call.returnType == "Ljava/util/List;" && types.size == 6 && types[0] == GEN_AI_PARAMS &&
-        types[2] == "Ljava/lang/String;" && types.drop(3).all { it == "Z" }
+    val withMetadata = types.size == 6 && types[0] == GEN_AI_PARAMS && types[2] == "Ljava/lang/String;"
+    val withHolder = types.size == 5 && types[0].startsWith("L") && types[1].startsWith("L")
+    return call.returnType == "Ljava/util/List;" && (withMetadata || withHolder) && types.takeLast(3).all { it == "Z" }
 }
 
 /** The row's list of button names, or null with a warning, so the group buttons still go in. */

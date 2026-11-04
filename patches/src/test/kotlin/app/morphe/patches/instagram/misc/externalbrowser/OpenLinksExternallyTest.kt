@@ -341,13 +341,42 @@ class OpenLinksExternallyTest {
         assertEquals("v0 is the activity, so the intent goes in v1", listOf(0, 1) to 1, dropped.redirectAt(5))
     }
 
+    /**
+     * 454 makes the copies first and branches after them, with a loop back on the way
+     * (`BrowserLiteInMainProcessIGActivity;->onCreate` on 386014757). Every path still reaches the
+     * super call with the copies, so the redirect reads the activity from the copy.
+     */
+    @Test
+    fun `copies made before the branches still count`() {
+        val kept = method(
+            "onCreate", bundle,
+            """
+                move-object/from16 v11, p1
+                move-object/from16 v8, p0
+                const/4 v2, 0x0
+                :loop
+                if-nez v2, :call
+                const/4 v2, 0x1
+                goto :loop
+                :call
+                invoke-super { v8, v11 }, $superOnCreate
+                return-void
+            """,
+            registers = 19,
+        )
+        kept.hookRedirect(intentFromActivity = true)
+        assertEquals(getIntent, kept.body()[7].call)
+        assertEquals("the activity's intent is read off the copy", 8, (kept.body()[7] as FiveRegisterInstruction).registerC)
+        assertEquals(listOf(8, 0) to 0, kept.redirectAt(9))
+    }
+
     /** A copy the patch can't be sure still holds the parameter at the super call stops the patch. */
     @Test
     fun `a copy that may hold something else stops the patch`() {
         val cases = mapOf(
             "the parameter written on the way" to "move-object/from16 v0, p0\nconst/16 p0, 0x0",
-            "a branch on the way" to "move-object/from16 v0, p0\nif-eqz v0, :next\n:next",
-            "no copy" to "new-instance v0, Lfixture/BrowserActivity;",
+            "a path skipping the copy" to "if-eqz p0, :next\nmove-object/from16 v0, p0\n:next",
+            "the parameter written on one path" to "move-object/from16 v0, p0\nif-eqz v0, :next\nconst/16 p0, 0x0\n:next",            "no copy" to "new-instance v0, Lfixture/BrowserActivity;",
         )
         for ((case, prologue) in cases) {
             val method = method(

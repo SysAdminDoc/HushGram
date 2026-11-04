@@ -109,7 +109,7 @@ class ReelDownloadButtonHookTest {
         // state answers a share count. Save goes over Share first, then past the share count over More.
         assertEquals("$name: Save's margin is its bottom", 7 to 9, site.marginSlot to site.marginSlots)
         assertEquals("$name: More's margin is its top, of the same style", 5, site.moreTopSlot)
-        assertEquals("$name: More's top is the side margin dimension", 0x7f070111, site.moreTop)
+        assertEquals("$name: More's top is the side margin dimension", 0x7f070108, site.moreTop)
         assertEquals("$name: the share count is the column state's", site.state.type, site.shareCount.definingClass)
         assertTrue("$name: and answers a count", site.countType.startsWith("L") && site.countType != site.shareCount.returnType)
         assertEquals("$name: the first Save goes over Share, the second over More", listOf(false, true),

@@ -21,7 +21,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -37,6 +39,8 @@ import org.junit.Test
 class HideProfileNotesHookTest {
     private val configs = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;"
     private val header = "Lfixture/ProfileHeaderBuilder;"
+    private val controller = "Lfixture/ProfileHeaderController;"
+    private val lambda = "Lfixture/HeaderLambda;"
     private val flagHex = CONSUMPTION_DISABLED_FLAG.toString(16)
     private val creationHex = CREATION_DISABLED_FLAG.toString(16)
 
@@ -82,6 +86,10 @@ class HideProfileNotesHookTest {
             classes(strings = listOf(SELF_PROFILE)) to "doesn't name both $SELF_PROFILE and $EXTERNAL_PROFILE",
             classes(creationReads = 2) to "expected one read of the Notes creation flag $creationHex in $header->A00, found 2",
             classes(creationShared = true) to "the read of $creationHex in $header->A00 is shared with another flag",
+            classes(controllerReads = 1, controllerHoldsHeader = false) to "expected two reads of the Notes consumption flag $flagHex, found 3",
+            classes(controllerReads = 1, castElsewhere = true) to "expected two reads of the Notes consumption flag $flagHex, found 3",
+            classes(controllerReads = 2) to "expected at most one read of $flagHex through the profile header's controller, found 2",
+            classes(controllerReads = 1, controllerShared = true) to "the read of $flagHex in $lambda->invoke is shared with another flag",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -91,6 +99,29 @@ class HideProfileNotesHookTest {
                 .filter { method -> method.code().any { it.referenceText() == NOTES_OFF || it.referenceText() == PROMPT_OFF } }
             assertTrue("$expected: something was written to $written", written.isEmpty())
         }
+    }
+
+    /**
+     * 454's third read, in a lambda of the header's controller: on 386014758 LX/0250;->invoke casts
+     * its receiver to LX/0GZP, which keeps the header builder LX/0GbX, and answers the flag's no.
+     * It's answered as a Notes read, and asks nothing of the prompt.
+     */
+    @Test
+    fun theHeaderControllersReadIsAnsweredToo() {
+        val classes = classes(controllerReads = 1)
+        val context = PatchContexts.of(classes)
+        val before = classes.sumOf { c -> c.methods.sumOf { it.code().size } }
+
+        val reads = context.findProfileNotes()
+        assertEquals(listOf(PROFILE_FRAGMENT, header, lambda), reads.map { it.type })
+        context.hideProfileNotes()
+
+        val patched = listOf(PROFILE_FRAGMENT, header).map { type -> context.mutableClassDefBy(type).methods.single { it.name == "A00" } } +
+            context.mutableClassDefBy(lambda).methods.single { it.name == "invoke" }
+        patched.forEach { assertAnswered("stand-in", it, CONSUMPTION_DISABLED_FLAG, NOTES_OFF) }
+        assertAnswered("stand-in header", patched[1], CREATION_DISABLED_FLAG, PROMPT_OFF)
+        assertEquals("the lambda asks nothing of the prompt", 0, patched.last().code().count { it.referenceText() == PROMPT_OFF })
+        assertEquals("what else was added", before + 8, patched.sumOf { it.code().size })
     }
 
     /** A read of the prompt's flag outside the header builder isn't the prompt's, so it keeps Instagram's answer. */
@@ -108,16 +139,17 @@ class HideProfileNotesHookTest {
     }
 
     /**
-     * In each of the three 452 builds the Notes flag is read twice, once by the profile screen and
-     * once by the one method that also reads the creation flag and names both profile kinds, and
-     * that method reads the creation flag once. All three are answered, the creation flag's through
-     * the prompt's hook.
+     * In each build the Notes flag is read by the profile screen and by the one method that also
+     * reads the creation flag and names both profile kinds, and that method reads the creation flag
+     * once. 454 reads it a third time, in a lambda of the header's controller (LX/0250 on 386014758),
+     * so the classes it casts to come along. All of them are answered, the creation flag's through the
+     * prompt's hook.
      */
     @Test
     fun eachBuildHidesNotesAndThePrompt() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        assertEquals("every 454 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()
             FixtureDex.forEach(bundle) { dex ->
@@ -127,16 +159,22 @@ class HideProfileNotesHookTest {
                     }
                 }
             }
-            assertEquals("${bundle.name}: classes loading $flagHex or $creationHex: ${holders.map { it.type }}", 2, holders.size)
-            val context = PatchContexts.of(holders)
+            assertTrue("${bundle.name}: classes loading $flagHex or $creationHex: ${holders.map { it.type }}", holders.size == 2 || holders.size == 3)
+            val casts = holders.flatMap { holder ->
+                holder.methods.flatMap { method ->
+                    method.code().filter { it.opcode == Opcode.CHECK_CAST }.map { ((it as ReferenceInstruction).reference as TypeReference).type }
+                }
+            }.toSet() - holders.map { it.type }.toSet()
+            val context = PatchContexts.of(holders + FixtureDex.classes(bundle, casts).values)
 
             val reads = context.findProfileNotes()
             val prompt = context.findNotesPrompt(reads)
             context.hideProfileNotes()
 
-            assertEquals("${bundle.name}: reads", 2, reads.size)
+            assertEquals("${bundle.name}: reads", holders.size, reads.size)
             assertTrue("${bundle.name}: the profile screen", reads.any { it.type == PROFILE_FRAGMENT })
-            val builder = reads.single { it.type != PROFILE_FRAGMENT }
+            val builder = reads.first { it.type != PROFILE_FRAGMENT }
+            assertEquals("${bundle.name}: one read each in its own class", holders.size, reads.map { it.type }.distinct().size)
             assertEquals("${bundle.name}: the prompt's read is the header builder's", listOf(builder.type, builder.name, builder.parameters), listOf(prompt.type, prompt.name, prompt.parameters))
             for (read in reads) {
                 val patched = context.mutableClassDefBy(read.type).methods.single {
@@ -146,7 +184,7 @@ class HideProfileNotesHookTest {
                 if (read === builder) {
                     assertAnswered("${bundle.name} prompt", patched, CREATION_DISABLED_FLAG, PROMPT_OFF)
                 } else {
-                    assertEquals("${bundle.name}: the screen asks nothing of the prompt", 0, patched.code().count { it.referenceText() == PROMPT_OFF })
+                    assertEquals("${bundle.name}: ${read.type} asks nothing of the prompt", 0, patched.code().count { it.referenceText() == PROMPT_OFF })
                 }
             }
         }
@@ -182,6 +220,10 @@ class HideProfileNotesHookTest {
         creationReads: Int = 1,
         creationShared: Boolean = false,
         screenCreationRead: Boolean = false,
+        controllerReads: Int = 0,
+        controllerHoldsHeader: Boolean = true,
+        castElsewhere: Boolean = false,
+        controllerShared: Boolean = false,
     ): List<ClassDef> {
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
         fun read(literal: Long, label: String, shared: Boolean = false) = """
@@ -202,9 +244,27 @@ class HideProfileNotesHookTest {
             strings.joinToString("\n") { "const-string v0, \"$it\"" },
             if (extraRead) read(flag, "x", shared) else "",
         ).filter { it.isNotBlank() }.joinToString("\n") + "\nreturn v0"
+        // Shaped like 454's LX/0250;->invoke: the lambda casts its receiver to the header's
+        // controller, reads the flag and answers its no.
+        val cast = "check-cast v1, $controller"
+        val lambdaBody = listOf(
+            "iget-object v1, p0, $lambda->receiver:Ljava/lang/Object;",
+            if (castElsewhere) "if-eqz v1, :other" else cast,
+            List(controllerReads) { read(flag, "l$it", controllerShared) }.joinToString("\n"),
+            "xor-int/lit8 v0, v0, 0x1",
+            "invoke-static {v0}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;",
+            "move-result-object v0",
+            "return-object v0",
+            if (castElsewhere) ":other\n$cast\nreturn-object v1" else "",
+        ).filter { it.isNotBlank() }.joinToString("\n")
+        val held = ImmutableField(controller, "builder", if (controllerHoldsHeader) header else "Lfixture/OtherBuilder;", AccessFlags.PUBLIC.value, null, null, null)
+        val instance = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         return listOf(
             classDef(screen, listOf(method(screen, "A00", listOf("Ljava/lang/Object;"), "Z", 3, static, screenBody))),
             classDef(header, listOf(method(header, "A00", listOf("Ljava/lang/Object;"), "Z", 3, static, headerBody))),
+        ) + if (controllerReads == 0) emptyList() else listOf(
+            classDef(controller, emptyList(), listOf(held)),
+            classDef(lambda, listOf(method(lambda, "invoke", emptyList(), "Ljava/lang/Object;", 3, instance, lambdaBody))),
         )
     }
 
@@ -220,8 +280,8 @@ class HideProfileNotesHookTest {
         return ImmutableMethod.of(mutable)
     }
 
-    private fun classDef(type: String, methods: List<Method>): ClassDef =
-        ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, null, methods)
+    private fun classDef(type: String, methods: List<Method>, fields: List<ImmutableField>? = null): ClassDef =
+        ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, fields, methods)
 
     private fun Method.loads(literal: Long): Boolean = code().any {
         it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == literal

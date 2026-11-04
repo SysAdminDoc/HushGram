@@ -109,7 +109,7 @@ class NativeVisualSeenTest {
         }
         val disk = classes.getValue(diskConstructor.definingClass).methods.single { it.name == "run" }
         val diskCalls = disk.visualCode().calls()
-        val tableType = disk.visualCode().filter { it.opcode == Opcode.CONST_CLASS }.mapNotNull { (it.visualReference() as? TypeReference)?.type }.single()
+        val tableType = tableOf(disk.visualCode())
         val table = classes.getValue(tableType)
         val tableBase = classes.getValue(table.superclass!!)
         val deleteAllRef = diskCalls.single { it.definingClass == tableBase.type && it.parameterTypes.map(Any::toString) == listOf(STRING) && it.returnType == "I" }
@@ -197,8 +197,7 @@ class NativeVisualSeenTest {
             val rewrite = queue.methods.toList().single("remaining queue rewrite") { it.parameterTypes.map(Any::toString) == listOf(queue.type) && it.returnType == "V" }
             val disk = rewrite.visualCode().calls().single("disk task constructor") { it.name == "<init>" && it.parameterTypes.map(Any::toString) == listOf(DISK_IO, "Ljava/util/List;") }.definingClass
             found += FixtureDex.classes(bundle, setOf(disk))
-            val table = found.getValue(disk).methods.single { it.name == "run" }.visualCode()
-                .filter { it.opcode == Opcode.CONST_CLASS }.mapNotNull { (it.visualReference() as? TypeReference)?.type }.single()
+            val table = tableOf(found.getValue(disk).methods.single { it.name == "run" }.visualCode())
             found += FixtureDex.classes(bundle, setOf(table))
             found += FixtureDex.classes(bundle, setOf(found.getValue(table).superclass!!))
             for (pool in FixtureDex.withStringPools(bundle, found.values)) found.putIfAbsent(pool.type, pool)
@@ -207,6 +206,16 @@ class NativeVisualSeenTest {
         }
 
         private fun List<com.android.tools.smali.dexlib2.iface.instruction.Instruction>.calls() = mapNotNull { it.visualReference() as? MethodReference }
+
+        /**
+         * The table the disk task rewrites. 453's task names it in a const-class; 454's asks the
+         * table's static getter for the session's one (`LX/02VB;->A00` on 386014758).
+         */
+        private fun tableOf(run: List<com.android.tools.smali.dexlib2.iface.instruction.Instruction>): String =
+            run.filter { it.opcode == Opcode.CONST_CLASS }.mapNotNull { (it.visualReference() as? TypeReference)?.type }.singleOrNull()
+                ?: run.calls().single("table getter") {
+                    it.parameterTypes.map(Any::toString) == listOf(USER_SESSION) && it.returnType == it.definingClass
+                }.definingClass
         private fun <T> List<T>.single(label: String, predicate: (T) -> Boolean): T = filter(predicate).let {
             check(it.size == 1) { "$label: expected one, found ${it.size}" }
             it.single()

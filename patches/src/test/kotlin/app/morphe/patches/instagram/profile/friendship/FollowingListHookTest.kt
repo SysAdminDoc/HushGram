@@ -97,6 +97,33 @@ class FollowingListHookTest {
         assertAsked("stand-in", context, found)
     }
 
+    /**
+     * 454 inlines the lookup past the parse, as LX/0P0J;->A00 does on 386014758: the session's
+     * UserCache is asked for the account's entry, the entry is checked, and the account is made from it.
+     */
+    @Test
+    fun theAnswerHookFollowsAnInlinedLookup() {
+        val context = PatchContexts.of(standIns(inlinedLookup = true))
+        val found = context.findFollowAnswers()
+        assertEquals("$PARSER->parse", found.parser.toString())
+        assertEquals("$STATUS->followedBy:Ljava/lang/Boolean;", found.followedBy.toString())
+        context.askFollowAnswers(found)
+
+        assertAsked("inlined stand-in", context, found)
+    }
+
+    @Test
+    fun anInlinedLookupNotCheckingTheEntryFailsTheAnswers() =
+        assertAnswersRefused(standIns(inlinedLookup = true, checksAccount = false), "doesn't check the account is cached")
+
+    @Test
+    fun aBranchLandingAfterAnInlinedLookupFailsTheAnswers() =
+        assertAnswersRefused(standIns(inlinedLookup = true, jumpsPastCheck = true), "only the check leads to")
+
+    @Test
+    fun aStatusWrittenOverBeforeAnInlinedLookupFailsTheAnswers() =
+        assertAnswersRefused(standIns(inlinedLookup = true, statusAgain = "const/4 v1, 0x0"), "may not hold the status")
+
     /** #40: the rows are built from the loaded accounts, and the hook puts them in order right before the loop walks them. */
     @Test
     fun theOrderHookGoesWhereTheRowsAreBuilt() {
@@ -456,8 +483,17 @@ class FollowingListHookTest {
 
         val parser = code(found.parser)
         val answered = parser.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == ANSWERED }
-        assertEquals("$what: right after the check of the account", Opcode.IF_EQZ, parser[answered - 1].opcode)
-        assertEquals("$what: of the account", found.user, (parser[answered - 1] as OneRegisterInstruction).registerA)
+        if (parser[answered - 1].opcode == Opcode.MOVE_RESULT_OBJECT) {
+            // 454 inlines the lookup: LX/0P0J;->A00 on 386014758 checks the UserCache entry, then makes the account from it.
+            assertEquals("$what: right after the account is made", found.user, (parser[answered - 1] as OneRegisterInstruction).registerA)
+            assertEquals("$what: made as an account", USER, ((parser[answered - 2] as ReferenceInstruction).reference as MethodReference).returnType)
+            val asked = parser.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.returnType == CACHE }
+            assertTrue("$what: from the session's cache", asked in 0 until answered - 2)
+            assertTrue("$what: once its entry is checked", (asked + 1 until answered - 2).any { parser[it].opcode == Opcode.IF_EQZ })
+        } else {
+            assertEquals("$what: right after the check of the account", Opcode.IF_EQZ, parser[answered - 1].opcode)
+            assertEquals("$what: of the account", found.user, (parser[answered - 1] as OneRegisterInstruction).registerA)
+        }
         assertNoBranchLands(what, parser, answered)
     }
 
@@ -516,6 +552,8 @@ class FollowingListHookTest {
         const val USERS = "Lfixture/Users;"
         const val ORDER_STATE = "Lfixture/ListBuilder;"
         const val PAGER = "Lfixture/Pager;"
+        const val CACHE = "Lcom/instagram/user/model/UserCache;"
+        const val CACHE_ENTRY = "Lfixture/CacheEntry;"
 
         /**
          * The classes the patch reads, shaped as on 449: an instance `bindView(int, View, Object,
@@ -539,6 +577,7 @@ class FollowingListHookTest {
             checksAccount: Boolean = true,
             jumpsPastCheck: Boolean = false,
             statusAgain: String = "",
+            inlinedLookup: Boolean = false,
             orderTrace: String = FOLLOW_LIST_ADDED,
             orderJump: Boolean = false,
             orderListAgain: String = "",
@@ -642,7 +681,37 @@ class FollowingListHookTest {
                 """,
                 static = false,
             )
-            val parse = method(
+            // Shaped as on 454: the status parsed first, then the session's cache asked for the
+            // account's entry, the entry checked, and the account made from it.
+            val parse = if (inlinedLookup) method(
+                PARSER, "parse", listOf(JSON, USER_SESSION, "Z"), OBJECT, 9,
+                """
+                    const-string v0, "$FRIENDSHIP_STATUSES"
+                    move-object v5, p1
+                    :next
+                    invoke-static { p0 }, $JSON->key($JSON)$STRING
+                    move-result-object v0
+                    if-eqz v0, :done
+                    iget-object v1, p0, $JSON->status:$OBJECT
+                    check-cast v1, $STATUS
+                    invoke-static { p0, v1, v0 }, $STATUS_FIELDS->parse($JSON$STATUS$STRING)V
+                    $statusAgain
+                    invoke-static { v5 }, $CACHE->of($USER_SESSION)$CACHE
+                    move-result-object v3
+                    invoke-virtual { v3, v0 }, $CACHE->entry($STRING)$OBJECT
+                    move-result-object v3
+                    ${if (jumpsPastCheck) "if-nez v0, :answered" else ""}
+                    ${if (checksAccount) "if-eqz v3, :next" else ""}
+                    invoke-static { v3 }, $CACHE_ENTRY->user($OBJECT)$USER
+                    move-result-object v2
+                    :answered
+                    invoke-static { v2, v5 }, $USERS->keep($USER$USER_SESSION)V
+                    goto :next
+                    :done
+                    const/4 v0, 0x0
+                    return-object v0
+                """,
+            ) else method(
                 PARSER, "parse", listOf(JSON, USER_SESSION, "Z"), OBJECT, 9,
                 """
                     const-string v0, "$FRIENDSHIP_STATUSES"

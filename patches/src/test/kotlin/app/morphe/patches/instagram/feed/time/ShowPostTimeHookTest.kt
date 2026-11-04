@@ -119,6 +119,36 @@ class ShowPostTimeHookTest {
         assertReplaced(context.mutableClassDefBy(HEADER).methods.single(), before, TIME_AS_LONG, 1)
     }
 
+    /** How a header caller's static helper makes the lambda: as 454's LX/0AxE;->A19 does, or not quite. */
+    enum class Outlined { MAKES, MAKES_ANOTHER, DOES_MORE, NOT_STATIC }
+
+    /** 454's 386014759 has LX/0AxE;->A19 make the lambda LX/0Wtj;->A00 hands the header, and that lambda's time is replaced. */
+    @Test
+    fun aLambdaMadeByAStaticHelperIsReplaced() {
+        val context = PatchContexts.of(standIns(outlined = Outlined.MAKES) + ExtensionDex.classDef(POST_TIME))
+        val found = context.findPostTimes()
+        assertEquals(HEADER_TIME, found.header.single().method.definingClass)
+        val before = standIns().single { it.type == HEADER_TIME }.methods.single().code()
+        context.showPostTime(found)
+        assertReplaced(context.mutableClassDefBy(HEADER_TIME).methods.single(), before, TIME_FROM_RESOURCES, 1)
+        assertTrue("the helper keeps Instagram's code", context.mutableClassDefBy(MAKER).methods.single().code().none { it.text() == TIME_FROM_RESOURCES })
+    }
+
+    @Test
+    fun aHelperMakingAnotherClassThanItAnswersFailsThePatch() = refuses("nothing asks $FORMATTER for the time in $HEADER") {
+        PatchContexts.of(standIns(outlined = Outlined.MAKES_ANOTHER) + ExtensionDex.classDef(POST_TIME)).findPostTimes()
+    }
+
+    @Test
+    fun aHelperDoingMoreThanMakingTheLambdaFailsThePatch() = refuses("nothing asks $FORMATTER for the time in $HEADER") {
+        PatchContexts.of(standIns(outlined = Outlined.DOES_MORE) + ExtensionDex.classDef(POST_TIME)).findPostTimes()
+    }
+
+    @Test
+    fun aHelperThatIsNotStaticFailsThePatch() = refuses("nothing asks $FORMATTER for the time in $HEADER") {
+        PatchContexts.of(standIns(outlined = Outlined.NOT_STATIC) + ExtensionDex.classDef(POST_TIME)).findPostTimes()
+    }
+
     /** Two formattings for one shape can't share a stub, so the patch refuses rather than pick one. */
     @Test
     fun twoFormattingsOfOneShapeFailThePatch() = refuses("reach 2 formatting methods") {
@@ -232,6 +262,12 @@ class ShowPostTimeHookTest {
             for (classDef in dex.classes) {
                 val callers = classDef.methods.filter { method -> method.code().any { it.called()?.let { call -> call.definingClass == header.definingClass && call.name == header.name } == true } }
                 callers.flatMapTo(made) { method -> method.code().filter { it.opcode == Opcode.NEW_INSTANCE }.mapNotNull { (it.reference() as? TypeReference)?.type } }
+                // 454's 386014759 has a static method make one caller's lambda (LX/0AxE;->A19 for
+                // LX/0Wtj;->A00), so the classes of the static calls come, and what they answer.
+                callers.flatMapTo(made) { method ->
+                    method.code().filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+                        .mapNotNull { it.called() }.filter { it.returnType.startsWith("L") }.flatMap { listOf(it.definingClass, it.returnType) }
+                }
                 if (callers.isNotEmpty() || classDef.methods.any { method ->
                         method.code().any { instruction ->
                             val field = instruction.reference() as? FieldReference
@@ -337,6 +373,8 @@ class ShowPostTimeHookTest {
         val SHORT = formatting("short", "J")
         val FROM_RESOURCES = ImmutableMethodReference(FORMATTER, "fromResources", listOf(RESOURCES, UNIT, FORMATTER, INTEGER, "D", "Z"), STRING)
         val COMPOSE = ImmutableMethodReference(HEADER, "compose", listOf(FUNCTION), "V")
+        const val MAKER = "Lfixture/Maker;"
+        val MAKE = ImmutableMethodReference(MAKER, "make", emptyList(), HEADER_TIME)
 
         fun method(type: String, name: String, parameters: List<String>, returns: String, access: Int, registers: Int, code: List<Instruction>) =
             ImmutableMethod(type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, access, null, null,
@@ -395,6 +433,7 @@ class ShowPostTimeHookTest {
             rowTime: Boolean = true,
             pooledRow: Boolean = false,
             directHeader: Boolean = false,
+            outlined: Outlined? = null,
         ): List<ClassDef> {
             val formatter = type(FORMATTER, listOf(
                 method(FORMATTER, "core", listOf(RESOURCES, UNIT, FORMATTER, INTEGER, "D", "D", "Z", "Z", "Z", "Z"),
@@ -424,12 +463,18 @@ class ShowPostTimeHookTest {
                 ))))
             }
             // Makes a class that isn't in the app and the time lambda, and hands the header the lambda.
-            val caller = type(HEADER_CALLER, listOf(method(HEADER_CALLER, "compose", emptyList(), "V", PUBLIC_STATIC, 2, listOf(
-                ImmutableInstruction21c(Opcode.NEW_INSTANCE, 1, ImmutableTypeReference("Ljava/lang/StringBuilder;")),
-                ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(HEADER_TIME)),
-                ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 0, 0, 0, 0, 0, COMPOSE),
-                ImmutableInstruction10x(Opcode.RETURN_VOID),
-            ))))
+            // With [outlined], a static method of [MAKER] makes the lambda, as 454's 386014759 does.
+            val lambdaMade = if (outlined == null) {
+                listOf(ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(HEADER_TIME)))
+            } else {
+                listOf(ImmutableInstruction35c(Opcode.INVOKE_STATIC, 0, 0, 0, 0, 0, 0, MAKE), ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0))
+            }
+            val caller = type(HEADER_CALLER, listOf(method(HEADER_CALLER, "compose", emptyList(), "V", PUBLIC_STATIC, 2,
+                listOf(ImmutableInstruction21c(Opcode.NEW_INSTANCE, 1, ImmutableTypeReference("Ljava/lang/StringBuilder;"))) + lambdaMade + listOf(
+                    ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 0, 0, 0, 0, 0, COMPOSE),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ),
+            )))
             val tag = if (pooledRow) listOf(
                 ImmutableInstruction21s(Opcode.CONST_16, 0, POOLED),
                 ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 0, 0, 0, 0, 0, POOL_CALL),
@@ -479,7 +524,18 @@ class ShowPostTimeHookTest {
                 )),
             ), lambdaFields.map { ImmutableField(ROW_TIME, it.name, it.type, PUBLIC_FINAL, null, null, null) })
             return listOf(formatter, footer, label, header, caller, headerTime(HEADER_TIME), headerTime(ELSEWHERE), row, lambda) +
-                if (pooledRow) listOf(pool()) else emptyList()
+                (if (pooledRow) listOf(pool()) else emptyList()) + listOfNotNull(outlined?.let(::maker))
+        }
+
+        /** The static method making the caller's lambda, as [outlined] has it. this is v1 when it isn't static. */
+        fun maker(outlined: Outlined): ClassDef {
+            val made = if (outlined == Outlined.MAKES_ANOTHER) ELSEWHERE else HEADER_TIME
+            val code = listOf(
+                ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(made)),
+                ImmutableInstruction35c(Opcode.INVOKE_DIRECT, 1, 0, 0, 0, 0, 0, ImmutableMethodReference(made, "<init>", emptyList(), "V")),
+            ) + (if (outlined == Outlined.DOES_MORE) listOf(string(1, "")) else emptyList()) + ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)
+            val access = if (outlined == Outlined.NOT_STATIC) AccessFlags.PUBLIC.value else PUBLIC_STATIC
+            return type(MAKER, listOf(method(MAKER, MAKE.name, emptyList(), HEADER_TIME, access, 2, code)))
         }
 
         /**

@@ -20,9 +20,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Adds a plain text row to Instagram's newer pop-up list, the one next to a profile's three dots.
- * Its entries are all one class with a single constructor of 24 arguments, whose fifth is the
- * row's click callback, an interface of one boolean method and one void method, and whose
- * seventeenth is the label. The names are Instagram's own and change with every build, so the
+ * Its entries are all one class with a single constructor of 26 arguments (24 before Instagram
+ * 454), whose fifth is the row's click callback, an interface of one boolean method and one void
+ * method, and whose first String is the label, with the subtitle right after it (the eighteenth
+ * and nineteenth on 454, a place earlier before). The names are Instagram's own and change with every build, so the
  * class is never named here: a row Instagram already built in the same list is the template, and
  * the new one is made with that row's constructor and the same values, bar its icon, its label and
  * its callback. Which field holds which argument doesn't follow the field names, so the patch reads
@@ -33,12 +34,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * boolean one answers true.
  */
 final class PopupRows {
-    /** The constructor's arguments, and the places of the ones that change. */
-    static final int ARGUMENTS = 24;
+    /** The constructor's argument counts, 454's and the older one, and the places of the ones that change. */
+    static final int ARGUMENTS = 26;
+    static final int OLDER_ARGUMENTS = 24;
     static final int ICON = 0;
     static final int CLICK = 4;
-    static final int LABEL = 16;
-    static final int SUBTITLE = 17;
     /**
      * A row with no extra color: Instagram gives one an Integer color of -1 in slot 9 and nothing
      * in slot 10, while a highlighted one carries its color in both.
@@ -48,7 +48,7 @@ final class PopupRows {
 
     /** Each item class's constructor and its fields in constructor order, read once; NONE when it isn't shaped as expected. */
     private static final Map<Class<?>, Shape> SHAPES = new ConcurrentHashMap<>();
-    private static final Shape NONE = new Shape(null, null);
+    private static final Shape NONE = new Shape(null, null, -1);
 
     /** Where the item's class and field order come from: the patched stub, or a stand-in in tests. */
     interface Layout {
@@ -68,10 +68,13 @@ final class PopupRows {
     private static final class Shape {
         final Constructor<?> constructor;
         final Field[] fields;
+        /** The label's place; the subtitle is the next. */
+        final int label;
 
-        Shape(Constructor<?> constructor, Field[] fields) {
+        Shape(Constructor<?> constructor, Field[] fields, int label) {
             this.constructor = constructor;
             this.fields = fields;
+            this.label = label;
         }
     }
 
@@ -113,7 +116,7 @@ final class PopupRows {
         for (Object item : items) {
             if (item == null) continue;
             Object[] values = values(item);
-            if (values != null && label.equals(values[LABEL]) && values[CLICK] != null
+            if (values != null && label.equals(values[shape(item.getClass()).label]) && values[CLICK] != null
                     && Proxy.isProxyClass(values[CLICK].getClass())) {
                 return true;
             }
@@ -132,7 +135,7 @@ final class PopupRows {
         } catch (ReflectiveOperationException | RuntimeException missing) {
             ordered = null;
         }
-        shape = ordered == null ? NONE : new Shape(constructor, ordered);
+        shape = ordered == null ? NONE : new Shape(constructor, ordered, labelAt(constructor.getParameterTypes()));
         SHAPES.put(type, shape);
         return shape;
     }
@@ -144,13 +147,21 @@ final class PopupRows {
 
     private static Constructor<?> readConstructor(Class<?> type) {
         Constructor<?>[] constructors = type.getDeclaredConstructors();
-        if (constructors.length != 1 || constructors[0].getParameterTypes().length != ARGUMENTS) return null;
+        if (constructors.length != 1) return null;
         Class<?>[] parameters = constructors[0].getParameterTypes();
-        if (!parameters[CLICK].isInterface() || parameters[LABEL] != String.class || parameters[SUBTITLE] != String.class
+        if (parameters.length != ARGUMENTS && parameters.length != OLDER_ARGUMENTS) return null;
+        int label = labelAt(parameters);
+        if (!parameters[CLICK].isInterface() || label < 0 || label + 1 >= parameters.length || parameters[label + 1] != String.class
                 || parameters[COLOR] != Integer.class || parameters[HIGHLIGHT] != Integer.class) {
             return null;
         }
         return constructors[0];
+    }
+
+    /** Where the label goes: the first String argument, or -1. */
+    private static int labelAt(Class<?>[] parameters) {
+        for (int at = 0; at < parameters.length; at++) if (parameters[at] == String.class) return at;
+        return -1;
     }
 
     /**
@@ -162,11 +173,11 @@ final class PopupRows {
         int bar = read == null ? -1 : read.indexOf('|');
         if (bar < 0 || !read.substring(0, bar).equals(type.getName())) return null;
         String[] names = read.substring(bar + 1).split(",", -1);
-        if (names.length != ARGUMENTS) return null;
         Class<?>[] parameters = constructor.getParameterTypes();
+        if (names.length != parameters.length) return null;
         Set<String> seen = new HashSet<>();
-        Field[] fields = new Field[ARGUMENTS];
-        for (int at = 0; at < ARGUMENTS; at++) {
+        Field[] fields = new Field[parameters.length];
+        for (int at = 0; at < parameters.length; at++) {
             Field field = type.getDeclaredField(names[at]);
             if (!seen.add(names[at]) || Modifier.isStatic(field.getModifiers()) || field.getType() != parameters[at]) return null;
             field.setAccessible(true);
@@ -179,8 +190,8 @@ final class PopupRows {
     static Object[] values(Object item) throws ReflectiveOperationException {
         Field[] fields = shape(item.getClass()).fields;
         if (fields == null) return null;
-        Object[] values = new Object[ARGUMENTS];
-        for (int at = 0; at < ARGUMENTS; at++) values[at] = fields[at].get(item);
+        Object[] values = new Object[fields.length];
+        for (int at = 0; at < fields.length; at++) values[at] = fields[at].get(item);
         return values;
     }
 
@@ -191,10 +202,11 @@ final class PopupRows {
         Class<?> callback = constructor.getParameterTypes()[CLICK];
         Object click = callback(callback, listener);
         if (click == null) return null;
+        int at = shape(template.getClass()).label;
         values[ICON] = null;
         values[CLICK] = click;
-        values[LABEL] = label;
-        values[SUBTITLE] = null;
+        values[at] = label;
+        values[at + 1] = null;
         constructor.setAccessible(true);
         return constructor.newInstance(values);
     }

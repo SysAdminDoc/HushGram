@@ -333,3 +333,26 @@ fun Method.readsRegisterAsFloat(index: Int, register: Int): Boolean {
         else -> false
     }
 }
+
+/**
+ * The indexes of the instructions whose write of [register] reaches [at] on some path from the method's
+ * start, over every branch and handler. An empty set is returned when the register can arrive unwritten.
+ */
+fun reachingWrites(method: Method, code: List<Instruction>, register: Int, at: Int): Set<Int> {
+    val flow = ControlFlow.of(method)
+    val written = code.map { it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == register }
+    val into = arrayOfNulls<MutableSet<Int>>(code.size)
+    into[0] = mutableSetOf(-1)
+    val pending = ArrayDeque(listOf(0))
+    while (pending.isNotEmpty()) {
+        val index = pending.removeFirst()
+        val state = into[index]!!
+        val out: Set<Int> = if (written[index]) setOf(index) else state
+        for (next in flow.normal[index] + flow.exceptional[index]) {
+            val target = into[next] ?: mutableSetOf<Int>().also { into[next] = it }
+            if (target.addAll(out)) pending.addLast(next)
+        }
+    }
+    val reaching = into[at] ?: return emptySet()
+    return if (-1 in reaching) emptySet() else reaching
+}

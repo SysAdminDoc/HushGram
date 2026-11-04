@@ -14,17 +14,14 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
-import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.iface.value.StringEncodedValue
-import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -116,15 +113,9 @@ class SettingsRowTest {
     }
 
     private fun getsTheRowOnItsSettingsScreen(bundle: File, label: String) {
-        val candidates = mutableListOf<ClassDef>()
-        FixtureDex.forEach(bundle) { dex ->
-            if (dex.stringSection.none { it == NEW_SETTINGS_SESSION }) return@forEach
-            for (classDef in dex.classes) {
-                if (classDef.methods.any { method -> method.instructions().any { it.string() == NEW_SETTINGS_SESSION } }) {
-                    candidates += ImmutableClassDef.of(classDef)
-                }
-            }
-        }
+        // Some 454 builds only ask a pool for the session key (386014757 holds it in LX/0000 alone), so
+        // the classes asking for it come along with the ones holding it.
+        val candidates = FixtureDex.classesLoading(bundle, NEW_SETTINGS_SESSION)
         // 449's factory is a static on the screen itself; 450's makes the screen from another class
         // too, so the classes a factory makes come along, and the pools its keys may come from.
         val withPools = FixtureDex.withStringPools(bundle, candidates)
@@ -179,6 +170,4 @@ class SettingsRowTest {
     }
 
     private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
-
-    private fun Instruction.string(): String? = ((this as? ReferenceInstruction)?.reference as? StringReference)?.string
 }

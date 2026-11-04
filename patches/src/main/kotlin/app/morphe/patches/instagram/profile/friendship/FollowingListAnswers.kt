@@ -28,6 +28,9 @@ internal const val ANSWERED = "$FOLLOWING_LIST->answered($OBJECT$OBJECT$OBJECT)V
 /** A follow list's analytics name the method fetching a page of the list loads. */
 internal const val NON_RECIP_FOLLOWERS = "non_recip_followers"
 
+/** The cache of accounts Instagram has drawn, which keeps its name. */
+private const val USER_CACHE = "Lcom/instagram/user/model/UserCache;"
+
 /** The key of the batch answer's statuses, which its parser loads. */
 internal const val FRIENDSHIP_STATUSES = "friendship_statuses"
 
@@ -74,7 +77,8 @@ private fun Site(classDef: ClassDef, method: Method) =
  *   keeps one [FOLLOW_LIST_DATA] and one [USER_SESSION];
  * - the one method loading [FRIENDSHIP_STATUSES] that hands each status to a static field parser
  *   loading [FOLLOWED_BY] and writing it to a Boolean field of the status. The hook goes right after
- *   it checks that the account the status is about, from a `(UserSession, String)` lookup, is cached.
+ *   it checks that the account the status is about, from a `(UserSession, String)` lookup, is cached
+ *   (454 inlines the lookup, so there it's right after the account is made from the cache's entry).
  *
  * Fails when any of them isn't there, or there's more than one, since that's an update this patch
  * hasn't seen, and when a register the hook reads might hold something else where it goes.
@@ -224,24 +228,55 @@ private fun BytecodePatchContext.answerSite(classDef: ClassDef, method: Method, 
             called.parameterTypes.map(CharSequence::toString) == listOf(USER_SESSION, STRING) &&
             code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
     }
+    if (lookups.isEmpty()) cacheAsk(code, parse)?.let { (asked, made) ->
+        // 454 inlines the lookup past the parse: the session's cache is asked for the account's
+        // entry, the entry is checked, and the account is made from it. The hook goes right after.
+        if ((asked + 1 until made).none { code[it].opcode == Opcode.IF_EQZ }) refuse("$where doesn't check the account is cached")
+        return answerAt(where, method, code, parse, made + 1, made + 2, asked)
+    }
     val lookup = lookups.singleOrNull() ?: refuse("expected $where to look one cached $USER up by its ID, found ${lookups.size}")
     if (lookup > parse.at) refuse("$where looks the account up after parsing its status")
     val user = (code[lookup + 1] as OneRegisterInstruction).registerA
-    val session = code[lookup].namedRegisters()[0]
 
     val check = (parse.at + 1 until code.size).firstOrNull {
         code[it].opcode == Opcode.IF_EQZ && (code[it] as OneRegisterInstruction).registerA == user
     } ?: refuse("$where doesn't check the account is cached after parsing its status")
-    val at = check + 1
+    return answerAt(where, method, code, parse, lookup + 1, check + 1, lookup)
+}
+
+/**
+ * Where 454's parser asks [USER_CACHE] of a session once past [parse], and then the first call
+ * answering a [USER] whose result it keeps, or null when it doesn't.
+ */
+private fun cacheAsk(code: List<Instruction>, parse: StatusParse): Pair<Int, Int>? {
+    val asks = (parse.at + 1 until code.size).filter { at ->
+        val called = code[at].methodReference()
+        code[at].opcode == Opcode.INVOKE_STATIC && called?.definingClass == USER_CACHE && called.returnType == USER_CACHE &&
+            called.parameterTypes.map(CharSequence::toString) == listOf(USER_SESSION)
+    }
+    val asked = asks.singleOrNull() ?: return null
+    val made = (asked + 1 until code.size).firstOrNull { at ->
+        code[at].methodReference()?.returnType == USER && code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
+    } ?: return null
+    return asked to made
+}
+
+/**
+ * The hook's place [at] with the account kept at [kept] and the session handed to the call at
+ * [asked], once each of them and the status is sure to hold there.
+ */
+private fun answerAt(where: String, method: Method, code: List<Instruction>, parse: StatusParse, kept: Int, at: Int, asked: Int): AnswerSite {
+    val user = (code[kept] as OneRegisterInstruction).registerA
+    val session = code[asked].namedRegisters()[0]
     if (at >= code.size || at in method.jumpTargets()) refuse("$where has no place right after its check of the account that only the check leads to")
 
     val statusWrite = (parse.at - 1 downTo 0).firstOrNull { code[it].writes(parse.status) }
         ?: refuse("$where parses a status it never wrote")
-    val sessionWrite = (lookup - 1 downTo 0).firstOrNull { code[it].writes(session) }
+    val sessionWrite = (asked - 1 downTo 0).firstOrNull { code[it].writes(session) }
     val held = listOf(
-        "the account" to method.holdsAt(user, lookup + 1, at),
+        "the account" to method.holdsAt(user, kept, at),
         "the status" to (method.holdsAt(parse.status, statusWrite, parse.at) && method.holdsAt(parse.status, statusWrite, at)),
-        "the session" to (method.holdsAt(session, sessionWrite, lookup) && method.holdsAt(session, sessionWrite, at)),
+        "the session" to (method.holdsAt(session, sessionWrite, asked) && method.holdsAt(session, sessionWrite, at)),
     )
     held.firstOrNull { !it.second }?.let { refuse("$where may not hold ${it.first} right after its check of the account") }
     if (maxOf(user, parse.status, session) > 15) refuse("$where keeps the account, the status or the session past v15")

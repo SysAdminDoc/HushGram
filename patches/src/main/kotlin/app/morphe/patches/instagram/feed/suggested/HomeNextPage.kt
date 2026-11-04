@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.patchLog
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -263,7 +264,7 @@ internal fun BytecodePatchContext.findHomeList(adapterClass: ClassDef): HomeList
         patchLog.warning("Home next page: $detail. Home stops asking for short pages at its cap, even at the end of its list.")
         return null
     }
-    val readers = adapterClass.methods.filter { it.holdsString(MOST_VISIBLE_GONE) }
+    val readers = adapterClass.methods.filter { loadsString(it, MOST_VISIBLE_GONE) }
     if (readers.isEmpty()) return without("${adapterClass.type} holds no \"$MOST_VISIBLE_GONE\"")
     val reads = readers.flatMap { method ->
         val code = method.implementation!!.instructions.toList()
@@ -394,12 +395,15 @@ private fun lazyPolicyRead(code: List<Instruction>, at: Int, adapter: String, po
  * The paging source field of [feed]: the String field [shows] reads into the register it compares
  * with [FOLLOWING_FEED], read last before the comparison loads that name.
  */
-private fun feedSource(shows: Method, feed: String): FieldReference {
+private fun BytecodePatchContext.feedSource(shows: Method, feed: String): FieldReference {
     val code = shows.implementation!!.instructions.toList()
     val where = "${shows.definingClass}->${shows.name}"
-    val named = code.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == FOLLOWING_FEED }
-    if (named < 0) refuse("$where doesn't load $FOLLOWING_FEED")
-    val name = (code[named] as OneRegisterInstruction).registerA
+    val named = code.indices.firstOrNull { stringLoadedAt(code, it) == FOLLOWING_FEED }
+        ?: refuse("$where doesn't load $FOLLOWING_FEED")
+    // A pooled name lands in the register of the move-result after the pool's answer.
+    val loaded = if (code[named].opcode == Opcode.INVOKE_STATIC) code.getOrNull(named + 1) else code[named]
+    val name = (loaded?.takeIf { it.opcode != Opcode.INVOKE_STATIC } as? OneRegisterInstruction)?.registerA
+        ?: refuse("$where doesn't keep the $FOLLOWING_FEED it asks its string pool for")
     val equals = (named + 1 until code.size).firstOrNull {
         ((code[it] as? ReferenceInstruction)?.reference as? MethodReference)?.toString() == "Ljava/lang/String;->equals(Ljava/lang/Object;)Z"
     } ?: refuse("$where doesn't compare $FOLLOWING_FEED")
@@ -433,9 +437,5 @@ private fun BytecodePatchContext.stub(name: String, parameters: List<String>, re
         it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == returns &&
             it.parameterTypes.map(CharSequence::toString) == parameters
     } ?: refuse("$HOME_NEXT_PAGE has no static $name(${parameters.joinToString("")})$returns")
-
-private fun Method.holdsString(string: String): Boolean = implementation?.instructions?.any {
-    ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == string
-} == true
 
 private fun refuse(detail: String): Nothing = throw PatchException("Home next page: $detail")

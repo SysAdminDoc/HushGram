@@ -63,15 +63,15 @@ private const val FREEZE_REACH = 6
 /** The preference Instagram keeps the feed you last picked from Home's feed picker in. */
 internal const val SAVED_FEED_KEY = "last_selected_feed_type"
 
-/** The server flag that has Instagram remember the feed you pick. 451 had it as 810e5f00064f24. */
-internal const val REMEMBERED_FEED_FLAG = 0x810e3300064e36L
+/** The server flag that has Instagram remember the feed you pick. 451 had it as 810e5f00064f24, 453 as 810e3300064e36. */
+internal const val REMEMBERED_FEED_FLAG = 0x810dfb00064e49L
 
 /**
  * The server flag that puts For you first in Home's feed picker and the picked feed's name at the
- * top of Home. 451 had it as 810e5f00004f1e. Without it the picker has no For you, since Home
- * stands for it, and Home's top shows only the picker's arrow.
+ * top of Home. 451 had it as 810e5f00004f1e, 453 as 810e3300004e30. Without it the picker has no
+ * For you, since Home stands for it, and Home's top shows only the picker's arrow.
  */
-internal const val FOR_YOU_PICKER_FLAG = 0x810e3300004e30L
+internal const val FOR_YOU_PICKER_FLAG = 0x810dfb00004e43L
 
 /** The flags the patch answers on: together they're Instagram's own For you and Following picker. */
 internal val FEED_PICKER_FLAGS = listOf(REMEMBERED_FEED_FLAG, FOR_YOU_PICKER_FLAG)

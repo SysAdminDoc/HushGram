@@ -137,25 +137,26 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
         AccessFlags.STATIC.isSet(run.accessFlags) || !AccessFlags.DECLARED_SYNCHRONIZED.isSet(run.accessFlags)) {
         refuseQueue("request builder isn't called by its owner's synchronized loop")
     }
+    // 454 asserts the snapshot key non-null with the iterator's own assertion before its cast (07Gf.A0O on 386014758).
     val code = Shape(run,
         Opcode.MOVE_OBJECT, Opcode.MONITOR_ENTER, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT,
         Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT,
-        Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL,
-        Opcode.MOVE_RESULT_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_EQZ,
-        Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_4,
-        Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT_RANGE, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT,
-        Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.GOTO, Opcode.MONITOR_EXIT,
-        Opcode.RETURN_VOID, Opcode.MOVE_EXCEPTION, Opcode.MONITOR_EXIT, Opcode.THROW,
+        Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC, Opcode.CHECK_CAST,
+        Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT,
+        Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT,
+        Opcode.CONST_4, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT_RANGE, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL,
+        Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.GOTO,
+        Opcode.MONITOR_EXIT, Opcode.RETURN_VOID, Opcode.MOVE_EXCEPTION, Opcode.MONITOR_EXIT, Opcode.THROW,
     )
-    if (at != 20) refuseQueue("request builder moved within the loop")
+    if (at != 21) refuseQueue("request builder moved within the loop")
     val self = run.localRegisterCount()
     val lock = code.reg(0)
     val iterator = code.reg(6)
     val key = code.reg(12)
-    val item = code.reg(15)
-    val request = code.reg(21)
+    val item = code.reg(16)
+    val request = code.reg(22)
     if (setOf(self, lock, iterator, key, item, request).size != 6 || code.reg(9) == iterator ||
-        code.reg(18) in setOf(self, lock, iterator, key, item)) refuseQueue("loop aliases its live ownership registers")
+        code.reg(19) in setOf(self, lock, iterator, key, item)) refuseQueue("loop aliases its live ownership registers")
     code.registers(0, lock, self)
     code.registers(1, lock)
     code.registers(2, self)
@@ -167,24 +168,26 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
     code.registers(8, iterator)
     code.javaCall(8, "hasNext", emptyList(), "Z")
     code.registers(10, code.reg(9))
-    code.branch(10, 34)
+    code.branch(10, 35)
     code.registers(11, iterator)
     code.javaCall(11, "next", emptyList(), OBJECT)
     code.registers(13, key)
-    if (code.reference(13)?.toString() != STRING) refuseQueue("key isn't a String")
-    code.registers(14, self, key)
-    code.registers(16, item)
-    code.branch(16, 8)
-    code.registers(17, self, key)
-    code.registers(19, code.reg(18))
-    code.branch(19, 8)
-    code.registers(20, self, item)
-    code.registers(27, request, code.reg(25))
-    code.registers(28, self)
-    if (code.call(28).definingClass != base.type || code.call(28).parameterTypes.isNotEmpty() || code.call(28).returnType != USER_SESSION) {
+    if (!code.call(13).same(code.call(7))) refuseQueue("key check isn't the iterator's native assertion")
+    code.registers(14, key)
+    if (code.reference(14)?.toString() != STRING) refuseQueue("key isn't a String")
+    code.registers(15, self, key)
+    code.registers(17, item)
+    code.branch(17, 8)
+    code.registers(18, self, key)
+    code.registers(20, code.reg(19))
+    code.branch(20, 8)
+    code.registers(21, self, item)
+    code.registers(28, request, code.reg(26))
+    code.registers(29, self)
+    if (code.call(29).definingClass != base.type || code.call(29).parameterTypes.isNotEmpty() || code.call(29).returnType != USER_SESSION) {
         refuseQueue("loop uses a foreign account getter")
     }
-    if (!code.call(28).same(accountGetter) || store.methods.any { it.name == accountGetter.name &&
+    if (!code.call(29).same(accountGetter) || store.methods.any { it.name == accountGetter.name &&
             it.parameterTypes.map(Any::toString) == accountGetter.parameterTypes.map(Any::toString) && it.returnType == USER_SESSION }) {
         refuseQueue("story selection doesn't use the loop's native account getter")
     }
@@ -198,17 +201,17 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
         bridge.code()[retry.build].namedRegisters() != listOf(retry.batch, beforeBuild[3].namedRegisters().single())) {
         refuseQueue("bridge doesn't build for its native account")
     }
-    code.registers(32, code.reg(31), request)
-    code.branch(33, 8)
-    code.registers(34, lock)
-    code.registers(37, lock)
-    code.registers(38, code.reg(36))
-    code.monitor(1, listOf(34, 37), 36, listOf(20, 21, 22))
-    run.requireThisIntact(PATCH, listOf(0, 3, 14, 17, 20, 22, 28))
-    if (17 in run.jumpTargets() || 20 in run.jumpTargets()) refuseQueue("a branch skips the cancellation site")
+    code.registers(33, code.reg(32), request)
+    code.branch(34, 8)
+    code.registers(35, lock)
+    code.registers(38, lock)
+    code.registers(39, code.reg(37))
+    code.monitor(1, listOf(35, 38), 37, listOf(21, 22, 23))
+    run.requireThisIntact(PATCH, listOf(0, 3, 15, 18, 21, 23, 29))
+    if (18 in run.jumpTargets() || 21 in run.jumpTargets()) refuseQueue("a branch skips the cancellation site")
     if (self > 15 || key > 15 || item > 15) refuseQueue("operands exceed the cancellation instruction range")
 
-    val claim = base.method(code.call(17))
+    val claim = base.method(code.call(18))
     val move = Shape(claim,
         Opcode.CONST_4, Opcode.INVOKE_STATIC, Opcode.IGET_OBJECT, Opcode.MONITOR_ENTER, Opcode.IGET_OBJECT,
         Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_NEZ, Opcode.MONITOR_EXIT, Opcode.RETURN,
@@ -254,10 +257,10 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
     base.requireCount(code.call(2), pending, inFlight, monitor)
 
     base.requireSnapshot(code.call(3), pending, monitor)
-    base.requireLookup(code.call(14), pending, inFlight, monitor)
+    base.requireLookup(code.call(15), pending, inFlight, monitor)
     requireDiskCleanup(store, reader, run, move.call(1))
-    val scratch = run.freeLocalsAt(PATCH, 17, 1, targets = listOf(8)).single()
-    return StoryRetryQueue(base.type, run.name, 17, 8, item, scratch)
+    val scratch = run.freeLocalsAt(PATCH, 18, 1, targets = listOf(8)).single()
+    return StoryRetryQueue(base.type, run.name, 18, 8, item, scratch)
 }
 
 /** Selection happens before the native builder, so a stock null request is never a cancellation signal. */
@@ -496,7 +499,7 @@ private fun BytecodePatchContext.requireDiskCleanup(store: ClassDef, reader: Met
     if (!cleanup.same(remove)) refuseQueue("disk reader no longer reaches its native cleanup after the loop")
     requireDiskRemoval(storage, remove, parameterCheck)
     val key = code.getOrNull(at + 1)?.call() ?: refuseQueue("disk cleanup has no native account key builder")
-    requireDiskKey(store, key, run.code()[28].call()!!)
+    requireDiskKey(store, key, run.code()[29].call()!!)
     val read = storage.methods.singleOrNull { method ->
         !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.map(Any::toString) == listOf(STRING, "Z") && method.returnType == OBJECT
     } ?: refuseQueue("disk cleanup has no unique native read")
@@ -538,6 +541,17 @@ private val PARAMETER_CHECK = listOf(Opcode.IF_NEZ, Opcode.INVOKE_STATIC, Opcode
     Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT,
     Opcode.INVOKE_STATIC, Opcode.THROW, Opcode.RETURN_VOID)
 
+/** The present assertion through 453, which throws its null message in place. */
+private val PRESENT_CHECK = listOf(Opcode.IF_NEZ, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT, Opcode.INVOKE_STATIC,
+    Opcode.THROW, Opcode.RETURN_VOID)
+
+/** 454's present assertion, which calls an outlined thrower and then Redex's unreachable-code throw. */
+private val OUTLINED_PRESENT_CHECK = listOf(Opcode.IF_NEZ, Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC,
+    Opcode.MOVE_RESULT_OBJECT, Opcode.THROW, Opcode.RETURN_VOID)
+
+/** The outlined thrower's body. */
+private val PRESENT_THROW = listOf(Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT, Opcode.INVOKE_STATIC, Opcode.THROW)
+
 /**
  * Resolve the assertion helpers by the declared native bodies, never an obfuscated name. A build
  * may load the parameter message with const-string/jumbo where another has const-string, so the
@@ -551,11 +565,9 @@ private fun BytecodePatchContext.requireClaimAssertions(parameter: MethodReferen
         it.code()[12].reference().toString() == "Ljava/lang/NullPointerException;" }
     val checkPresent = owner.methods.singleOrNull { AccessFlags.STATIC.isSet(it.accessFlags) &&
         it.parameterTypes.map(Any::toString) == listOf(OBJECT, STRING) && it.returnType == "V" &&
-        it.code().map { instruction -> instruction.opcode } == listOf(Opcode.IF_NEZ, Opcode.NEW_INSTANCE,
-            Opcode.INVOKE_DIRECT, Opcode.INVOKE_STATIC, Opcode.THROW, Opcode.RETURN_VOID) }
+        it.code().map { instruction -> instruction.opcode } in listOf(PRESENT_CHECK, OUTLINED_PRESENT_CHECK) }
     if (checkParameter?.same(parameter) != true || checkPresent?.same(present) != true) refuseQueue("claim changed its native assertions")
     val parameterCode = Shape(checkParameter, *PARAMETER_CHECK.toTypedArray())
-    val code = Shape(checkPresent, Opcode.IF_NEZ, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT, Opcode.INVOKE_STATIC, Opcode.THROW, Opcode.RETURN_VOID)
     if (listOf(checkParameter, checkPresent).any { it.implementation!!.tryBlocks.isNotEmpty() }) refuseQueue("claim changes its assertion control flow")
     parameterCode.registers(0, checkParameter.parameterRegisterNumber(0))
     parameterCode.branch(0, 16)
@@ -580,17 +592,46 @@ private fun BytecodePatchContext.requireClaimAssertions(parameter: MethodReferen
     parameterCode.registers(13, parameterCode.reg(12), parameterCode.reg(11))
     parameterCode.registers(14, parameterCode.reg(12))
     parameterCode.registers(15, parameterCode.reg(12))
-    code.registers(0, checkPresent.parameterRegisterNumber(0))
-    code.branch(0, 5)
-    if (code.reference(1).toString() != "Ljava/lang/NullPointerException;" ||
-        code.call(2).toString() != "Ljava/lang/NullPointerException;-><init>($STRING)V") refuseQueue("claim changed its native null assertion")
-    code.registers(2, code.reg(1), checkPresent.parameterRegisterNumber(1))
-    val trim = owner.methods.singleOrNull { it.same(code.call(3)) && AccessFlags.STATIC.isSet(it.accessFlags) &&
+    val trim = if (checkPresent.code().map { it.opcode } == PRESENT_CHECK) {
+        val code = Shape(checkPresent, *PRESENT_CHECK.toTypedArray())
+        code.registers(0, checkPresent.parameterRegisterNumber(0))
+        code.branch(0, 5)
+        requireNullThrow(owner, code, 1, checkPresent.parameterRegisterNumber(1))
+    } else {
+        // 454 outlines the throw (LX/00f5;->A0Z on 386014758): the message goes to a (String)V helper
+        // that always throws (A0d there), then Redex's createAndThrow stands in for a throw the verifier sees.
+        val code = Shape(checkPresent, *OUTLINED_PRESENT_CHECK.toTypedArray())
+        code.registers(0, checkPresent.parameterRegisterNumber(0))
+        code.branch(0, 5)
+        code.registers(1, checkPresent.parameterRegisterNumber(1))
+        val raise = owner.methods.singleOrNull { it.same(code.call(1)) && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(Any::toString) == listOf(STRING) && it.returnType == "V" &&
+            it.implementation?.tryBlocks?.isEmpty() == true } ?: refuseQueue("claim changed its native null assertion")
+        val stack = requireNullThrow(owner, Shape(raise, *PRESENT_THROW.toTypedArray()), 0, raise.parameterRegisterNumber(0))
+        // The thrower above ends in its throw with no branch or handler, so nothing past its call runs:
+        // the marker only has to look like Redex's no-argument createAndThrow, answering its own type.
+        val unreachable = code.call(2)
+        if (unreachable.parameterTypes.isNotEmpty() || unreachable.returnType != unreachable.definingClass) {
+            refuseQueue("claim changed its native unreachable throw")
+        }
+        code.registers(2)
+        code.registers(4, code.reg(3))
+        stack
+    }
+    if (!parameterCode.call(14).same(trim)) refuseQueue("claim changed its native assertion stack helper")
+}
+
+/** The null throw both assertion forms end in: the exception, its (String) constructor on [message], the stack trim, then the throw. */
+private fun requireNullThrow(owner: ClassDef, code: Shape, at: Int, message: Int): Method {
+    if (code.reference(at).toString() != "Ljava/lang/NullPointerException;" ||
+        code.call(at + 1).toString() != "Ljava/lang/NullPointerException;-><init>($STRING)V") refuseQueue("claim changed its native null assertion")
+    code.registers(at + 1, code.reg(at), message)
+    val trim = owner.methods.singleOrNull { it.same(code.call(at + 2)) && AccessFlags.STATIC.isSet(it.accessFlags) &&
         it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Throwable;") && it.returnType == "V" }
         ?: refuseQueue("claim changed its native assertion stack helper")
-    if (!parameterCode.call(14).same(trim)) refuseQueue("claim changed its native assertion stack helper")
-    code.registers(3, code.reg(1))
-    code.registers(4, code.reg(1))
+    code.registers(at + 2, code.reg(at))
+    code.registers(at + 3, code.reg(at))
+    return trim
 }
 
 /**

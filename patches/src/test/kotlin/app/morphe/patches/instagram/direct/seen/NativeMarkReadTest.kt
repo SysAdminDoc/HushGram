@@ -193,6 +193,11 @@ class NativeMarkReadTest {
                 }
             }
             classes += FixtureDex.classes(bundle, named.filter { it.startsWith("L") && it !in classes }.toSet())
+            // 454 inlines the capability check into the chat menu builder (03KI.A03 on 386014758), so the
+            // check's kind (01FI there) is named only by the check on Capabilities.
+            if (CAPABILITIES !in classes) classes += FixtureDex.classes(bundle, setOf(CAPABILITIES))
+            val capabilityKinds = classes[CAPABILITIES]?.methods?.toList().orEmpty().flatMap { it.parameterTypes.map(Any::toString) }
+            classes += FixtureDex.classes(bundle, capabilityKinds.filter { it.startsWith("L") && it !in classes }.toSet())
             // The receipt's details and every class they extend, where the message's item id is declared.
             var wanted = classes.getValue(seen.mutation).fields.map { it.type }.toSet() + USER_SESSION
             while (true) {

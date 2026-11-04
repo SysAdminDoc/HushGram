@@ -28,6 +28,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.ArrayPayload
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -232,8 +233,12 @@ class SameKeyProvidersTest {
                     method.returnType == "V" && method.parameterTypes.isEmpty() &&
                         !AccessFlags.STATIC.isSet(method.accessFlags) &&
                         method.strings().containsAll(listOf(accessRefusal, killSwitch)) &&
-                        method.calls().any { it.definingClass == TRUSTED_CALLER_PROVIDER &&
-                            it.parameterTypes.isEmpty() && it.returnType.startsWith("L") }
+                        (method.calls().any { it.definingClass == TRUSTED_CALLER_PROVIDER &&
+                            it.parameterTypes.isEmpty() && it.returnType.startsWith("L") } ||
+                            // 454 inlines the policy getter, so the gate reads SameKey's field itself.
+                            method.implementation?.instructions?.any {
+                                ((it as? ReferenceInstruction)?.reference as? FieldReference)?.definingClass == SAME_KEY_PROVIDER
+                            } == true)
                 }.forEach { inlineAnchors += ImmutableMethod.of(it) }
             }
         }

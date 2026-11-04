@@ -100,8 +100,17 @@ class FollowBacksHookTest {
             assertTrue("${bundle.name}: the way past the section is before it", patched.targetOf(call + 2) < call)
             val targets = patched.jumpTargets()
             assertFalse("${bundle.name}: a jump lands in or skips the call", call in targets || call + 1 in targets || call + 2 in targets)
-            val hash = (call + 3 until code.size).first { code[it].referenceText() == "Ljava/lang/String;->hashCode()I" }
-            val switched = (code[hash] as? RegisterRangeInstruction)?.startRegister ?: (code[hash] as FiveRegisterInstruction).registerC
+            val hash = (call + 3 until code.size).firstOrNull { code[it].referenceText() == "Ljava/lang/String;->hashCode()I" }
+            val switched = if (hash != null) {
+                (code[hash] as? RegisterRangeInstruction)?.startRegister ?: (code[hash] as FiveRegisterInstruction).registerC
+            } else {
+                // 454 compares with equals instead, FOLLOW_BACK's register asking the type.
+                val loaded = (code[call + 3] as OneRegisterInstruction).registerA
+                val compare = (call + 4 until code.size).first {
+                    code[it].referenceText() == "Ljava/lang/String;->equals(Ljava/lang/Object;)Z" && code[it].registers().first() == loaded
+                }
+                code[compare].registers()[1]
+            }
             assertEquals("${bundle.name}: the type the header switch reads", site.section, switched)
         }
     }
@@ -212,6 +221,19 @@ class FollowBacksHookTest {
         assertTrue("nothing written", bad.mutableClassDefBy(builder).methods.single().code().none { it.referenceText() == SUGGESTION_SECTION })
     }
 
+    /** 454 compares the type with a chain of equals instead of switching on its hash, so the type is what FOLLOW_BACK is asked about. */
+    @Test
+    fun anEqualsChainNamesTheSectionsType() {
+        val context = PatchContexts.of(builderClasses(retyped = false, equalsChain = true))
+        val site = context.findFollowBackSection()
+        context.hideFollowBackSection(site)
+        assertEquals("the type's register", 15, site.section)
+        assertEquals("hooked", 1, context.mutableClassDefBy(builder).methods.single().code().count { it.referenceText() == SUGGESTION_SECTION })
+    }
+
+    private fun Instruction.registers(): List<Int> = (this as? RegisterRangeInstruction)?.let { range -> List(range.registerCount) { range.startRegister + it } }
+        ?: (this as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG).take(it.registerCount) }
+
     /** The range call with the list's register, its answer back in that register, then the parser's own write of it. */
     private fun assertAnswered(what: String, method: Method, register: Int, field: String) {
         val code = method.code()
@@ -291,8 +313,19 @@ class FollowBacksHookTest {
      * puts an int in the type's register instead and writes the String only on a path the load jumps
      * to, so hashCode still reads a String while the load sees the int.
      */
-    private fun builderClasses(retyped: Boolean): List<ClassDef> {
-        val body = listOfNotNull(
+    private fun builderClasses(retyped: Boolean, equalsChain: Boolean = false): List<ClassDef> {
+        val switch = if (equalsChain) {
+            listOf("invoke-virtual {v11, v15}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z", "move-result v4", "if-eqz v4, :done")
+        } else {
+            listOf(
+                "invoke-virtual {v15}, Ljava/lang/String;->hashCode()I",
+                "move-result v4",
+                "const v2, ${FOLLOW_BACK_TYPE.hashCode()}",
+                "if-ne v4, v2, :done",
+                "invoke-virtual {v15, v11}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z",
+            )
+        }
+        val body = (listOfNotNull(
             "const-string v0, \"$FALLBACK_SECTION\"",
             if (retyped) "const/16 v15, 0x7" else "move-object/from16 v15, p0",
             "move-object/from16 v8, p1",
@@ -302,17 +335,13 @@ class FollowBacksHookTest {
             "const-string v11, \"$FOLLOW_BACK_TYPE\"",
             if (retyped) "goto :typed" else "if-eqz v8, :header",
             ":header",
-            "invoke-virtual {v15}, Ljava/lang/String;->hashCode()I",
-            "move-result v4",
-            "const v2, ${FOLLOW_BACK_TYPE.hashCode()}",
-            "if-ne v4, v2, :done",
-            "invoke-virtual {v15, v11}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z",
+        ) + switch + listOfNotNull(
             ":done",
             "return-void",
             if (retyped) ":typed" else null,
             if (retyped) "move-object/from16 v15, p0" else null,
             if (retyped) "goto :header" else null,
-        ).joinToString("\n")
+        )).joinToString("\n")
         val flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
         val build = method(builder, "build", listOf("Ljava/lang/String;", "Ljava/util/List;"), "V", 16, flags, body)
         return listOf(classDef(builder, "Ljava/lang/Object;", listOf(build)))

@@ -130,7 +130,7 @@ class NativeHiddenLikeCountsTest {
     }
 
     private companion object {
-        val BUILDS = listOf(385914557, 385914503, 385914510, 385914517, 385914518, 385914546, 385914556, 385914558)
+        val BUILDS = listOf(386014758, 386014704, 386014705, 386014712, 386014714, 386014718, 386014747, 386014757, 386014759, 386014760)
         const val SESSION = "Lcom/instagram/common/session/UserSession;"
         fun isDecide(types: List<String>) =
             types.size in 3..4 && types.first() == SESSION && types[types.size - 2] == "Ljava/lang/String;" && types.last() == "Z"

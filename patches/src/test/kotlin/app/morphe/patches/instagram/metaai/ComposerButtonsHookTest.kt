@@ -123,6 +123,36 @@ class ComposerButtonsHookTest {
         refuses(replace = controller(callbackFlag = 6))
     }
 
+    /** 454's dispatcher, LX/05TH;->HsA on 386014758: a static getter handed `this`, then the view's own setVisibility. */
+    @Test
+    fun aStaticGetterAndTheViewsOwnSetterGetTheSameGuard() {
+        val classes = listOf(buttonEnum(), lookups(), staticController())
+        val context = PatchContexts.of(classes)
+        val site = context.findComposerButtonVisibility()
+        assertEquals(CONTROLLER, site.type)
+        val original = classes.single { it.type == site.type }.methods.single { it.name == site.name }
+        context.holdComposerButtons(site)
+        val patched = context.mutableClassDefBy(site.type).methods.single { it.name == site.name }
+        assertGuard(patched)
+        assertNativeBody(original, patched)
+        assertOtherMethods(classes, context, site)
+    }
+
+    @Test
+    fun aStaticGetterNotHandedThisRefusesBeforeMutation() = refuses(replace = staticController(thisRegister = 5))
+
+    @Test
+    fun aStaticGetterReceivingAnotherShowFlagRefusesBeforeMutation() = refuses(replace = staticController(getterFlag = 6))
+
+    @Test
+    fun aVisibilityRewrittenOnTheWayToTheViewsOwnSetterRefusesBeforeMutation() = refuses(replace = staticController(traceRegister = 1))
+
+    @Test
+    fun theViewsOwnSetterOnAnotherViewRefusesBeforeMutation() = refuses(replace = staticController(setterView = 3))
+
+    @Test
+    fun anOldAndANewDispatcherTogetherRefuseBeforeMutation() = refuses(staticController("Lfixture/OtherComposer;"))
+
     @Test
     fun extensionLookupsDoNotDuplicateTheNativeLookup() {
         val context = PatchContexts.of(listOf(buttonEnum(), lookups(), controller(), lookups("Lapp/hushgram/extension/instagram/metaai/Probe;")))
@@ -243,7 +273,9 @@ class ComposerButtonsHookTest {
         assertEquals(2, (code[0] as RegisterRangeInstruction).registerCount)
         assertEquals(Opcode.MOVE_RESULT, code[1].opcode)
         assertEquals(first + 1, (code[1] as OneRegisterInstruction).registerA)
-        assertEquals("native getter follows the guard", Opcode.INVOKE_DIRECT, code[2].opcode)
+        // 454 made the getter static: LX/05TH;->HsA calls LX/05TH;->A01 first on 386014758.
+        assertTrue("native getter follows the guard", code[2].opcode == Opcode.INVOKE_DIRECT || code[2].opcode == Opcode.INVOKE_STATIC)
+        assertEquals("native getter follows the guard", VIEW, ((code[2] as ReferenceInstruction).reference as MethodReference).returnType)
     }
 
     private fun assertNativeBody(original: Method, patched: Method) {
@@ -315,6 +347,38 @@ class ComposerButtonsHookTest {
             return clazz(type, listOf(
                 method(type, "<init>", listOf(VIEW), "V", 4, listOf(call(Opcode.INVOKE_DIRECT, listOf(0, 2, 1), LOOKUP, "<init>", listOf("Ljava/lang/Object;", "I"), "V"), ImmutableInstruction10x(Opcode.RETURN_VOID))),
                 method(type, "getOptionalView", PARAMETERS, VIEW, 8, listOf(call(Opcode.INVOKE_INTERFACE, listOf(0), "Lfixture/OptionalView;", "getView", emptyList(), VIEW), ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0))),
+                method(type, "updateVisibility", PARAMETERS, "V", 8, code),
+            ))
+        }
+
+        /**
+         * 454's dispatcher: a static getter handed `this` among the three, then a trace id and
+         * "setVisibility" logged ahead of the view's own setVisibility.
+         */
+        fun staticController(type: String = CONTROLLER, thisRegister: Int = 4, getterFlag: Int = 7, traceRegister: Int = 0, setterView: Int = 2): ClassDef {
+            val getterParameters = listOf(LOCATION, BUTTON_ENUM, type, "Z")
+            val code = mutableListOf<Instruction>(
+                call(Opcode.INVOKE_STATIC, listOf(5, 6, thisRegister, getterFlag), type, "getOptionalView", getterParameters, VIEW),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 2),
+                ImmutableInstruction21t(Opcode.IF_EQZ, 2, 0),
+                ImmutableInstruction21t(Opcode.IF_EQZ, 7, 0),
+                ImmutableInstruction11n(Opcode.CONST_4, 1, 0),
+                ImmutableInstruction31i(Opcode.CONST, traceRegister, 2026),
+                ImmutableInstruction21c(Opcode.CONST_STRING, 3, ImmutableStringReference("setVisibility")),
+                call(Opcode.INVOKE_STATIC, listOf(2, 3, traceRegister), "Lfixture/Trace;", "log", listOf(VIEW, "Ljava/lang/String;", "I"), "V"),
+                call(Opcode.INVOKE_VIRTUAL, listOf(setterView, 1), VIEW, "setVisibility", listOf("I"), "V"),
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 3, 4, ImmutableFieldReference(type, "callback", "Lfixture/LayoutCallback;")),
+                call(Opcode.INVOKE_VIRTUAL, listOf(3, 5, 6, 7), "Lfixture/LayoutCallback;", "visibilityChanged", PARAMETERS, "V"),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ImmutableInstruction21s(Opcode.CONST_16, 1, 8),
+                ImmutableInstruction10t(Opcode.GOTO, 0),
+            )
+            code[2] = ImmutableInstruction21t(Opcode.IF_EQZ, 2, offset(code, 2, 11))
+            code[3] = ImmutableInstruction21t(Opcode.IF_EQZ, 7, offset(code, 3, 12))
+            code[13] = ImmutableInstruction10t(Opcode.GOTO, offset(code, 13, 5))
+            return clazz(type, listOf(
+                method(type, "<init>", listOf(VIEW), "V", 4, listOf(call(Opcode.INVOKE_DIRECT, listOf(0, 2, 1), LOOKUP, "<init>", listOf("Ljava/lang/Object;", "I"), "V"), ImmutableInstruction10x(Opcode.RETURN_VOID))),
+                method(type, "getOptionalView", getterParameters, VIEW, 4, listOf(call(Opcode.INVOKE_INTERFACE, listOf(0), "Lfixture/OptionalView;", "getView", emptyList(), VIEW), ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)), static = true),
                 method(type, "updateVisibility", PARAMETERS, "V", 8, code),
             ))
         }

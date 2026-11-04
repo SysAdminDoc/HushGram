@@ -92,7 +92,7 @@ class DontReportScreenshotsHookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val classes = (FixtureDex.classesHolding(bundle, DETECTOR_SESSION) + FixtureDex.classesHolding(bundle, FOLDER_REPORT))
+        val classes = (FixtureDex.classesHolding(bundle, DETECTOR_SESSION) + FixtureDex.classesLoading(bundle, FOLDER_REPORT))
             .distinctBy { it.type }
         val context = PatchContexts.of(classes)
         val reports = context.findScreenshotReports()

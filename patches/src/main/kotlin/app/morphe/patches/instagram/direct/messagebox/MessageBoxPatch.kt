@@ -44,12 +44,12 @@ private const val FIND_VIEW = "$VIEW->findViewById(I)$VIEW"
 internal val BOX_BUTTON_NAMES = listOf("GALLERY", "STICKER", "VOICE_MESSAGE")
 
 /**
- * Instagram 453's row_thread_composer_button_gallery, row_thread_composer_button_sticker and
- * row_thread_composer_voice ids, in the order of [BOX_BUTTON_NAMES]. The same in all four 453 builds (aapt2).
- * 453 gave 0x7f0b3859 to a row_thread_composer_button_voice nothing here looks up, so the voice id
- * isn't the one after the sticker's any more.
+ * Instagram 454's row_thread_composer_button_gallery, row_thread_composer_button_sticker and
+ * row_thread_composer_voice ids, in the order of [BOX_BUTTON_NAMES]. The same in all ten 454 builds (aapt2;
+ * 453 had 0x7f0b384d, 0x7f0b3857 and 0x7f0b3871). 453 gave 0x7f0b3859 to a row_thread_composer_button_voice
+ * nothing here looks up, so the voice id isn't the one after the sticker's any more.
  */
-internal val BOX_BUTTON_IDS = listOf(0x7f0b384d, 0x7f0b3857, 0x7f0b3871)
+internal val BOX_BUTTON_IDS = listOf(0x7f0b3833, 0x7f0b383d, 0x7f0b3857)
 
 /**
  * Leaves the gallery, sticker and voice message buttons off the message box of a chat, as the user
@@ -199,14 +199,20 @@ private fun boxLookups(owner: String, constructor: Method): Triple<FieldReferenc
 /**
  * Whether [method] is the show-or-hide method: within its first instructions (after any hook another
  * patch put first) it calls the holder's own `(location, button, boolean)` View getter, and that
- * getter asks a `getView()`.
+ * getter asks a `getView()`. 454's Redex makes the getter static and hands it the holder too
+ * (05TH.A01 on 386014758), so a static getter taking the holder once besides those counts as well.
  */
 private fun BytecodePatchContext.boxAsksOwnGetter(owner: String, method: Method, parameters: List<String>): Boolean {
+    fun takes(types: List<String>, static: Boolean) = types == parameters ||
+        static && types.count { it == owner } == 1 && types.filter { it != owner } == parameters
     val call = boxCode(method).take(6).mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
-        .firstOrNull { it.definingClass == owner && it.returnType == VIEW && it.parameterTypes.map(CharSequence::toString) == parameters }
+        .firstOrNull {
+            it.definingClass == owner && it.returnType == VIEW && takes(it.parameterTypes.map(CharSequence::toString), static = true)
+        }
         ?: return false
     val getter = classDefBy(owner).methods.singleOrNull {
-        it.name == call.name && it.returnType == VIEW && it.parameterTypes.map(CharSequence::toString) == parameters
+        it.name == call.name && it.returnType == VIEW &&
+            takes(it.parameterTypes.map(CharSequence::toString), AccessFlags.STATIC.isSet(it.accessFlags))
     } ?: return false
     return boxCode(getter).any {
         (it as? ReferenceInstruction)?.reference.let { ref -> ref is MethodReference && ref.name == "getView" && ref.parameterTypes.isEmpty() }

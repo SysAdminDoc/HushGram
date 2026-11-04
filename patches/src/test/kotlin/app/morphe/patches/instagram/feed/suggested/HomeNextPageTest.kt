@@ -207,14 +207,9 @@ class HomeNextPageTest {
         var checked = 0
         for (bundle in bundles + others) {
             val where = "${bundle.parentFile.name}/${bundle.name}"
-            val holders = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                for (classDef in dex.classes) {
-                    if (classDef.methods.any { it.holds(BUILD_MODELS) || it.holds(FOLLOWING_FEED) || it.holds(VISIBLE_SPINNER) }) {
-                        holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-            }
+            // Some 454 builds ask a string pool for the feed's name and the spinner's, so those come with their pools.
+            val holders = (FixtureDex.classesHolding(bundle, BUILD_MODELS) + FixtureDex.classesLoading(bundle, FOLLOWING_FEED) +
+                FixtureDex.classesLoading(bundle, VISIBLE_SPINNER)).map { ImmutableClassDef.of(it) }
             val policyClass = PatchContexts.of(holders.distinctBy { it.type }).findLoadMoreRow().first
             val policyTypes = setOf(policyClass.type) + policyClass.interfaces
             val callers = mutableListOf<ClassDef>()

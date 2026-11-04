@@ -14,8 +14,10 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.methodsCalling
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -26,7 +28,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import java.io.File
@@ -180,7 +181,9 @@ internal class LogoAnswers(val method: MutableMethod, val extra: Int, val gate: 
  *
  * The method is the one loading [POST_SPLASH_EXTRA] and reading it with its one
  * Intent.getBooleanExtra. 451 kept it in [MAIN_ACTIVITY]; 452 moved it into a helper class that
- * Redex names, so the method is found by that string and call rather than by its class. An answer of
+ * Redex names, so the method is found by that string and call rather than by its class. Some 454
+ * builds ask a string pool for the key instead of loading it (`InstagramMainActivity;->A0w` asks
+ * `LX/0027;->A00` on 386014757), so the string counts either way. An answer of
  * true draws Instagram's copy of its launch screen over the app. Otherwise its one (Context,
  * UserSession) check, the test that Android is 12 or newer, animations run and Instagram's flag is
  * on, decides whether Instagram pulses its logo inside Android's screen. The check is a static
@@ -190,21 +193,25 @@ internal class LogoAnswers(val method: MutableMethod, val extra: Int, val gate: 
 internal fun BytecodePatchContext.findLogoAnswers(): LogoAnswers {
     // Only methods calling Intent.getBooleanExtra are read, which the patcher's index names. Reading
     // every method in the app was a measured share of patching (#173).
-    val holders = methodsCalling(INTENT, "getBooleanExtra").filter { method -> method.code().any { it.loads(POST_SPLASH_EXTRA) } }
+    val holders = methodsCalling(INTENT, "getBooleanExtra").filter { method -> loadsString(method, POST_SPLASH_EXTRA) }
     val holder = holders.singleOrNull()
         ?: refuse("expected one method loading \"$POST_SPLASH_EXTRA\" and reading an Intent boolean, found ${holders.size}")
     val code = holder.code()
 
     val reads = code.indices.filter { code[it].opcode == Opcode.INVOKE_VIRTUAL && code[it].calls(INTENT, "getBooleanExtra") }
     val read = reads.singleOrNull() ?: refuse("expected one Intent.getBooleanExtra in ${holder.where()}, found ${reads.size}")
-    // The key is the string loaded last into the register the read passes, at most three instructions before it.
+    // The key is the string written last into the register the read passes, at most three instructions
+    // before it: a const-string, or the answer of a string pool asked right before the move-result.
     val key = (code[read] as FiveRegisterInstruction).registerD
     val lastLoad = (maxOf(0, read - 3) until read).lastOrNull { at ->
         val instruction = code[at]
-        (instruction.opcode == Opcode.CONST_STRING || instruction.opcode == Opcode.CONST_STRING_JUMBO) &&
-            (instruction as OneRegisterInstruction).registerA == key
+        (instruction.opcode == Opcode.CONST_STRING || instruction.opcode == Opcode.CONST_STRING_JUMBO ||
+            instruction.opcode == Opcode.MOVE_RESULT_OBJECT) && (instruction as OneRegisterInstruction).registerA == key
     }
-    if (lastLoad == null || !code[lastLoad].loads(POST_SPLASH_EXTRA)) {
+    val loaded = lastLoad?.let { at ->
+        if (code[at].opcode == Opcode.MOVE_RESULT_OBJECT) stringLoadedAt(code, at - 1) else stringLoadedAt(code, at)
+    }
+    if (loaded != POST_SPLASH_EXTRA) {
         refuse("${holder.where()} reads another extra than \"$POST_SPLASH_EXTRA\"")
     }
 
@@ -256,10 +263,6 @@ internal fun BytecodePatchContext.skipInstagramLogo() {
         )
     }
 }
-
-private fun Instruction.loads(value: String): Boolean =
-    (opcode == Opcode.CONST_STRING || opcode == Opcode.CONST_STRING_JUMBO) &&
-        ((this as ReferenceInstruction).reference as StringReference).string == value
 
 private fun Instruction.calls(definingClass: String, name: String): Boolean =
     ((this as? ReferenceInstruction)?.reference as? MethodReference)?.let {

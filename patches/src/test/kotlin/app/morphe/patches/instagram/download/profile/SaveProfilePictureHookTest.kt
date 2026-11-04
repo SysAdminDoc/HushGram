@@ -102,7 +102,7 @@ class SaveProfilePictureHookTest {
         assertEquals("the stub says the row went in", Opcode.RETURN, stub.last().opcode)
 
         // The fixture's item stores its eleventh and sixteenth arguments in each other's field, as 450 does.
-        val names = (0 until 24).map { "a$it" }.toMutableList().apply { this[10] = "a15"; this[15] = "a10" }
+        val names = (0 until 26).map { "a$it" }.toMutableList().apply { this[10] = "a15"; this[15] = "a10" }
         assertEquals("the item's fields in argument order", "fixture.PopupItem|" + names.joinToString(","), layout(context))
     }
 
@@ -152,8 +152,8 @@ class SaveProfilePictureHookTest {
     }
 
     @Test
-    fun aPopupItemOfAnotherSizeFailsThePatch() = refuses("expected one item class built with 24 arguments") {
-        context(popupItemArguments = 23).findProfileMenus()
+    fun aPopupItemOfAnotherSizeFailsThePatch() = refuses("expected one item class built with 26 arguments") {
+        context(popupItemArguments = 24).findProfileMenus()
     }
 
     @Test
@@ -337,7 +337,7 @@ class SaveProfilePictureHookTest {
             host: ClassDef = host(),
             sheet: ClassDef = sheet(),
             newer: ClassDef = helper(NEWER, PROFILE_MENUS[1]),
-            popupItemArguments: Int = 24,
+            popupItemArguments: Int = POPUP_ITEM_ARGUMENTS,
             itemStores: (Int) -> Boolean = { true },
             itemFieldType: (Int) -> String? = { null },
             itemBranches: Boolean = false,
@@ -360,9 +360,9 @@ class SaveProfilePictureHookTest {
             val parameters = (0 until arguments).map {
                 when (it) {
                     4 -> CALLBACK
-                    in 9..15 -> "Ljava/lang/Integer;"
-                    16, 17 -> "Ljava/lang/String;"
-                    in 18..23 -> "Z"
+                    in 9..16 -> "Ljava/lang/Integer;"
+                    in 17..19 -> "Ljava/lang/String;"
+                    in 20..25 -> "Z"
                     else -> "Ljava/lang/Object;"
                 }
             }

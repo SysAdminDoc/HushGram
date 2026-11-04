@@ -81,7 +81,9 @@ class StoryLinkParserTest {
     /**
      * On the declared build's fixture and every other build's: the one parser making the story
      * link's model has the cleaner right before it stores the link, on the link's register, and
-     * nothing else in it moves.
+     * nothing else in it moves. 454 dropped the story item's share link model and its parser, so a
+     * build without the model must not load the parser's type name anywhere either, and the patch
+     * then answers why it went without this target (see [leftAlone]).
      */
     @Test
     fun eachBuildCleansItsStoryLink() {
@@ -92,6 +94,11 @@ class StoryLinkParserTest {
     }
 
     private fun cleansStoryLink(bundle: File, label: String) {
+        if (FixtureDex.classes(bundle, setOf(MODEL)).isEmpty()) {
+            assertEquals("$label: no model, so nothing names $STORY_SHARE_URL_TYPE", emptyList<String>(),
+                FixtureDex.classesLoading(bundle, STORY_SHARE_URL_TYPE).map { it.type })
+            return
+        }
         val parsers = FixtureDex.classesHolding(bundle, MODEL_NAME).filter { holder -> holder.methods.any { it.makesModel() } }
         assertEquals("$label: classes holding $MODEL_NAME with a parser making it", 1, parsers.size)
         val type = parsers.single().type

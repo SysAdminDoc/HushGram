@@ -30,10 +30,10 @@ internal const val COMPOSER_BUTTON = "$EXTENSION_PACKAGE/metaai/MetaAi;->compose
 internal val COMPOSER_BUTTON_NAMES = listOf("META_AI_DISCOVERY", "META_AI_INVOCATION", "META_AI_VOICE")
 
 /**
- * Instagram 452's row_thread_composer_meta_ai_discover, invocation and voice ids, the same in all
- * three 452 builds (aapt2). They didn't move from 451; 450 had them at 0x7f0b386b to 0x7f0b386d.
+ * Instagram 454's row_thread_composer_meta_ai_discover, invocation and voice ids, the same in all
+ * ten 454 builds (aapt2). 453 had them at 0x7f0b3862 to 0x7f0b3864.
  */
-internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b3862, 0x7f0b3863, 0x7f0b3864)
+internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b3848, 0x7f0b3849, 0x7f0b384a)
 private const val VIEW = "Landroid/view/View;"
 private const val FIND_VIEW = "$VIEW->findViewById(I)$VIEW"
 
@@ -119,11 +119,19 @@ private fun isVisibilityDispatcher(owner: ClassDef, method: Method, buttonEnum: 
     // Message box buttons filters the same pair here, and its hook is first when that patch ran first.
     val code = method.code().let { it.drop(leadingHookPair(it, MESSAGE_BOX_BUTTON_HOOK, incoming[3])) }
     val call = code.firstOrNull()?.methodReference() ?: return false
+    val callParameters = call.parameterTypes.map(CharSequence::toString)
     val getter = owner.methods.singleOrNull {
-        it.name == call.name && it.parameterTypes.map(CharSequence::toString) == parameters && it.returnType == VIEW
+        it.name == call.name && it.parameterTypes.map(CharSequence::toString) == callParameters && it.returnType == VIEW
     } ?: return false
-    if (code[0].opcode != Opcode.INVOKE_DIRECT || call.definingClass != owner.type || call.returnType != VIEW ||
-        call.parameterTypes.map(CharSequence::toString) != parameters || code[0].arguments() != incoming ||
+    // 454 made the getter static and passes the controller among the dispatcher's own three, as
+    // LX/05TH;->HsA calls LX/05TH;->A01(LX/05Uv;LX/05Uu;LX/05TH;Z) with this third on 386014758.
+    val asksItsGetter = when (code[0].opcode) {
+        Opcode.INVOKE_DIRECT -> callParameters == parameters && code[0].arguments() == incoming
+        Opcode.INVOKE_STATIC -> AccessFlags.STATIC.isSet(getter.accessFlags) &&
+            takesThisAmong(callParameters, code[0].arguments(), owner.type, parameters, incoming)
+        else -> false
+    }
+    if (!asksItsGetter || call.definingClass != owner.type || call.returnType != VIEW ||
         getter.code().none { it.methodReference()?.let { ref -> ref.name == "getView" && ref.parameterTypes.isEmpty() && ref.returnType == VIEW } == true }) return false
     val result = (code.getOrNull(1) as? OneRegisterInstruction)?.registerA ?: return false
     val skip = code.target(2) ?: return false
@@ -131,18 +139,27 @@ private fun isVisibilityDispatcher(owner: ClassDef, method: Method, buttonEnum: 
     if (code.getOrNull(1)?.opcode != Opcode.MOVE_RESULT_OBJECT || code.getOrNull(2)?.opcode != Opcode.IF_EQZ ||
         (code[2] as OneRegisterInstruction).registerA != result || code[skip].opcode != Opcode.RETURN_VOID ||
         code.getOrNull(3)?.opcode != Opcode.IF_EQZ || (code[3] as OneRegisterInstruction).registerA != incoming[3]) return false
+    // 454 calls the view's own setVisibility, after logging the call: LX/05TH;->HsA on 386014758
+    // loads 0 or 8, then a trace id and "setVisibility" for LX/0Eml;->A0g, then the setter.
     val setters = code.indices.filter { index ->
         val ref = code[index].methodReference()
-        code[index].opcode == Opcode.INVOKE_STATIC && ref?.returnType == "V" &&
-            ref.parameterTypes.map(CharSequence::toString) == listOf(VIEW, "I", "I") &&
-            code[index].arguments().firstOrNull() == result
+        val arguments = code[index].arguments()
+        arguments.firstOrNull() == result && ref?.returnType == "V" && (
+            code[index].opcode == Opcode.INVOKE_STATIC && ref.parameterTypes.map(CharSequence::toString) == listOf(VIEW, "I", "I") ||
+                code[index].opcode == Opcode.INVOKE_VIRTUAL && ref.definingClass == VIEW && ref.name == "setVisibility" &&
+                ref.parameterTypes.map(CharSequence::toString) == listOf("I")
+            )
     }
     val setter = setters.singleOrNull() ?: return false
     val visibility = code[setter].arguments()[1]
-    if (code.getOrNull(setter - 2)?.literal() != 0 || (code[setter - 2] as? OneRegisterInstruction)?.registerA != visibility ||
-        code[hide].literal() != 8 || (code[hide] as? OneRegisterInstruction)?.registerA != visibility ||
-        code.getOrNull(hide + 1)?.opcode !in listOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32) ||
-        code.target(hide + 1) != setter - 1) return false
+    if (code[hide].literal() != 8 || (code[hide] as? OneRegisterInstruction)?.registerA != visibility ||
+        code.getOrNull(hide + 1)?.opcode !in listOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)) return false
+    // The hide path joins the show path right after its 0, and nothing on the way to the setter
+    // changes the visibility or goes anywhere else.
+    val join = code.target(hide + 1) ?: return false
+    if (join < 1 || join > setter || code[join - 1].literal() != 0 ||
+        (code[join - 1] as? OneRegisterInstruction)?.registerA != visibility ||
+        (join until setter).any { code[it].writes(visibility) || code[it] is OffsetInstruction || !code[it].opcode.canContinue() }) return false
     return code.drop(setter + 1).count { instruction ->
         val ref = instruction.methodReference()
         ref?.returnType == "V" && ref.parameterTypes.map(CharSequence::toString) == parameters &&
@@ -163,6 +180,23 @@ internal fun leadingHookPair(code: List<Instruction>, hook: String, flag: Int): 
     if (call.methodReference()?.toString() != hook || call.arguments() != listOf(flag - 1, flag)) return 0
     if (result.opcode != Opcode.MOVE_RESULT || (result as OneRegisterInstruction).registerA != flag) return 0
     return 2
+}
+
+/**
+ * Whether a static getter's [callParameters] and [arguments] are the dispatcher's own [parameters]
+ * and [incoming] registers past `this`, with [owner] and `this` put in at one same place.
+ */
+private fun takesThisAmong(callParameters: List<String>, arguments: List<Int>, owner: String, parameters: List<String>, incoming: List<Int>): Boolean =
+    callParameters.size == parameters.size + 1 && arguments.size == incoming.size && callParameters.indices.any { at ->
+        callParameters[at] == owner && arguments[at] == incoming[0] &&
+            callParameters.filterIndexed { index, _ -> index != at } == parameters &&
+            arguments.filterIndexed { index, _ -> index != at } == incoming.drop(1)
+    }
+
+private fun Instruction.writes(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return written == register || (opcode.setsWideRegister() && written + 1 == register)
 }
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

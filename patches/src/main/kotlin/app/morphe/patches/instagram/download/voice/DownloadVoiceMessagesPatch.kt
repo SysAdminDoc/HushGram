@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCreating
 import app.morphe.patches.instagram.misc.extension.classesHolding
@@ -75,6 +76,9 @@ private const val STRING = "Ljava/lang/String;"
 private const val ACTIVITY = "Landroid/app/Activity;"
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
+/** How far past its read of the voice media the player may read that media's [MEDIA]: 26 instructions on 386014758. */
+private const val PLAYER_REACH = 40
+
 /** The one-register copies a lookup's arguments may be put in place with. */
 private val COPIES = setOf(
     Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16,
@@ -125,13 +129,15 @@ internal class VoiceSaver(
 )
 
 /**
- * The reads the bridges make off a [message]: its [voice] media, that media's [media] and
- * [source], the recording's [address], and the voice media's [viewMode].
+ * The reads the bridges make off a [message]: its [voice] media, that media's [media], the two
+ * static [steps] turning it into its audio, the audio's [source], the recording's [address], and
+ * the voice media's [viewMode].
  */
 internal class VoiceReads(
     val message: String,
     val voice: FieldReference,
-    val media: Instruction,
+    val media: FieldReference,
+    val steps: List<MethodReference>,
     val source: FieldReference,
     val address: Instruction,
     val viewMode: FieldReference,
@@ -308,10 +314,14 @@ private fun Method.storedParameter(store: Int): Int {
 
 /**
  * The reads off a message the bridges make. Right after [AUDIO_SOURCE], Instagram's own player
- * reads the message's voice media, its media, that media's source and the source's address, each
- * off the one before. The voice media's view mode is what its parser, the one method making the
- * voice media while holding [VIEW_MODE_KEY] and [WAVEFORM_KEY], stores the string read for
- * [VIEW_MODE_KEY] in.
+ * reads the message's voice media and asks it for a pending clip's path. Without one it reads the
+ * voice media's [MEDIA], turns that into its audio in two static steps, and reads the audio's
+ * source and the source's address, each off the one before. 454's Redex moved that second path
+ * out of the voice media's getter (05B6.A00 on 453's 385914557) into the player
+ * (StellaDirectMessagingService's binder GxB on 386014758). The bridge takes the second path
+ * only: a pending clip's path is a file on the sender's phone, which the saver can't fetch.
+ * The voice media's view mode is what its parser, the one method making the voice media while
+ * holding [VIEW_MODE_KEY] and [WAVEFORM_KEY], stores the string read for [VIEW_MODE_KEY] in.
  */
 internal fun BytecodePatchContext.findVoiceReads(message: String): VoiceReads {
     val players = classesHolding(AUDIO_SOURCE).flatMap { host -> host.methods.filter { AUDIO_SOURCE in it.strings() } }
@@ -326,15 +336,28 @@ internal fun BytecodePatchContext.findVoiceReads(message: String): VoiceReads {
         it.opcode == Opcode.IGET_OBJECT && it.field()?.definingClass == message && it.field()!!.type.startsWith("L")
     }
     val voice = code[voiceAt].field()!!
-    val mediaAt = next(voiceAt, "the voice media's media") {
-        it.isGetter(voice.type) && it.call()!!.returnType.startsWith("L") && it.arguments() == listOf((code[voiceAt] as TwoRegisterInstruction).registerA)
+    val voiceHeld = (code[voiceAt] as TwoRegisterInstruction).registerA
+    val reach = voiceAt + 1..minOf(voiceAt + PLAYER_REACH, code.lastIndex)
+    val mediaAt = reach.filter {
+        code[it].opcode == Opcode.IGET_OBJECT && (code[it] as TwoRegisterInstruction).registerB == voiceHeld &&
+            code[it].field()?.let { field -> field.definingClass == voice.type && field.type == MEDIA } == true
+    }.singleOrNull() ?: refuse("the player doesn't read the voice media's media")
+
+    fun step(after: Int, from: Int, what: String): Int {
+        val at = next(after, what) {
+            it.opcode == Opcode.INVOKE_STATIC && it.arguments() == listOf(from) && it.call()!!.returnType.startsWith("L")
+        }
+        if (code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("the player doesn't keep $what")
+        return at
     }
-    val media = code[mediaAt]
-    val held = (code.getOrNull(mediaAt + 1) as? OneRegisterInstruction)?.registerA
-    if (code[mediaAt + 1].opcode != Opcode.MOVE_RESULT_OBJECT) refuse("the player doesn't keep the voice media's media")
-    val sourceAt = next(mediaAt + 1, "the media's source") {
-        it.opcode == Opcode.IGET_OBJECT && it.field()?.definingClass == media.call()!!.returnType && (it as TwoRegisterInstruction).registerB == held
-    }
+    val treeAt = step(mediaAt, (code[mediaAt] as TwoRegisterInstruction).registerA, "the media's audio model")
+    val audioAt = step(treeAt + 1, (code[treeAt + 1] as OneRegisterInstruction).registerA, "the media's audio")
+    val audio = code[audioAt].call()!!.returnType
+    val audioHeld = (code[audioAt + 1] as OneRegisterInstruction).registerA
+    // The pending clip's path and the media's audio meet at one read of the audio's source, before the media is read.
+    val sourceAt = (voiceAt + 1..audioAt).filter {
+        code[it].opcode == Opcode.IGET_OBJECT && code[it].field()?.definingClass == audio && (code[it] as TwoRegisterInstruction).registerB == audioHeld
+    }.singleOrNull() ?: refuse("the player doesn't read the audio's source")
     val source = code[sourceAt].field()!!
     val addressAt = next(sourceAt, "the recording's address") {
         it.isGetter(source.type) && it.call()!!.returnType == STRING && it.arguments() == listOf((code[sourceAt] as TwoRegisterInstruction).registerA)
@@ -356,7 +379,8 @@ internal fun BytecodePatchContext.findVoiceReads(message: String): VoiceReads {
             it.field()?.let { field -> field.definingClass == voice.type && field.type == STRING } == true
     }
     val viewMode = kept.singleOrNull()?.field() ?: refuse("expected the view mode kept in one field of ${voice.type}, found ${kept.size}")
-    return VoiceReads(message, voice, media, source, code[addressAt], viewMode)
+    val steps = listOf(code[treeAt].call()!!, code[audioAt].call()!!)
+    return VoiceReads(message, voice, code[mediaAt].field()!!, steps, source, code[addressAt], viewMode)
 }
 
 /**
@@ -418,7 +442,6 @@ internal fun BytecodePatchContext.applyVoiceMessages(found: VoiceMessages) {
     )
 
     val reads = found.reads
-    val media = reads.media.call()!!
     val address = reads.address.call()!!
     replace(
         AUDIO_BRIDGE, 2,
@@ -430,7 +453,11 @@ internal fun BytecodePatchContext.applyVoiceMessages(found: VoiceMessages) {
             check-cast p0, ${reads.message}
             iget-object v1, p0, ${reads.voice}
             if-eqz v1, :none
-            ${invoke(reads.media)} { v1 }, $media
+            iget-object v1, v1, ${reads.media}
+            if-eqz v1, :none
+            invoke-static { v1 }, ${reads.steps[0]}
+            move-result-object v1
+            invoke-static { v1 }, ${reads.steps[1]}
             move-result-object v1
             if-eqz v1, :none
             iget-object v1, v1, ${reads.source}

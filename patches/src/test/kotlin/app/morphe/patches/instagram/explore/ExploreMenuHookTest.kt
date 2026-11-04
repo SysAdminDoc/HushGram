@@ -7,8 +7,10 @@ package app.morphe.patches.instagram.explore
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -23,10 +25,14 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -100,11 +106,63 @@ class ExploreMenuHookTest {
         val bundle = declaredBundle()
         val classes = slice(bundle)
         val timer = PatchContexts.of(classes).findExploreTimer()
-        val hookAt = PatchContexts.of(classes).findExploreResume(timer).hookAt
-        val changed = classes.map { if (it.type == timer.fragment) withoutInstruction(it, "onResume", hookAt) else it }
+        val resume = PatchContexts.of(classes).findExploreResume(timer)
+        val changed = classes.map {
+            if (it.type == resume.holder) withoutInstruction(it, resume.method, resume.parameters, resume.hookAt) else it
+        }
 
         val failure = assertThrows(PatchException::class.java) { PatchContexts.of(changed).findExploreResume(timer) }
         assertTrue(failure.message!!, failure.message!!.contains("doesn't read the personalized flag first"))
+    }
+
+    /**
+     * 454's 386014704 asks the timer in the controller's LX/0D2f;->A05, which onResume calls with the
+     * controller as `this`, and ends two instructions past the flag write. The hook goes there.
+     */
+    @Test
+    fun aControllerAskingTheTimerTakesTheHook() {
+        val context = PatchContexts.of(listOf(fragment(callsController()), controller(CONTROLLER)))
+        val resume = context.findExploreResume(STAND_IN_TIMER)
+        assertEquals(CONTROLLER, resume.holder)
+        assertEquals("resume", resume.method)
+        assertEquals(0, resume.hookAt)
+        assertEquals("this", 4, resume.controller)
+
+        context.unpersonalizeExploreResume(STAND_IN_TIMER, resume)
+        assertReloadedOnResume("$CONTROLLER->resume", context, STAND_IN_TIMER, resume, branchedOnto = false)
+        val onResume = onResume(context, FRAGMENT).implementation!!.instructions
+        assertTrue("onResume itself is left alone", onResume.none { referenceText(it) == UNPERSONALIZE })
+    }
+
+    @Test
+    fun twoMethodsAskingTheTimerFailThePatch() {
+        val context = PatchContexts.of(listOf(fragment(callsController(), callsController(OTHER)), controller(CONTROLLER), controller(OTHER)))
+        val failure = assertThrows(PatchException::class.java) { context.findExploreResume(STAND_IN_TIMER) }
+        assertTrue(failure.message!!, failure.message!!.contains("$FRAGMENT->onResume asks the timer through 2 methods it calls, expected one"))
+    }
+
+    @Test
+    fun aControllerAskingTheTimerTwiceFailsThePatch() {
+        val context = PatchContexts.of(listOf(fragment(callsController()), controller(CONTROLLER, twice = true)))
+        val failure = assertThrows(PatchException::class.java) { context.findExploreResume(STAND_IN_TIMER) }
+        assertTrue(failure.message!!, failure.message!!.contains("$CONTROLLER->resume asks the timer 2 times, expected once"))
+    }
+
+    /** The relaxed end still wants the flag written, and reads no further than the method goes. */
+    @Test
+    fun aControllerThatNeverWritesTheFlagFailsThePatch() {
+        val context = PatchContexts.of(listOf(fragment(callsController()), controller(CONTROLLER, writes = false)))
+        val failure = assertThrows(PatchException::class.java) { context.findExploreResume(STAND_IN_TIMER) }
+        assertTrue(failure.message!!, failure.message!!.contains("$CONTROLLER->resume doesn't write the personalized flag after the timer"))
+    }
+
+    /** Only a virtual call is followed, the way 454 makes it; a static one leaves onResume asking nothing. */
+    @Test
+    fun aStaticMethodAskingTheTimerIsNotFollowed() {
+        val call = "invoke-static { v0 }, $CONTROLLER->resume($CONTROLLER)V"
+        val context = PatchContexts.of(listOf(fragment(call), controller(CONTROLLER, static = true)))
+        val failure = assertThrows(PatchException::class.java) { context.findExploreResume(STAND_IN_TIMER) }
+        assertTrue(failure.message!!, failure.message!!.contains("$FRAGMENT->onResume asks the timer 0 times, expected once"))
     }
 
     /** Finds and patches one build, and answers whether a branch landed on the hook's spot. */
@@ -114,13 +172,13 @@ class ExploreMenuHookTest {
         val timer = context.findExploreTimer()
         val resume = context.findExploreResume(timer)
         val buttons = context.findExploreMenuButtons(resume)
-        val branchedOnto = resume.hookAt in onResume(context, timer.fragment).jumpTargets()
+        val branchedOnto = resume.hookAt in asker(context, resume).jumpTargets()
         context.keepExploreUnpersonalized(timer)
         context.unpersonalizeExploreResume(timer, resume)
         context.hideExploreMenuButtons(buttons)
 
         assertTimerKept("$label ${timer.type}->${timer.method}", context, timer)
-        assertReloadedOnResume("$label ${timer.fragment}->onResume", context, timer, resume, branchedOnto)
+        assertReloadedOnResume("$label ${resume.holder}->${resume.method}", context, timer, resume, branchedOnto)
         assertMenuButtonsHidden(label, context, buttons)
         return branchedOnto
     }
@@ -154,7 +212,7 @@ class ExploreMenuHookTest {
         resume: ExploreResume,
         branchedOnto: Boolean,
     ) {
-        val method = onResume(context, timer.fragment)
+        val method = asker(context, resume)
         val code = method.implementation!!.instructions.toList()
         val asks = code.indices.filter { referenceText(code[it]) == UNPERSONALIZE }
         assertEquals("$what: one ask", 1, asks.size)
@@ -221,24 +279,111 @@ class ExploreMenuHookTest {
     private fun onResume(context: BytecodePatchContext, fragment: String): Method =
         context.mutableClassDefBy(fragment).methods.single { it.name == "onResume" && it.parameterTypes.isEmpty() }
 
-    /** The timer, the fragment and the older bar, with the string pools they ask. */
+    /** The method that asks the timer, onResume or the controller's method it calls. */
+    private fun asker(context: BytecodePatchContext, resume: ExploreResume): Method =
+        context.mutableClassDefBy(resume.holder).methods.single {
+            it.name == resume.method && it.parameterTypes.map(CharSequence::toString) == resume.parameters
+        }
+
+    /**
+     * The timer, the fragment and the older bar, and the classes the fragment's onResume calls into
+     * (454's 386014704 asks the timer in LX/0D2f;->A05), with the string pools they ask.
+     */
     private fun slice(bundle: File): List<ClassDef> {
-        val classes = (
+        val found = (
             FixtureDex.classesLoading(bundle, DSA_EXPIRED) +
                 FixtureDex.classesLoading(bundle, EXPLORE_FRAGMENT_TAG) +
                 FixtureDex.classes(bundle, setOf(EXPLORE_ACTION_BAR)).values
             ).distinctBy { it.type }
+        val called = found.flatMap { it.methods }.filter { it.name == "onResume" && it.parameterTypes.isEmpty() }
+            .flatMap { it.implementation?.instructions?.toList().orEmpty() }
+            .filter { it.opcode == Opcode.INVOKE_VIRTUAL || it.opcode == Opcode.INVOKE_VIRTUAL_RANGE }
+            .mapNotNull { ((it as ReferenceInstruction).reference as? MethodReference)?.definingClass }
+            .toSet() - found.map { it.type }.toSet()
+        val classes = found + FixtureDex.classes(bundle, called).values
         return FixtureDex.withStringPools(bundle, classes).distinctBy { it.type }
+    }
+
+    private fun callsController(type: String = CONTROLLER) = "invoke-virtual { v0 }, $type->resume()V"
+
+    /**
+     * A stand-in Explore fragment: an onResume reading its controller and making [calls] with it, and
+     * the static reload, which reads the grid before anything else.
+     */
+    private fun fragment(vararg calls: String): ClassDef {
+        val onResume = MutableMethod(
+            ImmutableMethod(FRAGMENT, "onResume", emptyList(), "V", AccessFlags.PUBLIC.value, null, null, ImmutableMethodImplementation(2, emptyList(), null, null)),
+        )
+        onResume.addInstructions(0, (listOf("iget-object v0, v1, $FRAGMENT->controller:$CONTROLLER") + calls + "return-void").joinToString("\n"))
+        val reload = MutableMethod(
+            ImmutableMethod(
+                FRAGMENT, "reload", listOf(STATE, FRAGMENT, "Z").map { ImmutableMethodParameter(it, null, null) }, "V",
+                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, ImmutableMethodImplementation(4, emptyList(), null, null),
+            ),
+        )
+        reload.addInstructions(
+            0,
+            """
+                iget-object v0, v2, $FRAGMENT->grid:Ljava/lang/Object;
+                if-eqz v0, :end
+                :end
+                return-void
+            """,
+        )
+        return ImmutableClassDef(
+            FRAGMENT, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+            listOf(ImmutableMethod.of(onResume), ImmutableMethod.of(reload)),
+        )
+    }
+
+    /**
+     * A stand-in controller whose resume(), with `this` in v4, reads the personalized flag, asks the
+     * menu flag and the timer, and sets the flag, as 386014704's LX/0D2f;->A05 does from its 37th
+     * instruction on.
+     */
+    private fun controller(type: String, twice: Boolean = false, writes: Boolean = true, static: Boolean = false): ClassDef {
+        val flags = AccessFlags.PUBLIC.value or if (static) AccessFlags.STATIC.value else 0
+        val parameters = if (static) listOf(ImmutableMethodParameter(type, null, null)) else emptyList()
+        val method = MutableMethod(
+            ImmutableMethod(type, "resume", parameters, "V", flags, null, null, ImmutableMethodImplementation(5, emptyList(), null, null)),
+        )
+        method.addInstructions(
+            0,
+            listOfNotNull(
+                "iget-boolean v0, v4, $type->personalized:Z",
+                "if-nez v0, :done",
+                "invoke-static { v4 }, $FLAGS->source(Ljava/lang/Object;)Ljava/lang/Object;",
+                "move-result-object v1",
+                "const-wide v2, 0x1234L",
+                "invoke-static { v1, v2, v3 }, $FLAGS->check(Ljava/lang/Object;J)Z",
+                "move-result v0",
+                "if-eqz v0, :done",
+                "iget-object v0, v4, $type->timer:$TIMER",
+                "if-eqz v0, :set",
+                "invoke-virtual { v0 }, $TIMER->expired()Z",
+                "move-result v0",
+                "if-eqz v0, :done",
+                ":set",
+                "const/4 v0, 0x1",
+                if (writes) "iput-boolean v0, v4, $type->personalized:Z" else null,
+                if (twice) "iget-object v1, v4, $type->timer:$TIMER" else null,
+                if (twice) "invoke-virtual { v1 }, $TIMER->expired()Z" else null,
+                ":done",
+                "return-void",
+            ).joinToString("\n"),
+        )
+        return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(ImmutableMethod.of(method)))
     }
 
     private fun declaredBundle(): File =
         Fixtures.files { it.extension == "apks" && it.name.contains("-${Fixtures.VERSION}-") }.first()
 
-    /** [classDef] with the instruction at [index] of [name] swapped for nops of the same size. */
-    private fun withoutInstruction(classDef: ClassDef, name: String, index: Int): ClassDef {
+    /** [classDef] with the instruction at [index] of [name] taking [parameters] swapped for nops of the same size. */
+    private fun withoutInstruction(classDef: ClassDef, name: String, parameters: List<String>, index: Int): ClassDef {
         val methods = classDef.methods.map { method ->
             val implementation = method.implementation
-            if (method.name != name || method.parameterTypes.isNotEmpty() || implementation == null) return@map method
+            val other = method.name != name || method.parameterTypes.map(CharSequence::toString) != parameters
+            if (other || implementation == null) return@map method
             val code = implementation.instructions.toList()
             val nops = List(code[index].codeUnits) { ImmutableInstruction10x(Opcode.NOP) }
             val changed = code.subList(0, index) + nops + code.subList(index + 1, code.size)
@@ -258,5 +403,17 @@ class ExploreMenuHookTest {
 
     private companion object {
         val MAKER_PARAMETERS = listOf("Landroid/view/View\$OnClickListener;", "I", "I", "I", "I")
+        const val FRAGMENT = "Lfixture/Fragment;"
+        const val CONTROLLER = "Lfixture/Controller;"
+        const val OTHER = "Lfixture/Other;"
+        const val TIMER = "Lfixture/Timer;"
+        const val STATE = "Lfixture/State;"
+        const val FLAGS = "Lfixture/Flags;"
+
+        /** A timer as [findExploreTimer] would describe one on the stand-in classes. */
+        val STAND_IN_TIMER = ExploreTimer(
+            TIMER, "expired", FRAGMENT, ImmutableMethodReference(FRAGMENT, "reload", listOf(STATE, FRAGMENT, "Z"), "V"),
+            ImmutableFieldReference(TIMER, "state", STATE), ImmutableFieldReference(TIMER, "fragment", FRAGMENT),
+        )
     }
 }

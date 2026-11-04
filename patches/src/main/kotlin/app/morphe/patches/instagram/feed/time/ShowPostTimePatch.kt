@@ -153,7 +153,8 @@ internal class PostTimes(
  *  - the comment header: the one method holding a string starting with [COMMENT_HEADER]. Up to 451
  *    it called the formatter itself. From 452 its callers hand it the time's formatting as a
  *    lambda, so the calls are the formatter's static resources overload in the classes those
- *    callers create;
+ *    callers create, themselves or through a static method that only makes one and returns it
+ *    (454's 386014759: LX/0Wtj;->A00 gets its lambda LX/0BZ7 from LX/0AxE;->A19);
  *  - the comment row: the one class whose render loads [COMMENT_ROW_TIME] and that keeps one Long,
  *    the comment's time, and each call, wherever it is, whose time is that Long read and unboxed in
  *    straight code just before it.
@@ -204,7 +205,13 @@ internal fun BytecodePatchContext.findPostTimes(): PostTimes {
     val header = headerMethod.formatterCalls().ifEmpty {
         val callers = classesCalling(headerMethod.definingClass, headerMethod.name).flatMap { it.methods }.filter { it.calls(headerMethod) }
         val created = callers.flatMap { caller ->
-            caller.code().filter { it.opcode == Opcode.NEW_INSTANCE }.mapNotNull { (it.reference() as? TypeReference)?.type }
+            caller.code().mapNotNull { instruction ->
+                when (instruction.opcode) {
+                    Opcode.NEW_INSTANCE -> (instruction.reference() as? TypeReference)?.type
+                    Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE -> instruction.call()?.let { madeBy(it) }
+                    else -> null
+                }
+            }
         }.distinct().filter { it != formatter }
         created.mapNotNull { classDefByOrNull(it) }.flatMap { it.methods }.flatMap { it.resourcesCalls() }
     }
@@ -346,6 +353,27 @@ private fun lastWrite(code: List<Instruction>, before: Int, register: Int, pair:
         val wanted = if (pair) setOf(register, register + 1) else setOf(register)
         instruction.opcode.setsRegister() && written.any { it in wanted }
     }
+
+/**
+ * The class [call] answers when it's a static method doing nothing but make one, construct it and
+ * return it, a constructor Redex moved out of its caller; otherwise null.
+ */
+private fun BytecodePatchContext.madeBy(call: MethodReference): String? {
+    val shape = call.parameterTypes.map(CharSequence::toString)
+    val method = classDefByOrNull(call.definingClass)?.methods?.singleOrNull {
+        it.name == call.name && it.returnType == call.returnType && it.parameterTypes.map(CharSequence::toString) == shape
+    } ?: return null
+    if (!AccessFlags.STATIC.isSet(method.accessFlags)) return null
+    val code = method.code().filter { it.opcode != Opcode.NOP }
+    if (code.size != 3 || code[0].opcode != Opcode.NEW_INSTANCE || code[2].opcode != Opcode.RETURN_OBJECT) return null
+    val made = (code[0].reference() as? TypeReference)?.type ?: return null
+    val constructor = code[1].call()
+    if (made != call.returnType || (code[1].opcode != Opcode.INVOKE_DIRECT && code[1].opcode != Opcode.INVOKE_DIRECT_RANGE) ||
+        constructor?.definingClass != made || constructor.name != "<init>" ||
+        (code[0] as OneRegisterInstruction).registerA != (code[2] as OneRegisterInstruction).registerA
+    ) return null
+    return made
+}
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference

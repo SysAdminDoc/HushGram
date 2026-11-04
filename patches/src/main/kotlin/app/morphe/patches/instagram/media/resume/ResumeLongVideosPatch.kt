@@ -12,9 +12,11 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.media.taptoplay.PLAY_INTERNAL
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -23,6 +25,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -69,6 +72,10 @@ internal const val RESUME_USER_ID = "userId"
 internal const val RESUME_END_SESSION = "completeEndSession"
 internal const val RESUME_LOGGED_OUT = "isLoggedOut"
 
+/** UserSession's state field, and the kept listener call the end hands the sign-out flag to. */
+internal const val RESUME_SESSION_STATE = "sessionState"
+internal const val RESUME_WILL_END = "onUserSessionWillEnd"
+
 /** The position reader answers 0 past a day, so it holds this literal and the length reader doesn't. */
 private const val DAY_MS = 86_400_000
 private const val STRING = "Ljava/lang/String;"
@@ -83,7 +90,8 @@ private const val OBJECT = "Ljava/lang/Object;"
  * length readers, its seek, the IgVideoSource it plays, and that source's media ID, product type and
  * sponsored flag. The extension decides the rest; see its ResumePlayback.
  *
- * UserSession's completeEndSession tells the extension when an account's session ends, at an
+ * UserSession's completeEndSession (or, where Redex inlined it, the start of its copy) tells the
+ * extension when an account's session ends, at an
  * account switch or a sign-out, with stubs for the player's session, that session's user ID and its
  * isLoggedOut flag, so the extension drops that account's waiting resumes and, at a sign-out, its
  * points, and a signed-out session's players save nothing as they let go.
@@ -133,9 +141,12 @@ internal class ResumePlayer(
     val session: FieldReference,
     val userId: FieldReference,
     /** Where UserSession lets the session go, and its flag saying the account signed out. */
-    val sessionEnd: Method,
+    val sessionEnd: SessionEnd,
     val loggedOut: FieldReference,
 )
+
+/** Where a session's end starts: the method, the index its hook goes in at, and the register holding the session. */
+internal class SessionEnd(val method: Method, val index: Int, val register: String)
 
 internal fun BytecodePatchContext.resumeLongVideos() {
     val found = findResumePlayer()
@@ -155,9 +166,11 @@ internal fun BytecodePatchContext.resumeLongVideos() {
     mutable(found.seek).addInstruction(0, "invoke-static/range { p0 .. p1 }, $SEEKING")
     mutable(found.completed).addInstruction(0, "invoke-static/range { p0 .. p0 }, $ENDED")
     mutable(found.looping).addInstruction(0, "invoke-static/range { p0 .. p0 }, $ENDED")
-    mutableClassDefBy(RESUME_SESSION).methods.single {
-        it.name == found.sessionEnd.name && it.parameterTypes.isEmpty() && it.returnType == "V"
-    }.addInstruction(0, "invoke-static/range { p0 .. p0 }, $SESSION_ENDED")
+    val end = found.sessionEnd
+    mutableClassDefBy(end.method.definingClass).methods.single {
+        it.name == end.method.name && it.parameterTypes.map(Any::toString) == end.method.parameterTypes.map(Any::toString) &&
+            it.returnType == end.method.returnType
+    }.addInstruction(end.index, "invoke-static/range { ${end.register} .. ${end.register} }, $SESSION_ENDED")
 
     stubs.fill(found)
 }
@@ -238,10 +251,7 @@ internal fun BytecodePatchContext.findResumePlayer(): ResumePlayer {
         ?: throw PatchException("$PATCH: $RESUME_SESSION has no $RESUME_USER_ID:$STRING")
     // Where Instagram lets a session go, at an account switch and at a sign-out, and the flag that
     // tells the two apart. The extension forgets that account's waiting resumes, and its points at a sign-out.
-    val sessionEnd = sessionClass.methods.singleOrNull {
-        it.name == RESUME_END_SESSION && it.parameterTypes.isEmpty() && it.returnType == "V" &&
-            !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
-    } ?: throw PatchException("$PATCH: $RESUME_SESSION has no $RESUME_END_SESSION()V")
+    val sessionEnd = findSessionEnd(sessionClass)
     val loggedOut = sessionClass.fields.singleOrNull { it.name == RESUME_LOGGED_OUT && it.type == "Z" }
         ?: throw PatchException("$PATCH: $RESUME_SESSION has no $RESUME_LOGGED_OUT:Z")
 
@@ -270,6 +280,51 @@ internal fun BytecodePatchContext.findResumePlayer(): ResumePlayer {
 
     return ResumePlayer(player, started, pause, stop, bind, seek, completed, looping, position, length,
         holder, sourceField, mediaId, productType, sponsored, session, userId, sessionEnd, loggedOut)
+}
+
+/**
+ * Where Instagram lets a session go. Through 453 it's UserSession's own completeEndSession, hooked
+ * first with the session itself. 454's Redex inlined it into the session manager's end
+ * (`LX/02da;->A02` on 386014758), so there the end starts at the last read of the session's state
+ * before a listener is handed its sign-out flag: one such method, the hook going in at that read
+ * with the session's register, and nothing jumping onto it.
+ */
+private fun BytecodePatchContext.findSessionEnd(sessionClass: ClassDef): SessionEnd {
+    sessionClass.methods.singleOrNull {
+        it.name == RESUME_END_SESSION && it.parameterTypes.isEmpty() && it.returnType == "V" &&
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+    }?.let { return SessionEnd(it, 0, "p0") }
+
+    val starts = classesAccessing(RESUME_SESSION, RESUME_LOGGED_OUT, Opcode.IGET_BOOLEAN).distinctBy { it.type }
+        .flatMap { it.methods }.mapNotNull { method ->
+            val code = method.code()
+            val tell = code.indices.firstOrNull { at -> code.handsSignOut(at) } ?: return@mapNotNull null
+            val session = (code[tell] as TwoRegisterInstruction).registerB
+            val start = (tell - 1 downTo 0).firstOrNull { at ->
+                val field = (code[at] as? ReferenceInstruction)?.reference as? FieldReference
+                code[at].opcode == Opcode.IGET_OBJECT && field?.definingClass == RESUME_SESSION &&
+                    field.name == RESUME_SESSION_STATE && (code[at] as TwoRegisterInstruction).registerB == session
+            } ?: return@mapNotNull null
+            if (start in method.jumpTargets()) {
+                throw PatchException("$PATCH: something in ${method.definingClass}->${method.name} jumps onto the session's end at $start")
+            }
+            SessionEnd(method, start, "v$session")
+        }
+    return starts.singleOrNull()
+        ?: throw PatchException("$PATCH: $RESUME_SESSION has no $RESUME_END_SESSION()V, and ${starts.size} methods, not one, " +
+            "read its $RESUME_SESSION_STATE and then hand $RESUME_WILL_END its $RESUME_LOGGED_OUT")
+}
+
+/** Whether [at] reads a session's sign-out flag and the next instruction hands it to [RESUME_WILL_END]. */
+private fun List<Instruction>.handsSignOut(at: Int): Boolean {
+    val read = this[at]
+    val field = (read as? ReferenceInstruction)?.reference as? FieldReference
+    if (read.opcode != Opcode.IGET_BOOLEAN || field?.definingClass != RESUME_SESSION || field.name != RESUME_LOGGED_OUT) return false
+    val call = getOrNull(at + 1) ?: return false
+    val target = call.methodReference() ?: return false
+    return call.opcode == Opcode.INVOKE_INTERFACE && target.name == RESUME_WILL_END &&
+        target.parameterTypes.map(Any::toString) == listOf("Z") &&
+        (call as FiveRegisterInstruction).registerCount == 2 && call.registerD == (read as TwoRegisterInstruction).registerA
 }
 
 /**

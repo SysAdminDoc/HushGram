@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -74,8 +75,12 @@ private fun looksLikeCursorRead(method: Method): Boolean {
     val code = method.visualCode()
     if (code.none { it.opcode == Opcode.IGET_OBJECT && it.field()?.let { f -> f.definingClass == USER_SESSION && f.name == "userId" } == true }) return false
     if (code.none { it.opcode == Opcode.INVOKE_INTERFACE && it.call()?.parameterTypes?.map(Any::toString) == listOf(TEXT_TYPE) }) return false
+    // The lookup of the cursor's place: a static call on 453, an ask of the chat store on 454.
     return code.any {
-        it.opcode == Opcode.INVOKE_STATIC && it.call()?.let { c -> c.returnType == "I" && c.parameterTypes.size == 2 } == true
+        it.opcode == Opcode.INVOKE_STATIC && it.call()?.let { c -> c.returnType == "I" && c.parameterTypes.size == 2 } == true ||
+            it.opcode == Opcode.INVOKE_INTERFACE && it.call()?.let { c ->
+                c.returnType == "J" && c.parameterTypes.size == 2 && c.parameterTypes[1].toString() == THREAD_KEY
+            } == true
     } && code.any { it.opcode == Opcode.IGET_OBJECT && it.field()?.type == LONG_TYPE }
 }
 
@@ -107,37 +112,78 @@ private fun BytecodePatchContext.shapeOf(method: Method): CursorShape {
     val session = code.indices.filter { code[it].opcode == Opcode.IGET_OBJECT && reads(it) && code[it].field()?.type == USER_SESSION }
         .map { code[it].field()!! }.distinctBy { it.name }.one("session the reader keeps")
 
-    val index = code.indices.filter { at ->
-        code[at].opcode == Opcode.INVOKE_STATIC && code[at].call()?.let {
+    // 452 and 453 walk the chat in the reader itself. 454 asks the chat store's interface where the
+    // cursor sits (00rP.CI9 on 386014704), and the store's one implementation walks the chat the
+    // same way (00rR.CI9), so there the walk's parts are read from that implementation.
+    val asks = code.indices.filter { at ->
+        code[at].opcode == Opcode.INVOKE_INTERFACE && code[at].call()?.let {
+            it.returnType == "J" && it.parameterTypes.map(Any::toString) == listOf(cursorType, THREAD_KEY)
+        } == true
+    }
+    val asked = if (asks.isEmpty()) null else storeAsked(code[asks.one("ask of the chat store where the cursor sits")].call()!!)
+    val walk = asked?.second?.visualCode() ?: code
+
+    val index = walk.indices.filter { at ->
+        walk[at].opcode == Opcode.INVOKE_STATIC && walk[at].call()?.let {
             it.returnType == "I" && it.parameterTypes.map(Any::toString).let { p -> p.size == 2 && p[0] == cursorType }
         } == true
-    }.map { code[it].call()!! }.distinctBy { it.name }.one("lookup of the cursor's place in the chat")
+    }.map { walk[it].call()!! }.distinctBy { it.name }.one("lookup of the cursor's place in the chat")
     val threadType = index.parameterTypes[1].toString()
 
-    val threadAt = code.indices.filter { at ->
-        code[at].opcode == Opcode.INVOKE_VIRTUAL && code[at].call()?.let {
+    val threadAt = walk.indices.filter { at ->
+        walk[at].opcode == Opcode.INVOKE_VIRTUAL && walk[at].call()?.let {
             it.parameterTypes.map(Any::toString) == listOf(THREAD_KEY) && it.returnType == threadType
         } == true
     }.one("read of the chat's thread")
-    val thread = code[threadAt].call()!!
-    val castAt = (threadAt - 1 downTo maxOf(0, threadAt - 4)).firstOrNull { code[it].opcode == Opcode.CHECK_CAST && code[it].type() == thread.definingClass }
-        ?: refuse("thread read isn't cast off the chat store")
-    val storeAt = castAt - 1
-    if (storeAt < 0 || code[storeAt].opcode != Opcode.IGET_OBJECT || !reads(storeAt) ||
-        (code[storeAt] as OneRegisterInstruction).registerA != (code[castAt] as OneRegisterInstruction).registerA
-    ) refuse("chat store isn't read off the reader")
-    val storeField = code[storeAt].field()!!
+    val thread = walk[threadAt].call()!!
+    val storeField = if (asked == null) {
+        val castAt = (threadAt - 1 downTo maxOf(0, threadAt - 4)).firstOrNull { code[it].opcode == Opcode.CHECK_CAST && code[it].type() == thread.definingClass }
+            ?: refuse("thread read isn't cast off the chat store")
+        val storeAt = castAt - 1
+        if (storeAt < 0 || code[storeAt].opcode != Opcode.IGET_OBJECT || !reads(storeAt) ||
+            (code[storeAt] as OneRegisterInstruction).registerA != (code[castAt] as OneRegisterInstruction).registerA
+        ) refuse("chat store isn't read off the reader")
+        code[storeAt].field()!!
+    } else {
+        val (kind, walker) = asked
+        if (thread.definingClass != walker.definingClass || (walk[threadAt] as FiveRegisterInstruction).registerC != walker.localRegisterCount()) {
+            refuse("the chat store's walk doesn't read the chat's thread off the store itself")
+        }
+        code.indices.filter { code[it].opcode == Opcode.IGET_OBJECT && reads(it) && code[it].field()?.type == kind }
+            .map { code[it].field()!! }.distinctBy { it.name }.one("chat store the reader asks")
+    }
 
-    val items = code.indices.filter { code[it].opcode == Opcode.IGET_OBJECT && code[it].field()?.let { f -> f.definingClass == threadType && f.type == LIST_TYPE } == true }
-        .map { code[it].field()!! }.distinctBy { it.name }.one("list of the chat's items")
+    val items = walk.indices.filter { walk[it].opcode == Opcode.IGET_OBJECT && walk[it].field()?.let { f -> f.definingClass == threadType && f.type == LIST_TYPE } == true }
+        .map { walk[it].field()!! }.distinctBy { it.name }.one("list of the chat's items")
 
-    val itemType = code.indices.filter { at ->
-        code[at].opcode == Opcode.INVOKE_INTERFACE && code[at].call()?.let { it.definingClass == LIST_TYPE && it.name == "get" } == true &&
-            code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT && code.getOrNull(at + 2)?.opcode == Opcode.CHECK_CAST
-    }.mapNotNull { code[it + 2].type() }.distinct().one("kind of item the reader walks")
+    val itemType = walk.indices.filter { at ->
+        walk[at].opcode == Opcode.INVOKE_INTERFACE && walk[at].call()?.let { it.definingClass == LIST_TYPE && it.name == "get" } == true &&
+            walk.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT && walk.getOrNull(at + 2)?.opcode == Opcode.CHECK_CAST
+    }.mapNotNull { walk[it + 2].type() }.distinct().one("kind of item the reader walks")
     val firstRead = code.indices.firstOrNull { it > store && code[it].opcode == Opcode.IGET_OBJECT && reads(it) && code[it].field()?.type == LONG_TYPE }
         ?: refuse("reader never reads its boundary after fetching the cursor")
     return CursorShape(cursor, session, storeField, thread.definingClass, thread, items, itemType, cursorType, threadType, index, firstRead)
+}
+
+/**
+ * The chat store interface [ask] is made on and its one implementation's answer to [ask], the walk
+ * of the chat. Only one class may implement the interface and no other interface may extend it, so
+ * the bridge's cast of the reader's store to that class always holds.
+ */
+private fun BytecodePatchContext.storeAsked(ask: MethodReference): Pair<String, Method> {
+    val kind = ask.definingClass
+    val stores = mutableListOf<ClassDef>()
+    var extended = false
+    classDefForEach { classDef ->
+        if (kind !in classDef.interfaces) return@classDefForEach
+        if (AccessFlags.INTERFACE.isSet(classDef.accessFlags)) extended = true else stores += classDef
+    }
+    if (extended) refuse("another interface extends the chat store $kind")
+    val store = stores.one("implementation of the chat store $kind")
+    val walk = store.methods.filter {
+        it.name == ask.name && it.parameters() == ask.parameterTypes.map(Any::toString) && it.returnType == ask.returnType && it.implementation != null
+    }.one("walk of the chat answering ${ask.name}")
+    return kind to walk
 }
 
 /**

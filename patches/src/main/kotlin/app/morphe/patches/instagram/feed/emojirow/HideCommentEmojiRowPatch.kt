@@ -63,7 +63,7 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * Finds where the comment sheet decides to draw its strip of quick emoji: the one method loading
  * both [REPLYING_TO_BAR] and [GROUP_MENTION_BANNER], and in it the one List.isEmpty whose answer an
  * if-nez reads to skip the strip, with that same list then handed to a new component's List field
- * (the strip, `LX/0Exx` on 385713073) within [STRIP_REACH] instructions. Nothing may jump to the
+ * or constructor (the strip, `LX/0Exx` on 385713073) within [STRIP_REACH] instructions. Nothing may jump to the
  * branch, since the hook goes right in front of it. Fails before anything changes when any of that
  * isn't so.
  */
@@ -157,19 +157,54 @@ val hideCommentEmojiRowPatch = bytecodePatch(
 }
 
 /** Whether, from [from], a new instance is made and [register] written into one of its List fields within [STRIP_REACH]. */
+/**
+ * Whether a component made within [STRIP_REACH] of [from] gets the list in [register]: written to
+ * one of its List fields (the constructor inlined, as on 451), or passed to its constructor as a
+ * List argument (454's 386014704 copies both into a range first).
+ */
 private fun List<Instruction>.handsListToNewComponent(from: Int, register: Int?): Boolean {
     if (register == null) return false
     val end = minOf(size, from + STRIP_REACH)
     val made = (from until end).filter { this[it].opcode == Opcode.NEW_INSTANCE }
     return made.any { at ->
-        val component = (this[at] as OneRegisterInstruction).registerA
+        val components = mutableSetOf((this[at] as OneRegisterInstruction).registerA)
+        val lists = mutableSetOf(register)
         (at + 1 until end).any {
-            val write = this[it]
-            val field = (write as? ReferenceInstruction)?.reference as? FieldReference
-            write.opcode == Opcode.IPUT_OBJECT && field?.type == LIST &&
-                (write as TwoRegisterInstruction).registerA == register && write.registerB == component
+            val step = this[it]
+            val field = (step as? ReferenceInstruction)?.reference as? FieldReference
+            if (step.opcode == Opcode.MOVE_OBJECT || step.opcode == Opcode.MOVE_OBJECT_FROM16 || step.opcode == Opcode.MOVE_OBJECT_16) {
+                val (to, source) = (step as TwoRegisterInstruction).registerA to step.registerB
+                components.remove(to)
+                lists.remove(to)
+                if (source in components) components += to
+                if (source in lists) lists += to
+                false
+            } else if (step.opcode == Opcode.IPUT_OBJECT) {
+                field?.type == LIST && (step as TwoRegisterInstruction).registerA in lists && step.registerB in components
+            } else {
+                step.constructsWith(components, lists)
+            }
         }
     }
+}
+
+/** Whether this is a constructor call on one of [components] taking one of [lists] for a List parameter. */
+private fun Instruction.constructsWith(components: Set<Int>, lists: Set<Int>): Boolean {
+    if (opcode != Opcode.INVOKE_DIRECT && opcode != Opcode.INVOKE_DIRECT_RANGE) return false
+    val called = (this as ReferenceInstruction).reference as? MethodReference ?: return false
+    if (called.name != "<init>") return false
+    val registers = when (this) {
+        is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+        is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+        else -> return false
+    }
+    if (registers.firstOrNull() !in components) return false
+    var slot = 1
+    for (type in called.parameterTypes.map(CharSequence::toString)) {
+        if (type == LIST && registers.getOrNull(slot) in lists) return true
+        slot += if (type == "J" || type == "D") 2 else 1
+    }
+    return false
 }
 
 /** The one register an invoke-interface or invoke-virtual on a list reads, or null. */

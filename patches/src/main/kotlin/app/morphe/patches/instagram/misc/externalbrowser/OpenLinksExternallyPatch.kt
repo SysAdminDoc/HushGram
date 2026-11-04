@@ -18,21 +18,21 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
-import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
 import app.morphe.util.namedRegisters
 import app.morphe.util.singleOrPatchException
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
-import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import java.util.BitSet
 
 internal const val REDIRECT =
     "$EXTENSION_PACKAGE/misc/ExternalBrowser;->redirect(Landroid/app/Activity;Landroid/content/Intent;)Z"
@@ -191,29 +191,22 @@ internal fun Method.redirectRegister(injectIndex: Int, traceClose: Int?, reads: 
  *
  * Each is the parameter's own register, or a copy of it. Builds 385611395 and 385611400 of
  * Instagram 450 keep onCreate's parameters in v17 and v18 and copy them into low locals for the
- * super call (#77). A copy counts when the method runs straight through to the super call, never
- * writes the parameter on the way, and copies it with a move-object that nothing writes over.
- * A method that had put something else in a parameter would still hand the super call the real
- * one from another register, and the redirect would read the other value without a word.
+ * super call (#77). A copy counts when every path from the start to the super call last writes it
+ * with a move-object from the parameter and never writes the parameter on the way (see
+ * [holdsCopyAt]). 454 makes the copies first and branches after them, with a loop back on the
+ * way (`BrowserLiteInMainProcessIGActivity;->onCreate` on 386014757). A method that had put
+ * something else in a parameter would still hand the super call the real one from another
+ * register, and the redirect would read the other value without a word.
  */
 internal fun Method.superCallParameters(superCall: Int, count: Int): List<Int> {
     val code = implementation!!.instructions.toList()
     val passed = code[superCall].namedRegisters()
     val parameters = (0 until count).map { localRegisterCount() + it }
-    // Straight through: no branch on the way, and nothing jumps or throws to anywhere up to the call.
-    val straight = code.take(superCall).none { it is OffsetInstruction } && jumpTargets().none { it <= superCall }
+    // A branch landing between instructions leaves no flow to prove a copy with.
+    val flow = runCatching { ControlFlow.of(this) }.getOrNull()
     val named = parameters.mapIndexedNotNull { at, parameter ->
         val register = passed.getOrNull(at) ?: return@mapIndexedNotNull null
-        when {
-            register == parameter -> register
-            !straight || (0 until superCall).any { code[it].writes(parameter) } -> null
-            else -> {
-                val copy = (superCall - 1 downTo 0).firstOrNull { code[it].writes(register) }
-                register.takeIf {
-                    copy != null && code[copy].opcode in OBJECT_MOVES && (code[copy] as TwoRegisterInstruction).registerB == parameter
-                }
-            }
-        }
+        register.takeIf { it == parameter || flow?.holdsCopyAt(superCall, it, parameter) == true }
     }
     if (named.size != count) {
         throw PatchException(
@@ -225,6 +218,43 @@ internal fun Method.superCallParameters(superCall: Int, count: Int): List<Int> {
 }
 
 private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+/**
+ * Whether [copy] holds [parameter]'s own value each time the method reaches [at]: on every path
+ * from the start, following branches, loops and handlers, the last write of [copy] before it is a
+ * move-object from [parameter], and nothing wrote [parameter] first. A path reaching [at] with no
+ * copy yet, or after anything wrote the parameter, fails it.
+ */
+private fun ControlFlow.holdsCopyAt(at: Int, copy: Int, parameter: Int): Boolean {
+    if (instructions.isEmpty()) return false
+    // One state per index and pair of facts: whether the copy holds the parameter, and whether the
+    // parameter still holds its own value.
+    val seen = Array(4) { BitSet() }
+    val pending = ArrayDeque<Triple<Int, Boolean, Boolean>>()
+    fun enqueue(index: Int, copied: Boolean, intact: Boolean) {
+        val bits = seen[(if (copied) 2 else 0) + (if (intact) 1 else 0)]
+        if (!bits[index]) {
+            bits.set(index)
+            pending += Triple(index, copied, intact)
+        }
+    }
+    enqueue(0, copied = false, intact = true)
+    while (pending.isNotEmpty()) {
+        val (index, copied, intact) = pending.removeFirst()
+        if (index == at && !(copied && intact)) return false
+        val instruction = instructions[index]
+        // An instruction that throws writes nothing, so its handlers see the state before it.
+        exceptional[index].forEach { enqueue(it, copied, intact) }
+        val stillIntact = intact && !instruction.writes(parameter)
+        val nowCopied = if (instruction.writes(copy)) {
+            intact && instruction.opcode in OBJECT_MOVES && (instruction as TwoRegisterInstruction).registerB == parameter
+        } else {
+            copied
+        }
+        normal[index].forEach { enqueue(it, nowCopied, stillIntact) }
+    }
+    return true
+}
 
 private fun Instruction.writes(register: Int): Boolean {
     if (!opcode.setsRegister()) return false

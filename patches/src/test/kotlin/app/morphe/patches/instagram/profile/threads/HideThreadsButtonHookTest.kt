@@ -82,7 +82,8 @@ class HideThreadsButtonHookTest {
         context.hideShareButton(site)
 
         assertShareHooked("the stand-in", context, site, before)
-        val (text, _, menu) = site.builders
+        val text = site.builders.first()
+        val menu = site.builders.last()
         assertEquals("the stand-in: the arrow's builder", listOf("Lfixture/Arrow0;", "Ljava/util/List;"), menu.parameters)
         assertEquals("the stand-in: the arrow's returns", 2, menu.returns.size)
         assertTrue("the stand-in: the branch to the return goes through the hook", text.returns.single() in context.shareMethod(text).jumpTargets())
@@ -98,7 +99,7 @@ class HideThreadsButtonHookTest {
         val context = PatchContexts.of(shareClasses(menuCopy = MenuCopy.FIRST))
         val site = context.findShareButton()
         val before = site.builders.map { context.shareMethod(it).code().map { i -> i.describe() } }
-        val menu = site.builders[2]
+        val menu = site.builders.last()
         assertEquals("the moved model", 1, menu.from)
         assertEquals("the button in the model's old register", 2, menu.view)
 
@@ -107,13 +108,27 @@ class HideThreadsButtonHookTest {
         assertShareHooked("the moved model", context, site, before)
     }
 
+    /** 454 builds no Share profile icon, so the text buttons' class is the row's and its two builders get the hook. */
+    @Test
+    fun aRowWithoutTheIconHooksTheTextAndArrowBuilders() {
+        val context = PatchContexts.of(shareClasses(icons = 0))
+        val site = context.findShareButton()
+        assertEquals("no icon", listOf("A01", "C00"), site.builders.map { it.name })
+        val before = site.builders.map { context.shareMethod(it).code().map { i -> i.describe() } }
+
+        context.hideShareButton(site)
+
+        assertShareHooked("no icon", context, site, before)
+    }
+
     /** A Share profile button the patch can't place fails at patch time, saying what it found. */
     @Test
     fun aShareButtonThePatchCantPlaceFails() {
         val cases = listOf(
             shareClasses(models = 0) to "expected one Share profile button loading \"$SHARE_URL\" and \"$SHARE_TRAY\" when tapped, found 0",
             shareClasses(kinds = 2) to "expected Share profile's $shareModel to be one kind of action button, found 2 interfaces",
-            shareClasses(icons = 0) to "expected one method building Share profile as an icon from a $kind, found 0",
+            shareClasses(icons = 2) to "expected one method building Share profile as an icon from a $kind, found 2",
+            shareClasses(icons = 0, texts = 0) to "expected one class building the action row's text buttons from a $kind, found 0",
             shareClasses(texts = 0) to "expected one method in $rowButtons building the action row's text buttons from a $kind, found 0",
             shareClasses(texts = 2) to "expected one method in $rowButtons building the action row's text buttons from a $kind, found 2",
             shareClasses(writesModel = true) to "$rowButtons->A01 writes over its model in v2",
@@ -135,7 +150,7 @@ class HideThreadsButtonHookTest {
         }
     }
 
-    /** In each declared build the row's three builders hand their buttons over before each return. */
+    /** In each declared build the row's builders hand their buttons over before each return. */
     @Test
     fun eachDeclaredBuildHandsShareProfileToTheExtension() {
         forEachFixture { share(it, it.name) }
@@ -148,7 +163,7 @@ class HideThreadsButtonHookTest {
     }
 
     private fun share(bundle: File, label: String) {
-        val loading = listOf(SHARE_URL, SHARE_ICON_TAG, SUBSCRIBE_TAP, OVERFLOW_TAP)
+        val loading = listOf(SHARE_URL, SHARE_ICON_TAG, TEXT_TAG, SUBSCRIBE_TAP, OVERFLOW_TAP)
             .flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading) + ExtensionDex.classDef(SHARE_BUTTON))
         val site = context.findShareButton()
@@ -168,8 +183,8 @@ class HideThreadsButtonHookTest {
             assertEquals("$what: $stub", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), code.map { it.opcode })
             assertEquals("$what: $stub's type", model, (code[0].reference() as TypeReference).type)
         }
-        assertEquals("$what: the builders", 3, site.builders.size)
-        assertEquals("$what: the arrow's builder takes its model", site.overflow, site.builders[2].parameters.first())
+        assertTrue("$what: the builders, ${site.builders.size}", site.builders.size in 2..3)
+        assertEquals("$what: the arrow's builder takes its model", site.overflow, site.builders.last().parameters.first())
         for ((index, builder) in site.builders.withIndex()) {
             val method = context.shareMethod(builder)
             val code = method.code()

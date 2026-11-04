@@ -79,6 +79,14 @@ class HideProfileTabsHookTest {
         assertReadersWritten(context, "$user->getId()$string", "$owner->session:$session")
     }
 
+    /** 454 inlines the ID getter into hashCode(), so the getter is the one whose code hashCode runs before hashing. */
+    @Test
+    fun anInlinedIdGetterIsFoundByItsCode() {
+        val context = PatchContexts.of(models(inlinesId = true) + builder())
+
+        assertEquals("$user->getId()$string", context.findTabList().userId)
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, with nothing changed. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
@@ -189,8 +197,19 @@ class HideProfileTabsHookTest {
     }
 
     /** The user model, hashing its ID, and the session, which names its ID getter. */
-    private fun models(sessionId: Boolean = true, hashesId: Boolean = true): List<ClassDef> {
-        val hashCode = if (hashesId) {
+    private fun models(sessionId: Boolean = true, hashesId: Boolean = true, inlinesId: Boolean = false): List<ClassDef> {
+        val hashCode = if (inlinesId) {
+            """
+                iget-object v1, p0, $user->info:Lfixture/Info;
+                iget-object v0, v1, Lfixture/Info;->id:$string
+                if-nez v0, :hash
+                iget-object v0, v1, Lfixture/Info;->pk:$string
+                :hash
+                invoke-virtual { v0 }, $string->hashCode()I
+                move-result v0
+                return v0
+            """
+        } else if (hashesId) {
             """
                 invoke-virtual { p0 }, $user->getId()$string
                 move-result-object v0
@@ -204,11 +223,33 @@ class HideProfileTabsHookTest {
                 return v0
             """
         }
+        val getId = if (inlinesId) {
+            """
+                iget-object v1, p0, $user->info:Lfixture/Info;
+                iget-object v0, v1, Lfixture/Info;->id:$string
+                if-nez v0, :done
+                iget-object v0, v1, Lfixture/Info;->pk:$string
+                :done
+                return-object v0
+            """
+        } else {
+            "const/4 v0, 0x0\nreturn-object v0"
+        }
+        // Another String getter of the same holder, which hashCode doesn't run.
+        val getName = """
+            iget-object v1, p0, $user->info:Lfixture/Info;
+            iget-object v0, v1, Lfixture/Info;->name:$string
+            if-nez v0, :done
+            iget-object v0, v1, Lfixture/Info;->pk:$string
+            :done
+            return-object v0
+        """
         val userClass = classOf(
             user, emptyList(),
             listOf(
-                method(user, "hashCode", emptyList(), "I", 2, hashCode),
-                method(user, "getId", emptyList(), string, 2, "const/4 v0, 0x0\nreturn-object v0"),
+                method(user, "hashCode", emptyList(), "I", 3, hashCode),
+                method(user, "getId", emptyList(), string, 3, getId),
+                method(user, "getName", emptyList(), string, 3, getName),
             ),
         )
         val sessionClass = classOf(

@@ -88,7 +88,8 @@ internal class PresenceTextSite(val type: String, val name: String, val index: I
  *
  * Inside it the person is the list's first item, cast to Instagram's presence class, whose long
  * field is the time they were last active. The first check on that item, a static (item, long)
- * boolean followed by an if-nez, says Active now, and the long compare after it that branches to
+ * boolean followed by an if-nez (454 inlines it as the item's own boolean, then a limit compare to
+ * the same place), says Active now, and the long compare after it that branches to
  * the same place is the second Active now check, on how long ago that was. The hook goes right
  * after both, so Active now stays Instagram's and everything past it counts minutes and hours.
  */
@@ -116,21 +117,32 @@ internal fun BytecodePatchContext.findPresenceText(): PresenceTextSite {
     val time = (code[read] as OneRegisterInstruction).registerA
 
     // The Active now check on the item and the clock: a static (item, long) boolean, then if-nez.
-    val check = (read + 1 until code.size).firstOrNull { at ->
-        val call = code[at].reference() as? MethodReference
-        code[at].opcode == Opcode.INVOKE_STATIC && call != null && call.returnType == "Z" &&
-            call.parameterTypes.map(CharSequence::toString) == listOf(field.definingClass, "J")
-    } ?: refuse("$where has no Active now check on the item")
-    val branch = check + 2
-    if (code.getOrNull(check + 1)?.opcode != Opcode.MOVE_RESULT || code.getOrNull(branch)?.opcode != Opcode.IF_NEZ) {
+    // Instagram 454 inlines it: the item's own boolean and an if-nez, then the time since against
+    // the limit and an if-lez, both going to Active now.
+    val call = (read + 1 until code.size).firstOrNull { at ->
+        val called = code[at].reference() as? MethodReference
+        code[at].opcode == Opcode.INVOKE_STATIC && called != null && called.returnType == "Z" &&
+            called.parameterTypes.map(CharSequence::toString) == listOf(field.definingClass, "J")
+    }
+    val inlined = if (call != null) null else (read + 1 until code.size).firstOrNull { at ->
+        code[at].opcode == Opcode.IGET_BOOLEAN && (code[at].reference() as? FieldReference)?.definingClass == field.definingClass
+    }
+    val branch = when {
+        call != null -> call + 2
+        inlined != null -> inlined + 1
+        else -> refuse("$where has no Active now check on the item")
+    }
+    if (call != null && code.getOrNull(call + 1)?.opcode != Opcode.MOVE_RESULT || code.getOrNull(branch)?.opcode != Opcode.IF_NEZ) {
         refuse("$where doesn't branch on its Active now check")
     }
     val flow = ControlFlow.of(method)
     val active = flow.normal[branch].firstOrNull() ?: refuse("$where's Active now branch goes nowhere")
-    // The second check: the compare of the time since against the limit, branching to the same place.
-    val second = (branch + 1 until code.size).firstOrNull { at ->
+    fun limitCheck(after: Int) = (after + 1 until code.size).firstOrNull { at ->
         code[at].opcode == Opcode.IF_LEZ && flow.normal[at].firstOrNull() == active
-    } ?: refuse("$where has no second Active now check going where the first does")
+    }
+    val first = if (inlined == null) branch else limitCheck(branch) ?: refuse("$where's inlined Active now check has no limit")
+    // The second check: the compare of the time since against the limit, branching to the same place.
+    val second = limitCheck(first) ?: refuse("$where has no second Active now check going where the first does")
     if (code[second - 1].opcode != Opcode.CMP_LONG) refuse("$where's second Active now check isn't on a long compare")
     val index = second + 1
     if (index >= code.size) refuse("$where ends at its second Active now check")

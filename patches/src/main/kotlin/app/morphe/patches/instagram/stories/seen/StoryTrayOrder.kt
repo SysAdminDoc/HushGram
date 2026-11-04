@@ -117,12 +117,34 @@ internal fun BytecodePatchContext.userIdGetter(refuse: (String) -> Nothing): Met
     val user = classDefByOrNull(TRAY_USER) ?: refuse("the User model isn't present")
     val hash = user.methods.singleOrNull { it.name == "hashCode" && it.reader("I") }
         ?: refuse("the User model has no public hashCode")
-    val id = hash.implementation!!.instructions.mapNotNull {
-        (it as? ReferenceInstruction)?.reference as? MethodReference
-    }.filter { it.definingClass == TRAY_USER && it.parameterTypes.isEmpty() && it.returnType == TRAY_STRING }
-        .map { it.name }.distinct().singleOrNull() ?: refuse("the User hash doesn't identify one ID getter")
+    val id = hashedIdGetters(user.methods, hash).singleOrNull() ?: refuse("the User hash doesn't identify one ID getter")
     return user.methods.singleOrNull { it.name == id && it.reader(TRAY_STRING) }
         ?: refuse("the User ID getter isn't public")
+}
+
+/**
+ * The names of the User model's String getters its [hash] reads the id through, out of [methods],
+ * the model's own. That's the ones it calls, or when it calls none, since 454's Redex pass inlines
+ * the getter into hashCode, the getter whose code is the reads hashCode runs before it hashes the
+ * String, opcode for opcode and field for field.
+ */
+internal fun hashedIdGetters(methods: Iterable<Method>, hash: Method): List<String> {
+    fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
+    val code = hash.implementation?.instructions?.filter { it.opcode != Opcode.NOP } ?: emptyList()
+    val called = code.mapNotNull { it.reference() as? MethodReference }
+        .filter { it.definingClass == TRAY_USER && it.parameterTypes.isEmpty() && it.returnType == TRAY_STRING }
+        .map { it.name }.distinct()
+    if (called.isNotEmpty()) return called
+    val hashed = code.indexOfFirst {
+        (it.reference() as? MethodReference)?.let { called -> called.definingClass == TRAY_STRING && called.name == "hashCode" } == true
+    }
+    if (hashed <= 0) return emptyList()
+    val reads = code.subList(0, hashed).map { it.opcode to it.reference() }
+    return methods.filter { method ->
+        val body = method.implementation?.instructions?.filter { it.opcode != Opcode.NOP }
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.isEmpty() && method.returnType == TRAY_STRING &&
+            body != null && body.lastOrNull()?.opcode == Opcode.RETURN_OBJECT && body.dropLast(1).map { it.opcode to it.reference() } == reads
+    }.map { it.name }.distinct()
 }
 
 /**

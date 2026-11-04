@@ -286,7 +286,7 @@ internal fun BytecodePatchContext.findReelButtonSite(): ReelButtonSite {
         ReelSaveSite(at, first, list, window, aboveMore(at))
     }.sortedByDescending { it.at }
 
-    val icon = saveIconStyles(saveIcon, addType)
+    val icon = saveIconStyles(saveIcon, more, addType)
     val top = moreTop(more, state, icon)
     if (classDefByOrNull(REEL_BUTTON_TYPE) == null) refuse("$REEL_BUTTON_TYPE is missing")
     return ReelButtonSite(
@@ -446,12 +446,14 @@ private class IconStyles(
  * type is its fourth parameter. Of the static calls taking a style first and answering one: the two
  * taking a long are the width and the height, the one taking nothing but dimensions after it is the
  * margin (Save sets one of them, its bottom, to the margin the column hands it, and More's builder
- * sets More's top with the same style), the one taking an enum loaded right before is the alignment, the
+ * sets More's top with the same style). Instagram 454 inlines Save's margin call, so Save builds its
+ * one side in place (a side enum and a long) and the margin comes from [more]'s margin call, at the
+ * slot its body reads that side from. The one taking an enum loaded right before is the alignment, the
  * one taking a CharSequence the description, and of the two taking a Function1 in the class of the
  * one taking an int (the id), the first is the tap. The icon has to reach [addType], what the
  * column's add takes, and everything the extension calls has to be public.
  */
-private fun BytecodePatchContext.saveIconStyles(saveIcon: Method, addType: String): IconStyles {
+private fun BytecodePatchContext.saveIconStyles(saveIcon: Method, more: Method, addType: String): IconStyles {
     val where = "${saveIcon.definingClass}->${saveIcon.name}"
     val code = saveIcon.implementation?.instructions?.toList() ?: refuse("$where has no body")
     val images = code.mapNotNull { instruction ->
@@ -494,17 +496,22 @@ private fun BytecodePatchContext.saveIconStyles(saveIcon: Method, addType: Strin
 
     val sizes = distinct { it.types() == listOf(style, "J") }
     if (sizes.size != 2) refuse("expected a width and a height style in $where, found ${sizes.size}")
-    val margins = distinct { it.types().size >= 3 && it.types().drop(1).toSet().size == 1 && it.types()[1] != style && it.types()[1].startsWith("L") }
-    val margin = margins.singleOrNull() ?: refuse("expected one margin style in $where, found ${margins.size}")
+    val margins = distinct { isMarginStyle(it, style) }
+    val (margin, slot) = if (margins.isEmpty()) {
+        inlinedMargin(code, where, style, more)
+    } else {
+        val margin = margins.singleOrNull() ?: refuse("expected one margin style in $where, found ${margins.size}")
+        val count = margin.types().size - 1
+        val marginCalls = styled.filter { it.second.toString() == margin.toString() }.map { it.first }
+        margin to (marginCalls.map { at ->
+            val call = code[at] as? RegisterRangeInstruction ?: refuse("$where hands its margin over without a range")
+            val set = (1..count).filter { !holdsNull(code, at, call.startRegister + it) }
+            set.singleOrNull() ?: refuse("$where sets ${set.size} of Save's margin dimensions, not one")
+        }.distinct().singleOrNull() ?: refuse("$where sets Save's margin in more than one way"))
+    }
     val dimen = margin.types()[1]
     val slots = margin.types().size - 1
     if (slots > 13) refuse("$margin takes $slots dimensions, more than the icon bridge has registers for")
-    val marginCalls = styled.filter { it.second.toString() == margin.toString() }.map { it.first }
-    val slot = marginCalls.map { at ->
-        val call = code[at] as? RegisterRangeInstruction ?: refuse("$where hands its margin over without a range")
-        val set = (1..slots).filter { !holdsNull(code, at, call.startRegister + it) }
-        set.singleOrNull() ?: refuse("$where sets ${set.size} of Save's margin dimensions, not one")
-    }.distinct().singleOrNull() ?: refuse("$where sets Save's margin in more than one way")
     val dimenClass = classDefByOrNull(dimen) ?: refuse("the dimension $dimen is missing")
     val dimenConstructor = dimenClass.methods.singleOrNull { it.name == "<init>" && it.types() == listOf("J") }
     if (!AccessFlags.PUBLIC.isSet(dimenClass.accessFlags) || dimenConstructor == null || !AccessFlags.PUBLIC.isSet(dimenConstructor.accessFlags)) {
@@ -540,6 +547,62 @@ private fun BytecodePatchContext.saveIconStyles(saveIcon: Method, addType: Strin
         sizes[0], sizes[1], margin, dimen, slot, slots, align,
         ImmutableFieldReference(alignTo.definingClass, alignTo.name, alignTo.type), description, tap, image,
     )
+}
+
+/** A static style taking the style and then three or more dimensions of one type: the margin, one dimension a side. */
+private fun isMarginStyle(called: MethodReference, style: String): Boolean {
+    val types = called.types()
+    return called.returnType == style && types.size >= 3 && types[0] == style && types.drop(1).toSet().size == 1 &&
+        types[1] != style && types[1].startsWith("L")
+}
+
+/** Where [code] builds a margin side: the constructor taking a side enum and a long, the side loaded just before. */
+private class SideBuild(val at: Int, val side: FieldReference, val value: Int)
+
+private fun BytecodePatchContext.sideBuilds(code: List<Instruction>): List<SideBuild> = code.indices.mapNotNull { at ->
+    val made = code[at].called()?.takeIf { code[at].opcode == Opcode.INVOKE_DIRECT && it.name == "<init>" } ?: return@mapNotNull null
+    val types = made.types()
+    if (types.size != 2 || types[1] != "J" || classDefByOrNull(types[0])?.superclass != ENUM) return@mapNotNull null
+    val call = code[at] as FiveRegisterInstruction
+    val loaded = lastWrite(code, at, call.registerD)?.takeIf { code[it].opcode == Opcode.SGET_OBJECT } ?: return@mapNotNull null
+    val side = code[loaded].field()?.takeIf { it.type == types[0] } ?: return@mapNotNull null
+    SideBuild(at, side, call.registerE)
+}
+
+/**
+ * Save's margin when Save's render builds it in place, as 454's Redex has it: one side made of a
+ * side enum and the margin's long, wrapped onto the style. The margin style is then the one More's
+ * builder [more] calls, and Save's slot is the one whose dimension that style makes the same side of.
+ */
+private fun BytecodePatchContext.inlinedMargin(code: List<Instruction>, where: String, style: String, more: Method): Pair<MethodReference, Int> {
+    val moreWhere = "${more.definingClass}->${more.name}"
+    val margins = more.implementation?.instructions?.mapNotNull { instruction ->
+        instruction.called()?.takeIf {
+            (instruction.opcode == Opcode.INVOKE_STATIC || instruction.opcode == Opcode.INVOKE_STATIC_RANGE) && isMarginStyle(it, style)
+        }
+    }.orEmpty().distinctBy { it.toString() }
+    val margin = margins.singleOrNull()
+        ?: refuse("$where builds its margin in place and $moreWhere calls ${margins.size} margin styles, not one")
+    val declared = classDefByOrNull(margin.definingClass)?.methods?.singleOrNull {
+        it.name == margin.name && it.types() == margin.types() && it.returnType == margin.returnType
+    }
+    val body = declared?.implementation ?: refuse("the margin style $margin has no body")
+    val marginCode = body.instructions.toList()
+    val firstParameter = body.registerCount - margin.types().size
+    // Each slot's dimension, read as a long right before the style makes it into its side.
+    val sideOf = sideBuilds(marginCode).mapNotNull { build ->
+        val read = lastWrite(marginCode, build.at, build.value, wide = true)?.takeIf { marginCode[it].opcode == Opcode.IGET_WIDE }
+            ?: return@mapNotNull null
+        val slot = (marginCode[read] as TwoRegisterInstruction).registerB - firstParameter
+        if (slot in 1 until margin.types().size) slot to build.side.toString() else null
+    }.toMap()
+    if (sideOf.size != margin.types().size - 1) refuse("$margin makes ${sideOf.size} of its ${margin.types().size - 1} dimensions into sides")
+    val sideType = sideOf.values.first().substringAfterLast(':')
+    val saved = sideBuilds(code).map { it.side }.filter { it.type == sideType }.distinctBy { it.toString() }
+    val side = saved.singleOrNull() ?: refuse("$where builds ${saved.size} margin sides in place, not one")
+    val slot = sideOf.entries.singleOrNull { it.value == side.toString() }?.key
+        ?: refuse("$margin has no slot for Save's side $side")
+    return margin to slot
 }
 
 /** Throws unless [method] and its class are public, so the extension may call it. */

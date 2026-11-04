@@ -22,12 +22,11 @@ import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.stories.seen.hashedIdGetters
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
-import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
-import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Hide profile tabs"
 internal const val PROFILE_TABS = "$EXTENSION_PACKAGE/profile/ProfileTabs;"
@@ -144,14 +143,12 @@ internal fun BytecodePatchContext.findTabList(): TabListSite {
     } ?: refuse("$SIGNED_IN has no public $SIGNED_IN_ID()")
     if (!AccessFlags.PUBLIC.isSet(signedIn.accessFlags)) refuse("$SIGNED_IN isn't public, so the extension can't reach it")
 
-    // The user model hashes its ID, so hashCode() asks its one getter of it.
+    // The user model hashes its ID, so hashCode() asks its one getter of it (or runs its code, on 454).
     val userClass = classDefByOrNull(USER) ?: refuse("$USER isn't in this build")
     val hashCode = userClass.methods.singleOrNull {
         it.name == "hashCode" && it.parameterTypes.isEmpty() && it.returnType == "I" && !AccessFlags.STATIC.isSet(it.accessFlags)
     } ?: refuse("$USER has no hashCode()")
-    val idGetters = hashCode.implementation?.instructions?.toList().orEmpty().mapNotNull {
-        (it as? ReferenceInstruction)?.reference as? MethodReference
-    }.filter { it.definingClass == USER && it.parameterTypes.isEmpty() && it.returnType == STRING }.map { it.name }.distinct()
+    val idGetters = hashedIdGetters(userClass.methods, hashCode)
     val idGetter = idGetters.singleOrNull()
         ?: refuse("expected $USER's hashCode() to ask one getter of its ID, found $idGetters")
     val getter = userClass.methods.singleOrNull { it.name == idGetter && it.parameterTypes.isEmpty() && it.returnType == STRING }

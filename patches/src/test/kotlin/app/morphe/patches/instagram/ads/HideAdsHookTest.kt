@@ -118,7 +118,7 @@ class HideAdsHookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val context = PatchContexts.of(FixtureDex.classesHolding(bundle, AD_INJECTOR_STRINGS.first()))
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, AD_INJECTOR_STRINGS.first())))
 
         val found = context.findAdInjector()
         context.guardAdInjector(found)

@@ -79,6 +79,31 @@ public class PopupRowsTest {
         }
     }
 
+    /** What the patch writes for {@link Item454}, read off its constructor as for 454's X.0gCi. */
+    static final String ITEM_454_LAYOUT = Item454.class.getName()
+            + "|A00,A01,A02,A03,A04,A05,A06,A07,A08,A09,A0D,A0C,A0G,A0B,A0E,A0F,A0A,A0H,A0I,A0J,A0N,A0O,A0P,A0M,A0L,A0K";
+
+    /**
+     * Shaped like 454's X.0gCi: one more number (the sixteenth argument) and one more text (the
+     * twentieth) than 453's item, so the label is the eighteenth argument and the subtitle the nineteenth.
+     */
+    static final class Item454 {
+        final Object A00, A01, A02, A03;
+        final Callback A04, A05, A06;
+        final Object A07, A08;
+        final Integer A09, A0A, A0B, A0C, A0D, A0E, A0F, A0G;
+        final String A0H, A0I, A0J;
+        final boolean A0K, A0L, A0M, A0N, A0O, A0P;
+
+        Item454(Object a0, Object a1, Object a2, Object a3, Callback a4, Callback a5, Callback a6, Object a7, Object a8,
+                Integer a9, Integer a10, Integer a11, Integer a12, Integer a13, Integer a14, Integer a15, Integer a16,
+                String a17, String a18, String a19, boolean a20, boolean a21, boolean a22, boolean a23, boolean a24, boolean a25) {
+            A00 = a0; A01 = a1; A02 = a2; A03 = a3; A04 = a4; A05 = a5; A06 = a6; A07 = a7; A08 = a8;
+            A09 = a9; A0D = a10; A0C = a11; A0G = a12; A0B = a13; A0E = a14; A0F = a15; A0A = a16;
+            A0H = a17; A0I = a18; A0J = a19; A0N = a20; A0O = a21; A0P = a22; A0M = a23; A0L = a24; A0K = a25;
+        }
+    }
+
     /** A 450 row as its menu builds it: color in the tenth argument, highlight in the eleventh, a number in the sixteenth. */
     static Scrambled scrambled(String label, Integer color, Integer highlight) {
         return new Scrambled(null, null, null, null, null, null, null, null, null, color, highlight, 21, 22, 23, 24, 25,
@@ -197,6 +222,35 @@ public class PopupRowsTest {
         added.A04.run();
         assertTrue("the list closes after a tap", added.A04.closes());
         assertEquals(1, taps[0]);
+    }
+
+    /** 454's item takes 26 arguments, its label one place later, and the copy still lands each one back. */
+    @Test public void a454ItemGetsTheLabelInItsEighteenthArgument() {
+        PopupRows.layout = () -> ITEM_454_LAYOUT;
+        List<Object> items = new ArrayList<>();
+        Item454 report = new Item454(null, null, null, null, null, null, null, null, null, 7, 7, 21, 22, 23, 24, 26, 25,
+                "Report", "why", null, true, false, false, true, true, false);
+        Item454 plain = new Item454(null, null, null, null, null, null, null, null, null, -1, null, 21, 22, 23, 24, 26, 25,
+                "About this account", "about", null, true, false, false, true, true, false);
+        items.add(report);
+        items.add(plain);
+        int[] taps = {0};
+        assertTrue(PopupRows.add(items, view -> taps[0]++, "Save profile picture"));
+        assertEquals(3, items.size());
+        Item454 added = (Item454) items.get(2);
+        assertEquals("Save profile picture", added.A0H);
+        assertEquals("no subtitle", null, added.A0I);
+        assertEquals("no icon", null, added.A00);
+        assertEquals("the plain color", Integer.valueOf(-1), added.A09);
+        assertEquals("no highlight", null, added.A0D);
+        for (String name : new String[] {"A0A", "A0B", "A0C", "A0E", "A0F", "A0G", "A0J", "A0K", "A0L", "A0M", "A0N", "A0O", "A0P"}) {
+            assertEquals(name, field(plain, name), field(added, name));
+        }
+        added.A04.run();
+        assertTrue("the list closes after a tap", added.A04.closes());
+        assertEquals(1, taps[0]);
+        assertTrue("a second hand-over keeps one row", PopupRows.add(items, view -> { }, "Save profile picture"));
+        assertEquals(3, items.size());
     }
 
     @Test public void withoutThePatchesLayoutNothingIsAdded() {

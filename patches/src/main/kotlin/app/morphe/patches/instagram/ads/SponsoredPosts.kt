@@ -110,15 +110,16 @@ internal fun BytecodePatchContext.findSponsoredPosts(): SponsoredPosts {
  * Media's getter for its ad details: the one instance method taking nothing and answering an object
  * that loads the Java hash of [AD_DETAILS], the way Instagram's models read a field from the tree
  * the server sent. Media's boolean checks of the same key answer no object, and its setter takes one,
- * so neither counts. The extension's stub calls it, so Media and the getter have to be public.
+ * so neither counts. Nor does 454's tracking token read (`Dw6()String` on 386014758), which loads
+ * the key only to check it. The extension's stub calls it, so Media and the getter have to be public.
  * A patch other than Hide ads names itself in [patch], so a build that differs stops it under its
  * own name.
  */
 internal fun BytecodePatchContext.adDetailsGetter(patch: String = PATCH): Method {
     val key = AD_DETAILS.hashCode()
     val getters = classDefBy(MEDIA).methods.filter { method ->
-        method.parameterTypes.isEmpty() && method.returnType.startsWith("L") && !AccessFlags.STATIC.isSet(method.accessFlags) &&
-            method.implementation?.instructions?.any { it.loadsLiteral(key) } == true
+        method.parameterTypes.isEmpty() && method.returnType.startsWith("L") && method.returnType != "Ljava/lang/String;" &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.implementation?.instructions?.any { it.loadsLiteral(key) } == true
     }
     val getter = getters.singleOrNull() ?: throw PatchException(
         "$patch: expected one getter on $MEDIA for its ad details ($AD_DETAILS), found " +

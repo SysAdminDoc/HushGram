@@ -20,6 +20,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -190,8 +191,7 @@ class CommentPhotoHookTest {
                 INTEGER, INTEGER), keys.map { it.second.returnType })
             for ((key, getter) in keys) {
                 val tree = classes.values.single { getter.definingClass in it.interfaces && treeBacked(it, classes) }
-                assertTrue("$label: $key", tree.methods.single { it.matches(getter) }.code()
-                    .any { it is NarrowLiteralInstruction && it.narrowLiteral == key.hashCode() })
+                assertTrue("$label: $key", readsKey(tree.methods.single { it.matches(getter) }, classes, key.hashCode()))
             }
             checked += label
         }
@@ -217,8 +217,20 @@ class CommentPhotoHookTest {
             var parent = type.superclass
             while (parent != null && chain.add(parent)) parent = parents[parent]
         }
-        pool.putAll(FixtureDex.classes(bundle, chain - pool.keys))
+        // And the static helpers Redex outlined a getter's read into.
+        val helpers = pool.values.flatMap { it.methods }.map { it.code() }.filter { it.size == 3 }
+            .mapNotNull { code -> code[0].takeIf { it.opcode == Opcode.INVOKE_STATIC }?.call()?.definingClass }.toSet()
+        pool.putAll(FixtureDex.classes(bundle, chain + helpers - pool.keys))
         return pool
+    }
+
+    /** Whether [method], or the static helper its whole body hands itself to, holds [literal]. */
+    private fun readsKey(method: Method, classes: Map<String, ClassDef>, literal: Int): Boolean {
+        fun holds(body: Method) = body.code().any { it is NarrowLiteralInstruction && it.narrowLiteral == literal }
+        if (holds(method)) return true
+        val code = method.code()
+        val helper = code.singleOrNull { it.opcode == Opcode.INVOKE_STATIC }?.call()?.takeIf { code.size == 3 } ?: return false
+        return classes[helper.definingClass]?.methods?.singleOrNull { it.matches(helper) }?.let(::holds) == true
     }
 
     @Test fun everyDeclaredFixtureSuppliesTheCommentsOwnPhotoAndInstagramsSaveAction() {
@@ -489,11 +501,15 @@ class CommentPhotoHookTest {
             it.methods.any { method -> method.name == "unsafeParseFromJson" &&
                 method.code().any { instruction -> instruction.call()?.definingClass in infoModels } } }
         load(references(focus))
-        // The media itself references most of the app, so only the kinds its media_type reads map through.
-        load(pool.getValue(MEDIA).methods.filter { method ->
+        // The media itself references most of the app, so only the kinds its media_type reads map through,
+        // by a static (Integer) call or, on 454, by a get on a static Map the kind keeps.
+        val kindReads = pool.getValue(MEDIA).methods.filter { method ->
             method.code().any { it is NarrowLiteralInstruction && it.narrowLiteral == "media_type".hashCode() }
-        }.flatMap { method -> method.code().mapNotNull { it.call() }.filter { it.parameters() == listOf(INTEGER) } }
-            .map { it.returnType })
+        }
+        load(kindReads.flatMap { method -> method.code().mapNotNull { it.call() }.filter { it.parameters() == listOf(INTEGER) } }
+            .map { it.returnType } +
+            kindReads.flatMap { method -> method.code().mapNotNull { it.field() }.filter { it.type == "Ljava/util/Map;" } }
+                .map { it.definingClass })
         // A comment GIF's model: its interfaces, the classes implementing them, and the trees' superclasses.
         gifFixture(bundle).forEach { (type, classDef) -> pool.putIfAbsent(type, classDef) }
         // The GIF reply: the quick reply bar its label and icon come from, the comment screen's Reply

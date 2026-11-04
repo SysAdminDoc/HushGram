@@ -77,6 +77,16 @@ class NativeLocalCursorTest {
             }
             val classes = mutableMapOf<String, ClassDef>()
             classes += FixtureDex.classes(bundle, readers.map { it.definingClass }.toSet())
+            // 454's reader asks the chat store's interface where the cursor sits: its implementations
+            // walk the chat, and the patch checks the interface has just the one.
+            val asked = readers.flatMap { it.visualCode() }.mapNotNull { instruction ->
+                (instruction.visualReference() as? MethodReference)?.takeIf {
+                    instruction.opcode == Opcode.INVOKE_INTERFACE && it.returnType == "J" && it.parameterTypes.lastOrNull()?.toString() == THREAD_KEY
+                }?.definingClass
+            }.toSet()
+            if (asked.isNotEmpty()) FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) if (classDef.interfaces.any(asked::contains)) classes[classDef.type] = ImmutableClassDef.of(classDef)
+            }
             val named = mutableSetOf<String>()
             for (classDef in classes.values) for (method in classDef.methods) for (instruction in method.visualCode()) {
                 when (val reference = instruction.visualReference()) {

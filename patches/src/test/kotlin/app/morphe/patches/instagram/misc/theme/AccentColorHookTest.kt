@@ -75,6 +75,50 @@ class AccentColorHookTest {
         assertResourcesSwapped("stand-in without lists", context, OTHER_RESOURCES, lists = false)
     }
 
+    /** 454's loader takes a theme and its resources in place of a Context, and its lists are swapped the same way. */
+    @Test
+    fun aLoaderTakingTheThemeIsFound() {
+        val context = PatchContexts.of(listOf(loader(themed = true), themes(), colors(), fallback(), resources(), extension()))
+
+        val found = context.findAccentReads()
+        assertEquals("$LOADER->A01", "${found.loader.definingClass}->${found.loader.name}")
+        context.swapAccentColors()
+
+        assertListsSwapped("themed stand-in", context.method(LOADER, "A01", THEMED_LOADER_SHAPE), 2)
+    }
+
+    /**
+     * 454 inlines the read beside the resolver into its callers, so the read elsewhere is the one
+     * left (`LX/0129;->A06` on 386014758), and it's swapped the same way.
+     */
+    @Test
+    fun aLoneReadOutsideTheResolversClassIsFound() {
+        val context = PatchContexts.of(listOf(loader(), themes(inClassRead = false), colors(), fallback(), resources(), extension()))
+
+        val found = context.findAccentReads()
+        assertEquals(listOf("$COLORS->A03"), found.colorReads.map { "${it.definingClass}->${it.name}" })
+        context.swapAccentColors()
+
+        assertColorSwapped("lone read", context.method(COLORS, "A03"))
+    }
+
+    /**
+     * 454 inlines the resolver into the fallback resolver, which then resolves its own attribute and
+     * returns its fallback (`LX/02Xz;->A0e` on 386014758). Its two reads are found and swapped the same way.
+     */
+    @Test
+    fun anInlinedFallbackResolverIsFound() {
+        val context = PatchContexts.of(listOf(loader(), themes(inlinedFallback = true), colors(), fallback(), resources(), extension()))
+
+        val found = context.findAccentReads()
+        assertEquals(setOf("$THEMES->A0c", "$FALLBACK->A05"), found.fallbackReads.map { "${it.definingClass}->${it.name}" }.toSet())
+        context.swapAccentColors()
+
+        assertColorSwapped("fallback stand-in with a check first", context.method(THEMES, "A0c", FALLBACK_SHAPE))
+        assertColorSwapped("fallback stand-in", context.method(FALLBACK, "A05", FALLBACK_SHAPE))
+        assertEquals("the fallback resolver itself is left alone", 0, context.method(THEMES, "A0d", FALLBACK_SHAPE).hooks(SWAP_COLOR).size)
+    }
+
     /** A color read straight from a resource can't be reached without Instagram's own Resources, so it refuses. */
     @Test
     fun noResourcesOfItsOwnFailsThePatch() {
@@ -88,13 +132,17 @@ class AccentColorHookTest {
         for ((case, classes) in listOf(
             "no loader" to listOf(themes(), colors(), fallback(), extension()),
             "two loaders" to listOf(loader(), loader(type = "Lfixture/OtherCompat;"), themes(), colors(), fallback(), extension()),
+            "a loader of each form" to listOf(loader(), loader(type = "Lfixture/OtherCompat;", themed = true), themes(), colors(), fallback(), extension()),
             "a loader that only throws" to listOf(loader(throws = true), themes(), colors(), fallback(), extension()),
             "no attribute resolver" to listOf(loader(), themes(resolver = false), colors(), fallback(), extension()),
-            "one color read" to listOf(loader(), themes(), fallback(), extension()),
+            "one color read, beside the resolver" to listOf(loader(), themes(), fallback(), extension()),
+            "no color read" to listOf(loader(), themes(inClassRead = false), fallback(), extension()),
             "three color reads" to listOf(loader(), themes(), colors(), colors(type = "Lfixture/MoreColors;"), fallback(), extension()),
             "a read asking about another attribute" to listOf(loader(), themes(), colors(attribute = "v0"), fallback(), extension()),
             "a read answering the resource, not its color" to listOf(loader(), themes(), colors(getColor = false), fallback(), extension()),
             "no fallback resolver" to listOf(loader(), themes(fallbackResolver = false), colors(), fallback(), extension()),
+            "an inlined fallback resolver resolving its fallback" to listOf(loader(), themes(inlinedFallback = true, inlinedAttribute = "p2"), colors(), fallback(), extension()),
+            "an inlined fallback resolver answering no fallback" to listOf(loader(), themes(inlinedFallback = true, inlinedReturn = "v0"), colors(), fallback(), extension()),
             "one fallback read" to listOf(loader(), themes(), colors(), extension()),
             "three fallback reads" to listOf(loader(), themes(), colors(), fallback(), fallback(type = "Lfixture/MoreFallback;"), extension()),
             "a fallback read passing another fallback" to listOf(loader(), themes(), colors(), fallback(fallbackColor = "v0"), extension()),
@@ -147,7 +195,7 @@ class AccentColorHookTest {
 
     /** Patches the slice of [bundle] the finder reads and checks each change. */
     private fun checkBuild(label: String, bundle: java.io.File) {
-        val holders = FixtureDex.classesHolding(bundle, INFLATE_FAILED)
+        val holders = FixtureDex.classesLoading(bundle, INFLATE_FAILED)
         val resolvers = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.definingClass == THEME && it.name == "resolveAttribute" } }) {
             it.isStaticContextAndInt() && it.code().any { instruction -> instruction.calls(THEME, "resolveAttribute") }
         }
@@ -169,8 +217,12 @@ class AccentColorHookTest {
         assertEquals("$label: the loader's returns", 3, returns)
         context.swapAccentColors()
 
-        assertListsSwapped("$label ${loader.first}->${loader.second}", context.method(loader.first, loader.second), returns)
-        assertEquals("$label: the color reads", 2, colorReads.size)
+        // 454's loader takes the theme and its resources (`LX/00Pr;->A01` on 386014758), 453's a Context.
+        val loaderShape = found.loader.parameterTypes.map(Any::toString)
+        assertListsSwapped("$label ${loader.first}->${loader.second}", context.method(loader.first, loader.second, loaderShape), returns)
+        // Some 454 builds inline the read beside the resolver into its callers, leaving the other one
+        // (386014758), and others keep both (386014704).
+        assertTrue("$label: the color reads, $colorReads", colorReads.size in 1..2)
         for ((type, name) in colorReads) assertColorSwapped("$label $type->$name", context.method(type, name))
         assertReadsShareTheResolver(label, context, colorReads)
         assertEquals("$label: the fallback reads", 2, fallbackReads.size)
@@ -254,8 +306,9 @@ class AccentColorHookTest {
             }
         })
         assertTrue("$label: the resolver asks for no color", code.none { it.calls(CONTEXT, "getColor") })
-        assertEquals("$label: the reads are two methods", 2, reads.toSet().size)
+        assertEquals("$label: the reads are separate methods", reads.size, reads.toSet().size)
         assertTrue("$label: neither read is the resolver", reads.none { it == resolver.definingClass to resolver.name })
+        if (reads.size == 1) assertTrue("$label: a lone read sits outside the resolver's class", reads.single().first != resolver.definingClass)
     }
 
     /**
@@ -333,6 +386,7 @@ class AccentColorHookTest {
         const val THEME = "Landroid/content/res/Resources\$Theme;"
         const val LIST = "Landroid/content/res/ColorStateList;"
         const val RESOURCES = "Landroid/content/res/Resources;"
+        val THEMED_LOADER_SHAPE = listOf(THEME, RESOURCES, "I")
         const val RESOURCES_STAND_IN = "Lfixture/IgResources;"
         const val OTHER_RESOURCES = "Lfixture/OtherResources;"
 
@@ -405,9 +459,25 @@ class AccentColorHookTest {
          * A static (Context, int)ColorStateList shaped like ResourcesCompat's loader: it holds the
          * log line, and its second return is where a branch lands, as the third is on 450.
          */
-        fun loader(type: String = LOADER, throws: Boolean = false): ClassDef = classOf(
+        fun loader(type: String = LOADER, throws: Boolean = false, themed: Boolean = false): ClassDef = classOf(
             type,
-            static(
+            if (themed) {
+                // 454's loader takes the theme and its resources, and the Context form calls it.
+                static(
+                    type, "A01", LIST, 5,
+                    """
+                        const-string v0, "$INFLATE_FAILED"
+                        const/4 v1, 0x0
+                        if-eqz p2, :none
+                        invoke-virtual { p1, p2, p0 }, $RESOURCES->getColorStateList(I$THEME)$LIST
+                        move-result-object v1
+                        return-object v1
+                        :none
+                        return-object v1
+                    """,
+                    THEMED_LOADER_SHAPE,
+                )
+            } else static(
                 type, "A01", LIST, 4,
                 if (throws) {
                     """
@@ -443,10 +513,49 @@ class AccentColorHookTest {
             valueRead: Boolean = true,
             valueField: String = "data",
             secondValueRead: Boolean = false,
+            inClassRead: Boolean = true,
+            inlinedFallback: Boolean = false,
+            inlinedAttribute: String = "p1",
+            inlinedReturn: String = "p2",
         ): ClassDef = classOf(
             THEMES,
             *listOfNotNull(
-                if (fallbackResolver) {
+                if (inClassRead) {
+                    static(
+                        THEMES, "A0Y", "I", 3,
+                        """
+                            const/4 v0, 0x0
+                            invoke-static { p0, v0 }, $THEMES->A0W(Ljava/lang/Object;I)V
+                            invoke-static { p0, p1 }, $THEMES->A0b($CONTEXT I)I
+                            move-result v0
+                            invoke-virtual { p0, v0 }, $CONTEXT->getColor(I)I
+                            move-result v0
+                            return v0
+                        """.replace("$CONTEXT I", "${CONTEXT}I"),
+                    )
+                } else {
+                    null
+                },
+                if (fallbackResolver && inlinedFallback) {
+                    // 454's fallback resolver holds the resolver inlined (`LX/02Xz;->A0e` on 386014758).
+                    static(
+                        THEMES, "A0d", "I", 6,
+                        """
+                            new-instance v0, Landroid/util/TypedValue;
+                            invoke-direct { v0 }, Landroid/util/TypedValue;-><init>()V
+                            invoke-virtual { p0 }, $CONTEXT->getTheme()$THEME
+                            move-result-object v1
+                            const/4 v2, 0x1
+                            invoke-virtual { v1, $inlinedAttribute, v0, v2 }, $THEME->resolveAttribute(ILandroid/util/TypedValue;Z)Z
+                            iget v0, v0, Landroid/util/TypedValue;->resourceId:I
+                            if-eqz v0, :none
+                            return v0
+                            :none
+                            return $inlinedReturn
+                        """,
+                        FALLBACK_SHAPE,
+                    )
+                } else if (fallbackResolver) {
                     static(
                         THEMES, "A0d", "I", 5,
                         """
@@ -490,18 +599,6 @@ class AccentColorHookTest {
                     iget v0, v0, Landroid/util/TypedValue;->resourceId:I
                     return v0
                 """,
-            ),
-            static(
-                THEMES, "A0Y", "I", 3,
-                """
-                    const/4 v0, 0x0
-                    invoke-static { p0, v0 }, $THEMES->A0W(Ljava/lang/Object;I)V
-                    invoke-static { p0, p1 }, $THEMES->A0b($CONTEXT I)I
-                    move-result v0
-                    invoke-virtual { p0, v0 }, $CONTEXT->getColor(I)I
-                    move-result v0
-                    return v0
-                """.replace("$CONTEXT I", "${CONTEXT}I"),
             ),
         )
 

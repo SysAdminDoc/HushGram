@@ -48,6 +48,7 @@ internal const val FALLBACK_SECTION = "FRIENDING_UNIT_FALLBACK"
 private const val STRING = "Ljava/lang/String;"
 private const val IS_EMPTY = "Ljava/util/List;->isEmpty()Z"
 private const val HASH_CODE = "Ljava/lang/String;->hashCode()I"
+private const val EQUALS = "Ljava/lang/String;->equals(Ljava/lang/Object;)Z"
 
 /** How far past the type's hashCode its switch may compare it with FOLLOW_BACK's hash. */
 private const val SWITCH_REACH = 12
@@ -154,7 +155,8 @@ internal class FollowBackSectionSite(
  * has checked the section has rows: List.isEmpty, its answer, and an if-nez past the section when
  * there are none. Nothing else jumps to the load, so it runs only for a section with rows. After it
  * the builder switches on the section's type, a String.hashCode compared with FOLLOW_BACK's hash, to
- * pick the header, and that hashCode's register is the one the hook hands over.
+ * pick the header, and that hashCode's register is the one the hook hands over. 454 has a chain of
+ * String.equals instead, and the type is what the loaded FOLLOW_BACK is first compared with.
  *
  * The hook reads that register at the load, so it has to hold a String there on every path, or ART
  * rejects the whole builder class and the notifications screen crashes. A straight line from the load
@@ -188,12 +190,24 @@ internal fun BytecodePatchContext.findFollowBackSection(): FollowBackSectionSite
     val skip = flow.normal[at - 1].first()
 
     val hash = (at + 1 until code.size).firstOrNull { code[it].methodText() == HASH_CODE }
-        ?: refuse("$where doesn't switch on the section's type after loading \"$FOLLOW_BACK_TYPE\"")
-    val literal = FOLLOW_BACK_TYPE.hashCode()
-    if ((hash + 1 until minOf(code.size, hash + SWITCH_REACH)).none { (code[it] as? NarrowLiteralInstruction)?.narrowLiteral == literal }) {
-        refuse("$where's switch on the section's type doesn't compare it with \"$FOLLOW_BACK_TYPE\"")
+    val section = if (hash != null) {
+        val literal = FOLLOW_BACK_TYPE.hashCode()
+        if ((hash + 1 until minOf(code.size, hash + SWITCH_REACH)).none { (code[it] as? NarrowLiteralInstruction)?.narrowLiteral == literal }) {
+            refuse("$where's switch on the section's type doesn't compare it with \"$FOLLOW_BACK_TYPE\"")
+        }
+        code[hash].namedRegisters().single()
+    } else {
+        // 454 has no switch, just a chain of equals, and the one asking the loaded FOLLOW_BACK names the type.
+        val loaded = loadedRegister(code, at)
+        val compare = (at + 1 until code.size).firstOrNull {
+            code[it].methodText() == EQUALS && code[it].namedRegisters().firstOrNull() == loaded
+        } ?: refuse("$where doesn't switch on the section's type after loading \"$FOLLOW_BACK_TYPE\"")
+        val type = code[compare].namedRegisters()[1]
+        if ((at + 1 until compare).any { code[it].writes(loaded!!) || code[it].writes(type) }) {
+            refuse("$where writes over \"$FOLLOW_BACK_TYPE\" or the section's type before comparing them")
+        }
+        type
     }
-    val section = code[hash].namedRegisters().single()
     if (!builder.holdsStringOnEveryPath(flow, at, section)) {
         refuse("$where's v$section doesn't hold a String on every path into its \"$FOLLOW_BACK_TYPE\" load")
     }
@@ -312,3 +326,11 @@ internal fun BytecodePatchContext.hideFollowBackSection(site: FollowBackSectionS
 }
 
 private fun Instruction?.methodText(): String? = ((this as? ReferenceInstruction)?.reference as? MethodReference)?.toString()
+
+/** The register the string load at [at] fills: a const-string's own, or a pool call's move-result-object. */
+private fun loadedRegister(code: List<Instruction>, at: Int): Int? {
+    val load = code[at]
+    if (load.opcode == Opcode.CONST_STRING || load.opcode == Opcode.CONST_STRING_JUMBO) return (load as OneRegisterInstruction).registerA
+    val result = code.getOrNull(at + 1)
+    return if (result?.opcode == Opcode.MOVE_RESULT_OBJECT) (result as OneRegisterInstruction).registerA else null
+}

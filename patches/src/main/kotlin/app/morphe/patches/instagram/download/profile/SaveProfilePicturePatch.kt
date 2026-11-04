@@ -58,8 +58,8 @@ private const val CLICK = "Landroid/view/View\$OnClickListener;"
 private const val LIST = "Ljava/util/List;"
 private const val POPUP_WINDOW = "Landroid/widget/PopupWindow;"
 
-/** How many arguments the constructor of one of the pop-up list's items takes on 450. */
-internal const val POPUP_ITEM_ARGUMENTS = 24
+/** How many arguments the constructor of one of the pop-up list's items takes: 24 on 450 to 453, 26 on 454. */
+internal const val POPUP_ITEM_ARGUMENTS = 26
 
 /** The parameters of the stub [ADD_ROW_STUB], and of the sheet's adder of a plain row after them. */
 internal val ADD_ROW_PARAMETERS = listOf(OBJECT, CONTEXT, CLICK, STRING)

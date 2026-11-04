@@ -21,11 +21,14 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val ACTIVITY_BUBBLES_PATCH = "Hide activity bubbles"
 internal const val ACTIVITY_BUBBLES = "$EXTENSION_PACKAGE/feed/ActivityBubbles;"
@@ -70,7 +73,9 @@ internal class BubbleSetting(val check: Method, val has: FieldReference, val hid
 
 /**
  * The class holding the account's activity bubble setting is the one whose constructor checks
- * [BUBBLE_EXPERIMENT]. Its one static (UserSession, ...)Z method is Instagram's check for a post: it
+ * [BUBBLE_EXPERIMENT]. 454's Redex inlined that constructor into the method making the setting
+ * (`LX/0HPM;->A02` makes `LX/08CB` on 386014758), so a class made there, given its plain Object
+ * constructor and then its own flags, counts the same. Its one static (UserSession, ...)Z method is Instagram's check for a post: it
  * reads whether the account has the setting, leaves with false when it doesn't, and ends returning
  * the setting. Every other read of the setting skips a post's friend pictures when it's true.
  * Proved before anything changes: the check reads exactly two of its class's flags, the first
@@ -78,11 +83,13 @@ internal class BubbleSetting(val check: Method, val has: FieldReference, val hid
  * any read the hook follows.
  */
 internal fun BytecodePatchContext.findBubbleSetting(): BubbleSetting {
-    val holders = classesLoadingString(BUBBLE_EXPERIMENT).filter { classDef ->
-        classDef.methods.any { it.name == "<init>" && loadsString(it, BUBBLE_EXPERIMENT) }
-    }
-    val holder = holders.singleOrNull()
-        ?: refuse("expected one class checking \"$BUBBLE_EXPERIMENT\" as it's made, found ${holders.size}")
+    val holderTypes = classesLoadingString(BUBBLE_EXPERIMENT).distinctBy { it.type }.flatMap { classDef ->
+        classDef.methods.filter { loadsString(it, BUBBLE_EXPERIMENT) }.flatMap { method ->
+            if (method.name == "<init>") listOf(classDef.type) else inlinedConstructions(method)
+        }
+    }.distinct()
+    val holder = holderTypes.singleOrNull()?.let { classDefBy(it) }
+        ?: refuse("expected one class checking \"$BUBBLE_EXPERIMENT\" as it's made, found ${holderTypes.size}")
     val checks = holder.methods.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" && it.parameterTypes.firstOrNull()?.toString() == USER_SESSION
     }
@@ -112,6 +119,30 @@ internal fun BytecodePatchContext.findBubbleSetting(): BubbleSetting {
         }
     }
     return BubbleSetting(check, has, hide, reads)
+}
+
+/**
+ * The classes [method] makes with a constructor inlined: a new-instance whose register then gets
+ * only Object's constructor and has one of the class's own boolean fields written.
+ */
+internal fun inlinedConstructions(method: Method): List<String> {
+    val code = method.implementation?.instructions?.toList() ?: return emptyList()
+    return code.indices.mapNotNull { at ->
+        if (code[at].opcode != Opcode.NEW_INSTANCE) return@mapNotNull null
+        val made = (code[at] as OneRegisterInstruction).registerA
+        val type = ((code[at] as ReferenceInstruction).reference as TypeReference).type
+        val init = code.getOrNull(at + 1)
+        val initText = ((init as? ReferenceInstruction)?.reference as? MethodReference)?.toString()
+        if (init?.opcode != Opcode.INVOKE_DIRECT || initText != "Ljava/lang/Object;-><init>()V" ||
+            (init as FiveRegisterInstruction).registerC != made
+        ) return@mapNotNull null
+        type.takeIf {
+            code.drop(at + 2).any { write ->
+                val field = (write as? ReferenceInstruction)?.reference as? FieldReference
+                write.opcode == Opcode.IPUT_BOOLEAN && field?.definingClass == type && (write as TwoRegisterInstruction).registerB == made
+            }
+        }
+    }
 }
 
 /** Every read of [hide] in Instagram, as the method, the read's index and its register. */

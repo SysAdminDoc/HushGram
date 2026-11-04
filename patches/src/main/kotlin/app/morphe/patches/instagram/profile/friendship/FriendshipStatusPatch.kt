@@ -24,6 +24,7 @@ import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.stories.seen.hashedIdGetters
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -363,13 +364,11 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
         )
     }
 
-    // The user model hashes its ID, so hashCode() asks its one getter of it.
+    // The user model hashes its ID, so hashCode() asks its one getter of it (or runs its code, on 454).
     val hashCode = userClass.methods.singleOrNull {
         it.name == "hashCode" && it.parameterTypes.isEmpty() && it.returnType == "I" && !AccessFlags.STATIC.isSet(it.accessFlags)
     } ?: refuse("$USER has no hashCode()")
-    val idGetters = hashCode.implementation!!.instructions.mapNotNull { it.methodReference() }.filter {
-        it.definingClass == USER && it.parameterTypes.isEmpty() && it.returnType == STRING
-    }.map { it.name }.distinct()
+    val idGetters = hashedIdGetters(userClass.methods, hashCode)
     val userId = idGetters.singleOrNull()
         ?: refuse("expected $USER's hashCode() to ask one getter of its ID, found $idGetters")
     val session = classDefByOrNull(headerType)!!.instanceFields(USER_SESSION).singleOrNull()

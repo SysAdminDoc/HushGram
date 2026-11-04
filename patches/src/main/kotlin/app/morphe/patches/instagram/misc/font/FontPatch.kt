@@ -139,9 +139,12 @@ internal class FontSites(
  * Finds the helper and IgTextView's set-up and checks the extension.
  *
  * The helper is the one class holding [PRISM_MARKER]. Its three static Typeface fields that
- * aren't final are where it keeps Prism Sans, one per weight. Each is written twice, once in its
- * static initializer and once in the instance (Context) Typeface getter that loads it when it's
- * still empty, and nothing else writes them. Any other count means a build this wasn't written for.
+ * aren't final are where it keeps Prism Sans, one per weight. Each is written once in its static
+ * initializer and once in the instance (Context) Typeface getter that loads it when it's still
+ * empty, with the answer of a load the move-result right before the write takes in. 454 also
+ * inlines that getter into other methods of the helper (`LX/01zB;->A09` and `A0E` on 386014758),
+ * so a write elsewhere counts when it keeps the answer of the same load the getter makes. Any
+ * other write means a build this wasn't written for.
  *
  * IgTextView's set-up is the one call in [IG_TEXT_VIEW] to [INITIALIZE], from an instance method,
  * with an instruction after it that nothing jumps to, so whatever runs next has the view in the
@@ -175,10 +178,12 @@ internal fun BytecodePatchContext.findFontSites(): FontSites {
     }
     for (field in fields) {
         val into = writes.filter { (it.method.code()[it.at] as ReferenceInstruction).field().name == field }
-        val inStatic = into.count { it.method.name == "<clinit>" }
-        val inGetter = into.count { it.method.isTypefaceGetter() }
-        if (into.size != 2 || inStatic != 1 || inGetter != 1) {
-            refuse("${helper.type}->$field is written ${into.size} times, not once as it starts and once by its getter")
+        val inStatic = into.filter { it.method.name == "<clinit>" }
+        val inGetter = into.filter { it.method.isTypefaceGetter() }
+        val load = inGetter.singleOrNull()?.loader()
+        val inlined = into - inStatic.toSet() - inGetter.toSet()
+        if (inStatic.size != 1 || inGetter.size != 1 || load == null || inlined.any { it.loader() != load }) {
+            refuse("${helper.type}->$field is written ${into.size} times, not once as it starts and once by its getter and its copies")
         }
     }
 
@@ -358,6 +363,14 @@ private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
 /** An instance (Context) Typeface: how the helper loads one weight when its field is still empty. */
 private fun Method.isTypefaceGetter(): Boolean = !AccessFlags.STATIC.isSet(accessFlags) && returnType == TYPEFACE &&
     parameterTypes.map(Any::toString) == listOf(CONTEXT)
+
+/** The method whose answer this write keeps, taken in by the move-result right before it, or null. */
+private fun PrismWrite.loader(): String? {
+    val code = method.code()
+    val moved = code.getOrNull(at - 1) ?: return null
+    if (moved.opcode != Opcode.MOVE_RESULT_OBJECT || (moved as OneRegisterInstruction).registerA != register) return null
+    return ((code.getOrNull(at - 2) as? ReferenceInstruction)?.reference as? MethodReference)?.toString()
+}
 
 private fun Instruction.writes(type: String, fields: Set<String>): Boolean =
     opcode == Opcode.SPUT_OBJECT && (this as ReferenceInstruction).field().let { it.definingClass == type && it.name in fields }

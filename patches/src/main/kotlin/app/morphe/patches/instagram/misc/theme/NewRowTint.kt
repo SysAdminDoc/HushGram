@@ -8,16 +8,22 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesReadingWide
 import app.morphe.patches.instagram.misc.extension.classesTouching
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
+import app.morphe.util.ControlFlow
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import java.util.BitSet
 
 internal const val NEW_ROW_TINT = "$EXTENSION_PACKAGE/misc/NewRowTint;->color(J)J"
 
@@ -50,13 +56,23 @@ internal fun BytecodePatchContext.findNewRowTintReads(): List<NewRowTintRead> {
     val pages = classesReadingWide(theme).flatMap { classDef ->
         classDef.methods.mapNotNull { method ->
             val code = method.implementation?.instructions?.toList().orEmpty()
-            val labels = code.indices.mapNotNull { stringLoadedAt(code, it) }.filter { it.startsWith(NOTIFICATIONS_LABEL) }
+            val labels = notificationLabels(code).map { it.second }.ifEmpty {
+                if (code.any { it.wideFieldOf(theme) != null }) outlinedLabels(classDef, method) else emptyList()
+            }
             if (labels.isEmpty()) null else NewRowPage(classDef.type, method, code, labels)
         }
     }
-    val avatars = pages.filter { page -> page.labels.any { it.startsWith(AVATAR_LABEL) } }
+    // A page is a method of a class reading the theme, so a merged lambda's invoke holding an avatar
+    // label that reads no color is one when another arm's body reads the theme (`LX/0C5a;->invoke`,
+    // whose `A04` reads `LX/05Ak;->A0K`, on 386014714). Only an avatar reading the theme names the tint.
+    val avatars = pages.filter { page ->
+        page.labels.any { it.startsWith(AVATAR_LABEL) } && page.code.any { it.wideFieldOf(theme) != null }
+    }
     if (avatars.size != 1) {
-        throw PatchException("$NEW_ROW_PATCH: expected one Notifications avatar reading $theme, found ${avatars.size}")
+        throw PatchException(
+            "$NEW_ROW_PATCH: expected one Notifications avatar reading $theme, found ${avatars.size}: " +
+                avatars.joinToString { "${it.type}->${it.method.name}" },
+        )
     }
     val colors = avatars.single().code.mapNotNull { it.wideFieldOf(theme) }.distinct()
     if (colors.size != 1) {
@@ -87,6 +103,59 @@ internal fun BytecodePatchContext.blackenNewRowTints(reads: List<NewRowTintRead>
 }
 
 private class NewRowPage(val type: String, val method: Method, val code: List<Instruction>, val labels: List<String>)
+
+/** Each Notifications label [code] loads, with the index of its load. */
+private fun BytecodePatchContext.notificationLabels(code: List<Instruction>): List<Pair<Int, String>> =
+    code.indices.mapNotNull { at -> stringLoadedAt(code, at)?.takeIf { it.startsWith(NOTIFICATIONS_LABEL) }?.let { at to it } }
+
+/**
+ * The Notifications labels of a lambda body Redex moved out of its invoke. The body becomes a static
+ * method of the lambda's class and the trace label stays in invoke, which calls the body on the
+ * Notifications arm of its switch (`LX/0X9f;->A01` from `LX/0X9f;->invoke` on 386014758). The body
+ * takes the labels only when nothing outside its class calls it and a Notifications label reaches
+ * every call, so a body the switch's other arms call keeps its colors.
+ */
+private fun BytecodePatchContext.outlinedLabels(classDef: ClassDef, body: Method): List<String> {
+    if (!AccessFlags.STATIC.isSet(body.accessFlags)) return emptyList()
+    val parameters = body.parameterTypes.map(Any::toString)
+    val labels = mutableListOf<String>()
+    for (caller in classDef.methods) {
+        val code = caller.implementation?.instructions?.toList().orEmpty()
+        val sites = code.indices.filter { code[it].callsStatic(classDef.type, body.name, parameters, body.returnType) }
+        if (sites.isEmpty()) continue
+        val flow = runCatching { ControlFlow.of(caller) }.getOrNull() ?: return emptyList()
+        val loads = notificationLabels(code)
+        for (site in sites) {
+            val reaching = loads.filter { (at, _) -> flow.reaches(at, site) }
+            if (reaching.isEmpty()) return emptyList()
+            labels += reaching.map { it.second }
+        }
+    }
+    if (labels.isEmpty()) return emptyList()
+    if (classesCalling(classDef.type, body.name, parameters, body.returnType).any { it.type != classDef.type }) return emptyList()
+    return labels.distinct()
+}
+
+private fun Instruction.callsStatic(type: String, name: String, parameters: List<String>, returnType: String): Boolean {
+    if (opcode != Opcode.INVOKE_STATIC && opcode != Opcode.INVOKE_STATIC_RANGE) return false
+    val called = (this as ReferenceInstruction).reference as? MethodReference ?: return false
+    return called.definingClass == type && called.name == name && called.returnType == returnType &&
+        called.parameterTypes.map(Any::toString) == parameters
+}
+
+/** Whether a path of fall throughs, branches and switch arms leads from [from] to [to]. */
+private fun ControlFlow.reaches(from: Int, to: Int): Boolean {
+    val seen = BitSet(instructions.size)
+    val queue = ArrayDeque(listOf(from))
+    while (queue.isNotEmpty()) {
+        val at = queue.removeFirst()
+        if (at == to) return true
+        if (seen.get(at)) continue
+        seen.set(at)
+        normal[at].filterNot(seen::get).forEach(queue::addLast)
+    }
+    return false
+}
 
 /** The class of the Compose themes: a class made by those reading Prism's tint, holding a theme's worth of colors. */
 private fun BytecodePatchContext.newRowTheme(): String {

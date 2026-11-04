@@ -610,7 +610,7 @@ internal fun BytecodePatchContext.findHeaderIconColor(): HeaderIconColor? {
     val tints = bar.methods.flatMapTo(HashSet()) { it.tintFields() }
     val stores = bar.methods.filter { it.name == "<init>" }.flatMap { method ->
         val code = method.code()
-        code.indices.mapNotNull { at -> method.colorStore(code, at, tints) }
+        code.indices.mapNotNull { at -> colorStore(method, code, at, tints) }
     }
     if (stores.size != 1) {
         patchLog.warning("$PATCH: ${stores.size} places keep Home's newer header's icon color, not one, so its heart stays Instagram's color")
@@ -647,21 +647,53 @@ private fun Instruction.tints(): Boolean =
     }
 
 /**
- * The store at [at] when it puts one of [tints] on the header from Context.getColor's answer, the two
- * instructions before it, with nothing jumping onto it and registers a plain call can name.
+ * The store at [at] of [method] when it puts one of [tints] on the header from Context.getColor's
+ * answer, the two instructions before it, with nothing jumping onto it and registers a plain call can
+ * name. On some 454 builds the getColor is outlined into a static `(Context)int` the constructor asks
+ * instead (`LX/0BPb;->A03` on 386014704, see [readsColorOfItsContext]).
  */
-private fun MutableMethod.colorStore(code: List<Instruction>, at: Int, tints: Set<String>): HeaderIconColor? {
+private fun BytecodePatchContext.colorStore(method: MutableMethod, code: List<Instruction>, at: Int, tints: Set<String>): HeaderIconColor? {
     val store = code[at]
     if (store.opcode != Opcode.IPUT || ((store as ReferenceInstruction).reference as FieldReference).key() !in tints) return null
     val color = (store as TwoRegisterInstruction).registerA
     val result = code.getOrNull(at - 1)
     val read = code.getOrNull(at - 2) as? FiveRegisterInstruction ?: return null
     if (result?.opcode != Opcode.MOVE_RESULT || (result as OneRegisterInstruction).registerA != color) return null
-    if (read.opcode != Opcode.INVOKE_VIRTUAL || !read.calls(CONTEXT, "getColor") || read.registerCount != 2) return null
+    val direct = read.opcode == Opcode.INVOKE_VIRTUAL && read.calls(CONTEXT, "getColor") && read.registerCount == 2
+    if (!direct && !readsColorOfItsContext(read)) return null
     val context = read.registerC
-    if (context == color || context > 15 || color > 15 || at in jumpTargets()) return null
-    return HeaderIconColor(this, at, context, color)
+    if (context == color || context > 15 || color > 15 || at in method.jumpTargets()) return null
+    return HeaderIconColor(method, at, context, color)
 }
+
+/**
+ * Whether [call] passes one Context to a static `(Context)int` whose whole body asks a static
+ * `(Context)int` on that same Context for a resource, calls Context.getColor of it on that Context and
+ * returns the color.
+ */
+private fun BytecodePatchContext.readsColorOfItsContext(call: FiveRegisterInstruction): Boolean {
+    if (call.opcode != Opcode.INVOKE_STATIC || call.registerCount != 1) return false
+    val reference = (call as ReferenceInstruction).reference as? MethodReference ?: return false
+    if (!reference.takesContextForInt()) return false
+    val helper = classDefByOrNull(reference.definingClass)?.methods?.singleOrNull {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.name == reference.name && it.takesContextForInt()
+    } ?: return false
+    val implementation = helper.implementation ?: return false
+    val own = implementation.registerCount - 1
+    val body = implementation.instructions.filter { it.opcode != Opcode.NOP }
+    if (body.size != 5) return false
+    val (resource, resourceTaken, read, colorTaken, returned) = body
+    if (resource.opcode != Opcode.INVOKE_STATIC || (resource as FiveRegisterInstruction).registerCount != 1 || resource.registerC != own) return false
+    if (((resource as ReferenceInstruction).reference as? MethodReference)?.takesContextForInt() != true) return false
+    if (resourceTaken.opcode != Opcode.MOVE_RESULT) return false
+    val id = (resourceTaken as OneRegisterInstruction).registerA
+    if (read.opcode != Opcode.INVOKE_VIRTUAL || !read.calls(CONTEXT, "getColor")) return false
+    if ((read as FiveRegisterInstruction).registerCount != 2 || read.registerC != own || read.registerD != id) return false
+    if (colorTaken.opcode != Opcode.MOVE_RESULT || returned.opcode != Opcode.RETURN) return false
+    return (colorTaken as OneRegisterInstruction).registerA == (returned as OneRegisterInstruction).registerA
+}
+
+private fun MethodReference.takesContextForInt(): Boolean = returnType == "I" && parameterTypes.map(Any::toString) == listOf(CONTEXT)
 
 private fun FieldReference.key(): String = "$definingClass->$name:$type"
 

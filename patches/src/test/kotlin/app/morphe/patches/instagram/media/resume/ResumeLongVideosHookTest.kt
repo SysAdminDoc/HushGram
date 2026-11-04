@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -38,6 +39,7 @@ class ResumeLongVideosHookTest {
     private val holder = "Lfixture/PlayerVideo;"
     private val source = "Lfixture/VideoSource;"
     private val dumper = "Lfixture/SourceLogger;"
+    private val manager = "Lfixture/SessionManager;"
     private val string = "Ljava/lang/String;"
     private val hooks = setOf(STARTED, STOPPED, REBOUND, ENDED, SEEKING, SESSION_ENDED)
 
@@ -140,6 +142,30 @@ class ResumeLongVideosHookTest {
         assertFailsUntouched(classes(sessionEnd = false), "has no completeEndSession()V")
     }
 
+    /**
+     * 454 inlined completeEndSession into the session manager's end: the hook goes in at the last
+     * read of the session's state before a listener gets the sign-out flag, with the session's register.
+     */
+    @Test
+    fun anInlinedSessionEndIsHookedWhereItStarts() {
+        val context = PatchContexts.of(classes(sessionEnd = false, inlinedEnd = true))
+
+        context.resumeLongVideos()
+
+        val ending = context.method(manager, "A02").code()
+        val hook = ending[4] as RegisterRangeInstruction
+        assertEquals(SESSION_ENDED, (hook as Instruction).referenceText())
+        assertEquals("the session alone", 1 to 3, hook.registerCount to hook.startRegister)
+        assertEquals("Instagram's own end follows", "$RESUME_SESSION->sessionState:$string", ending[5].referenceText())
+        assertEquals("one hook", 1, ending.count { it.referenceText() == SESSION_ENDED })
+    }
+
+    @Test
+    fun anInlinedSessionEndSomethingJumpsOntoFailsBeforeAnythingChanges() {
+        val classes = classes(sessionEnd = false, inlinedEnd = true, endJumpedOnto = true)
+        assertFailsUntouched(classes, "jumps onto the session's end at 4")
+    }
+
     @Test
     fun aSessionWithoutItsSignOutFlagFailsBeforeAnythingChanges() {
         assertFailsUntouched(classes(loggedOut = false), "has no isLoggedOut:Z")
@@ -181,8 +207,17 @@ class ResumeLongVideosHookTest {
             .mapNotNull { it.parameterTypes.firstOrNull()?.toString() }
         val fieldTypes = players.flatMap { it.fields }.map { it.type }
         val extra = FixtureDex.classes(bundle, (sources + fieldTypes).toSet()).values
+        // Where a build inlined the session's end: the classes handing listeners the sign-out flag.
+        val enders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.stringSection.none { it == RESUME_WILL_END }) return@forEach
+            dex.classes.filterTo(enders) { classDef ->
+                classDef.methods.any { method -> method.code().any { it.methodName() == RESUME_WILL_END } }
+            }
+        }
         val context = PatchContexts.of(
-            (players + dumps + extra + ExtensionDex.classDef(RESUME_PLAYBACK)).distinctBy { it.type },
+            (players + dumps + extra + enders.map(ImmutableClassDef::of) + ExtensionDex.classDef(RESUME_PLAYBACK))
+                .distinctBy { it.type },
         )
         val found = context.findResumePlayer()
         assertEquals("$label: the holder is the player's", found.player.type, found.holder.definingClass)
@@ -191,7 +226,10 @@ class ResumeLongVideosHookTest {
         assertTrue("$label: the position and length readers differ", found.position != found.length)
         assertEquals("$label: the player's session", found.player.type, found.session.definingClass)
         assertEquals("$label: the session's user ID", "$RESUME_SESSION->userId:$string", found.userId.toString())
-        assertEquals("$label: the session's end", RESUME_SESSION, found.sessionEnd.definingClass)
+        val end = found.sessionEnd
+        val stock = end.method.code()
+        assertEquals("$label: the session's end reads its state", "$RESUME_SESSION->$RESUME_SESSION_STATE",
+            stock[end.index].referenceText()?.substringBefore(":"))
         assertEquals("$label: the sign-out flag", "$RESUME_SESSION->isLoggedOut:Z", found.loggedOut.toString())
 
         context.resumeLongVideos()
@@ -203,11 +241,14 @@ class ResumeLongVideosHookTest {
             found.bind to REBOUND, found.seek to SEEKING, found.completed to ENDED, found.looping to ENDED)) {
             assertEquals("$label: ${method.name}", hook, after(method)[0].referenceText())
         }
-        val ending = after(found.sessionEnd)
-        assertEquals("$label: the session's end", SESSION_ENDED, ending[0].referenceText())
-        assertEquals("$label: Instagram's own end follows", found.sessionEnd.implementation!!.instructions.count(),
-            ending.size - 1)
+        val ending = after(end.method)
+        assertEquals("$label: the session's end", SESSION_ENDED, ending[end.index].referenceText())
+        assertEquals("$label: Instagram's own end follows", stock[end.index].referenceText(), ending[end.index + 1].referenceText())
+        assertEquals("$label: nothing else changed", stock.count { it.opcode != Opcode.NOP },
+            ending.count { it.opcode != Opcode.NOP } - 1)
     }
+
+    private fun Instruction.methodName(): String? = ((this as? ReferenceInstruction)?.reference as? MethodReference)?.name
 
     private fun assertFailsUntouched(classes: List<ClassDef>, message: String) {
         val context = PatchContexts.of(classes)
@@ -242,6 +283,8 @@ class ResumeLongVideosHookTest {
         userId: Boolean = true,
         sessionEnd: Boolean = true,
         loggedOut: Boolean = true,
+        inlinedEnd: Boolean = false,
+        endJumpedOnto: Boolean = false,
     ): List<ClassDef> {
         val open = AccessFlags.PUBLIC.value
         val videoPlayer = classDef(
@@ -357,7 +400,28 @@ class ResumeLongVideosHookTest {
                 """),
             ),
         )
-        return listOf(videoPlayer, playerVideo, videoSource, sourceLogger, session, ExtensionDex.classDef(RESUME_PLAYBACK))
+        // Shaped like 454's: the manager's end checks the state once, then reads it again where
+        // completeEndSession began and tells each listener the sign-out flag.
+        val sessionManager = classDef(
+            manager,
+            listOf(
+                method(manager, "A02", listOf(manager, RESUME_SESSION, string), "V", 7, static = true, body = """
+                    move-object v3, p1
+                    iget-object v1, v3, $RESUME_SESSION->sessionState:$string
+                    if-eqz v1, ${if (endJumpedOnto) ":start" else ":done"}
+                    const/4 v1, 0x0
+                    :start
+                    iget-object v1, v3, $RESUME_SESSION->sessionState:$string
+                    const/4 v2, 0x0
+                    iget-boolean v0, v3, $RESUME_SESSION->isLoggedOut:Z
+                    invoke-interface { v2, v0 }, Lfixture/SessionListener;->$RESUME_WILL_END(Z)V
+                    :done
+                    return-void
+                """),
+            ),
+        )
+        return listOfNotNull(videoPlayer, playerVideo, videoSource, sourceLogger, session,
+            if (inlinedEnd) sessionManager else null, ExtensionDex.classDef(RESUME_PLAYBACK))
     }
 
     /** A media ID reader: the player's field, its IgVideoSource, the ID, each checked for null. */

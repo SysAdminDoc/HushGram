@@ -96,9 +96,13 @@ class DownloadVoiceMessagesHookTest {
 
         val audio = context.method(VOICE_MESSAGE, AUDIO_BRIDGE).instructions()
         assertEquals(
-            listOf("$MESSAGE->voice:$VOICE", "$VOICE->media()$VOICE_MEDIA", "$VOICE_MEDIA->source:$SOURCE", "$SOURCE->url()Ljava/lang/String;"),
+            listOf(
+                "$MESSAGE->voice:$VOICE", "$VOICE->media:$FEED_MEDIA", "$TREE->of($FEED_MEDIA)$TREE", "$VOICE_MEDIA->of($TREE)$VOICE_MEDIA",
+                "$VOICE_MEDIA->source:$SOURCE", "$SOURCE->url()Ljava/lang/String;",
+            ),
             audio.filter { it.opcode in READS }.map { it.referenceText() },
         )
+        assertTrue("a pending clip's path isn't read", audio.none { it.referenceText()?.contains("pendingPath") == true })
         assertEquals("the source is an interface", Opcode.INVOKE_INTERFACE, audio.single { it.referenceText()?.endsWith("url()Ljava/lang/String;") == true }.opcode)
         assertEquals(Opcode.INSTANCE_OF, audio.first { it.opcode == Opcode.INSTANCE_OF }.opcode)
         val mode = context.method(VOICE_MESSAGE, VIEW_MODE_BRIDGE).instructions()
@@ -186,8 +190,8 @@ class DownloadVoiceMessagesHookTest {
                 val saver = context.mutableClassDefBy(found.saver.method.definingClass).methods.single {
                     it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
                 }
-                if (bundle.name == "instagram-453.0.0.57.79-385914557.apks") {
-                    // Where it lands on 453's declared build, read off the dex by hand.
+                if (bundle.name == "instagram-454.0.0.54.77-386014758.apks") {
+                    // Where it lands on 454's declared build, read off the dex by hand.
                     val at = builder.instructions().indexOfFirst { it.referenceText() == OFFER_VOICE }
                     assertEquals(
                         DECLARED_SITES,
@@ -261,16 +265,19 @@ class DownloadVoiceMessagesHookTest {
 
     private companion object {
         /**
-         * On 453.0.0.57.79's 385914557: the builder and the ask before the offer, the saver's entry and its
-         * first two reads, then the audio bridge's reads and the view mode bridge's. The builder is now
-         * the lambda 0AoC's invoke (55.79's static 0Au5.A0H), still the only caller of the ask 0VaU.AZS,
-         * and the message is 01vE (55.79's 01vF).
+         * On 454.0.0.54.77's 386014758: the builder and the ask before the offer, the saver's entry and its
+         * first two reads, then the audio bridge's reads and the view mode bridge's. The builder is the
+         * static 0AHU.A0F, asking 0KaE.AZl about the message 03nI. The audio reads are the player GxB's
+         * own at 3755 and 3761 to 3765: 05s8's media, 0a5d.A00 and 06nc.A02 to its audio 00ru, then
+         * 00ru.A08 and its BWx.
          */
         val DECLARED_SITES = listOf(
-            "LX/0AoC;->invoke", "LX/0VaU;->AZS(Lcom/instagram/common/session/UserSession;LX/01vE;)Z",
-            "LX/0PnT;->A02", "LX/0MJ7;->A00:LX/01vE;", "LX/0PnT;->A00:Landroid/app/Activity;",
-            "LX/01vE;->A0L:LX/05B6;", "LX/05B6;->A00()LX/02xm;", "LX/02xm;->A08:LX/09o4;", "LX/09o4;->BWP()Ljava/lang/String;",
-            "LX/01vE;->A0L:LX/05B6;", "LX/05B6;->A0D:Ljava/lang/String;",
+            "LX/0AHU;->A0F", "LX/0KaE;->AZl(Lcom/instagram/common/session/UserSession;LX/03nI;)Z",
+            "LX/0OHC;->A03", "LX/0L4y;->A00:LX/03nI;", "LX/0OHC;->A00:Landroid/app/Activity;",
+            "LX/03nI;->A0L:LX/05s8;", "LX/05s8;->A02:Lcom/instagram/feed/media/Media;",
+            "LX/0a5d;->A00(Lcom/instagram/feed/media/Media;)LX/0T1Y;", "LX/06nc;->A02(LX/0T1Y;)LX/00ru;",
+            "LX/00ru;->A08:LX/09Ij;", "LX/09Ij;->BWx()Ljava/lang/String;",
+            "LX/03nI;->A0L:LX/05s8;", "LX/05s8;->A0D:Ljava/lang/String;",
         )
 
         const val MENU = "Lfixture/ThreadFragment;"
@@ -284,13 +291,15 @@ class DownloadVoiceMessagesHookTest {
         const val VOICE = "Lfixture/Voice;"
         const val VOICE_MEDIA = "Lfixture/VoiceMedia;"
         const val SOURCE = "Lfixture/AudioSource;"
+        const val TREE = "Lfixture/AudioTree;"
+        const val FEED_MEDIA = "Lcom/instagram/feed/media/Media;"
         const val PARSER = "Lfixture/VoiceParser;"
         const val JSON = "Lfixture/Json;"
         const val SAVER = "Lfixture/MediaSaver;"
         const val REQUEST = "Lfixture/SaveRequest;"
         const val SESSION = "Lcom/instagram/common/session/UserSession;"
         val SAVER_PARAMETERS = listOf(SAVER, "Lfixture/Media;", REQUEST, KIND)
-        val READS = setOf(Opcode.IGET_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_INTERFACE)
+        val READS = setOf(Opcode.IGET_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_STATIC)
         const val PUBLIC_FINAL = 0x0011
         const val PUBLIC_STATIC = 0x0009
 
@@ -390,27 +399,42 @@ class DownloadVoiceMessagesHookTest {
             )
         }
 
-        /** Shaped like the player's read in 450's StellaDirectMessagingService binder. */
+        /**
+         * Shaped like the player's read in 454's StellaDirectMessagingService binder (GxB on 386014758):
+         * a pending clip's path first, otherwise the voice media's media turned into its audio, both
+         * paths meeting at the read of the audio's source.
+         */
         fun player(address: String = "Ljava/lang/String;"): ClassDef {
             val body = """
                 const-string v0, "$AUDIO_SOURCE"
                 invoke-static { v0 }, Lfixture/Trace;->step(Ljava/lang/String;)V
                 if-eqz p1, :none
-                iget-object v0, p1, $MESSAGE->voice:$VOICE
-                if-eqz v0, :none
-                invoke-virtual { v0 }, $VOICE->media()$VOICE_MEDIA
+                iget-object v1, p1, $MESSAGE->voice:$VOICE
+                if-eqz v1, :none
+                invoke-virtual { v1 }, $VOICE->pendingPath()Ljava/lang/String;
                 move-result-object v0
-                if-eqz v0, :none
+                if-eqz v0, :media
+                invoke-static { v0 }, Lfixture/Clip;->audio(Ljava/lang/String;)$VOICE_MEDIA
+                move-result-object v0
+                :read
                 iget-object v0, v0, $VOICE_MEDIA->source:$SOURCE
                 if-eqz v0, :none
                 invoke-interface { v0 }, $SOURCE->url()$address
                 :none
                 const/4 v0, 0x0
                 return-object v0
+                :media
+                iget-object v0, v1, $VOICE->media:$FEED_MEDIA
+                if-eqz v0, :none
+                invoke-static { v0 }, $TREE->of($FEED_MEDIA)$TREE
+                move-result-object v0
+                invoke-static { v0 }, $VOICE_MEDIA->of($TREE)$VOICE_MEDIA
+                move-result-object v0
+                goto :read
             """
             return ImmutableClassDef(
                 PLAYER, PUBLIC_FINAL, "Ljava/lang/Object;", null, null, null, null,
-                listOf(method(PLAYER, "link", listOf(MESSAGE), 3, body, PUBLIC_FINAL, "Ljava/lang/String;")),
+                listOf(method(PLAYER, "link", listOf(MESSAGE), 4, body, PUBLIC_FINAL, "Ljava/lang/String;")),
             )
         }
 

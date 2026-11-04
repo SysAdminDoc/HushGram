@@ -26,6 +26,7 @@ import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.namedRegisters
+import app.morphe.util.reachingWrites
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -84,6 +85,9 @@ private const val LIST_ADD = "Ljava/util/List;->add(Ljava/lang/Object;)Z"
 private const val ENUM = "Ljava/lang/Enum;"
 private const val STRING_TYPE = "Ljava/lang/String;"
 private const val STRING_BUILDER_TYPE = "Ljava/lang/StringBuilder;"
+private const val BIT_SET = "Ljava/util/BitSet;"
+private const val BIT_SET_GET = "$BIT_SET->get(I)Z"
+private val SMALL_CONSTS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST)
 
 /** The enum behind a chat's long press menu: its initializer names both read actions. */
 internal object ChatMenuActionsFingerprint : Fingerprint(
@@ -400,19 +404,26 @@ private fun capabilityGate(builder: Method, classes: Map<String, ClassDef>): Int
             it.definingClass == CAPABILITIES && it.returnType == "Z" && it.parameterTypes.size == 1
         } == true
     }
-    val kind = asks.map { code[it].call()!!.parameterTypes.single().toString() }.distinct()
-        .one("kind of capability the chat menu builder asks about")
-    val unread = enumConstant(classes[kind] ?: refuse("$kind is missing"), MARK_UNREAD_CAPABILITY)
-    val (at, loaded) = asks.mapNotNull { at ->
-        val asked = code[at].namedRegisters().getOrNull(1) ?: return@mapNotNull null
-        val load = (at - 1 downTo 0).firstOrNull { code[it].writes(asked) } ?: return@mapNotNull null
-        (at to load).takeIf { code[load].opcode == Opcode.SGET_OBJECT && code[load].field()?.toString() == unread.toString() }
-    }.one("check of the chat's $MARK_UNREAD_CAPABILITY capability")
-    requireOrigin(THREAD_SEEN_PATCH, builder, at, code[at].namedRegisters()[1], loaded, "capability the chat menu builder checks")
-    if (code[at].namedRegisters()[0] != builder.parameterRegisterNumber(capabilities)) {
-        refuse("chat menu builder checks other capabilities than the chat's")
+    val at = if (asks.isEmpty()) {
+        val (asked, read) = inlinedCapabilityAsk(builder, code, builder.parameterRegisterNumber(capabilities), classes)
+        builder.requireParameterIntact(THREAD_SEEN_PATCH, capabilities, listOf(read))
+        asked
+    } else {
+        val kind = asks.map { code[it].call()!!.parameterTypes.single().toString() }.distinct()
+            .one("kind of capability the chat menu builder asks about")
+        val unread = enumConstant(classes[kind] ?: refuse("$kind is missing"), MARK_UNREAD_CAPABILITY)
+        val (at, loaded) = asks.mapNotNull { at ->
+            val asked = code[at].namedRegisters().getOrNull(1) ?: return@mapNotNull null
+            val load = (at - 1 downTo 0).firstOrNull { code[it].writes(asked) } ?: return@mapNotNull null
+            (at to load).takeIf { code[load].opcode == Opcode.SGET_OBJECT && code[load].field()?.toString() == unread.toString() }
+        }.one("check of the chat's $MARK_UNREAD_CAPABILITY capability")
+        requireOrigin(THREAD_SEEN_PATCH, builder, at, code[at].namedRegisters()[1], loaded, "capability the chat menu builder checks")
+        if (code[at].namedRegisters()[0] != builder.parameterRegisterNumber(capabilities)) {
+            refuse("chat menu builder checks other capabilities than the chat's")
+        }
+        builder.requireParameterIntact(THREAD_SEEN_PATCH, capabilities, listOf(at))
+        at
     }
-    builder.requireParameterIntact(THREAD_SEEN_PATCH, capabilities, listOf(at))
     val answer = (code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction)?.registerA
         ?: refuse("chat menu builder drops its capability answer")
     // 451 branches on the answer straight away; 452 (0Cjx.A01) keeps it in a local through its other
@@ -426,6 +437,93 @@ private fun capabilityGate(builder: Method, classes: Map<String, ClassDef>): Int
     if (gate >= code.size || branchAt in targets || gate in targets) refuse("chat menu builder can be entered past its capability check")
     requireOrigin(THREAD_SEEN_PATCH, builder, branchAt, answer, at + 1, "capability answer the chat menu builder branches on")
     return gate
+}
+
+/**
+ * 454's Redex inlines the capability check (Capabilities.A02 into 03KI.A03 on 386014758): the check
+ * reads its kind's bit and looks it up in one of two bit sets by the bit's sign, and the builder
+ * reads the set and asks it for [MARK_UNREAD_CAPABILITY]'s bit itself, a constant (31 there). The
+ * set and the bit come from the check and from the constant's construction. Answers the builder's
+ * ask of the set and where it reads the set off [capabilities], the chat's capabilities register.
+ */
+private fun inlinedCapabilityAsk(builder: Method, code: List<Instruction>, capabilities: Int, classes: Map<String, ClassDef>): Pair<Int, Int> {
+    val holder = classes[CAPABILITIES] ?: refuse("$CAPABILITIES is missing")
+    val check = holder.methods.filter {
+        !it.static() && it.returnType == "Z" && it.parameters().size == 1 && it.parameters().single() != JAVA_OBJECT_TYPE && it.implementation != null
+    }.one("capability check on $CAPABILITIES")
+    val kind = check.parameters().single()
+    val checkCode = check.visualCode()
+    val bitField = checkCode.firstOrNull()?.takeIf { it.opcode == Opcode.IGET && it.field()?.definingClass == kind }?.field()
+        ?: refuse("capability check doesn't start from its kind's bit")
+    if (checkCode.getOrNull(1)?.opcode != Opcode.IF_GEZ) refuse("capability check doesn't pick its bit set by the bit's sign")
+    // The set for bits below zero is read right before the bit is negated; the other set takes the rest.
+    val sets = checkCode.indices.filter {
+        checkCode[it].opcode == Opcode.IGET_OBJECT && checkCode[it].field()?.let { f -> f.definingClass == CAPABILITIES && f.type == BIT_SET } == true
+    }
+    val negative = sets.filter { checkCode.getOrNull(it + 1)?.opcode == Opcode.NEG_INT }.one("bit set for bits below zero")
+    val set = (sets - negative).map { checkCode[it].field()!! }.distinctBy { it.name }.one("bit set for bits from zero")
+    val bit = enumInt(classes[kind] ?: refuse("$kind is missing"), MARK_UNREAD_CAPABILITY, bitField)
+    if (bit < 0) refuse("$MARK_UNREAD_CAPABILITY's bit is below zero")
+
+    val found = code.indices.mapNotNull { at ->
+        val call = code[at].takeIf { it.opcode == Opcode.INVOKE_VIRTUAL }?.call() ?: return@mapNotNull null
+        if (call.key() != BIT_SET_GET) return@mapNotNull null
+        val (asked, index) = code[at].namedRegisters()
+        val readAt = (at - 1 downTo 0).firstOrNull { code[it].writes(asked) } ?: return@mapNotNull null
+        val read = code[readAt]
+        if (read.opcode != Opcode.IGET_OBJECT || read.field()?.toString() != set.toString() || (read as TwoRegisterInstruction).registerB != capabilities) {
+            return@mapNotNull null
+        }
+        val bitAt = (at - 1 downTo 0).firstOrNull { code[it].writes(index) } ?: return@mapNotNull null
+        if (code[bitAt].opcode !in SMALL_CONSTS || (code[bitAt] as NarrowLiteralInstruction).narrowLiteral != bit) return@mapNotNull null
+        Triple(at, readAt, bitAt)
+    }.one("check of the chat's $MARK_UNREAD_CAPABILITY capability")
+    val (at, readAt, bitAt) = found
+    val (asked, index) = code[at].namedRegisters()
+    requireOrigin(THREAD_SEEN_PATCH, builder, at, asked, readAt, "capability set the chat menu builder checks")
+    requireOrigin(THREAD_SEEN_PATCH, builder, at, index, bitAt, "capability the chat menu builder checks")
+    return at to readAt
+}
+
+/**
+ * The int [field] of [enum]'s constant named [name] is built with: the constructor the initializer
+ * builds it with stores one of its parameters there, and the initializer hands that parameter a
+ * constant, maybe through moves.
+ */
+private fun enumInt(enum: ClassDef, name: String, field: FieldReference): Int {
+    val init = enum.methods.filter { it.name == "<clinit>" }.one("initializer of the enum naming $name")
+    val code = init.visualCode()
+    val named = code.indices.filter { code[it].visualString() == name }.one("$name in its enum's initializer")
+    val built = (named + 1 until code.size).firstOrNull {
+        code[it].opcode in DIRECT_CALLS && code[it].call()?.let { call -> call.definingClass == enum.type && call.name == "<init>" } == true
+    } ?: refuse("$name is never built")
+    val call = code[built].call()!!
+    val constructor = enum.methods.filter {
+        it.name == "<init>" && it.parameters() == call.parameterTypes.map(Any::toString) && it.implementation != null
+    }.one("constructor $name is built with")
+    val body = constructor.visualCode()
+    val storeAt = body.indices.filter { body[it].opcode == Opcode.IPUT && body[it].field()?.toString() == field.toString() }
+        .one("write of ${field.name} in $name's constructor")
+    val stored = (body[storeAt] as TwoRegisterInstruction).registerA
+    val parameter = constructor.parameterTypes.indices.firstOrNull { constructor.parameterRegisterNumber(it) == stored }
+        ?: refuse("$name's constructor doesn't store a parameter in ${field.name}")
+    constructor.requireParameterIntact(THREAD_SEEN_PATCH, parameter, listOf(storeAt))
+    var register = code[built].namedRegisters().getOrNull(stored - constructor.localRegisterCount())
+        ?: refuse("$name is built with too few arguments")
+    var at = built
+    while (true) {
+        val written = (at - 1 downTo named).firstOrNull { code[it].writes(register) } ?: refuse("$name's ${field.name} isn't a constant")
+        requireOrigin(THREAD_SEEN_PATCH, init, at, register, written, "$name's ${field.name}")
+        val source = code[written]
+        when (source.opcode) {
+            in SMALL_CONSTS -> return (source as NarrowLiteralInstruction).narrowLiteral
+            Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16 -> {
+                register = (source as TwoRegisterInstruction).registerB
+                at = written
+            }
+            else -> refuse("$name's ${field.name} isn't a constant")
+        }
+    }
 }
 
 /**
@@ -528,6 +626,8 @@ private fun pickMessage(route: Method, sender: Method): Pick {
  * The call [route] takes a chat's unread mark off with: Instagram's (account, chat key, boolean), handed false.
  * The false is a const/4 of its own, or, where Redex outlines the handler's opening null checks into one
  * static helper (451's 385713109, 385713111 and 385713117), that helper's answer, which [answersFalse].
+ * The write is the one that reaches the call, not the nearest in code order: on 454's 386014714 the
+ * handler's early "payload is empty" return loads its message into the false's register first.
  */
 private fun unreadCall(route: Method, classes: Map<String, ClassDef>): MethodReference {
     val code = route.visualCode()
@@ -537,7 +637,7 @@ private fun unreadCall(route: Method, classes: Map<String, ClassDef>): MethodRef
         } == true
     }.one("call Instagram's handler for marking a chat read takes the unread mark off with")
     val flag = code[at].namedRegisters()[2]
-    val set = (at - 1 downTo 0).firstOrNull { code[it].writes(flag) }
+    val set = reachingWrites(route, code, flag, at).singleOrNull()
     if (set == null || !writesFalse(code, set, classes)) {
         refuse("Instagram's handler for marking a chat read doesn't hand its unread call false")
     }

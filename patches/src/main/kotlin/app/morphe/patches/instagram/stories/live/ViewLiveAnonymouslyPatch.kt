@@ -46,11 +46,11 @@ internal const val BIND_LIVE_SEEN_BUTTON = "$LIVE_SEEN_BUTTON->bind(Landroid/vie
 
 /**
  * The live header's three-dot menu and close button (`id/iglive_header_options` and
- * `id/iglive_header_close`), the same in all eight 453 builds (aapt2). The live viewer's header
+ * `id/iglive_header_close`), the same in all ten 454 builds (aapt2; 453 had 0x7f0b1f5f and 0x7f0b1f57). The live viewer's header
  * holds both; the host's own header has only the close button.
  */
-internal const val LIVE_HEADER_OPTIONS = 0x7f0b1f5f
-internal const val LIVE_HEADER_CLOSE = 0x7f0b1f57
+internal const val LIVE_HEADER_OPTIONS = 0x7f0b1f45
+internal const val LIVE_HEADER_CLOSE = 0x7f0b1f3d
 internal const val VIEW = "Landroid/view/View;"
 
 /**

@@ -540,6 +540,52 @@ class PureBlackTest {
         assertEquals(listOf(avatar to 2), patch.findNewRowTintReads().map { it.type to it.index })
     }
 
+    /**
+     * Redex moves the row lambda's body out of invoke into a static of its class, and the label stays
+     * in invoke (`LX/0X9f;->A01` on 386014758). The body takes invoke's label, while a body another arm
+     * of the switch calls, or one a class elsewhere also calls, keeps its tint.
+     */
+    @Test
+    fun anOutlinedRowBodyTakesItsLambdasLabel() {
+        val avatar = classDef("Lfixture/Avatar;", """
+            const-string v0, "com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous> (NewsfeedStoryRow.kt:359)"
+            iget-wide v1, v5, $FAKE_THEME->tint:J
+            return-void
+        """)
+        val lambda = "Lfixture/RowLambda;"
+        val reads = """
+            iget-wide v1, v5, $FAKE_THEME->tint:J
+            return-void
+        """
+        val row = lambdaClass(lambda,
+            classDef(lambda, """
+                if-eqz v0, :row
+                invoke-static { }, $lambda->A02()V
+                return-void
+                :row
+                const-string v1, "com.instagram.newsfeed.fragment.NewsfeedRow.<anonymous> (NewsfeedYouComposeFragment.kt:3633)"
+                invoke-static { }, $lambda->A01()V
+                return-void
+            """, name = "invoke"),
+            classDef(lambda, reads, name = "A01"),
+            classDef(lambda, reads, name = "A02"),
+        )
+
+        val patch = newRowContext(avatar, row)
+        val found = patch.findNewRowTintReads()
+        assertEquals(listOf("Lfixture/Avatar;" to "colors", lambda to "A01"), found.map { it.type to it.method.name })
+        patch.blackenNewRowTints(found)
+        val body = patch.classDefBy(lambda).methods.single { it.name == "A01" }.implementation!!.instructions.toList()
+        assertHooked(body, 0, 1)
+
+        val elsewhere = classDef("Lfixture/Elsewhere;", """
+            invoke-static { }, $lambda->A01()V
+            return-void
+        """)
+        assertEquals("a body called from elsewhere keeps its tint", listOf("Lfixture/Avatar;"),
+            newRowContext(avatar, row, elsewhere).findNewRowTintReads().map { it.type })
+    }
+
     /** No avatar means no way to tell which of the theme's colors is the tint, so it fails. */
     @Test
     fun notificationsWithoutTheAvatarFail() {
@@ -567,6 +613,48 @@ class PureBlackTest {
         assertTrue(failure.message!!, "color" in failure.message!!)
     }
 
+    /**
+     * A merged lambda's invoke holding an avatar label that reads no color isn't the avatar, even when
+     * another arm's body in its class reads the theme (`LX/0C5a;->invoke` beside `A04` on 386014714).
+     */
+    @Test
+    fun anAvatarLabelReadingNoColorIsNotTheAvatar() {
+        val avatar = classDef("Lfixture/Avatar;", """
+            const-string v0, "com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous> (NewsfeedStoryRow.kt:359)"
+            iget-wide v1, v5, $FAKE_THEME->tint:J
+            return-void
+        """)
+        val merged = "Lfixture/MergedLambda;"
+        val image = lambdaClass(merged,
+            classDef(merged, """
+                const-string v0, "com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous> (NewsfeedStoryRow.kt:371)"
+                return-void
+            """, name = "invoke"),
+            classDef(merged, """
+                iget-wide v1, v5, $FAKE_THEME->f1:J
+                return-void
+            """, name = "A04"),
+        )
+
+        assertEquals(listOf("Lfixture/Avatar;" to 1), newRowContext(avatar, image).findNewRowTintReads().map { it.type to it.index })
+    }
+
+    /** Two avatars reading the theme don't say which is the tint, so it fails. */
+    @Test
+    fun twoAvatarsReadingTheThemeFail() {
+        val avatar = { type: String ->
+            classDef(type, """
+                const-string v0, "com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous> (NewsfeedStoryRow.kt:359)"
+                iget-wide v1, v5, $FAKE_THEME->tint:J
+                return-void
+            """)
+        }
+        val patch = newRowContext(avatar("Lfixture/Avatar;"), avatar("Lfixture/OtherAvatar;"))
+
+        val failure = assertThrows(PatchException::class.java) { patch.findNewRowTintReads() }
+        assertTrue(failure.message!!, "found 2" in failure.message!!)
+    }
+
     /** No class making a theme from Prism's tint means an update the patch hasn't seen. */
     @Test
     fun noThemeFails() {
@@ -592,6 +680,10 @@ class PureBlackTest {
         """)
         return PatchContexts.of(listOf(theme, palette) + classes)
     }
+
+    /** One class holding the methods of [parts], each a one-method class of [type]. */
+    private fun lambdaClass(type: String, vararg parts: ClassDef): ClassDef =
+        ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, emptyList(), parts.flatMap { it.methods })
 
     private fun assertHooked(code: List<Instruction>, read: Int, register: Int) {
         assertEquals(Opcode.IGET_WIDE, code[read].opcode)

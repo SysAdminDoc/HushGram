@@ -51,6 +51,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DownloadStoryHookTest {
+    /** A Pando tree's read of an optional int field by its hash, which 454 inlines its getters into. */
+    private val TREE_INT = "Lcom/instagram/pando/livetree/LiveTreeJNI;->getOptionalIntValueByHashCode(I)Ljava/lang/Integer;"
     private val helper = "Lfixture/StoryMenu;"
     private val other = "Lfixture/OtherMenu;"
     private val dismiss = "Landroid/content/DialogInterface\$OnDismissListener;"
@@ -422,10 +424,14 @@ class DownloadStoryHookTest {
             val getter = bridge[1].referenceText()!!
             assertTrue("$build: the posted type bridge calls $getter", getter.startsWith("$MEDIA->") && getter.endsWith("()Ljava/lang/Integer;"))
             val story = context.method(INSTAGRAM_MEDIA, "storyMedia").code()[3].referenceText()!!
-            val viewers = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.toString() == getter } }) { method ->
-                method.postedTypeChecks(story, getter).isNotEmpty()
+            // The hash the getter asks the Media's tree for, which 454's viewer asks for itself.
+            val hash = context.method(MEDIA, getter.substringAfter("->").substringBefore("(")).code()
+                .firstNotNullOfOrNull { (it as? NarrowLiteralInstruction)?.takeIf { load -> load.opcode == Opcode.CONST }?.narrowLiteral }
+            val viewers = FixtureDex.methodsWhere(bundle, { dex -> dex.fieldSection.any { it.toString() == story } }) { method ->
+                method.implementation?.instructions?.any { (it as? ReferenceInstruction)?.reference?.toString() == story } == true &&
+                    method.postedTypeChecks(story, getter, hash).isNotEmpty()
             }
-            val compared = viewers.flatMap { it.postedTypeChecks(story, getter) }.toSet()
+            val compared = viewers.flatMap { it.postedTypeChecks(story, getter, hash) }.toSet()
             assertTrue("$build: nothing reads $getter on $story and compares it with a media type", compared.isNotEmpty())
             val types = FixtureDex.classes(bundle, compared.mapTo(HashSet()) { it.substringBefore("->") })
             compared.forEach { constant ->
@@ -495,21 +501,46 @@ class DownloadStoryHookTest {
      * the getter is called on is the one last put in its register before the call, which 453.0.0.57.79's
      * 385914546 reads five instructions earlier, checking a cached copy of the type first. Only the
      * straight run ending at the call counts: a jump landing in it could bring another Media.
+     *
+     * 454's Redex inlines the getter, so there the viewer asks a tree field of the story's Media for
+     * [hash] itself, the number the getter asks for, and looks the answer up in the media type's own
+     * map of numbers instead of calling a static method.
      */
-    private fun Method.postedTypeChecks(story: String, getter: String): List<String> {
+    private fun Method.postedTypeChecks(story: String, getter: String, hash: Int? = null): List<String> {
         val code = code()
         val entered = entries()
-        return code.indices.filter { code[it].opcode == Opcode.INVOKE_VIRTUAL && code[it].referenceText() == getter }.mapNotNull { call ->
-            val media = (code[call] as Instruction35c).registerC
+        fun writer(register: Int, from: Int, run: Int) = (from downTo run).firstOrNull { at ->
+            code[at].opcode.setsRegister() && (code[at] as? OneRegisterInstruction)?.registerA == register
+        }
+        return code.indices.mapNotNull { call ->
+            if (code[call].opcode != Opcode.INVOKE_VIRTUAL) return@mapNotNull null
+            val asked = code[call].referenceText() == getter
+            val inlined = hash != null && code[call].referenceText() == TREE_INT
+            if (!asked && !inlined) return@mapNotNull null
             val run = (call downTo 0).firstOrNull { it in entered } ?: 0
-            val set = (call - 1 downTo run).firstOrNull { at -> code[at].opcode.setsRegister() && (code[at] as? OneRegisterInstruction)?.registerA == media }
+            var media = (code[call] as Instruction35c).registerC
+            var before = call - 1
+            if (inlined) {
+                val key = writer((code[call] as Instruction35c).registerD, call - 1, run)?.let { code[it] as? NarrowLiteralInstruction }
+                if (key?.narrowLiteral != hash) return@mapNotNull null
+                val tree = writer(media, call - 1, run) ?: return@mapNotNull null
+                val field = (code[tree] as? ReferenceInstruction)?.reference as? FieldReference
+                if (code[tree].opcode != Opcode.IGET_OBJECT || field?.definingClass != MEDIA) return@mapNotNull null
+                media = (code[tree] as TwoRegisterInstruction).registerB
+                before = tree - 1
+            }
+            val set = writer(media, before, run)
             val read = set != null && code[set].opcode == Opcode.IGET_OBJECT && code[set].referenceText() == story
             if (!read) return@mapNotNull null
-            val after = code.subList(call + 1, minOf(code.size, call + 8))
+            val after = code.subList(call + 1, minOf(code.size, call + 10))
             val type = after.firstNotNullOfOrNull { instruction ->
-                ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf {
-                    instruction.opcode == Opcode.INVOKE_STATIC && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Integer;")
-                }?.returnType
+                when (val reference = (instruction as? ReferenceInstruction)?.reference) {
+                    is MethodReference -> reference.returnType.takeIf {
+                        instruction.opcode == Opcode.INVOKE_STATIC && reference.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Integer;")
+                    }
+                    is FieldReference -> reference.definingClass.takeIf { instruction.opcode == Opcode.SGET_OBJECT && reference.type == "Ljava/util/Map;" }
+                    else -> null
+                }
             } ?: return@mapNotNull null
             after.firstOrNull { instruction ->
                 instruction.opcode == Opcode.SGET_OBJECT &&

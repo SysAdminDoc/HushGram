@@ -309,7 +309,7 @@ class StoryRetryQueueTest {
         assertEquals(at + 6, target(code, at + 1))
         assertEquals(at + 6, target(code, at + 4))
         assertEquals(queue.loop, target(code, at + 5))
-        assertEquals("selection precedes the native claim", original.code()[17].reference(), code[at + 6].reference())
+        assertEquals("selection precedes the native claim", original.code()[18].reference(), code[at + 6].reference())
         assertEquals("the selected local reaches the native request builder", listOf(original.localRegisterCount(), queue.batch), code[at + 9].namedRegisters())
         preserved(original, patched, at, 6)
 
@@ -402,9 +402,9 @@ class StoryRetryQueueTest {
         val found = PatchContexts.of(classes).findStorySeen()
         val owner = classes.single { it.type == found.queue!!.owner }
         val run = owner.methods.single { it.name == found.queue!!.run }
-        val claimKey = run.code()[17].reference()
+        val claimKey = run.code()[18].reference()
         val claim = owner.methods.single { it.toString() == claimKey }
-        val lookupKey = run.code()[14].reference()
+        val lookupKey = run.code()[15].reference()
         val lookup = owner.methods.single { it.toString() == lookupKey }
         refused(changed(classes, claim, 7, ImmutableInstruction21t(Opcode.IF_NEZ, claim.parameterRegisterNumber(0),
             (claim.code()[7] as OffsetInstruction).codeOffset)), "ownership registers at 7")
@@ -443,7 +443,7 @@ class StoryRetryQueueTest {
             5 to "new-instance v$lock, Ljava/util/ArrayList;",
             6 to "invoke-direct { v$lock, v$collection }, Ljava/util/ArrayList;-><init>(Ljava/util/Collection;)V",
             8 to "return-object v$lock"), "overwrites its monitor")
-        val claim = owner.methods.single { it.toString() == run.code()[17].reference() }
+        val claim = owner.methods.single { it.toString() == run.code()[18].reference() }
         val pending = claim.code()[4].namedRegisters().first()
         val flight = claim.code()[10].reference()
         val key = claim.parameterRegisterNumber(0)
@@ -482,7 +482,7 @@ class StoryRetryQueueTest {
         val found = PatchContexts.of(classes).findStorySeen()
         val run = classes.single { it.type == found.queue!!.owner }.methods.single { it.name == found.queue!!.run }
         for ((result, branch, register) in listOf(
-            Triple(18, 19, found.queue!!.batch),
+            Triple(19, 20, found.queue!!.batch),
             Triple(9, 10, run.code()[6].namedRegisters().single()),
         )) {
             val alias = changed(classes, run, result, ImmutableInstruction11x(Opcode.MOVE_RESULT, register))
@@ -632,8 +632,8 @@ class StoryRetryQueueTest {
     }
 
     private fun proofInputs(): List<List<ClassDef>> {
-        val declared = Fixtures.files { it.name == "instagram-453.0.0.57.79-385914557.apks" }
-        assertTrue("the authoritative declared 453 build (385914557) is required", declared.isNotEmpty())
+        val declared = Fixtures.files { it.name == "instagram-454.0.0.54.77-386014758.apks" }
+        assertTrue("the authoritative declared 454 build (386014758) is required", declared.isNotEmpty())
         return declared.map { fixtures.keptFixtureClasses(it) } + listOf(fixtures.standIns())
     }
 

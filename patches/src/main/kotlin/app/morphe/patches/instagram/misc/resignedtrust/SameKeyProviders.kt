@@ -9,6 +9,10 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.util.ControlFlow
+import app.morphe.util.entryReads
+import app.morphe.util.literalReads
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -45,6 +49,56 @@ private fun Instruction.arguments(): List<Int> = when (this) {
     is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
     is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
     else -> emptyList()
+}
+
+private class InlinedPolicyRead(val method: Method, val index: Int, val field: FieldReference)
+
+private val gotos = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+
+private fun Instruction.writes(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val destination = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return destination == register || (opcode.setsWideRegister() && destination + 1 == register)
+}
+
+/**
+ * The guard decision behind a SameKey policy read inlined into the base, or null when its shape
+ * differs. The read casts the delegate to SameKey itself and goes straight to the native checker, or
+ * jumps there (`A0Q`'s arm for `A01` jumps back to the checker the TrustedApps arm falls into on
+ * 386014758). The checker's context is the one the method writes from the provider's getContext, on
+ * every path in, and its answer is tested at once, where nothing else jumps.
+ */
+private fun inlinedProviderDecision(read: InlinedPolicyRead, sameKey: String, policy: String): ProviderDecision? {
+    val method = read.method
+    if (method.returnType != "V" || method.parameterTypes.isNotEmpty() || AccessFlags.STATIC.isSet(method.accessFlags)) return null
+    val code = method.implementation?.instructions?.toList() ?: return null
+    val load = code[read.index] as TwoRegisterInstruction
+    val cast = code.getOrNull(read.index - 1)
+    if (cast?.opcode != Opcode.CHECK_CAST || ((cast as ReferenceInstruction).reference as? TypeReference)?.type != sameKey ||
+        (cast as OneRegisterInstruction).registerA != load.registerB || read.field.type != policy) return null
+    val next = read.index + 1
+    val at = if (code.getOrNull(next)?.opcode in gotos) ControlFlow.of(method).normal[next].single() else next
+    val checker = code.getOrNull(at)?.methodRef() ?: return null
+    if (code[at].opcode !in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) || checker.returnType != "Z" ||
+        checker.parameterTypes.map(CharSequence::toString) != listOf(CONTEXT, policy) || at + 2 >= code.size ||
+        code[at + 1].opcode != Opcode.MOVE_RESULT || code[at + 2].opcode !in setOf(Opcode.IF_EQZ, Opcode.IF_NEZ)) return null
+    val context = code[at].arguments().firstOrNull() ?: return null
+    val result = (code[at + 1] as OneRegisterInstruction).registerA
+    if (code[at].arguments() != listOf(context, load.registerA) || (code[at + 2] as OneRegisterInstruction).registerA != result ||
+        result !in 0..15 || result == context || result == method.implementation!!.registerCount - 1) return null
+    // The method reuses the context register elsewhere (the caller's package for the refusal, the
+    // kill switch's iterator), so every write that can reach the checker must be getContext's.
+    val writes = code.indices.filter { code[it].writes(context) }
+    if (writes.any { code[it].opcode.setsWideRegister() } || at in method.entryReads(context)) return null
+    val reaching = writes.filter { at in method.literalReads(it) }
+    if (reaching.isEmpty() || reaching.any { write ->
+            val contextCall = code.getOrNull(write - 1)?.methodRef()
+            code[write].opcode != Opcode.MOVE_RESULT_OBJECT || contextCall?.definingClass != "Landroid/content/ContentProvider;" ||
+                contextCall.name != "getContext" || contextCall.returnType != CONTEXT || contextCall.parameterTypes.isNotEmpty()
+        }) return null
+    val jumps = method.jumpTargets()
+    if (at + 1 in jumps || at + 2 in jumps) return null
+    return ProviderDecision(method, at + 2, context, result)
 }
 
 /**
@@ -90,12 +144,21 @@ internal fun sameKeyProviderDecisions(classes: Iterable<ClassDef>): List<Provide
             code.take(at).none { (it as? ReferenceInstruction)?.reference.let { ref -> (ref as? TypeReference)?.type == sameKey.type } }
     }.toList()
     val getters = own.ifEmpty { folded }
-    needProviderShape(getters.size == 2 && getters.map { it.returnType }.distinct().size == 1 && (own.isEmpty() || folded.isEmpty()),
+    // 454's Redex inlines the getters into the guards too: each guard casts the delegate to SameKey
+    // itself and reads the policy field there (`AbstractContentProviderDelegate;->A0Q` and `A0S` on
+    // 386014758), so with no getter left the base's own reads of a SameKey field are the policies.
+    val reads = if (getters.isNotEmpty()) emptyList() else base.methods.flatMap { method ->
+        method.implementation?.instructions?.toList().orEmpty().withIndex().filter { (_, instruction) ->
+            instruction.opcode == Opcode.IGET_OBJECT && instruction.fieldRef()?.definingClass == sameKey.type
+        }.map { InlinedPolicyRead(method, it.index, it.value.fieldRef()!!) }
+    }
+    needProviderShape(getters.size == 2 && getters.map { it.returnType }.distinct().size == 1 && (own.isEmpty() || folded.isEmpty()) ||
+        reads.size == 2 && reads.map { it.field.type }.distinct().size == 1,
         "expected two SameKey policy getters")
-    val policy = getters.first().returnType
+    val policy = getters.firstOrNull()?.returnType ?: reads.first().field.type
     val fields = getters.map { getter ->
         getter.implementation!!.instructions.single { it.readsSameKey(policy) }.fieldRef()!!.toString()
-    }.toSet()
+    }.toSet() + reads.map { it.field.toString() }
     needProviderShape(fields.size == 2, "the SameKey policy getters share a field")
     val constructors = sameKey.methods.filter { it.name == "<init>" }.toList()
     needProviderShape(constructors.size == 1, "expected one SameKey provider constructor")
@@ -107,7 +170,11 @@ internal fun sameKeyProviderDecisions(classes: Iterable<ClassDef>): List<Provide
         assignments.all { (it as TwoRegisterInstruction).registerA == (singletons.single() as OneRegisterInstruction).registerA },
         "the SameKey provider no longer initializes both policies from one singleton")
 
-    val targets = getters.map { getter ->
+    val targets = reads.map { read ->
+        val match = inlinedProviderDecision(read, sameKey.type, policy)
+        needProviderShape(match != null, "expected one guard for each SameKey policy, found 0")
+        match!!
+    } + getters.map { getter ->
         val matches = base.methods.flatMap { method ->
             if (method.returnType != "V" || method.parameterTypes.isNotEmpty() ||
                 AccessFlags.STATIC.isSet(method.accessFlags)) return@flatMap emptyList()

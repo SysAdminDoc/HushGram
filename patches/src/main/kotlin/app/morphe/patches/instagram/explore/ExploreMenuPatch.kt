@@ -164,9 +164,16 @@ internal fun BytecodePatchContext.findExploreTimer(): ExploreTimer {
  * and writes the personalized flag right after. The hook goes in front of the flag read, and also
  * reads the grid field the reload checks first, so it never reloads a fragment without a grid. The
  * menu flag's number is kept for finding the menu button, which is made behind the same flag.
+ *
+ * On five of 454's builds the same code sits in an instance method of the controller that onResume
+ * calls, with the controller as `this` (386014704's LX/09ZO;->onResume calls LX/0D2f;->A05 with a
+ * Function0), so the hook goes there. [holder], [method] and [parameters] say where it goes.
  */
 internal class ExploreResume(
     val fragment: String,
+    val holder: String,
+    val method: String,
+    val parameters: List<String>,
     val hookAt: Int,
     val controller: Int,
     val personalized: FieldReference,
@@ -179,21 +186,20 @@ internal class ExploreResume(
 
 internal fun BytecodePatchContext.findExploreResume(timer: ExploreTimer): ExploreResume {
     val fragmentClass = classDefBy(timer.fragment)
-    val method = fragmentClass.methods.singleOrNull {
+    val onResume = fragmentClass.methods.singleOrNull {
         it.name == "onResume" && it.parameterTypes.isEmpty() && it.returnType == "V" && it.implementation != null
     } ?: menuRefuse("${timer.fragment} has no onResume")
-    val where = "${timer.fragment}->onResume"
+    val method = timerAsker(timer, onResume)
+    val where = "${method.definingClass}->${method.name}"
     val code = method.implementation!!.instructions.toList()
-    val calls = code.indices.filter { at ->
-        code[at].opcode in INVOKES_VIRTUAL && (reference(code[at]) as MethodReference).let {
-            it.definingClass == timer.type && it.name == timer.method && it.parameterTypes.isEmpty() && it.returnType == "Z"
-        }
-    }
+    val calls = timerCalls(code, timer)
     val call = calls.singleOrNull() ?: menuRefuse("$where asks the timer ${calls.size} times, expected once")
     fun shape(holds: Boolean, what: String) {
         if (!holds) menuRefuse("$where $what, a shape this patch hasn't seen")
     }
-    shape(call >= 10 && call + 6 < code.size, "asks the timer too near an end")
+    // The controller's method on 386014704 ends two instructions past the flag write, so only the
+    // write's own reach is asked for here.
+    shape(call >= 10 && call + 3 < code.size, "asks the timer too near an end")
     val timerRegister = firstRegister(code[call])
 
     val answer = code[call + 1]
@@ -238,7 +244,7 @@ internal fun BytecodePatchContext.findExploreResume(timer: ExploreTimer): Explor
     shape(register(known) != controller && register(known) !in arguments, "reuses a register it still needs")
     shape((call - 10 until call - 2).none { writes(code[it], controller) }, "writes over the controller")
     shape(
-        (call + 3..call + 6).any {
+        (call + 3..minOf(call + 6, code.size - 1)).any {
             code[it].opcode == Opcode.IPUT_BOOLEAN && (code[it] as TwoRegisterInstruction).registerB == controller &&
                 (reference(code[it]) as FieldReference).toString() == personalized.toString()
         },
@@ -255,9 +261,42 @@ internal fun BytecodePatchContext.findExploreResume(timer: ExploreTimer): Explor
     val scratch = free.firstOrNull { it != pair && it != pair + 1 }
         ?: menuRefuse("$where has no third free register for the hook")
     return ExploreResume(
-        timer.fragment, hookAt, controller, personalized, timerField, flag,
-        grid, scratch, pair,
+        timer.fragment, method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString),
+        hookAt, controller, personalized, timerField, flag, grid, scratch, pair,
     )
+}
+
+/** Where [code] calls the timer: an invoke-virtual of its ()Z method. */
+private fun timerCalls(code: List<Instruction>, timer: ExploreTimer): List<Int> = code.indices.filter { at ->
+    code[at].opcode in INVOKES_VIRTUAL && (reference(code[at]) as MethodReference).let {
+        it.definingClass == timer.type && it.name == timer.method && it.parameterTypes.isEmpty() && it.returnType == "Z"
+    }
+}
+
+/**
+ * The method that asks the timer: [onResume] when it calls the timer at all, or else the one
+ * instance method onResume calls virtually that does (386014704's LX/0D2f;->A05). With none, it's
+ * [onResume], which then refuses as asking the timer no times. Two such methods are refused.
+ */
+private fun BytecodePatchContext.timerAsker(timer: ExploreTimer, onResume: Method): Method {
+    val code = onResume.implementation!!.instructions.toList()
+    if (timerCalls(code, timer).isNotEmpty()) return onResume
+    val askers = code.filter { it.opcode in INVOKES_VIRTUAL }
+        .map { reference(it) as MethodReference }
+        .distinctBy { methodText(it) }
+        .mapNotNull { called ->
+            val parameters = called.parameterTypes.map(CharSequence::toString)
+            classDefByOrNull(called.definingClass)?.methods?.singleOrNull {
+                it.name == called.name && it.returnType == called.returnType &&
+                    it.parameterTypes.map(CharSequence::toString) == parameters &&
+                    !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+            }
+        }
+        .filter { timerCalls(it.implementation!!.instructions.toList(), timer).isNotEmpty() }
+    if (askers.size > 1) {
+        menuRefuse("${onResume.definingClass}->onResume asks the timer through ${askers.size} methods it calls, expected one")
+    }
+    return askers.singleOrNull() ?: onResume
 }
 
 /**
@@ -392,7 +431,8 @@ internal fun BytecodePatchContext.keepExploreUnpersonalized(timer: ExploreTimer)
 }
 
 /**
- * In front of the personalized flag read in onResume, on its own label since a branch lands there:
+ * In front of the personalized flag read in onResume (or the controller method it calls that asks
+ * the timer, see [ExploreResume]), on its own label since a branch lands there:
  * on the personalized grid, with the switch on, where the timer, its fragment and the fragment's
  * grid are all there, it does what the menu's row does. It clears the flag and calls the reload with
  * the timer's state, the fragment and false. The code after it then sees the grid that isn't
@@ -403,8 +443,9 @@ internal fun BytecodePatchContext.keepExploreUnpersonalized(timer: ExploreTimer)
  * EU-only.
  */
 internal fun BytecodePatchContext.unpersonalizeExploreResume(timer: ExploreTimer, resume: ExploreResume) {
-    val method = mutableClassDefBy(resume.fragment).methods.single {
-        it.name == "onResume" && it.parameterTypes.isEmpty() && it.returnType == "V"
+    val method = mutableClassDefBy(resume.holder).methods.single {
+        it.name == resume.method && it.parameterTypes.map(CharSequence::toString) == resume.parameters &&
+            !AccessFlags.STATIC.isSet(it.accessFlags)
     }
     val a = resume.scratch
     val b = resume.pair

@@ -12,7 +12,9 @@ import app.morphe.patcher.methodCall
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.string
+import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.direct.seen.THREAD_KEY
 import app.morphe.patches.instagram.direct.seen.visualCode
 import app.morphe.patches.instagram.direct.seen.visualReference
@@ -36,7 +38,10 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 
 internal const val HIDDEN_CHATS = "$EXTENSION_PACKAGE/direct/HiddenChats;"
 
@@ -133,13 +138,13 @@ internal class SummaryList(val method: MutableMethod, val returnAt: Int, val reg
 internal class ListSite(val method: MutableMethod, val at: Int, val register: Int)
 
 /** One write of the inbox's list of chats: [site], the register holding the list, and the register holding the holder it goes to. */
-internal class RowsWrite(val site: ListSite, val holder: Int)
+internal class RowsWrite(val site: ListSite, val holder: Int, val reason: String? = null)
 
 /**
  * Every write of the inbox's list of chats, the holder's list field, and the holder's own starter
  * of the row factory, which Instagram calls on the holder right after each write.
  */
-internal class InboxRows(val writes: List<RowsWrite>, val list: FieldReference, val starter: Method)
+internal class InboxRows(val writes: List<RowsWrite>, val list: FieldReference, val starter: Method, val reason: String?)
 
 /**
  * What hiding chats from the inbox needs from Instagram, proved before anything changes: each write
@@ -154,8 +159,11 @@ internal class HiddenChatTargets(
     val folders: ListSite,
     val bridge: MutableMethod,
     val bridgeBody: String,
-    val redraw: MutableMethod,
+    /** The redraw bridge: the extension's stub until [hideChatsFromInbox] puts its body in, in [redrawRegisters] registers. */
+    var redraw: MutableMethod,
     val redrawBody: String,
+    val redrawRegisters: Int,
+    val extension: MutableClass,
 )
 
 /**
@@ -216,13 +224,15 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
         iget-object p0, p0, ${idField.signature()}
         return-object p0
     """.trimIndent()
-    val redraw = mutableClassDefBy(HIDDEN_CHATS).methods.filter {
+    val extension = mutableClassDefBy(HIDDEN_CHATS)
+    val redraw = extension.methods.filter {
         it.name == HIDDEN_REDRAW_NAME && it.parameters() == listOf("Ljava/lang/Object;", LIST) && it.returnType == "V" &&
             AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
     }.one("extension's inbox redraw bridge")
     requireFilter()
     return HiddenChatTargets(
         rows.writes, ListSite(view, after, register), folders, bridge, bridgeBody, redraw, redrawBody(rows),
+        if (rows.reason == null) 2 else 4, extension,
     )
 }
 
@@ -232,14 +242,27 @@ private const val HIDDEN_REDRAW_NAME = "redraw"
  * The redraw bridge's body: the two steps Instagram's subscriber takes when the inbox's state hands
  * the holder a list, the write of the holder's list and the call of its starter on the holder. The
  * starter does nothing while the inbox is paused and the inbox calls it again when it resumes, so a
- * list handed over while you're in HushGram settings is drawn when you're back.
+ * list handed over while you're in HushGram settings is drawn when you're back. 454's starter also
+ * takes the reason it logs and a callback, which the bridge hands as the subscriber does: the
+ * subscriber's own reason and no callback.
  */
-private fun redrawBody(rows: InboxRows) = """
-    check-cast p0, ${rows.list.definingClass}
-    iput-object p1, p0, ${rows.list.signature()}
-    invoke-static { p0 }, ${rows.starter.signature()}
-    return-void
-""".trimIndent()
+private fun redrawBody(rows: InboxRows) = if (rows.reason == null) {
+    """
+        check-cast p0, ${rows.list.definingClass}
+        iput-object p1, p0, ${rows.list.signature()}
+        invoke-static { p0 }, ${rows.starter.signature()}
+        return-void
+    """.trimIndent()
+} else {
+    """
+        check-cast p0, ${rows.list.definingClass}
+        iput-object p1, p0, ${rows.list.signature()}
+        const-string v0, "${rows.reason}"
+        const/4 v1, 0x0
+        invoke-static { p0, v0, v1 }, ${rows.starter.signature()}
+        return-void
+    """.trimIndent()
+}
 
 /** The no-argument, non-static calls of [type] that answer a chat key. */
 private fun keyGetters(type: ClassDef): List<Method> = type.methods.filter {
@@ -301,19 +324,29 @@ internal fun BytecodePatchContext.findInboxRows(): InboxRows {
         }
     }
     if (writes.isEmpty()) refuse("expected one write of the inbox's list of chats ${list.signature()}, found none")
+    if (!AccessFlags.STATIC.isSet(starter.accessFlags) || starter.returnType != "V" ||
+        starter.parameters() != listOf(list.definingClass) && starter.parameters() != listOf(list.definingClass, STRING, FUNCTION0)
+    ) refuse("the inbox row factory's starter ${starter.signature()} isn't a static call taking its holder")
     val sites = writes.map { (native, at) -> rowsWrite(native, at, starter) }
-    if (!AccessFlags.STATIC.isSet(starter.accessFlags) || starter.parameters() != listOf(list.definingClass) || starter.returnType != "V") {
-        refuse("the inbox row factory's starter ${starter.signature()} isn't a static call taking its holder")
+    val reason = if (starter.parameters().size == 1) null else {
+        sites.firstNotNullOfOrNull { it.reason } ?: refuse("no write of the inbox's list of chats hands its starter a reason")
     }
+    if (reason != null && reason.any { it == '"' || it == '\\' }) refuse("the inbox's starter is handed a reason the bridge can't repeat")
     requirePublic(list.definingClass, list)
     requirePublic(list.definingClass, starter)
-    return InboxRows(sites, list, starter)
+    return InboxRows(sites, list, starter, reason)
 }
+
+private const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 
 /**
  * The write of the inbox's list at [at] in [native]: its value must not be read after it, both
  * registers must fit the filter's call, and the next instruction must start the row factory on the
- * holder written to, so the write is one the inbox draws.
+ * holder written to, so the write is one the inbox draws. On 454 the starter also takes the reason
+ * it logs, loaded in between, and a callback. The subscriber builds that callback right after the
+ * write, before the reason: a lambda the starter's log asks for a summary of the old list and the
+ * new one (0G5W case 13 on 386014758, 0Pj0 on 386014704). It only feeds that log, so the redraw
+ * bridge hands the starter none.
  */
 private fun BytecodePatchContext.rowsWrite(native: Method, at: Int, starter: Method): RowsWrite {
     val writer = mutableClassDefBy(native.definingClass).methods.single {
@@ -327,13 +360,40 @@ private fun BytecodePatchContext.rowsWrite(native: Method, at: Int, starter: Met
     if (value == holder) refuse("the write of the inbox's list of chats in $where stores v$value into itself")
     if (value > 15 || holder > 15) refuse("the write of the inbox's list of chats in $where uses v$value and v$holder, past v15")
     if (value in writer.liveAcrossInjection(at + 1)) refuse("$where reads the inbox's list of chats again after it writes it")
-    val next = code.getOrNull(at + 1)
+    val takesReason = starter.parameters().size == 3
+    val callback = if (takesReason) startCallback(code, at + 1, holder) else null
+    val reasonAt = callback?.let { it.second + 1 } ?: (at + 1)
+    val loaded = code.getOrNull(reasonAt)?.takeIf {
+        takesReason && it.opcode == Opcode.CONST_STRING && (it as OneRegisterInstruction).registerA != holder
+    }
+    val reason = (loaded?.visualReference() as? StringReference)?.string
+    val next = code.getOrNull(reasonAt + if (loaded == null) 0 else 1)
     val call = next?.visualReference() as? MethodReference
     val starts = next?.opcode == Opcode.INVOKE_STATIC && call != null && call.definingClass == starter.definingClass &&
         call.name == starter.name && call.parameterTypes.map(CharSequence::toString) == starter.parameters() &&
-        (next as FiveRegisterInstruction).registerCount == 1 && next.registerC == holder
+        (next as FiveRegisterInstruction).registerCount == starter.parameters().size && next.registerC == holder &&
+        (loaded == null || next.registerD == (loaded as OneRegisterInstruction).registerA) &&
+        (callback == null || next.registerE == callback.first)
     if (!starts) refuse("$where doesn't start the inbox row factory on its holder right after it writes the list of chats")
-    return RowsWrite(ListSite(writer, at, value), holder)
+    return RowsWrite(ListSite(writer, at, value), holder, reason)
+}
+
+/**
+ * The callback a 454 subscriber builds for its starter at [from], right after the list's write: an
+ * optional constant (the lambda's case), a new instance and its constructor, none of them writing
+ * [holder]. Its register and the index of the constructor call, or null when [from] builds none.
+ */
+private fun startCallback(code: List<Instruction>, from: Int, holder: Int): Pair<Int, Int>? {
+    val consts = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST)
+    val madeAt = if (code.getOrNull(from)?.opcode in consts) from + 1 else from
+    val made = code.getOrNull(madeAt)?.takeIf { it.opcode == Opcode.NEW_INSTANCE } ?: return null
+    val type = (made.visualReference() as? TypeReference)?.type ?: return null
+    val register = (made as OneRegisterInstruction).registerA
+    val init = code.getOrNull(madeAt + 1)?.takeIf { it.opcode == Opcode.INVOKE_DIRECT } as? FiveRegisterInstruction ?: return null
+    val called = init.visualReference() as? MethodReference ?: return null
+    if (called.definingClass != type || called.name != "<init>" || init.registerC != register) return null
+    if (register == holder || (from until madeAt).any { (code[it] as OneRegisterInstruction).registerA == holder }) return null
+    return register to madeAt + 1
 }
 
 /** The inbox's row factory: a runnable logging [INBOX_ROWS]. */
@@ -386,7 +446,14 @@ private fun BytecodePatchContext.findFolderCounts(badge: Method, storeRead: Meth
  */
 internal fun hideChatsFromInbox(targets: HiddenChatTargets) {
     targets.bridge.addInstructionsWithLabels(0, targets.bridgeBody)
-    targets.redraw.addInstructions(0, targets.redrawBody)
+    // A compiled stub may have only its parameters' registers, so the body goes in a method of its own size.
+    val stub = targets.redraw
+    targets.redraw = ImmutableMethod(
+        stub.definingClass, stub.name, stub.parameters, stub.returnType, stub.accessFlags, null,
+        stub.hiddenApiRestrictions, ImmutableMethodImplementation(targets.redrawRegisters, emptyList(), null, null),
+    ).toMutable().apply { addInstructions(0, targets.redrawBody) }
+    targets.extension.methods.remove(stub)
+    targets.extension.methods.add(targets.redraw)
     // Last write first, so an earlier write in the same method keeps its index. The filter takes
     // the write's place as a jump target, so a branch to the write runs it too.
     for (write in targets.rows.sortedByDescending { it.site.at }) {

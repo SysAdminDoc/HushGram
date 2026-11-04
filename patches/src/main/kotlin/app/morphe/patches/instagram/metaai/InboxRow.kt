@@ -9,8 +9,8 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
-import app.morphe.util.ControlFlow
 import app.morphe.util.isConditionalBranchInstruction
+import app.morphe.util.reachingWrites
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -121,8 +121,10 @@ private fun assignedInboxRead(method: Method, model: String): Int? {
             code[index].rowMethod()?.toString() == "Ljava/util/AbstractCollection;->add(Ljava/lang/Object;)Z" &&
             code[index].rowArguments().lastOrNull() == row
     } ?: return null
+    // 454 lays the copy out after the insertion (LX/01NC;->A04 on 386014758 reads at 665 and guards
+    // at 207), so the guard is anywhere outside the read-to-copy run.
     val insertionGuards = code.indices.filter { index ->
-        index > copy + 1 && index < add && code[index].opcode == Opcode.IF_EQZ &&
+        index !in read..copy + 1 && index < add && code[index].opcode == Opcode.IF_EQZ &&
             (code[index] as OneRegisterInstruction).registerA == row && code.rowTarget(index)?.let { it > add } == true
     }
     return read.takeIf { insertionGuards.size == 1 }
@@ -187,26 +189,3 @@ private fun List<Instruction>.rowTarget(index: Int): Int? {
 }
 
 private fun refuseInbox(detail: String): Nothing = throw PatchException("Hide Meta AI: $detail")
-
-/**
- * The indexes of the instructions whose write of [register] reaches [at] on some path from the method's
- * start, over every branch and handler. An empty set is returned when the register can arrive unwritten.
- */
-private fun reachingWrites(method: Method, code: List<Instruction>, register: Int, at: Int): Set<Int> {
-    val flow = ControlFlow.of(method)
-    val written = code.map { it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == register }
-    val into = arrayOfNulls<MutableSet<Int>>(code.size)
-    into[0] = mutableSetOf(-1)
-    val pending = ArrayDeque(listOf(0))
-    while (pending.isNotEmpty()) {
-        val index = pending.removeFirst()
-        val state = into[index]!!
-        val out: Set<Int> = if (written[index]) setOf(index) else state
-        for (next in flow.normal[index] + flow.exceptional[index]) {
-            val target = into[next] ?: mutableSetOf<Int>().also { into[next] = it }
-            if (target.addAll(out)) pending.addLast(next)
-        }
-    }
-    val reaching = into[at] ?: return emptySet()
-    return if (-1 in reaching) emptySet() else reaching
-}

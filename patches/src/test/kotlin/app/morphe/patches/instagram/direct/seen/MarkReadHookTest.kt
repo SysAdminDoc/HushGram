@@ -544,6 +544,7 @@ class MarkReadHookTest {
          * Only the yes of the builder's check of the chat's capabilities reaches the offer at [at],
          * and its no goes past the offer. The branch may come straight after the check, as on 451,
          * or after the builder's other checks, as on 452, with nothing in between naming the answer.
+         * 454 inlines the check, so the builder asks the bit set it reads off the chat's capabilities.
          */
         internal fun assertOfferGated(method: Method, at: Int) {
             val code = method.visualCode()
@@ -552,7 +553,16 @@ class MarkReadHookTest {
             val answer = (code[at - 1] as OneRegisterInstruction).registerA
             val asked = (at - 2 downTo 1).first { answer in code[it].namedRegisters() }
             assertEquals(Opcode.MOVE_RESULT, code[asked].opcode)
-            assertEquals(CAPABILITIES, (code[asked - 1].visualReference() as MethodReference).definingClass)
+            val check = code[asked - 1].visualReference() as MethodReference
+            if (check.definingClass != CAPABILITIES) {
+                assertEquals("Ljava/util/BitSet;->get(I)Z", check.toString())
+                val set = code[asked - 1].namedRegisters()[0]
+                val read = code[(asked - 2 downTo 0).first { set in code[it].namedRegisters() }]
+                assertEquals(Opcode.IGET_OBJECT, read.opcode)
+                assertTrue("the set is the capabilities' own", read.visualReference().toString().let { it.startsWith("$CAPABILITIES->") && it.endsWith(":Ljava/util/BitSet;") })
+                val capabilities = method.parameterTypes.indexOfFirst { it.toString() == CAPABILITIES }
+                assertEquals("read off the chat's capabilities", method.parameterRegisterNumber(capabilities), (read as TwoRegisterInstruction).registerB)
+            }
             assertEquals("only the capability check's yes reaches the offer", listOf(at - 1), flow.normal.indices.filter { at in flow.normal[it] })
             assertTrue("a chat without the capability goes past the offer", flow.normal[at - 1].single { it != at } > at + 1)
             assertTrue(flow.exceptional.none { at in it })

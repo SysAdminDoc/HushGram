@@ -27,10 +27,10 @@ private const val PATCH = "Clean up Reels"
 internal const val TAB_LAYOUT = "Lcom/google/android/material/tabs/TabLayout;"
 
 /**
- * Instagram 452's drawable/empty_social_facepile, the icon the Friends tab starts with before its
- * faces load, the same in all four 452 builds (aapt2).
+ * Instagram 454's drawable/empty_social_facepile (0x7f0806a8 on 453), the icon the Friends tab starts with
+ * before its faces load, the same in all ten 454 builds (aapt2).
  */
-internal const val FRIENDS_TAB_ICON = 0x7f0806a8
+internal const val FRIENDS_TAB_ICON = 0x7f0806a7
 
 internal const val FRIENDS_TAB_HOOK = "$EXTENSION_PACKAGE/reels/ReelsTopBar;->friendsTab(Landroid/view/View;)V"
 

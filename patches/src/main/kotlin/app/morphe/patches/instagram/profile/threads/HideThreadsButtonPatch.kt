@@ -59,10 +59,10 @@ internal const val HIDE_CREATE = "$THREADS_BUTTON->hideCreateInBar()Z"
 internal const val USER_DETAIL = "Lcom/instagram/profile/fragment/UserDetailFragment;"
 
 /**
- * Instagram 453's id/profile_header_create_button (0x7f0b30b9 on 452), the view id of the plus on your own profile,
- * the same in all four 453 builds (aapt2).
+ * Instagram 454's id/profile_header_create_button (0x7f0b3077 on 453), the view id of the plus on your own profile,
+ * the same in all ten 454 builds (aapt2).
  */
-internal const val CREATE_BUTTON_ID = 0x7f0b3077
+internal const val CREATE_BUTTON_ID = 0x7f0b3054
 
 /** The events only the Threads chip under a profile's bio logs, loaded by its constructor. */
 internal const val BANNER_TAP = "tap_threads_banner"
@@ -408,8 +408,10 @@ internal class ShareBuilder(val type: String, val name: String, val parameters: 
  * kind of action button, the one interface it has. Each button of the row under the bio is built by
  * a static method taking a model of that kind first and handing back a View. The class building
  * Share profile as an icon, the one method loading [SHARE_ICON_TAG], builds the text buttons too, in
- * the one loading [TEXT_TAG]. Subscribe's and the arrow's models are the one public class of that
- * kind each whose onClick loads [SUBSCRIBE_TAP] or [OVERFLOW_TAP] with [PROFILE_HEADER]. The text
+ * the one loading [TEXT_TAG]. 454 dropped the icon, and there the one class with a builder loading
+ * [TEXT_TAG] is the row's, with no icon builder to hook. Subscribe's and the arrow's models are the
+ * one public class of that kind each whose onClick loads [SUBSCRIBE_TAP] or [OVERFLOW_TAP] with
+ * [PROFILE_HEADER]. The text
  * builder builds Subscribe, and the arrow has a builder of its own in the same class, the one taking
  * the arrow's model first (#248). Each keeps its model in one register up to its returns (some
  * builds copy it out first and reuse the parameter's), and hands back its button from one register.
@@ -433,8 +435,14 @@ internal fun BytecodePatchContext.findShareButton(): ShareButtonSite {
     val icons = classesLoadingString(SHARE_ICON_TAG).flatMap { owner ->
         owner.methods.filter { builds(it) && loadsString(it, SHARE_ICON_TAG) }.map { owner to it }
     }
-    val (owner, icon) = icons.singleOrNull()
-        ?: refuse("expected one method building Share profile as an icon from a $kind, found ${icons.size}")
+    if (icons.size > 1) refuse("expected one method building Share profile as an icon from a $kind, found ${icons.size}")
+    val icon = icons.singleOrNull()
+    // 454 has no Share profile icon, so there the class building the text buttons is the row's.
+    val owners = icon?.let { listOf(it.first) } ?: classesLoadingString(TEXT_TAG).filter { candidate ->
+        candidate.methods.any { builds(it) && loadsString(it, TEXT_TAG) }
+    }
+    val owner = owners.singleOrNull()
+        ?: refuse("expected one class building the action row's text buttons from a $kind, found ${owners.size}")
     val texts = owner.methods.filter { builds(it) && loadsString(it, TEXT_TAG) }
     val text = texts.singleOrNull()
         ?: refuse("expected one method in ${owner.type} building the action row's text buttons from a $kind, found ${texts.size}")
@@ -451,7 +459,7 @@ internal fun BytecodePatchContext.findShareButton(): ShareButtonSite {
     for (stub in listOf(SHARE_STUB, SUBSCRIBE_STUB, OVERFLOW_STUB)) {
         if (extension.methods.none { it.isRowStub(stub) }) refuse("$SHARE_BUTTON has no public static Z $stub($OBJECT)")
     }
-    return ShareButtonSite(model.type, subscribe, overflow, listOf(text, icon, menu).map { shareBuilder(owner.type, it) })
+    return ShareButtonSite(model.type, subscribe, overflow, listOfNotNull(text, icon?.second, menu).map { shareBuilder(owner.type, it) })
 }
 
 /** The one public action button of [kind] whose onClick loads [tap] and [PROFILE_HEADER]: the model of [what]'s button. */

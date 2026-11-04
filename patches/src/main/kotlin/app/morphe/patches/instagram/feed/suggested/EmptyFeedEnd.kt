@@ -11,8 +11,11 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -93,7 +96,7 @@ internal class FeedEnd(val adapter: String, val flag: FieldReference, val empty:
  */
 internal fun BytecodePatchContext.feedBuilders(): List<Triple<ClassDef, Method, Method>> =
     classesHolding(BUILD_MODELS).mapNotNull { classDef ->
-        val builder = classDef.methods.singleOrNull { it.holds(BUILD_MODELS) }
+        val builder = classDef.methods.singleOrNull { loadsString(it, BUILD_MODELS) }
         val shimmer = classDef.methods.singleOrNull { method -> method.implementation?.instructions?.any { (((it as? ReferenceInstruction)?.reference as? StringReference)?.string)?.isShimmerKey() == true } == true }
         if (builder == null || shimmer == null) null else Triple(classDef, builder, shimmer)
     }
@@ -212,10 +215,10 @@ internal fun BytecodePatchContext.endFollowingAtItsCard() {
         ?: refuse("$type has no isLoading()")
     val asked = (loading.ownQuestions(type) intersect shows.ownQuestions(type)).singleOrNull()
         ?: refuse("$type->isLoading and ${shows.name} don't share one question")
-    val method = mutableClassDefBy(type).methods.single { it.name == shows.name && it.parameterTypes.isEmpty() }
+    val method = mutableClassDefBy(type).methods.single { it.name == shows.name && it.parameterTypes.map(CharSequence::toString) == shows.parameterTypes.map(CharSequence::toString) }
     val code = method.implementation!!.instructions.toList()
     val where = "$type->${shows.name}"
-    val named = code.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == FOLLOWING_FEED }
+    val named = code.indices.firstOrNull { stringLoadedAt(code, it) == FOLLOWING_FEED } ?: -1
     val compared = (named + 1 until code.size).firstOrNull { code[it].calls(STRING_EQUALS) }
         ?: refuse("$where doesn't compare its feed's source with $FOLLOWING_FEED")
     val more = code.indices.filter { code[it].calls("$type->$asked()Z") }.singleOrNull()
@@ -236,15 +239,18 @@ internal fun BytecodePatchContext.endFollowingAtItsCard() {
 }
 
 /**
- * The load more row's state class and its show check: the one instance boolean method without
- * parameters that holds [FOLLOWING_FEED], in the one class that has one.
+ * The load more row's state class and its show check: the one instance boolean method that loads
+ * [FOLLOWING_FEED], in the one class that has one. 454's Redex pools the string on some builds, so
+ * the load counts held or asked of a pool, and moves the end card part of the check out of the
+ * show check into a private method of its own taking the adapter (07bx.A00(07ca) on 386014758,
+ * called from EZa), which is then the one that loads it.
  */
 internal fun BytecodePatchContext.findLoadMoreRow(): Pair<ClassDef, Method> {
     val found = mutableListOf<Pair<ClassDef, Method>>()
-    classesHolding(FOLLOWING_FEED).forEach { classDef ->
+    classesLoadingString(FOLLOWING_FEED).distinctBy { it.type }.forEach { classDef ->
         classDef.methods.forEach { method ->
-            if (!AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" && method.parameterTypes.isEmpty() &&
-                method.holds(FOLLOWING_FEED)
+            if (!AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
+                loadsString(method, FOLLOWING_FEED)
             ) {
                 found += classDef to method
             }
@@ -367,10 +373,6 @@ internal fun Method.ownQuestions(type: String): Set<String> = implementation?.in
 
 private fun Instruction.calls(reference: String) =
     ((this as? ReferenceInstruction)?.reference as? MethodReference)?.toString() == reference
-
-private fun Method.holds(string: String): Boolean = implementation?.instructions?.any {
-    ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == string
-} == true
 
 private fun Instruction.calls(method: MethodReference) =
     ((this as? ReferenceInstruction)?.reference as? MethodReference)?.toString() == method.toString()

@@ -75,6 +75,16 @@ class FontHookTest {
         assertEquals("the other one left alone", 2, emoji.single { it.parameterTypes.size == 1 }.code().size)
     }
 
+    /** 454 copies a getter into another method, and that write goes through the extension too. */
+    @Test
+    fun aCopyOfAGetterIsSwappedToo() {
+        val context = PatchContexts.of(listOf(helper(copyLoads = 0), textView(), compat(), emoji(), emojiCaller(), igEmoji(), sheets(), extension()))
+        assertEquals(7, context.findFontSites().writes.size)
+        context.swapFonts()
+
+        assertWritesSwapped("stand-in with a copy", context.mutableClassDefBy(HELPER), 7)
+    }
+
     @Test
     fun anythingItCantFindExactlyFailsThePatch() {
         for ((case, classes) in listOf(
@@ -83,6 +93,7 @@ class FontHookTest {
             "two weights" to listOf(helper(fields = 2), textView(), compat(), emoji(), emojiCaller(), igEmoji(), sheets(), extension()),
             "a weight its getter never loads" to listOf(helper(getters = 2), textView(), compat(), emoji(), emojiCaller(), igEmoji(), sheets(), extension()),
             "a weight written a third time" to listOf(helper(extraWrite = true), textView(), compat(), emoji(), emojiCaller(), igEmoji(), sheets(), extension()),
+            "a getter's copy loading another font" to listOf(helper(copyLoads = 1), textView(), compat(), emoji(), emojiCaller(), igEmoji(), sheets(), extension()),
             "no IgTextView" to listOf(helper(), compat(), emoji(), emojiCaller(), igEmoji(), sheets(), extension()),
             "an IgTextView set up twice" to listOf(helper(), textView(calls = 2), compat(), emoji(), emojiCaller(), igEmoji(), sheets(), extension()),
             "a jump past the set-up" to listOf(helper(), textView(jumpAfter = true), compat(), emoji(), emojiCaller(), igEmoji(), sheets(), extension()),
@@ -116,7 +127,7 @@ class FontHookTest {
         assertEquals(before, context.classDefBy(HELPER).methods.associate { it.name to it.code().map { instruction -> instruction.opcode } })
     }
 
-    /** The declared build: all six writes of Prism Sans and IgTextView's set-up go through the extension. */
+    /** The declared build: every write of Prism Sans and IgTextView's set-up go through the extension. */
     @Test
     fun theDeclaredBuildSwapsEveryKeptFont() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -142,7 +153,7 @@ class FontHookTest {
 
     /**
      * Patches the slice of [bundle] the finder reads and checks each change. Before the change,
-     * each of the six writes keeps the Typeface a call returned just before it, so each hook
+     * each write keeps the Typeface a call returned just before it, so each hook
      * stands between Instagram's font loader and the field, and the helper's three fixed fonts
      * ("sans-serif" and "sans-serif-medium", which aren't Prism Sans) are left alone.
      */
@@ -173,8 +184,16 @@ class FontHookTest {
         val sheets = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, EMOJI_SHEET_MARKER))
         val context = PatchContexts.of((holders + views + compats + renderers + subclasses + callers + emoji + sheets).distinctBy { it.type } + extension())
 
+        // Two writes per weight on 453, more on 454, where Redex copies a getter into the
+        // helper's other methods (`LX/01zB;->A09` and `A0E` on 386014758).
+        val helperClass = holders.single()
+        val changeable = helperClass.staticFields.filter { it.type == TYPEFACE && !AccessFlags.FINAL.isSet(it.accessFlags) }.map { it.name }.toSet()
+        val stockWrites = helperClass.methods.sumOf { method ->
+            method.code().count { it.opcode == Opcode.SPUT_OBJECT && it.field().definingClass == helperClass.type && it.field().name in changeable }
+        }
+        assertTrue("$label: at least two writes per weight, found $stockWrites", stockWrites >= 6)
         val found = context.findFontSites()
-        assertEquals("$label: writes", 6, found.writes.size)
+        assertEquals("$label: writes", stockWrites, found.writes.size)
         assertEquals("$label: emoji lookup calls", lookupCalls, found.emojiCalls.size)
         for (write in found.writes) {
             val code = write.method.code()
@@ -190,7 +209,7 @@ class FontHookTest {
         context.swapFonts()
 
         val helper = context.mutableClassDefBy(helperType)
-        assertWritesSwapped(label, helper, 6)
+        assertWritesSwapped(label, helper, stockWrites)
         val fixed = helper.staticFields.filter { it.type == TYPEFACE && AccessFlags.FINAL.isSet(it.accessFlags) }.map { it.name }.toSet()
         assertEquals("$label: the fixed fonts", 3, fixed.size)
         for (method in helper.methods) {
@@ -514,7 +533,7 @@ class FontHookTest {
          * it starts (with the empty path jumping to the write with null, as 451's does) and again
          * in a getter of its own for the first [getters] of them.
          */
-        fun helper(type: String = HELPER, fields: Int = 3, getters: Int = 3, extraWrite: Boolean = false): ClassDef {
+        fun helper(type: String = HELPER, fields: Int = 3, getters: Int = 3, extraWrite: Boolean = false, copyLoads: Int? = null): ClassDef {
             val weights = WEIGHTS.take(fields)
             val start = buildString {
                 appendLine("const-string v1, \"sans-serif\"")
@@ -559,6 +578,18 @@ class FontHookTest {
                         sput-object v0, $type->$weight:$TYPEFACE
                         :done
                         return-object v0
+                    """,
+                )
+            }
+            // 454 copies the first weight's getter into another method; [copyLoads] is the getter's loader it asks.
+            if (copyLoads != null) {
+                methods += method(
+                    type, "A09", listOf(CONTEXT), "V", AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, 2,
+                    """
+                        invoke-static { p0 }, $REPOSITORY->get$copyLoads($CONTEXT)$TYPEFACE
+                        move-result-object v0
+                        sput-object v0, $type->${weights.first()}:$TYPEFACE
+                        return-void
                     """,
                 )
             }

@@ -58,6 +58,18 @@ class ShareSheetActionsHookTest {
         assertFiltered("stand-in", context.mutableClassDefBy(BUILDER).methods.single { it.name == "A00" }, site.moveResult)
     }
 
+    /** 454's picker takes a holder and the sheet type before its booleans, with no Gen AI metadata or string. */
+    @Test
+    fun aPickerTakingAHolderIsAskedToo() {
+        val context = PatchContexts.of(rowClasses(picker = WITH_HOLDER))
+
+        val site = context.findActionList()
+        assertEquals(4, site.moveResult)
+        context.filterActionList(site)
+
+        assertFiltered("holder", context.mutableClassDefBy(BUILDER).methods.single { it.name == "A00" }, site.moveResult)
+    }
+
     /**
      * Two builders asking would leave one row unfiltered, so the picker is refused. The patch then
      * goes in without it, the group buttons still hidden.
@@ -107,7 +119,7 @@ class ShareSheetActionsHookTest {
         val pickers = holders.flatMap { it.methods }
             .flatMap { it.implementation?.instructions?.toList().orEmpty() }
             .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
-            .filter { it.returnType == "Ljava/util/List;" && it.parameterTypes.size == 6 }
+            .filter { it.returnType == "Ljava/util/List;" && it.parameterTypes.size in 5..6 }
             .map { it.definingClass }.toSet()
         // Redex pools some strings differently in each build (#77), so the pools the classes ask come along.
         val kept = (holders + FixtureDex.classes(bundle, pickers).values.map { ImmutableClassDef.of(it) }).distinctBy { it.type }
@@ -153,10 +165,14 @@ class ShareSheetActionsHookTest {
 
         fun parameters(vararg types: String) = types.map { ImmutableMethodParameter(it, null, null) }
 
-        fun builder(type: String, picksCopyLink: Boolean = true): ClassDef {
-            val pick = ImmutableMethodReference(
-                PICKER, "A03", listOf(GEN_AI, "Ljava/lang/Object;", "Ljava/lang/String;", "Z", "Z", "Z"), "Ljava/util/List;",
-            )
+        /** 453's picker takes the Gen AI metadata, the sheet type, a string and three booleans. */
+        val WITH_METADATA = listOf(GEN_AI, "Ljava/lang/Object;", "Ljava/lang/String;", "Z", "Z", "Z")
+
+        /** 454's takes a holder of its own and the sheet type before the booleans. */
+        val WITH_HOLDER = listOf("Lfixture/PickerHolder;", "Lfixture/SheetType;", "Z", "Z", "Z")
+
+        fun builder(type: String, picker: List<String>): ClassDef {
+            val pick = ImmutableMethodReference(PICKER, "A03", picker, "Ljava/util/List;")
             val code = ACTION_NAMES.mapIndexed { i, name -> ImmutableInstruction21c(Opcode.CONST_STRING, i, ImmutableStringReference(name)) } +
                 listOf(
                     ImmutableInstruction3rc(Opcode.INVOKE_VIRTUAL_RANGE, 0, 7, pick),
@@ -171,23 +187,28 @@ class ShareSheetActionsHookTest {
             return ImmutableClassDef(type, PUBLIC, "Ljava/lang/Object;", null, null, null, null, listOf(method))
         }
 
-        fun picker(copyLink: Boolean): ClassDef {
+        fun picker(copyLink: Boolean, picker: List<String>): ClassDef {
             val code = listOfNotNull(
                 if (copyLink) ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("copy_link")) else null,
                 ImmutableInstruction10x(Opcode.RETURN_VOID),
             )
             val method = ImmutableMethod(
-                PICKER, "A03", parameters(GEN_AI, "Ljava/lang/Object;", "Ljava/lang/String;", "Z", "Z", "Z"), "Ljava/util/List;", PUBLIC, null, null,
+                PICKER, "A03", parameters(*picker.toTypedArray()), "Ljava/util/List;", PUBLIC, null, null,
                 ImmutableMethodImplementation(8, code, null, null),
             )
             return ImmutableClassDef(PICKER, PUBLIC, "Ljava/lang/Object;", null, null, null, null, listOf(method))
         }
 
-        fun rowClasses(second: Boolean = false, builds: Boolean = true, picksCopyLink: Boolean = true): List<ClassDef> =
+        fun rowClasses(
+            second: Boolean = false,
+            builds: Boolean = true,
+            picksCopyLink: Boolean = true,
+            picker: List<String> = WITH_METADATA,
+        ): List<ClassDef> =
             listOfNotNull(
-                if (builds) builder(BUILDER) else null,
-                if (second) builder(BUILDER_2) else null,
-                picker(picksCopyLink),
+                if (builds) builder(BUILDER, picker) else null,
+                if (second) builder(BUILDER_2, picker) else null,
+                picker(picksCopyLink, picker),
             )
     }
 }

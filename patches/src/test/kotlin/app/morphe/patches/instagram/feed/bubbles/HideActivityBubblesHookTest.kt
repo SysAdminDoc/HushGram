@@ -123,7 +123,10 @@ class HideActivityBubblesHookTest {
      * the setting comes along, so the patch sees all of Instagram's reads.
      */
     private fun builds(bundle: File, label: String) {
-        val loading = FixtureDex.classesLoading(bundle, BUBBLE_EXPERIMENT)
+        val pooled = FixtureDex.classesLoading(bundle, BUBBLE_EXPERIMENT)
+        // A build that inlined the holder's constructor makes the holder somewhere else; bring it along.
+        val made = pooled.flatMap { it.methods }.flatMap(::inlinedConstructions).toSet()
+        val loading = (pooled + FixtureDex.classes(bundle, made).values).distinctBy { it.type }
         val first = PatchContexts.of(loading).findBubbleSetting()
         val holder = first.check.definingClass
         val hide = first.hide.name

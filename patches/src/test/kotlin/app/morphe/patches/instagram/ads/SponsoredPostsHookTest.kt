@@ -155,7 +155,7 @@ class SponsoredPostsHookTest {
     }
 
     private fun builds(fixture: FeedItemStandIns.Fixture, label: String) {
-        val insert = FixtureDex.classesHolding(fixture.bundle, AD_INJECTOR_STRINGS.first())
+        val insert = FixtureDex.withStringPools(fixture.bundle, FixtureDex.classesLoading(fixture.bundle, AD_INJECTOR_STRINGS.first()))
         val context = PatchContexts.of((fixture.classes + insert).distinctBy { it.type } + ExtensionDex.classDef(ADS))
         val helperBefore = fixture.helper.instructions()
 
