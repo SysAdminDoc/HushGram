@@ -67,10 +67,10 @@ public final class MarkReadButton {
             MAIN.post(new Runnable() {
                 @Override public void run() {
                     try {
-                        if (v.getParent() != null || !ThreadSeen.showsButton()) return;
+                        if (v.getParent() != null || !headerWanted()) return;
                         Object fragment = screen.get();
                         View root = fragment == null ? null : ChatPager.viewOf(fragment);
-                        if (root != null && place(root) != null) log("check mark put back, the header's row was emptied");
+                        if (root != null && placeAll(root) != null) log("check mark put back, the header's row was emptied");
                     } catch (Throwable t) {
                         HookStatus.threw(FamilyNames.THREAD_SEEN, STEP, t);
                     }
@@ -89,7 +89,7 @@ public final class MarkReadButton {
             screen = new WeakReference<>(fragment);
             openedAt = System.currentTimeMillis();
             stopWatching();
-            if (!ThreadSeen.showsButton()) return;
+            if (!headerWanted()) return;
             watch = new Watch(fragment);
             watch.run();
         } catch (Throwable t) {
@@ -108,6 +108,7 @@ public final class MarkReadButton {
             button = new WeakReference<>(null);
             ViewParent parent = ours == null ? null : ours.getParent();
             if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(ours);
+            SeenChoiceButton.remove();
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.THREAD_SEEN, STEP, t);
         }
@@ -129,8 +130,25 @@ public final class MarkReadButton {
     }
 
     private static boolean wanted() {
-        return screen.get() != null && ThreadSeen.showsButton()
-                && ThreadSeen.hasHeld(ChatLocks.currentAccount(), ChatLocks.current(), openedAt);
+        String account = ChatLocks.currentAccount();
+        String thread = ChatLocks.current();
+        return screen.get() != null && ThreadSeen.showsButton(account, thread)
+                && ThreadSeen.hasHeld(account, thread, openedAt);
+    }
+
+    /** Whether the header gets anything of ours: the check mark, or the eye of Choose Seen in each chat. */
+    private static boolean headerWanted() {
+        return ThreadSeen.anyShowsButton() || ThreadSeen.choosesPerChat();
+    }
+
+    /**
+     * Puts what the header gets in its row of call buttons: the eye while Choose Seen in each chat is
+     * on, and the check mark first while a chat can show it. The check mark, else the eye, else null.
+     */
+    static View placeAll(View root) {
+        View eye = ThreadSeen.choosesPerChat() ? SeenChoiceButton.place(root, KEEP) : null;
+        View check = ThreadSeen.anyShowsButton() ? place(root) : null;
+        return check != null ? check : eye;
     }
 
     /**
@@ -179,7 +197,7 @@ public final class MarkReadButton {
             if (watch != this || screen.get() != fragment) return;
             try {
                 View root = ChatPager.viewOf(fragment);
-                View shown = root == null ? null : place(root);
+                View shown = root == null ? null : placeAll(root);
                 if (shown != null && shown != placed) {
                     log("check mark set in the header, try " + tries + (placed == null ? "" : ", header was rebuilt"));
                     placed = shown;
@@ -202,5 +220,6 @@ public final class MarkReadButton {
         screen = new WeakReference<>(null);
         button = new WeakReference<>(null);
         openedAt = 0;
+        SeenChoiceButton.resetForTests();
     }
 }

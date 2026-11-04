@@ -589,6 +589,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_read_without_seen_receipt", FALSE);
 
     /**
+     * An eye in a chat's header, beside the call buttons, that gives that chat on that account a
+     * seen receipt choice of its own: follow {@link #READ_WITHOUT_SEEN_RECEIPT}, hold, or send (#13).
+     * The choices themselves stay in their own file, never in an export. Read each time a receipt
+     * is held or a chat comes to the front, so a change applies to the next one. Off to start, and
+     * off, every chat follows the switch whatever it chose.
+     */
+    public static final BooleanSetting SEEN_PER_CHAT =
+            new BooleanSetting("hushgram_seen_per_chat", FALSE);
+
+    /**
      * Under {@link #READ_WITHOUT_SEEN_RECEIPT}: a chat opened while its receipt is held stays unread
      * in your messages until Mark as read lets that receipt go (#184). Read each time Instagram
      * records a chat seen, so a change applies the next time a chat opens. On to start, so a held
@@ -596,7 +606,7 @@ public class Settings extends BaseSettings {
      * stays read here until a newer message comes in, even after the inbox refreshes (#186).
      */
     public static final BooleanSetting KEEP_CHATS_UNREAD =
-            new BooleanSetting("hushgram_keep_chats_unread", TRUE, parent(READ_WITHOUT_SEEN_RECEIPT));
+            new BooleanSetting("hushgram_keep_chats_unread", TRUE, parentsAny(READ_WITHOUT_SEEN_RECEIPT, SEEN_PER_CHAT));
 
     /**
      * Under {@link #READ_WITHOUT_SEEN_RECEIPT}: sending a message in a chat whose receipt was held
@@ -604,7 +614,7 @@ public class Settings extends BaseSettings {
      * message is sent, so a change applies to the next one. Off to start.
      */
     public static final BooleanSetting MARK_SEEN_ON_REPLY =
-            new BooleanSetting("hushgram_mark_seen_on_reply", FALSE, parent(READ_WITHOUT_SEEN_RECEIPT));
+            new BooleanSetting("hushgram_mark_seen_on_reply", FALSE, parentsAny(READ_WITHOUT_SEEN_RECEIPT, SEEN_PER_CHAT));
 
     /**
      * Under {@link #READ_WITHOUT_SEEN_RECEIPT}: a check mark in a chat's header, beside the call
@@ -613,7 +623,7 @@ public class Settings extends BaseSettings {
      * held, so a change applies the next time a chat opens. On to start.
      */
     public static final BooleanSetting MARK_READ_IN_CHAT =
-            new BooleanSetting("hushgram_mark_read_in_chat", TRUE, parent(READ_WITHOUT_SEEN_RECEIPT));
+            new BooleanSetting("hushgram_mark_read_in_chat", TRUE, parentsAny(READ_WITHOUT_SEEN_RECEIPT, SEEN_PER_CHAT));
 
     /**
      * The typing indicator a chat shows the other person while you write

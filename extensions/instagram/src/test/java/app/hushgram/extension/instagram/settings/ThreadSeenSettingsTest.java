@@ -52,6 +52,7 @@ public class ThreadSeenSettingsTest {
         Settings.KEEP_CHATS_UNREAD.resetToDefault();
         Settings.MARK_SEEN_ON_REPLY.resetToDefault();
         Settings.MARK_READ_IN_CHAT.resetToDefault();
+        Settings.SEEN_PER_CHAT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -90,11 +91,13 @@ public class ThreadSeenSettingsTest {
         String[] keys = new String[messages.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = messages.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.HIDE_NOTES_ROW.key, Settings.HIDE_NOTES_MAP.key, Settings.HIDE_INSTANTS.key,
-                Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.MARK_SEEN_ON_REPLY.key, Settings.MARK_READ_IN_CHAT.key), Arrays.asList(keys));
+                Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.MARK_SEEN_ON_REPLY.key),
+                Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.READ_WITHOUT_SEEN_RECEIPT.get());
         assertFalse("each receipt reads the switch, so no restart", Settings.READ_WITHOUT_SEEN_RECEIPT.rebootApp);
-        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.KEEP_CHATS_UNREAD, Settings.MARK_SEEN_ON_REPLY, Settings.MARK_READ_IN_CHAT), PatchFamily.THREAD_SEEN.switches);
+        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.KEEP_CHATS_UNREAD, Settings.MARK_SEEN_ON_REPLY, Settings.MARK_READ_IN_CHAT,
+                Settings.SEEN_PER_CHAT), PatchFamily.THREAD_SEEN.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.READ_WITHOUT_SEEN_RECEIPT.key));
 
         Settings.READ_WITHOUT_SEEN_RECEIPT.save(true);
@@ -122,7 +125,8 @@ public class ThreadSeenSettingsTest {
         assertEquals("one level below the main page, beside its switch", "Messages", messages.getTitle().toString());
         String[] keys = new String[messages.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = messages.getPreference(i).getKey();
-        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.MARK_SEEN_ON_REPLY.key, Settings.MARK_READ_IN_CHAT.key, Settings.HIDE_TYPING.key),
+        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.MARK_SEEN_ON_REPLY.key,
+                Settings.HIDE_TYPING.key),
                 Arrays.asList(keys));
         assertTrue(Settings.KEEP_CHATS_UNREAD.defaultValue);
         assertTrue(Settings.KEEP_CHATS_UNREAD.get());
@@ -152,9 +156,30 @@ public class ThreadSeenSettingsTest {
         assertFalse(Settings.MARK_SEEN_ON_REPLY.get());
         assertTrue(Settings.MARK_SEEN_ON_REPLY.savedValue());
     }
+    /**
+     * The check mark and the eye learn the open chat from the lock patch alone, so their rows come right
+     * under the reply switch with it and stay out of a build without it.
+     */
+    @Test public void inChatButtonRowsNeedTheLockPatch() throws Exception {
+        open(EnumSet.of(PatchFamily.THREAD_SEEN, PatchFamily.MESSAGES_LOCK));
+        PreferenceGroup messages = page.getPreferenceScreen().findPreference(Settings.MARK_SEEN_ON_REPLY.key).getParent();
+        String[] keys = new String[messages.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = messages.getPreference(i).getKey();
+        int reply = Arrays.asList(keys).indexOf(Settings.MARK_SEEN_ON_REPLY.key);
+        assertEquals(Arrays.toString(keys), Arrays.asList(Settings.MARK_READ_IN_CHAT.key, Settings.SEEN_PER_CHAT.key),
+                Arrays.asList(keys).subList(reply + 1, reply + 3));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.LOCK_MESSAGES.key));
+        controller.close();
+        controller = null;
+
+        open(EnumSet.of(PatchFamily.THREAD_SEEN));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.MARK_SEEN_ON_REPLY.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.MARK_READ_IN_CHAT.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.SEEN_PER_CHAT.key));
+    }
     /** #458: the header's check mark switch sits under the reply switch, starts on and follows the seen receipt switch. */
     @Test public void markReadInChatStartsOnAndFollowsTheReceiptSwitch() throws Exception {
-        open(EnumSet.of(PatchFamily.THREAD_SEEN));
+        open(EnumSet.of(PatchFamily.THREAD_SEEN, PatchFamily.MESSAGES_LOCK));
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MARK_READ_IN_CHAT.key);
         assertNotNull(row);
         assertEquals("Mark as read button in chats", row.getTitle().toString());
@@ -169,5 +194,39 @@ public class ThreadSeenSettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse(Settings.MARK_READ_IN_CHAT.get());
         assertTrue(Settings.MARK_READ_IN_CHAT.savedValue());
+    }
+    /**
+     * #13: the per-chat switch sits last among the seen rows, starts off, follows Pause, and with it on
+     * the rows under Read messages without the seen receipt can be used while that switch is off.
+     */
+    @Test public void seenPerChatStartsOffAndOpensTheCompanionRows() throws Exception {
+        open(EnumSet.of(PatchFamily.THREAD_SEEN, PatchFamily.MESSAGES_LOCK));
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SEEN_PER_CHAT.key);
+        assertNotNull(row);
+        assertEquals("Choose Seen in each chat", row.getTitle().toString());
+        assertEquals("An eye at the top of each chat holds or sends Seen in that chat alone, whatever Read "
+                + "messages without the seen receipt says. Changing it doesn't send anything by itself.",
+                row.getSummary().toString());
+        assertEquals("Messages", row.getParent().getTitle().toString());
+        assertFalse(Settings.SEEN_PER_CHAT.defaultValue);
+        assertFalse(row.isChecked());
+        assertTrue("it stands on its own, so it's never greyed out", row.isEnabled());
+        assertFalse("each receipt and each chat that opens reads the switch, so no restart", Settings.SEEN_PER_CHAT.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SEEN_PER_CHAT.key));
+
+        assertFalse(Settings.READ_WITHOUT_SEEN_RECEIPT.savedValue());
+        assertFalse("the companion rows wait on a seen switch", Settings.MARK_READ_IN_CHAT.isAvailable());
+        assertFalse(Settings.KEEP_CHATS_UNREAD.isAvailable());
+        assertFalse(Settings.MARK_SEEN_ON_REPLY.isAvailable());
+        Settings.SEEN_PER_CHAT.save(true);
+        assertTrue("a chat that holds Seen uses them too", Settings.MARK_READ_IN_CHAT.isAvailable());
+        assertTrue(Settings.KEEP_CHATS_UNREAD.isAvailable());
+        assertTrue(Settings.MARK_SEEN_ON_REPLY.isAvailable());
+        assertTrue(Settings.SEEN_PER_CHAT.get());
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.SEEN_PER_CHAT.get());
+        assertTrue(Settings.SEEN_PER_CHAT.savedValue());
     }
 }

@@ -55,6 +55,14 @@ import java.util.function.Supplier;
  * <p>Inside a chat, a check mark in its header ({@link MarkReadButton}) shows while a receipt of that
  * chat is held, and {@link #markOpenChatRead} lets the newest one through the same way.
  *
+ * <p>With Choose Seen in each chat on, an eye beside it ({@link SeenChoiceButton}) gives the chat on
+ * screen a choice of its own on that account ({@link SeenChoices}), which comes before the switch:
+ * Hold holds its receipts as if the switch were on, with Keep chats unread here, Mark a chat seen
+ * when you reply and the check mark as they're set, and Send lets them through as if it were off. A
+ * chat with no choice, or whose chat or account can't be read, follows the switch. A choice applies
+ * to the next receipt: nothing held is sent by it, and the day-long marks of Mark as read still
+ * count. Off or paused, every chat follows the switch whatever it chose.
+ *
  * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram sends the receipt, records the chat seen and builds its menu as usual. Deciding whether a
  * held receipt was marked read fails closed: a receipt whose chat, message or account can't be
@@ -73,6 +81,7 @@ public final class ThreadSeen {
     static final String READ = "chat kept read";
     static final String REPLY = "chat marked seen by a reply";
     static final String OPEN_CHAT = "chat marked read from its header";
+    static final String CHOICE = "chat's own seen choice";
 
     /** Instagram's chats, through the bodies the patch writes in {@link InstagramChats}. Tests stand in their own. */
     interface Chats {
@@ -224,6 +233,12 @@ public final class ThreadSeen {
     /** The chats kept read here, read the first time they're needed. */
     private static ReadHere opened;
 
+    /** The chats given a seen choice of their own, read the first time they're needed. */
+    private static SeenChoices choices;
+
+    /** A chat's own Hold choice holds whatever the switch says. */
+    private static final BooleanSupplier ALWAYS = () -> true;
+
     private static volatile boolean logged;
 
     private static volatile boolean keptLogged;
@@ -264,13 +279,18 @@ public final class ThreadSeen {
                         BooleanSupplier replies, BooleanSupplier button, Chats chats, LongSupplier clock) {
         try {
             HookStatus.invoked(FamilyNames.THREAD_SEEN);
-            boolean hold = on.getAsBoolean();
+            SeenChoices own = chosen();
+            String account = own == null ? null : idOf(() -> chats.accountId(session));
+            String thread = own == null ? null : idOf(() -> chats.threadId(chats.receiptKey(receipt)));
+            boolean hold = forChat(own, account, thread, on, ALWAYS);
             if (hold && markedRead(receipt, session, chats, clock)) {
                 Logger.printDebug(() -> "Messages: sent the seen receipt for a chat marked read");
                 return false;
             }
-            if (hold) keepRead(receipt, session, here, chats, clock);
-            if (hold) remember(receipt, session, replies, button, chats, clock);
+            if (hold) keepRead(receipt, session, chatSwitch(own, account, thread, here, ThreadSeen::readsHereByChoice),
+                    chats, clock);
+            if (hold) remember(receipt, session, chatSwitch(own, account, thread, replies, Settings.MARK_SEEN_ON_REPLY::get),
+                    chatSwitch(own, account, thread, button, Settings.MARK_READ_IN_CHAT::get), chats, clock);
             if (hold && !logged) {
                 logged = true;
                 Logger.printDebug(() -> "Messages: held back a seen receipt");
@@ -300,10 +320,13 @@ public final class ThreadSeen {
         Pending held = null;
         try {
             HookStatus.invoked(FamilyNames.THREAD_SEEN);
-            if (!sent || !on.getAsBoolean()) return;
+            if (!sent) return;
+            SeenChoices own = chosen();
+            if (!on.getAsBoolean() && !anyHeld(own)) return;
             String account = chats.accountId(session);
             String thread = chats.composerThread(source);
             if (isEmpty(account) || isEmpty(thread)) return;
+            if (!forChat(own, account, thread, on, Settings.MARK_SEEN_ON_REPLY::get)) return;
             id = account + "\n" + thread;
             synchronized (LOCK) {
                 held = PENDING.get(id);
@@ -505,7 +528,7 @@ public final class ThreadSeen {
      * Adds Mark as read, once, while the switch is on.
      */
     public static void offerMarkRead(List<Object> rows, Object markAsRead) {
-        offerMarkRead(rows, markAsRead, ThreadSeen::switchedOn);
+        offerMarkRead(rows, markAsRead, () -> switchedOn() || anyHeld(chosen()));
     }
 
     static void offerMarkRead(List<Object> rows, Object markAsRead, BooleanSupplier on) {
@@ -535,7 +558,10 @@ public final class ThreadSeen {
         String sender = null;
         try {
             HookStatus.invoked(FamilyNames.THREAD_SEEN);
-            if (chosen == null || chosen != markAsRead || !on.getAsBoolean()) return false;
+            if (chosen == null || chosen != markAsRead) return false;
+            SeenChoices own = chosen();
+            if (!on.getAsBoolean() && !anyHeld(own)) return false;
+            if (own != null && !forChat(own, chats.accountId(session), chats.threadId(key), on, ALWAYS)) return false;
             Object last = chats.lastMessage(thread);
             if (last != null) {
                 message = chats.messageId(last);
@@ -551,13 +577,27 @@ public final class ThreadSeen {
     }
 
     /**
-     * Whether a chat's preview can mark it read here: the patch is in and the receipts are held.
-     * With them let through, Instagram marks a chat read the moment it's opened, and the bridges
-     * the mark goes through are only written alongside the hold.
+     * Whether the preview of the chat at [key] on [session]'s account can mark it read here: the
+     * patch is in and the chat's receipts are held, by the switch or by the chat's own choice. With
+     * them let through, Instagram marks a chat read the moment it's opened, and the bridges the mark
+     * goes through are only written alongside the hold.
      */
-    public static boolean canMarkRead() {
+    public static boolean canMarkRead(Object session, Object key) {
         try {
-            return SettingsStatus.threadSeen() && switchedOn();
+            if (!SettingsStatus.threadSeen()) return false;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, MARK, t);
+            return false;
+        }
+        return canMarkRead(session, key, ThreadSeen::switchedOn, INSTAGRAM);
+    }
+
+    /** {@link #canMarkRead(Object, Object)} once the patch is known to be in, [on] saying what every chat does. */
+    static boolean canMarkRead(Object session, Object key, BooleanSupplier on, Chats chats) {
+        try {
+            SeenChoices own = chosen();
+            if (own == null) return on.getAsBoolean();
+            return forChat(own, idOf(() -> chats.accountId(session)), idOf(() -> chats.threadId(key)), on, ALWAYS);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.THREAD_SEEN, MARK, t);
             return false;
@@ -570,7 +610,7 @@ public final class ThreadSeen {
      * out. Never throws.
      */
     public static boolean markReadNow(Object session, Object key, String message, String sender) {
-        if (!canMarkRead()) return false;
+        if (!canMarkRead(session, key)) return false;
         return markChat(session, key, message, sender, INSTAGRAM, CLOCK) == MARK_SENT;
     }
 
@@ -641,8 +681,10 @@ public final class ThreadSeen {
                                  LongSupplier clock) {
         try {
             HookStatus.invoked(FamilyNames.THREAD_SEEN);
-            if (!on.getAsBoolean()) return;
+            SeenChoices own = chosen();
+            if (!on.getAsBoolean() && !anyHeld(own)) return;
             String account = chats.accountId(session);
+            if (own != null && !forChat(own, account, thread, on, ALWAYS)) return;
             ReadMarks marks = marks();
             if (isEmpty(account) || isEmpty(thread) || isEmpty(message) || marks == null) {
                 Logger.printDebug(() -> "Messages: a chat marked read together has no message to mark");
@@ -670,7 +712,12 @@ public final class ThreadSeen {
     static boolean keepUnread(Object receipt, Object store, BooleanSupplier on, Chats chats, LongSupplier clock) {
         try {
             HookStatus.invoked(FamilyNames.THREAD_SEEN);
-            if (!on.getAsBoolean()) return false;
+            SeenChoices own = chosen();
+            if (!on.getAsBoolean() && !anyHeld(own)) return false;
+            if (own != null && !forChat(own, idOf(() -> chats.accountId(chats.storeSession(store))),
+                    idOf(() -> chats.threadId(chats.receiptKey(receipt))), on, Settings.KEEP_CHATS_UNREAD::get)) {
+                return false;
+            }
             ReadMarks marks = marks();
             if (marks == null) return false;
             long now = clock.getAsLong();
@@ -711,7 +758,8 @@ public final class ThreadSeen {
     static boolean readHere(Object thread, Object session, BooleanSupplier on, Chats chats) {
         try {
             HookStatus.invoked(FamilyNames.THREAD_SEEN);
-            if (!on.getAsBoolean()) return false;
+            SeenChoices own = chosen();
+            if (!on.getAsBoolean() && !anyHeld(own)) return false;
             ReadHere kept = opened();
             // With no chat kept, nothing was opened while its receipt was held.
             if (kept == null || kept.isEmpty()) return false;
@@ -719,6 +767,7 @@ public final class ThreadSeen {
             String id = chats.threadId(chats.chatKey(thread));
             String newest = chats.newestMessage(thread);
             if (isEmpty(account) || isEmpty(id) || isEmpty(newest)) return false;
+            if (!forChat(own, account, id, on, ThreadSeen::readsHereByChoice)) return false;
             return kept.readUpTo(account, id, newest);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.THREAD_SEEN, READ, t);
@@ -742,12 +791,14 @@ public final class ThreadSeen {
 
     static void localCursor(Object reader, Object key, BooleanSupplier on, Chats chats) {
         try {
-            if (!on.getAsBoolean()) return;
+            SeenChoices own = chosen();
+            if (!on.getAsBoolean() && !anyHeld(own)) return;
             ReadHere kept = opened();
             if (kept == null || kept.isEmpty()) return;
             String account = chats.accountId(chats.cursorSession(reader));
             String thread = chats.threadId(key);
             if (isEmpty(account) || isEmpty(thread)) return;
+            if (!forChat(own, account, thread, on, ThreadSeen::readsHereByChoice)) return;
             String message = kept.messageOf(account, thread);
             if (isEmpty(message)) return;
             Object cursor = chats.cursorOf(reader);
@@ -785,11 +836,13 @@ public final class ThreadSeen {
 
     static boolean seenHere(Object thread, String account, String message, BooleanSupplier on, Chats chats) {
         try {
-            if (!on.getAsBoolean()) return false;
+            SeenChoices own = chosen();
+            if (!on.getAsBoolean() && !anyHeld(own)) return false;
             ReadHere kept = opened();
             if (kept == null || kept.isEmpty() || isEmpty(account) || isEmpty(message)) return false;
             String id = chats.threadId(chats.chatKey(thread));
             if (isEmpty(id)) return false;
+            if (!forChat(own, account, id, on, ThreadSeen::readsHereByChoice)) return false;
             return kept.readUpTo(account, id, message);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.THREAD_SEEN, READ, t);
@@ -870,7 +923,143 @@ public final class ThreadSeen {
         }
     }
 
-    /** Forgets every mark and every chat kept read, on file too, for tests. */
+    /**
+     * The chats given a seen choice of their own. Null before Instagram's context is set. Unlike
+     * {@link #marks()}, Instagram's other processes read the file too, so a chat held by its own
+     * choice stays held wherever its receipt goes out. Only the main process writes it.
+     */
+    private static SeenChoices choices() {
+        synchronized (LOCK) {
+            if (choices == null) {
+                if (!Utils.settingsReady()) return null;
+                Context context = Utils.getContext();
+                if (context == null) return null;
+                choices = new SeenChoices(context.getSharedPreferences(SeenChoices.FILE, Context.MODE_PRIVATE),
+                        Utils.isMainProcess());
+            }
+            return choices;
+        }
+    }
+
+    /**
+     * The chats' own choices, while Choose Seen in each chat is on and some chat has one. Null
+     * otherwise, and when they can't be read, which is reported: every chat then follows the switch.
+     */
+    private static SeenChoices chosen() {
+        try {
+            if (!choosesPerChat()) return null;
+            SeenChoices own = choices();
+            return own == null || own.isEmpty() ? null : own;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, CHOICE, t);
+            return null;
+        }
+    }
+
+    /** Whether some chat in [own] holds its receipts by its own choice, so a hook can't stop at the switch. */
+    private static boolean anyHeld(SeenChoices own) {
+        try {
+            return own != null && own.anyHeld();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, CHOICE, t);
+            return false;
+        }
+    }
+
+    /**
+     * What [thread] on [account] does where [on] says what every chat does: [on] for a chat that
+     * follows the switch, [held] for one that holds its receipts by its own choice, and false for one
+     * that sends them. With no choices, the chat unknown or its choice unreadable, [on]. Never
+     * replays anything: a choice only changes what's held from then on.
+     */
+    private static boolean forChat(SeenChoices own, String account, String thread, BooleanSupplier on,
+                                   BooleanSupplier held) {
+        if (own == null || isEmpty(account) || isEmpty(thread)) return on.getAsBoolean();
+        SeenChoices.Choice choice;
+        try {
+            choice = own.of(account, thread);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, CHOICE, t);
+            choice = SeenChoices.Choice.SWITCH;
+        }
+        if (choice == SeenChoices.Choice.HOLD) return held.getAsBoolean();
+        if (choice == SeenChoices.Choice.SEND) return false;
+        return on.getAsBoolean();
+    }
+
+    /** {@link #forChat}, asked only when needed, so a switch that throws is reported where it was. */
+    private static BooleanSupplier chatSwitch(SeenChoices own, String account, String thread, BooleanSupplier on,
+                                              BooleanSupplier held) {
+        return own == null ? on : () -> forChat(own, account, thread, on, held);
+    }
+
+    /** One id a chat's choice is looked up by, or null when it can't be read, which is reported. */
+    private static String idOf(Supplier<String> id) {
+        try {
+            return id.get();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, CHOICE, t);
+            return null;
+        }
+    }
+
+    /**
+     * What the eye in [thread]'s header shows it chose on [account]. {@link SeenChoices.Choice#SWITCH}
+     * when the chat has no choice of its own or can't be read. Never throws.
+     */
+    static SeenChoices.Choice choiceOf(String account, String thread) {
+        try {
+            SeenChoices own = choices();
+            if (own == null || isEmpty(account) || isEmpty(thread)) return SeenChoices.Choice.SWITCH;
+            return own.of(account, thread);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, CHOICE, t);
+            return SeenChoices.Choice.SWITCH;
+        }
+    }
+
+    /**
+     * Gives [thread] on [account] [choice] from the eye in its header, for its receipts from then on.
+     * A receipt already held stays held, and one already sent stays sent. True when it was kept.
+     * Never throws.
+     */
+    static boolean choose(String account, String thread, SeenChoices.Choice choice) {
+        return choose(account, thread, choice, CLOCK);
+    }
+
+    static boolean choose(String account, String thread, SeenChoices.Choice choice, LongSupplier clock) {
+        try {
+            SeenChoices own = choices();
+            if (own == null || isEmpty(account) || isEmpty(thread) || choice == null) return false;
+            own.choose(account, thread, choice, clock.getAsLong());
+            return true;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, CHOICE, t);
+            return false;
+        }
+    }
+
+    /** Whether [thread] on [account] holds its receipts now, its own choice first, then the switch. Never throws. */
+    static boolean holdsHere(String account, String thread) {
+        try {
+            return forChat(chosen(), account, thread, ThreadSeen::switchedOn, ALWAYS);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, CHOICE, t);
+            return false;
+        }
+    }
+
+    /** Whether [thread] on [account] shows the header's check mark: {@link #showsButton()}, or its own Hold. */
+    static boolean showsButton(String account, String thread) {
+        return forChat(chosen(), account, thread, ThreadSeen::showsButton, Settings.MARK_READ_IN_CHAT::get);
+    }
+
+    /** Whether a chat can show the header's check mark, by the switch or by a Hold it's given while open. */
+    static boolean anyShowsButton() {
+        return showsButton() || (choosesPerChat() && Settings.MARK_READ_IN_CHAT.get());
+    }
+
+    /** Forgets every mark, every chat kept read and every chat's own choice, on file too, for tests. */
     static void forgetMarks() {
         synchronized (LOCK) {
             PENDING.clear();
@@ -880,6 +1069,9 @@ public final class ThreadSeen {
             ReadHere kept = opened();
             if (kept != null) kept.clear();
             opened = null;
+            SeenChoices own = choices();
+            if (own != null) own.clear();
+            choices = null;
         }
     }
 
@@ -894,6 +1086,7 @@ public final class ThreadSeen {
         synchronized (LOCK) {
             marks = null;
             opened = null;
+            choices = null;
         }
     }
 
@@ -932,5 +1125,15 @@ public final class ThreadSeen {
     /** The switch on and Keep chats unread here off: an opened chat stays read here instead. */
     static boolean readsHere() {
         return switchedOn() && !Settings.KEEP_CHATS_UNREAD.get();
+    }
+
+    /** Keep chats unread here off, for a chat that holds its receipts by its own choice. */
+    static boolean readsHereByChoice() {
+        return !Settings.KEEP_CHATS_UNREAD.get();
+    }
+
+    /** Choose Seen in each chat, read the same way: the eye shows in a chat's header, and its choice counts. */
+    static boolean choosesPerChat() {
+        return Utils.settingsReady() && Settings.SEEN_PER_CHAT.get();
     }
 }

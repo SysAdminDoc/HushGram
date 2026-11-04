@@ -1607,6 +1607,16 @@ Mark as read	Tandai sudah dibaca
 Nothing to mark as read	Tidak ada yang perlu ditandai
 Mark as read button in chats	Tombol Tandai sudah dibaca di chat
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Tanda centang muncul di bagian atas chat selama orang lain belum diberi tahu bahwa Anda sudah melihatnya. Ketuk tanda itu dan mereka akan melihat Dilihat.
+# context: a switch on the Messages page and the eye it adds to a chat's header (#13). "Seen" is Instagram's own read receipt label in a chat. A tap on the eye opens a menu with the three rows after the summary; the toasts and the eye's spoken label say what the chat does now.
+Choose Seen in each chat	Pilih Dilihat di tiap chat
+An eye at the top of each chat holds or sends Seen in that chat alone, whatever Read messages without the seen receipt says. Changing it doesn't send anything by itself.	Ikon mata di bagian atas setiap chat menahan atau mengirim Dilihat hanya di chat itu, apa pun pengaturan Baca pesan tanpa tanda dilihat. Mengubahnya tidak mengirim apa pun dengan sendirinya.
+Use the HushGram setting	Gunakan pengaturan HushGram
+Hold Seen in this chat	Tahan Dilihat di chat ini
+Send Seen in this chat	Kirim Dilihat di chat ini
+Seen held in this chat	Dilihat ditahan di chat ini
+Seen goes out in this chat	Dilihat dikirim di chat ini
+This chat uses the setting	Chat ini mengikuti pengaturan
+Couldn't save the choice	Pilihan tidak dapat disimpan
 Red story mentions	Sebutan story warna merah
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Menampilkan teks label sebutan dengan warna merah, bukan putih, agar menonjol di story yang terang.
 Only received reels	Hanya reel yang diterima

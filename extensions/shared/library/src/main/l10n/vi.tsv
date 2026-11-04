@@ -1524,6 +1524,16 @@ Mark as read	Đánh dấu là đã đọc
 Nothing to mark as read	Không có gì để đánh dấu
 Mark as read button in chats	Nút Đánh dấu là đã đọc trong cuộc trò chuyện
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Dấu tích hiện ở đầu cuộc trò chuyện khi người kia chưa biết bạn đã xem. Nhấn vào đó và họ sẽ thấy Đã xem.
+# context: a switch on the Messages page and the eye it adds to a chat's header (#13). "Seen" is Instagram's own read receipt label in a chat. A tap on the eye opens a menu with the three rows after the summary; the toasts and the eye's spoken label say what the chat does now.
+Choose Seen in each chat	Chọn Đã xem cho từng cuộc trò chuyện
+An eye at the top of each chat holds or sends Seen in that chat alone, whatever Read messages without the seen receipt says. Changing it doesn't send anything by itself.	Biểu tượng con mắt ở đầu mỗi cuộc trò chuyện giữ hoặc gửi Đã xem chỉ trong cuộc trò chuyện đó, bất kể Đọc tin nhắn mà không báo đã xem đang bật hay tắt. Thay đổi nó không tự gửi gì cả.
+Use the HushGram setting	Dùng cài đặt của HushGram
+Hold Seen in this chat	Giữ Đã xem trong cuộc trò chuyện này
+Send Seen in this chat	Gửi Đã xem trong cuộc trò chuyện này
+Seen held in this chat	Cuộc trò chuyện này giữ Đã xem
+Seen goes out in this chat	Cuộc trò chuyện này gửi Đã xem
+This chat uses the setting	Cuộc trò chuyện này theo cài đặt
+Couldn't save the choice	Không thể lưu lựa chọn
 Red story mentions	Lượt nhắc tin màu đỏ
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Vẽ chữ của nhãn lượt nhắc bằng màu đỏ thay vì trắng, để nổi bật trên tin sáng màu.
 Only received reels	Chỉ reel đã nhận

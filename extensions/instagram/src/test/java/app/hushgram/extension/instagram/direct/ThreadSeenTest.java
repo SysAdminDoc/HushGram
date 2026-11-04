@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.os.Looper;
 
 import org.junit.After;
@@ -31,6 +32,7 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
+import app.hushgram.extension.instagram.direct.SeenChoices.Choice;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -86,6 +88,9 @@ public class ThreadSeenTest {
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         Settings.KEEP_CHATS_UNREAD.resetToDefault();
         Settings.VIEW_DM_MEDIA_ANONYMOUSLY.resetToDefault();
+        Settings.SEEN_PER_CHAT.resetToDefault();
+        Settings.MARK_SEEN_ON_REPLY.resetToDefault();
+        Settings.MARK_READ_IN_CHAT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -407,9 +412,34 @@ public class ThreadSeenTest {
     /** Unpatched, the preview's Mark as read sends nothing and reports it didn't. */
     @Test
     public void unpatchedPreviewMarkSendsNothing() {
-        assertFalse(ThreadSeen.canMarkRead());
+        assertFalse(ThreadSeen.canMarkRead(SESSION, new Key("t1")));
         assertFalse(ThreadSeen.markReadNow(SESSION, new Key("t1"), "m1", "s1"));
         assertTrue(marksOnFile().isEmpty());
+    }
+
+    /** #13: a chat's preview offers Mark as read where that chat holds its receipts, whatever the switch says. */
+    @Test
+    public void thePreviewMarksAChatReadWhereItsOwnChoiceHoldsIt() {
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        assertFalse("no choices, so the switch decides",
+                ThreadSeen.canMarkRead(SESSION, new Key("t1"), ThreadSeen::switchedOn, chats));
+        choose("t1", Choice.HOLD);
+        choose("t2", Choice.SEND);
+        assertTrue(ThreadSeen.canMarkRead(SESSION, new Key("t1"), ThreadSeen::switchedOn, chats));
+        assertFalse("t3 follows the switch", ThreadSeen.canMarkRead(SESSION, new Key("t3"), ThreadSeen::switchedOn, chats));
+        assertFalse("t1 on another account follows the switch",
+                ThreadSeen.canMarkRead(OTHER, new Key("t1"), ThreadSeen::switchedOn, chats));
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(true);
+        assertFalse("t2 sends Seen anyway", ThreadSeen.canMarkRead(SESSION, new Key("t2"), ThreadSeen::switchedOn, chats));
+        assertTrue(ThreadSeen.canMarkRead(SESSION, new Key("t3"), ThreadSeen::switchedOn, chats));
+        assertNothingReported();
+
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        chats.accountThrows = true;
+        assertFalse("an account that can't be read follows the switch",
+                ThreadSeen.canMarkRead(SESSION, new Key("t1"), ThreadSeen::switchedOn, chats));
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains("'" + ThreadSeen.CHOICE + "'"));
     }
 
     @Test
@@ -1150,6 +1180,264 @@ public class ThreadSeenTest {
         String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
         assertTrue(missing, missing.contains("'" + ThreadSeen.OPEN_CHAT + "'"));
         assertFalse(missing, missing.contains("'" + ThreadSeen.REPLY + "'"));
+    }
+
+    /** #13: a chat's own choice from the eye in its header, whichever way the switch is. */
+    @Test
+    public void aChatHoldsOrSendsByItsOwnChoiceWhateverTheSwitch() {
+        choose("t1", Choice.HOLD);
+        choose("t2", Choice.SEND);
+
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        assertTrue("t1 holds by its own choice", held(receipt("t1", "m1"), SESSION));
+        assertFalse("t3 follows the switch", held(receipt("t3", "m1"), SESSION));
+        assertFalse("the choice is the first account's alone", held(receipt("t1", "m1"), OTHER));
+
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(true);
+        assertFalse("t2 sends by its own choice", held(receipt("t2", "m2"), SESSION));
+        assertTrue(held(receipt("t1", "m3"), SESSION));
+        assertTrue(held(receipt("t3", "m3"), SESSION));
+        assertTrue(held(receipt("t2", "m2"), OTHER));
+
+        assertEquals(Choice.HOLD, ThreadSeen.choiceOf("a1", "t1"));
+        assertEquals(Choice.SEND, ThreadSeen.choiceOf("a1", "t2"));
+        assertEquals(Choice.SWITCH, ThreadSeen.choiceOf("a1", "t3"));
+        assertEquals(Choice.SWITCH, ThreadSeen.choiceOf("a2", "t1"));
+        assertTrue("choosing sends nothing by itself", chats.sent.isEmpty());
+        assertNothingReported();
+    }
+
+    @Test
+    public void withChoosingOffPausedOrUnreadyEveryChatFollowsTheSwitch() {
+        choose("t1", Choice.HOLD);
+        choose("t2", Choice.SEND);
+
+        Settings.SEEN_PER_CHAT.save(false);
+        assertTrue("t2 follows the switch", held(receipt("t2", "m1"), SESSION));
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        assertFalse("t1 follows the switch", held(receipt("t1", "m1"), SESSION));
+        assertEquals("the choices wait for the switch to come back", Choice.HOLD, ThreadSeen.choiceOf("a1", "t1"));
+        Settings.SEEN_PER_CHAT.save(true);
+        assertTrue(held(receipt("t1", "m2"), SESSION));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused, nothing is held", held(receipt("t1", "m3"), SESSION));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse(held(receipt("t1", "m3"), SESSION)));
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertFalse(held(receipt("t1", "m3"), SESSION)));
+
+        assertTrue(held(receipt("t1", "m3"), SESSION));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aChatThatCantBeToldApartFollowsTheSwitch() {
+        choose("t1", Choice.HOLD);
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        assertFalse("no session", held(receipt("t1", "m1"), null));
+        assertFalse("no account", held(receipt("t1", "m1"), new Session(null)));
+        assertFalse("no chat", held(receipt(null, "m1"), SESSION));
+
+        assertFalse(ThreadSeen.choose(null, "t2", Choice.HOLD, clock));
+        assertFalse(ThreadSeen.choose("a1", "", Choice.HOLD, clock));
+        assertFalse(ThreadSeen.choose("a1", "t2", null, clock));
+        assertEquals(Choice.SWITCH, ThreadSeen.choiceOf(null, "t1"));
+        assertEquals(Choice.SWITCH, ThreadSeen.choiceOf("a1", null));
+        assertEquals(Choice.SWITCH, ThreadSeen.choiceOf("a1", "t2"));
+        assertNothingReported();
+
+        chats.accountThrows = true;
+        assertFalse("an account that can't be read follows the switch", held(receipt("t1", "m2"), SESSION));
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains("'" + ThreadSeen.CHOICE + "'"));
+        assertFalse(missing, missing.contains("'" + ThreadSeen.SWITCH + "'"));
+    }
+
+    /** The other way round: with the switch on, a chat set to Send that can't be told apart stays held. */
+    @Test
+    public void aSendChatThatCantBeToldApartStaysHeldWhileTheSwitchIsOn() {
+        choose("t1", Choice.SEND);
+        assertFalse(held(receipt("t1", "m1"), SESSION));
+        assertTrue("no session", held(receipt("t1", "m2"), null));
+        assertTrue("no account", held(receipt("t1", "m2"), new Session(null)));
+        assertTrue("no chat", held(receipt(null, "m2"), SESSION));
+        assertNothingReported();
+
+        chats.accountThrows = true;
+        assertTrue("an account that can't be read stays held", held(receipt("t1", "m3"), SESSION));
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains("'" + ThreadSeen.CHOICE + "'"));
+    }
+
+    @Test
+    public void choosingSendLetsNoHeldReceiptGoAndHidesTheCheckMark() {
+        Settings.MARK_READ_IN_CHAT.save(true);
+        Settings.SEEN_PER_CHAT.save(true);
+        assertTrue(held(receipt("t1", "m1"), SESSION));
+        assertTrue("kept for the check mark", ThreadSeen.hasHeld("a1", "t1", 0));
+        assertTrue(ThreadSeen.showsButton("a1", "t1"));
+        assertTrue(ThreadSeen.holdsHere("a1", "t1"));
+
+        choose("t1", Choice.SEND);
+        assertTrue("choosing sends nothing by itself", chats.sent.isEmpty());
+        assertTrue("the receipt already held stays held", ThreadSeen.hasHeld("a1", "t1", 0));
+        assertFalse(ThreadSeen.showsButton("a1", "t1"));
+        assertFalse(ThreadSeen.holdsHere("a1", "t1"));
+        assertFalse("the next receipt goes out", held(receipt("t1", "m2"), SESSION));
+        assertTrue("another chat still follows the switch", ThreadSeen.holdsHere("a1", "t2"));
+
+        choose("t1", Choice.SWITCH);
+        assertTrue(ThreadSeen.showsButton("a1", "t1"));
+        assertTrue(ThreadSeen.holdsHere("a1", "t1"));
+        assertTrue("a chat back on the switch isn't kept", choicesOnFile().isEmpty());
+        assertNothingReported();
+    }
+
+    @Test
+    public void aChatHeldByItsOwnChoiceGetsTheCheckMarkAndAReply() {
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        Settings.MARK_SEEN_ON_REPLY.save(true);
+        Settings.MARK_READ_IN_CHAT.save(true);
+        choose("t1", Choice.HOLD);
+        choose("t2", Choice.HOLD);
+        assertTrue(held(receipt("t1", "m1"), SESSION));
+        assertTrue(held(receipt("t2", "m2"), SESSION));
+        assertTrue("the check mark shows in a chat held by its own choice", ThreadSeen.showsButton("a1", "t1"));
+        assertFalse("and not in one that follows the switch", ThreadSeen.showsButton("a1", "t3"));
+
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ThreadSeen::marksOnReply, chats, clock);
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+        assertTrue(ThreadSeen.markOpenChatRead("a1", "t2", 0, chats, clock));
+        assertEquals(List.of("a1:t1/m1/s1", "a1:t2/m2/s1"), chats.sent);
+        assertEquals("Marked as read", toast());
+        assertEquals(2, chats.cleared.size());
+        assertNothingReported();
+    }
+
+    @Test
+    public void aChatHeldByItsOwnChoiceStaysUnreadOrReadHereAsItsSwitchSays() {
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        Settings.KEEP_CHATS_UNREAD.save(true);
+        choose("t1", Choice.HOLD);
+        choose("t2", Choice.SEND);
+        assertTrue("t1 stays unread on this phone", unread(receipt("t1", "m1"), STORE));
+        assertFalse("t3 follows the switch", unread(receipt("t3", "m1"), STORE));
+        assertFalse("on another account t1 follows the switch", unread(receipt("t1", "m1"), new Store(OTHER)));
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(true);
+        assertFalse("t2 sends Seen, so it clears", unread(receipt("t2", "m1"), STORE));
+        assertTrue(unread(receipt("t3", "m1"), STORE));
+
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(held(receipt("t1", "m1"), SESSION));
+        assertFalse(held(receipt("t3", "m1"), SESSION));
+        assertTrue("t1 reads as read here", read(summary("t1", "m1")));
+        assertTrue(seen(summary("t1", "m1"), "a1", "m1"));
+        assertFalse(read(summary("t3", "m1")));
+        Reader reader = new Reader(SESSION, "m0", "m0", "m1");
+        move(reader, "t1");
+        assertEquals("the divider follows what was viewed here", "m1", reader.cursor.at());
+
+        choose("t1", Choice.SWITCH);
+        assertFalse("back on the switch, the chat is Instagram's again", read(summary("t1", "m1")));
+        assertNothingReported();
+    }
+
+    @Test
+    public void markAsReadIsOfferedAndWorksInAChatHeldByItsOwnChoice() {
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        List<Object> rows = new ArrayList<>();
+        ThreadSeen.offerMarkRead(rows, MARK);
+        assertTrue("no chat holds yet", rows.isEmpty());
+        choose("t2", Choice.SEND);
+        ThreadSeen.offerMarkRead(rows, MARK);
+        assertTrue("a chat that sends Seen doesn't need it", rows.isEmpty());
+        choose("t1", Choice.HOLD);
+        ThreadSeen.offerMarkRead(rows, MARK);
+        assertEquals(List.of(MARK), rows);
+
+        assertFalse("t3 follows the switch, so Instagram's own row runs",
+                ThreadSeen.markRead(MARK, MARK, SESSION, chat("m3", "s1"), new Key("t3"), ThreadSeen::switchedOn, chats, clock));
+        assertTrue(ThreadSeen.markRead(MARK, MARK, SESSION, chat("m1", "s1"), new Key("t1"), ThreadSeen::switchedOn, chats, clock));
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+        assertFalse("t2 sends Seen anyway",
+                ThreadSeen.markRead(MARK, MARK, SESSION, chat("m2", "s1"), new Key("t2"), ThreadSeen::switchedOn, chats, clock));
+        assertEquals(1, chats.sent.size());
+        assertNothingReported();
+    }
+
+    @Test
+    public void chatsMarkedReadTogetherLetAHeldChatsReceiptThrough() {
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        choose("t1", Choice.HOLD);
+        ThreadSeen.markReadTogether(SESSION, "t1", "m1", ThreadSeen::switchedOn, chats, clock);
+        ThreadSeen.markReadTogether(SESSION, "t2", "m2", ThreadSeen::switchedOn, chats, clock);
+        assertEquals(Set.of(ReadMarks.key("a1", "t1", "m1")), marksOnFile().keySet());
+        assertFalse("the receipt it queued goes through", held(receipt("t1", "m1"), SESSION));
+        assertTrue("a newer one is held", held(receipt("t1", "m2"), SESSION));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aChatsChoiceOutlivesARestart() {
+        choose("t1", Choice.HOLD);
+        now[0]++;
+        choose("t2", Choice.SEND);
+        assertEquals("5000/HOLD", choicesOnFile().get(ReadHere.key("a1", "t1")));
+        assertEquals("5001/SEND", choicesOnFile().get(ReadHere.key("a1", "t2")));
+
+        ThreadSeen.restartForTests();
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        assertTrue(held(receipt("t1", "m1"), SESSION));
+        assertEquals(Choice.SEND, ThreadSeen.choiceOf("a1", "t2"));
+        assertEquals(2, choicesOnFile().size());
+    }
+
+    /** A chat held from the main process stays held where another of Instagram's processes sends a receipt. */
+    @Test
+    public void anotherProcessHoldsAChatHeldInTheMainOneAndWritesNothing() {
+        choose("t1", Choice.HOLD);
+        // Settings take writes only in the main process, so the switch is set before leaving it.
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        ApplicationInfo info = RuntimeEnvironment.getApplication().getApplicationInfo();
+        String main = info.processName;
+        try {
+            info.processName = RuntimeEnvironment.getApplication().getPackageName() + ":mqtt";
+            ThreadSeen.restartForTests();
+            assertTrue(held(receipt("t1", "m1"), SESSION));
+            assertFalse("another chat follows the switch", held(receipt("t3", "m1"), SESSION));
+
+            assertTrue(ThreadSeen.choose("a1", "t2", Choice.HOLD, clock));
+            assertTrue("a choice made there lasts in that process", held(receipt("t2", "m1"), SESSION));
+            assertEquals("but only the main process writes the file",
+                    Set.of(ReadHere.key("a1", "t1")), choicesOnFile().keySet());
+        } finally {
+            info.processName = main;
+            ThreadSeen.restartForTests();
+        }
+        assertNothingReported();
+    }
+
+    /** Gives [thread] on the first account [choice] from the eye in its header, with Choose Seen in each chat on. */
+    private void choose(String thread, Choice choice) {
+        Settings.SEEN_PER_CHAT.save(true);
+        assertTrue(ThreadSeen.choose("a1", thread, choice, clock));
+    }
+
+    /** A receipt asked about with the switches read as the hook reads them. */
+    private boolean held(Receipt receipt, Session session) {
+        return ThreadSeen.hold(receipt, session, ThreadSeen::switchedOn, chats, clock);
+    }
+
+    /** A receipt's state reported to [store], with both switches read as the hook reads them. */
+    private boolean unread(Receipt receipt, Store store) {
+        return ThreadSeen.keepUnread(receipt, store, ThreadSeen::keepsUnread, chats, clock);
+    }
+
+    private static Map<String, ?> choicesOnFile() {
+        return RuntimeEnvironment.getApplication().getSharedPreferences(SeenChoices.FILE, Context.MODE_PRIVATE).getAll();
     }
 
     private static Receipt receipt(String thread, String message, String sender) {

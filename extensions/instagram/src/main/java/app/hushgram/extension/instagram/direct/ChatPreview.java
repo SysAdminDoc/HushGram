@@ -216,7 +216,7 @@ public final class ChatPreview {
                 Utils.showToastShort(L10n.t("Couldn't load this chat"));
                 return true;
             }
-            show(activity, session, key, ThreadSeen.canMarkRead());
+            show(activity, session, key, ThreadSeen.canMarkRead(session, key));
             HookStatus.counted(FamilyNames.PREVIEW_CHATS, OPENED);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.PREVIEW_CHATS, OPEN, t);

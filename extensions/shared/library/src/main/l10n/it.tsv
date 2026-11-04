@@ -1607,6 +1607,16 @@ Mark as read	Segna come letto
 Nothing to mark as read	Niente da segnare come letto
 Mark as read button in chats	Pulsante Segna come letto nelle chat
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	In cima alla chat compare un segno di spunta finché l'altra persona non sa che l'hai vista. Toccalo e vedrà Visualizzato.
+# context: a switch on the Messages page and the eye it adds to a chat's header (#13). "Seen" is Instagram's own read receipt label in a chat. A tap on the eye opens a menu with the three rows after the summary; the toasts and the eye's spoken label say what the chat does now.
+Choose Seen in each chat	Scegli Visualizzato per ogni chat
+An eye at the top of each chat holds or sends Seen in that chat alone, whatever Read messages without the seen receipt says. Changing it doesn't send anything by itself.	Un occhio in cima a ogni chat trattiene o invia Visualizzato solo in quella chat, qualunque cosa dica Leggi i messaggi senza conferma di lettura. Cambiarlo non invia nulla da solo.
+Use the HushGram setting	Usa l'impostazione di HushGram
+Hold Seen in this chat	Trattieni Visualizzato in questa chat
+Send Seen in this chat	Invia Visualizzato in questa chat
+Seen held in this chat	Visualizzato trattenuto in questa chat
+Seen goes out in this chat	Visualizzato viene inviato in questa chat
+This chat uses the setting	Questa chat segue l'impostazione
+Couldn't save the choice	Impossibile salvare la scelta
 Red story mentions	Menzioni delle storie in rosso
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Scrive il testo dell'etichetta delle menzioni in rosso invece che in bianco, così risalta sulle storie chiare.
 Only received reels	Solo reel ricevuti

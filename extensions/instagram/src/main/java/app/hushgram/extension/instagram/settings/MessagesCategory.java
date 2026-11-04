@@ -87,10 +87,19 @@ final class MessagesCategory {
                         L10n.t("Mark a chat seen when you reply"),
                         L10n.t("Sending a message in a chat lets the other person see that you've read what they "
                                 + "sent before it. Chats you don't answer stay unseen to them.")));
-                messages.addPreference(toggle(context, Settings.MARK_READ_IN_CHAT,
-                        L10n.t("Mark as read button in chats"),
-                        L10n.t("A check mark shows at the top of a chat while it hasn't told the other person you've "
-                                + "seen it. Tap it and they see Seen.")));
+                if (build.contains(PatchFamily.MESSAGES_LOCK)) {
+                    // Both buttons learn which chat is open from the lock patch's ChatLocks, the only
+                    // hook that reads a chat's thread, so a build without it would show two dead rows.
+                    messages.addPreference(toggle(context, Settings.MARK_READ_IN_CHAT,
+                            L10n.t("Mark as read button in chats"),
+                            L10n.t("A check mark shows at the top of a chat while it hasn't told the other person "
+                                    + "you've seen it. Tap it and they see Seen.")));
+                    messages.addPreference(toggle(context, Settings.SEEN_PER_CHAT,
+                            L10n.t("Choose Seen in each chat"),
+                            L10n.t("An eye at the top of each chat holds or sends Seen in that chat alone, whatever "
+                                    + "Read messages without the seen receipt says. Changing it doesn't send anything "
+                                    + "by itself.")));
+                }
             }
             if (build.contains(PatchFamily.PREVIEW_CHATS)) {
                 messages.addPreference(toggle(context, Settings.PREVIEW_CHATS, L10n.t("Preview chats"),

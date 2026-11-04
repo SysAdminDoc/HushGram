@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Choose Seen in each chat` under Messages puts an eye next to a chat's call buttons. Tap it to hold Seen in just that chat, send it there, or go back to what `Read messages without the seen receipt` says. Picking one doesn't send anything by itself, and the chat keeps its pick after a restart. A chat you hold that way still gets Mark as read in its long press menu and its preview. Starts off, and it needs `Lock your messages` patched in (it is by default), which is how HushGram knows which chat is open. Asked for in #13.
 * **Instagram:** HushGram settings can show its categories as a grid. Tap `Show categories as a grid` near the top and each category becomes a tile with its icon, name and a line about what's in it, two across (three on a wide screen). Tap a tile and that category opens right below the tiles, and any other one folds. There's still just the one page. Starts off. Asked for in #494.
 * **Instagram:** `Keep playing in the background` keeps a video or reel with sound going when you leave Instagram or turn the screen off, with a notification to pause or stop it. It's under Playback and starts off. Refs #497.
 * **Instagram:** `Hide reels in other languages` hides reels whose caption is in a language you didn't list under `Languages to keep`. Type codes or names like `en, Hindi, Español, fil`, or leave it empty to keep your phone's languages. A caption too short to tell, or one the phone can't place, stays. `Also on Home` applies it to Home's posts. It sits with `Hide reels by caption words` under Reels and starts off. Refs #495.
@@ -53,6 +54,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram:** `Mark as read button in chats` shows under Messages only when `Lock your messages` is patched in too, since the check mark finds the open chat through it.
 * **Instagram:** HushGram now patches Instagram 454.0.0.54.77 instead of 453.0.0.57.79. Get APKMirror's (arm64-v8a) (480dpi) (Android 9.0+) bundle, build 386014758. Its armeabi-v7a (386014757), x86 (386014759) and x86_64 (386014760) builds are declared too, and the other arm64 density builds patch cleanly.
 * **Instagram:** `Hide the Map bubble` is a new switch under Messages. It takes only the Map bubble out of the row of notes, and your notes stay. It starts off. Asked for in #432.
 * **Instagram:** `Glass tab bar` has a `Refraction intensity` slider for how hard the liquid pill bends what's behind its edge, and a preview that changes as you drag. The opacity slider is now `Tint intensity`. Asked for in #391.

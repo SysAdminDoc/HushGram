@@ -87,7 +87,7 @@ public enum PatchFamily {
     SETUP_POPUPS(FamilyNames.SETUP_POPUPS, "setupPopups", null, Settings.SKIP_SETUP_POPUPS),
     AD_DATA_REMINDER(FamilyNames.AD_DATA_REMINDER, "adDataReminder", null, Settings.SKIP_AD_DATA_REMINDER),
     THREAD_SEEN(FamilyNames.THREAD_SEEN, "threadSeen", null, Settings.READ_WITHOUT_SEEN_RECEIPT,
-            Settings.KEEP_CHATS_UNREAD, Settings.MARK_SEEN_ON_REPLY, Settings.MARK_READ_IN_CHAT),
+            Settings.KEEP_CHATS_UNREAD, Settings.MARK_SEEN_ON_REPLY, Settings.MARK_READ_IN_CHAT, Settings.SEEN_PER_CHAT),
     TYPING(FamilyNames.TYPING, "typing", null, Settings.HIDE_TYPING),
     ACTIVE_STATUS(FamilyNames.ACTIVE_STATUS, "activeStatus", null, Settings.HIDE_ACTIVE_STATUS),
     LAST_ACTIVE(FamilyNames.LAST_ACTIVE, "lastActive", null, Settings.SHOW_LAST_ACTIVE),

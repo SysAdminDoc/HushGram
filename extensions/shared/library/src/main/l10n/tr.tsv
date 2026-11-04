@@ -1607,6 +1607,16 @@ Mark as read	Okundu olarak işaretle
 Nothing to mark as read	Okundu yapılacak bir şey yok
 Mark as read button in chats	Sohbetlerde Okundu olarak işaretle düğmesi
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Karşı taraf sohbeti gördüğünü bilmediği sürece sohbetin üstünde bir onay işareti görünür. Ona dokunursan Görüldü'yü görür.
+# context: a switch on the Messages page and the eye it adds to a chat's header (#13). "Seen" is Instagram's own read receipt label in a chat. A tap on the eye opens a menu with the three rows after the summary; the toasts and the eye's spoken label say what the chat does now.
+Choose Seen in each chat	Her sohbette Görüldü'yü seç
+An eye at the top of each chat holds or sends Seen in that chat alone, whatever Read messages without the seen receipt says. Changing it doesn't send anything by itself.	Her sohbetin üstündeki göz, Mesajları görüldü bilgisi olmadan oku ne derse desin, Görüldü'yü yalnızca o sohbette tutar ya da gönderir. Değiştirmek kendi başına hiçbir şey göndermez.
+Use the HushGram setting	HushGram ayarını kullan
+Hold Seen in this chat	Bu sohbette Görüldü'yü tut
+Send Seen in this chat	Bu sohbette Görüldü'yü gönder
+Seen held in this chat	Bu sohbette Görüldü tutuluyor
+Seen goes out in this chat	Bu sohbette Görüldü gönderiliyor
+This chat uses the setting	Bu sohbet ayarı kullanıyor
+Couldn't save the choice	Seçim kaydedilemedi
 Red story mentions	Kırmızı hikaye bahsetmeleri
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Bahsetme etiketinin yazısını beyaz yerine kırmızı çizer, böylece parlak hikayelerde öne çıkar.
 Only received reels	Yalnızca alınan reels

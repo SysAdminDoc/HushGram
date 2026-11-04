@@ -27,8 +27,9 @@ internal const val THREAD_SEEN_PATCH = "Read messages without the seen receipt"
 val readWithoutSeenReceiptPatch = bytecodePatch(
     name = "Read messages without the seen receipt",
     description = "Opening a chat no longer tells people you've seen their messages. You still see when they've " +
-        "seen yours. Mark as read, or the check mark at the top of a chat, still tells them. Ghost mode turns it " +
-        "on too. Starts off. Turn it on in HushGram settings > Messages.",
+        "seen yours. Mark as read, or the check mark at the top of a chat, still tells them. With `Choose Seen in " +
+        "each chat` on, an eye at the top of each chat holds or sends Seen in that chat alone, whichever way the " +
+        "main switch is. Ghost mode turns it on too. Starts off. Turn it on in HushGram settings > Messages.",
 ) {
     category("Ghost mode")
     dependsOn(settingsPatch, instagramExtensionPatch, ghostModeEntryPatch)
