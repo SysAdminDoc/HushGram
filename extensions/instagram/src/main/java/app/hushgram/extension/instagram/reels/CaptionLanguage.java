@@ -381,10 +381,27 @@ public final class CaptionLanguage {
             if (isoCodes().contains(code)) return code;
             // Three letters: hin is hi, and fil, yue or haw have no two-letter code at all.
             String shorter = threeLetterCodes().get(code);
+            if (shorter == null) shorter = SPELLED_SHORTER.get(code);
             if (shorter != null) return shorter;
             if (code.length() == 3 && namedByIcu(code)) return code;
         }
         return nameTable().get(lower);
+    }
+
+    /**
+     * Three-letter codes getISO3Language never gives, to the code the classifier answers for them:
+     * a language inside a macrolanguage (Mandarin's cmn is zh) and ISO 639-2's library spellings
+     * (ger for German). Kept as typed, every caption in that language would count as another one.
+     */
+    private static final Map<String, String> SPELLED_SHORTER = new HashMap<>();
+
+    static {
+        String[] pairs = {
+                "cmn", "zh", "arb", "ar", "nob", "no", "nno", "no", "swh", "sw", "zsm", "ms", "pes", "fa",
+                "alb", "sq", "arm", "hy", "baq", "eu", "bur", "my", "chi", "zh", "cze", "cs", "dut", "nl",
+                "fre", "fr", "geo", "ka", "ger", "de", "gre", "el", "ice", "is", "mac", "mk", "mao", "mi",
+                "may", "ms", "per", "fa", "rum", "ro", "slo", "sk", "tib", "bo", "wel", "cy"};
+        for (int i = 0; i < pairs.length; i += 2) SPELLED_SHORTER.put(pairs[i], pairs[i + 1]);
     }
 
     private static volatile Map<String, String> iso3;

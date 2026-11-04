@@ -174,6 +174,26 @@ public class CaptionLanguageTest {
         assertFalse(rule("fil", says("tl", 0.95f)).isOther("Magandang gabi sa lawa kasama ang mga kaibigan"));
     }
 
+    /**
+     * A three-letter code the classifier spells shorter keeps that language: Mandarin's cmn is the
+     * zh the classifier answers, and so are Norwegian's nob and German's library code ger.
+     */
+    @Test public void threeLetterCodesTheClassifierSpellsShorterAreKept() {
+        assertEquals(Arrays.asList("zh", "no", "de", "fr"), CaptionLanguage.parse("cmn, nob, nno, ger, fre, chi").codes);
+        assertTrue(CaptionLanguage.parse("cmn, nob, ger").unknown.isEmpty());
+
+        // A Chinese caption stays with Mandarin kept.
+        assertFalse(rule("cmn", says("zh", 0.95f)).isOther(han(30)));
+        assertFalse(rule("nob", says("no", 0.95f)).isOther("Det var en fin kveld ved vannet med venner"));
+    }
+
+    /** [letters] Han characters, a caption with no spaces. */
+    private static String han(int letters) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < letters; i++) out.appendCodePoint(0x4E00 + i * 37);
+        return out.toString();
+    }
+
     /** With Languages to keep empty, a change of the phone's languages changes the rule. */
     @Test public void theRuleFollowsTheSystemLanguages() {
         Locale before = Locale.getDefault();
