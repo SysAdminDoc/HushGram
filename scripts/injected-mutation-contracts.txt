@@ -81,11 +81,14 @@ once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in st
 # The row built from views asks the same thing, and so does the first-run tip pointing at the bubble.
 # The tip's collector holds no string of its own and sits in a coroutine emit Redex merges with other
 # collectors: 453's held musicRowView from a merged neighbor, which 454 moved to another emit. On 454
-# (0D6g.emit on 386014758, 0F59.emit on 386014757) the rule picks it by the fields the tip reads (the
-# state's A02 and A05, the item's A00 and A01 and the answer A0H), which six to eight merged emits
-# read, and by the GraphQL innerData field its merged neighbor reads, which only it of those does.
+# it's an emit on three builds (0F59.emit on 386014757, 0D6g.emit on 386014758, 0K9W.emit on
+# 386014759) and a static coroutine step on 386014760 (0C9T.A0C), so the rule takes any arguments.
+# It picks the tip by the fields it reads (the state's A02 and A05, the item's A00 and A01 and the
+# answer A0H), by the object it builds behind a store fence and hands on through an emit, and by the
+# coroutine step's label and result fields, which its merged neighbors share, and by the session
+# lookup those neighbors make and it never does.
 once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in instance (LX/*;LX/*;)V pooled holding FriendMapEntryPoint
-once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in instance (Ljava/lang/Object;LX/*;)Ljava/lang/Object; holding LX/*;->A0H:Z LX/*;->A05:LX/*; LX/*;->A02:LX/*; LX/*;->A00:I LX/*;->A01:Ljava/lang/String; LX/*;->innerData:LX/*;
+once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in (*)Ljava/lang/Object; lacking LX/*;->A00(Lcom/instagram/common/session/UserSession;)LX/*; holding LX/*;->A0H:Z LX/*;->A05:LX/*; LX/*;->A02:LX/*; LX/*;->A00:I LX/*;->A01:Ljava/lang/String; Lredex/$StoreFenceHelper;->DUMMY_VOLATILE:I LX/*;->emit(Ljava/lang/Object;LX/*;)Ljava/lang/Object; Ljava/lang/Object;-><init>()V LX/*;-><init>(Ljava/lang/Object;)V LX/*;->A01(Ljava/lang/Object;)V LX/*;->$t:I LX/*;-><init>(LX/*;LX/*;I)V LX/*;->A01:Ljava/lang/Object; LX/*;->A00:LX/*;
 # Hide the search bar in Messages asks at the same place, right after or right before NotesRow
 # (whichever patch went in first asks first), and InboxSearchBar drops SEARCH_BAR by name. Same
 # one method, called once there and nowhere else. HideNotesRowHookTest checks both orders.
@@ -112,9 +115,11 @@ once-call Lapp/hushgram/extension/instagram/reels/TabBarLayout;->newTabBar(I)Z i
 # 0x19 on 453) to TabBarLayout.quickSearchPages(int): the coroutine reads the tab host's pager, counts
 # its adapter, and with no pager takes the tab list's size, which no page ever reaches. On 454 the
 # coroutine's step is an instance invokeSuspend on 386014758 (0Imq) and a static taking it and its
-# result on 386014757 (022R.A04), so the rule takes any arguments. Left out, the press stops at
-# Explore on the classic bar.
-once-call Lapp/hushgram/extension/instagram/reels/TabBarLayout;->quickSearchPages(I)I in (*)Ljava/lang/Object; holding LX/*;->*:Landroidx/viewpager2/widget/ViewPager2; LX/*;->getItemCount()I
+# result on 386014757 (022R.A04), so the rule takes any arguments. The x86 builds merge other pager
+# collectors into emits and lambdas reading a pager and its count, so the rule also holds the search
+# back stack's name the step loads, which Redex pools on 386014757 and 386014759. Left out, the press stops at Explore on the
+# classic bar.
+once-call Lapp/hushgram/extension/instagram/reels/TabBarLayout;->quickSearchPages(I)I in (*)Ljava/lang/Object; pooled holding LX/*;->*:Landroidx/viewpager2/widget/ViewPager2; LX/*;->getItemCount()I composite_search_back_stack
 # Read messages without the seen receipt (#13) hands ThreadSeen.hold(Object, Object) the receipt and
 # the account the handler keeps first in the mutation queue's handler for an ordinary chat's seen
 # receipt (05cs.Gsm on 450), the one method holding both names of the GraphQL mutation that carries
@@ -720,17 +725,19 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySpeed;->playing(Ljava/l
 # row lambda held "three_dot_menu", which 57.79 dropped. On 454 the two header lambdas are the same
 # bound formattedTimeProvider reference (its "formattedTimeProvider(J)Ljava/lang/String;" signature
 # string sits in each class), and the cases merged around them change per build: on 386014758 one
-# class (0J47) still holds openReviewDetail, on 386014757 neither does. What both builds keep is that
-# one of the two classes also binds the Muse sign-up check (its "isMuseRegistered" signature) and
-# calls MuseInAppRegEligibilityCache from the invoke that writes the time (0J47.invoke, 0hgy.invoke on
-# 757), and the other's writer is the one method of the shape in its class that unboxes the time with
-# a static (Object)J call and never calls that cache (0D4F.A06, 0R16.invoke on 757). The older row's
-# lambda is 0Hiu.invoke on 758 and the static case 0BUf.A0C on 757, told from the epoch-seconds helper
-# by not calling the label joiner. Left out, a time stays relative; elsewhere, it isn't the call the
-# patch wrote.
+# class (0J47) still holds openReviewDetail, on 386014757 neither does, and only the arm builds bind
+# the Muse sign-up check beside it. What all four builds keep is that one writer is a merged invoke
+# that also asks a Fragment for its Context (0hgy, 0J47, 0BZ7 and 0oun.invoke on 757 to 760), the one
+# method of the shape doing that in a class holding the signature string and the Resources field. The
+# other is a small case reading the state's Resources field A01, a receiver, an Integer A00 and an
+# enum A06 and calling a static (Object, int) check (0R16.invoke, 0D4F.A06, 0BUE.invoke, 0R80.A06),
+# and it unboxes no boolean, which the merged writers and a five-argument lambda reading the same
+# fields on the x86 builds do. The older row's lambda is 0Hiu.invoke on 758 and the static case
+# 0BUf.A0C on 757, told from the epoch-seconds helper by not calling the label joiner. Left out, a
+# time stays relative; elsewhere, it isn't the call the patch wrote.
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance (Landroid/content/Context;Lcom/instagram/feed/media/Media;L*;L*;L*;Z)L*; sites 2 holding CoalescedFooterUseCase#getUiState LabelBelowCommentUseCase#getUiState
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in (*)Ljava/lang/Object; calling static LX/*;->*(Ljava/lang/Object;)J lacking Lcom/instagram/igxmeta/museinappreg/eligibility/MuseInAppRegEligibilityCache;->*(*)* class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A01:Landroid/content/res/Resources;
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in (*)Ljava/lang/Object; calling static LX/*;->*(Ljava/lang/Object;)J class-holding formattedTimeProvider(J)Ljava/lang/String; isMuseRegistered(Lcom/instagram/common/session/UserSession;)Ljava/lang/Boolean; LX/*;->A01:Landroid/content/res/Resources;
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in (*)Ljava/lang/Object; calling static LX/*;->*(Ljava/lang/Object;I)V lacking LX/*;->*(Ljava/lang/Object;)Z holding LX/*;->A01:Landroid/content/res/Resources; LX/*;->receiver:Ljava/lang/Object; LX/*;->A00:Ljava/lang/Integer; LX/*;->A06:LX/*;
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in (*)Ljava/lang/Object; calling instance Landroidx/fragment/app/Fragment;->requireContext()Landroid/content/Context; class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A01:Landroid/content/res/Resources;
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in (*)Ljava/lang/Object; lacking LX/*;->*(Ljava/lang/String;Ljava/lang/String;Ljava/lang/StringBuilder;)Ljava/lang/String; holding LX/*;->A08:Ljava/lang/Long; Ljava/lang/Number;->longValue()J LX/*;->A0B:Landroid/content/Context;
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;J)Ljava/lang/String; in static (LX/*;)Ljava/lang/Object; holding LX/*;->A08:Ljava/lang/Long; LX/*;->A0F:Z Ljava/lang/Number;->longValue()J LX/*;->*(Ljava/lang/String;Ljava/lang/String;Ljava/lang/StringBuilder;)Ljava/lang/String;
 # Show when someone was last active asks LastActive.exact() with the time a person was last on, in the one
@@ -841,14 +848,16 @@ next-call Lapp/hushgram/extension/instagram/direct/ChatReelsNotice;->page(Ljava/
 # the two fields are A3H and A3J, the first pull-down lambda is merged (0G8G.invoke on 386014758)
 # or outlined into a static case taking the lambda's holder (09OK.A07 on 386014757), both reading
 # the holder's receiver, the second is 0Q61.A0L (0Su3.A0G) and the state lambda 0Hli.invoke
-# (0Jtg.invoke). Left
+# (0Jtg.invoke). The second is a static case on three builds and inlined into its class's invoke on
+# 386014759 (0kxx.invoke), so its rule takes any arguments and picks it by the instance (boolean)
+# setter it hands the answer to, which the first never calls. Left
 # out, a pull down in a chat's viewer reloads it with suggested reels; twice or elsewhere, some
 # other read of the config changes.
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (I)LX/*; sites 2 holding ClipsTabRecyclerAdapter.createFragmentForPosition Lcom/instagram/clips/intf/ClipsViewerConfig;->A3H:Z
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding android_purge_26_q3_ClipsViewPagerImpl_setupView
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (Z)V holding refresh_not_allowed
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in (*)Ljava/lang/Object; holding LX/*;->receiver:Ljava/lang/Object; Lcom/instagram/clips/intf/ClipsViewerConfig;->A3H:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A3J:Z
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in static (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; holding Lcom/instagram/clips/intf/ClipsViewerConfig;->A3H:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A3J:Z
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in (*)Ljava/lang/Object; calling instance LX/*;->*(Z)V holding Lcom/instagram/clips/intf/ClipsViewerConfig;->A3H:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A3J:Z
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance ()Ljava/lang/Object; holding android_purge_26_q3_ClipsLongPressToFeatureUseCase_getUiState Lcom/instagram/clips/intf/ClipsViewerConfig;->A3H:Z
 # The pager setup (01WS.A0j on 453's 385914557, #390) also hands ChatReelsExit.viewer the Reels
 # ViewPager2 and the viewer's config right before it stores the pager, so a long swipe up past a
@@ -869,8 +878,10 @@ once-call Lapp/hushgram/extension/instagram/misc/InstagramSignature;->originalSi
 # inline gate, so its body, operands and branch targets rest on SameKeyProvidersTest. That test
 # also rejects absent, duplicate, wrong-context, wrong-result and other-policy guards in both.
 # 454 inlined the policy getters into field reads, so there the gate (AbstractContentProviderDelegate
-# A0Q) is picked by its static (Context, policy) native check and the same-key delegate's policy field.
-shared-call Lapp/hushgram/extension/instagram/misc/InstagramSignature;->isSameKeyFamilyProviderCaller(Landroid/content/Context;)Z in instance ()V calling static LX/*;->*(Landroid/content/Context;LX/*;)Z holding Component\saccess\snot\sallowed\sfor\s Content\sProvider\sblocked\sby\skill\sswitch\sfor\s Lcom/facebook/secure/content/delegate/SameKeyContentProviderDelegate;->A01:LX/*;
+# A0Q) is picked by its (Context, policy) native check and its call to another of the delegate's own
+# methods, which two Redex-named delegates holding the same strings and check never make. The x86
+# builds don't read the same-key delegate's policy field there, so the rule leaves it out.
+shared-call Lapp/hushgram/extension/instagram/misc/InstagramSignature;->isSameKeyFamilyProviderCaller(Landroid/content/Context;)Z in instance ()V calling Lcom/facebook/secure/content/base/AbstractContentProviderDelegate;->*()V holding Component\saccess\snot\sallowed\sfor\s Content\sProvider\sblocked\sby\skill\sswitch\sfor\s LX/*;->*(Landroid/content/Context;LX/*;)Z
 # Start on x86 devices asks protectCode() in front of each call Instagram makes to its code
 # protection step, RuntimeInternals.mprotectExecCode(). On 452 two methods make that call: an
 # instance method taking nothing (05My.A02, a merged runner that picks its task by type, so the
@@ -976,9 +987,10 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->moreAfterFoll
 # to the switches left them built once with the fetch still loading. olderPageLoading() passes each isLoading() answer.
 # One adapter's builder holds the BaseItemFilter cast message; the other holds no string, so it is told apart by the
 # three fields it reads (its constructor reads them too, but is not static). On 454 the first builder is the adapter's
-# own instance method taking nothing (0IUC.A00 on 386014758). Left out, that page keeps its spinner.
-once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPageLoading(I)I in instance ()V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.media.baseitemfilter.BaseItemFilter<com.instagram.feed.feeditem.FeedItem>
-once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPolicyAsked(Ljava/lang/Object;)V in instance ()V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.media.baseitemfilter.BaseItemFilter<com.instagram.feed.feeditem.FeedItem>
+# own instance method taking nothing (0IUC.A00 on 386014758) and a static taking the adapter on the x86 builds
+# (0SO1.A00 on 386014759, 0J1x.A00 on 386014760), so its rules take any arguments. Left out, that page keeps its spinner.
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPageLoading(I)I in (*)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.media.baseitemfilter.BaseItemFilter<com.instagram.feed.feeditem.FeedItem>
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPolicyAsked(Ljava/lang/Object;)V in (*)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.media.baseitemfilter.BaseItemFilter<com.instagram.feed.feeditem.FeedItem>
 once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPageLoading(I)I in static (LX/*;)V holding const:0x66de71a
 once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPolicyAsked(Ljava/lang/Object;)V in static (LX/*;)V holding const:0x66de71a
 # Right before each of those questions, olderPolicyAsked gets the feed's load more policy, so olderPageLoading only drops the
@@ -1246,14 +1258,15 @@ once-call Lapp/hushgram/extension/instagram/feed/FullResolution;->photo(Ljava/la
 # holding "MainFeedStoryTrayBinderGroup.buildRowViewTypes", and keepTrayOutOfOverlay() first thing
 # in the floating tray helper's show, the one method holding "floating_tray_overlay_container" and
 # "show_tray_fail_reason", which moves the tray over the feed on a return to Home without building
-# its row (#88, #357). Each guard is written once. It passes each item the stories tray response's parser reads through
+# its row (#88, #357). The show asks a string pool for those two on 454's 386014759, and the patch finds
+# it either way. Each guard is written once. It passes each item the stories tray response's parser reads through
 # filter() once, in the one unsafeParseFromJson holding "tray", "story_ranking_token" and
 # "remaining_reel_ids_to_fetch", and the ids of the reels that parser reads under
 # "remaining_reel_ids_to_fetch" through remaining() once, so Stop loading stories and highlights empties both.
 start-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding MainFeedStoryTrayBinderGroup.buildRowViewTypes
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding MainFeedStoryTrayBinderGroup.buildRowViewTypes
-start-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->keepTrayOutOfOverlay()Z in instance (Landroid/view/View;Landroid/view/View;Ljava/lang/String;I)V holding floating_tray_overlay_container show_tray_fail_reason
-once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->keepTrayOutOfOverlay()Z in instance (Landroid/view/View;Landroid/view/View;Ljava/lang/String;I)V holding floating_tray_overlay_container show_tray_fail_reason
+start-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->keepTrayOutOfOverlay()Z in instance (Landroid/view/View;Landroid/view/View;Ljava/lang/String;I)V pooled holding floating_tray_overlay_container show_tray_fail_reason
+once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->keepTrayOutOfOverlay()Z in instance (Landroid/view/View;Landroid/view/View;Ljava/lang/String;I)V pooled holding floating_tray_overlay_container show_tray_fail_reason
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->filter(Ljava/lang/Object;)Ljava/lang/Object; in instance (*)Ljava/lang/Object; holding tray story_ranking_token remaining_reel_ids_to_fetch
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->remaining(Ljava/util/ArrayList;)Ljava/util/ArrayList; in instance (*)Ljava/lang/Object; holding tray story_ranking_token remaining_reel_ids_to_fetch
 # It also asks midcard(String) right after the type of a midcard reel is turned into its id, in each
