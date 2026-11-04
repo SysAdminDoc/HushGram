@@ -610,6 +610,28 @@ public final class ScreenColors {
         }
         View field = dialog.findViewById(android.R.id.edit);
         if (field instanceof EditText) paintField((EditText) field);
+        if (window != null) startTextAtTheStart(window.getDecorView());
+    }
+
+    /**
+     * Text set to start at its start edge starts at the layout's: on the right in a right-to-left
+     * layout, under the title, where HushGram's English otherwise sits flush left. Centred text and
+     * buttons keep their gravity, a field keeps the direction of what's typed, and a list's rows
+     * are its adapter's.
+     */
+    public static void startTextAtTheStart(View view) {
+        if (view instanceof android.widget.AdapterView) return;
+        if (view instanceof TextView && !(view instanceof EditText)) {
+            TextView text = (TextView) view;
+            if ((text.getGravity() & android.view.Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) == android.view.Gravity.START
+                    && text.getTextAlignment() == View.TEXT_ALIGNMENT_GRAVITY) {
+                text.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+            }
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int index = 0; index < group.getChildCount(); index++) startTextAtTheStart(group.getChildAt(index));
+        }
     }
 
     /**

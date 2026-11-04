@@ -964,6 +964,8 @@ public final class StoryMentions {
                 openProfile(activity, person.username);
             }));
         }
+        // Names by the picture in a right-to-left layout, in the sheet too, which isn't a painted dialog.
+        ScreenColors.startTextAtTheStart(rows);
         dialog.setOnDismissListener(shown -> {
             if (!leaving[0]) backToList = null;
             release(shown, !leaving[0]);

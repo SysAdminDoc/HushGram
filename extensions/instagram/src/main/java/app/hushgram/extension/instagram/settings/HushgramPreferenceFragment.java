@@ -2833,6 +2833,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             field.setTextColor(ScreenColors.DEFAULT.title);
             field.setHint(L10n.t("Search settings"));
             field.setContentDescription(L10n.t("Search settings"));
+            // The hint and the query start by the magnifier, on the right in a right-to-left layout.
+            field.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
             // A magnifier at the field's start, as every row starts with an icon. A screen reader
             // already hears the field's name, and a compound drawable isn't read.
             android.graphics.drawable.Drawable glass = SettingsIcons.icon(context, SettingsIcons.SEARCH,

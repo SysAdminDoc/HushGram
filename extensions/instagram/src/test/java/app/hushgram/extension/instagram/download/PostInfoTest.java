@@ -15,6 +15,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.ApplicationInfo;
 import android.text.format.DateUtils;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,6 +34,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
@@ -270,6 +272,31 @@ public class PostInfoTest {
         ClipData clip = ((ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE)).getPrimaryClip();
         assertEquals(META + "1080.mp4", clip.getItemAt(0).getText().toString());
         assertTrue(clip.getDescription().getExtras().getBoolean("android.content.extra.IS_SENSITIVE"));
+    }
+
+    /**
+     * In a right-to-left layout the facts and the copy rows start on the right, under the title.
+     * They go in after the dialog is painted, so they sat flush left.
+     */
+    @Test
+    @Config(qualifiers = "ar-rEG-ldrtl")
+    public void rightToLeftTheDetailsStartUnderTheTitle() {
+        // Right to left needs the app's supportsRtl flag, which the library's test manifest leaves out.
+        RuntimeEnvironment.getApplication().getApplicationInfo().flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
+        Settings.POST_DETAILS.save(true);
+        Post post = photo();
+        post.caption = "Sunset at the pier";
+        PostInfo.show(post, null, activity);
+        // A view's direction is resolved by the dialog's first layout pass.
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        TextView facts = dialog.findViewById(android.R.id.message);
+        for (TextView text : new TextView[]{facts, labelled(dialog, "Copy username"), labelled(dialog, "Copy caption")}) {
+            String what = text.getText().toString();
+            assertEquals(what, View.LAYOUT_DIRECTION_RTL, text.getLayoutDirection());
+            assertEquals(what, View.TEXT_ALIGNMENT_VIEW_START, text.getTextAlignment());
+        }
+        dialog.dismiss();
     }
 
     /** No link, no Copy button; switched off with the menu open, or with no screen, nothing shows. */

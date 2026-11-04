@@ -192,6 +192,8 @@ public final class SettingsDialog extends DialogFragment {
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
         title.setPaddingRelative(dp(8), 0, 0, 0);
+        // Next to the back arrow in a right-to-left layout too, not at the bar's far end.
+        title.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         title.setAccessibilityHeading(true);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         root.addView(bar);

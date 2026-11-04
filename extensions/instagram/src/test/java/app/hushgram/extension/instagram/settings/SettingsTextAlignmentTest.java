@@ -7,10 +7,14 @@ package app.hushgram.extension.instagram.settings;
 import static org.junit.Assert.*;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.pm.ApplicationInfo;
 import android.preference.Preference;
 import android.text.Layout;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ListAdapter;
 import android.widget.TextView;
@@ -110,6 +114,69 @@ public class SettingsTextAlignmentTest {
                 float right = layout.getWidth() - layout.getLineRight(line);
                 assertEquals(text.getText() + " line " + line + " is centred", left, right, 1.5f);
             }
+        }
+    }
+
+    @Test @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h640dp-xhdpi")
+    public void rightToLeftDialogTextStartsUnderTheTitle() throws Exception {
+        assertDialogTextAtTheStart(true);
+    }
+
+    @Test public void leftToRightDialogTextStaysAtTheLeft() throws Exception {
+        assertDialogTextAtTheStart(false);
+    }
+
+    /** The search hint and what's typed start by the magnifier, which is on the right in a right-to-left layout. */
+    @Test @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h640dp-xhdpi")
+    public void rightToLeftSearchStartsByTheMagnifier() throws Exception {
+        open();
+        View row = render(page.findPreference("hushgram_settings_search"), true);
+        EditText field = row.findViewWithTag("hushgram-settings-search");
+        assertEquals(View.LAYOUT_DIRECTION_RTL, field.getLayoutDirection());
+        assertEquals(View.TEXT_ALIGNMENT_VIEW_START, field.getTextAlignment());
+        assertTrue("the magnifier is at the start", field.getCompoundDrawablesRelative()[0] != null);
+    }
+
+    /**
+     * A painted dialog's message and a label of its own start where its title does: the PIN
+     * dialogs' English sat flush left under a title on the right. Its buttons stay centred.
+     */
+    private void assertDialogTextAtTheStart(boolean rightToLeft) throws Exception {
+        open();
+        Activity activity = controller.get();
+        TextView label = new TextView(activity);
+        label.setText("Use 4 to 8 digits.");
+        AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle("Forgot PIN?")
+                .setMessage("The PIN can't be recovered. To remove it, clear Instagram's storage in Android's "
+                        + "app settings. That signs you out and resets HushGram's settings.")
+                .setView(label)
+                .setPositiveButton("Open app info", null)
+                .create();
+        dialog.show();
+        ScreenColors.dialog(dialog);
+        ShadowLooper.idleMainLooper();
+        try {
+            for (TextView text : new TextView[]{dialog.findViewById(android.R.id.message), label}) {
+                String what = text.getText().toString();
+                assertEquals(what, rightToLeft ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR,
+                        text.getLayoutDirection());
+                assertEquals(what, View.TEXT_ALIGNMENT_VIEW_START, text.getTextAlignment());
+                Layout layout = text.getLayout();
+                assertNotNull(what + " was laid out", layout);
+                for (int line = 0; line < layout.getLineCount(); line++) {
+                    float left = layout.getLineLeft(line);
+                    if (rightToLeft) {
+                        assertEquals(what + " line " + line, layout.getWidth(), left + layout.getLineMax(line), 1f);
+                    } else {
+                        assertEquals(what + " line " + line, 0f, left, 0.5f);
+                    }
+                }
+            }
+            Button open = dialog.getButton(DialogInterface.BUTTON_POSITIVE);
+            assertEquals("the button stays centred", View.TEXT_ALIGNMENT_GRAVITY, open.getTextAlignment());
+        } finally {
+            dialog.dismiss();
         }
     }
 

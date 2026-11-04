@@ -203,6 +203,8 @@ public final class PostInfo {
                 if (copies != null) rows.addView(copies);
                 content.removeView(message);
                 content.addView(rows, position, size);
+                // The rows came after the dialog was painted.
+                ScreenColors.startTextAtTheStart(rows);
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed details", failure);

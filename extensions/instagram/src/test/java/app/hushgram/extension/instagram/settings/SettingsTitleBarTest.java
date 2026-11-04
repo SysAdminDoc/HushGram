@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.*;
 import android.app.Activity;
+import android.content.pm.ApplicationInfo;
 import android.graphics.Rect;
 import android.preference.Preference;
 import android.preference.SwitchPreference;
@@ -87,6 +88,21 @@ public class SettingsTitleBarTest {
                 View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
         root.layout(0, 0, width, height);
         ShadowLooper.idleMainLooper();
+    }
+
+    /** In a right-to-left layout the name sits by the back arrow on the right, not at the bar's far end. */
+    @Test @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h480dp-mdpi")
+    public void rightToLeftTheNameSitsByTheBackArrow() throws Exception {
+        RuntimeEnvironment.getApplication().getApplicationInfo().flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
+        openDialog();
+        TextView title = barTitle();
+        View back = bar().getChildAt(0);
+        assertEquals(View.LAYOUT_DIRECTION_RTL, title.getLayoutDirection());
+        assertTrue("the back arrow is on the right", back.getLeft() > title.getLeft());
+        assertEquals(View.TEXT_ALIGNMENT_VIEW_START, title.getTextAlignment());
+        android.text.Layout layout = title.getLayout();
+        assertNotNull("the name was laid out", layout);
+        assertEquals("the name ends by the arrow", layout.getWidth(), layout.getLineLeft(0) + layout.getLineMax(0), 1f);
     }
 
     private LinearLayout bar() {
