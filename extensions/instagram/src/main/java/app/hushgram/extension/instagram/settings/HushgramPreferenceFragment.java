@@ -8006,6 +8006,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         /** A screen reader reads the value as the summary shows it, not as a share of the slider. */
         private static void describe(SeekBar slider, String shown) {
             if (Build.VERSION.SDK_INT >= 30) slider.setStateDescription(shown);
+            else if (slider instanceof ValueSlider) ((ValueSlider) slider).shown = shown;
         }
 
         /** The row's slider, made under its summary the first time the row's view is bound. */
@@ -8016,7 +8017,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             TextView summary = view.findViewById(android.R.id.summary);
             if (summary == null || !(summary.getParent() instanceof android.view.ViewGroup)) return null;
             android.view.ViewGroup parent = (android.view.ViewGroup) summary.getParent();
-            SeekBar slider = new SeekBar(getContext());
+            SeekBar slider = new ValueSlider(getContext());
             slider.setTag(SLIDER);
             if (parent instanceof RelativeLayout) {
                 RelativeLayout.LayoutParams below = new RelativeLayout.LayoutParams(-1, -2);
@@ -8026,6 +8027,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 parent.addView(slider, parent.indexOfChild(summary) + 1, new android.view.ViewGroup.LayoutParams(-1, -2));
             }
             return slider;
+        }
+    }
+
+    /**
+     * A slider that tells a screen reader its value as the row shows it on Android 9 and 10, which
+     * have no state description. The value goes in the node's extras under AndroidX's key for one,
+     * which TalkBack reads in place of the slider's percent ("18 dp", not "45 percent").
+     */
+    static final class ValueSlider extends SeekBar {
+        static final String STATE_DESCRIPTION_KEY = "androidx.view.accessibility.AccessibilityNodeInfoCompat.STATE_DESCRIPTION_KEY";
+        @Nullable String shown;
+
+        ValueSlider(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(info);
+            if (Build.VERSION.SDK_INT < 30 && shown != null) info.getExtras().putCharSequence(STATE_DESCRIPTION_KEY, shown);
         }
     }
 

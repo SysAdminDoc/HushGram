@@ -159,6 +159,37 @@ public class ReelScrollingSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_CAP_BREAK.key));
     }
 
+    /**
+     * A screen reader hears the slider's value as the row shows it, "20 reels (standard)", on every
+     * version. Android 9 and 10 have no state description, so the value rides in the node's extras
+     * under AndroidX's key, which TalkBack reads in place of the percent.
+     */
+    @Test public void aScreenReaderHearsTheSlidersValueAsShownOnEveryVersion() throws Exception {
+        open(true);
+        ((SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REEL_CAP.key)).setChecked(true);
+        ShadowLooper.idleMainLooper();
+        HushgramPreferenceFragment.SliderRow count =
+                (HushgramPreferenceFragment.SliderRow) page.getPreferenceScreen().findPreference(Settings.REEL_CAP_COUNT.key);
+        assertEquals("20 reels (standard)", spoken(count));
+        count.choose(35);
+        ShadowLooper.idleMainLooper();
+        assertEquals("35 reels", spoken(count));
+    }
+
+    /** What TalkBack hears from the row's slider, read on screen: newer Android fills no node for a view outside a window. */
+    private String spoken(Preference row) {
+        ViewGroup content = (ViewGroup) controller.get().findViewById(android.R.id.content);
+        View view = row.getView(null, content);
+        content.addView(view);
+        View slider = view.findViewWithTag("hushgram_slider");
+        assertTrue("the row carries its slider", slider instanceof SeekBar);
+        assertTrue(slider.isAttachedToWindow());
+        android.view.accessibility.AccessibilityNodeInfo node = slider.createAccessibilityNodeInfo();
+        CharSequence value = android.os.Build.VERSION.SDK_INT >= 30 ? node.getStateDescription()
+                : node.getExtras().getCharSequence("androidx.view.accessibility.AccessibilityNodeInfoCompat.STATE_DESCRIPTION_KEY");
+        return String.valueOf(value);
+    }
+
     private SeekBar sliderOf(Preference row) {
         View view = row.getView(null, (ViewGroup) controller.get().findViewById(android.R.id.content));
         View slider = view.findViewWithTag("hushgram_slider");
