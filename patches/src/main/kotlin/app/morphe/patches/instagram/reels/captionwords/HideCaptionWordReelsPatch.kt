@@ -36,9 +36,9 @@ private const val LIST = "Ljava/util/List;"
 @Suppress("unused")
 val hideCaptionWordReelsPatch = bytecodePatch(
     name = "Hide reels by caption words",
-    description = "Leaves out reels whose caption holds a word or phrase from your list, and Home's posts too " +
-        "with Also on Home. Starts off. " +
-        "Turn it on and type the words in HushGram settings > Reels.",
+    description = "Leaves out reels whose caption holds a word or phrase from your list, or is in a language " +
+        "you don't keep, and Home's posts too with Also on Home. Starts off. " +
+        "Turn it on and type the words or languages in HushGram settings > Reels.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
