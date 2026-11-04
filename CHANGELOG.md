@@ -43,8 +43,8 @@ Every HushGram release, newest first.
 * **Instagram:** `Hide reels with few views` is a new patch. Under Reels it leaves out reels under a view count you type (1,000 to start) or a like count (10). Instagram hides most view counts now, so likes matter more. Asked for in #444.
 * **Instagram:** `Hide Suggested for you on follow lists` now also takes the suggested people off the Follow requests screen. Your real requests stay. Asked for in #441.
 * **Instagram:** `Swipe through a chat's reels` adds `Messages after a reel`. When someone wrote after the reel you're on, a banner says so, and a tap takes you back to the chat at that message. Starts off. Asked for in #489.
-* **Instagram:** `Select text to copy` is a new switch under Comments. Comments, captions and bios get a Select text row in their menus, so you can copy just the part you want. Starts off. Asked for in #492.
-* **Instagram:** `Notify me of unfollowers` sits beside Recent unfollowers. Once you scroll your own Followers list to the end, a notification names whoever left since last time. It never checks in the background. Starts off. Asked for in #492.
+* **Instagram:** `Select text to copy` is a new switch under Comments. Comments get a Select text row in their menu, and captions and bios get one too, so you can copy just the part you want. Starts off. Asked for in #492.
+* **Instagram:** `Notify me of unfollowers` sits under Recent unfollowers and needs it on. Once you scroll your own Followers list to the end, a notification names whoever left since last time. It never checks in the background. Starts off. Asked for in #492.
 * **Instagram:** `Save profile picture` adds `About this account button`, an (i) next to a profile's three dots that opens Instagram's About this account page for it, since Instagram took its own button away. Starts off. Asked for in #492.
 * **Instagram:** `Ambient light` now reaches under the tab bar on the Reels tab, on Instagram's own bar and around a docked glass pill, so the glow doesn't stop at the bar. Asked for in #487.
 
