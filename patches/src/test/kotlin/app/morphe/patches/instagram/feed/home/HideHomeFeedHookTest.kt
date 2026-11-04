@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.feed.FeedItemStandIns.assertFilteredBeforeRe
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
 import app.morphe.patches.instagram.feed.reels.FILTER
 import app.morphe.patches.instagram.feed.reels.filterParsedFeedItems
+import app.morphe.patches.instagram.feed.suggested.HOME_TYPES_FILTER
 import app.morphe.patches.instagram.feed.suggested.emptiedFeedEndPatch
 import app.morphe.patches.instagram.feed.suggested.hideSuggestedPostsPatch
 import app.morphe.patches.instagram.misc.extension.loadsString
@@ -26,6 +27,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -38,6 +40,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
@@ -169,10 +172,71 @@ class HideHomeFeedHookTest {
         assertEquals("the second filter is right before the return", Opcode.CHECK_CAST, code[landing - 1].opcode)
     }
 
-    /** Two parse helpers, or a Home response that reads no item, fail the patch before anything changes. */
+    /** The helper's own read as Redex inlines it: the item parser's instance, its parse, the answer kept in v0 and cast. */
+    private val inlinedRead = listOf(
+        ImmutableInstruction21c(Opcode.SGET_OBJECT, 0, ImmutableFieldReference(FeedItemStandIns.PARSER, "A00", FeedItemStandIns.PARSER)),
+        ImmutableInstruction35c(
+            Opcode.INVOKE_VIRTUAL, 2, 0, 2, 0, 0, 0,
+            ImmutableMethodReference(FeedItemStandIns.PARSER, "parseFromJsonParser", listOf(json), "Ljava/lang/Object;"),
+        ),
+        ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+        ImmutableInstruction21c(Opcode.CHECK_CAST, 0, ImmutableTypeReference(FeedItemStandIns.ITEM)),
+    )
+
+    /**
+     * Home's store as 454 has it: Redex inlined the helper's read on the second path, and the first
+     * path calls the helper and jumps to right after the copy's cast. Both reads get the filter, and
+     * the jump lands past the second, so each path's item goes through it once.
+     */
+    @Test
+    fun theStoresInlinedReadIsFilteredToo() {
+        val read = listOf(
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 2, 0, 0, 0, 0, helper),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+        )
+        // Code units: the read is 3 + 1 and the goto 1, the copy 2 + 3 + 1 + 2, so the goto at unit 4 lands on the return at 13.
+        val twoPaths = type(
+            store,
+            method(
+                store, "A00", listOf("[B"), FeedItemStandIns.ITEM, 3,
+                *(read + ImmutableInstruction10t(Opcode.GOTO, 9) + inlinedRead + ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0))
+                    .toTypedArray(),
+            ),
+        )
+        val context = PatchContexts.of(classes().filter { it.type != store } + twoPaths)
+
+        assertEquals(3, context.filterHomeFeedItems())
+
+        val patched = context.mutableClassDefBy(store).methods.single()
+        assertEquals("the store's two reads", 2, itemsKept(patched, helper.toString(), FeedItemStandIns.ITEM).size)
+        assertFilteredAfterRead("store", patched)
+        val code = patched.instructions()
+        val jump = code.indexOfFirst { it.opcode == Opcode.GOTO }
+        val addresses = code.runningFold(0) { at, instruction -> at + instruction.codeUnits }
+        val landing = addresses.indexOf(addresses[jump] + (code[jump] as OffsetInstruction).codeOffset)
+        assertEquals("the jump lands on the return, past the copy's filter", Opcode.RETURN_OBJECT, code[landing].opcode)
+        assertTrue("the copy's filter is right before the return", code[landing - 3].calls(HOME_FEED_FILTER))
+    }
+
+    /** Home's store with a copy of the helper's read whose answer it drops. */
+    private fun withUnkeptCopy(): List<ClassDef> = classes().filter { it.type != store } + type(
+        store,
+        method(
+            store, "A00", listOf("[B"), FeedItemStandIns.ITEM, 3,
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 2, 0, 0, 0, 0, helper),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            *inlinedRead.take(2).toTypedArray(),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+        ),
+    )
+
+    /**
+     * Two parse helpers, a Home response that reads no item, or a store copy of the helper's read
+     * whose item it drops, fail the patch before anything changes.
+     */
     @Test
     fun aMissingOrDoubledReadFailsThePatchUnchanged() {
-        for (built in listOf(classes(helpers = 2), classes(homeReadsItem = false))) {
+        for (built in listOf(classes(helpers = 2), classes(homeReadsItem = false), withUnkeptCopy())) {
             val context = PatchContexts.of(built)
             val before = built.associate { it.type to it.methods.sumOf { m -> m.instructions().size } }
 
@@ -191,10 +255,11 @@ class HideHomeFeedHookTest {
     }
 
     /**
-     * In each declared build, every read of Home's feed response and Home's store answers through
-     * HomeFeed, and every other method reading through the feed item helper is left as it was:
-     * among them Explore's chain of posts, the contextual ad feed and the shop ad feed, which an
-     * empty answer would leave without posts.
+     * In each declared build, every read of Home's feed response and Home's store, the store's copy
+     * of the helper's read included, answers through FeedSuggestions.homeItem and HomeFeed, and every
+     * other method reading through the feed item helper is left as it was: among them Explore's
+     * chain of posts, the contextual ad feed and the shop ad feed, which an empty answer would leave
+     * without posts.
      */
     @Test
     fun eachDeclaredBuildFiltersOnlyHomesReads() {
@@ -238,9 +303,14 @@ class HideHomeFeedHookTest {
         val context = PatchContexts.of(FixtureDex.withStringPools(fixture.bundle, classes))
         val home = callers.filter { it.holds("pull_to_refresh_window_ms") || (it.definingClass in made && it.parameterTypes.map(Any::toString) == listOf("[B")) }
         assertEquals("$name: Home's response and store", 2, home.size)
-        val homeReads = home.sumOf { m -> m.instructions().count { it.calls(helperRef) } }
+        val storeRead = home.single { it.parameterTypes.map(Any::toString) == listOf("[B") }
+        // The store reads its item on two paths: on 454 one calls the helper and one is Redex's copy of it.
+        assertEquals("$name: the store's two reads", 2, itemsKept(storeRead, helperRef, fixture.itemType).size)
+        val homeReads = home.sumOf { itemsKept(it, helperRef, fixture.itemType).size }
 
         assertEquals(name, homeReads, context.filterHomeFeedItems())
+        // Hide suggested posts' type switches filter the same reads, ahead of Hide the home feed's.
+        assertEquals(name, homeReads, context.findHomeFeedReads("test").filterWith(HOME_TYPES_FILTER))
 
         for (caller in callers) {
             val after = context.mutableClassDefBy(caller.definingClass).methods.single {
@@ -248,10 +318,12 @@ class HideHomeFeedHookTest {
                     it.returnType == caller.returnType
             }
             if (caller in home) {
-                assertFilteredAfterRead("$name ${caller.definingClass}", after, helperRef)
+                assertFilteredAfterRead(
+                    "$name ${caller.definingClass}", after, helperRef, fixture.itemType, listOf(HOME_TYPES_FILTER, HOME_FEED_FILTER),
+                )
             } else {
                 assertEquals("$name: ${caller.definingClass}->${caller.name} was touched", caller.instructions().size, after.instructions().size)
-                assertFalse(after.instructions().any { it.calls(HOME_FEED_FILTER) })
+                assertFalse(after.instructions().any { it.calls(HOME_FEED_FILTER) || it.calls(HOME_TYPES_FILTER) })
             }
         }
         // Which strings Redex pools differs from build to build: 385611395, 385611400 and 385611440
@@ -269,22 +341,53 @@ class HideHomeFeedHookTest {
         assertEquals("$name: the helper was touched", fixture.helper.instructions().size, helperAfter.instructions().size)
     }
 
-    /** Each read of the helper in [method] is kept and then answered through HomeFeed into the same register. */
-    private fun assertFilteredAfterRead(what: String, method: Method, helperRef: String = helper.toString()) {
+    /**
+     * Where [method] keeps an item it read, in order, as the index after it and the register: each
+     * call to the helper [helperRef] and the move-result after it, and each parseFromJsonParser whose
+     * answer is kept and cast to [itemType], which is a copy of the helper's read Redex inlined.
+     */
+    private fun itemsKept(method: Method, helperRef: String, itemType: String): List<Pair<Int, Int>> {
         val code = method.instructions()
-        val reads = code.indices.filter { code[it].calls(helperRef) }
+        val calls = code.indices.filter { code[it].calls(helperRef) }.map { at ->
+            assertEquals("${method.definingClass}: the item kept", Opcode.MOVE_RESULT_OBJECT, code[at + 1].opcode)
+            at + 2 to (code[at + 1] as OneRegisterInstruction).registerA
+        }
+        val copies = code.indices.filter { at ->
+            val kept = code.getOrNull(at + 1)
+            val cast = code.getOrNull(at + 2)
+            code[at].opcode in setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE) &&
+                ((code[at] as ReferenceInstruction).reference as MethodReference).name == "parseFromJsonParser" &&
+                kept?.opcode == Opcode.MOVE_RESULT_OBJECT && cast?.opcode == Opcode.CHECK_CAST &&
+                ((cast as ReferenceInstruction).reference as TypeReference).type == itemType &&
+                (cast as OneRegisterInstruction).registerA == (kept as OneRegisterInstruction).registerA
+        }.map { at -> at + 3 to (code[at + 1] as OneRegisterInstruction).registerA }
+        return (calls + copies).sortedBy { it.first }
+    }
+
+    /** Each item [method] reads, as [itemsKept] finds them, is then answered through [filters], in that order, into its register. */
+    private fun assertFilteredAfterRead(
+        what: String,
+        method: Method,
+        helperRef: String = helper.toString(),
+        itemType: String = FeedItemStandIns.ITEM,
+        filters: List<String> = listOf(HOME_FEED_FILTER),
+    ) {
+        val code = method.instructions()
+        val reads = itemsKept(method, helperRef, itemType)
         assertTrue("$what reads no item", reads.isNotEmpty())
-        for (at in reads) {
-            assertEquals("$what: the item kept", Opcode.MOVE_RESULT_OBJECT, code[at + 1].opcode)
-            val kept = (code[at + 1] as OneRegisterInstruction).registerA
-            assertEquals(
-                "$what: the filter's opcodes",
-                listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST),
-                code.subList(at + 2, at + 5).map { it.opcode },
-            )
-            assertTrue("$what: the filter called", code[at + 2].calls(HOME_FEED_FILTER))
-            assertEquals("$what: the register kept", kept, (code[at + 3] as OneRegisterInstruction).registerA)
-            assertEquals("$what: the register cast", kept, (code[at + 4] as OneRegisterInstruction).registerA)
+        for ((after, kept) in reads) {
+            filters.forEachIndexed { n, filter ->
+                val at = after + 3 * n
+                assertEquals(
+                    "$what: the filter's opcodes at $at",
+                    listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST),
+                    code.subList(at, at + 3).map { it.opcode },
+                )
+                assertTrue("$what: $filter called at $at", code[at].calls(filter))
+                assertEquals("$what: the register passed", kept, (code[at] as RegisterRangeInstruction).startRegister)
+                assertEquals("$what: the register kept", kept, (code[at + 1] as OneRegisterInstruction).registerA)
+                assertEquals("$what: the register cast", kept, (code[at + 2] as OneRegisterInstruction).registerA)
+            }
         }
     }
 

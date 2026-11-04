@@ -24,9 +24,11 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
@@ -141,7 +143,7 @@ internal fun BytecodePatchContext.findHomeFeedReads(patch: String): HomeFeedRead
         uniqueMethod(patch, "Home's feed response parser", HomeFeedResponseFingerprint),
         homeFeedStoreRead(patch, itemType, helper),
     )
-    return HomeFeedReads(itemType, readers.map { reader -> reader to itemReads(patch, reader, helper) })
+    return HomeFeedReads(itemType, readers.map { reader -> reader to itemReads(patch, reader, helper, itemType) })
 }
 
 /**
@@ -169,22 +171,63 @@ internal fun BytecodePatchContext.homeFeedStoreRead(patch: String, itemType: Str
 }
 
 /**
- * Each call [reader] makes to [helper], as the index right after the move-result keeping the item
- * and the register it's kept in. Fails when there's none, or when a call's item isn't kept by the
- * next instruction. The filter goes in at that index without taking its label, so a branch landing
- * there, as Home's store does after its other read, still lands after the filter and its item
- * passes once.
+ * Each item [reader] reads, in order, as the index right after the instruction keeping it and the
+ * register it's kept in: each call to [helper], kept by the next move-result, and each copy of the
+ * helper's own read that Redex inlined into [reader], kept and cast to [itemType]. 454's store reads
+ * its item through the helper on one path and through such a copy on the other; 453's called the
+ * helper on both. Fails when there's none, or when a read's item isn't kept. The filter goes in at
+ * that index without taking its label, so a branch landing there, as Home's store does after its
+ * other read, still lands after the filter and its item passes once.
  */
-internal fun itemReads(patch: String, reader: Method, helper: Method): List<Pair<Int, Int>> {
+internal fun itemReads(patch: String, reader: Method, helper: Method, itemType: String): List<Pair<Int, Int>> {
     val where = "${reader.definingClass}->${reader.name}"
     val code = reader.implementation?.instructions?.toList().orEmpty()
-    val reads = code.indices.filter { code[it].calls(helper) }.map { at ->
+    val calls = code.indices.filter { code[it].calls(helper) }.map { at ->
         val kept = code.getOrNull(at + 1)
         if (kept?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse(patch, "$where doesn't keep the item ${helper.name} answers")
         at + 2 to (kept as OneRegisterInstruction).registerA
     }
+    val reads = (calls + inlinedReads(patch, where, code, helper, itemType)).sortedBy { it.first }
     if (reads.isEmpty()) refuse(patch, "$where reads no item through ${helper.definingClass}->${helper.name}")
     return reads
+}
+
+/**
+ * Each copy in [code] of [helper]'s own read: the sget-object of the parser instance the helper
+ * reads with, that parser's parseFromJsonParser on it, the answer kept and cast to [itemType]. As
+ * the index after the cast and the item's register. A copy whose answer isn't kept and cast fails.
+ * None when the helper doesn't load its parser right before the parse.
+ */
+private fun inlinedReads(patch: String, where: String, code: List<Instruction>, helper: Method, itemType: String): List<Pair<Int, Int>> {
+    val own = helper.implementation?.instructions?.toList().orEmpty()
+    val parse = own.indexOfFirst { (it.referenceOrNull() as? MethodReference)?.name == "parseFromJsonParser" }
+    val load = own.getOrNull(parse - 1)?.takeIf { it.opcode == Opcode.SGET_OBJECT } ?: return emptyList()
+    val parser = load.referenceOrNull().toString()
+    val parseCall = own[parse].referenceOrNull().toString()
+    return code.indices.filter { at ->
+        val loaded = code[at]
+        val call = code.getOrNull(at + 1)
+        loaded.opcode == Opcode.SGET_OBJECT && loaded.referenceOrNull().toString() == parser &&
+            call?.referenceOrNull()?.toString() == parseCall && call?.receiver() == (loaded as OneRegisterInstruction).registerA
+    }.map { at ->
+        val kept = code.getOrNull(at + 2)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } as? OneRegisterInstruction
+        val cast = code.getOrNull(at + 3)?.takeIf { it.opcode == Opcode.CHECK_CAST }
+        if (kept == null || cast == null || (cast as OneRegisterInstruction).registerA != kept.registerA ||
+            (cast.referenceOrNull() as TypeReference).type != itemType
+        ) {
+            refuse(patch, "$where doesn't keep the item its inlined copy of ${helper.name} answers as $itemType")
+        }
+        at + 4 to kept.registerA
+    }
+}
+
+private fun Instruction.referenceOrNull() = (this as? ReferenceInstruction)?.reference
+
+/** The receiver of a virtual call, or null for anything else. */
+private fun Instruction.receiver(): Int? = when {
+    opcode == Opcode.INVOKE_VIRTUAL -> (this as FiveRegisterInstruction).registerC
+    opcode == Opcode.INVOKE_VIRTUAL_RANGE -> (this as RegisterRangeInstruction).startRegister
+    else -> null
 }
 
 private fun Instruction.calls(helper: Method): Boolean {

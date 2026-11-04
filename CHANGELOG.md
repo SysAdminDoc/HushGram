@@ -79,6 +79,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `Hide the home feed` and the post type switches of `Hide suggested posts` catch the posts Home saved from your last visit again. Instagram 454 reads that saved list two ways and only one of them went through the filter, so after a restart Home could still show saved posts you'd hidden.
 * **Instagram:** With `Ambient light` on, playing a video you sent from your gallery in a chat no longer crashes Instagram. The glow kept getting wrapped in a new layer every frame until memory ran out. Reported in #485.
 * **Instagram:** `Seek bar on stories` sits above a story's bottom row again. Instagram moved the Send message box, like and share into a new row, and the bar ended up drawn over them. Reported in #486.
 * **Instagram:** `Ambient light in stories` now glows under the status bar and the gesture bar too. Instagram's story viewer stops short of both, so the glow ended at its edges and the strips above and below a story stayed black. Reported in #487.
