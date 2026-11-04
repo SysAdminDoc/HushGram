@@ -13,6 +13,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -204,19 +205,23 @@ private fun Method.addsFromItsType(reel: MethodReference): Boolean {
     val code = implementation?.instructions?.toList() ?: return false
     val type = implementation!!.registerCount - parameters.sumOf { it.width() } +
         parameters.takeWhile { it != INTEGER }.sumOf { it.width() }
+    val entered = jumpTargets()
     return reelBuilds(reel).all { at ->
         val passed = typeRegister(code[at])
-        passed == type || code.copiesInto(passed, type, at)
+        passed == type || code.copiesInto(passed, type, at, entered)
     }
 }
 
 /**
  * Whether the code before [at] runs straight through, never writes [source], and last writes
- * [target] with a plain object move from [source].
+ * [target] with a plain object move from [source]. Nothing may jump or throw back to [at] or before
+ * it from later code ([entered] holds every place a jump or a handler lands), since that way could
+ * reach the build with [target] holding something else.
  */
-private fun List<Instruction>.copiesInto(target: Int, source: Int, at: Int): Boolean {
+private fun List<Instruction>.copiesInto(target: Int, source: Int, at: Int, entered: Set<Int>): Boolean {
     val before = take(at)
     if (before.any { it.opcode.canContinue().not() || it is OffsetInstruction }) return false
+    if (entered.any { it <= at }) return false
     if (before.any { it.writes(source) }) return false
     val copy = before.lastOrNull { it.writes(target) } ?: return false
     return copy.opcode in OBJECT_MOVES && (copy as TwoRegisterInstruction).registerB == source

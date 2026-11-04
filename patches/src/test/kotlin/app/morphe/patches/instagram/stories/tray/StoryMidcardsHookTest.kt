@@ -111,10 +111,16 @@ class StoryMidcardsHookTest {
         val helper = classes.single { it.type == "Lfixture/MidcardHelper;" }.methods.single().code().map { it.opcode }
         assertEquals(helper, context.mutableClassDefBy("Lfixture/MidcardHelper;").methods.single().code().map { it.opcode })
 
-        for (after in listOf("if-eqz p3, :build\nmove-object v2, v1\n:build\n", "const/4 v2, 0x0\n", "move-object v2, p0\n")) {
-            val found = PatchContexts.of(classes(helperCopy = after)).findStoryMidcards()
-            assertTrue("$after: ${found.helpers}", found.helpers.isEmpty())
-            assertTrue("$after: ${found.adders.map { it.type }}", found.adders.none { it.type.startsWith("Lfixture/Trending") })
+        // Skipped past, overwritten, copied from elsewhere, its Integer overwritten, and a loop back to the
+        // build after the copy is overwritten.
+        val cases = listOf(
+            "if-eqz p3, :build\nmove-object v2, v1\n:build\n" to "", "const/4 v2, 0x0\n" to "", "move-object v2, p0\n" to "",
+            "move-object p1, v0\n" to "", ":again\n" to "const/4 v2, 0x0\nif-nez p3, :again\n",
+        )
+        for ((after, tail) in cases) {
+            val found = PatchContexts.of(classes(helperCopy = after, helperTail = tail)).findStoryMidcards()
+            assertTrue("$after$tail: ${found.helpers}", found.helpers.isEmpty())
+            assertTrue("$after$tail: ${found.adders.map { it.type }}", found.adders.none { it.type.startsWith("Lfixture/Trending") })
         }
     }
 
@@ -340,6 +346,7 @@ class StoryMidcardsHookTest {
         repository: String = SUGGESTED_USERS_REPOSITORY,
         helperJump: Boolean = false,
         helperCopy: String? = null,
+        helperTail: String = "",
     ): List<ClassDef> {
         val namer = method(names, "A00", listOf(integer), "Ljava/lang/String;", 1, static, "const-string v0, \"$name\"\nreturn-object v0")
         val second = method(names, "A01", listOf(integer), "Ljava/lang/String;", 1, static, "const-string v0, \"$name\"\nreturn-object v0")
@@ -427,6 +434,7 @@ class StoryMidcardsHookTest {
             """ + helperCopy + """
                 invoke-direct {v0, v1, v2, v1, v1}, $reelInit
                 invoke-interface {p2, p3, v0}, $list->add(ILjava/lang/Object;)V
+            """ + helperTail + """
                 return-void
             """,
         )
