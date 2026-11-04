@@ -25,7 +25,9 @@ import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.methodsCalling
+import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.instagram.misc.flags.answerFlagLoads
@@ -1202,6 +1204,12 @@ internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findRe
     val currentJoin = replyJoin(current, info) ?: refuse("$controller->${current.name} has no one place its ways to a $info meet")
     val currentInfo = replyRegister(current, currentJoin)
     val currentFree = current.freeLocalsAt(PATCH, currentJoin, 2, except = listOf(currentInfo))
+    // Each hook reads a parameter where it goes in: the collector's message wrapper, the hint's
+    // controller and page, and the reply info's controller. Nothing before may write over them.
+    collect.requireParameterIntact(PATCH, 0, listOf(built + 1))
+    hint.requireThisIntact(PATCH, listOf(hintJoin))
+    hint.requireParameterIntact(PATCH, 0, listOf(hintJoin))
+    current.requireParameterIntact(PATCH, 0, listOf(currentJoin))
 
     val mutable = mutableClassDefBy(controller).methods
     fun mutableOf(method: Method) = mutable.single { it.name == method.name && takes(it) == takes(method) }
