@@ -850,8 +850,27 @@ try {
     }
 
     $gateStage = 'full'
+    # Once morphe-signing.pub is committed, the bundle this gate builds is the one a release ships,
+    # and Morphe Manager 2.3 refuses an unsigned bundle from a source it has seen signed. The key
+    # stays off the repository: MORPHE_SIGNING_KEY, or the file HUSHGRAM_BUNDLE_KEY names, or
+    # ~/.ssh/hushgram_morphe_signing.key, which scripts/bundle_signature.py generate writes.
+    $signingPublic = Join-Path $gate 'morphe-signing.pub'
+    $signed = Test-Path -LiteralPath $signingPublic -PathType Leaf
+    if ($signed -and -not $env:MORPHE_SIGNING_KEY) {
+        $keyFile = if ($env:HUSHGRAM_BUNDLE_KEY) { $env:HUSHGRAM_BUNDLE_KEY } else { Join-Path $HOME '.ssh/hushgram_morphe_signing.key' }
+        if (-not (Test-Path -LiteralPath $keyFile -PathType Leaf)) {
+            Stop-Push "morphe-signing.pub is committed, so the bundle must be signed, but there's no key at $keyFile. Set MORPHE_SIGNING_KEY or HUSHGRAM_BUNDLE_KEY."
+        }
+        $env:MORPHE_SIGNING_KEY = ([IO.File]::ReadAllText($keyFile)).Trim()
+    }
     Invoke-GradleBuild -ProjectDir $gate -Tasks @('--console=plain', ':patches:test', ':patches:buildAndroid')
     if ($LASTEXITCODE -ne 0) { Stop-Push 'the patch tests failed or the bundle did not build' }
+    if ($signed) {
+        $gateStage = 'signature'
+        $built = Get-ChildItem -LiteralPath (Join-Path $gate 'patches/build/release') -Filter 'patches-*.mpp' | Select-Object -First 1
+        & py -3.13 -I (Join-Path $gate 'scripts/bundle_signature.py') verify $built.FullName --public $signingPublic
+        if ($LASTEXITCODE -ne 0) { Stop-Push 'the bundle is not signed with the key morphe-signing.pub publishes' }
+    }
 
     $gateStage = 'fixtures'
     $bundle = Get-ChildItem -LiteralPath (Join-Path $gate 'patches/build/release') -Filter 'patches-*.mpp' | Select-Object -First 1
