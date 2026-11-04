@@ -6,11 +6,16 @@ Every HushGram release, newest first.
 
 ### Features
 
-* `Add the source to saved photos` is now `Add the source to saved photos and videos`. A saved MP4 video gets the account that posted it, the post date and a link to the post in its tags, where exiftool and most galleries read them. The video and its sound stay exactly as they were, and a video the save knows nothing about isn't touched.
-* `Choose Seen in each chat` under Messages puts an eye next to a chat's call buttons. Tap it to hold Seen in just that chat, send it there, or go back to what `Read messages without the seen receipt` says. Picking one doesn't send anything by itself, and the chat keeps its pick after a restart. A chat you hold that way still gets Mark as read in its long press menu and its preview. Starts off, and it needs `Lock your messages` patched in (it is by default), which is how HushGram knows which chat is open. Asked for in #13.
-* HushGram settings can show its categories as a grid. Tap `Show categories as a grid` near the top and each category becomes a tile with its icon, name and a line about what's in it, two across (three on a wide screen). Tap a tile and that category opens right below the tiles, and any other one folds. There's still just the one page. Starts off. Asked for in #494.
+* `Add the source to saved photos` covers videos now and is called `Add the source to saved photos and videos`. A saved MP4 gets the poster, the post date and the post's link in tags exiftool and most galleries read.
+* Tagging a saved video leaves its picture and sound exactly as they were. A video the save knows nothing about isn't touched.
+* `Choose Seen in each chat` under Messages puts an eye next to a chat's call buttons. Tap it to hold Seen in just that chat, send it there, or go back to what `Read messages without the seen receipt` says. Asked for in #13.
+* Picking a Seen choice for a chat doesn't send anything by itself, and the chat keeps its pick after a restart. A chat held that way still gets Mark as read in its long press menu and its preview.
+* `Choose Seen in each chat` starts off. It needs `Lock your messages` patched in, which it is by default, since that's how HushGram knows which chat is open.
+* `Show categories as a grid`, near the top of HushGram settings, turns each category into a tile with its icon, name and a line on what's in it. Tiles sit two across, three on a wide screen. Asked for in #494.
+* Tap a category tile and it opens right below the tiles while any other one folds. It's all still one page, and the grid starts off.
 * `Keep playing in the background` keeps a video or reel with sound going when you leave Instagram or turn the screen off, with a notification to pause or stop it. It's under Playback and starts off. Refs #497.
-* `Hide reels in other languages` hides reels whose caption is in a language you didn't list under `Languages to keep`. Type codes or names like `en, Hindi, Español, fil`, or leave it empty to keep your phone's languages. A caption too short to tell, or one the phone can't place, stays. `Also on Home` applies it to Home's posts. It sits with `Hide reels by caption words` under Reels and starts off. Refs #495.
+* `Hide reels in other languages`, under Reels next to `Hide reels by caption words`, hides reels whose caption is in a language you didn't list under `Languages to keep`. `Also on Home` applies it to Home's posts. It starts off. Refs #495.
+* In `Languages to keep`, type codes or names like `en, Hindi, Español, fil`, or leave it empty to keep your phone's languages. A reel whose caption is too short to tell, or that the phone can't place, stays.
 * `Hide the reply box on stories` is a new patch. With its switch on under Stories, the Send message box comes off the bottom of other people's stories, and the like and share buttons stay where they were. Starts off. Asked for in #486.
 * `Full screen Reels and Home` adds `Stories fill the screen` under Stories. On a tall phone a story fills the whole screen like on shorter phones, instead of a rounded card that stops above the reply bar. Starts off. Asked for in #436.
 * `Speed button on reels` adds an icon beside a reel with a short list of speeds, 0.5x to 3x. `Keep the reel speed` carries your pick to the next reels. Both are under Reels and start off. Asked for in #480.
@@ -65,7 +70,7 @@ Every HushGram release, newest first.
 * The line under a greyed-out setting is easier to read. It faded as much as the title did, and it's the line that tells you what to turn on first.
 * `Report a problem` no longer leaves a stray question mark when it has to shorten a very long phone name with emoji in it.
 * On a phone with no browser, `Report a problem`, `Source code and issues` and `Support HushGram` say so and then show their address in a second toast. With both in one toast, the end of the address got cut off.
-* VP9 and AV1 reels whose only sound in the manifest is xHE-AAC now save at full quality. The sound comes from the post's plain video file, and the join couldn't read that kind of file, so these reels fell back to the 720p copy. Refs #496.
+* VP9 and AV1 reels whose only sound in the manifest is xHE-AAC now save at full quality. The join couldn't read the post's plain video file, where their sound comes from, so they fell back to the 720p copy. Refs #496.
 * `Import settings` lets you pick any file. A settings file from a chat or a download often carries some other type, and the picker used to grey it out. A file that isn't a settings file is still refused.
 * In Morphe Manager's patch list, `Control taps and volume on Reels` now sits under Playback next to its switches, and `Hide rows in Instagram's settings` under Settings, so no group runs past 16 patches.
 * The chat preview bubble, the story mentions sheet and its Close button use the same corners as the rest of HushGram. The friendship chip and the carousel arrows aren't round pills anymore.
@@ -78,32 +83,40 @@ Every HushGram release, newest first.
 * The viewing history page follows `Black settings page`, its search box matches the one on the settings page, the picked tab is underlined, long names end in an ellipsis and an empty list shows an icon.
 * `Show and reorder tabs` draws its drag handles instead of using a text symbol that changed with the phone's font.
 * The main settings page no longer shows a thin grey line down each screen edge. The restart bar and the viewing history search now line up with the cards.
-* Android shows two lines of a toast, and about 60 of HushGram's ran longer in English or in one of the translations, so their ends never showed. They're shorter now in all ten languages. When safe mode pauses HushGram it says so in two toasts, and the second says where to turn it back on.
+* About 60 of HushGram's toasts ran past the two lines Android shows, in English or a translation, so their ends never showed. They're shorter now in all ten languages.
+* When safe mode pauses HushGram it says so in two toasts, and the second says where to turn it back on.
 * **Tooling:** `preflight.ps1 -Version` now refuses a source census past its 14 days. Until now the index push was the first thing to say so, after the gate, the walk and the publish.
 * **Tooling:** `count_tests.py --description` prints only the validation sentence on stdout and its counts on stderr, so saving its output gives `release_notes.py` the one line it wants.
-* **Tooling:** When `verify-all-patches.ps1 -KeepIn` can't keep a passing run, it now deletes only the files the keep writes. It used to delete the whole folder you named, with everything else in it. A keep also drops the last run's stamp before it starts, so a half-finished keep never passes for a whole one.
+* **Tooling:** When `verify-all-patches.ps1 -KeepIn` can't keep a passing run, it now deletes only the files the keep writes. It used to delete the whole folder you named, with everything else in it.
+* **Tooling:** A `verify-all-patches.ps1 -KeepIn` keep drops the last run's stamp before it starts, so a half-finished keep never passes for a whole one.
 * **Tooling:** Changelog entries don't open with an "Instagram:" label anymore, since HushGram only patches Instagram. A topic like `Glass tab bar:` stays. The release notes and Manager's text drop a leftover label, and `release_notes.py --drop-labels` clears it at the cut.
 
 ### Bug Fixes
 
-* With `Add the source to saved photos and videos` on, a saved carousel page now links the post it's from. It used to get a link built from the page itself, which doesn't open. A saved story gets no link at all now, since stories don't have a post page to go to.
-* With `Gallery and microphone in the plus menu` on, `Buttons in the message box` says those two are in the plus menu. It used to call them shown, or list them as left off, and it now updates the moment that switch flips.
-* With `Name saves by account and post time` on, `Download file name` says its names only go to saves that don't know who posted or when. It used to read as if every save got them, and it now updates as soon as that switch flips.
+* With `Add the source to saved photos and videos` on, a saved carousel page links the post it's from instead of a link that doesn't open. A saved story gets no link, since stories have no post page.
+* With `Gallery and microphone in the plus menu` on, `Buttons in the message box` says those two are in the plus menu instead of calling them shown or left off. It updates the moment that switch flips.
+* With `Name saves by account and post time` on, `Download file name` now says its names only go to saves that don't know who posted or when, and it updates as soon as that switch flips.
 * With `Show if a profile follows you` off, the greyed `Follow label` row asks you to turn that on. It used to point at `Show it as a chip` even when the chip was already on.
-* Five descriptions say what their settings really do. `Locked chats` unlock the way `Unlock with` is set, which can be your own PIN or fingerprint only. `Open links in external browser` keeps Facebook, Messenger and Threads links in the app too, along with Instagram's and ads. `Keep a viewing history` notes who posted each item. Photos get their usual name only when `Name saves by account and post time` doesn't rename them, and `Follower history` only logs with `Recent unfollowers` on.
+* Five descriptions now say what their settings really do. `Locked chats` unlock the way `Unlock with` is set, which can be your own PIN or fingerprint only. `Keep a viewing history` notes who posted each item.
+* `Open links in external browser`'s description says it keeps Facebook, Messenger and Threads links in the app too, along with Instagram's and ads.
+* The download name and follower descriptions say photos get their usual name only when `Name saves by account and post time` doesn't rename them, and `Follower history` only logs with `Recent unfollowers` on.
 * **Settings:** Cancelling a switch that asks before it changes now takes the turned-down value back out of storage too. Before, the row went back but the next start used the value you'd said no to.
 * `Show it as a chip` stays greyed out while `Show if a profile follows you` is off, and so does the choice of where the chip goes. Neither did anything with the label off, though both looked ready.
 * `Profile extras button` stays greyed out until `Save profile picture`, `View profile picture` or `Copy username and bio` is on. It used to look ready with all three off, though the button never showed up on profiles that way.
 * `Convert to keep the full size` says HDR videos stay smaller too, as they always have. `Hold to download` mentions that `Fingers` right under it can make the hold three fingers instead of two.
 * The description of `Seek bar like DM videos` calls `Bigger seek bar on reels` by its full name now, in every language, so you can find the row it means.
-* Eleven translated descriptions pointed at another row in English or by a name that row doesn't show, like German's „Folge ich“ for the Following tab Instagram calls „Gefolgt“. German, Spanish, Indonesian, Italian, Korean, Portuguese, Turkish, Vietnamese and Chinese now call each row by its own title.
-* Korean ran two sentences of the folder name help together, and Vietnamese left out that what you typed isn't a place. Korean's message after a restore and its tip to use `폴더 선택` for a path or an SD card had grammar slips too.
+* Eleven translated descriptions pointed at another row in English or by a name that row doesn't show, like German's „Folge ich“ for the Following tab Instagram calls „Gefolgt“.
+* German, Spanish, Indonesian, Italian, Korean, Portuguese, Turkish, Vietnamese and Chinese descriptions now call each row by its own title.
+* Korean ran two sentences of the folder name help together, and Vietnamese left out that what you typed isn't a place.
+* Korean's message after a restore no longer has grammar slips, and neither does its tip to use `폴더 선택` for a path or an SD card.
 * Traditional Chinese now says 你 everywhere. It switched between 你 and 您 from one row to the next, so the chip on a profile said 你 while the switch that shows it said 您.
-* In a right-to-left language, the settings title, the search hint and the text in HushGram's own dialogs (PIN, Details, story mentions) start on the right by their icon or title. They used to sit on the left when the text was English.
-* Patching again without `Chat plus menu` brings the gallery and microphone back to a chat's message box. If `Gallery and microphone in the plus menu` was on, they used to vanish with no menu to hold them and no row left to turn it off.
-* With `Pure black dark mode`, the comments sheet gets its black from the moment Instagram finishes setting it up, on every way that set-up can end. Some of those ways skipped the paint, and the sheet waited for its comments screen to turn it black.
-* Numbers on the sliders, the reel view and like limits, the upload bitrate choices and the story ring sizes are written in Instagram's language like the rest of HushGram's settings. With Instagram set to a language of its own, those rows used to follow the phone's language instead, so an Arabic phone showed Arabic digits there and nowhere else.
-* Exporting your HushGram settings over an older, longer backup file no longer leaves the old file's end behind it. A few file providers don't empty a file before it's written, and that backup then wouldn't import even though the export said it worked. The export now reads the file back, trims it, and says so if it can't.
+* In a right-to-left language, the settings title, the search hint and the text in HushGram's own dialogs (PIN, Details, story mentions) start on the right by their icon or title, even when the text is English.
+* Patching again without `Chat plus menu` brings the gallery and microphone back to a chat's message box. With `Gallery and microphone in the plus menu` on, they used to vanish with no menu and no row to undo it.
+* With `Pure black dark mode`, the comments sheet turns black as soon as Instagram finishes setting it up, however that set-up ends. Some endings skipped the paint, so the sheet waited for its comments screen to turn it black.
+* Numbers on the sliders, the reel view and like limits, the upload bitrate choices and the story ring sizes are written in Instagram's language now, like the rest of HushGram's settings.
+* With Instagram set to a language of its own, those numbers used to follow the phone's language, so an Arabic phone showed Arabic digits there and nowhere else.
+* Exporting your HushGram settings over an older, longer backup file no longer leaves the old file's end behind it. A few file providers don't empty a file first, so that backup wouldn't import though the export said it worked.
+* A settings export now reads the file back and trims it, and says so if it can't.
 * On Android 9 and 10, TalkBack reads a HushGram slider's value the way the row shows it ("20 reels") instead of a percent of the bar.
 * With `Ambient light` on, playing a video you sent from your gallery in a chat no longer crashes Instagram. The glow kept getting wrapped in a new layer every frame until memory ran out. Reported in #485.
 * `Seek bar on stories` sits above a story's bottom row again. Instagram moved the Send message box, like and share into a new row, and the bar ended up drawn over them. Reported in #486.
