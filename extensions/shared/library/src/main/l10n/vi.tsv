@@ -187,7 +187,7 @@ For phones that play AV1 badly. A video Instagram has at full size only as AV1 i
 Never save AV1 video	Không bao giờ lưu video AV1
 Never save HDR video	Không bao giờ lưu video HDR
 For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram has at full size only in HDR is saved at its largest standard size instead.	Dành cho ứng dụng hiện HDR bị ám vàng hoặc xanh lục, như Messenger. Video mà Instagram chỉ có kích thước đầy đủ ở dạng HDR sẽ được lưu ở cỡ tiêu chuẩn lớn nhất.
-Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.	Lưu video để ứng dụng khác mở được, ở kích thước đầy đủ. Video mà Instagram chỉ có ở dạng VP9 hoặc AV1 sẽ được chuyển sang H.264 trên điện thoại thay vì lưu ở cỡ nhỏ hơn. Chậm hơn, và video dài trên 3 phút vẫn nhỏ hơn.
+Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes or in HDR stay smaller.	Lưu video để ứng dụng khác mở được, ở kích thước đầy đủ. Video mà Instagram chỉ có ở dạng VP9 hoặc AV1 sẽ được chuyển sang H.264 trên điện thoại thay vì lưu ở cỡ nhỏ hơn. Chậm hơn, và video dài trên 3 phút hoặc ở dạng HDR vẫn nhỏ hơn.
 Converting to H.264	Đang chuyển sang H.264
 Download quality	Chất lượng tải xuống
 Best	Tốt nhất
@@ -832,7 +832,7 @@ Download button on reels	Nút tải xuống trên reel
 Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	Đặt biểu tượng tải xuống dưới Lưu cạnh reel, để một lần nhấn là lưu như Tải xuống trong menu. Cần bật Tải xuống trên reel.
 Nothing to download on this post	Bài viết này không có gì để tải
 Hold to download	Giữ để tải xuống
-Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Giữ yên hai ngón tay trên ảnh hoặc video của bài viết bảng feed, hoặc trên reel, để lưu nội dung bên dưới, giống Tải xuống trong menu. Nhấn giữ một ngón của Instagram vẫn như cũ. Cần Tải video trên bảng feed hoặc ảnh, và Tải xuống trên reel cho reel.
+Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Fingers below can make it three. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Giữ yên hai ngón tay trên ảnh hoặc video của bài viết bảng feed, hoặc trên reel, để lưu nội dung bên dưới, giống Tải xuống trong menu. Có thể đổi thành ba ngón ở Số ngón tay bên dưới. Nhấn giữ một ngón của Instagram vẫn như cũ. Cần Tải video trên bảng feed hoặc ảnh, và Tải xuống trên reel cho reel.
 Fingers	Số ngón tay
 Hold time	Thời gian giữ
 Two fingers	Hai ngón tay

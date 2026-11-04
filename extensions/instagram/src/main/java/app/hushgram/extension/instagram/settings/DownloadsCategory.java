@@ -64,7 +64,8 @@ final class DownloadsCategory {
                 if (build.contains(PatchFamily.REEL_DOWNLOAD)) downloads.addPreference(reelDownloadButtonRow(context));
                 downloads.addPreference(toggle(context, Settings.HOLD_TO_DOWNLOAD, L10n.t("Hold to download"),
                         L10n.t("Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's "
-                                + "under them, the same as Download in the menu. Instagram's one-finger long press stays as "
+                                + "under them, the same as Download in the menu. Fingers below can make it three. "
+                                + "Instagram's one-finger long press stays as "
                                 + "it was. Needs Download feed videos or photos, and Download on reels for reels.")));
                 downloads.addPreference(holdFingersRow(context));
                 downloads.addPreference(holdTimeRow(context));
@@ -108,7 +109,7 @@ final class DownloadsCategory {
             downloads.addPreference(toggle(context, Settings.DOWNLOAD_CONVERT, L10n.t("Convert to keep the full size"),
                     L10n.t("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 "
                             + "is converted to H.264 on your phone instead of saved smaller. Slower, and videos over "
-                            + "3 minutes stay smaller.")));
+                            + "3 minutes or in HDR stay smaller.")));
             downloads.addPreference(toggle(context, Settings.DOWNLOAD_NO_AV1, L10n.t("Never save AV1 video"),
                     L10n.t("For phones that play AV1 badly. A video Instagram has at full size only as AV1 is saved "
                             + "as VP9 when it has one, or at its largest H.264 size. Convert to keep the full size "
