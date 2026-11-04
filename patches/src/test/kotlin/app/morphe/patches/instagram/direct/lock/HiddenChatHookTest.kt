@@ -531,7 +531,7 @@ class HiddenChatHookTest {
         val flag = starterCode[flagAt].visualReference() as FieldReference
         assertEquals("$name: the starter's flag is its holder's", starter.definingClass, flag.definingClass)
         assertEquals("$name: and it branches on the flag", Opcode.IF_EQZ, starterCode[flagAt + 1].opcode)
-        assertTrue("$name: before it calls anything", starterCode.take(flagAt).none { it.opcode.name.startsWith("INVOKE") })
+        assertTrue("$name: before it calls anything", starterCode.take(flagAt).none { it.visualReference() is MethodReference })
         val resumes = classes.getValue(starter.definingClass).methods.filter { method ->
             val code = method.visualCode()
             code.any { it.opcode == Opcode.IPUT_BOOLEAN && (it.visualReference() as? FieldReference)?.signature() == flag.signature() } &&
