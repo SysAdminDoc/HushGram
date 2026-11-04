@@ -12,6 +12,7 @@ import app.morphe.PatchContexts
 import app.morphe.RepoFiles
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.INSTAGRAM_APPLICATION
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -19,6 +20,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -181,6 +183,27 @@ class ShortcutCallsTest {
         val kept = context.mutableClassDefBy(ENTRY).methods.single().instructions()
         assertEquals("the extension's own calls", SHORTCUT_CALLS.keys.sorted(), kept.mapNotNull { it.frameworkCall() }.sorted())
         assertEquals("stand-ins in the extension", emptyList<String>(), kept.mapNotNull { it.standInCall() })
+    }
+
+    /**
+     * The hook that publishes the shortcut goes before each return of the application's onCreate on
+     * the return's own label, so a branch straight onto the return runs it as well.
+     */
+    @Test
+    fun aBranchOntoOnCreatesReturnRunsTheStartHook() {
+        val context = PatchContexts.of(SettingsPatchHosts.all() + publisher("Lfixture/ShortcutPublisher;") + publisher(ENTRY))
+
+        settingsPatch.execute(context)
+
+        val code = context.mutableClassDefBy(INSTAGRAM_APPLICATION).methods.single { it.name == "onCreate" }.instructions()
+        val start = "$ENTRY->onApplicationCreate(Landroid/content/Context;)V"
+        val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
+        assertEquals(returns.size, code.count { (it as? ReferenceInstruction)?.reference.toString() == start })
+        returns.forEach { assertEquals(start, (code[it - 1] as ReferenceInstruction).reference.toString()) }
+        val addresses = code.runningFold(0) { at, instruction -> at + instruction.codeUnits }
+        val branch = code.indexOfFirst { it.opcode == Opcode.IF_EQZ }
+        val target = code[addresses.indexOf(addresses[branch] + (code[branch] as OffsetInstruction).codeOffset)]
+        assertEquals("the branch lands on the start hook", start, (target as ReferenceInstruction).reference.toString())
     }
 
     /**

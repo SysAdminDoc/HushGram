@@ -154,14 +154,20 @@ internal object SettingsPatchHosts {
         )
     }
 
+    /** The application, whose onCreate branches straight onto its return, as startup's early exits do. */
     private fun application(): ClassDef {
-        val returns = ImmutableInstruction10x(Opcode.RETURN_VOID)
+        val code = listOf(
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction21t(Opcode.IF_EQZ, 0, 3),
+            ImmutableInstruction10x(Opcode.NOP),
+            ImmutableInstruction10x(Opcode.RETURN_VOID),
+        )
         return ImmutableClassDef(
             INSTAGRAM_APPLICATION, AccessFlags.PUBLIC.value, "Landroid/app/Application;", null, null, null, null,
             listOf(
                 ImmutableMethod(
                     INSTAGRAM_APPLICATION, "onCreate", emptyList(), "V", AccessFlags.PUBLIC.value, null, null,
-                    ImmutableMethodImplementation(1, listOf(returns), null, null),
+                    ImmutableMethodImplementation(2, code, null, null),
                 ),
             ),
         )

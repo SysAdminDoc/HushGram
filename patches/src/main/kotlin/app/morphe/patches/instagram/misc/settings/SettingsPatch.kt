@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.INSTAGRAM_APPLICATION
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.superclassChain
 import com.android.tools.smali.dexlib2.Opcode
 
@@ -70,14 +71,14 @@ val settingsPatch = bytecodePatch(
         val navigation = navigationEntryTargets()
         // Before each return of the application's onCreate, after Instagram's own startup, which
         // is when the shortcut is published and the activity callbacks that open the screen are
-        // registered.
+        // registered. On the return's own label, so a branch onto a return runs it too.
         val applicationOnCreate = declaredInHierarchy(INSTAGRAM_APPLICATION, "onCreate")
         val returns = applicationOnCreate.implementation!!.instructions.withIndex()
             .filter { it.value.opcode == Opcode.RETURN_VOID }
             .map { it.index }
         if (returns.isEmpty()) throw PatchException("$INSTAGRAM_APPLICATION.onCreate never returns")
         returns.asReversed().forEach { index ->
-            applicationOnCreate.addInstruction(
+            applicationOnCreate.addInstructionsAtControlFlowLabel(
                 index,
                 "invoke-static/range { p0 .. p0 }, $ENTRY->onApplicationCreate(Landroid/content/Context;)V",
             )
