@@ -1735,8 +1735,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         } catch (ActivityNotFoundException | SecurityException missing) {
             // No browser, or none switched on. Uncaught, Android's exception closed Instagram.
             Logger.printInfo(() -> "No app opened the support link");
-            Utils.showToastLong(L10n.f("No app can open this link: %1$s",
-                    L10n.isolate(SUPPORT_ADDRESS)));
+            // The address in a toast of its own: after the sentence it ran to a third line.
+            Utils.showToastLong(L10n.t("No app can open this link."));
+            Utils.showToastLong(SUPPORT_ADDRESS);
         }
     }
 

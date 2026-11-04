@@ -93,7 +93,8 @@ Joining the picture and sound	Juntando a imagem e o som
 Licenses	Licenças
 Link expired. Reopen the item and try again.	Link expirado. Reabra o item e tente novamente.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Ninguém fora da Meta sabe exatamente quais fatores levam à suspensão de uma conta. Uma versão modificada do Instagram não passa na verificação do Google que confirma se o app veio da Play Store, e nenhum patch altera isso. Se não quiser arriscar sua conta principal, teste primeiro com uma conta secundária. Instalar uma atualização por cima usando a mesma chave de assinatura preserva os dados do Instagram e sua sessão. Em um celular com root, a instalação pelo Root Mount também preserva a sessão atual.
-No app can open this link: %1$s	Nenhum app consegue abrir este link: %1$s
+# context: a toast when Source code and issues or the Ko-fi row finds no browser; the next toast shows the address
+No app can open this link.	Nenhum app consegue abrir este link.
 # context: a toast when Report a problem finds no browser; the next toast shows the GitHub address
 No app can open the bug report.	Nenhum app consegue abrir o relatório de erro.
 Not saved: that isn't an Instagram photo or video	Não salvo: isso não é uma foto nem um vídeo do Instagram

@@ -94,7 +94,8 @@ Joining the picture and sound	사진과 소리가 결합하는 중
 Licenses	라이선스
 Link expired. Reopen the item and try again.	링크가 만료되었습니다. 항목을 다시 열고 다시 시도하세요.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Meta 밖에서는 아무도 어떤 행동이 계정 정지로 이어지는지 모릅니다. 패치된 Instagram은 Play 스토어에서 받은 앱인지 확인하는 Google의 검사를 통과할 수 없고, 어떤 패치로도 바꿀 수 없습니다. 계정이 위험해지는 것이 싫다면 먼저 보조 계정으로 시도해 보세요. 같은 서명 키로 위에 업데이트를 설치하면 Instagram 데이터와 로그인이 유지됩니다. 루팅된 휴대폰에서는 Root Mount 설치가 지금 로그인된 상태를 그대로 유지합니다.
-No app can open this link: %1$s	이 링크를 열 수 있는 앱이 없습니다. 주소는 %1$s입니다
+# context: a toast when Source code and issues or the Ko-fi row finds no browser; the next toast shows the address
+No app can open this link.	이 링크를 열 수 있는 앱이 없습니다.
 # context: a toast when Report a problem finds no browser; the next toast shows the GitHub address
 No app can open the bug report.	버그 신고를 열 수 있는 앱이 없습니다.
 Not saved: that isn't an Instagram photo or video	저장되지 않음: Instagram 사진 또는 동영상이 아님

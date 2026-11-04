@@ -109,9 +109,40 @@ public class SupportRowSettingsTest {
         Preference row = last();
         assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
         ShadowLooper.idleMainLooper();
-        String tip = String.valueOf(ShadowToast.getTextOfLatestToast());
-        assertTrue(tip, tip.startsWith("No app can open this link: "));
-        assertTrue(tip, tip.contains("ko-fi.com/X8K126YVER"));
+        assertEquals("the sentence, then the address", 2, ShadowToast.shownToastCount());
+        assertTrue(ShadowToast.showedToast("No app can open this link."));
+        assertEquals("ko-fi.com/X8K126YVER", ShadowToast.getTextOfLatestToast());
+    }
+
+    /**
+     * Source code and issues in About says the same and then shows its address on its own: after
+     * the sentence, the 31 characters of the address ran to a third line, which a toast cuts off.
+     */
+    @Test public void sourceCodeWithNoBrowserShowsTheAddressOnItsOwn() throws Exception {
+        open();
+        shadowOf(RuntimeEnvironment.getApplication()).checkActivities(true);
+        // About opens with a tap on its heading, as it does for a user.
+        assertTrue(page.about.getOnPreferenceClickListener().onPreferenceClick(page.about));
+        ShadowLooper.idleMainLooper();
+        Preference source = titled(page.about, "Source code and issues");
+        assertNotNull(source);
+        assertTrue(source.getOnPreferenceClickListener().onPreferenceClick(source));
+        ShadowLooper.idleMainLooper();
+        assertEquals("the sentence, then the address", 2, ShadowToast.shownToastCount());
+        assertTrue(ShadowToast.showedToast("No app can open this link."));
+        assertEquals("github.com/SysAdminDoc/HushGram", ShadowToast.getTextOfLatestToast());
+    }
+
+    private static Preference titled(android.preference.PreferenceGroup group, String title) {
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            Preference row = group.getPreference(i);
+            if (title.equals(String.valueOf(row.getTitle()))) return row;
+            if (row instanceof android.preference.PreferenceGroup) {
+                Preference inside = titled((android.preference.PreferenceGroup) row, title);
+                if (inside != null) return inside;
+            }
+        }
+        return null;
     }
 
     /**
