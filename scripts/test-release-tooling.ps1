@@ -921,8 +921,8 @@ try {
     $coverageTarget.source.versionName = $reviewedName
     $coverageTarget.source.versionCode = $reviewedCode
     $coverageTarget.patches = @([pscustomobject]@{ name = 'Sanitize sharing links'; applied = $true; reason = $null })
-    $coverageTarget.coverage = @([pscustomobject]@{ family = 'sanitizeSharingLinks'; matched = 6; expected = 6
-        targets = @('permalink parser', 'story link parser', 'clipboard copies', 'share sheets', 'direct shares',
+    $coverageTarget.coverage = @([pscustomobject]@{ family = 'sanitizeSharingLinks'; matched = 5; expected = 5
+        targets = @('permalink parser', 'clipboard copies', 'share sheets', 'direct shares',
             'in-app browser menu'); missing = @() })
     $receiptArguments = @{ ExpectedVersion = '9.9.9'; ExpectedPatchNames = @('Sanitize sharing links')
         ExpectedPatcherVersion = '1.12.0'; ExpectedManagerFloor = '1.29.0'; ExpectedPackageName = 'com.instagram.android'
@@ -930,7 +930,7 @@ try {
         BundlePath = $bundle }
     $certified = Test-ReleaseReceipt -Receipt $coverageReceipt @receiptArguments
     Assert-True $certified.Valid "The reviewed coverage receipt failed: $($certified.Reason)"
-    $coverageTarget.coverage[0].matched = 5; $coverageTarget.coverage[0].missing = @('share sheets')
+    $coverageTarget.coverage[0].matched = 4; $coverageTarget.coverage[0].missing = @('share sheets')
     $lost = Test-ReleaseReceipt -Receipt $coverageReceipt @receiptArguments
     Assert-True (-not $lost.Valid -and $lost.Reason -like '*Required*share sheets*') 'A receipt hid missing required coverage.'
     $coverageTarget.coverage[0].matched = 7
