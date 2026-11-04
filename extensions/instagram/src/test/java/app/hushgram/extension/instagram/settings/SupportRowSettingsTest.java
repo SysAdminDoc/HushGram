@@ -145,6 +145,23 @@ public class SupportRowSettingsTest {
         Settings.HIDE_ADS.resetToDefault();
     }
 
+    /**
+     * With no browser, Report a problem says so and then shows where the reports are, each in a
+     * toast of its own: the address after the sentence ran to a third line, which a toast cuts off.
+     */
+    @Test public void reportAProblemWithNoBrowserShowsTheAddressOnItsOwn() throws Exception {
+        open();
+        shadowOf(RuntimeEnvironment.getApplication()).checkActivities(true);
+        PreferenceScreen screen = page.getPreferenceScreen();
+        Preference report = screen.getPreference(screen.getPreferenceCount() - 2);
+        assertEquals(HushgramPreferenceFragment.REPORT_ROW_KEY, report.getKey());
+        assertTrue(report.getOnPreferenceClickListener().onPreferenceClick(report));
+        ShadowLooper.idleMainLooper();
+        assertEquals("the sentence, then the address", 2, ShadowToast.shownToastCount());
+        assertTrue(ShadowToast.showedToast("No app can open the bug report."));
+        assertEquals("github.com/SysAdminDoc/HushGram/issues", ShadowToast.getTextOfLatestToast());
+    }
+
     @Test public void aCategoryPageAndAMissSearchLeaveItOff() throws Exception {
         Settings.CATEGORY_PAGES.save(true);
         open();

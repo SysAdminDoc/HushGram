@@ -58,6 +58,7 @@ Every HushGram release, newest first.
 * **Instagram:** A greyed-out slider now says which switch to turn on, in place of a value it can't change, the way the greyed-out choice rows already do.
 * **Instagram:** The line under a greyed-out setting is easier to read. It faded as much as the title did, and it's the line that tells you what to turn on first.
 * **Instagram:** `Report a problem` no longer leaves a stray question mark when it has to shorten a very long phone name with emoji in it.
+* **Instagram:** On a phone with no browser, `Report a problem` says so and then shows the GitHub address in a second toast. With both in one toast, the end of the address got cut off.
 * **Instagram:** `Import settings` lets you pick any file. A settings file from a chat or a download often carries some other type, and the picker used to grey it out. A file that isn't a settings file is still refused.
 * **Instagram:** In Morphe Manager's patch list, `Control taps and volume on Reels` now sits under Playback next to its switches, and `Hide rows in Instagram's settings` under Settings, so no group runs past 16 patches.
 * **Instagram:** The chat preview bubble, the story mentions sheet and its Close button use the same corners as the rest of HushGram. The friendship chip and the carousel arrows aren't round pills anymore.

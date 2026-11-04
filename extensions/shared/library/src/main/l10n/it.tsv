@@ -94,6 +94,8 @@ Licenses	Licenze
 Link expired. Reopen the item and try again.	Link scaduto. Riapri l'elemento e riprova.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Nessuno fuori da Meta sa cosa porta alla sospensione di un account. Un Instagram con patch non può superare il controllo di Google che verifica che provenga dal Play Store, e nessuna patch lo cambia. Se preferisci non rischiare il tuo account, prova prima con uno di riserva. Installare gli aggiornamenti sopra con la stessa chiave di firma mantiene i dati di Instagram e il tuo accesso. Su un telefono con root, un'installazione Root Mount mantiene l'accesso che hai già.
 No app can open this link: %1$s	Nessuna app può aprire questo link: %1$s
+# context: a toast when Report a problem finds no browser; the next toast shows the GitHub address
+No app can open the bug report.	Nessuna app può aprire la segnalazione di bug.
 Not saved: that isn't an Instagram photo or video	Non salvato: non è una foto o un video di Instagram
 Not saved: the file is over 512 MB	Non salvato: il file supera i 512 MB
 OK	OK

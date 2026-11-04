@@ -99,6 +99,8 @@ Licenses	授權條款
 Link expired. Reopen the item and try again.	連結已過期。請重新開啟該項目後再試一次。
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	除了 Meta，沒有人知道哪些行為會導致帳號停權。修補過的 Instagram 無法通過 Google 對 Play 商店來源的檢查，也沒有任何修補程式能改變這點。若不想讓帳號承擔風險，可以先使用備用帳號。同一簽署金鑰的更新可直接覆蓋安裝，保留 Instagram 資料與登入狀態。已取得 Root 權限的手機可透過 Root Mount 安裝，保留既有登入狀態。
 No app can open this link: %1$s	手機上沒有可開啟此連結的應用程式。網址為 %1$s。
+# context: a toast when Report a problem finds no browser; the next toast shows the GitHub address
+No app can open the bug report.	手機上沒有可開啟問題回報的應用程式。
 Not saved: that isn't an Instagram photo or video	未儲存：這不是 Instagram 照片或影片
 Not saved: the file is over 512 MB	未儲存：檔案超過 512 MB
 OK	確認

@@ -92,6 +92,8 @@ Licenses	Giấy phép
 Link expired. Reopen the item and try again.	Liên kết đã hết hạn. Hãy mở lại mục đó và thử lại.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Ngoài Meta ra thì không ai biết điều gì khiến tài khoản bị đình chỉ. Instagram đã vá không qua được bước Google kiểm tra ứng dụng có đến từ Play Store hay không và không bản vá nào đổi được điều đó. Nếu không muốn mạo hiểm với tài khoản, hãy thử bằng một tài khoản phụ trước. Cài bản cập nhật đè lên với cùng khóa ký sẽ giữ dữ liệu Instagram và đăng nhập của bạn. Trên điện thoại đã root, cài đặt bằng Root Mount sẽ giữ phiên đăng nhập hiện có.
 No app can open this link: %1$s	Không mở được liên kết. Địa chỉ là %1$s.
+# context: a toast when Report a problem finds no browser; the next toast shows the GitHub address
+No app can open the bug report.	Không có ứng dụng nào mở được báo cáo lỗi.
 Not saved: that isn't an Instagram photo or video	Chưa lưu: đây không phải ảnh hay video Instagram
 Not saved: the file is over 512 MB	Chưa lưu: tệp lớn hơn 512 MB
 OK	OK

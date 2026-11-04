@@ -68,7 +68,11 @@ final class ReportProblemForm {
         return ReportProblem.issueUrl(FORM, ReportProblem.facts("HushGram", "Instagram", switchesOn(rows)));
     }
 
-    /** Opens the report in a browser, in a task of its own, or says no app here can. */
+    /**
+     * Opens the report in a browser, in a task of its own, or says no app here can and then shows
+     * where the reports are. The address goes in a toast of its own: after the sentence it ran to a
+     * third line, which Android cuts off.
+     */
     static void open(Context context, Iterable<? extends Preference> rows) {
         try {
             context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(issueUrl(rows)))
@@ -77,8 +81,8 @@ final class ReportProblemForm {
         } catch (ActivityNotFoundException | SecurityException missing) {
             // No browser, or none switched on. Uncaught, Android's exception closed Instagram.
             Logger.printInfo(() -> "No app opened the bug report link");
-            Utils.showToastLong(L10n.f("No app can open this link: %1$s",
-                    L10n.isolate(ISSUES_ADDRESS)));
+            Utils.showToastLong(L10n.t("No app can open the bug report."));
+            Utils.showToastLong(ISSUES_ADDRESS);
         }
     }
 }

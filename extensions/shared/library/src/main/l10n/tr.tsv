@@ -94,6 +94,8 @@ Licenses	Lisanslar
 Link expired. Reopen the item and try again.	Bağlantının süresi doldu. Öğeyi yeniden açıp tekrar dene.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Meta dışında kimse bir hesabın neden askıya alındığını bilmiyor. Yamalı bir Instagram, Google'ın Play Store'dan geldiğini doğrulayan kontrolünü geçemez ve hiçbir yama bunu değiştirmez. Hesabını riske atmak istemiyorsan önce yedek bir hesapla dene. Güncellemeleri aynı imza anahtarıyla üzerine kurmak Instagram'ın verilerini ve oturumunu korur. Root'lu bir telefonda Root Mount kurulumu mevcut oturumunu korur.
 No app can open this link: %1$s	Bu bağlantıyı açabilecek uygulama yok: %1$s
+# context: a toast when Report a problem finds no browser; the next toast shows the GitHub address
+No app can open the bug report.	Hata raporunu açabilecek uygulama yok.
 Not saved: that isn't an Instagram photo or video	Kaydedilmedi: Bu bir Instagram fotoğrafı veya videosu değil
 Not saved: the file is over 512 MB	Kaydedilmedi: Dosya 512 MB'tan büyük
 OK	Tamam
