@@ -50,7 +50,7 @@ public class ModifierSwitchReportTest {
         assertEquals(EnumSet.of(PatchFamily.LONG_PRESS_ZOOM, PatchFamily.THREAD_SEEN, PatchFamily.FOLLOWING_FEED,
                 PatchFamily.GLASS_TAB_BAR, PatchFamily.COMMENT_COPY, PatchFamily.DOUBLE_TAP_LIKE, PatchFamily.ACCENT_COLOR,
                 PatchFamily.FULL_SCREEN_BARS, PatchFamily.LIKE_ANIMATION, PatchFamily.STORY_MENTIONS,
-                PatchFamily.CHAT_REELS), nested);
+                PatchFamily.CHAT_REELS, PatchFamily.FRIENDSHIP_STATUS), nested);
 
         for (PatchFamily family : nested) {
             for (BooleanSetting setting : family.switches) setting.save(!isUnderAnother(family, setting));
