@@ -229,7 +229,7 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.DM_REEL_SEEK_BAR, L10n.t("Seek bar like DM videos"),
                     L10n.t("Gives reels the seek bar of a video in a chat, a thin gray line that turns white as it plays, "
                             + "with a big round white handle. The time shows above it. Drag it to seek. When Bigger seek "
-                            + "bar is on too, this look wins. It also keeps the bar on short reels.")));
+                            + "bar on reels is on too, this look wins. It also keeps the bar on short reels.")));
         }
         if (build.contains(PatchFamily.REEL_ZOOM)) {
             reels.add(toggle(context, Settings.PINCH_ZOOM_REELS, L10n.t("Pinch to zoom"),
