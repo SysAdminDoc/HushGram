@@ -84,6 +84,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Settings:** Cancelling a switch that asks before it changes now takes the turned-down value back out of storage too. Before, the row went back but the next start used the value you'd said no to.
 * **Instagram:** `Show it as a chip` stays greyed out while `Show if a profile follows you` is off, and so does the choice of where the chip goes. Neither did anything with the label off, though both looked ready.
 * **Instagram:** `Profile extras button` stays greyed out until `Save profile picture`, `View profile picture` or `Copy username and bio` is on. It used to look ready with all three off, though the button never showed up on profiles that way.
 * **Instagram:** `Convert to keep the full size` says HDR videos stay smaller too, as they always have. `Hold to download` mentions that `Fingers` right under it can make the hold three fingers instead of two.

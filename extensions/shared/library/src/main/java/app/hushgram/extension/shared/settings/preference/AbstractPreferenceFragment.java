@@ -418,8 +418,18 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
                     }
                 },
                 () -> {
-                    // Cancel button action. Restore whatever the setting was before the change.
-                    updatePreference(pref, setting, true, true);
+                    // Cancel button action. Restore whatever the setting was before the change, on
+                    // the row and in the store: the flip already wrote the turned-down value there,
+                    // and a row shown a value writes nothing, so the next start would run it.
+                    // Setting.preferences rather than the page's manager, as in
+                    // unregisterPreferenceListener: it's the same file whether or not the page is.
+                    try {
+                        if (!restorePreferenceFromSetting(pref, setting, Setting.preferences.preferences)) {
+                            Utils.showToastLong(String.valueOf(preferenceChangeRecoveryFailedMessage(context)));
+                        }
+                    } finally {
+                        updatingPreference = false;
+                    }
                 },
                 null, // No Neutral button.
                 null, // No Neutral button action.
