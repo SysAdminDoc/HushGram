@@ -1825,10 +1825,11 @@ public class Settings extends BaseSettings {
     /**
      * Show if a profile follows you as a chip under the profile's counts, which also says Following
      * each other ({@link app.hushgram.extension.instagram.profile.FriendshipStatus}), instead of the
-     * gray label by the name. Off to start. Read each time Instagram binds a profile's name.
+     * gray label by the name. Off to start, and greyed while {@link #SHOW_FRIENDSHIP_STATUS} is off,
+     * since no chip shows then. Read each time Instagram binds a profile's name.
      */
     public static final BooleanSetting FRIENDSHIP_STATUS_CHIP =
-            new BooleanSetting("hushgram_friendship_status_chip", FALSE);
+            new BooleanSetting("hushgram_friendship_status_chip", FALSE, parent(SHOW_FRIENDSHIP_STATUS));
 
     /**
      * Where the chip goes and how big it is (#157): under the counts at its usual size, or small and

@@ -801,6 +801,23 @@ public class FriendshipChipTest {
         return bio.getTop();
     }
 
+    /** No chip shows while the label is off, so the chip row and the row under it rest then. */
+    @Test
+    public void theChipRowsRestWhileTheLabelIsOff() {
+        Settings.FRIENDSHIP_STATUS_CHIP.save(true);
+        Settings.SHOW_FRIENDSHIP_STATUS.save(false);
+        assertFalse(Settings.FRIENDSHIP_STATUS_CHIP.isAvailable());
+        assertFalse("where the chip goes rests too", Settings.FOLLOW_LABEL_PLACE.isAvailable());
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        assertNull("and no chip shows", FriendshipChip.shownUnder(counts));
+
+        Settings.SHOW_FRIENDSHIP_STATUS.save(true);
+        assertTrue(Settings.FRIENDSHIP_STATUS_CHIP.isAvailable());
+        assertTrue(Settings.FOLLOW_LABEL_PLACE.isAvailable());
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        assertNotNull("back on, the chip shows", FriendshipChip.shownUnder(counts));
+    }
+
     /** A profile header that is its own user, with what Instagram has said about it. */
     static final class Profile {
         final Boolean followedBy;

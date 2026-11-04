@@ -84,6 +84,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `Show it as a chip` stays greyed out while `Show if a profile follows you` is off, and so does the choice of where the chip goes. Neither did anything with the label off, though both looked ready.
 * **Instagram:** `Profile extras button` stays greyed out until `Save profile picture`, `View profile picture` or `Copy username and bio` is on. It used to look ready with all three off, though the button never showed up on profiles that way.
 * **Instagram:** The description of `Seek bar like DM videos` calls `Bigger seek bar on reels` by its full name now, in every language, so you can find the row it means.
 * **Instagram:** Numbers on the sliders, the reel view and like limits, the upload bitrate choices and the story ring sizes are written in Instagram's language like the rest of HushGram's settings. With Instagram set to a language of its own, those rows used to follow the phone's language instead, so an Arabic phone showed Arabic digits there and nowhere else.
