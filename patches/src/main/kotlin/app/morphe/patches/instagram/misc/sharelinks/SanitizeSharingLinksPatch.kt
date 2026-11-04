@@ -101,10 +101,12 @@ internal val DIRECT_SHARE_EXITS = listOf(
     ),
 )
 
-/** The ways a link leaves Instagram. Each one cleaned is a real protection on its own. */
+/**
+ * The ways a link leaves Instagram. Each one cleaned is a real protection on its own. 454 has no
+ * parser of its own for a story's share link any more, so a story's link is cleaned where it leaves.
+ */
 internal val SHARE_LINK_TARGETS = listOf(
-    "permalink parser", "story link parser", "clipboard copies", "share sheets", "direct shares",
-    "in-app browser menu",
+    "permalink parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu",
 )
 
 @Suppress("unused")
@@ -127,7 +129,6 @@ val sanitizeSharingLinksPatch = bytecodePatch(
             coverage = { writeTargetCoverage("sanitizeSharingLinks", it) }) { target ->
             when (target) {
                 "permalink parser" -> cleanPermalink()
-                "story link parser" -> cleanStoryLink()
                 "clipboard copies" -> if (rerouteLinkExits(CLIPBOARD_EXITS) > 0) null
                     else "no code calls ClipboardManager.setPrimaryClip"
                 "share sheets" -> if (rerouteLinkExits(SHARE_SHEET_EXITS) > 0) null
@@ -141,15 +142,6 @@ val sanitizeSharingLinksPatch = bytecodePatch(
         enableStatus("sanitizeSharingLinks")
     }
 }
-
-/**
- * Cleans the link a story's share link parser reads, the [STORY_SHARE_URL_FIELD] field. The parser
- * is the one unsafeParseFromJson answering an object that loads [STORY_SHARE_URL_TYPE]. Redex asks
- * a pool of shared strings for that name in 450's 385611395 and 385611400, where 385611438 loads it
- * itself (#77), and for the field's name in all of them, so both are read through the pools.
- */
-internal fun BytecodePatchContext.cleanStoryLink(): String? =
-    sanitizeParsedLink(parsersLoading(STORY_SHARE_URL_TYPE), STORY_SHARE_URL_TYPE, STORY_SHARE_URL_FIELD)
 
 /**
  * Cleans the link a post or reel's copy-link answer carries, in the one unsafeParseFromJson
@@ -180,10 +172,9 @@ private fun BytecodePatchContext.parsersLoading(typeName: String, vararg fields:
  * builds. The model is named by [typeName], loaded right before it's made, and the link is the first
  * String field stored after that. Answers null when done, or why not.
  */
-private fun BytecodePatchContext.sanitizeParsedLink(parsers: List<MutableMethod>, typeName: String, field: String? = null): String? {
+private fun BytecodePatchContext.sanitizeParsedLink(parsers: List<MutableMethod>, typeName: String): String? {
     if (parsers.size != 1) return "expected one parser naming $typeName, found ${parsers.size}"
     val parser = parsers.single()
-    if (field != null && !loadsString(parser, field)) return "the parser naming $typeName doesn't read \"$field\""
     val store = linkStore(parser, typeName)
         ?: return "the parser naming $typeName stores no String field after loading its type name"
     val (index, register) = store

@@ -485,14 +485,10 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->settled(Ljava/
 first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->enter(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->reelId(Ljava/lang/Object;)Ljava/lang/String; outside Lapp/hushgram/extension/
 #
-# Sanitize sharing links passes the link each of Instagram's two share link parsers reads through
-# the extension, once, before the parser stores it: the permalink parser for a post or reel and the
-# parser for a story's share URL. Each is the one instance parser holding its field name and its
-# GraphQL type name, or on 450, where the story's field name is pooled, its two type names. Both
-# call the same filter, so each rule is shared-call.
+# Sanitize sharing links passes the link the permalink parser for a post or reel reads through the
+# extension, once, before the parser stores it: the one instance parser holding its model's name.
+# 454 has no parser of its own for a story's share URL, so that link is cleaned where it leaves.
 shared-call Lapp/hushgram/extension/instagram/misc/LinkCleaner;->sanitizeShared(Ljava/lang/String;)Ljava/lang/String; in instance (LX/*;)Ljava/lang/Object; holding PermalinkResponseImpl
-# 385611395, 400 and 440 ask a string pool for the story's type name, so its rule is pooled.
-shared-call Lapp/hushgram/extension/instagram/misc/LinkCleaner;->sanitizeShared(Ljava/lang/String;)Ljava/lang/String; in instance (*)Ljava/lang/Object; pooled holding XDTStoryItemThirdPartySharingUrlResponse StoryItemThirdPartySharingUrlResponseImpl
 #
 # It also hands the page address the in-app browser's menu sends for Share and for Copy link to
 # LinkCleaner.browserLink in the main app's handler for the browser's messages (0S7R.handleMessage on

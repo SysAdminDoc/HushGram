@@ -78,7 +78,7 @@ class PermalinkParserTest {
 
     @Test
     fun aParserAskingThePoolForAnotherTypeIsNoPermalinkParser() {
-        leftAlone(listOf(parser(pooledType = true), pool(type = STORY_SHARE_URL_TYPE)))
+        leftAlone(listOf(parser(pooledType = true), pool(type = "XDTLocationThirdPartySharingUrlResponse")))
     }
 
     @Test

@@ -9,7 +9,7 @@
         {
           "family": "sanitizeSharingLinks",
           "patch": "Sanitize sharing links",
-          "targets": ["permalink parser", "story link parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],
+          "targets": ["permalink parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],
           "optional": []
         },
         {

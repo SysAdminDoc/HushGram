@@ -17,11 +17,6 @@ internal const val PERMALINK_FIELD = "permalink"
 
 internal const val PERMALINK_TYPE = "XDTPermalinkResponse"
 
-/** The field of a story's share link, read by its own parser, which names [STORY_SHARE_URL_TYPE]. */
-internal const val STORY_SHARE_URL_FIELD = "story_item_to_share_url"
-
-internal const val STORY_SHARE_URL_TYPE = "XDTStoryItemThirdPartySharingUrlResponse"
-
 /**
  * The main app's handler for the messages Instagram's in-app browser sends it. The browser's own
  * code sits in a split the patcher doesn't rewrite, but its menu's Share and Copy link each send the
