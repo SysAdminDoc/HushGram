@@ -34,8 +34,9 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
-# The bundle signing key. Only morphe-signing.pub, its public half, is committed.
+# The bundle signing key, under any name. Only morphe-signing.pub, its public half, is committed.
 morphe-signing.key
+*.key
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
