@@ -4380,7 +4380,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         CharSequence[] values = new CharSequence[rates.length];
         for (int i = 0; i < rates.length; i++) {
             entries[i] = rates[i] == UploadBitrate.INSTAGRAM ? L10n.t("Instagram's own")
-                    : String.format(L10n.t("%1$s Mbps"), rates[i].megabits);
+                    : L10n.f("%1$s Mbps", java.text.NumberFormat.getIntegerInstance(L10n.locale()).format(rates[i].megabits));
             values[i] = rates[i].name();
         }
         row.setEntries(entries);
@@ -5942,17 +5942,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** What the list calls [size]: its share in the phone's own percent format, or Instagram's size. */
+    /** What the list calls [size]: its share in Instagram's language's percent format, or Instagram's size. */
     static String storyRingLabel(StoryRingSize size) {
         if (size == StoryRingSize.INSTAGRAM) return L10n.t("Instagram's size");
-        return NumberFormat.getPercentInstance().format(size.percent() / 100.0);
+        return NumberFormat.getPercentInstance(L10n.locale()).format(size.percent() / 100.0);
     }
 
-    /** What the rings look like at [size], for the row's summary, with its share in the phone's own percent format. */
+    /** What the rings look like at [size], for the row's summary, with its share in Instagram's language's percent format. */
     static String storyRingSummary(StoryRingSize size) {
         if (size == StoryRingSize.INSTAGRAM) return L10n.t("The rings are the size Instagram picks for your screen.");
         return L10n.f("The rings are %1$s of the size Instagram picks for your screen.",
-                L10n.isolate(NumberFormat.getPercentInstance().format(size.percent() / 100.0)));
+                L10n.isolate(NumberFormat.getPercentInstance(L10n.locale()).format(size.percent() / 100.0)));
     }
 
     /**
@@ -6919,12 +6919,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** What a minimum row says under its title. */
+    /** What a minimum row says under its title, the count written in Instagram's language. */
     static String minCountSummary(IntegerSetting setting, String stored) {
         int count = MinCountRow.valueOf(setting, stored);
-        String number = java.text.NumberFormat.getIntegerInstance().format(count);
-        if (setting != Settings.MIN_REEL_LIKES) return String.format(L10n.t("Fewer than %1$s views"), number);
-        return count == 0 ? L10n.t("Likes aren't looked at") : String.format(L10n.t("Fewer than %1$s likes"), number);
+        String number = java.text.NumberFormat.getIntegerInstance(L10n.locale()).format(count);
+        if (setting != Settings.MIN_REEL_LIKES) return L10n.f("Fewer than %1$s views", number);
+        return count == 0 ? L10n.t("Likes aren't looked at") : L10n.f("Fewer than %1$s likes", number);
     }
 
     /**
@@ -7971,10 +7971,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             return Math.round((value - setting.minimum()) / (float) step);
         }
 
-        /** What the summary says for [value], marking the one the bar has always had. */
+        /**
+         * What the summary says for [value], marking the one the bar has always had. Digits follow
+         * Instagram's language, as every other row's do, and not the phone's, which can differ.
+         */
         String label(int value) {
-            String amount = String.format(format, value);
-            return value == setting.defaultValue ? String.format(L10n.t("%1$s (standard)"), amount) : amount;
+            String amount = String.format(L10n.locale(), format, value);
+            return value == setting.defaultValue ? L10n.f("%1$s (standard)", amount) : amount;
         }
 
         @Override

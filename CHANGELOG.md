@@ -81,6 +81,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** Numbers on the sliders, the reel view and like limits, the upload bitrate choices and the story ring sizes are written in Instagram's language like the rest of HushGram's settings. With Instagram set to a language of its own, those rows used to follow the phone's language instead, so an Arabic phone showed Arabic digits there and nowhere else.
 * **Instagram:** Exporting your HushGram settings over an older, longer backup file no longer leaves the old file's end behind it. A few file providers don't empty a file before it's written, and that backup then wouldn't import even though the export said it worked. The export now reads the file back, trims it, and says so if it can't.
 * **Instagram:** On Android 9 and 10, TalkBack reads a HushGram slider's value the way the row shows it ("20 reels") instead of a percent of the bar.
 * **Instagram:** With `Ambient light` on, playing a video you sent from your gallery in a chat no longer crashes Instagram. The glow kept getting wrapped in a new layer every frame until memory ran out. Reported in #485.

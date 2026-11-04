@@ -165,7 +165,7 @@ public class StoryRingSettingsTest {
                 size.setValue(each.name());
                 ShadowLooper.idleMainLooper();
                 assertEquals(each, Settings.STORY_RING_SCALE.savedValue());
-                String share = NumberFormat.getPercentInstance().format(each.percent() / 100.0);
+                String share = NumberFormat.getPercentInstance(L10n.locale()).format(each.percent() / 100.0);
                 assertEquals("The rings are " + L10n.isolate(share) + " of the size Instagram picks for your screen.",
                         String.valueOf(size.getSummary()));
             }
