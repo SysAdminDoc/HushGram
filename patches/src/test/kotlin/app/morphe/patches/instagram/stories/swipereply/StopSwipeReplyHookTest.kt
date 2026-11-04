@@ -221,9 +221,10 @@ class StopSwipeReplyHookTest {
             }
         }
         assertEquals("$label: the gesture rule's method", listOf("${sites.delegate}->${sites.gesture}"), shaped.map { "${it.definingClass}->${it.name}" })
-        // The composer rule's markers and EditText read are its class's, the call is the method's.
+        // The composer rule's markers, EditText read and Math.pow call are its class's, the focus call is the method's.
         val focusers = first.filter { c ->
             COMPOSER_MARKERS.all { marker -> c.methods.any { m -> m.code().any { it.string() == marker } } } &&
+                c.methods.any { m -> m.code().any { it.referenceText() == "Ljava/lang/Math;->pow(DD)D" } } &&
                 c.methods.any { m ->
                     m.code().any { read ->
                         val field = (read as? ReferenceInstruction)?.reference as? FieldReference

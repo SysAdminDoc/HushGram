@@ -47,8 +47,9 @@ internal const val STORY_ITEM = "Lcom/instagram/model/reels/ReelItem;"
  * instead of asking the story item for its label. Read once on 450, in the header's builder.
  * 452 renumbered it from 451's 0x81148e00016ba5, and 453 from 452's 0x81147a00016b22, and inlined the header into a bigger builder;
  * the read still sits right before the relative formatter, with the label asked when it says no.
+ * 454 renumbered it from 453's 0x81145900016bda, at the same place in the builder (053i.A0I there).
  */
-internal const val RELATIVE_HEADER_FLAG = 0x81145900016bdaL
+internal const val RELATIVE_HEADER_FLAG = 0x81140e00016c91L
 
 private const val STRING = "Ljava/lang/String;"
 

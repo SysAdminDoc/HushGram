@@ -88,36 +88,50 @@ internal class StoryZoomPause(
 )
 
 /** A method named by its class, its name and its parameter and return types. */
-internal class Located(val type: String, val name: String, val parameters: List<String>, val returnType: String) {
+internal class Located(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val returnType: String,
+    val isStatic: Boolean = true,
+) {
     val descriptor get() = "$type->$name(${parameters.joinToString("")})$returnType"
+
+    /** The invoke that calls it with the viewer first, as `this` when it's an instance method. */
+    val invoke get() = if (isStatic) "invoke-static" else "invoke-virtual"
 }
 
 private fun Method.located() =
-    Located(definingClass, name, parameterTypes.map(CharSequence::toString), returnType)
+    Located(definingClass, name, parameterTypes.map(CharSequence::toString), returnType, AccessFlags.STATIC.isSet(accessFlags))
 
 /** The story viewer's own pause and resume, which See who a story mentions holds a story with too. */
 internal class ViewerPlayback(val pause: Method, val resume: Method)
 
+/** The invoke that calls one of the viewer's own methods with the viewer first, as `this` when it's an instance method. */
+internal fun Method.viewerInvoke() = if (AccessFlags.STATIC.isSet(accessFlags)) "invoke-static" else "invoke-virtual"
+
 /**
  * The story viewer's pause, its one static `(viewer, String)V` loading [PAUSE_MARK], and its
- * resume, the one static `(viewer, String, boolean)V` loading [RESUME_MARK]. Fails naming [patch]
- * before anything changes when either is missing or found more than once.
+ * resume, the one static `(viewer, String, boolean)V` loading [RESUME_MARK]. 454 made the resume an
+ * instance `(String, boolean)V`, so either form counts, the viewer in `p0` both ways. Fails naming
+ * [patch] before anything changes when either is missing or found more than once.
  */
 internal fun BytecodePatchContext.findViewerPlayback(patch: String): ViewerPlayback {
     fun stop(detail: String): Nothing = throw PatchException("$patch: $detail")
     fun inViewer(mark: String, parameters: List<String>, what: String): Method {
         val found = classesLoadingString(mark).filter { it.type == STORY_VIEWER }.flatMap { classDef ->
             classDef.methods.filter { method ->
-                AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
-                    method.parameterTypes.map(CharSequence::toString) == parameters && loadsString(method, mark)
+                val static = AccessFlags.STATIC.isSet(method.accessFlags)
+                method.returnType == "V" && loadsString(method, mark) &&
+                    method.parameterTypes.map(CharSequence::toString) == if (static) listOf(STORY_VIEWER) + parameters else parameters
             }
         }
         return found.singleOrNull() ?: stop("expected one $what in $STORY_VIEWER loading \"$mark\", found ${found.size}")
     }
     if (classesLoadingString(PAUSE_MARK).none { it.type == STORY_VIEWER }) stop("no $STORY_VIEWER loads \"$PAUSE_MARK\"")
     return ViewerPlayback(
-        inViewer(PAUSE_MARK, listOf(STORY_VIEWER, STRING), "pause"),
-        inViewer(RESUME_MARK, listOf(STORY_VIEWER, STRING, "Z"), "resume"),
+        inViewer(PAUSE_MARK, listOf(STRING), "pause"),
+        inViewer(RESUME_MARK, listOf(STRING, "Z"), "resume"),
     )
 }
 
@@ -206,7 +220,7 @@ internal fun BytecodePatchContext.keepPlayingOnZoom(found: StoryZoomPause) {
             iget-object v0, p0, ${found.viewerField}
             const-string v1, "resume"
             const/4 p0, 0x1
-            invoke-static { v0, v1, p0 }, ${found.resume.descriptor}
+            ${found.resume.invoke} { v0, v1, p0 }, ${found.resume.descriptor}
             invoke-static { }, $PINCH_RESUMED
             return-void
         """,

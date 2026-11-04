@@ -40,6 +40,8 @@ class StoryMidcardsHookTest {
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val integer = "Ljava/lang/Integer;"
     private val list = "Ljava/util/List;"
+    /** The midcard reel constructor after its first object: 454 added a String after the type. */
+    private val reelTakes = setOf(listOf(integer, list, list), listOf(integer, "Ljava/lang/String;", list, list))
     private val names = "Lfixture/MidcardNames;"
     private val reel = "Lfixture/Reel;"
     private val types = "Lfixture/MidcardTypes;"
@@ -92,6 +94,30 @@ class StoryMidcardsHookTest {
         }
     }
 
+    /**
+     * The armeabi-v7a 454 build's helper copies its Integer to another register before building the
+     * reel, and that's still the helper: both its callers ask before the call and it stays as it was.
+     * A copy the helper could skip past or overwrite isn't the type every time, so it's no helper.
+     */
+    @Test
+    fun aHelperBuildingWithACopyOfItsTypeIsStillTheHelper() {
+        val classes = classes(helperCopy = "")
+        val context = PatchContexts.of(classes)
+        val midcards = context.findStoryMidcards()
+        assertEquals(listOf(helperRef), midcards.helpers.map { it.toString() })
+        assertTrue(midcards.adders.map { "${it.type}->${it.name}" }.containsAll(listOf("Lfixture/Trending;->A00", "Lfixture/TrendingRange;->A00")))
+        context.hideStoryMidcards(midcards)
+        assertHooked("helper call", context.mutableClassDefBy("Lfixture/Trending;").methods.single(), Opcode.RETURN, builds = 0, helpers = listOf(helperRef), calls = 1)
+        val helper = classes.single { it.type == "Lfixture/MidcardHelper;" }.methods.single().code().map { it.opcode }
+        assertEquals(helper, context.mutableClassDefBy("Lfixture/MidcardHelper;").methods.single().code().map { it.opcode })
+
+        for (after in listOf("if-eqz p3, :build\nmove-object v2, v1\n:build\n", "const/4 v2, 0x0\n", "move-object v2, p0\n")) {
+            val found = PatchContexts.of(classes(helperCopy = after)).findStoryMidcards()
+            assertTrue("$after: ${found.helpers}", found.helpers.isEmpty())
+            assertTrue("$after: ${found.adders.map { it.type }}", found.adders.none { it.type.startsWith("Lfixture/Trending") })
+        }
+    }
+
     /** Before a helper call the type is the call's Integer operand, and the borrowed local is one the call doesn't read. */
     @Test
     fun theHelperCallsTypeIsItsIntegerOperand() {
@@ -130,7 +156,7 @@ class StoryMidcardsHookTest {
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
             classes(name = "story_interstitial_something_else") to "expected a static (Integer)String holding \"$SUGGESTED_USERS_MIDCARD\", found none",
-            classes(reelNames = false) to "holding \"$SUGGESTED_USERS_MIDCARD\" with one reel constructor (Object, Integer, List, List) asking it, found 0",
+            classes(reelNames = false) to "holding \"$SUGGESTED_USERS_MIDCARD\" with one reel constructor (Object, Integer, [String,] List, List) asking it, found 0",
             classes(adders = false) to "nothing taking a list builds a midcard with $reel-><init>",
             classes(repository = "Lfixture/SomeOtherRepository;") to "none of the 5 midcard adder(s) asks $SUGGESTED_USERS_REPOSITORY",
             // A check put in front of a call something jumps to would be skipped on that path.
@@ -172,7 +198,7 @@ class StoryMidcardsHookTest {
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
                     val builds = classDef.methods.any { m ->
-                        m.name == "<init>" && m.parameterTypes.drop(1).map(CharSequence::toString) == listOf(integer, list, list) &&
+                        m.name == "<init>" && m.parameterTypes.drop(1).map(CharSequence::toString) in reelTakes &&
                             m.code().any { (it.methodReference())?.definingClass in namers }
                     }
                     if (builds) {
@@ -188,7 +214,7 @@ class StoryMidcardsHookTest {
                     val builders = classDef.methods.filter { m ->
                         m.code().any { instruction ->
                             instruction.methodReference()?.let {
-                                it.definingClass in reels && it.name == "<init>" && it.parameterTypes.drop(1).map(CharSequence::toString) == listOf(integer, list, list)
+                                it.definingClass in reels && it.name == "<init>" && it.parameterTypes.drop(1).map(CharSequence::toString) in reelTakes
                             } == true
                         }
                     }
@@ -304,6 +330,7 @@ class StoryMidcardsHookTest {
      * (one with a range call), and a rebuild of reels from their ids takes no list. Two more hand
      * the type to a static helper that builds the card and adds it, shaped like the x86 build's
      * `0C4G.A1I`, one with a range call; with [helperJump] something jumps straight to the first's call.
+     * With [helperCopy] the helper hands the reel a copy of its type, followed by that code.
      */
     private fun classes(
         name: String = SUGGESTED_USERS_MIDCARD,
@@ -312,6 +339,7 @@ class StoryMidcardsHookTest {
         adders: Boolean = true,
         repository: String = SUGGESTED_USERS_REPOSITORY,
         helperJump: Boolean = false,
+        helperCopy: String? = null,
     ): List<ClassDef> {
         val namer = method(names, "A00", listOf(integer), "Ljava/lang/String;", 1, static, "const-string v0, \"$name\"\nreturn-object v0")
         val second = method(names, "A01", listOf(integer), "Ljava/lang/String;", 1, static, "const-string v0, \"$name\"\nreturn-object v0")
@@ -380,12 +408,24 @@ class StoryMidcardsHookTest {
                 return-void
             """,
         )
-        val helper = method(
+        val helper = if (helperCopy == null) method(
             "Lfixture/MidcardHelper;", "A1I", listOf(session, integer, list, "I"), "V", 2, static,
             """
                 new-instance v0, $reel
                 const/4 v1, 0x0
                 invoke-direct {v0, v1, p1, v1, v1}, $reelInit
+                invoke-interface {p2, p3, v0}, $list->add(ILjava/lang/Object;)V
+                return-void
+            """,
+        ) else method(
+            // Shaped like the armeabi-v7a 454 build's 0694.A1T, which hands the reel a copy of the type.
+            "Lfixture/MidcardHelper;", "A1I", listOf(session, integer, list, "I"), "V", 3, static,
+            """
+                const/4 v1, 0x0
+                new-instance v0, $reel
+                move-object v2, p1
+            """ + helperCopy + """
+                invoke-direct {v0, v1, v2, v1, v1}, $reelInit
                 invoke-interface {p2, p3, v0}, $list->add(ILjava/lang/Object;)V
                 return-void
             """,

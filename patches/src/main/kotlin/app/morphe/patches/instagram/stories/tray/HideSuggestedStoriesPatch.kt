@@ -13,8 +13,10 @@ import app.morphe.patches.instagram.feed.requireOneKindField
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.flags.FlagLoad
@@ -51,9 +53,10 @@ internal const val MUSIC_CARD = "$EXTENSION_PACKAGE/stories/StoriesTray;->musicC
  * the viewer's list, which casts to the music midcard repository first. 452 renumbered it from
  * 451's 0x810cc0000146f1; its one static session check there is still asked by the code that
  * casts to the repository right after. 453 renumbered it again to 0x810c9b0001461a, still the one
- * static session check asked by the path that casts to the repository.
+ * static session check asked by the path that casts to the repository. 454 moved it to
+ * 0x810c6600014620, read by 01hH.A00, which the same six places ask.
  */
-internal const val MUSIC_CARD_FLAG = 0x810c9b0001461aL
+internal const val MUSIC_CARD_FLAG = 0x810c6600014620L
 
 /** The name only the music midcard repository's constructor holds, which it gives its base class. */
 internal const val MUSIC_CARD_REPOSITORY = "MusicMidcardRepository"
@@ -215,12 +218,14 @@ internal fun BytecodePatchContext.findTrayRowBuild(): MethodSite {
  */
 internal fun BytecodePatchContext.findFloatingTrayShow(): MethodSite {
     val found = mutableListOf<Pair<String, Method>>()
-    val holders = classesHolding(FLOATING_TRAY, FLOATING_TRAY_FAILED).mapTo(HashSet()) { it.type }
-    classDefForEach { classDef ->
-        if (classDef.type !in holders || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+    // Some 454 builds pool both strings, so the show asks a pool for them by number.
+    val failing = classesLoadingString(FLOATING_TRAY_FAILED).mapTo(HashSet()) { it.type }
+    classesLoadingString(FLOATING_TRAY).filter { it.type in failing && !it.type.startsWith(EXTENSION_ROOT) }.forEach { classDef ->
         classDef.methods.forEach { method ->
-            val strings = method.strings()
-            if (FLOATING_TRAY in strings && FLOATING_TRAY_FAILED in strings) found += classDef.type to method
+            // 454's Redex string pools, static (int)String methods, hold both too.
+            val pool = AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Ljava/lang/String;" &&
+                method.parameterTypes.map(CharSequence::toString) == listOf("I")
+            if (!pool && loadsString(method, FLOATING_TRAY) && loadsString(method, FLOATING_TRAY_FAILED)) found += classDef.type to method
         }
     }
     val (type, method) = found.singleOrNull()

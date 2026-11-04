@@ -70,8 +70,9 @@ class StoriesPriorityHookTest {
                         val code = store.methods.single {
                             it.name == site.lister && it.parameterTypes.map(Any::toString) == site.parameters
                         }.code().filter { it.opcode != Opcode.NOP }
-                        val exit = code.indexOfFirst { it.opcode == Opcode.MONITOR_EXIT }
                         val returning = code.indexOfFirst { it.opcode == Opcode.RETURN_OBJECT }
+                        // The monitor-exit right before the return: 454's lister lets go of the store earlier on another path too.
+                        val exit = code.subList(0, returning).indexOfLast { it.opcode == Opcode.MONITOR_EXIT }
                         val expected = (if (sort) listOf(TRAY_ORDER) else emptyList()) + PRIORITY_ORDER
                         val hooks = code.subList(exit + 1, returning).chunked(2)
                         assertEquals("$at ${site.lister}: the hooks between the monitor-exit and the return",

@@ -265,6 +265,9 @@ class HideSuggestedStoriesHookTest {
                 if (keep) holders += ImmutableClassDef.of(classDef)
             }
         }
+        // Some 454 builds pool the floating tray's strings: the show asks the pool for them by number.
+        val kept = holders.mapTo(HashSet()) { it.type }
+        holders += FixtureDex.classesLoading(bundle, FLOATING_TRAY).filter { kept.add(it.type) }
         val context = PatchContexts.of(holders + ExtensionDex.classDef(STORIES_TRAY))
 
         val rows = context.findTrayRowBuild()

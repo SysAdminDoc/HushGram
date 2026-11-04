@@ -22,9 +22,11 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 
@@ -43,6 +45,9 @@ private const val STRING = "Ljava/lang/String;"
 private const val LIST = "Ljava/util/List;"
 private val LISTS = setOf(LIST, "Ljava/util/ArrayList;")
 
+/** What the midcard reel's constructor takes after its first object: 454 added a String after the type. */
+private val REEL_TAKES = setOf(listOf(INTEGER, LIST, LIST), listOf(INTEGER, STRING, LIST, LIST))
+
 /**
  * What [hideStoryMidcards] needs: the static `(Integer)String` naming a midcard type, the reel
  * constructor that takes the type and names the reel with it, the static helpers that build and add
@@ -60,13 +65,14 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 
 /**
  * Finds the code that adds a midcard between stories. On 451 each midcard reel is built with
- * `new Reel(null, type, list, list)`, the type an Integer that the reel's constructor turns into
+ * `new Reel(null, type, list, list)` (454 adds a String after the type, so the type stays the
+ * constructor's second argument), the type an Integer that the reel's constructor turns into
  * its id through one static `(Integer)String`, the method holding [SUGGESTED_USERS_MIDCARD] among
  * the other types' names. The adders are the static methods making that call that take the
  * viewer's list and answer a boolean (whether they added a card) or an object they may answer
  * null for (no card). Some builds move one build into a static void helper taking the type as an
  * Integer and the list, which builds the reel with that type and adds it (the x86 453.0.0.57.79
- * build does it for two midcards), so the methods calling such a helper that answer the same way
+ * build does it for two midcards, and so does the armeabi-v7a 454.0.0.54.77 one), so the methods calling such a helper that answer the same way
  * are adders too. One of them has to ask [SUGGESTED_USERS_REPOSITORY]. Fails before anything
  * changes when any of it isn't so, since that's an update this patch hasn't seen.
  */
@@ -81,14 +87,14 @@ internal fun BytecodePatchContext.findStoryMidcards(): StoryMidcards {
         val reels = classesCalling(mapper.definingClass, mapper.name).flatMap { classDef ->
             classDef.methods.filter { method ->
                 val parameters = method.parameters()
-                method.name == "<init>" && parameters.size == 4 && parameters[0].startsWith("L") &&
-                    parameters.drop(1) == listOf(INTEGER, LIST, LIST) && method.calls().any { it.matches(mapper) }
+                method.name == "<init>" && parameters.firstOrNull()?.startsWith("L") == true &&
+                    parameters.drop(1) in REEL_TAKES && method.calls().any { it.matches(mapper) }
             }
         }
         reels.singleOrNull()?.let { mapper to it }
     }
     val (mapper, reel) = built.singleOrNull()
-        ?: refuse("expected one static (Integer)String holding \"$SUGGESTED_USERS_MIDCARD\" with one reel constructor (Object, Integer, List, List) asking it, found ${built.size}")
+        ?: refuse("expected one static (Integer)String holding \"$SUGGESTED_USERS_MIDCARD\" with one reel constructor (Object, Integer, [String,] List, List) asking it, found ${built.size}")
     val reelAt = "${reel.definingClass}-><init>(${reel.parameters().joinToString("")})"
 
     val builders = classesCalling(reel.definingClass, "<init>").filterNot { it.type.startsWith(EXTENSION_ROOT) }
@@ -188,6 +194,8 @@ private fun Method.addsToAList(): Boolean {
 /**
  * A static void method taking one Integer and a list that builds the midcard reel with that Integer
  * as the type every time and adds to a list, as the helper some builds outline a midcard build into.
+ * The armeabi-v7a 454 build hands the reel a copy of the Integer made first, in code that doesn't
+ * branch, so a register that only ever held that copy counts too.
  */
 private fun Method.addsFromItsType(reel: MethodReference): Boolean {
     val parameters = parameters()
@@ -196,7 +204,30 @@ private fun Method.addsFromItsType(reel: MethodReference): Boolean {
     val code = implementation?.instructions?.toList() ?: return false
     val type = implementation!!.registerCount - parameters.sumOf { it.width() } +
         parameters.takeWhile { it != INTEGER }.sumOf { it.width() }
-    return reelBuilds(reel).all { typeRegister(code[it]) == type }
+    return reelBuilds(reel).all { at ->
+        val passed = typeRegister(code[at])
+        passed == type || code.copiesInto(passed, type, at)
+    }
+}
+
+/**
+ * Whether the code before [at] runs straight through, never writes [source], and last writes
+ * [target] with a plain object move from [source].
+ */
+private fun List<Instruction>.copiesInto(target: Int, source: Int, at: Int): Boolean {
+    val before = take(at)
+    if (before.any { it.opcode.canContinue().not() || it is OffsetInstruction }) return false
+    if (before.any { it.writes(source) }) return false
+    val copy = before.lastOrNull { it.writes(target) } ?: return false
+    return copy.opcode in OBJECT_MOVES && (copy as TwoRegisterInstruction).registerB == source
+}
+
+private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+private fun Instruction.writes(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return written == register || (opcode.setsWideRegister() && written + 1 == register)
 }
 
 /** The indexes of the calls to any of [helpers], the static methods building and adding a midcard. */

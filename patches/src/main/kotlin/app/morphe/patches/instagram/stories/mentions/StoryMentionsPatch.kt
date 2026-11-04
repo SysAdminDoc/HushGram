@@ -31,6 +31,7 @@ import app.morphe.patches.instagram.stories.autoadvance.STORY_VIEWER
 import app.morphe.patches.instagram.stories.time.STORY_ITEM
 import app.morphe.patches.instagram.stories.zoom.ViewerPlayback
 import app.morphe.patches.instagram.stories.zoom.findViewerPlayback
+import app.morphe.patches.instagram.stories.zoom.viewerInvoke
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -387,7 +388,7 @@ internal fun BytecodePatchContext.hookStoryHold(hold: StoryHold, stubs: Map<Stri
         """
             check-cast p0, $STORY_VIEWER
             const-string p1, "$HOLD_REASON"
-            invoke-static { p0, p1 }, ${hold.playback.pause.call()}
+            ${hold.playback.pause.viewerInvoke()} { p0, p1 }, ${hold.playback.pause.call()}
             return-void
         """,
     )
@@ -397,7 +398,7 @@ internal fun BytecodePatchContext.hookStoryHold(hold: StoryHold, stubs: Map<Stri
             check-cast p0, $STORY_VIEWER
             const-string p1, "resume"
             const/4 p2, 0x1
-            invoke-static { p0, p1, p2 }, ${hold.playback.resume.call()}
+            ${hold.playback.resume.viewerInvoke()} { p0, p1, p2 }, ${hold.playback.resume.call()}
             return-void
         """,
     )
@@ -406,7 +407,8 @@ internal fun BytecodePatchContext.hookStoryHold(hold: StoryHold, stubs: Map<Stri
         it.name == hold.shown.name && it.parameterTypes.isEmpty() && it.returnType == "V" && !AccessFlags.STATIC.isSet(it.accessFlags)
     }.addInstructions(0, "invoke-static/range { p0 .. p0 }, $VIEWER_SHOWN")
     val resume = viewer.methods.single {
-        it.name == hold.playback.resume.name && AccessFlags.STATIC.isSet(it.accessFlags) &&
+        it.name == hold.playback.resume.name &&
+            AccessFlags.STATIC.isSet(it.accessFlags) == AccessFlags.STATIC.isSet(hold.playback.resume.accessFlags) &&
             it.parameterTypes.map(CharSequence::toString) == hold.playback.resume.parameterTypes.map(CharSequence::toString)
     }
     resume.addInstructionsWithLabels(

@@ -33,10 +33,11 @@ private const val STORY_ITEM = "Lcom/instagram/model/reels/ReelItem;"
 /**
  * The server flag behind Instagram's own story loop test. On 450 it's read once, in the story
  * viewer's private check of whether a story item plays again, after the check has already said no
- * for an ad and for a few special kinds of story. 452 renumbered it from 451's 0x81100c000156bd, and 453 from 452's 0x810ff8000155de;
+ * for an ad and for a few special kinds of story. 452 renumbered it from 451's 0x81100c000156bd, 453 from 452's 0x810ff8000155de,
+ * and 454 from 453's 0x810fdd000155ff (A1S there, A1U on 454);
  * the one read there is still the viewer's private check of one story item.
  */
-internal const val STORY_LOOP_FLAG = 0x810fdd000155ffL
+internal const val STORY_LOOP_FLAG = 0x810f9f00015620L
 
 /**
  * Plays a story again when it ends instead of moving on. In the default selection with its switch

@@ -38,6 +38,7 @@ class HideStorySuggestionsHookTest {
     private val items = "Lfixture/NetegoItems;"
     private val store = "Lfixture/ReelStore;"
     private val getter = "$TRAY_ITEM_INTF->netegoType()Ljava/lang/String;"
+    private val readerCall = "$items->A02($TRAY_ITEM_INTF)Ljava/lang/Integer;"
     private val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
 
     /** The hook the patch writes is in the StoriesTray the bundle ships, public and static. */
@@ -68,16 +69,35 @@ class HideStorySuggestionsHookTest {
         assertTrue("hooked elsewhere: $elsewhere", elsewhere.isEmpty())
     }
 
+    /** Where Redex copied the check's netego half into its askers (some 454 builds), each asker's own read is guarded. */
+    @Test
+    fun aCheckCopiedIntoItsAskersIsGuardedWhereEachReadsTheNetego() {
+        val context = PatchContexts.of(classes(inlined = true))
+
+        val check = context.findStoryNetegoCheck()
+        context.hideStorySuggestions(check)
+
+        assertEquals("the askers", listOf("$store->A0X", "$store->A0Y"), check.inlined.map { "${it.type}->${it.name}" }.sorted())
+        assertEquals("the getter", getter, check.typeGetter)
+        for (name in listOf("A0X", "A0Y")) {
+            assertReadGuarded(name, context.mutableClassDefBy(store).methods.single { it.name == name }, getter, readerCall)
+        }
+        val elsewhere = listOf(mapperType, items).flatMap { context.mutableClassDefBy(it).methods }
+            .filter { m -> m.code().any { it.referenceText() == STORY_NETEGO } }
+        assertTrue("hooked elsewhere: $elsewhere", elsewhere.isEmpty())
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
             classes(mapperHolds = "Something else") to "expected one method holding \"$UNSUPPORTED_NETEGO\", found 0",
             classes(namesSuggestedUsers = false) to "the class of $mapperType->A00 doesn't name $SUGGESTED_USERS_NETEGO",
-            classes(readers = 2) to "expected one method asking $mapperType->A00, found 2",
+            classes(readers = 2) to "expected one static (${TRAY_ITEM_INTF})Ljava/lang/Integer; asking $mapperType->A00, found 2 of 2 askers",
             classes(checkTakes = "Ljava/lang/Object;") to "expected one check of a story item asking $items->A02, found 0",
             classes(askerHolds = "Something else") to "nothing asking $items->A07 holds \"$INVALID_NETEGO\"",
             classes(loopsToStart = true) to "something in $items->A07 jumps back to its start",
+            classes(inlined = true, readsTwice = true) to "expected $store->A0X to read the netego once, found 2",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -128,12 +148,21 @@ class HideStorySuggestionsHookTest {
             context.hideStorySuggestions(check)
 
             assertTrue("${bundle.name}: the getter ${check.typeGetter}", check.typeGetter.startsWith("$TRAY_ITEM_INTF->") && check.typeGetter.endsWith("()Ljava/lang/String;"))
-            val patched = context.mutableClassDefBy(check.type).methods.single {
-                it.name == check.name && it.parameterTypes.map(CharSequence::toString) == listOf(session, TRAY_ITEM_INTF)
+            // Some 454 builds copy the check into the two methods holding the invalid item message.
+            if (check.inlined.isNotEmpty()) {
+                assertEquals("${bundle.name}: askers reading in place", 2, check.inlined.size)
+                for (read in check.inlined) {
+                    val asker = context.mutableClassDefBy(read.type).methods.single { it.name == read.name && it.parameterTypes.map(CharSequence::toString) == read.parameters }
+                    assertReadGuarded("${bundle.name}: ${read.type}->${read.name}", asker, check.typeGetter, check.reader!!)
+                }
+            } else {
+                val patched = context.mutableClassDefBy(check.type).methods.single {
+                    it.name == check.name && it.parameterTypes.map(CharSequence::toString) == listOf(session, TRAY_ITEM_INTF)
+                }
+                assertGuarded(bundle.name, patched, check.typeGetter)
             }
-            assertGuarded(bundle.name, patched, check.typeGetter)
             assertEquals(
-                "${bundle.name}: methods hooked", 1,
+                "${bundle.name}: methods hooked", maxOf(1, check.inlined.size),
                 holders.map { it.type }.distinct().sumOf { type -> context.mutableClassDefBy(type).methods.count { m -> m.code().any { it.referenceText() == STORY_NETEGO } } },
             )
         }
@@ -157,6 +186,30 @@ class HideStorySuggestionsHookTest {
     }
 
     /**
+     * Straight after the asker's read and before its null test: a null still goes to the test, then the
+     * getter into the read's register, the hook, a yes to null and a no to Instagram's read again.
+     */
+    private fun assertReadGuarded(what: String, method: Method, typeGetter: String, reader: String) {
+        val code = method.code()
+        val at = code.indexOfFirst { it.referenceText() == reader }
+        val answer = (code[at + 1] as OneRegisterInstruction).registerA
+        assertEquals(
+            "$what: the guard",
+            listOf(
+                Opcode.MOVE_RESULT_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE_RANGE, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC_RANGE,
+                Opcode.MOVE_RESULT, Opcode.IF_NEZ, Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT_OBJECT, Opcode.GOTO, Opcode.CONST_16, Opcode.IF_EQZ,
+            ),
+            // dexlib2 widens the goto back to Instagram's test when a long method puts it out of reach.
+            code.subList(at + 1, at + 13).map { if (it.opcode == Opcode.GOTO_16 || it.opcode == Opcode.GOTO_32) Opcode.GOTO else it.opcode },
+        )
+        assertEquals("$what: the getter", typeGetter, code[at + 3].referenceText())
+        assertEquals("$what: the hook", STORY_NETEGO, code[at + 5].referenceText())
+        assertEquals("$what: the read again", reader, code[at + 8].referenceText())
+        listOf(1, 2, 4, 6, 7, 9, 11, 12).forEach { assertEquals("$what: the read's register at ${at + it}", answer, (code[at + it] as OneRegisterInstruction).registerA) }
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == STORY_NETEGO })
+    }
+
+    /**
      * Shaped like 450's: the mapper throwing for an unknown type, beside the reverse map naming the
      * suggested users type; its reader, reading the type off the item; the check asking the reader;
      * and the reel store asking the check, holding the invalid item message.
@@ -168,6 +221,8 @@ class HideStorySuggestionsHookTest {
         checkTakes: String = TRAY_ITEM_INTF,
         askerHolds: String = INVALID_NETEGO,
         loopsToStart: Boolean = false,
+        inlined: Boolean = false,
+        readsTwice: Boolean = false,
     ): List<ClassDef> {
         val mapper = method(
             mapperType, "A00", listOf("Ljava/lang/String;"), "Ljava/lang/Integer;", 2, static,
@@ -227,10 +282,19 @@ class HideStorySuggestionsHookTest {
                 return-object v2
             """,
         )
+        // 454's copy of the check's netego half: the reader asked in place, and a null leaves the item out.
+        val readsInPlace = { name: String, times: Int ->
+            method(
+                store, name, listOf("Ljava/util/Collection;"), "Ljava/util/List;", 3, AccessFlags.PUBLIC.value,
+                listOf("const-string v0, \"$askerHolds\"", "const/4 v1, 0x0").plus(
+                    List(times) { listOf("invoke-static {v1}, $readerCall", "move-result-object v2", "if-eqz v2, :invalid") }.flatten(),
+                ).plus(listOf("const/4 v0, 0x1", ":invalid", "const/4 v2, 0x0", "return-object v2")).joinToString("\n"),
+            )
+        }
         return listOf(
             classDef(mapperType, listOf(mapper, names)),
-            classDef(items, listOfNotNull(reader, if (readers > 1) secondReader else null, check)),
-            classDef(store, listOf(asker)),
+            classDef(items, listOfNotNull(reader, if (readers > 1) secondReader else null, if (inlined) null else check)),
+            classDef(store, if (inlined) listOf(readsInPlace("A0X", if (readsTwice) 2 else 1), readsInPlace("A0Y", 1)) else listOf(asker)),
         )
     }
 

@@ -113,7 +113,8 @@ internal class StorySeekSites(
  *   holding [SCRUBBER] read (Bvx, which loads -1, answers only for a live story);
  * - the viewer's public static (viewer, String) method holding [PAUSE_STORY], and its public
  *   instance no-argument method loading [RESUME] whose only call is the static (viewer, String, boolean)
- *   one holding [RESUME_STORY] (on 452 F8S; Grw makes the same call and then posts more of its own);
+ *   one holding [RESUME_STORY] (on 452 F8S; Grw makes the same call and then posts more of its own),
+ *   an instance (String, boolean) method on 454;
  * - the viewer's own onResume and onPause, each with one call on to its superclass's, on `this`,
  *   whose next instruction nothing jumps to and where `this` is still the viewer.
  */
@@ -180,11 +181,12 @@ internal fun BytecodePatchContext.findStorySeek(): StorySeekSites {
     }
     val pause = pauses.singleOrNull() ?: refuse("expected one static pause on $REEL_VIEWER_FRAGMENT holding $PAUSE_STORY, found ${pauses.size}")
     if (!AccessFlags.PUBLIC.isSet(pause.accessFlags)) refuse("$REEL_VIEWER_FRAGMENT->${pause.name} isn't public")
+    // 454 made it an instance (String, boolean) method.
     val resumers = viewer.methods.filter {
-        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameters() == listOf(viewer.type, STRING, "Z") &&
-            RESUME_STORY.all { value -> loadsString(it, value) }
+        it.returnType == "V" && RESUME_STORY.all { value -> loadsString(it, value) } &&
+            it.parameters() == if (AccessFlags.STATIC.isSet(it.accessFlags)) listOf(viewer.type, STRING, "Z") else listOf(STRING, "Z")
     }
-    val resumer = resumers.singleOrNull() ?: refuse("expected one static resume on $REEL_VIEWER_FRAGMENT holding $RESUME_STORY, found ${resumers.size}")
+    val resumer = resumers.singleOrNull() ?: refuse("expected one resume on $REEL_VIEWER_FRAGMENT holding $RESUME_STORY, found ${resumers.size}")
     val resumes = viewer.methods.filter { method ->
         !AccessFlags.STATIC.isSet(method.accessFlags) && AccessFlags.PUBLIC.isSet(method.accessFlags) &&
             method.returnType == "V" && method.parameterTypes.isEmpty() && loadsString(method, RESUME) &&
