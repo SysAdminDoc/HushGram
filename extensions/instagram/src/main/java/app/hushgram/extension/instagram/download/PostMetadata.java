@@ -9,6 +9,7 @@ package app.hushgram.extension.instagram.download;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.media.ExifInterface;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 
@@ -22,10 +23,11 @@ import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Utils;
 
 /**
- * Writes where a saved photo came from into the photo itself: the account that posted it, when the
- * post went up and a link to the post. It goes in the EXIF a gallery or exiftool reads, never over
- * the picture. Only a JPEG is touched, after the save has already published the file, so a failure
- * here never costs the photo: the save already succeeded and this is best effort on top.
+ * Writes where a saved photo or video came from into the file itself: the account that posted it,
+ * when the post went up and a link to the post. A JPEG gets them in the EXIF a gallery or exiftool
+ * reads, never over the picture, and an MP4 video in its item list through {@link VideoMetadata}.
+ * Nothing else is touched, and only after the save has already published the file, so a failure
+ * here never costs the save: it already succeeded and this is best effort on top.
  *
  * <p>The link is the post's web address, built from the media's id the same way Instagram builds a
  * shortcode: the id is read as a number and written in a positional base 64 over
@@ -128,14 +130,19 @@ public final class PostMetadata {
         return "image/jpeg".equals(mime);
     }
 
+    private static boolean isMp4(String mime) {
+        // Every video save writes an MP4. A WebM or 3GP one would hold no moov, so it's left alone.
+        return "video/mp4".equals(mime) || "video/x-m4v".equals(mime);
+    }
+
     private static boolean wanted(PostDetails details) {
         return details != null && (details.hasOwner() || details.hasPosted() || details.hasVideoId());
     }
 
     /**
-     * Writes the post's details into the JPEG the save just published, when the switch is on.
-     * Reads the published address and the MIME off the writer, so it tags exactly the file that
-     * was saved. A video or a non-JPEG photo is left untouched.
+     * Writes the post's details into the JPEG or MP4 the save just published, when the switch is
+     * on. Reads the published address and the MIME off the writer, so it tags exactly the file that
+     * was saved. Any other file is left untouched.
      */
     static void tag(Context context, MediaStoreWriter writer, PostDetails details) {
         if (writer == null || !on()) return;
@@ -146,10 +153,16 @@ public final class PostMetadata {
      * The write itself, against the published address [published] of MIME [mime]. The switch is the
      * caller's to check. On Android 9 the address is a {@code file://} the save owns; from Android
      * 10 it's the {@code content://} the save inserted, opened read-write. Fail open: the photo is
-     * already saved, so a metadata write that throws is logged and swallowed, never raised.
+     * already saved, so a metadata write that throws is logged and swallowed, never raised. An MP4
+     * goes to {@link VideoMetadata}, which does the same.
      */
     static void writeTo(Context context, String published, String mime, PostDetails details) {
-        if (context == null || published == null || !isJpeg(mime) || !wanted(details)) return;
+        if (context == null || published == null || !wanted(details)) return;
+        if (isMp4(mime)) {
+            VideoMetadata.writeTo(context, published, details);
+            return;
+        }
+        if (!isJpeg(mime)) return;
         try {
             Uri uri = Uri.parse(published);
             String scheme = uri.getScheme();
@@ -160,6 +173,7 @@ public final class PostMetadata {
                 if (apply(exif, details)) {
                     exif.saveAttributes();
                     MediaSave.info(() -> "tagged the saved photo with where it came from");
+                    rescan(context, path, mime);
                 }
                 return;
             }
@@ -174,6 +188,18 @@ public final class PostMetadata {
             }
         } catch (Throwable t) {
             MediaSave.failure(() -> "could not tag a saved photo with where it came from", t);
+        }
+    }
+
+    /**
+     * Android 9: the save told the scanner about the file at publish, before the tag changed it, so
+     * the gallery hears about it again and reads the new size and details.
+     */
+    static void rescan(Context context, String path, String mime) {
+        try {
+            MediaScannerConnection.scanFile(context, new String[] { path }, new String[] { mime }, null);
+        } catch (Throwable t) {
+            MediaSave.failure(() -> "could not tell the gallery about the tagged file", t);
         }
     }
 }

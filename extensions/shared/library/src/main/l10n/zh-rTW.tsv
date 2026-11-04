@@ -13,7 +13,7 @@
 A diagnostic report is already being saved.	已有診斷報告正在儲存。
 A file named %1$s in %2$s paused HushGram.	%2$s 中名為 %1$s 的檔案使 HushGram 暫停。
 About	關於
-Add the source to saved photos	在儲存的照片中加入來源資訊
+Add the source to saved photos and videos	在儲存的照片和影片中加入來源資訊
 Ads and privacy	廣告與隱私
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	要求 Android 以螢幕最高的更新率、相同的解析度執行 Instagram。部分手機會為應用程式設定自己的上限，省電模式也仍可能調低更新率。
 Back	返回
@@ -145,7 +145,7 @@ Updates	更新
 Version	版本
 Version %1$s for Instagram %2$s	版本 %1$s，適用於 Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	匿名觀看時，已看過的限時動態會變成灰色並移到橫列末端，僅在這支手機上生效。Instagram 仍不會得知你已觀看。
-Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	將發文帳號、貼文日期及貼文連結寫入儲存照片的詳細資料，也就是相簿或 exiftool 可讀取的 EXIF。僅適用於 JPEG 照片，且只會寫入儲存時可取得的資訊。照片本身不會改變。
+Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.	將發文帳號、貼文日期及貼文連結寫入儲存的照片或影片，也就是相簿或 exiftool 可讀取的 EXIF 或 MP4 標籤。僅適用於 JPEG 照片和 MP4 影片，且只會寫入儲存時可取得的資訊。畫面和聲音本身不會改變。
 You	你
 You paused HushGram.	你已暫停 HushGram。
 the re-signed build fix	重新簽署版本修正

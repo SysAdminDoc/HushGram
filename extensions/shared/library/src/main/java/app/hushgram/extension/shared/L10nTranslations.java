@@ -338,8 +338,8 @@ public final class L10nTranslations {
                 "Benutzernamen hinzuf\u00fcgen");
         table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
                 "F\u00fcgt beim Export der Einstellungen das aktuelle Datum und die Uhrzeit hinzu. Aus beh\u00e4lt HushGram-settings.json bei.");
-        table.put("Add the source to saved photos",
-                "Quelle zu gespeicherten Fotos hinzuf\u00fcgen");
+        table.put("Add the source to saved photos and videos",
+                "Quelle zu gespeicherten Fotos und Videos hinzuf\u00fcgen");
         table.put("Add to channel",
                 "Zu Kanal hinzuf\u00fcgen");
         table.put("Add to home screen",
@@ -3346,8 +3346,8 @@ public final class L10nTranslations {
                 "W\u00f6rter oder Wortgruppen, getrennt durch ein Komma oder eine neue Zeile. Gro\u00df- und Kleinschreibung spielt keine Rolle, und ein Hashtag funktioniert auch.");
         table.put("Write a message",
                 "Nachricht schreiben");
-        table.put("Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.",
-                "Schreibt das Konto, das gepostet hat, das Beitragsdatum und einen Link zum Beitrag in die Details eines gespeicherten Fotos, die EXIF-Daten, die eine Galerie oder exiftool liest. Nur JPEG-Fotos, und nur was beim Speichern bekannt ist. Das Bild selbst bleibt unver\u00e4ndert.");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "Schreibt das Konto, das gepostet hat, das Beitragsdatum und einen Link zum Beitrag in ein gespeichertes Foto oder Video, in die EXIF- oder MP4-Tags, die eine Galerie oder exiftool liest. Nur JPEG-Fotos und MP4-Videos, und nur was beim Speichern bekannt ist. Bild und Ton bleiben unver\u00e4ndert.");
         table.put("Wrong PIN. Try again.",
                 "Falsche PIN. Versuch es noch mal.");
         table.put("X",
@@ -3683,8 +3683,8 @@ public final class L10nTranslations {
                 "Agregar un nombre de usuario");
         table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
                 "A\u00f1ade la fecha y hora actuales al exportar los ajustes. Desactivado mantiene HushGram-settings.json.");
-        table.put("Add the source to saved photos",
-                "A\u00f1adir el origen a las fotos guardadas");
+        table.put("Add the source to saved photos and videos",
+                "A\u00f1adir el origen a las fotos y v\u00eddeos guardados");
         table.put("Add to channel",
                 "A\u00f1adir al canal");
         table.put("Add to home screen",
@@ -6691,8 +6691,8 @@ public final class L10nTranslations {
                 "Palabras o frases, separadas por una coma o un salto de l\u00ednea. Las may\u00fasculas no importan, y un hashtag tambi\u00e9n sirve.");
         table.put("Write a message",
                 "Escribe un mensaje");
-        table.put("Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.",
-                "Escribe en los detalles de una foto guardada la cuenta que public\u00f3, la fecha de la publicaci\u00f3n y un enlace a la publicaci\u00f3n, los datos EXIF que lee una galer\u00eda o exiftool. Solo fotos JPEG, y solo lo que sabe el guardado. La imagen en s\u00ed no cambia.");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "Escribe en una foto o un v\u00eddeo guardado la cuenta que public\u00f3, la fecha de la publicaci\u00f3n y un enlace a la publicaci\u00f3n, en las etiquetas EXIF o MP4 que lee una galer\u00eda o exiftool. Solo fotos JPEG y v\u00eddeos MP4, y solo lo que sabe el guardado. La imagen y el sonido no cambian.");
         table.put("Wrong PIN. Try again.",
                 "PIN incorrecto. Int\u00e9ntalo otra vez.");
         table.put("X",
@@ -7028,8 +7028,8 @@ public final class L10nTranslations {
                 "Tambahkan nama pengguna");
         table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
                 "Tambahkan tanggal dan waktu saat ini saat mengekspor pengaturan. Jika mati, nama tetap HushGram-settings.json.");
-        table.put("Add the source to saved photos",
-                "Tambahkan sumber ke foto tersimpan");
+        table.put("Add the source to saved photos and videos",
+                "Tambahkan sumber ke foto dan video tersimpan");
         table.put("Add to channel",
                 "Tambahkan ke saluran");
         table.put("Add to home screen",
@@ -10036,8 +10036,8 @@ public final class L10nTranslations {
                 "Kata atau frasa, dipisahkan koma atau baris baru. Huruf besar tidak berpengaruh, dan tagar juga bisa.");
         table.put("Write a message",
                 "Tulis pesan");
-        table.put("Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.",
-                "Menulis akun yang memosting, tanggal postingan, dan tautan ke postingan ke dalam detail foto tersimpan, yaitu EXIF yang dibaca galeri atau exiftool. Hanya foto JPEG, dan hanya yang diketahui saat menyimpan. Gambarnya sendiri tidak berubah.");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "Menulis akun yang memosting, tanggal postingan, dan tautan ke postingan ke dalam foto atau video tersimpan, yaitu tag EXIF atau MP4 yang dibaca galeri atau exiftool. Hanya foto JPEG dan video MP4, dan hanya yang diketahui saat menyimpan. Gambar dan suaranya tidak berubah.");
         table.put("Wrong PIN. Try again.",
                 "PIN salah. Coba lagi.");
         table.put("X",
@@ -10373,8 +10373,8 @@ public final class L10nTranslations {
                 "Aggiungi un nome utente");
         table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
                 "Aggiunge la data e l\u2019ora attuali quando esporti le impostazioni. Se disattivato, resta HushGram-settings.json.");
-        table.put("Add the source to saved photos",
-                "Aggiungi l'origine alle foto salvate");
+        table.put("Add the source to saved photos and videos",
+                "Aggiungi l'origine alle foto e ai video salvati");
         table.put("Add to channel",
                 "Aggiungi al canale");
         table.put("Add to home screen",
@@ -13381,8 +13381,8 @@ public final class L10nTranslations {
                 "Parole o frasi, separate da una virgola o da un a capo. Maiuscole e minuscole non contano, e funziona anche un hashtag.");
         table.put("Write a message",
                 "Scrivi un messaggio");
-        table.put("Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.",
-                "Scrive nei dettagli di una foto salvata l'account che ha pubblicato, la data del post e un link al post, i dati EXIF che una galleria o exiftool leggono. Solo foto JPEG, e solo ci\u00f2 che il salvataggio conosce. L'immagine stessa non cambia.");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "Scrive in una foto o in un video salvato l'account che ha pubblicato, la data del post e un link al post, nei tag EXIF o MP4 che una galleria o exiftool leggono. Solo foto JPEG e video MP4, e solo ci\u00f2 che il salvataggio conosce. L'immagine e l'audio non cambiano.");
         table.put("Wrong PIN. Try again.",
                 "PIN sbagliato. Riprova.");
         table.put("X",
@@ -13718,8 +13718,8 @@ public final class L10nTranslations {
                 "\uc0ac\uc6a9\uc790 \uc774\ub984 \ucd94\uac00");
         table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
                 "\uc124\uc815\uc744 \ub0b4\ubcf4\ub0bc \ub54c \ud604\uc7ac \ub0a0\uc9dc\uc640 \uc2dc\uac04\uc744 \ub367\ubd99\uc785\ub2c8\ub2e4. \ub044\uba74 HushGram-settings.json\uc744 \uc720\uc9c0\ud569\ub2c8\ub2e4.");
-        table.put("Add the source to saved photos",
-                "\uc800\uc7a5\ud55c \uc0ac\uc9c4\uc5d0 \ucd9c\ucc98 \ucd94\uac00");
+        table.put("Add the source to saved photos and videos",
+                "\uc800\uc7a5\ud55c \uc0ac\uc9c4\uacfc \ub3d9\uc601\uc0c1\uc5d0 \ucd9c\ucc98 \ucd94\uac00");
         table.put("Add to channel",
                 "\ucc44\ub110\uc5d0 \ucd94\uac00");
         table.put("Add to home screen",
@@ -16726,8 +16726,8 @@ public final class L10nTranslations {
                 "\ub2e8\uc5b4\ub098 \ubb38\uad6c\ub97c \uc27c\ud45c\ub098 \uc904\ubc14\uafc8\uc73c\ub85c \uad6c\ubd84\ud574 \uc785\ub825\ud558\uc138\uc694. \ub300\uc18c\ubb38\uc790\ub294 \uc0c1\uad00\uc5c6\uace0 \ud574\uc2dc\ud0dc\uadf8\ub3c4 \ub429\ub2c8\ub2e4.");
         table.put("Write a message",
                 "\uba54\uc2dc\uc9c0 \uc4f0\uae30");
-        table.put("Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.",
-                "\uc800\uc7a5\ud55c \uc0ac\uc9c4\uc758 \uc138\ubd80 \uc815\ubcf4, \uc989 \uac24\ub7ec\ub9ac\ub098 exiftool\uc774 \uc77d\ub294 EXIF\uc5d0 \uac8c\uc2dc\ud55c \uacc4\uc815\uacfc \uac8c\uc2dc \ub0a0\uc9dc, \uac8c\uc2dc\ubb3c \ub9c1\ud06c\ub97c \uae30\ub85d\ud569\ub2c8\ub2e4. JPEG \uc0ac\uc9c4\ub9cc \ud574\ub2f9\ud558\uba70, \uc800\uc7a5\uc774 \uc544\ub294 \uc815\ubcf4\ub9cc \uae30\ub85d\ud569\ub2c8\ub2e4. \uc0ac\uc9c4 \uc790\uccb4\ub294 \ubc14\ub00c\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "\uc800\uc7a5\ud55c \uc0ac\uc9c4\uc774\ub098 \ub3d9\uc601\uc0c1\uc758 EXIF \ub610\ub294 MP4 \ud0dc\uadf8, \uc989 \uac24\ub7ec\ub9ac\ub098 exiftool\uc774 \uc77d\ub294 \uc815\ubcf4\uc5d0 \uac8c\uc2dc\ud55c \uacc4\uc815\uacfc \uac8c\uc2dc \ub0a0\uc9dc, \uac8c\uc2dc\ubb3c \ub9c1\ud06c\ub97c \uae30\ub85d\ud569\ub2c8\ub2e4. JPEG \uc0ac\uc9c4\uacfc MP4 \ub3d9\uc601\uc0c1\ub9cc \ud574\ub2f9\ud558\uba70, \uc800\uc7a5\uc774 \uc544\ub294 \uc815\ubcf4\ub9cc \uae30\ub85d\ud569\ub2c8\ub2e4. \uc774\ubbf8\uc9c0\uc640 \uc18c\ub9ac\ub294 \ubc14\ub00c\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.");
         table.put("Wrong PIN. Try again.",
                 "PIN\uc774 \ub9de\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud558\uc138\uc694.");
         table.put("X",
@@ -17063,8 +17063,8 @@ public final class L10nTranslations {
                 "Adicionar um nome de usu\u00e1rio");
         table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
                 "Adiciona a data e a hora atuais ao exportar as configura\u00e7\u00f5es. Desativado mant\u00e9m HushGram-settings.json.");
-        table.put("Add the source to saved photos",
-                "Adicionar a origem \u00e0s fotos salvas");
+        table.put("Add the source to saved photos and videos",
+                "Adicionar a origem \u00e0s fotos e v\u00eddeos salvos");
         table.put("Add to channel",
                 "Adicionar ao canal");
         table.put("Add to home screen",
@@ -20071,8 +20071,8 @@ public final class L10nTranslations {
                 "Palavras ou frases, separadas por v\u00edrgula ou por uma nova linha. Mai\u00fasculas n\u00e3o fazem diferen\u00e7a, e uma hashtag tamb\u00e9m funciona.");
         table.put("Write a message",
                 "Escreva uma mensagem");
-        table.put("Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.",
-                "Escreve nos detalhes de uma foto salva a conta que publicou, a data da publica\u00e7\u00e3o e um link para a publica\u00e7\u00e3o, os dados EXIF que uma galeria ou o exiftool leem. Apenas fotos JPEG, e apenas o que o salvamento sabe. A imagem em si n\u00e3o muda.");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "Escreve em uma foto ou um v\u00eddeo salvo a conta que publicou, a data da publica\u00e7\u00e3o e um link para a publica\u00e7\u00e3o, nas tags EXIF ou MP4 que uma galeria ou o exiftool leem. Apenas fotos JPEG e v\u00eddeos MP4, e apenas o que o salvamento sabe. A imagem e o som n\u00e3o mudam.");
         table.put("Wrong PIN. Try again.",
                 "PIN incorreto. Tente de novo.");
         table.put("X",
@@ -20408,8 +20408,8 @@ public final class L10nTranslations {
                 "Kullan\u0131c\u0131 ad\u0131 ekle");
         table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
                 "Ayarlar\u0131 d\u0131\u015fa aktar\u0131rken ge\u00e7erli tarih ve saati ekler. Kapal\u0131yken HushGram-settings.json korunur.");
-        table.put("Add the source to saved photos",
-                "Kay\u0131tl\u0131 foto\u011fraflara kayna\u011f\u0131 ekle");
+        table.put("Add the source to saved photos and videos",
+                "Kay\u0131tl\u0131 foto\u011fraf ve videolara kayna\u011f\u0131 ekle");
         table.put("Add to channel",
                 "Kanala ekle");
         table.put("Add to home screen",
@@ -23416,8 +23416,8 @@ public final class L10nTranslations {
                 "Aralar\u0131nda virg\u00fcl ya da yeni sat\u0131r olan kelimeler veya ifadeler. B\u00fcy\u00fck k\u00fc\u00e7\u00fck harf fark etmez, hashtag de olur.");
         table.put("Write a message",
                 "Bir mesaj yaz");
-        table.put("Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.",
-                "G\u00f6nderiyi payla\u015fan hesab\u0131, g\u00f6nderi tarihini ve g\u00f6nderiye bir ba\u011flant\u0131y\u0131, kaydedilen bir foto\u011fraf\u0131n ayr\u0131nt\u0131lar\u0131na, yani bir galeri ya da exiftool'un okudu\u011fu EXIF'e yazar. Yaln\u0131zca JPEG foto\u011fraflar ve yaln\u0131zca kayd\u0131n bildi\u011fi kadar. Resmin kendisi de\u011fi\u015fmez.");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "G\u00f6nderiyi payla\u015fan hesab\u0131, g\u00f6nderi tarihini ve g\u00f6nderiye bir ba\u011flant\u0131y\u0131 kaydedilen bir foto\u011frafa ya da videoya, yani bir galeri ya da exiftool'un okudu\u011fu EXIF veya MP4 etiketlerine yazar. Yaln\u0131zca JPEG foto\u011fraflar ve MP4 videolar, ve yaln\u0131zca kayd\u0131n bildi\u011fi kadar. G\u00f6r\u00fcnt\u00fc ve ses de\u011fi\u015fmez.");
         table.put("Wrong PIN. Try again.",
                 "PIN yanl\u0131\u015f. Tekrar dene.");
         table.put("X",
@@ -23753,8 +23753,8 @@ public final class L10nTranslations {
                 "Th\u00eam t\u00ean ng\u01b0\u1eddi d\u00f9ng");
         table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
                 "Th\u00eam ng\u00e0y gi\u1edd hi\u1ec7n t\u1ea1i khi xu\u1ea5t c\u00e0i \u0111\u1eb7t. Khi t\u1eaft gi\u1eef HushGram-settings.json.");
-        table.put("Add the source to saved photos",
-                "Th\u00eam ngu\u1ed3n v\u00e0o \u1ea3nh \u0111\u00e3 l\u01b0u");
+        table.put("Add the source to saved photos and videos",
+                "Th\u00eam ngu\u1ed3n v\u00e0o \u1ea3nh v\u00e0 video \u0111\u00e3 l\u01b0u");
         table.put("Add to channel",
                 "Th\u00eam v\u00e0o k\u00eanh");
         table.put("Add to home screen",
@@ -26761,8 +26761,8 @@ public final class L10nTranslations {
                 "C\u00e1c t\u1eeb ho\u1eb7c c\u1ee5m t\u1eeb, c\u00e1ch nhau b\u1eb1ng d\u1ea5u ph\u1ea9y ho\u1eb7c d\u00f2ng m\u1edbi. Kh\u00f4ng ph\u00e2n bi\u1ec7t ch\u1eef hoa, v\u00e0 hashtag c\u0169ng \u0111\u01b0\u1ee3c.");
         table.put("Write a message",
                 "Vi\u1ebft tin nh\u1eafn");
-        table.put("Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.",
-                "Ghi t\u00e0i kho\u1ea3n \u0111\u0103ng, ng\u00e0y \u0111\u0103ng v\u00e0 li\u00ean k\u1ebft \u0111\u1ebfn b\u00e0i vi\u1ebft v\u00e0o th\u00f4ng tin c\u1ee7a \u1ea3nh \u0111\u00e3 l\u01b0u, t\u1ee9c EXIF m\u00e0 th\u01b0 vi\u1ec7n \u1ea3nh ho\u1eb7c exiftool \u0111\u1ecdc \u0111\u01b0\u1ee3c. Ch\u1ec9 \u00e1p d\u1ee5ng cho \u1ea3nh JPEG v\u00e0 ch\u1ec9 g\u1ed3m nh\u1eefng g\u00ec b\u1ea3n l\u01b0u bi\u1ebft. B\u1ea3n th\u00e2n b\u1ee9c \u1ea3nh kh\u00f4ng \u0111\u1ed5i.");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "Ghi t\u00e0i kho\u1ea3n \u0111\u0103ng, ng\u00e0y \u0111\u0103ng v\u00e0 li\u00ean k\u1ebft \u0111\u1ebfn b\u00e0i vi\u1ebft v\u00e0o \u1ea3nh ho\u1eb7c video \u0111\u00e3 l\u01b0u, trong th\u1ebb EXIF ho\u1eb7c MP4 m\u00e0 th\u01b0 vi\u1ec7n \u1ea3nh ho\u1eb7c exiftool \u0111\u1ecdc \u0111\u01b0\u1ee3c. Ch\u1ec9 \u00e1p d\u1ee5ng cho \u1ea3nh JPEG v\u00e0 video MP4, v\u00e0 ch\u1ec9 g\u1ed3m nh\u1eefng g\u00ec b\u1ea3n l\u01b0u bi\u1ebft. H\u00ecnh \u1ea3nh v\u00e0 \u00e2m thanh kh\u00f4ng \u0111\u1ed5i.");
         table.put("Wrong PIN. Try again.",
                 "Sai m\u00e3 PIN. H\u00e3y th\u1eed l\u1ea1i.");
         table.put("X",
@@ -27098,8 +27098,8 @@ public final class L10nTranslations {
                 "\u65b0\u589e\u4f7f\u7528\u8005\u540d\u7a31");
         table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
                 "\u532f\u51fa\u8a2d\u5b9a\u6642\u52a0\u5165\u76ee\u524d\u7684\u65e5\u671f\u8207\u6642\u9593\u3002\u95dc\u9589\u6642\u4fdd\u7559 HushGram-settings.json\u3002");
-        table.put("Add the source to saved photos",
-                "\u5728\u5132\u5b58\u7684\u7167\u7247\u4e2d\u52a0\u5165\u4f86\u6e90\u8cc7\u8a0a");
+        table.put("Add the source to saved photos and videos",
+                "\u5728\u5132\u5b58\u7684\u7167\u7247\u548c\u5f71\u7247\u4e2d\u52a0\u5165\u4f86\u6e90\u8cc7\u8a0a");
         table.put("Add to channel",
                 "\u65b0\u589e\u81f3\u983b\u9053");
         table.put("Add to home screen",
@@ -30106,8 +30106,8 @@ public final class L10nTranslations {
                 "\u4ee5\u9017\u865f\u6216\u63db\u884c\u5206\u9694\u5b57\u8a5e\u6216\u7247\u8a9e\u3002\u4e0d\u5340\u5206\u5927\u5c0f\u5beb\uff0c\u4e5f\u53ef\u4f7f\u7528\u4e3b\u984c\u6a19\u7c64\u3002");
         table.put("Write a message",
                 "\u8f38\u5165\u8a0a\u606f");
-        table.put("Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.",
-                "\u5c07\u767c\u6587\u5e33\u865f\u3001\u8cbc\u6587\u65e5\u671f\u53ca\u8cbc\u6587\u9023\u7d50\u5beb\u5165\u5132\u5b58\u7167\u7247\u7684\u8a73\u7d30\u8cc7\u6599\uff0c\u4e5f\u5c31\u662f\u76f8\u7c3f\u6216 exiftool \u53ef\u8b80\u53d6\u7684 EXIF\u3002\u50c5\u9069\u7528\u65bc JPEG \u7167\u7247\uff0c\u4e14\u53ea\u6703\u5beb\u5165\u5132\u5b58\u6642\u53ef\u53d6\u5f97\u7684\u8cc7\u8a0a\u3002\u7167\u7247\u672c\u8eab\u4e0d\u6703\u6539\u8b8a\u3002");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "\u5c07\u767c\u6587\u5e33\u865f\u3001\u8cbc\u6587\u65e5\u671f\u53ca\u8cbc\u6587\u9023\u7d50\u5beb\u5165\u5132\u5b58\u7684\u7167\u7247\u6216\u5f71\u7247\uff0c\u4e5f\u5c31\u662f\u76f8\u7c3f\u6216 exiftool \u53ef\u8b80\u53d6\u7684 EXIF \u6216 MP4 \u6a19\u7c64\u3002\u50c5\u9069\u7528\u65bc JPEG \u7167\u7247\u548c MP4 \u5f71\u7247\uff0c\u4e14\u53ea\u6703\u5beb\u5165\u5132\u5b58\u6642\u53ef\u53d6\u5f97\u7684\u8cc7\u8a0a\u3002\u756b\u9762\u548c\u8072\u97f3\u672c\u8eab\u4e0d\u6703\u6539\u8b8a\u3002");
         table.put("Wrong PIN. Try again.",
                 "PIN \u78bc\u932f\u8aa4\uff0c\u8acb\u518d\u8a66\u4e00\u6b21\u3002");
         table.put("X",

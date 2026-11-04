@@ -8,7 +8,7 @@
 A diagnostic report is already being saved.	Ya se está guardando un informe de diagnóstico.
 A file named %1$s in %2$s paused HushGram.	Un archivo llamado %1$s en %2$s pausó HushGram.
 About	Acerca de
-Add the source to saved photos	Añadir el origen a las fotos guardadas
+Add the source to saved photos and videos	Añadir el origen a las fotos y vídeos guardados
 Ads and privacy	Anuncios y privacidad
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Pide a Android que ejecute Instagram a la tasa de refresco más alta de tu pantalla, con la misma resolución. Algunos teléfonos ponen su propio límite a las apps, y el ahorro de batería aún puede bajarla.
 Back	Atrás
@@ -140,7 +140,7 @@ Updates	Actualizaciones
 Version	Versión
 Version %1$s for Instagram %2$s	Versión %1$s para Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Mientras ves de forma anónima, una historia que ya viste se pone en gris y pasa al final de la fila, solo en este teléfono. Instagram sigue sin saber que la viste.
-Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Escribe en los detalles de una foto guardada la cuenta que publicó, la fecha de la publicación y un enlace a la publicación, los datos EXIF que lee una galería o exiftool. Solo fotos JPEG, y solo lo que sabe el guardado. La imagen en sí no cambia.
+Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.	Escribe en una foto o un vídeo guardado la cuenta que publicó, la fecha de la publicación y un enlace a la publicación, en las etiquetas EXIF o MP4 que lee una galería o exiftool. Solo fotos JPEG y vídeos MP4, y solo lo que sabe el guardado. La imagen y el sonido no cambian.
 You	Tú
 You paused HushGram.	Pausaste HushGram.
 the re-signed build fix	el arreglo para la nueva firma

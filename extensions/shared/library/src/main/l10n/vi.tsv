@@ -8,7 +8,7 @@
 A diagnostic report is already being saved.	Một báo cáo chẩn đoán đang được lưu.
 A file named %1$s in %2$s paused HushGram.	Một tệp tên %1$s trong %2$s đã tạm dừng HushGram.
 About	Giới thiệu
-Add the source to saved photos	Thêm nguồn vào ảnh đã lưu
+Add the source to saved photos and videos	Thêm nguồn vào ảnh và video đã lưu
 Ads and privacy	Quảng cáo và quyền riêng tư
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Yêu cầu Android chạy Instagram ở tốc độ làm mới cao nhất của màn hình, với cùng độ phân giải. Một số điện thoại vẫn giữ giới hạn riêng cho ứng dụng và chế độ tiết kiệm pin có thể hạ tốc độ này xuống.
 Back	Quay lại
@@ -138,7 +138,7 @@ Updates	Cập nhật
 Version	Phiên bản
 Version %1$s for Instagram %2$s	Phiên bản %1$s cho Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Khi bạn xem ẩn danh, tin bạn đã xem sẽ chuyển sang màu xám và dời xuống cuối hàng, chỉ trên điện thoại này. Instagram vẫn không biết bạn đã xem.
-Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Ghi tài khoản đăng, ngày đăng và liên kết đến bài viết vào thông tin của ảnh đã lưu, tức EXIF mà thư viện ảnh hoặc exiftool đọc được. Chỉ áp dụng cho ảnh JPEG và chỉ gồm những gì bản lưu biết. Bản thân bức ảnh không đổi.
+Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.	Ghi tài khoản đăng, ngày đăng và liên kết đến bài viết vào ảnh hoặc video đã lưu, trong thẻ EXIF hoặc MP4 mà thư viện ảnh hoặc exiftool đọc được. Chỉ áp dụng cho ảnh JPEG và video MP4, và chỉ gồm những gì bản lưu biết. Hình ảnh và âm thanh không đổi.
 You	Bạn
 You paused HushGram.	Bạn đã tạm dừng HushGram.
 the re-signed build fix	bản sửa cho bản dựng đã ký lại

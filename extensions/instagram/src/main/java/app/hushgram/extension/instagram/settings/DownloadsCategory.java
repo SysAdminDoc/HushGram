@@ -128,10 +128,11 @@ final class DownloadsCategory {
                             + "username_20261005_143012, so an account's saves sort by date. A carousel page gets its "
                             + "number on the end. Takes the place of the video file name. A save that doesn't know who "
                             + "posted or when keeps its usual name.")));
-            downloads.addPreference(toggle(context, Settings.SAVE_PHOTO_METADATA, L10n.t("Add the source to saved photos"),
-                    L10n.t("Writes the account that posted, the post date and a link to the post into a saved photo's "
-                            + "details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save "
-                            + "knows. The picture itself is unchanged.")));
+            downloads.addPreference(toggle(context, Settings.SAVE_PHOTO_METADATA,
+                    L10n.t("Add the source to saved photos and videos"),
+                    L10n.t("Writes the account that posted, the post date and a link to the post into a saved photo "
+                            + "or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 "
+                            + "videos only, and only what the save knows. The picture and the sound are unchanged.")));
             // Only the saves of a post, a reel or a story know the media's id, which the list keeps.
             if (build.contains(PatchFamily.REEL_DOWNLOAD) || build.contains(PatchFamily.STORY_DOWNLOAD)
                     || build.contains(PatchFamily.VIDEO_DOWNLOAD)) {

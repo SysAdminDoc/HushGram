@@ -931,7 +931,7 @@ public class DownloadSettingsTest {
 
     /**
      * Skip what's already saved sits in the download naming rows, under Name saves by account and
-     * post time and the Add the source to saved photos row that follows it, with Clear download
+     * post time and the Add the source to saved photos and videos row that follows it, with Clear download
      * history directly under Skip. The switch starts off and goes in a settings file, the list it
      * keeps never does, and Clear forgets the list at once and says so (#150).
      */

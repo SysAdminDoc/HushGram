@@ -8,7 +8,7 @@
 A diagnostic report is already being saved.	Bir tanılama raporu zaten kaydediliyor.
 A file named %1$s in %2$s paused HushGram.	%2$s içindeki %1$s adlı bir dosya HushGram'u duraklattı.
 About	Hakkında
-Add the source to saved photos	Kayıtlı fotoğraflara kaynağı ekle
+Add the source to saved photos and videos	Kayıtlı fotoğraf ve videolara kaynağı ekle
 Ads and privacy	Reklamlar ve gizlilik
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Android'den Instagram'ı ekranının en yüksek yenileme hızında, aynı çözünürlükte çalıştırmasını ister. Bazı telefonlar uygulamalara kendi sınırını koyar ve pil tasarrufu hızı yine de düşürebilir.
 Back	Geri
@@ -140,7 +140,7 @@ Updates	Güncellemeler
 Version	Sürüm
 Version %1$s for Instagram %2$s	Instagram %2$s için %1$s sürümü
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Anonim izlerken izlediğin bir hikaye griye döner ve sıranın sonuna geçer, yalnızca bu telefonda. Instagram yine de onu izlediğini öğrenmez.
-Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Gönderiyi paylaşan hesabı, gönderi tarihini ve gönderiye bir bağlantıyı, kaydedilen bir fotoğrafın ayrıntılarına, yani bir galeri ya da exiftool'un okuduğu EXIF'e yazar. Yalnızca JPEG fotoğraflar ve yalnızca kaydın bildiği kadar. Resmin kendisi değişmez.
+Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.	Gönderiyi paylaşan hesabı, gönderi tarihini ve gönderiye bir bağlantıyı kaydedilen bir fotoğrafa ya da videoya, yani bir galeri ya da exiftool'un okuduğu EXIF veya MP4 etiketlerine yazar. Yalnızca JPEG fotoğraflar ve MP4 videolar, ve yalnızca kaydın bildiği kadar. Görüntü ve ses değişmez.
 You	Sen
 You paused HushGram.	HushGram'u duraklattın.
 the re-signed build fix	yeniden imzalanmış sürüm düzeltmesi

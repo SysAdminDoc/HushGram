@@ -8,7 +8,7 @@
 A diagnostic report is already being saved.	Un report diagnostico è già in fase di salvataggio.
 A file named %1$s in %2$s paused HushGram.	Un file chiamato %1$s in %2$s ha messo in pausa HushGram.
 About	Informazioni
-Add the source to saved photos	Aggiungi l'origine alle foto salvate
+Add the source to saved photos and videos	Aggiungi l'origine alle foto e ai video salvati
 Ads and privacy	Annunci e privacy
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Chiede ad Android di eseguire Instagram alla massima frequenza di aggiornamento dello schermo, con la stessa risoluzione. Alcuni telefoni pongono un limite proprio alle app e il risparmio energetico può comunque abbassarla.
 Back	Indietro
@@ -140,7 +140,7 @@ Updates	Aggiornamenti
 Version	Versione
 Version %1$s for Instagram %2$s	Versione %1$s per Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Mentre guardi in modo anonimo, una storia che hai visto diventa grigia e passa in fondo alla fila, solo su questo telefono. Instagram non viene comunque informato che l'hai vista.
-Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Scrive nei dettagli di una foto salvata l'account che ha pubblicato, la data del post e un link al post, i dati EXIF che una galleria o exiftool leggono. Solo foto JPEG, e solo ciò che il salvataggio conosce. L'immagine stessa non cambia.
+Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.	Scrive in una foto o in un video salvato l'account che ha pubblicato, la data del post e un link al post, nei tag EXIF o MP4 che una galleria o exiftool leggono. Solo foto JPEG e video MP4, e solo ciò che il salvataggio conosce. L'immagine e l'audio non cambiano.
 You	Tu
 You paused HushGram.	Hai messo in pausa HushGram.
 the re-signed build fix	la correzione per la build firmata di nuovo

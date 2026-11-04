@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Add the source to saved photos` is now `Add the source to saved photos and videos`. A saved MP4 video gets the account that posted it, the post date and a link to the post in its tags, where exiftool and most galleries read them. The video and its sound stay exactly as they were, and a video the save knows nothing about isn't touched.
 * `Choose Seen in each chat` under Messages puts an eye next to a chat's call buttons. Tap it to hold Seen in just that chat, send it there, or go back to what `Read messages without the seen receipt` says. Picking one doesn't send anything by itself, and the chat keeps its pick after a restart. A chat you hold that way still gets Mark as read in its long press menu and its preview. Starts off, and it needs `Lock your messages` patched in (it is by default), which is how HushGram knows which chat is open. Asked for in #13.
 * HushGram settings can show its categories as a grid. Tap `Show categories as a grid` near the top and each category becomes a tile with its icon, name and a line about what's in it, two across (three on a wide screen). Tap a tile and that category opens right below the tiles, and any other one folds. There's still just the one page. Starts off. Asked for in #494.
 * `Keep playing in the background` keeps a video or reel with sound going when you leave Instagram or turn the screen off, with a notification to pause or stop it. It's under Playback and starts off. Refs #497.

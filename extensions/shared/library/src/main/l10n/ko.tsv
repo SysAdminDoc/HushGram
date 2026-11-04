@@ -9,7 +9,7 @@
 A diagnostic report is already being saved.	진단 보고서를 이미 저장하고 있습니다
 A file named %1$s in %2$s paused HushGram.	%2$s에 있는 %1$s 파일 때문에 HushGram이 일시 정지되었습니다
 About	정보
-Add the source to saved photos	저장한 사진에 출처 추가
+Add the source to saved photos and videos	저장한 사진과 동영상에 출처 추가
 Ads and privacy	광고 및 개인정보 보호
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	화면의 가장 높은 주사율, 같은 해상도로 Instagram을 실행하도록 Android에 요청합니다. 일부 휴대전화는 앱에 자체 제한을 두며, 절전 모드가 주사율을 낮출 수도 있습니다.
 Back	뒤로
@@ -141,7 +141,7 @@ Updates	업데이트
 Version	버전
 Version %1$s for Instagram %2$s	Instagram %2$s용 버전 %1$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	스토리를 몰래 보는 동안 이미 본 스토리가 회색으로 바뀌고 줄의 맨 끝으로 이동합니다. 이 변화는 이 휴대폰에서만 보이며, Instagram에는 여전히 시청 사실이 전달되지 않습니다
-Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	저장한 사진의 세부 정보, 즉 갤러리나 exiftool이 읽는 EXIF에 게시한 계정과 게시 날짜, 게시물 링크를 기록합니다. JPEG 사진만 해당하며, 저장이 아는 정보만 기록합니다. 사진 자체는 바뀌지 않습니다.
+Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.	저장한 사진이나 동영상의 EXIF 또는 MP4 태그, 즉 갤러리나 exiftool이 읽는 정보에 게시한 계정과 게시 날짜, 게시물 링크를 기록합니다. JPEG 사진과 MP4 동영상만 해당하며, 저장이 아는 정보만 기록합니다. 이미지와 소리는 바뀌지 않습니다.
 You	나
 You paused HushGram.	HushGram이 일시 정지되었습니다
 the re-signed build fix	다시 서명된 빌드 수정
