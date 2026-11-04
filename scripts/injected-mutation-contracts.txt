@@ -909,9 +909,11 @@ shared-call Lapp/hushgram/extension/instagram/feed/TabSwipe;->input(Landroid/vie
 # Hide the home feed passes each item Home reads through HomeFeed.filter, whatever its kind: in
 # Home's feed response parser (the one holding Home's pull to refresh window) and in the read of
 # Home's store of the last run (the one method taking bytes in the class holding the two feed kind
-# names below), where it filters each of the read's two helper reads, so twice there. Never in the
-# feed item helper, which Explore's chain of posts and the shop and ad feeds read through too.
-# Left out, Home keeps its posts with the switch on.
+# names below), where it filters each of the read's two item reads, so twice there. On 454 one of
+# them calls the feed item helper and the other is Redex's inlined copy of the helper's parse (05el.A00
+# on 386014758, 05er.A00 on 386014757); the patch filters both. Never in the feed item helper, which
+# Explore's chain of posts and the shop and ad feeds read through too. Left out, Home keeps its posts
+# with the switch on.
 shared-call Lapp/hushgram/extension/instagram/feed/HomeFeed;->filter(Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)Ljava/lang/Object; holding feed_items pull_to_refresh_window_ms
 shared-call Lapp/hushgram/extension/instagram/feed/HomeFeed;->filter(Ljava/lang/Object;)Ljava/lang/Object; in instance ([B)LX/*; sites 2 class-holding MIXED_UNCONNECTED EXPLORE_STORY
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->filter(Ljava/lang/Object;)Ljava/lang/Object; in static (L*;)LX/*; calling L*;->parseFromJsonParser(*)Ljava/lang/Object; class-holding feedContent feedItemType
@@ -1826,10 +1828,13 @@ once-call Lapp/hushgram/extension/instagram/misc/EmojiFonts;->drawn(Ljava/lang/O
 # build. AccentColorHookTest holds those sites on the three 452 builds; this rule holds the loader to
 # its three and keeps it out of any other method holding the log line. On 454 the loader is a static
 # (Theme, Resources, int) form the (Context, int) one calls (00Pr.A01 on 386014758, 00Pp.A01 on
-# 386014757). 386014758 and 386014757 also inline the first read into its callers, where the patch
-# leaves it (AccentColorPatch's findAccentReads), so the first read's rule finds no method on them.
+# 386014757). 454's builds also inline the first read into its callers, and the patch leaves those
+# callers (AccentColorPatch's findAccentReads takes the one read left, the second, when the read
+# beside the resolver is gone), so on 454 the (Context, int) color hook goes in the second read alone.
+# 453's rule for the first read is dropped: no 454 method has its shape, and the patch writes no hook
+# in its place. The second read's rule, a shared-call, still fails a hook in any other method holding
+# getColor and a (Context, int) int call, the callers the first read went into among them.
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->list(Landroid/content/res/ColorStateList;)Landroid/content/res/ColorStateList; in static (Landroid/content/res/Resources$Theme;Landroid/content/res/Resources;I)Landroid/content/res/ColorStateList; sites 3 holding Failed\sto\sinflate\sColorStateList,\sleaving\sit\sto\sthe\sframework
-shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I holding LX/*;->*(Ljava/lang/Object;I)V LX/*;->*(Landroid/content/Context;I)I
 shared-call Lapp/hushgram/extension/instagram/misc/AccentColor;->color(I)I in static (Landroid/content/Context;I)I lacking static LX/*;->*(Ljava/lang/Object;*)V holding Landroid/content/Context;->getColor(I)I LX/*;->*(Landroid/content/Context;I)I
 # The two reads that take a fallback color resource hand theirs to AccentColor.color the same way
 # (00WF.A0c and 0989.A05 on 385713073, each asking 00WF.A0d, the resolver's class's one static
@@ -2067,12 +2072,14 @@ once-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->hideBanner()
 # profile's icon builder (0EoQ.A00, holding "share_profile_icon"), and the arrow's builder in the
 # same class (0HdX.A03 on 453, its one static method taking a List, holding no string of its own),
 # once before each of its two returns (#248). On 454 the text buttons' builder takes a boolean last
-# (0Hxt.A00 on 386014758), the arrow's builder sits in its class (0Hxt.A03), and no method holds
-# share_profile_icon, so the icon builder's rule finds nothing there. Left out, Share profile or the
-# arrow stays; more often or elsewhere, it isn't the hook the patch wrote. HideThreadsButtonHookTest
-# checks on every 453 fixture that it lands before each builder's return.
+# (0Hxt.A00 on 386014758) and the arrow's builder sits in its class (0Hxt.A03). 454 dropped Share
+# profile's icon: no method holds share_profile_icon, and the patch writes no icon hook
+# (HideThreadsButtonPatch's findShareButton finds no icon builder and takes the text buttons' class
+# as the row's), so 453's icon builder rule is dropped. The two once-call rules left still fail a
+# call to the hook in any other method, an icon hook included. Left out, Share profile or the arrow
+# stays; more often or elsewhere, it isn't the hook the patch wrote. HideThreadsButtonHookTest checks
+# on every fixture that it lands before each builder's return.
 once-call Lapp/hushgram/extension/instagram/profile/ShareProfileButton;->button(Landroid/view/View;Ljava/lang/Object;)V in static (L*;L*;L*;Ljava/lang/Integer;IZ)Landroid/view/View; calling instance Lcom/instagram/igds/components/button/IgdsButton;->setIconPadding(I)V holding generic
-once-call Lapp/hushgram/extension/instagram/profile/ShareProfileButton;->button(Landroid/view/View;Ljava/lang/Object;)V in static (L*;L*;L*;)Landroid/view/View; holding share_profile_icon
 once-call Lapp/hushgram/extension/instagram/profile/ShareProfileButton;->button(Landroid/view/View;Ljava/lang/Object;)V in static (L*;L*;L*;Ljava/util/List;)Landroid/view/View; sites 2 class-holding generic
 # Hide the Reels tab's Home header switches hand the list of buttons Home's header draws from to
 # HomeHeader.buttons first thing in the constructor of the header's state (03iJ on 450), the one
