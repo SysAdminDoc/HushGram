@@ -23,6 +23,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -47,9 +52,11 @@ import app.hushgram.extension.shared.Utils;
  * </ul>
  *
  * <p>Thread: Instagram's Reels page callback hands pages over on whichever thread its network layer
- * delivers them, which is normally the main thread, so this is built for that. The 12 letter floor
- * costs nothing, and an answer is kept by caption in a small bounded cache, since the classifier is
- * a call into the system. Nothing here throws.
+ * delivers them, which is normally the main thread. The 12 letter floor and the script layer cost
+ * nothing, and an answer is kept by caption in a small bounded cache. The classifier is a call into
+ * the system that can be slow, so on the main thread it's asked on a thread of its own and waited
+ * for at most {@link #MAIN_WAIT_MILLIS}; a caption it hasn't answered by then stays, and its answer
+ * counts from the next page. Off the main thread it's asked directly. Nothing here throws.
  */
 public final class CaptionLanguage {
     /** Fewer letters than this after cleaning and the caption can't be told. */
@@ -63,6 +70,22 @@ public final class CaptionLanguage {
 
     /** The most text handed to the classifier; a caption's start tells its language. */
     private static final int MAX_TEXT = 600;
+
+    /** How long the main thread waits for the classifier before the reel stays this time. */
+    static final long MAIN_WAIT_MILLIS = 40;
+
+    /** Captions waiting for the classifier at most; past it, more stay unasked until it catches up. */
+    static final int MAX_PENDING = 32;
+
+    /** The main thread's wait. Tests that time the classifier set their own. */
+    static volatile long mainWaitMillis = MAIN_WAIT_MILLIS;
+
+    /** The classifier's thread for main-thread callers, so a slow system call can't hold up a page. */
+    private static final ExecutorService CLASSIFIER = Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "HushGram caption language");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     /** The language the classifier thinks a text is in, and how sure it is. */
     static final class Guess {
@@ -81,7 +104,7 @@ public final class CaptionLanguage {
     }
 
     private static final Pattern LINKS = Pattern.compile("(?i)(?:https?://|www\\.)\\S+");
-    private static final Pattern TAGS = Pattern.compile("[#\\uFF03@\\uFF20][\\p{L}\\p{N}\\p{M}_.]+");
+    private static final Pattern TAGS = Pattern.compile("[#\\x{FF03}@\\x{FF20}][\\p{L}\\p{N}\\p{M}_.]+");
 
     /** The languages typed under Languages to keep, as codes, with the pieces that were not understood. */
     static final class Parsed {
@@ -125,6 +148,11 @@ public final class CaptionLanguage {
             }
         };
 
+        /** Captions handed to the classifier's thread and not answered yet. Guarded by [answers]. */
+        private final Set<String> pending = new HashSet<>();
+        /** Set when a main-thread wait ran out: no more waits until the classifier has caught up. */
+        private volatile boolean behind;
+
         Rule(Parsed kept, Detector detector) {
             this.kept = kept;
             this.detector = detector;
@@ -146,21 +174,77 @@ public final class CaptionLanguage {
                 }
                 String text = clean(caption);
                 if (letters(text) < MIN_LETTERS) return false;
-                boolean other = otherScript(text, scripts) || otherLanguage(text);
-                synchronized (answers) {
-                    answers.put(caption, other);
-                }
-                return other;
+                if (otherScript(text, scripts)) return remember(caption, true);
+                if (detector == null) return remember(caption, false);
+                String sample = text.length() > MAX_TEXT ? text.substring(0, MAX_TEXT) : text;
+                if (!Utils.isCurrentlyOnMainThread()) return remember(caption, otherLanguage(sample));
+                return Boolean.TRUE.equals(askOnTheSide(caption, sample));
             } catch (Throwable failure) {
                 return false;
             }
         }
 
-        private boolean otherLanguage(String text) {
-            if (detector == null) return false;
+        private boolean remember(String caption, boolean other) {
+            synchronized (answers) {
+                answers.put(caption, other);
+            }
+            return other;
+        }
+
+        /**
+         * The classifier's answer for [caption] from its own thread, or null when it isn't in within
+         * the main thread's wait. A late answer goes into the cache for the next page. After one wait
+         * runs out the main thread stops waiting until the thread has caught up, so a slow classifier
+         * costs one wait, not one a caption.
+         */
+        private Boolean askOnTheSide(String caption, String sample) {
+            synchronized (answers) {
+                if (pending.contains(caption) || pending.size() >= MAX_PENDING) return null;
+                pending.add(caption);
+            }
+            Future<Boolean> answer;
+            try {
+                answer = CLASSIFIER.submit(() -> {
+                    boolean other = false;
+                    try {
+                        other = otherLanguage(sample);
+                    } finally {
+                        synchronized (answers) {
+                            pending.remove(caption);
+                            answers.put(caption, other);
+                            if (pending.isEmpty()) behind = false;
+                        }
+                    }
+                    return other;
+                });
+            } catch (Throwable refused) {
+                synchronized (answers) {
+                    pending.remove(caption);
+                }
+                return null;
+            }
+            if (behind) return null;
+            try {
+                return answer.get(mainWaitMillis, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException late) {
+                synchronized (answers) {
+                    // It may have come in between the wait and here.
+                    if (!pending.contains(caption)) return answers.get(caption);
+                    behind = true;
+                }
+                return null;
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return null;
+            } catch (Throwable failure) {
+                return null;
+            }
+        }
+
+        private boolean otherLanguage(String sample) {
             Guess guess;
             try {
-                guess = detector.detect(text.length() > MAX_TEXT ? text.substring(0, MAX_TEXT) : text);
+                guess = detector.detect(sample);
             } catch (Throwable failure) {
                 return false;
             }
@@ -170,9 +254,21 @@ public final class CaptionLanguage {
         }
     }
 
-    /** The last text read and its rule, so a page doesn't parse the setting again. */
-    private static volatile Rule current;
-    private static volatile String currentStored;
+    /** One reading of the setting: the text, the phone's languages then, and the rule they make. */
+    private static final class Reading {
+        final String stored;
+        final String phone;
+        final Rule rule;
+
+        Reading(String stored, String phone, Rule rule) {
+            this.stored = stored;
+            this.phone = phone;
+            this.rule = rule;
+        }
+    }
+
+    /** The last reading, so a page doesn't parse the setting again. */
+    private static volatile Reading current;
     private static volatile Detector systemDetector;
 
     private CaptionLanguage() {
@@ -194,18 +290,33 @@ public final class CaptionLanguage {
     }
 
     private static Rule ruleFor(String stored) {
-        Rule known = current;
-        if (known != null && Objects.equals(currentStored, stored)) return known.active() ? known : null;
+        // An empty setting means the phone's languages, so a change of those is a new rule too.
+        String phone = phoneTags();
+        Reading known = current;
+        if (known != null && Objects.equals(known.stored, stored) && Objects.equals(known.phone, phone)) {
+            return known.rule.active() ? known.rule : null;
+        }
         Rule rule = new Rule(parse(stored), systemDetector());
-        current = rule;
-        currentStored = stored;
+        current = new Reading(stored, phone, rule);
         return rule.active() ? rule : null;
+    }
+
+    private static String phoneTags() {
+        try {
+            return LocaleList.getDefault().toLanguageTags();
+        } catch (Throwable failure) {
+            return Locale.getDefault().toLanguageTag();
+        }
     }
 
     /** Forgets the rule and its answers; the next page reads the setting again. */
     public static void forget() {
         current = null;
-        currentStored = null;
+    }
+
+    /** Waits for the classifier's thread to finish what it was handed. For tests. */
+    static void awaitClassifierForTests() throws Exception {
+        CLASSIFIER.submit(() -> { }).get(10, TimeUnit.SECONDS);
     }
 
     /** What the settings row says under its title for [stored]. */
@@ -268,8 +379,42 @@ public final class CaptionLanguage {
         if (base.matches("[a-z]{2,3}")) {
             String code = normalize(base);
             if (isoCodes().contains(code)) return code;
+            // Three letters: hin is hi, and fil, yue or haw have no two-letter code at all.
+            String shorter = threeLetterCodes().get(code);
+            if (shorter != null) return shorter;
+            if (code.length() == 3 && namedByIcu(code)) return code;
         }
         return nameTable().get(lower);
+    }
+
+    private static volatile Map<String, String> iso3;
+
+    /** Each two-letter language's three-letter code to its two-letter one. */
+    private static Map<String, String> threeLetterCodes() {
+        Map<String, String> known = iso3;
+        if (known == null) {
+            known = new HashMap<>();
+            for (String raw : Locale.getISOLanguages()) {
+                try {
+                    String three = Locale.forLanguageTag(raw).getISO3Language();
+                    if (three != null && three.length() == 3) known.put(three, normalize(raw));
+                } catch (Throwable missing) {
+                    // A language with no three-letter code adds nothing.
+                }
+            }
+            iso3 = known;
+        }
+        return known;
+    }
+
+    /** Whether ICU has a name for [code], so fil and yue count and xyz doesn't. */
+    private static boolean namedByIcu(String code) {
+        try {
+            String name = new ULocale(code).getDisplayLanguage(ULocale.ENGLISH);
+            return name != null && !name.isEmpty() && !name.equalsIgnoreCase(code);
+        } catch (Throwable failure) {
+            return false;
+        }
     }
 
     private static volatile Set<String> iso;
@@ -295,6 +440,18 @@ public final class CaptionLanguage {
             put(table, locale.getDisplayLanguage(Locale.ENGLISH), code);
             put(table, locale.getDisplayLanguage(locale), code);
         }
+        // The languages ICU has data for that only have three-letter codes: Filipino, Cantonese.
+        try {
+            for (ULocale available : ULocale.getAvailableLocales()) {
+                String code = normalize(available.getLanguage());
+                if (code.length() != 3) continue;
+                ULocale language = new ULocale(code);
+                put(table, language.getDisplayLanguage(ULocale.ENGLISH), code);
+                put(table, language.getDisplayLanguage(language), code);
+            }
+        } catch (Throwable failure) {
+            // The two-letter names above still count.
+        }
         names = table;
         return table;
     }
@@ -305,7 +462,7 @@ public final class CaptionLanguage {
         if (!table.containsKey(key)) table.put(key, code);
     }
 
-    /** The one code Android and ICU may spell two ways, in its current form, lower case. */
+    /** A code Android, ICU and the classifier may spell two ways, in one form, lower case. */
     static String normalize(String code) {
         if (code == null) return "";
         String lower = code.toLowerCase(Locale.ROOT);
@@ -313,6 +470,8 @@ public final class CaptionLanguage {
             case "iw": return "he";
             case "in": return "id";
             case "ji": return "yi";
+            // A phone in Filipino says fil, and the classifier may say tl for the same captions.
+            case "tl": return "fil";
             case "nb":
             case "nn": return "no";
             default: return lower;

@@ -11,14 +11,20 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 
 /** Which captions count as being in another language (#495): the cleaning, the script layer and the classifier layer. */
@@ -28,6 +34,17 @@ public class CaptionLanguageTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private static final String ENGLISH = "What a beautiful evening at the lake with friends";
+
+    /** These tests run on the main thread, so the classifier is asked on its own; a long wait keeps a busy machine from timing them out. */
+    @Before public void waitLong() {
+        CaptionLanguage.mainWaitMillis = 10_000;
+    }
+
+    @After public void waitAsShipped() throws Exception {
+        CaptionLanguage.mainWaitMillis = CaptionLanguage.MAIN_WAIT_MILLIS;
+        CaptionLanguage.awaitClassifierForTests();
+        CaptionLanguage.forget();
+    }
 
     /** [letters] Devanagari consonants, in words of four. */
     public static String devanagari(int letters) {
@@ -100,6 +117,83 @@ public class CaptionLanguageTest {
         for (int i = 0; i < CaptionLanguage.CACHE_SIZE + 20; i++) rule.isOther(ENGLISH + " number " + letters(i));
         assertTrue(rule.isOther(ENGLISH));
         assertEquals("the oldest answers were let go", CaptionLanguage.CACHE_SIZE + 22, calls.get());
+    }
+
+    /**
+     * On the main thread a classifier that hangs costs one wait, not one a caption: the reels stay
+     * this page, and its answers count once it catches up.
+     */
+    @Test public void aSlowClassifierOnTheMainThreadCostsOneWait() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        CaptionLanguage.mainWaitMillis = 300;
+        CaptionLanguage.Rule rule = rule("en", text -> {
+            try {
+                release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException stopped) {
+                Thread.currentThread().interrupt();
+            }
+            return new CaptionLanguage.Guess("es", 0.9f);
+        });
+        try {
+            long start = System.nanoTime();
+            for (int i = 0; i < 10; i++) assertFalse(rule.isOther(ENGLISH + " number " + letters(i)));
+            long took = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            assertTrue("one wait, not ten: " + took + " ms", took < 1_500);
+        } finally {
+            release.countDown();
+        }
+        CaptionLanguage.awaitClassifierForTests();
+        assertTrue("the late answer counts", rule.isOther(ENGLISH + " number " + letters(0)));
+        assertTrue(rule.isOther(ENGLISH + " number " + letters(9)));
+
+        // Caught up, it's waited for again.
+        assertTrue(rule.isOther(ENGLISH + " and one more"));
+    }
+
+    @Test public void offTheMainThreadTheClassifierIsAskedDirectly() throws Exception {
+        AtomicReference<Thread> askedOn = new AtomicReference<>();
+        CaptionLanguage.Rule rule = rule("en", text -> {
+            askedOn.set(Thread.currentThread());
+            return new CaptionLanguage.Guess("es", 0.9f);
+        });
+        AtomicReference<Boolean> answer = new AtomicReference<>();
+        Thread page = new Thread(() -> answer.set(rule.isOther(ENGLISH)));
+        page.start();
+        page.join(10_000);
+        assertEquals(Boolean.TRUE, answer.get());
+        assertEquals(page, askedOn.get());
+    }
+
+    /** Three-letter codes: the ones with a two-letter code turn into it, and the ones without one count as they are. */
+    @Test public void threeLetterCodesAreUnderstood() {
+        CaptionLanguage.Parsed parsed = CaptionLanguage.parse("fil, Filipino, hin, tl, Tagalog, yue, xyz");
+        assertEquals(Arrays.asList("fil", "hi", "yue"), parsed.codes);
+        assertEquals(Collections.singletonList("xyz"), parsed.unknown);
+
+        // The classifier saying tl for a phone kept in Filipino is the same language.
+        assertFalse(rule("fil", says("tl", 0.95f)).isOther("Magandang gabi sa lawa kasama ang mga kaibigan"));
+    }
+
+    /** With Languages to keep empty, a change of the phone's languages changes the rule. */
+    @Test public void theRuleFollowsTheSystemLanguages() {
+        Locale before = Locale.getDefault();
+        try {
+            Settings.HIDE_OTHER_LANGUAGE_REELS.save(true);
+            Settings.REELS_KEPT_LANGUAGES.save("");
+            Locale.setDefault(Locale.forLanguageTag("fr-FR"));
+            CaptionLanguage.forget();
+            CaptionLanguage.Rule french = CaptionLanguage.ruleWhenOn();
+            assertTrue(french.kept.codes.toString(), french.kept.codes.contains("fr"));
+
+            Locale.setDefault(Locale.forLanguageTag("de-DE"));
+            CaptionLanguage.Rule german = CaptionLanguage.ruleWhenOn();
+            assertTrue(german.kept.codes.toString(), german.kept.codes.contains("de"));
+            assertTrue("the same languages keep the same rule", german == CaptionLanguage.ruleWhenOn());
+        } finally {
+            Locale.setDefault(before);
+            Settings.HIDE_OTHER_LANGUAGE_REELS.resetToDefault();
+            Settings.REELS_KEPT_LANGUAGES.resetToDefault();
+        }
     }
 
     /** A number as letters, so cleaning doesn't drop what makes captions differ. */
