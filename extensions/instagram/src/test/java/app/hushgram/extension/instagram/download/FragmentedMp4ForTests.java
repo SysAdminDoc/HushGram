@@ -13,9 +13,10 @@ import java.util.List;
 
 /**
  * A DASH track the way Meta serves one: a fragmented MP4 that holds a single track, a moov with
- * empty sample tables and an mvex, then moof and mdat pairs. Every sample's bytes are a pattern of
- * their own ({@link #content}), so a join that copies the wrong bytes, or the right bytes to the
- * wrong sample, shows.
+ * empty sample tables and an mvex, then moof and mdat pairs. {@link #plain} writes tracks as the
+ * other kind instead, every sample listed in the moov. Every sample's bytes are a pattern of their
+ * own ({@link #content}), so a join that copies the wrong bytes, or the right bytes to the wrong
+ * sample, shows.
  */
 final class FragmentedMp4ForTests {
 
@@ -82,8 +83,8 @@ final class FragmentedMp4ForTests {
     long trexDuration;
     int trexSize;
     int trexFlags;
-    /** A stbl that lists a sample of its own, outside every fragment. */
-    boolean samplesInMoov;
+    /** How many samples a chunk of this track holds in a {@link #plain} file. */
+    int plainChunk = 10;
     /** The last mdat's size field says 0: to the end of the file. */
     boolean lastBoxToTheEnd;
     final List<Fragment> fragments = new ArrayList<>();
@@ -222,11 +223,148 @@ final class FragmentedMp4ForTests {
 
     private byte[] moov() {
         Box moov = new Box();
-        moov.box("mvhd", new Box().u32(0).u32(0).u32(0).u32(movieTimescale).u32(0).u32(0x00010000).u16(0x0100)
-                .zeros(10).put(matrix()).zeros(24).u32(trackId + 1).bytes());
+        moov.box("mvhd", mvhd(movieTimescale, trackId + 1));
+        Box empty = new Box();
+        empty.box("stts", new Box().u32(0).u32(0).bytes());
+        empty.box("stsc", new Box().u32(0).u32(0).bytes());
+        empty.box("stsz", new Box().u32(0).u32(0).u32(0).bytes());
+        empty.box("stco", new Box().u32(0).u32(0).bytes());
+        moov.box("trak", trak(trackId, empty.bytes()));
+        moov.box("mvex", new Box().box("trex", new Box().u32(0).u32(trackId).u32(1).u32(trexDuration).u32(trexSize)
+                .u32(trexFlags).bytes()).bytes());
+        moov.box("udta", new byte[8]);
+        return moov.bytes();
+    }
 
+    private static byte[] mvhd(long movieTimescale, int nextTrackId) {
+        return new Box().u32(0).u32(0).u32(0).u32(movieTimescale).u32(0).u32(0x00010000).u16(0x0100)
+                .zeros(10).put(matrix()).zeros(24).u32(nextTrackId).bytes();
+    }
+
+    /**
+     * [tracks] as one plain MP4, the progressive file Instagram plays beside its DASH tracks: every
+     * sample listed in the moov's tables and none in fragments, the tracks' chunks taking turns in
+     * one mdat, {@link #plainChunk} samples each. Each track keeps its samples, edit list and sample
+     * description, its decode times running on from zero; track ids go from 1 in the order given.
+     * Chunk offsets are co64 when [wide], and the moov comes after the mdat when [moovLast], as in a
+     * file written without faststart.
+     */
+    static byte[] plain(boolean wide, boolean moovLast, FragmentedMp4ForTests... tracks) {
+        Box mdat = new Box();
+        List<List<Long>> chunks = new ArrayList<>();
+        for (int t = 0; t < tracks.length; t++) chunks.add(new ArrayList<>());
+        int[] next = new int[tracks.length];
+        for (boolean more = true; more; ) {
+            more = false;
+            for (int t = 0; t < tracks.length; t++) {
+                int count = tracks[t].samples().size();
+                if (next[t] >= count) continue;
+                chunks.get(t).add((long) mdat.size());
+                int end = Math.min(count, next[t] + tracks[t].plainChunk);
+                for (int i = next[t]; i < end; i++) mdat.put(tracks[t].content(i));
+                next[t] = end;
+                more = true;
+            }
+        }
+        byte[] ftyp = new Box().box("ftyp", new Box().ascii("isom").u32(0x200).ascii("isom").ascii("iso2")
+                .ascii("avc1").ascii("mp41").bytes()).bytes();
+        // The moov's size doesn't hang on where the samples start, so a first build measures it.
+        long dataStart = ftyp.length + 8 + (moovLast ? 0 : plainMoov(tracks, chunks, 0, wide).length + 8);
+        byte[] moov = plainMoov(tracks, chunks, dataStart, wide);
+        Box file = new Box().put(ftyp);
+        if (moovLast) file.box("mdat", mdat.bytes()).box("moov", moov);
+        else file.box("moov", moov).box("mdat", mdat.bytes());
+        return file.bytes();
+    }
+
+    private static byte[] plainMoov(FragmentedMp4ForTests[] tracks, List<List<Long>> chunks, long dataStart,
+            boolean wide) {
+        Box moov = new Box();
+        moov.box("mvhd", mvhd(tracks[0].movieTimescale, tracks.length + 1));
+        for (int t = 0; t < tracks.length; t++) {
+            moov.box("trak", tracks[t].trak(t + 1, tracks[t].tables(chunks.get(t), dataStart, wide)));
+        }
+        return moov.bytes();
+    }
+
+    /** The tables that list every sample of this track, in chunks that start [chunks] bytes past [dataStart]. */
+    private byte[] tables(List<Long> chunks, long dataStart, boolean wide) {
+        List<Sample> samples = samples();
+        int count = samples.size();
+        Box tables = new Box();
+
+        long[] durations = new long[count];
+        long[] offsets = new long[count];
+        boolean composed = false;
+        boolean negative = false;
+        for (int i = 0; i < count; i++) {
+            durations[i] = samples.get(i).duration;
+            offsets[i] = samples.get(i).offset;
+            composed |= offsets[i] != 0;
+            negative |= offsets[i] < 0;
+        }
+        List<long[]> times = runLengths(durations);
+        Box stts = new Box().u32(0).u32(times.size());
+        for (long[] pair : times) stts.u32(pair[0]).u32(pair[1]);
+        tables.box("stts", stts.bytes());
+        if (composed) {
+            List<long[]> shown = runLengths(offsets);
+            Box ctts = new Box().u32(negative ? 0x01000000 : 0).u32(shown.size());
+            for (long[] pair : shown) ctts.u32(pair[0]).u32(pair[1]);
+            tables.box("ctts", ctts.bytes());
+        }
+
+        List<Integer> keys = new ArrayList<>();
+        for (int i = 0; i < count; i++) if ((samples.get(i).flags & 0x00010000) == 0) keys.add(i + 1);
+        if (keys.size() < count) {
+            Box stss = new Box().u32(0).u32(keys.size());
+            for (int key : keys) stss.u32(key);
+            tables.box("stss", stss.bytes());
+        }
+
+        // A group for each change in how many samples a chunk holds: all full but perhaps the last.
+        Box groups = new Box();
+        int groupCount = 0;
+        long previous = -1;
+        for (int c = 0; c < chunks.size(); c++) {
+            long holds = Math.min(plainChunk, count - (long) c * plainChunk);
+            if (holds == previous) continue;
+            groups.u32(c + 1).u32(holds).u32(1);
+            groupCount++;
+            previous = holds;
+        }
+        tables.box("stsc", new Box().u32(0).u32(groupCount).put(groups.bytes()).bytes());
+
+        boolean uniform = true;
+        for (Sample sample : samples) uniform &= sample.size == samples.get(0).size;
+        Box stsz = new Box().u32(0).u32(uniform ? samples.get(0).size : 0).u32(count);
+        if (!uniform) for (Sample sample : samples) stsz.u32(sample.size);
+        tables.box("stsz", stsz.bytes());
+
+        Box offsetsBox = new Box().u32(0).u32(chunks.size());
+        for (long chunk : chunks) {
+            if (wide) offsetsBox.u64(dataStart + chunk);
+            else offsetsBox.u32(dataStart + chunk);
+        }
+        tables.box(wide ? "co64" : "stco", offsetsBox.bytes());
+        return tables.bytes();
+    }
+
+    /** [values] as pairs of a count and a value, one pair for each run of equal values. */
+    private static List<long[]> runLengths(long[] values) {
+        List<long[]> pairs = new ArrayList<>();
+        for (long value : values) {
+            long[] last = pairs.isEmpty() ? null : pairs.get(pairs.size() - 1);
+            if (last != null && last[1] == value) last[0]++;
+            else pairs.add(new long[] {1, value});
+        }
+        return pairs;
+    }
+
+    /** This track's trak as track [id], its stbl holding [tables] after the stsd. */
+    private byte[] trak(int id, byte[] tables) {
         Box trak = new Box();
-        trak.box("tkhd", new Box().u32(7).u32(0).u32(0).u32(trackId).u32(0).u32(0).zeros(8).u16(0).u16(0)
+        trak.box("tkhd", new Box().u32(7).u32(0).u32(0).u32(id).u32(0).u32(0).zeros(8).u16(0).u16(0)
                 .u16(handler.equals("soun") ? 0x0100 : 0).u16(0).put(matrix()).u32((long) width << 16)
                 .u32((long) height << 16).bytes());
         if (edits != null) {
@@ -237,17 +375,7 @@ final class FragmentedMp4ForTests {
 
         Box stbl = new Box();
         stbl.box("stsd", sampleDescriptions());
-        if (samplesInMoov) {
-            stbl.box("stts", new Box().u32(0).u32(1).u32(1).u32(512).bytes());
-            stbl.box("stsc", new Box().u32(0).u32(1).u32(1).u32(1).u32(1).bytes());
-            stbl.box("stsz", new Box().u32(0).u32(0).u32(1).u32(10).bytes());
-            stbl.box("stco", new Box().u32(0).u32(1).u32(0).bytes());
-        } else {
-            stbl.box("stts", new Box().u32(0).u32(0).bytes());
-            stbl.box("stsc", new Box().u32(0).u32(0).bytes());
-            stbl.box("stsz", new Box().u32(0).u32(0).u32(0).bytes());
-            stbl.box("stco", new Box().u32(0).u32(0).bytes());
-        }
+        stbl.put(tables);
         Box minf = new Box();
         if (handler.equals("vide")) minf.box("vmhd", new Box().u32(1).zeros(8).bytes());
         else minf.box("smhd", new Box().u32(0).u32(0).bytes());
@@ -260,12 +388,7 @@ final class FragmentedMp4ForTests {
                 StandardCharsets.US_ASCII)).bytes());
         mdia.box("minf", minf.bytes());
         trak.box("mdia", mdia.bytes());
-        moov.box("trak", trak.bytes());
-
-        moov.box("mvex", new Box().box("trex", new Box().u32(0).u32(trackId).u32(1).u32(trexDuration).u32(trexSize)
-                .u32(trexFlags).bytes()).bytes());
-        moov.box("udta", new byte[8]);
-        return moov.bytes();
+        return trak.bytes();
     }
 
     private static byte[] matrix() {

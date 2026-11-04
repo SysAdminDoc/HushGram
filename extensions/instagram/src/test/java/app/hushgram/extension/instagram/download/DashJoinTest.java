@@ -289,6 +289,56 @@ public class DashJoinTest {
         assertTrue(report, report.contains("joining the tracks without MediaMuxer, which can't write VP9 into an MP4"));
     }
 
+    /**
+     * With only xHE-AAC in the manifest, a VP9 picture's sound is the single file's: a plain MP4 with
+     * a smaller picture of its own. The join takes the sound out of it, and the gallery gets the VP9
+     * picture with that sound, not the single file in its place (#496).
+     */
+    @Test
+    public void aVp9PictureTakesTheSoundOfTheSingleFile() {
+        FragmentedMp4ForTests picture = FragmentedMp4ForTests.picture("vp09", 1080, 1920, 15_360);
+        FragmentedMp4ForTests.Fragment frames = picture.fragment(0L);
+        for (int i = 0; i < 60; i++) {
+            frames.add(i == 0 ? 4_000 : 600, 512, i == 0 ? FragmentedMp4ForTests.SYNC : FragmentedMp4ForTests.NON_SYNC, 0);
+        }
+        FragmentedMp4ForTests smaller = FragmentedMp4ForTests.picture("avc1", 720, 1280, 15_360);
+        FragmentedMp4ForTests.Fragment its = smaller.fragment(0L);
+        for (int i = 0; i < 60; i++) {
+            its.add(i == 0 ? 2_000 : 300, 512, i == 0 ? FragmentedMp4ForTests.SYNC : FragmentedMp4ForTests.NON_SYNC, 0);
+        }
+        FragmentedMp4ForTests sound = FragmentedMp4ForTests.sound(44_100);
+        sound.edits = new long[][] {{0, 1_024, 0x00010000}};
+        FragmentedMp4ForTests.Fragment frames2 = sound.fragment(0L);
+        for (int i = 0; i < 88; i++) frames2.add(200, 1_024, FragmentedMp4ForTests.SYNC, 0);
+        byte[] pictureFile = picture.build();
+        byte[] single = FragmentedMp4ForTests.plain(false, false, smaller, sound);
+        server.serve("/vp9.mp4", 200, "video/mp4", pictureFile, pictureFile.length);
+        server.serve("/single.mp4", 200, "video/mp4", single, single.length);
+        DashManifest.Track vp9 = new DashManifest.Track("video/mp4", "vp09.00.40.08", 1080, 1920, 711_000,
+                server.origin() + "/vp9.mp4");
+        MediaSave.policyForTests = policy;
+        MediaSaveTest.Gallery rows = Robolectric.setupContentProvider(MediaSaveTest.Gallery.class, MediaStore.AUTHORITY);
+        ByteArrayOutputStream published = new ByteArrayOutputStream();
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(rows.videoUri(1), published);
+
+        Downloader.Result result = MediaSave.dashJob(context, vp9, null,
+                MediaSave.Rendition.of(server.origin() + "/single.mp4"), DownloadQuality.BEST, false, null, true)
+                .run(new MediaStoreWriter(context, true), Downloader.SILENT);
+
+        assertEquals(result.toString(), Downloader.Status.OK, result.status);
+        PlainMp4ForTests.Movie saved = PlainMp4ForTests.read(published.toByteArray());
+        assertEquals(2, saved.tracks.size());
+        assertEquals("vp09", saved.tracks.get(0).sampleEntry);
+        assertEquals(60, saved.tracks.get(0).count());
+        assertEquals("mp4a", saved.tracks.get(1).sampleEntry);
+        assertEquals(88, saved.tracks.get(1).count());
+        assertEquals("fetched once, as the sound", 1, server.hits("/single.mp4"));
+        assertEquals("the muxer was asked to write VP9", 0, FaultyMuxer.writes.get());
+        String report = LogBufferManager.buildExportText();
+        assertFalse(report, report.contains("BUILD_ERROR"));
+        assertEquals(0, workFiles());
+    }
+
     /** Only VP9, and AV1 before Android 14, skip the muxer. Every other picture keeps the join it always had. */
     @Test
     public void onlyVp9AndAv1BeforeAndroid14SkipTheMuxer() {

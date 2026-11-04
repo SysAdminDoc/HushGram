@@ -33,6 +33,11 @@ import java.util.List;
  * its {@code av1C} and {@code mp4a} with its {@code esds} go through unchanged, and so would any
  * other codec. Nothing is decoded or encoded.
  *
+ * <p>A track can also come from a plain MP4, whose {@code moov} lists every sample in its tables.
+ * Instagram's sound comes that way when the manifest offers only xHE-AAC: the sound is taken from
+ * the progressive file, which holds a picture track too. The join reads that track's sizes, times,
+ * composition offsets and key frames from its tables, and each of its chunks as a run.
+ *
  * <p>The samples go straight from file to file, up to half a second of one track at a time,
  * alternating between the tracks by time the way MediaMuxer lays them out. Only the tables are held
  * in memory, 13 bytes a sample: a minute of 30 fps picture beside 44.1 kHz AAC is under 60 KB.
@@ -50,7 +55,10 @@ final class Mp4Join {
 
     private Mp4Join() {}
 
-    /** The largest {@code moov} or {@code moof} read whole. Facebook's are a few kilobytes. */
+    /**
+     * The largest {@code moov} or {@code moof} read whole. Facebook's are a few kilobytes, and a
+     * plain file's moov, its sample tables included, about 60 KB a minute.
+     */
     private static final int MAX_HEADER_BOX = 16 * 1024 * 1024;
 
     /** The most samples one track may list: over nine hours of 60 fps picture. */
@@ -106,8 +114,9 @@ final class Mp4Join {
     private static final int[] IDENTITY = {0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000};
 
     /**
-     * Joins [video] and [audio], each a fragmented MP4 of one track, into the plain MP4 [out].
-     * [audio] is null for a picture with no sound. Answers false when [progress] was cancelled,
+     * Joins the picture track of [video] and the sound track of [audio], each read from a
+     * fragmented MP4 or a plain one, into the plain MP4 [out]. [audio] is null for a picture with
+     * no sound. Answers false when [progress] was cancelled,
      * which is read before the copy starts and before every chunk of it.
      */
     static boolean join(File video, File audio, File out, Downloader.Progress progress) throws IOException {
@@ -321,10 +330,121 @@ final class Mp4Join {
                 if (entry.type == ENCV || entry.type == ENCA) throw new IOException("the " + kind + " track is encrypted");
             }
             Box stsz = find(tables, STSZ);
+            if (stsz != null && stsz.data.getInt(8) != 0) listed(tables, stsz.data);
+        }
+
+        /**
+         * Reads the samples a plain MP4's [tables] list, [stsz] among them: each one's size, duration,
+         * composition offset and key frame flag, and each chunk of them as a run of its own.
+         */
+        private void listed(List<Box> tables, ByteBuffer stsz) throws IOException {
             Box stts = find(tables, STTS);
-            if ((stsz != null && stsz.data.getInt(8) != 0) || (stts != null && stts.data.getInt(4) != 0)) {
-                throw new IOException("the " + kind + " track keeps samples outside its fragments");
+            Box stsc = find(tables, STSC);
+            Box stco = find(tables, STCO);
+            Box co64 = find(tables, CO64);
+            if (stts == null || stsc == null || (stco == null && co64 == null)) {
+                throw new IOException("the " + kind + " track's sample table is missing a part");
             }
+            String disagree = "the " + kind + " track's tables don't agree on how many samples it has";
+
+            stsz.position(4);
+            int uniform = stsz.getInt();
+            long count = u32(stsz);
+            if (count > MAX_SAMPLES) throw new IOException("the " + kind + " file lists too many samples");
+            if (uniform == 0 && count > stsz.remaining() / 4) throw cutShort("sample sizes");
+            for (long i = 0; i < count; i++) {
+                int size = uniform != 0 ? uniform : stsz.getInt();
+                if (size < 0) throw new IOException("a sample of the " + kind + " file is over 2 GB");
+                sizes.add(size);
+            }
+
+            ByteBuffer t = stts.data;
+            t.position(4);
+            long entries = u32(t);
+            if (entries > t.remaining() / 8) throw cutShort("sample times");
+            for (long e = 0; e < entries; e++) {
+                long n = u32(t);
+                int duration = t.getInt();
+                if (n > count - durations.size) throw new IOException(disagree);
+                for (long i = 0; i < n; i++) durations.add(duration);
+            }
+            if (durations.size != count) throw new IOException(disagree);
+
+            Box ctts = find(tables, CTTS);
+            if (ctts == null) {
+                for (long i = 0; i < count; i++) offsets.add(0);
+            } else {
+                ByteBuffer c = ctts.data;
+                c.position(4);
+                entries = u32(c);
+                if (entries > c.remaining() / 8) throw cutShort("composition offsets");
+                for (long e = 0; e < entries; e++) {
+                    long n = u32(c);
+                    // Version 1 offsets are signed. Version 0 ones are unsigned, but none over 2^31 is real.
+                    int offset = c.getInt();
+                    if (n > count - offsets.size) throw new IOException(disagree);
+                    for (long i = 0; i < n; i++) offsets.add(offset);
+                }
+                if (offsets.size != count) throw new IOException(disagree);
+            }
+
+            Box stss = find(tables, STSS);
+            if (stss != null) {
+                ByteBuffer s = stss.data;
+                s.position(4);
+                entries = u32(s);
+                if (entries > s.remaining() / 4) throw cutShort("key frames");
+                nonSync.set(0, (int) count);
+                for (long e = 0; e < entries; e++) {
+                    long number = u32(s);
+                    if (number < 1 || number > count) throw new IOException("the " + kind + " track marks a key frame it hasn't got");
+                    nonSync.clear((int) number - 1);
+                }
+            }
+
+            boolean wide = stco == null;
+            ByteBuffer o = (wide ? co64 : stco).data;
+            o.position(4);
+            long chunks = u32(o);
+            if (chunks > o.remaining() / (wide ? 8 : 4)) throw cutShort("chunk offsets");
+            ByteBuffer m = stsc.data;
+            m.position(4);
+            long groups = u32(m);
+            if (groups == 0 || groups > m.remaining() / 12) throw cutShort("chunks");
+            // Each group of chunks: the first chunk it covers, its samples a chunk and their description.
+            long[] group = {u32(m), u32(m), u32(m)};
+            if (group[0] != 1) throw new IOException("the " + kind + " track's chunk table doesn't start at its first chunk");
+            long read = 1;
+            long length = file.length();
+            int sample = 0;
+            for (long chunk = 1; chunk <= chunks; chunk++) {
+                while (read < groups && (m.getInt(m.position()) & 0xFFFFFFFFL) <= chunk) {
+                    group = new long[] {u32(m), u32(m), u32(m)};
+                    read++;
+                }
+                long start = wide ? o.getLong() : u32(o);
+                if (group[2] < 1 || group[2] > descriptionCount) {
+                    throw new IOException("a chunk of the " + kind + " file names a sample description it hasn't got");
+                }
+                if (group[1] > count - sample) throw new IOException(disagree);
+                if (group[1] == 0) continue;
+                long bytes = 0;
+                for (int i = sample; i < sample + group[1]; i++) bytes += sizes.get(i);
+                if (start < 0 || start + bytes > length) {
+                    throw new IOException("a chunk's samples run past the end of the " + kind + " file");
+                }
+                sample += (int) group[1];
+                addRun(start, sample, (int) group[2]);
+            }
+            if (sample != count) throw new IOException(disagree);
+
+            firstDecodeTime = 0;
+            decodeTime = 0;
+            for (int i = 0; i < durations.size; i++) decodeTime += durations.get(i) & 0xFFFFFFFFL;
+        }
+
+        private IOException cutShort(String table) {
+            return new IOException("the " + kind + " track's " + table + " are cut short");
         }
 
         /** Reads the samples of this track in [moof], which starts at [moofStart] of a file of [length]. */
@@ -407,12 +527,17 @@ final class Mp4Join {
             if (start < 0 || start + bytes > length) {
                 throw new IOException("a fragment's samples run past the end of the " + kind + " file");
             }
+            addRun(start, sizes.size, description);
+            return start + bytes;
+        }
+
+        /** Notes a run of samples whose data lie together from [start], ending before sample [end]. */
+        private void addRun(long start, int end, int description) {
             int runs = runEnds.size;
             if (runs == runStarts.length) runStarts = Arrays.copyOf(runStarts, runs * 2);
             runStarts[runs] = start;
-            runEnds.add(sizes.size);
+            runEnds.add(end);
             runDescriptions.add(description);
-            return start + bytes;
         }
 
         /**

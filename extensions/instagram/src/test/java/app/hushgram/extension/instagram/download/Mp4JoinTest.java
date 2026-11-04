@@ -330,6 +330,65 @@ public class Mp4JoinTest {
         assertEquals(1, joining.get());
     }
 
+    /**
+     * When the manifest's only sound is xHE-AAC, the sound comes from Instagram's progressive file:
+     * a plain MP4 whose moov lists every sample, a picture track first and the sound second, their
+     * chunks taking turns. The join takes the sound out of it beside the DASH picture (#496: every
+     * VP9 and AV1 reel used to fall back to the 720p file).
+     */
+    @Test
+    public void theSoundOfAPlainFileJoinsTheDashPicture() throws IOException {
+        FragmentedMp4ForTests progressivePicture = bFramePicture(0, 1_024);
+        progressivePicture.edits = new long[][] {{0, 1_024, 0x00010000}};
+        FragmentedMp4ForTests sound = aacSound();
+        // 131 samples in chunks of 21: six full ones and a last of five, two groups in the stsc.
+        sound.plainChunk = 21;
+        File progressive = temp.newFile("progressive.mp4");
+        Files.write(progressive.toPath(), FragmentedMp4ForTests.plain(false, false, progressivePicture, sound));
+        FragmentedMp4ForTests picture = vp9Picture();
+
+        File out = joined(write(picture, "video"), progressive, Downloader.SILENT);
+        PlainMp4ForTests.Movie movie = PlainMp4ForTests.read(Files.readAllBytes(out.toPath()));
+
+        assertEquals(2, movie.tracks.size());
+        PlainMp4ForTests.Track video = movie.tracks.get(0);
+        PlainMp4ForTests.Track audio = movie.tracks.get(1);
+        assertEquals("vp09", video.sampleEntry);
+        assertEquals("soun", audio.handler);
+        assertArrayEquals(sound.sampleDescriptions(), audio.sampleDescriptions);
+        assertSamples(picture, video, movie, 1e-9);
+        assertSamples(sound, audio, movie, 1e-9);
+        long soundMs = Math.round(130 * 1_024 * 1_000.0 / 44_100);
+        assertArrayEquals(new long[] {soundMs, 1_024, 0x00010000}, audio.edits[0]);
+        assertEquals(1, audio.edits.length);
+    }
+
+    /**
+     * A picture can come from a plain file too, its key frames from the stss and its B-frame order
+     * from the ctts, version 0 or 1, with 64-bit chunk offsets and the moov after the mdat.
+     */
+    @Test
+    public void aPlainPictureKeepsItsKeyFramesOffsetsAndEditList() throws IOException {
+        FragmentedMp4ForTests delayed = bFramePicture(0, 1_024);
+        delayed.edits = new long[][] {{0, 1_024, 0x00010000}};
+        FragmentedMp4ForTests[] pictures = {delayed, bFramePicture(1, 0)};
+        for (int p = 0; p < pictures.length; p++) {
+            FragmentedMp4ForTests picture = pictures[p];
+            picture.plainChunk = 7;
+            File plain = temp.newFile();
+            Files.write(plain.toPath(), FragmentedMp4ForTests.plain(true, true, picture, aacSound()));
+
+            File out = joined(plain, write(aacSound(), "audio" + p), Downloader.SILENT);
+            PlainMp4ForTests.Movie movie = PlainMp4ForTests.read(Files.readAllBytes(out.toPath()));
+
+            PlainMp4ForTests.Track video = movie.tracks.get(0);
+            assertEquals("avc1", video.sampleEntry);
+            assertSamples(picture, video, movie, 1e-9);
+            assertSamples(aacSound(), movie.tracks.get(1), movie, 1e-9);
+            assertEquals("the first frame isn't shown at the start", 0.0, video.presentation(0, movie.timescale), 1e-9);
+        }
+    }
+
     @Test
     public void aPictureWithNoSoundIsOneTrack() throws IOException {
         FragmentedMp4ForTests picture = vp9Picture();
@@ -355,12 +414,21 @@ public class Mp4JoinTest {
         FragmentedMp4ForTests empty = FragmentedMp4ForTests.picture("vp09", 1080, 1920, 15_360);
         assertRefused("no samples", write(empty, "empty"), sound);
 
-        FragmentedMp4ForTests plain = vp9Picture();
-        plain.samplesInMoov = true;
-        assertRefused("outside its fragments", write(plain, "plain"), sound);
-
         File picture = write(vp9Picture(), "video");
         assertRefused("holds no sound track", picture, picture);
+
+        // A plain file whose times list one sample fewer than its sizes.
+        byte[] plain = FragmentedMp4ForTests.plain(false, false, aacSound());
+        byte[] fewer = plain.clone();
+        fewer[indexOf(fewer, "stts") + 19]--;
+        File disagree = temp.newFile("disagree.mp4");
+        Files.write(disagree.toPath(), fewer);
+        assertRefused("tables don't agree on how many samples", picture, disagree);
+
+        // A plain file cut inside its mdat, which the moov before it already points past.
+        File plainCut = temp.newFile("plain-cut.mp4");
+        Files.write(plainCut.toPath(), Arrays.copyOf(plain, plain.length - 100));
+        assertRefused("samples run past the end of the audio file", picture, plainCut);
 
         // Cut inside the last mdat, which its moof, read first, already points past.
         byte[] whole = vp9Picture().build();
@@ -474,6 +542,38 @@ public class Mp4JoinTest {
                     "-of", "csv=p=0", out.getPath());
             assertEquals(kind[0], kind[0].replace("-negative", "") + ",320,240\naac\n", streams.replace("\r", ""));
             assertEquals(kind[0] + " didn't decode cleanly", "", run(FFMPEG.getPath(), "-v", "error", "-xerror", "-i",
+                    out.getPath(), "-f", "null", "-"));
+        }
+    }
+
+    /**
+     * A real DASH VP9 picture beside the sound of a real progressive MP4, H.264 and AAC in one plain
+     * file, written with its moov first and with it last (#496). FFmpeg reads every packet of the
+     * join as it read it in the picture's file and in the progressive one, and decodes it cleanly.
+     */
+    @Test
+    public void ffmpegReadsTheJoinOfADashPictureAndAProgressiveFilesSound() throws Exception {
+        Assume.assumeTrue("FFmpeg isn't installed here", FFMPEG.isFile() && FFPROBE.isFile());
+        File folder = temp.newFolder("progressive");
+        File picture = encode(folder, "vp9.mp4", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=30", "-t", "3",
+                "-c:v", "libvpx-vp9", "-deadline", "realtime", "-cpu-used", "8", "-b:v", "300k", "-g", "30",
+                "-f", "mp4", "-movflags", "+dash+global_sidx");
+        for (String layout : new String[] {"moov-first", "moov-last"}) {
+            List<String> args = new ArrayList<>(Arrays.asList("-f", "lavfi", "-i", "testsrc2=size=320x240:rate=30",
+                    "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100", "-t", "3", "-c:v", "libx264",
+                    "-preset", "ultrafast", "-bf", "2", "-g", "30", "-c:a", "aac", "-b:a", "64k", "-f", "mp4"));
+            // FFmpeg writes a plain MP4's moov last unless it's asked to move it to the front.
+            if (layout.equals("moov-first")) args.addAll(Arrays.asList("-movflags", "+faststart"));
+            File progressive = encode(folder, "progressive-" + layout + ".mp4", args.toArray(new String[0]));
+            File out = new File(folder, "joined-" + layout + ".mp4");
+            assertTrue(Mp4Join.join(picture, progressive, out, Downloader.SILENT));
+
+            assertEquals(layout, packets(picture, "v:0"), packets(out, "v:0"));
+            assertEquals(layout, packets(progressive, "a:0"), packets(out, "a:0"));
+            String streams = run(FFPROBE.getPath(), "-v", "error", "-show_entries", "stream=codec_name,width,height",
+                    "-of", "csv=p=0", out.getPath());
+            assertEquals(layout, "vp9,320,240\naac\n", streams.replace("\r", ""));
+            assertEquals(layout + " didn't decode cleanly", "", run(FFMPEG.getPath(), "-v", "error", "-xerror", "-i",
                     out.getPath(), "-f", "null", "-"));
         }
     }
