@@ -18,6 +18,7 @@ import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 
 import app.hushgram.extension.instagram.download.InstagramMedia;
+import app.hushgram.extension.instagram.reels.CaptionLanguage;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
 import app.hushgram.extension.instagram.reels.FeedReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -116,6 +117,12 @@ public final class FeedSuggestions {
 
     /** The report's count of posts Also on Home took out of Home for a word in their caption. */
     static final String CAPTION_WORD_REMOVED = "caption word posts removed";
+
+    /** The kind counted for a post Also on Home of Hide reels in other languages took out of Home. */
+    static final String OTHER_LANGUAGE = "other language";
+
+    /** The report's count of posts taken out of Home for a caption in another language. */
+    static final String OTHER_LANGUAGE_REMOVED = "other language posts removed";
 
     /** The report's count of Suggested for you titles {@link #sectionTitle} left off a header with nothing under it. */
     static final String SECTION_TITLE_DROPPED = "suggested section titles left off with nothing under them";
@@ -309,7 +316,8 @@ public final class FeedSuggestions {
     private static boolean postSwitchOn() {
         return Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
                 || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get()
-                || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty();
+                || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty()
+                || CaptionLanguage.homeRuleWhenOn() != null;
     }
 
     /** Whether any switch {@link #filter} takes items out for is on. */
@@ -657,12 +665,21 @@ public final class FeedSuggestions {
     private static Object byCaption(Object item, Function<Object, String> captionOf) {
         try {
             List<String> words = CaptionWordReels.homeWordsWhenOn();
-            if (words.isEmpty()) return item;
-            if (!CaptionWordReels.holdsAny(captionOf.apply(item), words)) return item;
-            FeedFilterCounters.removed(TYPES_ROUTE, 1, CAPTION_WORD);
-            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD_REMOVED);
+            CaptionLanguage.Rule language = CaptionLanguage.homeRuleWhenOn();
+            if (words.isEmpty() && language == null) return item;
+            String caption = captionOf.apply(item);
+            if (CaptionWordReels.holdsAny(caption, words)) {
+                FeedFilterCounters.removed(TYPES_ROUTE, 1, CAPTION_WORD);
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD_REMOVED);
+                typesTookOut = true;
+                Logger.printDebug(() -> "Feed suggestions: took a post with a blocked caption word out of Home");
+                return null;
+            }
+            if (language == null || !language.isOther(caption)) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, OTHER_LANGUAGE);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, OTHER_LANGUAGE_REMOVED);
             typesTookOut = true;
-            Logger.printDebug(() -> "Feed suggestions: took a post with a blocked caption word out of Home");
+            Logger.printDebug(() -> "Feed suggestions: took a post in another language out of Home");
             return null;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD, failure);

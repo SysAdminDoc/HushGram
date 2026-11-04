@@ -1740,3 +1740,13 @@ After you scroll your own Followers list to the end, posts a notification naming
 About this account	關於這個帳號
 About this account button	「關於這個帳號」按鈕
 Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	在個人檔案的三個點旁放一個 (i),為該帳號開啟 Instagram 的「關於這個帳號」。Instagram 已移除原本的按鈕。
+# context: Reels switch Hide reels in other languages, its Languages to keep row (codes like en or names like Hindi), that row's summary (%1$s is the kept language names, %2$s the pieces not recognized) and the Also on Home switch under it
+Hide reels in other languages	隱藏其他語言的 Reels
+Leaves out reels in the Reels tab whose caption is in a language you didn't list below. A caption too short to tell, or a reel you open yourself, still shows.	在 Reels 分頁中排除說明文字使用您沒有列在下方的語言的 Reels。太短而無法判斷的說明文字，或您自己開啟的 Reels，仍會顯示.
+Languages to keep	要保留的語言
+Language codes or names, with a comma or a new line between them, like en, Hindi or Español. Leave it empty to keep your phone's languages.	語言代碼或名稱，以逗號或換行分隔，例如 en、Hindi 或 Español。留空則保留手機的語言.
+Leaves out posts on Home whose caption is in another language too. Pull down on Home to refresh after changing it.	也排除首頁上說明文字使用其他語言的貼文。變更後請在首頁下拉以重新整理.
+Keeps %1$s	保留 %1$s
+Keeps your phone's languages: %1$s	保留手機的語言：%1$s
+Keeps %1$s. Didn't recognize: %2$s	保留 %1$s。無法辨識：%2$s
+Didn't recognize: %1$s	無法辨識：%1$s

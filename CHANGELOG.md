@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Hide reels in other languages` hides reels whose caption is in a language you didn't list under `Languages to keep`. Type codes or names like `en, Hindi, Español`, or leave it empty to keep your phone's languages. A caption too short to tell, or one the phone can't place, stays. `Also on Home` applies it to Home's posts. It sits with `Hide reels by caption words` under Reels and starts off. Refs #495.
 * **Instagram:** `Hide the reply box on stories` is a new patch. With its switch on under Stories, the Send message box comes off the bottom of other people's stories, and the like and share buttons stay where they were. Starts off. Asked for in #486.
 * **Instagram:** `Full screen Reels and Home` adds `Stories fill the screen` under Stories. On a tall phone a story fills the whole screen like on shorter phones, instead of a rounded card that stops above the reply bar. Starts off. Asked for in #436.
 * **Instagram:** `Speed button on reels` adds an icon beside a reel with a short list of speeds, 0.5x to 3x. `Keep the reel speed` carries your pick to the next reels. Both are under Reels and start off. Asked for in #480.

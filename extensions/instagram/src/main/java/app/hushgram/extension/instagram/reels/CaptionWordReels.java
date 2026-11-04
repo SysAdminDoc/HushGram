@@ -44,6 +44,9 @@ public final class CaptionWordReels {
     /** The reason, and kind, of an item whose caption holds a blocked word. */
     static final String BLOCKED = "blocked word";
 
+    /** The reason, and kind, of an item whose caption is in a language that isn't kept (#495). */
+    static final String OTHER_LANGUAGE = "other language";
+
     /** The kind counted for a page left whole because every reel in it matched. */
     static final String PAGE_KEPT = "page kept whole";
 
@@ -93,10 +96,15 @@ public final class CaptionWordReels {
      * anything goes wrong. Never throws.
      */
     public static List<?> page(List<?> items, String module) {
-        return page(items, module, PATCHED, CaptionWordReels::wordsWhenOn);
+        return page(items, module, PATCHED, CaptionWordReels::wordsWhenOn, CaptionLanguage::ruleWhenOn);
     }
 
     static List<?> page(List<?> items, String module, Reader reader, Supplier<List<String>> words) {
+        return page(items, module, reader, words, () -> null);
+    }
+
+    static List<?> page(List<?> items, String module, Reader reader, Supplier<List<String>> words,
+                        Supplier<CaptionLanguage.Rule> language) {
         if (items == null) return null;
         try {
             HookStatus.invoked(FamilyNames.CAPTION_WORD_REELS);
@@ -105,22 +113,30 @@ public final class CaptionWordReels {
             FeedFilterCounters.sawList(ROUTE, size);
             if (size == 0) return items;
             List<String> blocked = words.get();
-            if (blocked.isEmpty()) return items;
+            CaptionLanguage.Rule other = language.get();
+            if (blocked.isEmpty() && other == null) return items;
 
             boolean[] goes = new boolean[size];
             int matched = 0;
+            int foreign = 0;
             int reels = 0;
             int at = 0;
             for (Object item : items) {
                 if (at >= size) return items;
                 Object media = item == null ? null : reader.media(item);
                 if (media != null) reels++;
-                boolean hit = media != null && holdsAny(reader.caption(media), blocked);
+                String caption = media == null ? null : reader.caption(media);
+                boolean hit = holdsAny(caption, blocked);
+                boolean foreignHit = !hit && other != null && other.isOther(caption);
                 if (hit) {
                     matched++;
                     FeedFilterCounters.sawKind(ROUTE, BLOCKED);
+                } else if (foreignHit) {
+                    matched++;
+                    foreign++;
+                    FeedFilterCounters.sawKind(ROUTE, OTHER_LANGUAGE);
                 }
-                goes[at++] = hit;
+                goes[at++] = hit || foreignHit;
             }
             // A list that changed size while it was read isn't one this can rebuild.
             if (at != size) return items;
@@ -136,10 +152,13 @@ public final class CaptionWordReels {
             for (Object item : items) {
                 if (!goes[at++]) kept.add(item);
             }
-            FeedFilterCounters.removed(ROUTE, matched, BLOCKED);
+            if (matched - foreign > 0) FeedFilterCounters.removed(ROUTE, matched - foreign, BLOCKED);
+            if (foreign > 0) FeedFilterCounters.removed(ROUTE, foreign, OTHER_LANGUAGE);
             int left = kept.size();
             int removed = matched;
-            Logger.printDebug(() -> "Caption word reels: took " + removed + " of " + size + " reels out, " + left + " left");
+            int languages = foreign;
+            Logger.printDebug(() -> "Caption word reels: took " + removed + " of " + size + " reels out ("
+                    + languages + " in another language), " + left + " left");
             return kept;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.CAPTION_WORD_REELS, "reels page", failure);

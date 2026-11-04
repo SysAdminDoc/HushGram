@@ -147,6 +147,7 @@ import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.BurnInMode;
 import app.hushgram.extension.instagram.reels.BurnInWait;
+import app.hushgram.extension.instagram.reels.CaptionLanguage;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
 import app.hushgram.extension.instagram.reels.HiddenBars;
 import app.hushgram.extension.instagram.reels.HiddenSounds;
@@ -747,7 +748,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.TAB_BAR_LAYOUT && Settings.TAB_BAR_LAYOUT.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.CAPTION_WORD_REELS && (Settings.REELS_BLOCKED_WORDS.key.equals(key)
-                            || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key));
+                            || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key)
+                            || Settings.REELS_KEPT_LANGUAGES.key.equals(key) || Settings.HIDE_OTHER_LANGUAGE_HOME.key.equals(key));
                     belongs |= family == PatchFamily.LOW_VIEW_REELS
                             && (Settings.MIN_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES.key.equals(key));
                     belongs |= family == PatchFamily.STORY_UPLOAD_QUALITY && (Settings.UPLOAD_QUALITY_APPLIES_TO.key.equals(key)
@@ -6608,6 +6610,31 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /**
+     * The languages Hide reels in other languages keeps, typed as codes or names with commas or new
+     * lines between them. Its summary names what was understood and any piece that wasn't (#495).
+     */
+    static WordsRow keptLanguagesRow(Context context) {
+        WordsRow row = new WordsRow(context) {
+            @Override String summaryFor(String text) {
+                return CaptionLanguage.summary(text);
+            }
+        };
+        row.setKey(Settings.REELS_KEPT_LANGUAGES.key);
+        row.setTitle(L10n.t("Languages to keep"));
+        row.setDialogTitle(L10n.t("Languages to keep"));
+        row.setDialogMessage(L10n.t("Language codes or names, with a comma or a new line between them, like en, "
+                + "Hindi or Español. Leave it empty to keep your phone's languages."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        field.setMaxLines(4);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(ConfigurationBackup.MAX_WORDS_TEXT)});
+        row.setText(Settings.REELS_KEPT_LANGUAGES.savedValue());
+        return row;
+    }
+
     /** What the blocked words row says under its title: how many words it holds, or that it has none. */
     static String blockedWordsSummary(String stored) {
         int count = CaptionWordReels.words(stored).size();
@@ -6619,9 +6646,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * The blocked words' row. Its summary follows its text, whoever sets it: the person, the shared
      * page syncing it from the setting, or an import.
      */
-    static final class WordsRow extends EditTextPreference {
+    static class WordsRow extends EditTextPreference {
         WordsRow(Context context) {
             super(context);
+        }
+
+        /** What the row says under its title for [text]. */
+        String summaryFor(String text) {
+            return blockedWordsSummary(text);
         }
 
         @Override protected View onCreateDialogView() { return editDialogBody(this); }
@@ -6633,7 +6665,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         @Override
         public void setText(String text) {
             super.setText(text);
-            setSummary(blockedWordsSummary(text));
+            setSummary(summaryFor(text));
         }
 
         @Override

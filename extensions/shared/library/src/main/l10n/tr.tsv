@@ -1737,3 +1737,13 @@ After you scroll your own Followers list to the end, posts a notification naming
 About this account	Bu hesap hakkında
 About this account button	Bu hesap hakkında düğmesi
 Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	Profilde üç noktanın yanına, o hesap için Instagram'ın Bu hesap hakkında ekranını açan bir (i) koyar. Instagram kendi düğmesini kaldırdı.
+# context: Reels switch Hide reels in other languages, its Languages to keep row (codes like en or names like Hindi), that row's summary (%1$s is the kept language names, %2$s the pieces not recognized) and the Also on Home switch under it
+Hide reels in other languages	Diğer dillerdeki reels'leri gizle
+Leaves out reels in the Reels tab whose caption is in a language you didn't list below. A caption too short to tell, or a reel you open yourself, still shows.	Reels sekmesinde, açıklaması aşağıda yazmadığın bir dilde olan reels'leri dışarıda bırakır. Anlaşılamayacak kadar kısa bir açıklama ya da kendi açtığın bir reels yine görünür.
+Languages to keep	Korunacak diller
+Language codes or names, with a comma or a new line between them, like en, Hindi or Español. Leave it empty to keep your phone's languages.	Virgül veya yeni satırla ayrılmış dil kodları ya da adları, örneğin en, Hindi veya Español. Telefonunun dillerini korumak için boş bırak.
+Leaves out posts on Home whose caption is in another language too. Pull down on Home to refresh after changing it.	Ana sayfada açıklaması başka bir dilde olan gönderileri de dışarıda bırakır. Değiştirdikten sonra yenilemek için ana sayfada aşağı çek.
+Keeps %1$s	%1$s korunuyor
+Keeps your phone's languages: %1$s	Telefonunun dilleri korunuyor: %1$s
+Keeps %1$s. Didn't recognize: %2$s	%1$s korunuyor. Tanınmadı: %2$s
+Didn't recognize: %1$s	Tanınmadı: %1$s

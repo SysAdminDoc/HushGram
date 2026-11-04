@@ -7,6 +7,7 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.blockedWordsRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.keptLanguagesRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.minLikesRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.minViewsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.burnInGuardRow;
@@ -64,6 +65,15 @@ final class ReelsCategory {
             if (PatchFamily.feedTypesInBuild()) {
                 reels.add(toggle(context, Settings.HIDE_CAPTION_WORD_HOME, L10n.t("Also on Home"),
                         L10n.t("Leaves out posts on Home whose caption holds a word or phrase from the list too. "
+                                + "Pull down on Home to refresh after changing it.")));
+            }
+            reels.add(toggle(context, Settings.HIDE_OTHER_LANGUAGE_REELS, L10n.t("Hide reels in other languages"),
+                    L10n.t("Leaves out reels in the Reels tab whose caption is in a language you didn't list below. "
+                            + "A caption too short to tell, or a reel you open yourself, still shows.")));
+            reels.add(keptLanguagesRow(context));
+            if (PatchFamily.feedTypesInBuild()) {
+                reels.add(toggle(context, Settings.HIDE_OTHER_LANGUAGE_HOME, L10n.t("Also on Home"),
+                        L10n.t("Leaves out posts on Home whose caption is in another language too. "
                                 + "Pull down on Home to refresh after changing it.")));
             }
         }

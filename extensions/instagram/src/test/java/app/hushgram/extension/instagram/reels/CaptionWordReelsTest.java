@@ -90,6 +90,9 @@ public class CaptionWordReelsTest {
 
     @After
     public void restore() {
+        Settings.HIDE_OTHER_LANGUAGE_REELS.resetToDefault();
+        Settings.REELS_KEPT_LANGUAGES.resetToDefault();
+        CaptionLanguage.forget();
         Settings.HIDE_CAPTION_WORD_REELS.resetToDefault();
         Settings.REELS_BLOCKED_WORDS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -256,6 +259,100 @@ public class CaptionWordReelsTest {
             assertSame(String.valueOf(module), items, page(items, module));
         }
         assertEquals("a reel the user went to was read", reads, reader.reads.get());
+    }
+
+    private List<?> languagePage(List<?> items) {
+        return CaptionWordReels.page(items, REELS_TAB, reader, CaptionWordReels::wordsWhenOn, CaptionLanguage::ruleWhenOn);
+    }
+
+    private void languageOn() {
+        Settings.REELS_BLOCKED_WORDS.resetToDefault();
+        Settings.HIDE_CAPTION_WORD_REELS.resetToDefault();
+        Settings.HIDE_OTHER_LANGUAGE_REELS.save(true);
+        Settings.REELS_KEPT_LANGUAGES.save("en");
+        CaptionLanguage.forget();
+    }
+
+    private void languageOff() {
+        Settings.HIDE_OTHER_LANGUAGE_REELS.resetToDefault();
+        Settings.REELS_KEPT_LANGUAGES.resetToDefault();
+        CaptionLanguage.forget();
+    }
+
+    /** With Hide reels in other languages on, a Devanagari reel among English ones is the only one to go, and it is counted. */
+    @Test
+    public void aReelInAnotherLanguageIsTakenOut() {
+        languageOn();
+        try {
+            Clip english = clip("A calm walk through the old town");
+            Clip hindi = clip(CaptionLanguageTest.devanagari(30));
+            Clip noCaption = clip(null);
+            Clip tiny = clip(CaptionLanguageTest.devanagari(4));
+            List<Clip> items = Arrays.asList(english, hindi, noCaption, tiny);
+
+            List<?> kept = languagePage(items);
+
+            assertEquals(Arrays.asList(english, noCaption, tiny), kept);
+            String report = FeedFilterCounters.report().toString();
+            assertTrue(report, report.contains("Caption word reels: 1 lists, 4 items, 1 removed"));
+            assertTrue(report, report.contains("other language 1"));
+        } finally {
+            languageOff();
+        }
+    }
+
+    /** A page where every reel is in another language comes back whole and is counted. */
+    @Test
+    public void aPageOfOnlyOtherLanguagesIsKeptWhole() {
+        languageOn();
+        try {
+            List<Clip> items = Arrays.asList(clip(CaptionLanguageTest.devanagari(30)), clip(CaptionLanguageTest.devanagari(40)));
+            assertSame(items, languagePage(items));
+            assertTrue(FeedFilterCounters.report().toString().contains("page kept whole 1"));
+        } finally {
+            languageOff();
+        }
+    }
+
+    /** Off, paused or with nothing understood, the page comes back as the same list. */
+    @Test
+    public void theLanguageRuleOffKeepsThePageAsItCame() {
+        Settings.HIDE_CAPTION_WORD_REELS.resetToDefault();
+        Settings.REELS_BLOCKED_WORDS.resetToDefault();
+        List<Clip> items = Arrays.asList(clip("lake"), clip(CaptionLanguageTest.devanagari(30)));
+        assertSame("off", items, languagePage(items));
+
+        languageOn();
+        try {
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertSame("paused", items, languagePage(items));
+            PauseForTests.resume();
+            Settings.REELS_KEPT_LANGUAGES.save("nonsense");
+            CaptionLanguage.forget();
+            assertSame("nothing understood", items, languagePage(items));
+        } finally {
+            languageOff();
+        }
+    }
+
+    /** The word list and the language rule work in one pass, each counted under its own kind. */
+    @Test
+    public void wordsAndLanguageShareOnePass() {
+        languageOn();
+        Settings.HIDE_CAPTION_WORD_REELS.save(true);
+        Settings.REELS_BLOCKED_WORDS.save("spoiler");
+        try {
+            Clip plain = clip("Quiet morning by the river");
+            Clip spoiler = clip("Big spoiler ahead");
+            Clip hindi = clip(CaptionLanguageTest.devanagari(30));
+            assertEquals(Collections.singletonList(plain), languagePage(Arrays.asList(plain, spoiler, hindi)));
+            String report = FeedFilterCounters.report().toString();
+            assertTrue(report, report.contains("blocked word 1"));
+            assertTrue(report, report.contains("other language 1"));
+            assertTrue(report, report.contains("2 removed"));
+        } finally {
+            languageOff();
+        }
     }
 
     /** A null page stays null, an empty one comes back as it came, and the stub as built keeps every reel. */

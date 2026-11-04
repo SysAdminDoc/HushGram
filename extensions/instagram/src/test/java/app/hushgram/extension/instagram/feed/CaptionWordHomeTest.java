@@ -21,6 +21,7 @@ import org.robolectric.annotation.Config;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
 
+import app.hushgram.extension.instagram.reels.CaptionLanguage;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
@@ -71,6 +72,10 @@ public class CaptionWordHomeTest {
         Settings.HIDE_CAPTION_WORD_REELS.resetToDefault();
         Settings.HIDE_CAPTION_WORD_HOME.resetToDefault();
         Settings.REELS_BLOCKED_WORDS.resetToDefault();
+        Settings.HIDE_OTHER_LANGUAGE_REELS.resetToDefault();
+        Settings.HIDE_OTHER_LANGUAGE_HOME.resetToDefault();
+        Settings.REELS_KEPT_LANGUAGES.resetToDefault();
+        CaptionLanguage.forget();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HiddenAccounts.resetForTests();
@@ -147,6 +152,28 @@ public class CaptionWordHomeTest {
         FeedSuggestions.homePageParsed();
         assertTrue(FeedSuggestions.homePageLost);
         assertTrue(FeedSuggestions.pageLostEverything);
+    }
+
+    /** A post whose caption is in another language goes only while both the language switch and its Also on Home are on. */
+    @Test
+    public void aPostInAnotherLanguageLeavesHomeWhileItsHomeSwitchIsOn() {
+        Item hindi = new Item(app.hushgram.extension.instagram.reels.CaptionLanguageTest.devanagari(30));
+        Item english = new Item("A calm walk through the old town");
+        Settings.HIDE_OTHER_LANGUAGE_REELS.save(true);
+        Settings.REELS_KEPT_LANGUAGES.save("en");
+        assertSame("Reels alone leaves Home", hindi, home(hindi));
+        assertEquals(0, captionReads);
+
+        Settings.HIDE_OTHER_LANGUAGE_HOME.save(true);
+        assertNull(home(hindi));
+        assertSame(english, home(english));
+        assertTrue(FeedSuggestions.typesTookOut);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(FeedSuggestions.OTHER_LANGUAGE_REMOVED));
+        assertTrue(FeedFilterCounters.report().toString().contains("other language 1"));
+
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", hindi, home(hindi));
     }
 
     /** A caption that can't be read leaves the post, and the report says what threw. */

@@ -1736,3 +1736,13 @@ After you scroll your own Followers list to the end, posts a notification naming
 About this account	이 계정 정보
 About this account button	이 계정 정보 버튼
 Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	프로필의 점 세 개 옆에 (i)를 넣어 해당 계정의 Instagram 이 계정 정보를 엽니다. Instagram이 기본 버튼을 없앴습니다.
+# context: Reels switch Hide reels in other languages, its Languages to keep row (codes like en or names like Hindi), that row's summary (%1$s is the kept language names, %2$s the pieces not recognized) and the Also on Home switch under it
+Hide reels in other languages	다른 언어의 릴스 숨기기
+Leaves out reels in the Reels tab whose caption is in a language you didn't list below. A caption too short to tell, or a reel you open yourself, still shows.	아래에 적지 않은 언어로 된 설명이 달린 릴스를 릴스 탭에서 제외합니다. 너무 짧아서 판단할 수 없는 설명이나 직접 연 릴스는 그대로 표시됩니다.
+Languages to keep	유지할 언어
+Language codes or names, with a comma or a new line between them, like en, Hindi or Español. Leave it empty to keep your phone's languages.	쉼표나 줄바꿈으로 구분한 언어 코드 또는 이름입니다. 예: en, Hindi, Español. 비워 두면 휴대폰의 언어를 유지합니다.
+Leaves out posts on Home whose caption is in another language too. Pull down on Home to refresh after changing it.	홈에서도 설명이 다른 언어로 된 게시물을 제외합니다. 바꾼 뒤에는 홈에서 아래로 당겨 새로고침하세요.
+Keeps %1$s	%1$s 유지
+Keeps your phone's languages: %1$s	휴대폰의 언어 유지: %1$s
+Keeps %1$s. Didn't recognize: %2$s	%1$s 유지. 인식하지 못함: %2$s
+Didn't recognize: %1$s	인식하지 못함: %1$s

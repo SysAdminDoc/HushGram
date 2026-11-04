@@ -1737,3 +1737,13 @@ After you scroll your own Followers list to the end, posts a notification naming
 About this account	Über dieses Konto
 About this account button	Knopf „Über dieses Konto“
 Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	Setzt ein (i) neben die drei Punkte in einem Profil, das Instagrams „Über dieses Konto“ für dieses Konto öffnet. Instagram hat sein eigenes entfernt.
+# context: Reels switch Hide reels in other languages, its Languages to keep row (codes like en or names like Hindi), that row's summary (%1$s is the kept language names, %2$s the pieces not recognized) and the Also on Home switch under it
+Hide reels in other languages	Reels in anderen Sprachen ausblenden
+Leaves out reels in the Reels tab whose caption is in a language you didn't list below. A caption too short to tell, or a reel you open yourself, still shows.	Lässt im Reels-Tab Reels weg, deren Bildunterschrift in einer Sprache steht, die du unten nicht angegeben hast. Eine zu kurze Bildunterschrift oder ein Reel, das du selbst öffnest, wird trotzdem gezeigt.
+Languages to keep	Sprachen behalten
+Language codes or names, with a comma or a new line between them, like en, Hindi or Español. Leave it empty to keep your phone's languages.	Sprachcodes oder Namen, mit Komma oder Zeilenumbruch getrennt, etwa en, Hindi oder Español. Leer lassen, um die Sprachen deines Telefons zu behalten.
+Leaves out posts on Home whose caption is in another language too. Pull down on Home to refresh after changing it.	Lässt auf der Startseite auch Beiträge weg, deren Bildunterschrift in einer anderen Sprache steht. Nach dem Ändern auf der Startseite nach unten ziehen, um zu aktualisieren.
+Keeps %1$s	Behält %1$s
+Keeps your phone's languages: %1$s	Behält die Sprachen deines Telefons: %1$s
+Keeps %1$s. Didn't recognize: %2$s	Behält %1$s. Nicht erkannt: %2$s
+Didn't recognize: %1$s	Nicht erkannt: %1$s

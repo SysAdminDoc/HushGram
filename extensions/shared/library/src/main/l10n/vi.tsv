@@ -1654,3 +1654,13 @@ After you scroll your own Followers list to the end, posts a notification naming
 About this account	Giới thiệu về tài khoản này
 About this account button	Nút Giới thiệu về tài khoản này
 Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.	Đặt một (i) cạnh ba chấm trên hồ sơ để mở Giới thiệu về tài khoản này của Instagram cho tài khoản đó. Instagram đã bỏ nút của chính nó.
+# context: Reels switch Hide reels in other languages, its Languages to keep row (codes like en or names like Hindi), that row's summary (%1$s is the kept language names, %2$s the pieces not recognized) and the Also on Home switch under it
+Hide reels in other languages	Ẩn reel bằng ngôn ngữ khác
+Leaves out reels in the Reels tab whose caption is in a language you didn't list below. A caption too short to tell, or a reel you open yourself, still shows.	Loại khỏi tab Reels những reel có chú thích bằng ngôn ngữ bạn không liệt kê bên dưới. Chú thích quá ngắn để nhận biết, hoặc reel bạn tự mở, vẫn được hiển thị.
+Languages to keep	Ngôn ngữ giữ lại
+Language codes or names, with a comma or a new line between them, like en, Hindi or Español. Leave it empty to keep your phone's languages.	Mã hoặc tên ngôn ngữ, cách nhau bằng dấu phẩy hoặc xuống dòng, ví dụ en, Hindi hoặc Español. Để trống để giữ các ngôn ngữ của điện thoại.
+Leaves out posts on Home whose caption is in another language too. Pull down on Home to refresh after changing it.	Cũng loại khỏi Trang chủ những bài viết có chú thích bằng ngôn ngữ khác. Sau khi đổi, hãy kéo xuống ở Trang chủ để làm mới.
+Keeps %1$s	Giữ %1$s
+Keeps your phone's languages: %1$s	Giữ các ngôn ngữ của điện thoại: %1$s
+Keeps %1$s. Didn't recognize: %2$s	Giữ %1$s. Không nhận ra: %2$s
+Didn't recognize: %1$s	Không nhận ra: %1$s

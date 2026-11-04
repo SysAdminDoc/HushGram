@@ -2067,6 +2067,25 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_caption_word_home", FALSE, parent(HIDE_CAPTION_WORD_REELS));
 
     /**
+     * Reels whose caption is in a language not listed in {@link #REELS_KEPT_LANGUAGES}
+     * ({@link app.hushgram.extension.instagram.reels.CaptionLanguage}). Read as each page of reels
+     * arrives. Off to start (#495).
+     */
+    public static final BooleanSetting HIDE_OTHER_LANGUAGE_REELS =
+            new BooleanSetting("hushgram_hide_other_language_reels", FALSE);
+
+    /**
+     * The languages {@link #HIDE_OTHER_LANGUAGE_REELS} keeps: codes or names split at commas and
+     * new lines. Empty means the phone's own languages. A value control, not a switch.
+     */
+    public static final StringSetting REELS_KEPT_LANGUAGES =
+            new StringSetting("hushgram_reels_kept_languages", "", parent(HIDE_OTHER_LANGUAGE_REELS));
+
+    /** {@link #HIDE_OTHER_LANGUAGE_REELS} on Home's posts too. Off to start (#495). */
+    public static final BooleanSetting HIDE_OTHER_LANGUAGE_HOME =
+            new BooleanSetting("hushgram_hide_other_language_home", FALSE, parent(HIDE_OTHER_LANGUAGE_REELS));
+
+    /**
      * Reels in the Reels tab with fewer views than {@link #MIN_REEL_VIEWS} or fewer likes than
      * {@link #MIN_REEL_LIKES}, unless their author is followed
      * ({@link app.hushgram.extension.instagram.reels.LowViewReels}). Read as each page of

@@ -56,6 +56,9 @@ public class CaptionWordSettingsTest {
         Settings.HIDE_CAPTION_WORD_REELS.resetToDefault();
         Settings.REELS_BLOCKED_WORDS.resetToDefault();
         Settings.HIDE_CAPTION_WORD_HOME.resetToDefault();
+        Settings.HIDE_OTHER_LANGUAGE_REELS.resetToDefault();
+        Settings.HIDE_OTHER_LANGUAGE_HOME.resetToDefault();
+        Settings.REELS_KEPT_LANGUAGES.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(boolean installed) throws Exception {
@@ -142,6 +145,56 @@ public class CaptionWordSettingsTest {
         } finally {
             PatchFamily.feedTypesForTests = null;
         }
+    }
+    /** Hide reels in other languages (#495): its switch, the languages row and Also on Home sit under the caption word rows and wait for the switch. */
+    @Test public void theLanguageRowsSitUnderTheCaptionWordRowsAndWaitForTheirSwitch() throws Exception {
+        PatchFamily.feedTypesForTests = true;
+        try {
+            open(true);
+            Preference words = page.getPreferenceScreen().findPreference(Settings.REELS_BLOCKED_WORDS.key);
+            SwitchPreference home = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_HOME.key);
+            SwitchPreference hide = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_OTHER_LANGUAGE_REELS.key);
+            HushgramPreferenceFragment.WordsRow kept =
+                    (HushgramPreferenceFragment.WordsRow) page.getPreferenceScreen().findPreference(Settings.REELS_KEPT_LANGUAGES.key);
+            SwitchPreference otherHome = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_OTHER_LANGUAGE_HOME.key);
+            assertNotNull(hide);
+            assertNotNull(kept);
+            assertNotNull(otherHome);
+            assertEquals("Hide reels in other languages", hide.getTitle().toString());
+            assertEquals("Languages to keep", kept.getTitle().toString());
+            assertFalse("off to start", hide.isChecked());
+            assertFalse("off to start", otherHome.isChecked());
+            PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), words);
+            assertSame(section, categoryHolding(page.getPreferenceScreen(), hide));
+            assertEquals("right after the caption word rows", indexIn(section, home) + 1, indexIn(section, hide));
+            assertEquals(indexIn(section, hide) + 1, indexIn(section, kept));
+            assertEquals(indexIn(section, kept) + 1, indexIn(section, otherHome));
+
+            assertFalse(kept.isEnabled());
+            assertFalse(otherHome.isEnabled());
+            hide.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(kept.isEnabled());
+            assertTrue(otherHome.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REELS_KEPT_LANGUAGES.key));
+            page.searchSettings("hide reels by caption words");
+            assertNotNull("the patch's name finds the languages row", kept.getParent());
+            page.searchSettings("");
+        } finally {
+            PatchFamily.feedTypesForTests = null;
+        }
+    }
+    /** The languages row says what it understood and names a piece it didn't. */
+    @Test public void theLanguagesRowSummaryShowsWhatWasUnderstood() throws Exception {
+        open(true);
+        HushgramPreferenceFragment.WordsRow kept =
+                (HushgramPreferenceFragment.WordsRow) page.getPreferenceScreen().findPreference(Settings.REELS_KEPT_LANGUAGES.key);
+        assertTrue(kept.getSummary().toString(), kept.getSummary().toString().startsWith("Keeps your phone's languages: "));
+        kept.setText("en, Hindi");
+        assertEquals("Keeps English, Hindi", kept.getSummary().toString());
+        kept.setText("English, Klingonese");
+        assertEquals("Keeps English. Didn't recognize: Klingonese", kept.getSummary().toString());
+        assertEquals("English, Klingonese", Settings.REELS_KEPT_LANGUAGES.savedValue());
     }
     /** Searching the patch's name finds the list too, which says neither word of it itself. */
     @Test public void searchingThePatchsNameFindsBothRows() throws Exception {
