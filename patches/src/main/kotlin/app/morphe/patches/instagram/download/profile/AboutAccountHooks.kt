@@ -11,8 +11,8 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.profile.threads.USER_SESSION
+import app.morphe.patches.instagram.stories.seen.hashedIdGetters
 import com.android.tools.smali.dexlib2.AccessFlags
-import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 /** The Bloks screen Instagram's About this account opens, which names the one method that opens it. */
 internal const val ABOUT_SCREEN = "com.bloks.www.ig.about_this_account"
@@ -28,7 +28,8 @@ internal class AboutAccountSite(val owner: String, val name: String, val idGette
  * Finds what the About this account button needs, or null, after the patch log says why, so the
  * rest of Save profile picture goes in without it. The call is the one public static method taking
  * a context, the session and two strings that loads [ABOUT_SCREEN], and the account's id is the
- * one string getter its hashCode() asks, the way Show if a profile follows you finds it.
+ * one string getter its hashCode() asks, or whose code it runs on a 454 build that inlined it, the
+ * way Show if a profile follows you finds it.
  */
 internal fun BytecodePatchContext.findAboutAccount(): AboutAccountSite? {
     fun skip(why: String): AboutAccountSite? {
@@ -52,11 +53,7 @@ internal fun BytecodePatchContext.findAboutAccount(): AboutAccountSite? {
     val hash = user.methods.singleOrNull {
         it.name == "hashCode" && it.parameterTypes.isEmpty() && it.returnType == "I" && !AccessFlags.STATIC.isSet(it.accessFlags)
     } ?: return skip("$USER has no hashCode()")
-    val getters = hash.implementation?.instructions?.mapNotNull {
-        (it as? com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction)?.reference as? MethodReference
-    }.orEmpty().filter {
-        it.definingClass == USER && it.parameterTypes.isEmpty() && it.returnType == ABOUT_STRING
-    }.map { it.name }.distinct()
+    val getters = hashedIdGetters(user.methods, hash)
     val id = getters.singleOrNull() ?: return skip("expected $USER's hashCode() to ask one getter of its ID, found $getters")
     val getter = user.methods.singleOrNull { it.name == id && it.parameterTypes.isEmpty() && it.returnType == ABOUT_STRING }
         ?: return skip("$USER has no $id()")

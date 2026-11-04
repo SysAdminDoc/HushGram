@@ -116,19 +116,18 @@ class ProfileExtrasHookTest {
         assertTrue("$label: the account read's steps: $read", read.containsAll(steps))
         assertEquals("$label: ends at the account", "Lcom/instagram/user/model/User;", read.last())
 
-        // #492: the About this account button. 453 has the call, so it must be found there; the stubs then
-        // answer yes, read the account's id and call Instagram's own opener with the session.
+        // #492: the About this account button. Every build has the call, and the account's id getter even
+        // where Redex inlined it into hashCode, so both must be found; the stubs then answer yes, read the
+        // account's id and call Instagram's own opener with the session.
         val about = site.about
-        if (label.contains("-453.")) assertNotNull("$label: the About this account call", about)
-        if (about != null) {
-            val available = context.method(PROFILE_EXTRAS, "aboutAvailable", emptyList()).code()
-            assertEquals("$label: aboutAvailable says yes", Opcode.CONST_4, available.first().opcode)
-            val opener = context.method(PROFILE_EXTRAS, "openAbout", listOf("Landroid/content/Context;", "Ljava/lang/Object;", "Ljava/lang/String;", "Ljava/lang/String;"))
-            val calls = opener.code().mapNotNull { it.referenceText() }
-            assertTrue("$label: openAbout calls ${about.owner}->${about.name}: $calls", calls.any { it.startsWith("${about.owner}->${about.name}(") })
-            val id = context.method(PROFILE_EXTRAS, "userId", listOf("Ljava/lang/Object;")).code().mapNotNull { it.referenceText() }
-            assertEquals("$label: userId reads the id getter", "$USER->${about.idGetter}()Ljava/lang/String;", id.last())
-        }
+        assertNotNull("$label: the About this account call and the id getter", about)
+        val available = context.method(PROFILE_EXTRAS, "aboutAvailable", emptyList()).code()
+        assertEquals("$label: aboutAvailable says yes", Opcode.CONST_4, available.first().opcode)
+        val opener = context.method(PROFILE_EXTRAS, "openAbout", listOf("Landroid/content/Context;", "Ljava/lang/Object;", "Ljava/lang/String;", "Ljava/lang/String;"))
+        val calls = opener.code().mapNotNull { it.referenceText() }
+        assertTrue("$label: openAbout calls ${about!!.owner}->${about.name}: $calls", calls.any { it.startsWith("${about.owner}->${about.name}(") })
+        val id = context.method(PROFILE_EXTRAS, "userId", listOf("Ljava/lang/Object;")).code().mapNotNull { it.referenceText() }
+        assertEquals("$label: userId reads the id getter", "$USER->${about.idGetter}()Ljava/lang/String;", id.last())
     }
 
     /** What the model's fields and methods name, with the classes above those and what those classes keep, which the read is found through. */
