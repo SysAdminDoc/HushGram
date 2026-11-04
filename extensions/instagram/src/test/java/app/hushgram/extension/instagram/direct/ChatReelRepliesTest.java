@@ -8,12 +8,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
+import android.view.View;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -93,6 +98,30 @@ public class ChatReelRepliesTest {
         ChatReels.rememberReply("m3", "c3", again);
         assertSame(again, ChatReels.reply("m3", "a1"));
         assertNull("forgotten for good", ChatReels.reply("m2", "a1"));
+    }
+
+    /**
+     * The viewer is an activity of its own, so the tapped chat's activity coming back after it paused
+     * means the viewer closed, and its replies don't stay in memory until the next tap.
+     */
+    @Test
+    public void theChatComingBackForgetsTheViewersReplies() {
+        ActivityController<Activity> chat = Robolectric.buildActivity(Activity.class).setup();
+        ActivityController<Activity> other = Robolectric.buildActivity(Activity.class).setup();
+        ChatReels.covered();
+        assertTrue(ChatReels.open("reply-tap", new View(chat.get())));
+        ChatReels.rememberReply("m2", "b2", second);
+        other.pause();
+        other.resume();
+        assertSame("another activity coming back", second, ChatReels.reply("m2", "a1"));
+        chat.pause();
+        assertSame("the viewer is up", second, ChatReels.reply("m2", "a1"));
+        chat.resume();
+        assertNull("the viewer closed", ChatReels.reply("m2", "a1"));
+        ChatReels.rememberReply("m2", "b2", second);
+        chat.pause();
+        chat.resume();
+        assertSame("only once per tap", second, ChatReels.reply("m2", "a1"));
     }
 
     /** Only so many reels, and so many messages of one reel, are kept. */

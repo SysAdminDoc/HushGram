@@ -127,7 +127,7 @@ public final class ChatReelsExit {
     }
 
     @Nullable
-    private static Activity activityOf(@Nullable Context context) {
+    static Activity activityOf(@Nullable Context context) {
         Context at = context;
         for (int depth = 0; depth < 10 && at instanceof ContextWrapper; depth++) {
             if (at instanceof Activity) return (Activity) at;

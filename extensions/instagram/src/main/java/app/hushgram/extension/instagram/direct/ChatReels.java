@@ -15,6 +15,7 @@ import android.view.ViewTreeObserver;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -93,6 +94,8 @@ public final class ChatReels {
     private static int repliesTap = -1;
     /** The reply info of each of a reel's messages in the chat, by the reel's media id and then the message, oldest first. */
     private static final Map<String, Map<String, Object>> REPLIES = new Kept<>(REPLIES_KEPT);
+    /** The chat's activity the last tap's viewer opened over, or null. Main thread only. */
+    @Nullable private static Tapped tappedChat;
 
     private ChatReels() {
     }
@@ -386,6 +389,13 @@ public final class ChatReels {
         }
     }
 
+    /** Forgets the replies remembered after [tap], whose viewer closed, so they don't stay in memory until the next tap. */
+    static void viewerClosed(int tap) {
+        synchronized (REPLIES) {
+            if (repliesTap == tap) REPLIES.clear();
+        }
+    }
+
     /** Counts a tap on media in a chat that goes on to open, for tests and {@link #open(Object, View)}. */
     static void tapped() {
         taps++;
@@ -500,6 +510,8 @@ public final class ChatReels {
             watched = (Application) app;
         }
         if (view == null) return;
+        Activity chat = ChatReelsExit.activityOf(view.getContext());
+        tappedChat = chat == null ? null : new Tapped(chat, taps);
         Cover cover = new Cover(message, view);
         view.addOnAttachStateChangeListener(cover);
         view.getViewTreeObserver().addOnWindowFocusChangeListener(cover);
@@ -537,14 +549,42 @@ public final class ChatReels {
         }
     }
 
+    /** The chat's activity a tap opened a viewer over, held weakly, and whether the viewer has covered it yet. */
+    private static final class Tapped {
+        final WeakReference<Activity> chat;
+        final int tap;
+        boolean covered;
+
+        Tapped(Activity chat, int tap) {
+            this.chat = new WeakReference<>(chat);
+            this.tap = tap;
+        }
+    }
+
+    /**
+     * Clears a tap's open when any activity pauses. The viewer is an activity of its own, so the tapped
+     * chat's activity coming back after it paused means that viewer closed, and its replies go.
+     */
     private static final class Watcher implements Application.ActivityLifecycleCallbacks {
         @Override public void onActivityPaused(@NonNull Activity activity) {
             covered();
+            Tapped tapped = tappedChat;
+            if (tapped != null && tapped.chat.get() == activity) tapped.covered = true;
+        }
+
+        @Override public void onActivityResumed(@NonNull Activity activity) {
+            try {
+                Tapped tapped = tappedChat;
+                if (tapped == null || !tapped.covered || tapped.chat.get() != activity) return;
+                tappedChat = null;
+                viewerClosed(tapped.tap);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels viewer closed", failure);
+            }
         }
 
         @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
         @Override public void onActivityStarted(@NonNull Activity activity) { }
-        @Override public void onActivityResumed(@NonNull Activity activity) { }
         @Override public void onActivityStopped(@NonNull Activity activity) { }
         @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
         @Override public void onActivityDestroyed(@NonNull Activity activity) { }
