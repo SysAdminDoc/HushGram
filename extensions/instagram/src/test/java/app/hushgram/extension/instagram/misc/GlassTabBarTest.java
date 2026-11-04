@@ -280,10 +280,23 @@ public class GlassTabBarTest {
                         if (floating) assertEquals(0, Color.alpha(corner));
                         else assertEquals("no strip leaves the bar's own colour", Color.BLACK, corner);
                     }
+                    // #487: a reel's ambient light goes over the bar's colour round a docked pill.
+                    GlassTabBar.glow = (canvas, bar) -> {
+                        Paint green = new Paint();
+                        green.setColor(Color.GREEN);
+                        canvas.drawRect(0, 0, 4, 4, green);
+                    };
+                    try (Pixels pixels = host.background()) {
+                        int corner = pixels.bitmap.getPixel(1, 1);
+                        if (floating) assertEquals("no glow round a floating pill", 0, Color.alpha(corner));
+                        else assertEquals("the glow over the bar's colour", Color.GREEN, corner);
+                    }
+                    GlassTabBar.glow = app.hushgram.extension.instagram.feed.AmbientLight::drawUnderPill;
                 }
             }
         } finally {
             GlassTabBar.strip = app.hushgram.extension.instagram.reels.ReelBlurBars::drawStrip;
+            GlassTabBar.glow = app.hushgram.extension.instagram.feed.AmbientLight::drawUnderPill;
         }
     }
 

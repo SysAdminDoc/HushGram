@@ -56,6 +56,7 @@ import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.feed.AmbientLight;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelBlurBars;
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -973,6 +974,17 @@ public final class GlassTabBar {
      * around a reel has one ({@link ReelBlurBars#drawStrip}, #258). Swapped in tests.
      */
     static volatile StripPainter strip = ReelBlurBars::drawStrip;
+
+    /** Paints over the bar's own colour round a docked pill. */
+    interface BarPainter {
+        void paint(Canvas canvas, View bar);
+    }
+
+    /**
+     * What a docked pill shows over its bar's colour on Reels with no strip: the reel's ambient light
+     * running on from its bottom edge ({@link AmbientLight#drawUnderPill}, #487). Swapped in tests.
+     */
+    static volatile BarPainter glow = AmbientLight::drawUnderPill;
 
     /** The room a floating pill makes under itself for the navigation bar: the height Instagram was answered 0 for. */
     static int navRoom(boolean floating) {
@@ -2429,8 +2441,8 @@ public final class GlassTabBar {
 
             /**
              * What shows round the pill: over Instagram's bar, the reel blurred while Blur the bars around
-             * a reel has one ({@link #strip}, #258) or else the bar's own colour, and nothing round a
-             * floating pill.
+             * a reel has one ({@link #strip}, #258) or else the bar's own colour with a reel's ambient light
+             * over it ({@link #glow}, #487), and nothing round a floating pill.
              */
             private void underlay(@NonNull Canvas canvas) {
                 // The content stops above the bar, so something has to fill round the pill. A floating
@@ -2438,6 +2450,7 @@ public final class GlassTabBar {
                 if (!floating && !strip.paint(canvas, 0, 0, bar.getWidth(), bar.getHeight())) {
                     fill.setColor(base);
                     canvas.drawRect(0, 0, bar.getWidth(), bar.getHeight(), fill);
+                    glow.paint(canvas, bar);
                 }
             }
 
