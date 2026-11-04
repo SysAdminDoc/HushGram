@@ -25,6 +25,7 @@ import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.methodsCalling
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
@@ -37,6 +38,7 @@ import app.morphe.patches.instagram.reels.scrolling.PAGER_SETUP
 import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.extendsClass
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -1308,43 +1310,52 @@ internal fun BytecodePatchContext.giveSwipedReelsTheirReplies(collector: ReelCol
     )
 }
 
-/** The reply bar's page select, 0T5D.Fxj on 453's 385914557 ([REPLY_PAGE]). */
-internal class ReplyPage(val select: MutableMethod)
+/**
+ * The reply bar's page select, 0T5D.Fxj on 453's 385914557 ([REPLY_PAGE]), and where its hint update
+ * leaves the controller and the page: the instruction after that call, [at], and the call's own
+ * registers, a [range] call's or a five-register one's.
+ */
+internal class ReplyPage(val select: MutableMethod, val at: Int, val controller: Int, val page: Int, val range: Boolean)
 
 /**
- * Finds the reply bar's page select before anything changes. The [REPLY_PAGE] marker sits in one method
- * of the class holding [replies]' hint update: an instance method taking an int page first and returning
- * nothing, which hands that page on to the hint update with nothing jumping to its first instruction.
- * The [collector]'s message time is text, for the extension's bridge to answer. Fails when any of it
- * isn't so.
+ * Finds the reply bar's page select before anything changes. The [REPLY_PAGE] marker sits in one instance
+ * method taking an int page first and returning nothing, in the class holding [replies]' hint update or
+ * in one it extends: Redex hoists it into the superclass on some builds (454's 386014757 casts this to the
+ * controller first), and on others merges the reply bars of two viewers into it behind an instance-of.
+ * The method calls the hint update once, handing it the controller and the page parameter, still in its
+ * own register, with nothing jumping onto the instruction after the call. The [collector]'s message time
+ * is text, for the extension's bridge to answer. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findReplyPage(collector: ReelCollector, replies: ReplyBar): ReplyPage {
     val marked = typesMarked(REPLY_PAGE).flatMap { type -> classDefBy(type).methods.filter { REPLY_PAGE in it.markers() } }
     val select = marked.singleOrNull() ?: refuse("expected one method holding the $REPLY_PAGE marker, found ${marked.size}")
     val controller = replies.hint.definingClass
     val where = "${select.definingClass}->${select.name}"
-    if (select.definingClass != controller) refuse("the $REPLY_PAGE marker sits in ${select.definingClass}, not in the reply bar $controller")
+    if (!extendsClass(controller, select.definingClass)) {
+        refuse("the $REPLY_PAGE marker sits in ${select.definingClass}, neither the reply bar $controller nor a class it extends")
+    }
     val takes = select.parameterTypes.map(CharSequence::toString)
     if (AccessFlags.STATIC.isSet(select.accessFlags) || takes.firstOrNull() != "I" || select.returnType != "V") {
         refuse("$where isn't an instance method taking a page first and returning nothing")
     }
-    val code = select.implementation ?: refuse("$where has no code")
-    val self = code.registerCount - 1 - takes.sumOf { if (it == "J" || it == "D") 2 else 1 }
+    val code = select.implementation?.instructions?.toList() ?: refuse("$where has no code")
     val hint = replyCall(replies.hint)
-    val hands = code.instructions.any { instruction ->
-        val call = instruction as? ReferenceInstruction
-        if (call == null || "${call.reference}" != hint) return@any false
-        when (instruction) {
-            is FiveRegisterInstruction -> instruction.registerCount == 2 && instruction.registerC == self && instruction.registerD == self + 1
-            is RegisterRangeInstruction -> instruction.registerCount == 2 && instruction.startRegister == self
-            else -> false
-        }
+    val calls = code.indices.filter { "${(code[it] as? ReferenceInstruction)?.reference}" == hint }
+    val call = calls.singleOrNull() ?: refuse("expected $where to call $hint once, found ${calls.size}")
+    val page = select.parameterRegisterNumber(0)
+    val (held, handed, range) = when (val instruction = code[call]) {
+        is FiveRegisterInstruction -> Triple(instruction.registerC, instruction.registerD, false)
+        is RegisterRangeInstruction -> Triple(instruction.startRegister, instruction.startRegister + 1, true)
+        else -> refuse("$where calls $hint in a form it can't read")
     }
-    if (!hands) refuse("$where doesn't hand its page to $hint")
-    if (0 in select.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
+    if (handed != page) refuse("$where doesn't hand its page to $hint")
+    select.requireParameterIntact("$where hands $hint its page", 0, listOf(call))
+    val at = call + 1
+    if (at >= code.size || at in select.jumpTargets()) refuse("a jump or exception handler enters $where right after it calls $hint")
     val time = collector.fields.time
     if (time.type != "Ljava/lang/String;") refuse("the message keeps its time as ${time.type}, not as text")
-    return ReplyPage(mutableClassDefBy(controller).methods.single { it.name == select.name && it.parameterTypes.map(CharSequence::toString) == takes })
+    val mutable = mutableClassDefBy(select.definingClass).methods.single { it.name == select.name && it.parameterTypes.map(CharSequence::toString) == takes }
+    return ReplyPage(mutable, at, held, page, range)
 }
 
 /**
@@ -1357,7 +1368,8 @@ internal fun BytecodePatchContext.findReplyPage(collector: ReelCollector, replie
  * history reads, and the controller's [VIEWER_SOURCE] and adapter.
  */
 internal fun BytecodePatchContext.pointOutMessagesAfterReels(collector: ReelCollector, replies: ReplyBar, found: ReplyPage) {
-    found.select.addInstructions(0, "invoke-static/range { p0 .. p1 }, $NOTICE_PAGE")
+    val hook = if (found.range) "invoke-static/range { v${found.controller} .. v${found.page} }" else "invoke-static { v${found.controller}, v${found.page} }"
+    found.select.addInstructions(found.at, "$hook, $NOTICE_PAGE")
 
     val stubs = mutableClassDefBy(CHAT_REELS_NOTICE).methods
     fun bridge(name: String, returns: String) = stubs.singleOrNull {

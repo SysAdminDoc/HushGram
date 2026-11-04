@@ -191,7 +191,9 @@ public class DexDiff {
      *       That method calls the first method once, no other host method calls it, and the
      *       instruction just before the call calls the second method, on the same first register.
      *       For a hook sent in place of one call of a known pair, so it can't drift onto another
-     *       view, another call or another method holding the same strings.
+     *       view, another call or another method holding the same strings. The second method may
+     *       carry a * as a calling clause's does, such as {@code LX/*;->*(I)V}, for a call Redex
+     *       names differently from one build to the next.
      *   <li>"sole-call &lt;method reference&gt; replacing &lt;method reference&gt; [in [static|instance]
      *       &lt;shape&gt;] holding &lt;string&gt; [&lt;string&gt; ...]": exactly one method outside the
      *       bundle's own code loads every one of the strings and has the shape. It calls the first
@@ -2065,7 +2067,7 @@ public class DexDiff {
                     && before instanceof ReferenceInstruction ? ((ReferenceInstruction) before).getReference().toString() : null;
             int register = firstRegister(body.get(at));
             int previousRegister = before == null ? -1 : firstRegister(before);
-            if (!contract.after.equals(previous)) {
+            if (previous == null || !previous.matches(callPattern(contract.after))) {
                 System.out.println("[diff] " + rule + ": after " + (previous == null ? "no call" : previous) + " in " + only.method);
                 findings.add("contract: " + contract.callee + " is called in " + only.method
                         + ", but not right after " + contract.after);

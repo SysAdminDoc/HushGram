@@ -313,8 +313,9 @@ class OnlyReceivedReelsTest {
         classes += more
         classes[CHAT_REELS] = ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS))
 
-        // The reply bar under a reel opened from a chat, and the reply info class it answers (#488).
-        val replyMarkers = setOf(REPLY_HINT, REPLY_CURRENT_INFO, REPLY_CURRENT_ITEM)
+        // The reply bar under a reel opened from a chat, and the reply info class it answers (#488), with
+        // its page select (#489) and the classes they extend, where Redex hoists the select on some builds.
+        val replyMarkers = setOf(REPLY_HINT, REPLY_CURRENT_INFO, REPLY_CURRENT_ITEM, REPLY_PAGE)
         val replyClasses = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             val holds = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) in replyMarkers }
@@ -324,13 +325,21 @@ class OnlyReceivedReelsTest {
             }
         }
         for (classDef in replyClasses) classes[classDef.type] = classDef
+        var supers = replyClasses.mapNotNull { it.superclass }.toSet() - classes.keys
+        while (supers.isNotEmpty()) {
+            val got = FixtureDex.classes(bundle, supers)
+            classes += got
+            supers = got.values.mapNotNull { it.superclass }.toSet() - classes.keys
+        }
         val infos = replyClasses.flatMap { c -> c.methods.filter { REPLY_CURRENT_INFO in it.markers() }.map { it.returnType } }
         classes += FixtureDex.classes(bundle, infos.toSet() - classes.keys)
+        classes[CHAT_REELS_NOTICE] = ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS_NOTICE))
 
         val context = PatchContexts.of(classes.values)
-        val (found, replies) = try {
+        val (found, replies, page) = try {
             val found = context.findReelCollector(context.findChatReels(), context.findMessageFields())
-            found to context.findReplyBar(found)
+            val replies = context.findReplyBar(found)
+            Triple(found, replies, context.findReplyPage(found, replies))
         } catch (failure: PatchException) {
             throw AssertionError("$name: ${failure.message}", failure)
         }
@@ -358,6 +367,16 @@ class OnlyReceivedReelsTest {
             assertEquals("$name: methods asking $hook", 1, all.count { m -> m.visualCode().any { it.text() == hook } })
         }
         assertEquals("$name: the hint update asks", replies.hint.name, all.single { m -> m.visualCode().any { it.text() == REPLY_TO } }.name)
+
+        // The page select tells the extension which reel came on screen, right after its hint update (#489).
+        context.pointOutMessagesAfterReels(found, replies, page)
+        val told = classes.keys.flatMap { type -> context.mutableClassDefBy(type).methods }
+            .filter { m -> m.visualCode().any { it.text() == NOTICE_PAGE } }
+        assertEquals("$name: methods telling the notice", listOf(page.select.name), told.map { it.name })
+        val select = page.select.visualCode()
+        val hook = select.indexOfFirst { it.text() == NOTICE_PAGE }
+        assertEquals("$name: hooked once", 1, select.count { it.text() == NOTICE_PAGE })
+        assertEquals("$name: right after the hint update", "${replies.hint.definingClass}->${replies.hint.name}(I)V", select[hook - 1].text())
 
         // The adapter's add takes the reel items the wrappers answer.
         val adds = PatchContexts.of(FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, ADD_REELS)))
