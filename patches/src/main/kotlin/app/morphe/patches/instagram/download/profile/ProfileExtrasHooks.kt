@@ -95,6 +95,10 @@ internal fun BytecodePatchContext.findProfileExtras(): ProfileExtrasSite {
     val left = rowField(code, fill, rows[3], bar.type) ?: refuse("the left row isn't read off a field of the bar")
     val right = rowField(code, fill, rows[4], bar.type) ?: refuse("the right row isn't read off a field of the bar")
     if (left.name == right.name) refuse("the bar's two rows are the same field ${left.name}")
+    // The entry hook hands the extension the bar in p0 and the bind's first argument in p1, an object.
+    if (AccessFlags.STATIC.isSet(binder.accessFlags) || binder.parameterTypes.firstOrNull()?.startsWith("L") != true) {
+        refuse("${binder.name} isn't an instance method whose first argument is an object")
+    }
     // The entry hook writes v0, v1 and v2 before the bind's own code runs, so all three must be locals.
     val words = binder.parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2L else 1L } + 1
     if ((binder.implementation?.registerCount ?: 0) - words < 3) refuse("${binder.name} has fewer than three locals for the hook")

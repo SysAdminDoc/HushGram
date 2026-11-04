@@ -26,6 +26,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import app.morphe.patches.instagram.download.USER
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -51,6 +53,26 @@ class ProfileExtrasHookTest {
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val noBar = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(ExtensionDex.classDef(PROFILE_EXTRAS))).findProfileExtras() }
         assertTrue(noBar.message, noBar.message!!.contains("this Instagram build has no $PROFILE_ACTION_BAR"))
+    }
+
+    /** The entry hook hands over the bar in p0 and the bind's first argument in p1, so a static bind fails the patch. */
+    @Test
+    fun aStaticBindFailsThePatch() {
+        val bundle = Fixtures.files { it.extension == "apks" }.first()
+        val bar = FixtureDex.classes(bundle, setOf(PROFILE_ACTION_BAR)).getValue(PROFILE_ACTION_BAR)
+        val stock = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(bar)).findProfileExtras() }
+        assertTrue("the real bind passes: ${stock.message}", stock.message!!.contains("this Instagram build has no $USER_DETAIL"))
+        val static = ImmutableClassDef(
+            bar.type, bar.accessFlags, bar.superclass, bar.interfaces, bar.sourceFile, bar.annotations, bar.fields,
+            bar.methods.map {
+                ImmutableMethod(
+                    it.definingClass, it.name, it.parameters, it.returnType, it.accessFlags or AccessFlags.STATIC.value,
+                    it.annotations, it.hiddenApiRestrictions, it.implementation,
+                )
+            },
+        )
+        val refused = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(static)).findProfileExtras() }
+        assertTrue(refused.message, refused.message!!.contains("isn't an instance method whose first argument is an object"))
     }
 
     @Test
@@ -133,14 +155,14 @@ class ProfileExtrasHookTest {
     /** What the model's fields and methods name, with the classes above those and what those classes keep, which the read is found through. */
     private fun accountReadClasses(bundle: File, base: Collection<ClassDef>): Collection<ClassDef> {
         val model = base.single { it.type == USER_DETAIL_MODEL }
-        val wanted = model.fields.map { it.type.toString() }.filter { it.startsWith("L") }.toMutableSet()
+        val wanted = model.fields.map { it.type }.filter { it.startsWith("L") }.toMutableSet()
         model.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.forEach { step ->
             ((step as? ReferenceInstruction)?.reference as? FieldReference)?.let { wanted += it.definingClass }
         }
         wanted += "Lcom/instagram/user/model/User;"
         val found = FixtureDex.classes(bundle, wanted).values
         val above = FixtureDex.classes(bundle, found.flatMap { it.interfaces.map(CharSequence::toString) + listOfNotNull(it.superclass) }.toSet()).values
-        val kept = (found + above).flatMap { classDef -> classDef.fields.map { it.type.toString() } }.filter { it.startsWith("L") }.toSet()
+        val kept = (found + above).flatMap { classDef -> classDef.fields.map { it.type } }.filter { it.startsWith("L") }.toSet()
         return found + above + FixtureDex.classes(bundle, kept).values
     }
 
