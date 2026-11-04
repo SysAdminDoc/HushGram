@@ -53,6 +53,7 @@ public class PlusMenuTest {
         PauseForTests.resume();
         resetSwitches();
         HookStatus.clear();
+        PlusMenu.inBuildForTests = true;
         for (Kind kind : Kind.values()) byButton.put(kind, new Object());
         menu = new ArrayList<>(Arrays.asList(byButton.get(Kind.CROSS_APP_SAVES), byButton.get(Kind.IMAGINE),
                 byButton.get(Kind.DOODLES), byButton.get(Kind.OTHER)));
@@ -64,6 +65,7 @@ public class PlusMenuTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
+        PlusMenu.inBuildForTests = null;
     }
 
     private static void resetSwitches() {
@@ -125,6 +127,17 @@ public class PlusMenuTest {
         assertSame(byButton.get(Kind.GALLERY), menu.get(4));
         assertSame(byButton.get(Kind.VOICE_MESSAGE), menu.get(5));
         assertTrue(PlusMenu.moved());
+    }
+
+    /** Patched without Chat plus menu, a saved move doesn't count: there's no menu to hold the buttons. */
+    @Test
+    public void withoutThePatchASavedMoveDoesNotCount() {
+        Settings.MOVE_TO_PLUS_MENU.save(true);
+        PlusMenu.inBuildForTests = false;
+        assertFalse(PlusMenu.moved());
+        assertTrue(Settings.MOVE_TO_PLUS_MENU.get());
+        PlusMenu.inBuildForTests = null;
+        assertFalse("the stub answers for a build without the patch", PlusMenu.moved());
     }
 
     /** Paused, the menu is left as built and the choice is kept. */

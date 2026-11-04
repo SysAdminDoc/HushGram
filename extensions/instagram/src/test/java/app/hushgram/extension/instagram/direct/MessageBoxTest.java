@@ -49,15 +49,53 @@ public class MessageBoxTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.HIDDEN_MESSAGE_BOX_BUTTONS.resetToDefault();
+        Settings.MOVE_TO_PLUS_MENU.resetToDefault();
+        PlusMenu.inBuildForTests = null;
         HookStatus.clear();
     }
 
     @After
     public void restore() {
         Settings.HIDDEN_MESSAGE_BOX_BUTTONS.resetToDefault();
+        Settings.MOVE_TO_PLUS_MENU.resetToDefault();
+        PlusMenu.inBuildForTests = null;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
+    }
+
+    /** Moved to the plus menu, gallery and microphone leave the bar, and the rest show. */
+    @Test
+    public void buttonsMovedToThePlusMenuLeaveTheBar() {
+        Settings.MOVE_TO_PLUS_MENU.save(true);
+        PlusMenu.inBuildForTests = true;
+        assertFalse(MessageBox.button(Button.GALLERY, 1));
+        assertFalse(MessageBox.button(Button.VOICE_MESSAGE, 1));
+        assertTrue(MessageBox.button(Button.STICKER, 1));
+    }
+
+    /**
+     * Patched without Chat plus menu, a move saved earlier has no menu to go to, so gallery and
+     * microphone stay on the bar unless the bar's own setting leaves them off.
+     */
+    @Test
+    public void withoutPlusMenuInTheBuildTheBarKeepsGalleryAndVoice() {
+        Settings.MOVE_TO_PLUS_MENU.save(true);
+        PlusMenu.inBuildForTests = false;
+        assertTrue(MessageBox.button(Button.GALLERY, 1));
+        assertTrue(MessageBox.button(Button.VOICE_MESSAGE, 1));
+        View gallery = new View(RuntimeEnvironment.getApplication());
+        View voice = new View(RuntimeEnvironment.getApplication());
+        MessageBox.composerCreated(gallery, null, voice);
+        assertEquals(View.VISIBLE, gallery.getVisibility());
+        assertEquals(View.VISIBLE, voice.getVisibility());
+
+        Settings.HIDDEN_MESSAGE_BOX_BUTTONS.save("VOICE_MESSAGE");
+        assertTrue(MessageBox.button(Button.GALLERY, 1));
+        assertFalse(MessageBox.button(Button.VOICE_MESSAGE, 1));
+        MessageBox.composerCreated(gallery, null, voice);
+        assertEquals(View.VISIBLE, gallery.getVisibility());
+        assertEquals(View.GONE, voice.getVisibility());
     }
 
     /** Nothing picked is the start: every button shows when Instagram says show. */

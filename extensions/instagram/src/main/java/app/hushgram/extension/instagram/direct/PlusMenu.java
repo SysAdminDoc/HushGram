@@ -14,6 +14,7 @@ import java.util.Set;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -44,7 +45,16 @@ public final class PlusMenu {
     static final String REMOVED = "plus menu rows removed";
     static final String MOVED = "plus menu buttons moved";
 
+    /** Whether the patch is in this build, when a test says so instead of {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean inBuildForTests;
+
     private PlusMenu() {
+    }
+
+    static boolean inBuild() {
+        Boolean forced = inBuildForTests;
+        return forced != null ? forced : SettingsStatus.plusMenu();
     }
 
     /**
@@ -86,10 +96,13 @@ public final class PlusMenu {
         }
     }
 
-    /** Whether the gallery and microphone buttons are meant to be in the menu, so the bar leaves them out. */
+    /**
+     * Whether the gallery and microphone buttons are meant to be in the menu, so the bar leaves them
+     * out. A build without Chat plus menu has no menu to hold them, so they stay on the bar there.
+     */
     public static boolean moved() {
         try {
-            return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.MOVE_TO_PLUS_MENU.get();
+            return Utils.settingsReady() && !HushgramPause.isPaused() && inBuild() && Settings.MOVE_TO_PLUS_MENU.get();
         } catch (Throwable failure) {
             return false;
         }
