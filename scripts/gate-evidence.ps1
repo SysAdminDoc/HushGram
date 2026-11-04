@@ -613,6 +613,8 @@ function Write-GateKeptRun {
         [Parameter(Mandatory = $true)][bool]$Forced
     )
     New-Item -ItemType Directory -Force -Path $KeepIn | Out-Null
+    # An earlier keep's stamp would vouch for files this one is about to replace.
+    Remove-Item -LiteralPath (Join-Path $KeepIn 'stamp.json') -Force -ErrorAction SilentlyContinue
     Move-Item -LiteralPath $PatchedApk -Destination (Join-Path $KeepIn 'patched.apk') -Force
     if ($MergedApk) { Move-Item -LiteralPath $MergedApk -Destination (Join-Path $KeepIn 'stock-merged.apk') -Force }
     Copy-Item -LiteralPath $Result -Destination (Join-Path $KeepIn 'result.json') -Force

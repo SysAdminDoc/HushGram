@@ -349,6 +349,7 @@ try {
     }
     if ($KeepIn -and $exitCode -eq 0) {
         # A keep that fails costs the release a second patch run, not this one its verdict.
+        $keepExisted = Test-Path -LiteralPath $KeepIn
         try {
             Write-GateKeptRun -KeepIn $KeepIn -PatchedApk $out -Result $result `
                 -MergedApk $(if ($patchInput -eq $mergedApk) { $mergedApk } else { $null }) -Apk $Apk -Bundle $Bundle `
@@ -357,7 +358,14 @@ try {
             Write-Host "[verify] kept the patched APK and its stamp in $KeepIn"
         } catch {
             Write-Warning "[verify] could not keep the run in ${KeepIn}: $($_.Exception.Message)"
-            Remove-Item -LiteralPath $KeepIn -Recurse -Force -ErrorAction SilentlyContinue
+            # Only the keep's own files go, stamp first; anything else in the folder isn't ours.
+            foreach ($kept in 'stamp.json', 'patched.apk', 'stock-merged.apk', 'result.json') {
+                Remove-Item -LiteralPath (Join-Path $KeepIn $kept) -Force -ErrorAction SilentlyContinue
+            }
+            if (-not $keepExisted -and (Test-Path -LiteralPath $KeepIn) -and
+                -not (Get-ChildItem -LiteralPath $KeepIn -Force | Select-Object -First 1)) {
+                Remove-Item -LiteralPath $KeepIn -Force -ErrorAction SilentlyContinue
+            }
         }
     }
 } finally {

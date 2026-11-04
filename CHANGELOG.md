@@ -78,6 +78,7 @@ Every HushGram release, newest first.
 * **Instagram:** Android shows two lines of a toast, and about 60 of HushGram's ran longer in English or in one of the translations, so their ends never showed. They're shorter now in all ten languages. When safe mode pauses HushGram it says so in two toasts, and the second says where to turn it back on.
 * **Tooling:** `preflight.ps1 -Version` now refuses a source census past its 14 days. Until now the index push was the first thing to say so, after the gate, the walk and the publish.
 * **Tooling:** `count_tests.py --description` prints only the validation sentence on stdout and its counts on stderr, so saving its output gives `release_notes.py` the one line it wants.
+* **Tooling:** When `verify-all-patches.ps1 -KeepIn` can't keep a passing run, it now deletes only the files the keep writes. It used to delete the whole folder you named, with everything else in it. A keep also drops the last run's stamp before it starts, so a half-finished keep never passes for a whole one.
 
 ### Bug Fixes
 

@@ -430,7 +430,6 @@ internal fun BytecodePatchContext.skipFeaturedRows(site: FeaturedRowSite) {
 
 private const val DOT_KEY = "activity_feed_dot_badge"
 private val ACTIVITY_KEYS = listOf("comments", "likes", "comment_likes", "relationships", "usertags")
-private const val BADGE_REACH = 4
 
 /**
  * Where the badge counts are built (#189): the first count's boxing, where the hook goes in, the

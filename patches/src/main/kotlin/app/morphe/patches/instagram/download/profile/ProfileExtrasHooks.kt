@@ -36,7 +36,6 @@ internal const val EXTRAS_MODEL_USER = "modelUser"
 /** The profile screen's view model, which keeps its name in Instagram's builds, and holds the account the screen shows. The extension reads the account off the screen by these two types. */
 internal const val USER_DETAIL_MODEL = "Lcom/instagram/profile/fragment/UserDetailViewModel;"
 
-private const val VIEW = "Landroid/view/View;"
 private const val LIST = "Ljava/util/List;"
 private const val ACTIVITY = "Landroid/app/Activity;"
 private const val CONTEXT = "Landroid/content/Context;"

@@ -13,7 +13,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 
 /**
  * The strings only the ad-insert method holds: it writes the "Is ad pod" key into its debug map and
- * flags a "cross_surface_duplicate_ad". No other method in Instagram 449 or 450 carries both. They're
+ * flags a "cross_surface_duplicate_ad". No other method in Instagram 454 carries both. They're
  * matched exactly, where the fingerprint this replaced matched any string containing them. Some
  * 454 builds ask Redex's string pool for them, so a pooled load counts the same as a constant.
  */

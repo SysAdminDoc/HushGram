@@ -519,7 +519,6 @@ private fun BytecodePatchContext.replace(method: MutableMethod, registers: Int, 
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 private fun Method.parameters(): List<String> = parameterTypes.map { it.toString() }
-private fun Method.strings(): Set<String> = code().mapNotNull { (it.reference() as? StringReference)?.string }.toSet()
 private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
 private fun Instruction.call() = reference() as? MethodReference
 private fun Instruction.field() = reference() as? FieldReference
