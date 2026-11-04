@@ -346,6 +346,25 @@ if ($indexLagsSource) {
 $publishedVersion = if ($indexLagsSource) { $bundleVersion } else { $releaseVersion }
 Require-Match -Text ([string]$bundle.download_url) -Pattern "/v$([regex]::Escape($publishedVersion))/patches-$([regex]::Escape($publishedVersion))\.mpp$" -Description 'patches-bundle.json download URL'
 
+# Morphe Manager 2.3 pins the first key a source signs with, and reads it from the index's
+# public_key. Once morphe-signing.pub is committed, the index of the release it signs carries
+# exactly that key. An index still on an earlier, unsigned release may lack it, but no index
+# names a key while the bundles are unsigned.
+$signingPublicPath = Join-Path $rootPath 'morphe-signing.pub'
+$indexKey = [string]$bundle.public_key
+if (Test-Path -LiteralPath $signingPublicPath -PathType Leaf) {
+    $committedKey = ([IO.File]::ReadAllText($signingPublicPath)).Trim()
+    if (-not $indexLagsSource -and $indexKey -cne $committedKey) {
+        throw ("patches-bundle.json public_key must be the key in morphe-signing.pub, since Morphe Manager " +
+            "pins the key it first sees. Write it into the index with the release.")
+    }
+    if ($indexKey -and $indexKey -cne $committedKey) {
+        throw 'patches-bundle.json public_key is not the key in morphe-signing.pub.'
+    }
+} elseif ($indexKey) {
+    throw 'patches-bundle.json names a public_key, but no morphe-signing.pub is committed, so its bundles are unsigned.'
+}
+
 # Matching the pattern only proves the index spells the version right. Reaching the address is
 # what catches an index pointed at a tag nobody published, which is how the bundle went missing
 # once already, and the hash comparison further down runs only when this checkout built a bundle.
