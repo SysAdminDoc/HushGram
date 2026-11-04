@@ -136,7 +136,8 @@ private fun BytecodePatchContext.inlinedReads(reader: Method): List<InlinedRead>
             refuse("$askerAt doesn't leave the item out when the netego read answers null")
         }
         // The hook reads the item again after the read, so the read's answer can't have taken its register.
-        if ((code[at] as FiveRegisterInstruction).registerC == taken.registerA) refuse("$askerAt keeps the netego over the item it read it from")
+        val read = code[at] as? FiveRegisterInstruction ?: refuse("$askerAt reads the netego with a range call")
+        if (read.registerC == taken.registerA) refuse("$askerAt keeps the netego over the item it read it from")
         if (at + 2 in asker.jumpTargets()) refuse("something in $askerAt jumps to its netego test")
         InlinedRead(asker.definingClass, asker.name, asker.parameters(), at)
     }
