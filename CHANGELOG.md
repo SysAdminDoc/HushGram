@@ -86,6 +86,7 @@ Every HushGram release, newest first.
 * The main settings page no longer shows a thin grey line down each screen edge. The restart bar and the viewing history search now line up with the cards.
 * About 60 of HushGram's toasts ran past the two lines Android shows, in English or a translation, so their ends never showed. They're shorter now in all ten languages.
 * When safe mode pauses HushGram it says so in two toasts, and the second says where to turn it back on.
+* `Pure black dark mode` and `Seek bar on stories` find their story code through the patcher's index instead of reading every class. With every patch on, patching takes about 4% less processor time. The patched app is the same. Refs #173.
 * **Tooling:** `preflight.ps1 -Version` now refuses a source census past its 14 days. Until now the index push was the first thing to say so, after the gate, the walk and the publish.
 * **Tooling:** `count_tests.py --description` prints only the validation sentence on stdout and its counts on stderr, so saving its output gives `release_notes.py` the one line it wants.
 * **Tooling:** When `verify-all-patches.ps1 -KeepIn` can't keep a passing run, it now deletes only the files the keep writes. It used to delete the whole folder you named, with everything else in it.

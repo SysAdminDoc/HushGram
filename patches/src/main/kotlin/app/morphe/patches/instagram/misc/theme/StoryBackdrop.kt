@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.misc.theme
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21ih
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -68,8 +69,8 @@ private fun blackFields(animator: ClassDef): Set<String> = animator.methods.flat
  * or when no getColor reaches the field, since each is an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findStoryBackdrops(): List<StoryBackdrop> {
-    val animators = mutableListOf<ClassDef>()
-    classDefForEach { classDef -> if (classDef.methods.any { it.holds(STORY_ANIMATOR_TAG) }) animators += classDef }
+    // The patcher's string index names the classes loading the tag, so only those are read (#173).
+    val animators = classesHolding(STORY_ANIMATOR_TAG).filter { classDef -> classDef.methods.any { it.holds(STORY_ANIMATOR_TAG) } }
     val animator = animators.singleOrNull()
         ?: throw PatchException("$PATCH_NAME: expected one class logging $STORY_ANIMATOR_TAG, found ${animators.size}")
     val field = blackFields(animator).singleOrNull()

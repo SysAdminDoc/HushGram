@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.media.taptoplay.REEL_VIEWER_FRAGMENT
 import app.morphe.patches.instagram.media.taptoplay.RESUME_STORY
 import app.morphe.patches.instagram.media.taptoplay.VIDEO_PLAYER_FIELD
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -128,11 +129,11 @@ internal fun BytecodePatchContext.findStorySeek(): StorySeekSites {
         ?.takeIf { AccessFlags.INTERFACE.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
         ?: refuse("$REEL_VIEWER_FRAGMENT->$VIDEO_PLAYER_FIELD isn't a public interface")
     val players = mutableListOf<ClassDef>()
-    val scrubbers = mutableListOf<Method>()
     classDefForEach { classDef ->
         if (playerInterface.type in classDef.interfaces && !AccessFlags.ABSTRACT.isSet(classDef.accessFlags)) players += classDef
-        classDef.methods.filterTo(scrubbers) { it.holds(SCRUBBER) }
     }
+    // Only the classes the patcher's string index names for the scrubber's string are read (#173).
+    val scrubbers = classesHolding(SCRUBBER).flatMap { classDef -> classDef.methods.filter { it.holds(SCRUBBER) } }
     if (players.isEmpty()) refuse("nothing implements ${playerInterface.type}")
     val where = playerInterface.type
 
