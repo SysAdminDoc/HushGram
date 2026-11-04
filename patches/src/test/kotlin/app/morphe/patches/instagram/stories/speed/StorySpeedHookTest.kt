@@ -47,8 +47,8 @@ class StorySpeedHookTest {
     }
 
     /**
-     * On 453.0.0.57.79's arm64 build the patch finds the player's speed setter (HMO on 0NeG) and the
-     * viewer's callback for a story's video starting (GZ0), puts the hook in front of its return,
+     * On 454.0.0.54.77's arm64 build the patch finds the player's speed setter (HOC on 0NuF) and the
+     * viewer's callback for a story's video starting (GaD), puts the hook in front of its return,
      * fills every stub and tells the extension after each binder's put.
      */
     @Test
@@ -58,10 +58,10 @@ class StorySpeedHookTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 val sites = builds(bundle, bundle.name)
-                if (version == "453.0.0.57.79") {
-                    assertEquals("${bundle.name}: the player", "LX/0NeG;", sites.playerInterface)
-                    assertEquals("${bundle.name}: the speed setter", "HMO", sites.setter)
-                    assertEquals("${bundle.name}: the callback", "GZ0", sites.playing)
+                if (version == "454.0.0.54.77") {
+                    assertEquals("${bundle.name}: the player", "LX/0NuF;", sites.playerInterface)
+                    assertEquals("${bundle.name}: the speed setter", "HOC", sites.setter)
+                    assertEquals("${bundle.name}: the callback", "GaD", sites.playing)
                     assertEquals("${bundle.name}: the binders", 2, sites.pages.binds.size)
                 }
                 checked += version
