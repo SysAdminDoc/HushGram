@@ -205,11 +205,11 @@ internal fun findWideReelCheck(code: List<Instruction>): WideReelCheck? {
 internal data class StoryLayout(val tall: MethodReference, val card: MethodReference, val full: MethodReference)
 
 /**
- * Finds the story layout (#436), 0BmY on 453. The method opening [STORY_ASPECT_RATIO] asks a static
- * `(Context, item)Z` check whether this story gets a card, lays the card out with a static
+ * Finds the story layout (#436), 0BmY on 453 and 0Bw2 on 454. The method opening [STORY_ASPECT_RATIO]
+ * asks a static `(Context, item)Z` check whether this story gets a card, lays the card out with a static
  * `(Context, holder, int, int)V` method (the picture 9:16 with rounded corners, the reply bar below
- * it) and the whole screen with a static `(holder)V` one. The check is the call whose answer the
- * last if-eqz before the card call reads.
+ * it) and the whole screen with a static `(holder)V` one, the call right after the check that a yes
+ * skips. The check is the call whose answer the last if-eqz before the card call reads.
  */
 internal fun BytecodePatchContext.findStoryLayout(): StoryLayout {
     val opening = classesLoadingString(STORY_ASPECT_RATIO).flatMap { it.methods }.filter { loadsString(it, STORY_ASPECT_RATIO) }
@@ -231,10 +231,6 @@ internal fun BytecodePatchContext.findStoryLayout(): StoryLayout {
         ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story layout calls ${cards.size} (Context, holder, int, int) layouts, not one")
     val card = ownCall(cardAt)!!
     val holder = card.takes()[1]
-    val fulls = code.indices.mapNotNull { ownCall(it) }.filter { it.returnType == "V" && it.takes() == listOf(holder) }
-        .distinctBy { it.toString() }
-    val full = fulls.singleOrNull()
-        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story layout calls ${fulls.size} ($holder) layouts, not one")
     val branch = (cardAt - 1 downTo 2).firstOrNull { code[it].opcode == Opcode.IF_EQZ }
         ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: nothing decides on the story card before it's laid out")
     val tall = ownCall(branch - 2)
@@ -245,6 +241,18 @@ internal fun BytecodePatchContext.findStoryLayout(): StoryLayout {
     ) {
         throw PatchException("$FULL_SCREEN_BARS_PATCH: the story card's if-eqz doesn't read a (Context, item) check")
     }
+    // 454 also lays a ($holder) shape out behind another check, so the whole screen is the one a yes skips.
+    val fulls = (3 until code.size).filter { at ->
+        val call = ownCall(at)
+        val skip = code[at - 1]
+        val answer = code[at - 2]
+        call != null && call.returnType == "V" && call.takes() == listOf(holder) &&
+            skip.opcode == Opcode.IF_NEZ && answer.opcode == Opcode.MOVE_RESULT &&
+            (answer as OneRegisterInstruction).registerA == (skip as OneRegisterInstruction).registerA &&
+            ownCall(at - 3)?.toString() == tall.toString()
+    }.map { ownCall(it)!! }.distinctBy { it.toString() }
+    val full = fulls.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story layout calls ${fulls.size} ($holder) layouts its tall-screen check skips, not one")
     return StoryLayout(tall, card, full)
 }
 

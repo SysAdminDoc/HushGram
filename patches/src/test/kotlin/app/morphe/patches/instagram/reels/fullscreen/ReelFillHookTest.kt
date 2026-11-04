@@ -116,6 +116,9 @@ class ReelFillHookTest {
         val card = own(layout.card)
         assertEquals("$label: the whole-screen layout takes the card's holder", listOf(card.parameterTypes[1].toString()),
             layout.full.parameterTypes.map(CharSequence::toString))
+        // 454's other (holder) layout, behind a second check, keeps the card's rounded corners.
+        assertTrue("$label: the whole-screen layout squares the card's corners",
+            own(layout.full).code().any { it.referenceText()?.endsWith("->setCornerRadius(I)V") == true })
         val holder = card.parameterRegisterNumber(1)
         val before = listOf(tall, card).associateWith { it.code() }
         val natives = listOf(tall, card).associateWith { NeutralNativePath(it) }
