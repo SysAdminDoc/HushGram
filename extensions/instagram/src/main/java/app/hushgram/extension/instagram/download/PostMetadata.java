@@ -29,10 +29,12 @@ import app.hushgram.extension.shared.Utils;
  * Nothing else is touched, and only after the save has already published the file, so a failure
  * here never costs the save: it already succeeded and this is best effort on top.
  *
- * <p>The link is the post's web address, built from the media's id the same way Instagram builds a
+ * <p>The link is the post's web address, built from the post's id the same way Instagram builds a
  * shortcode: the id is read as a number and written in a positional base 64 over
  * {@code A-Za-z0-9-_}, most significant digit first, so id 0 is {@code A}. That is the mapping the
- * whole ecosystem uses, checked here against known id/shortcode pairs in the test.
+ * whole ecosystem uses, checked here against known id/shortcode pairs in the test. It's the parent
+ * post's id ({@link PostDetails#shortcode}), never the saved file's own: a carousel page links its
+ * post, and a story, which has no post page, gets no link.
  *
  * <p>The write reads only {@link Settings#SAVE_PHOTO_METADATA}, on the save worker thread, after
  * the file is on disk. It never runs at Instagram's startup.
@@ -79,12 +81,13 @@ public final class PostMetadata {
         return out.reverse().toString();
     }
 
-    /** The post's web address, or null when the save doesn't know a numeric media id. */
+    /**
+     * The web address of the post the save came from, or null when the save doesn't know its post:
+     * a story, a profile picture, or a route that never named one.
+     */
     static String permalink(PostDetails details) {
-        if (details == null || !details.hasVideoId()) return null;
-        String code = shortcode(details.videoId);
-        if (code == null) return null;
-        return "https://www.instagram.com/p/" + code + "/";
+        if (details == null || !details.hasShortcode()) return null;
+        return "https://www.instagram.com/p/" + details.shortcode + "/";
     }
 
     private static String stamp(Date posted) {
@@ -136,7 +139,7 @@ public final class PostMetadata {
     }
 
     private static boolean wanted(PostDetails details) {
-        return details != null && (details.hasOwner() || details.hasPosted() || details.hasVideoId());
+        return details != null && (details.hasOwner() || details.hasPosted() || details.hasShortcode());
     }
 
     /**

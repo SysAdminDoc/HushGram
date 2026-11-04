@@ -86,6 +86,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* With `Add the source to saved photos and videos` on, a saved carousel page now links the post it's from. It used to get a link built from the page itself, which doesn't open. A saved story gets no link at all now, since stories don't have a post page to go to.
 * With `Gallery and microphone in the plus menu` on, `Buttons in the message box` says those two are in the plus menu. It used to call them shown, or list them as left off, and it now updates the moment that switch flips.
 * With `Name saves by account and post time` on, `Download file name` says its names only go to saves that don't know who posted or when. It used to read as if every save got them, and it now updates as soon as that switch flips.
 * With `Show if a profile follows you` off, the greyed `Follow label` row asks you to turn that on. It used to point at `Show it as a chip` even when the chip was already on.

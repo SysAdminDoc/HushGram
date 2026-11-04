@@ -88,14 +88,30 @@ public class PostMetadataTest {
     @Test
     public void permalinkIsThePostAddress() {
         assertEquals("https://www.instagram.com/p/DFDjk1fRK43/",
-                PostMetadata.permalink(PostDetails.of("3549837394260045367")));
+                PostMetadata.permalink(PostDetails.of("3549837394260045367").withPostId("3549837394260045367")));
     }
 
     /** Instagram's {@code <pk>_<owner id>} id gives the pk's shortcode, so the owner id drops out. */
     @Test
     public void permalinkUsesThePkFromAFullMediaId() {
-        assertEquals("https://www.instagram.com/p/Yb4Av/",
-                PostMetadata.permalink(PostDetails.of("409960495_17841400000000000", "someone", null)));
+        assertEquals("https://www.instagram.com/p/Yb4Av/", PostMetadata.permalink(
+                PostDetails.of("409960495_17841400000000000", "someone", null).withPostId("409960495_17841400000000000")));
+    }
+
+    /** A carousel page's own media id has no post page, so its link is the post it's a page of. */
+    @Test
+    public void aCarouselPageLinksItsPost() {
+        PostDetails page = PostDetails.of("908540701891980503", "someone", null)
+                .withPostId("3549837394260045367").onPage(2);
+        assertEquals("https://www.instagram.com/p/DFDjk1fRK43/", PostMetadata.permalink(page));
+    }
+
+    /** A story is built the way StoryDownload builds it: its media id, and no post. */
+    @Test
+    public void aStoryHasNoPostLink() {
+        PostDetails story = PostDetails.of("3549837394260045367", "someone", postedUtc()).withPostId(null);
+        assertNull(PostMetadata.permalink(story));
+        assertNull(PostMetadata.permalink(PostDetails.of("3549837394260045367")));
     }
 
     @Test
@@ -131,7 +147,8 @@ public class PostMetadataTest {
         byte[] original = sampleBytes();
         File photo = jpeg(original);
 
-        PostDetails details = new PostDetails("3549837394260045367", "stevious", postedUtc());
+        PostDetails details = new PostDetails("3549837394260045367", "stevious", postedUtc())
+                .withPostId("3549837394260045367");
         ExifInterface write = new ExifInterface(photo.getAbsolutePath());
         assertTrue("a full save has something to write", PostMetadata.apply(write, details));
         write.saveAttributes();

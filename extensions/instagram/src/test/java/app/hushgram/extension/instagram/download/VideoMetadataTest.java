@@ -148,12 +148,26 @@ public class VideoMetadataTest {
     public void writesOnlyWhatTheSaveKnows() throws Exception {
         File video = file(sample(MOOV_LAST));
 
-        assertTrue(write(video, VideoMetadata.items(PostDetails.of("3549837394260045367"))));
+        assertTrue(write(video, VideoMetadata.items(PostDetails.of("3549837394260045367").withPostId("3549837394260045367"))));
 
         Map<String, String> items = items(Files.readAllBytes(video.toPath()));
         assertEquals(LINK, items.get("desc"));
         assertNull(items.get(ART));
         assertNull(items.get(DAY));
+    }
+
+    /** A story video, built the way StoryDownload builds it, has no post page, so it gets no link. */
+    @Test
+    public void aStoryVideoGetsNoLink() throws Exception {
+        File video = file(sample(MOOV_FIRST));
+
+        assertTrue(write(video, VideoMetadata.items(
+                new PostDetails("3549837394260045367", "stevious", postedUtc()).withPostId(null))));
+
+        Map<String, String> items = items(Files.readAllBytes(video.toPath()));
+        assertEquals("stevious", items.get(ART));
+        assertEquals("2026-09-01T12:00:00Z", items.get(DAY));
+        assertNull(items.get("desc"));
     }
 
     @Test
@@ -300,8 +314,7 @@ public class VideoMetadataTest {
 
         // file:///C:/... on Windows, file:///tmp/... elsewhere: a path with forward slashes.
         String path = video.getAbsolutePath().replace(File.separatorChar, '/');
-        PostMetadata.writeTo(context, "file://" + (path.startsWith("/") ? "" : "/") + path, "video/mp4",
-                new PostDetails("3549837394260045367", "stevious", postedUtc()));
+        PostMetadata.writeTo(context, "file://" + (path.startsWith("/") ? "" : "/") + path, "video/mp4", post());
 
         byte[] tagged = Files.readAllBytes(video.toPath());
         assertMediaStays(original, tagged);
@@ -316,8 +329,7 @@ public class VideoMetadataTest {
         File video = file(original);
         Context context = RuntimeEnvironment.getApplication();
 
-        PostMetadata.writeTo(context, video.getPath(), "video/webm",
-                new PostDetails("3549837394260045367", "stevious", postedUtc()));
+        PostMetadata.writeTo(context, video.getPath(), "video/webm", post());
 
         assertArrayEquals(original, Files.readAllBytes(video.toPath()));
     }
@@ -326,7 +338,12 @@ public class VideoMetadataTest {
 
     /** The account, noon on 2026-09-01 UTC and the post link, as a full save knows them. */
     private static Map<Integer, String> full() {
-        return VideoMetadata.items(new PostDetails("3549837394260045367", "stevious", postedUtc()));
+        return VideoMetadata.items(post());
+    }
+
+    /** A feed post's details, as VideoDownload builds them: the post is its own media. */
+    private static PostDetails post() {
+        return new PostDetails("3549837394260045367", "stevious", postedUtc()).withPostId("3549837394260045367");
     }
 
     private static Date postedUtc() {

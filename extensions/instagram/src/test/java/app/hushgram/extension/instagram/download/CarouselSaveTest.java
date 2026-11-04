@@ -1577,8 +1577,9 @@ public class CarouselSaveTest {
         return result;
     }
 
+    /** A feed post's details, as VideoDownload builds them: the post is its own media. */
     private static PostDetails metadataDetails(String id, String owner) {
-        return PostDetails.of(id, owner, new java.util.Date(1_783_670_400_000L));
+        return PostDetails.of(id, owner, new java.util.Date(1_783_670_400_000L)).withPostId(id);
     }
 
     private static byte[] metadataJpeg() throws Exception {
