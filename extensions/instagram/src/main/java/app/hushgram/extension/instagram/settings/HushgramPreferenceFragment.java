@@ -2488,11 +2488,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         showConfiguration();
         if (!Utils.runOnBackgroundThread(() -> {
             try {
-                byte[] bytes = ConfigurationBackup.export();
-                try (java.io.OutputStream output = app.getContentResolver().openOutputStream(uri, "wt")) {
-                    if (output == null) throw new java.io.IOException();
-                    output.write(bytes);
-                }
+                writeConfiguration(app.getContentResolver(), uri, ConfigurationBackup.export());
                 ExportStatus.CONFIGURATION.finish(token, L10n.t("HushGram settings exported."));
                 Utils.showToastLong(L10n.t("HushGram settings exported."));
             } catch (Exception failure) {
@@ -2509,6 +2505,47 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't start that. Try again."));
             configurationQueueFull();
         }
+    }
+
+    /**
+     * Writes [bytes] to [uri] and reads the file back. A few document providers ignore "wt"'s
+     * truncate, so a file that was longer before kept its old tail after the new settings and
+     * wouldn't import, while the export said it worked. A tail like that is cut off through the
+     * file's descriptor, and a file that still doesn't match throws. A provider that won't let the
+     * file be read back is taken at its word, as before.
+     */
+    static void writeConfiguration(android.content.ContentResolver resolver, Uri uri, byte[] bytes) throws java.io.IOException {
+        try (java.io.OutputStream output = resolver.openOutputStream(uri, "wt")) {
+            if (output == null) throw new java.io.IOException();
+            output.write(bytes);
+        }
+        if (!Boolean.FALSE.equals(holds(resolver, uri, bytes))) return;
+        android.os.ParcelFileDescriptor file = resolver.openFileDescriptor(uri, "rw");
+        if (file == null) throw new java.io.IOException();
+        try (java.io.FileOutputStream output = new android.os.ParcelFileDescriptor.AutoCloseOutputStream(file)) {
+            java.nio.channels.FileChannel channel = output.getChannel();
+            channel.position(0);
+            java.nio.ByteBuffer rest = java.nio.ByteBuffer.wrap(bytes);
+            while (rest.hasRemaining()) channel.write(rest);
+            channel.truncate(bytes.length);
+        }
+        if (!Boolean.TRUE.equals(holds(resolver, uri, bytes))) throw new java.io.IOException();
+    }
+
+    /** Whether [uri] reads back as exactly [bytes], or null when it can't be read back at all. */
+    @Nullable
+    private static Boolean holds(android.content.ContentResolver resolver, Uri uri, byte[] bytes) {
+        // One byte past the length is enough to see a leftover tail.
+        byte[] read = new byte[bytes.length + 1];
+        int total = 0;
+        try (java.io.InputStream input = resolver.openInputStream(uri)) {
+            if (input == null) return null;
+            for (int count; total < read.length && (count = input.read(read, total, read.length - total)) > 0; ) total += count;
+        } catch (java.io.IOException | RuntimeException unreadable) {
+            // A write-only grant, a provider with no reads, or a stream that throws: nothing to compare.
+            return null;
+        }
+        return total == bytes.length && java.util.Arrays.equals(java.util.Arrays.copyOf(read, total), bytes);
     }
 
     /** Undo always remains Undo, even if its expiration callback hasn't reached the screen yet. */

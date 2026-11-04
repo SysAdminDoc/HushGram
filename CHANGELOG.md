@@ -81,6 +81,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** Exporting your HushGram settings over an older, longer backup file no longer leaves the old file's end behind it. A few file providers don't empty a file before it's written, and that backup then wouldn't import even though the export said it worked. The export now reads the file back, trims it, and says so if it can't.
 * **Instagram:** On Android 9 and 10, TalkBack reads a HushGram slider's value the way the row shows it ("20 reels") instead of a percent of the bar.
 * **Instagram:** With `Ambient light` on, playing a video you sent from your gallery in a chat no longer crashes Instagram. The glow kept getting wrapped in a new layer every frame until memory ran out. Reported in #485.
 * **Instagram:** `Seek bar on stories` sits above a story's bottom row again. Instagram moved the Send message box, like and share into a new row, and the bar ended up drawn over them. Reported in #486.

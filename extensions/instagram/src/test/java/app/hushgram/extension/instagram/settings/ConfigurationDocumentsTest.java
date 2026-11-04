@@ -7,8 +7,12 @@ package app.hushgram.extension.instagram.settings;
 import static org.junit.Assert.*;
 import android.app.Activity;
 import android.os.Build;
+import android.content.ContentProvider;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.preference.Preference;
 import android.preference.SwitchPreference;
@@ -19,8 +23,17 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -29,11 +42,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
+import org.robolectric.shadows.ShadowContentResolver;
 import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.shadows.ShadowToast;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
@@ -147,6 +163,130 @@ public class ConfigurationDocumentsTest {
             assertTrue(file.getJSONObject("settings").has(Settings.HIDE_ADS.key));
             assertTrue(page.findPreference("hushgram_export_configuration").isEnabled());
         }
+    }
+
+    /**
+     * A provider that ignores "wt"'s truncate leaves a longer old file's tail after the new
+     * settings, and that file won't import. The export reads the file back, cuts the tail off, and
+     * the file then holds the export alone and imports.
+     */
+    @Test @Config(sdk = {28, 37})
+    public void anExportOverALongerFileWhoseProviderKeepsTheTailIsCutToSize() throws Exception {
+        File file = staleDocument();
+        Documents documents = Robolectric.setupContentProvider(Documents.class, DOCUMENT.getAuthority());
+        documents.file = file;
+        try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
+            writesWithoutTruncating(activity.get(), file);
+            ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_export_configuration");
+            Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
+            finish();
+            String saved = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+            assertFalse("the old tail is gone", saved.contains("stale"));
+            assertTrue(saved, saved.trim().endsWith("}"));
+            assertEquals(1, new JSONObject(saved).getInt("schema"));
+            assertEquals("HushGram settings exported.", String.valueOf(page.findPreference("hushgram_export_configuration").getSummary()));
+            assertEquals(java.util.Collections.singletonList("rw"), documents.modes);
+            Settings.HIDE_ADS.save(!Settings.HIDE_ADS.savedValue());
+            ConfigurationBackup.restore(saved.getBytes(StandardCharsets.UTF_8));
+            assertEquals(Settings.HIDE_ADS.defaultValue, Settings.HIDE_ADS.savedValue());
+        }
+    }
+
+    /** When the tail can't be cut off, the export says it failed rather than that it worked. */
+    @Test public void anExportWhoseTailCantBeCutOffSaysItFailed() throws Exception {
+        File file = staleDocument();
+        Documents documents = Robolectric.setupContentProvider(Documents.class, DOCUMENT.getAuthority());
+        documents.file = file;
+        documents.refuseReadWrite = true;
+        try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
+            writesWithoutTruncating(activity.get(), file);
+            ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_export_configuration");
+            Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
+            finish();
+            assertEquals("Couldn't export HushGram settings. Try another file.",
+                    String.valueOf(page.findPreference("hushgram_export_configuration").getSummary()));
+            assertEquals("Couldn't export HushGram settings. Try another file.", ShadowToast.getTextOfLatestToast());
+            assertTrue(page.findPreference("hushgram_export_configuration").isEnabled());
+        }
+    }
+
+    /** A provider that can't be read back is taken at its word: the export says it worked and nothing reopens the file. */
+    @Test public void anExportThatCantBeReadBackIsTakenAtTheProvidersWord() throws Exception {
+        File file = File.createTempFile("settings", ".json", RuntimeEnvironment.getApplication().getCacheDir());
+        Documents documents = Robolectric.setupContentProvider(Documents.class, DOCUMENT.getAuthority());
+        documents.file = file;
+        try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
+            ShadowContentResolver resolver = Shadows.shadowOf(activity.get().getContentResolver());
+            resolver.registerOutputStreamSupplier(DOCUMENT, () -> {
+                try {
+                    return new java.io.FileOutputStream(file);
+                } catch (IOException missing) {
+                    throw new AssertionError(missing);
+                }
+            });
+            resolver.registerInputStreamSupplier(DOCUMENT, () -> new java.io.InputStream() {
+                @Override public int read() throws IOException {
+                    throw new IOException("this provider writes but can't be read");
+                }
+            });
+            ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_export_configuration");
+            Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
+            finish();
+            assertEquals("HushGram settings exported.", String.valueOf(page.findPreference("hushgram_export_configuration").getSummary()));
+            assertTrue("nothing reopened the file to cut it", documents.modes.isEmpty());
+            String saved = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+            assertEquals(1, new JSONObject(saved).getInt("schema"));
+        }
+    }
+
+    /** A settings file left from before, longer than any export. */
+    private File staleDocument() throws IOException {
+        File file = File.createTempFile("settings", ".json", RuntimeEnvironment.getApplication().getCacheDir());
+        StringBuilder old = new StringBuilder("{\"old\":\"");
+        while (old.length() < 400_000) old.append("stale ");
+        Files.write(file.toPath(), old.append("\"}").toString().getBytes(StandardCharsets.UTF_8));
+        return file;
+    }
+
+    /** The document's streams as a provider that ignores truncate hands them out: writes start at 0, nothing is cut. */
+    private static void writesWithoutTruncating(Activity activity, File file) {
+        ShadowContentResolver resolver = Shadows.shadowOf(activity.getContentResolver());
+        resolver.registerOutputStreamSupplier(DOCUMENT, () -> {
+            try {
+                return Channels.newOutputStream(new RandomAccessFile(file, "rw").getChannel());
+            } catch (IOException missing) {
+                throw new AssertionError(missing);
+            }
+        });
+        resolver.registerInputStreamSupplier(DOCUMENT, () -> {
+            try {
+                return new FileInputStream(file);
+            } catch (IOException missing) {
+                throw new AssertionError(missing);
+            }
+        });
+    }
+
+    /** The document's provider, as far as opening its descriptor goes. */
+    public static final class Documents extends ContentProvider {
+        File file;
+        boolean refuseReadWrite;
+        final List<String> modes = new ArrayList<>();
+
+        @Override public boolean onCreate() { return true; }
+        @Override public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
+            modes.add(mode);
+            if (refuseReadWrite) throw new FileNotFoundException("this provider opens files one way only");
+            return ParcelFileDescriptor.open(file, ParcelFileDescriptor.parseMode(mode));
+        }
+        @Override public Cursor query(Uri uri, String[] projection, String selection, String[] args, String order) { return null; }
+        @Override public String getType(Uri uri) { return "application/json"; }
+        @Override public Uri insert(Uri uri, ContentValues values) { return null; }
+        @Override public int delete(Uri uri, String selection, String[] args) { return 0; }
+        @Override public int update(Uri uri, ContentValues values, String selection, String[] args) { return 0; }
     }
 
     @Test public void datedExportUsesTheLocalClockAndWesternDigits() {
