@@ -1103,7 +1103,7 @@ function Test-ChangelogHere {
                     "give it a ""### HushGram v$releaseVersion"" section under ""## Unreleased"", or its dated heading.")
             }
             Write-Host ("[release] the CHANGELOG describes $releaseVersion under Unreleased. Its release gives it " +
-                """## $releaseVersion (YYYY-MM-DD)"" with every bullet scoped ""* **Instagram:** """)
+                """## $releaseVersion (YYYY-MM-DD)"" with each bullet on one line")
             continue
         }
         $arguments = @{ Current = $current; ExpectedVersion = $version }
@@ -1117,7 +1117,7 @@ function Test-ChangelogHere {
         $manager = Test-ChangelogManagerEntry -Current $current -ExpectedVersion $version
         if (-not $manager.Valid) { throw "Morphe Manager cannot show this release: $($manager.Reason)" }
         Write-Host ("[release] Morphe Manager can read the $version entry: dated " +
-            "$($manager.Date), $($manager.Bullets) bullets scoped Instagram")
+            "$($manager.Date), $($manager.Bullets) bullets for Instagram")
     }
     if ($null -ne $previous -and $described.Count -gt 0) {
         # What the last tag described still has to be here, whichever branch ran above.

@@ -2308,10 +2308,11 @@ Write-Host '[release-tooling] changelog history contracts passed'
 
 # --- Test-ChangelogManagerEntry --------------------------------------------------------------
 #
-# Morphe Manager skips a heading with no date and flags an app only for bullets scoped to it. In
+# Morphe Manager skips a heading with no date and keeps a bullet's lines one at a time. In
 # Hushfacebook every heading from 0.23.0 to 0.40.0 was bare and Manager's list stopped at 0.22.0,
 # while the history check above passed them all. Each refusal below is the readable entry with one
-# thing taken away.
+# thing taken away. Since 2026-11-04 a bullet carries no "**Instagram:**" label: Manager 2.2.0 and
+# later show a single-app source's whole changelog, and HushGram's floor is 2.3.0.
 
 $readable = @"
 ## Unreleased
@@ -2324,19 +2325,19 @@ A sentence about the release.
 
 ### Settings
 
-* **Instagram:** one change.
-* **Instagram:** another change.
+* one change.
+* another change.
 
 ### On the video
 
-* **Instagram:** a third.
+* a third.
 
 ## 0.41.0
 
 * an older entry, frozen as it shipped
 "@
 $entry = Test-ChangelogManagerEntry -Current $readable -ExpectedVersion '0.42.0'
-Assert-True $entry.Valid "A dated entry with scoped bullets was refused: $($entry.Reason)"
+Assert-True $entry.Valid "A dated entry with one-line bullets was refused: $($entry.Reason)"
 Assert-True ($entry.Date -eq '2026-09-20' -and $entry.Bullets -eq 3) `
     "The readable entry was misread: date $($entry.Date), $($entry.Bullets) bullets"
 $crlf = Test-ChangelogManagerEntry -Current ($readable -replace "`r?`n", "`r`n") -ExpectedVersion '0.42.0'
@@ -2347,10 +2348,12 @@ $undated = Test-ChangelogManagerEntry -Current ($readable -replace '## 0\.42\.0 
 Assert-True (-not $undated.Valid) 'An undated heading, which Manager skips, was accepted.'
 Assert-True ($undated.Reason -like '*no date*') "The undated heading was refused for the wrong reason: $($undated.Reason)"
 
-$unscoped = Test-ChangelogManagerEntry -Current ($readable -replace '\* \*\*Instagram:\*\* another', '* another') `
-    -ExpectedVersion '0.42.0'
-Assert-True (-not $unscoped.Valid) 'A bullet Manager does not scope to Instagram was accepted.'
-Assert-True ($unscoped.Reason -like 'Line 12 *') "The unscoped bullet was refused for the wrong reason: $($unscoped.Reason)"
+# A bullet may still open with a topic, or with the "**Instagram:**" label written before
+# 2026-11-04. Both are Instagram changes.
+$labeled = Test-ChangelogManagerEntry -Current ($readable -replace '\* another', '* **Instagram:** another' `
+        -replace '\* a third', '* **Glass tab bar:** a third') -ExpectedVersion '0.42.0'
+Assert-True ($labeled.Valid -and $labeled.Bullets -eq 3) `
+    "A topic or leftover Instagram label was refused or not counted: $($labeled.Reason), $($labeled.Bullets) bullets"
 
 $wrapped = Test-ChangelogManagerEntry -Current ($readable -replace 'one change\.', "one`n  change.") `
     -ExpectedVersion '0.42.0'
@@ -2358,24 +2361,19 @@ Assert-True (-not $wrapped.Valid) 'A wrapped bullet, whose second line Manager d
 Assert-True ($wrapped.Reason -like '*continues the bullet*') "The wrapped bullet was refused for the wrong reason: $($wrapped.Reason)"
 
 $noBullets = Test-ChangelogManagerEntry -Current "## 0.42.0 (2026-09-20)`n`nOnly prose.`n" -ExpectedVersion '0.42.0'
-Assert-True (-not $noBullets.Valid) 'An entry with no scoped bullet, which gets no update badge, was accepted.'
+Assert-True (-not $noBullets.Valid -and $noBullets.Reason -like '*no Instagram change*') `
+    "An entry with no bullet, which shows no update, was not refused for that: $($noBullets.Reason)"
 
-# Hushfacebook's scope is the one a copied bullet would carry.
-$otherScope = Test-ChangelogManagerEntry -Current ($readable -replace '\*\*Instagram:\*\* a third', '**Facebook:** a third') `
-    -ExpectedVersion '0.42.0'
-Assert-True (-not $otherScope.Valid) 'A bullet scoped to another app was accepted.'
-
-# A development-only change is written "* **Tooling:** ...". Manager shows a line only to the app
-# it's scoped to, so it shows these to nobody, which is what they're for: allowed, and not counted
-# as Instagram changes.
-$withTooling = Test-ChangelogManagerEntry -Current ($readable -replace '(\* \*\*Instagram:\*\* a third\.)',
+# A development-only change is written "* **Tooling:** ...": allowed, and not counted as an
+# Instagram change.
+$withTooling = Test-ChangelogManagerEntry -Current ($readable -replace '(\* a third\.)',
     "`$1`n* **Tooling:** a development-only change.") -ExpectedVersion '0.42.0'
 Assert-True ($withTooling.Valid -and $withTooling.Bullets -eq 3) `
     "A Tooling bullet in the released entry was refused or counted: $($withTooling.Reason), $($withTooling.Bullets) bullets"
 $toolingOnly = Test-ChangelogManagerEntry -Current "## 0.42.0 (2026-09-20)`n`n* **Tooling:** only this.`n" -ExpectedVersion '0.42.0'
-Assert-True (-not $toolingOnly.Valid -and $toolingOnly.Reason -like '*no "* **Instagram:** " bullet*') `
-    "An entry with Tooling bullets alone, which gets no update badge, was not refused for that: $($toolingOnly.Reason)"
-$wrappedTooling = Test-ChangelogManagerEntry -Current ($readable -replace '(\* \*\*Instagram:\*\* a third\.)',
+Assert-True (-not $toolingOnly.Valid -and $toolingOnly.Reason -like '*no Instagram change*') `
+    "An entry with Tooling bullets alone, which shows no update, was not refused for that: $($toolingOnly.Reason)"
+$wrappedTooling = Test-ChangelogManagerEntry -Current ($readable -replace '(\* a third\.)',
     "`$1`n* **Tooling:** a development-only`n  change.") -ExpectedVersion '0.42.0'
 Assert-True ($wrappedTooling.Reason -like '*continues the bullet*') `
     "A wrapped Tooling bullet was not held to one line like the others: $($wrappedTooling.Reason)"
@@ -2437,7 +2435,7 @@ function ConvertTo-PreReleaseText([string]$Relative, [string]$Text) {
     if ($Relative -eq 'CHANGELOG.md') {
         $version = [regex]::Escape($preReleaseVersion)
         if ($Text -match "(?ms)^##\s+Unreleased\b(?:(?!^##\s).)*?^###\s+HushGram\s+v$version\s*$") { return $Text }
-        # The version's dated section, bullets unscoped again, as the section Unreleased held. Any
+        # The version's dated section under Unreleased again, any leftover Instagram label off. Any
         # heading Test-ChangelogManagerEntry takes: "## 0.1.0 (date)", a v, a link, a word before.
         $dated = [regex]::Match($Text, ("(?ms)^##\s+(?:\S+\s+)?(?:\[v?$version\]\([^)]*\)|v?$version)\s+" +
                 '\(\d{4}-\d{2}-\d{2}\)[^\r\n]*(?<body>.*?)(?=^##\s|\z)'))
@@ -2599,15 +2597,15 @@ try {
             Edit = { param($text) $text -replace '(?m)^(\s*manager-floor\s*=\s*)"[^"]+"', '${1}"1.99.0"' } },
         @{ File = 'CHANGELOG.md'; Case = 'no section for the version being built'; Pattern = "*does not describe $versionHere, the version this checkout builds*"
             Edit = { param($text) $text -replace ('(?m)^###\s+HushGram\s+v' + [regex]::Escape($versionHere) + '\s*$'), '### HushGram v9.9.9' } },
-        # The checkout may already scope its Unreleased bullets, so the case unscopes the first one
-        # itself rather than relying on the section's wording.
-        @{ File = 'CHANGELOG.md'; Case = 'a dated heading Manager can''t scope'; Pattern = "*Morphe Manager cannot show this release: Line * is a $versionHere bullet*"
+        # The checkout's bullets are each on one line, so the case wraps the first one itself rather
+        # than relying on the section's wording.
+        @{ File = 'CHANGELOG.md'; Case = 'a dated heading over a wrapped bullet'; Pattern = "*Morphe Manager cannot show this release: Line * continues the bullet*"
             Edit = { param($text)
                 $dated = $text -replace ('(?ms)^## Unreleased\s+###\s+HushGram\s+v' + [regex]::Escape($versionHere) + '\s*$'),
                     "## $versionHere (2026-09-30)"
-                # The section may already be dated, and its bullets may all be scoped to a patch.
+                # The section may already be dated.
                 $at = $dated.IndexOf("## $versionHere (")
-                ([regex]'(?m)^\* \*\*(?:Instagram|Tooling)(?: - [^*\r\n]+)?:\*\* ').Replace($dated, '* ', 1, [Math]::Max(0, $at)) } },
+                ([regex]'(?m)^(\* \S+) ').Replace($dated, "`$1`n  ", 1, [Math]::Max(0, $at)) } },
         @{ File = $bugFormRelative; Case = 'a bug form naming another HushGram version'; Pattern = '*bug report form version placeholder*'
             Edit = { param($text) $text -replace '(placeholder:\s*HushGram )\S+', '${1}0.0.1' } },
         @{ File = $bugFormRelative; Case = 'a bug form naming another Instagram build'; Pattern = '*bug report form version placeholder*'
@@ -2619,14 +2617,14 @@ try {
     foreach ($case in $noIndexCases) {
         Assert-FactRefused -Name $case.File -Edit $case.Edit -Pattern $case.Pattern -Case "$($case.Case), before the first release" -Lenient
     }
-    # And the CHANGELOG as a release gives it: a dated heading with Instagram-scoped bullets is read
-    # the way Manager reads it, Tooling bullets allowed and not counted.
+    # And the CHANGELOG as a release gives it: a dated heading with unlabeled bullets is read the
+    # way Manager reads it, Tooling bullets allowed and not counted.
     Set-FactsFile 'CHANGELOG.md' {
-        param($text) "# Changelog`n`n## $versionHere (2026-09-30)`n`n* **Instagram:** One change.`n* **Tooling:** A release check.`n`n## 0.0.1 (2026-09-20)`n`n* **Instagram:** The first set.`n"
+        param($text) "# Changelog`n`n## $versionHere (2026-09-30)`n`n* One change.`n* **Tooling:** A release check.`n`n## 0.0.1 (2026-09-20)`n`n* The first set.`n"
     }
     try {
         $said = Invoke-Facts
-        Assert-True ($said -like "*Morphe Manager can read the $versionHere entry: dated 2026-09-30, 1 bullets scoped Instagram*") `
+        Assert-True ($said -like "*Morphe Manager can read the $versionHere entry: dated 2026-09-30, 1 bullets for Instagram*") `
             "A dated CHANGELOG entry was not read the way Manager reads it: $said"
     } finally {
         Reset-FactsFile 'CHANGELOG.md'
@@ -2739,7 +2737,7 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
     $indexDocument = [ordered]@{
         created_at = '2026-09-30T12:00:00'
         description = ("## [$versionHere](https://github.com/$slugHere/compare/v0.0.1...v$versionHere) (2026-09-30)`n`n" +
-            "### Features`n`n* **Instagram:** Every change, one line each.`n`n" +
+            "### Features`n`n* Every change, one line each.`n`n" +
             "### Validation`n`nValidation: $runtimeQuoted runtime tests passed locally. All $patchQuoted patch tests passed too.")
         download_url = "https://github.com/$slugHere/releases/download/v$versionHere/patches-$versionHere.mpp"
         signature_download_url = ''
@@ -2754,8 +2752,8 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         "The latest release is [v$versionHere]($releaseUrl), with $countHere patches. Add it to Morphe Manager with [this link]($addSource), and it offers all $countHere patches.")
     Set-Content -LiteralPath (Join-Path $factsRoot 'README.md') -Encoding UTF8 -NoNewline -Value $releasedReadme
     Set-Content -LiteralPath (Join-Path $factsRoot 'CHANGELOG.md') -Encoding UTF8 -NoNewline -Value (
-        "# Changelog`n`n## $versionHere (2026-09-30)`n`n* **Instagram:** Every change, one line each.`n`n" +
-        "## 0.0.1 (2026-09-20)`n`n* **Instagram:** An earlier release.`n")
+        "# Changelog`n`n## $versionHere (2026-09-30)`n`n* Every change, one line each.`n`n" +
+        "## 0.0.1 (2026-09-20)`n`n* An earlier release.`n")
     Save-FactsBaseline
 
     $said = Invoke-Facts
@@ -3891,7 +3889,7 @@ try {
     [System.IO.File]::WriteAllText((Join-Path $releaseRepo 'patches-bundle.json'), ([ordered]@{
             created_at = '2026-09-30T12:00:00'
             description = ("## [$releaseVersionHere](https://github.com/$slugHere/compare/v0.0.1...v$releaseVersionHere) (2026-09-30)`n`n" +
-                "### Features`n`n* **Instagram:** Every change, one line each.`n`n" +
+                "### Features`n`n* Every change, one line each.`n`n" +
                 "### Validation`n`nValidation: 5 runtime tests passed locally. All 7 patch tests passed too.")
             download_url = "https://github.com/$slugHere/releases/download/v$releaseVersionHere/patches-$releaseVersionHere.mpp"
             signature_download_url = ''
@@ -3909,7 +3907,7 @@ try {
     $releaseChangelogPath = Join-Path $releaseRepo 'CHANGELOG.md'
     $releasedBefore = [regex]::Match((Get-Content -LiteralPath $releaseChangelogPath -Raw), '(?ms)^##\s+(?!Unreleased\b).*\z')
     Set-Content -LiteralPath $releaseChangelogPath -Encoding UTF8 -NoNewline -Value (
-        "# Changelog`n`n## $releaseVersionHere (2026-09-30)`n`n* **Instagram:** Every change, one line each.`n" +
+        "# Changelog`n`n## $releaseVersionHere (2026-09-30)`n`n* Every change, one line each.`n" +
         $(if ($releasedBefore.Success) { "`n" + $releasedBefore.Value } else { '' }))
     Invoke-FixtureGit -Root $releaseRepo -Arguments @('add', '-A') | Out-Null
     Invoke-FixtureGit -Root $releaseRepo -Arguments @('commit', '-m', 'index', '--quiet') | Out-Null

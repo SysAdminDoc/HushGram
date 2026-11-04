@@ -604,16 +604,20 @@ function Test-ChangelogManagerEntry {
     .SYNOPSIS
         Whether Morphe Manager can show the entry for the version being released.
     .DESCRIPTION
-        Manager fetches this file from main and reads it with its own parser (ChangelogParser,
-        Manager 1.30.0). A heading only counts when it ends in a date, "## 0.41.0 (2026-09-18)",
-        and an app only gets its update badge when a bullet is scoped to it, "* **Instagram:** ...".
-        Scoped lines are kept one line at a time, so a bullet wrapped onto a second line loses
-        the rest. In Hushfacebook every heading from 0.23.0 to 0.40.0 was bare, Manager's list stopped at 0.22.0
-        and every update showed nothing, and no gate noticed, because Test-ChangelogVersions
-        reads its own heading pattern, which the bare headings matched.
+        Manager fetches this file from main and reads it with its own parser (ChangelogParser).
+        A heading only counts when it ends in a date, "## 0.41.0 (2026-09-18)", and lines are
+        kept one at a time, so a bullet wrapped onto a second line loses the rest. In Hushfacebook
+        every heading from 0.23.0 to 0.40.0 was bare, Manager's list stopped at 0.22.0 and every
+        update showed nothing, and no gate noticed, because Test-ChangelogVersions reads its own
+        heading pattern, which the bare headings matched.
+
+        From Manager 2.2.0 a source with one app shows its whole changelog, so a bullet needs no
+        app label. HushGram's floor is 2.3.0, and its bullets dropped "**Instagram:**" on
+        2026-11-04. An unlabeled bullet, a topic ("* **Glass tab bar:** ...") and a leftover
+        "* **Instagram:** ..." all count as Instagram changes. "* **Tooling:** ..." bullets, the
+        development-only entries, are allowed and not counted. A release needs at least one change.
 
         Only the section being released is held to this. Older sections are frozen as shipped.
-        "* **Tooling:** ..." bullets, the development-only entries, are allowed and not counted.
         Answers @{ Valid; Reason; Date; Bullets }.
     #>
     param(
@@ -655,17 +659,10 @@ function Test-ChangelogManagerEntry {
         if ($line -match '^#{1,2}(?!#)\s') { break }
         if ($line -match '^\s*[*+-]\s') {
             $scope = [regex]::Match($line, $managerScope)
-            # A development-only change, the CHANGELOG's other scope. Manager shows a line only to
-            # the app it's scoped to, so it shows these to nobody: allowed, and not counted.
+            # A development-only change. Allowed, and not counted as a change to the app.
             if ($scope.Success -and $scope.Groups[1].Value -ceq 'Tooling') {
                 $previousWasBullet = $true
                 continue
-            }
-            if (-not $scope.Success -or -not ($scope.Groups[1].Value -eq $App -or
-                    $scope.Groups[1].Value.StartsWith("$App - "))) {
-                return Fail ("Line $($i + 1) is a $ExpectedVersion bullet Morphe Manager does not " +
-                    "scope to $App, so it is not counted as a $App change. Start it with " +
-                    """* **${App}:** "": $line")
             }
             $bullets++
             $previousWasBullet = $true
@@ -673,13 +670,13 @@ function Test-ChangelogManagerEntry {
         }
         if ($previousWasBullet -and -not [string]::IsNullOrWhiteSpace($line) -and $line -notmatch '^#') {
             return Fail ("Line $($i + 1) continues the bullet above it, and Morphe Manager keeps " +
-                "scoped lines one at a time, so it would drop this text. Join it onto one line: $line")
+                "lines one at a time, so it would drop this text. Join it onto one line: $line")
         }
         $previousWasBullet = $false
     }
     if ($bullets -eq 0) {
-        return Fail ("The $ExpectedVersion entry has no ""* **${App}:** "" bullet, so Morphe " +
-            "Manager shows no update for $App.")
+        return Fail ("The $ExpectedVersion entry has no $App change, only ""* **Tooling:** "" " +
+            "bullets or none, so Morphe Manager shows no update for $App.")
     }
 
     return [pscustomobject]@{ Valid = $true; Reason = 'ok'; Date = $heading.Groups[3].Value; Bullets = $bullets }

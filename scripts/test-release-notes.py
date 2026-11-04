@@ -18,7 +18,6 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import io
-import json
 import pathlib
 import re
 import sys
@@ -110,9 +109,8 @@ def notes_for_unreleased():
         # Right after a release is cut, Unreleased is empty and the newest release is what ships.
         newest = re.search(r"^## (\d+\.\d+\.\d+) \(", changelog, re.M).group(1)
         section, _, previous = notes.read_section(changelog, newest)
-    patches = notes.read_patches(ROOT / "patches-list.json")
     body, carried = notes.build_notes(section, "Validation: 1 runtime tests passed locally. All 2 patch tests passed too.",
-                                      "9.9.9", "2026-01-02", previous, patches)
+                                      "9.9.9", "2026-01-02", previous)
     bullets = [b for bs in notes.read_bullets(section).values() for b in bs]
     return body, carried, bullets, previous
 
@@ -155,10 +153,10 @@ class ReleaseNotesTests(unittest.TestCase):
         changes = sum(1 for title, items in by_title.items() if title != "Validation" for i in items if i[2])
         self.assertEqual(changes, len(self.bullets))
         self.assertEqual(changes, self.carried)
-        # Manager reads every item of the three sections as a scoped bullet, not as a loose note
+        # Manager reads every item of the three sections as a bullet, not as a loose note
         for title in ("Features", "Bug Fixes", "Improvements"):
             for scope, text, is_bullet in by_title.get(title, []):
-                self.assertTrue(is_bullet and scope and text, (title, scope, text[:60]))
+                self.assertTrue(is_bullet and text, (title, scope, text[:60]))
 
     def test_validation_is_the_last_section_and_one_note(self):
         kind, title, items = self.sections[-1]
@@ -167,11 +165,13 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertFalse(items[0][2])
         self.assertIn("runtime tests passed locally", items[0][1])
 
-    def test_every_scope_is_instagram_or_tooling(self):
+    def test_no_bullet_carries_the_instagram_label(self):
+        # HushGram only patches Instagram, so a bullet has no label, Tooling or its topic. Manager
+        # 2.2.0 and newer show a single-app source's whole list, so none has to name the app.
         for _, title, items in self.sections:
             for scope, text, is_bullet in items:
-                if is_bullet:
-                    self.assertTrue(matches_scope(scope, ["Instagram"]) or scope == "Tooling", (title, scope))
+                if is_bullet and scope:
+                    self.assertFalse(matches_scope(scope, ["Instagram"]), (title, scope))
 
     def test_no_commit_link_or_image_is_left(self):
         self.assertIsNone(notes.COMMIT_LINK_RE.search(self.body))
@@ -193,20 +193,20 @@ def words(count):
 
 
 def feature(text):
-    return "\n### Features\n\n* **Instagram:** " + text + "\n"
+    return "\n### Features\n\n* " + text + "\n"
 
 
 class RefusalTests(unittest.TestCase):
-    SECTION = "\n### Features\n\n* **Instagram:** A new row.\n\n### Bug Fixes\n\n* **Instagram:** `Hide Meta AI` has a fix.\n"
-    # The shape sections from 0.0.17 and before were written in.
-    OLD_SECTION = "\n### Features\n\n* **Instagram:** A new row.\n\n### Bug Fixes\n\n* **Instagram - Hide Meta AI:** A fix.\n"
+    SECTION = "\n### Features\n\n* A new row.\n\n### Bug Fixes\n\n* `Hide Meta AI` has a fix.\n"
+    # Bullets as they opened until 2026-11-04, with the Instagram label in front.
+    LABELED_SECTION = "\n### Features\n\n* **Instagram:** A new row.\n\n### Bug Fixes\n\n* **Instagram - Hide Meta AI:** A fix.\n"
     VALIDATION = "Validation: 1 runtime tests passed locally. All 1 patch tests passed too."
 
-    def build(self, section, patches=None, version="1.0.0"):
-        return notes.build_notes(section, self.VALIDATION, version, "2026-01-02", "0.9.0", patches)
+    def build(self, section, version="1.0.0"):
+        return notes.build_notes(section, self.VALIDATION, version, "2026-01-02", "0.9.0")
 
     def test_clean_section_builds(self):
-        body, carried = self.build(self.SECTION, {"Hide Meta AI"})
+        body, carried = self.build(self.SECTION)
         self.assertEqual(carried, 2)
         self.assertTrue(body.endswith("### Validation\n\n" + self.VALIDATION + "\n"))
 
@@ -216,7 +216,7 @@ class RefusalTests(unittest.TestCase):
 
     def test_updates_can_contain_only_fixes_or_improvements(self):
         for title, kind in (("Bug Fixes", "FIXES"), ("Improvements", "IMPROVEMENTS")):
-            section = f"\n### {title}\n\n* **Instagram:** A clearer row.\n"
+            section = f"\n### {title}\n\n* A clearer row.\n"
             body, carried = self.build(section)
             self.assertEqual(carried, 1)
             self.assertEqual(manager_sections(body.split("\n", 1)[1])[0][:2], (kind, title))
@@ -225,28 +225,26 @@ class RefusalTests(unittest.TestCase):
         for section in (
             "### HushGram v1.0.0\n" + self.SECTION,
             self.SECTION + "\n### HushGram v1.0.0\n",
-            "### HushGram v1.0.0\n### HushGram v1.0.0\n#### Features\n* **Instagram:** A row.\n",
-            "### HushGram v1.0\n#### Features\n* **Instagram:** A row.\n",
-            "#### Features\n* **Instagram:** A row.\n",
+            "### HushGram v1.0.0\n### HushGram v1.0.0\n#### Features\n* A row.\n",
+            "### HushGram v1.0\n#### Features\n* A row.\n",
+            "#### Features\n* A row.\n",
         ):
             with self.subTest(section=section), self.assertRaises(notes.NotesError):
                 self.build(section)
 
     def test_refusals(self):
         cases = {
-            "bullet outside a heading": ("* **Instagram:** A summary.\n* **Instagram:** A new row.\n", "outside a type sub-heading"),
-            "tooling summary": ("* **Tooling:** A summary.\n" + self.SECTION,"only one **Instagram:** summary"),
-            "summary inside a version wrapper": ("\n### HushGram v1.0.0\n* **Instagram:** A summary.\n#### Features\n* **Instagram:** A row.\n",
+            "bullet outside a heading": ("* A summary.\n* A new row.\n", "outside a type sub-heading"),
+            "tooling summary": ("* **Tooling:** A summary.\n" + self.SECTION, "only one summary with no label"),
+            "summary inside a version wrapper": ("\n### HushGram v1.0.0\n* A summary.\n#### Features\n* A row.\n",
                                                  "outside a type sub-heading"),
-            "unknown sub-heading": ("\n### Changes\n\n* **Instagram:** A row.\n", "unknown sub-heading"),
-            "unscoped bullet": ("\n### Features\n\n* A new row.\n", "has no scope"),
-            "unknown scope": ("\n### Features\n\n* **Docs:** A new row.\n", "unknown scope Docs"),
-            "bare patch name as scope": ("\n### Features\n\n* **Hide Meta AI:** A row.\n", "unknown scope Hide Meta AI"),
+            "unknown sub-heading": ("\n### Changes\n\n* A row.\n", "unknown sub-heading"),
             "no bullets": ("\n### Features\n\n", "no bullets"),
-            "em dash": ("\n### Features\n\n* **Instagram:** A row — here.\n", "dash"),
-            "spaced hyphen": ("\n### Features\n\n* **Instagram:** A row - here.\n", "dash"),
-            "commit link": ("\n### Features\n\n* **Instagram:** A row ([abc1234](https://x/commit/abc1234)).\n", "commit link"),
-            "image": ("\n### Features\n\n* **Instagram:** A row ![x](y.png).\n", "image"),
+            "em dash": ("\n### Features\n\n* A row — here.\n", "dash"),
+            "spaced hyphen": ("\n### Features\n\n* A row - here.\n", "dash"),
+            "spaced hyphen in a label": ("\n### Features\n\n* **Tooling - Notes:** A row.\n", "dash"),
+            "commit link": ("\n### Features\n\n* A row ([abc1234](https://x/commit/abc1234)).\n", "commit link"),
+            "image": ("\n### Features\n\n* A row ![x](y.png).\n", "image"),
             "41 word bullet": (feature(words(41)), "runs 41 words"),
             "41 words before a credit": (feature(words(41) + " Asked for in #1."), "runs 41 words"),
             "credit that isn't last": (feature(words(39) + " Refs #89. More."), "runs 42 words"),
@@ -265,20 +263,29 @@ class RefusalTests(unittest.TestCase):
                 self.assertEqual(carried, 1)
                 self.assertIn(words(40) + credit + "\n", body)
 
-    def test_unknown_patch_scope(self):
-        with self.assertRaises(notes.NotesError) as error:
-            self.build(self.OLD_SECTION, {"Something else"}, version="0.0.17")
-        self.assertIn("isn't a patch", str(error.exception))
+    def test_labels_a_bullet_may_open_with(self):
+        # No label and a topic are Instagram changes, and Tooling is one behind the scenes.
+        for bullet in ("A row.", "**Hide Meta AI:** A row.", "**Settings:** A row.", "**Tooling:** A script."):
+            with self.subTest(bullet):
+                body, carried = self.build(feature(bullet))
+                self.assertEqual(carried, 1)
+                self.assertIn("\n* " + bullet + "\n", body)
+        # A label isn't one of the 40 words, whichever it is.
+        for label in ("**Glass tab bar:** ", "**Instagram:** ", "**Instagram - Glass tab bar:** "):
+            with self.subTest(label):
+                self.assertEqual(self.build(feature(label + words(40)))[1], 1)
+                with self.assertRaises(notes.NotesError) as error:
+                    self.build(feature(label + words(41)))
+                self.assertIn("runs 41 words", str(error.exception))
 
-    def test_patch_scopes_end_after_0_0_17(self):
-        for version in ("0.0.2", "0.0.16", "0.0.17"):
+    def test_the_instagram_label_is_dropped_in_any_release(self):
+        for version in ("0.0.2", "0.0.17", "0.0.18", "1.0.0"):
             with self.subTest(version):
-                self.assertEqual(self.build(self.OLD_SECTION, {"Hide Meta AI"}, version)[1], 2)
-        for version in ("0.0.18", "0.1.0", "1.0.0"):
-            with self.subTest(version), self.assertRaises(notes.NotesError) as error:
-                self.build(self.OLD_SECTION, {"Hide Meta AI"}, version)
-            self.assertIn("name the patch in the text", str(error.exception))
-        self.assertFalse(notes.takes_patch_scopes(None))
+                body, carried = self.build(self.LABELED_SECTION, version)
+                self.assertEqual(carried, 2)
+                self.assertIn("\n* A new row.\n", body)
+                self.assertIn("\n* **Hide Meta AI:** A fix.\n", body)
+                self.assertNotIn("**Instagram", body)
 
     def test_validation_is_one_line(self):
         with self.assertRaises(notes.NotesError):
@@ -289,62 +296,68 @@ class RefusalTests(unittest.TestCase):
         self.assertTrue(body.startswith("## 1.0.0 (2026-01-02)\n"))
 
     def test_summary_stays_out_of_the_description(self):
-        body, carried = self.build("* **Instagram:** The summary.\n" + self.SECTION, {"Hide Meta AI"})
+        body, carried = self.build("* The summary.\n" + self.SECTION)
         self.assertEqual(carried, 2)
         self.assertNotIn("The summary.", body)
-        self.assertEqual(body, self.build(self.SECTION, {"Hide Meta AI"})[0])
+        self.assertEqual(body, self.build(self.SECTION)[0])
+        # A summary still labeled Instagram is the same summary.
+        self.assertEqual(self.build("* **Instagram:** The summary.\n" + self.SECTION), (body, carried))
 
     def test_long_summary_and_dash(self):
         for summary, said in ((words(121), "summary runs 121 words"), ("A summary - here.", "dash")):
             with self.subTest(said), self.assertRaises(notes.NotesError) as error:
-                self.build("* **Instagram:** " + summary + "\n" + self.SECTION)
+                self.build("* " + summary + "\n" + self.SECTION)
             self.assertIn(said, str(error.exception))
-        self.build("* **Instagram:** " + words(120) + "\n" + self.SECTION)
-
-    def test_unreleased_takes_no_patch_scope(self):
-        found = notes.read_bullets(self.OLD_SECTION)
-        notes.check_scopes(found, {"Hide Meta AI"})
-        with self.assertRaises(notes.NotesError) as error:
-            notes.check_scopes(found, {"Hide Meta AI"}, patch_scopes=False)
-        self.assertIn("name the patch in the text", str(error.exception))
+        self.build("* " + words(120) + "\n" + self.SECTION)
 
 
 class CheckCommandTests(unittest.TestCase):
-    """release_notes.py --check, which hands --version to the patch scope rule."""
+    """release_notes.py --check and --drop-labels, on Unreleased or the section --version names."""
+    CHANGELOG = "# Changelog\n\n## Unreleased\n" + "".join(
+        f"{RefusalTests.LABELED_SECTION}\n## {heading}\n" for heading in ("0.0.18 (2026-11-01)", "0.0.17 (2026-10-28)")
+    ) + RefusalTests.LABELED_SECTION
+    DROPPED_SECTION = "\n### Features\n\n* A new row.\n\n### Bug Fixes\n\n* **Hide Meta AI:** A fix.\n"
 
-    def check(self, *version):
-        changelog = "# Changelog\n\n## Unreleased\n" + "".join(
-            f"{RefusalTests.OLD_SECTION}\n## {heading}\n" for heading in ("0.0.18 (2026-11-01)", "0.0.17 (2026-10-28)"))
-        changelog += RefusalTests.OLD_SECTION
+    def run_notes(self, *args):
+        """Exit code, what it printed and the CHANGELOG afterwards. No patches-list.json beside it."""
         with tempfile.TemporaryDirectory() as folder:
-            path = pathlib.Path(folder)
-            (path / "CHANGELOG.md").write_text(changelog, encoding="utf-8")
-            (path / "patches-list.json").write_text(json.dumps({"patches": [{"name": "Hide Meta AI"}]}), encoding="utf-8")
+            path = pathlib.Path(folder) / "CHANGELOG.md"
+            path.write_text(self.CHANGELOG, encoding="utf-8", newline="\n")
             said = io.StringIO()
-            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(said):
-                code = notes.main(["--changelog", str(path / "CHANGELOG.md"), "--check", *version])
-        return code, said.getvalue()
+            with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
+                code = notes.main(["--changelog", str(path), *args])
+            return code, said.getvalue(), path.read_text(encoding="utf-8")
 
-    def test_version_picks_the_scope_rule(self):
-        self.assertEqual(self.check("--version", "0.0.17"), (0, ""))
-        for version in (("--version", "0.0.18"), ()):
+    def test_check_takes_a_leftover_label_in_any_section(self):
+        for version in (("--version", "0.0.17"), ("--version", "0.0.18"), ()):
             with self.subTest(version):
-                code, said = self.check(*version)
-                self.assertEqual(code, 1)
-                self.assertIn("name the patch in the text", said)
+                code, said, text = self.run_notes("--check", *version)
+                self.assertEqual(code, 0, said)
+                self.assertIn("2 still open with the Instagram label", said)
+                self.assertEqual(text, self.CHANGELOG)
+
+    def test_drop_labels_rewrites_only_its_section(self):
+        code, said, text = self.run_notes("--drop-labels", "--version", "0.0.18")
+        self.assertEqual(code, 0, said)
+        self.assertIn("0.0.18: took the Instagram label off 2 bullets", said)
+        heading = "## 0.0.18 (2026-11-01)\n"
+        self.assertEqual(text, self.CHANGELOG.replace(heading + RefusalTests.LABELED_SECTION, heading + self.DROPPED_SECTION))
+        code, said, text = self.run_notes("--drop-labels")
+        self.assertIn("Unreleased: took the Instagram label off 2 bullets", said)
+        self.assertTrue(text.startswith("# Changelog\n\n## Unreleased\n" + self.DROPPED_SECTION + "\n## 0.0.18 "))
+        self.assertEqual(text.count("**Instagram"), 4)
 
 
 class GitHubNotesTests(unittest.TestCase):
     """The GitHub release body, laid out like Hushfacebook's."""
-    SECTION = ("* **Instagram:** The **summary** of it.\n\n### Improvements\n\n* **Tooling:** A script.\n"
-               "* **Instagram:** A clearer row.\n\n### Features\n\n* **Instagram:** `Hide Meta AI` has a new row.\n\n"
-               "### Bug Fixes\n\n* **Instagram - Hide Meta AI:** A fix.\n")
+    SECTION = ("* The **summary** of it.\n\n### Improvements\n\n* **Tooling:** A script.\n"
+               "* A clearer row.\n\n### Features\n\n* `Hide Meta AI` has a new row.\n\n"
+               "### Bug Fixes\n\n* **Hide Meta AI:** A fix.\n")
     VALIDATION = "Validation: 1 runtime tests passed locally. All 1 patch tests passed too."
 
-    # SECTION's patch scope is the 0.0.17 shape, which plain() still has to write out.
-    def build(self, section, summary=None, checked=None, version: str | None = "0.0.17"):
-        return notes.build_github_notes(section, self.VALIDATION, "453.0.0.57.79", "2.0.0", {"Hide Meta AI"},
-                                        summary, checked, version)
+    # SECTION's topic label is one plain() writes in front of the text.
+    def build(self, section, summary=None, checked=None):
+        return notes.build_github_notes(section, self.VALIDATION, "453.0.0.57.79", "2.0.0", summary, checked)
 
     def test_layout(self):
         body, carried = self.build(self.SECTION, checked="The walk passed.")
@@ -371,7 +384,7 @@ class GitHubNotesTests(unittest.TestCase):
         section = self.SECTION.split("\n", 1)[1]
         body, _ = self.build(section, summary="A summary\nover two lines.\n")
         self.assertTrue(body.startswith("A summary over two lines.\n\nNew in this release\n"))
-        for summary, said in ((None, "no **Instagram:** summary"), ("Too - dashed.", "dash")):
+        for summary, said in ((None, "no summary bullet"), ("Too - dashed.", "dash")):
             with self.subTest(said), self.assertRaises(notes.NotesError) as error:
                 self.build(section, summary=summary)
             self.assertIn(said, str(error.exception))
@@ -379,11 +392,11 @@ class GitHubNotesTests(unittest.TestCase):
             self.build(self.SECTION, summary="Another.")
         self.assertIn("pick one", str(error.exception))
 
-    def test_newer_release_refuses_a_patch_scope(self):
-        for version in ("0.0.18", None):
-            with self.subTest(version), self.assertRaises(notes.NotesError) as error:
-                self.build(self.SECTION, version=version)
-            self.assertIn("name the patch in the text", str(error.exception))
+    def test_a_leftover_instagram_label_changes_nothing(self):
+        labeled = (self.SECTION.replace("* The", "* **Instagram:** The").replace("* A clearer", "* **Instagram:** A clearer")
+                   .replace("* **Hide Meta AI:**", "* **Instagram - Hide Meta AI:**"))
+        self.assertEqual(labeled.count("**Instagram"), 3)
+        self.assertEqual(self.build(labeled, checked="The walk passed."), self.build(self.SECTION, checked="The walk passed."))
 
     def test_newest_changelog_section(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
@@ -392,8 +405,7 @@ class GitHubNotesTests(unittest.TestCase):
         summary = None if notes.read_summary(section) else "A summary."
         body, carried = notes.build_github_notes(
             section, "Validation: 1 runtime tests passed locally.", notes.read_target(ROOT / "patches-list.json"),
-            notes.read_manager_floor(ROOT / "gradle" / "libs.versions.toml"), notes.read_patches(ROOT / "patches-list.json"),
-            summary, version=newest)
+            notes.read_manager_floor(ROOT / "gradle" / "libs.versions.toml"), summary)
         self.assertEqual(carried, sum(len(b) for b in notes.read_bullets(section).values()))
         self.assertNotIn("**Instagram", body)
         self.assertNotIn("**Tooling", body)

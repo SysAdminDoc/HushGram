@@ -12,7 +12,7 @@
        description test counts, no build outputs read). With -Version, which means a release, the
        source census too: the index push refuses one past its 14 days, and that push comes after
        the gate, the walk and the publish.
-    4. The CHANGELOG section the notes are built from: every bullet scoped, no dashes.
+    4. The CHANGELOG section the notes are built from: every bullet typed and short, no dashes.
     5. The tests a code-only commit left stale, read from the sources in under a second: every
        method verifyAndroidBoundaries requires is still a test method, and every text the settings
        tests expect is still in the extension sources or the translation tables.

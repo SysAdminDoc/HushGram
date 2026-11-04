@@ -94,11 +94,13 @@ try {
 
     $notesDir = Join-Path $scratch 'notes'
     $changelog = Join-Path $notesDir 'CHANGELOG.md'
-    $goodChangelog = "# Changelog`n`n## Unreleased`n`n### Improvements`n`n* **Tooling:** A script change.`n`n### Features`n`n* **Instagram:** A patch change.`n`n" +
-        "## 0.0.2 (2026-10-01)`n`n* **Instagram:** A short summary.`n`n### Improvements`n`n* **Tooling:** The tooling line.`n`n### Features`n`n* **Instagram:** First patch line.`n`n" +
-        "* **Instagram - Hide Meta AI:** Second patch line,`n  carried on.`n`n## 0.0.1 (2026-09-01)`n`n### Features`n`n* **Instagram:** The first release.`n"
+    # Bullets carry no app label since 2026-11-04. The 0.0.2 topic bullet keeps the "Instagram - "
+    # written before then, which every output drops.
+    $goodChangelog = "# Changelog`n`n## Unreleased`n`n### Improvements`n`n* **Tooling:** A script change.`n`n### Features`n`n* A patch change.`n`n" +
+        "## 0.0.2 (2026-10-01)`n`n* A short summary.`n`n### Improvements`n`n* **Tooling:** The tooling line.`n`n### Features`n`n* First patch line.`n`n" +
+        "* **Instagram - Hide Meta AI:** Second patch line,`n  carried on.`n`n## 0.0.1 (2026-09-01)`n`n### Features`n`n* The first release.`n"
     Write-Text $changelog $goodChangelog
-    # The builder checks each scoped bullet's patch against the catalog beside the CHANGELOG.
+    # The GitHub notes name the newest Instagram build in the catalog beside the CHANGELOG.
     Write-Text (Join-Path $notesDir 'patches-list.json') ([IO.File]::ReadAllText((Join-Path $Root 'patches-list.json')))
     Write-Text (Join-Path $notesDir 'libs.versions.toml') "[versions]`nmanager-floor = `"9.9.9`"`n"
     Write-Text (Join-Path $notesDir 'validation.md') 'Validation: 5 runtime tests passed locally. All 6 patch tests passed too.'
@@ -124,15 +126,22 @@ try {
             '5 runtime tests passed locally. All 6 patch tests passed too.') -join "`n`n") + "`n"
     Assert-True ($notes -ceq $expected) "The GitHub notes aren't Hushfacebook's layout with every bullet once: $notes"
     $description = if (Test-Path -LiteralPath $descriptionOut) { [IO.File]::ReadAllText($descriptionOut) | ConvertFrom-Json } else { '' }
-    Assert-True ($description -ceq ("$heading`n`n### Features`n`n* **Instagram:** First patch line.`n* **Instagram - Hide Meta AI:** Second patch line, carried on.`n`n" +
+    Assert-True ($description -ceq ("$heading`n`n### Features`n`n* First patch line.`n* **Hide Meta AI:** Second patch line, carried on.`n`n" +
             "### Improvements`n`n* **Tooling:** The tooling line.`n`n### Validation`n`nValidation: 5 runtime tests passed locally. All 6 patch tests passed too.")) `
         "The bundle description isn't the version heading, the typed sections and the validation line: $description"
     $run = Invoke-Notes @('--check')
     Assert-True ($run.Exit -eq 0 -and $run.Output -like '*Unreleased: 2 bullets (1 Features, 1 Improvements)*') "The Unreleased check didn't pass: $($run.Output)"
+    # A topic and a leftover Instagram label both pass, and --drop-labels takes the label off that
+    # section alone.
+    Write-Text $changelog $goodChangelog.Replace('* A patch change.', "* **Instagram:** A patch change.`n* **Glass tab bar:** A topic change.")
+    $run = Invoke-Notes @('--check')
+    Assert-True ($run.Exit -eq 0 -and $run.Output -like '*Unreleased: 3 bullets*1 still open with the Instagram label*') `
+        "The check refused a topic or a leftover label, or didn't count the label: $($run.Output)"
+    $run = Invoke-Notes @('--drop-labels')
+    $dropped = [IO.File]::ReadAllText($changelog)
+    Assert-True ($run.Exit -eq 0 -and $dropped.Contains("* A patch change.`n* **Glass tab bar:** A topic change.") -and
+        $dropped.Contains('* **Instagram - Hide Meta AI:**')) "--drop-labels missed Unreleased's label or reached into 0.0.2: $($run.Output)"
     foreach ($case in @(
-            @{ Name = 'an unscoped bullet'; Text = $goodChangelog.Replace('* **Tooling:** The tooling line.', '* The tooling line.'); Said = '*has no scope*' },
-            @{ Name = 'an unknown scope'; Text = $goodChangelog.Replace('**Tooling:** The tooling', '**Docs:** The tooling'); Said = '*unknown scope Docs*' },
-            @{ Name = 'a bare patch name as scope'; Text = $goodChangelog.Replace('**Instagram - Hide Meta AI:**', '**Hide Meta AI:**'); Said = '*unknown scope Hide Meta AI*' },
             @{ Name = 'a bullet outside any type heading'; Text = $goodChangelog.Replace("### Improvements`n`n", ''); Said = '*outside a type sub-heading*' },
             @{ Name = 'an unknown sub-heading'; Text = $goodChangelog.Replace('### Improvements', '### Changes'); Said = '*unknown sub-heading*' },
             @{ Name = 'an em dash'; Text = $goodChangelog.Replace('First patch line.', "First patch line $([char]0x2014) with a dash."); Said = '*dash*' },
@@ -609,14 +618,14 @@ exit [int]$env:HUSHGRAM_HELPERS_GRADLE_EXIT
     Assert-True ($run.Exit -eq 1 -and $run.Output -like "*verify-all-patches.ps1 exited 1 on $declared*" -and
         $verifyDir -and -not (Test-Path -LiteralPath $verifyDir)) `
         "A failed patch run passed the preflight or left its work folder: $($run.Output)"
-    Write-Text (Join-Path $repo 'CHANGELOG.md') $goodChangelog.Replace('* **Tooling:** A script change.', '* A script change.')
+    Write-Text (Join-Path $repo 'CHANGELOG.md') $goodChangelog.Replace('* **Tooling:** A script change.', '* **Tooling:** A script change - with a dash.')
     $run = Invoke-Preflight @('-SkipGradle')
     Assert-True ($run.Exit -eq 1 -and $run.Output -like '*uncommitted changes to tracked files*' -and (Read-Log).Count -eq 0) `
         "The preflight ran on a checkout with uncommitted changes: $($run.Output)"
-    Invoke-RepoGit -c user.name=SysAdminDoc -c user.email=matt_parker@outlook.com commit -q -am 'unscoped bullet' | Out-Null
+    Invoke-RepoGit -c user.name=SysAdminDoc -c user.email=matt_parker@outlook.com commit -q -am 'dashed bullet' | Out-Null
     $run = Invoke-Preflight @('-SkipGradle')
-    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*has no scope*' -and $run.Output -like '*refused after*the CHANGELOG section for the notes*') `
-        "An unscoped CHANGELOG bullet passed the preflight: $($run.Output)"
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*dash*' -and $run.Output -like '*refused after*the CHANGELOG section for the notes*') `
+        "A CHANGELOG bullet with a dash passed the preflight: $($run.Output)"
     Invoke-RepoGit reset -q --hard $preflightHead | Out-Null
     $repoTest = Join-Path $repo "extensions/instagram/src/test/java/$settingsPackage/FixtureTest.java"
     Write-Text $repoTest ([IO.File]::ReadAllText($repoTest).Replace('void keepsItsName()', 'void keptItsName()'))
