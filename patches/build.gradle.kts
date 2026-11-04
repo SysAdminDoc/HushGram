@@ -1244,7 +1244,8 @@ tasks {
             if (signingPublic.isFile) {
                 signBundle(releaseBundle, signingKey.orNull, signingPublic.readText().trim())
             } else if (!signingKey.orNull.isNullOrBlank()) {
-                throw GradleException("MORPHE_SIGNING_KEY is set, but there's no morphe-signing.pub to publish its key.")
+                logger.warn("MORPHE_SIGNING_KEY is set, but there's no morphe-signing.pub to publish its key, " +
+                    "so $releaseBundleName stays unsigned.")
             }
             if (unheldChanges == null) {
                 logger.warn("git couldn't say whether the working tree matches HEAD, so $releaseBundleName is " +
