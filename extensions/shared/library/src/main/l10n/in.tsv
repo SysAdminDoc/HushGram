@@ -767,6 +767,7 @@ Small, under the picture	Kecil, di bawah foto
 The chip sits under the posts, followers and following counts.	Chip ada di bawah jumlah postingan, pengikut, dan diikuti.
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	Chip yang lebih kecil, di tengah bawah foto profil. Profil yang tidak punya ruang di sana menampilkan chip kecil di bawah jumlah.
 Turn on Show it as a chip to use this choice.	Aktifkan Tampilkan sebagai chip untuk menggunakan pilihan ini.
+Turn on Show if a profile follows you to use this choice.	Aktifkan Tampilkan apakah profil mengikuti kamu untuk menggunakan pilihan ini.
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	Bilah Tambahkan komentar di bawah reel yang Anda buka dari postingan ulang di profil. Tombol komentar tetap membuka komentar.
 Hide the comment bar on all reels	Sembunyikan bilah komentar di semua reel
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	Bilah Tambahkan komentar di bawah setiap reel, termasuk yang ada di tab Reels. Tombol komentar tetap membuka komentar.
@@ -1313,6 +1314,8 @@ Takes the voice and video call buttons off the top of a chat. The name keeps its
 Buttons in the message box	Tombol di kotak pesan
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Semua tombol di kotak pesan ditampilkan. Hapus centang pada yang tidak kamu pakai. Kotak teks dan Kirim selalu tetap ada.
 Left off the message box: %1$s. The text box and Send stay.	Dihilangkan dari kotak pesan: %1$s. Kotak teks dan Kirim tetap ada.
+Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send always stay.	Galeri dan Pesan suara ada di menu plus selama Galeri dan mikrofon di menu plus aktif. Kotak teks dan Kirim selalu tetap ada.
+Left off the message box: %1$s. Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send stay.	Dihilangkan dari kotak pesan: %1$s. Galeri dan Pesan suara ada di menu plus selama Galeri dan mikrofon di menu plus aktif. Kotak teks dan Kirim tetap ada.
 Gallery	Galeri
 Stickers	Stiker
 Voice message	Pesan suara

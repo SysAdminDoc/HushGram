@@ -1104,18 +1104,34 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** What the buttons left off in [saved] do, for the row's summary. */
+    /** What the buttons left off in [saved] do, for the row's summary, with the plus menu switch as saved. */
     static String messageBoxSummary(String saved) {
+        return messageBoxSummary(saved, PatchFamily.PLUS_MENU.inBuild() && Settings.MOVE_TO_PLUS_MENU.savedValue());
+    }
+
+    /**
+     * The summary for [saved] with Gallery and microphone in the plus menu [moved] or not. Moved, the
+     * bar leaves Gallery and Voice message out whatever's ticked here ({@link MessageBox}), so the
+     * summary says where they went rather than calling them shown or left off.
+     */
+    static String messageBoxSummary(String saved, boolean moved) {
         Set<String> hidden = MessageBox.parse(saved);
-        if (hidden.isEmpty()) {
-            return L10n.t("Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.");
-        }
         List<String> labels = new ArrayList<>();
         for (String name : MessageBox.OFFERED) {
+            if (moved && ("GALLERY".equals(name) || "VOICE_MESSAGE".equals(name))) continue;
             if (hidden.contains(name)) labels.add(L10n.isolate(messageBoxLabel(name)));
         }
+        if (labels.isEmpty()) {
+            return moved
+                    ? L10n.t("Gallery and Voice message are in the plus menu while Gallery and microphone in the plus "
+                            + "menu is on. The text box and Send always stay.")
+                    : L10n.t("Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.");
+        }
         String left = String.join(", ", labels);
-        return L10n.f("Left off the message box: %1$s. The text box and Send stay.", left);
+        return moved
+                ? L10n.f("Left off the message box: %1$s. Gallery and Voice message are in the plus menu while Gallery "
+                        + "and microphone in the plus menu is on. The text box and Send stay.", left)
+                : L10n.f("Left off the message box: %1$s. The text box and Send stay.", left);
     }
 
     /** What the message box list calls the button Instagram names [name]. */
@@ -6042,6 +6058,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     ? L10n.t("Removes For you from the choices at the top of Home, so it stays on Following or "
                             + "Favorites. Needs Start Home on Following. Restart Instagram to see the change.")
                     : L10n.t("Turn on Start Home on Following to use this choice."));
+        } else if (setting == Settings.HIDDEN_MESSAGE_BOX_BUTTONS) {
+            // Gallery and microphone in the plus menu changes what the bar shows, so its flip redoes this.
+            preference.setSummary(messageBoxSummary(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.savedValue()));
         } else if (preference instanceof SliderRow) {
             ((SliderRow) preference).showSummary(setting.isAvailable() ? null : sliderReason(setting));
         } else if (preference instanceof PlaybackQualityRow) {
@@ -8634,9 +8653,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             for (FollowLabelPlace candidate : FollowLabelPlace.values()) {
                 if (candidate.name().equals(getValue())) place = candidate;
             }
+            // Greyed, it names the switch to turn on first: the label's while that's off, since the
+            // chip row rests with it then and can't be turned on.
             setSummary(Settings.FOLLOW_LABEL_PLACE.isAvailable()
                     ? followLabelPlaceSummary(place)
-                    : L10n.t("Turn on Show it as a chip to use this choice."));
+                    : !Settings.SHOW_FRIENDSHIP_STATUS.savedValue()
+                            ? L10n.t("Turn on Show if a profile follows you to use this choice.")
+                            : L10n.t("Turn on Show it as a chip to use this choice."));
         }
 
         @Override

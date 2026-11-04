@@ -762,6 +762,7 @@ Small, under the picture	Nhỏ, bên dưới ảnh
 The chip sits under the posts, followers and following counts.	Nhãn nằm bên dưới số bài viết, người theo dõi và đang theo dõi.
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	Một nhãn nhỏ hơn, căn giữa bên dưới ảnh đại diện. Trang cá nhân không đủ chỗ ở đó sẽ dùng nhãn nhỏ bên dưới số liệu.
 Turn on Show it as a chip to use this choice.	Hãy bật Hiện dạng nhãn để dùng lựa chọn này.
+Turn on Show if a profile follows you to use this choice.	Hãy bật Hiện trang cá nhân có theo dõi bạn không để dùng lựa chọn này.
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	Thanh Thêm bình luận bên dưới reel bạn mở từ mục đăng lại của một trang cá nhân. Nút bình luận vẫn mở phần bình luận.
 Hide the comment bar on all reels	Ẩn thanh bình luận trên mọi reel
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	Thanh Thêm bình luận bên dưới mọi reel, kể cả trong tab Reels. Nút bình luận vẫn mở phần bình luận.
@@ -1256,6 +1257,8 @@ Takes the voice and video call buttons off the top of a chat. The name keeps its
 Buttons in the message box	Nút trong ô tin nhắn
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Mọi nút trong ô tin nhắn đều hiện. Bỏ tích những nút bạn không dùng. Ô văn bản và Gửi luôn được giữ.
 Left off the message box: %1$s. The text box and Send stay.	Đã bỏ khỏi ô tin nhắn: %1$s. Ô văn bản và Gửi vẫn giữ.
+Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send always stay.	Thư viện và Tin nhắn thoại nằm trong menu dấu cộng khi Thư viện ảnh và micrô trong menu dấu cộng đang bật. Ô văn bản và Gửi luôn được giữ.
+Left off the message box: %1$s. Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send stay.	Đã bỏ khỏi ô tin nhắn: %1$s. Thư viện và Tin nhắn thoại nằm trong menu dấu cộng khi Thư viện ảnh và micrô trong menu dấu cộng đang bật. Ô văn bản và Gửi vẫn giữ.
 # context: buttons in a chat's message box: Gallery, Stickers and Voice message are Instagram's own labels
 Gallery	Thư viện
 Stickers	Sticker

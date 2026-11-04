@@ -767,6 +767,7 @@ Small, under the picture	Küçük, fotoğrafın altında
 The chip sits under the posts, followers and following counts.	Çip gönderi, takipçi ve takip sayılarının altında durur.
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	Profil fotoğrafının altında ortalanmış daha küçük bir çip. Orada yeri olmayan bir profilde küçük çip sayıların altına gelir.
 Turn on Show it as a chip to use this choice.	Bu seçimi kullanmak için Çip olarak göster seçeneğini açın.
+Turn on Show if a profile follows you to use this choice.	Bu seçimi kullanmak için Bir profilin seni takip edip etmediğini göster seçeneğini açın.
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	Bir profilin yeniden paylaşımlarından açtığın reels'in altındaki Yorum ekle çubuğu. Yorum düğmesi yorumları açmaya devam eder.
 Hide the comment bar on all reels	Tüm reels'te yorum çubuğunu gizle
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	Reels sekmesindekiler dahil her reels'in altındaki Yorum ekle çubuğu. Yorum düğmesi yorumları açmaya devam eder.
@@ -1313,6 +1314,8 @@ Takes the voice and video call buttons off the top of a chat. The name keeps its
 Buttons in the message box	Mesaj kutusundaki düğmeler
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Mesaj kutusundaki tüm düğmeler görünür. Kullanmadıklarının işaretini kaldır. Metin kutusu ve Gönder her zaman kalır.
 Left off the message box: %1$s. The text box and Send stay.	Mesaj kutusundan çıkarılanlar: %1$s. Metin kutusu ve Gönder kalır.
+Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send always stay.	Galeri ve mikrofon artı menüsünde seçeneği açıkken Galeri ve Sesli mesaj artı menüsündedir. Metin kutusu ve Gönder her zaman kalır.
+Left off the message box: %1$s. Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send stay.	Mesaj kutusundan çıkarılanlar: %1$s. Galeri ve mikrofon artı menüsünde seçeneği açıkken Galeri ve Sesli mesaj artı menüsündedir. Metin kutusu ve Gönder kalır.
 Gallery	Galeri
 Stickers	Çıkartmalar
 Voice message	Sesli mesaj

@@ -172,6 +172,17 @@ public class FollowingListSettingsTest {
         assertEquals("keeps what was picked", app.hushgram.extension.instagram.profile.FollowLabelPlace.UNDER_PICTURE,
                 Settings.FOLLOW_LABEL_PLACE.savedValue());
 
+        // The chip on but the label off: the chip row rests too, so the label is the one to turn on.
+        Settings.FRIENDSHIP_STATUS_CHIP.save(true);
+        Settings.SHOW_FRIENDSHIP_STATUS.save(false);
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        row.showSummary();
+        assertEquals("Turn on Show if a profile follows you to use this choice.", String.valueOf(row.getSummary()));
+        Settings.SHOW_FRIENDSHIP_STATUS.save(true);
+        row.showSummary();
+        assertTrue("both on, the pick shows again",
+                String.valueOf(row.getSummary()).startsWith("A smaller chip, centered under the profile picture."));
+
         controller.close();
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.FOLLOW_LABEL_PLACE.key));

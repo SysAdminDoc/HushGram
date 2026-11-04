@@ -767,6 +767,7 @@ Small, under the picture	Piccola, sotto la foto
 The chip sits under the posts, followers and following counts.	Il chip sta sotto i conteggi di post, follower e seguiti.
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	Un chip più piccolo, centrato sotto la foto profilo. Un profilo senza spazio lì riceve il chip piccolo sotto i conteggi.
 Turn on Show it as a chip to use this choice.	Attiva Mostralo come chip per usare questa scelta.
+Turn on Show if a profile follows you to use this choice.	Attiva Mostra se un profilo ti segue per usare questa scelta.
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	La barra Aggiungi un commento sotto un reel che apri dai repost di un profilo. Il pulsante dei commenti apre comunque i commenti.
 Hide the comment bar on all reels	Nascondi la barra dei commenti su tutti i reel
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	La barra Aggiungi un commento sotto ogni reel, compresi quelli nella scheda Reel. Il pulsante dei commenti apre comunque i commenti.
@@ -1313,6 +1314,8 @@ Takes the voice and video call buttons off the top of a chat. The name keeps its
 Buttons in the message box	Pulsanti nella casella del messaggio
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Tutti i pulsanti nella casella del messaggio sono visibili. Togli la spunta a quelli che non usi. La casella di testo e Invia restano sempre.
 Left off the message box: %1$s. The text box and Send stay.	Tolti dalla casella del messaggio: %1$s. La casella di testo e Invia restano.
+Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send always stay.	Galleria e Messaggio vocale sono nel menu più finché «Galleria e microfono nel menu più» è attivo. La casella di testo e Invia restano sempre.
+Left off the message box: %1$s. Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send stay.	Tolti dalla casella del messaggio: %1$s. Galleria e Messaggio vocale sono nel menu più finché «Galleria e microfono nel menu più» è attivo. La casella di testo e Invia restano.
 Gallery	Galleria
 Stickers	Sticker
 Voice message	Messaggio vocale

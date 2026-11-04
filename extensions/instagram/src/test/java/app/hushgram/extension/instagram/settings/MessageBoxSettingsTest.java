@@ -9,6 +9,7 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.preference.Preference;
+import android.preference.SwitchPreference;
 import android.widget.ListView;
 
 import java.util.Collections;
@@ -27,6 +28,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
 
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -45,6 +47,7 @@ public class MessageBoxSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDDEN_MESSAGE_BOX_BUTTONS.resetToDefault();
+        Settings.MOVE_TO_PLUS_MENU.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -56,13 +59,18 @@ public class MessageBoxSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.HIDDEN_MESSAGE_BOX_BUTTONS.resetToDefault();
+        Settings.MOVE_TO_PLUS_MENU.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
 
     private void open(boolean installed) throws Exception {
-        PatchFamily.inBuildForTests = installed ? EnumSet.of(PatchFamily.MESSAGE_BOX) : EnumSet.noneOf(PatchFamily.class);
+        open(installed ? EnumSet.of(PatchFamily.MESSAGE_BOX) : EnumSet.noneOf(PatchFamily.class));
+    }
+
+    private void open(EnumSet<PatchFamily> build) throws Exception {
+        PatchFamily.inBuildForTests = build;
         controller = Robolectric.buildActivity(Activity.class).setup();
         page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
@@ -145,6 +153,42 @@ public class MessageBoxSettingsTest {
         for (int i = 0; i < 3; i++) assertTrue("button " + i + " ticked", list.isItemChecked(i));
         assertTrue(dialog.isShowing());
         assertTrue(row.getSummary().toString(), row.getSummary().toString().startsWith("Every button in the message box shows"));
+    }
+
+    /**
+     * Gallery and microphone in the plus menu keeps Gallery and Voice message off the bar whatever's
+     * ticked, so the summary says they're in the plus menu, and flipping that switch redoes it.
+     */
+    @Test public void thePlusMenuSwitchShowsInTheSummary() throws Exception {
+        Settings.HIDDEN_MESSAGE_BOX_BUTTONS.save("STICKER,VOICE_MESSAGE");
+        open(EnumSet.of(PatchFamily.MESSAGE_BOX, PatchFamily.PLUS_MENU));
+        Preference row = row();
+        String moved = "Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on.";
+        assertEquals("Left off the message box: " + L10n.isolate("Stickers") + ", " + L10n.isolate("Voice message")
+                + ". The text box and Send stay.", row.getSummary().toString());
+
+        SwitchPreference plusMenu = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MOVE_TO_PLUS_MENU.key);
+        plusMenu.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(Settings.MOVE_TO_PLUS_MENU.savedValue());
+        assertEquals("only Stickers is left off by this list now", "Left off the message box: " + L10n.isolate("Stickers")
+                + ". " + moved + " The text box and Send stay.", row.getSummary().toString());
+        assertEquals("the choice itself is kept", "STICKER,VOICE_MESSAGE", Settings.HIDDEN_MESSAGE_BOX_BUTTONS.savedValue());
+        assertEquals(moved + " The text box and Send always stay.", HushgramPreferenceFragment.messageBoxSummary("", true));
+        assertEquals(moved + " The text box and Send always stay.",
+                HushgramPreferenceFragment.messageBoxSummary("GALLERY,VOICE_MESSAGE", true));
+
+        plusMenu.setChecked(false);
+        ShadowLooper.idleMainLooper();
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().endsWith(
+                L10n.isolate("Voice message") + ". The text box and Send stay."));
+    }
+
+    /** Without the plus menu patch a switch saved on from before says nothing about a plus menu. */
+    @Test public void noPlusMenuPatchNoPlusMenuLine() throws Exception {
+        Settings.MOVE_TO_PLUS_MENU.save(true);
+        open(true);
+        assertTrue(row().getSummary().toString(), row().getSummary().toString().startsWith("Every button in the message box shows"));
     }
 
     /** A saved choice shows unticked, and Pause answers Instagram's own without touching the choice. */

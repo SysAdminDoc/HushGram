@@ -771,6 +771,7 @@ Small, under the picture	相片下方的小型標籤
 The chip sits under the posts, followers and following counts.	標籤位於貼文、追蹤者與追蹤中數量下方。
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	較小的標籤，置中於個人檔案相片下方。若該處沒有空間，則改放在各項數量下方。
 Turn on Show it as a chip to use this choice.	請啟用「以標籤顯示」以使用此選項。
+Turn on Show if a profile follows you to use this choice.	請啟用「顯示帳號是否已追蹤您」以使用此選項。
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	隱藏從個人檔案轉發分頁開啟的 Reel 下方的「新增留言」列。仍可透過留言按鈕開啟留言。
 Hide the comment bar on all reels	隱藏所有 Reels 的留言列
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	隱藏每則 Reel 下方的「新增留言」列，包括 Reels 分頁中的影片。仍可透過留言按鈕開啟留言。
@@ -1307,6 +1308,8 @@ Takes the voice and video call buttons off the top of a chat. The name keeps its
 Buttons in the message box	訊息輸入框按鈕
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	訊息輸入框中的所有按鈕皆會顯示。取消勾選用不到的按鈕，文字輸入框與傳送按鈕一律保留。
 Left off the message box: %1$s. The text box and Send stay.	訊息輸入框中已隱藏：%1$s。文字輸入框與傳送按鈕仍會保留。
+Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send always stay.	啟用「相簿與麥克風放進加號選單」時，相簿與語音訊息會在加號選單中。文字輸入框與傳送按鈕一律保留。
+Left off the message box: %1$s. Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send stay.	訊息輸入框中已隱藏：%1$s。啟用「相簿與麥克風放進加號選單」時，相簿與語音訊息會在加號選單中。文字輸入框與傳送按鈕仍會保留。
 Gallery	相簿
 Stickers	貼圖
 Voice message	語音訊息
