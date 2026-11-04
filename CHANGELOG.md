@@ -85,6 +85,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * **Instagram:** With `Gallery and microphone in the plus menu` on, `Buttons in the message box` says those two are in the plus menu. It used to call them shown, or list them as left off, and it now updates the moment that switch flips.
+* **Instagram:** With `Name saves by account and post time` on, `Download file name` says its names only go to saves that don't know who posted or when. It used to read as if every save got them, and it now updates as soon as that switch flips.
 * **Instagram:** With `Show if a profile follows you` off, the greyed `Follow label` row asks you to turn that on. It used to point at `Show it as a chip` even when the chip was already on.
 * **Instagram:** Five descriptions say what their settings really do. `Locked chats` unlock the way `Unlock with` is set, which can be your own PIN or fingerprint only. `Open links in external browser` keeps Facebook, Messenger and Threads links in the app too, along with Instagram's and ads. `Keep a viewing history` notes who posted each item. Photos get their usual name only when `Name saves by account and post time` doesn't rename them, and `Follower history` only logs with `Recent unfollowers` on.
 * **Settings:** Cancelling a switch that asks before it changes now takes the turned-down value back out of storage too. Before, the row went back but the next start used the value you'd said no to.

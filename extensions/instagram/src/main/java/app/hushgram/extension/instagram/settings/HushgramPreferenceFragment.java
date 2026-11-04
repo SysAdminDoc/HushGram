@@ -6061,6 +6061,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         } else if (setting == Settings.HIDDEN_MESSAGE_BOX_BUTTONS) {
             // Gallery and microphone in the plus menu changes what the bar shows, so its flip redoes this.
             preference.setSummary(messageBoxSummary(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.savedValue()));
+        } else if (preference instanceof FileNameRow) {
+            // Name saves by account and post time leaves the template only the saves it can't name.
+            preference.setSummary(fileNameSummary(FileNameTemplate.sanitize(((FileNameRow) preference).getText())));
         } else if (preference instanceof SliderRow) {
             ((SliderRow) preference).showSummary(setting.isAvailable() ? null : sliderReason(setting));
         } else if (preference instanceof PlaybackQualityRow) {
@@ -6430,11 +6433,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /** The current template's media types, with the default photo name when it doesn't opt photos in. */
     static String fileNameSummary(String template) {
-        if (FileNameTemplate.usesShortcode(template)) {
-            return L10n.f("Videos and photos use %1$s. Unknown codes are left out.", L10n.isolate(template));
-        }
-        return L10n.f("Videos are named %1$s. Photos are named %2$s followed by the date and time.",
-                L10n.isolate(template), L10n.isolate(FileNameTemplate.PHOTO_PREFIX));
+        return fileNameSummary(template, Settings.SAVE_NAME_BY_POST.savedValue());
+    }
+
+    /** [byPost]: Name saves by account and post time is on, and these names are only what it falls back on. */
+    static String fileNameSummary(String template, boolean byPost) {
+        String names = FileNameTemplate.usesShortcode(template)
+                ? L10n.f("Videos and photos use %1$s. Unknown codes are left out.", L10n.isolate(template))
+                : L10n.f("Videos are named %1$s. Photos are named %2$s followed by the date and time.",
+                        L10n.isolate(template), L10n.isolate(FileNameTemplate.PHOTO_PREFIX));
+        return byPost ? names + " " + L10n.t("With Name saves by account and post time on, only a save that "
+                + "doesn't know who posted or when is named this way.") : names;
     }
 
     /** "Videos go to Movies/Instagram and photos to Pictures/Instagram." for the folder [leaf]. */

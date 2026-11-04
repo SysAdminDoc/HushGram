@@ -183,6 +183,17 @@ public class FollowingListSettingsTest {
         assertTrue("both on, the pick shows again",
                 String.valueOf(row.getSummary()).startsWith("A smaller chip, centered under the profile picture."));
 
+        // Flipping the label's own row redoes the summary with nothing else asked to.
+        SwitchPreference label = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SHOW_FRIENDSHIP_STATUS.key);
+        label.setChecked(false);
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertFalse(Settings.SHOW_FRIENDSHIP_STATUS.savedValue());
+        assertEquals("Turn on Show if a profile follows you to use this choice.", String.valueOf(row.getSummary()));
+        label.setChecked(true);
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertTrue(String.valueOf(row.getSummary()),
+                String.valueOf(row.getSummary()).startsWith("A smaller chip, centered under the profile picture."));
+
         controller.close();
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.FOLLOW_LABEL_PLACE.key));

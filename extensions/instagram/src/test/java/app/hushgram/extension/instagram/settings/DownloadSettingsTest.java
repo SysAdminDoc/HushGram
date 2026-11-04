@@ -1128,6 +1128,36 @@ public class DownloadSettingsTest {
         }
     }
 
+    /**
+     * With Name saves by account and post time on, the file name row says its names are only for the
+     * saves that switch can't name, and it drops that the moment the switch goes off.
+     */
+    @Test
+    public void theFileNameRowSaysNameByPostTakesTheSavesItCanName() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.VIDEO_DOWNLOAD);
+        String names = "Videos are named " + L10n.isolate("IG_VID_{date}") + ". Photos are named "
+                + L10n.isolate("IG_IMG_") + " followed by the date and time.";
+        String onlyLeftovers = " With Name saves by account and post time on, only a save that doesn't know who "
+                + "posted or when is named this way.";
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            Preference name = page.findPreference(Settings.FILENAME_TEMPLATE.key);
+            SwitchPreference byPost = (SwitchPreference) page.findPreference(Settings.SAVE_NAME_BY_POST.key);
+            assertEquals(names, String.valueOf(name.getSummary()));
+
+            byPost.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(Settings.SAVE_NAME_BY_POST.savedValue());
+            assertEquals(names + onlyLeftovers, String.valueOf(name.getSummary()));
+
+            byPost.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertEquals(names, String.valueOf(name.getSummary()));
+        }
+        assertEquals("Videos and photos use " + L10n.isolate("{shortcode}") + ". Unknown codes are left out."
+                + onlyLeftovers, HushgramPreferenceFragment.fileNameSummary("{shortcode}", true));
+    }
+
     /** The dialog's example is the name the save pipeline would give, and Cancel keeps the saved template. */
     @Test
     public void theFileNameExampleIsThePipelinesNameAndCancelKeepsTheTemplate() {
