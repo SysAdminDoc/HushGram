@@ -983,6 +983,8 @@ Queued. It starts once the post before it is saved.	En cola. Empieza en cuanto s
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
 Not saved: %1$d posts are already waiting	No se guardó: ya hay %1$d publicaciones esperando
 Show all settings as a list	Mostrar todos los ajustes como lista
+Show categories as a grid	Mostrar las categorías en cuadrícula
+Show categories as rows	Mostrar las categorías en filas
 Show settings by category	Mostrar los ajustes por categoría
 Tab bar height	Altura de la barra de pestañas
 Standard	Estándar

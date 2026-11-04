@@ -247,7 +247,7 @@ Inside Instagram, long-press the Instagram logo at the top of your feed. A tap s
   <img src="assets/settings-about.png" alt="HushGram's About category open, with the version and build identity" width="270">
 </p>
 
-Search is at the top of settings, with **Show all settings as a list** directly below it. Tap a category to expand its controls underneath. Tap it again to collapse them. You can keep several sections open on the same page, or show every setting at once. The controls you see depend on the patches you picked. The screenshots show a native rendering preview of the v0.0.17 settings.
+Search is at the top of settings, with **Show all settings as a list** directly below it. Tap a category to expand its controls underneath. Tap it again to collapse them. You can keep several sections open on the same page, or show every setting at once. **Show categories as a grid** turns the category rows into two-column tiles, and a tap on a tile opens that category under them. The controls you see depend on the patches you picked. The screenshots show a native rendering preview of the v0.0.17 settings.
 
 **Search settings** finds controls across all categories by their labels in your phone's language or their English patch names. Clearing the search restores the sections you had open. Rotation keeps those sections and your position. A change that needs a restart shows the action below the list. Place and sharing-domain editors keep an invalid entry open so you can correct it.
 

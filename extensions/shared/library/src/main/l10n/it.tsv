@@ -983,6 +983,8 @@ Queued. It starts once the post before it is saved.	In coda. Parte quando il pos
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
 Not saved: %1$d posts are already waiting	Non salvato: %1$d post sono già in attesa
 Show all settings as a list	Mostra tutte le impostazioni come elenco
+Show categories as a grid	Mostra le categorie come griglia
+Show categories as rows	Mostra le categorie come righe
 Show settings by category	Mostra le impostazioni per categoria
 Tab bar height	Altezza della barra delle schede
 Standard	Standard

@@ -313,6 +313,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private String lastCategory;
     /** The button at the top that switches between the list of categories and one long list. */
     @Nullable private Row viewToggle;
+    /** Under it, while the categories are listed: switches them between rows and a grid of tiles (#494). */
+    @Nullable private Row gridToggle;
+    /** The tiles, one row of the page, while the grid is on and nothing is searched. */
+    @Nullable private CategoryGrid categoryGrid;
     /** HushGram's name over the page while the black look is on and nothing is searched (#455). */
     @Nullable private Preference header;
     /** Before you sign in, while no tap has hidden it. The home page's, like the status card. */
@@ -557,6 +561,20 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             return true;
         });
+        gridToggle = new Row(context);
+        gridToggle.setKey("hushgram_grid_toggle");
+        gridToggle.setPersistent(false);
+        gridToggle.setOnPreferenceClickListener(tapped -> {
+            if (!allowMutation()) return true;
+            keepingScroll(() -> {
+                Settings.CATEGORY_GRID.save(!Settings.CATEGORY_GRID.savedValue());
+                filterSettings();
+            }, gridToggle);
+            return true;
+        });
+        categoryGrid = new CategoryGrid(context, this::openFromGrid);
+        // Before the first section, after the notice and recovery notes above it.
+        categoryGrid.setOrder(-10);
         header = new SettingsHeader(context);
         header.setOrder(-60);
         Preference status = statusCard(context);
@@ -571,6 +589,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         viewToggle.setOrder(-45);
         screen.addPreference(viewToggle);
+        gridToggle.setOrder(-29);
         search = new SearchRow(context);
         search.setOrder(-50);
         search.setKey("hushgram_settings_search");
@@ -852,6 +871,69 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             });
         }
+    }
+
+    /**
+     * Runs [change], then puts the list back where [anchor] was on the screen, so a switch near the
+     * top doesn't move the page under the finger.
+     */
+    private void keepingScroll(Runnable change, Preference anchor) {
+        ListView list = listView();
+        android.widget.ListAdapter before = list == null ? null : list.getAdapter();
+        int at = -1;
+        if (before != null) {
+            for (int i = 0; i < before.getCount(); i++) if (before.getItem(i) == anchor) { at = i; break; }
+        }
+        int top = 0;
+        if (at >= 0) {
+            View row = list.getChildAt(at - list.getFirstVisiblePosition());
+            top = row == null ? 0 : row.getTop() - list.getPaddingTop();
+            if (row == null) at = -1;
+        }
+        change.run();
+        if (list == null || at < 0) return;
+        int kept = top;
+        list.post(() -> {
+            if (list != listView()) return;
+            for (int i = 0; i < list.getCount(); i++) {
+                if (list.getItemAtPosition(i) == anchor) {
+                    list.setSelectionFromTop(i, kept);
+                    return;
+                }
+            }
+        });
+    }
+
+    /**
+     * A tile was tapped: its section opens on this page, below the tiles, and any other one folds,
+     * as if each had a page of its own. The tile of the section already open only scrolls to it.
+     */
+    private void openFromGrid(Heading section) {
+        if (!categoryPages() || !Settings.CATEGORY_GRID.savedValue() || !searchQuery.trim().isEmpty()) return;
+        String key = section.getKey();
+        if (!expandedCategories.contains(key)) {
+            for (PreferenceCategory other : searchableRows.keySet()) {
+                if (other != section && !other.getKey().equals(key) && expandedCategories.remove(other.getKey())) {
+                    NewRowDots.left(other);
+                }
+            }
+            expandedCategories.add(key);
+        }
+        lastCategory = key;
+        focusPage();
+        filterSettings();
+        if (categoryGrid != null) categoryGrid.refresh();
+        ListView list = listView();
+        if (list == null) return;
+        list.post(() -> {
+            if (list != listView()) return;
+            for (int i = 0; i < list.getCount(); i++) {
+                if (list.getItemAtPosition(i) == section) {
+                    list.setSelectionFromTop(i, 0);
+                    return;
+                }
+            }
+        });
     }
 
     /** Back clears a search first. Expanded sections do not add a navigation level. */
@@ -1332,13 +1414,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         // Search reveals matching rows without changing the sections the person expanded.
         boolean listing = pages && terms.length == 0;
         boolean black = Settings.SETTINGS_BLACK_LOOK.savedValue();
-        for (Preference top : new Preference[]{header, statusCard, beforeSignIn, viewToggle, search}) {
+        for (Preference top : new Preference[]{header, statusCard, beforeSignIn, viewToggle, gridToggle, search}) {
             if (top == null) continue;
             // A tap hid the notice for good and took it off the screen. It stays off.
             if (top == beforeSignIn && Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) continue;
             // The header stays while searching. Taking a row off above the field moved the field's
             // place in the list mid-word, and a hardware keyboard's next key was dropped.
-            boolean hidden = top == statusCard ? !HushgramPause.isPaused() : top == header && !black;
+            boolean hidden = top == statusCard ? !HushgramPause.isPaused()
+                    : top == gridToggle ? !listing : top == header && !black;
             if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
@@ -1353,6 +1436,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 mark(viewToggle, pages ? SettingsIcons.MENU : SettingsIcons.FEED);
             }
         }
+        if (gridToggle != null) {
+            boolean grid = Settings.CATEGORY_GRID.savedValue();
+            CharSequence label = grid ? L10n.t("Show categories as rows") : L10n.t("Show categories as a grid");
+            if (!label.equals(gridToggle.getTitle())) {
+                gridToggle.setTitle(label);
+                mark(gridToggle, grid ? SettingsIcons.MENU : SettingsIcons.LAYOUT);
+            }
+        }
+        // Tiles stand in for the folded sections' headings, so those headings stay off the page.
+        boolean gridOn = listing && Settings.CATEGORY_GRID.savedValue();
+        List<Heading> tiles = new ArrayList<>();
         int matches = 0;
         for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
             PreferenceCategory group = section.getKey();
@@ -1387,9 +1481,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             }
             if (group instanceof Heading) ((Heading) group).display(listing && !held, expanded, black);
-            if (filled) {
+            boolean tile = gridOn && filled && group instanceof Heading;
+            if (tile) tiles.add((Heading) group);
+            if (filled && !(tile && !expanded)) {
                 if (group.getParent() != screen) screen.addPreference(group);
             } else if (group.getParent() == screen) screen.removePreference(group);
+        }
+        if (categoryGrid != null) {
+            if (!tiles.isEmpty()) {
+                categoryGrid.show(tiles);
+                if (categoryGrid.getParent() != screen) screen.addPreference(categoryGrid);
+            } else if (categoryGrid.getParent() == screen) screen.removePreference(categoryGrid);
         }
         // Actions below the categories remain on the same page.
         Row[] loose = {report, support};

@@ -963,6 +963,8 @@ Takes the Send message box off the bottom of other people's stories. The like an
 Queued. It starts once the post before it is saved.	Đã xếp hàng. Bắt đầu khi bài viết trước đó lưu xong.
 Not saved: %1$d posts are already waiting	Chưa lưu: đã có %1$d bài viết đang chờ
 Show all settings as a list	Hiện mọi cài đặt dạng danh sách
+Show categories as a grid	Hiện danh mục dạng lưới
+Show categories as rows	Hiện danh mục dạng hàng
 Show settings by category	Hiện cài đặt theo danh mục
 Tab bar height	Chiều cao thanh tab
 Standard	Tiêu chuẩn

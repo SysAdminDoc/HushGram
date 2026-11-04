@@ -122,6 +122,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_category_pages", TRUE);
 
     /**
+     * The categories as two-column tiles instead of rows (#494). A tile opens its section in place,
+     * below the tiles, as a row does. Only means something while {@link #CATEGORY_PAGES} is on.
+     * Off to start. A page-look choice, so Pause doesn't turn it off.
+     */
+    public static final BooleanSetting CATEGORY_GRID =
+            new BooleanSetting("hushgram_settings_category_grid", FALSE);
+
+    /**
      * Each switch's description behind an "i" at the end of its title, for a shorter page (#130).
      * Off to start. A settings-page choice, read saved even during Pause ({@link DescriptionInfo}).
      */

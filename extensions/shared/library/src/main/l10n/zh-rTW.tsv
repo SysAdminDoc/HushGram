@@ -981,6 +981,8 @@ Queued. It starts once the post before it is saved.	已加入佇列，前一則�
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
 Not saved: %1$d posts are already waiting	未儲存：已有 %1$d 則貼文正在等待
 Show all settings as a list	以清單顯示所有設定
+Show categories as a grid	以格狀顯示分類
+Show categories as rows	以列顯示分類
 Show settings by category	依分類顯示設定
 Tab bar height	分頁列高度
 Standard	標準

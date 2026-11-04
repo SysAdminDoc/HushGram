@@ -983,6 +983,8 @@ Queued. It starts once the post before it is saved.	Dalam antrean. Dimulai setel
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
 Not saved: %1$d posts are already waiting	Tidak disimpan: sudah ada %1$d postingan yang menunggu
 Show all settings as a list	Tampilkan semua pengaturan sebagai daftar
+Show categories as a grid	Tampilkan kategori sebagai kisi
+Show categories as rows	Tampilkan kategori sebagai baris
 Show settings by category	Tampilkan pengaturan menurut kategori
 Tab bar height	Tinggi bilah tab
 Standard	Standar

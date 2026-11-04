@@ -329,7 +329,8 @@ public final class ScreenColors {
         int vertical = overview ? 6 : 10;
         row.setPaddingRelative(dp(row, horizontal), dp(row, vertical + (!overview && first ? 4 : 0)),
                 dp(row, horizontal), dp(row, vertical + (!overview && last ? 4 : 0)));
-        row.setMinimumHeight(dp(row, "hushgram_view_toggle".equals(preference.getKey()) ? 48
+        row.setMinimumHeight(dp(row, "hushgram_view_toggle".equals(preference.getKey())
+                || "hushgram_grid_toggle".equals(preference.getKey()) ? 48
                 : "hushgram_status".equals(preference.getKey()) ? 56 : overview ? 52 : 64));
     }
 

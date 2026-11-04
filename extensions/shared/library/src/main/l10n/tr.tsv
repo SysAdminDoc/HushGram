@@ -983,6 +983,8 @@ Queued. It starts once the post before it is saved.	Sırada. Önceki gönderi ka
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
 Not saved: %1$d posts are already waiting	Kaydedilmedi: zaten %1$d gönderi bekliyor
 Show all settings as a list	Tüm ayarları liste olarak göster
+Show categories as a grid	Kategorileri ızgara olarak göster
+Show categories as rows	Kategorileri satır olarak göster
 Show settings by category	Ayarları kategoriye göre göster
 Tab bar height	Sekme çubuğu yüksekliği
 Standard	Standart
