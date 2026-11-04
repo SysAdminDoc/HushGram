@@ -10,6 +10,7 @@ import android.os.ParcelFileDescriptor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -37,14 +38,15 @@ import java.util.TimeZone;
  * the file, and only once it reads back right does the old moov's type change to {@code free},
  * which every reader skips. The chunk offsets inside the moov point into the mdat, which stays
  * where it was, so no offset changes, and the file plays at every step: before the append, with
- * both moovs (a reader takes the first) and after. A failure puts the old type back and cuts the
- * file to its old length. The price is the old moov left behind as free space, tens of KB on a
- * long video.
+ * both moovs (a reader takes the first) and after. A failure puts the old type back and, once that
+ * reads back from the disk, cuts the file to its old length. When it doesn't, the new moov stays on
+ * the end, so the file always holds one whole moov. The price is the old moov left behind as free
+ * space, tens of KB on a long video.
  *
  * <p>Anything it doesn't fully understand is left as it is: a file that doesn't start with ftyp,
  * top-level boxes that don't tile it exactly, no mdat, no moov or more than one, a fragmented file
  * (moof, mfra, sidx, styp, emsg, or an mvex in the moov), and a user data meta that isn't an iTunes
- * item list.
+ * item list in a full box.
  *
  * <p>The write reads only what {@link PostMetadata} hands it, on the save worker thread, after the
  * file is published. It never runs at Instagram's startup.
@@ -203,7 +205,8 @@ final class VideoMetadata {
             boolean wrote;
             if (scheme == null || "file".equals(scheme)) {
                 String path = scheme == null ? published : uri.getPath();
-                if (path == null) return;
+                // "rw" makes a file that isn't there, so a save that's gone stays gone.
+                if (path == null || !new File(path).isFile()) return;
                 try (RandomAccessFile file = new RandomAccessFile(path, "rw")) {
                     wrote = write(over(file.getChannel(), file.getChannel()), items);
                 }
@@ -228,7 +231,7 @@ final class VideoMetadata {
     /**
      * Writes [items] into the MP4 in [store]. False, with the file untouched, when there's nothing
      * to write or the file isn't one this understands. A read or write that fails is thrown, after
-     * the old moov's type and the old length are put back.
+     * the old moov's type is put back and, when that holds, the old length.
      */
     static boolean write(Store store, Map<Integer, String> items) throws IOException {
         if (items == null || items.isEmpty()) return false;
@@ -248,19 +251,30 @@ final class VideoMetadata {
                 throw new IOException("the old moov kept its type");
             }
             store.sync();
-        } catch (IOException | RuntimeException failure) {
+        } catch (Throwable failure) {
             // Back as it was: the old moov's own type first, so it's the file's moov again, then
-            // the old length.
+            // the old length. The end is cut only once the old moov reads back as moov on the
+            // disk. Until then the new moov on the end may be the file's only moov, and a file
+            // with two whole moovs plays where a file with none doesn't.
             try {
                 store.write(moov.start + 4, MOOV_TYPE);
-            } catch (IOException | RuntimeException undo) {
+            } catch (Throwable undo) {
                 failure.addSuppressed(undo);
             }
+            boolean restored = false;
             try {
-                store.truncate(length);
                 store.sync();
-            } catch (IOException | RuntimeException undo) {
+                restored = Arrays.equals(store.read(moov.start + 4, 4), MOOV_TYPE);
+            } catch (Throwable undo) {
                 failure.addSuppressed(undo);
+            }
+            if (restored) {
+                try {
+                    store.truncate(length);
+                    store.sync();
+                } catch (Throwable undo) {
+                    failure.addSuppressed(undo);
+                }
             }
             throw failure;
         }
@@ -359,15 +373,14 @@ final class VideoMetadata {
     }
 
     /**
-     * [meta] with [items] in its item list, or null when it isn't the iTunes item list's meta. An
-     * ISO meta is a full box, version and flags ahead of its children. QuickTime writes one without
-     * them, and then its first child's type, hdlr, comes right after that child's size.
+     * [meta] with [items] in its item list, or null when it isn't the iTunes item list's meta. That
+     * meta is a full box, version and flags of 0 ahead of its children. QuickTime writes one without
+     * them, which exiftool doesn't read as an item list under a moov's udta, so it's left alone.
      */
     private static byte[] itemMeta(byte[] bytes, Box meta, Map<Integer, String> items) {
         long from = meta.content();
-        boolean quickTime = meta.end() - from >= 8 && s32(bytes, from + 4) == HDLR;
-        int skip = quickTime ? 0 : 4;
-        if (!quickTime && (meta.end() - from < 4 || s32(bytes, from) != 0)) return null;
+        int skip = 4;
+        if (meta.end() - from < skip || s32(bytes, from) != 0) return null;
         List<Box> kids = children(bytes, from + skip, meta.end());
         if (kids == null) return null;
         Box hdlr = null;

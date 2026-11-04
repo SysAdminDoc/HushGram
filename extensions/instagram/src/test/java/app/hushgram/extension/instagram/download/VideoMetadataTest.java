@@ -266,6 +266,28 @@ public class VideoMetadataTest {
         assertLeftAlone(original);
     }
 
+    /**
+     * A QuickTime meta, with no version and flags ahead of its hdlr, holds an iTunes list exiftool
+     * doesn't read under a moov's udta, so writing into it would tag nothing anyone sees.
+     */
+    @Test
+    public void leavesAQuickTimeMetaAlone() throws Exception {
+        byte[] full = sample(MOOV_LAST);
+        int moov = topLevelStart(full, "moov");
+        assertEquals("the sample's moov is its last box", full.length, moov + size(full, moov));
+        int udta = child(full, moov + 8, moov + size(full, moov), "udta");
+        int meta = meta(full);
+        assertTrue("the sample has a udta/meta", udta > 0 && meta > udta);
+        // Take out the meta's four bytes of version and flags and shrink the three boxes around them.
+        byte[] quickTime = new byte[full.length - 4];
+        System.arraycopy(full, 0, quickTime, 0, meta + 8);
+        System.arraycopy(full, meta + 12, quickTime, meta + 8, full.length - meta - 12);
+        for (int box : new int[] {moov, udta, meta}) putWord(quickTime, box, word(full, box) - 4);
+        assertEquals("hdlr", type(quickTime, meta + 8));
+        assertEquals("mdir", handler(quickTime));
+        assertLeftAlone(quickTime);
+    }
+
     // ---- A failed write -------------------------------------------------------------------------
 
     /** The write that would free the old moov fails: the old type and the old length come back. */
@@ -303,6 +325,53 @@ public class VideoMetadataTest {
         assertArrayEquals(original, Files.readAllBytes(video.toPath()));
     }
 
+    /**
+     * The old moov is already free when the disk stops taking writes, so its type can't come back.
+     * Cutting the end then would leave no moov at all, so the new one stays and the file plays.
+     */
+    @Test
+    public void aFailedRestoreKeepsTheNewMoov() throws Exception {
+        byte[] original = sample(MOOV_FIRST);
+        File video = file(original);
+        try (RandomAccessFile file = new RandomAccessFile(video, "rw")) {
+            VideoMetadata.Store real = VideoMetadata.over(file.getChannel(), file.getChannel());
+            Failing failing = new Failing(real, 0, false);
+            failing.failSync = 2;
+            failing.failWritesFrom = 3;
+            try {
+                VideoMetadata.write(failing, full());
+                fail("the failed sync was swallowed");
+            } catch (IOException expected) {
+                assertEquals("the second sync failed", expected.getMessage());
+            }
+        }
+        byte[] saved = Files.readAllBytes(video.toPath());
+        assertMediaStays(original, saved);
+        List<String> top = topLevel(saved);
+        assertEquals("one whole moov", 1, top.stream().filter("moov"::equals).count());
+        assertEquals("moov", top.get(top.size() - 1));
+        assertEquals("stevious", items(saved).get(ART));
+    }
+
+    /** Running out of memory reading the new moov back puts the file back too, not only an IOException. */
+    @Test
+    public void runningOutOfMemoryPutsTheFileBack() throws Exception {
+        byte[] original = sample(MOOV_LAST);
+        File video = file(original);
+        try (RandomAccessFile file = new RandomAccessFile(video, "rw")) {
+            VideoMetadata.Store real = VideoMetadata.over(file.getChannel(), file.getChannel());
+            Failing failing = new Failing(real, 0, false);
+            failing.readBackRunsOut = true;
+            try {
+                VideoMetadata.write(failing, full());
+                fail("the error was swallowed");
+            } catch (OutOfMemoryError expected) {
+                assertEquals("no room to read the new moov back", expected.getMessage());
+            }
+        }
+        assertArrayEquals(original, Files.readAllBytes(video.toPath()));
+    }
+
     // ---- The way in -----------------------------------------------------------------------------
 
     /** Android 9 hands over a file:// address, and the MP4 MIME takes the video route. */
@@ -320,6 +389,19 @@ public class VideoMetadataTest {
         assertMediaStays(original, tagged);
         assertEquals(full().size(), items(tagged).size());
         assertEquals("stevious", items(tagged).get(ART));
+    }
+
+    /** A save whose file is gone by the time the tag runs is never made again, empty. */
+    @Test
+    public void aFileAddressWithNoFileMakesNone() throws Exception {
+        File gone = file(sample(MOOV_LAST));
+        assertTrue(gone.delete());
+        Context context = RuntimeEnvironment.getApplication();
+
+        String path = gone.getAbsolutePath().replace(File.separatorChar, '/');
+        PostMetadata.writeTo(context, "file://" + (path.startsWith("/") ? "" : "/") + path, "video/mp4", post());
+
+        assertFalse(gone.exists());
     }
 
     /** A video of another MIME, a WebM, is never opened for writing. */
@@ -491,6 +573,13 @@ public class VideoMetadataTest {
                 | (file[at + 3] & 0xFF);
     }
 
+    private static void putWord(byte[] file, int at, int value) {
+        file[at] = (byte) (value >>> 24);
+        file[at + 1] = (byte) (value >>> 16);
+        file[at + 2] = (byte) (value >>> 8);
+        file[at + 3] = (byte) value;
+    }
+
     private static String type(byte[] file, int at) {
         return new String(file, at + 4, 4, StandardCharsets.ISO_8859_1);
     }
@@ -508,13 +597,19 @@ public class VideoMetadataTest {
 
     /**
      * A store whose [failWrite]th write (counting from 1) throws, or whose read of the appended
-     * moov comes back with its last byte changed when [corruptReadBack] is set.
+     * moov comes back with its last byte changed when [corruptReadBack] is set. [failWritesFrom]
+     * makes every write from that one on throw, [failSync] makes that sync throw, and
+     * [readBackRunsOut] makes the appended moov's read run out of memory.
      */
     private static final class Failing implements VideoMetadata.Store {
         private final VideoMetadata.Store real;
         private final int failWrite;
         private final boolean corruptReadBack;
+        int failWritesFrom;
+        int failSync;
+        boolean readBackRunsOut;
         private int writes;
+        private int syncs;
         private long appendedAt = -1;
 
         Failing(VideoMetadata.Store real, int failWrite, boolean corruptReadBack) {
@@ -528,6 +623,7 @@ public class VideoMetadataTest {
         }
 
         @Override public byte[] read(long at, int length) throws IOException {
+            if (readBackRunsOut && at == appendedAt) throw new OutOfMemoryError("no room to read the new moov back");
             byte[] bytes = real.read(at, length);
             if (corruptReadBack && at == appendedAt) bytes[length - 1] ^= 1;
             return bytes;
@@ -537,10 +633,13 @@ public class VideoMetadataTest {
             writes++;
             if (writes == 1) appendedAt = at;
             if (writes == failWrite) throw new IOException("the second write failed");
+            if (failWritesFrom > 0 && writes >= failWritesFrom) throw new IOException("the disk took no more writes");
             real.write(at, bytes);
         }
 
         @Override public void sync() throws IOException {
+            syncs++;
+            if (syncs == failSync) throw new IOException("the second sync failed");
             real.sync();
         }
 
