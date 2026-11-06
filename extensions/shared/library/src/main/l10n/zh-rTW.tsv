@@ -1023,14 +1023,14 @@ More	更多
 Hide the tab bar as you scroll	捲動時隱藏分頁列
 Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	向下捲動清單時，分頁列會滑出畫面；向上捲動、回到頂端或切換分頁時會重新出現。無論是否啟用「玻璃分頁列」都可使用。變更後請重新啟動 Instagram。
 Hide the tab bar on Reels	在 Reels 隱藏分頁列
-# context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
+# context: a choice in the Hide the tab bar on Reels list; the bar is never hidden there
 Never	永不
 # context: a choice in the Hide the tab bar on Reels list; %1$d is 2, 3, 5 or 8
 After %1$d seconds	%1$d 秒後
 # context: summary of the Hide the tab bar on Reels row while its choice is Never
-Never. Pick a time and the pill slides away once a reel has played that long without a touch. Restart Instagram after changing it.	永不隱藏。選擇時間後，Reel 播放達指定時間且未觸碰畫面時，膠囊就會滑出畫面。變更後請重新啟動 Instagram。
+Never. Pick a time and the tab bar slides away once a reel has played that long without a touch. Restart Instagram after changing it.	永不隱藏。選擇時間後，Reel 播放達指定時間且未觸碰畫面時，分頁列就會滑出畫面。變更後請重新啟動 Instagram。
 # context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
-On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	在 Reels 中，未觸碰畫面 %1$d 秒後膠囊會滑出畫面。點擊螢幕底部邊緣、切換分頁或按返回即可重新顯示。變更後請重新啟動 Instagram。
+On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	在 Reels 中，未觸碰畫面 %1$d 秒後分頁列會滑出畫面。點擊螢幕底部邊緣、切換分頁或按返回即可重新顯示。變更後請重新啟動 Instagram。
 Start feed videos with sound	動態首頁影片預設開啟聲音
 The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	首頁第一部影片會開啟聲音播放，等同點擊喇叭按鈕。仍受手機鈴聲與音量設定影響，因此靜音或音量調低時仍不會出聲。
 Tap a feed video to pause it	點擊動態首頁影片以暫停

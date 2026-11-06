@@ -22,8 +22,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
- * "Hide the tab bar as you scroll" on Instagram's own bar, with Glass tab bar off (#343). The hiding is
- * {@link GlassScrollHide}'s, touch for touch, the wait on Reels left out, so Reels keep their bar as before.
+ * "Hide the tab bar as you scroll" and "Hide the tab bar on Reels" on Instagram's own bar, with Glass tab bar
+ * off (#343). The hiding is {@link GlassScrollHide}'s, touch for touch, and each switch works without the
+ * other. No scroll hides the bar on a reel, so with the wait on Never Reels keep their bar.
  *
  * <p>Instagram stops each main screen above its bar, with a bottom margin as tall as the bar on the
  * screens' holder ({@link GlassTabBar#CONTENT}), on its screens, and on Home's pager beside them where the
@@ -31,6 +32,11 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * margins is 0, so the screens run to the bottom, and the bar's shadow line is hidden. Once the bar has slid
  * all the way back, only the margins this set to 0 and still 0 get the bar's height again, and only while
  * the bar shows: a bar Instagram hid itself (a reel opened from a post) keeps the margins Instagram gave.
+ *
+ * <p>On Reels that means the reel changes size twice, growing as the bar leaves and shrinking once it's
+ * back. A swipe leaves the bar away, so it doesn't happen per reel. The glass pill keeps a reel one size by
+ * running it behind the pill all along ({@link GlassTabBar#reelsRunBehind}), which needs Instagram answered
+ * 0 for the bar's height, so the own bar can't.
  */
 final class PlainScrollHide implements GlassScrollHide.Room {
     static final String COUNT_ROOM = "scroll gave the bar's room";
@@ -46,16 +52,18 @@ final class PlainScrollHide implements GlassScrollHide.Room {
 
     PlainScrollHide(View bar) {
         this.bar = bar;
-        this.hide = new GlassScrollHide(bar, () -> !HushgramPause.isPaused(), true, 0L, null, this);
+        this.hide = new GlassScrollHide(bar, () -> !HushgramPause.isPaused(), Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get(),
+                Settings.GLASS_TAB_BAR_REELS_HIDE.get().millis, null, this);
     }
 
     /**
-     * Called as an activity comes to the front with Glass tab bar off. With the switch on, the activity's tab
-     * bar, when it has one, gets its hider, and its window's touches go through it.
+     * Called as an activity comes to the front with Glass tab bar off. With either switch on, the activity's
+     * tab bar, when it has one, gets its hider, and its window's touches go through it. Both are read as the
+     * hider is built, and both ask for a restart.
      */
     static void apply(Activity activity) {
         try {
-            if (!Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get()) return;
+            if (!Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get() && Settings.GLASS_TAB_BAR_REELS_HIDE.get().millis <= 0) return;
             View found = GlassTabBar.find(activity.getWindow().getDecorView(), GlassTabBar.TAB_BAR);
             // Glass turned off without the restart it asks for: the pill keeps the glass's own hiding.
             if (!(found instanceof ViewGroup) || GlassTabBar.wearsGlass(found)) return;

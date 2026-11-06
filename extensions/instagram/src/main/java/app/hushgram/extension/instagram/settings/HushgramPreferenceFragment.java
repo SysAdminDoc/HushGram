@@ -5000,10 +5000,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** What [delay] does and how the bar comes back, for the row's summary. */
     static String glassReelsHideSummary(GlassReelsHide delay) {
         if (delay == GlassReelsHide.NEVER) {
-            return L10n.t("Never. Pick a time and the pill slides away once a reel has played that long without a "
+            return L10n.t("Never. Pick a time and the tab bar slides away once a reel has played that long without a "
                     + "touch. Restart Instagram after changing it.");
         }
-        return L10n.f("On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the "
+        return L10n.f("On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the "
                 + "screen, change tab or press Back to bring it back. Restart Instagram after changing it.",
                 delay.millis / 1000);
     }

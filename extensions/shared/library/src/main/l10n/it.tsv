@@ -1025,14 +1025,14 @@ More	Di più
 Hide the tab bar as you scroll	Nascondi la barra delle schede durante lo scorrimento
 Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	Scorrere una lista verso il basso fa scivolare via la barra delle schede. Scorrere verso l'alto, arrivare in cima o cambiare scheda la riporta. Funziona con o senza Barra delle schede di vetro. Riavvia Instagram dopo averlo cambiato.
 Hide the tab bar on Reels	Nascondi la barra delle schede nei reel
-# context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
+# context: a choice in the Hide the tab bar on Reels list; the bar is never hidden there
 Never	Mai
 # context: a choice in the Hide the tab bar on Reels list; %1$d is 2, 3, 5 or 8
 After %1$d seconds	Dopo %1$d secondi
 # context: summary of the Hide the tab bar on Reels row while its choice is Never
-Never. Pick a time and the pill slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Mai. Scegli un tempo e la pillola scivola via quando un reel è stato riprodotto così a lungo senza un tocco. Riavvia Instagram dopo averlo cambiato.
+Never. Pick a time and the tab bar slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Mai. Scegli un tempo e la barra delle schede scivola via quando un reel è stato riprodotto così a lungo senza un tocco. Riavvia Instagram dopo averlo cambiato.
 # context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
-On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	Nei reel, la pillola scivola via dopo %1$d secondi senza un tocco. Tocca il bordo inferiore dello schermo, cambia scheda o premi Indietro per riportarla. Riavvia Instagram dopo averlo cambiato.
+On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	Nei reel, la barra delle schede scivola via dopo %1$d secondi senza un tocco. Tocca il bordo inferiore dello schermo, cambia scheda o premi Indietro per riportarla. Riavvia Instagram dopo averlo cambiato.
 Start feed videos with sound	Avvia i video del feed con l'audio
 The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	Il primo video nella Home parte con l'audio attivo, come toccando il suo altoparlante. La suoneria e il volume del telefono contano comunque, quindi in silenzioso o con il volume basso resta muto.
 Tap a feed video to pause it	Tocca un video del feed per metterlo in pausa

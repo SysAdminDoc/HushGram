@@ -1025,14 +1025,14 @@ More	Más
 Hide the tab bar as you scroll	Ocultar la barra de pestañas al desplazarte
 Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	Al desplazarte hacia abajo por una lista, la barra de pestañas se desliza fuera del camino. Al subir, llegar al principio o cambiar de pestaña, vuelve. Funciona con o sin Barra de pestañas de cristal. Reinicia Instagram después de cambiarlo.
 Hide the tab bar on Reels	Ocultar la barra de pestañas en Reels
-# context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
+# context: a choice in the Hide the tab bar on Reels list; the bar is never hidden there
 Never	Nunca
 # context: a choice in the Hide the tab bar on Reels list; %1$d is 2, 3, 5 or 8
 After %1$d seconds	Después de %1$d segundos
 # context: summary of the Hide the tab bar on Reels row while its choice is Never
-Never. Pick a time and the pill slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Nunca. Elige un tiempo y la píldora se desliza fuera de la vista cuando un reel lleva ese tiempo reproduciéndose sin que toques la pantalla. Reinicia Instagram después de cambiarlo.
+Never. Pick a time and the tab bar slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Nunca. Elige un tiempo y la barra de pestañas se desliza fuera de la vista cuando un reel lleva ese tiempo reproduciéndose sin que toques la pantalla. Reinicia Instagram después de cambiarlo.
 # context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
-On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	En Reels, la píldora se desliza fuera de la vista tras %1$d segundos sin tocar. Toca el borde inferior de la pantalla, cambia de pestaña o pulsa Atrás para que vuelva. Reinicia Instagram después de cambiarlo.
+On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	En Reels, la barra de pestañas se desliza fuera de la vista tras %1$d segundos sin tocar. Toca el borde inferior de la pantalla, cambia de pestaña o pulsa Atrás para que vuelva. Reinicia Instagram después de cambiarlo.
 Start feed videos with sound	Iniciar los videos del feed con sonido
 The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	El primer video de Inicio se reproduce con el sonido activado, igual que al tocar su altavoz. El timbre y el volumen del teléfono siguen contando, así que en silencio o con el volumen bajado se queda mudo.
 Tap a feed video to pause it	Toca un video del feed para pausarlo

@@ -1025,14 +1025,14 @@ More	Mais
 Hide the tab bar as you scroll	Ocultar a barra de abas ao rolar
 Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	Rolar uma lista para baixo tira a barra de abas do caminho. Rolar para cima, chegar ao topo ou trocar de aba a traz de volta. Funciona com ou sem a Barra de abas de vidro. Reinicie o Instagram depois de alterar.
 Hide the tab bar on Reels	Ocultar a barra de abas nos Reels
-# context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
+# context: a choice in the Hide the tab bar on Reels list; the bar is never hidden there
 Never	Nunca
 # context: a choice in the Hide the tab bar on Reels list; %1$d is 2, 3, 5 or 8
 After %1$d seconds	Depois de %1$d segundos
 # context: summary of the Hide the tab bar on Reels row while its choice is Never
-Never. Pick a time and the pill slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Nunca. Escolha um tempo e a pílula desliza para fora quando um reel é reproduzido por esse tempo sem toque. Reinicie o Instagram depois de alterar.
+Never. Pick a time and the tab bar slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Nunca. Escolha um tempo e a barra de abas desliza para fora quando um reel é reproduzido por esse tempo sem toque. Reinicie o Instagram depois de alterar.
 # context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
-On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	Nos Reels, a pílula desliza para fora após %1$d segundos sem toque. Toque na borda inferior da tela, troque de aba ou pressione Voltar para trazê-la de volta. Reinicie o Instagram depois de alterar.
+On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	Nos Reels, a barra de abas desliza para fora após %1$d segundos sem toque. Toque na borda inferior da tela, troque de aba ou pressione Voltar para trazê-la de volta. Reinicie o Instagram depois de alterar.
 Start feed videos with sound	Iniciar vídeos do feed com som
 The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	O primeiro vídeo do Início toca com o som ligado, igual a tocar no alto-falante dele. O toque e o volume do celular continuam valendo, então no silencioso ou com o volume zerado, ele fica mudo.
 Tap a feed video to pause it	Tocar em um vídeo do feed para pausar

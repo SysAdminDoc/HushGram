@@ -1024,14 +1024,14 @@ More	더
 Hide the tab bar as you scroll	스크롤할 때 탭 바 숨기기
 Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	목록을 아래로 스크롤하면 탭 바가 아래로 비켜 줍니다. 위로 스크롤하거나 맨 위에 닿거나 탭을 바꾸면 다시 나타납니다. 유리 탭 바를 켜든 끄든 작동합니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
 Hide the tab bar on Reels	릴스에서 탭 바 숨기기
-# context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
+# context: a choice in the Hide the tab bar on Reels list; the bar is never hidden there
 Never	안 함
 # context: a choice in the Hide the tab bar on Reels list; %1$d is 2, 3, 5 or 8
 After %1$d seconds	%1$d초 후
 # context: summary of the Hide the tab bar on Reels row while its choice is Never
-Never. Pick a time and the pill slides away once a reel has played that long without a touch. Restart Instagram after changing it.	안 함. 시간을 선택하면 릴스가 터치 없이 그 시간만큼 재생된 뒤 알약 모양 바가 아래로 사라집니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
+Never. Pick a time and the tab bar slides away once a reel has played that long without a touch. Restart Instagram after changing it.	안 함. 시간을 선택하면 릴스가 터치 없이 그 시간만큼 재생된 뒤 탭 바가 아래로 사라집니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
 # context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
-On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	릴스에서 %1$d초 동안 터치가 없으면 알약 모양 바가 아래로 사라집니다. 다시 보려면 화면 아래쪽 가장자리를 탭하거나 탭을 바꾸거나 뒤로를 누르세요. 변경한 뒤에는 Instagram을 다시 시작하세요.
+On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	릴스에서 %1$d초 동안 터치가 없으면 탭 바가 아래로 사라집니다. 다시 보려면 화면 아래쪽 가장자리를 탭하거나 탭을 바꾸거나 뒤로를 누르세요. 변경한 뒤에는 Instagram을 다시 시작하세요.
 Start feed videos with sound	피드 동영상을 소리와 함께 시작
 The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	홈의 첫 번째 동영상이 스피커를 누른 것처럼 소리가 켜진 채로 재생됩니다. 휴대전화의 벨소리 모드와 볼륨은 그대로 적용되므로 무음이거나 볼륨이 꺼져 있으면 조용한 상태로 유지됩니다.
 Tap a feed video to pause it	피드 동영상을 탭하여 일시정지

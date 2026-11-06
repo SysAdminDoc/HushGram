@@ -1025,14 +1025,14 @@ More	Mehr
 Hide the tab bar as you scroll	Tab-Leiste beim Scrollen ausblenden
 Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	Wenn du eine Liste nach unten scrollst, gleitet die Tab-Leiste aus dem Weg. Nach oben scrollen, das Erreichen des Anfangs oder ein Tab-Wechsel holt sie zurück. Das geht mit und ohne Glas-Tab-Leiste. Starte Instagram nach einer Änderung neu.
 Hide the tab bar on Reels	Tab-Leiste bei Reels ausblenden
-# context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
+# context: a choice in the Hide the tab bar on Reels list; the bar is never hidden there
 Never	Nie
 # context: a choice in the Hide the tab bar on Reels list; %1$d is 2, 3, 5 or 8
 After %1$d seconds	Nach %1$d Sekunden
 # context: summary of the Hide the tab bar on Reels row while its choice is Never
-Never. Pick a time and the pill slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Nie. Wähle eine Zeit, dann gleitet die Pille weg, sobald ein Reel so lange ohne Berührung gelaufen ist. Starte Instagram nach einer Änderung neu.
+Never. Pick a time and the tab bar slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Nie. Wähle eine Zeit, dann gleitet die Tab-Leiste weg, sobald ein Reel so lange ohne Berührung gelaufen ist. Starte Instagram nach einer Änderung neu.
 # context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
-On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	Bei Reels gleitet die Pille nach %1$d Sekunden ohne Berührung weg. Tippe auf den unteren Bildschirmrand, wechsle den Tab oder drücke Zurück, um sie zurückzuholen. Starte Instagram nach einer Änderung neu.
+On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	Bei Reels gleitet die Tab-Leiste nach %1$d Sekunden ohne Berührung weg. Tippe auf den unteren Bildschirmrand, wechsle den Tab oder drücke Zurück, um sie zurückzuholen. Starte Instagram nach einer Änderung neu.
 Start feed videos with sound	Feed-Videos mit Ton starten
 The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	Das erste Video auf der Startseite spielt mit eingeschaltetem Ton, so als hättest du auf seinen Lautsprecher getippt. Klingelton und Lautstärke deines Telefons zählen weiterhin, also bleibt es bei lautlos oder leiser Lautstärke stumm.
 Tap a feed video to pause it	Feed-Video antippen zum Pausieren

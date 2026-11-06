@@ -1627,15 +1627,17 @@ public class Settings extends BaseSettings {
                     app.hushgram.extension.instagram.misc.GlassLift.STANDARD, true, parent(GLASS_TAB_BAR_FLOAT));
 
     /**
-     * Under {@link #GLASS_TAB_BAR}: on the Reels screen the pill slides away once the screen has gone this
-     * long without a touch ({@link app.hushgram.extension.instagram.misc.GlassReelsHide}, #170). A tap where
-     * the pill sits, a tab change or Back brings it back. A drag there is the reel's seek bar's (#221). It has nothing to do with
+     * On the Reels screen the tab bar slides away once the screen has gone this long without a touch
+     * ({@link app.hushgram.extension.instagram.misc.GlassReelsHide}, #170). The glass pill or, with
+     * {@link #GLASS_TAB_BAR} off, Instagram's own bar, whose room the reel takes while it's away (#343), so
+     * it isn't under the glass switch. A tap where the bar sits, a tab change or Back brings it back. A drag
+     * there is the reel's seek bar's (#221). It has nothing to do with
      * {@link #GLASS_TAB_BAR_HIDE_ON_SCROLL}, which leaves the bar alone on every reel. Starts on never. Read
      * as the bar is built, so a change asks for a restart.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassReelsHide> GLASS_TAB_BAR_REELS_HIDE =
             new EnumSetting<>("hushgram_glass_tab_bar_reels_hide",
-                    app.hushgram.extension.instagram.misc.GlassReelsHide.NEVER, true, parent(GLASS_TAB_BAR));
+                    app.hushgram.extension.instagram.misc.GlassReelsHide.NEVER, true);
 
     /**
      * Your own profile's tabs get one more, a bookmark, that opens Saved

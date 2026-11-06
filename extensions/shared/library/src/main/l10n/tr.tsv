@@ -1025,14 +1025,14 @@ More	Daha fazla
 Hide the tab bar as you scroll	Kaydırırken sekme çubuğunu gizle
 Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	Bir listeyi aşağı kaydırmak sekme çubuğunu yoldan çeker. Yukarı kaydırmak, en üste ulaşmak veya sekme değiştirmek onu geri getirir. Cam sekme çubuğu açık da kapalı da çalışır. Değiştirdikten sonra Instagram'ı yeniden başlatın.
 Hide the tab bar on Reels	Reels'te sekme çubuğunu gizle
-# context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
+# context: a choice in the Hide the tab bar on Reels list; the bar is never hidden there
 Never	Hiçbir zaman
 # context: a choice in the Hide the tab bar on Reels list; %1$d is 2, 3, 5 or 8
 After %1$d seconds	%1$d saniye sonra
 # context: summary of the Hide the tab bar on Reels row while its choice is Never
-Never. Pick a time and the pill slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Hiçbir zaman. Bir süre seçerseniz, bir reel o kadar süre dokunulmadan oynadığında çubuk kayarak kaybolur. Değiştirdikten sonra Instagram'ı yeniden başlatın.
+Never. Pick a time and the tab bar slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Hiçbir zaman. Bir süre seçerseniz, bir reel o kadar süre dokunulmadan oynadığında çubuk kayarak kaybolur. Değiştirdikten sonra Instagram'ı yeniden başlatın.
 # context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
-On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	Reels'te çubuk, %1$d saniye dokunulmadığında kayarak kaybolur. Geri getirmek için ekranın alt kenarına dokunun, sekme değiştirin veya Geri'ye basın. Değiştirdikten sonra Instagram'ı yeniden başlatın.
+On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	Reels'te çubuk, %1$d saniye dokunulmadığında kayarak kaybolur. Geri getirmek için ekranın alt kenarına dokunun, sekme değiştirin veya Geri'ye basın. Değiştirdikten sonra Instagram'ı yeniden başlatın.
 Start feed videos with sound	Akış videolarını sesli başlat
 The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	Ana Sayfa'daki ilk video, hoparlörüne dokunmuş gibi sesi açık olarak oynar. Telefonunuzun zil modu ve ses düzeyi yine geçerlidir, bu yüzden sessizde veya ses kapalıyken video sessiz kalır.
 Tap a feed video to pause it	Duraklatmak için akış videosuna dokun

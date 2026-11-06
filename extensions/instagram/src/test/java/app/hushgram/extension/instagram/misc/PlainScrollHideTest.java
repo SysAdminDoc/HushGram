@@ -51,6 +51,7 @@ public class PlainScrollHideTest {
     private static final int BAR_ID = 0x7f0b0131;
     private static final int CONTENT_ID = 0x7f0b0132;
     private static final int SHADOW_ID = 0x7f0b0133;
+    private static final int REELS_ID = 0x7f0b0134;
     private static final int BAR_HEIGHT = 150;
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
@@ -63,6 +64,7 @@ public class PlainScrollHideTest {
     private GlassScrollHideTest.FakeList list;
     private View shadow;
     private LinearLayout bar;
+    private FrameLayout viewer;
     private final Map<String, Integer> before = new java.util.HashMap<>();
     private long clock;
 
@@ -118,6 +120,7 @@ public class PlainScrollHideTest {
         HookStatus.clear();
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
+        Settings.GLASS_TAB_BAR_REELS_HIDE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         GlassTabBar.resetForTests();
@@ -267,5 +270,126 @@ public class PlainScrollHideTest {
         assertTrue("Instagram's own bar hides too", Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.isAvailable());
         Settings.GLASS_TAB_BAR.save(true);
         assertTrue(Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.isAvailable());
+    }
+
+    /** Puts a Reels viewer on the screen, stopping above the bar as the Reels tab's does. */
+    private void showReels() {
+        viewer = new FrameLayout(activity);
+        viewer.setId(REELS_ID);
+        screen.addView(viewer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        name(GlassTabBar.REELS_ROOT, REELS_ID);
+        layout();
+    }
+
+    /** On a Reels viewer with only the wait picked, [delay], and the scroll switch off. */
+    private GlassScrollHide waitingOnReels(GlassReelsHide delay) {
+        Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(false);
+        Settings.GLASS_TAB_BAR_REELS_HIDE.save(delay);
+        showReels();
+        return applied().hide;
+    }
+
+    private static void idle(long millis) {
+        ShadowLooper.idleMainLooper(millis, TimeUnit.MILLISECONDS);
+    }
+
+    private void assertTheScreensStopAboveTheBar() {
+        assertEquals(BAR_HEIGHT, margin(content));
+        assertEquals(BAR_HEIGHT, margin(screen));
+        assertEquals(View.VISIBLE, shadow.getVisibility());
+    }
+
+    /** #343: the wait picked on the Reels row works on Instagram's own bar, and the reel leaves no strip. */
+    @Test public void onReelsThePickedWaitSlidesTheBarAwayAndTheScreensTakeItsRoom() {
+        GlassScrollHide hide = waitingOnReels(GlassReelsHide.THREE_SECONDS);
+        idle(2900);
+        assertFalse(hide.isHidden());
+        assertTheScreensStopAboveTheBar();
+        idle(200);
+        assertTrue(hide.isHidden());
+        assertEquals("the screens' holder runs to the bottom", 0, margin(content));
+        assertEquals("and so does the screen in it", 0, margin(screen));
+        assertEquals("the shadow line doesn't stay behind", View.INVISIBLE, shadow.getVisibility());
+        settle();
+        assertTrue(hide.isOffScreen());
+        assertEquals("only moved, never hidden", View.VISIBLE, bar.getVisibility());
+    }
+
+    @Test public void aSwipeOnAReelLeavesTheBarAwayAndTheScreensAsTheyAre() {
+        GlassScrollHide hide = waitingOnReels(GlassReelsHide.TWO_SECONDS);
+        idle(2100);
+        settle();
+        for (int swipe : new int[] {-600, 600}) {
+            drag(hide, swipe);
+            settle();
+            assertTrue(hide.isHidden());
+            assertEquals(0, margin(content));
+            assertEquals(0, margin(screen));
+        }
+    }
+
+    @Test public void aTapWhereTheBarSitsBringsItBackAndTheScreensStopAboveItOnceItsBack() {
+        GlassScrollHide hide = waitingOnReels(GlassReelsHide.TWO_SECONDS);
+        idle(2100);
+        settle();
+        touch(hide, MotionEvent.ACTION_DOWN, 500, 1900);
+        touch(hide, MotionEvent.ACTION_UP, 500, 1900);
+        assertFalse(hide.isHidden());
+        assertEquals("nothing shows through while the bar slides back", 0, margin(content));
+        settle();
+        assertEquals(0f, bar.getTranslationY(), 0.5f);
+        assertTheScreensStopAboveTheBar();
+    }
+
+    @Test public void leavingReelsBringsTheBarBackAndTheScreensStopAboveIt() {
+        GlassScrollHide hide = waitingOnReels(GlassReelsHide.TWO_SECONDS);
+        idle(2100);
+        assertTrue(hide.isHidden());
+        viewer.setVisibility(View.GONE);
+        idle(GlassScrollHide.WATCH_MS * 2);
+        assertFalse(hide.isHidden());
+        settle();
+        assertTheScreensStopAboveTheBar();
+    }
+
+    @Test public void theBackgroundPutsTheBarAndTheScreensBackAfterAWait() {
+        GlassScrollHide hide = waitingOnReels(GlassReelsHide.TWO_SECONDS);
+        idle(2100);
+        assertTrue(hide.isHidden());
+        GlassTabBar.restoreAll();
+        assertFalse(hide.isHidden());
+        assertTheScreensStopAboveTheBar();
+    }
+
+    @Test public void withOnlyTheWaitPickedAListScrollLeavesTheBar() {
+        Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(false);
+        Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.TWO_SECONDS);
+        GlassScrollHide hide = applied().hide;
+        list.awayFromTop = true;
+        drag(hide, -300);
+        assertFalse(hide.isHidden());
+        idle(10_000);
+        assertFalse("and the wait is for reels", hide.isHidden());
+        assertTheScreensStopAboveTheBar();
+    }
+
+    @Test public void withTheWaitOnNeverReelsKeepTheirBarWhateverTheScrollSwitch() {
+        showReels();
+        GlassScrollHide hide = applied().hide;
+        idle(10_000);
+        assertFalse(hide.isHidden());
+        drag(hide, -600);
+        assertFalse(hide.isHidden());
+        assertTheScreensStopAboveTheBar();
+    }
+
+    @Test public void pausedTheWaitHidesNothing() {
+        GlassScrollHide hide = waitingOnReels(GlassReelsHide.TWO_SECONDS);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        idle(10_000);
+        assertFalse(hide.isHidden());
+        assertEquals(0f, bar.getTranslationY(), 0.5f);
+        assertTheScreensStopAboveTheBar();
     }
 }

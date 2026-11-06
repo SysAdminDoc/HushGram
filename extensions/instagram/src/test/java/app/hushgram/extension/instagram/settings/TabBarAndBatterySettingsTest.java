@@ -380,7 +380,7 @@ public class TabBarAndBatterySettingsTest {
         for (CharSequence value : reels.getEntryValues()) values.add(String.valueOf(value));
         assertEquals(Arrays.asList("NEVER", "TWO_SECONDS", "THREE_SECONDS", "FIVE_SECONDS", "EIGHT_SECONDS"), values);
         assertEquals("NEVER", reels.getValue());
-        assertEquals("Never. Pick a time and the pill slides away once a reel has played that long without a touch. "
+        assertEquals("Never. Pick a time and the tab bar slides away once a reel has played that long without a touch. "
                 + "Restart Instagram after changing it.", String.valueOf(reels.getSummary()));
         assertFalse("nothing owed before a pick",
                 AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_REELS_HIDE.key));
@@ -389,7 +389,7 @@ public class TabBarAndBatterySettingsTest {
         ShadowLooper.idleMainLooper();
         assertEquals(GlassReelsHide.THREE_SECONDS, Settings.GLASS_TAB_BAR_REELS_HIDE.savedValue());
         assertEquals(3_000L, Settings.GLASS_TAB_BAR_REELS_HIDE.savedValue().millis);
-        assertEquals("On Reels, the pill slides away after 3 seconds without a touch. Tap the bottom edge of the screen, "
+        assertEquals("On Reels, the tab bar slides away after 3 seconds without a touch. Tap the bottom edge of the screen, "
                 + "change tab or press Back to bring it back. Restart Instagram after changing it.",
                 String.valueOf(reels.getSummary()));
         assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_REELS_HIDE.key));
@@ -403,14 +403,15 @@ public class TabBarAndBatterySettingsTest {
                 AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_REELS_HIDE.key));
     }
 
-    /** It goes by Glass tab bar alone. The scroll switch above it has no say either way. */
-    @Test public void hideTheTabBarOnReelsGoesByTheGlassBarNotTheScrollSwitch() {
+    /** It stands on its own: Instagram's own bar slides away too (#343), and the scroll switch above it has no say. */
+    @Test public void hideTheTabBarOnReelsNeedsNeitherTheGlassBarNorTheScrollSwitch() {
         Settings.GLASS_TAB_BAR.save(true);
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(false);
-        assertTrue("it needs the glass bar, not the scroll switch", Settings.GLASS_TAB_BAR_REELS_HIDE.isAvailable());
+        assertTrue(Settings.GLASS_TAB_BAR_REELS_HIDE.isAvailable());
         Settings.GLASS_TAB_BAR.save(false);
+        assertTrue("Instagram's own bar slides away too", Settings.GLASS_TAB_BAR_REELS_HIDE.isAvailable());
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(true);
-        assertFalse("no glass bar, nothing to slide away", Settings.GLASS_TAB_BAR_REELS_HIDE.isAvailable());
+        assertTrue(Settings.GLASS_TAB_BAR_REELS_HIDE.isAvailable());
     }
 
     /**

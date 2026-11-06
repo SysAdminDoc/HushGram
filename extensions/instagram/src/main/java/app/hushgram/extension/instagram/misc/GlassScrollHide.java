@@ -91,7 +91,7 @@ final class GlassScrollHide {
     }
 
     /**
-     * What hands the bar's room to the screens while a scroll has it away, so Instagram's own bar leaves no
+     * What hands the bar's room to the screens while it's away, so Instagram's own bar leaves no
      * empty strip behind it (#343). Told as the bar starts to slide away, and again once it's all the way back.
      */
     interface Room {
@@ -243,7 +243,7 @@ final class GlassScrollHide {
     }
 
     /**
-     * @param room what takes the bar's room while a scroll has it away, or null to leave the screens as they are
+     * @param room what takes the bar's room while it's away, or null to leave the screens as they are
      */
     GlassScrollHide(View bar, BooleanSupplier running, boolean onScroll, long reelsMillis, @Nullable Shrinker shrinker,
             @Nullable Room room) {
