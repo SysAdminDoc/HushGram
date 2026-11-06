@@ -125,6 +125,16 @@ public class ReelClearModeTest {
             posted.add(work);
         }
 
+        /** While set, a first try waits in {@link #fading} for its test to run it. */
+        boolean holdFade;
+        final List<Runnable> fading = new ArrayList<>();
+
+        @Override
+        public void afterFadeMoved(Runnable work) {
+            if (holdFade) fading.add(work);
+            else work.run();
+        }
+
         @Override
         public long now() {
             return now;
@@ -240,6 +250,73 @@ public class ReelClearModeTest {
         assertTrue(HookStatus.report().toString(), counted(10));
         assertTrue(ReelClearMode.wanted());
         assertEquals("reels started in clear mode", ReelClearMode.CARRIED);
+    }
+
+    /**
+     * Instagram's fade only writes the top bar while its spring moves. Turned on in the same moment
+     * it was turned off, the spring doesn't, and the top bar stays on the next reel.
+     */
+    @Test
+    public void theNextReelsTurnOnWaitsForTheFadeToMove() {
+        Reel first = reel("first");
+        Reel second = reel("second");
+        viewer.page = first;
+        tapClearMode();
+        viewer.holdFade = true;
+
+        viewer.page = second;
+        ReelClearMode.left(viewer.handler, first, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        assertEquals("not in the same moment as the turn-off", 0, viewer.asked);
+        assertEquals(1, viewer.fading.size());
+        assertTrue(ReelClearMode.wanted());
+
+        viewer.fading.remove(0).run();
+        assertEquals(1, viewer.asked);
+        assertEquals(Arrays.asList("first OVERFLOW_MENU", "second OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(HookStatus.report().toString(), counted(1));
+    }
+
+    /** You leave clear mode, or turn it on again, while the first try waits: the try does nothing. */
+    @Test
+    public void aFirstTryThatWaitedLeavesAloneWhatYouDidSince() {
+        Reel first = reel("first");
+        Reel second = reel("second");
+        viewer.page = first;
+        tapClearMode();
+        viewer.holdFade = true;
+
+        viewer.page = second;
+        ReelClearMode.left(viewer.handler, first, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        ReelClearMode.left(viewer.handler, second, Reason.EXIT_BUTTON);
+        assertFalse(ReelClearMode.wanted());
+        viewer.fading.remove(0).run();
+        assertEquals("you left it", 0, viewer.asked);
+
+        tapClearMode();
+        ReelClearMode.left(viewer.handler, second, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        Runnable stale = viewer.fading.remove(0);
+        ReelClearMode.forget();
+        ReelClearMode.access = viewer;
+        Settings.KEEP_REEL_CLEAR_MODE.save(true);
+        stale.run();
+        assertEquals("everything was forgotten", 0, viewer.asked);
+    }
+
+    /** The switch goes off while the first try waits: nothing is asked for, and nothing is wanted after. */
+    @Test
+    public void aFirstTryThatWaitedAsksNothingWithTheSwitchOff() {
+        Reel first = reel("first");
+        viewer.page = first;
+        tapClearMode();
+        viewer.holdFade = true;
+
+        viewer.page = reel("second");
+        ReelClearMode.left(viewer.handler, first, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        Settings.KEEP_REEL_CLEAR_MODE.save(false);
+        viewer.fading.remove(0).run();
+
+        assertEquals(0, viewer.asked);
+        assertFalse(ReelClearMode.wanted());
     }
 
     /** The exit button and the menu are your own way out: the next reels show their buttons, however many follow. */

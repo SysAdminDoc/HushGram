@@ -50,13 +50,18 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * in clear mode draws no seek bar, unless Always show seek bar in clear mode keeps it (#480). That
  * is the only thing this class hides.
  *
- * <p>Every reel page shares one alpha for its buttons, author row and top bar. Clear mode's fade
- * animates it to hidden, and Instagram resets it to shown when it binds a page at rest, behind the
- * fade's back, which brought every button back on a reel still in clear mode several swipes in
- * (#233). The patch asks {@link #chrome} each time a page writes that alpha, and while a reel you
- * put in clear mode is in it, asking for fully shown keeps the alpha as it is. The fade out never
- * asks for fully shown, and leaving clear mode yourself forgets it before Instagram's fade back in
- * starts, so both go through.
+ * <p>Every reel page shares one alpha for its buttons and author row. Clear mode's fade animates it
+ * to hidden, and Instagram resets it to shown when it binds a page at rest, behind the fade's back,
+ * which brought every button back on a reel still in clear mode several swipes in (#233). The patch
+ * asks {@link #chrome} each time a page writes that alpha, and while a reel you put in clear mode is
+ * in it, asking for fully shown keeps the alpha as it is. The fade out never asks for fully shown,
+ * and leaving clear mode yourself forgets it before Instagram's fade back in starts, so both go
+ * through.
+ *
+ * <p>The top bar belongs to the viewer, not the page, and the same fade writes it only on the steps
+ * of its spring. A turn-on in the same moment as the turn-off leaves that spring where it was, so
+ * nothing hides the bar a page change just showed. A reel that left clear mode therefore lets the
+ * fade run for {@link #FADE_MOVES_MS} before the first try for the next reel.
  *
  * <p>Instagram's turn-on acts on whatever reel the pager is on, so {@link #current} looks at that
  * reel first and holds the turn-on back when it would be the wrong one: the reel that just left
@@ -122,6 +127,9 @@ public final class ReelClearMode {
     /** How long after a reel left clear mode the pager's next page still gets it. */
     static final long RETRY_WINDOW_MS = 3_000;
 
+    /** How long a reel that left clear mode lets Instagram's fade run before the next reel's turn-on. */
+    static final long FADE_MOVES_MS = 50;
+
     /** How many reels are remembered as having an exit button of their own. */
     static final int REMEMBERED = 64;
 
@@ -155,6 +163,9 @@ public final class ReelClearMode {
         /** Runs the work on the main thread once what's running there now is done. */
         void post(Runnable work);
 
+        /** Runs the work on the main thread after {@link #FADE_MOVES_MS}. */
+        void afterFadeMoved(Runnable work);
+
         /** Milliseconds that only go forward. */
         long now();
 
@@ -180,6 +191,11 @@ public final class ReelClearMode {
         @Override
         public void post(Runnable work) {
             Utils.runOnMainThread(work);
+        }
+
+        @Override
+        public void afterFadeMoved(Runnable work) {
+            Utils.runOnMainThreadDelayed(work, FADE_MOVES_MS);
         }
 
         @Override
@@ -243,6 +259,10 @@ public final class ReelClearMode {
     /** The reel that just left clear mode, which a carried turn-on must not land on again. */
     @Nullable
     private static volatile String from;
+
+    /** The handler of the first try that waits for Instagram's fade to move, or null when none does. */
+    @Nullable
+    private static volatile WeakReference<Object> leaving;
 
     private static volatile int outcome = NOTHING;
 
@@ -375,7 +395,27 @@ public final class ReelClearMode {
             }
             shown = null;
             clearRetry();
-            carry(handler, id, 0, false, false);
+            WeakReference<Object> held = new WeakReference<>(handler);
+            leaving = held;
+            access.afterFadeMoved(() -> firstTry(held, id));
+        } catch (Throwable failure) {
+            drop();
+            HookStatus.threw(FAMILY, "clear mode off", failure);
+        }
+    }
+
+    /** The first try for the reel the pager is on, unless clear mode was left or turned on again since. */
+    private static void firstTry(WeakReference<Object> held, String left) {
+        try {
+            if (leaving != held) return;
+            leaving = null;
+            if (!wanted) return;
+            Object handler = held.get();
+            if (!on() || handler == null) {
+                drop();
+                return;
+            }
+            carry(handler, left, 0, false, false);
         } catch (Throwable failure) {
             drop();
             HookStatus.threw(FAMILY, "clear mode off", failure);
@@ -884,6 +924,7 @@ public final class ReelClearMode {
         shown = null;
         enabling = null;
         from = null;
+        leaving = null;
         clearRetry();
     }
 
