@@ -168,9 +168,13 @@ if (Test-Path $out) { Remove-Item $out -Force }
 Write-Host "[device] $($names.Count) patches from $(Split-Path -Leaf $bundle) onto $(Split-Path -Leaf $Apk)"
 $enable = @()
 foreach ($name in $names) { $enable += '-e'; $enable += $name }
+# The CLI links a bundle into its temp folder before merging it, and a machine that won't follow
+# user-made links stops there. Merging first is what verify-all and the receipt already do.
+$mergedStock = Join-Path $OutDir 'stock-merged.apk'
+$patchInput = Get-MergedApk -Apk $Apk -Destination $mergedStock -Java $Java -DesktopJar $DesktopJar
 $arguments = @('patch', '--exclusive', '-p', $bundle, '-o', $out, '-t', $temp, '-r', $result,
     '--keystore', $Keystore, '--keystore-password', $storePassword,
-    '--keystore-entry-alias', $KeyAlias, '--keystore-entry-password', $entryPassword) + $enable + @($Apk)
+    '--keystore-entry-alias', $KeyAlias, '--keystore-entry-password', $entryPassword) + $enable + @($patchInput)
 $argumentFile = Join-Path $OutDir 'morphe-patch.args'
 $argumentFileLines = @($arguments | ForEach-Object {
     $value = [string]$_
@@ -208,6 +212,7 @@ try {
     Remove-Item -LiteralPath $argumentFile -Force -ErrorAction SilentlyContinue
     # The CLI unpacks the whole APK here and a run against Instagram leaves gigabytes behind.
     if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue }
+    Remove-Item -LiteralPath $mergedStock -Force -ErrorAction SilentlyContinue
 }
 # The same report check the throwaway verification applies: every requested patch, every
 # step, the target, and a real APK. The build that goes onto a phone deserves no less.
