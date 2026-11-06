@@ -40,6 +40,7 @@ import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.shared.ui.Dim;
 
 /**
  * The page's side edges, as the S25 showed them (2026-11-03): main-page rows drew a grey hairline
@@ -171,8 +172,9 @@ public class SettingsEdgeInsetsTest {
         ShadowLooper.idleMainLooper();
         try {
             ViewGroup.MarginLayoutParams space = (ViewGroup.MarginLayoutParams) history.search.getLayoutParams();
-            assertEquals("the settings search's 18dp", dp(18), space.getMarginStart());
-            assertEquals(dp(18), space.getMarginEnd());
+            // Dim keeps the density of whichever test loaded it first, so this reads Dim too.
+            assertEquals("the settings search's 18dp", Dim.dp(18), space.getMarginStart());
+            assertEquals(Dim.dp(18), space.getMarginEnd());
         } finally {
             history.dialog.dismiss();
         }
