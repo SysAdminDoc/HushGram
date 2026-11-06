@@ -1813,3 +1813,9 @@ Playing in the background	正在背景播放
 Paused in the background	已在背景暫停
 Play	播放
 Stop	停止
+# context: a warning added to a setting's description
+Can slow down older phones.	可能會讓較舊的手機變慢.
+# context: a switch under Ambient light
+Blend post edges	融合貼文邊緣
+# context: what that switch does
+Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	讓貼文相片或影片的上下邊緣融入光暈，邊緣就不會像一條生硬的線.

@@ -501,6 +501,8 @@ public final class StoryMentions {
         List<Mention> people = Collections.emptyList();
         /** The header's column while the pill sits in the name's row, so it can go under the header. */
         @Nullable LinearLayout header;
+        /** The header's row while the pill sits under it, so the pill can stay close to what shows there. */
+        @Nullable View underRow;
         private boolean moving;
 
         Pill(Context context) {
@@ -549,6 +551,8 @@ public final class StoryMentions {
         protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
             super.onLayout(changed, left, top, right, bottom);
             try {
+                // Its first layout tells the pill how wide it is, which decides what shows over it.
+                if (changed && underRow != null) post(() -> fitUnder(this));
                 LinearLayout column = header;
                 ViewParent row = getParent();
                 if (column == null || moving || !(row instanceof LinearLayout) || !crowdsName((LinearLayout) row)) return;
@@ -778,8 +782,69 @@ public final class StoryMentions {
         View headerRow = (View) header.getParent();
         LinearLayout.LayoutParams place = placement(false);
         place.setMarginStart(headerRow.getLeft() + header.getLeft() + nameStart(header));
+        place.topMargin = gapUnder(headerRow, place.getMarginStart() - headerRow.getLeft(), 0);
         pill.setLayoutParams(place);
         under.addView(pill, under.indexOfChild(headerRow) + 1);
+        pill.underRow = headerRow;
+        // The name's second line can come after this, and the row's box doesn't change for it.
+        headerRow.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View row, int l, int t, int r, int b, int oldL, int oldT, int oldR, int oldB) {
+                if (pill.getParent() == null || pill.underRow != row) {
+                    row.removeOnLayoutChangeListener(this);
+                    return;
+                }
+                pill.post(() -> fitUnder(pill));
+            }
+        });
+    }
+
+    /** Moves [pill] to where it belongs under the header's row, when that changed. Never throws. */
+    static void fitUnder(Pill pill) {
+        try {
+            View row = pill.underRow;
+            if (row == null || !(pill.getLayoutParams() instanceof LinearLayout.LayoutParams)) return;
+            LinearLayout.LayoutParams place = (LinearLayout.LayoutParams) pill.getLayoutParams();
+            int gap = gapUnder(row, place.getMarginStart() - row.getLeft(), pill.getWidth());
+            if (gap == place.topMargin) return;
+            place.topMargin = gap;
+            pill.setLayoutParams(place);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "story header", failure);
+        }
+    }
+
+    /**
+     * The pill's top margin under the header's [row]: a little under the lowest thing that shows over
+     * the pill, from [start] for [width] across the row (with no width yet, across all of it). The row
+     * is as tall as its tallest box, far taller than a one-line name, which left a gap as tall as the
+     * pill between them (#510). So the margin usually comes out negative, up into the row's empty foot.
+     */
+    static int gapUnder(View row, int start, int width) {
+        int gap = Dim.dp(4);
+        int height = row.getHeight();
+        if (height <= 0) return gap;
+        int lowest = lowestShowing(row, 0, 0, start, start + width);
+        return lowest <= 0 ? gap : Math.min(gap, lowest + gap - height);
+    }
+
+    /**
+     * How far down [view], at [left] and [top], reaches what it shows between [from] and [to]. Only what
+     * has nothing inside it counts, as a box around things can be far bigger than they are.
+     */
+    private static int lowestShowing(View view, int left, int top, int from, int to) {
+        if (view.getVisibility() != View.VISIBLE || view.getWidth() <= 0 || view.getHeight() <= 0) return 0;
+        if (view instanceof ViewGroup && ((ViewGroup) view).getChildCount() > 0) {
+            ViewGroup group = (ViewGroup) view;
+            int lowest = 0;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                lowest = Math.max(lowest, lowestShowing(child, left + child.getLeft(), top + child.getTop(), from, to));
+            }
+            return lowest;
+        }
+        if (to > from && (left + view.getWidth() <= from || left >= to)) return 0;
+        return top + view.getHeight();
     }
 
     /**
@@ -1247,10 +1312,23 @@ public final class StoryMentions {
     }
 
     /** Whether [x], [y] is on a view showing in [parent] other than [pill]. */
-    private static boolean onAnother(ViewGroup parent, View pill, float x, float y) {
+    private static boolean onAnother(ViewGroup parent, Pill pill, float x, float y) {
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
-            if (child != pill && child.getVisibility() == View.VISIBLE && holds(child, x, y, 0, 0)) return true;
+            if (child == pill || child.getVisibility() != View.VISIBLE || !holds(child, x, y, 0, 0)) continue;
+            // The pill sits in the empty foot of the header's row, and nobody taps there but on what shows.
+            if (child != pill.underRow || showsAt(child, x, y)) return true;
+        }
+        return false;
+    }
+
+    /** Whether something with nothing inside it shows at [x], [y] in [view]. */
+    private static boolean showsAt(View view, float x, float y) {
+        if (view.getVisibility() != View.VISIBLE || !holds(view, x, y, 0, 0)) return false;
+        if (!(view instanceof ViewGroup) || ((ViewGroup) view).getChildCount() == 0) return true;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (showsAt(group.getChildAt(i), x, y)) return true;
         }
         return false;
     }

@@ -17,6 +17,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyTimeModeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadBitrateRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadScopeRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.trayBadgeRow;
 
@@ -123,8 +124,8 @@ final class StoriesCategory {
         }
         if (build.contains(PatchFamily.AMBIENT_LIGHT)) {
             stories.add(onFlip(toggle(context, Settings.AMBIENT_LIGHT_STORIES, L10n.t("Ambient light in stories"),
-                    L10n.t("Fills the bands above and below a story that doesn't fill the screen with a soft glow in "
-                            + "its own colors. Glow spread and Glow speed, under Feed, set it too.")),
+                    slowsOlderPhones(L10n.t("Fills the bands above and below a story that doesn't fill the screen with a soft glow in "
+                            + "its own colors. Glow spread and Glow speed, under Feed, set it too."))),
                     AmbientLight::switchChanged));
         }
         if (build.contains(PatchFamily.STORY_AUTO_ADVANCE)) {

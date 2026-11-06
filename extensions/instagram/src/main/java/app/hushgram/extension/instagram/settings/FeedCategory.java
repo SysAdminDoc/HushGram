@@ -13,6 +13,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.cornerSizeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSeekBarLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
 import android.content.Context;
@@ -249,11 +250,14 @@ final class FeedCategory {
         }
         if (ambientLight) {
             feed.addPreference(onFlip(toggle(context, Settings.AMBIENT_LIGHT, L10n.t("Ambient light"),
-                    L10n.t("Puts a soft glow in a post's own colors around its photo or video, and in the bands "
-                            + "around a reel that doesn't fill the screen. The glow follows a video as it plays.")),
+                    slowsOlderPhones(L10n.t("Puts a soft glow in a post's own colors around its photo or video, and in the bands "
+                            + "around a reel that doesn't fill the screen. The glow follows a video as it plays."))),
                     AmbientLight::switchChanged));
             feed.addPreference(ambientSpreadRow(context));
             feed.addPreference(ambientSpeedRow(context));
+            feed.addPreference(toggle(context, Settings.AMBIENT_LIGHT_BLEND, L10n.t("Blend post edges"),
+                    L10n.t("Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't "
+                            + "show as a hard line.")));
         }
         if (fullScreen) {
             feed.addPreference(toggle(context, Settings.FULL_SCREEN_HOME, L10n.t("Full screen Home"),

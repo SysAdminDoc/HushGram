@@ -708,7 +708,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.STORY_RING_COLOR.key.equals(key));
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.AMBIENT_LIGHT && (Settings.AMBIENT_LIGHT_SPREAD.key.equals(key)
-                            || Settings.AMBIENT_LIGHT_SPEED.key.equals(key));
+                            || Settings.AMBIENT_LIGHT_SPEED.key.equals(key) || Settings.AMBIENT_LIGHT_BLEND.key.equals(key));
                     belongs |= family == PatchFamily.STORY_PROGRESS_BAR && Settings.STORY_BAR_THICKNESS.key.equals(key);
                     belongs |= family == PatchFamily.STORIES_TRAY && Settings.TRAY_BADGE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
@@ -3873,6 +3873,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static String withCoverage(String summary, String encodedCoverage) {
         String note = PatchFamily.partialCoverageNote(encodedCoverage);
         return note.isEmpty() ? summary : summary + " " + note;
+    }
+
+    /** [summary] with the note a switch that works the phone hard carries (#510). */
+    static String slowsOlderPhones(String summary) {
+        return summary + " " + L10n.t("Can slow down older phones.");
     }
 
     static SwitchPreference toggle(Context context, BooleanSetting setting, String title, String summary) {

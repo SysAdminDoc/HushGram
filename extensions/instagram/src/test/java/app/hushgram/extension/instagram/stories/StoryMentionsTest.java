@@ -594,6 +594,66 @@ public class StoryMentionsTest {
     }
 
     /**
+     * On 454 the header's row is as tall as its tallest box while a one-line name ends far above the
+     * row's foot, so the pill under the row sat a pill's height from the name (#510). It goes a little
+     * under what shows above it instead, and moves when the name grows a second line.
+     */
+    @Test
+    public void thePillSitsCloseUnderANameThatEndsHighInATallRow() {
+        root.removeView(header);
+        LinearLayout column = new LinearLayout(activity);
+        column.setOrientation(LinearLayout.VERTICAL);
+        column.addView(new View(activity), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 3));
+        FrameLayout headerRow = new FrameLayout(activity);
+        // The avatar, to the side: as tall as the name isn't, and nothing that shows over the pill.
+        headerRow.addView(new View(activity), new FrameLayout.LayoutParams(60, 90));
+        header.removeAllViews();
+        View composeTitleRow = new View(activity);
+        header.addView(composeTitleRow, new LinearLayout.LayoutParams(280, 34));
+        header.addView(new FrameLayout(activity), new LinearLayout.LayoutParams(34, 0));
+        FrameLayout.LayoutParams besideTheAvatar = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        besideTheAvatar.leftMargin = 88;
+        headerRow.addView(header, besideTheAvatar);
+        column.addView(headerRow, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 130));
+        root.addView(column);
+        layOut(header);
+
+        bind(ANA);
+
+        StoryMentions.Pill pill = pill();
+        assertNotNull(pill);
+        assertSame("the pill isn't under the header", column, pill.getParent());
+        // The 22dp a phone draws it at, as Robolectric's text measures it all but a whole target.
+        pill.getLayoutParams().height = Dim.dp(22);
+        layOut(pill);
+        idle();
+        layOut(pill);
+        int gap = Dim.dp(4);
+        assertEquals("the pill isn't close under the name", headerRow.getTop() + 34 + gap, pill.getTop());
+        assertEquals("the column grew past the row", headerRow.getBottom(), Math.max(headerRow.getBottom(), pill.getBottom()));
+
+        composeTitleRow.getLayoutParams().height = 80;
+        composeTitleRow.requestLayout();
+        layOut(pill);
+        idle();
+        layOut(pill);
+        assertEquals("the pill didn't move for the second line", headerRow.getTop() + 80 + gap, pill.getTop());
+
+        // In the row's empty foot the finger keeps its room around the pill, and the name is still Instagram's.
+        float[] center = layOut(pill);
+        int[] at = new int[2];
+        pill.getLocationInWindow(at);
+        float onName = at[1] - gap - 1;
+        assertFalse("a tap on the name went to the pill",
+                StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], onName)));
+        float between = at[1] - 1;
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], between)));
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], between)));
+        assertNotNull("the tap didn't open the list", ShadowDialog.getLatestDialog());
+    }
+
+    /**
      * The pill is drawn small, and a finger gets the room around it, up to the 48dp Android asks of
      * a target. A tap on the name just above it is still Instagram's.
      */

@@ -1809,3 +1809,9 @@ Playing in the background	백그라운드에서 재생 중
 Paused in the background	백그라운드에서 일시정지됨
 Play	재생
 Stop	중지
+# context: a warning added to a setting's description
+Can slow down older phones.	오래된 휴대폰에서는 느려질 수 있습니다.
+# context: a switch under Ambient light
+Blend post edges	게시물 가장자리 흐리게
+# context: what that switch does
+Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	게시물 사진이나 동영상의 위아래를 빛에 녹아들게 해서 가장자리가 선명한 선으로 보이지 않게 합니다.

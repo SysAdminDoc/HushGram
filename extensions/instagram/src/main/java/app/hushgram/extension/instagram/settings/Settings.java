@@ -531,6 +531,10 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_ambient_light_speed", app.hushgram.extension.instagram.feed.AmbientSpeed.MEDIUM,
                     parentsAny(AMBIENT_LIGHT, AMBIENT_LIGHT_STORIES));
 
+    /** Under {@link #AMBIENT_LIGHT}: fades a post's picture into its glow at the edges (#510). Off to start. */
+    public static final BooleanSetting AMBIENT_LIGHT_BLEND =
+            new BooleanSetting("hushgram_ambient_light_blend", FALSE, parent(AMBIENT_LIGHT));
+
     /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.
      * Held back, you stay off them. Replies and reactions still show you. Off to start.

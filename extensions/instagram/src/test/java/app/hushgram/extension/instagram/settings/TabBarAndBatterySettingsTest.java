@@ -467,7 +467,7 @@ public class TabBarAndBatterySettingsTest {
         assertEquals("Liquid glass look", String.valueOf(liquid.getTitle()));
         assertEquals("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list "
                 + "down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. "
-                + "Restart Instagram after changing it.", String.valueOf(liquid.getSummary()));
+                + "Restart Instagram after changing it. Can slow down older phones.", String.valueOf(liquid.getSummary()));
         assertFalse(liquid.isChecked());
         assertFalse(Settings.GLASS_TAB_BAR_LIQUID.defaultValue);
         assertTrue(Settings.GLASS_TAB_BAR_LIQUID.rebootApp);
@@ -543,7 +543,7 @@ public class TabBarAndBatterySettingsTest {
         assertNotNull(refract);
         assertEquals("Bend light at the edges", String.valueOf(refract.getTitle()));
         assertEquals("The liquid pill's rim bends what's behind it like real glass, so what passes under the edge "
-                + "shows upside down. Android 13 and newer. Restart Instagram after changing it.",
+                + "shows upside down. Android 13 and newer. Restart Instagram after changing it. Can slow down older phones.",
                 String.valueOf(refract.getSummary()));
         assertFalse(refract.isChecked());
         assertFalse(Settings.GLASS_TAB_BAR_REFRACT.defaultValue);

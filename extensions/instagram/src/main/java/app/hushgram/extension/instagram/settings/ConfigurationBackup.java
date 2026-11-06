@@ -129,6 +129,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.AMBIENT_LIGHT.inBuild()) {
             settings.put(Settings.AMBIENT_LIGHT_SPREAD.key, Settings.AMBIENT_LIGHT_SPREAD);
             settings.put(Settings.AMBIENT_LIGHT_SPEED.key, Settings.AMBIENT_LIGHT_SPEED);
+            settings.put(Settings.AMBIENT_LIGHT_BLEND.key, Settings.AMBIENT_LIGHT_BLEND);
         }
         if (PatchFamily.STORY_PROGRESS_BAR.inBuild()) settings.put(Settings.STORY_BAR_THICKNESS.key, Settings.STORY_BAR_THICKNESS);
         if (PatchFamily.STORIES_TRAY.inBuild()) settings.put(Settings.TRAY_BADGE.key, Settings.TRAY_BADGE);

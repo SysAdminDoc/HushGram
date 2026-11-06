@@ -18,6 +18,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelCapBreakRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelCapCountRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.scrollBreakRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
 import android.content.Context;
@@ -248,10 +249,10 @@ final class ReelsCategory {
         }
         if (build.contains(PatchFamily.REEL_BLUR_BARS)) {
             reels.add(toggle(context, Settings.BLUR_REEL_BARS, L10n.t("Blur the bars around a reel"),
-                    L10n.t("A reel that doesn't fill the screen shows a blurred copy of itself above and below it "
+                    slowsOlderPhones(L10n.t("A reel that doesn't fill the screen shows a blurred copy of itself above and below it "
                             + "instead of black bars, and the strip under the tab bar and the band behind the clock show the reel "
                             + "blurred too. The copy shows only where a reel leaves room, as with Show the whole reel on. "
-                            + "Open Reels again after a change.")));
+                            + "Open Reels again after a change."))));
         }
         if (build.contains(PatchFamily.REEL_AUTO_SCROLL)) {
             reels.add(toggle(context, Settings.KEEP_REEL_AUTO_SCROLL, L10n.t("Keep auto scroll on"),

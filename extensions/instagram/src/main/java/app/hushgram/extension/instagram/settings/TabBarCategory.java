@@ -17,6 +17,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.hapticStyleRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.startTabRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tabBarLayoutRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
 import android.content.Context;
@@ -124,7 +125,7 @@ final class TabBarCategory {
                 GlassPreviewRow preview = new GlassPreviewRow(context);
                 glass.addPreference(preview);
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
-                        L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
+                        slowsOlderPhones(L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint."))));
                 SliderRow blurRow = glassBlurRow(context);
                 preview.follow(blurRow, GlassPreview.BLUR);
                 glass.addPreference(blurRow);
@@ -132,12 +133,12 @@ final class TabBarCategory {
                 preview.follow(tintRow, GlassPreview.TINT);
                 glass.addPreference(tintRow);
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_LIQUID, L10n.t("Liquid glass look"),
-                        L10n.t("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling "
+                        slowsOlderPhones(L10n.t("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling "
                                 + "a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as "
-                                + "you scroll is on. Restart Instagram after changing it.")));
+                                + "you scroll is on. Restart Instagram after changing it."))));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_REFRACT, L10n.t("Bend light at the edges"),
-                        L10n.t("The liquid pill's rim bends what's behind it like real glass, so what passes under the "
-                                + "edge shows upside down. Android 13 and newer. Restart Instagram after changing it.")));
+                        slowsOlderPhones(L10n.t("The liquid pill's rim bends what's behind it like real glass, so what passes under the "
+                                + "edge shows upside down. Android 13 and newer. Restart Instagram after changing it."))));
                 SliderRow refractRow = glassRefractRow(context);
                 preview.follow(refractRow, GlassPreview.BEND);
                 glass.addPreference(refractRow);

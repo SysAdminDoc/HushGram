@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* New `Blend post edges` switch under `Ambient light` fades a post's top and bottom into its glow, so the edge doesn't show as a hard line. Asked for in #510.
 * `Story rings in the accent color` is a new switch under `Accent color`, off to start. Rings drop Instagram's gradient for your color after a restart. Asked for in #187.
 * `Backgrounds in the accent color` is another new switch there. Screens, panels, cards and menus take a dark or light shade of your color, and it wins over `Pure black dark mode`. Asked for in #187 and #8.
 * `Accent color` now reaches text that gets its blue from a layout, like the `Older posts` link. Reported in #187.
@@ -71,6 +72,8 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Ambient light` works the phone less. It waits for a scrolling list to stop before reading a picture, and a still photo gets read less and less often. Reported in #510.
+* The switches that work the phone hardest now say they can slow down older phones. Asked for in #510.
 * `Start reels with sound` covers the Reels tab too, not only a reel you open from a post on Home. Home is still muted again when you leave. Reported in #504.
 * `Glass tab bar` blurs less to start with, so what passes under the pill shows as soft shapes instead of a flat dark tint. `Blur strength` starts at 8 dp now, and a value you already set stays. Reported in #289.
 * With `Liquid glass look` on, the bubble on your tab springs into place when you switch tabs. Asked for in #289.
@@ -111,6 +114,8 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* `Ambient light` no longer glows around photos and stickers in chats, or in the strip under the comment bar on a reel opened from the feed. Reported in #510.
+* The story mentions pill sits right under the name again, not a pill's height below it. Reported in #510.
 * With `Add the source to saved photos and videos` on, a saved carousel page links the post it's from instead of a link that doesn't open. A saved story gets no link, since stories have no post page.
 * With `Gallery and microphone in the plus menu` on, `Buttons in the message box` says those two are in the plus menu instead of calling them shown or left off. It updates the moment that switch flips.
 * With `Name saves by account and post time` on, `Download file name` now says its names only go to saves that don't know who posted or when, and it updates as soon as that switch flips.

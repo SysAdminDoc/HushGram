@@ -118,6 +118,7 @@ public class AmbientLightTest {
         Settings.AMBIENT_LIGHT.resetToDefault();
         Settings.AMBIENT_LIGHT_SPREAD.resetToDefault();
         Settings.AMBIENT_LIGHT_SPEED.resetToDefault();
+        Settings.AMBIENT_LIGHT_BLEND.resetToDefault();
         Settings.BLUR_REEL_BARS.resetToDefault();
     }
 
@@ -228,6 +229,107 @@ public class AmbientLightTest {
         Bitmap drawn = drawn(list);
         int above = drawn.getPixel(WIDTH / 2, 3 + HEADER - 4);
         assertTrue("faded to the new top: " + hex(above), Color.green(above) > 80 && Color.blue(above) < 20);
+    }
+
+    /** Reading a picture back is what costs, and a list on the move would only be read again (#510). */
+    @Test
+    public void aPictureOnTheMoveWaitsForItToStopBeforeItsCopied() {
+        on();
+        int first = asked;
+
+        list.offsetTopAndBottom(-20);
+        advance(AmbientSpeed.MEDIUM.sampleMillis);
+        assertEquals("not while it moves", first, asked);
+
+        advance(AmbientSpeed.MEDIUM.sampleMillis);
+        assertEquals("once it stopped", first + 1, asked);
+    }
+
+    /** A photo doesn't change on its own, so it stops being read back at full speed (#510). */
+    @Test
+    public void aStillPhotoRestsBetweenCopiesUntilItChanges() {
+        long sample = AmbientSpeed.MEDIUM.sampleMillis;
+        on();
+        for (int i = 1; i <= AmbientLight.STEADY; i++) {
+            advance(sample);
+            assertEquals("at the usual speed at first", 1 + i, asked);
+        }
+        int rested = asked;
+
+        advance(sample);
+        assertEquals("the first rest is twice as long", rested, asked);
+        advance(sample);
+        assertEquals(rested + 1, asked);
+        advance(sample * 3);
+        assertEquals("the next is twice that", rested + 1, asked);
+        advance(sample);
+        assertEquals(rested + 2, asked);
+
+        top = Color.GREEN;
+        for (long waited = 0; waited < AmbientLight.LONGEST_REST && AmbientLight.copiesTakenForTests(media) == 1; waited += sample) {
+            advance(sample);
+        }
+        assertEquals("a change is still seen, at worst after the longest rest", 2, AmbientLight.copiesTakenForTests(media));
+        int changed = asked;
+        advance(sample);
+        assertEquals("and the speed is back", changed + 1, asked);
+    }
+
+    @Test
+    public void aVideoThatLooksTheSameKeepsItsSpeed() {
+        media.addView(new TextureView(activity), match());
+        shadowOf(Looper.getMainLooper()).idle();
+        on();
+        int first = asked;
+
+        for (int i = 1; i <= AmbientLight.STEADY + 3; i++) {
+            advance(AmbientSpeed.MEDIUM.sampleMillis);
+            assertEquals("no rest for a video", first + i, asked);
+        }
+    }
+
+    /** Photos and stickers in a chat aren't posts, and they glowed like posts (#510). */
+    @Test
+    public void aChatsPhotosAndStickersDontGlow() {
+        int chat = View.generateViewId();
+        list.setId(chat);
+        AmbientLight.chatIdForTests(activity, chat);
+
+        on();
+
+        assertEquals(0, AmbientLight.litForTests());
+        assertSame(black, list.getBackground());
+        assertEquals(0, asked);
+    }
+
+    /** The picture's edge against the glow read as a hard line, and Blend post edges softens it (#510). */
+    @Test
+    public void blendPostEdgesFadesThePicturesEdgesIntoItsGlow() {
+        on();
+        frame();
+        assertNull("off to start", AmbientLight.edgesForTests(media));
+
+        Settings.AMBIENT_LIGHT_BLEND.save(true);
+        frame();
+
+        Drawable edges = AmbientLight.edgesForTests(media);
+        assertNotNull(edges);
+        // A software draw of a group that draws nothing itself skips its overlay, so this draws it alone.
+        Bitmap drawn = Bitmap.createBitmap(WIDTH, MEDIA, Bitmap.Config.ARGB_8888);
+        edges.draw(new Canvas(drawn));
+        int strength = 255 - AmbientLight.STRENGTH;
+        int atTop = drawn.getPixel(WIDTH / 2, 0);
+        assertEquals("at the edge, as strong as the glow lets through: " + hex(atTop), strength, Color.alpha(atTop), 8);
+        assertEquals("in the page's color: " + hex(atTop), 0, Color.red(atTop));
+        int atBottom = drawn.getPixel(WIDTH / 2, MEDIA - 1);
+        assertEquals("and the bottom: " + hex(atBottom), strength, Color.alpha(atBottom), 8);
+        assertEquals("gone by the middle", 0, Color.alpha(drawn.getPixel(WIDTH / 2, MEDIA / 2)));
+        assertEquals("a picture as wide as the list has no glow beside it, so no strip there",
+                0, Color.alpha(drawn.getPixel(0, MEDIA / 2)));
+
+        Settings.AMBIENT_LIGHT_BLEND.save(false);
+        frame();
+        assertNull(AmbientLight.edgesForTests(media));
     }
 
     @Test
@@ -564,6 +666,61 @@ public class AmbientLightTest {
         assertNull("the host has its own background back", host.getBackground());
         assertSame("and the bar", barColor, bar.getBackground());
         assertEquals(0, AmbientLight.litForTests());
+    }
+
+    /**
+     * A reel opened from the feed stops its comment bar over the reel, and the strip under that bar
+     * glowed, so the bar looked cut off from what's below it (#510). The host's glow stops at the bar.
+     */
+    @Test
+    public void nothingGlowsUnderAReelsCommentBar() {
+        FrameLayout host = new FrameLayout(activity);
+        activity.setContentView(host);
+        root = host;
+        if (activity.getActionBar() != null) activity.getActionBar().hide();
+        shadowOf(Looper.getMainLooper()).idle();
+        View window = activity.getWindow().getDecorView();
+        int width = window.getWidth(), height = window.getHeight();
+        int statusBar = height / 25, gestureBar = height / 20, footerHeight = 50;
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        FrameLayout container = new FrameLayout(activity);
+        container.addView(new TextureView(activity), match());
+        frame.addView(container, match());
+        FrameLayout.LayoutParams between = match();
+        between.topMargin = statusBar;
+        between.bottomMargin = gestureBar;
+        host.addView(frame, between);
+        View footer = new View(activity);
+        int footerId = View.generateViewId();
+        footer.setId(footerId);
+        footer.setVisibility(View.GONE);
+        FrameLayout.LayoutParams over = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, footerHeight, Gravity.BOTTOM);
+        over.bottomMargin = gestureBar;
+        host.addView(footer, over);
+        AmbientLight.footerIdForTests(activity, footerId);
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        int strip = height - gestureBar / 2;
+        int without = Color.alpha(background(host).getPixel(width / 2, strip));
+        assertTrue("with no bar shown, the strip glows: " + without, without > 20);
+
+        footer.setVisibility(View.VISIBLE);
+        shadowOf(Looper.getMainLooper()).idle();
+        relayout();
+
+        Bitmap bands = background(host);
+        assertEquals("nothing under the bar", 0, Color.alpha(bands.getPixel(width / 2, strip)));
+        int status = bands.getPixel(width / 2, statusBar / 2);
+        assertTrue("the band above the reel still glows: " + hex(status), Color.alpha(status) > 20);
+
+        footer.setVisibility(View.GONE);
+        shadowOf(Looper.getMainLooper()).idle();
+        relayout();
+        assertTrue("the bar gone, the strip glows again",
+                Color.alpha(background(host).getPixel(width / 2, strip)) > 20);
     }
 
     @Test
