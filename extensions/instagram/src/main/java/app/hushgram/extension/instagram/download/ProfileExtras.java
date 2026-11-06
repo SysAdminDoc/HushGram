@@ -347,7 +347,7 @@ public final class ProfileExtras {
 
     private static ImageView create(Context context, View bar, @Nullable View neighbor) {
         ImageView button = new ImageView(context);
-        button.setImageDrawable(new Info(context.getResources().getDisplayMetrics().density,
+        button.setImageDrawable(new Actions(context.getResources().getDisplayMetrics().density,
                 FeedDownloadButton.iconColor(context)));
         button.setScaleType(ImageView.ScaleType.CENTER);
         HomeHeader.padLike(button, neighbor);
@@ -411,10 +411,24 @@ public final class ProfileExtras {
         return view.getContext();
     }
 
+    /** The extras button's mark, a circled arrow pointing down at its menu, so it isn't taken for About's "i" beside it. */
+    static final class Actions extends Info {
+        Actions(float density, int color) {
+            super(density, color);
+        }
+
+        @Override
+        void mark(Canvas canvas, float x, float y) {
+            paint.setStyle(Paint.Style.STROKE);
+            canvas.drawLine(x - 4 * unit, y - 1.5f * unit, x, y + 2.5f * unit, paint);
+            canvas.drawLine(x, y + 2.5f * unit, x + 4 * unit, y - 1.5f * unit, paint);
+        }
+    }
+
     /** A circled "i", drawn rather than taken from Instagram's resources, in Instagram's own icon color. */
-    static final class Info extends Drawable {
-        private final float unit;
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    static class Info extends Drawable {
+        final float unit;
+        final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         Info(float density, int color) {
             unit = density;
@@ -434,6 +448,11 @@ public final class ProfileExtras {
             float y = bounds.exactCenterY();
             paint.setStyle(Paint.Style.STROKE);
             canvas.drawCircle(x, y, 9 * unit, paint);
+            mark(canvas, x, y);
+        }
+
+        /** What sits inside the circle. */
+        void mark(Canvas canvas, float x, float y) {
             canvas.drawLine(x, y - unit, x, y + 4.5f * unit, paint);
             paint.setStyle(Paint.Style.FILL);
             canvas.drawCircle(x, y - 4.2f * unit, 1.3f * unit, paint);

@@ -36,6 +36,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowPopupMenu;
 import org.robolectric.shadows.ShadowToast;
@@ -333,6 +334,27 @@ public class ProfileExtrasTest {
         ProfileExtras.available = ProfileExtras::aboutAvailable;
         ProfileExtras.ids = ProfileExtras::userId;
         ProfileExtras.opener = (at, held, id, referer) -> { };
+    }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) public void theTwoButtonsBesideEachOtherDontLookTheSame() {
+        aboutOn();
+        try {
+            bind();
+            android.graphics.Bitmap extras = pictureOf(button());
+            android.graphics.Bitmap about = pictureOf(about());
+            assertFalse("it draws at all", extras.sameAs(android.graphics.Bitmap.createBitmap(72, 72, android.graphics.Bitmap.Config.ARGB_8888)));
+            assertFalse(extras.sameAs(about));
+        } finally {
+            aboutOff();
+        }
+    }
+
+    private static android.graphics.Bitmap pictureOf(ImageView button) {
+        android.graphics.Bitmap picture = android.graphics.Bitmap.createBitmap(72, 72, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.drawable.Drawable drawable = button.getDrawable();
+        drawable.setBounds(0, 0, 72, 72);
+        drawable.draw(new android.graphics.Canvas(picture));
+        return picture;
     }
 
     @Test public void theAboutButtonStartsOff() {
