@@ -1062,6 +1062,12 @@ Takes the Friends tab, with reels the people you follow shared, off the top of t
 # context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
 Show the Friends tab on Reels	Hiện tab Bạn bè trên Reels
 Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	Thêm tab Bạn bè lên đầu tab Reels nếu tài khoản của bạn chưa từng có. Nội dung vẫn do Instagram cung cấp nên có thể trống. Tùy chọn Ẩn tab Bạn bè được ưu tiên.
+# context: Reels settings and the list held open from the Friends tab at the top of the Reels tab. Friends tab wording matches the Hide the Friends tab row above it. The last two are short toasts.
+Hold the Friends tab to pick friends	Giữ tab Bạn bè để chọn bạn bè
+Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps only reels they liked or shared. A page with none of them keeps one reel so the next page can load.	Giữ tab Bạn bè trên Reels rồi chọn trong số những người bạn tab đã hiện. Sau đó tab chỉ giữ các reel họ đã thích hoặc chia sẻ. Trang không có họ vẫn giữ một reel để trang tiếp theo có thể tải.
+Pick friends	Chọn bạn bè
+Open the Friends tab first.	Hãy mở tab Bạn bè trước.
+Applies to the next reels loaded.	Áp dụng cho các reel tải tiếp theo.
 Hide the Save button on reels	Ẩn nút Lưu trên reel
 Burn-in guard	Chống ám màn hình
 Dim when idle	Làm mờ khi không dùng

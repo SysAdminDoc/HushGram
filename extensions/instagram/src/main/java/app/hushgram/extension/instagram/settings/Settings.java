@@ -2384,6 +2384,21 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_reels_friends_tab", FALSE, true);
 
     /**
+     * Holding the Friends tab on Reels lists the friends it has named, and the tab then keeps the
+     * reels the ones picked are on ({@link app.hushgram.extension.instagram.reels.FriendLanePicks},
+     * #503). Read as the tab is held and as each page arrives. Off to start.
+     */
+    public static final BooleanSetting PICK_FRIENDS_TAB =
+            new BooleanSetting("hushgram_pick_friends_tab", FALSE);
+
+    /**
+     * The usernames picked under {@link #PICK_FRIENDS_TAB}, one per line. A value control, not a
+     * switch, set from the list the hold opens. Empty to start.
+     */
+    public static final StringSetting FRIENDS_TAB_PICKS =
+            new StringSetting("hushgram_friends_tab_picks", "", parent(PICK_FRIENDS_TAB));
+
+    /**
      * The Save (bookmark) button in the right-hand column of a reel, and the save count under it
      * when Instagram draws one. Feed posts keep theirs. Off to start.
      */

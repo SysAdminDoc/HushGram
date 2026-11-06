@@ -158,4 +158,20 @@ public class ReelsTopBarSettingsTest {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.SHOW_REELS_FRIENDS_TAB.key));
     }
+
+    @Test public void pickingFriendsFollowsShowItStartsOffAndItsPicksTravelInABackup() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference show = page.getPreferenceScreen().findPreference(Settings.SHOW_REELS_FRIENDS_TAB.key);
+        Preference pick = page.getPreferenceScreen().findPreference(Settings.PICK_FRIENDS_TAB.key);
+        assertNotNull(pick);
+        assertEquals("Hold the Friends tab to pick friends", pick.getTitle().toString());
+        assertTrue(pick.getSummary().toString(), pick.getSummary().toString().contains("keeps only reels they liked or shared"));
+        PreferenceGroup reels = (PreferenceGroup) show.getParent();
+        assertEquals(indexIn(reels, show) + 1, indexIn(reels, pick));
+        assertEquals(Boolean.FALSE, Settings.PICK_FRIENDS_TAB.defaultValue);
+        assertTrue("the hold is checked each time", !Settings.PICK_FRIENDS_TAB.rebootApp);
+        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.PICK_FRIENDS_TAB));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.PICK_FRIENDS_TAB.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FRIENDS_TAB_PICKS.key));
+    }
 }

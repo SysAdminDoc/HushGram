@@ -1085,6 +1085,12 @@ Takes the Friends tab, with reels the people you follow shared, off the top of t
 # context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
 Show the Friends tab on Reels	顯示 Reels 的好友分頁
 Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	如果你的帳號從未出現好友分頁，就在 Reels 分頁頂端加上它。內容仍來自 Instagram，所以可能是空的。隱藏好友分頁優先。
+# context: Reels settings and the list held open from the Friends tab at the top of the Reels tab. Friends tab wording matches the Hide the Friends tab row above it. The last two are short toasts.
+Hold the Friends tab to pick friends	長按好友分頁以選擇好友
+Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps only reels they liked or shared. A page with none of them keeps one reel so the next page can load.	在 Reels 長按好友分頁，從它顯示過的好友中挑選。之後只保留他們按讚或分享的 Reels。沒有他們的頁面會留下一則 Reels，讓下一頁能載入。
+Pick friends	選擇好友
+Open the Friends tab first.	請先開啟好友分頁。
+Applies to the next reels loaded.	從接下來載入的 Reels 開始套用。
 Hide the Save button on reels	隱藏 Reels 上的儲存按鈕
 Burn-in guard	防烙印保護
 Dim when idle	閒置時淡化

@@ -1091,6 +1091,12 @@ Takes the Friends tab, with reels the people you follow shared, off the top of t
 # context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
 Show the Friends tab on Reels	Freunde-Tab bei Reels anzeigen
 Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	Fügt den Freunde-Tab oben im Reels-Tab hinzu, falls dein Konto ihn nie bekommen hat. Der Inhalt kommt weiter von Instagram und kann leer sein. „Freunde-Tab ausblenden“ hat Vorrang.
+# context: Reels settings and the list held open from the Friends tab at the top of the Reels tab. Friends tab wording matches the Hide the Friends tab row above it. The last two are short toasts.
+Hold the Friends tab to pick friends	Freunde-Tab gedrückt halten, um Freunde auszuwählen
+Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps only reels they liked or shared. A page with none of them keeps one reel so the next page can load.	Halte den Freunde-Tab bei Reels gedrückt und wähle aus den Freunden, die er dir gezeigt hat. Danach behält er nur Reels, die ihnen gefallen oder die sie geteilt haben. Eine Seite ohne sie behält ein Reel, damit die nächste Seite laden kann.
+Pick friends	Freunde auswählen
+Open the Friends tab first.	Öffne zuerst den Freunde-Tab.
+Applies to the next reels loaded.	Gilt für die nächsten geladenen Reels.
 Hide the Save button on reels	Speichern-Button bei Reels ausblenden
 Burn-in guard	Einbrennschutz
 Dim when idle	Abdunkeln bei Inaktivität

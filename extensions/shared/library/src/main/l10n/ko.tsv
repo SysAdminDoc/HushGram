@@ -1090,6 +1090,12 @@ Takes the Friends tab, with reels the people you follow shared, off the top of t
 # context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
 Show the Friends tab on Reels	릴스의 친구 탭 표시
 Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	계정에 친구 탭이 없었다면 릴스 탭 위쪽에 추가합니다. 내용은 그대로 Instagram에서 오므로 비어 있을 수 있습니다. 친구 탭 숨기기가 우선합니다.
+# context: Reels settings and the list held open from the Friends tab at the top of the Reels tab. Friends tab wording matches the Hide the Friends tab row above it. The last two are short toasts.
+Hold the Friends tab to pick friends	친구 탭을 길게 눌러 친구 선택
+Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps only reels they liked or shared. A page with none of them keeps one reel so the next page can load.	릴스의 친구 탭을 길게 눌러 지금까지 표시된 친구 중에서 고릅니다. 그러면 그 친구들이 좋아하거나 공유한 릴스만 남습니다. 해당 친구가 없는 페이지는 다음 페이지를 불러올 수 있도록 릴스 하나를 남깁니다.
+Pick friends	친구 선택
+Open the Friends tab first.	먼저 친구 탭을 여세요.
+Applies to the next reels loaded.	다음에 불러오는 릴스부터 적용됩니다.
 Hide the Save button on reels	릴스의 저장 버튼 숨기기
 Burn-in guard	번인 방지
 Dim when idle	사용하지 않을 때 어둡게

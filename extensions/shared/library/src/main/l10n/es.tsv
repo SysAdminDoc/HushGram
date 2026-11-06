@@ -1091,6 +1091,12 @@ Takes the Friends tab, with reels the people you follow shared, off the top of t
 # context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
 Show the Friends tab on Reels	Mostrar la pestaña Amigos en Reels
 Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	Añade la pestaña Amigos arriba de la pestaña Reels si tu cuenta nunca la recibió. Su contenido sigue viniendo de Instagram, así que puede estar vacía. Ocultar la pestaña Amigos tiene prioridad.
+# context: Reels settings and the list held open from the Friends tab at the top of the Reels tab. Friends tab wording matches the Hide the Friends tab row above it. The last two are short toasts.
+Hold the Friends tab to pick friends	Mantén pulsada la pestaña Amigos para elegir amigos
+Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps only reels they liked or shared. A page with none of them keeps one reel so the next page can load.	Mantén pulsada la pestaña Amigos en Reels y elige entre los amigos que te ha mostrado. Después solo conserva los reels que les gustaron o que compartieron. Una página sin ellos conserva un reel para que pueda cargar la siguiente.
+Pick friends	Elegir amigos
+Open the Friends tab first.	Abre primero la pestaña Amigos.
+Applies to the next reels loaded.	Se aplica a los próximos reels que carguen.
 Hide the Save button on reels	Ocultar el botón Guardar en los reels
 Burn-in guard	Protección contra quemado
 Dim when idle	Atenuar en reposo

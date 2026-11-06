@@ -2199,6 +2199,12 @@ once-call Lapp/hushgram/extension/instagram/reels/HiddenSounds;->page(Ljava/util
 # HidePaidPartnershipReelsHookTest.
 once-call Lapp/hushgram/extension/instagram/reels/LowViewReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
 
+# Hold the Friends tab to pick friends hands the same pages, at the same join, to
+# FriendLanePicks.page, once (#503). Its stubs read the friends named on a post through getters
+# FriendLanePicksFixtureTest finds on every retained build; the join itself is checked by
+# HidePaidPartnershipReelsHookTest.
+once-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
+
 # Show a reel's exact time hands the Reels title and the list of its column's parts to
 # ReelPostTime.line just before the title makes that column (the one method loading the title's
 # render marker below), once, so the line with the time goes in after the name row and Instagram's

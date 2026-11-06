@@ -25,6 +25,7 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.partnership.findReelsPage
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
@@ -61,7 +62,8 @@ private const val PATCH = "Clean up Reels"
  *
  * The Friends tab has no name, id or tag to find it by, so the one place Instagram builds it, where
  * the tab gets its facepile icon, hands the tab's view to ReelsTopBar, which hides it the same way.
- * See FriendsTab.kt.
+ * See FriendsTab.kt. Holding that view lists friends to pick, and each Reels page goes through a
+ * filter that keeps the Friends tab's reels with those friends on them (#503). See FriendLanePicks.kt.
  *
  * A twelfth switch, Keep clear mode on, has Instagram's own clear mode carry from the reel you
  * turned it on for to the next reels, and keeps the seek bar of a long reel off while it's in clear
@@ -91,9 +93,12 @@ val cleanUpReelsPatch = bytecodePatch(
         val clearModeStubs = clearModeStubs()
         val friendsTab = findFriendsTab()
         val friendsRow = findFriendsRow()
+        val friendPicks = findFriendPicks()
+        val reelsPage = findReelsPage(PATCH)
         hideReelParts()
         markFriendsTab(friendsTab)
         keepFriendsRow(friendsRow)
+        pickFriends(reelsPage, friendPicks)
         if (clearMode != null) {
             applyClearMode(clearMode)
             clearModeStubs.fill(clearMode)

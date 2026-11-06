@@ -1091,6 +1091,12 @@ Takes the Friends tab, with reels the people you follow shared, off the top of t
 # context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
 Show the Friends tab on Reels	Reels'te Arkadaşlar sekmesini göster
 Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	Hesabın hiç almadıysa Arkadaşlar sekmesini Reels sekmesinin üstüne ekler. İçeriği yine Instagram'dan gelir, bu yüzden boş olabilir. Arkadaşlar sekmesini gizle önceliklidir.
+# context: Reels settings and the list held open from the Friends tab at the top of the Reels tab. Friends tab wording matches the Hide the Friends tab row above it. The last two are short toasts.
+Hold the Friends tab to pick friends	Arkadaş seçmek için Arkadaşlar sekmesini basılı tut
+Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps only reels they liked or shared. A page with none of them keeps one reel so the next page can load.	Reels'te Arkadaşlar sekmesini basılı tut ve sana gösterdiği arkadaşlar arasından seç. Sekme artık yalnızca onların beğendiği veya paylaştığı reelleri tutar. Onların olmadığı bir sayfa, sonraki sayfa yüklenebilsin diye bir reel bırakır.
+Pick friends	Arkadaş seç
+Open the Friends tab first.	Önce Arkadaşlar sekmesini aç.
+Applies to the next reels loaded.	Sonraki yüklenen reellere uygulanır.
 Hide the Save button on reels	Reels'te Kaydet düğmesini gizle
 Burn-in guard	Ekran yanığı koruması
 Dim when idle	Boştayken karart

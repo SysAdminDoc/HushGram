@@ -1091,6 +1091,12 @@ Takes the Friends tab, with reels the people you follow shared, off the top of t
 # context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
 Show the Friends tab on Reels	Tampilkan tab Teman di Reels
 Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	Menambahkan tab Teman di bagian atas tab Reels jika akunmu belum pernah mendapatkannya. Isinya tetap dari Instagram, jadi bisa kosong. Sembunyikan tab Teman lebih diutamakan.
+# context: Reels settings and the list held open from the Friends tab at the top of the Reels tab. Friends tab wording matches the Hide the Friends tab row above it. The last two are short toasts.
+Hold the Friends tab to pick friends	Tahan tab Teman untuk memilih teman
+Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps only reels they liked or shared. A page with none of them keeps one reel so the next page can load.	Tahan tab Teman di Reels lalu pilih dari teman yang sudah ditampilkan. Setelah itu tab hanya menyimpan reel yang mereka sukai atau bagikan. Halaman tanpa mereka tetap menyimpan satu reel agar halaman berikutnya bisa dimuat.
+Pick friends	Pilih teman
+Open the Friends tab first.	Buka tab Teman dulu.
+Applies to the next reels loaded.	Berlaku untuk reel berikutnya yang dimuat.
 Hide the Save button on reels	Sembunyikan tombol Simpan di reel
 Burn-in guard	Pelindung burn-in
 Dim when idle	Redupkan saat diam

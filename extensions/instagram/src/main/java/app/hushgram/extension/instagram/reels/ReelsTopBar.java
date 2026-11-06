@@ -139,12 +139,13 @@ public final class ReelsTopBar {
     /**
      * Called by the patch as Instagram builds the Friends tab at the top of Reels, with the tab's
      * view. Only marks it: the search hides it while the switch is on, so turning it off or pausing
-     * puts it back.
+     * puts it back. Holding it opens the list of friends to pick when that switch is on (#503).
      */
     public static void friendsTab(View tab) {
         try {
             if (tab == null) return;
             FRIENDS_TABS.add(tab);
+            FriendLanePicks.watch(tab);
             HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_FRIENDS_SEEN);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "Friends tab", failure);
