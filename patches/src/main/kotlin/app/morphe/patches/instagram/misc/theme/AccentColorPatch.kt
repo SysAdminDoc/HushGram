@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -39,6 +40,10 @@ internal const val ACCENT_COLOR = "$EXTENSION_PACKAGE/misc/AccentColor;"
 internal const val SWAP_COLOR = "$ACCENT_COLOR->color(I)I"
 internal const val SWAP_LIST = "$ACCENT_COLOR->list(Landroid/content/res/ColorStateList;)Landroid/content/res/ColorStateList;"
 internal const val SWAP_VALUE = "$ACCENT_COLOR->value(ILandroid/util/TypedValue;)I"
+internal const val SWAP_TEXT = "$ACCENT_COLOR->text(Landroid/widget/TextView;)V"
+
+/** The two text views Instagram's layouts build, or build theirs on. */
+internal val TEXT_VIEWS = listOf("Lcom/instagram/common/ui/base/IgTextView;", "Landroidx/appcompat/widget/AppCompatTextView;")
 
 /** What AndroidX ResourcesCompat logs when it can't inflate a color state list itself. */
 internal const val INFLATE_FAILED = "Failed to inflate ColorStateList, leaving it to the framework"
@@ -76,6 +81,10 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * screens, the bio and the Activity tab among them, read neither: their colors come from palettes
  * written into the code, and each accent blue a palette stores goes through the extension as the
  * palette is set up ([swapComposePalettes]).
+ *
+ * A text color written into a layout's XML doesn't pass any of that either, which left the end of
+ * Home's "Older posts" link blue (#187). The text views Instagram's layouts build hand the colors they
+ * were built with to the extension as they finish ([swapTextViewColors]).
  */
 @Suppress("unused")
 val accentColorPatch = bytecodePatch(
@@ -95,6 +104,7 @@ val accentColorPatch = bytecodePatch(
         findThemeUtil()
         val palettes = findPaletteStores()
         swapAccentColors()
+        swapTextViewColors()
         applyAccentTheme(attributes)
         swapComposePalettes(palettes)
         tintHeaderIcons()
@@ -183,7 +193,7 @@ internal fun BytecodePatchContext.findAccentReads(): AccentReads {
     val dataRead = valueRead.code().takeLast(2)[0] as TwoRegisterInstruction
     if (dataRead.registerA > 15 || dataRead.registerB > 15) refuse("${valueRead.where()} keeps its value or its TypedValue past v15")
 
-    for (hook in listOf(SWAP_COLOR, SWAP_LIST, SWAP_VALUE)) {
+    for (hook in listOf(SWAP_COLOR, SWAP_LIST, SWAP_VALUE, SWAP_TEXT)) {
         if (classDefByOrNull(ACCENT_COLOR)?.methods?.any {
                 "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook &&
                     AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
@@ -229,6 +239,35 @@ internal fun BytecodePatchContext.swapAccentColors() {
     for (method in findResourcesColorReads()) {
         if (method.returnType == "I") method.filterEveryColorReturn() else method.filterEveryReturn(PATCH, SWAP_LIST)
     }
+}
+
+/**
+ * Each constructor of [TEXT_VIEWS] doing the building, not just calling another of its own, tells the
+ * extension of its view at each return, at the return's own label. The range form takes any register.
+ */
+internal fun BytecodePatchContext.swapTextViewColors() {
+    val constructors = TEXT_VIEWS.flatMap { type ->
+        val classDef = classDefByOrNull(type) ?: refuse("no text view $type")
+        classDef.methods.filter { it.name == "<init>" && !it.callsOwnConstructor() }
+            .ifEmpty { refuse("$type has no constructor of its own") }
+    }
+    for (constructor in constructors) {
+        val returns = constructor.code().returnsVoid()
+        if (returns.isEmpty()) refuse("${constructor.where()} has no return")
+        constructor.requireThisIntact(PATCH, returns)
+    }
+    for (constructor in constructors.map { mutable(it) }) {
+        for (at in constructor.code().returnsVoid().reversed()) {
+            constructor.addInstructionsAtControlFlowLabel(at, "invoke-static/range { p0 .. p0 }, $SWAP_TEXT")
+        }
+    }
+}
+
+private fun List<Instruction>.returnsVoid(): List<Int> = indices.filter { this[it].opcode == Opcode.RETURN_VOID }
+
+private fun Method.callsOwnConstructor(): Boolean = code().any { instruction ->
+    val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+    called?.definingClass == definingClass && called?.name == "<init>"
 }
 
 /**

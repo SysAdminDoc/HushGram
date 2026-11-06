@@ -50,6 +50,7 @@ class AccentColorHookTest {
         assertTrue("$SWAP_COLOR is not in the extension: $declared", SWAP_COLOR in declared)
         assertTrue("$SWAP_LIST is not in the extension: $declared", SWAP_LIST in declared)
         assertTrue("$SWAP_VALUE is not in the extension: $declared", SWAP_VALUE in declared)
+        assertTrue("$SWAP_TEXT is not in the extension: $declared", SWAP_TEXT in declared)
     }
 
     @Test
@@ -355,6 +356,83 @@ class AccentColorHookTest {
         assertEquals("$what: the answer replaces the value", register, (code[at - 1] as OneRegisterInstruction).registerA)
     }
 
+    /**
+     * A view built from a layout reads its color in the framework's own constructor, where no theme
+     * hook sees it, so each text view constructor that does the building hands its view to the
+     * extension at every return, and a branch to a return lands on the hook (#187). One that only
+     * calls another of its class's constructors stays as it was, since that other one does it.
+     */
+    @Test
+    fun theTextViewConstructorsThatBuildHandTheirViewOn() {
+        val context = PatchContexts.of(TEXT_VIEWS.map { textView(it) })
+
+        context.swapTextViewColors()
+
+        for (type in TEXT_VIEWS) {
+            assertEquals("$type: it only passes on", 0, context.method(type, "<init>", listOf(CONTEXT)).hooks(SWAP_TEXT).size)
+            val built = context.method(type, "<init>", listOf(CONTEXT, ATTRIBUTE_SET))
+            val code = built.code()
+            val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == SWAP_TEXT }
+            assertEquals("$type: one for each return", 2, hooks.size)
+            for (at in hooks) {
+                assertEquals("$type: the hook", Opcode.INVOKE_STATIC_RANGE, code[at].opcode)
+                assertEquals("$type: the view it hands on", 0, (code[at] as RegisterRangeInstruction).startRegister)
+                assertEquals("$type: the view alone", 1, (code[at] as RegisterRangeInstruction).registerCount)
+                assertEquals("$type: right before the return", Opcode.RETURN_VOID, code[at + 1].opcode)
+            }
+            assertTrue("$type: the branch lands on the hook", hooks.last() in built.jumpTargets())
+        }
+    }
+
+    /** A text view that isn't there, or a constructor that writes over its view, stops the patch before anything changes. */
+    @Test
+    fun aMissingTextViewOrALostViewStopsThePatch() {
+        val missing = assertThrows(PatchException::class.java) {
+            PatchContexts.of(listOf(textView(TEXT_VIEWS.first()))).swapTextViewColors()
+        }
+        assertTrue(missing.message, missing.message!!.contains(TEXT_VIEWS.last()))
+
+        val overwrites = classOf(
+            TEXT_VIEWS.last(),
+            virtual(
+                TEXT_VIEWS.last(), "<init>", "V", 3, listOf(CONTEXT, ATTRIBUTE_SET),
+                """
+                    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+                    const/4 p0, 0x0
+                    return-void
+                """,
+            ),
+        )
+        val context = PatchContexts.of(listOf(textView(TEXT_VIEWS.first()), overwrites))
+        val lost = assertThrows(PatchException::class.java) { context.swapTextViewColors() }
+        assertTrue(lost.message, lost.message!!.contains(TEXT_VIEWS.last()))
+        val untouched = context.method(TEXT_VIEWS.first(), "<init>", listOf(CONTEXT, ATTRIBUTE_SET))
+        assertEquals("nothing changed in the class that was fine", 0, untouched.hooks(SWAP_TEXT).size)
+    }
+
+    private fun textView(type: String): ClassDef = classOf(
+        type,
+        virtual(
+            type, "<init>", "V", 3, listOf(CONTEXT),
+            """
+                const/4 v0, 0x0
+                invoke-direct {p0, p1, v0}, $type-><init>($CONTEXT$ATTRIBUTE_SET)V
+                return-void
+            """,
+        ),
+        virtual(
+            type, "<init>", "V", 3, listOf(CONTEXT, ATTRIBUTE_SET),
+            """
+                invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+                if-eqz p2, :end
+                nop
+                return-void
+                :end
+                return-void
+            """,
+        ),
+    )
+
     private fun BytecodePatchContext.loaderMethod(): MutableMethod = method(LOADER, "A01")
 
     private fun BytecodePatchContext.method(type: String, name: String, shape: List<String> = listOf(CONTEXT, "I")): MutableMethod =
@@ -378,6 +456,7 @@ class AccentColorHookTest {
 
     private companion object {
         const val LOADER = "Lfixture/ResourcesCompat;"
+        const val ATTRIBUTE_SET = "Landroid/util/AttributeSet;"
         const val THEMES = "Lfixture/Themes;"
         const val COLORS = "Lfixture/Colors;"
         const val FALLBACK = "Lfixture/Fallback;"

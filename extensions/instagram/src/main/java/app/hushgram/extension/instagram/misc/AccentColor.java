@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.misc;
 import android.content.res.ColorStateList;
 import android.os.Parcel;
 import android.util.TypedValue;
+import android.widget.TextView;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -149,6 +150,23 @@ public final class AccentColor {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "color list", failure);
             return list;
+        }
+    }
+
+    /**
+     * Injected at the end of Instagram's text view constructors. A color a layout gives a text view
+     * in its XML is read by the framework and never meets the reads above, which left the end of
+     * Home's "Older posts" link blue (#187). Hands the colors it was built with to {@link #list}, and
+     * gives it the answer when that's a new list. Never throws.
+     */
+    public static void text(TextView view) {
+        try {
+            if (view == null) return;
+            ColorStateList before = view.getTextColors();
+            ColorStateList after = list(before);
+            if (after != before) view.setTextColor(after);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "text view", failure);
         }
     }
 

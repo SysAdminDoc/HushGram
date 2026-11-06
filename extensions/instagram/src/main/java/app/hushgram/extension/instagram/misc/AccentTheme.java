@@ -59,6 +59,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * gray and the liked heart stays red. The wordmark is tinted with the primary text color, so it stays
  * too.
  *
+ * <p>With {@link Settings#ACCENT_RINGS} on, the picked color's ring style goes on (#187). It points the
+ * {@code igds_color_gradient_*} attributes Instagram's story rings read at the picked shades. Other
+ * things read those gradient colors too, a few pink highlights among them, and change with the rings.
+ *
+ * <p>With {@link Settings#ACCENT_BACKGROUNDS} on, the picked color's background style goes on as well
+ * (#187): the theme's screens, panels, cards and menus take a very dark or very light shade of it, for
+ * a dark theme or a light one, and text stays readable on it as it is. A viewer's theme keeps its own
+ * (see {@link #paintsItsOwnBackground}). Laid on at run time, it wins over Pure black dark mode.
+ *
  * <p>Home's newer header tints its heart and Create buttons with a color it reads from the primary text
  * color's resource as it's built, so no attribute reaches them. With Icons in the accent color on, the
  * patch hands that color to {@link #headerIcons} as the header keeps it, which answers the icon color the
@@ -93,8 +102,26 @@ public final class AccentTheme {
     /** What's counted each time Home's newer header takes the picked icon color for its buttons. */
     static final String HEADER_ICONS = "Home header icons given the accent color";
 
+    /** What's counted each time the story rings take the picked color, with Story rings in the accent color on. */
+    static final String RINGS = "themes given accent story rings";
+
+    /** What's counted when Story rings in the accent color is on but the patch added no ring style, so rings keep Instagram's gradient. */
+    static final String RINGS_MISSING = "themes left with Instagram's story rings, the ring styles are missing";
+
+    /** What's counted each time the backgrounds take the picked color, with Backgrounds in the accent color on. */
+    static final String BACKGROUNDS = "themes given accent backgrounds";
+
+    /** What's counted when a theme keeps its background because it isn't a solid color of its own, as a viewer's does. */
+    static final String BACKGROUNDS_KEPT = "themes keeping their own background, a viewer's or a see-through one";
+
+    /** What's counted when Backgrounds in the accent color is on but the patch added no background style, so backgrounds stay. */
+    static final String BACKGROUNDS_MISSING = "themes left with Instagram's backgrounds, the background styles are missing";
+
     /** The theme attribute Instagram's icons read, the patch's ICON_ATTRIBUTE. */
     static final String ICON_ATTRIBUTE = "igds_color_primary_icon";
+
+    /** The theme attribute Instagram's screens paint themselves with, the patch's BACKGROUND_ATTRIBUTE. */
+    static final String BACKGROUND_ATTRIBUTE = "igds_color_primary_background";
 
     /** Resource numbers by type and name, 0 for none. They don't change while the app runs. */
     private static final Map<String, Integer> IDS = new HashMap<>();
@@ -180,9 +207,44 @@ public final class AccentTheme {
                     HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS);
                 }
             }
+            if (Settings.ACCENT_RINGS.get()) {
+                int rings = id(resources, ringStyle(hue), "style", app);
+                if (rings == 0) {
+                    HookStatus.counted(FamilyNames.ACCENT_COLOR, RINGS_MISSING);
+                } else {
+                    theme.applyStyle(rings, true);
+                    HookStatus.counted(FamilyNames.ACCENT_COLOR, RINGS);
+                }
+            }
+            if (Settings.ACCENT_BACKGROUNDS.get()) {
+                int attr = id(resources, BACKGROUND_ATTRIBUTE, "attr", app);
+                int icon = id(resources, ICON_ATTRIBUTE, "attr", app);
+                int backgrounds = attr == 0 || icon == 0 ? 0 : id(resources, backgroundStyle(hue, dark(context, theme, icon)), "style", app);
+                if (backgrounds == 0) {
+                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS_MISSING);
+                } else if (!paintsItsOwnBackground(theme, attr)) {
+                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS_KEPT);
+                } else {
+                    theme.applyStyle(backgrounds, true);
+                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS);
+                }
+            }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme", failure);
         }
+    }
+
+    /**
+     * Whether [theme] holds a solid color of its own for its background [attribute]. A viewer's theme
+     * points it at another attribute, the media background, or at a see-through color, and what's
+     * behind it has to keep showing, so those keep their own.
+     */
+    static boolean paintsItsOwnBackground(Resources.Theme theme, int attribute) {
+        TypedValue value = new TypedValue();
+        if (!theme.resolveAttribute(attribute, value, false) || value.type == TypedValue.TYPE_ATTRIBUTE) return false;
+        return theme.resolveAttribute(attribute, value, true)
+                && value.type >= TypedValue.TYPE_FIRST_COLOR_INT && value.type <= TypedValue.TYPE_LAST_COLOR_INT
+                && value.data >>> 24 == 0xff;
     }
 
     /**
@@ -280,6 +342,16 @@ public final class AccentTheme {
     /** The style pointing Instagram's icon attribute at [hue]'s link shade for a dark theme or a light one (#8). */
     static String iconStyle(AccentHue hue, boolean dark) {
         return "HushGramAccentIcons_" + hue.name() + (dark ? "_dark" : "_light");
+    }
+
+    /** The style pointing the gradient Instagram's story rings read at [hue]'s shades (#187). */
+    static String ringStyle(AccentHue hue) {
+        return "HushGramAccentRings_" + hue.name();
+    }
+
+    /** The style pointing Instagram's background attributes at [hue]'s shades for a dark theme or a light one (#187). */
+    static String backgroundStyle(AccentHue hue, boolean dark) {
+        return "HushGramAccentBackgrounds_" + hue.name() + (dark ? "_dark" : "_light");
     }
 
     /**

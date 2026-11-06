@@ -1900,6 +1900,16 @@ shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->apply(Landroid/
 # and Redex renames its fields, so the rule names the constructor alone. Left out, the heart stays
 # white with Icons in the accent color on (#8). AccentThemeTest checks every 453 build.
 single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->headerIcons(Landroid/content/Context;I)I in <init>
+# A view built from a layout reads its color in the framework's constructor, where no theme hook sees
+# it, so Accent color hands the view to AccentColor.text as its constructor ends: once in each of
+# IgTextView's four, and once in the AppCompatTextView constructor that does the building (the other
+# only calls it). These hold no strings, so the rules name what they call. Left out, the blue Older
+# posts link on Home stays blue with Accent color on (#187).
+once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->text(Landroid/widget/TextView;)V in instance (Landroid/content/Context;)V holding Lcom/instagram/common/ui/base/IgTextView;->init(Landroid/content/Context;Landroid/util/AttributeSet;II)V
+once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->text(Landroid/widget/TextView;)V in instance (Landroid/content/Context;Landroid/util/AttributeSet;)V holding Lcom/instagram/common/ui/base/IgTextView;->init(Landroid/content/Context;Landroid/util/AttributeSet;II)V
+once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->text(Landroid/widget/TextView;)V in instance (Landroid/content/Context;Landroid/util/AttributeSet;I)V holding Lcom/instagram/common/ui/base/IgTextView;->init(Landroid/content/Context;Landroid/util/AttributeSet;II)V
+once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->text(Landroid/widget/TextView;)V in instance (Landroid/content/Context;Landroid/util/AttributeSet;II)V holding Lcom/instagram/common/ui/base/IgTextView;->init(Landroid/content/Context;Landroid/util/AttributeSet;II)V
+once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->text(Landroid/widget/TextView;)V in instance (Landroid/content/Context;Landroid/util/AttributeSet;I)V holding Landroid/widget/TextView;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;I)V LX/*;-><init>(Landroid/widget/TextView;)V
 # HushGram launch screen hands both of the main screen's answers on whether Instagram's own logo
 # animation follows Android's launch screen to LaunchScreen.instagramLogo, right after each is taken
 # in: the post-splash extra's read and the check before the logo inside Android's screen. On 452

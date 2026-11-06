@@ -374,6 +374,29 @@ public class AccentColorTest {
         assertSame(null, AccentColor.list(null));
     }
 
+    /** A view built in blue takes the color through its constructor, and anything else keeps its own list (#187). */
+    @Test
+    public void aTextViewBuiltInBlueTakesTheColor() {
+        Settings.ACCENT_COLOR.save(true);
+        android.widget.TextView view = new android.widget.TextView(RuntimeEnvironment.getApplication());
+        view.setTextColor(button());
+        AccentColor.text(view);
+        assertEquals(0xff7638fa, view.getTextColors().getColorForState(ENABLED, 0));
+
+        ColorStateList gray = new ColorStateList(new int[][] {DISABLED, {}}, new int[] {0x4d737373, 0xff737373});
+        view.setTextColor(gray);
+        AccentColor.text(view);
+        assertSame(gray, view.getTextColors());
+
+        Settings.ACCENT_COLOR.save(false);
+        ColorStateList blue = button();
+        view.setTextColor(blue);
+        AccentColor.text(view);
+        assertSame("the switch off leaves Instagram's blue", blue, view.getTextColors());
+
+        AccentColor.text(null);
+    }
+
     /** Paused, not ready yet or Instagram blue picked: the stock blue, in a color and in a list. */
     @Test
     public void pausedUnreadyAndBlueLeaveInstagramsBlue() {

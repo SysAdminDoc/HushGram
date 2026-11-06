@@ -308,6 +308,138 @@ class AccentThemeTest {
         assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_red_icon_light"))
     }
 
+    /** With Instagram's gradient attributes declared, each color gets its ring shades and a style pointing the gradient at them, light to deep (#187). */
+    @Test
+    fun theRingStylesPointTheGradientAtEachColor() {
+        val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
+        val gradient = listOf(
+            "igds_color_gradient_yellow", "igds_color_gradient_orange", "igds_color_gradient_red",
+            "igds_color_gradient_pink", "igds_color_gradient_purple",
+        )
+        val attrs = declaring(gradient)
+        val colors = parse("<resources />")
+        val colorsV31 = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+        addWallpaperResources(uses, attrs, colors, colorsV31, styles)
+
+        val values = colors.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals("#ffa07cfd", values["hushgram_accent_purple_ring_link_on_dark"])
+        assertEquals("#ff7638fa", values["hushgram_accent_purple_ring_fill"])
+        assertEquals("#ff6430d5", values["hushgram_accent_purple_ring_pressed"])
+        val rings = styleItems(styles, "HushGramAccentRings_")
+        assertEquals((ACCENT_PALETTES.map { it.name } + WALLPAPER).map { ringStyle(it) }, rings.keys.toList())
+        assertEquals(
+            listOf(
+                "igds_color_gradient_yellow" to "@color/hushgram_accent_purple_ring_link_on_dark",
+                "igds_color_gradient_orange" to "@color/hushgram_accent_purple_ring_link_on_dark",
+                "igds_color_gradient_red" to "@color/hushgram_accent_purple_ring_fill",
+                "igds_color_gradient_pink" to "@color/hushgram_accent_purple_ring_fill",
+                "igds_color_gradient_purple" to "@color/hushgram_accent_purple_ring_pressed",
+            ),
+            rings["HushGramAccentRings_PURPLE"],
+        )
+        val system = colorsV31.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals("@android:color/system_accent1_500", system[ringColor(WALLPAPER, AccentRole.FILL)])
+        assertEquals("@android:color/system_accent1_200", system[ringColor(WALLPAPER, AccentRole.LINK_ON_DARK)])
+
+        val oneOfThem = parse("<resources />")
+        addAccentResources(uses, declaring(listOf("igds_color_gradient_red")), parse("<resources />"), oneOfThem)
+        assertEquals(
+            "only what the build declares",
+            listOf("igds_color_gradient_red" to "@color/hushgram_accent_teal_ring_fill"),
+            styleItems(oneOfThem, "HushGramAccentRings_")["HushGramAccentRings_TEAL"],
+        )
+
+        val none = parse("<resources />")
+        addAccentResources(uses, parse("<resources />"), parse("<resources />"), none)
+        assertTrue("no ring styles without the gradient", styleItems(none, "HushGramAccentRings_").isEmpty())
+
+        val taken = parse("<resources><color name=\"hushgram_accent_red_ring_fill\">#ff000000</color></resources>")
+        val again = assertThrows(PatchException::class.java) { addAccentResources(uses, declaring(gradient), taken, parse("<resources />")) }
+        assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_red_ring_fill"))
+    }
+
+    /** With Instagram's background attribute declared, each color gets a dark and a light shade for each step and a style for each theme (#187). */
+    @Test
+    fun theBackgroundStylesPaintEachSurfaceInAShadeOfEachColor() {
+        val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
+        val attrs = declaring(listOf("igds_color_primary_background", "igds_color_elevated_background", "igds_color_secondary_background"))
+        val colors = parse("<resources />")
+        val colorsV31 = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+        addWallpaperResources(uses, attrs, colors, colorsV31, styles)
+
+        val values = colors.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals("#ff090414", values["hushgram_accent_purple_background_dark_base"])
+        assertEquals("#ff110823", values["hushgram_accent_purple_background_dark_raised"])
+        assertEquals("#ff180b32", values["hushgram_accent_purple_background_dark_top"])
+        assertEquals("#fffaf7ff", values["hushgram_accent_purple_background_light_base"])
+        assertEquals("#fff4efff", values["hushgram_accent_purple_background_light_raised"])
+        assertEquals("#ffefe7fe", values["hushgram_accent_purple_background_light_top"])
+        val backgrounds = styleItems(styles, "HushGramAccentBackgrounds_")
+        assertEquals(
+            (ACCENT_PALETTES.map { it.name } + WALLPAPER).flatMap { palette -> IconTheme.entries.map { backgroundStyle(palette, it) } },
+            backgrounds.keys.toList(),
+        )
+        assertEquals(
+            listOf(
+                "igds_color_primary_background" to "@color/hushgram_accent_purple_background_dark_base",
+                "igds_color_elevated_background" to "@color/hushgram_accent_purple_background_dark_raised",
+                "igds_color_secondary_background" to "@color/hushgram_accent_purple_background_dark_top",
+            ),
+            backgrounds["HushGramAccentBackgrounds_PURPLE_dark"],
+        )
+        val system = colorsV31.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals("@android:color/system_neutral2_900", system["hushgram_accent_wallpaper_background_dark_base"])
+        assertEquals("@android:color/system_neutral2_10", system["hushgram_accent_wallpaper_background_light_base"])
+        assertEquals("@android:color/system_neutral2_700", system["hushgram_accent_wallpaper_background_dark_top"])
+        assertEquals("@android:color/system_neutral2_100", system["hushgram_accent_wallpaper_background_light_top"])
+
+        val noPrimary = parse("<resources />")
+        addAccentResources(uses, declaring(listOf("igds_color_elevated_background")), parse("<resources />"), noPrimary)
+        assertTrue("a theme that can't say what its screens are gets none", styleItems(noPrimary, "HushGramAccentBackgrounds_").isEmpty())
+
+        val taken = parse("<resources><color name=\"hushgram_accent_red_background_light_top\">#ff000000</color></resources>")
+        val fresh = declaring(listOf("igds_color_primary_background", "igds_color_secondary_background"))
+        val again = assertThrows(PatchException::class.java) { addAccentResources(uses, fresh, taken, parse("<resources />")) }
+        assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_red_background_light_top"))
+    }
+
+    /** Text stays Instagram's color, so every color's backgrounds have to leave that text easy to read on them (#187). */
+    @Test
+    fun instagramsTextStaysReadableOnEveryBackground() {
+        for (palette in ACCENT_PALETTES) {
+            val fill = palette.shades.getValue(AccentRole.FILL)
+            for (step in BackgroundStep.entries) {
+                val dark = contrast(0xf5f5f5, backgroundShade(fill, IconTheme.DARK, step))
+                assertTrue("${palette.name} $step on a dark theme: $dark", dark >= 7.0)
+                val light = contrast(0x0c1014, backgroundShade(fill, IconTheme.LIGHT, step))
+                assertTrue("${palette.name} $step on a light theme: $light", light >= 7.0)
+            }
+        }
+    }
+
+    private fun declaring(attributes: List<String>) =
+        parse("<resources>" + attributes.joinToString("") { "<attr name=\"$it\" format=\"reference|color\" />" } + "</resources>")
+
+    private fun styleItems(styles: org.w3c.dom.Document, prefix: String): Map<String, List<Pair<String, String>>> =
+        styles.elements("style").filter { it.getAttribute("name").startsWith(prefix) }
+            .associate { style -> style.getAttribute("name") to style.elements("item").map { it.getAttribute("name") to it.textContent } }
+
+    /** The contrast ratio of two colors, as WCAG works it out. */
+    private fun contrast(first: Int, second: Int): Double {
+        fun luminance(rgb: Int): Double {
+            fun channel(value: Int): Double = (value / 255.0).let { if (it <= 0.03928) it / 12.92 else Math.pow((it + 0.055) / 1.055, 2.4) }
+            return 0.2126 * channel((rgb shr 16) and 0xff) + 0.7152 * channel((rgb shr 8) and 0xff) + 0.0722 * channel(rgb and 0xff)
+        }
+        val (high, low) = listOf(luminance(first), luminance(second)).sortedDescending()
+        return (high + 0.05) / (low + 0.05)
+    }
+
     /**
      * Instagram's light and dark themes give the glyph attributes colors of their own rather than the
      * icon attribute, so the icon styles set each one declared to the same shade (#8). Without the icon
@@ -664,6 +796,30 @@ class AccentThemeTest {
                 assertEquals("$code: the wallpaper's fill", "@android:color/system_accent1_500", system["hushgram_accent_wallpaper_fill_ff"])
                 assertEquals("$code: the wallpaper's dark link", "@android:color/system_accent1_200", system["hushgram_accent_wallpaper_link_on_dark_ff"])
                 assertEquals("$code: the wallpaper's dark icons", "@android:color/system_accent1_200", system[iconColor(WALLPAPER, IconTheme.DARK)])
+                // It declares the story gradient and the backgrounds, so every color gets those styles (#187).
+                assertTrue("$code: the wallpaper rings", "style/${ringStyle(WALLPAPER)}" in added)
+                assertTrue("$code: the light backgrounds", "style/${backgroundStyle("PURPLE", IconTheme.LIGHT)}" in added)
+                assertTrue("$code: the wallpaper's backgrounds", "style/${backgroundStyle(WALLPAPER, IconTheme.DARK)}" in added)
+                val written = parse(File(res, "values/styles.xml").readText()).elements("style")
+                fun items(name: String) = written.single { it.getAttribute("name") == name }.elements("item")
+                    .map { it.getAttribute("name") to it.textContent.trim() }.toSet()
+                assertEquals(
+                    "$code: the rings' attributes",
+                    setOf(
+                        "igds_color_gradient_yellow" to "@color/hushgram_accent_purple_ring_link_on_dark",
+                        "igds_color_gradient_orange" to "@color/hushgram_accent_purple_ring_link_on_dark",
+                        "igds_color_gradient_red" to "@color/hushgram_accent_purple_ring_fill",
+                        "igds_color_gradient_pink" to "@color/hushgram_accent_purple_ring_fill",
+                        "igds_color_gradient_purple" to "@color/hushgram_accent_purple_ring_pressed",
+                    ),
+                    items(ringStyle("PURPLE")),
+                )
+                assertEquals(
+                    "$code: every background it was meant to reach",
+                    BACKGROUND_ATTRIBUTES.map { (attribute, step) -> attribute to "@color/${backgroundColor("PURPLE", IconTheme.DARK, step)}" }.toSet(),
+                    items(backgroundStyle("PURPLE", IconTheme.DARK)),
+                )
+                assertEquals("$code: the wallpaper's background", "@android:color/system_neutral2_900", system[backgroundColor(WALLPAPER, IconTheme.DARK, BackgroundStep.BASE)])
             }
         } finally {
             work.deleteRecursively()

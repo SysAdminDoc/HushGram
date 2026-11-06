@@ -83,7 +83,7 @@ public class AccentColorSettingsTest {
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.ACCENT_COLOR.key, Settings.ACCENT_HUE.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key,
-                LayoutCategory.PURE_BLACK_HINT_ROW), Arrays.asList(keys));
+                Settings.ACCENT_RINGS.key, Settings.ACCENT_BACKGROUNDS.key, LayoutCategory.PURE_BLACK_HINT_ROW), Arrays.asList(keys));
     }
     @Test public void switchStartsOffAfterEmojiPersistsAndHonorsPause() throws Exception {
         open(EnumSet.of(PatchFamily.BOTTOM_SPACE, PatchFamily.EMOJI_STYLE, PatchFamily.ACCENT_COLOR));
@@ -96,11 +96,15 @@ public class AccentColorSettingsTest {
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.REMOVE_BOTTOM_SPACE.key, Settings.NOTO_EMOJI.key, Settings.EMOJI_FONT.key, Settings.ACCENT_COLOR.key,
-                Settings.ACCENT_HUE.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key, LayoutCategory.PURE_BLACK_HINT_ROW),
+                Settings.ACCENT_HUE.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key, Settings.ACCENT_RINGS.key,
+                Settings.ACCENT_BACKGROUNDS.key, LayoutCategory.PURE_BLACK_HINT_ROW),
                 Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.ACCENT_COLOR.get());
-        assertEquals(Arrays.asList(Settings.ACCENT_COLOR, Settings.ACCENT_BADGES, Settings.ACCENT_ICONS), PatchFamily.ACCENT_COLOR.switches);
+        assertEquals(Arrays.asList(Settings.ACCENT_COLOR, Settings.ACCENT_BADGES, Settings.ACCENT_ICONS, Settings.ACCENT_RINGS,
+                Settings.ACCENT_BACKGROUNDS), PatchFamily.ACCENT_COLOR.switches);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_BACKGROUNDS.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_RINGS.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_ICONS.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_BADGES.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_COLOR.key));
