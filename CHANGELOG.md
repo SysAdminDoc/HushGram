@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+## 0.0.19 (2026-11-06)
+
 ### Features
 
 * New `Blend post edges` switch under `Ambient light` fades a post's top and bottom into its glow, so the edge doesn't show as a hard line. Asked for in #510.
@@ -73,7 +75,7 @@ Every HushGram release, newest first.
 
 * `Ambient light` works the phone less. It waits for a scrolling list to stop before reading a picture, and a still photo gets read less and less often. Reported in #510.
 * The switches that work the phone hardest now say they can slow down older phones. Asked for in #510.
-* `Start reels with sound` covers the Reels tab too, not only a reel you open from a post on Home. Home is still muted again when you leave. Reported in #504.
+* `Start reels with sound` covers the Reels tab as well as a reel you open from a post on Home. Home is still muted again when you leave. Reported in #504.
 * `Glass tab bar` blurs less to start with, so what passes under the pill shows as soft shapes instead of a flat dark tint. `Blur strength` starts at 8 dp now, and a value you already set stays. Reported in #289.
 * With `Liquid glass look` on, the bubble on your tab springs into place when you switch tabs. Asked for in #289.
 * `Mark as read button in chats` shows under Messages only when `Lock your messages` is patched in too, since the check mark finds the open chat through it.
