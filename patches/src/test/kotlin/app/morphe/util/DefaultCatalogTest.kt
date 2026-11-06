@@ -172,7 +172,7 @@ import org.junit.Test
  * build itself or isn't ready yet, each with its reason in DefaultSelectionPolicyTest.
  */
 class DefaultCatalogTest {
-    private val neutral = listOf<Patch<*>>(
+    private val neutral = listOf<Patch>(
         accentColorPatch,
         allowScreenshotsPatch,
         askBeforeCallPatch,
@@ -308,7 +308,7 @@ class DefaultCatalogTest {
         phoneLayoutPatch,
     )
 
-    private val prior = listOf<Patch<*>>(
+    private val prior = listOf<Patch>(
         defaultPlaybackQualityPatch,
         downloadReelPatch,
         downloadStoryPatch,
@@ -328,7 +328,7 @@ class DefaultCatalogTest {
         translatedStartPatch,
     )
 
-    private val optIn = listOf<Patch<*>>(
+    private val optIn = listOf<Patch>(
         changeVersionCodePatch,
         installNextToInstagramPatch,
         pureBlackPatch,

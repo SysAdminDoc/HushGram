@@ -5,7 +5,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0"></a>
   <img src="https://img.shields.io/badge/platform-Android%209%2B-3DDC84" alt="Platform Android 9+">
   <img src="https://img.shields.io/badge/Instagram-454.0.0.54.77-E1306C" alt="Instagram 454.0.0.54.77">
-  <img src="https://img.shields.io/badge/for-Morphe%20Manager%202.4.0%2B-8A2BE2" alt="For Morphe Manager 2.4.0 or newer">
+  <img src="https://img.shields.io/badge/for-Morphe%20Manager%202.5.0%2B-8A2BE2" alt="For Morphe Manager 2.5.0 or newer">
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@ This project has no connection to Meta or to the Morphe project. Neither endorse
 
 ## Install
 
-1. Install [Morphe Manager](https://github.com/MorpheApp/morphe-manager) 2.4.0 or newer.
+1. Install [Morphe Manager](https://github.com/MorpheApp/morphe-manager) 2.5.0 or newer.
 2. Add HushGram as a patch source by opening [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram) on your phone. Or in Manager open **Sources**, tap **+**, choose **Remote** and enter `github.com/SysAdminDoc/HushGram`. Use HushGram as your only Instagram source, since mixing in another one can stop patching.
 3. Get Instagram 454.0.0.54.77 from APKMirror. Take [the bundle labelled (arm64-v8a) (480dpi) (Android 9.0+), build 386014758](https://www.apkmirror.com/apk/instagram/instagram-instagram/instagram-454-0-0-54-77-release/). APKMirror lists three arm64 480dpi bundles for this version, so check the build number. The version's other builds work too (see [Supported Instagram builds](#supported-instagram-builds)).
 4. Uninstall the Instagram you got from the Play Store. The patched app is signed with your own key, so Android won't install it over Meta's. Uninstalling signs you out, so have your password and two-factor codes ready. On a rooted phone, Manager's Root Mount can lay HushGram over the Play Store app instead, and you stay signed in.
@@ -343,7 +343,7 @@ The diagnostic report stays on your phone until you copy or share it yourself.
 
 ## Building from source
 
-You need JDK 17 or newer and the Android SDK. The Morphe patcher comes from GitHub Packages, so you also need a GitHub token with `read:packages`. The build runs on Gradle 9.8.2, Android Gradle Plugin 9.1.0 and Kotlin 2.4.21, with Morphe patcher 2.2.0. Use Morphe Desktop 2.0.0 or newer for local patch checks.
+You need JDK 17 or newer and the Android SDK. The Morphe patcher comes from GitHub Packages, so you also need a GitHub token with `read:packages`. The build runs on Gradle 9.8.2, Android Gradle Plugin 9.1.0 and Kotlin 2.4.21, with Morphe patcher 2.3.0. Use Morphe Desktop 2.0.0 or newer for local patch checks.
 
 ```bash
 export GITHUB_ACTOR=<your GitHub user>

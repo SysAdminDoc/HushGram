@@ -6,7 +6,10 @@
 # Its reason starts with jar-sha256=<the JAR's SHA-256>, and it counts only when that JAR is the one audited.
 # Dates may be at most 90 days ahead. Expired or unmatched exceptions fail the audit.
 #
-# Desktop 2.0.0, reviewed 2026-11-04 against the exact JAR below (javap and class hashes).
+# Desktop 2.1.0, reviewed 2026-11-06 against the exact JAR below: its 3412 Bouncy Castle entries and the
+# four classes outside BC that name it (ApkSigner, SdkDexVerifier, PatchBundleSignature, OkHttp's BC
+# platform) match 2.0.0 byte for byte, so the 2026-11-04 review below carries over.
+# Desktop 2.0.0, reviewed 2026-11-04 (javap and class hashes).
 # It still carries Bouncy Castle 1.79. Its 3405 BC classes are 1.20.0's 3380 plus 25 that patcher
 # 2.2.0's PKCS12 keystore writer keeps: the PFX and safe bag builders, BC's PKCS12 PBE encryptor and
 # MAC, and the X509 subject key identifier. Nine stream ciphers differ only by the returnByte method
@@ -26,9 +29,9 @@
 # This review covers the repository's patch CLI with its trusted local BKS signing key and
 # normal JDK provider order. It does not certify imported third-party keys, altered providers
 # or every Desktop GUI flow. The library stays old; these findings are not patched away.
-external-desktop GHSA-574f-3g2m-x479 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=855dd2d6fa5ed997a5884a44f8807c9b5bc95e69b5ebd58dfd7e8b897c86e2d7 The reviewed CLI signs with RSA and a trusted BKS key. It does not select GOST 28147 CTR mode.
-external-desktop GHSA-9pwp-9qqc-pr26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=855dd2d6fa5ed997a5884a44f8807c9b5bc95e69b5ebd58dfd7e8b897c86e2d7 The reviewed CLI does not build or validate a BC certificate path. Normal JDK provider order handles the vendor certificate.
-external-desktop GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=855dd2d6fa5ed997a5884a44f8807c9b5bc95e69b5ebd58dfd7e8b897c86e2d7 The reviewed CLI reads a trusted local BKS key and creates its own certificate. Vendor certificate parsing uses the JDK under normal provider order.
-external-desktop GHSA-c3fc-8qff-9hwx org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=855dd2d6fa5ed997a5884a44f8807c9b5bc95e69b5ebd58dfd7e8b897c86e2d7 The reviewed CLI opens no LDAP certificate store. LDAPStoreHelper and X509LDAPCertStoreSpi are not selected by its BKS and RSA signing path.
-external-desktop GHSA-wg6q-6289-32hp org.bouncycastle:bcpkix-jdk18on 2027-01-14 jar-sha256=855dd2d6fa5ed997a5884a44f8807c9b5bc95e69b5ebd58dfd7e8b897c86e2d7 CompositeVerifier is absent from this JAR. The reviewed CLI does not verify signatures through BC operator classes.
-external-desktop GHSA-p93r-85wp-75v3 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=855dd2d6fa5ed997a5884a44f8807c9b5bc95e69b5ebd58dfd7e8b897c86e2d7 FrodoKEM is reached only by decapsulating a FrodoKEM encapsulation. The reviewed CLI signs with RSA and a trusted BKS key and runs no KEM.
+external-desktop GHSA-574f-3g2m-x479 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=30209993a9fed0c94a11dbd1020326b79b95adc1e8371b1356f8cb1d0f4cc313 The reviewed CLI signs with RSA and a trusted BKS key. It does not select GOST 28147 CTR mode.
+external-desktop GHSA-9pwp-9qqc-pr26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=30209993a9fed0c94a11dbd1020326b79b95adc1e8371b1356f8cb1d0f4cc313 The reviewed CLI does not build or validate a BC certificate path. Normal JDK provider order handles the vendor certificate.
+external-desktop GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=30209993a9fed0c94a11dbd1020326b79b95adc1e8371b1356f8cb1d0f4cc313 The reviewed CLI reads a trusted local BKS key and creates its own certificate. Vendor certificate parsing uses the JDK under normal provider order.
+external-desktop GHSA-c3fc-8qff-9hwx org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=30209993a9fed0c94a11dbd1020326b79b95adc1e8371b1356f8cb1d0f4cc313 The reviewed CLI opens no LDAP certificate store. LDAPStoreHelper and X509LDAPCertStoreSpi are not selected by its BKS and RSA signing path.
+external-desktop GHSA-wg6q-6289-32hp org.bouncycastle:bcpkix-jdk18on 2027-01-14 jar-sha256=30209993a9fed0c94a11dbd1020326b79b95adc1e8371b1356f8cb1d0f4cc313 CompositeVerifier is absent from this JAR. The reviewed CLI does not verify signatures through BC operator classes.
+external-desktop GHSA-p93r-85wp-75v3 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=30209993a9fed0c94a11dbd1020326b79b95adc1e8371b1356f8cb1d0f4cc313 FrodoKEM is reached only by decapsulating a FrodoKEM encapsulation. The reviewed CLI signs with RSA and a trusted BKS key and runs no KEM.
