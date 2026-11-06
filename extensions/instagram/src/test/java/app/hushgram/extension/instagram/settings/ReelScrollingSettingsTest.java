@@ -144,11 +144,12 @@ public class ReelScrollingSettingsTest {
      */
     @Test public void theReelCountAndTheBreakAreSlidersUnderTheReelStop() throws Exception {
         open(true);
+        String waitsOnTheSwitch = String.format("Turn on %s to use this slider.", "Stop after a set number of reels");
         Preference countFound = page.getPreferenceScreen().findPreference(Settings.REEL_CAP_COUNT.key);
         assertTrue(countFound instanceof HushgramPreferenceFragment.SliderRow);
         HushgramPreferenceFragment.SliderRow count = (HushgramPreferenceFragment.SliderRow) countFound;
         assertEquals("Reels before swiping stops", String.valueOf(count.getTitle()));
-        assertEquals("Turn on Stop after a set number of reels to use this slider.", String.valueOf(count.getSummary()));
+        assertEquals(waitsOnTheSwitch, String.valueOf(count.getSummary()));
         SeekBar countSlider = sliderOf(count);
         assertEquals("5 to 100 reels in steps of 5", 19, countSlider.getMax());
         assertEquals(3, countSlider.getProgress());
@@ -157,7 +158,7 @@ public class ReelScrollingSettingsTest {
         assertTrue(breakFound instanceof HushgramPreferenceFragment.SliderRow);
         HushgramPreferenceFragment.SliderRow pause = (HushgramPreferenceFragment.SliderRow) breakFound;
         assertEquals("Time away before swiping comes back", String.valueOf(pause.getTitle()));
-        assertEquals("Turn on Stop after a set number of reels to use this slider.", String.valueOf(pause.getSummary()));
+        assertEquals(waitsOnTheSwitch, String.valueOf(pause.getSummary()));
         SeekBar breakSlider = sliderOf(pause);
         assertEquals("5 to 120 minutes in steps of 5", 23, breakSlider.getMax());
         assertEquals(2, breakSlider.getProgress());
