@@ -142,10 +142,10 @@ class LaunchScreenPatchTest {
                     )
                     val lost = before.keys - after.keys
                     assertTrue("$code: numbers gone, ${lost.take(5)}", lost.isEmpty())
-                    // The patcher writes Instagram's inline drawables ($name__0) back without their
-                    // $, whatever resource patch runs. Every other name stays as it was.
-                    val renamed = before.filter { (id, name) -> after.getValue(id) != name.replace("/\$", "/") }
-                    assertTrue("$code: renamed, ${renamed.entries.take(5)}", renamed.isEmpty())
+                    // Every name stays as it was. Patcher 2.3.0 keeps the $ on Instagram's inline
+                    // drawables ($$name__0), which older patchers dropped whatever resource patch ran.
+                    val renamed = before.filter { (id, name) -> after.getValue(id) != name }
+                    assertTrue("$code: renamed, ${renamed.entries.take(5).map { "${it.value} to ${after[it.key]}" }}", renamed.isEmpty())
 
                     val theme = parse(File(res, "values/styles.xml").readText()).elements("style")
                         .single { it.getAttribute("name") == LAUNCH_THEME }

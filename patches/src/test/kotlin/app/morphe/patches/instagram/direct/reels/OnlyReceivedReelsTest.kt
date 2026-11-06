@@ -107,6 +107,7 @@ class OnlyReceivedReelsTest {
             context(mediaId = false) to "$MEDIA has no getId() for the extension to key a sent reel by",
         )
         for ((context, expected) in cases) {
+            PatchContexts.use(context)
             val failure = assertThrows(expected, PatchException::class.java) { context.findReelCollector(context.findChatReels(), fields) }
             assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
         }
