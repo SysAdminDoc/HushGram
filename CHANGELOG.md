@@ -177,6 +177,7 @@ Every HushGram release, newest first.
 * `Mark who doesn't follow you back` gives the mark a second line on your Following list, so the Message button can't cut it short. Reported in #351.
 * A saved photo is now the largest size Instagram lists. A bigger size could lose to a smaller one because of how its address looked, and a report names every size listed. Reported in #500.
 * `Download as photo` on a video story saves the video's first frame when Instagram's picture is smaller and the same shape, so 640x1136 becomes 1080x1920. Reported in #214.
+* `About this account button` no longer shows an error on Pages. It told the screen it came from an ad, and now says it came from the profile, the way Instagram's own menu does. Reported in #507.
 
 ## 0.0.18 (2026-10-31)
 

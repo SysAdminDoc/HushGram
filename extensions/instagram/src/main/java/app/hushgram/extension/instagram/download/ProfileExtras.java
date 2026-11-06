@@ -80,20 +80,26 @@ public final class ProfileExtras {
         return null;
     }
 
-    /** Filled in by the patch: opens Instagram's About this account for [id] from [context], through [session], with no referer. */
+    /** Filled in by the patch: opens Instagram's About this account for [id] from [context], through [session], saying it came from [referer]. */
     public static void openAbout(Context context, Object session, String id, @Nullable String referer) {
     }
 
+    /**
+     * #507: what Instagram's own profile menu tells the screen it came from. Left out, the call says
+     * FeedAds, its entry from an ad, and the screen fails on a Page.
+     */
+    static final String ABOUT_REFERER = "ProfileMore";
+
     /** What opens the screen. A test swaps it. */
     interface Opener {
-        void open(Context context, Object session, String id);
+        void open(Context context, Object session, String id, String referer);
     }
 
     static java.util.function.Function<Object, String> ids = ProfileExtras::userId;
 
     static java.util.function.BooleanSupplier available = ProfileExtras::aboutAvailable;
 
-    static Opener opener = (context, session, id) -> openAbout(context, session, id, null);
+    static Opener opener = ProfileExtras::openAbout;
 
     /** Whether the About this account button is switched on and usable. */
     static boolean aboutWanted() {
@@ -130,7 +136,7 @@ public final class ProfileExtras {
             String id = ids.apply(state.user);
             if (id == null || id.isEmpty()) return;
             HookStatus.counted(ROUTE, ABOUT_OPENED);
-            opener.open(activityOf(button), state.session, id);
+            opener.open(activityOf(button), state.session, id, ABOUT_REFERER);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "about this account tap", failure);
             Logger.printException(() -> "Profile extras: About this account failed to open", failure);

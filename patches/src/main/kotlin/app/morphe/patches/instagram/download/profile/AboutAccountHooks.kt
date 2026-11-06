@@ -64,8 +64,8 @@ internal fun BytecodePatchContext.findAboutAccount(): AboutAccountSite? {
 
 /**
  * Only called once [findAboutAccount] found everything: the extension's three stubs say the build
- * has the call, read an account's id and open the screen through Instagram's own call, which
- * takes a null referer as its feed-ads one.
+ * has the call, read an account's id and open the screen through Instagram's own call, with the
+ * referer the extension hands it (a null one would make it its feed-ads entry).
  */
 internal fun BytecodePatchContext.applyAboutAccount(site: AboutAccountSite) {
     val methods = mutableClassDefBy(PROFILE_EXTRAS).methods
