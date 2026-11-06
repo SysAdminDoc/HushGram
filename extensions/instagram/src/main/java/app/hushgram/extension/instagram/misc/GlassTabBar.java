@@ -646,8 +646,11 @@ public final class GlassTabBar {
      * and the bottom of that height.
      */
     static final int FIT_GAP_DP = 1;
-    /** The blur radius the glass has always drawn, and where its slider starts (#391). */
-    public static final int BLUR_DP = 18;
+    /**
+     * Where the glass's blur slider starts (#391). Light enough that a post's thin white icons under the
+     * pill still read as soft shapes. The 18 dp it started on before smeared them into a flat tint (#289).
+     */
+    public static final int BLUR_DP = 8;
     /** The selected tab's capsule sits 4dp in from the pill's top and bottom and stands 4dp past its slot. */
     static final int HIGHLIGHT_INSET_DP = 4;
     static final int HIGHLIGHT_GROW_DP = 4;
@@ -681,6 +684,12 @@ public final class GlassTabBar {
     static final long BLUR_REST_MS = 2000;
     /** How long the capsule takes to slide to a new tab. */
     static final long SLIDE_MS = 280;
+    /** How long the liquid look's bubble springs to a new tab before it rests there (#289). Never under {@link #SLIDE_MS}. */
+    static final long SPRING_MS = 600;
+    /** How fast the bubble's spring swings, in radians a second: one swing in 0.4 s, about what iOS springs use. */
+    static final double SPRING_SPEED = 2 * Math.PI / 0.4;
+    /** How much of each swing the spring loses. This much carries the bubble about 7 percent past its tab. */
+    static final double SPRING_DAMPING = 0.65;
     /** How long a missing shadow or content view stays unsearched before the parent is walked for it again. */
     static final long RESEARCH_MS = 500;
     /**
@@ -2480,8 +2489,9 @@ public final class GlassTabBar {
              * The lighter capsule behind the selected tab, kept inside [within] with corners of [corner] and drawn
              * at [share] of its strength. When the tab changes it slides to the new one over {@link #SLIDE_MS},
              * eased out, timed by the frame clock rather than by counting frames, so a dropped frame doesn't make
-             * it jump and it takes as long at 120 Hz as at 60. Below full strength, on the way to the liquid look's
-             * compact row, it stays on the tab as the tab moves.
+             * it jump and it takes as long at 120 Hz as at 60. The liquid look's bubble springs there instead, over
+             * {@link #SPRING_MS}, a little past the tab and back, and never out of the pill. Below full strength,
+             * on the way to the liquid look's compact row, it stays on the tab as the tab moves.
              */
             private void drawCapsule(Canvas canvas, RectF within, float corner, float share) {
                 View selected = selectedTab();
@@ -2497,13 +2507,13 @@ public final class GlassTabBar {
                     float width = targetRight - targetLeft;
                     fromLeft = nowLeft = toLeft = followLeft(dragX, width, rect.left + inset, rect.right - inset);
                     fromRight = nowRight = toRight = toLeft + width;
-                    slideStart = now - SLIDE_MS;
+                    slideStart = now - SPRING_MS;
                     tickedThisSlide = false;
                     bubbleNow = bubbleFrom = 1f + BUBBLE_SWELL;
                 } else if (Float.isNaN(fromLeft) || share < 1f) {
                     fromLeft = nowLeft = toLeft = targetLeft;
                     fromRight = nowRight = toRight = targetRight;
-                    slideStart = now - SLIDE_MS;
+                    slideStart = now - SPRING_MS;
                     bubbleNow = bubbleFrom = 1f;
                 } else if (Math.abs(targetLeft - toLeft) > 0.5f || Math.abs(targetRight - toRight) > 0.5f) {
                     tickedThisSlide = false;
@@ -2514,13 +2524,20 @@ public final class GlassTabBar {
                     slideStart = slideStartAt(now);
                     bubbleFrom = bubbleNow;
                 }
-                float progress = slideProgress(now - slideStart);
                 boolean bubble = liquidNow() && share > 0f;
-                if (Float.isNaN(dragX)) bubbleNow = bubble ? bubbleScale(now - slideStart, bubbleFrom) : 1f;
+                long elapsed = now - slideStart;
+                float progress = bubble ? springProgress(elapsed) : slideProgress(elapsed);
+                if (Float.isNaN(dragX)) bubbleNow = bubble ? bubbleScale(elapsed, bubbleFrom) : 1f;
                 else if (!bubble) bubbleNow = bubbleFrom = 1f;
                 nowLeft = fromLeft + (toLeft - fromLeft) * progress;
                 nowRight = fromRight + (toRight - fromRight) * progress;
-                capsule.set(nowLeft, within.top + inset, nowRight, within.bottom - inset);
+                if (progress > 1f) {
+                    // Past the tab, on the spring's way back: the bubble squashes against the pill's end rather than leave it.
+                    capsule.set(Math.max(nowLeft, within.left + inset), within.top + inset,
+                            Math.min(nowRight, within.right - inset), within.bottom - inset);
+                } else {
+                    capsule.set(nowLeft, within.top + inset, nowRight, within.bottom - inset);
+                }
                 tick((nowLeft + nowRight) / 2f);
                 int color = highlight(base);
                 if (share < 1f) color = (color & 0x00ffffff) | (scaledAlpha(Color.alpha(color), Math.max(0f, share)) << 24);
@@ -2534,7 +2551,7 @@ public final class GlassTabBar {
                 fill.setColor(color);
                 if (share > 0f) canvas.drawRoundRect(capsule, corner, corner, fill);
                 if (bubble) paintBubble(canvas, corner, share);
-                if (progress < 1f) invalidateSelf();
+                if (elapsed < (bubble ? SPRING_MS : SLIDE_MS)) invalidateSelf();
             }
 
             /**
@@ -2963,6 +2980,20 @@ public final class GlassTabBar {
         return 1f - rest * rest * rest;
     }
 
+    /**
+     * How far the liquid look's bubble has got through a spring that started [elapsed] ms ago (#289): a damped
+     * spring's way from 0 to 1, going a little over 1 and coming back, and exactly 1 once {@link #SPRING_MS}
+     * has passed, by when it's close enough that the last step doesn't show.
+     */
+    static float springProgress(long elapsed) {
+        if (elapsed >= SPRING_MS) return 1f;
+        if (elapsed <= 0) return 0f;
+        double t = elapsed / 1000d;
+        double fade = SPRING_DAMPING * SPRING_SPEED;
+        double swing = SPRING_SPEED * Math.sqrt(1d - SPRING_DAMPING * SPRING_DAMPING);
+        return (float) (1d - Math.exp(-fade * t) * (Math.cos(swing * t) + fade / swing * Math.sin(swing * t)));
+    }
+
     /** How much larger the liquid look's bubble is while it moves between tabs, and under a finger (#289). */
     static final float BUBBLE_SWELL = 0.08f;
 
@@ -2989,12 +3020,12 @@ public final class GlassTabBar {
     }
 
     /**
-     * When a slide that begins now counts as having started: now, or {@link #SLIDE_MS} ago when the
+     * When a slide that begins now counts as having started: now, or {@link #SPRING_MS} ago when the
      * phone's animations are off (Remove animations under accessibility, or an animator scale of 0),
      * so the capsule lands on the new tab in one frame instead of sliding there.
      */
     static long slideStartAt(long now) {
-        return animationsOn() ? now : now - SLIDE_MS;
+        return animationsOn() ? now : now - SPRING_MS;
     }
 
     @Nullable static Boolean animationsOnForTests;

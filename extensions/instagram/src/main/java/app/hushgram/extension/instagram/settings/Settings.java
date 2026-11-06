@@ -1467,7 +1467,7 @@ public class Settings extends BaseSettings {
 
     /**
      * Under {@link #GLASS_TAB_BAR_BLUR}: how far the pill blurs what's behind it, in dp, from a slider
-     * (#289, #391). Starts on the blur the bar has always had. Read as each frame records the backdrop,
+     * (#289, #391). Starts at {@link app.hushgram.extension.instagram.misc.GlassTabBar#BLUR_DP}. Read as each frame records the backdrop,
      * so a change shows on the bar without a restart.
      */
     public static final IntegerSetting GLASS_TAB_BAR_BLUR_RADIUS =

@@ -478,7 +478,7 @@ public class ConfigurationBackupTest {
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         original.edit().putString(Settings.OLD_GLASS_BLUR_KEY, "HEAVY").putString(Settings.OLD_GLASS_OPACITY_KEY, "STANDARD").commit();
         Settings.carryOverGlassSteps();
-        assertEquals("a step this build never had draws the standard", 18, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals("a step this build never had leaves the slider where it starts", 8, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
         assertEquals(100, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
         assertFalse(original.contains(Settings.OLD_GLASS_BLUR_KEY));
         assertFalse(original.contains(Settings.OLD_GLASS_OPACITY_KEY));

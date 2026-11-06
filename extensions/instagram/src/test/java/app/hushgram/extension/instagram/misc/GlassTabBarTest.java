@@ -1614,14 +1614,13 @@ public class GlassTabBarTest {
     }
 
     /**
-     * #289, #391: the blur slider starts at exactly the radius the glass has always used (18dp, worked out
-     * at a quarter size) at any density, each notch reaches at least as far as the one before, and the
-     * steps older builds saved keep the radius they drew.
+     * #289, #391: the blur slider starts at 8dp, worked out at a quarter size at any density, each notch
+     * reaches at least as far as the one before, and the steps older builds saved keep the radius they drew.
      */
     @Test
     public void blurRadiusStartsAtTodaysRadiusAndGrowsWithTheSlider() {
         IntegerSetting slider = Settings.GLASS_TAB_BAR_BLUR_RADIUS;
-        assertEquals(18, GlassTabBar.BLUR_DP);
+        assertEquals(8, GlassTabBar.BLUR_DP);
         assertEquals(GlassTabBar.BLUR_DP, (int) slider.defaultValue);
         assertFalse("the radius is read on every draw", slider.rebootApp);
         assertEquals(2, slider.minimum());
@@ -1884,6 +1883,63 @@ public class GlassTabBarTest {
             float now = GlassTabBar.slideProgress(t);
             assertTrue(now >= last);
             last = now;
+        }
+    }
+
+    /** #289: the liquid bubble's spring goes a little past the tab, comes back, and rests with no visible step. */
+    @Test
+    public void theBubblesSpringGoesALittlePastItsTabAndRests() {
+        assertEquals(0f, GlassTabBar.springProgress(0), 0f);
+        assertEquals(0f, GlassTabBar.springProgress(-5), 0f);
+        assertEquals(1f, GlassTabBar.springProgress(GlassTabBar.SPRING_MS), 0f);
+        assertEquals(1f, GlassTabBar.springProgress(GlassTabBar.SPRING_MS * 3), 0f);
+        float peak = 0f;
+        for (long t = 0; t < GlassTabBar.SPRING_MS; t += 7) peak = Math.max(peak, GlassTabBar.springProgress(t));
+        assertTrue("past the tab: " + peak, peak > 1.05f);
+        assertTrue("only a little: " + peak, peak < 1.09f);
+        assertEquals("no step when it rests", 1f, GlassTabBar.springProgress(GlassTabBar.SPRING_MS - 1), 0.004f);
+    }
+
+    /**
+     * #289: partway through its spring the liquid bubble has gone past the first tab, but it squashes against
+     * the pill's end instead of leaving it. The flat capsule has landed on the tab by then and doesn't go past.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void theSpringCarriesTheBubblePastItsTabButNotOutOfThePill() {
+        GlassTabBar.animationsOnForTests = true;
+        for (boolean liquid : new boolean[]{true, false}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+                Settings.GLASS_TAB_BAR_LIQUID.save(liquid);
+                assertTrue(host.bar.getChildAt(2).performClick());
+                GlassTabBar.apply(host.activity);
+                host.frame();
+                Object pill = host.bar.getBackground();
+                RectF capsule = ReflectionHelpers.getField(pill, "capsule");
+                try (Pixels ignored = host.background()) { }
+                settle(pill, GlassTabBar.SPRING_MS * 2);
+                try (Pixels ignored = host.background()) { }
+
+                assertTrue(host.bar.getChildAt(0).performClick());
+                try (Pixels ignored = host.background()) { }
+                settle(pill, GlassTabBar.SLIDE_MS + 20);
+                try (Pixels ignored = host.background()) { }
+                float target = ReflectionHelpers.getField(pill, "toLeft");
+                float reached = ReflectionHelpers.getField(pill, "nowLeft");
+                if (liquid) {
+                    assertTrue("past the tab: " + reached + " vs " + target, reached < target - 1f);
+                    RectF shape = ReflectionHelpers.getField(pill, "shrunk");
+                    assertTrue("inside the pill: " + capsule + " in " + shape,
+                            capsule.left >= shape.left + host.dp(GlassTabBar.HIGHLIGHT_INSET_DP) - 0.5f);
+                } else {
+                    assertEquals(target, reached, 0.5f);
+                }
+
+                settle(pill, GlassTabBar.SPRING_MS);
+                try (Pixels ignored = host.background()) { }
+                assertEquals("rests on the tab", target, (float) ReflectionHelpers.getField(pill, "nowLeft"), 0f);
+            }
         }
     }
 

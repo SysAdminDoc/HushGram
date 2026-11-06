@@ -262,13 +262,13 @@ public class TabBarAndBatterySettingsTest {
         assertEquals("Turn on Glass tab bar to use this slider.", String.valueOf(strength.getSummary()));
         ((SwitchPreference) row(Settings.GLASS_TAB_BAR.key)).setChecked(true);
         ShadowLooper.idleMainLooper();
-        assertEquals("18 dp (standard)", String.valueOf(strength.getSummary()));
+        assertEquals("8 dp (standard)", String.valueOf(strength.getSummary()));
         assertFalse("the row opens no dialog, the slider is the control", strength.isSelectable());
         assertFalse(Settings.GLASS_TAB_BAR_BLUR_RADIUS.rebootApp);
 
         SeekBar slider = sliderOf(strength);
         assertEquals("2 dp to 48 dp a notch at a time", 46, slider.getMax());
-        assertEquals(16, slider.getProgress());
+        assertEquals(6, slider.getProgress());
         assertEquals("Blur strength", String.valueOf(slider.getContentDescription()));
         SeekBar.OnSeekBarChangeListener listener = ((ShadowSeekBar) org.robolectric.Shadows.shadowOf(slider)).getOnSeekBarChangeListener();
         assertNotNull(listener);
@@ -278,7 +278,7 @@ public class TabBarAndBatterySettingsTest {
         listener.onProgressChanged(slider, 28, true);
         TextView summary = (TextView) ((View) slider.getParent()).findViewById(android.R.id.summary);
         assertEquals("30 dp", String.valueOf(summary.getText()));
-        assertEquals("not saved mid-drag", 18, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals("not saved mid-drag", 8, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
         listener.onStopTrackingTouch(slider);
         ShadowLooper.idleMainLooper();
         assertEquals(30, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
