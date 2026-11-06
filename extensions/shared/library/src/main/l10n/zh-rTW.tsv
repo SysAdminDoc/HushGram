@@ -1039,6 +1039,10 @@ Long press a photo to zoom	長按照片放大
 Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.	長按動態中的照片，即可在手指周圍放大為兩倍，滑動可查看其他區域，放開即關閉。啟用時會取代 Instagram 原本的照片長按操作。
 Keep the zoom open	保持放大畫面
 The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, and tap or press Back to close it.	放開手指後仍維持放大。拖曳可查看其他區域，雙指可在 1 至 4 倍間縮放，點擊或按返回即可關閉。
+# context: Feed settings, right under Keep the zoom open, and the toast when a post's video can't be opened in the full screen viewer. Close matches the viewer's Close button.
+Long press a post for full screen	長按貼文以全螢幕顯示
+Press and hold a post in a feed to open it full screen. Pinch a photo to zoom and tap it to close. A video plays with a slider and a Close button. While this is on, it goes before the zoom and Instagram's own long press.	在動態中長按貼文即可全螢幕開啟。以雙指縮放相片，輕觸即可關閉。影片會以滑桿和「關閉」按鈕播放。開啟後，會優先於縮放和 Instagram 原本的長按動作。
+Couldn't play this video	無法播放這部影片
 # context: what TalkBack reads for the zoomed photo left open over the feed
 Zoomed photo	放大的照片
 Full screen Reels	全螢幕 Reels

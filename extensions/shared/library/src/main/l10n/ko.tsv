@@ -1040,6 +1040,10 @@ Long press a photo to zoom	사진을 길게 눌러 확대
 Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.	피드에서 사진을 길게 누르면 손가락 주변이 두 배로 확대되어 보이고, 밀어서 둘러볼 수 있습니다. 손을 떼면 닫힙니다. 이 기능이 켜져 있는 동안에는 사진을 길게 눌렀을 때 Instagram의 기본 동작 대신 이 기능이 실행됩니다.
 Keep the zoom open	확대 화면 유지
 The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, and tap or press Back to close it.	손을 떼도 확대 화면이 그대로 유지됩니다. 드래그해서 둘러보고, 두 손가락으로 오므리거나 벌려 1x에서 4x까지 확대할 수 있으며, 탭하거나 뒤로를 누르면 닫힙니다.
+# context: Feed settings, right under Keep the zoom open, and the toast when a post's video can't be opened in the full screen viewer. Close matches the viewer's Close button.
+Long press a post for full screen	게시물을 길게 눌러 전체 화면으로 보기
+Press and hold a post in a feed to open it full screen. Pinch a photo to zoom and tap it to close. A video plays with a slider and a Close button. While this is on, it goes before the zoom and Instagram's own long press.	피드에서 게시물을 길게 누르면 전체 화면으로 열립니다. 사진은 두 손가락으로 확대하고 탭하면 닫힙니다. 동영상은 슬라이더와 닫기 버튼과 함께 재생됩니다. 이 기능이 켜져 있으면 확대와 Instagram의 길게 누르기보다 먼저 실행됩니다.
+Couldn't play this video	이 동영상을 재생할 수 없습니다
 # context: what TalkBack reads for the zoomed photo left open over the feed
 Zoomed photo	확대된 사진
 Full screen Reels	릴스 전체 화면

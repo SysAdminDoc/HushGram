@@ -438,6 +438,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_long_press_zoom_stays_open", FALSE, parent(LONG_PRESS_TO_ZOOM));
 
     /**
+     * A long press on a post in a feed opens the photo or video showing full screen, a video with a
+     * slider ({@link app.hushgram.extension.instagram.download.PostFullScreen}, #505). Off to start. It
+     * works without {@link #LONG_PRESS_TO_ZOOM} and goes first when both are on.
+     */
+    public static final BooleanSetting LONG_PRESS_FULL_SCREEN =
+            new BooleanSetting("hushgram_long_press_full_screen", FALSE);
+
+    /**
      * The picture, video and carousel pages of a post in Home and Following are cut at rounded corners
      * ({@link app.hushgram.extension.instagram.feed.RoundedCorners}). Stories, the profile grid, Explore
      * and the Reels tab stay as Instagram draws them. Off to start, so no frame is touched.

@@ -1041,6 +1041,10 @@ Long press a photo to zoom	Yakınlaştırmak için fotoğrafa uzun bas
 Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.	Bir akıştaki fotoğrafa basılı tut, parmağının çevresinde iki kat büyük gör ve etrafa bakmak için kaydır. Kapatmak için bırak. Bu açıkken, Instagram'ın bir fotoğraftaki kendi uzun basmasının yerini alır.
 Keep the zoom open	Yakınlaştırmayı açık tut
 The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, and tap or press Back to close it.	Parmağını kaldırdığında yakınlaştırma açık kalır. Etrafa bakmak için sürükle, 1x ile 4x arasında yakınlaştırmak için iki parmakla sıkıştır, kapatmak için dokun ya da Geri'ye bas.
+# context: Feed settings, right under Keep the zoom open, and the toast when a post's video can't be opened in the full screen viewer. Close matches the viewer's Close button.
+Long press a post for full screen	Tam ekran için gönderiye uzun bas
+Press and hold a post in a feed to open it full screen. Pinch a photo to zoom and tap it to close. A video plays with a slider and a Close button. While this is on, it goes before the zoom and Instagram's own long press.	Akıştaki bir gönderiye basılı tutarak onu tam ekranda aç. Fotoğrafı iki parmakla yakınlaştır, kapatmak için dokun. Video bir kaydırıcı ve Kapat düğmesiyle oynatılır. Bu açıkken yakınlaştırmadan ve Instagram'ın kendi uzun basmasından önce gelir.
+Couldn't play this video	Bu video oynatılamadı
 # context: what TalkBack reads for the zoomed photo left open over the feed
 Zoomed photo	Yakınlaştırılmış fotoğraf
 Full screen Reels	Tam ekran Reels

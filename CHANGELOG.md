@@ -25,6 +25,7 @@ Every HushGram release, newest first.
 * `Show the Friends tab on Reels` adds the Friends tab to the top of the Reels tab on accounts that never got it. What's in it still comes from Instagram, so it can be empty. Asked for in #499.
 * `Hold the Friends tab to pick friends` lets you hold the Friends tab on Reels, pick friends, and keep only the reels they liked or shared. Asked for in #503.
 * `Hide the tab bar on Reels` works with Glass tab bar off now, so Instagram's own bar can slide away on Reels too after the wait you pick, and the reel takes its room. Asked for in #343.
+* `Long press a post for full screen` under Feed opens a photo or video on black when you hold it, with a slider on videos. Starts off. Asked for in #505.
 * `Don't vibrate in clear mode` under Reels stops the little buzz Instagram plays when a reel opens in clear mode. With `Keep clear mode on` you'd feel it on every swipe. It starts off and changes take effect right away. Asked for in #480.
 * `Burn-in guard` dims stories now too. Leave a story untouched and its progress bar, name and buttons fade until your next tap. Typing a reply keeps them bright. `Dim stories too` under Reels turns this off. Asked for in #479.
 * `Preview chats` is a new patch under Messages. Long press a chat and tap Preview to read it without sending Seen, and reply there. It has Mark as read when `Read messages without the seen receipt` is on. Starts off. Asked for in #477.

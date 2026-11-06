@@ -407,6 +407,8 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/MusicVideo.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/ExternalDownload.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/ExternalPlayer.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/PostFullScreen.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/download/PostFullScreenTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/download/MusicVideoTest.java",
         "patches/src/main/kotlin/app/morphe/patches/instagram/media/**",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/ReelStateReader.java",

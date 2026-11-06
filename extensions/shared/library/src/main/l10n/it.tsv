@@ -1041,6 +1041,10 @@ Long press a photo to zoom	Pressione lunga su una foto per ingrandirla
 Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.	Tieni premuta una foto in un feed per vederla due volte più grande intorno al dito, e scorri per guardarti intorno. Lascia per chiudere. Finché è attivo, sostituisce la pressione lunga di Instagram su una foto.
 Keep the zoom open	Mantieni lo zoom aperto
 The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, and tap or press Back to close it.	Lo zoom resta aperto dopo che lasci. Trascina per guardarti intorno, pizzica per ingrandire da 1x a 4x, e tocca o premi Indietro per chiuderlo.
+# context: Feed settings, right under Keep the zoom open, and the toast when a post's video can't be opened in the full screen viewer. Close matches the viewer's Close button.
+Long press a post for full screen	Tieni premuto un post per lo schermo intero
+Press and hold a post in a feed to open it full screen. Pinch a photo to zoom and tap it to close. A video plays with a slider and a Close button. While this is on, it goes before the zoom and Instagram's own long press.	Tieni premuto un post nel feed per aprirlo a schermo intero. Pizzica una foto per ingrandirla e toccala per chiuderla. Un video si riproduce con un cursore e un pulsante Chiudi. Finché è attivo, viene prima dello zoom e della pressione prolungata di Instagram.
+Couldn't play this video	Impossibile riprodurre il video
 # context: what TalkBack reads for the zoomed photo left open over the feed
 Zoomed photo	Foto ingrandita
 Full screen Reels	Reel a schermo intero

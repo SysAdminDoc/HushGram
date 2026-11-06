@@ -72,7 +72,7 @@ public enum PatchFamily {
     FEED_TAP_PAUSE(FamilyNames.FEED_TAP_PAUSE, "feedTapPause", null, Settings.TAP_FEED_VIDEO_TO_PAUSE),
     FEED_SEEK_BAR(FamilyNames.FEED_SEEK_BAR, "feedSeekBar", null, Settings.FEED_SEEK_BAR, Settings.FEED_SEEK_BUTTON),
     LONG_PRESS_ZOOM(FamilyNames.LONG_PRESS_ZOOM, "longPressZoom", null, Settings.LONG_PRESS_TO_ZOOM,
-            Settings.LONG_PRESS_ZOOM_STAYS_OPEN),
+            Settings.LONG_PRESS_ZOOM_STAYS_OPEN, Settings.LONG_PRESS_FULL_SCREEN),
     ROUNDED_POST_CORNERS(FamilyNames.ROUNDED_POST_CORNERS, "roundedPostCorners", null, Settings.ROUNDED_POST_CORNERS,
             Settings.ROUNDED_REEL_CORNERS, Settings.ROUNDED_STORY_CORNERS, Settings.PEEK_CAROUSEL_PAGES),
     CAROUSEL_ARROWS(FamilyNames.CAROUSEL_ARROWS, "carouselArrows", null, Settings.CAROUSEL_ARROWS,

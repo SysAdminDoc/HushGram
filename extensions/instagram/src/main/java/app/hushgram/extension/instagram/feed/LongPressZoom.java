@@ -28,12 +28,17 @@ import android.widget.ImageView;
 import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.function.ToIntFunction;
 
+import app.hushgram.extension.instagram.download.InstagramMedia;
+import app.hushgram.extension.instagram.download.PostFullScreen;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
@@ -60,6 +65,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * photo being let go of close it too. A second finger while the first still holds the photo keeps
  * the zoom and drags it.
  *
+ * <p>Long press a post for full screen (#505) uses the same press on any post, video included, and
+ * opens {@link PostFullScreen} over the zoom's place. It needs neither of the switches above, and goes
+ * first when the zoom is on too.
+ *
  * <p>A yes from press means Instagram's own long press on that photo doesn't run, so the zoom takes
  * its place while the switch is on. A video, a press after the finger wandered further than a tap
  * may, a frame with no picture to show, the switch off, Pause, settings that aren't ready and
@@ -80,11 +89,14 @@ public final class LongPressZoom {
     /** How long the zoom takes to fade in, in milliseconds. */
     static final long FADE_MS = 120L;
 
-    /** media_type of one photo and of a carousel. A video is 2. */
+    /** media_type of one photo, of a video and of a carousel. */
     static final int PHOTO = 1;
+    static final int VIDEO = 2;
     static final int CAROUSEL = 8;
 
     /** What {@link HookStatus} counts. */
+    static final String FULL_SCREEN = "posts opened full screen";
+    static final String NOT_FULL_SCREEN = "long presses with nothing to open full screen";
     static final String ZOOMED = "photos zoomed";
     static final String WANDERED = "long presses after the finger moved";
     static final String NOT_A_PHOTO = "long presses on a video";
@@ -116,6 +128,35 @@ public final class LongPressZoom {
     /** The zoom on screen, or null. */
     private static Zoom shown;
 
+    /** What a long press opens full screen with. Tests swap it. */
+    interface FullScreen {
+        /** The pages of the carousel [post], in order, or null. */
+        @Nullable List<?> pages(Object post);
+
+        /** Answers whether the viewer opened. */
+        boolean photo(Context context, Drawable picture);
+
+        /** Answers whether the viewer opened. */
+        boolean video(Context context, Object media);
+    }
+
+    private static final FullScreen VIEWER = new FullScreen() {
+        @Override public List<?> pages(Object post) {
+            return InstagramMedia.carouselMedia(post);
+        }
+
+        @Override public boolean photo(Context context, Drawable picture) {
+            return PostFullScreen.photo(context, picture);
+        }
+
+        @Override public boolean video(Context context, Object media) {
+            return PostFullScreen.video(context, media);
+        }
+    };
+
+    @VisibleForTesting
+    static FullScreen fullScreen = VIEWER;
+
     private LongPressZoom() {
     }
 
@@ -127,8 +168,8 @@ public final class LongPressZoom {
      */
     public static void touch(MotionEvent event) {
         try {
-            // Every touch on every feed photo passes here, so the switch off with nothing open costs one check.
-            if (shown == null && !switchedOn()) return;
+            // Every touch on every feed photo passes here, so the switches off with nothing open cost one check each.
+            if (shown == null && !switchedOn() && !fullScreenOn()) return;
             follow(event);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.LONG_PRESS_ZOOM, TOUCH, failure);
@@ -181,8 +222,10 @@ public final class LongPressZoom {
      * with the frame the picture sits in and the post. Opens the zoom and answers 1, which skips
      * the rest of Instagram's long press, when the switch is on, the finger stayed within a tap's
      * distance of where it went down, the post is a photo or a carousel and the frame shows a
-     * picture and no playing video. Answers 0 otherwise, and Instagram's long press goes on as it
-     * would have. Never throws.
+     * picture and no playing video. With Long press a post for full screen on, the same press opens
+     * what the post shows full screen first, photo or video, and only goes on to the zoom when there
+     * was nothing to open. Answers 0 otherwise, and Instagram's long press goes on as it would have.
+     * Never throws.
      */
     public static int press(View frame, Object media) {
         return press(frame, media, LongPressZoom::mediaType);
@@ -191,13 +234,27 @@ public final class LongPressZoom {
     static int press(View frame, Object media, ToIntFunction<Object> typeOf) {
         try {
             HookStatus.invoked(FamilyNames.LONG_PRESS_ZOOM);
-            if (frame == null || media == null || !down || !switchedOn()) return 0;
+            if (frame == null || media == null || !down) return 0;
+            boolean full = fullScreenOn();
+            if (!full && !switchedOn()) return 0;
             float slop = ViewConfiguration.get(frame.getContext()).getScaledTouchSlop();
             if (farthest > slop * slop) {
                 HookStatus.counted(FamilyNames.LONG_PRESS_ZOOM, WANDERED);
                 return 0;
             }
             int type = typeOf.applyAsInt(media);
+            if (full) {
+                close();
+                if (openFullScreen(frame, media, type, typeOf)) {
+                    // The finger that opened it still belongs to the feed, which doesn't scroll under the viewer.
+                    ViewParent feed = frame.getParent();
+                    if (feed != null) feed.requestDisallowInterceptTouchEvent(true);
+                    HookStatus.counted(FamilyNames.LONG_PRESS_ZOOM, FULL_SCREEN);
+                    return 1;
+                }
+                HookStatus.counted(FamilyNames.LONG_PRESS_ZOOM, NOT_FULL_SCREEN);
+                if (!switchedOn()) return 0;
+            }
             if (type != PHOTO && type != CAROUSEL) {
                 HookStatus.counted(FamilyNames.LONG_PRESS_ZOOM, NOT_A_PHOTO);
                 return 0;
@@ -219,6 +276,68 @@ public final class LongPressZoom {
             HookStatus.threw(FamilyNames.LONG_PRESS_ZOOM, PRESS, failure);
             close();
             return 0;
+        }
+    }
+
+    /**
+     * Opens what the post shows full screen: a video post, or a carousel's page that Instagram's pager
+     * says is a video, plays from its own address; anything else shows the picture on screen under the
+     * finger, so nothing is fetched. A carousel whose page can't be told only opens a picture, and never
+     * with a video playing under the finger. Answers whether a viewer opened.
+     */
+    private static boolean openFullScreen(View frame, Object media, int type, ToIntFunction<Object> typeOf) {
+        if (!onScreen(frame)) return false;
+        Object page = type == CAROUSEL ? pageShowing(frame, media) : media;
+        int showing = page == null ? 0 : page == media ? type : typeOf.applyAsInt(page);
+        Context context = frame.getContext();
+        if (showing == VIDEO) return fullScreen.video(context, page);
+        if (showing != PHOTO && type != CAROUSEL) return false;
+        if (Zoom.playing(frame, downX, downY)) return false;
+        ImageView image = Zoom.picture(frame, downX, downY);
+        ZoomView copy = image == null ? null : ZoomView.of(context, image);
+        return copy != null && fullScreen.photo(context, copy.picture());
+    }
+
+    /** The page of the carousel [media] that Instagram's pager is on, or null when there's no telling. */
+    @Nullable
+    private static Object pageShowing(View frame, Object media) {
+        List<?> pages = fullScreen.pages(media);
+        if (pages == null || pages.isEmpty()) return null;
+        int index = pagerIndex(frame);
+        return index >= 0 && index < pages.size() ? pages.get(index) : null;
+    }
+
+    /**
+     * The page Instagram's pager is on, from the pager inside [frame] or the nearest one around it, whichever
+     * way this carousel is built. -1 when none says.
+     */
+    private static int pagerIndex(View frame) {
+        ArrayDeque<View> pending = new ArrayDeque<>();
+        pending.add(frame);
+        int seen = 0;
+        while (!pending.isEmpty() && seen++ < MOST_VIEWS) {
+            View next = pending.removeFirst();
+            int index = indexOf(next);
+            if (index >= 0) return index;
+            Zoom.addChildren(next, pending);
+        }
+        ViewParent parent = frame.getParent();
+        for (int depth = 0; depth < CarouselArrows.PAGER_DEPTH && parent instanceof View; depth++) {
+            int index = indexOf((View) parent);
+            if (index >= 0) return index;
+            parent = parent.getParent();
+        }
+        return -1;
+    }
+
+    /** [view]'s page when it's Instagram's pager, otherwise -1. */
+    private static int indexOf(View view) {
+        CarouselArrows.Pager pager = CarouselArrows.Pager.of(view.getClass());
+        if (pager == null) return -1;
+        try {
+            return pager.index(view);
+        } catch (ReflectiveOperationException failed) {
+            return -1;
         }
     }
 
@@ -265,10 +384,20 @@ public final class LongPressZoom {
         close();
         down = false;
         farthest = 0f;
+        fullScreen = VIEWER;
     }
 
     private static boolean switchedOn() {
         return Utils.settingsReady() && Settings.LONG_PRESS_TO_ZOOM.get();
+    }
+
+    private static boolean fullScreenOn() {
+        return Utils.settingsReady() && Settings.LONG_PRESS_FULL_SCREEN.get();
+    }
+
+    /** Whether [frame] is on screen with a size. */
+    private static boolean onScreen(View frame) {
+        return frame.isAttachedToWindow() && frame.isShown() && frame.getWidth() > 0 && frame.getHeight() > 0;
     }
 
     /** Whether a zoom stays up after the finger lifts. */
@@ -295,7 +424,7 @@ public final class LongPressZoom {
          * or answers null when the frame isn't on screen, shows a playing video or has no picture.
          */
         static Zoom open(View frame, float x, float y) {
-            if (!frame.isAttachedToWindow() || !frame.isShown() || frame.getWidth() <= 0 || frame.getHeight() <= 0) return null;
+            if (!onScreen(frame)) return null;
             View root = frame.getRootView();
             if (!(root instanceof ViewGroup) || playing(frame, x, y)) return null;
             ImageView image = picture(frame, x, y);

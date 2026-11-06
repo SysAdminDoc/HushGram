@@ -217,6 +217,10 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.LONG_PRESS_ZOOM_STAYS_OPEN, L10n.t("Keep the zoom open"),
                     L10n.t("The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, "
                             + "and tap or press Back to close it.")));
+            feed.addPreference(toggle(context, Settings.LONG_PRESS_FULL_SCREEN, L10n.t("Long press a post for full screen"),
+                    L10n.t("Press and hold a post in a feed to open it full screen. Pinch a photo to zoom and tap it "
+                            + "to close. A video plays with a slider and a Close button. While this is on, it goes "
+                            + "before the zoom and Instagram's own long press.")));
         }
         if (roundedCorners) {
             feed.addPreference(toggle(context, Settings.ROUNDED_POST_CORNERS, L10n.t("Rounded corners on posts"),

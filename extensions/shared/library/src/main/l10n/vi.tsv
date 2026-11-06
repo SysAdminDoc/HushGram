@@ -1014,6 +1014,10 @@ Long press a photo to zoom	Nhấn giữ ảnh để phóng to
 Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.	Nhấn giữ ảnh trong bảng feed để thấy ảnh lớn gấp đôi quanh ngón tay và trượt để xem xung quanh. Thả ra để đóng. Khi bật, mục này thay cho thao tác nhấn giữ ảnh của Instagram.
 Keep the zoom open	Giữ ảnh phóng to
 The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, and tap or press Back to close it.	Ảnh phóng to vẫn mở sau khi bạn thả tay. Kéo để xem xung quanh, chụm ngón để thu phóng từ 1x đến 4x, nhấn hoặc nhấn Quay lại để đóng.
+# context: Feed settings, right under Keep the zoom open, and the toast when a post's video can't be opened in the full screen viewer. Close matches the viewer's Close button.
+Long press a post for full screen	Nhấn giữ bài đăng để xem toàn màn hình
+Press and hold a post in a feed to open it full screen. Pinch a photo to zoom and tap it to close. A video plays with a slider and a Close button. While this is on, it goes before the zoom and Instagram's own long press.	Nhấn giữ bài đăng trong bảng feed để mở toàn màn hình. Chụm ảnh để thu phóng và chạm để đóng. Video phát cùng thanh trượt và nút Đóng. Khi bật, tính năng này được ưu tiên trước thu phóng và thao tác nhấn giữ của Instagram.
+Couldn't play this video	Không phát được video này
 Zoomed photo	Ảnh phóng to
 Full screen Reels	Reels toàn màn hình
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Ẩn thanh trạng thái và thanh điều hướng khi Reels hiện. Vuốt từ mép vào để đưa chúng trở lại trong giây lát. Quay lại và bàn phím hoạt động như thường.

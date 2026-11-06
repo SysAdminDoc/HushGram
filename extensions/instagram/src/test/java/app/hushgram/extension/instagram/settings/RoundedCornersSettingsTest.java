@@ -94,9 +94,10 @@ public class RoundedCornersSettingsTest {
         String[] keys = new String[feed.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.ROUNDED_POST_CORNERS.key);
-        // The zoom's own rows, Long press a photo to zoom and then Keep the zoom open, come right before.
-        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at - 2]);
-        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key, keys[at - 1]);
+        // The long press rows, Long press a photo to zoom, Keep the zoom open and Long press a post for full screen, come right before.
+        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at - 3]);
+        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key, keys[at - 2]);
+        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_FULL_SCREEN.key, keys[at - 1]);
         // Rounded corners on Reels (#362) and on stories (#363) sit between the posts switch and the list they share.
         assertEquals(Arrays.toString(keys), Settings.ROUNDED_REEL_CORNERS.key, keys[at + 1]);
         assertEquals(Arrays.toString(keys), Settings.ROUNDED_STORY_CORNERS.key, keys[at + 2]);

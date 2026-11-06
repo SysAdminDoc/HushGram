@@ -13,6 +13,12 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
+import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
+import app.morphe.patches.instagram.download.PANDO_VIDEO_VERSION
+import app.morphe.patches.instagram.download.USER
+import app.morphe.patches.instagram.download.VIDEO_VERSION
+import app.morphe.patches.instagram.download.carouselBridge
+import app.morphe.patches.instagram.download.mediaBridges
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -202,6 +208,38 @@ class LongPressZoomHookTest {
                 val stub = context.mutableClassDefBy(LONG_PRESS_ZOOM).methods.single { it.name == "mediaType" }
                 assertEquals("$what: the stub reads media_type", "$media->${site.mediaType.name}()Ljava/lang/Integer;", stub.code()[1].referenceText())
             }
+        }
+    }
+
+    /**
+     * On every build the full screen viewer's getters are found and written, a video's files and a carousel's pages,
+     * and a download patch coming second leaves them as they are.
+     */
+    @Test
+    fun eachBuildGivesTheFullScreenViewerWhatItReads() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        assertEquals("every build of the version", Fixtures.BUILDS, bundles.size)
+        val bridges = listOf("videoVersions", "dashManifest", "versionUrl", "versionWidth", "versionHeight", "carouselMedia")
+        for (apk in bundles) {
+            val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
+            val wanted = setOf(media, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION)
+            val classes = FixtureDex.classes(apk, wanted).values + ExtensionDex.classDef(INSTAGRAM_MEDIA)
+            val context = PatchContexts.of(classes)
+
+            context.fullScreenBridges()()
+
+            fun stub(bridge: String) = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods.single { it.name == bridge }.code()
+            for (bridge in bridges) assertEquals("$name: $bridge reads the post", Opcode.CHECK_CAST, stub(bridge).first().opcode)
+            val pages = stub("carouselMedia")[1].referenceText().orEmpty()
+            assertTrue("$name: the pages come off the Media: $pages", pages.startsWith("$media->") && pages.endsWith("()Ljava/util/List;"))
+            val written = bridges.associateWith { stub(it).size }
+
+            context.mediaBridges("Download any reel")()
+            context.carouselBridge("Download any reel")()
+
+            assertEquals("$name: written again", written, bridges.associateWith { stub(it).size })
         }
     }
 

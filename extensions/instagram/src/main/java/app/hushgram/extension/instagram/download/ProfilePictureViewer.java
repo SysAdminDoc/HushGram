@@ -11,9 +11,11 @@ import android.content.ContextWrapper;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
@@ -333,23 +335,26 @@ final class ProfilePictureViewer {
             root.requestFocus();
 
             dialog.setContentView(root);
-            Window window = dialog.getWindow();
-            if (window != null) {
-                window.setBackgroundDrawable(new ColorDrawable(ScreenColors.DEFAULT.background));
-                window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-                window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                window.setNavigationBarColor(ScreenColors.DEFAULT.background);
-                window.setStatusBarColor(ScreenColors.DEFAULT.background);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.setNavigationBarContrastEnforced(false);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) window.setDecorFitsSystemWindows(false);
-                // A light Instagram theme must not leave dark navigation icons on the black viewer.
-                window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
-                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
-                        | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
-            }
+            fill(dialog.getWindow(), ScreenColors.DEFAULT.background);
             dialog.setOnDismissListener(shut -> watch.cancel());
             dialog.setOnShowListener(shown -> root.requestApplyInsets());
+        }
+
+        /** Makes [window] a full screen one of [color], drawn under the system bars. Null does nothing. */
+        static void fill(@Nullable Window window, int color) {
+            if (window == null) return;
+            window.setBackgroundDrawable(new ColorDrawable(color));
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setNavigationBarColor(color);
+            window.setStatusBarColor(color);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.setNavigationBarContrastEnforced(false);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) window.setDecorFitsSystemWindows(false);
+            // A light Instagram theme must not leave dark navigation icons on the black viewer.
+            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
+                    | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
         }
 
         /** Shows [loaded], or closes and says the picture couldn't open when it's null. */
@@ -455,6 +460,14 @@ final class ProfilePictureViewer {
         @Override protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
             super.onSizeChanged(width, height, oldWidth, oldHeight);
             fitToView();
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            // A picture lent by a feed post goes away when Instagram lets go of it, and drawing it then would crash.
+            Drawable drawable = getDrawable();
+            Bitmap bitmap = drawable instanceof BitmapDrawable ? ((BitmapDrawable) drawable).getBitmap() : null;
+            if (bitmap != null && bitmap.isRecycled()) return;
+            super.onDraw(canvas);
         }
 
         @Override public boolean onTouchEvent(MotionEvent event) {

@@ -12,6 +12,8 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.download.carouselBridge
+import app.morphe.patches.instagram.download.mediaBridges
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
@@ -66,6 +68,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  *
  * The extension reads the post's media_type through a getter this patch writes into its stub.
  *
+ * Long press a post for full screen answers the same press, for a video too, and opens a viewer of its own. No
+ * other hook: all it adds here is the getters that viewer reads off a post.
+ *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
  */
@@ -74,8 +79,9 @@ val longPressZoomPatch = bytecodePatch(
     name = "Long press to zoom",
     description = "Press and hold a photo in a feed to see it twice as big around your finger, and let go to " +
         "close it. Pinch to zoom still works. Keep the zoom open leaves it up after you let go, to drag and pinch " +
-        "from 1x to 4x until a tap or Back closes it. While its switch is on, it takes the place of Instagram's " +
-        "own long press on a photo. Starts off. Turn it on in HushGram settings > Feed.",
+        "from 1x to 4x until a tap or Back closes it. Long press a post for full screen opens any photo or video " +
+        "on black instead, a video with a slider. While its switch is on, each takes the place of Instagram's own " +
+        "long press. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -83,8 +89,25 @@ val longPressZoomPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("longPressZoom")
-        applyLongPressZoom(findLongPressZoomSite())
+        val site = findLongPressZoomSite()
+        val writeBridges = fullScreenBridges()
+        applyLongPressZoom(site)
+        writeBridges()
         enableStatus("longPressZoom")
+    }
+}
+
+/**
+ * Finds what the full screen viewer reads off a post, a video's files and a carousel's pages, and answers what
+ * writes it into the InstagramMedia stubs. The download patches write the same stubs, and whichever comes second
+ * leaves them as they are, so this patch doesn't need any of them.
+ */
+internal fun BytecodePatchContext.fullScreenBridges(): () -> Unit {
+    val writeMedia = mediaBridges(PATCH)
+    val writeCarousel = carouselBridge(PATCH)
+    return {
+        writeMedia()
+        writeCarousel()
     }
 }
 

@@ -38,6 +38,7 @@ public class LongPressZoomSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.LONG_PRESS_TO_ZOOM.resetToDefault();
         Settings.LONG_PRESS_ZOOM_STAYS_OPEN.resetToDefault();
+        Settings.LONG_PRESS_FULL_SCREEN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -49,6 +50,7 @@ public class LongPressZoomSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.LONG_PRESS_TO_ZOOM.resetToDefault();
         Settings.LONG_PRESS_ZOOM_STAYS_OPEN.resetToDefault();
+        Settings.LONG_PRESS_FULL_SCREEN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -88,9 +90,33 @@ public class LongPressZoomSettingsTest {
         assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key,
                 keys[Arrays.asList(keys).indexOf(Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key) - 1]);
         assertFalse(Settings.LONG_PRESS_ZOOM_STAYS_OPEN.get());
-        assertEquals(Arrays.asList(Settings.LONG_PRESS_TO_ZOOM, Settings.LONG_PRESS_ZOOM_STAYS_OPEN),
+        assertEquals(Arrays.asList(Settings.LONG_PRESS_TO_ZOOM, Settings.LONG_PRESS_ZOOM_STAYS_OPEN, Settings.LONG_PRESS_FULL_SCREEN),
                 PatchFamily.LONG_PRESS_ZOOM.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key));
+    }
+    @Test public void fullScreenComesAfterTheZoomRowsStartsOffAndStandsAlone() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_SOUND, PatchFamily.LONG_PRESS_ZOOM));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.LONG_PRESS_FULL_SCREEN.key);
+        assertNotNull(row);
+        assertEquals("Long press a post for full screen", row.getTitle().toString());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("A video plays with a slider"));
+        PreferenceGroup feed = row.getParent();
+        String[] keys = new String[feed.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_ZOOM_STAYS_OPEN.key,
+                keys[Arrays.asList(keys).indexOf(Settings.LONG_PRESS_FULL_SCREEN.key) - 1]);
+        assertFalse(Settings.LONG_PRESS_FULL_SCREEN.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LONG_PRESS_FULL_SCREEN.key));
+        assertTrue("usable with the zoom switch off", row.isEnabled());
+    }
+    @Test public void savedFullScreenAnswersOffWhilePaused() throws Exception {
+        open(EnumSet.of(PatchFamily.LONG_PRESS_ZOOM));
+        Settings.LONG_PRESS_FULL_SCREEN.save(true);
+        assertTrue(Settings.LONG_PRESS_FULL_SCREEN.get());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.LONG_PRESS_FULL_SCREEN.get());
+        assertTrue(Settings.LONG_PRESS_FULL_SCREEN.savedValue());
     }
     @Test public void theSwitchAloneStillMakesTheFeedSection() throws Exception {
         open(EnumSet.of(PatchFamily.LONG_PRESS_ZOOM));
