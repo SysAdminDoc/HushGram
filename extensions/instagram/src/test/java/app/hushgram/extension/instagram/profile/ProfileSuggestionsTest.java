@@ -29,7 +29,9 @@ import org.robolectric.annotation.Config;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -891,29 +893,61 @@ public class ProfileSuggestionsTest {
     }
 
     /**
-     * #189: the heart's dot count is zeroed only while Keep Featured off the heart's dot is on and no
-     * like, comment, follow or tag is counted. Any activity keeps the dot, as do off, paused, unready
-     * and a switch that throws. A count of 0 stays 0.
+     * #189: the counts with no one's action behind them go only while Keep Featured off the heart's dot
+     * is on and nothing anyone did is counted. Any activity keeps them, as do off, paused, unready and a
+     * switch that throws. Counts the server didn't send stay out of the map, and the rest stay as they came.
      */
     @Test
     public void theHeartsDotGoesOnlyWhenNothingButFeaturedIsBehindIt() {
-        assertEquals("off", 1, ProfileSuggestions.featuredDot(1, 0));
+        assertEquals("off", 1, afterFeatured("activity_feed_dot_badge", 1).get("activity_feed_dot_badge").intValue());
         Settings.HIDE_FEATURED_DOT.save(true);
-        assertEquals(0, ProfileSuggestions.featuredDot(1, 0));
-        assertEquals("a like", 1, ProfileSuggestions.featuredDot(1, 1));
-        assertEquals("several", 3, ProfileSuggestions.featuredDot(3, 7));
-        assertEquals("no dot", 0, ProfileSuggestions.featuredDot(0, 0));
+        for (String key : Arrays.asList("activity_feed_dot_badge", "new_posts", "promotional", "fundraiser",
+                "shopping_notification", "campaign_notification")) {
+            assertEquals(key, 0, afterFeatured(key, 1).get(key).intValue());
+        }
+        for (String key : Arrays.asList("likes", "comments", "comment_likes", "relationships", "requests", "usertags",
+                "story_mentions", "media_to_approve", "branded_content")) {
+            Map<String, Integer> kept = afterFeatured("activity_feed_dot_badge", 3, key, 7);
+            assertEquals(key + " keeps the dot", 3, kept.get("activity_feed_dot_badge").intValue());
+            assertEquals(key + " keeps its own count", 7, kept.get(key).intValue());
+        }
+        Map<String, Integer> quiet = afterFeatured("activity_feed_dot_badge", 2, "di", 4);
+        assertEquals("no one's action", 0, quiet.get("activity_feed_dot_badge").intValue());
+        assertEquals("a count that isn't the heart's", 4, quiet.get("di").intValue());
+        assertFalse("a count the server didn't send", quiet.containsKey("new_posts"));
+        assertEquals("no dot", 0, afterFeatured("activity_feed_dot_badge", 0, "likes", 0).get("activity_feed_dot_badge").intValue());
         String report = FeedFilterCounters.report().toString();
-        assertTrue(report, report.contains(ProfileSuggestions.FEATURED_DOT + " 1"));
+        assertTrue(report, report.contains(ProfileSuggestions.FEATURED_DOT + " 7"));
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertEquals("paused", 1, ProfileSuggestions.featuredDot(1, 0));
+        assertEquals("paused", 1, afterFeatured("activity_feed_dot_badge", 1).get("activity_feed_dot_badge").intValue());
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertEquals("unready", 1, ProfileSuggestions.featuredDot(1, 0)));
-        assertEquals("a switch that throws", 1, ProfileSuggestions.featuredDot(1, 0, THROWS));
+        SettingsContextRule.withoutContext(() ->
+                assertEquals("unready", 1, afterFeatured("activity_feed_dot_badge", 1).get("activity_feed_dot_badge").intValue()));
+        Map<String, Integer> kept = new LinkedHashMap<>();
+        kept.put("activity_feed_dot_badge", 1);
+        ProfileSuggestions.featuredCounts(kept, THROWS);
+        assertEquals("a switch that throws", 1, kept.get("activity_feed_dot_badge").intValue());
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.FEATURED_DOT + "'"));
+    }
+
+    /** A map the hook can't read leaves the app's own map alone and throws nothing: a null, and one that refuses every write. */
+    @Test
+    public void aBadgeMapTheHookCantUseGoesBackAsItCame() {
+        Settings.HIDE_FEATURED_DOT.save(true);
+        ProfileSuggestions.featuredCounts(null);
+        Map<String, Integer> locked = Collections.unmodifiableMap(new LinkedHashMap<>(Collections.singletonMap("new_posts", 1)));
+        ProfileSuggestions.featuredCounts(locked);
+        assertEquals(1, locked.get("new_posts").intValue());
+    }
+
+    private static Map<String, Integer> afterFeatured(Object... namesAndCounts) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (int at = 0; at < namesAndCounts.length; at += 2) counts.put((String) namesAndCounts[at], (Integer) namesAndCounts[at + 1]);
+        ProfileSuggestions.featuredCounts(counts);
+        return counts;
     }
 }

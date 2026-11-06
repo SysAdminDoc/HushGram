@@ -34,7 +34,7 @@ internal const val KEEP_NOTIFICATION = "$PROFILE_SUGGESTIONS->keepNotification(L
 internal const val FEATURED_ROWS = "$PROFILE_SUGGESTIONS->featuredRows(Ljava/util/List;)Ljava/util/List;"
 internal const val FEATURED_HEADER = "$PROFILE_SUGGESTIONS->featuredHeader(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val SKIPS_FEATURED_ROW = "$PROFILE_SUGGESTIONS->skipsFeaturedRow(Ljava/lang/String;)Z"
-internal const val FEATURED_DOT = "$PROFILE_SUGGESTIONS->featuredDot(II)I"
+internal const val FEATURED_COUNTS = "$PROFILE_SUGGESTIONS->featuredCounts(Ljava/util/Map;)V"
 
 /** The reply's keys of the Featured section at the top of the notifications (#259): its rows, and its header. */
 internal const val FEATURED_ROWS_KEY = "priority_stories"
@@ -428,79 +428,47 @@ internal fun BytecodePatchContext.skipFeaturedRows(site: FeaturedRowSite) {
     )
 }
 
-private const val DOT_KEY = "activity_feed_dot_badge"
-private val ACTIVITY_KEYS = listOf("comments", "likes", "comment_likes", "relationships", "usertags")
+/** The repository that takes the account's badge counts from the server's push. It keeps its name in Instagram's builds. */
+internal const val BADGE_REPOSITORY = "Lcom/instagram/notifications/badging/impl/BadgeSubscriptionRepository;"
+private const val COUNTS_MAP = "Ljava/util/LinkedHashMap;"
+
+/** Where the badge counts come out by name (#189): the method, its return, and the map's register. */
+internal class BadgeSite(val type: String, val method: Method, val at: Int, val counts: Int)
 
 /**
- * Where the badge counts are built (#189): the first count's boxing, where the hook goes in, the
- * dot's register, the five activity counts' registers, and the free register the sum is made in.
- */
-internal class BadgeSite(val type: String, val method: Method, val at: Int, val dot: Int, val activity: List<Int>, val temp: Int)
-
-/**
- * Finds the method that builds the account's badge counts from the server's numbers (LX/04rE.EN9 on
- * 453): the one loading "activity_feed_dot_badge" with "likes", "comments", "comment_likes",
- * "relationships" and "usertags". Each count is boxed right before its key is loaded, so the register
- * of the boxed int is the count's. The hook goes in before the first boxing, where every count is
- * still an int, and sums into the register the first key is loaded into, which nothing reads or
- * writes before that load.
+ * Finds the method every route to the heart's badge reads its counts through: LX/07AF.A01 on 454, which
+ * turns a reply's list of names and numbers into a map of name to count. The push (BadgeSubscriptionRepository),
+ * the inbox's own reply (LX/0D7K) and the REST refresh (InMemoryBadgingRepository) all go through it
+ * before they set the badges. It holds no string of its own, so it's found as the one
+ * static call taking one object and returning a LinkedHashMap in the repository, which keeps its name.
+ * The method's first act makes the map, and its one return hands it back.
  */
 internal fun BytecodePatchContext.findBadgeCounts(): BadgeSite {
-    val methods = classesLoadingString(DOT_KEY).flatMap { classDef ->
-        classDef.methods.filter { method ->
-            method.name != "<clinit>" &&
-            (listOf(DOT_KEY) + ACTIVITY_KEYS).all { loadsString(method, it) }
-        }
+    val repository = classDefByOrNull(BADGE_REPOSITORY) ?: refuse("can't find $BADGE_REPOSITORY")
+    val calls = repository.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }
+        .filter { it.opcode == Opcode.INVOKE_STATIC }
+        .mapNotNull { it.reference() as? MethodReference }
+        .filter { it.returnType == COUNTS_MAP && it.parameterTypes.size == 1 }
+        .distinctBy { it.toString() }
+    val call = calls.singleOrNull()
+        ?: refuse("expected one static call returning a LinkedHashMap of counts in $BADGE_REPOSITORY, found ${calls.size}: ${calls.joinToString()}")
+    val method = classDefByOrNull(call.definingClass)?.methods?.singleOrNull {
+        it.name == call.name && it.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString) &&
+            it.returnType == COUNTS_MAP
+    } ?: refuse("can't find $call")
+    val code = method.implementation?.instructions?.toList().orEmpty()
+    val at = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }.singleOrNull()
+        ?: refuse("$call doesn't have one return")
+    val counts = (code[at] as OneRegisterInstruction).registerA
+    val made = code.first()
+    if (made.opcode != Opcode.NEW_INSTANCE || (made.reference() as TypeReference).type != COUNTS_MAP ||
+        (made as OneRegisterInstruction).registerA != counts
+    ) {
+        refuse("$call doesn't make the map it hands back first")
     }
-    val method = methods.singleOrNull()
-        ?: refuse("expected one method building the badge counts from \"$DOT_KEY\" and ${ACTIVITY_KEYS.joinToString()}, found ${methods.size}: ${methods.joinToString { "${it.definingClass}->${it.name}${it.parameterTypes}" }}")
-    val where = "${method.definingClass}->${method.name}"
-    val code = method.implementation!!.instructions.toList()
-    val boxed = (listOf(DOT_KEY) + ACTIVITY_KEYS).map { key ->
-        val load = code.indices.filter { stringLoadedAt(code, it) == key }.singleOrNull()
-            ?: refuse("$where doesn't load \"$key\" once")
-        val move = code.getOrNull(load - 1)
-        val box = code.getOrNull(load - 2)
-        val call = (box?.reference() as? MethodReference)
-        if (move?.opcode != Opcode.MOVE_RESULT_OBJECT || box == null || box.opcode !in BOXING || call?.name != "valueOf" ||
-            call.definingClass != "Ljava/lang/Integer;"
-        ) {
-            refuse("$where doesn't box the count right before \"$key\"")
-        }
-        val register = when (box) {
-            is FiveRegisterInstruction -> box.registerC
-            is RegisterRangeInstruction -> box.startRegister
-            else -> refuse("$where boxes \"$key\" in a way this hook can't read")
-        }
-        Triple(key, load - 2, register)
-    }
-    val dot = boxed.first().third
-    val activity = boxed.drop(1).map { it.third }
-    if ((activity + dot).any { it > 255 }) refuse("$where keeps the badge counts past v255")
-    if (dot > 15) refuse("$where keeps the dot's count past v15")
-    val at = boxed.minOf { it.second }
-    val firstLoad = code.indices.first { stringLoadedAt(code, it) == boxed[1].first }
-    val temp = (code[firstLoad] as OneRegisterInstruction).registerA
-    if (temp > 15 || temp == dot || temp in activity) refuse("$where has no free register for the badge sum")
-    val between = at until firstLoad
-    if (between.any { code[it].touches(temp) }) refuse("$where uses v$temp before it loads \"${boxed[1].first}\"")
-    for ((key, boxAt, register) in boxed) {
-        if ((at until boxAt).any { code[it].writes(register) }) refuse("$where writes the count of \"$key\" before boxing it")
-    }
-    return BadgeSite(method.definingClass, method, at, dot, activity, temp)
-}
-
-private val BOXING = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
-
-/** Whether this instruction reads or writes [register]. */
-private fun Instruction.touches(register: Int): Boolean = when (this) {
-    is FiveRegisterInstruction -> (registerCount > 0 && registerC == register) || (registerCount > 1 && registerD == register) ||
-        (registerCount > 2 && registerE == register) || (registerCount > 3 && registerF == register) ||
-        (registerCount > 4 && registerG == register)
-    is RegisterRangeInstruction -> register in startRegister until startRegister + registerCount
-    is TwoRegisterInstruction -> registerA == register || registerB == register
-    is OneRegisterInstruction -> registerA == register
-    else -> false
+    if ((1 until at).any { code[it].writes(counts) }) refuse("$call writes v$counts again before handing the map back")
+    if (counts > 15) refuse("$call keeps its map past v15")
+    return BadgeSite(method.definingClass, method, at, counts)
 }
 
 /** The badge site, or null with a warning, so the rest of the patch still goes in. */
@@ -512,21 +480,13 @@ internal fun BytecodePatchContext.findBadgeCountsOrWarn(): BadgeSite? = try {
 }
 
 /**
- * Hands the dot's count and the sum of the five activity counts to [FEATURED_DOT] before the first
- * is boxed, and keeps the answer as the dot's count: zero when the dot has nothing but Featured
- * behind it and the switch is on, the count as it came otherwise.
+ * Hands the finished map of counts to [FEATURED_COUNTS] right before its return, on the return's label
+ * since the loop over the list ends there. It takes the counts with nobody's action behind them out of
+ * the map when nothing else is in it, so the heart's badge has nothing to add up.
  */
 internal fun BytecodePatchContext.keepFeaturedOffTheDot(site: BadgeSite) {
     val method = mutableClassDefBy(site.type).methods.single {
         it.name == site.method.name && it.parameterTypes == site.method.parameterTypes
     }
-    method.addInstructionsAtControlFlowLabel(
-        site.at,
-        """
-            add-int v${site.temp}, v${site.activity.first()}, v${site.activity[1]}
-            ${site.activity.drop(2).joinToString("\n") { "add-int v${site.temp}, v${site.temp}, v$it" }}
-            invoke-static { v${site.dot}, v${site.temp} }, $FEATURED_DOT
-            move-result v${site.dot}
-        """,
-    )
+    method.addInstructionsAtControlFlowLabel(site.at, "invoke-static { v${site.counts} }, $FEATURED_COUNTS")
 }

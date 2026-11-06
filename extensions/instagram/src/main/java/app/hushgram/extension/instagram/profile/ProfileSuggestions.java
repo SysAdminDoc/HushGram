@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 
@@ -519,20 +520,44 @@ public final class ProfileSuggestions {
     /** What's counted when the heart's dot is taken off because only Featured is behind it. */
     static final String FEATURED_DOT = "Featured dot on the heart";
 
+    /** The heart's badge counts that stand for something someone did to you or your posts. Any of them keeps the dot. */
+    private static final List<String> ACTIVITY_COUNTS = Arrays.asList("likes", "comments", "comment_likes",
+            "relationships", "requests", "usertags", "story_mentions", "media_to_approve", "branded_content");
+
+    /** The heart's badge counts with no one's action on you behind them: a plain dot, other people's posts, and Instagram's own news. */
+    private static final List<String> FEATURED_COUNTS = Arrays.asList("activity_feed_dot_badge", "new_posts",
+            "promotional", "fundraiser", "shopping_notification", "campaign_notification");
+
     /**
-     * Injected where the account's badge counts are built from the server's numbers (#189). [dot] is
-     * the count behind the heart's red dot, [activity] the sum of the likes, comments, comment likes,
-     * follows and tags counts. A dot with none of those behind it is the server pointing at something
-     * Featured, so it answers 0 for it while Keep Featured off the heart's dot is on. Any real activity,
-     * the switch off, paused or unready, or anything going wrong answers [dot] as it came. Never throws.
+     * Injected where every route to the heart's badge turns a reply into counts by name (#189): the
+     * server's push, the inbox's own reply, and the REST refresh. The heart lights for any count under
+     * it, so while Keep Featured off the heart's dot is on, [counts] loses the ones with no one's action
+     * behind them unless real activity is in there too. Real activity, the switch off, paused or
+     * unready, or anything going wrong leaves the map as it came. Never throws.
      */
-    public static int featuredDot(int dot, int activity) {
-        return featuredDot(dot, activity, ProfileSuggestions::featuredDotOn);
+    public static void featuredCounts(Map<String, Integer> counts) {
+        featuredCounts(counts, ProfileSuggestions::featuredDotOn);
     }
 
-    static int featuredDot(int dot, int activity, BooleanSupplier on) {
-        if (dot <= 0 || activity > 0) return dot;
-        return hides(FEATURED_DOT, on) ? 0 : dot;
+    static void featuredCounts(Map<String, Integer> counts, BooleanSupplier on) {
+        try {
+            if (!anyAboveZero(counts, FEATURED_COUNTS)) return;
+            Logger.printDebug(() -> "Keep Featured off the heart's dot: the counts are " + counts);
+            if (anyAboveZero(counts, ACTIVITY_COUNTS) || !hides(FEATURED_DOT, on)) return;
+            for (String key : FEATURED_COUNTS) {
+                if (counts.containsKey(key)) counts.put(key, 0);
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, FEATURED_DOT, failure);
+        }
+    }
+
+    private static boolean anyAboveZero(Map<String, Integer> counts, List<String> keys) {
+        for (String key : keys) {
+            Integer count = counts.get(key);
+            if (count != null && count > 0) return true;
+        }
+        return false;
     }
 
     private static boolean featuredDotOn() {

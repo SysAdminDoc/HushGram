@@ -2073,11 +2073,12 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->keepNot
 # to the loop's next row on a yes. Left out, Featured rows the reply hook never sees (saved or paged
 # ones) still draw.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->skipsFeaturedRow(Ljava/lang/String;)Z in static (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZZ)L*; holding priority_stories new_stories
-# Keep Featured off the heart's dot (#189) hands the dot's count and the sum of the likes, comments,
-# comment likes, follows and tags counts to ProfileSuggestions.featuredDot before the badge counts are
-# boxed (LX/04rE.EN9 on 453, the one method loading activity_feed_dot_badge and the five counts), and
-# keeps the answer as the dot's count. Left out, a Featured-only dot still lights the heart.
-once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->featuredDot(II)I in instance (L*;)V holding activity_feed_dot_badge comment_likes relationships usertags
+# Keep Featured off the heart's dot (#189) hands the map of badge counts by name to
+# ProfileSuggestions.featuredCounts right before LX/07AF.A01 returns it (454). Every route to the heart's
+# badge reads its counts through that method. Its twin LX/07AF.A02 reads the same two fields (name and
+# count) but keys the map by badge, through a call with the name, and the account switcher uses that one.
+# Left out, a Featured-only dot still lights the heart.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->featuredCounts(Ljava/util/Map;)V in static (LX/*;)Ljava/util/LinkedHashMap; lacking static LX/*;->*(Ljava/lang/String;)LX/*; holding const:0x302bcfe const:0x5a7510f
 
 # Hide highlights asks ProfileHighlights before the same row list (0EBd.A04 on 452)
 # adds the row of story highlights, in place of its read of the tray's row type. It's called once

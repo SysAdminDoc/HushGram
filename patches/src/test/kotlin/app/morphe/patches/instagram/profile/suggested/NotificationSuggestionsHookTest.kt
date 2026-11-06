@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -54,7 +55,7 @@ class NotificationSuggestionsHookTest {
         val declared = ExtensionDex.classDef(NOTIFICATION_PARSED.substringBefore("->")).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(NOTIFICATION_PARSED, KEEP_NOTIFICATION, FEATURED_ROWS, FEATURED_HEADER, SKIPS_FEATURED_ROW, FEATURED_DOT)) {
+        for (hook in listOf(NOTIFICATION_PARSED, KEEP_NOTIFICATION, FEATURED_ROWS, FEATURED_HEADER, SKIPS_FEATURED_ROW, FEATURED_COUNTS)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -76,12 +77,18 @@ class NotificationSuggestionsHookTest {
             val holders = mutableListOf<ClassDef>()
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
-                    if (classDef.methods.any { m -> m.code().any { it.string() == NOTIF_NAME_KEY || it.string() == OLD_ROWS_KEY || it.string() == FEATURED_ROWS_KEY || it.string() == "activity_feed_dot_badge" } }) {
+                    if (classDef.methods.any { m -> m.code().any { it.string() == NOTIF_NAME_KEY || it.string() == OLD_ROWS_KEY || it.string() == FEATURED_ROWS_KEY } }) {
                         holders += ImmutableClassDef.of(classDef)
                     }
                 }
             }
-            val context = PatchContexts.of(holders)
+            // The badge counts' method holds no string, so its class comes from the call the repository makes.
+            val repository = FixtureDex.classes(bundle, setOf(BADGE_REPOSITORY)).values.toList()
+            val called = repository.flatMap { it.methods }.flatMap { it.code() }
+                .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+                .filter { it.returnType == "Ljava/util/LinkedHashMap;" }.map { it.definingClass }.toSet()
+            val badgeClasses = repository + FixtureDex.classes(bundle, called).values
+            val context = PatchContexts.of((holders + badgeClasses.map { ImmutableClassDef.of(it) }).distinctBy { it.type })
 
             val rows = context.findNotificationRows()
             val reply = context.findNotificationLists(rows)
@@ -101,9 +108,15 @@ class NotificationSuggestionsHookTest {
             val badgeBefore = badge.method.code().size
             context.keepFeaturedOffTheDot(badge)
             val counted = context.mutableClassDefBy(badge.type).methods.single { it.name == badge.method.name && it.parameterTypes == badge.method.parameterTypes }
-            assertEquals("${bundle.name}: the dot hook is six instructions", badgeBefore + 6, counted.code().size)
-            assertEquals("${bundle.name}: one dot call", 1, counted.code().count { it.referenceText() == FEATURED_DOT })
-            assertEquals("${bundle.name}: five activity counts", 5, badge.activity.size)
+            val countedCode = counted.code()
+            assertEquals("${bundle.name}: the counts hook is one instruction", badgeBefore + 1, countedCode.size)
+            assertEquals("${bundle.name}: one counts call", 1, countedCode.count { it.referenceText() == FEATURED_COUNTS })
+            val call = countedCode.indexOfFirst { it.referenceText() == FEATURED_COUNTS }
+            assertEquals("${bundle.name}: the map's the argument", badge.counts, (countedCode[call] as FiveRegisterInstruction).registerC)
+            assertEquals("${bundle.name}: right before the return", Opcode.RETURN_OBJECT, countedCode[call + 1].opcode)
+            val branches = countedCode.indices.filter { countedCode[it].opcode == Opcode.IF_EQZ }.map { counted.targetOf(it) }
+            assertTrue("${bundle.name}: the loop's end reaches the hook: $branches", call in branches)
+            assertFalse("${bundle.name}: nothing jumps past the hook: $branches", call + 1 in branches)
 
             assertMarked(bundle.name, context.parser(rows.type, rows.parameters), rows)
             assertDropped(bundle.name, context.parser(reply.type, reply.parameters), rows.type, reply.checks.size)
@@ -145,6 +158,15 @@ class NotificationSuggestionsHookTest {
         // The stand-in has no Featured section, so that switch alone stays out and nothing more is written.
         assertNull("no Featured section", context.findFeaturedSectionOrWarn(lists))
         assertFalse(replies.code().any { it.referenceText() == FEATURED_ROWS || it.referenceText() == FEATURED_HEADER })
+    }
+
+    /** With no badge repository to start from, only the dot's switch stays out and the patch goes on. */
+    @Test
+    fun aBuildWithNoBadgeRepositoryLeavesOutTheDotAlone() {
+        val context = PatchContexts.of(emptyList())
+        val failure = assertThrows(PatchException::class.java) { context.findBadgeCounts() }
+        assertTrue(failure.message, failure.message!!.contains(BADGE_REPOSITORY))
+        assertNull(context.findBadgeCountsOrWarn())
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
