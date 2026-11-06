@@ -241,6 +241,9 @@ final class ReelsCategory {
                     L10n.t("Gives reels the seek bar of a video in a chat, a thin gray line that turns white as it plays, "
                             + "with a big round white handle. The time shows above it. Drag it to seek. When Bigger seek "
                             + "bar on reels is on too, this look wins. It also keeps the bar on short reels.")));
+            reels.add(toggle(context, Settings.PHOTO_REEL_SEEK_BAR, L10n.t("Seek bar on photos with music"),
+                    L10n.t("Reels that are a photo with a song get the same seek bar and time as a video reel, "
+                            + "following the song. Drag it to seek.")));
         }
         if (build.contains(PatchFamily.REEL_ZOOM)) {
             reels.add(toggle(context, Settings.PINCH_ZOOM_REELS, L10n.t("Pinch to zoom"),

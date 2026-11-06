@@ -5,16 +5,20 @@
 package app.morphe.patches.instagram.reels.seekbar
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
@@ -94,6 +98,19 @@ private val PROGRESS_CHANGED_PARAMETERS = listOf(ANDROID_SEEK_BAR, "I", "Z")
 internal const val SCRUBBER_TAG = "clips_scrubber_"
 private const val SET_TAG = "Landroid/view/View;->setTag(Ljava/lang/Object;)V"
 
+internal const val PHOTO_BAR_ON = "$REEL_SEEK_BAR->photoBarOn()Z"
+internal const val PHOTO_REEL = "$REEL_SEEK_BAR->photoReel(ILjava/lang/Object;Ljava/lang/String;)Z"
+internal const val PHOTO_ROW = "$REEL_SEEK_BAR->photoRow(Ljava/lang/Object;Ljava/lang/String;)V"
+internal const val PHOTO_PROGRESS = "$REEL_SEEK_BAR->photoProgress(Ljava/lang/String;II)V"
+
+/** The marker of the Reels player's position callback (on 454 LX/04Kf->A1M), which every reel's player goes through. */
+internal const val PLAYER_PROGRESS = "ClipsVideoPlayerController_onProgressUpdate"
+
+/** What Instagram reports from the method that works out a post's kind of reel (on 454 LX/087h->A00), photo with music among them. */
+internal const val KIND_OF_REPORT = "MixedMediaTypeExt.toMixedMediaType unsupported carousel type"
+private const val MEDIA = "Lcom/instagram/feed/media/Media;"
+private const val STRING = "Ljava/lang/String;"
+
 /**
  * Keeps Instagram's seek bar under every reel, with the time played and the reel's length. In the
  * default selection with its switch off: it changes how every reel looks, so it's the user's pick.
@@ -112,6 +129,11 @@ private const val SET_TAG = "Landroid/view/View;->setTag(Ljava/lang/Object;)V"
  * Instagram's own strip for dragging a little above the bar can reach over the More button and the
  * audio square on some phones, so a tap there scrubbed the reel (#452). Its touch listener goes to
  * the extension's ReelSeekTouch, which hands a press on a button under the strip to that button.
+ *
+ * A reel that's a photo with a song plays through the same player, but its post states no length, so
+ * Instagram gives it no bar (#10). On a switch of its own, the check of whether a reel gets the bar and
+ * the row's state tell the extension the reel's kind and id, and it says yes to that kind alone, and the
+ * player's position callback hands it the song's length for that reel's bar.
  *
  * Every read is found by its server id and counted, each is checked against Instagram's own markers
  * for the seek bar, and the bar's class and method, the binder and the strip's listener call are
@@ -144,6 +166,26 @@ internal class ReelSeekBarSites(
     val progress: Method,
     val bind: BindSite,
     val touch: TouchSite,
+    val photo: PhotoSites,
+)
+
+/**
+ * What the photo reel's hooks need: the reel item's fields as `type->name:type` or `type->name(...)ret`
+ * ([media], [id]), the method working out a post's kind ([kindOf]), the check of whether a reel gets
+ * the bar ([answer], with [answerAt] its last return, of [answerRegister], and [item] the item's register
+ * there and [scratch] two registers free there), the row's state ([row]) and the player's callback ([player]).
+ */
+internal class PhotoSites(
+    val media: String,
+    val id: String,
+    val kindOf: String,
+    val answer: Method,
+    val answerAt: Int,
+    val answerRegister: Int,
+    val item: Int,
+    val scratch: Pair<Int, Int>,
+    val row: Method,
+    val player: Method,
 )
 
 /** Where [method] calls [SET_ON_TOUCH] on the strip: instruction [at], with the strip in [view] and the listener in [listener]. */
@@ -187,7 +229,7 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
     }
     val lazy = lazies.single()
 
-    val marked = markedMethods(listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP))
+    val marked = markedMethods(listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP, PLAYER_PROGRESS))
     val attached = marked.getValue(SHOULD_SHOW_ATTACHED)
     if (lengths.none { it.signature() == attached.signature() }) {
         refuse("${attached.signature()} ($SHOULD_SHOW_ATTACHED) doesn't read the shortest reel with a seek bar")
@@ -205,6 +247,71 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
     }
     return ReelSeekBarSites(
         lengths, lazy, findProgressChanged(), findBindSite(row, lazy), findTouchSite(marked.getValue(TOUCH_STRIP)),
+        findPhotoSites(calculate, attached, row, marked.getValue(PLAYER_PROGRESS)),
+    )
+}
+
+/**
+ * The places a photo with a song gets its bar (#10). The reel item is [row]'s second parameter; it has
+ * to hold one [MEDIA], which [KIND_OF_REPORT]'s method takes to answer the kind, and a getId, which is
+ * how the binder tags the bar's container. [calculate] has to end in the answer of [attached], returned
+ * as it is, with the item in a register nothing writes over, and [player] has to take the item, then
+ * the position and the length.
+ */
+private fun BytecodePatchContext.findPhotoSites(calculate: Method, attached: Method, row: Method, player: Method): PhotoSites {
+    val itemType = row.parameterTypes.getOrNull(1)?.toString() ?: refuse("${row.signature()} takes no reel item")
+    val itemClass = classDefByOrNull(itemType) ?: refuse("this Instagram build has no $itemType")
+    val mediaFields = itemClass.fields.filter { it.type == MEDIA }
+    val media = mediaFields.singleOrNull() ?: refuse("expected $itemType to hold one $MEDIA, found ${mediaFields.size}")
+    val getId = itemClass.methods.singleOrNull { it.name == "getId" && it.parameterTypes.isEmpty() && it.returnType == STRING }
+        ?: refuse("$itemType has no getId")
+    val kinds = classesLoadingString(KIND_OF_REPORT).flatMap { it.methods }.filter { method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.map(CharSequence::toString) == listOf(MEDIA) &&
+            method.returnType.startsWith("L") && loadsString(method, KIND_OF_REPORT)
+    }
+    val kindOf = kinds.singleOrNull() ?: refuse("expected one method taking a $MEDIA to report \"$KIND_OF_REPORT\", found ${kinds.size}")
+
+    val where = calculate.signature()
+    if (calculate.parameterTypes.getOrNull(1)?.toString() != itemType) refuse("$where doesn't take $itemType second")
+    val code = calculate.implementation?.instructions?.toList() ?: refuse("$where has no body")
+    val calls = code.indices.filter { code[it].methodSignature() == attached.signature() }
+    val call = calls.singleOrNull() ?: refuse("expected $where to ask ${attached.signature()} once, found ${calls.size}")
+    val moved = code.getOrNull(call + 1)
+    val returned = code.getOrNull(call + 2)
+    if (moved?.opcode != Opcode.MOVE_RESULT || returned?.opcode != Opcode.RETURN ||
+        (moved as OneRegisterInstruction).registerA != (returned as OneRegisterInstruction).registerA
+    ) {
+        refuse("$where doesn't return what ${attached.signature()} answers")
+    }
+    val answerAt = call + 2
+    if (answerAt in calculate.jumpTargets()) refuse("$where jumps to its return of the answer, where the hook goes")
+    val answer = (returned as OneRegisterInstruction).registerA
+    val item = calculate.parameterRegisterNumber(1)
+    if (item > 15 || answer > 15) refuse("$where keeps the item or the answer in a register past v15")
+    if (code.any { it.writes(item) }) refuse("$where writes over the reel item")
+    val free = (0 until minOf(calculate.localRegisterCount(), 16)).filter { it != answer }
+    if (free.size < 2) refuse("$where has no two registers free at its return")
+
+    if (row.implementation == null || row.localRegisterCount() < 2 || 0 in row.jumpTargets()) {
+        refuse("${row.signature()} has no room for the photo's hook at its start")
+    }
+    val playerParameters = player.parameterTypes.map(CharSequence::toString)
+    if (AccessFlags.STATIC.isSet(player.accessFlags) || playerParameters.take(3) != listOf(itemType, "I", "I") ||
+        player.localRegisterCount() < 3 || 0 in player.jumpTargets()
+    ) {
+        refuse("${player.signature()} ($PLAYER_PROGRESS) isn't an instance method taking $itemType, the position and the length, with room for a hook")
+    }
+    return PhotoSites(
+        media = "$itemType->${media.name}:$MEDIA",
+        id = "$itemType->getId()$STRING",
+        kindOf = kindOf.signature(),
+        answer = calculate,
+        answerAt = answerAt,
+        answerRegister = answer,
+        item = item,
+        scratch = free[0] to free[1],
+        row = row,
+        player = player,
     )
 }
 
@@ -429,6 +536,78 @@ internal fun BytecodePatchContext.applyReelSeekBar(sites: ReelSeekBarSites) {
         it.name == touch.method.name && it.returnType == touch.method.returnType &&
             it.parameterTypes.map(CharSequence::toString) == touch.method.parameterTypes.map(CharSequence::toString)
     }.replaceInstruction(touch.at, "invoke-static { v${touch.view}, v${touch.listener} }, $LISTEN")
+    applyPhotoHooks(sites.photo)
+}
+
+/**
+ * Hands the extension the reel's kind and id where Instagram decides on its bar and works out its row,
+ * and the id, position and length from the player, each asked for only while [PHOTO_BAR_ON] says so,
+ * so a phone with the switch off runs one check and nothing of what the kind takes to work out.
+ */
+private fun BytecodePatchContext.applyPhotoHooks(sites: PhotoSites) {
+    fun mutable(method: Method) = mutableClassDefBy(method.definingClass).methods.single {
+        it.name == method.name && it.returnType == method.returnType &&
+            it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+    }
+    /** Leaves the reel's kind (or null) in [kind] and its id in [id], from the item in [item], none of them above v15. */
+    fun kindAndId(item: Int, kind: Int, id: Int) = """
+        if-eqz v$item, :instagram
+        iget-object v$kind, v$item, ${sites.media}
+        if-eqz v$kind, :photo_kind
+        invoke-static { v$kind }, ${sites.kindOf}
+        move-result-object v$kind
+        :photo_kind
+        invoke-virtual { v$item }, ${sites.id}
+        move-result-object v$id
+    """
+
+    val answer = mutable(sites.answer)
+    val (kind, id) = sites.scratch
+    answer.addInstructionsWithLabels(
+        sites.answerAt,
+        """
+            invoke-static {}, $PHOTO_BAR_ON
+            move-result v$kind
+            if-eqz v$kind, :instagram
+            ${kindAndId(sites.item, kind, id)}
+            invoke-static { v${sites.answerRegister}, v$kind, v$id }, $PHOTO_REEL
+            move-result v${sites.answerRegister}
+        """,
+        ExternalLabel("instagram", answer.getInstruction(sites.answerAt)),
+    )
+
+    // The start of a method: every local register is free there. Each of these keeps the parameter in a register of its own.
+    val row = mutable(sites.row)
+    row.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static {}, $PHOTO_BAR_ON
+            move-result v0
+            if-eqz v0, :instagram
+            move-object/from16 v0, v${row.parameterRegisterNumber(1)}
+            ${kindAndId(0, 1, 0)}
+            invoke-static { v1, v0 }, $PHOTO_ROW
+        """,
+        ExternalLabel("instagram", row.getInstruction(0)),
+    )
+
+    val player = mutable(sites.player)
+    player.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static {}, $PHOTO_BAR_ON
+            move-result v0
+            if-eqz v0, :instagram
+            move-object/from16 v0, v${player.parameterRegisterNumber(0)}
+            if-eqz v0, :instagram
+            invoke-virtual { v0 }, ${sites.id}
+            move-result-object v0
+            move/from16 v1, v${player.parameterRegisterNumber(1)}
+            move/from16 v2, v${player.parameterRegisterNumber(2)}
+            invoke-static { v0, v1, v2 }, $PHOTO_PROGRESS
+        """,
+        ExternalLabel("instagram", player.getInstruction(0)),
+    )
 }
 
 /** The one method outside the extension holding each marker; fails when a marker isn't held by exactly one. */

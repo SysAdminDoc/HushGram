@@ -2828,6 +2828,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_dm_reel_seek_bar", FALSE);
 
     /**
+     * A reel that's a photo with a song gets the seek bar and the time label of a video reel (#10),
+     * sized from the song's player ({@link app.hushgram.extension.instagram.reels.ReelSeekBar}). On its
+     * own switch since it asks nothing of video reels. Decided as each reel shows, so no restart. Off to start.
+     */
+    public static final BooleanSetting PHOTO_REEL_SEEK_BAR =
+            new BooleanSetting("hushgram_photo_reel_seek_bar", FALSE);
+
+    /**
      * A reel shows the date and time it was posted on a line under its author's name
      * ({@link app.hushgram.extension.instagram.reels.ReelPostTime}), the way a post's exact time
      * writes it (#172). Read as each reel's title is drawn, so a change shows from the next reel.

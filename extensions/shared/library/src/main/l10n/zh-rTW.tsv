@@ -530,6 +530,8 @@ Bigger seek bar on reels	加大 Reels 進度列
 Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	加粗進度列，加入白色圓形拖曳鈕與上方時間，並以柔和的深色漸層為背景，讓任何影片上都清楚可見。拖曳即可跳轉，也會保留短 Reels 的進度列。
 Seek bar like DM videos	使用私訊影片樣式的進度列
 Gives reels the seek bar of a video in a chat, a thin gray line that turns white as it plays, with a big round white handle. The time shows above it. Drag it to seek. When Bigger seek bar on reels is on too, this look wins. It also keeps the bar on short reels.	讓 Reels 使用聊天影片的進度列：播放時由灰轉白的細線，搭配大型白色圓形拖曳鈕，上方顯示時間。拖曳即可跳轉。同時啟用「加大 Reels 進度列」時，會優先使用此樣式。也會保留短 Reels 的進度列。
+Seek bar on photos with music	在含音樂的相片上顯示進度列
+Reels that are a photo with a song get the same seek bar and time as a video reel, following the song. Drag it to seek.	相片搭配歌曲的 Reels 會顯示與影片 Reels 相同的進度列和時間，並跟著歌曲前進。拖曳即可跳轉。
 Blur the bars around a reel	模糊 Reel 周圍的留白
 A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead of black bars, and the strip under the tab bar and the band behind the clock show the reel blurred too. The copy shows only where a reel leaves room, as with Show the whole reel on. Open Reels again after a change.	未填滿螢幕的 Reel 會在上下顯示自身的模糊影像，取代黑邊；分頁列下方與時鐘後方也會顯示模糊的 Reel。模糊影像只會出現在 Reel 留有空間的地方，例如開啟「顯示完整的 Reels」時。變更後請重新開啟 Reels。
 # Chosen navigation long-press settings entry. Account tab availability varies.

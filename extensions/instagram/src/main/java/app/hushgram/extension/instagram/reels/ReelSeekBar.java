@@ -6,6 +6,8 @@ package app.hushgram.extension.instagram.reels;
 
 import android.widget.SeekBar;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -30,6 +32,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * {@link #bind} hears from the binder that ties a seek bar container to a reel whether that reel
  * is an ad, and only a bar in a container bound to an ordinary reel gets the label.
  *
+ * <p>A reel that's a photo with a song plays through the same player, but its post states no length,
+ * so Instagram leaves it without a bar. On its own switch, {@link #photoReel} and {@link #photoRow} say
+ * yes to the bar for that kind of reel alone, and {@link #photoProgress} gives its bar the length the
+ * player reports.
+ *
  * <p>Off, paused, before the settings are read, or when anything goes wrong, Instagram's own
  * answers stand and the label is hidden. None of the hooks throws.
  */
@@ -39,6 +46,23 @@ public final class ReelSeekBar {
      * length Instagram doesn't know comes as 0 seconds, so it still gets none.
      */
     static final long SHORTEST_SECONDS = 1L;
+
+    /** The name of Instagram's kind of reel for a photo with a song. Redex keeps an enum's names. */
+    static final String PHOTO_WITH_MUSIC = "PHOTO_WITH_MUSIC";
+
+    /** How many of the latest photo reels are remembered: more than Instagram keeps loaded around the one showing. */
+    private static final int PHOTOS_KEPT = 64;
+
+    /** The container tags of the latest reels that are a photo with a song. */
+    private static final Map<String, Boolean> PHOTOS = new LinkedHashMap<String, Boolean>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+            return size() > PHOTOS_KEPT;
+        }
+    };
+
+    /** Whether the seek bar row this thread is working out is a photo's. */
+    private static final ThreadLocal<Boolean> ROW_IS_PHOTO = new ThreadLocal<>();
 
     private static volatile boolean loggedLength;
 
@@ -76,7 +100,7 @@ public final class ReelSeekBar {
      * Answers no while the switch is on, and Instagram's answer otherwise.
      */
     public static boolean lazy(int enabled) {
-        return lazy(enabled, ReelSeekBar::everyReel);
+        return lazy(enabled, () -> everyReel() || rowIsPhoto());
     }
 
     static boolean lazy(int enabled, BooleanSupplier on) {
@@ -140,5 +164,87 @@ public final class ReelSeekBar {
 
     private static boolean styled() {
         return Settings.BIG_REEL_SEEK_BAR.get() || Settings.DM_REEL_SEEK_BAR.get();
+    }
+
+    /**
+     * Whether a reel that's a photo with a song gets a bar (#10). Asked first by the patch's hooks, so
+     * nothing works out a reel's kind while this is off.
+     */
+    public static boolean photoBarOn() {
+        return Utils.settingsReady() && Settings.PHOTO_REEL_SEEK_BAR.get();
+    }
+
+    /**
+     * Injected where Instagram's check of whether a reel gets the bar answers, with that answer as an
+     * int (non-zero is yes), the reel's kind and its id, while {@link #photoBarOn}. Instagram goes by
+     * the length a reel's post says, and a photo's says none, so a photo with a song never gets one.
+     * Answers yes for that kind and Instagram's answer otherwise.
+     */
+    public static boolean photoReel(int show, Object kind, String id) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_SEEK_BAR);
+            return note(kind, id) || show != 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "photo seek bar", failure);
+            return show != 0;
+        }
+    }
+
+    /**
+     * Injected first thing where Instagram works out a reel's seek bar row, with the reel's kind and
+     * id, while {@link #photoBarOn}. Tells {@link #lazy}, a few lines later in that method on the
+     * same thread, which reel it's answering for: with no length, a photo counts as a short reel, and
+     * could get the hidden kind that only shows while you hold the reel.
+     */
+    public static void photoRow(Object kind, String id) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_SEEK_BAR);
+            ROW_IS_PHOTO.set(note(kind, id));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "photo seek bar row", failure);
+        }
+    }
+
+    /**
+     * Injected first thing in the Reels player's progress callback, while {@link #photoBarOn}, with
+     * the id of the reel it's playing, the position and the length, both in milliseconds. A photo's
+     * post gives its bar a length of 0, so its position would stay at 0, and only the player knows how
+     * long the song runs. Video reels pass straight through.
+     */
+    public static void photoProgress(String id, int position, int length) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_SEEK_BAR);
+            if (length > 0 && id != null && isPhoto(ReelTimeLabel.REEL_TAG_PREFIX + id)) {
+                ReelTimeLabel.sizeBars(ReelTimeLabel.REEL_TAG_PREFIX + id, length);
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "photo seek bar length", failure);
+        }
+    }
+
+    /** Whether the reel behind {@code tag}, its seek bar container's tag, gets the photo's bar and label. */
+    static boolean photoShown(String tag) {
+        return tag != null && photoBarOn() && isPhoto(tag);
+    }
+
+    /** Notes the reel when its kind is a photo with a song, and says whether it is. */
+    private static boolean note(Object kind, String id) {
+        if (!(kind instanceof Enum) || !PHOTO_WITH_MUSIC.equals(((Enum<?>) kind).name())) return false;
+        if (id != null) {
+            synchronized (PHOTOS) {
+                PHOTOS.put(ReelTimeLabel.REEL_TAG_PREFIX + id, Boolean.TRUE);
+            }
+        }
+        return true;
+    }
+
+    private static boolean isPhoto(String tag) {
+        synchronized (PHOTOS) {
+            return PHOTOS.containsKey(tag);
+        }
+    }
+
+    private static boolean rowIsPhoto() {
+        return photoBarOn() && Boolean.TRUE.equals(ROW_IS_PHOTO.get());
     }
 }

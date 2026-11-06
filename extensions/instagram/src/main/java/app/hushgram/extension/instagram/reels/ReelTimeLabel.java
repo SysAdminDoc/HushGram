@@ -15,6 +15,7 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.DrawableWrapper;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
@@ -330,9 +331,11 @@ final class ReelTimeLabel {
                     State state = (State) tracker.label.getTag();
                     if (ad) updateThumb(bar, state, false);
                     if (!stillOrdinary || !Objects.equals(state.reel, reelOf(bar))) hide(bar, tracker.label);
-                    if (!ad && (on.getAsBoolean() || ReelSeekBar.thumbOn())) startOver(bar, state);
+                    if (!ad && (on.getAsBoolean() || ReelSeekBar.thumbOn() || ReelSeekBar.photoShown(reelOf(bar)))) {
+                        startOver(bar, state);
+                    }
                     tracker.queue(bar);
-                } else if (!ad && (on.getAsBoolean() || ReelSeekBar.thumbOn())) {
+                } else if (!ad && (on.getAsBoolean() || ReelSeekBar.thumbOn() || ReelSeekBar.photoShown(reelOf(bar)))) {
                     MAIN.post(() -> update(bar, bar.getProgress(), on));
                 }
             }
@@ -377,10 +380,11 @@ final class ReelTimeLabel {
             if (!(parent instanceof ViewGroup) || !ordinaryReel(bar)) {
                 // An ad's bar, a bar on another screen, or one taken out of its container.
                 if (label != null) remove(bar, label);
+                ease(bar, false);
                 return;
             }
             int max = bar.getMax();
-            boolean labelOn = on.getAsBoolean();
+            boolean labelOn = on.getAsBoolean() || ReelSeekBar.photoShown(reelOf(bar));
             boolean thumbOn = ReelSeekBar.thumbOn() && max > 0 && bar.isAttachedToWindow();
             if (tracker == null && thumbOn) tracker = track(bar, on);
             if (tracker != null) {
@@ -390,6 +394,7 @@ final class ReelTimeLabel {
                 if (state.bound == null) state.bound = reelOf(bar);
                 updateThumb(bar, state, thumbOn);
             }
+            ease(bar, (labelOn || ReelSeekBar.thumbOn()) && max > 0);
             if (!labelOn || max <= 0) {
                 if (label != null) hide(bar, label);
                 return;
@@ -404,6 +409,30 @@ final class ReelTimeLabel {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "seek bar time", failure);
             hideAfterFailure(label);
+        }
+    }
+
+    /**
+     * Gives the bars bound to the reel tagged [tag], a photo with a song, the song's [length] in
+     * milliseconds. Instagram set their length from a post that states none, and the player's position
+     * can't go past it. Any thread: the player's callback isn't promised to run on the main one, and a
+     * position that gets there first only waits for the next one.
+     */
+    static void sizeBars(String tag, int length) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            MAIN.post(() -> sizeBars(tag, length));
+            return;
+        }
+        List<View> containers = new ArrayList<>(1);
+        synchronized (REELS) {
+            for (Map.Entry<View, Boolean> reel : REELS.entrySet()) {
+                if (Boolean.TRUE.equals(reel.getValue()) && tag.equals(reel.getKey().getTag())) containers.add(reel.getKey());
+            }
+        }
+        for (View container : containers) {
+            for (SeekBar bar : barsIn(container)) {
+                if (bar.getMax() != length && !bar.isPressed()) bar.setMax(length);
+            }
         }
     }
 
@@ -589,21 +618,151 @@ final class ReelTimeLabel {
     }
 
     /**
-     * A rounded bar of a fixed thickness, as wide as its bounds, or as far across them as its level says
-     * when it's the progress, from the start side. It's centered on the handle's middle once that's known,
-     * which can be above the track's own bounds, and on the middle of its bounds until then.
-     *
-     * <p>Instagram moves a reel's bar about ten times a second, so the progress jumped along in steps
-     * (#10). It eases from where it's drawn to each new spot over the time since the one before, so it
-     * moves steadily and arrives as the next one comes. A spot that goes back (a new reel, a seek back)
-     * or comes more than {@link #EASE_MAX_MS} after the last one (a reel that was paused) is drawn at once.
+     * Puts {@link EasedLine} around the played part of Instagram's own track while [wanted], and takes it
+     * off again otherwise. A track of ours, or one with no separate played part, is left alone. Costs a
+     * look at the track's layers with each update; the wrapper goes on once, and on again only if
+     * Instagram swaps the track.
+     */
+    private static void ease(SeekBar bar, boolean wanted) {
+        Drawable track = bar.getProgressDrawable();
+        if (!(track instanceof LayerDrawable)) return;
+        LayerDrawable layers = (LayerDrawable) track;
+        Drawable line = layers.findDrawableByLayerId(android.R.id.progress);
+        if (line == null || line instanceof Pill) return;
+        if (wanted == (line instanceof EasedLine)) return;
+        if (wanted) {
+            // In this order: the layer hands its bounds to what comes next, and a wrapper resets what it's given.
+            int level = line.getLevel();
+            EasedLine eased = new EasedLine();
+            layers.setDrawableByLayerId(android.R.id.progress, eased);
+            eased.setLevel(level);
+            eased.setDrawable(line);
+        } else {
+            layers.setDrawableByLayerId(android.R.id.progress, ((EasedLine) line).release());
+        }
+    }
+
+    /** A played part that's drawn on its way to where the bar is, so the handle can be drawn there too. */
+    interface EasedTrack {
+        /**
+         * How far the drawn line is from the level Android has the bar at, at [now], as a share of the bar:
+         * where Android put the handle. 0 once the line is there.
+         */
+        float behind(long now);
+    }
+
+    /**
+     * The way a played part follows the bar (#10): Instagram moves a reel's bar about ten times a second,
+     * so it jumped along in steps. It eases from where it's drawn to each new spot over the time since
+     * the one before, so it moves steadily and arrives as the next one comes. A spot that goes back (a
+     * new reel, a seek back) or comes more than {@link Pill#EASE_MAX_MS} after the last one (a reel that
+     * was paused) is drawn at once.
      *
      * <p>The spot is the bar's own progress, not the level. Instagram moves the bar with an animated
      * setProgress, and on the S22 Android sets the new level, then starts its own short animation over
      * from the old one: the level went new, old, new within a frame, and taking the old one as a step
      * back left the ease about 15 ms to cover a step, so the line still jumped.
      */
-    static final class Pill extends Drawable {
+    private static final class Ease {
+        /** The line eases from [from] to [to] (levels) over [length] from [start]. */
+        private float from;
+        private int to;
+        private long start;
+        private long length;
+        private long movedAt = -1L;
+
+        /** Moves on to the bar's spot for a new [level] of the [line]; the line is drawn from there. */
+        void follow(Drawable line, int level) {
+            int spot = spot(line, level);
+            if (spot == to && movedAt >= 0L) return;
+            long now = SystemClock.uptimeMillis();
+            float shown = shown(now);
+            long since = movedAt < 0L ? Long.MAX_VALUE : now - movedAt;
+            movedAt = now;
+            start = now;
+            to = spot;
+            if (spot < shown || since > Pill.EASE_MAX_MS) {
+                from = spot;
+                length = 0L;
+            } else {
+                from = shown;
+                length = since;
+            }
+        }
+
+        /** The level drawn at [now]. */
+        float shown(long now) {
+            if (length <= 0L || now >= start + length) return to;
+            return from + (to - from) * ((now - start) / (float) length);
+        }
+
+        /** Whether the line is still on its way at [now], so it needs drawing again next frame. */
+        boolean moving(long now) {
+            return now < start + length;
+        }
+
+        /** The bar's own progress as a level, or [level] when the [line] isn't on a bar. */
+        private static int spot(Drawable line, int level) {
+            Drawable.Callback up = line.getCallback();
+            if (up instanceof Drawable) up = ((Drawable) up).getCallback();
+            if (!(up instanceof ProgressBar)) return level;
+            ProgressBar bar = (ProgressBar) up;
+            int range = bar.getMax() - bar.getMin();
+            if (range <= 0) return level;
+            return Math.round((bar.getProgress() - bar.getMin()) * 10000f / range);
+        }
+    }
+
+    /**
+     * Instagram's own played part, drawn as it would be but at the eased level, so a bar that isn't
+     * restyled moves as smoothly as one that is (#10). What it wraps stays Instagram's: its look and
+     * color don't change, and {@link #ease} hands it back when the label goes.
+     */
+    static final class EasedLine extends DrawableWrapper implements EasedTrack {
+        private final Ease ease = new Ease();
+
+        EasedLine() {
+            super(null);
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Drawable line = getDrawable();
+            if (line == null) return;
+            long now = SystemClock.uptimeMillis();
+            line.setLevel(Math.round(ease.shown(now)));
+            line.draw(canvas);
+            if (ease.moving(now)) invalidateSelf();
+        }
+
+        @Override
+        protected boolean onLevelChange(int level) {
+            ease.follow(this, level);
+            invalidateSelf();
+            return true;
+        }
+
+        @Override
+        public float behind(long now) {
+            return (ease.shown(now) - getLevel()) / 10000f;
+        }
+
+        /** Instagram's line again, at the level Android has for it, off this wrapper. */
+        Drawable release() {
+            Drawable line = getDrawable();
+            setDrawable(null);
+            if (line != null) line.setLevel(getLevel());
+            return line;
+        }
+    }
+
+    /**
+     * A rounded bar of a fixed thickness, as wide as its bounds, or as far across them as its level says
+     * when it's the progress, from the start side, following the bar's position through {@link Ease}.
+     * It's centered on the handle's middle once that's known, which can be above the track's own bounds,
+     * and on the middle of its bounds until then.
+     */
+    static final class Pill extends Drawable implements EasedTrack {
         /** The longest gap between spots that's eased over; a longer one draws the new spot at once. */
         static final long EASE_MAX_MS = 250L;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -611,12 +770,7 @@ final class ReelTimeLabel {
         private final float thickness;
         private final boolean progress;
         private float center = Float.NaN;
-        /** The progress eases from [easeFrom] to [easeTo] (levels) over [easeLength] from [easeStart]. */
-        private float easeFrom;
-        private int easeTo;
-        private long easeStart;
-        private long easeLength;
-        private long movedAt = -1L;
+        private final Ease ease = new Ease();
 
         Pill(int color, float thickness, boolean progress) {
             this.paint.setColor(color);
@@ -640,7 +794,7 @@ final class ReelTimeLabel {
                 long now = SystemClock.uptimeMillis();
                 float across = bounds.width() * (shownLevel(now) / 10000f);
                 // Still on its way to the spot: draw again next frame.
-                if (now < easeStart + easeLength) invalidateSelf();
+                if (ease.moving(now)) invalidateSelf();
                 if (across <= 0f) return;
                 if (getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) left = right - across;
                 else right = left + across;
@@ -651,50 +805,20 @@ final class ReelTimeLabel {
 
         /** The level drawn at [now], on its way from the one drawn when the spot last moved to the new one. */
         float shownLevel(long now) {
-            if (easeLength <= 0L || now >= easeStart + easeLength) return easeTo;
-            return easeFrom + (easeTo - easeFrom) * ((now - easeStart) / (float) easeLength);
+            return ease.shown(now);
         }
 
-        /**
-         * How far the drawn line is from the level Android has the bar at, at [now], as a share of the bar:
-         * where Android put the handle. 0 once the line is there.
-         */
-        float behind(long now) {
+        @Override
+        public float behind(long now) {
             return (shownLevel(now) - getLevel()) / 10000f;
         }
 
         @Override
         protected boolean onLevelChange(int level) {
             if (!progress) return false;
-            int spot = spot(level);
-            if (spot != easeTo || movedAt < 0L) {
-                long now = SystemClock.uptimeMillis();
-                float shown = shownLevel(now);
-                long since = movedAt < 0L ? Long.MAX_VALUE : now - movedAt;
-                movedAt = now;
-                easeStart = now;
-                easeTo = spot;
-                if (spot < shown || since > EASE_MAX_MS) {
-                    easeFrom = spot;
-                    easeLength = 0L;
-                } else {
-                    easeFrom = shown;
-                    easeLength = since;
-                }
-            }
+            ease.follow(this, level);
             invalidateSelf();
             return true;
-        }
-
-        /** The bar's own progress as a level, or [level] when the drawable isn't on a bar. */
-        private int spot(int level) {
-            Drawable.Callback up = getCallback();
-            if (up instanceof Drawable) up = ((Drawable) up).getCallback();
-            if (!(up instanceof ProgressBar)) return level;
-            ProgressBar bar = (ProgressBar) up;
-            int range = bar.getMax() - bar.getMin();
-            if (range <= 0) return level;
-            return Math.round((bar.getProgress() - bar.getMin()) * 10000f / range);
         }
 
         @Override
@@ -717,7 +841,7 @@ final class ReelTimeLabel {
      * The handle, drawn where the eased progress line ends (#10). Android places it at Instagram's level,
      * which comes in steps, so on the S22 it hid the line's end and still jumped about ten times a second.
      * It draws itself back by as much as the line is behind, so the two slide along together. With
-     * Instagram's own track there's no {@link Pill} and it draws where Android put it.
+     * a played part that isn't eased it draws where Android put it.
      */
     static final class Thumb extends GradientDrawable {
         @Override
@@ -740,8 +864,8 @@ final class ReelTimeLabel {
             Drawable track = bar.getProgressDrawable();
             if (!(track instanceof LayerDrawable)) return 0f;
             Drawable line = ((LayerDrawable) track).findDrawableByLayerId(android.R.id.progress);
-            if (!(line instanceof Pill)) return 0f;
-            float behind = ((Pill) line).behind(SystemClock.uptimeMillis());
+            if (!(line instanceof EasedTrack)) return 0f;
+            float behind = ((EasedTrack) line).behind(SystemClock.uptimeMillis());
             if (behind == 0f) return 0f;
             // AbsSeekBar moves the handle across the track less its width, plus the offset on each side.
             int room = bar.getWidth() - bar.getPaddingLeft() - bar.getPaddingRight()

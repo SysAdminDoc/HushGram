@@ -19,6 +19,7 @@ Every HushGram release, newest first.
 * `Story rings in the accent color` is a new switch under `Accent color`, off to start. Rings drop Instagram's gradient for your color after a restart. Asked for in #187.
 * `Backgrounds in the accent color` is another new switch there. Screens, panels, cards and menus take a dark or light shade of your color, and it wins over `Pure black dark mode`. Asked for in #187 and #8.
 * `Accent color` now reaches text that gets its blue from a layout, like the `Older posts` link. Reported in #187.
+* `Seek bar on photos with music` under Reels gives a reel that's a photo with a song the same seek bar and time as a video reel, following the song. Asked for in #10.
 * `Add the source to saved photos` covers videos now and is called `Add the source to saved photos and videos`. A saved MP4 gets the poster, the post date and the post's link in tags exiftool and most galleries read.
 * Tagging a saved video leaves its picture and sound exactly as they were. A video the save knows nothing about isn't touched.
 * `Choose Seen in each chat` under Messages puts an eye next to a chat's call buttons. Tap it to hold Seen in just that chat, send it there, or go back to what `Read messages without the seen receipt` says. Asked for in #13.
@@ -83,6 +84,8 @@ Every HushGram release, newest first.
 * `Ambient light` works the phone less. It waits for a scrolling list to stop before reading a picture, and a still photo gets read less and less often. Reported in #510.
 * The switches that work the phone hardest now say they can slow down older phones. Asked for in #510.
 * `Start reels with sound` covers the Reels tab as well as a reel you open from a post on Home. Home is still muted again when you leave. Reported in #504.
+* With `Keep a seek bar on Reels` on, Instagram's own track now glides between position updates too, and a round handle stays on the line's end. Reported in #10.
+* `Start reels with sound` covers the Reels tab too, not only a reel you open from a post on Home. Home is still muted again when you leave. Reported in #504.
 * `Glass tab bar` blurs less to start with, so what passes under the pill shows as soft shapes instead of a flat dark tint. `Blur strength` starts at 8 dp now, and a value you already set stays. Reported in #289.
 * With `Liquid glass look` on, the bubble on your tab springs into place when you switch tabs. Asked for in #289.
 * `Mark as read button in chats` shows under Messages only when `Lock your messages` is patched in too, since the check mark finds the open chat through it.
