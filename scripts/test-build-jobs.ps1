@@ -91,12 +91,17 @@ exit 3
     try { Invoke-GradleBuild -ProjectDir $project -Tasks @(':patches:test') } catch { $threw = $_.Exception.Message -like '*missing.ps1*' }
     Assert-True $threw 'A missing HUSHGRAM_BUILD_WRAPPER did not stop the build.'
 
-    # The governor beside the queue script stands in when no wrapper is named.
+    # The governor beside the queue script stands in when no wrapper is named. A wrapper in the
+    # user's environment counts as named, so on a machine that sets one, that one wins.
+    $userWrapper = if ($IsWindows -or $env:OS -eq 'Windows_NT') {
+        [Environment]::GetEnvironmentVariable('HUSHGRAM_BUILD_WRAPPER', [EnvironmentVariableTarget]::User)
+    }
     Remove-Item Env:\HUSHGRAM_BUILD_WRAPPER
     $env:BUILD_QUEUE_SCRIPT = $queue
     Copy-Item -LiteralPath $wrapper -Destination (Join-Path $scratch 'build-governor.ps1')
-    Assert-True ((Resolve-GradleWrapper) -eq (Join-Path $scratch 'build-governor.ps1')) `
-        "The governor beside BUILD_QUEUE_SCRIPT was not taken as the wrapper: $(Resolve-GradleWrapper)"
+    $expectedWrapper = if ($userWrapper) { $userWrapper } else { Join-Path $scratch 'build-governor.ps1' }
+    Assert-True ((Resolve-GradleWrapper) -eq $expectedWrapper) `
+        "$expectedWrapper was not taken as the wrapper: $(Resolve-GradleWrapper)"
     Remove-Item -LiteralPath (Join-Path $scratch 'build-governor.ps1')
 
     # Switched off on purpose: the repository's gradlew, with no warning.
@@ -115,9 +120,6 @@ exit 3
     # that has a queue, and this case runs only where it doesn't.
     $userQueue = if ($IsWindows -or $env:OS -eq 'Windows_NT') {
         [Environment]::GetEnvironmentVariable('BUILD_QUEUE_SCRIPT', [EnvironmentVariableTarget]::User)
-    }
-    $userWrapper = if ($IsWindows -or $env:OS -eq 'Windows_NT') {
-        [Environment]::GetEnvironmentVariable('HUSHGRAM_BUILD_WRAPPER', [EnvironmentVariableTarget]::User)
     }
     if (-not $userQueue -and -not $userWrapper) {
         Remove-Item Env:\HUSHGRAM_BUILD_WRAPPER, Env:\BUILD_QUEUE_SCRIPT
