@@ -94,7 +94,6 @@ import app.morphe.patches.instagram.profile.friendship.friendshipStatusPatch
 import app.morphe.patches.instagram.profile.highlights.hideHighlightsPatch
 import app.morphe.patches.instagram.profile.notes.hideProfileNotesPatch
 import app.morphe.patches.instagram.profile.tabs.hideProfileTabsPatch
-import app.morphe.patches.instagram.profile.gridjump.profileGridJumpPatch
 import app.morphe.patches.instagram.profile.postslist.profilePostsListPatch
 import app.morphe.patches.instagram.profile.suggested.hideProfileSuggestionsPatch
 import app.morphe.patches.instagram.profile.threads.hideThreadsButtonPatch
@@ -247,7 +246,6 @@ class DefaultCatalogTest {
         lockMessagesPatch,
         loopStoryPatch,
         pickAppIconPatch,
-        profileGridJumpPatch,
         profilePostsListPatch,
         readWithoutSeenReceiptPatch,
         reelSeekBarPatch,
@@ -355,7 +353,7 @@ class DefaultCatalogTest {
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 155, all.size)
+        assertEquals("every named patch needs one reviewed decision", 154, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

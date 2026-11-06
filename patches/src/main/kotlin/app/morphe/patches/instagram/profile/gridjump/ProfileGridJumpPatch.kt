@@ -72,18 +72,14 @@ private fun refuse(why: String): Nothing = throw PatchException("$GRID_JUMP_PATC
 
 /**
  * Jumps a profile's posts grid to a day. Asks Instagram for the grid's first page again with a max_id
- * made up for the end of that day, one request for each jump, the same request scrolling sends. The
- * server decides what it answers: it's Instagram's own paging, with no list of posts built here. In
- * the default selection with its switch off.
+ * made up for the end of that day, one request for each jump, the same request scrolling sends.
+ *
+ * Nameless, so it's in no catalog and nothing applies it: the server ignores max_id on this request and
+ * answers the newest posts whatever the day (#498). It gets its name back when the jump goes through
+ * a request that honors the id.
  */
 @Suppress("unused")
-val profileGridJumpPatch = bytecodePatch(
-    name = "Jump a profile's posts to a date",
-    description = "Puts a calendar on a profile's top bar. Pick a day and the posts grid goes back to that day, " +
-        "with older posts as you scroll. Pull down for the newest again. Starts off. Turn it on in HushGram " +
-        "settings > Profiles.",
-) {
-    category("Profiles")
+val profileGridJumpPatch = bytecodePatch {
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {
