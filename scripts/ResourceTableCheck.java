@@ -121,7 +121,7 @@ public final class ResourceTableCheck {
         ZipEntry arsc = zip.getEntry(TableBlock.FILE_NAME);
         if (arsc == null) throw new IOException(zip.getName() + " has no " + TableBlock.FILE_NAME);
         try (InputStream in = new BufferedInputStream(zip.getInputStream(arsc))) {
-            return TableBlock.load(in);
+            return TableBlock.load(in, null);
         }
     }
 
