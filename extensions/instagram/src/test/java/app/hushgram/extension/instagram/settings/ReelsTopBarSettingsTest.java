@@ -41,6 +41,7 @@ public class ReelsTopBarSettingsTest {
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
+        Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -54,6 +55,7 @@ public class ReelsTopBarSettingsTest {
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
+        Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -135,5 +137,25 @@ public class ReelsTopBarSettingsTest {
         controller = null;
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_FRIENDS_TAB.key));
+    }
+
+    /** Show the Friends tab (#499) comes right after Hide the Friends tab, off, takes a restart and goes with the patch. */
+    @Test public void showTheFriendsTabFollowsHideItAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference hide = page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_FRIENDS_TAB.key);
+        Preference show = page.getPreferenceScreen().findPreference(Settings.SHOW_REELS_FRIENDS_TAB.key);
+        assertNotNull(show);
+        assertEquals("Show the Friends tab on Reels", show.getTitle().toString());
+        assertTrue(show.getSummary().toString(), show.getSummary().toString().contains("if your account never got it"));
+        PreferenceGroup reels = (PreferenceGroup) hide.getParent();
+        assertEquals(indexIn(reels, hide) + 1, indexIn(reels, show));
+        assertEquals(Boolean.FALSE, Settings.SHOW_REELS_FRIENDS_TAB.defaultValue);
+        assertTrue("decided as the viewer is built", Settings.SHOW_REELS_FRIENDS_TAB.rebootApp);
+        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.SHOW_REELS_FRIENDS_TAB));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SHOW_REELS_FRIENDS_TAB.key));
+        controller.close();
+        controller = null;
+        open(EnumSet.noneOf(PatchFamily.class));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.SHOW_REELS_FRIENDS_TAB.key));
     }
 }

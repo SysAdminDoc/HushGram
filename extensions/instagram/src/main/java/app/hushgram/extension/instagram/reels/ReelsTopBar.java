@@ -151,6 +151,22 @@ public final class ReelsTopBar {
         }
     }
 
+    /**
+     * Called by the patch where Instagram has decided a viewer gets no tabs at the top, with the
+     * viewer's source (#499). True gives the Reels tab's own viewer its Reels and Friends tabs
+     * anyway. Every other viewer, and any trouble, keeps Instagram's no.
+     */
+    public static boolean friendsTabAnyway(Object source) {
+        try {
+            if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
+            if (!Settings.SHOW_REELS_FRIENDS_TAB.get() || Settings.HIDE_REELS_FRIENDS_TAB.get()) return false;
+            return source instanceof Enum && REELS_TAB.contains(((Enum<?>) source).name());
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "Friends tab anyway", failure);
+            return false;
+        }
+    }
+
     /** Whether [view] is a Friends tab Instagram built, as the patch handed it over. */
     static boolean isFriendsTab(View view) {
         return FRIENDS_TABS.contains(view);

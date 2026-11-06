@@ -2377,6 +2377,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reels_friends_tab", FALSE);
 
     /**
+     * Gives the Reels tab its Reels and Friends tabs on an account Instagram didn't give them to
+     * (#499), decided as the viewer is built, so it takes a restart. Off to start.
+     */
+    public static final BooleanSetting SHOW_REELS_FRIENDS_TAB =
+            new BooleanSetting("hushgram_show_reels_friends_tab", FALSE, true);
+
+    /**
      * The Save (bookmark) button in the right-hand column of a reel, and the save count under it
      * when Instagram draws one. Feed posts keep theirs. Off to start.
      */

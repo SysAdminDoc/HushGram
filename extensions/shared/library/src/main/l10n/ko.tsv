@@ -1087,6 +1087,9 @@ Hide Your algorithm on reels	릴스의 내 알고리즘 숨기기
 Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The rest of the bar stays.	릴스 탭 맨 위에서 내 알고리즘 버튼을 숨기고 빈자리를 없앱니다. 나머지 바는 그대로입니다.
 Hide the Friends tab on Reels	릴스의 친구 탭 숨기기
 Takes the Friends tab, with reels the people you follow shared, off the top of the Reels tab. Reels stays where it is.	릴스 탭 맨 위에서 팔로우하는 사람들이 공유한 릴스가 있는 친구 탭을 숨깁니다. 릴스는 그대로 있습니다.
+# context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
+Show the Friends tab on Reels	릴스의 친구 탭 표시
+Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	계정에 친구 탭이 없었다면 릴스 탭 위쪽에 추가합니다. 내용은 그대로 Instagram에서 오므로 비어 있을 수 있습니다. 친구 탭 숨기기가 우선합니다.
 Hide the Save button on reels	릴스의 저장 버튼 숨기기
 Burn-in guard	번인 방지
 Dim when idle	사용하지 않을 때 어둡게

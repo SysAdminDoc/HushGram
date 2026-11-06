@@ -122,6 +122,9 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_REELS_FRIENDS_TAB, L10n.t("Hide the Friends tab on Reels"),
                     L10n.t("Takes the Friends tab, with reels the people you follow shared, off the top of the Reels "
                             + "tab. Reels stays where it is.")));
+            reels.add(toggle(context, Settings.SHOW_REELS_FRIENDS_TAB, L10n.t("Show the Friends tab on Reels"),
+                    L10n.t("Adds the Friends tab to the top of the Reels tab if your account never got it. What's in "
+                            + "it still comes from Instagram, so it can be empty. Hide the Friends tab wins.")));
             reels.add(toggle(context, Settings.HIDE_REEL_SAVE_BUTTON, L10n.t("Hide the Save button on reels"),
                     L10n.t("Takes the Save button out of the column of buttons beside a reel, and the count under it. "
                             + "Posts in your feed keep theirs.")));

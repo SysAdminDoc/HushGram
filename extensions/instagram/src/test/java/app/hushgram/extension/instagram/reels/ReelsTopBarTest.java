@@ -79,6 +79,7 @@ public class ReelsTopBarTest {
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
+        Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
         HookStatus.clear();
         ReelsTopBar.idForTests(ReelsTopBar.BAR_ID, BAR_ID);
         controller = Robolectric.buildActivity(Activity.class).setup();
@@ -107,6 +108,7 @@ public class ReelsTopBarTest {
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
+        Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -674,6 +676,26 @@ public class ReelsTopBarTest {
         assertTrue(ReelsTopBar.isCreateButton(tab.create));
         assertTrue(ReelsTopBar.isYourAlgorithmButton(tab.algorithm));
         assertFalse(ReelsTopBar.isYourAlgorithmButton(tab.search));
+    }
+
+    enum Source { CLIPS_TAB, CLIPS_TAB_HOMECOMING, CLIPS_FRIEND_LANE, PROFILE }
+
+    /** Show the Friends tab (#499) turns a no into a yes only for the Reels tab's own viewer. */
+    @Test public void friendsTabAnywayOnlyAnswersTheReelsTabsViewerWhenAsked() {
+        assertFalse("off to start", Settings.SHOW_REELS_FRIENDS_TAB.defaultValue);
+        assertFalse("off", ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
+        Settings.SHOW_REELS_FRIENDS_TAB.save(true);
+        assertTrue(ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
+        assertTrue(ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB_HOMECOMING));
+        assertFalse("a profile's reels get no tabs", ReelsTopBar.friendsTabAnyway(Source.PROFILE));
+        assertFalse("the lane itself is left alone", ReelsTopBar.friendsTabAnyway(Source.CLIPS_FRIEND_LANE));
+        assertFalse("no source", ReelsTopBar.friendsTabAnyway(null));
+        assertFalse("not an enum", ReelsTopBar.friendsTabAnyway("CLIPS_TAB"));
+        Settings.HIDE_REELS_FRIENDS_TAB.save(true);
+        assertFalse("hiding the tab wins", ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
+        Settings.HIDE_REELS_FRIENDS_TAB.save(false);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
     }
 
     @Test public void theButtonSwitchesStartOffAndAreInTheCleanUpReelsFamily() {

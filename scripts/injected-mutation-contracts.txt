@@ -465,6 +465,9 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveCount(
 # callbacks (a shorter sibling that only swaps the icon holds the same constant), and it's the hook's
 # only caller, so once-call.
 once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBar;->friendsTab(Landroid/view/View;)V in (Lcom/google/android/material/tabs/TabLayout;*Lkotlin/jvm/functions/Function1;*)V holding const:0x7f0806a7
+# Show the Friends tab on Reels asks friendsTabAnyway(Object) at the no of the check that decides a
+# viewer's tabs at the top (#499), in the static method building that viewer's top bar state.
+once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBar;->friendsTabAnyway(Ljava/lang/Object;)Z in static (L*;)V pooled holding android_purge_26_q2_ClipsViewerOverlayActionBarDelegateProvider_provide
 # Keep clear mode on, the same patch's eighth switch, has Instagram's clear mode (its fullscreen view)
 # carry from reel to reel. The action handler's turn-on and turn-off each tell the extension once,
 # after the action they run, with what they were handed: entered(handler, reason) in the one instance

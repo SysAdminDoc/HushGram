@@ -1082,6 +1082,9 @@ Hide Your algorithm on reels	隱藏 Reels 上的「你的演算法」
 Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The rest of the bar stays.	移除 Reels 分頁頂端的「你的演算法」按鈕並收起空白。頂端列的其他內容仍會保留。
 Hide the Friends tab on Reels	隱藏 Reels 的好友分頁
 Takes the Friends tab, with reels the people you follow shared, off the top of the Reels tab. Reels stays where it is.	移除 Reels 分頁頂端的「好友」分頁，其中包含你追蹤的人分享的 Reels。「Reels」仍會保留在原位。
+# context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
+Show the Friends tab on Reels	顯示 Reels 的好友分頁
+Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	如果你的帳號從未出現好友分頁，就在 Reels 分頁頂端加上它。內容仍來自 Instagram，所以可能是空的。隱藏好友分頁優先。
 Hide the Save button on reels	隱藏 Reels 上的儲存按鈕
 Burn-in guard	防烙印保護
 Dim when idle	閒置時淡化

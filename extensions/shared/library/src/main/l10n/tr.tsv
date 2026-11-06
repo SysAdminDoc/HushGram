@@ -1088,6 +1088,9 @@ Hide Your algorithm on reels	Reels'te Algoritman düğmesini gizle
 Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The rest of the bar stays.	Algoritman düğmesini Reels sekmesinin üstünden kaldırır ve boşluğu kapatır. Çubuğun geri kalanı kalır.
 Hide the Friends tab on Reels	Reels'te Arkadaşlar sekmesini gizle
 Takes the Friends tab, with reels the people you follow shared, off the top of the Reels tab. Reels stays where it is.	Takip ettiğin kişilerin paylaştığı reels videolarının olduğu Arkadaşlar sekmesini Reels sekmesinin üstünden kaldırır. Reels yerinde kalır.
+# context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
+Show the Friends tab on Reels	Reels'te Arkadaşlar sekmesini göster
+Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	Hesabın hiç almadıysa Arkadaşlar sekmesini Reels sekmesinin üstüne ekler. İçeriği yine Instagram'dan gelir, bu yüzden boş olabilir. Arkadaşlar sekmesini gizle önceliklidir.
 Hide the Save button on reels	Reels'te Kaydet düğmesini gizle
 Burn-in guard	Ekran yanığı koruması
 Dim when idle	Boştayken karart

@@ -1059,6 +1059,9 @@ Hide Your algorithm on reels	Ẩn Thuật toán của bạn trên reel
 Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The rest of the bar stays.	Gỡ nút Thuật toán của bạn khỏi đầu tab Reels và thu hẹp khoảng trống. Phần còn lại của thanh vẫn giữ.
 Hide the Friends tab on Reels	Ẩn tab Bạn bè trên Reels
 Takes the Friends tab, with reels the people you follow shared, off the top of the Reels tab. Reels stays where it is.	Gỡ tab Bạn bè, gồm các reel mà người bạn theo dõi chia sẻ, khỏi đầu tab Reels. Reels vẫn ở nguyên chỗ.
+# context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
+Show the Friends tab on Reels	Hiện tab Bạn bè trên Reels
+Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	Thêm tab Bạn bè lên đầu tab Reels nếu tài khoản của bạn chưa từng có. Nội dung vẫn do Instagram cung cấp nên có thể trống. Tùy chọn Ẩn tab Bạn bè được ưu tiên.
 Hide the Save button on reels	Ẩn nút Lưu trên reel
 Burn-in guard	Chống ám màn hình
 Dim when idle	Làm mờ khi không dùng

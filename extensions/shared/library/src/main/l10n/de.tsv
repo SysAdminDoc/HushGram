@@ -1088,6 +1088,9 @@ Hide Your algorithm on reels	Dein Algorithmus bei Reels ausblenden
 Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The rest of the bar stays.	Entfernt den Button Dein Algorithmus oben im Reels-Tab und schließt die Lücke. Der Rest der Leiste bleibt.
 Hide the Friends tab on Reels	Freunde-Tab bei Reels ausblenden
 Takes the Friends tab, with reels the people you follow shared, off the top of the Reels tab. Reels stays where it is.	Entfernt den Tab Freunde mit Reels, die Personen geteilt haben, denen du folgst, oben im Reels-Tab. Reels bleibt, wo es ist.
+# context: Reels settings. Shows Instagram's Friends tab at the top of the Reels tab on accounts that never got it. Friends tab wording matches the Hide the Friends tab row above it.
+Show the Friends tab on Reels	Freunde-Tab bei Reels anzeigen
+Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.	Fügt den Freunde-Tab oben im Reels-Tab hinzu, falls dein Konto ihn nie bekommen hat. Der Inhalt kommt weiter von Instagram und kann leer sein. „Freunde-Tab ausblenden“ hat Vorrang.
 Hide the Save button on reels	Speichern-Button bei Reels ausblenden
 Burn-in guard	Einbrennschutz
 Dim when idle	Abdunkeln bei Inaktivität

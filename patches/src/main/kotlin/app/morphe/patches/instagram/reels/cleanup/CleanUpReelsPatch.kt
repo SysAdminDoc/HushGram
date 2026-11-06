@@ -90,8 +90,10 @@ val cleanUpReelsPatch = bytecodePatch(
         val clearMode = findClearModeWhereItFits()
         val clearModeStubs = clearModeStubs()
         val friendsTab = findFriendsTab()
+        val friendsRow = findFriendsRow()
         hideReelParts()
         markFriendsTab(friendsTab)
+        keepFriendsRow(friendsRow)
         if (clearMode != null) {
             applyClearMode(clearMode)
             clearModeStubs.fill(clearMode)
