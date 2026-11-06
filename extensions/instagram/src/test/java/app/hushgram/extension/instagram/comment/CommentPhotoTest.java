@@ -318,6 +318,22 @@ public class CommentPhotoTest {
         }
     }
 
+    /** #502: a sticker has a name too, so this read answers one where Save's read doesn't, and counts nothing. */
+    @Test public void theNameReadAnswersAnyGifOrStickerTheCommentCarries() {
+        HookStatus.clear();
+        FakeReads sticker = new FakeReads();
+        sticker.gifAnswer = sticker.gif;
+        sticker.stickerAnswer = true;
+        assertSame("the comment's own sticker", sticker.gif, CommentPhoto.gifOrSticker(sticker.comment, sticker));
+        assertFalse("the sticker test isn't Save's to run here", sticker.made.contains("gifSticker"));
+        FakeReads onMedia = new FakeReads();
+        onMedia.mediaGifAnswer = onMedia.gif;
+        assertSame("a media's GIF", onMedia.gif, CommentPhoto.gifOrSticker(onMedia.comment, onMedia));
+        FakeReads none = new FakeReads();
+        assertNull("a comment with neither", CommentPhoto.gifOrSticker(none.comment, none));
+        assertTrue("nothing counted: " + HookStatus.report(), HookStatus.report().isEmpty());
+    }
+
     /**
      * A GIF's files are read Instagram's own copy first, then Giphy's, each set's one rendition as
      * plain values. A missing set or rendition is left out, and a value of another type reads as missing.

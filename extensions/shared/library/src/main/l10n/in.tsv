@@ -486,6 +486,11 @@ Save comment photo	Simpan foto komentar
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Menambahkan Simpan ke menu komentar yang dipilih jika komentar memiliki foto atau GIF sendiri. Menyimpan ukuran terbesar yang dikirim Instagram.
 Reply with a comment's GIF	Balas dengan GIF komentar
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	Jika komentar memiliki GIF, menunya mendapat balasan GIF yang mengirim GIF yang sama sebagai balasanmu, tetap beranimasi.
+Show a comment GIF's name	Tampilkan nama GIF komentar
+When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.	Jika komentar memiliki GIF atau stiker, menunya menampilkan namanya. Ketuk nama untuk menyalinnya.
+GIF name	Nama GIF
+GIF name copied	Nama GIF disalin
+Couldn't copy the GIF name	Tidak dapat menyalin nama GIF
 Couldn't reply with this GIF	Tidak bisa membalas dengan GIF ini
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Tombol Tandai sudah dilihat

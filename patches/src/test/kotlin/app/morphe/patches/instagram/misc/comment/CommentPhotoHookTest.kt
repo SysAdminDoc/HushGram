@@ -262,6 +262,10 @@ class CommentPhotoHookTest {
                 assertEquals(plan.surface.raw, plan.gif.definingClass)
                 assertNotNull("${bundle.name}: the comment GIF's model wasn't read", plan.gifModel)
                 assertNotEquals(plan.icon, plan.label)
+                // #502: a comment GIF's name, the one String getter that answers the tree's "title" read.
+                val gifName = plan.gifName ?: error("${bundle.name}: the comment GIF's title wasn't found")
+                assertEquals(listOf(GIPHY, "Ljava/lang/String;"), listOf(gifName.definingClass, gifName.returnType))
+                assertTrue("${bundle.name}: a GIF's title getter is a plain getter", gifName.parameterTypes.isEmpty())
                 // #402: Reply with a comment's GIF, labelled with the quick reply bar's own GIF button.
                 val gifReply = plan.gifReply ?: error("${bundle.name}: the comment screen's Reply or GIF send wasn't found")
                 GIF_BUTTONS[version]?.let { assertEquals("${bundle.name}: GIF button's icon and label", it, gifReply.icon to gifReply.label) }
@@ -357,6 +361,17 @@ class CommentPhotoHookTest {
             assertEquals(name, getter.definingClass, (code[0].reference() as TypeReference).type)
             assertEquals(name, getter.toString(), code[1].call().toString())
             assertEquals("$getter is read once", 1, native.sumOf { method -> method.code().count { it.call()?.toString() == getter.toString() } })
+        }
+        // A GIF's name goes in on its own getter, whatever the rest of the model did; otherwise it answers null.
+        val titleBridge = read(GIF_NAME_READ)
+        val title = plan.gifName
+        if (title == null) {
+            assertTrue(GIF_NAME_READ, titleBridge.none { it.call() != null })
+        } else {
+            assertEquals(GIF_NAME_READ, listOf(Opcode.CHECK_CAST, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
+                titleBridge.map { it.opcode })
+            assertEquals(GIF_NAME_READ, title.definingClass, (titleBridge[0].reference() as TypeReference).type)
+            assertEquals(GIF_NAME_READ, title.toString(), titleBridge[1].call().toString())
         }
         assertTrue("the old all-in-one bridge is gone", native.none { it.name == "photoMedia" })
         val factory = native.single { it.name == "newRow" }.code()

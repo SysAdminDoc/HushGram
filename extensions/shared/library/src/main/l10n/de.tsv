@@ -486,6 +486,11 @@ Save comment photo	Kommentarfoto speichern
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Fügt dem Menü eines ausgewählten Kommentars Speichern hinzu, wenn der Kommentar ein eigenes Foto oder GIF hat. Speichert die größte Version, die Instagram gesendet hat.
 Reply with a comment's GIF	Mit dem GIF eines Kommentars antworten
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	Hat ein Kommentar ein GIF, bekommt sein Menü eine GIF-Antwort, die genau dieses GIF animiert als deine Antwort zurückschickt.
+Show a comment GIF's name	Namen des GIFs eines Kommentars anzeigen
+When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.	Hat ein Kommentar ein GIF oder einen Sticker, zeigt sein Menü dessen Namen. Tippe auf den Namen, um ihn zu kopieren.
+GIF name	GIF-Name
+GIF name copied	GIF-Name kopiert
+Couldn't copy the GIF name	GIF-Name konnte nicht kopiert werden
 Couldn't reply with this GIF	Mit diesem GIF konnte nicht geantwortet werden
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Schaltfläche Als gesehen markieren

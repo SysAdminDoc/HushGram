@@ -220,6 +220,26 @@ public final class CommentPhoto {
         return carried == null ? null : carried.gif;
     }
 
+    /**
+     * The selected comment's own GIF or sticker, or null, read without counting. {@link #carried}
+     * keeps a sticker out because Save can't use one, but a sticker has a name like any GIF (#502).
+     */
+    static Object gifOrSticker(Object comment, PhotoReads reads) {
+        if (!reads.selected(comment)) return null;
+        Object raw = reads.raw(comment);
+        if (raw == null) return null;
+        Object gif = reads.gif(raw);
+        if (gif != null) return gif;
+        Object info = reads.info(raw);
+        Object media = info == null ? null : reads.media(info);
+        return media == null ? null : reads.mediaGif(media);
+    }
+
+    /** {@link #gifOrSticker(Object, PhotoReads)} through Instagram's own reads. */
+    static Object gifOrSticker(Object comment) {
+        return gifOrSticker(comment, READS);
+    }
+
     /** [carried], with each step counted only when [count] says so. */
     static Carried carried(Object comment, PhotoReads reads, boolean count) {
         if (!reads.selected(comment)) return refused(NOT_SELECTED, count);

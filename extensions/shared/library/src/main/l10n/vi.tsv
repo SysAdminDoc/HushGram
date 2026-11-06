@@ -486,6 +486,11 @@ Save comment photo	Lưu ảnh trong bình luận
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Thêm Lưu vào menu của bình luận đã chọn khi bình luận có ảnh hoặc GIF riêng. Lưu kích thước lớn nhất mà Instagram gửi.
 Reply with a comment's GIF	Trả lời bằng GIF của bình luận
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	Khi bình luận có GIF, menu của nó có mục trả lời bằng GIF, gửi lại đúng GIF đó làm câu trả lời của bạn, vẫn chuyển động.
+Show a comment GIF's name	Hiện tên GIF của bình luận
+When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.	Khi bình luận có GIF hoặc nhãn dán, menu của nó hiện tên của chúng. Chạm vào tên để sao chép.
+GIF name	Tên GIF
+GIF name copied	Đã sao chép tên GIF
+Couldn't copy the GIF name	Không sao chép được tên GIF
 Couldn't reply with this GIF	Không trả lời được bằng GIF này
 Mark as seen button	Nút đánh dấu đã xem
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Thêm nút hình con mắt ở đầu mỗi tin khi bạn xem ẩn danh. Nhấn để hiện trong danh sách người xem của tin đó. Các tin khác vẫn ẩn.

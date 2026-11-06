@@ -56,6 +56,9 @@ public final class CommentPhotoNative {
     /** A comment GIF's images, the set Giphy lists, or null. */
     public static Object gifImages(Object gif) { return null; }
 
+    /** A comment GIF's or sticker's title, a String, or null. */
+    public static Object gifTitle(Object gif) { return null; }
+
     /** The fixed_height rendition of a set {@link #gifProxied} or {@link #gifImages} answered, or null. */
     public static Object gifRendition(Object images) { return null; }
 

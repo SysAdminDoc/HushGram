@@ -39,12 +39,14 @@ internal const val SAVE_ACTION = "SaveMedia"
  * comment's own media_comment_info, never its parent post, and the PHOTO kind's value. [gifModel]
  * reads the files of the comment's own GIF, when the build's GIF model could be told, and [gifReply]
  * sends a comment's GIF back as a reply, when the comment screen's Reply and GIF send could be.
+ * [gifName] reads a GIF's or sticker's title, when that getter could be told.
  */
 internal data class CommentPhotoPlan(
     val surface: CommentSurface, val gif: MethodReference, val info: MethodReference, val media: MethodReference,
     val kind: MethodReference, val mediaGif: MethodReference, val videoVersions: MethodReference,
     val videoDuration: MethodReference, val photo: Int, val icon: Int, val label: Int, val images: () -> Unit,
     val author: CommentAuthor? = null, val gifModel: CommentGifPlan? = null, val gifReply: GifReplyPlan? = null,
+    val gifName: MethodReference? = null,
 )
 
 /**
@@ -151,7 +153,8 @@ internal fun BytecodePatchContext.findCommentPhoto(): CommentPhotoPlan = discove
     validateActionRow(PHOTO_ROW, PHOTO_NATIVE)
     val images = imageBridges(PHOTO_PATCH)
     CommentPhotoPlan(surface, gif, info, media, kind, mediaGif, videoVersions, videoDuration, photo, icon, label, images,
-        commentAuthor(raw, pando, classes), commentGifOrNull(classes), gifReplyOrNull(surface, classes))
+        commentAuthor(raw, pando, classes), commentGifOrNull(classes), gifReplyOrNull(surface, classes),
+        commentGifNameOrNull(classes))
 }
 
 /**
@@ -234,6 +237,7 @@ internal fun BytecodePatchContext.applyCommentPhoto(plan: CommentPhotoPlan) = di
     }
     // Each GIF read takes what the read before it answered, on the interface that answer is typed as.
     plan.gifModel?.reads?.forEach { (name, getter) -> read(name, "invoke-interface", getter) }
+    plan.gifName?.let { read(GIF_NAME_READ, "invoke-interface", it) }
     replace(reads.getValue("photoKind"), 1, """
         const v0, ${plan.photo}
         return v0
@@ -257,6 +261,7 @@ internal val PHOTO_READS: List<Pair<String, Pair<List<String>, String>>> = listO
     "author" to (listOf(OBJECT) to OBJECT),
     "createdAt" to (listOf(OBJECT) to OBJECT),
     "photoKind" to (emptyList<String>() to "I"),
+    GIF_NAME_READ to (listOf(OBJECT) to OBJECT),
 ) + GIF_READS.map { it to (listOf(OBJECT) to OBJECT) }
 
 private const val DOUBLE = "Ljava/lang/Double;"

@@ -2163,6 +2163,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting REPLY_WITH_COMMENT_GIFS =
             new BooleanSetting("hushgram_reply_with_comment_gifs", FALSE);
 
+    /** A comment's GIF or sticker shows its name in the comment's menu (#502). Off until enabled. */
+    public static final BooleanSetting SHOW_COMMENT_GIF_NAMES =
+            new BooleanSetting("hushgram_show_comment_gif_names", FALSE);
+
     /**
      * The menu on someone's profile gets Save profile picture
      * ({@link app.hushgram.extension.instagram.download.ProfilePicture}). Off until enabled.

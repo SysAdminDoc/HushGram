@@ -84,6 +84,8 @@ public final class CommentAuthor {
      * exactly as before, exceptions included.
      */
     public static String label(Context context, int id, Object row) {
+        String gifName = row instanceof AuthorRow ? CommentGifName.nameOf(CommentAuthorNative.callback(row)) : null;
+        if (gifName != null) return gifName;
         if (row instanceof AuthorRow && SelectText.isSelect(CommentAuthorNative.callback(row))) {
             try {
                 return L10n.t(context, "Select text");

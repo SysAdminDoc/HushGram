@@ -47,8 +47,10 @@ public class CommentPhotoSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         PatchFamily.commentGifReplyForTests = null;
+        PatchFamily.commentGifNameForTests = null;
         Settings.SAVE_COMMENT_PHOTOS.resetToDefault();
         Settings.REPLY_WITH_COMMENT_GIFS.resetToDefault();
+        Settings.SHOW_COMMENT_GIF_NAMES.resetToDefault();
         Settings.COPY_COMMENTS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -126,5 +128,35 @@ public class CommentPhotoSettingsTest {
         List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.COMMENT_PHOTO), false);
         assertTrue(report.toString(), report.contains("  Reply with a comment's GIF: not in this build "
                 + "(the comment screen's Reply or GIF send didn't match)"));
+    }
+    /** #502: the name's switch sits with the other GIF switches, off to start, and needs both families. */
+    @Test public void theGifNameSwitchNeedsBothFamiliesAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.COMMENT_COPY, PatchFamily.COMMENT_PHOTO));
+        SwitchPreference photo = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SAVE_COMMENT_PHOTOS.key);
+        SwitchPreference name = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SHOW_COMMENT_GIF_NAMES.key);
+        assertNotNull(name);
+        assertEquals("Show a comment GIF's name", name.getTitle().toString());
+        assertSame(photo.getParent(), name.getParent());
+        assertFalse(name.isChecked());
+        assertFalse(Settings.SHOW_COMMENT_GIF_NAMES.get());
+        assertTrue(PatchFamily.COMMENT_PHOTO.switches.contains(Settings.SHOW_COMMENT_GIF_NAMES));
+        Settings.SHOW_COMMENT_GIF_NAMES.save(true);
+        assertFalse("Save stays its own switch", Settings.SAVE_COMMENT_PHOTOS.get());
+    }
+    /** A build whose name getter didn't match keeps Save and the report says what's missing. */
+    @Test public void aBuildWithoutTheGifNameKeepsSaveWithoutItsSwitch() throws Exception {
+        PatchFamily.commentGifNameForTests = false;
+        open(EnumSet.of(PatchFamily.COMMENT_COPY, PatchFamily.COMMENT_PHOTO));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.SAVE_COMMENT_PHOTOS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.SHOW_COMMENT_GIF_NAMES.key));
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.COMMENT_PHOTO), false);
+        assertTrue(report.toString(), report.contains("  Show a comment GIF's name: not in this build "
+                + "(the GIF's title or Copy username's row didn't match)"));
+    }
+    /** Save comment photo without Copy comment has no row to put the name in, so it offers no switch. */
+    @Test public void withoutCopyCommentTheGifNameIsNotOffered() throws Exception {
+        open(EnumSet.of(PatchFamily.COMMENT_PHOTO));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.SAVE_COMMENT_PHOTOS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.SHOW_COMMENT_GIF_NAMES.key));
     }
 }

@@ -60,6 +60,23 @@ internal fun commentGifOrNull(classes: Map<String, ClassDef>): CommentGifPlan? =
     null
 }
 
+/** The bridge on [PHOTO_NATIVE] reading a comment GIF's or sticker's title. */
+internal const val GIF_NAME_READ = "gifTitle"
+
+/** The status of the switch that shows a comment GIF's name (#502), which a build can lack while Save goes in. */
+internal const val GIF_NAME_STATUS = "commentGifName"
+
+/**
+ * The getter of a comment GIF's or sticker's title (#502), or null after the patch log says why.
+ * Only the name's switch depends on it: Save and the GIF reply read a GIF's files without it.
+ */
+internal fun commentGifNameOrNull(classes: Map<String, ClassDef>): MethodReference? = try {
+    gifGetters(classes, GIPHY, "title" to STRING).single()
+} catch (unknown: PatchException) {
+    patchLog.warning("${unknown.message}. Save comment photo goes in without the name of a comment's GIF.")
+    null
+}
+
 /**
  * The getters on the public interface [model] for each of [keys], a field name and the type it
  * answers. The interface has one tree-backed class and one parsed class. The tree's getter holds

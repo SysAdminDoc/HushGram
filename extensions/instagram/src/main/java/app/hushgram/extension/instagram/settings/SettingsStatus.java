@@ -395,6 +395,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Show a comment GIF's name, Save comment photo's third switch, which a build can lack. */
+    public static boolean commentGifName() {
+        return false;
+    }
+
     /** Rewritten by the Save profile picture patch. */
     public static boolean profilePicture() {
         return false;

@@ -28,6 +28,10 @@ import app.morphe.patches.shared.compat.AppCompatibilities
  * comment from, and the row runs the screen's own Reply on them, then its GIF send with the comment's
  * GIF, so the reply goes up animated like one picked in Instagram's GIF search. A build where those
  * can't be told still gets Save, without the switch.
+ *
+ * Its third switch, Show a comment GIF's name (#502), adds a row labelled with the title Instagram
+ * keeps for a comment's GIF or sticker. The row and its label are Copy username's, so it takes Copy
+ * comment being patched in as well. Without that or the title's getter, the switch isn't offered.
  */
 @Suppress("unused")
 val saveCommentPhotoPatch = bytecodePatch(
@@ -36,7 +40,8 @@ val saveCommentPhotoPatch = bytecodePatch(
         "Instagram sent. A GIF is saved as a .gif in Pictures/Instagram, taken from Instagram's own copy, not " +
         "Giphy. If Instagram lists only an animated WebP or an MP4 for it, you get that file instead, and an MP4 " +
         "goes in Movies/Instagram like a video. It can also add a GIF reply to a comment with a GIF, sending " +
-        "that same GIF back as your reply. Starts off. Turn it on in HushGram settings > Comments.",
+        "that same GIF back as your reply, or show a comment GIF's or sticker's name in that menu. Starts off. " +
+        "Turn it on in HushGram settings > Comments.",
     default = true,
 ) {
     category("Downloads")
@@ -45,9 +50,11 @@ val saveCommentPhotoPatch = bytecodePatch(
     execute {
         requireStatusMethod("commentPhoto")
         requireStatusMethod(GIF_REPLY_STATUS)
+        requireStatusMethod(GIF_NAME_STATUS)
         val photo = findCommentPhoto()
         applyCommentPhoto(photo)
         enableStatus("commentPhoto")
         if (photo.gifReply != null) enableStatus(GIF_REPLY_STATUS)
+        if (photo.gifName != null) enableStatus(GIF_NAME_STATUS)
     }
 }

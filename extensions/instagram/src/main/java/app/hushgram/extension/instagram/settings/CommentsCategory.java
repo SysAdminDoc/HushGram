@@ -48,6 +48,10 @@ final class CommentsCategory {
                     comments.addPreference(toggle(context, Settings.REPLY_WITH_COMMENT_GIFS, L10n.t("Reply with a comment's GIF"),
                             L10n.t("When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.")));
                 }
+                if (PatchFamily.commentGifNameInBuild()) {
+                    comments.addPreference(toggle(context, Settings.SHOW_COMMENT_GIF_NAMES, L10n.t("Show a comment GIF's name"),
+                            L10n.t("When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.")));
+                }
             }
             if (build.contains(PatchFamily.HIDE_COMMENTS)) {
                 comments.addPreference(toggle(context, Settings.HIDE_COMMENTS, L10n.t("Hide comments"),

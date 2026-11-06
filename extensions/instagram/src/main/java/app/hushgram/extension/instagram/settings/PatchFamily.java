@@ -191,7 +191,7 @@ public enum PatchFamily {
     COMMENT_COPY(FamilyNames.COMMENT_COPY, "commentCopy", null, Settings.COPY_COMMENTS, Settings.COPY_COMMENT_AUTHORS,
             Settings.COPY_COMMENTS_WITHOUT_MENTIONS, Settings.SELECT_TEXT),
     COMMENT_PHOTO(FamilyNames.COMMENT_PHOTO, "commentPhoto", null, Settings.SAVE_COMMENT_PHOTOS,
-            Settings.REPLY_WITH_COMMENT_GIFS),
+            Settings.REPLY_WITH_COMMENT_GIFS, Settings.SHOW_COMMENT_GIF_NAMES),
     PROFILE_PICTURE(FamilyNames.PROFILE_PICTURE, "profilePicture", null, Settings.SAVE_PROFILE_PICTURES,
             Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT, Settings.PROFILE_EXTRAS_BUTTON,
             Settings.ABOUT_ACCOUNT_BUTTON),
@@ -365,6 +365,22 @@ public enum PatchFamily {
         return COMMENT_PHOTO.inBuild() && SettingsStatus.commentGifReply();
     }
 
+    /** Whether a test says this build shows a comment GIF's name, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean commentGifNameForTests;
+
+    /**
+     * Whether this build shows a comment GIF's name. It takes the GIF's title from Save comment photo
+     * and its row and label from Copy username, so its switch isn't offered without both.
+     */
+    public static boolean commentGifNameInBuild() {
+        Boolean forced = commentGifNameForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(COMMENT_PHOTO) && families.contains(COMMENT_COPY);
+        return COMMENT_PHOTO.inBuild() && SettingsStatus.commentGifName() && commentAuthorInBuild();
+    }
+
     /** Whether a test says this build filters Home by a post's type, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean feedTypesForTests;
@@ -451,6 +467,9 @@ public enum PatchFamily {
                 }
                 if (family == COMMENT_PHOTO && !commentGifReplyInBuild()) {
                     lines.add("  Reply with a comment's GIF: not in this build (the comment screen's Reply or GIF send didn't match)");
+                }
+                if (family == COMMENT_PHOTO && !commentGifNameInBuild()) {
+                    lines.add("  Show a comment GIF's name: not in this build (the GIF's title or Copy username's row didn't match)");
                 }
                 if (family == FRIENDSHIP_STATUS && !followingListMarkInBuild()) {
                     lines.add("  Mark who doesn't follow you back: not in this build (Instagram's follow list didn't match)");
