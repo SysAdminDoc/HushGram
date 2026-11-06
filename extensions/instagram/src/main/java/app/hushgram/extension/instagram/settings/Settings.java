@@ -2023,6 +2023,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_profile_posts_list", FALSE);
 
     /**
+     * A calendar on a profile's top bar that takes the posts grid back to a day
+     * ({@link app.hushgram.extension.instagram.profile.GridJump}). Read each time the bar is bound and
+     * at each tap, so a change shows on the next profile opened. Off to start.
+     */
+    public static final BooleanSetting PROFILE_GRID_JUMP =
+            new BooleanSetting("hushgram_profile_grid_jump", FALSE);
+
+    /**
      * A sideways swipe on Home that would open the camera
      * ({@link app.hushgram.extension.instagram.feed.SwipeToCreate}). Read at each step of a swipe,
      * so a change shows on the next one. Off to start.

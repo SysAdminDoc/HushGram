@@ -34,7 +34,8 @@ final class ProfilesCategory {
                 || build.contains(PatchFamily.PROFILE_HIGHLIGHTS) || build.contains(PatchFamily.THREADS_BUTTON)
                 || build.contains(PatchFamily.PROFILE_NOTES) || build.contains(PatchFamily.PROFILE_PICTURE)
                 || build.contains(PatchFamily.PROFILE_TABS)
-                || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)) {
+                || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)
+                || build.contains(PatchFamily.PROFILE_GRID_JUMP)) {
             PreferenceCategory profiles = category(screen, L10n.t("Profiles"), SettingsIcons.PERSON,
                     L10n.t("See who follows you back, and clear extras off profiles."));
             if (build.contains(PatchFamily.PROFILE_PICTURE)) {
@@ -139,6 +140,11 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.PROFILE_POSTS_LIST, L10n.t("Show profile posts as a list"),
                         L10n.t("Opening someone's profile takes you on to their posts as a scrolling list of full "
                                 + "posts. Go Back for the grid. Your own profile keeps its grid.")));
+            }
+            if (build.contains(PatchFamily.PROFILE_GRID_JUMP)) {
+                profiles.addPreference(toggle(context, Settings.PROFILE_GRID_JUMP, L10n.t("Jump a profile's posts to a date"),
+                        L10n.t("Puts a calendar on a profile's top bar. Pick a day and the posts grid goes back to "
+                                + "that day. Pull down for the newest again.")));
             }
         }
     }

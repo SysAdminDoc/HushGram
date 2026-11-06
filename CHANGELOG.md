@@ -58,6 +58,7 @@ Every HushGram release, newest first.
 * `Save profile picture` adds `About this account button`, an (i) next to a profile's three dots that opens Instagram's About this account page for it, since Instagram took its own button away. Starts off. Asked for in #492.
 * `Ambient light` now reaches under the tab bar on the Reels tab, on Instagram's own bar and around a docked glass pill, so the glow doesn't stop at the bar. Asked for in #487.
 * `Show a comment GIF's name` adds a row to a comment's menu with the name of its GIF or sticker, and a tap on it copies the name. Asked for in #502.
+* `Jump a profile's posts to a date` puts a calendar on a profile's top bar. Pick a day and the posts grid goes back to that day, with older posts as you scroll. Asked for in #498.
 
 ### Improvements
 

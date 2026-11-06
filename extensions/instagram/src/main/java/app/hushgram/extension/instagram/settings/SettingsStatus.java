@@ -336,6 +336,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean profileGridJump() {
+        return false;
+    }
+
     public static boolean homeFeed() {
         return false;
     }

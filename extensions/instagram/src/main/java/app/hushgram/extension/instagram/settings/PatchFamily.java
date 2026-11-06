@@ -188,6 +188,7 @@ public enum PatchFamily {
             Settings.HIDE_PROFILE_OVERFLOW_BUTTON),
     PROFILE_NOTES(FamilyNames.PROFILE_NOTES, "profileNotes", null, Settings.HIDE_PROFILE_NOTES),
     PROFILE_POSTS_LIST(FamilyNames.PROFILE_POSTS_LIST, "profilePostsList", null, Settings.PROFILE_POSTS_LIST),
+    PROFILE_GRID_JUMP(FamilyNames.PROFILE_GRID_JUMP, "profileGridJump", null, Settings.PROFILE_GRID_JUMP),
     COMMENT_COPY(FamilyNames.COMMENT_COPY, "commentCopy", null, Settings.COPY_COMMENTS, Settings.COPY_COMMENT_AUTHORS,
             Settings.COPY_COMMENTS_WITHOUT_MENTIONS, Settings.SELECT_TEXT),
     COMMENT_PHOTO(FamilyNames.COMMENT_PHOTO, "commentPhoto", null, Settings.SAVE_COMMENT_PHOTOS,

@@ -400,7 +400,7 @@ public final class ProfileExtras {
      * from a link hands its rows a context with no activity under it, while the screen's content
      * view has one. [view]'s own context when none does.
      */
-    static Context activityOf(View view) {
+    public static Context activityOf(View view) {
         for (Object at = view; at instanceof View; at = ((View) at).getParent()) {
             Context context = ((View) at).getContext();
             for (int depth = 0; depth < 16 && context instanceof ContextWrapper; depth++) {

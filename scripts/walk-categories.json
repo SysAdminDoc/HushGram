@@ -502,7 +502,8 @@
           "Hide Notes on profile pictures",
           "Hide profile tabs",
           "Saved on your profile",
-          "Profile posts as a list"
+          "Profile posts as a list",
+          "Jump a profile's posts to a date"
         ]
       },
       "anchors": [

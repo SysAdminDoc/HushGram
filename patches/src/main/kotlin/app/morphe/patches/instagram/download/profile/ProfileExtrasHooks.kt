@@ -72,6 +72,18 @@ internal class ProfileExtrasTie(
     val screen: Int,
 )
 
+/** A call filling the profile bar's two rows: where it is in the method, and the registers holding the rows. */
+internal class ProfileBarFill(val at: Int, val left: Int, val right: Int)
+
+/** The calls filling the bar's rows in this method, read off its code as it stands now. */
+internal fun Method.profileBarFills(): List<ProfileBarFill> {
+    val code = instructions()
+    return code.indices.filter { code[it].isRowFiller() }.map { at ->
+        val rows = code[at].arguments()
+        ProfileBarFill(at, rows[3], rows[4])
+    }
+}
+
 private fun refuse(why: String): Nothing = throw PatchException("$PROFILE_PICTURE_PATCH: the profile extras button: $why")
 
 /**
@@ -85,14 +97,13 @@ private fun refuse(why: String): Nothing = throw PatchException("$PROFILE_PICTUR
  */
 internal fun BytecodePatchContext.findProfileExtras(): ProfileExtrasSite {
     val bar = classDefByOrNull(PROFILE_ACTION_BAR) ?: refuse("this Instagram build has no $PROFILE_ACTION_BAR")
-    val binders = bar.methods.filter { method -> method.instructions().any { it.isRowFiller() } }
+    val binders = bar.methods.filter { it.profileBarFills().isNotEmpty() }
     val binder = binders.singleOrNull() ?: refuse("expected one method of $PROFILE_ACTION_BAR filling its rows, found ${binders.size}")
     val code = binder.instructions()
-    val fills = code.indices.filter { code[it].isRowFiller() }
+    val fills = binder.profileBarFills()
     val fill = fills.singleOrNull() ?: refuse("expected one call filling the rows in ${binder.name}, found ${fills.size}")
-    val rows = code[fill].arguments()
-    val left = rowField(code, fill, rows[3], bar.type) ?: refuse("the left row isn't read off a field of the bar")
-    val right = rowField(code, fill, rows[4], bar.type) ?: refuse("the right row isn't read off a field of the bar")
+    val left = rowField(code, fill.at, fill.left, bar.type) ?: refuse("the left row isn't read off a field of the bar")
+    val right = rowField(code, fill.at, fill.right, bar.type) ?: refuse("the right row isn't read off a field of the bar")
     if (left.name == right.name) refuse("the bar's two rows are the same field ${left.name}")
     // The entry hook hands the extension the bar in p0 and the bind's first argument in p1, an object.
     if (AccessFlags.STATIC.isSet(binder.accessFlags) || binder.parameterTypes.firstOrNull()?.startsWith("L") != true) {

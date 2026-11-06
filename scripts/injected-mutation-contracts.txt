@@ -2540,6 +2540,12 @@ once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offerPopup
 # its call. Left out, the button never shows; twice or elsewhere, it isn't the hook the patch wrote.
 start-call Lapp/hushgram/extension/instagram/download/ProfileExtras;->bound(Landroid/view/View;Landroid/view/View;Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;Landroid/app/Activity;LX/*;LX/*;Landroid/content/Context;Lkotlin/jvm/functions/Function1;)V holding userSession activity Lcom/instagram/profile/actionbar/ProfileActionBar;->A06:Lcom/instagram/common/ui/base/IgLinearLayout;
 once-call Lapp/hushgram/extension/instagram/download/ProfileExtras;->bound(Landroid/view/View;Landroid/view/View;Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;Landroid/app/Activity;LX/*;LX/*;Landroid/content/Context;Lkotlin/jvm/functions/Function1;)V holding userSession activity Lcom/instagram/profile/actionbar/ProfileActionBar;->A06:Lcom/instagram/common/ui/base/IgLinearLayout;
+# Jump a profile's posts to a date (#498) tells GridJump which posts tab is up, right after its super
+# onResume, hands it the bar's right row once the bind has filled it, and passes the grid request's
+# max_id through it first thing in the request.
+once-call Lapp/hushgram/extension/instagram/profile/GridJump;->resumed(Ljava/lang/Object;)V in instance ()V calling instance LX/*;->onResume()V class-holding ProfileMediaTabFragment.profile_tab_identifier
+once-call Lapp/hushgram/extension/instagram/profile/GridJump;->bound(Landroid/view/View;)V in instance (Lcom/instagram/common/session/UserSession;Landroid/app/Activity;LX/*;LX/*;Landroid/content/Context;Lkotlin/jvm/functions/Function1;)V holding userSession activity Lcom/instagram/profile/actionbar/ProfileActionBar;->A06:Lcom/instagram/common/ui/base/IgLinearLayout;
+once-call Lapp/hushgram/extension/instagram/profile/GridJump;->maxId(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String; in static (Lcom/instagram/common/session/UserSession;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IZZZZZZZ)LX/*; pooled holding IGProfileTimelineQuery max_id user_id
 # Download voice messages (#20) hands VoiceMessage.offer the answer to whether a message's kind can be
 # saved, and the message, right after the menu model's builder asks it (09xN.invoke on 450, the
 # lambda building the long-press menu's model, the one method of this shape loading these strings
