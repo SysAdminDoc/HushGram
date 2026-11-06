@@ -868,6 +868,8 @@ public final class AmbientLight {
         final Rect inView = new Rect();
         /** Where the bar over the reel's foot starts on the host, or -1: the host's glow stops there. */
         int hostCut = -1;
+        /** How far in a rounded picture's corners are cut, in pixels: the glow goes on under them. */
+        int corner;
         /** How far the glow reaches past the picture, in pixels. */
         int spread;
         /** Where the picture was at the last look, how many copies in a row came out the same, and when the next is due. */
@@ -1042,13 +1044,23 @@ public final class AmbientLight {
                 band.getLocationInWindow(hostAt);
                 cut = footerAt[1] - hostAt[1];
             }
-            if (at.equals(lit) && onHost.equals(hostLit) && stageOnHost.equals(hostStage) && reach == spread && cut == hostCut) return false;
+            int rounded = roundedIn(stage);
+            if (at.equals(lit) && onHost.equals(hostLit) && stageOnHost.equals(hostStage) && reach == spread && cut == hostCut
+                    && rounded == corner) return false;
             lit.set(at);
             hostLit.set(onHost);
             hostStage.set(stageOnHost);
             hostCut = cut;
+            corner = rounded;
             spread = reach;
             return true;
+        }
+
+        /** How far in the Rounded corners switch for this kind of picture cuts it, in pixels, or 0 with it off. */
+        private int roundedIn(View stage) {
+            boolean on = (kind == Kind.POST ? Settings.ROUNDED_POST_CORNERS
+                    : kind == Kind.REEL ? Settings.ROUNDED_REEL_CORNERS : Settings.ROUNDED_STORY_CORNERS).get();
+            return on ? Math.round(Settings.ROUNDED_CORNER_SIZE.get().dp * stage.getResources().getDisplayMetrics().density) : 0;
         }
 
         /** The widest gap between [rect] and [view]'s edges, in [view]'s pixels. */
@@ -1223,6 +1235,15 @@ public final class AmbientLight {
                         to.set(xs[column], ys[row], xs[column + 1], ys[row + 1]);
                         canvas.drawBitmap(light.face, from, to, paint);
                     }
+                }
+                if (light.corner > 0) {
+                    // A rounded picture's corners show what's behind it, so the glow carries on under them (#510).
+                    from.set(RING, RING, RING + SAMPLE, RING + 1);
+                    to.set(lit.left, lit.top, lit.right, lit.top + light.corner);
+                    canvas.drawBitmap(light.face, from, to, paint);
+                    from.set(RING, RING + SAMPLE - 1, RING + SAMPLE, RING + SAMPLE);
+                    to.set(lit.left, lit.bottom - light.corner, lit.right, lit.bottom);
+                    canvas.drawBitmap(light.face, from, to, paint);
                 }
                 if (bands) canvas.restoreToCount(saved);
             }

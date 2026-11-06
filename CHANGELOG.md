@@ -115,6 +115,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * `Ambient light` no longer glows around photos and stickers in chats, or in the strip under the comment bar on a reel opened from the feed. Reported in #510.
+* `Ambient light`'s glow now carries on under a post's rounded corners, which showed as dark wedges with `Rounded corners on posts` on. Reported in #510.
 * The story mentions pill sits right under the name again, not a pill's height below it. Reported in #510.
 * With `Add the source to saved photos and videos` on, a saved carousel page links the post it's from instead of a link that doesn't open. A saved story gets no link, since stories have no post page.
 * With `Gallery and microphone in the plus menu` on, `Buttons in the message box` says those two are in the plus menu instead of calling them shown or left off. It updates the moment that switch flips.

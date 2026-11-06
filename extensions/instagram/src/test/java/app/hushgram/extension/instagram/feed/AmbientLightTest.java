@@ -119,6 +119,8 @@ public class AmbientLightTest {
         Settings.AMBIENT_LIGHT_SPREAD.resetToDefault();
         Settings.AMBIENT_LIGHT_SPEED.resetToDefault();
         Settings.AMBIENT_LIGHT_BLEND.resetToDefault();
+        Settings.ROUNDED_POST_CORNERS.resetToDefault();
+        Settings.ROUNDED_CORNER_SIZE.resetToDefault();
         Settings.BLUR_REEL_BARS.resetToDefault();
     }
 
@@ -330,6 +332,35 @@ public class AmbientLightTest {
         Settings.AMBIENT_LIGHT_BLEND.save(false);
         frame();
         assertNull(AmbientLight.edgesForTests(media));
+    }
+
+    @Test
+    public void aRoundedPicturesCornersShowTheGlowNotThePage() {
+        on();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        // The stand-in draws nothing, so whatever would show through its corners reads here.
+        int topEdge = 3 + HEADER + 1, bottomEdge = 3 + HEADER + MEDIA - 2, deeper = 3 + HEADER + 12;
+        Bitmap square = drawn(list);
+        assertEquals("a square picture has nothing under it", Color.BLACK, square.getPixel(WIDTH / 2, topEdge));
+
+        Settings.ROUNDED_CORNER_SIZE.save(CornerSize.SMALL);
+        Settings.ROUNDED_POST_CORNERS.save(true);
+        frame();
+        Bitmap small = drawn(list);
+        assertTrue("the picture's top color: " + hex(small.getPixel(WIDTH / 2, topEdge)),
+                Color.blue(small.getPixel(WIDTH / 2, topEdge)) > 60 && Color.red(small.getPixel(WIDTH / 2, topEdge)) == 0);
+        assertTrue("and its bottom color: " + hex(small.getPixel(WIDTH / 2, bottomEdge)),
+                Color.red(small.getPixel(WIDTH / 2, bottomEdge)) > 60 && Color.blue(small.getPixel(WIDTH / 2, bottomEdge)) == 0);
+        assertEquals("no deeper than the corner", Color.BLACK, small.getPixel(WIDTH / 2, deeper));
+        assertEquals("nor across the middle", Color.BLACK, small.getPixel(WIDTH / 2, 3 + HEADER + MEDIA / 2));
+
+        Settings.ROUNDED_CORNER_SIZE.save(CornerSize.LARGE);
+        frame();
+        assertTrue("a bigger corner reaches further", Color.blue(drawn(list).getPixel(WIDTH / 2, deeper)) > 60);
+
+        Settings.ROUNDED_POST_CORNERS.save(false);
+        frame();
+        assertEquals("off puts it back", Color.BLACK, drawn(list).getPixel(WIDTH / 2, topEdge));
     }
 
     @Test
