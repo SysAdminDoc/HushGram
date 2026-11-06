@@ -5,6 +5,8 @@
 package app.hushgram.extension.instagram.stories;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,22 +32,22 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Nothing is added or dropped.
  *
  * <p>A story you've just watched stays where it was (#377). Home asks the store for the tray again
- * the moment the viewer closes, and the store sorts itself on the way: once it has ranked a tray
- * response, each later ask moves its seen reels behind its unseen ones. That sent the new gray ring
- * to the back with the row's scroll following it, leaving you among watched stories, and the store's
- * own order can't be told from a sort here. So the order a tray went out in is remembered, by the
- * very reels the store held, and goes out again while the store hands over those same reels in any
- * order. A tray with a reel more or fewer is sorted afresh, and so is every tray after
- * {@link #refreshed}, which the patch calls when the store is about to rank a tray response, or a
- * restart. Home's top row and its feed adapter each ask for their own tray, so the last few are
- * remembered.
+ * the moment the viewer closes and the store sorts itself on the way, and after a longer watch
+ * Instagram fetches a new tray too, which ranks the reel you watched further back. Any of those sent
+ * the new gray ring to the back with the row's scroll following it, leaving you among watched
+ * stories. So a reel gets a place the first time it goes out unseen and holds it, whatever order the
+ * store has it in and whether it's been watched since. A reel new to the row goes in beside the reel
+ * the store has it behind. Watched reels that never had a place stay behind the rest. The places are
+ * forgotten when a tray comes for a reason that starts the row over ({@link #STARTS_OVER}), or on a
+ * restart.
  *
  * <p>Either switch off, a pause or settings that aren't ready give the list back as it came and
- * forget the remembered orders, and any failure deciding gives the list back as it came.
+ * forget the places, and any failure deciding gives the list back as it came.
  */
 public final class StoryTrayOrder {
     /** The hook's name in the diagnostics, and what it counts. */
     static final String HOOK = "story tray order";
+    static final String RESPONSE_HOOK = "story tray response";
     static final String MOVED = "watched stories moved to the back";
     static final String KEPT = "stories just watched kept in place";
     static final int PINNED = -1;
@@ -53,40 +55,22 @@ public final class StoryTrayOrder {
     static final int OWN = -2;
     static final String OWN_FIRST = "own story put first";
 
-    /** How many trays are remembered: Home's top row and its feed adapter each ask for their own. */
-    static final int REMEMBERED = 4;
+    /** The reasons for fetching a tray that start the row over, by Instagram's names for them. */
+    static final List<String> STARTS_OVER = Arrays.asList("cold_start", "warm_start_with_feed", "pull_to_refresh");
+
+    /** What comes before the reason in a request's text: Request{mReason=name, mInstanceNumber=n}. */
+    private static final String REASON = "mReason=";
 
     /** Native state: 0 unseen, 1 watched, {@link #PINNED} for entries that must stay put, or {@link #OWN}. */
     interface Seen {
         int of(Object reel);
     }
 
-    /** A tray as the store held it, and the order it went out in. */
-    private static final class Tray {
-        final Object[] held;
-        final List<Object> wentOut;
-
-        Tray(List<Object> held, List<Object> wentOut) {
-            this.held = held.toArray();
-            this.wentOut = new ArrayList<>(wentOut);
-        }
-
-        /** Whether the store holds the very reels this tray was, in any order: it sorts itself (#377). */
-        boolean holds(List<Object> reels) {
-            if (reels.size() != held.length) return false;
-            Map<Object, Integer> left = new IdentityHashMap<>();
-            for (Object reel : held) left.merge(reel, 1, Integer::sum);
-            for (Object reel : reels) {
-                Integer count = left.get(reel);
-                if (count == null || count == 0) return false;
-                left.put(reel, count - 1);
-            }
-            return true;
-        }
-    }
-
-    /** The trays that went out last, oldest first (#377). Guarded by itself. */
-    private static final List<Tray> remembered = new ArrayList<>();
+    /**
+     * Each reel's place in the row, lowest first (#377), by the very reel, since the store keeps one
+     * for each id across tray responses. The store holds them all anyway. Guarded by itself.
+     */
+    private static final Map<Object, Double> places = new IdentityHashMap<>();
 
     private static final BooleanSupplier ON = StoryTrayOrder::grayedOut;
 
@@ -106,10 +90,33 @@ public final class StoryTrayOrder {
         return order(reels, ON, reel -> seen(store, reel));
     }
 
-    /** Forgets every order that went out, so the next tray is sorted afresh. Never throws. */
-    public static void refreshed() {
-        synchronized (remembered) {
-            remembered.clear();
+    /**
+     * Put by the patch where the store has taken in a tray response. The [request] it was fetched
+     * for says why in its text. Never throws.
+     */
+    public static void responded(Object request) {
+        try {
+            String reason = reason(String.valueOf(request));
+            Logger.printDebug(() -> "Story tray: a tray came for " + reason);
+            if (STARTS_OVER.contains(reason)) refreshed();
+        } catch (Throwable failure) {
+            report(RESPONSE_HOOK, failure);
+        }
+    }
+
+    /** The reason in a request's [text], or nothing when it doesn't read as one. */
+    static String reason(String text) {
+        int start = text.indexOf(REASON);
+        if (start < 0) return "";
+        start += REASON.length();
+        int end = text.indexOf(',', start);
+        return end < 0 ? text.substring(start) : text.substring(start, end);
+    }
+
+    /** Forgets every reel's place, so the next tray is sorted afresh. */
+    static void refreshed() {
+        synchronized (places) {
+            places.clear();
         }
     }
 
@@ -139,59 +146,77 @@ public final class StoryTrayOrder {
                 if (state == 1) watched.add(reel);
                 else unseen.add(reel);
             }
-            List<Object> ordered = reels;
-            if (!watched.isEmpty() && !unseen.isEmpty()) {
-                unseen.addAll(watched);
-                List<Object> sorted = new ArrayList<>(reels);
-                for (int index = 0; index < count; index++) sorted.set(slots[index], unseen.get(index));
-                if (!sorted.equals(reels)) ordered = sorted;
+
+            List<Object> sequence = new ArrayList<>(count);
+            List<Object> kept = new ArrayList<>();
+            List<Object> behind = new ArrayList<>();
+            synchronized (places) {
+                givePlaces(unseen);
+                for (Object reel : watched) (places.containsKey(reel) ? kept : behind).add(reel);
+                Comparator<Object> byPlace = Comparator.comparingDouble(places::get);
+                unseen.sort(byPlace);
+                sequence.addAll(unseen);
+                sequence.addAll(kept);
+                sequence.sort(byPlace);
             }
+            // A reel just watched is only kept if it sits ahead of a reel still unseen.
+            boolean keptAhead = !sequence.subList(0, unseen.size()).equals(unseen);
+            sequence.addAll(behind);
+
+            List<Object> sorted = new ArrayList<>(reels);
+            for (int index = 0; index < count; index++) sorted.set(slots[index], sequence.get(index));
+            boolean changed = !sorted.equals(reels);
+            List<Object> ordered = changed ? sorted : reels;
             boolean ownFirst = own > 0;
             if (ownFirst) {
                 List<Object> moved = new ArrayList<>(ordered);
                 moved.add(0, moved.remove(own));
                 ordered = moved;
             }
-            List<Object> kept = kept(reels, ordered);
-            if (kept != null) {
+
+            if (keptAhead) {
                 HookStatus.counted(FamilyNames.STORY_SEEN, KEPT);
-                Logger.printDebug(() -> "Story tray: kept the order its " + reels.size() + " reels went out in");
-                return kept;
+                Logger.printDebug(() -> "Story tray: kept " + kept.size() + " stories just watched in place");
             }
             if (ordered == reels) return reels;
             if (ownFirst) HookStatus.counted(FamilyNames.STORY_SEEN, OWN_FIRST);
-            if (!watched.isEmpty() && !unseen.isEmpty()) HookStatus.counted(FamilyNames.STORY_SEEN, MOVED);
-            Logger.printDebug(() -> "Story tray: moved " + watched.size() + " watched stories to the back");
+            if (changed && !behind.isEmpty() && !unseen.isEmpty()) {
+                HookStatus.counted(FamilyNames.STORY_SEEN, MOVED);
+                Logger.printDebug(() -> "Story tray: moved " + behind.size() + " watched stories to the back");
+            }
             return ordered;
         } catch (Throwable failure) {
-            try {
-                HookStatus.threw(FamilyNames.STORY_SEEN, HOOK, failure);
-            } catch (Throwable ignored) {
-                // There is nowhere left to report a diagnostic failure.
-            }
+            report(HOOK, failure);
             return reels;
         }
     }
 
     /**
-     * The order [reels] went out in before, when the store held these very reels and that order
-     * isn't [ordered]. Null otherwise, with [ordered] remembered as the order these reels go out in
-     * from now.
+     * Gives each of [unseen], in the store's order, a place when it has none: between the reel the
+     * store has it behind and the next reel with a place, so a tray with reels new to it reads as the
+     * store has it. Call holding {@link #places}.
      */
-    private static List<Object> kept(List<Object> reels, List<Object> ordered) {
-        synchronized (remembered) {
-            for (int index = 0; index < remembered.size(); index++) {
-                Tray tray = remembered.get(index);
-                if (!tray.holds(reels)) continue;
-                if (index < remembered.size() - 1) {
-                    remembered.remove(index);
-                    remembered.add(tray);
-                }
-                return tray.wentOut.equals(ordered) ? null : new ArrayList<>(tray.wentOut);
+    private static void givePlaces(List<Object> unseen) {
+        for (int index = 0; index < unseen.size(); index++) {
+            Object reel = unseen.get(index);
+            if (places.containsKey(reel)) continue;
+            Double before = index == 0 ? null : places.get(unseen.get(index - 1));
+            Double after = null;
+            for (int next = index + 1; next < unseen.size() && after == null; next++) {
+                after = places.get(unseen.get(next));
             }
-            if (remembered.size() == REMEMBERED) remembered.remove(0);
-            remembered.add(new Tray(reels, ordered));
-            return null;
+            double place;
+            if (before == null) place = after == null ? 0 : after - 1;
+            else place = after == null ? before + 1 : (before + after) / 2;
+            places.put(reel, place);
+        }
+    }
+
+    private static void report(String hook, Throwable failure) {
+        try {
+            HookStatus.threw(FamilyNames.STORY_SEEN, hook, failure);
+        } catch (Throwable ignored) {
+            // There is nowhere left to report a diagnostic failure.
         }
     }
 

@@ -173,7 +173,7 @@ public class StoryTrayOrderTest {
     /**
      * The store moves its own seen reels behind its unseen ones each time it's asked, so what's handed
      * over when the viewer closes is already the order that strands you. The tray keeps its order
-     * through that, and gives it up when a tray response is ranked (#377).
+     * through that, and gives it up when the row starts over (#377).
      */
     @Test
     public void theStoreSortingItselfDoesntMoveTheTrayUntilItRefreshes() {
@@ -190,27 +190,88 @@ public class StoryTrayOrderTest {
         assertSame(storeSorted, StoryTrayOrder.order(storeSorted, ON, watchedA));
     }
 
-    /** A reel handed over twice counts twice, so swapping it for another isn't the same tray. */
+    /**
+     * Coming back from a longer watch fetches a new tray, which on the phone ranked the story just
+     * watched behind the others while it was still the same reels. It stays put through that (#377).
+     */
     @Test
-    public void aRepeatedReelCountsEachTime() {
-        List<Object> tray = Arrays.<Object>asList("a", "a", "b");
+    public void aTrayFetchedInAnotherOrderDoesntMoveAStoryJustWatched() {
+        List<Object> tray = Arrays.<Object>asList("cbs", "wsj", "nba");
         assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
-        List<Object> other = Arrays.<Object>asList("a", "b", "b");
-        assertEquals(Arrays.<Object>asList("a", "b", "b"), StoryTrayOrder.order(other, ON, seenAre()));
+        assertEquals(tray, StoryTrayOrder.order(Arrays.<Object>asList("cbs", "nba", "wsj"), ON, seenAre("wsj")));
+        assertEquals("the unseen ones hold their places too", tray,
+                StoryTrayOrder.order(Arrays.<Object>asList("nba", "cbs", "wsj"), ON, seenAre("wsj")));
     }
 
-    /** A refresh that brings a reel more, fewer or as another object is sorted afresh. */
+    /** A reel new to the row goes where the store has it, at the front, between two reels or at the end. */
     @Test
-    public void aTrayWithOtherReelsIsSortedAfresh() {
+    public void aNewReelLandsWhereTheStorePutIt() {
         List<Object> tray = Arrays.<Object>asList("a", "b", "c");
         assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
-        assertEquals("one more reel", Arrays.<Object>asList("b", "c", "d", "a"),
+        List<Object> between = Arrays.<Object>asList("a", "x", "b", "c");
+        assertSame(between, StoryTrayOrder.order(between, ON, seenAre()));
+        List<Object> ends = Arrays.<Object>asList("y", "a", "x", "b", "z", "c", "w");
+        assertSame(ends, StoryTrayOrder.order(ends, ON, seenAre()));
+    }
+
+    /** A reel with a place keeps it when a shorter list leaves others out, and one that was never placed goes behind. */
+    @Test
+    public void aTrayWithOtherReelsKeepsThePlacesItHas() {
+        List<Object> tray = Arrays.<Object>asList("a", "b", "c");
+        assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
+        assertEquals("one more reel", Arrays.<Object>asList("a", "b", "c", "d"),
                 StoryTrayOrder.order(Arrays.<Object>asList("a", "b", "c", "d"), ON, seenAre("a")));
-        assertEquals("one fewer", Arrays.<Object>asList("b", "a"),
+        assertEquals("one fewer", Arrays.<Object>asList("a", "b"),
                 StoryTrayOrder.order(Arrays.<Object>asList("a", "b"), ON, seenAre("a")));
         Object another = new StringBuilder("a").toString();
-        assertEquals("a's slot held by another object that reads the same", Arrays.<Object>asList("b", "c", another),
+        assertEquals("another object that reads the same has no place of its own", Arrays.<Object>asList("b", "c", another),
                 StoryTrayOrder.order(Arrays.<Object>asList(another, "b", "c"), ON, seenAre("a")));
+    }
+
+    /** Only the reasons that start the row over forget its places, as the request's own text names them. */
+    @Test
+    public void aTrayResponseStartsTheRowOverOnlyForItsReasons() {
+        List<Object> tray = Arrays.<Object>asList("a", "b", "c");
+        for (String reason : StoryTrayOrder.STARTS_OVER) {
+            assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
+            StoryTrayOrder.responded("Request{mReason=" + reason + ", mInstanceNumber=3}");
+            assertEquals(reason, Arrays.<Object>asList("b", "c", "a"), StoryTrayOrder.order(tray, ON, seenAre("a")));
+            StoryTrayOrder.refreshed();
+        }
+        assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
+        for (Object request : new Object[] {
+                "Request{mReason=consumption_based_refresh, mInstanceNumber=3}",
+                "Request{mReason=reset_to_home_after_story_consumption, mInstanceNumber=3}",
+                "Request{mReason=auto_refresh, mInstanceNumber=3}",
+                "something else",
+                null,
+        }) {
+            StoryTrayOrder.responded(request);
+            assertSame(String.valueOf(request), tray, StoryTrayOrder.order(tray, ON, seenAre("a")));
+        }
+    }
+
+    @Test
+    public void aRequestsReasonIsReadFromItsText() {
+        assertEquals("pull_to_refresh", StoryTrayOrder.reason("Request{mReason=pull_to_refresh, mInstanceNumber=3}"));
+        assertEquals("no comma", "cold_start", StoryTrayOrder.reason("mReason=cold_start"));
+        assertEquals("no reason", "", StoryTrayOrder.reason("Request{}"));
+    }
+
+    /** A request that won't even read leaves the places alone and shows in the diagnostics. */
+    @Test
+    public void aRequestThatFailsToReadIsReported() {
+        List<Object> tray = Arrays.<Object>asList("a", "b");
+        assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
+        StoryTrayOrder.responded(new Object() {
+            @Override
+            public String toString() {
+                throw new IllegalStateException("no");
+            }
+        });
+        assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre("a")));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(StoryTrayOrder.RESPONSE_HOOK));
     }
 
     /** Either switch off forgets the order that went out, so on again sorts afresh. */
@@ -231,18 +292,6 @@ public class StoryTrayOrderTest {
         assertSame(feed, StoryTrayOrder.order(feed, ON, seenAre()));
         assertEquals(Arrays.<Object>asList("a", "b", "c"), StoryTrayOrder.order(top, ON, seenAre("a")));
         assertEquals(Arrays.<Object>asList("own", "a", "b", "c"), StoryTrayOrder.order(feed, ON, seenAre("a")));
-    }
-
-    /** Only the last few trays are remembered, so an old one that comes round again is sorted afresh. */
-    @Test
-    public void onlyTheLastFewTraysAreRemembered() {
-        List<Object> first = Arrays.<Object>asList("a", "b");
-        assertSame(first, StoryTrayOrder.order(first, ON, seenAre()));
-        for (int index = 0; index < StoryTrayOrder.REMEMBERED; index++) {
-            List<Object> another = Arrays.<Object>asList("a", "b", "x" + index);
-            assertSame(another, StoryTrayOrder.order(another, ON, seenAre()));
-        }
-        assertEquals(Arrays.<Object>asList("b", "a"), StoryTrayOrder.order(first, ON, seenAre("a")));
     }
 
     @Test

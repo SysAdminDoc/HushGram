@@ -173,7 +173,7 @@ Every HushGram release, newest first.
 * `Ambient light` lights the screen around story videos that Instagram plays on a SurfaceView. It used to light the picture behind them. Reported in #492.
 * The Saved bookmark on your profile opens your saved posts through Instagram's own link, in any language. Before, it could open settings. Reported in #492.
 * The `Blur the bars around Reels` summary says the blur only shows where a reel leaves room. The share sheet's button list says Reply to author is on posts and reels, and Download profile card on profiles. From #492.
-* With `Gray out stories you've watched` on, a story you've watched all the way through keeps its place in the tray until the tray refreshes. It could still jump right when the viewer closed. Reported in #377.
+* With `Gray out stories you've watched` on, a story you've watched all the way through keeps its place in the tray until you pull to refresh or restart. A longer watch could still send it to the back. Reported in #377.
 * `Mark who doesn't follow you back` gives the mark a second line on your Following list, so the Message button can't cut it short. Reported in #351.
 
 ## 0.0.18 (2026-10-31)

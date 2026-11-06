@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -100,23 +101,28 @@ class StoryTrayOrderHookTest {
                 }
                 assertEquals("${bundle.name}: one call of the hook per list", 2, context.calls(TRAY_ORDER))
 
-                // The sort only forgets the orders when the store hasn't ranked its reels: the new
-                // call is reached past the flag's false test and the old branch still goes on from there.
-                val ranking = found.ranking!!
-                fun ofTheSort(method: Method) = method.name == ranking.method && method.parameterTypes.map(Any::toString) == ranking.parameters
-                val sortBefore = store.methods.single(::ofTheSort).code()
-                val sort = context.mutableClassDefBy(found.store).methods.single(::ofTheSort).code()
-                val forgets = sort.indexOfFirst { it.referenceText() == TRAY_REFRESHED }
-                assertEquals("${bundle.name}: the sort forgets once", 1, context.calls(TRAY_REFRESHED))
-                assertEquals("${bundle.name}: the call follows the flag's read", ranking.read + 2, forgets)
-                assertEquals("${bundle.name}: the flag is read", Opcode.IGET_BOOLEAN, sort[ranking.read].opcode)
-                assertEquals("${bundle.name}: a ranked store skips the call", Opcode.IF_NEZ, sort[forgets - 1].opcode)
-                assertEquals("${bundle.name}: the branch to the ranking stays", Opcode.IF_EQZ, sort[forgets + 1].opcode)
-                assertEquals("${bundle.name}: both test the flag", ranking.register, (sort[forgets - 1] as OneRegisterInstruction).registerA)
-                assertEquals("${bundle.name}: both test the flag", ranking.register, (sort[forgets + 1] as OneRegisterInstruction).registerA)
-                val sortShape = shape(sort)
-                val added = sortShape.indexOfFirst { it.second == TRAY_REFRESHED }
-                assertEquals("${bundle.name}: the rest of the sort", shape(sortBefore), sortShape.filterIndexed { i, _ -> i !in added - 1..added })
+                // A tray response is told once, right after the store's call taking the request,
+                // with the very register that call was handed the request in (#377).
+                val response = found.response!!
+                fun ofTheResponse(method: Method) = method.name == response.method && method.parameterTypes.map(Any::toString) == response.parameters
+                val responseBefore = classes.single { it.type == response.manager }.methods.single(::ofTheResponse).code()
+                val responseAfter = context.mutableClassDefBy(response.manager).methods.single(::ofTheResponse).code()
+                val told = responseAfter.indexOfFirst { it.referenceText() == TRAY_RESPONDED }
+                assertEquals("${bundle.name}: a response is told once", 1, context.calls(TRAY_RESPONDED))
+                assertEquals("${bundle.name}: told where it was found", response.after, told)
+                val tell = responseAfter[told] as RegisterRangeInstruction
+                assertEquals("${bundle.name}: told the request alone", listOf(response.request, 1), listOf(tell.startRegister, tell.registerCount))
+                val stored = responseAfter.subList(0, told).last { (it as? ReferenceInstruction)?.reference is MethodReference }
+                val storedCall = (stored as ReferenceInstruction).reference as MethodReference
+                assertEquals("${bundle.name}: it follows the store's call", found.store, storedCall.definingClass)
+                val requestAt = storedCall.parameterTypes.map(Any::toString).indexOf(response.parameters.first())
+                assertTrue("${bundle.name}: the store's call takes the request", requestAt >= 0)
+                (stored as? RegisterRangeInstruction)?.let {
+                    assertEquals("${bundle.name}: the request's register", it.startRegister + 1 + requestAt, response.request)
+                }
+                val responseShape = shape(responseAfter)
+                val tellAt = responseShape.indexOfFirst { it.second == TRAY_RESPONDED }
+                assertEquals("${bundle.name}: the rest of the method", shape(responseBefore), responseShape.filterIndexed { i, _ -> i != tellAt })
 
                 val bridge = context.mutableClassDefBy(STORY_TRAY_ORDER).methods.single { it.name == "seen" }
                 val stub = bridge.code()
@@ -180,28 +186,38 @@ class StoryTrayOrderHookTest {
     }
 
     /**
-     * A store whose sort can't be found is refused for the tray's own hook: its remembered orders
-     * would never end, so a pull to refresh wouldn't sort the row (#377). Stories priority doesn't
-     * need it, and finds the store whichever patch hooked it first.
+     * A build whose tray response can't be found is refused for the tray's own hook: its places would
+     * never be forgotten, so a pull to refresh wouldn't sort the row (#377). A request that doesn't
+     * name its reason is refused too, for the same reason.
      */
     @Test
-    fun aStoreWithoutItsSortFailsOnlyForTheTray() {
+    fun aTrayResponseThatCantBeReadFailsBeforeAnyListIsHooked() {
         for (version in AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 val classes = trayClasses(bundle)
-                val store = storeOf(classes)
-                val trimmed = PatchContexts.of(classes.map { classDef ->
-                    if (classDef.type != store) return@map classDef
-                    ImmutableClassDef(
-                        classDef.type, classDef.accessFlags, classDef.superclass, classDef.interfaces, classDef.sourceFile,
-                        classDef.annotations, classDef.fields,
-                        classDef.methods.filterNot { it.parameterTypes.map(Any::toString) == listOf(store, "Ljava/util/Collection;", "Z") },
-                    )
-                })
-                val reel = trimmed.findStoryRings().reelClass
-                val refusal = assertThrows(PatchException::class.java) { trimmed.findStoryTray(reel) }
-                assertTrue(refusal.message, "ranked flag" in refusal.message!! && "found 0" in refusal.message!!)
-                assertEquals("a refusal must not hook a list", 0, trimmed.calls(TRAY_ORDER))
+                val original = PatchContexts.of(classes)
+                val found = original.findStoryTray(original.findStoryRings().reelClass).response!!
+                val cases = listOf(
+                    "found 0" to classes.map { classDef ->
+                        if (classDef.type != found.manager) classDef else ImmutableClassDef(
+                            classDef.type, classDef.accessFlags, classDef.superclass, classDef.interfaces, classDef.sourceFile,
+                            classDef.annotations, classDef.fields, classDef.methods.filterNot { it.name == found.method },
+                        )
+                    },
+                    "doesn't name its reason" to classes.map { classDef ->
+                        if (classDef.type != found.parameters.first()) classDef else ImmutableClassDef(
+                            classDef.type, classDef.accessFlags, classDef.superclass, classDef.interfaces, classDef.sourceFile,
+                            classDef.annotations, classDef.fields, classDef.methods.filterNot { it.name == "toString" },
+                        )
+                    },
+                )
+                for ((expected, trimmed) in cases) {
+                    val context = PatchContexts.of(trimmed)
+                    val reel = context.findStoryRings().reelClass
+                    val refusal = assertThrows(PatchException::class.java) { context.findStoryTray(reel) }
+                    assertTrue(refusal.message, expected in refusal.message!!)
+                    assertEquals("a refusal must not hook a list", 0, context.calls(TRAY_ORDER))
+                }
             }
         }
     }
@@ -254,7 +270,8 @@ class StoryTrayOrderHookTest {
         val trayStores = FixtureDex.methodsWhere(bundle, { true }) { method -> isListMethod(method, reel) }.map { it.definingClass }.toSet()
         val identityTypes = FixtureDex.classes(bundle, setOf(reel)).getValue(reel).fields
             .map { it.type }.filter { it.startsWith("L") } + listOf("Lcom/instagram/user/model/User;", USER_SESSION)
-        val types = (stores.map { it.type } + state + stateWriters.map { it.definingClass } + reelWriters.map { it.definingClass } + trayStores + identityTypes + STORY_VIEWER).toSet()
+        val responses = (FixtureDex.classesLoading(bundle, TRAY_RESPONSE_LOG) + FixtureDex.classesLoading(bundle, TRAY_REQUEST_TEXT)).map { it.type }
+        val types = (stores.map { it.type } + state + stateWriters.map { it.definingClass } + reelWriters.map { it.definingClass } + trayStores + identityTypes + responses + STORY_VIEWER).toSet()
         return (
             FixtureDex.withStringPools(bundle, FixtureDex.classes(bundle, types).values) +
                 ExtensionDex.classDef(STORY_SEEN_RINGS) + ExtensionDex.classDef(STORY_TRAY_ORDER)
