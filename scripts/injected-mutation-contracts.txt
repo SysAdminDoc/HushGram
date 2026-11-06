@@ -814,6 +814,16 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava/
 # and Back has to close each one; twice or elsewhere, some other tap gets dropped.
 start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
+# Swipe through a chat's photos and posts (#350) asks ChatMediaWalk first thing in the media viewer's opener,
+# which hands the viewer the chat's pages, the tapped slot and the album mode, and hands the pager to it right
+# after the opener readies it. Left out, a photo opens on its own. Twice or elsewhere, a walk's list is replaced
+# or its pager turned on some other open.
+once-call Lapp/hushgram/extension/instagram/direct/ChatMediaWalk;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/util/List;I)Ljava/util/List; in instance (LX/*;LX/*;LX/*;LX/*;Lcom/instagram/model/direct/DirectShareTarget;Lcom/instagram/model/direct/DirectThreadKey;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/functions/Function0;FIZZZZZZZZZZZ)V pooled holding aggregatedMediaViewer\s-\sview\screated\sbut\snot\sinit
+once-call Lapp/hushgram/extension/instagram/direct/ChatMediaWalk;->startIndex()I in instance (LX/*;LX/*;LX/*;LX/*;Lcom/instagram/model/direct/DirectShareTarget;Lcom/instagram/model/direct/DirectThreadKey;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/functions/Function0;FIZZZZZZZZZZZ)V pooled holding aggregatedMediaViewer\s-\sview\screated\sbut\snot\sinit
+once-call Lapp/hushgram/extension/instagram/direct/ChatMediaWalk;->pager(Ljava/lang/Object;)V in instance (LX/*;LX/*;LX/*;LX/*;Lcom/instagram/model/direct/DirectShareTarget;Lcom/instagram/model/direct/DirectThreadKey;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;Ljava/util/List;Lkotlin/jvm/functions/Function0;FIZZZZZZZZZZZ)V pooled holding aggregatedMediaViewer\s-\sview\screated\sbut\snot\sinit
+# The drag delegate asks holdDismiss before a swipe up or down starts a dismiss. Left out, a swipe up closes the
+# viewer instead of turning the page.
+once-call Lapp/hushgram/extension/instagram/direct/ChatMediaWalk;->holdDismiss()I in instance (LX/*;FFF)Z class-holding DirectMediaViewerDragControllerDelegate.onDrag\sscale\sis\sNaN
 # Only received reels (#460) also asks ChatReels.received first in the method that registers one of a chat's
 # messages for the chain (02YM.A01 on 453's 385914557, handed the message wrapper 01RZ), which reads the
 # Boolean function fields, hands the message's media on and calls a Function3 with it. A message the viewer

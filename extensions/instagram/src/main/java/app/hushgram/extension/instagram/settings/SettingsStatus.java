@@ -702,6 +702,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Swipe through a chat's photos and posts patch. */
+    public static boolean chatMediaWalk() {
+        return false;
+    }
+
     /** Rewritten by the Chat history tools patch. */
     public static boolean chatHistory() {
         return false;

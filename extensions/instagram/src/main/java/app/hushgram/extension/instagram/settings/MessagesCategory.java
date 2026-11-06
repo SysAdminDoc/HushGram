@@ -39,6 +39,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
                 || build.contains(PatchFamily.VIEW_ONCE_MARK)
                 || build.contains(PatchFamily.CHAT_REELS)
+                || build.contains(PatchFamily.CHAT_MEDIA_WALK)
                 || build.contains(PatchFamily.CHAT_HISTORY)
                 || build.contains(PatchFamily.PREVIEW_CHATS)
                 || build.contains(PatchFamily.ASK_BEFORE_CALL)
@@ -166,6 +167,11 @@ final class MessagesCategory {
                         L10n.t("While you swipe through a chat's reels, a banner says when the other person sent a message "
                                 + "after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe "
                                 + "through a chat's reels on.")));
+            }
+            if (build.contains(PatchFamily.CHAT_MEDIA_WALK)) {
+                messages.addPreference(toggle(context, Settings.SWIPE_CHAT_MEDIA, L10n.t("Swipe through a chat's photos and posts"),
+                        L10n.t("Open a photo or video from a chat and swipe up for the next photo, video or shared post in "
+                                + "that chat, in chat order. Swipe down to go back one. Back takes you to the chat.")));
             }
             if (build.contains(PatchFamily.CHAT_HISTORY)) {
                 messages.addPreference(toggle(context, Settings.JUMP_IN_CHAT, L10n.t("Jump to the first message or a date"),

@@ -827,6 +827,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_messages_after_chat_reels", FALSE, parent(SWIPE_CHAT_REELS));
 
     /**
+     * A photo or video opened from a chat pages up and down through the chat's other photos, videos and
+     * shared posts, in chat order ({@link app.hushgram.extension.instagram.direct.ChatMediaWalk}, #350).
+     * Off to start.
+     */
+    public static final BooleanSetting SWIPE_CHAT_MEDIA = new BooleanSetting("hushgram_swipe_chat_media", FALSE);
+
+    /**
      * Long pressing a chat's name offers to jump to its first message or to a date, paging back
      * through the chat on its own ({@link app.hushgram.extension.instagram.direct.ChatPager}, #246).
      * Off to start.

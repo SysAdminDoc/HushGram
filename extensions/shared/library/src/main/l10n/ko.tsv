@@ -606,6 +606,8 @@ Turns the switches that keep what you do to yourself on or off in one go, like V
 View live anonymously	라이브 몰래보기
 Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	한 번 보기나 다시 보기로 보낸 사진과 동영상이 채팅에 남아 다시 열 수 있습니다. 이미 불러온 항목을 갱신하려면 채팅을 다시 여세요.
 Swipe through a chat's reels	채팅의 릴스 넘겨보기
+Swipe through a chat's photos and posts	채팅의 사진과 게시물 넘겨보기
+Open a photo or video from a chat and swipe up for the next photo, video or shared post in that chat, in chat order. Swipe down to go back one. Back takes you to the chat.	채팅에서 사진이나 동영상을 열고 위로 넘기면 그 채팅의 다음 사진, 동영상 또는 공유된 게시물을 채팅 순서대로 봅니다. 아래로 넘기면 하나 전으로 돌아갑니다. 뒤로 가기를 누르면 채팅으로 돌아갑니다.
 Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before any suggested reels. Back takes you to the chat.	채팅에서 연 릴스에서 위로 넘기면 추천 릴스보다 먼저 그 채팅에 공유된 다른 릴스를 차례로 봅니다. 뒤로 가기를 누르면 채팅으로 돌아갑니다.
 Stop after the chat's reels	채팅의 릴스까지만 보기
 Reels you opened from a chat end after the last one shared in that chat, with no suggested reels after it. Works with Swipe through a chat's reels on.	채팅에서 연 릴스는 그 채팅에 공유된 마지막 릴스에서 끝나고, 그 뒤에 추천 릴스가 나오지 않습니다. 채팅의 릴스 넘겨보기가 켜져 있을 때 작동합니다.

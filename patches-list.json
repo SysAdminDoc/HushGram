@@ -5723,6 +5723,46 @@
       "options": []
     },
     {
+      "name": "Swipe through a chat's photos and posts",
+      "description": "Open a photo or video from a chat and swipe up through the chat's other photos, videos and shared posts, in chat order. Starts off. Turn it on in HushGram settings > Messages.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Swipe through a chat's reels",
       "description": "Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before any suggested reels, can stop after them and can leave out the ones you sent. All start off. Turn them on in HushGram settings > Messages.",
       "category": "Messages",

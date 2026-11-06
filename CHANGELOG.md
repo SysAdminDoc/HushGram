@@ -19,6 +19,7 @@ Every HushGram release, newest first.
 * `Story rings in the accent color` is a new switch under `Accent color`, off to start. Rings drop Instagram's gradient for your color after a restart. Asked for in #187.
 * `Backgrounds in the accent color` is another new switch there. Screens, panels, cards and menus take a dark or light shade of your color, and it wins over `Pure black dark mode`. Asked for in #187 and #8.
 * `Accent color` now reaches text that gets its blue from a layout, like the `Older posts` link. Reported in #187.
+* `Swipe through a chat's photos and posts` under Messages lets you open a photo or video from a chat and swipe up through the chat's other photos, videos and shared posts, in chat order. Asked for in #350.
 * `Seek bar on photos with music` under Reels gives a reel that's a photo with a song the same seek bar and time as a video reel, following the song. Asked for in #10.
 * `Add the source to saved photos` covers videos now and is called `Add the source to saved photos and videos`. A saved MP4 gets the poster, the post date and the post's link in tags exiftool and most galleries read.
 * Tagging a saved video leaves its picture and sound exactly as they were. A video the save knows nothing about isn't touched.

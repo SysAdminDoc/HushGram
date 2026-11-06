@@ -607,6 +607,8 @@ Turns the switches that keep what you do to yourself on or off in one go, like V
 View live anonymously	Canlı yayınları anonim izle
 Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	Tek seferlik veya tekrar oynatılabilir gönderilen fotoğraflar ve videolar sohbette kalır, böylece tekrar açabilirsin. Önceden yüklenenleri güncellemek için sohbeti yeniden aç.
 Swipe through a chat's reels	Bir sohbetin reels videolarında kaydır
+Swipe through a chat's photos and posts	Bir sohbetin fotoğraf ve gönderilerinde kaydır
+Open a photo or video from a chat and swipe up for the next photo, video or shared post in that chat, in chat order. Swipe down to go back one. Back takes you to the chat.	Bir sohbetten fotoğraf veya video aç, o sohbetteki sonraki fotoğraf, video veya paylaşılan gönderi için yukarı kaydır, sıra sohbetteki gibidir. Bir öncekine dönmek için aşağı kaydır. Geri tuşu seni sohbete döndürür.
 Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before any suggested reels. Back takes you to the chat.	Bir sohbetten açtığın bir reels videosunda yukarı kaydırınca, önerilen videolardan önce o sohbette paylaşılan diğer videolar gelir. Geri tuşu seni sohbete döndürür.
 Stop after the chat's reels	Sohbetin reels videolarından sonra dur
 Reels you opened from a chat end after the last one shared in that chat, with no suggested reels after it. Works with Swipe through a chat's reels on.	Bir sohbetten açtığın reels videoları o sohbette paylaşılan sonuncusunda biter, ardından önerilen video gelmez. Bir sohbetin reels videolarında kaydır açıkken çalışır.
