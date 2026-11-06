@@ -284,6 +284,13 @@ Once you turn on Instagram's auto scroll in Reels, it stays on after a restart o
 Move on when a reel ends	릴스가 끝나면 다음으로 넘어가기
 When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.	릴스가 끝나면 다시 재생하지 않고 다음 릴스로 넘어갑니다. Instagram의 자동 스크롤을 사용하며, Instagram이 이 기능을 제공하지 않는 계정에서도 작동합니다. 켜져 있는 동안에는 Instagram의 자동 스크롤 스위치로 끌 수 없습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Stop Reels scrolling	릴스 스크롤 정지
+# context: Reels page, the three switches under Stop Reels scrolling. They name that switch by its label, and each lets one kind of viewer keep scrolling.
+Still scroll reels from a profile	프로필에서 연 릴스는 계속 스크롤
+With Stop Reels scrolling on, reels you open from a profile still move on when you swipe.	릴스 스크롤 정지가 켜져 있어도 프로필에서 연 릴스는 스와이프하면 다음으로 넘어갑니다.
+Still scroll reels from Search and Explore	검색과 탐색에서 연 릴스는 계속 스크롤
+With Stop Reels scrolling on, reels you open from Search, Explore, a hashtag or a place still move on when you swipe.	릴스 스크롤 정지가 켜져 있어도 검색, 탐색, 해시태그, 장소에서 연 릴스는 스와이프하면 다음으로 넘어갑니다.
+Still scroll reels from a song page	노래 페이지에서 연 릴스는 계속 스크롤
+With Stop Reels scrolling on, reels you open from a song or audio page still move on when you swipe.	릴스 스크롤 정지가 켜져 있어도 노래나 오디오 페이지에서 연 릴스는 스와이프하면 다음으로 넘어갑니다.
 A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	릴스에서 넘겨도 다음 릴스로 이동하지 않고, 아래로 당겨도 새 릴스를 불러오지 않습니다. 연 릴스는 계속 재생됩니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	릴스를 2배속으로 고정하면 (릴스 가장자리를 길게 탭한 다음 아래로 밀기), 다음 릴스도 2배속으로 재생됩니다. 일반 속도로 돌아가려면 잠금 표시를 밀어서 해제하거나, 가장자리를 길게 누른 후 손을 떼세요
 Open links in external browser	외부 브라우저에서 링크 열기

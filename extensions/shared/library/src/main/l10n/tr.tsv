@@ -283,6 +283,13 @@ Once you turn on Instagram's auto scroll in Reels, it stays on after a restart o
 Move on when a reel ends	Reel bitince sonrakine geç
 When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.	Bir reel bittiğinde Reels onu yeniden oynatmak yerine sonrakine geçer. Instagram'ın kendi otomatik kaydırmasını kullanır, Instagram'ın bunu sunmadığı hesaplarda bile. Açıkken Instagram'ın kendi otomatik kaydırma anahtarı bunu kapatamaz. Değişikliği görmek için Instagram'ı yeniden başlat.
 Stop Reels scrolling	Reels'te kaydırmayı durdur
+# context: Reels page, the three switches under Stop Reels scrolling. They name that switch by its label, and each lets one kind of viewer keep scrolling.
+Still scroll reels from a profile	Profilden açılan reel'lerde kaydırmaya devam et
+With Stop Reels scrolling on, reels you open from a profile still move on when you swipe.	Reels'te kaydırmayı durdur açıkken, bir profilden açtığın reel'ler kaydırınca yine ilerler.
+Still scroll reels from Search and Explore	Arama ve Keşfet'ten açılan reel'lerde kaydırmaya devam et
+With Stop Reels scrolling on, reels you open from Search, Explore, a hashtag or a place still move on when you swipe.	Reels'te kaydırmayı durdur açıkken, Arama, Keşfet, bir hashtag veya bir yerden açtığın reel'ler kaydırınca yine ilerler.
+Still scroll reels from a song page	Şarkı sayfasından açılan reel'lerde kaydırmaya devam et
+With Stop Reels scrolling on, reels you open from a song or audio page still move on when you swipe.	Reels'te kaydırmayı durdur açıkken, bir şarkı veya ses sayfasından açtığın reel'ler kaydırınca yine ilerler.
 A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	Reels'te kaydırmak artık sonraki reels'e geçmez, aşağı çekmek de yenilerini yüklemez. Açtığın reels oynamaya devam eder. Değişikliği görmek için Instagram'ı yeniden başlat.
 Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	Bir reel'i 2x'te kilitle (kenarını basılı tut, sonra aşağı kaydır), sonraki reels'ler de 2x oynar. Normal hıza dönmek için kilidi kaydırıp kaldır ya da kenarı basılı tutup bırak.
 Open links in external browser	Bağlantıları harici tarayıcıda aç

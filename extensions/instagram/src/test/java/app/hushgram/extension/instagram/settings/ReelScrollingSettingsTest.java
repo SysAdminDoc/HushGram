@@ -27,6 +27,7 @@ import org.robolectric.shadows.ShadowLooper;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
@@ -42,6 +43,9 @@ public class ReelScrollingSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.STOP_REELS_SCROLLING.resetToDefault();
+        Settings.REEL_SCROLL_FROM_PROFILE.resetToDefault();
+        Settings.REEL_SCROLL_FROM_SEARCH.resetToDefault();
+        Settings.REEL_SCROLL_FROM_AUDIO.resetToDefault();
         Settings.REEL_CAP.resetToDefault();
         Settings.REEL_CAP_COUNT.resetToDefault();
         Settings.REEL_CAP_BREAK.resetToDefault();
@@ -55,6 +59,9 @@ public class ReelScrollingSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.STOP_REELS_SCROLLING.resetToDefault();
+        Settings.REEL_SCROLL_FROM_PROFILE.resetToDefault();
+        Settings.REEL_SCROLL_FROM_SEARCH.resetToDefault();
+        Settings.REEL_SCROLL_FROM_AUDIO.resetToDefault();
         Settings.REEL_CAP.resetToDefault();
         Settings.REEL_CAP_COUNT.resetToDefault();
         Settings.REEL_CAP_BREAK.resetToDefault();
@@ -80,7 +87,8 @@ public class ReelScrollingSettingsTest {
         assertEquals("Stop Reels scrolling", row.getTitle().toString());
         assertFalse(row.isChecked());
         assertFalse(Settings.STOP_REELS_SCROLLING.get());
-        assertEquals(java.util.Arrays.asList(Settings.STOP_REELS_SCROLLING, Settings.REEL_CAP), PatchFamily.REEL_SCROLLING.switches);
+        assertEquals(java.util.Arrays.asList(Settings.STOP_REELS_SCROLLING, Settings.REEL_SCROLL_FROM_PROFILE,
+                Settings.REEL_SCROLL_FROM_SEARCH, Settings.REEL_SCROLL_FROM_AUDIO, Settings.REEL_CAP), PatchFamily.REEL_SCROLLING.switches);
         SwitchPreference cap = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REEL_CAP.key);
         assertNotNull(cap);
         assertEquals("Stop after a set number of reels", cap.getTitle().toString());
@@ -100,6 +108,34 @@ public class ReelScrollingSettingsTest {
         PauseForTests.resume();
         assertTrue(Settings.STOP_REELS_SCROLLING.get());
         assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+    }
+
+    /**
+     * The three viewers you can keep scrolling (#508) sit right under Stop Reels scrolling, start off,
+     * rest until it's on, need no restart and are kept in a backup.
+     */
+    @Test public void theViewersYouCanKeepScrollingSitUnderTheStop() throws Exception {
+        open(true);
+        BooleanSetting[] kept = {Settings.REEL_SCROLL_FROM_PROFILE, Settings.REEL_SCROLL_FROM_SEARCH, Settings.REEL_SCROLL_FROM_AUDIO};
+        String[] titles = {"Still scroll reels from a profile", "Still scroll reels from Search and Explore", "Still scroll reels from a song page"};
+        SwitchPreference stop = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.STOP_REELS_SCROLLING.key);
+        PreferenceGroup reels = stop.getParent();
+        int under = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            if (Settings.STOP_REELS_SCROLLING.key.equals(reels.getPreference(i).getKey())) under = i;
+        }
+        for (int i = 0; i < kept.length; i++) {
+            SwitchPreference row = (SwitchPreference) reels.getPreference(under + 1 + i);
+            assertEquals(kept[i].key, row.getKey());
+            assertEquals(titles[i], row.getTitle().toString());
+            assertFalse(row.isChecked());
+            assertEquals(Boolean.FALSE, kept[i].defaultValue);
+            assertFalse("read as each viewer opens", kept[i].rebootApp);
+            assertFalse("rests until the stop is on", kept[i].isAvailable());
+            assertTrue(ConfigurationBackup.eligible().containsKey(kept[i].key));
+        }
+        Settings.STOP_REELS_SCROLLING.save(true);
+        for (BooleanSetting setting : kept) assertTrue(setting.isAvailable());
     }
 
     /**

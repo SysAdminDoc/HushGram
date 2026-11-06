@@ -27,6 +27,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -112,6 +113,9 @@ class StopReelsScrollingHookTest {
             classes(stores = 0) to "$stored 0",
             classes(stores = 2) to "$stored 2",
             classes(busyLocals = true) to "$viewerType->onViewCreated has no local register up to v15 that nothing reads after storing its pager",
+            classes(pagerConfigs = 0) to "$pagerImpl holds 0 $VIEWER_CONFIG fields, not one",
+            classes(configClass = false) to "$VIEWER_CONFIG isn't in this build",
+            classes(configSources = 2) to "$VIEWER_CONFIG holds 2 $VIEWER_SOURCE fields, not one",
             classes(pagerClass = false) to "$VIEW_PAGER isn't in this build",
             classes(setterName = "setInputEnabled") to "expected one $SET_USER_INPUT(Z)V in $VIEW_PAGER, found 0",
             classes(setterStatic = true) to "$VIEW_PAGER->$SET_USER_INPUT isn't an instance method with code",
@@ -164,10 +168,34 @@ class StopReelsScrollingHookTest {
         for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
 
+    /**
+     * Every source the extension sorts viewers by is a constant of each declared build's ClipsViewerSource,
+     * so none of the three switches names one that isn't there.
+     */
+    @Test
+    fun theSourcesItSortsByAreInstagrams() {
+        val named = ExtensionDex.classDef(REEL_SCROLLING).methods.single { it.name == "<clinit>" }.code()
+            .mapNotNull { (it.reference() as? StringReference)?.string }
+            .filter { it.matches(Regex("[A-Z][A-Z0-9_]+")) }.toSet()
+        assertTrue("the extension's source names: $named", "PROFILE" in named && "SONG" in named && "HASHTAG" in named)
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        var checked = 0
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                val enum = FixtureDex.classes(bundle, setOf(VIEWER_SOURCE)).getValue(VIEWER_SOURCE)
+                val constants = enum.methods.single { it.name == "<clinit>" }.code()
+                    .mapNotNull { (it.reference() as? StringReference)?.string }.toSet()
+                assertEquals("${bundle.name}: names ClipsViewerSource doesn't have", emptySet<String>(), named - constants)
+                checked++
+            }
+        }
+        assertTrue("no declared build had a fixture", checked > 0)
+    }
+
     private fun builds(bundle: File, label: String) {
         val holders = (FixtureDex.classesHolding(bundle, PAGER_SETUP) + FixtureDex.classesHolding(bundle, ENABLE_SCROLLING))
             .map { it.type }.toSet()
-        val types = holders + VIEW_PAGER + PULL_LAYOUT
+        val types = holders + VIEW_PAGER + PULL_LAYOUT + VIEWER_CONFIG
         for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
             val what = "${label} ($read)"
             val classes = classesOf(bundle, types).values
@@ -185,7 +213,7 @@ class StopReelsScrollingHookTest {
             val viewer = asking.single()
             val code = viewer.code()
             val ask = code.indexOfFirst { it.referenceText() == PAGER_HOOK }
-            val store = code[ask - 1]
+            val store = code[ask - 4]
             assertEquals("$what: the store", Opcode.IPUT_OBJECT, store.opcode)
             assertEquals("$what: the pager's type", VIEW_PAGER, (store.reference() as FieldReference).type)
             val pager = (store as TwoRegisterInstruction).registerA
@@ -199,7 +227,8 @@ class StopReelsScrollingHookTest {
             for ((method, original) in originals) {
                 val added = method.code().indices.flatMap { at ->
                     when (method.code()[at].referenceText()) {
-                        PAGER_HOOK, PULL_HOOK -> (at until at + 5).toList()
+                        PAGER_HOOK -> (at - 3 until at + 5).toList()
+                        PULL_HOOK -> (at until at + 5).toList()
                         USER_INPUT_HOOK -> (at until at + 2).toList()
                         else -> emptyList()
                     }
@@ -209,14 +238,29 @@ class StopReelsScrollingHookTest {
         }
     }
 
-    /** After the store: the hook on the pager, its answer, a skip on 1, and the pager's input turned off with a 0. */
+    /**
+     * After the store: the viewer's source read from the object the pager went into, the hook on the
+     * pager and the source, its answer, a skip on 1, and the pager's input turned off with a 0.
+     */
     private fun assertPagerHeld(what: String, viewer: MutableMethod, pager: Int, answer: Int, after: Opcode) {
         val code = viewer.code()
         val asks = code.indices.filter { code[it].referenceText() == PAGER_HOOK }
         assertEquals("$what: asks about the pager", 1, asks.size)
         val ask = asks.single()
-        assertEquals("$what: right after the store", Opcode.IPUT_OBJECT, code[ask - 1].opcode)
-        assertEquals("$what: on the stored pager", listOf(pager), code[ask].arguments())
+        val store = code[ask - 4] as TwoRegisterInstruction
+        assertEquals("$what: right after the store", Opcode.IPUT_OBJECT, code[ask - 4].opcode)
+        val config = code[ask - 3] as TwoRegisterInstruction
+        assertEquals("$what: reads the config", Opcode.IGET_OBJECT, code[ask - 3].opcode)
+        assertEquals("$what: the config's type", VIEWER_CONFIG, (code[ask - 3].reference() as FieldReference).type)
+        assertEquals("$what: of the object the pager went into", store.registerB, config.registerB)
+        assertEquals("$what: into the free local", answer, config.registerA)
+        assertEquals("$what: a missing config", Opcode.IF_EQZ, code[ask - 2].opcode)
+        assertEquals("$what: a missing config goes to the hook with nothing", ask, viewer.targetOf(ask - 2))
+        val source = code[ask - 1] as TwoRegisterInstruction
+        assertEquals("$what: reads the source", Opcode.IGET_OBJECT, code[ask - 1].opcode)
+        assertEquals("$what: the source's type", VIEWER_SOURCE, (code[ask - 1].reference() as FieldReference).type)
+        assertEquals("$what: of the config", listOf(answer, answer), listOf(source.registerA, source.registerB))
+        assertEquals("$what: on the stored pager and the source", listOf(pager, answer), code[ask].arguments())
         assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[ask + 1].opcode)
         assertEquals("$what: the answer's register", answer, (code[ask + 1] as OneRegisterInstruction).registerA)
         assertNotEquals("$what: the answer isn't the pager", pager, answer)
@@ -228,7 +272,7 @@ class StopReelsScrollingHookTest {
         assertEquals("$what: the input turned off", setUserInput, code[ask + 4].referenceText())
         assertEquals("$what: the input turned off", listOf(pager, answer), code[ask + 4].arguments())
         assertEquals("$what: what came after the store", after, code[ask + 5].opcode)
-        assertTrue("$what: a jump lands inside the hook", (ask..ask + 4).none { it in viewer.jumpTargets() })
+        assertTrue("$what: a jump from outside lands inside the hook", (ask - 3..ask + 4).none { it != ask && it in viewer.jumpTargets() })
     }
 
     /** First in the setter: the hook on `this` and the value, and the answer back in the value's register. */
@@ -247,6 +291,7 @@ class StopReelsScrollingHookTest {
         val code = touch.code()
         val where = "$what: ${touch.name}"
         assertEquals("$where asks first", PULL_HOOK, code[0].referenceText())
+        assertEquals("$where: on the layout", listOf(touch.implementation!!.registerCount - 2), code[0].arguments())
         assertEquals("$where: the answer", Opcode.MOVE_RESULT, code[1].opcode)
         assertEquals("$where: the answer's register", free, (code[1] as OneRegisterInstruction).registerA)
         assertTrue("$where: the answer's register is a local", free < touch.implementation!!.registerCount - 2)
@@ -285,6 +330,9 @@ class StopReelsScrollingHookTest {
         viewers: Int = 1,
         stores: Int = 1,
         busyLocals: Boolean = false,
+        pagerConfigs: Int = 1,
+        configClass: Boolean = true,
+        configSources: Int = 1,
         pagerClass: Boolean = true,
         setterName: String = SET_USER_INPUT,
         setterStatic: Boolean = false,
@@ -309,7 +357,8 @@ class StopReelsScrollingHookTest {
             return-void
         """)
         val enables = (0 until switches).map { if (it == 0) enable else ImmutableMethod.of(renamed(enable, "enableAgain")) }
-        classes += classDef(pagerImpl, enables, fields = listOf("pager" to VIEW_PAGER))
+        classes += classDef(pagerImpl, enables, fields = listOf("pager" to VIEW_PAGER) + (0 until pagerConfigs).map { "config$it" to VIEWER_CONFIG })
+        if (configClass) classes += classDef(VIEWER_CONFIG, emptyList(), fields = (0 until configSources).map { "source$it" to VIEWER_SOURCE })
 
         // v2 holds the pager and is read after the store; v0 and v1 are free there, unless the
         // stand-in keeps every local busy.

@@ -257,6 +257,14 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.STOP_REELS_SCROLLING, L10n.t("Stop Reels scrolling"),
                     L10n.t("A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new "
                             + "ones. The reel you opened still plays. Restart Instagram to see the change.")));
+            reels.add(toggle(context, Settings.REEL_SCROLL_FROM_PROFILE, L10n.t("Still scroll reels from a profile"),
+                    L10n.t("With Stop Reels scrolling on, reels you open from a profile still move on when you swipe.")));
+            reels.add(toggle(context, Settings.REEL_SCROLL_FROM_SEARCH, L10n.t("Still scroll reels from Search and Explore"),
+                    L10n.t("With Stop Reels scrolling on, reels you open from Search, Explore, a hashtag or a place "
+                            + "still move on when you swipe.")));
+            reels.add(toggle(context, Settings.REEL_SCROLL_FROM_AUDIO, L10n.t("Still scroll reels from a song page"),
+                    L10n.t("With Stop Reels scrolling on, reels you open from a song or audio page still move on "
+                            + "when you swipe.")));
             reels.add(toggle(context, Settings.REEL_CAP, L10n.t("Stop after a set number of reels"),
                     L10n.t("After the reels you pick below, swiping in Reels stops until Instagram has been in the "
                             + "background for the time you pick. A reel you open from a message or a post still "

@@ -255,9 +255,9 @@ public class NeutralDefaultsSettingsTest {
      */
     private void assertStockHooks(boolean lockOn) {
         Object pager = new Object();
-        assertEquals(1, ReelScrolling.pager(pager));
+        assertEquals(1, ReelScrolling.pager(pager, null));
         for (int nativeValue : new int[]{0, 1, -7}) assertEquals(nativeValue, ReelScrolling.userInput(pager, nativeValue));
-        assertEquals(1, ReelScrolling.pull());
+        assertEquals(1, ReelScrolling.pull(null));
         assertEquals(1, ProfileHighlights.keepTray());
         Object[] sections = {StockSection.SEARCH_BAR, StockSection.TRAY};
         assertSame(sections, NotesRow.sections(sections));

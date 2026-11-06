@@ -2825,6 +2825,21 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_reels_scrolling", FALSE, true);
 
     /**
+     * Under {@link #STOP_REELS_SCROLLING}: reels opened from a profile still scroll (#508). Read as
+     * each viewer opens, so a change reaches the next one with no restart. Off to start.
+     */
+    public static final BooleanSetting REEL_SCROLL_FROM_PROFILE =
+            new BooleanSetting("hushgram_reel_scroll_from_profile", FALSE, parent(STOP_REELS_SCROLLING));
+
+    /** Under {@link #STOP_REELS_SCROLLING}: reels opened from Search and Explore still scroll (#508). Off to start. */
+    public static final BooleanSetting REEL_SCROLL_FROM_SEARCH =
+            new BooleanSetting("hushgram_reel_scroll_from_search", FALSE, parent(STOP_REELS_SCROLLING));
+
+    /** Under {@link #STOP_REELS_SCROLLING}: reels opened from a song or audio page still scroll (#508). Off to start. */
+    public static final BooleanSetting REEL_SCROLL_FROM_AUDIO =
+            new BooleanSetting("hushgram_reel_scroll_from_audio", FALSE, parent(STOP_REELS_SCROLLING));
+
+    /**
      * A left swipe on a reel opens its creator's profile ({@link app.hushgram.extension.instagram.reels.SwipeToProfile}),
      * as older Instagram builds did. The swipe setup reads it once to build the profile panel, so a
      * change takes a restart. Off to start.

@@ -39,13 +39,17 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private const val PATCH = "Stop Reels scrolling"
 internal const val REEL_SCROLLING = "$EXTENSION_PACKAGE/reels/ReelScrolling;"
-internal const val PAGER_HOOK = "$REEL_SCROLLING->pager(Ljava/lang/Object;)I"
+internal const val PAGER_HOOK = "$REEL_SCROLLING->pager(Ljava/lang/Object;Ljava/lang/Object;)I"
 internal const val USER_INPUT_HOOK = "$REEL_SCROLLING->userInput(Ljava/lang/Object;I)I"
-internal const val PULL_HOOK = "$REEL_SCROLLING->pull()I"
+internal const val PULL_HOOK = "$REEL_SCROLLING->pull(Ljava/lang/Object;)I"
 
 /** AndroidX's pager, which Instagram keeps by name along with its public setter. */
 internal const val VIEW_PAGER = "Landroidx/viewpager2/widget/ViewPager2;"
 internal const val SET_USER_INPUT = "setUserInputEnabled"
+
+/** What a viewer was opened with, and where from. Both keep their names, and the source its constants'. */
+internal const val VIEWER_CONFIG = "Lcom/instagram/clips/intf/ClipsViewerConfig;"
+internal const val VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
 /** The pull-down layout around the Reels viewer, named in Instagram's layouts so its name stays. */
 internal const val PULL_LAYOUT = "Linstagram/features/clips/viewer/ui/ClipsSwipeRefreshLayout;"
@@ -69,8 +73,9 @@ private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 @Suppress("unused")
 val stopReelsScrollingPatch = bytecodePatch(
     name = "Stop Reels scrolling",
-    description = "Stops a swipe in Reels from moving to the next reel, so you stay on the one you opened. A " +
-        "second switch stops swiping after as many reels as you pick, for as long as you pick, and Take a " +
+    description = "Stops a swipe in Reels from moving to the next reel, so you stay on the one you opened, with " +
+        "switches that leave reels from a profile, Search and Explore or a song page free to scroll. Another " +
+        "switch stops swiping after as many reels as you pick, for as long as you pick, and Take a " +
         "scroll break covers Home, Reels and Explore for 5 minutes after the time you pick. Starts off. Turn " +
         "it on in HushGram settings > Reels.",
     default = true,
@@ -107,9 +112,10 @@ internal object ReelsPagerEnableFingerprint : Fingerprint(
 )
 
 /**
- * Where the three hooks go: after the viewer's store of its pager, with the pager's register and
- * a free local there; in front of the pager's setter, with the register of its `this`; and at the
- * start of each of the pull-down layout's touch handlers, with a free local in each.
+ * Where the three hooks go: after the viewer's store of its pager, with the pager's register, the
+ * register of the object it's stored in, that object's viewer config field, the config's source
+ * field and a free local there; in front of the pager's setter, with the register of its `this`; and
+ * at the start of each of the pull-down layout's touch handlers, with a free local in each.
  */
 internal class ReelsScrollingSite(
     val viewer: String,
@@ -117,6 +123,9 @@ internal class ReelsScrollingSite(
     val parameters: List<String>,
     val store: Int,
     val pager: Int,
+    val holder: Int,
+    val config: String,
+    val source: String,
     val answer: Int,
     val setterSelf: Int,
     val touches: Map<String, Int>,
@@ -129,7 +138,8 @@ internal class ReelsScrollingSite(
  *
  * The Reels pager is the [VIEW_PAGER] field its own [ENABLE_SCROLLING] switch reads, and the
  * viewer's onViewCreated stores it once. AndroidX's [SET_USER_INPUT] stores its parameter in one
- * field. The pull-down layout declares both [PULL_TOUCHES] itself.
+ * field. The pull-down layout declares both [PULL_TOUCHES] itself. The object the pager is stored in
+ * holds one [VIEWER_CONFIG], and that holds one [VIEWER_SOURCE].
  */
 internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
     val enable = uniqueMethod(PATCH, "Reels pager switch holding \"$ENABLE_SCROLLING\"", ReelsPagerEnableFingerprint)
@@ -153,6 +163,13 @@ internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
     if (store + 1 !in code.indices) refuse("$where ends at its store of $field")
     // An iput names v15 at most, so the pager's register fits the hook's invokes as it is.
     val pager = (code[store] as TwoRegisterInstruction).registerA
+    val holder = (code[store] as TwoRegisterInstruction).registerB
+    val owner = code[store].fieldReference()!!.definingClass
+    val configs = classDefByOrNull(owner)?.fields?.filter { it.type == VIEWER_CONFIG && !AccessFlags.STATIC.isSet(it.accessFlags) }.orEmpty()
+    val config = configs.singleOrNull() ?: refuse("$owner holds ${configs.size} $VIEWER_CONFIG fields, not one")
+    val configClass = classDefByOrNull(VIEWER_CONFIG) ?: refuse("$VIEWER_CONFIG isn't in this build")
+    val sources = configClass.fields.filter { it.type == VIEWER_SOURCE && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val source = sources.singleOrNull() ?: refuse("$VIEWER_CONFIG holds ${sources.size} $VIEWER_SOURCE fields, not one")
     // Not the pager's own register, which the hook reads after writing the answer.
     val live = viewer.liveAcrossInjection(store + 1)
     val free = (0 until minOf(viewer.localRegisterCount(), 16)).filter { it !in live && it != pager }
@@ -173,7 +190,10 @@ internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
         }
         handler.freeLocalsAt(PATCH, 0, 1).single()
     }
-    return ReelsScrollingSite(viewer.definingClass, viewer.name, viewer.parameterTypes.map(CharSequence::toString), store, pager, answer, setterSelf, touches, field)
+    return ReelsScrollingSite(
+        viewer.definingClass, viewer.name, viewer.parameterTypes.map(CharSequence::toString), store, pager, holder,
+        "$owner->${config.name}:$VIEWER_CONFIG", "$VIEWER_CONFIG->${source.name}:$VIEWER_SOURCE", answer, setterSelf, touches, field,
+    )
 }
 
 /**
@@ -206,11 +226,11 @@ private fun findSetter(pagerClass: ClassDef): Int {
 /**
  * Writes the three hooks, everything having been found first.
  *
- * After the viewer stores its pager, [PAGER_HOOK] gets the pager, and on a 0 the pager's input is
- * turned off. In front of everything in [SET_USER_INPUT], [USER_INPUT_HOOK] gets the pager and the
- * value as an int and hands back the value the setter stores. At the start of each touch handler of
- * the pull-down layout, [PULL_HOOK] answers 0 to have it return false and let the touch go by, and
- * 1 to run it as before.
+ * After the viewer stores its pager, [PAGER_HOOK] gets the pager and where the viewer was opened
+ * from, and on a 0 the pager's input is turned off. In front of everything in [SET_USER_INPUT],
+ * [USER_INPUT_HOOK] gets the pager and the value as an int and hands back the value the setter stores.
+ * At the start of each touch handler of the pull-down layout, [PULL_HOOK] gets the layout and answers
+ * 0 to have it return false and let the touch go by, and 1 to run it as before.
  */
 internal fun BytecodePatchContext.stopReelsScrolling(site: ReelsScrollingSite) {
     val viewer = mutableClassDefBy(site.viewer).methods.single {
@@ -224,7 +244,11 @@ internal fun BytecodePatchContext.stopReelsScrolling(site: ReelsScrollingSite) {
     viewer.addInstructionsWithLabels(
         store + 1,
         """
-            invoke-static { v$pager }, $PAGER_HOOK
+            iget-object v$answer, v${site.holder}, ${site.config}
+            if-eqz v$answer, :source
+            iget-object v$answer, v$answer, ${site.source}
+            :source
+            invoke-static { v$pager, v$answer }, $PAGER_HOOK
             move-result v$answer
             if-nez v$answer, :keep
             const/4 v$answer, 0x0
@@ -255,7 +279,7 @@ internal fun BytecodePatchContext.stopReelsScrolling(site: ReelsScrollingSite) {
         handler.addInstructionsWithLabels(
             0,
             """
-                invoke-static { }, $PULL_HOOK
+                invoke-static/range { p0 .. p0 }, $PULL_HOOK
                 move-result v$free
                 if-nez v$free, :stock
                 const/4 v$free, 0x0

@@ -288,6 +288,13 @@ Once you turn on Instagram's auto scroll in Reels, it stays on after a restart o
 Move on when a reel ends	Reel 結束後播放下一則
 When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.	Reel 結束後會切換至下一則，而非重播。使用 Instagram 本身的自動捲動，即使帳號未提供此功能也適用。啟用期間，Instagram 的「自動捲動」開關無法將其關閉。請重新啟動 Instagram 以套用變更。
 Stop Reels scrolling	停用 Reels 捲動
+# context: Reels page, the three switches under Stop Reels scrolling. They name that switch by its label, and each lets one kind of viewer keep scrolling.
+Still scroll reels from a profile	從個人檔案開啟的 Reels 仍可捲動
+With Stop Reels scrolling on, reels you open from a profile still move on when you swipe.	開啟「停用 Reels 捲動」時，從個人檔案開啟的 Reels 滑動時仍會切換。
+Still scroll reels from Search and Explore	從搜尋和探索開啟的 Reels 仍可捲動
+With Stop Reels scrolling on, reels you open from Search, Explore, a hashtag or a place still move on when you swipe.	開啟「停用 Reels 捲動」時，從搜尋、探索、主題標籤或地點開啟的 Reels 滑動時仍會切換。
+Still scroll reels from a song page	從歌曲頁面開啟的 Reels 仍可捲動
+With Stop Reels scrolling on, reels you open from a song or audio page still move on when you swipe.	開啟「停用 Reels 捲動」時，從歌曲或音訊頁面開啟的 Reels 滑動時仍會切換。
 A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	在 Reels 滑動不再切換至下一則，下拉也不會載入新影片。已開啟的 Reel 仍會播放。請重新啟動 Instagram 以套用變更。
 Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	將 Reel 鎖定為 2 倍速（按住邊緣後向下滑動），之後的 Reels 也會以 2 倍速播放。滑動解除鎖定，或按住邊緣後放開，即可恢復正常速度。
 Open links in external browser	在外部瀏覽器中開啟連結
