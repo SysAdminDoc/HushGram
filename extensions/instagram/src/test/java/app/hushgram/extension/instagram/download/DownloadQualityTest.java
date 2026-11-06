@@ -127,6 +127,52 @@ public class DownloadQualityTest {
         assertSame(DashManifest.bestVideo(tracks, true), DashManifest.pickVideo(tracks, true, null));
     }
 
+    private static DashManifest.Track atRate(String codecs, int shortSide, long bandwidth, int frameRate) {
+        return new DashManifest.Track("video/mp4", codecs, shortSide, shortSide * 16 / 9, bandwidth,
+                "https://video.xx.fbcdn.net/v/" + codecs + "-" + frameRate + ".mp4", 0, false, frameRate);
+    }
+
+    /** At one size the smoother picture is the better save (#348), and only a bigger picture beats it. */
+    @Test
+    public void atOneSizeTheBestTakesTheHigherFrameRate() {
+        DashManifest.Track h264At30 = atRate("avc1.640028", 1080, 6_000_000, 30);
+        DashManifest.Track vp9At60 = atRate("vp09.00.41.08", 1080, 4_000_000, 60);
+        assertSame(vp9At60, DashManifest.bestVideo(Arrays.asList(h264At30, vp9At60), false));
+        assertSame(vp9At60, DashManifest.bestVideo(Arrays.asList(vp9At60, h264At30), false));
+        // A bigger picture still wins, and a frame rate only one track states doesn't change the order.
+        DashManifest.Track bigger = atRate("avc1.640033", 1440, 9_000_000, 30);
+        assertSame(bigger, DashManifest.bestVideo(Arrays.asList(vp9At60, bigger), false));
+        DashManifest.Track unstated = atRate("avc1.640028", 1080, 5_000_000, 0);
+        assertSame(unstated, DashManifest.bestVideo(Arrays.asList(vp9At60, unstated), false));
+        // AV1 the phone can't write stays out, however smooth.
+        DashManifest.Track av1At60 = atRate("av01.0.08M.08", 1080, 3_000_000, 60);
+        assertSame(h264At30, DashManifest.bestVideo(Arrays.asList(h264At30, av1At60), false));
+        // Rates that round alike are one rate, so the family decides.
+        DashManifest.Track h264At2997 = atRate("avc1.640028", 1080, 5_000_000, 30);
+        DashManifest.Track vp9At30 = atRate("vp09.00.41.08", 1080, 7_000_000, 30);
+        assertSame(h264At2997, DashManifest.bestVideo(Arrays.asList(vp9At30, h264At2997), false));
+    }
+
+    @Test
+    public void aFrameRateIsReadFromTheTrackOrItsSet() throws IOException {
+        assertEquals(30, DashManifest.frameRate("30"));
+        assertEquals(30, DashManifest.frameRate("30000/1001"));
+        assertEquals(24, DashManifest.frameRate("11988/500"));
+        assertEquals(60, DashManifest.frameRate(" 60 "));
+        for (String nonsense : new String[] {null, "", "fast", "30/0", "0/0", "-30", "1/", "/2", "100000"}) {
+            assertEquals("" + nonsense, 0, DashManifest.frameRate(nonsense));
+        }
+        // The captured manifest writes it on the adaptation set.
+        for (DashManifest.Track track : DashManifest.parse(resource("meta-public-dash.mpd"))) {
+            if (track.isVideo()) assertEquals(track.toString(), 24, track.frameRate);
+        }
+        String own = "<MPD><Period><AdaptationSet contentType=\"video\" frameRate=\"30\">"
+            + "<Representation mimeType=\"video/mp4\" codecs=\"vp09.00.41.08\" width=\"1080\" height=\"1920\" "
+            + "bandwidth=\"1\" frameRate=\"60\"><BaseURL>https://video.xx.fbcdn.net/v/a.mp4</BaseURL></Representation>"
+            + "</AdaptationSet></Period></MPD>";
+        assertEquals(60, DashManifest.parse(own).get(0).frameRate);
+    }
+
     @Test
     public void aTrackWithNoLabelIsHeldToItsShortSide() {
         DashManifest.Track tall = track("avc1.64001f", 1080, 1920, 3_000_000, 0);

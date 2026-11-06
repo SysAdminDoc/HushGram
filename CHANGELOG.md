@@ -73,6 +73,7 @@ Every HushGram release, newest first.
 * `Report a problem` no longer leaves a stray question mark when it has to shorten a very long phone name with emoji in it.
 * On a phone with no browser, `Report a problem`, `Source code and issues` and `Support HushGram` say so and then show their address in a second toast. With both in one toast, the end of the address got cut off.
 * VP9 and AV1 reels whose only sound in the manifest is xHE-AAC now save at full quality. The join couldn't read the post's plain video file, where their sound comes from, so they fell back to the 720p copy. Refs #496.
+* At the best download quality, a 60fps video now beats a 30fps one of the same size, even in another format. Reported in #348.
 * `Import settings` lets you pick any file. A settings file from a chat or a download often carries some other type, and the picker used to grey it out. A file that isn't a settings file is still refused.
 * In Morphe Manager's patch list, `Control taps and volume on Reels` now sits under Playback next to its switches, and `Hide rows in Instagram's settings` under Settings, so no group runs past 16 patches.
 * The chat preview bubble, the story mentions sheet and its Close button use the same corners as the rest of HushGram. The friendship chip and the carousel arrows aren't round pills anymore.
