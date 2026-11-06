@@ -157,8 +157,10 @@ public final class PostFullScreen {
             video.setAudioFocusRequest(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
             video.setOnPreparedListener(this::prepared);
             video.setOnErrorListener((player, what, extra) -> failed());
-            root.addView(video, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+            // Given the whole screen, a VideoView fits itself to it and keeps the video's shape. Asked to
+            // wrap its content it stops at the file's own size, a third short of full screen on a 720p file.
+            root.addView(video, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER));
 
             spinner = new ProgressBar(activity);
             spinner.setIndeterminateTintList(ColorStateList.valueOf(Color.WHITE));

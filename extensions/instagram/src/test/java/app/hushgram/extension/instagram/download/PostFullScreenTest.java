@@ -182,6 +182,13 @@ public class PostFullScreenTest {
     }
 
     @Test
+    public void theVideoIsGivenTheWholeScreenToFitItselfTo() {
+        PostFullScreen.VideoScreen screen = playing();
+        assertEquals(android.view.ViewGroup.LayoutParams.MATCH_PARENT, screen.video.getLayoutParams().width);
+        assertEquals(android.view.ViewGroup.LayoutParams.MATCH_PARENT, screen.video.getLayoutParams().height);
+    }
+
+    @Test
     public void aPhotoShowsThePictureItsGivenAndATapClosesIt() {
         BitmapDrawable picture = new BitmapDrawable(activity.getResources(), Bitmap.createBitmap(30, 40, Bitmap.Config.ARGB_8888));
         assertTrue(PostFullScreen.photo(activity, picture));
