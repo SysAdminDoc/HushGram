@@ -249,12 +249,16 @@ public final class StoryDownload {
         return savePhoto(context, media);
     }
 
-    /** Starts the save of [media]'s picture, at its largest size, even when it has a video too. */
+    /**
+     * Starts the save of [media]'s picture, at its largest size, even when it has a video too, whose
+     * first frame saves when that's larger ({@link MediaSave#saveStoryPicture}).
+     */
     private static boolean savePhoto(Context context, Object media) {
         List<MediaSave.Rendition> pictures = pictures(media);
         final int sizes = pictures.size();
         Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "story photo download tapped: " + sizes + " size(s)");
-        return MediaSave.savePhoto(context, pictures, details(media));
+        return MediaSave.saveStoryPicture(context, pictures, ReelDownload.renditions(media),
+                InstagramMedia.dashManifest(media), details(media));
     }
 
     /** A story has a numeric story URL, not a public post shortcode. */

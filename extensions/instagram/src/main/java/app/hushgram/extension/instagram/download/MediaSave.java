@@ -448,11 +448,10 @@ public final class MediaSave {
     }
 
     /**
-     * Save a photo: the largest of [renditions], the candidates the app lists for one picture. A
-     * thumbnail's address loses outright ({@link RenditionPicker#imageTier}), unless every address
-     * names its size, when the largest of those saves ({@link #pictureOf}). [details] names and
-     * files it as a video's do, or null: without Name saves by account and post time, a photo's
-     * name is {@link FileNameTemplate#PHOTO_PREFIX} and the time.
+     * Save a photo: the largest of [renditions], the candidates the app lists for one picture, by
+     * the sizes it states ({@link #pictureOf}). [details] names and files it as a video's do, or
+     * null: without Name saves by account and post time, a photo's name is
+     * {@link FileNameTemplate#PHOTO_PREFIX} and the time.
      *
      * @return whether a save started. Never throws.
      */
@@ -526,28 +525,61 @@ public final class MediaSave {
             PostDetails details) {
         try {
             Rendition still = null;
-            for (Rendition rendition : metaOnly(usable(cover.sizes))) {
+            List<Rendition> stills = metaOnly(usable(cover.sizes));
+            for (Rendition rendition : stills) {
                 if (still == null || biggerPicture(rendition, still)) still = rendition;
             }
             Rendition video = still == null || !cover.firstFrame() ? null : CoverFrame.source(videos, manifest, still);
             if (video == null) return savePictureBySize(context, cover.sizes, details);
-            Context safe = ready(context);
-            if (safe == null) return false;
-            Rendition shown = still;
-            info(() -> "the cover is the first frame, taking it from the video at " + video.width + "x" + video.height
-                + " over the still at " + shown.width + "x" + shown.height);
-            Job stillJob = fileJob(safe, still.url, Downloader.Kind.IMAGE);
-            return startPicture(safe, details, (writer, progress) -> {
-                Downloader.Result result = CoverFrame.save(safe, video, writer, policyFor(safe), cap(), progress);
-                if (result.ok() || result.status == Downloader.Status.CANCELLED) return result;
-                HookStatus.counted(FamilyNames.REEL_DOWNLOAD, CoverFrame.FRAME_FAILED);
-                failure(() -> "the cover frame ended with " + result + ", saving the still as it is", null);
-                return stillJob.run(writer, progress);
-            }) != null;
+            return saveFrame(context, video, still, stills, details, FamilyNames.REEL_DOWNLOAD, "cover");
         } catch (Throwable t) {
             failure(() -> "the cover save could not start", t);
             return false;
         }
+    }
+
+    /**
+     * Save the picture of a story that has a video, for Download as photo. Instagram lists it at 640
+     * wide most of the time while the video is 1080 (#214), so when [videos] or [manifest] has a
+     * larger picture of the same shape, its first frame saves instead, and the largest of [sizes]
+     * should that fail. Of another shape the video isn't this picture: a photo with music can sit on
+     * a background. [videos] and [manifest] may be null.
+     *
+     * @return whether a save started. Never throws.
+     */
+    static boolean saveStoryPicture(Context context, List<Rendition> sizes, List<Rendition> videos, String manifest,
+            PostDetails details) {
+        try {
+            List<Rendition> found = metaOnly(usable(sizes));
+            Rendition still = pictureOf(found);
+            Rendition video = still == null ? null : CoverFrame.sameShapeSource(videos, manifest, still);
+            if (video == null) return savePhoto(context, sizes, details);
+            return saveFrame(context, video, still, found, details, FamilyNames.STORY_DOWNLOAD, "story picture");
+        } catch (Throwable t) {
+            failure(() -> "the story picture save could not start", t);
+            return false;
+        }
+    }
+
+    /**
+     * Save [video]'s first frame in place of [still], or [still] when the frame fails. [name] is what
+     * the report calls the picture, and [family] what the frame is counted under.
+     */
+    private static boolean saveFrame(Context context, Rendition video, Rendition still, List<Rendition> sizes,
+            PostDetails details, String family, String name) {
+        Context safe = ready(context);
+        if (safe == null) return false;
+        info(() -> "the " + name + " is the first frame, taking it from the video at " + video.width + "x" + video.height
+            + " over the still at " + still.width + "x" + still.height
+            + ", from " + sizes.size() + " candidate(s): " + picturesOf(sizes));
+        Job stillJob = fileJob(safe, still.url, Downloader.Kind.IMAGE);
+        return startPicture(safe, details, (writer, progress) -> {
+            Downloader.Result result = CoverFrame.save(safe, video, writer, policyFor(safe), cap(), progress, family);
+            if (result.ok() || result.status == Downloader.Status.CANCELLED) return result;
+            HookStatus.counted(family, CoverFrame.FRAME_FAILED);
+            failure(() -> "the " + name + " frame ended with " + result + ", saving the still as it is", null);
+            return stillJob.run(writer, progress);
+        }) != null;
     }
 
     /**
@@ -589,17 +621,24 @@ public final class MediaSave {
     }
 
     /**
-     * The picture a photo save fetches of [renditions], all on Meta's media servers: the largest
-     * that isn't a thumbnail ({@link RenditionPicker#pickImage}), or when every picture's address
-     * names its size, as on a phone whose screen is 720 pixels wide, the largest of those by
-     * {@link #biggerPicture}. They're the sizes of the one picture on screen, and before that
-     * the save failed with nothing to save (#261). Null when there's no picture.
+     * The picture a photo save fetches of [renditions], all on Meta's media servers: the one that
+     * states the most pixels. They're the sizes of the one picture on screen, so what the app states
+     * beats what an address looks like: a 3072x4096 whose address names its size is the photo, not a
+     * thumbnail, and 1080x1440 beats its own 1080x1080 crop (#500). An address that names less than
+     * its stated size is a thumbnail, though, and one that states nothing can't be weighed, so
+     * {@link RenditionPicker#pickImage}'s pick stands when it states nothing. When every address
+     * names its size, as on a phone whose screen is 720 pixels wide, the largest saves, where the
+     * save once failed with nothing to save (#261). Null when there's no picture.
      */
     static Rendition pictureOf(List<Rendition> renditions) {
-        Rendition image = RenditionPicker.pickImage(renditions);
-        if (image != null) return image;
+        Rendition pick = RenditionPicker.pickImage(renditions);
+        if (pick != null && pixels(pick) == 0) return pick;
+        Rendition image = pick;
         for (Rendition rendition : renditions) {
-            if (rendition == null || !RenditionPicker.namesASize(rendition.url)) continue;
+            if (rendition == null) continue;
+            boolean sized = RenditionPicker.namesASize(rendition.url);
+            if (!sized && RenditionPicker.imageTier(rendition.url) == RenditionPicker.TIER_NONE) continue;
+            if (pick != null && sized && RenditionPicker.qualityOf(rendition.url) < rendition.declaredShortSide()) continue;
             if (image == null || biggerPicture(rendition, image)) image = rendition;
         }
         return image;
@@ -686,24 +725,38 @@ public final class MediaSave {
     /**
      * The report line of a single file's save: [chosen] and every candidate of [renditions]. Every
      * one, so a saved file that is smaller than expected can be told apart from a ranking that chose
-     * badly. Each as its kind of file and quality, never its name or address: a whole address is a
-     * signed, working handle to the user's content, a CDN file name carries the object's id, and
-     * the report is pasted into public issues. [better] is the manifest's picture the file is
-     * below, or null.
+     * badly. Each as its kind of file and quality, or a picture's whole stated size, never its name
+     * or address: a whole address is a signed, working handle to the user's content, a CDN file name
+     * carries the object's id, and the report is pasted into public issues. [better] is the
+     * manifest's picture the file is below, or null.
      */
     private static void saving(boolean isVideo, Rendition chosen, List<Rendition> renditions, DownloadQuality quality,
             Dash dash, DashManifest.Track better) {
         StringBuilder all = new StringBuilder();
-        for (Rendition rendition : renditions) {
-            if (all.length() > 0) all.append(", ");
-            all.append(describe(rendition));
+        if (isVideo) {
+            for (Rendition rendition : renditions) {
+                if (all.length() > 0) all.append(", ");
+                all.append(describe(rendition));
+            }
+        } else {
+            all.append(picturesOf(renditions));
         }
 
         final int candidates = renditions.size();
         info(() -> "saving " + (isVideo ? "video" : "image")
-            + " " + describe(chosen)
+            + " " + (isVideo ? describe(chosen) : describePicture(chosen))
             + " from " + candidates + " candidate(s): " + all
             + (isVideo ? qualityNote(quality) + singleFileNote(dash) + belowNote(better) : ""));
+    }
+
+    /** Every one of [renditions] by {@link #describePicture}, for a report line. */
+    private static String picturesOf(List<Rendition> renditions) {
+        StringBuilder all = new StringBuilder();
+        for (Rendition rendition : renditions) {
+            if (all.length() > 0) all.append(", ");
+            all.append(describePicture(rendition));
+        }
+        return all.toString();
     }
 
     /** What the report adds to a save line whose picture is below the manifest's [better], or nothing. */
@@ -1690,7 +1743,20 @@ public final class MediaSave {
 
     /** As above, with the size the app stated for it, when it did, as its quality. */
     static String describe(Rendition rendition) {
-        String url = rendition.url;
+        int quality = RenditionPicker.qualityOf(rendition);
+        return extensionOf(rendition.url) + " (" + (quality > 0 ? quality + "p" : "unknown") + ")";
+    }
+
+    /**
+     * As above for a picture, with both sides of the size the app stated, so a report tells a photo
+     * from its crop of one width and shows what the server listed (#500).
+     */
+    static String describePicture(Rendition rendition) {
+        if (pixels(rendition) == 0) return describe(rendition);
+        return extensionOf(rendition.url) + " (" + rendition.width + "x" + rendition.height + ")";
+    }
+
+    private static String extensionOf(String url) {
         int query = url.indexOf('?');
         String withoutQuery = query < 0 ? url : url.substring(0, query);
 
@@ -1698,9 +1764,6 @@ public final class MediaSave {
         String file = slash < 0 ? withoutQuery : withoutQuery.substring(slash + 1);
         int dot = file.lastIndexOf('.');
         String extension = dot < 0 ? "" : file.substring(dot + 1).toLowerCase(Locale.US);
-        if (!extension.matches("[a-z0-9]{1,5}")) extension = "file";
-
-        int quality = RenditionPicker.qualityOf(rendition);
-        return extension + " (" + (quality > 0 ? quality + "p" : "unknown") + ")";
+        return extension.matches("[a-z0-9]{1,5}") ? extension : "file";
     }
 }

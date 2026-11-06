@@ -175,6 +175,8 @@ Every HushGram release, newest first.
 * The `Blur the bars around Reels` summary says the blur only shows where a reel leaves room. The share sheet's button list says Reply to author is on posts and reels, and Download profile card on profiles. From #492.
 * With `Gray out stories you've watched` on, a story you've watched all the way through keeps its place in the tray until you pull to refresh or restart. A longer watch could still send it to the back. Reported in #377.
 * `Mark who doesn't follow you back` gives the mark a second line on your Following list, so the Message button can't cut it short. Reported in #351.
+* A saved photo is now the largest size Instagram lists. A bigger size could lose to a smaller one because of how its address looked, and a report names every size listed. Reported in #500.
+* `Download as photo` on a video story saves the video's first frame when Instagram's picture is smaller and the same shape, so 640x1136 becomes 1080x1920. Reported in #214.
 
 ## 0.0.18 (2026-10-31)
 

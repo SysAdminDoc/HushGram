@@ -581,6 +581,75 @@ public class CarouselSaveTest {
     }
 
     /**
+     * #500: the size the app states decides a photo. A 3072x4096 whose address names its size, one
+     * with no picture suffix and a photo over its own crop of one width all beat the smaller file an
+     * address alone would have picked, and the report names every size of what the server listed.
+     */
+    @Test public void aPhotoSavesItsLargestStatedSizeWhateverItsAddressLooksLike() throws Exception {
+        server.serve("/1080.jpg", "image/jpeg", body(false));
+        server.serve("/3072.jpg", "image/jpeg", body(false));
+        MediaSave.Rendition usual = new MediaSave.Rendition(server.origin() + "/1080.jpg?stp=dst-jpg_e35_tt6", 1080, 1440, 0);
+        MediaSave.Rendition named = new MediaSave.Rendition(server.origin() + "/3072.jpg?stp=dst-jpg_s3072x4096", 3072, 4096, 0);
+        assertSame("the address alone picks the smaller one", usual, RenditionPicker.pickImage(Arrays.asList(usual, named)));
+        assertTrue(MediaSave.savePhoto(context, Arrays.asList(usual, named), PostDetails.of("7")));
+        waitForSaves();
+        assertEquals(1, server.hits("/3072.jpg")); assertEquals(0, server.hits("/1080.jpg"));
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("saving image jpg (3072x4096) from 2 candidate(s): jpg (1080x1440), jpg (3072x4096)"));
+
+        String meta = "https://scontent-lga3-1.cdninstagram.com/v/t51.2885-15/";
+        MediaSave.Rendition bare = new MediaSave.Rendition(meta + "up_n?oh=1&oe=2", 1440, 1800, 0);
+        MediaSave.Rendition jpeg = new MediaSave.Rendition(meta + "up_n.jpg?oh=1&oe=2", 1080, 1350, 0);
+        assertSame(bare, MediaSave.pictureOf(Arrays.asList(jpeg, bare)));
+
+        // A's address sorts first, so a tie on the short side would have saved the crop.
+        MediaSave.Rendition crop = new MediaSave.Rendition(meta + "a.jpg?oh=1&oe=2", 1080, 1080, 0);
+        MediaSave.Rendition whole = new MediaSave.Rendition(meta + "b.jpg?oh=1&oe=2", 1080, 1440, 0);
+        assertSame(whole, MediaSave.pictureOf(Arrays.asList(crop, whole)));
+
+        // An address that asks for less than it states stays a thumbnail.
+        MediaSave.Rendition lying = new MediaSave.Rendition(meta + "c.jpg?stp=dst-jpg_s150x150", 3000, 3000, 0);
+        assertSame(whole, MediaSave.pictureOf(Arrays.asList(lying, whole)));
+        assertClean();
+    }
+
+    /**
+     * #214: Download as photo on a video story saved Instagram's 640x1136 still while the video was
+     * 1080x1920. The video's first frame saves now, and the report lists the sizes.
+     */
+    @Test public void aStoryPictureSmallerThanItsVideoIsTakenFromTheVideo() throws Exception {
+        server.serve("/s/up_1_n.jpg", "image/jpeg", body(false));
+        server.serve("/1080.mp4", "video/mp4", body(true));
+        CoverFrame.firstFrameForTests = file -> android.graphics.Bitmap.createBitmap(1080, 1920, android.graphics.Bitmap.Config.ARGB_8888);
+        assertTrue(MediaSave.saveStoryPicture(context,
+                Collections.singletonList(new MediaSave.Rendition(server.origin() + "/s/up_1_n.jpg", 640, 1136, 0)),
+                Collections.singletonList(new MediaSave.Rendition(server.origin() + "/1080.mp4", 1080, 1920, 0)),
+                null, PostDetails.of("7")));
+        waitForSaves();
+        assertEquals(1, server.hits("/1080.mp4")); assertEquals(0, server.hits("/s/up_1_n.jpg"));
+        assertEquals(1, gallery.rows.size());
+        assertEquals("image/jpeg", gallery.rows.values().iterator().next().getAsString(MediaStore.MediaColumns.MIME_TYPE));
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("the story picture is the first frame, taking it from the video at 1080x1920 "
+                + "over the still at 640x1136, from 1 candidate(s): jpg (640x1136)"));
+        assertEquals(0, coverWorkFiles());
+        assertClean();
+    }
+
+    /** A photo with music on a background is another shape than its video, so the still saves and the video isn't fetched. */
+    @Test public void aStoryPictureOfAnotherShapeThanItsVideoStaysTheStill() throws Exception {
+        server.serve("/s/up_1_n.jpg", "image/jpeg", body(false));
+        server.serve("/1080.mp4", "video/mp4", body(true));
+        assertTrue(MediaSave.saveStoryPicture(context,
+                Collections.singletonList(new MediaSave.Rendition(server.origin() + "/s/up_1_n.jpg", 640, 800, 0)),
+                Collections.singletonList(new MediaSave.Rendition(server.origin() + "/1080.mp4", 1080, 1920, 0)),
+                null, PostDetails.of("7")));
+        waitForSaves();
+        assertEquals(0, server.hits("/1080.mp4")); assertEquals(1, server.hits("/s/up_1_n.jpg"));
+        assertClean();
+    }
+
+    /**
      * #155: when the app states no size for any of a cover's addresses, the size each address
      * names decides, so a thumbnail listed first doesn't save in place of the full picture.
      */
