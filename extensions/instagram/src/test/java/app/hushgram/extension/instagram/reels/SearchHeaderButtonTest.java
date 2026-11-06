@@ -344,4 +344,32 @@ public class SearchHeaderButtonTest {
         assertNotNull(searchIn(end));
         assertEquals(0, end.indexOfChild(searchIn(end)));
     }
+
+    /** The switch goes off in settings, a dialog, so no new header state follows it (#492). */
+    @Test public void closingSettingsTakesTheButtonOutWithNoNewDraw() {
+        Settings.SEARCH_BUTTON_ON_HOME.save(true);
+        HomeHeader.standInEndRowForTests(asked -> end);
+        activity.setContentView(header);
+        GhostHeaderButton.drew(header);
+        ShadowLooper.idleMainLooper();
+        assertNotNull(searchIn(end));
+
+        Settings.SEARCH_BUTTON_ON_HOME.save(false);
+        ShadowLooper.idleMainLooper();
+        assertNotNull("nothing drew the header yet", searchIn(end));
+        GhostHeaderButton.settingsClosed();
+        ShadowLooper.idleMainLooper();
+        assertNull(searchIn(end));
+        assertEquals(2, end.getChildCount());
+
+        Settings.SEARCH_BUTTON_ON_HOME.save(true);
+        GhostHeaderButton.settingsClosed();
+        ShadowLooper.idleMainLooper();
+        assertNotNull(searchIn(end));
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        GhostHeaderButton.settingsClosed();
+        ShadowLooper.idleMainLooper();
+        assertNull("a pause from settings goes the same way", searchIn(end));
+    }
 }

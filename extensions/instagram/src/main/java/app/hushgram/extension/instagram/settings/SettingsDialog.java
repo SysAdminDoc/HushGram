@@ -318,6 +318,12 @@ public final class SettingsDialog extends DialogFragment {
     }
 
     @Override
+    public void onDismiss(android.content.DialogInterface dialog) {
+        super.onDismiss(dialog);
+        GhostHeaderButton.settingsClosed();
+    }
+
+    @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         // Keep the restored child's identity and pending activity result, but defer its view

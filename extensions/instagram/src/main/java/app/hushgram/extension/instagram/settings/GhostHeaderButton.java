@@ -25,6 +25,7 @@ import android.widget.Switch;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
@@ -51,7 +52,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * after that call returns, in the row the Messages button sits in, since the header clears its rows
  * when it rebuilds. Where Messages isn't on the header, it goes at the end of the header's end row
  * of buttons instead. With the switch off, HushGram paused, or no ghost patch in the build, no
- * button is added, and one left from before is taken out the next time the header draws.
+ * button is added, and one left from before is taken out the next time the header draws or settings
+ * close.
  */
 public final class GhostHeaderButton {
     private GhostHeaderButton() { }
@@ -61,6 +63,9 @@ public final class GhostHeaderButton {
     static final String PLACED = "Home header Ghost button placed";
     static final String PLACED_AT_END = "Home header Ghost button placed at the end, no Messages on the header";
     static final String NO_ANCHOR = "Home header Ghost button not placed, no row to put it in";
+
+    /** The header Instagram drew last, for {@link #settingsClosed}. */
+    private static volatile WeakReference<View> lastHeader = new WeakReference<>(null);
 
     /**
      * Injected first thing as Home's header draws from its state. Queues the placement of the
@@ -73,18 +78,36 @@ public final class GhostHeaderButton {
         try {
             HookStatus.invoked(ROUTE);
             if (header == null) return;
-            header.post(() -> {
-                SearchHeaderButton.place(header);
-                // Before the ghost, which goes right before whichever Messages button the header shows.
-                MessagesHeaderButton.place(header);
-                place(header);
-                SettingsHeaderButton.place(header);
-                HomeMenuButton.place(header);
-                HomeLogo.center(header);
-            });
+            lastHeader = new WeakReference<>(header);
+            header.post(() -> placeAll(header));
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "ghost button", failure);
         }
+    }
+
+    /**
+     * Called as the settings dialog closes. The header only draws when Instagram hands it a new state,
+     * and a dialog closing over the activity makes none, so a button switched off in there stayed up
+     * until something else changed the header (#492). This puts the buttons right without waiting.
+     * Never throws.
+     */
+    public static void settingsClosed() {
+        try {
+            View header = lastHeader.get();
+            if (header != null && header.isAttachedToWindow()) header.post(() -> placeAll(header));
+        } catch (Throwable failure) {
+            HookStatus.threw(ROUTE, "ghost button", failure);
+        }
+    }
+
+    private static void placeAll(View header) {
+        SearchHeaderButton.place(header);
+        // Before the ghost, which goes right before whichever Messages button the header shows.
+        MessagesHeaderButton.place(header);
+        place(header);
+        SettingsHeaderButton.place(header);
+        HomeMenuButton.place(header);
+        HomeLogo.center(header);
     }
 
     /**

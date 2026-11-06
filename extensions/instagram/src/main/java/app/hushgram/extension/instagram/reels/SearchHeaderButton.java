@@ -57,7 +57,7 @@ import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragm
  * toast and count it. The patch writes {@link #paging} to tell.
  *
  * <p>With the switch off or HushGram paused, no button is added and one left from before is taken
- * out at the next draw. A tap while paused does nothing. Nothing in here throws.
+ * out at the next draw or when settings close. A tap while paused does nothing. Nothing in here throws.
  */
 public final class SearchHeaderButton {
     private SearchHeaderButton() { }

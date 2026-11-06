@@ -40,6 +40,7 @@ import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.reels.HomeHeader;
 import app.hushgram.extension.instagram.reels.MessagesHeaderButton;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -340,6 +341,33 @@ public class GhostHeaderButtonTest {
         ShadowLooper.idleMainLooper();
         assertNotNull(ghost());
         GhostHeaderButton.drew(null);
+        screen.close();
+    }
+
+    /** The real dialog closing is all it takes for a button switched off in it to go (#492). */
+    @Test public void closingTheSettingsDialogTakesOutAButtonSwitchedOffInIt() throws Exception {
+        ActivityController<Activity> screen = Robolectric.buildActivity(Activity.class).setup();
+        screen.get().setContentView(header);
+        Settings.GHOST_BUTTON_ON_HOME.save(true);
+        GhostHeaderButton.drew(header);
+        ShadowLooper.idleMainLooper();
+        assertNotNull(ghost());
+
+        SettingsDialog dialog = new SettingsDialog();
+        dialog.show(screen.get().getFragmentManager(), "settings");
+        screen.get().getFragmentManager().executePendingTransactions();
+        Utils.awaitBackgroundTasksForTests();
+        ShadowLooper.idleMainLooper();
+
+        Settings.GHOST_BUTTON_ON_HOME.save(false);
+        ShadowLooper.idleMainLooper();
+        assertNotNull("nothing drew the header yet", ghost());
+
+        dialog.dismiss();
+        screen.get().getFragmentManager().executePendingTransactions();
+        ShadowLooper.idleMainLooper();
+        assertNull(ghost());
+        assertEquals(2, row.getChildCount());
         screen.close();
     }
 }
