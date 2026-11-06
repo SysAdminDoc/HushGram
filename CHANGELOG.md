@@ -60,6 +60,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Start reels with sound` covers the Reels tab too, not only a reel you open from a post on Home. Home is still muted again when you leave. Reported in #504.
 * `Mark as read button in chats` shows under Messages only when `Lock your messages` is patched in too, since the check mark finds the open chat through it.
 * HushGram now patches Instagram 454.0.0.54.77 instead of 453.0.0.57.79. Get APKMirror's (arm64-v8a) (480dpi) (Android 9.0+) bundle, build 386014758. Its armeabi-v7a (386014757), x86 (386014759) and x86_64 (386014760) builds are declared too, and the other arm64 density builds patch cleanly.
 * HushGram now builds on Morphe patcher 2.3.0, so patching needs Morphe Manager 2.5.0 or newer. On a computer, use morphe-desktop 2.1.0 or newer.

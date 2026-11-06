@@ -79,10 +79,10 @@ internal object ReelsViewerOnCreateFingerprint : Fingerprint(
  * Home keeps the account's audio state muted while you scroll, and the Reels viewer plays by that
  * state, so a reel opened from a feed post starts muted. As the Reels viewer is created the patch
  * asks the extension whether the switch is on, and only then reads where the viewer was opened from
- * (its config's `ClipsViewerSource`) and asks again with it. A yes for a viewer opened from Home sets
- * the state to on with the setter the Reels audio toggle uses, so the speaker icon agrees. Its
- * `onPause` puts the sound back to off unless you muted the reel, so Home is muted again, and its
- * `onResume` turns it on for the reel. The Reels tab and every other source keep Instagram's own.
+ * (its config's `ClipsViewerSource`) and asks again with it. A yes for a viewer opened from Home or
+ * the Reels tab (#504) sets the state to on with the setter the Reels audio toggle uses, so the speaker
+ * icon agrees. Its `onPause` puts the sound back to off unless you muted the reel, so Home is muted
+ * again, and its `onResume` turns it on for the reel. Every other source keeps Instagram's own.
  *
  * Instagram changes the state by itself as the app opens: its foreground listener clears it to the
  * defaults the first time and after ten minutes away, and turns it on when other media plays, and
@@ -96,7 +96,7 @@ internal object ReelsViewerOnCreateFingerprint : Fingerprint(
 @Suppress("unused")
 val startReelsWithSoundPatch = bytecodePatch(
     name = "Start reels with sound",
-    description = "A reel you open from a post on Home plays with sound, and Home is muted again when you go " +
+    description = "A reel you open from the Reels tab or a post on Home plays with sound, and Home is muted again when you go " +
         "back. Your phone's ringer and volume still count. A separate switch, Start reels muted, starts every reel silent " +
         "instead. Both start off. Turn them on in HushGram settings > Playback.",
 ) {
