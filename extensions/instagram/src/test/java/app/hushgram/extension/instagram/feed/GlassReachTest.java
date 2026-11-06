@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Color;
 import android.view.View;
 import android.view.ViewGroup;
@@ -220,5 +221,61 @@ public class GlassReachTest {
 
         assertTrue(GlassTopBar.showing(header));
         assertLeftAlone();
+    }
+
+    /** By the name it keeps in Instagram. */
+    private static class RecyclerView extends FrameLayout {
+        RecyclerView(Context context) {
+            super(context);
+        }
+    }
+
+    private static final class MainFeedRecyclerView extends RecyclerView {
+        MainFeedRecyclerView(Context context) {
+            super(context);
+        }
+    }
+
+    /**
+     * Home as 454 builds it: the sticky list holds a refreshable parent that holds the feed's RecyclerView,
+     * and the header sits in a wrapper beside the sticky list. The feed has no posts on the first frame.
+     */
+    @Test
+    public void theListItselfReachesTheTopWhenItHasNoPostsYet() {
+        Context context = screen.getContext();
+        source.removeAllViews();
+        FrameLayout refreshable = new FrameLayout(context);
+        FrameLayout feedList = new MainFeedRecyclerView(context);
+        refreshable.addView(feedList, new FrameLayout.LayoutParams(MATCH, MATCH));
+        FrameLayout sticky = new FrameLayout(context);
+        sticky.addView(refreshable, new FrameLayout.LayoutParams(MATCH, MATCH));
+        FrameLayout wrapper = new FrameLayout(context);
+        header = new FrameLayout(context);
+        wrapper.addView(header, new FrameLayout.LayoutParams(MATCH, HEADER));
+        source.addView(sticky, new FrameLayout.LayoutParams(MATCH, MATCH));
+        source.addView(wrapper, new FrameLayout.LayoutParams(MATCH, HEADER));
+        layout();
+        views = Collections.singletonList(header);
+
+        glaze();
+
+        assertEquals("the sticky list starts at the window's top", 0, windowTop(sticky));
+        assertEquals("nothing pads the view around the list", 0, refreshable.getPaddingTop());
+        assertEquals("the list starts at the window's top", 0, windowTop(feedList));
+        assertEquals("the first post starts where it did", STATUS, feedList.getPaddingTop());
+        assertFalse(feedList.getClipToPadding());
+        assertEquals("the header stays below the clock", STATUS, windowTop(header));
+        assertArrayEquals(new int[] {STATUS, 0}, GlassTopBar.reach(header));
+
+        feedList.addView(new View(context), new FrameLayout.LayoutParams(MATCH, 400));
+        frame();
+        assertEquals("the posts coming in don't pad it again", STATUS, feedList.getPaddingTop());
+
+        Settings.SEE_THROUGH_HOME_TOP_BAR.save(false);
+        frame();
+        assertEquals(STATUS, windowTop(sticky));
+        assertEquals(STATUS, windowTop(feedList));
+        assertEquals(0, feedList.getPaddingTop());
+        assertTrue(feedList.getClipToPadding());
     }
 }

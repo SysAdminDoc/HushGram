@@ -108,7 +108,11 @@ final class GlassReach {
         return null;
     }
 
-    /** The list [feed] scrolls: the deepest view as big as it with children of its own. */
+    /**
+     * The list [feed] scrolls: the first RecyclerView as big as it, which on Home's first frame has no
+     * posts in it yet, else the deepest view that size with children of its own. Padding a view around
+     * the RecyclerView instead would leave the list, and the posts it clips, below the status bar.
+     */
     @Nullable
     private static View listIn(View feed) {
         View found = null;
@@ -118,8 +122,10 @@ final class GlassReach {
             View next = null;
             for (int i = 0, n = group.getChildCount(); i < n; i++) {
                 View child = group.getChildAt(i);
-                if (child.getTop() == 0 && child.getHeight() == feed.getHeight() && child.getWidth() == feed.getWidth()
-                        && child instanceof ViewGroup && ((ViewGroup) child).getChildCount() > 0) {
+                if (child.getTop() != 0 || child.getHeight() != feed.getHeight() || child.getWidth() != feed.getWidth()
+                        || !(child instanceof ViewGroup)) continue;
+                if (isRecycler(child)) return child;
+                if (((ViewGroup) child).getChildCount() > 0) {
                     next = child;
                     break;
                 }
@@ -129,6 +135,14 @@ final class GlassReach {
             at = next;
         }
         return found;
+    }
+
+    /** Whether [view] is a RecyclerView or a subclass of one, whatever Instagram named the subclass. */
+    private static boolean isRecycler(View view) {
+        for (Class<?> type = view.getClass(); type != null; type = type.getSuperclass()) {
+            if (type.getSimpleName().equals("RecyclerView")) return true;
+        }
+        return false;
     }
 
     private void unclip(ViewGroup group) {
