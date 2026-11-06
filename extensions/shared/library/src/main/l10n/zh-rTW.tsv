@@ -839,7 +839,7 @@ Download video covers	下載影片封面
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	在動態首頁影片貼文與目前顯示影片的輪播貼文選單中新增「下載封面」，以最大尺寸儲存影片播放前的靜態圖片。
 # context: Downloads switch under the feed video and photo downloads; it puts a Download icon in a feed post's action row beside Save
 Download button on feed posts	貼文下載按鈕
-Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	在貼文下方儲存按鈕的左側加入下載圖示，點擊即可儲存，不必開啟選單。輪播貼文會詢問儲存目前頁面或全部頁面。
+Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them. Needs Download feed videos or photos.	在貼文下方儲存按鈕的左側加入下載圖示，點擊即可儲存，不必開啟選單。輪播貼文會詢問儲存目前頁面或全部頁面。需啟用「下載動態首頁影片」或「下載動態首頁照片」。
 Download button on reels	Reels 下載按鈕
 Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	在 Reel 旁的儲存按鈕下方加入下載圖示，點擊即可執行與選單中「下載」相同的操作。需啟用「Reels 下載選項」。
 Nothing to download on this post	此貼文沒有可下載的內容

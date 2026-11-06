@@ -840,7 +840,7 @@ Download video covers	동영상 커버 다운로드
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	동영상이 있는 피드 게시물과 동영상을 보여 주는 캐러셀의 메뉴에 커버 다운로드를 추가합니다. 동영상이 재생되기 전에 보이는 정지 이미지를 가장 큰 크기로 저장합니다.
 # context: Downloads switch under the feed video and photo downloads; it puts a Download icon in a feed post's action row beside Save
 Download button on feed posts	피드 게시물 다운로드 버튼
-Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	게시물 아래 줄의 저장 왼쪽에 다운로드 아이콘을 넣어, 메뉴를 열지 않고 한 번 탭으로 저장합니다. 캐러셀에서는 이 페이지만 저장할지 모두 저장할지 묻습니다.
+Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them. Needs Download feed videos or photos.	게시물 아래 줄의 저장 왼쪽에 다운로드 아이콘을 넣어, 메뉴를 열지 않고 한 번 탭으로 저장합니다. 캐러셀에서는 이 페이지만 저장할지 모두 저장할지 묻습니다. 피드 동영상 다운로드 메뉴 추가 또는 피드 사진 다운로드가 필요합니다.
 Download button on reels	릴스 다운로드 버튼
 Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	릴스 옆 저장 아래에 다운로드 아이콘을 넣어, 한 번 탭으로 메뉴의 다운로드와 똑같이 저장합니다. 릴스 다운로드 메뉴 추가가 켜져 있어야 합니다.
 Nothing to download on this post	이 게시물에는 다운로드할 항목이 없습니다

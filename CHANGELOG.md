@@ -135,6 +135,7 @@ Every HushGram release, newest first.
 * With `Glass tab bar` and `Hide the tab bar on Reels`, the reel stays put when the pill slides away or comes back. It runs behind the pill with its caption and buttons kept above it. Reported in #466 and #467.
 * `See who a story mentions` opens its list again after a profile. That works when the next story mentions other people too, and on Instagram 453, where the profile opens over the story. Reported in #403.
 * `See-through top bar` now reaches behind the status bar. Home's posts scroll on under the clock and the glass covers that strip too, so the blur runs to the top of the screen. Reported in #462.
+* `Download button on feed posts` now says it needs `Download feed videos` or `Download feed photos`. The row stays grey until one of them is on, and nothing explained why. Reported in #465.
 * `Turn off HDR brightness boosts` now also turns off the fake HDR that Instagram's own AV1 decoder can add to ordinary reels, which could still come out brighter than the rest of the screen. Reported in #85.
 * `Logo and titles at the start` now moves the Messages title and the Reels tabs too. The Reels tabs sit right after Create, or off the edge when Create is hidden. Reported in #407.
 * With `Stop after the chat's reels` on, a chat's reels scroll one after another again. A swipe past the last one goes back to the chat, and pulling down no longer loads suggested reels. Reported in #390.

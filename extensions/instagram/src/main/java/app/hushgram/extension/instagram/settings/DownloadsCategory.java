@@ -58,7 +58,8 @@ final class DownloadsCategory {
                                 + "Tick the pages you want and only those save, in order.")));
                 downloads.addPreference(toggle(context, Settings.FEED_DOWNLOAD_BUTTON, L10n.t("Download button on feed posts"),
                         L10n.t("Puts a download icon in the row under a post, left of Save, so one tap saves it without "
-                                + "opening the menu. On a carousel it asks for this page or all of them.")));
+                                + "opening the menu. On a carousel it asks for this page or all of them. "
+                                + "Needs Download feed videos or photos.")));
                 downloads.addPreference(toggle(context, Settings.FEED_DOWNLOAD_ALL_PAGES, L10n.t("Save every page without asking"),
                         L10n.t("On a carousel, the download icon saves all of its pages at once instead of asking.")));
                 if (build.contains(PatchFamily.REEL_DOWNLOAD)) downloads.addPreference(reelDownloadButtonRow(context));

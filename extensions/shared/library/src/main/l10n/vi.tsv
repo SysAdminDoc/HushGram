@@ -829,7 +829,7 @@ Shows HushGram's logo instead of Instagram's on the screen you see while Instagr
 Download video covers	Tải ảnh bìa video
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Thêm Tải ảnh bìa vào menu của bài viết bảng feed có video và của ảnh nhiều trang đang hiện video. Lưu ảnh tĩnh hiện trước khi video phát, ở kích thước lớn nhất.
 Download button on feed posts	Nút tải xuống trên bài viết bảng feed
-Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	Đặt biểu tượng tải xuống ở hàng bên dưới bài viết, bên trái Lưu, để một lần nhấn là lưu mà không cần mở menu. Với ảnh nhiều trang, sẽ hỏi lưu trang này hay tất cả.
+Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them. Needs Download feed videos or photos.	Đặt biểu tượng tải xuống ở hàng bên dưới bài viết, bên trái Lưu, để một lần nhấn là lưu mà không cần mở menu. Với ảnh nhiều trang, sẽ hỏi lưu trang này hay tất cả. Cần Tải video trên bảng feed hoặc ảnh.
 Download button on reels	Nút tải xuống trên reel
 Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	Đặt biểu tượng tải xuống dưới Lưu cạnh reel, để một lần nhấn là lưu như Tải xuống trong menu. Cần bật Tải xuống trên reel.
 Nothing to download on this post	Bài viết này không có gì để tải
