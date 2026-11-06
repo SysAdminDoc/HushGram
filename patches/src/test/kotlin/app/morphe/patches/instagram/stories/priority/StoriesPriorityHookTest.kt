@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.stories.seen.StoryTrayOrderHookTest
 import app.morphe.patches.instagram.stories.seen.TRAY_ORDER
+import app.morphe.patches.instagram.stories.seen.TRAY_REFRESHED
 import app.morphe.patches.instagram.stories.seen.findStoryRings
 import app.morphe.patches.instagram.stories.seen.findStoryTray
 import app.morphe.patches.instagram.stories.seen.orderStoryTray
@@ -81,6 +82,7 @@ class StoriesPriorityHookTest {
                             hooks.all { it[1].opcode == Opcode.MOVE_RESULT_OBJECT })
                     }
                     assertEquals("$at: priority calls", 2, context.calls(PRIORITY_ORDER))
+                    assertEquals("$at: only the tray's own hook forgets its orders", if (variant == "priority alone") 0 else 1, context.calls(TRAY_REFRESHED))
                     assertEquals("$at: sort calls", if (sort) 2 else 0, context.calls(TRAY_ORDER))
 
                     val references = context.mutableClassDefBy(STORY_PRIORITY).methods.filter { it.name == "seen" || it.name == "username" }

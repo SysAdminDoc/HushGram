@@ -170,17 +170,44 @@ public class StoryTrayOrderTest {
         assertEquals("the list that went out is never Instagram's own", Arrays.<Object>asList("a", "b", "c"), tray);
     }
 
-    /** A refresh that brings a reel more, fewer, elsewhere or as another object is sorted afresh. */
+    /**
+     * The store moves its own seen reels behind its unseen ones each time it's asked, so what's handed
+     * over when the viewer closes is already the order that strands you. The tray keeps its order
+     * through that, and gives it up when a tray response is ranked (#377).
+     */
     @Test
-    public void aTrayWithOtherReelsOrAnotherOrderIsSortedAfresh() {
+    public void theStoreSortingItselfDoesntMoveTheTrayUntilItRefreshes() {
+        List<Object> tray = Arrays.<Object>asList("own", "a", "b", "c");
+        StoryTrayOrder.Seen watchedA = reel -> reel.equals("a") ? 1 : 0;
+        assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
+
+        List<Object> storeSorted = Arrays.<Object>asList("own", "b", "c", "a");
+        assertEquals(tray, StoryTrayOrder.order(storeSorted, ON, watchedA));
+        String counted = String.join("\n", HookStatus.report());
+        assertTrue(counted, counted.contains(StoryTrayOrder.KEPT));
+
+        StoryTrayOrder.refreshed();
+        assertSame(storeSorted, StoryTrayOrder.order(storeSorted, ON, watchedA));
+    }
+
+    /** A reel handed over twice counts twice, so swapping it for another isn't the same tray. */
+    @Test
+    public void aRepeatedReelCountsEachTime() {
+        List<Object> tray = Arrays.<Object>asList("a", "a", "b");
+        assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
+        List<Object> other = Arrays.<Object>asList("a", "b", "b");
+        assertEquals(Arrays.<Object>asList("a", "b", "b"), StoryTrayOrder.order(other, ON, seenAre()));
+    }
+
+    /** A refresh that brings a reel more, fewer or as another object is sorted afresh. */
+    @Test
+    public void aTrayWithOtherReelsIsSortedAfresh() {
         List<Object> tray = Arrays.<Object>asList("a", "b", "c");
         assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
         assertEquals("one more reel", Arrays.<Object>asList("b", "c", "d", "a"),
                 StoryTrayOrder.order(Arrays.<Object>asList("a", "b", "c", "d"), ON, seenAre("a")));
         assertEquals("one fewer", Arrays.<Object>asList("b", "a"),
                 StoryTrayOrder.order(Arrays.<Object>asList("a", "b"), ON, seenAre("a")));
-        assertEquals("the same reels elsewhere", Arrays.<Object>asList("c", "a", "b"),
-                StoryTrayOrder.order(Arrays.<Object>asList("c", "a", "b"), ON, seenAre("a", "b")));
         Object another = new StringBuilder("a").toString();
         assertEquals("a's slot held by another object that reads the same", Arrays.<Object>asList("b", "c", another),
                 StoryTrayOrder.order(Arrays.<Object>asList(another, "b", "c"), ON, seenAre("a")));
@@ -222,8 +249,10 @@ public class StoryTrayOrderTest {
     public void anOrderedOrOneSidedTrayComesBackAsIs() {
         List<Object> sorted = Arrays.<Object>asList("b", "a");
         assertSame(sorted, StoryTrayOrder.order(sorted, ON, seenAre("a")));
+        StoryTrayOrder.refreshed();
         List<Object> allNew = Arrays.<Object>asList("a", "b");
         assertSame(allNew, StoryTrayOrder.order(allNew, ON, seenAre()));
+        StoryTrayOrder.refreshed();
         List<Object> allSeen = Arrays.<Object>asList("a", "b");
         assertSame(allSeen, StoryTrayOrder.order(allSeen, ON, seenAre("a", "b")));
     }

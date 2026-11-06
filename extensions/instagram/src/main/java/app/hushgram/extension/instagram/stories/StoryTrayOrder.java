@@ -5,7 +5,9 @@
 package app.hushgram.extension.instagram.stories;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -28,13 +30,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Nothing is added or dropped.
  *
  * <p>A story you've just watched stays where it was (#377). Home asks the store for the tray again
- * the moment the viewer closes, and sorting it then sent the new gray ring to the back with the
- * row's scroll following it, leaving you among watched stories. So the order a tray went out in is
- * remembered, by the very reels the store held, and goes out again while the store hands over
- * those same reels in that same order. A tray with a reel more, fewer or elsewhere, which is what a
- * refresh with new stories brings, is sorted afresh, and so is every tray after {@link #refreshed}
- * or a restart. Home's top row and its feed adapter each ask for their own tray, so the last few
- * are remembered.
+ * the moment the viewer closes, and the store sorts itself on the way: once it has ranked a tray
+ * response, each later ask moves its seen reels behind its unseen ones. That sent the new gray ring
+ * to the back with the row's scroll following it, leaving you among watched stories, and the store's
+ * own order can't be told from a sort here. So the order a tray went out in is remembered, by the
+ * very reels the store held, and goes out again while the store hands over those same reels in any
+ * order. A tray with a reel more or fewer is sorted afresh, and so is every tray after
+ * {@link #refreshed}, which the patch calls when the store is about to rank a tray response, or a
+ * restart. Home's top row and its feed adapter each ask for their own tray, so the last few are
+ * remembered.
  *
  * <p>Either switch off, a pause or settings that aren't ready give the list back as it came and
  * forget the remembered orders, and any failure deciding gives the list back as it came.
@@ -67,11 +71,15 @@ public final class StoryTrayOrder {
             this.wentOut = new ArrayList<>(wentOut);
         }
 
-        /** Whether the store holds the very reels this tray was, in the same order. */
+        /** Whether the store holds the very reels this tray was, in any order: it sorts itself (#377). */
         boolean holds(List<Object> reels) {
             if (reels.size() != held.length) return false;
-            for (int index = 0; index < held.length; index++) {
-                if (reels.get(index) != held[index]) return false;
+            Map<Object, Integer> left = new IdentityHashMap<>();
+            for (Object reel : held) left.merge(reel, 1, Integer::sum);
+            for (Object reel : reels) {
+                Integer count = left.get(reel);
+                if (count == null || count == 0) return false;
+                left.put(reel, count - 1);
             }
             return true;
         }
@@ -166,9 +174,9 @@ public final class StoryTrayOrder {
     }
 
     /**
-     * The order [reels] went out in before, when the store held these very reels in this same order
-     * and that order isn't [ordered]. Null otherwise, with [ordered] remembered as the order these
-     * reels go out in from now.
+     * The order [reels] went out in before, when the store held these very reels and that order
+     * isn't [ordered]. Null otherwise, with [ordered] remembered as the order these reels go out in
+     * from now.
      */
     private static List<Object> kept(List<Object> reels, List<Object> ordered) {
         synchronized (remembered) {

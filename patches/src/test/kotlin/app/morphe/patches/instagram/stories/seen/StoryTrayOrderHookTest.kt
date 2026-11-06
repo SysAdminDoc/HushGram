@@ -81,7 +81,9 @@ class StoryTrayOrderHookTest {
 
                 context.orderStoryTray(found)
 
-                fun shape(code: List<Instruction>) = code.filter { it.opcode != Opcode.NOP }.map { it.opcode to it.referenceText() }
+                fun shape(code: List<Instruction>) = code.filter { it.opcode != Opcode.NOP }.map {
+                    (if (it.opcode == Opcode.GOTO_16 || it.opcode == Opcode.GOTO_32) Opcode.GOTO else it.opcode) to it.referenceText()
+                }
                 for ((site, before) in found.sites.zip(befores.map { it.code() })) {
                     val at = "${bundle.name} ${site.lister}"
                     val after = context.mutableClassDefBy(found.store).methods.single {
@@ -97,6 +99,24 @@ class StoryTrayOrderHookTest {
                     assertEquals("$at: the rest of the method", shape(before), shape(after).filterIndexed { i, _ -> i !in hooked..hooked + 1 })
                 }
                 assertEquals("${bundle.name}: one call of the hook per list", 2, context.calls(TRAY_ORDER))
+
+                // The sort only forgets the orders when the store hasn't ranked its reels: the new
+                // call is reached past the flag's false test and the old branch still goes on from there.
+                val ranking = found.ranking!!
+                fun ofTheSort(method: Method) = method.name == ranking.method && method.parameterTypes.map(Any::toString) == ranking.parameters
+                val sortBefore = store.methods.single(::ofTheSort).code()
+                val sort = context.mutableClassDefBy(found.store).methods.single(::ofTheSort).code()
+                val forgets = sort.indexOfFirst { it.referenceText() == TRAY_REFRESHED }
+                assertEquals("${bundle.name}: the sort forgets once", 1, context.calls(TRAY_REFRESHED))
+                assertEquals("${bundle.name}: the call follows the flag's read", ranking.read + 2, forgets)
+                assertEquals("${bundle.name}: the flag is read", Opcode.IGET_BOOLEAN, sort[ranking.read].opcode)
+                assertEquals("${bundle.name}: a ranked store skips the call", Opcode.IF_NEZ, sort[forgets - 1].opcode)
+                assertEquals("${bundle.name}: the branch to the ranking stays", Opcode.IF_EQZ, sort[forgets + 1].opcode)
+                assertEquals("${bundle.name}: both test the flag", ranking.register, (sort[forgets - 1] as OneRegisterInstruction).registerA)
+                assertEquals("${bundle.name}: both test the flag", ranking.register, (sort[forgets + 1] as OneRegisterInstruction).registerA)
+                val sortShape = shape(sort)
+                val added = sortShape.indexOfFirst { it.second == TRAY_REFRESHED }
+                assertEquals("${bundle.name}: the rest of the sort", shape(sortBefore), sortShape.filterIndexed { i, _ -> i !in added - 1..added })
 
                 val bridge = context.mutableClassDefBy(STORY_TRAY_ORDER).methods.single { it.name == "seen" }
                 val stub = bridge.code()
@@ -155,6 +175,33 @@ class StoryTrayOrderHookTest {
                 })
                 val refusal = assertThrows(PatchException::class.java) { trimmed.findStoryTray(trimmed.findStoryRings().reelClass) }
                 assertTrue(refusal.message, "top story row" in refusal.message!! && "found 0" in refusal.message!!)
+            }
+        }
+    }
+
+    /**
+     * A store whose sort can't be found is refused for the tray's own hook: its remembered orders
+     * would never end, so a pull to refresh wouldn't sort the row (#377). Stories priority doesn't
+     * need it, and finds the store whichever patch hooked it first.
+     */
+    @Test
+    fun aStoreWithoutItsSortFailsOnlyForTheTray() {
+        for (version in AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                val classes = trayClasses(bundle)
+                val store = storeOf(classes)
+                val trimmed = PatchContexts.of(classes.map { classDef ->
+                    if (classDef.type != store) return@map classDef
+                    ImmutableClassDef(
+                        classDef.type, classDef.accessFlags, classDef.superclass, classDef.interfaces, classDef.sourceFile,
+                        classDef.annotations, classDef.fields,
+                        classDef.methods.filterNot { it.parameterTypes.map(Any::toString) == listOf(store, "Ljava/util/Collection;", "Z") },
+                    )
+                })
+                val reel = trimmed.findStoryRings().reelClass
+                val refusal = assertThrows(PatchException::class.java) { trimmed.findStoryTray(reel) }
+                assertTrue(refusal.message, "ranked flag" in refusal.message!! && "found 0" in refusal.message!!)
+                assertEquals("a refusal must not hook a list", 0, trimmed.calls(TRAY_ORDER))
             }
         }
     }

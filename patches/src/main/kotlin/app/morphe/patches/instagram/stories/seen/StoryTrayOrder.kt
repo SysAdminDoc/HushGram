@@ -5,6 +5,8 @@
 package app.morphe.patches.instagram.stories.seen
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.cloneMutable
 import app.morphe.patcher.patch.BytecodePatchContext
@@ -24,6 +26,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 internal const val STORY_TRAY_ORDER = "$EXTENSION_PACKAGE/stories/StoryTrayOrder;"
 internal const val TRAY_ORDER = "$STORY_TRAY_ORDER->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;"
+internal const val TRAY_REFRESHED = "$STORY_TRAY_ORDER->refreshed()V"
 
 private const val JAVA_LIST = "Ljava/util/List;"
 private const val ARRAY_LIST = "Ljava/util/ArrayList;"
@@ -69,9 +72,25 @@ internal class StoryTrayTargets(
     val sessionField: String,
     internal val isSeen: MutableMethod,
     val identity: TrayIdentity,
+    /** Only for the tray's own hook. */
+    val ranking: TrayRanking?,
     /** The extension class holding the hook and the [isSeen] stub, and the hook this patch calls. */
     val extension: String = STORY_TRAY_ORDER,
     val hook: String = TRAY_ORDER,
+)
+
+/**
+ * The store's sort of its reels: static [method], taking the store, the reels and "rank them
+ * anyway". At [read] it loads its own "already ranked" boolean into [register], and [read] + 1
+ * branches to the ranking when that's false. A tray response clears the boolean, so the next sort
+ * ranks by the server's scores. While it's set the sort only moves seen reels behind unseen ones,
+ * which is what sent a story just watched to the back (#377).
+ */
+internal class TrayRanking(
+    val method: String,
+    val parameters: List<String>,
+    val read: Int,
+    val register: Int,
 )
 
 /** The actual store Reel's kind and public owner/ID readers, independent of the response parser model. */
@@ -179,8 +198,28 @@ internal fun BytecodePatchContext.findStoryTray(
     val main = storeDef.methods.mapNotNull(::mainTraySite)
     val top = main.singleOrNull()
         ?: refuseTray("expected one method of ${tray.store} handing Home's top story row its reels, found ${main.size}")
+    // Only the tray's own hook forgets its orders, and the sort it hooks no longer reads as one after.
+    val ranking = if (hook != TRAY_ORDER) null else {
+        val rankings = storeDef.methods.mapNotNull { trayRanking(tray.store, it) }
+        rankings.singleOrNull()
+            ?: refuseTray("expected one method of ${tray.store} sorting its reels by a ranked flag, found ${rankings.size}")
+    }
     return StoryTrayTargets(tray.store, listOf(top, tray.site), tray.reelClass, tray.seenCheck, tray.sessionField,
-        trayStub(extension, hook), trayIdentity(tray.reelClass), extension, hook)
+        trayStub(extension, hook), trayIdentity(tray.reelClass), ranking, extension, hook)
+}
+
+/** [method] when it's the store's sort of its reels, as [TrayRanking] describes it. */
+private fun trayRanking(store: String, method: Method): TrayRanking? {
+    if (!AccessFlags.STATIC.isSet(method.accessFlags)) return null
+    if (method.parameterTypes.map(Any::toString) != listOf(store, "Ljava/util/Collection;", "Z")) return null
+    val code = method.implementation?.instructions?.toList() ?: return null
+    val read = code.indices.singleOrNull { index ->
+        val field = (code[index] as? ReferenceInstruction)?.reference as? FieldReference
+        val branch = code.getOrNull(index + 1)
+        code[index].opcode == Opcode.IGET_BOOLEAN && field?.definingClass == store && branch?.opcode == Opcode.IF_EQZ &&
+            (branch as OneRegisterInstruction).registerA == (code[index] as OneRegisterInstruction).registerA
+    } ?: return null
+    return TrayRanking(method.name, method.parameterTypes.map(Any::toString), read, (code[read] as OneRegisterInstruction).registerA)
 }
 
 /** What [trayLister] finds in a method, before the extension's stub is looked up. */
@@ -299,6 +338,18 @@ internal fun BytecodePatchContext.orderStoryTray(found: StoryTrayTargets) {
                 invoke-static { v${site.result}, v${site.self} }, ${found.hook}
                 move-result-object v${site.result}
             """,
+        )
+    }
+    // The store is about to rank a tray response: the orders that went out are over (#377).
+    found.ranking?.let { ranking ->
+        val sort = store.methods.single { it.name == ranking.method && it.parameterTypes.map(Any::toString) == ranking.parameters }
+        sort.addInstructionsWithLabels(
+            ranking.read + 1,
+            """
+                if-nez v${ranking.register}, :ranked
+                invoke-static { }, $TRAY_REFRESHED
+            """,
+            ExternalLabel("ranked", sort.getInstruction(ranking.read + 1)),
         )
     }
     // Three locals keep the owner/viewer IDs apart. Every path returns before the original stub.
