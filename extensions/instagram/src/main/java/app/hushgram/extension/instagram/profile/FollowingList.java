@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.profile;
 
 import android.text.TextUtils;
 import android.text.method.SingleLineTransformationMethod;
+import android.text.method.TransformationMethod;
 import android.view.View;
 import android.widget.TextView;
 
@@ -123,14 +124,14 @@ public final class FollowingList {
         final CharSequence before;
         final CharSequence wrote;
         final int visibility;
-        final boolean singleLine;
+        @Nullable final TransformationMethod method;
         final int maxLines;
 
-        Mark(CharSequence before, CharSequence wrote, int visibility, boolean singleLine, int maxLines) {
+        Mark(CharSequence before, CharSequence wrote, int visibility, @Nullable TransformationMethod method, int maxLines) {
             this.before = before;
             this.wrote = wrote;
             this.visibility = visibility;
-            this.singleLine = singleLine;
+            this.method = method;
             this.maxLines = maxLines;
         }
     }
@@ -385,30 +386,34 @@ public final class FollowingList {
     private static void mark(TextView subtitle, String label) {
         CharSequence before = subtitle.getText();
         int visibility = subtitle.getVisibility();
-        boolean singleLine = subtitle.getTransformationMethod() instanceof SingleLineTransformationMethod;
+        TransformationMethod method = subtitle.getTransformationMethod();
         int maxLines = subtitle.getMaxLines();
         CharSequence wrote = visibility == View.VISIBLE ? ahead(label, before) : label;
         try {
             subtitle.setText(wrote);
             if (visibility != View.VISIBLE) subtitle.setVisibility(View.VISIBLE);
-            if (singleLine) subtitle.setSingleLine(false);
+            // Instagram's line is single-line with no transformation to show for it, and setting the
+            // most lines alone leaves it on one. Any other transformation it had still applies.
+            subtitle.setSingleLine(false);
+            if (method != null && !(method instanceof SingleLineTransformationMethod)) subtitle.setTransformationMethod(method);
             subtitle.setMaxLines(MARKED_LINES);
         } catch (RuntimeException failure) {
             subtitle.setText(before);
             subtitle.setVisibility(visibility);
-            linesBack(subtitle, singleLine, maxLines);
+            linesBack(subtitle, method, maxLines);
             throw failure;
         }
         synchronized (marked) {
-            marked.put(subtitle, new Mark(before, wrote, visibility, singleLine, maxLines));
+            marked.put(subtitle, new Mark(before, wrote, visibility, method, maxLines));
         }
         Logger.printDebug(() -> "Following list: marked an account that doesn't follow you");
     }
 
     /** Gives [subtitle] back the lines it had. Instagram doesn't set them again when it rebinds a row. */
-    private static void linesBack(TextView subtitle, boolean singleLine, int maxLines) {
-        if (singleLine) subtitle.setSingleLine(true);
+    private static void linesBack(TextView subtitle, @Nullable TransformationMethod method, int maxLines) {
+        if (maxLines == 1) subtitle.setSingleLine(true);
         else if (maxLines > 0) subtitle.setMaxLines(maxLines);
+        subtitle.setTransformationMethod(method);
     }
 
     /**
@@ -431,7 +436,7 @@ public final class FollowingList {
             mark = marked.remove(subtitle);
         }
         if (mark == null) return;
-        linesBack(subtitle, mark.singleLine, mark.maxLines);
+        linesBack(subtitle, mark.method, mark.maxLines);
         if (!TextUtils.equals(subtitle.getText(), mark.wrote)) return;
         subtitle.setText(mark.before);
         if (mark.visibility != View.VISIBLE && subtitle.getVisibility() == View.VISIBLE) {

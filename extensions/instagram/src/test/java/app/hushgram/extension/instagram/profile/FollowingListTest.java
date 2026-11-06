@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import android.text.method.SingleLineTransformationMethod;
 
 import android.content.Context;
+import android.os.Build;
 import android.view.View;
 import android.widget.TextView;
 
@@ -146,15 +147,24 @@ public class FollowingListTest {
     @Test
     public void aMarkedLineTakesTwoLinesAndGivesThemBack() {
         Reader reader = new Reader(Kind.FOLLOWING, ME, ME);
-        for (boolean singleLine : new boolean[] {true, false}) {
+        for (int shape = 0; shape < 3; shape++) {
             TextView line = new TextView(context);
-            if (singleLine) line.setSingleLine(true);
-            else line.setMaxLines(1);
+            boolean singleLine = shape == 0;
+            if (shape == 0) {
+                line.setSingleLine(true);
+            } else if (shape == 1) {
+                line.setMaxLines(1);
+            } else {
+                // Instagram's own line on the phone: single-line with no transformation to show for it.
+                line.setSingleLine(true);
+                line.setTransformationMethod(null);
+            }
             Row row = new Row(line);
 
             row.bind(notFollowing, "Ana", reader, ON);
             assertEquals(FollowingList.MARKED_LINES, line.getMaxLines());
             assertFalse(line.getTransformationMethod() instanceof SingleLineTransformationMethod);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) assertFalse("shape " + shape + " can wrap", line.isSingleLine());
 
             row.bind(following, "Ben", reader, ON);
             assertEquals("Ben", row.text());
