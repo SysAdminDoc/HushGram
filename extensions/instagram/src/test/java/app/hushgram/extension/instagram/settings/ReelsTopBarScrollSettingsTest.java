@@ -79,7 +79,7 @@ public class ReelsTopBarScrollSettingsTest {
                 + "swipe through reels, instead of sliding them away.", row.getSummary().toString());
         PreferenceGroup reels = row.getParent();
         assertEquals("Reels", reels.getTitle().toString());
-        assertEquals("right after Don't vibrate in clear mode", Settings.QUIET_REEL_CLEAR_MODE.key,
+        assertEquals("right after Always show seek bar in clear mode", Settings.CLEAR_MODE_SEEK_BAR.key,
                 reels.getPreference(indexOf(reels, row) - 1).getKey());
         assertEquals("before Don't send reel watch history", Settings.DONT_SEND_REEL_WATCH_HISTORY.key,
                 reels.getPreference(indexOf(reels, row) + 1).getKey());

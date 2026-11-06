@@ -47,7 +47,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * <p>Instagram's clear mode fades a reel's buttons, author row and top bar out but leaves the seek
  * bar of a long reel on screen (#277). The patch asks {@link #scrubber} where the seek bar row
  * decides whether to draw it, with the reel's own clear mode flag, and while the switch is on a reel
- * in clear mode draws no seek bar. That is the only thing this class hides.
+ * in clear mode draws no seek bar, unless Always show seek bar in clear mode keeps it (#480). That
+ * is the only thing this class hides.
  *
  * <p>Every reel page shares one alpha for its buttons, author row and top bar. Clear mode's fade
  * animates it to hidden, and Instagram resets it to shown when it binds a page at rest, behind the
@@ -552,14 +553,15 @@ public final class ReelClearMode {
     /**
      * The hook, where the seek bar row tests whether to draw the seek bar, with Instagram's answer
      * and the reel's clear mode flag, each non-zero for yes. A reel in clear mode draws none while
-     * the switch is on. Anything else, or a failure here, keeps Instagram's answer.
+     * the switch is on, unless Always show seek bar in clear mode asks to keep it (#480). Anything
+     * else, or a failure here, keeps Instagram's answer.
      */
     public static boolean scrubber(int shown, int fullscreen) {
         if (shown == 0) return false;
         if (fullscreen == 0) return true;
         try {
             HookStatus.invoked(FAMILY);
-            return !on();
+            return !on() || Settings.CLEAR_MODE_SEEK_BAR.get();
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "clear mode seek bar", failure);
             return true;

@@ -2410,6 +2410,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_quiet_reel_clear_mode", FALSE);
 
     /**
+     * The seek bar stays on a reel in clear mode, where {@link #KEEP_REEL_CLEAR_MODE} otherwise takes
+     * it away (#277), and short reels get one too, in or out of clear mode (#480,
+     * {@link app.hushgram.extension.instagram.reels.ReelClearMode#scrubber},
+     * {@link app.hushgram.extension.instagram.reels.ReelSeekBar#everyReel}). Decided as each reel is
+     * shown, so a change shows from the next reels with no restart. Off to start.
+     */
+    public static final BooleanSetting CLEAR_MODE_SEEK_BAR =
+            new BooleanSetting("hushgram_clear_mode_seek_bar", FALSE);
+
+    /**
      * The top bar of a reels viewer staying in place while you swipe through reels (#411,
      * {@link app.hushgram.extension.instagram.reels.ReelsTopBarScroll}). Read at each scroll, so a
      * change needs no restart. Off to start.

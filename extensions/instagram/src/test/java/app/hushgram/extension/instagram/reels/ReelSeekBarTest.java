@@ -111,6 +111,32 @@ public class ReelSeekBarTest {
         assertFalse("the hooks were counted", HookStatus.snapshot().isEmpty());
     }
 
+    /**
+     * Always show seek bar in clear mode (#480) keeps the bar on short reels too, since clear mode
+     * would otherwise leave them without one, but brings no time label with it.
+     */
+    @Test
+    public void alwaysShowingItInClearModeKeepsTheBarButNotTheLabel() {
+        Settings.REEL_SEEK_BAR.save(false);
+        Settings.CLEAR_MODE_SEEK_BAR.save(true);
+        try {
+            assertEquals(1L, ReelSeekBar.minSeconds(30L));
+            assertFalse(ReelSeekBar.lazy(1));
+            FrameLayout container = container();
+            SeekBar bar = bar(container, 55_000);
+            ReelSeekBar.progress(bar, 10_000);
+            layout(container);
+            assertNull("no label of its own", ReelTimeLabel.labelOf(bar));
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertEquals("paused, Instagram's length stands", 30L, ReelSeekBar.minSeconds(30L));
+            assertTrue("paused, Instagram's hidden kind stands", ReelSeekBar.lazy(1));
+        } finally {
+            Settings.CLEAR_MODE_SEEK_BAR.resetToDefault();
+        }
+    }
+
     /** Off, paused or before the settings are read, Instagram's answers stand and the label is hidden. */
     @Test
     public void offPausedAndUnreadyLeaveInstagramsAnswers() {

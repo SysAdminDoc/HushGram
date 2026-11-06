@@ -1231,6 +1231,36 @@ public class ReelClearModeTest {
     }
 
     /**
+     * Always show seek bar in clear mode (#480) keeps the bar on a reel in clear mode with Keep clear
+     * mode on. It can't invent one Instagram wouldn't draw, and paused the bar stays anyway.
+     */
+    @Test
+    public void theSeekBarStaysInClearModeWithItsSwitchOn() {
+        try {
+            assertFalse("starts off", Settings.CLEAR_MODE_SEEK_BAR.defaultValue);
+            assertFalse("off, Keep clear mode on takes it away", ReelClearMode.scrubber(1, 1));
+
+            Settings.CLEAR_MODE_SEEK_BAR.save(true);
+            assertTrue("on, it stays", ReelClearMode.scrubber(1, 1));
+            assertTrue("out of clear mode, Instagram's yes stands", ReelClearMode.scrubber(1, 0));
+            assertFalse("Instagram's no stands", ReelClearMode.scrubber(0, 1));
+
+            Settings.KEEP_REEL_CLEAR_MODE.save(false);
+            assertTrue("with Keep clear mode on off, it stays", ReelClearMode.scrubber(1, 1));
+            Settings.KEEP_REEL_CLEAR_MODE.save(true);
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertTrue("paused, it stays", ReelClearMode.scrubber(1, 1));
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+            assertFalse("nothing threw", reported("clear mode seek bar"));
+        } finally {
+            Settings.CLEAR_MODE_SEEK_BAR.resetToDefault();
+        }
+    }
+
+    /**
      * Don't vibrate in clear mode (#480): the buzz Instagram plays drawing a reel's exit button is
      * skipped only with its switch on, whatever Keep clear mode on says, and plays while paused or
      * unready.

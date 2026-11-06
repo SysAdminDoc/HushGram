@@ -134,8 +134,37 @@ public class ReelClearModeSettingsTest {
         assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.QUIET_REEL_CLEAR_MODE));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.QUIET_REEL_CLEAR_MODE.key));
     }
+    /**
+     * Always show seek bar in clear mode (#480) sits right under Don't vibrate in clear mode, starts
+     * off, needs no restart, doesn't wait for Keep clear mode on, and is kept in a backup.
+     */
+    @Test public void alwaysShowSeekBarSitsUnderDontVibrateAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.CLEAR_MODE_SEEK_BAR.key);
+        assertNotNull(row);
+        assertTrue(row instanceof SwitchPreference);
+        assertEquals("Always show seek bar in clear mode", row.getTitle().toString());
+        assertEquals("Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other "
+                + "buttons stay hidden. Short reels get a bar too, in clear mode or not.", row.getSummary().toString());
+        PreferenceGroup reels = (PreferenceGroup) row.getParent();
+        int quiet = -1;
+        int bar = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            String key = reels.getPreference(i).getKey();
+            if (Settings.QUIET_REEL_CLEAR_MODE.key.equals(key)) quiet = i;
+            if (Settings.CLEAR_MODE_SEEK_BAR.key.equals(key)) bar = i;
+        }
+        assertEquals("right after Don't vibrate in clear mode", quiet + 1, bar);
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertEquals(Boolean.FALSE, Settings.CLEAR_MODE_SEEK_BAR.defaultValue);
+        assertFalse("decided as each reel shows, so no restart", Settings.CLEAR_MODE_SEEK_BAR.rebootApp);
+        assertTrue("doesn't wait for Keep clear mode on", Settings.CLEAR_MODE_SEEK_BAR.isAvailable());
+        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.CLEAR_MODE_SEEK_BAR));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CLEAR_MODE_SEEK_BAR.key));
+    }
     @Test public void withoutCleanUpReelsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.CLEAR_MODE_SEEK_BAR.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_CLEAR_MODE.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.START_REEL_CLEAR_MODE.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.QUIET_REEL_CLEAR_MODE.key));

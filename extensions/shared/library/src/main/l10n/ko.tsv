@@ -1106,6 +1106,9 @@ Reels open in clear mode from the first one, with no tap. Leave it yourself and 
 # context: Reels settings: a switch under Start every reel in clear mode (#480). It stops the short vibration Instagram plays when a reel opens in clear mode; Keep clear mode on is HushGram's switch of that name, so use the same words as that row
 Don't vibrate in clear mode	클리어 모드에서 진동 끄기
 Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode on, that's every swipe.	릴스가 클리어 모드로 열릴 때 Instagram이 내는 짧은 진동을 끕니다. 클리어 모드 유지가 켜져 있으면 넘길 때마다 진동합니다.
+# context: Reels settings: a switch under Don't vibrate in clear mode (#480). It keeps the seek bar on screen in clear mode; seek bar and clear mode use the same words as Keep a seek bar and Keep clear mode on
+Always show seek bar in clear mode	클리어 모드에서 재생바 항상 표시
+Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other buttons stay hidden. Short reels get a bar too, in clear mode or not.	클리어 모드의 릴스에 재생바를 남겨 계속 끌 수 있고, 다른 버튼은 숨겨진 채로 둡니다. 짧은 릴스에도 클리어 모드 여부와 상관없이 재생바가 표시됩니다.
 Unlock with	잠금 해제 방법
 Phone lock	휴대폰 잠금
 HushGram PIN	HushGram PIN

@@ -1101,6 +1101,9 @@ Reels open in clear mode from the first one, with no tap. Leave it yourself and 
 # context: Reels settings: a switch under Start every reel in clear mode (#480). It stops the short vibration Instagram plays when a reel opens in clear mode; Keep clear mode on is HushGram's switch of that name, so use the same words as that row
 Don't vibrate in clear mode	清爽模式中不震動
 Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode on, that's every swipe.	Reel 以清爽模式開啟時，停止 Instagram 播放的短暫震動。開啟「保持清爽模式」時，每次滑動都會震動。
+# context: Reels settings: a switch under Don't vibrate in clear mode (#480). It keeps the seek bar on screen in clear mode; seek bar and clear mode use the same words as Keep a seek bar and Keep clear mode on
+Always show seek bar in clear mode	清爽模式中一律顯示進度列
+Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other buttons stay hidden. Short reels get a bar too, in clear mode or not.	在清爽模式的 Reel 上保留進度列，仍可拖曳，其他按鈕維持隱藏。不論是否為清爽模式，短 Reels 也會有進度列。
 Unlock with	解鎖方式
 Phone lock	手機鎖定
 HushGram PIN	HushGram PIN 碼

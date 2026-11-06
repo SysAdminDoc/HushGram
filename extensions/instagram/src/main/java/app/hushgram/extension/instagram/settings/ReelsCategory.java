@@ -148,6 +148,9 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.QUIET_REEL_CLEAR_MODE, L10n.t("Don't vibrate in clear mode"),
                     L10n.t("Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode "
                             + "on, that's every swipe.")));
+            reels.add(toggle(context, Settings.CLEAR_MODE_SEEK_BAR, L10n.t("Always show seek bar in clear mode"),
+                    L10n.t("Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other "
+                            + "buttons stay hidden. Short reels get a bar too, in clear mode or not.")));
         }
         if (build.contains(PatchFamily.KEEP_REELS_TOP_BAR)) {
             reels.add(toggle(context, Settings.KEEP_REELS_TOP_BAR, L10n.t("Keep the Reels top bar"),

@@ -51,7 +51,7 @@ public final class ReelSeekBar {
      * value when that's already shorter, and the server's value otherwise.
      */
     public static long minSeconds(long seconds) {
-        return minSeconds(seconds, ReelSeekBar::switchedOn);
+        return minSeconds(seconds, ReelSeekBar::everyReel);
     }
 
     static long minSeconds(long seconds, BooleanSupplier on) {
@@ -76,7 +76,7 @@ public final class ReelSeekBar {
      * Answers no while the switch is on, and Instagram's answer otherwise.
      */
     public static boolean lazy(int enabled) {
-        return lazy(enabled, ReelSeekBar::switchedOn);
+        return lazy(enabled, ReelSeekBar::everyReel);
     }
 
     static boolean lazy(int enabled, BooleanSupplier on) {
@@ -112,6 +112,15 @@ public final class ReelSeekBar {
      */
     static boolean switchedOn() {
         return Utils.settingsReady() && (Settings.REEL_SEEK_BAR.get() || styled());
+    }
+
+    /**
+     * Whether short reels get a bar: all of the above, or Always show seek bar in clear mode (#480),
+     * which wants the bar on a short reel too but leaves the time label out. The length Instagram
+     * reads here comes with no reel, so a short reel gets its bar in or out of clear mode.
+     */
+    static boolean everyReel() {
+        return switchedOn() || (Utils.settingsReady() && Settings.CLEAR_MODE_SEEK_BAR.get());
     }
 
     /** Whether the bar gets a thumb: Round handle on the seek bar, or a restyled bar, which always has one. */

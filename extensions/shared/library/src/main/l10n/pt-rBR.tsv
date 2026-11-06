@@ -1107,6 +1107,9 @@ Reels open in clear mode from the first one, with no tap. Leave it yourself and 
 # context: Reels settings: a switch under Start every reel in clear mode (#480). It stops the short vibration Instagram plays when a reel opens in clear mode; Keep clear mode on is HushGram's switch of that name, so use the same words as that row
 Don't vibrate in clear mode	Não vibrar no modo limpo
 Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode on, that's every swipe.	Para a vibração curta que o Instagram faz quando um reel abre no modo limpo. Com Manter o modo limpo ativado, isso acontece a cada deslize.
+# context: Reels settings: a switch under Don't vibrate in clear mode (#480). It keeps the seek bar on screen in clear mode; seek bar and clear mode use the same words as Keep a seek bar and Keep clear mode on
+Always show seek bar in clear mode	Sempre mostrar a barra de progresso no modo limpo
+Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other buttons stay hidden. Short reels get a bar too, in clear mode or not.	Mantém a barra de progresso em um reel no modo limpo, e você ainda pode arrastá-la, enquanto os outros botões continuam ocultos. Reels curtos também ganham uma barra, no modo limpo ou não.
 Unlock with	Desbloquear com
 Phone lock	Bloqueio do celular
 HushGram PIN	PIN do HushGram
