@@ -358,6 +358,7 @@ try {
     $javaStub = Join-Path $tools 'java-stub.ps1'
     Write-Text $javaStub (@'
 if ($args[0] -eq '-version') { 'openjdk version "21.0.5" 2024-10-15'; exit 0 }
+if ($args -contains '-cp') { Copy-Item -LiteralPath $args[$args.Count - 2] -Destination $args[$args.Count - 1]; exit 0 }
 $values = @{}
 for ($i = 0; $i -lt $args.Count - 1; $i++) { if ($args[$i] -in '-o', '-r') { $values[$args[$i]] = $args[$i + 1] } }
 $apkIn = $args[$args.Count - 1]
@@ -438,9 +439,9 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
     foreach ($entry in @($summary.builds)) { $byBuild[$entry.build] = $entry }
     $patchRuns = @(Read-Log | Where-Object { $_ -like 'patch *' })
     Assert-True ($run.Exit -eq 1 -and $patchRuns.Count -eq 3 -and
-        $patchRuns -contains "patch fixtures/instagram-$declared-${declaredCode}.apks forced=0" -and
+        $patchRuns -contains "patch work/$declared-$declaredCode-merged.apk forced=0" -and
         $patchRuns -contains "patch instagram-$declared-${otherCode}/base.apk forced=1" -and
-        $patchRuns -contains 'patch fixtures/instagram-439.0.0.37.89-384510833-apkpure.xapk forced=1') `
+        $patchRuns -contains 'patch work/439.0.0.37.89-384510833-merged.apk forced=1') `
         "The builds weren't patched from the right inputs, forced where undeclared: $($patchRuns -join '; ') $($run.Output)"
     $queueLines = @(Read-Log | Where-Object { $_ -like 'queue *' })
     Assert-True ($queueLines.Count -eq 6 -and @($queueLines | Where-Object { $_ -like 'queue enter hushgram all-builds * release' }).Count -eq 3) `
@@ -497,7 +498,7 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
     $run = Invoke-Script $allBuilds (@('-FixtureDir', $fixtures, '-Root', $repo, '-Bundle', $bundle, '-DesktopJar', $otherDesktop, '-Java', $java,
         '-Aapt2', $aapt2, '-OutDir', $out, '-Only', $declaredCode, '-FromGate'))
     Assert-True ($run.Exit -eq 0 -and $run.Output -like '*made with another CLI, so it is patched here*' -and
-        (Read-Log) -contains "patch fixtures/instagram-$declared-${declaredCode}.apks forced=0") "A kept run made with another CLI was read: $($run.Output)"
+        (Read-Log) -contains "patch work/$declared-$declaredCode-merged.apk forced=0") "A kept run made with another CLI was read: $($run.Output)"
     Remove-Item Env:\BUILD_QUEUE_SCRIPT, Env:\HUSHGRAM_ALLOW_RELEASE, Env:\HUSHGRAM_GATE_CACHE
     Write-Host '[release-helpers] all-builds run passed'
 

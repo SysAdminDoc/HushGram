@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Improvements
 
 * **Tooling:** The release walk now reads the settings overview while its own header shows HushGram's name, Home's welcome screen on 454, a long reel with its scrubber, and a screen with the activity tooltip up.
+* **Tooling:** `patch-all-builds.ps1` merges a split bundle before patching it, like the other patching scripts.
 
 ## 0.0.19 (2026-11-06)
 

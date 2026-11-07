@@ -182,7 +182,9 @@ foreach ($build in $builds) {
                 '-o', (Join-Path $work 'patched.apk'), '-t', (Join-Path $work 'tmp'), '-r', $result)
             if ($forced) { $arguments += '-f' }
             foreach ($name in $names) { $arguments += '-e'; $arguments += $name }
-            $arguments += $build.Path
+            # Merged first, as every other patching script does: the CLI links a bundle into its
+            # working folder to merge it, and a machine that won't follow user-made links stops there.
+            $arguments += Get-MergedApk -Apk $build.Path -Destination (Join-Path $work "$($build.Label)-merged.apk") -Java $Java -DesktopJar $DesktopJar
             # Continue for the call alone: the CLI logs WARNING and SEVERE on stderr, which Windows
             # PowerShell 5.1 turns into a terminating error under Stop.
             $preference = $ErrorActionPreference
