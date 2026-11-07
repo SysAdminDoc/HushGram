@@ -477,7 +477,7 @@ public class AccentThemeTest {
         assertFalse(AccentTheme.readsLight(0xff0c1014));
         // A theme styled twice keeps its shade: the dark one still reads as a dark theme's.
         for (AccentHue hue : AccentHue.values()) {
-            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER) continue;
+            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) continue;
             assertTrue(hue.name(), AccentTheme.readsLight(hue.linkOnDark));
             assertFalse(hue.name(), AccentTheme.readsLight(hue.linkOnLight));
         }

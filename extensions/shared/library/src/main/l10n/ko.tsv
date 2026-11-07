@@ -1835,5 +1835,21 @@ Can slow down older phones.	오래된 휴대폰에서는 느려질 수 있습니
 Blend post edges	게시물 가장자리 흐리게
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	게시물 사진이나 동영상의 위아래를 빛에 녹아들게 해서 가장자리가 선명한 선으로 보이지 않게 합니다.
+# context: a color in the Accent color list
+Dusk blue	황혼 파랑
+# context: a color in the Accent color list
+Pine	소나무
+# context: a color in the Accent color list
+Slate	슬레이트
+# context: a color in the Accent color list, the one typed in the row below it
+Custom	사용자 지정
+# context: a row under Accent color where a color is typed as hex
+Custom color	사용자 지정 색상
+# context: the Custom color dialog's message
+A color as six hex digits, like #4A6B82. HushGram makes it darker or lighter where text needs it. Restart Instagram to see it.	#4A6B82처럼 16진수 여섯 자리로 쓴 색상입니다. 글자가 잘 보이도록 HushGram이 필요한 곳에서 어둡게 또는 밝게 바꿉니다. 보려면 Instagram을 다시 시작하세요.
+# context: the Custom color row's summary when nothing is typed yet
+None yet. Custom stays Instagram's blue until you type one.	아직 없습니다. 색상을 입력하기 전까지 사용자 지정은 Instagram 파란색으로 남습니다.
+# context: shown under the Custom color field when what's typed isn't a color
+That isn't a color. Try #4A6B82.	색상이 아닙니다. #4A6B82처럼 입력해 보세요.
 Count on the heart	하트에 숫자 표시
 The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	홈 상단의 하트에 빨간 점 대신 메시지처럼 기다리는 알림 수를 표시합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.

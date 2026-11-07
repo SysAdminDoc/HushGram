@@ -49,6 +49,9 @@ internal const val APPLY_THEME = "$ACCENT_THEME->apply(Landroid/content/Context;
  */
 internal const val ATTRIBUTES_STUB = "$ACCENT_THEME->attributes()Ljava/lang/String;"
 
+/** The extension's stub the patch writes the names of the colors it added for a typed color into (#520). */
+internal const val CUSTOM_COLORS_STUB = "$ACCENT_THEME->customColors()Ljava/lang/String;"
+
 /** The extension's answer to the color Home's newer header tints its heart and Create buttons with (#8). */
 internal const val HEADER_ICONS = "$ACCENT_THEME->headerIcons(Landroid/content/Context;I)I"
 
@@ -60,6 +63,9 @@ internal const val IG_FRAGMENT_ACTIVITY = "Lcom/instagram/base/activity/IgFragme
 
 /** Every theme attribute [accentThemePatch] gave a style of its own, space separated, once it has run. */
 internal var accentAttributes: String? = null
+
+/** The colors [accentThemePatch] added for a typed color, space separated, once it has run. */
+internal var accentCustomColors: String? = null
 
 private const val CONTEXT = "Landroid/content/Context;"
 private const val THEME = "Landroid/content/res/Resources\$Theme;"
@@ -105,7 +111,16 @@ internal class AccentPalette(val name: String, fill: Int, linkOnLight: Int, link
     }
 }
 
-/** Every color but Instagram's own blue, as AccentHue lists them. */
+/**
+ * The color typed in HushGram settings (#520), AccentHue.CUSTOM. The patch can't know it, so its colors
+ * hold Dusk blue's shades as stand-ins, and the extension's CustomAccent gives them the typed color's.
+ */
+internal const val CUSTOM = "CUSTOM"
+
+/**
+ * Every color but Instagram's own blue and Material You, as AccentHue lists them. Dusk blue, Pine and
+ * Slate are the calmer ones from #528.
+ */
 internal val ACCENT_PALETTES = listOf(
     AccentPalette("PURPLE", 0x7638fa, 0x5806e0, 0xa07cfd),
     AccentPalette("PINK", 0xd6005a, 0xc1014f, 0xff6fa2),
@@ -113,7 +128,18 @@ internal val ACCENT_PALETTES = listOf(
     AccentPalette("ORANGE", 0xd95700, 0xb54800, 0xff9a40),
     AccentPalette("GREEN", 0x118841, 0x0d7a39, 0x3ee581),
     AccentPalette("TEAL", 0x00838f, 0x00727c, 0x4dd0d9),
+    AccentPalette("DUSK", 0x4a6b82, 0x4a6b82, 0x6c879a),
+    AccentPalette("PINE", 0x2a6f68, 0x2a6f68, 0x639691),
+    AccentPalette("SLATE", 0x3a506b, 0x3a506b, 0x7e8d9e),
+    AccentPalette(CUSTOM, 0x4a6b82, 0x4a6b82, 0x6c879a),
 )
+
+/** What every color the patch adds for [CUSTOM] is named after, as CustomAccent.PREFIX has it. */
+internal const val CUSTOM_COLOR_PREFIX = "hushgram_accent_custom_"
+
+/** The names of the colors added for [CUSTOM], space separated, for [CUSTOM_COLORS_STUB]. */
+internal fun customColorNames(colors: Document): String =
+    colors.children("color").map { it.getAttribute("name") }.filter { it.startsWith(CUSTOM_COLOR_PREFIX) }.joinToString(" ")
 
 /**
  * Material You (#187, #264), AccentHue.WALLPAPER: the step of Android 12's first accent family each
@@ -666,6 +692,7 @@ internal fun ResourcePatchContext.addAccentTheme(): String {
             document(COLORS_V31).use { colorsV31 ->
                 document("res/values/styles.xml").use { styles ->
                     addAccentResources(uses, attrs, colors, styles).also {
+                        accentCustomColors = customColorNames(colors)
                         addWallpaperResources(uses, attrs, colors, colorsV31, styles)
                     }
                 }
@@ -677,6 +704,7 @@ internal fun ResourcePatchContext.addAccentTheme(): String {
 internal val accentThemePatch = resourcePatch {
     execute {
         accentAttributes = null
+        accentCustomColors = null
         accentAttributes = addAccentTheme()
     }
 }
@@ -717,10 +745,12 @@ internal fun BytecodePatchContext.findThemeOverrides(): MutableMethod {
     val returns = overrides.code().indices.filter { overrides.code()[it].opcode == Opcode.RETURN_VOID }
     if (returns.isEmpty()) refuse("${overrides.where()} never returns")
     overrides.requireParameterIntact(PATCH, 0, returns)
-    for (needed in listOf(APPLY_THEME, ATTRIBUTES_STUB)) {
+    for (needed in listOf(APPLY_THEME, ATTRIBUTES_STUB, CUSTOM_COLORS_STUB)) {
         if (extensionMethod(needed) == null) refuse("the extension has no public static $needed")
     }
-    if ((extensionMethod(ATTRIBUTES_STUB)?.implementation?.registerCount ?: 0) < 1) refuse("$ATTRIBUTES_STUB has no register to write into")
+    for (stub in listOf(ATTRIBUTES_STUB, CUSTOM_COLORS_STUB)) {
+        if ((extensionMethod(stub)?.implementation?.registerCount ?: 0) < 1) refuse("$stub has no register to write into")
+    }
     return mutableClassDefBy(overrides.definingClass).methods.single {
         it.name == overrides.name && it.parameterTypes.map(Any::toString) == listOf(CONTEXT) && it.returnType == "V"
     }
@@ -754,15 +784,24 @@ internal fun BytecodePatchContext.findThemeUtil(): MutableMethod {
 }
 
 /**
- * Writes [attributes] into the extension's stub, then runs AccentTheme.apply with the context at each
- * return of the overrides, once Instagram's styles are all on an activity, and of the theme util, for
- * the contexts Instagram styles itself.
+ * Writes [attributes] into the extension's stub, and [customColors] into its own when there are any,
+ * then runs AccentTheme.apply with the context at each return of the overrides, once Instagram's styles
+ * are all on an activity, and of the theme util, for the contexts Instagram styles itself.
  */
-internal fun BytecodePatchContext.applyAccentTheme(attributes: String = requireAccentAttributes()) {
+internal fun BytecodePatchContext.applyAccentTheme(
+    attributes: String = requireAccentAttributes(),
+    customColors: String? = accentCustomColors,
+) {
     val overrides = findThemeOverrides()
     val util = findThemeUtil()
     val listed = requireAccentAttributes(attributes)
+    if (!customColors.isNullOrEmpty() && !customColors.all { it.isLetterOrDigit() || it in "_ " }) {
+        refuse("a custom color's name can't be written into the code: $customColors")
+    }
     mutableClassDefBy(ACCENT_THEME).methods.single { it.signature() == ATTRIBUTES_STUB }.returnEarly(listed)
+    if (!customColors.isNullOrEmpty()) {
+        mutableClassDefBy(ACCENT_THEME).methods.single { it.signature() == CUSTOM_COLORS_STUB }.returnEarly(customColors)
+    }
     for (method in listOf(overrides, util)) {
         val context = method.parameterRegisterNumber(0)
         val returns = method.code().indices.filter { method.code()[it].opcode == Opcode.RETURN_VOID }

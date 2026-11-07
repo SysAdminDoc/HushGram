@@ -1753,5 +1753,21 @@ Can slow down older phones.	Có thể làm chậm các điện thoại cũ.
 Blend post edges	Hòa viền bài đăng
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	Làm phần trên và dưới của ảnh hoặc video trong bài đăng hòa vào ánh sáng của nó, để viền không hiện thành một đường cứng.
+# context: a color in the Accent color list
+Dusk blue	Xanh hoàng hôn
+# context: a color in the Accent color list
+Pine	Thông
+# context: a color in the Accent color list
+Slate	Đá phiến
+# context: a color in the Accent color list, the one typed in the row below it
+Custom	Tùy chỉnh
+# context: a row under Accent color where a color is typed as hex
+Custom color	Màu tùy chỉnh
+# context: the Custom color dialog's message
+A color as six hex digits, like #4A6B82. HushGram makes it darker or lighter where text needs it. Restart Instagram to see it.	Một màu gồm sáu chữ số hex, như #4A6B82. HushGram làm nó tối hơn hoặc sáng hơn ở chỗ chữ cần. Khởi động lại Instagram để thấy.
+# context: the Custom color row's summary when nothing is typed yet
+None yet. Custom stays Instagram's blue until you type one.	Chưa có. Tùy chỉnh vẫn là xanh Instagram cho đến khi bạn nhập một màu.
+# context: shown under the Custom color field when what's typed isn't a color
+That isn't a color. Try #4A6B82.	Đó không phải là màu. Thử #4A6B82.
 Count on the heart	Số trên trái tim
 The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Trái tim ở đầu trang chủ hiện số thông báo đang chờ, giống con số trên Tin nhắn, thay cho chấm đỏ. Hãy khởi động lại Instagram để thấy thay đổi.

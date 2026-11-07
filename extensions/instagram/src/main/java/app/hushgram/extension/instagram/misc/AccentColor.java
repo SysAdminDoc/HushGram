@@ -172,12 +172,14 @@ public final class AccentColor {
 
     /**
      * The color picked, or null for Instagram's own: switch off, blue picked, paused or not ready,
-     * Material You with no wallpaper palette to read, or this read being one of that palette's tones.
+     * Material You with no wallpaper palette to read, this read being one of that palette's tones, or
+     * Custom with no color typed.
      */
     static AccentHue picked() {
         if (!Utils.settingsReady() || !Settings.ACCENT_COLOR.get() || MaterialYou.reading()) return null;
         AccentHue hue = Settings.ACCENT_HUE.get();
         if (hue == AccentHue.WALLPAPER && MaterialYou.shades() == null) return null;
+        if (hue == AccentHue.CUSTOM && CustomAccent.shades() == null) return null;
         return hue == null || hue == AccentHue.BLUE ? null : hue;
     }
 
@@ -232,12 +234,12 @@ public final class AccentColor {
 
     /**
      * [color] as [hue]'s shade for the part it plays, with its own alpha, or [color] for no part, or
-     * when Material You's palette can't be read.
+     * when Material You's palette can't be read or no custom color is typed.
      */
     static int swap(int color, AccentHue hue) {
         Role role = role(color);
-        if (hue == AccentHue.WALLPAPER) {
-            int[] shades = MaterialYou.shades();
+        if (hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) {
+            int[] shades = hue == AccentHue.WALLPAPER ? MaterialYou.shades() : CustomAccent.shades();
             if (role == Role.NONE || shades == null) return color;
             return (color & 0xff000000) | shades[role.ordinal() - 1];
         }

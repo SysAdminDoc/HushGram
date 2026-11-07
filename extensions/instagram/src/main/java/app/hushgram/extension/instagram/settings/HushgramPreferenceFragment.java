@@ -139,6 +139,7 @@ import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.misc.TabIconSize;
 import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.misc.AppProxy;
+import app.hushgram.extension.instagram.misc.CustomAccent;
 import app.hushgram.extension.instagram.misc.MaterialYou;
 import app.hushgram.extension.instagram.misc.AppIconChoice;
 import app.hushgram.extension.instagram.misc.EmojiChoice;
@@ -753,7 +754,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             && Settings.FULL_SCREEN_BUTTON_ON_REELS.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && (Settings.HIDE_SOUND_REELS.key.equals(key)
                             || HIDDEN_SOUNDS_ROW.equals(key));
-                    belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
+                    belongs |= family == PatchFamily.ACCENT_COLOR && (Settings.ACCENT_HUE.key.equals(key)
+                            || Settings.ACCENT_CUSTOM.key.equals(key));
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
                     belongs |= family == PatchFamily.EMOJI_STYLE && Settings.EMOJI_FONT.key.equals(key);
                     belongs |= family == PatchFamily.STORY_FONTS && STORY_FONTS_ROW.equals(key);
@@ -4920,6 +4922,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /**
+     * The color typed for Custom (#520), saved as #RRGGBB. What isn't a color is refused under the
+     * field. Saving one picks Custom in the Color list too, so it takes one step.
+     */
+    static AccentCustomRow accentCustomRow(Context context) {
+        AccentCustomRow row = new AccentCustomRow(context);
+        row.setKey(Settings.ACCENT_CUSTOM.key);
+        row.setTitle(L10n.t("Custom color"));
+        row.setDialogTitle(L10n.t("Custom color"));
+        row.setDialogMessage(L10n.t("A color as six hex digits, like #4A6B82. HushGram makes it darker or "
+                + "lighter where text needs it. Restart Instagram to see it."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setSingleLine(true);
+        field.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        field.setTextDirection(View.TEXT_DIRECTION_LTR);
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+        field.setHint("#4A6B82");
+        row.setText(Settings.ACCENT_CUSTOM.savedValue());
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String color = CustomAccent.normalize(typed == null ? "" : typed.toString());
+            if (color == null) return false;
+            Preference hue = preference.getPreferenceManager() == null ? null
+                    : preference.getPreferenceManager().findPreference(Settings.ACCENT_HUE.key);
+            if (hue instanceof AccentHueRow) ((AccentHueRow) hue).setValue(AccentHue.CUSTOM.name());
+            else Settings.ACCENT_HUE.save(AccentHue.CUSTOM);
+            return true;
+        });
+        return row;
+    }
+
     /** How tall the glass tab bar's pill is. Its summary is the step chosen. */
     static GlassHeightRow glassHeightRow(Context context) {
         GlassHeightRow row = new GlassHeightRow(context);
@@ -5684,8 +5718,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Green");
             case TEAL:
                 return L10n.t("Teal");
+            case DUSK:
+                return L10n.t("Dusk blue");
+            case PINE:
+                return L10n.t("Pine");
+            case SLATE:
+                return L10n.t("Slate");
             case WALLPAPER:
                 return L10n.t("Material You");
+            case CUSTOM:
+                return L10n.t("Custom");
             default:
                 return L10n.t("Instagram blue");
         }
@@ -7354,6 +7396,36 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (!callChangeListener(value)) return;
             setText(value);
             dialog.dismiss();
+        }
+    }
+
+    static final class AccentCustomRow extends ValidatedEditRow {
+        AccentCustomRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the color saved, or that none is yet. */
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            String color = CustomAccent.normalize(text);
+            setSummary(color == null ? L10n.t("None yet. Custom stays Instagram's blue until you type one.") : color);
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        @Override String validatedValue(String typed) {
+            return CustomAccent.normalize(typed);
+        }
+
+        @Override String validationError() {
+            return L10n.t("That isn't a color. Try #4A6B82.");
         }
     }
 

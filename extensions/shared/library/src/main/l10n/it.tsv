@@ -1836,5 +1836,21 @@ Can slow down older phones.	Può rallentare i telefoni più vecchi.
 Blend post edges	Sfuma i bordi dei post
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	Sfuma la parte superiore e inferiore della foto o del video di un post nel suo bagliore, così il bordo non si vede come una linea netta.
+# context: a color in the Accent color list
+Dusk blue	Blu crepuscolo
+# context: a color in the Accent color list
+Pine	Pino
+# context: a color in the Accent color list
+Slate	Ardesia
+# context: a color in the Accent color list, the one typed in the row below it
+Custom	Personalizzato
+# context: a row under Accent color where a color is typed as hex
+Custom color	Colore personalizzato
+# context: the Custom color dialog's message
+A color as six hex digits, like #4A6B82. HushGram makes it darker or lighter where text needs it. Restart Instagram to see it.	Un colore in sei cifre esadecimali, come #4A6B82. HushGram lo scurisce o lo schiarisce dove serve al testo. Riavvia Instagram per vederlo.
+# context: the Custom color row's summary when nothing is typed yet
+None yet. Custom stays Instagram's blue until you type one.	Ancora nessuno. Personalizzato resta il blu di Instagram finché non ne scrivi uno.
+# context: shown under the Custom color field when what's typed isn't a color
+That isn't a color. Try #4A6B82.	Questo non è un colore. Prova #4A6B82.
 Count on the heart	Numero sul cuore
 The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Il cuore in alto nella Home mostra quante notifiche ti aspettano, come il numero sui Messaggi, al posto del pallino rosso. Riavvia Instagram per vedere la modifica.

@@ -1723,11 +1723,20 @@ public class Settings extends BaseSettings {
     /**
      * Under {@link #ACCENT_COLOR}: the color ({@link app.hushgram.extension.instagram.misc.AccentHue}).
      * Starts on purple, and Instagram blue keeps the stock color. Material You (#187) takes the
-     * wallpaper's colors on Android 12 and newer. A change shows after a restart.
+     * wallpaper's colors on Android 12 and newer, and Custom (#520) the color in {@link #ACCENT_CUSTOM}.
+     * A change shows after a restart.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.misc.AccentHue> ACCENT_HUE =
             new EnumSetting<>("hushgram_accent_hue",
                     app.hushgram.extension.instagram.misc.AccentHue.PURPLE, true, parent(ACCENT_COLOR));
+
+    /**
+     * Under {@link #ACCENT_COLOR}: the color typed for Custom (#520), {@code #RRGGBB}
+     * ({@link app.hushgram.extension.instagram.misc.CustomAccent}). Empty to start, which leaves Custom
+     * on Instagram's blue. A change shows after a restart.
+     */
+    public static final StringSetting ACCENT_CUSTOM =
+            new StringSetting("hushgram_accent_custom", "", true, parent(ACCENT_COLOR));
 
     /**
      * Under {@link #ACCENT_COLOR}: Instagram's red badges, the dots and counts on its icons, take the

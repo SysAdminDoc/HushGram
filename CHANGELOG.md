@@ -16,6 +16,8 @@ Every HushGram release, newest first.
 * `Hide the search bar` under Sharing takes the search bar off the top of the share sheet. Asked for in #545.
 * `Tab icon size` under Tab bar draws the icons on the bottom tab bar bigger, from 110% up to 150% of Instagram's size. It works on Instagram's bar and the glass one, and a change shows right away. Asked for in #541.
 * `Count on the heart` under Tab bar puts a number on the heart at the top of Home, like the one on Messages, instead of the red dot. It takes a restart. Asked for in #541.
+* `Accent color` has a `Custom` choice now, with a `Custom color` row under it where you type any color as hex, like #4A6B82. Where text would be hard to read on it, HushGram makes it a bit darker or lighter. On Android 10 and older the colors Instagram draws in code take it, and its themes stay blue. Asked for in #520.
+* `Accent color` also has three calmer colors: Dusk blue, Pine and Slate. Asked for in #528.
 
 ### Improvements
 

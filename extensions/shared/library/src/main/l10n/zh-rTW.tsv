@@ -1839,5 +1839,21 @@ Can slow down older phones.	可能會讓較舊的手機變慢.
 Blend post edges	融合貼文邊緣
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	讓貼文相片或影片的上下邊緣融入光暈，邊緣就不會像一條生硬的線.
+# context: a color in the Accent color list
+Dusk blue	暮色藍
+# context: a color in the Accent color list
+Pine	松綠
+# context: a color in the Accent color list
+Slate	石板灰
+# context: a color in the Accent color list, the one typed in the row below it
+Custom	自訂
+# context: a row under Accent color where a color is typed as hex
+Custom color	自訂顏色
+# context: the Custom color dialog's message
+A color as six hex digits, like #4A6B82. HushGram makes it darker or lighter where text needs it. Restart Instagram to see it.	用六位十六進位數字表示的顏色，例如 #4A6B82。HushGram 會在文字需要的地方把它調深或調淺。重新啟動 Instagram 即可看到.
+# context: the Custom color row's summary when nothing is typed yet
+None yet. Custom stays Instagram's blue until you type one.	尚未設定。輸入顏色前，自訂會維持 Instagram 的藍色.
+# context: shown under the Custom color field when what's typed isn't a color
+That isn't a color. Try #4A6B82.	這不是顏色。試試 #4A6B82.
 Count on the heart	愛心上的數字
 The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	首頁頂端的愛心會像訊息一樣顯示待讀通知的數量，取代紅點。請重新啟動 Instagram 以套用變更。

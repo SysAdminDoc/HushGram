@@ -1836,5 +1836,21 @@ Can slow down older phones.	Kann ältere Handys verlangsamen.
 Blend post edges	Beitragsränder überblenden
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	Blendet den oberen und unteren Rand des Fotos oder Videos eines Beitrags in sein Leuchten über, damit der Rand nicht als harte Linie zu sehen ist.
+# context: a color in the Accent color list
+Dusk blue	Abendblau
+# context: a color in the Accent color list
+Pine	Kiefer
+# context: a color in the Accent color list
+Slate	Schiefer
+# context: a color in the Accent color list, the one typed in the row below it
+Custom	Eigene
+# context: a row under Accent color where a color is typed as hex
+Custom color	Eigene Farbe
+# context: the Custom color dialog's message
+A color as six hex digits, like #4A6B82. HushGram makes it darker or lighter where text needs it. Restart Instagram to see it.	Eine Farbe als sechs Hex-Ziffern, zum Beispiel #4A6B82. HushGram macht sie dunkler oder heller, wo Text es braucht. Starte Instagram neu, um sie zu sehen.
+# context: the Custom color row's summary when nothing is typed yet
+None yet. Custom stays Instagram's blue until you type one.	Noch keine. Eigene bleibt Instagram-Blau, bis du eine eingibst.
+# context: shown under the Custom color field when what's typed isn't a color
+That isn't a color. Try #4A6B82.	Das ist keine Farbe. Probier #4A6B82.
 Count on the heart	Zahl auf dem Herz
 The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Das Herz oben auf der Startseite zeigt, wie viele Benachrichtigungen warten, wie die Zahl bei Nachrichten, statt des roten Punkts. Starte Instagram neu, um die Änderung zu sehen.

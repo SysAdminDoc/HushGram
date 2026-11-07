@@ -45,6 +45,7 @@ public class AccentColorSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.ACCENT_COLOR.resetToDefault();
         Settings.ACCENT_HUE.resetToDefault();
+        Settings.ACCENT_CUSTOM.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -56,6 +57,7 @@ public class AccentColorSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.ACCENT_COLOR.resetToDefault();
         Settings.ACCENT_HUE.resetToDefault();
+        Settings.ACCENT_CUSTOM.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -82,7 +84,7 @@ public class AccentColorSettingsTest {
         assertEquals("Layout", layout.getTitle().toString());
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
-        assertEquals(Arrays.asList(Settings.ACCENT_COLOR.key, Settings.ACCENT_HUE.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key,
+        assertEquals(Arrays.asList(Settings.ACCENT_COLOR.key, Settings.ACCENT_HUE.key, Settings.ACCENT_CUSTOM.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key,
                 Settings.ACCENT_RINGS.key, Settings.ACCENT_RINGS_SOLID.key, Settings.ACCENT_BACKGROUNDS.key, LayoutCategory.PURE_BLACK_HINT_ROW), Arrays.asList(keys));
     }
     @Test public void switchStartsOffAfterEmojiPersistsAndHonorsPause() throws Exception {
@@ -96,7 +98,7 @@ public class AccentColorSettingsTest {
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.REMOVE_BOTTOM_SPACE.key, Settings.NOTO_EMOJI.key, Settings.EMOJI_FONT.key, Settings.ACCENT_COLOR.key,
-                Settings.ACCENT_HUE.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key, Settings.ACCENT_RINGS.key, Settings.ACCENT_RINGS_SOLID.key,
+                Settings.ACCENT_HUE.key, Settings.ACCENT_CUSTOM.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key, Settings.ACCENT_RINGS.key, Settings.ACCENT_RINGS_SOLID.key,
                 Settings.ACCENT_BACKGROUNDS.key, LayoutCategory.PURE_BLACK_HINT_ROW),
                 Arrays.asList(keys));
         assertFalse(row.isChecked());
@@ -129,12 +131,14 @@ public class AccentColorSettingsTest {
         assertEquals("Color", String.valueOf(hue.getTitle()));
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : hue.getEntries()) entries.add(String.valueOf(entry));
-        List<String> offered = new ArrayList<>(Arrays.asList("Instagram blue", "Purple", "Pink", "Red", "Orange", "Green", "Teal"));
+        List<String> offered = new ArrayList<>(Arrays.asList("Instagram blue", "Purple", "Pink", "Red", "Orange", "Green", "Teal",
+                "Dusk blue", "Pine", "Slate"));
         // Material You (#187) is offered only where the phone has a wallpaper palette, Android 12 and newer.
         boolean materialYou = android.os.Build.VERSION.SDK_INT >= 31;
         // Before that the choice stays listed, greyed out in the dialog, with its reason as the text.
         offered.add(materialYou ? "Material You"
                 : "Material You needs Android 12 or newer, so Instagram's blue stays.");
+        offered.add("Custom");
         assertEquals(offered, entries);
         List<String> values = new ArrayList<>();
         for (CharSequence value : hue.getEntryValues()) values.add(String.valueOf(value));
@@ -159,5 +163,48 @@ public class AccentColorSettingsTest {
         assertEquals(materialYou ? "Material You" : "Material You needs Android 12 or newer, so Instagram's blue stays.",
                 String.valueOf(hue.getSummary()));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_HUE.key));
+    }
+
+    /**
+     * #520: the Custom color row sits under the list, refuses what isn't a color under the field, saves
+     * a color as #RRGGBB, picks Custom in the list as it saves, and is backed up that way.
+     */
+    @Test public void customColorRowSavesAHexColorAndPicksCustom() throws Exception {
+        // The row hangs under Accent color, so it takes a color only while that switch is on.
+        Settings.ACCENT_COLOR.save(true);
+        open(EnumSet.of(PatchFamily.ACCENT_COLOR));
+        Preference found = page.getPreferenceScreen().findPreference(Settings.ACCENT_CUSTOM.key);
+        assertTrue(found instanceof HushgramPreferenceFragment.AccentCustomRow);
+        HushgramPreferenceFragment.AccentCustomRow row = (HushgramPreferenceFragment.AccentCustomRow) found;
+        HushgramPreferenceFragment.AccentHueRow hue =
+                (HushgramPreferenceFragment.AccentHueRow) page.getPreferenceScreen().findPreference(Settings.ACCENT_HUE.key);
+        assertEquals("Custom color", String.valueOf(row.getTitle()));
+        assertEquals("None yet. Custom stays Instagram's blue until you type one.", String.valueOf(row.getSummary()));
+
+        row.showDialog(null);
+        android.app.AlertDialog dialog = (android.app.AlertDialog) row.getDialog();
+        android.widget.EditText field = row.getEditText();
+        field.setText("teal");
+        field.onEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+        assertTrue("a word isn't a color", dialog.isShowing());
+        assertEquals("That isn't a color. Try #4A6B82.", String.valueOf(field.getError()));
+        assertEquals("", Settings.ACCENT_CUSTOM.savedValue());
+        assertEquals(AccentHue.PURPLE, Settings.ACCENT_HUE.savedValue());
+
+        field.setText(" 4a6b82 ");
+        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
+        ShadowLooper.idleMainLooper();
+        assertFalse(dialog.isShowing());
+        assertEquals("#4A6B82", Settings.ACCENT_CUSTOM.savedValue());
+        assertEquals("#4A6B82", String.valueOf(row.getSummary()));
+        assertEquals("saving a color picks Custom", AccentHue.CUSTOM, Settings.ACCENT_HUE.savedValue());
+        assertEquals("CUSTOM", hue.getValue());
+        assertEquals("Custom", String.valueOf(hue.getSummary()));
+
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_CUSTOM.key));
+        assertTrue(ConfigurationBackup.textAllowed(Settings.ACCENT_CUSTOM, ""));
+        assertTrue(ConfigurationBackup.textAllowed(Settings.ACCENT_CUSTOM, "#4A6B82"));
+        assertFalse(ConfigurationBackup.textAllowed(Settings.ACCENT_CUSTOM, "#4a6b82"));
+        assertFalse(ConfigurationBackup.textAllowed(Settings.ACCENT_CUSTOM, "teal"));
     }
 }

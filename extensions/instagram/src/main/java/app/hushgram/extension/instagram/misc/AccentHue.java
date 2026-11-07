@@ -13,8 +13,13 @@ package app.hushgram.extension.instagram.misc;
  * its 3.2), and each link shade reads at better than 5 to 1 on its screen. The pressed shade, the dim one
  * and the pale one are worked out from the fill, as Instagram's are from its blue.
  *
+ * <p>{@link #DUSK}, {@link #PINE} and {@link #SLATE} are the calmer colors asked for in #528, their
+ * link shades worked out as {@link CustomAccent} works out a typed color's.
+ *
  * <p>{@link #WALLPAPER} is Material You (#187, #264): its shades are Android 12's wallpaper tones,
- * read as Instagram runs ({@link MaterialYou}), so its own fields hold nothing.
+ * read as Instagram runs ({@link MaterialYou}), so its own fields hold nothing. {@link #CUSTOM} is the
+ * color typed in HushGram settings (#520), its shades worked out as Instagram runs ({@link CustomAccent}),
+ * so its own fields hold nothing either.
  */
 public enum AccentHue {
     BLUE(0, 0, 0),
@@ -24,7 +29,11 @@ public enum AccentHue {
     ORANGE(0xd95700, 0xb54800, 0xff9a40),
     GREEN(0x118841, 0x0d7a39, 0x3ee581),
     TEAL(0x00838f, 0x00727c, 0x4dd0d9),
-    WALLPAPER(0, 0, 0);
+    DUSK(0x4a6b82, 0x4a6b82, 0x6c879a),
+    PINE(0x2a6f68, 0x2a6f68, 0x639691),
+    SLATE(0x3a506b, 0x3a506b, 0x7e8d9e),
+    WALLPAPER(0, 0, 0),
+    CUSTOM(0, 0, 0);
 
     /** A button's or a highlight's color. */
     public final int fill;

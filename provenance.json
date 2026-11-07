@@ -490,12 +490,24 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/TabIconSize.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/TabIcons.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/TabIconsTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/CustomAccent.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/CustomAccentTest.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/reels/HeartCount.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/reels/HeartCountTest.java"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/HushGram",
       "license": "GPL-3.0-only"
+    },
+    {
+      "paths": [
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/ColourTable.java"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "commit": "95bbb4f132076321d03a8b615580a30ec502c61e",
+      "license": "GPL-3.0-only",
+      "changes": "Hushfacebook's colour table writer, package moved to app.hushgram.extension.instagram. It writes the default configuration alone, since HushGram's accent colors have no other. The file says it was modified for HushGram."
     },
     {
       "paths": [

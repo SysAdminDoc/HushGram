@@ -1836,5 +1836,21 @@ Can slow down older phones.	Bisa memperlambat ponsel lama.
 Blend post edges	Baurkan tepi postingan
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	Memudarkan bagian atas dan bawah foto atau video postingan ke dalam cahayanya, sehingga tepinya tidak terlihat sebagai garis tegas.
+# context: a color in the Accent color list
+Dusk blue	Biru senja
+# context: a color in the Accent color list
+Pine	Pinus
+# context: a color in the Accent color list
+Slate	Batu tulis
+# context: a color in the Accent color list, the one typed in the row below it
+Custom	Kustom
+# context: a row under Accent color where a color is typed as hex
+Custom color	Warna kustom
+# context: the Custom color dialog's message
+A color as six hex digits, like #4A6B82. HushGram makes it darker or lighter where text needs it. Restart Instagram to see it.	Warna dalam enam digit heksa, seperti #4A6B82. HushGram membuatnya lebih gelap atau terang jika teks membutuhkannya. Mulai ulang Instagram untuk melihatnya.
+# context: the Custom color row's summary when nothing is typed yet
+None yet. Custom stays Instagram's blue until you type one.	Belum ada. Kustom tetap biru Instagram sampai kamu mengetik warna.
+# context: shown under the Custom color field when what's typed isn't a color
+That isn't a color. Try #4A6B82.	Itu bukan warna. Coba #4A6B82.
 Count on the heart	Angka di ikon hati
 The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Ikon hati di bagian atas Beranda menampilkan jumlah pemberitahuan yang menunggu, seperti angka di Pesan, sebagai ganti titik merah. Mulai ulang Instagram untuk melihat perubahannya.

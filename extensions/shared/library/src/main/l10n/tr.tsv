@@ -1836,5 +1836,21 @@ Can slow down older phones.	Eski telefonları yavaşlatabilir.
 Blend post edges	Gönderi kenarlarını yumuşat
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	Bir gönderinin fotoğrafının veya videosunun üstünü ve altını parıltısına karıştırır, böylece kenar sert bir çizgi gibi görünmez.
+# context: a color in the Accent color list
+Dusk blue	Alacakaranlık mavisi
+# context: a color in the Accent color list
+Pine	Çam
+# context: a color in the Accent color list
+Slate	Arduvaz
+# context: a color in the Accent color list, the one typed in the row below it
+Custom	Özel
+# context: a row under Accent color where a color is typed as hex
+Custom color	Özel renk
+# context: the Custom color dialog's message
+A color as six hex digits, like #4A6B82. HushGram makes it darker or lighter where text needs it. Restart Instagram to see it.	Altı onaltılık basamaklı bir renk, örneğin #4A6B82. HushGram, yazının gerektiği yerde onu koyulaştırır ya da açar. Görmek için Instagram'ı yeniden başlat.
+# context: the Custom color row's summary when nothing is typed yet
+None yet. Custom stays Instagram's blue until you type one.	Henüz yok. Bir renk yazana kadar Özel, Instagram mavisi olarak kalır.
+# context: shown under the Custom color field when what's typed isn't a color
+That isn't a color. Try #4A6B82.	Bu bir renk değil. #4A6B82 dene.
 Count on the heart	Kalpte sayı
 The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Ana sayfanın üstündeki kalp, kırmızı nokta yerine Mesajlar'daki sayı gibi bekleyen bildirim sayısını gösterir. Değişikliği görmek için Instagram'ı yeniden başlat.

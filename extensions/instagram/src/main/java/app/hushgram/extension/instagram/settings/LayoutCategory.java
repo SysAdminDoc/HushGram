@@ -6,6 +6,7 @@
  */
 package app.hushgram.extension.instagram.settings;
 
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.accentCustomRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.accentHueRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.appIconRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
@@ -64,6 +65,7 @@ final class LayoutCategory {
                         L10n.t("Turns Instagram's blue, on Follow buttons, links and the like, into the color you "
                                 + "pick below. Restart Instagram to see the change.")));
                 layout.addPreference(accentHueRow(context));
+                layout.addPreference(accentCustomRow(context));
                 layout.addPreference(toggle(context, Settings.ACCENT_BADGES, L10n.t("Badges in the accent color"),
                         L10n.t("The red dots and counts for new messages and notifications take the color you "
                                 + "picked. Restart Instagram to see the change.")));

@@ -138,7 +138,7 @@ public class AccentColorTest {
     public void aSwappedColorComesBackAsItIs() {
         Settings.ACCENT_COLOR.save(true);
         for (AccentHue hue : AccentHue.values()) {
-            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER) continue;
+            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) continue;
             Settings.ACCENT_HUE.save(hue);
             for (int shade : new int[] {hue.fill, hue.pressed, hue.dim, hue.linkOnLight, hue.linkOnDark, hue.pale}) {
                 int color = 0xff000000 | shade;
@@ -228,7 +228,7 @@ public class AccentColorTest {
     public void eachColorPickedAndInstagramBlue() {
         Settings.ACCENT_COLOR.save(true);
         for (AccentHue hue : AccentHue.values()) {
-            if (hue == AccentHue.WALLPAPER) continue;
+            if (hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) continue;
             Settings.ACCENT_HUE.save(hue);
             int swapped = AccentColor.color(INDIGO);
             if (hue == AccentHue.BLUE) {
@@ -316,7 +316,7 @@ public class AccentColorTest {
         double stock = contrast(WHITE, BLUE);
         for (AccentHue hue : AccentHue.values()) {
             // Material You's tones are the phone's, read as Instagram runs.
-            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER) continue;
+            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) continue;
             assertTrue(hue + ": white on its fill",contrast(WHITE, 0xff000000 | hue.fill) >= 3.9);
             assertTrue(hue + ": white on its fill against stock", contrast(WHITE, 0xff000000 | hue.fill) > stock);
             assertTrue(hue + ": white on it held down", contrast(WHITE, 0xff000000 | hue.pressed) >= 3.9);

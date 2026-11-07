@@ -59,12 +59,15 @@ class AccentThemeTest {
         val hues = Regex("""^\s+([A-Z]+)\((0x[0-9a-f]+|0), (0x[0-9a-f]+|0), (0x[0-9a-f]+|0)\)[,;]""", RegexOption.MULTILINE)
             .findAll(File(misc, "AccentHue.java").readText())
             .map { it.groupValues.drop(1) }
-            .filter { it[0] != "BLUE" && it[0] != WALLPAPER }
+            .filter { it[0] != "BLUE" && it[0] != WALLPAPER && it[0] != CUSTOM }
             .map { (name, fill, light, dark) -> listOf(name, fill, light, dark) }
             .toList()
+        // Custom (#520) has no colors in AccentHue. The patch gives it Dusk's as stand-ins.
+        val custom = ACCENT_PALETTES.single { it.name == CUSTOM }
+        assertEquals(ACCENT_PALETTES.single { it.name == "DUSK" }.shades, custom.shades)
         assertEquals(
             hues,
-            ACCENT_PALETTES.map { palette ->
+            ACCENT_PALETTES.filter { it.name != CUSTOM }.map { palette ->
                 listOf(
                     palette.name,
                     "0x%06x".format(palette.shades.getValue(AccentRole.FILL)),
@@ -93,7 +96,7 @@ class AccentThemeTest {
         val steps = Regex("""android\.R\.color\.system_accent1_(\d+),""")
             .findAll(File(misc, "MaterialYou.java").readText()).map { it.groupValues[1].toInt() }.toList()
         assertEquals(AccentRole.entries.map { WALLPAPER_STEPS.getValue(it) }, steps)
-        assertTrue("AccentHue lists the wallpaper", Regex("""^\s+$WALLPAPER\(0, 0, 0\);""", RegexOption.MULTILINE)
+        assertTrue("AccentHue lists the wallpaper", Regex("""^\s+$WALLPAPER\(0, 0, 0\)[,;]""", RegexOption.MULTILINE)
             .containsMatchIn(File(misc, "AccentHue.java").readText()))
     }
 
@@ -508,9 +511,63 @@ class AccentThemeTest {
         assertTrue("$APPLY_THEME is not in the extension: ${declared.keys}", APPLY_THEME in declared)
         assertTrue("$HEADER_ICONS is not in the extension: ${declared.keys}", HEADER_ICONS in declared)
         assertTrue("$HEADER_ICON is not in the extension: ${declared.keys}", HEADER_ICON in declared)
-        val stub = declared[ATTRIBUTES_STUB]
-        assertTrue("$ATTRIBUTES_STUB is not in the extension: ${declared.keys}", stub != null)
-        assertTrue("the stub has a register to write into", stub!!.implementation!!.registerCount >= 1)
+        for (signature in listOf(ATTRIBUTES_STUB, CUSTOM_COLORS_STUB)) {
+            val stub = declared[signature]
+            assertTrue("$signature is not in the extension: ${declared.keys}", stub != null)
+            assertTrue("$signature has a register to write into", stub!!.implementation!!.registerCount >= 1)
+        }
+    }
+
+    /**
+     * A typed color (#520) gets a full set of colors and styles like a preset's, holding Dusk blue's
+     * shades as stand-ins, and their names are what the patch writes into the extension's stub.
+     */
+    @Test
+    fun aTypedColorGetsStandInColorsAndTheirNamesAreListed() {
+        val uses = setOf(
+            AccentUse("igds_color_link", AccentRole.LINK_ON_LIGHT, 0xff),
+            AccentUse("igds_color_primary_button_indigo", AccentRole.FILL, 0xff),
+            AccentUse("igds_color_highlight", AccentRole.FILL, 0x33),
+        )
+        val attrs = declaring(listOf(BADGE_ATTRIBUTE, "igds_color_primary_icon", "igds_color_primary_background"))
+        val colors = parse("<resources />")
+        val styles = parse("<resources />")
+        addAccentResources(uses, attrs, colors, styles)
+        val custom = ACCENT_PALETTES.single { it.name == CUSTOM }
+        val dusk = ACCENT_PALETTES.single { it.name == "DUSK" }
+        assertEquals("the stand-ins are Dusk blue's", dusk.shades, custom.shades)
+        val names = customColorNames(colors).split(" ")
+        assertTrue(names.toString(), "hushgram_accent_custom_fill_ff" in names && "hushgram_accent_custom_fill_33" in names)
+        assertTrue(names.toString(), "hushgram_accent_custom_badge" in names && "hushgram_accent_custom_icon_dark" in names)
+        assertTrue(names.toString(), names.any { it.startsWith("hushgram_accent_custom_background_dark_") })
+        assertTrue("only the custom colors are listed: $names", names.all { it.startsWith(CUSTOM_COLOR_PREFIX) })
+        val values = colors.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals("#33%06x".format(custom.shades.getValue(AccentRole.FILL)), values["hushgram_accent_custom_fill_33"])
+        assertTrue(styles.elements("style").any { it.getAttribute("name") == "HushGramAccentPalette_CUSTOM" })
+        for (palette in listOf("DUSK", "PINE", "SLATE")) {
+            assertTrue("$palette has a palette style", styles.elements("style").any { it.getAttribute("name") == "HushGramAccentPalette_$palette" })
+        }
+    }
+
+    /** The custom color names go into their own stub, a name that can't be written refuses, and none leaves the stub alone. */
+    @Test
+    fun theCustomColorNamesGoIntoTheirStub() {
+        val context = PatchContexts.of(listOf(activity(), overrides(), util(), extension()))
+        context.applyAccentTheme("igds_color_link", "hushgram_accent_custom_fill_ff hushgram_accent_custom_badge")
+        val written = context.mutableClassDefBy(ACCENT_THEME).methods.single { it.name == "customColors" }.code()
+        assertEquals(listOf(Opcode.CONST_STRING, Opcode.RETURN_OBJECT), written.take(2).map { it.opcode })
+        assertEquals("hushgram_accent_custom_fill_ff hushgram_accent_custom_badge", (written.first() as ReferenceInstruction).reference.toString())
+
+        val none = PatchContexts.of(listOf(activity(), overrides(), util(), extension()))
+        none.applyAccentTheme("igds_color_link", "")
+        assertEquals(listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT),
+            none.classDefBy(ACCENT_THEME).methods.single { it.name == "customColors" }.code().map { it.opcode })
+
+        val quoted = PatchContexts.of(listOf(activity(), overrides(), util(), extension()))
+        val failure = assertThrows(PatchException::class.java) { quoted.applyAccentTheme("igds_color_link", "hushgram_accent_custom_fill_ff\"") }
+        assertTrue(failure.message, failure.message!!.startsWith("Accent color"))
+        assertEquals("the attribute stub untouched too", listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT),
+            quoted.classDefBy(ACCENT_THEME).methods.single { it.name == "attributes" }.code().map { it.opcode })
     }
 
     /**
@@ -540,6 +597,7 @@ class AccentThemeTest {
             "a util writing over the context" to listOf(activity(), overrides(), util(reuseContext = true), extension()),
             "no hook in the extension" to listOf(activity(), overrides(), util()),
             "no stub in the extension" to listOf(activity(), overrides(), util(), extension(stub = false)),
+            "no custom color stub in the extension" to listOf(activity(), overrides(), util(), extension(customStub = false)),
         )) {
             val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).applyAccentTheme("igds_color_link") }
             assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Accent color"))
@@ -979,12 +1037,13 @@ class AccentThemeTest {
             return classOf(type, method(type, "A01", listOf(CONTEXT), 3, body, static = true))
         }
 
-        /** AccentTheme's hooks, and the attribute stub as javac and D8 leave `return null`. */
-        fun extension(stub: Boolean = true, headerIcons: Boolean = true, headerIcon: Boolean = true): ClassDef = classOf(
+        /** AccentTheme's hooks, and the attribute and custom color stubs as javac and D8 leave `return null`. */
+        fun extension(stub: Boolean = true, headerIcons: Boolean = true, headerIcon: Boolean = true, customStub: Boolean = true): ClassDef = classOf(
             ACCENT_THEME,
             *listOfNotNull(
                 method(ACCENT_THEME, "apply", listOf(CONTEXT), 0, "return-void", static = true),
                 if (stub) method(ACCENT_THEME, "attributes", emptyList(), 1, "const/4 v0, 0x0\nreturn-object v0", static = true, returns = "Ljava/lang/String;") else null,
+                if (customStub) method(ACCENT_THEME, "customColors", emptyList(), 1, "const/4 v0, 0x0\nreturn-object v0", static = true, returns = "Ljava/lang/String;") else null,
                 if (headerIcons) method(ACCENT_THEME, "headerIcons", listOf(CONTEXT, "I"), 0, "return p1", static = true, returns = "I") else null,
                 if (headerIcon) method(ACCENT_THEME, "headerIcon", listOf(CONTEXT, DRAWABLE), 0, "return-void", static = true) else null,
             ).toTypedArray(),

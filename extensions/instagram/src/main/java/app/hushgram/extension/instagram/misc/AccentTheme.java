@@ -43,6 +43,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * system color another alpha, so the patch gives it opaque shades only, and a blue with alpha is left
  * for the color hooks.
  *
+ * <p>A typed color's styles (#520) point at colors the patch added with stand-in values, which
+ * {@link CustomAccent} gives the typed color's shades before the styles go on. On Android 10 and
+ * older it can't, so the theme is left alone there.
+ *
  * <p>With {@link Settings#ACCENT_BADGES} on, the picked color's badge style goes on too (#315). It
  * points {@code igds_color_icon_badge}, the red of the dots and counts on Instagram's icons, at the
  * picked fill. The red delete buttons read other attributes, so they stay red. The feed's liked heart
@@ -86,6 +90,12 @@ public final class AccentTheme {
 
     /** What's counted when the patch's styles or its list of attributes aren't in the app, so the theme is left alone. */
     static final String MISSING = "themes left blue, the accent styles are missing";
+
+    /**
+     * What's counted when Custom is picked but its colors can't take the typed color here (Android 10
+     * and older, or the patch listed none), so the theme stays Instagram's and only the hooks recolor.
+     */
+    static final String CUSTOM_KEPT = "themes left blue, the custom color can't load";
 
     /** What's counted when a theme holds none of the blues the patch made styles for. */
     static final String NO_BLUE = "themes with no accent blue";
@@ -138,7 +148,7 @@ public final class AccentTheme {
      * Never throws.
      */
     public static void apply(Context context) {
-        apply(context, attributes());
+        apply(context, attributes(), customColors());
     }
 
     /**
@@ -151,8 +161,22 @@ public final class AccentTheme {
         return null;
     }
 
-    /** {@link #apply(Context)} with the attributes the patch listed. */
+    /**
+     * Filled in by the patch: the names of the colors it added for {@link AccentHue#CUSTOM}, space
+     * separated, or null. {@link CustomAccent} gives them the typed color's shades.
+     */
+    @Nullable
+    public static String customColors() {
+        return null;
+    }
+
+    /** {@link #apply(Context)} with the attributes the patch listed, and no custom colors. */
     static void apply(Context context, @Nullable String listed) {
+        apply(context, listed, null);
+    }
+
+    /** {@link #apply(Context)} with the attributes and the custom colors the patch listed. */
+    static void apply(Context context, @Nullable String listed, @Nullable String customNames) {
         try {
             AccentHue hue = AccentColor.picked();
             if (hue == null || context == null) return;
@@ -163,6 +187,12 @@ public final class AccentTheme {
             int palette = id(resources, paletteStyle(hue), "style", app);
             if (palette == 0 || listed == null || listed.isEmpty()) {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, MISSING);
+                return;
+            }
+            // The custom styles hold stand-ins until the typed color's table is in the assets, so
+            // without it (Android 10 and older, or no names) the theme stays and the hooks do the rest.
+            if (hue == AccentHue.CUSTOM && !CustomAccent.load(context, customNames)) {
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, CUSTOM_KEPT);
                 return;
             }
             boolean wallpaper = hue == AccentHue.WALLPAPER;
