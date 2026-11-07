@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.instagram.direct.reels.MEDIA
+import app.morphe.patches.instagram.direct.reels.MESSAGE_ID
 import app.morphe.patches.instagram.direct.reels.THREAD_KEY
 import app.morphe.patches.instagram.feed.carousel.REBOUND_VIEW_PAGER
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
@@ -45,7 +46,7 @@ class ChatMediaWalkHookTest {
         val declared = ExtensionDex.classDef(MEDIA_WALK).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$MEDIA_WALK->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(WALK_OPEN, WALK_START, WALK_PAGER, WALK_HOLD)) assertTrue("$hook is not in the extension: $declared", hook in declared)
+        for (hook in listOf(WALK_OPEN, WALK_START, WALK_PAGER, WALK_HOLD, WALK_TAP)) assertTrue("$hook is not in the extension: $declared", hook in declared)
     }
 
     @Test
@@ -78,8 +79,15 @@ class ChatMediaWalkHookTest {
 
         val open = { context.mutableClassDefBy(MEDIA_VIEWER).methods.single { it.name == site.open.name && it.parameterTypes.map(Any::toString) == site.open.parameterTypes.map(Any::toString) } }
         val hold = { context.mutableClassDefBy(site.hold.definingClass).methods.single { it.name == site.hold.name && it.parameterTypes.map(Any::toString) == site.hold.parameterTypes.map(Any::toString) } }
+        val tap = { context.mutableClassDefBy(site.tap.definingClass).methods.single { it.name == site.tap.name && it.parameterTypes.map(Any::toString) == site.tap.parameterTypes.map(Any::toString) } }
         val openBefore = NeutralNativePath(open())
         val holdBefore = NeutralNativePath(hold())
+        val tapBefore = NeutralNativePath(tap())
+        val tapLocals = site.tap.localRegisterCount()
+        val tapTypes = site.tap.parameterTypes.map(Any::toString)
+        assertEquals("$label: where the tapped post sits", "Landroid/graphics/RectF;", tapTypes[site.tapRect.removePrefix("p").toInt() - 1])
+        assertEquals("$label: the tapped post's view", "Landroid/view/View;", tapTypes[site.tapView.removePrefix("p").toInt() - 1])
+        assertEquals("$label: the tapped post's message", MESSAGE_ID, tapTypes[site.tapIdentifier.removePrefix("p").toInt() - 1])
         val locals = site.open.localRegisterCount()
         val modeNumber = locals + site.mode.removePrefix("p").toInt()
         val listNumber = locals + site.list.removePrefix("p").toInt()
@@ -136,6 +144,24 @@ class ChatMediaWalkHookTest {
         assertEquals("$label: holdDismiss", WALK_HOLD, drag[0].referenceText())
         holdBefore.assertPreserved(label, hold(), (0 until HOLD_HOOK).toSet())
 
+        // A tap on a shared post asks the extension first and ends there once the walk opened.
+        val tapped = tap().code()
+        assertEquals(
+            "$label: the shared post's tap asks the extension first",
+            listOf(
+                Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16,
+                Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
+            ),
+            tapped.take(TAP_HOOK).map { it.opcode },
+        )
+        assertEquals("$label: tap", WALK_TAP, tapped[4].referenceText())
+        assertEquals("$label: the delegate goes first", tapLocals, (tapped[0] as TwoRegisterInstruction).registerB)
+        for ((at, register) in listOf(1 to site.tapRect, 2 to site.tapView, 3 to site.tapIdentifier)) {
+            assertEquals("$label: the tap's argument $at", tapLocals + register.removePrefix("p").toInt(), (tapped[at] as TwoRegisterInstruction).registerB)
+        }
+        assertEquals("$label: tap once", 1, tapped.count { it.referenceText() == WALK_TAP })
+        tapBefore.assertPreserved(label, tap(), (0 until TAP_HOOK).toSet())
+
         // Each stub's body is what its name says, with no leftover of the extension's own stand-in.
         val walk = context.mutableClassDefBy(MEDIA_WALK)
         fun stub(name: String) = walk.methods.single { it.name == name }
@@ -186,6 +212,22 @@ class ChatMediaWalkHookTest {
         val round = shared.filterIsInstance<OneRegisterInstruction>().last { it.registerA == 17 && it is NarrowLiteralInstruction }
         assertEquals("$label: not the small round page", 0, (round as NarrowLiteralInstruction).narrowLiteral)
         assertEquals("$label: the flags of a page a tap makes", listOf(1, 0, 0, 1), flags)
+
+        // A shared post's tap reads the delegate's own key, session and lookup, and opens through the delegate's photo opener.
+        val delegate = site.tap.definingClass
+        assertTrue("$label: mediaType reads the media's type", calls("mediaType")[1].startsWith("$MEDIA->") && calls("mediaType").last() == "Ljava/lang/Integer;->intValue()I")
+        assertTrue("$label: tapSession reads the delegate's session", calls("tapSession").last().let { it.startsWith("$delegate->") && it.endsWith(":Lcom/instagram/common/session/UserSession;") })
+        assertTrue("$label: tapKey reads the delegate's own field", calls("tapKey")[1].startsWith("$delegate->"))
+        assertEquals("$label: tapKey answers a key", THREAD_KEY, calls("tapKey").last())
+        assertTrue("$label: maker is the builder the viewer makes", calls("maker").last() in calls("factory"))
+        assertTrue("$label: lookup makes its store of the session", calls("lookup")[1].contains("(Lcom/instagram/common/session/UserSession;)"))
+        assertTrue("$label: lookup finds by key and id", calls("lookup").last().contains("(${THREAD_KEY}Ljava/lang/String;)"))
+        assertTrue("$label: messageId reads the tapped message's id", calls("messageId").last().let { it.startsWith("$MESSAGE_ID->") && it.endsWith(":Ljava/lang/String;") })
+        val shows = calls("showPage")
+        assertTrue("$label: showPage opens through the delegate", shows.last().startsWith("$delegate->") && shows.last().contains("(Landroid/view/View;"))
+        assertTrue("$label: showPage says where the post sits", shows.any { it.endsWith("-><init>(Landroid/graphics/RectF;F)V") })
+        assertTrue("$label: showPage opens in album mode", site.albumMode in shows)
+        assertTrue("$label: showPage hands the post alone", shows.any { it == "Ljava/util/Collections;->singletonList(Ljava/lang/Object;)Ljava/util/List;" })
         assertTrue("$label: stubs fit the frames they use", site.stubs.all { (stub(it.name).implementation?.registerCount ?: 99) <= 25 })
     }
 
@@ -208,11 +250,41 @@ class ChatMediaWalkHookTest {
         val convertersOwners = FixtureDex.classes(bundle, converters.map { it.definingClass }.toSet())
         val fromAnchors = FixtureDex.classes(bundle, anchored.flatMap { classDef -> classDef.methods.flatMap { it.typesTouched() } }.toSet())
         val fieldsOwners = FixtureDex.classes(bundle, convertersOwners.values.flatMap { classDef -> classDef.methods.flatMap { it.typesTouched() } }.toSet())
-        return FixtureDex.withStringPools(
-            bundle,
-            (named.values + held.values + anchored + reached.values + convertersOwners.values + fromAnchors.values + fieldsOwners.values).distinctBy { it.type },
-        ).distinctBy { it.type }
+        // A shared post's tap: every photo opener of the chat's tap delegate, every lookup of a message by its id, and what they hand on.
+        val tapping = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            val types = method.parameterTypes.map(Any::toString)
+            val called = method.code().mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            (types.size == 7 && types[0] == "Landroid/view/View;" && types[3] == "Ljava/util/List;" && called.any { it.definingClass == MEDIA_VIEWER }) ||
+                (called.any { it.parameterTypes.map(Any::toString) == listOf(THREAD_KEY, "Ljava/lang/String;") } &&
+                    method.code().any { ((it as? ReferenceInstruction)?.reference as? FieldReference)?.definingClass == MESSAGE_ID })
+        }
+        val tapOwners = FixtureDex.classes(bundle, tapping.map { it.definingClass }.toSet() + MESSAGE_ID)
+        val handedOn = tapOwners.values.flatMap { classDef ->
+            classDef.methods.flatMap { method -> method.typesTouched() + method.typesReturned() + method.parameterTypes.map(Any::toString) }
+        }.filter { it.startsWith("L") }.toSet()
+        val tapReached = FixtureDex.classes(bundle, handedOn)
+        val opensShared = FixtureDex.classesLoading(bundle, SHARED_OPEN)
+        val loaded = (named.values + held.values + anchored + reached.values + convertersOwners.values + fromAnchors.values + fieldsOwners.values +
+            tapOwners.values + tapReached.values + opensShared).distinctBy { it.type }
+        return FixtureDex.withStringPools(bundle, (loaded + supers(bundle, loaded)).distinctBy { it.type }).distinctBy { it.type }
     }
+
+    /** The classes [loaded] extend that it doesn't hold, a few steps up, so a lookup's answer reaches the message class. */
+    private fun supers(bundle: File, loaded: List<ClassDef>): List<ClassDef> {
+        val have = loaded.mapTo(HashSet()) { it.type }
+        val found = mutableListOf<ClassDef>()
+        var wanted = loaded.mapNotNull { it.superclass }.filterTo(HashSet()) { it !in have }
+        repeat(3) {
+            if (wanted.isEmpty()) return found
+            val next = FixtureDex.classes(bundle, wanted).values
+            found += next
+            next.mapTo(have) { it.type }
+            wanted = next.mapNotNull { it.superclass }.filterTo(HashSet()) { it !in have }
+        }
+        return found
+    }
+
+    private fun Method.typesReturned(): List<String> = code().mapNotNull { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.returnType }
 
     private fun Method.typesTouched(): List<String> = code().mapNotNull { step ->
         when (val reference = (step as? ReferenceInstruction)?.reference) {
@@ -232,9 +304,11 @@ class ChatMediaWalkHookTest {
     private companion object {
         const val ENTRY_HOOK = 13
         const val HOLD_HOOK = 5
+        const val TAP_HOOK = 8
         val STUBS = setOf(
             "session", "factory", "messages", "kind", "time", "expiring", "plainItem", "legacyMedia", "attachment",
             "previewId", "preview", "previewMedia", "sharedItem", "itemMedia", "itemId", "scroll", "forward",
+            "mediaType", "tapSession", "tapKey", "maker", "lookup", "messageId", "showPage",
         )
     }
 }

@@ -5804,7 +5804,7 @@
     },
     {
       "name": "Swipe through a chat's photos and posts",
-      "description": "Open a photo or video from a chat and swipe up through the chat's other photos, videos and shared posts, in chat order. Starts off. Turn it on in HushGram settings > Messages.",
+      "description": "Open a photo, video or shared post from a chat and swipe up through the chat's other photos, videos and shared posts, in chat order. Starts off. Turn it on in HushGram settings > Messages.",
       "category": "Interaction",
       "use": true,
       "dependencies": [

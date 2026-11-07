@@ -14,7 +14,9 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.direct.reels.MEDIA
+import app.morphe.patches.instagram.direct.reels.MESSAGE_ID
 import app.morphe.patches.instagram.direct.reels.THREAD_KEY
+import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.feed.carousel.REBOUND_VIEW_PAGER
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCallingInto
@@ -24,6 +26,7 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
+import app.morphe.patches.instagram.misc.extension.methodsCalling
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -52,6 +55,10 @@ internal const val WALK_OPEN = "$MEDIA_WALK->open(Ljava/lang/Object;Ljava/lang/O
 internal const val WALK_START = "$MEDIA_WALK->startIndex()I"
 internal const val WALK_PAGER = "$MEDIA_WALK->pager(Ljava/lang/Object;)V"
 internal const val WALK_HOLD = "$MEDIA_WALK->holdDismiss()I"
+internal const val WALK_TAP = "$MEDIA_WALK->tap(Ljava/lang/Object;Ljava/lang/Object;Landroid/view/View;Ljava/lang/Object;)I"
+
+/** Loaded where a tap on a post shared to a chat opens it, past the chat's tap delegate, which hands the tap on. */
+internal const val SHARED_OPEN = "sparse_media_viewer_reply_thread_subtype"
 
 /** The chat's media viewer. Redex keeps its name, and it holds the session, the activity and the page builder. */
 internal const val MEDIA_VIEWER = "Lcom/instagram/direct/fragment/permanentmedia/DirectAggregatedMediaViewerController;"
@@ -75,6 +82,10 @@ private const val LIST = "Ljava/util/List;"
 private const val INTEGER = "Ljava/lang/Integer;"
 private const val LONG = "Ljava/lang/Long;"
 private const val STRING = "Ljava/lang/String;"
+private const val OBJECT = "Ljava/lang/Object;"
+private const val RECT = "Landroid/graphics/RectF;"
+private const val VIEW = "Landroid/view/View;"
+private const val CONTEXT = "Landroid/content/Context;"
 private const val MEDIA_ID = "$MEDIA->getId()$STRING"
 
 /** How many arguments the page builder's full call takes, and where Instagram's flags at its end start. */
@@ -101,6 +112,10 @@ internal class MediaWalkSite(
     val pagerWrite: Int,
     val pagerRegister: Int,
     val hold: Method,
+    val tap: Method,
+    val tapRect: String,
+    val tapView: String,
+    val tapIdentifier: String,
     val stubs: List<WalkStub>,
 )
 
@@ -162,7 +177,7 @@ private fun Method.onlyParameter(type: String): Int =
  * The viewer's opener writes the album mode to its mode field before anything else, then the mode
  * it was handed, so the first write says which value a walk has to hand it.
  */
-private fun albumModeIn(open: Method, mode: Int): String {
+private fun albumModeIn(open: Method, mode: Int): FieldReference {
     val code = open.code()
     val write = code.indexOfFirst { it.opcode == Opcode.IPUT_OBJECT && it.field()?.definingClass == MEDIA_VIEWER && it.field()?.type == INTEGER }
     if (write < 1) refuse("${open.name} writes no Integer field of the viewer")
@@ -175,7 +190,7 @@ private fun albumModeIn(open: Method, mode: Int): String {
         step.opcode == Opcode.MOVE_OBJECT_FROM16 && (step as TwoRegisterInstruction).registerB == register
     }
     if (!readsMode) refuse("${open.name} doesn't read its first Integer ahead of its mode field")
-    return value.field()!!.text()
+    return value.field()!!
 }
 
 /** What the page builder's full call is given, read from the method Instagram taps go through. */
@@ -339,6 +354,130 @@ private fun BytecodePatchContext.requireReachable(method: MethodReference) {
     if (!AccessFlags.PUBLIC.isSet(found.accessFlags)) refuse("${method.text()} isn't public")
 }
 
+private val INSTANCE_CALLS = setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
+
+/** The register a call reads first: its receiver on an instance call. */
+private fun receiver(step: Instruction): Int = when (step) {
+    is FiveRegisterInstruction -> step.registerC
+    is RegisterRangeInstruction -> step.startRegister
+    else -> refuse("$step has no argument register")
+}
+
+/** The call a stub makes on [method]'s class: an interface's call when the class is one. */
+private fun BytecodePatchContext.invokeOn(method: MethodReference): String =
+    if (AccessFlags.INTERFACE.isSet(classDefBy(method.definingClass).accessFlags)) "invoke-interface" else "invoke-virtual"
+
+/** A tap on a post shared to a chat, and what the extension needs to open the viewer from it. */
+private class SharedTap(
+    val tap: Method,
+    val identifier: Int,
+    val show: Method,
+    val rectMaker: Method,
+    val session: FieldReference,
+    val keyField: FieldReference,
+    val keyGet: MethodReference,
+    val store: MethodReference,
+    val find: MethodReference,
+    val messageId: FieldReference,
+)
+
+/**
+ * The chat's tap delegate opens this viewer on a tapped photo through one method of its own, handed
+ * the tapped view, where it sits, the mode, the pages and three flags, which reads the chat's key and
+ * session off the delegate and calls the viewer's opener. A tap on a shared post comes to the same
+ * delegate, which hands it unchanged to a method of the same name and shape loading [SHARED_OPEN].
+ * The tap's message comes from the chat's message lookup, by the id Instagram's code reads off a tap.
+ */
+private fun BytecodePatchContext.sharedTap(open: Method, page: PageCall): SharedTap {
+    val opener = open.types()
+    val shows = methodsCalling(MEDIA_VIEWER, open.name).filter { method ->
+        val types = method.types()
+        !method.isStatic() && method.returnType == "V" && types.size == 7 && types[0] == VIEW && types[2] == INTEGER &&
+            types[3] == LIST && types.subList(4, 7) == listOf("I", "Z", "Z") &&
+            method.code().any { step -> step.called()?.let { it.definingClass == MEDIA_VIEWER && it.name == open.name && it.parameterTypes.map(Any::toString) == opener } == true }
+    }.distinctBy { it.text() }
+    val show = shows.singleOrNull() ?: refuse("no one tap delegate opens the viewer on a tapped photo: ${shows.map { it.text() }}")
+    val owner = show.definingClass
+    val code = show.code()
+    val holder = show.types()[1]
+    val rectMaker = classDefByOrNull(holder)?.methods?.singleOrNull { it.name == "<init>" && it.types() == listOf(RECT, "F") }
+        ?: refuse("$holder has no one maker taking where a view sits and a float")
+    if (code.none { it.opcode == Opcode.CHECK_CAST && ((it as ReferenceInstruction).reference as? TypeReference)?.type == page.item }) {
+        refuse("${show.text()} reads no pages")
+    }
+    val session = code.firstOrNull { it.opcode == Opcode.IGET_OBJECT && it.field()?.definingClass == owner && it.field()?.type == USER_SESSION }?.field()
+        ?: refuse("${show.text()} reads no session of its own")
+
+    // The key: a field of the delegate holding something that answers it, read, asked and cast in a row.
+    val keys = code.indices.filter { at ->
+        at >= 3 && code[at].opcode == Opcode.CHECK_CAST && ((code[at] as ReferenceInstruction).reference as? TypeReference)?.type == THREAD_KEY &&
+            code[at - 1].opcode == Opcode.MOVE_RESULT_OBJECT && code[at - 2].opcode in INSTANCE_CALLS &&
+            code[at - 2].called()?.let { it.parameterTypes.isEmpty() && it.returnType == OBJECT } == true &&
+            code[at - 3].opcode == Opcode.IGET_OBJECT &&
+            code[at - 3].field()?.let { it.definingClass == owner && it.type == code[at - 2].called()!!.definingClass } == true &&
+            receiver(code[at - 2]) == (code[at - 3] as TwoRegisterInstruction).registerA
+    }.distinctBy { code[it - 3].field()!!.text() }
+    val keyAt = keys.singleOrNull() ?: refuse("${show.text()} reads no one chat key off the delegate: ${keys.size}")
+
+    // The lookup: a call taking a key and an id on what a static call makes of the session.
+    val lookups = code.indices.mapNotNull { at ->
+        val find = code[at].called()?.takeIf { code[at].opcode in INSTANCE_CALLS && it.parameterTypes.map(Any::toString) == listOf(THREAD_KEY, STRING) }
+            ?: return@mapNotNull null
+        val made = code.getOrNull(originAt(code, at, receiver(code[at])))
+            ?.takeIf { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }?.called()
+            ?.takeIf { it.parameterTypes.map(Any::toString) == listOf(USER_SESSION) && it.returnType == find.definingClass }
+            ?: return@mapNotNull null
+        made to find
+    }.distinctBy { it.second.text() }
+    val (store, find) = lookups.singleOrNull() ?: refuse("${show.text()} looks no one message up: ${lookups.map { it.second.text() }}")
+    var answer: String? = find.returnType
+    while (answer != null && answer != page.message) answer = classDefByOrNull(answer)?.superclass
+    if (answer != page.message) refuse("${find.text()} answers no ${page.message}")
+
+    // The id: what Instagram's code reads off a tap's message identifier to look its message up.
+    val ids = methodsCalling(find.definingClass, find.name).flatMap { caller ->
+        val lines = caller.code()
+        lines.indices.mapNotNull { at ->
+            val step = lines[at]
+            if (step.called()?.text() != find.text()) return@mapNotNull null
+            val id = when (step) {
+                is FiveRegisterInstruction -> step.registerE
+                is RegisterRangeInstruction -> step.startRegister + 2
+                else -> return@mapNotNull null
+            }
+            lines.getOrNull(originAt(lines, at, id))?.takeIf { it.opcode == Opcode.IGET_OBJECT }?.field()
+                ?.takeIf { it.definingClass == MESSAGE_ID && it.type == STRING }
+        }
+    }.distinctBy { it.text() }
+    val messageId = ids.singleOrNull() ?: refuse("no one id of a $MESSAGE_ID is looked up: ${ids.map { it.text() }}")
+
+    val targets = classesLoadingString(SHARED_OPEN).flatMap { it.methods }
+        .filter { it.types().take(2) == listOf(RECT, VIEW) && loadsString(it, SHARED_OPEN) }.map { it.text() }.toSet()
+    val taps = classDefBy(owner).methods.filter { method ->
+        val types = method.types()
+        !method.isStatic() && method.returnType == "V" && types.take(2) == listOf(RECT, VIEW) && types.count { it == MESSAGE_ID } == 1 &&
+            method.code().any { step ->
+                step.called()?.let { it.definingClass != owner && it.name == method.name && it.parameterTypes.map(Any::toString) == types && it.text() in targets } == true
+            }
+    }
+    val tap = taps.singleOrNull() ?: refuse("$owner hands no one tap on a shared post on: ${taps.map { it.text() }}, to ${targets.size} openers")
+    if (tap.localRegisterCount() < 4) refuse("${tap.text()} has fewer than four locals for the hook")
+    if (0 in tap.jumpTargets()) refuse("${tap.text()} branches to its own first instruction")
+
+    return SharedTap(
+        tap = tap,
+        identifier = tap.types().indexOf(MESSAGE_ID),
+        show = show,
+        rectMaker = rectMaker,
+        session = session,
+        keyField = code[keyAt - 3].field()!!,
+        keyGet = code[keyAt - 2].called()!!,
+        store = store,
+        find = find,
+        messageId = messageId,
+    )
+}
+
 internal fun BytecodePatchContext.findMediaWalk(): MediaWalkSite {
     val viewer = classDefByOrNull(MEDIA_VIEWER) ?: refuse("no $MEDIA_VIEWER")
     val pager = classDefByOrNull(REBOUND_VIEW_PAGER) ?: refuse("no $REBOUND_VIEW_PAGER")
@@ -401,18 +540,25 @@ internal fun BytecodePatchContext.findMediaWalk(): MediaWalkSite {
     val itemMedia = classDefBy(page.item).fields.singleOrNull { it.type == MEDIA && !AccessFlags.STATIC.isSet(it.accessFlags) }
         ?: refuse("${page.item} holds no one media")
     val attachmentType = shared.attachment.returnType
+    val mediaType = pandoGetter(PATCH, MEDIA, "media_type", INTEGER)
+    val tap = sharedTap(open, page)
 
-    for (type in listOf(MEDIA_VIEWER, REBOUND_VIEW_PAGER, MEDIA, USER_SESSION, page.builder, page.message, page.item, attachmentType, store.type, directionType)) {
-        requireClassReachable(type)
-    }
-    for (field in listOf(session, activity, page.kind, page.sender, shared.previewId, shared.preview, itemMedia)) requireReachable(field)
+    for (type in listOf(
+        MEDIA_VIEWER, REBOUND_VIEW_PAGER, MEDIA, USER_SESSION, page.builder, page.message, page.item, attachmentType, store.type, directionType,
+        tap.show.definingClass, tap.rectMaker.definingClass, tap.keyGet.definingClass, tap.store.definingClass, tap.find.definingClass, MESSAGE_ID,
+    )) requireClassReachable(type)
+    for (field in listOf(
+        session, activity, page.kind, page.sender, shared.previewId, shared.preview, itemMedia, albumMode, tap.session, tap.keyField, tap.messageId,
+    )) requireReachable(field)
     for (method in listOf(
         builderOf, page.read, page.call, page.wrap, page.type, page.time, page.firstText, page.secondText, page.expiring,
-        shared.attachment, shared.convert, store.read, store.get, legacy, direction, reverse,
+        shared.attachment, shared.convert, store.read, store.get, legacy, direction, reverse, mediaType,
+        tap.show, tap.rectMaker, tap.keyGet, tap.store, tap.find,
     )) requireReachable(method)
 
     val declared = classDefBy(MEDIA_WALK).methods.map { it.name }.toSet()
-    val stubs = stubs(page, shared, store, legacy, direction, directionOf, reverse, session, activity, builderOf, itemMedia)
+    val stubs = stubs(page, shared, store, legacy, direction, directionOf, reverse, session, activity, builderOf, itemMedia) +
+        tapStubs(tap, builderOf, albumMode, mediaType)
     for (stub in stubs) if (stub.name !in declared) refuse("$MEDIA_WALK has no ${stub.name}")
 
     return MediaWalkSite(
@@ -421,11 +567,86 @@ internal fun BytecodePatchContext.findMediaWalk(): MediaWalkSite {
         mode = open.parameterRegister(modeAt),
         list = open.parameterRegister(listAt),
         index = open.parameterRegister(indexAt),
-        albumMode = albumMode,
+        albumMode = albumMode.text(),
         pagerWrite = pagerWrite,
         pagerRegister = pagerRegister,
         hold = hold,
+        tap = tap.tap,
+        tapRect = tap.tap.parameterRegister(0),
+        tapView = tap.tap.parameterRegister(1),
+        tapIdentifier = tap.tap.parameterRegister(tap.identifier),
         stubs = stubs,
+    )
+}
+
+/** The bodies a shared post's tap reads its chat and opens the viewer through. */
+private fun BytecodePatchContext.tapStubs(tap: SharedTap, builderOf: Method, albumMode: FieldReference, mediaType: Method): List<WalkStub> {
+    val owner = tap.show.definingClass
+    return listOf(
+        WalkStub("mediaType", 2, """
+            check-cast p0, $MEDIA
+            invoke-virtual { p0 }, ${mediaType.text()}
+            move-result-object v0
+            if-nez v0, :typed
+            const/4 v0, 0x0
+            return v0
+            :typed
+            invoke-virtual { v0 }, $INTEGER->intValue()I
+            move-result v0
+            return v0
+        """),
+        WalkStub("tapSession", 2, """
+            check-cast p0, $owner
+            iget-object v0, p0, ${tap.session.text()}
+            return-object v0
+        """),
+        WalkStub("tapKey", 2, """
+            check-cast p0, $owner
+            iget-object v0, p0, ${tap.keyField.text()}
+            ${invokeOn(tap.keyGet)} { v0 }, ${tap.keyGet.text()}
+            move-result-object v0
+            check-cast v0, $THREAD_KEY
+            return-object v0
+        """),
+        WalkStub("maker", 3, """
+            check-cast p0, $CONTEXT
+            check-cast p1, $USER_SESSION
+            invoke-static { p0, p1 }, ${builderOf.text()}
+            move-result-object v0
+            return-object v0
+        """),
+        WalkStub("lookup", 4, """
+            check-cast p0, $USER_SESSION
+            invoke-static { p0 }, ${tap.store.text()}
+            move-result-object v0
+            check-cast p1, $THREAD_KEY
+            ${invokeOn(tap.find)} { v0, p1, p2 }, ${tap.find.text()}
+            move-result-object v0
+            return-object v0
+        """),
+        WalkStub("messageId", 2, """
+            check-cast p0, $MESSAGE_ID
+            iget-object v0, p0, ${tap.messageId.text()}
+            return-object v0
+        """),
+        // What a tap on a photo hands the delegate, with the post's page alone and the album mode, as a walk opens in it.
+        WalkStub("showPage", 12, """
+            check-cast p0, $owner
+            move-object v0, p0
+            move-object v1, p2
+            new-instance v2, ${tap.rectMaker.definingClass}
+            check-cast p1, $RECT
+            const/4 v3, 0x0
+            invoke-direct { v2, p1, v3 }, ${tap.rectMaker.text()}
+            sget-object v3, ${albumMode.text()}
+            invoke-static { p3 }, Ljava/util/Collections;->singletonList($OBJECT)$LIST
+            move-result-object v4
+            const/4 v5, 0x0
+            const/4 v6, 0x0
+            const/4 v7, 0x0
+            invoke-virtual/range { v0 .. v7 }, ${tap.show.text()}
+            return-void
+        """),
     )
 }
 
@@ -629,6 +850,25 @@ internal fun BytecodePatchContext.applyMediaWalk(site: MediaWalkSite) {
         ExternalLabel("instagram", hold.getInstruction(0)),
     )
 
+    // A tap on a shared post opens the walk at that post when the extension says so, and Instagram's viewer otherwise.
+    val tap = mutableClassDefBy(site.tap.definingClass).methods.single {
+        it.name == site.tap.name && it.parameterTypes.map(Any::toString) == site.tap.types()
+    }
+    tap.addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, p0
+            move-object/from16 v1, ${site.tapRect}
+            move-object/from16 v2, ${site.tapView}
+            move-object/from16 v3, ${site.tapIdentifier}
+            invoke-static { v0, v1, v2, v3 }, $WALK_TAP
+            move-result v0
+            if-eqz v0, :instagram
+            return-void
+        """,
+        ExternalLabel("instagram", tap.getInstruction(0)),
+    )
+
     val open = mutableClassDefBy(site.open.definingClass).methods.single {
         it.name == site.open.name && it.parameterTypes.map(Any::toString) == site.open.types()
     }
@@ -657,7 +897,7 @@ internal fun BytecodePatchContext.applyMediaWalk(site: MediaWalkSite) {
 @Suppress("unused")
 val chatMediaWalkPatch = bytecodePatch(
     name = "Swipe through a chat's photos and posts",
-    description = "Open a photo or video from a chat and swipe up through the chat's other photos, videos and shared " +
+    description = "Open a photo, video or shared post from a chat and swipe up through the chat's other photos, videos and shared " +
         "posts, in chat order. Starts off. Turn it on in HushGram settings > Messages.",
 ) {
     category("Interaction")

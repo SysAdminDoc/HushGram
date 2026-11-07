@@ -824,6 +824,11 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatMediaWalk;->pager(Ljava/l
 # The drag delegate asks holdDismiss before a swipe up or down starts a dismiss. Left out, a swipe up closes the
 # viewer instead of turning the page.
 once-call Lapp/hushgram/extension/instagram/direct/ChatMediaWalk;->holdDismiss()I in instance (LX/*;FFF)Z class-holding DirectMediaViewerDragControllerDelegate.onDrag\sscale\sis\sNaN
+# A tap on a shared post asks ChatMediaWalk.tap first thing in the chat's tap delegate (0OeO.F1x on 454's
+# 386014758, whose class opens a tapped photo with xma_collage and thread_view), before it hands the tap on
+# to the sparse viewer. Left out, a shared post opens on its own; twice or elsewhere, some other tap opens a walk.
+start-call Lapp/hushgram/extension/instagram/direct/ChatMediaWalk;->tap(Ljava/lang/Object;Ljava/lang/Object;Landroid/view/View;Ljava/lang/Object;)I in instance (Landroid/graphics/RectF;Landroid/view/View;Lcom/instagram/common/typedurl/ImageUrl;LX/*;Lcom/instagram/model/direct/messageid/MessageIdentifier;*)V class-holding xma_collage thread_view
+once-call Lapp/hushgram/extension/instagram/direct/ChatMediaWalk;->tap(Ljava/lang/Object;Ljava/lang/Object;Landroid/view/View;Ljava/lang/Object;)I in instance (Landroid/graphics/RectF;Landroid/view/View;Lcom/instagram/common/typedurl/ImageUrl;LX/*;Lcom/instagram/model/direct/messageid/MessageIdentifier;*)V class-holding xma_collage thread_view
 # Only received reels (#460) also asks ChatReels.received first in the method that registers one of a chat's
 # messages for the chain (02YM.A01 on 453's 385914557, handed the message wrapper 01RZ), which reads the
 # Boolean function fields, hands the message's media on and calls a Function3 with it. A message the viewer

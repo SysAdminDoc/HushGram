@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
@@ -46,10 +47,14 @@ public class ChatMediaWalkTest {
 
     private ActivityController<Activity> controller;
 
+    private static final Object DELEGATE = new Object();
+    private static final Object RECT = new Object();
+
     private static final class Message {
         final String id;
         final String kind;
         final long time;
+        int type = 1;
         boolean expiring;
         boolean broken;
         boolean empty;
@@ -64,15 +69,22 @@ public class ChatMediaWalkTest {
 
     private static final class Page {
         final String id;
+        final int type;
 
         Page(String id) {
+            this(id, 1);
+        }
+
+        Page(String id, int type) {
             this.id = id;
+            this.type = type;
         }
     }
 
     private static final class Chat implements ChatMediaWalk.Messages {
         final List<Message> messages = new ArrayList<>();
         boolean unreadable;
+        int reads;
 
         Chat(Message... held) {
             messages.addAll(Arrays.asList(held));
@@ -81,6 +93,7 @@ public class ChatMediaWalkTest {
         @Override public List<?> thread(Object key) {
             if (unreadable) throw new IllegalStateException("no thread");
             assertSame(KEY, key);
+            reads++;
             return messages;
         }
 
@@ -106,12 +119,73 @@ public class ChatMediaWalkTest {
 
         private static Object page(Message message) {
             if (message.broken) throw new IllegalStateException("broken");
-            return message.empty ? null : new Page(message.id);
+            return message.empty ? null : new Page(message.id, message.type);
         }
 
         @Override public String id(Object page) {
             return ((Page) page).id;
         }
+
+        @Override public int type(Object page) {
+            return ((Page) page).type;
+        }
+    }
+
+    /** A chat's tap delegate: finds a tap's message by its id and opens the viewer the way Instagram's would. */
+    private static final class Delegate implements ChatMediaWalk.Taps {
+        final Chat chat;
+        boolean bails;
+        boolean failsBeforeOpening;
+        boolean failsAfterOpening;
+        int shows;
+        Object shown;
+        List<?> opened;
+
+        Delegate(Chat chat) {
+            this.chat = chat;
+        }
+
+        @Override public Object key(Object delegate) {
+            assertSame(DELEGATE, delegate);
+            return KEY;
+        }
+
+        @Override public Object message(Object delegate, Object key, Object identifier) {
+            for (Message message : chat.messages) {
+                if (message.id.equals(identifier)) return message;
+            }
+            return null;
+        }
+
+        @Override public ChatMediaWalk.Messages chat(Object delegate, View view) {
+            return chat;
+        }
+
+        @Override public void show(Object delegate, Object rect, View view, Object page) {
+            assertSame(RECT, rect);
+            shows++;
+            shown = page;
+            if (failsBeforeOpening) throw new IllegalStateException("no viewer");
+            if (bails) return;
+            opened = ChatMediaWalk.open(VIEWER, KEY, Collections.singletonList(page), 0);
+            if (failsAfterOpening) throw new IllegalStateException("the viewer failed after its opener");
+        }
+    }
+
+    private static Delegate delegate(Message... held) {
+        Chat chat = new Chat(held);
+        ChatMediaWalk.chatForTests = chat;
+        Delegate delegate = new Delegate(chat);
+        ChatMediaWalk.tapsForTests = delegate;
+        return delegate;
+    }
+
+    private static Message post(String id, long time) {
+        return new Message(id, "XMA_MEDIA_SHARE", time);
+    }
+
+    private static int tapPost(String id) {
+        return ChatMediaWalk.tap(DELEGATE, RECT, new View(RuntimeEnvironment.getApplication()), id);
     }
 
     private static Message plain(String id, long time) {
@@ -162,8 +236,10 @@ public class ChatMediaWalkTest {
     @After public void restore() {
         if (controller != null) controller.close();
         ChatMediaWalk.chatForTests = null;
+        ChatMediaWalk.tapsForTests = null;
         ChatMediaWalk.pager(null);
         Settings.SWIPE_CHAT_MEDIA.resetToDefault();
+        Settings.SWIPE_CHAT_REELS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -356,5 +432,114 @@ public class ChatMediaWalkTest {
     @Test public void noPagerAndNoWalkHoldNothing() {
         ChatMediaWalk.pager(null);
         assertEquals(0, ChatMediaWalk.holdDismiss());
+    }
+
+    /** The issue's own case: a tap on a post shared to the chat opens the walk at that post, read once. */
+    @Test public void aTapOnASharedPostOpensTheWalkAtThatPost() {
+        Delegate delegate = delegate(plain("last", 30), post("post", 20), plain("first", 10));
+
+        assertEquals(1, tapPost("post"));
+
+        assertEquals(1, delegate.shows);
+        assertEquals(Arrays.asList("first", "post", "last"), ids(delegate.opened));
+        assertSame("the viewer gets the post's own page", delegate.shown, delegate.opened.get(1));
+        assertEquals(1, ChatMediaWalk.startIndex());
+        assertEquals("the viewer's opener takes the pages the tap read", 1, delegate.chat.reads);
+    }
+
+    @Test public void theOldKindOfSharedPostOpensItsWalkToo() {
+        Delegate delegate = delegate(plain("first", 10), new Message("post", "MEDIA_SHARE", 20));
+
+        assertEquals(1, tapPost("post"));
+        assertEquals(Arrays.asList("first", "post"), ids(delegate.opened));
+    }
+
+    @Test public void aTapOnAnythingButASharedPostIsInstagrams() {
+        Message disappearing = post("disappearing", 25);
+        disappearing.expiring = true;
+        Delegate delegate = delegate(plain("first", 10), new Message("reel", "XMA_CLIPS_SHARE", 20), disappearing, post("post", 30));
+
+        assertEquals("a sent photo goes through the viewer's own opener", 0, tapPost("first"));
+        assertEquals(0, tapPost("reel"));
+        assertEquals(0, tapPost("disappearing"));
+        assertEquals("not in the chat", 0, tapPost("gone"));
+        assertEquals(0, delegate.shows);
+    }
+
+    /** This viewer shows only an album's cover, and a reel has Swipe through a chat's reels when that's on. */
+    @Test public void anAlbumAndAReelWhileChatReelsAreOnStayInstagrams() {
+        Message album = post("album", 20);
+        album.type = ChatMediaWalk.ALBUM;
+        Message reel = post("reel", 30);
+        reel.type = ChatMediaWalk.VIDEO;
+        Delegate delegate = delegate(plain("first", 10), album, reel);
+
+        assertEquals(0, tapPost("album"));
+        Settings.SWIPE_CHAT_REELS.save(true);
+        assertEquals(0, tapPost("reel"));
+        assertEquals(0, delegate.shows);
+
+        Settings.SWIPE_CHAT_REELS.save(false);
+        assertEquals(1, tapPost("reel"));
+        assertEquals(Arrays.asList("first", "album", "reel"), ids(delegate.opened));
+    }
+
+    @Test public void aLoneSharedPostIsInstagrams() {
+        Delegate delegate = delegate(post("post", 10), new Message("text", "TEXT", 20));
+
+        assertEquals(0, tapPost("post"));
+        assertEquals(0, delegate.shows);
+    }
+
+    @Test public void switchedOffOrPausedASharedPostIsInstagrams() {
+        Delegate delegate = delegate(plain("first", 10), post("post", 20));
+
+        Settings.SWIPE_CHAT_MEDIA.save(false);
+        assertEquals(0, tapPost("post"));
+
+        Settings.SWIPE_CHAT_MEDIA.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(0, tapPost("post"));
+        assertEquals(0, delegate.shows);
+
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertEquals(1, tapPost("post"));
+    }
+
+    @Test public void aTapMissingItsPartsIsInstagrams() {
+        delegate(plain("first", 10), post("post", 20));
+        View view = new View(RuntimeEnvironment.getApplication());
+
+        assertEquals(0, ChatMediaWalk.tap(null, RECT, view, "post"));
+        assertEquals(0, ChatMediaWalk.tap(DELEGATE, null, view, "post"));
+        assertEquals(0, ChatMediaWalk.tap(DELEGATE, RECT, null, "post"));
+        assertEquals(0, ChatMediaWalk.tap(DELEGATE, RECT, view, null));
+    }
+
+    /** Instagram's delegate can return before its viewer opens, and then the tap is Instagram's after all. */
+    @Test public void aViewerThatNeverOpensLeavesTheTapToInstagram() {
+        Delegate delegate = delegate(plain("first", 10), post("post", 20));
+        delegate.bails = true;
+
+        assertEquals(0, tapPost("post"));
+        assertEquals(1, delegate.shows);
+
+        List<Object> tapped = tap("first");
+        assertEquals("a photo's tap after it reads the chat afresh", Arrays.asList("first", "post"), ids(ChatMediaWalk.open(VIEWER, KEY, tapped, 0)));
+        assertEquals(0, ChatMediaWalk.startIndex());
+    }
+
+    /** A viewer that fails once its opener ran is on screen, so the tap stays the walk's. One that fails before isn't. */
+    @Test public void aFailingViewerAnswersWhetherItOpened() {
+        Delegate delegate = delegate(plain("first", 10), post("post", 20));
+
+        delegate.failsBeforeOpening = true;
+        assertEquals(0, tapPost("post"));
+
+        delegate.failsBeforeOpening = false;
+        delegate.failsAfterOpening = true;
+        assertEquals(1, tapPost("post"));
     }
 }
