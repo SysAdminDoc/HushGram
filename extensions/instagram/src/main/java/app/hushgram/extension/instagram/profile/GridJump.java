@@ -26,6 +26,9 @@ import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.download.ProfileExtras;
@@ -40,14 +43,19 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 /**
  * Helper for the "Jump a profile's posts to a date" patch (#498).
  *
- * <p>A media id holds the time it was made in its top bits, and the posts grid pages by asking for
- * what's older than an id ({@code max_id}), so an id made up for the end of a day asks for that day's
- * posts on down. A calendar button on the profile's top bar picks the day. The grid is then reloaded
- * through Instagram's own call, the one its tab switch makes, and {@link #maxId} puts the id on the
- * first page's request. That call runs on the tapping thread right down to the request, so the id is
- * held in a {@link ThreadLocal} for just that long: it's one request for each jump, and no other
- * thread's request, prefetch or search sees it. Instagram clears the grid when the answer comes and
- * pages on from there as usual. Pull to refresh goes back to the newest posts.
+ * <p>A media id holds the time it was made in its top bits, and Instagram's feed of a user's posts
+ * pages by asking for what's older than an id ({@code max_id}), so an id made up for the end of a day
+ * asks for that day's posts on down. A calendar button on the profile's top bar picks the day. The
+ * grid is then reloaded through Instagram's own call, the one its tab switch makes.
+ *
+ * <p>The query the grid normally pages through ignores {@code max_id}, so {@link #restMaxId} sends the
+ * jump and the pages after it down the route the profile keeps for tagged posts, whose answer the grid
+ * already reads, and {@link #restPath} points that request at the user's own feed. The reload runs on
+ * the tapping thread right down to the request, so the id is held in a {@link ThreadLocal} for just
+ * that long: it's one request for each jump, and no other thread's request, prefetch or search sees
+ * it. Instagram clears the grid when the answer comes. The grid's next pages stay on that route with
+ * the cursor Instagram kept from the answer. Pull to refresh goes back to the newest posts through
+ * Instagram's own route.
  *
  * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet, a member
  * missing or anything thrown, the request and the grid stay as Instagram has them.
@@ -62,8 +70,17 @@ public final class GridJump {
     static final String STILL_LOADING = "grid still loading";
     static final String PLACED = "calendar placed";
 
+    /** The feed of a user's posts, which honors max_id. Instagram fills in the user's id. */
+    static final String USER_FEED_PATH = "feed/user/%s/";
+
     /** The id waiting for the request of the reload now running on this thread. */
     private static final ThreadLocal<Long> PENDING = new ThreadLocal<>();
+
+    /** Set while this thread is building a request that goes to {@link #USER_FEED_PATH}. */
+    private static final ThreadLocal<Boolean> REST_PATH = new ThreadLocal<>();
+
+    /** The grids' paging states showing a jump's answer, whose next pages stay on that route. */
+    private static final Set<Object> JUMPED_LOADERS = Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
 
     /** The posts tab showing now, told by {@link #resumed}. */
     static volatile WeakReference<Object> postsTab = new WeakReference<>(null);
@@ -93,22 +110,48 @@ public final class GridJump {
     }
 
     /**
-     * Injected first in the grid's request, with its user id and max_id. Answers the max_id to send:
-     * the jump's when one is waiting on this thread, used up by this request, or Instagram's own.
-     * Never throws.
+     * Injected first in the profile's load, with the tab's paging state, the user's id, whether this is
+     * the first page, the state's next cursor, and whether the state is free to load. Answers the
+     * max_id to fetch with down the jump's route, or null for Instagram's own route. A jump waits while
+     * the grid is loading, which {@link #chosen} tells the user. Never throws.
      */
-    public static String maxId(String user, String current) {
+    public static String restMaxId(Object loader, String user, int first, String next, int free) {
         try {
             Long media = PENDING.get();
-            if (media == null) return current;
-            PENDING.remove();
-            if (user == null || user.isEmpty()) return current;
-            String id = media + "_" + user;
-            Logger.printDebug(() -> "Jump to a date: asking for posts older than " + id);
-            return id;
+            if (media != null) {
+                if (free == 0 || user == null || user.isEmpty()) return null;
+                PENDING.remove();
+                JUMPED_LOADERS.add(loader);
+                String id = media + "_" + user;
+                Logger.printDebug(() -> "Jump to a date: asking for posts older than " + id);
+                REST_PATH.set(Boolean.TRUE);
+                return id;
+            }
+            if (first != 0) {
+                JUMPED_LOADERS.remove(loader);
+                return null;
+            }
+            if (next == null || !JUMPED_LOADERS.contains(loader)) return null;
+            REST_PATH.set(Boolean.TRUE);
+            return next;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_GRID_JUMP, "grid load", failure);
+            return null;
+        }
+    }
+
+    /**
+     * Injected in the tagged posts' request where it loads its path, with that path. Answers the user's
+     * feed when {@link #restMaxId} just sent this thread here, Instagram's path otherwise. Never throws.
+     */
+    public static String restPath(String path) {
+        try {
+            if (REST_PATH.get() == null) return path;
+            REST_PATH.remove();
+            return USER_FEED_PATH;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_GRID_JUMP, "grid request", failure);
-            return current;
+            return path;
         }
     }
 
@@ -225,9 +268,8 @@ public final class GridJump {
     }
 
     /**
-     * The day picked: reloads the tab with the day's id waiting for the request. An id still waiting
-     * afterwards means Instagram turned the reload down, which it does while the grid is loading.
-     * Never throws.
+     * The day picked: reloads the tab with the day's id waiting for the load. An id still waiting
+     * afterwards means the load turned it down, which it does while the grid is loading. Never throws.
      */
     static void chosen(Context context, int year, int month, int day) {
         try {

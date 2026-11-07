@@ -44,7 +44,10 @@ public class GridJumpTest {
     /** A real media id, from a photo posted late in September 2026. */
     private static final long REAL_ID = 3996319772513417509L;
 
+    private static final String TAGGED_PATH = "usertags/%s/feed/";
+
     private final List<String> asked = new ArrayList<>();
+    private final Object loader = new Object();
     private GridJump.Reloader stock;
     private Activity activity;
 
@@ -93,11 +96,12 @@ public class GridJumpTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         GridJump.postsTab = new WeakReference<>(null);
-        // What Instagram's reload does: builds one request on this thread, which asks for its max_id.
-        GridJump.reloader = tab -> asked.add(GridJump.maxId("42", null));
+        // What Instagram's reload does: one first page's load on this thread, free to go.
+        GridJump.reloader = tab -> asked.add(GridJump.restMaxId(loader, "42", 1, null, 1));
     }
 
     @After public void restore() {
+        GridJump.restPath(TAGGED_PATH);
         GridJump.reloader = stock;
         GridJump.postsTab = new WeakReference<>(null);
         Settings.PROFILE_GRID_JUMP.resetToDefault();
@@ -135,17 +139,18 @@ public class GridJumpTest {
         assertEquals("today stops at now", 1234L, GridJump.endOfDay(2015, Calendar.MARCH, 9, 1234L));
     }
 
-    @Test public void withNothingWaitingTheRequestKeepsItsOwnMaxId() {
-        assertEquals("next_page", GridJump.maxId("42", "next_page"));
-        assertNull(GridJump.maxId("42", null));
+    @Test public void withNothingWaitingInstagramsRouteRuns() {
+        assertNull(GridJump.restMaxId(loader, "42", 1, null, 1));
+        assertNull(GridJump.restMaxId(loader, "42", 0, "next_page", 1));
+        assertEquals(TAGGED_PATH, GridJump.restPath(TAGGED_PATH));
     }
 
     @Test public void aJumpAsksOnceWithItsId() {
         GridJump.postsTab = new WeakReference<>(postsTab());
         GridJump.reloader = tab -> {
-            asked.add(GridJump.maxId("42", null));
-            // A second request from the same reload stays as Instagram made it.
-            asked.add(GridJump.maxId("42", "own"));
+            asked.add(GridJump.restMaxId(loader, "42", 1, null, 1));
+            // A second load from the same reload stays as Instagram made it.
+            asked.add(GridJump.restMaxId(new Object(), "42", 1, null, 1));
         };
         GridJump.chosen(activity, 2015, Calendar.MARCH, 9);
 
@@ -154,26 +159,58 @@ public class GridJumpTest {
         end.set(2015, Calendar.MARCH, 9, 23, 59, 59);
         end.set(Calendar.MILLISECOND, 999);
         assertEquals(GridJump.mediaId(end.getTimeInMillis()) + "_42", asked.get(0));
-        assertEquals("own", asked.get(1));
+        assertNull(asked.get(1));
         assertEquals("Going to that date", toast());
-        assertEquals("later requests are Instagram's own", "own", GridJump.maxId("42", "own"));
     }
 
-    @Test public void aRequestOnAnotherThreadNeverSeesTheId() throws Exception {
+    @Test public void theJumpsRequestGoesToTheUsersFeedOnce() {
+        GridJump.postsTab = new WeakReference<>(postsTab());
+        GridJump.chosen(activity, 2015, Calendar.MARCH, 9);
+        assertEquals(GridJump.USER_FEED_PATH, GridJump.restPath(TAGGED_PATH));
+        assertEquals("the next request is Instagram's own", TAGGED_PATH, GridJump.restPath(TAGGED_PATH));
+    }
+
+    @Test public void theNextPagesStayOnTheRouteForTheJumpedGridOnly() {
+        GridJump.postsTab = new WeakReference<>(postsTab());
+        GridJump.chosen(activity, 2015, Calendar.MARCH, 9);
+        GridJump.restPath(TAGGED_PATH);
+
+        assertNull("another tab's next page", GridJump.restMaxId(new Object(), "42", 0, "cursor", 1));
+        assertEquals("nothing sent it to the feed", TAGGED_PATH, GridJump.restPath(TAGGED_PATH));
+
+        assertEquals("cursor", GridJump.restMaxId(loader, "42", 0, "cursor", 1));
+        assertEquals(GridJump.USER_FEED_PATH, GridJump.restPath(TAGGED_PATH));
+
+        assertNull("no more pages", GridJump.restMaxId(loader, "42", 0, null, 1));
+        assertEquals(TAGGED_PATH, GridJump.restPath(TAGGED_PATH));
+    }
+
+    /** Pull to refresh, or the tab coming back: a first page with nothing waiting. */
+    @Test public void aFirstPageGoesBackToInstagramsRoute() {
+        GridJump.postsTab = new WeakReference<>(postsTab());
+        GridJump.chosen(activity, 2015, Calendar.MARCH, 9);
+        GridJump.restPath(TAGGED_PATH);
+
+        assertNull(GridJump.restMaxId(loader, "42", 1, null, 1));
+        assertNull("its next pages too", GridJump.restMaxId(loader, "42", 0, "cursor", 1));
+        assertEquals(TAGGED_PATH, GridJump.restPath(TAGGED_PATH));
+    }
+
+    @Test public void aLoadOnAnotherThreadNeverSeesTheId() throws Exception {
         GridJump.postsTab = new WeakReference<>(postsTab());
         AtomicReference<String> other = new AtomicReference<>("unset");
         GridJump.reloader = tab -> {
-            Thread thread = new Thread(() -> other.set(GridJump.maxId("42", "own")));
+            Thread thread = new Thread(() -> other.set(GridJump.restMaxId(new Object(), "42", 1, null, 1)));
             thread.start();
             try {
                 thread.join();
             } catch (InterruptedException interrupted) {
                 throw new IllegalStateException(interrupted);
             }
-            asked.add(GridJump.maxId("42", null));
+            asked.add(GridJump.restMaxId(loader, "42", 1, null, 1));
         };
         GridJump.chosen(activity, 2015, Calendar.MARCH, 9);
-        assertEquals("own", other.get());
+        assertNull(other.get());
         assertTrue(asked.get(0), asked.get(0).endsWith("_42"));
     }
 
@@ -193,7 +230,7 @@ public class GridJumpTest {
         assertEquals("Going to that date", toast());
     }
 
-    /** Instagram turns a reload down while the grid is loading, so no request ever asks for the id. */
+    /** The profile's load never reaches the hook, for a kind of user the route can't take. */
     @Test public void aRefusedReloadSaysSoAndLeavesNothingWaiting() {
         Tab tab = postsTab();
         GridJump.postsTab = new WeakReference<>(tab);
@@ -201,7 +238,20 @@ public class GridJumpTest {
         GridJump.chosen(activity, 2015, Calendar.MARCH, 9);
         assertEquals("Still loading, try again", toast());
         assertTrue(((Grid) tab.recyclerView).manager.scrolled.isEmpty());
-        assertEquals("nothing left for the next request", "own", GridJump.maxId("42", "own"));
+        assertNull("nothing left for the next load", GridJump.restMaxId(loader, "42", 1, null, 1));
+    }
+
+    /** The grid is busy, so Instagram's route turns the load down and the day isn't used. */
+    @Test public void aBusyGridLeavesTheJumpToTheStillLoadingToast() {
+        Tab tab = postsTab();
+        GridJump.postsTab = new WeakReference<>(tab);
+        GridJump.reloader = busy -> asked.add(GridJump.restMaxId(loader, "42", 1, null, 0));
+        GridJump.chosen(activity, 2015, Calendar.MARCH, 9);
+        assertEquals(java.util.Collections.singletonList(null), asked);
+        assertEquals("Still loading, try again", toast());
+        assertTrue(((Grid) tab.recyclerView).manager.scrolled.isEmpty());
+        assertEquals("nothing sent it to the feed", TAGGED_PATH, GridJump.restPath(TAGGED_PATH));
+        assertNull("nothing left for the next load", GridJump.restMaxId(loader, "42", 1, null, 1));
     }
 
     @Test public void aReloadThatThrowsLeavesNothingWaiting() {
@@ -210,17 +260,19 @@ public class GridJumpTest {
             throw new IllegalStateException("no view yet");
         };
         GridJump.chosen(activity, 2015, Calendar.MARCH, 9);
-        assertEquals("own", GridJump.maxId("42", "own"));
+        assertNull(GridJump.restMaxId(loader, "42", 1, null, 1));
     }
 
-    @Test public void anEmptyUserKeepsTheRequestsOwnMaxId() {
+    @Test public void anEmptyUserStaysOnInstagramsRoute() {
         GridJump.postsTab = new WeakReference<>(postsTab());
         GridJump.reloader = tab -> {
-            asked.add(GridJump.maxId("", "own"));
-            asked.add(GridJump.maxId(null, "own"));
+            asked.add(GridJump.restMaxId(loader, "", 1, null, 1));
+            asked.add(GridJump.restMaxId(loader, null, 1, null, 1));
         };
         GridJump.chosen(activity, 2015, Calendar.MARCH, 9);
-        assertEquals(List.of("own", "own"), asked);
+        assertEquals(java.util.Arrays.asList(null, null), asked);
+        assertEquals("Still loading, try again", toast());
+        assertEquals(TAGGED_PATH, GridJump.restPath(TAGGED_PATH));
     }
 
     @Test public void offOrPausedNothingIsAsked() {
