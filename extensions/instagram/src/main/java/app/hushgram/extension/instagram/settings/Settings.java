@@ -3088,6 +3088,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_download_button", FALSE, parent(DOWNLOAD_REELS));
 
     /**
+     * With it on, a tap on that Download icon asks what to save first: the reel, its cover or its
+     * sound, whichever the reel has (#524). Off, a tap saves the reel at once. Starts off.
+     */
+    public static final BooleanSetting REEL_DOWNLOAD_BUTTON_ASKS =
+            new BooleanSetting("hushgram_reel_download_button_asks", FALSE, parent(REEL_DOWNLOAD_BUTTON));
+
+    /**
      * A Not interested icon in the column beside a reel (#191), so one tap runs Instagram's own Not
      * interested for that reel without opening its menu. Starts off, so the column stays Instagram's own.
      */

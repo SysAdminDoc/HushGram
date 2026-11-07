@@ -874,6 +874,8 @@ Download button on feed posts	Akış gönderilerinde indirme düğmesi
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them. Needs Download feed videos or photos.	Bir gönderinin altındaki satıra, Kaydet'in soluna bir indirme simgesi koyar, böylece tek dokunuşla menüyü açmadan kaydedebilirsin. Karuselde yalnızca bu sayfayı mı yoksa hepsini mi istediğini sorar. Akıştaki videoları indir veya Akıştaki fotoğrafları indir açık olmalı.
 Download button on reels	Reels'te indirme düğmesi
 Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	Bir reel'in yanında Kaydet'in altına bir indirme simgesi koyar, böylece tek dokunuş onu menüsündeki İndir gibi kaydeder. Reels'te indir açık olmalı.
+Ask what to save	Neyin kaydedileceğini sor
+A tap on the download icon beside a reel lets you pick the reel, its cover or its sound, whichever it has.	Bir reel'in yanındaki indirme simgesine dokunmak, reel'de ne varsa reel'in kendisini, kapağını ya da sesini seçmeni sağlar.
 Nothing to download on this post	Bu gönderide indirilecek bir şey yok
 # context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
 Hold to download	Basılı tutarak indir

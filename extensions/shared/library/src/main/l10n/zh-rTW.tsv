@@ -866,6 +866,8 @@ Download button on feed posts	貼文下載按鈕
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them. Needs Download feed videos or photos.	在貼文下方儲存按鈕的左側加入下載圖示，點擊即可儲存，不必開啟選單。輪播貼文會詢問儲存目前頁面或全部頁面。需啟用「下載動態首頁影片」或「下載動態首頁照片」。
 Download button on reels	Reels 下載按鈕
 Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	在 Reel 旁的儲存按鈕下方加入下載圖示，點擊即可執行與選單中「下載」相同的操作。需啟用「Reels 下載選項」。
+Ask what to save	詢問要儲存什麼
+A tap on the download icon beside a reel lets you pick the reel, its cover or its sound, whichever it has.	點擊 Reel 旁的下載圖示，即可依該 Reel 擁有的內容選擇儲存 Reel、封面或音訊。
 Nothing to download on this post	此貼文沒有可下載的內容
 # context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
 Hold to download	長按下載

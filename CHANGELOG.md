@@ -11,6 +11,7 @@ Every HushGram release, newest first.
 * `Jump a profile's posts to a date` puts a calendar on a profile's top bar. Pick a day and the posts grid goes back to that day, with older posts as you scroll. Asked for in #498.
 * `Hide GIFs in comments` under Comments takes GIFs and stickers out of comments and the GIF button off the comment box. A comment with words keeps them. Asked for in #511.
 * `Solid story rings` sits under `Story rings in the accent color` and makes a story's ring one shade of your color instead of running light to dark. Asked for in #519.
+* `Ask what to save` sits under `Download button on reels`. With it on, a tap on the icon lets you pick the reel, its cover or its sound, whichever that reel has. A reel with nothing but itself to save still saves at once. Asked for in #524.
 
 ### Improvements
 

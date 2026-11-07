@@ -137,8 +137,12 @@ public class ReelDownloadButtonTest {
         final List<String> calls = new ArrayList<>();
         final Set<Object> empty = new HashSet<>();
         final Set<Object> music = new HashSet<>();
+        final Set<Object> covers = new HashSet<>();
+        final Set<Object> sounds = new HashSet<>();
         Runnable video;
         Runnable photo;
+        List<String> labels;
+        List<Runnable> runs;
 
         @Override public boolean savable(Object media) {
             return !empty.contains(media);
@@ -162,6 +166,21 @@ public class ReelDownloadButtonTest {
         @Override public void nothing(Context context) {
             calls.add("nothing");
         }
+
+        @Override public boolean cover(Object media) {
+            return covers.contains(media);
+        }
+
+        @Override public boolean audio(Object media) {
+            return sounds.contains(media);
+        }
+
+        @Override public void pick(View anchor, List<CharSequence> labels, List<Runnable> runs) {
+            calls.add("pick");
+            this.labels = new ArrayList<>();
+            for (CharSequence label : labels) this.labels.add(String.valueOf(label));
+            this.runs = runs;
+        }
     }
 
     @Before
@@ -179,6 +198,7 @@ public class ReelDownloadButtonTest {
         ReelDownloadButton.actions = originalActions;
         ReelDownloadButton.bridge = originalBridge;
         ReelDownloadButton.resetForTests();
+        Settings.REEL_DOWNLOAD_BUTTON_ASKS.resetToDefault();
         Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
         Settings.DOWNLOAD_REELS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -380,6 +400,66 @@ public class ReelDownloadButtonTest {
         recorder.photo.run();
         assertEquals(java.util.Arrays.asList("choose", "save " + ReelDownload.VIDEO_OPTION + " song",
                 "save " + ReelDownload.PHOTO_OPTION + " song"), recorder.calls);
+    }
+
+    @Test
+    public void askWhatToSaveStartsOffUnderTheIconsSwitch() {
+        assertFalse(Settings.REEL_DOWNLOAD_BUTTON_ASKS.defaultValue);
+        assertFalse("no restart needed", Settings.REEL_DOWNLOAD_BUTTON_ASKS.rebootApp);
+        assertEquals(Collections.singletonList(Settings.REEL_DOWNLOAD_BUTTON),
+                Settings.REEL_DOWNLOAD_BUTTON_ASKS.getParentSettings());
+        Settings.REEL_DOWNLOAD_BUTTON.save(false);
+        assertFalse(Settings.REEL_DOWNLOAD_BUTTON_ASKS.isAvailable());
+        Settings.REEL_DOWNLOAD_BUTTON.save(true);
+        assertTrue(Settings.REEL_DOWNLOAD_BUTTON_ASKS.isAvailable());
+
+        // Off, a reel with a cover and a sound still saves at once (#524).
+        recorder.covers.add("reel");
+        recorder.sounds.add("reel");
+        ReelDownloadButton.litho(new Column(new Item(Kind.ORGANIC, "reel")), null, 120, 30);
+        bridge.click.invoke(new View(activity));
+        assertEquals(Collections.singletonList("save null reel"), recorder.calls);
+    }
+
+    @Test
+    public void askWhatToSaveOffersTheReelItsCoverAndItsSound() {
+        Settings.REEL_DOWNLOAD_BUTTON_ASKS.save(true);
+        recorder.covers.add("reel");
+        recorder.sounds.add("reel");
+        ReelDownloadButton.litho(new Column(new Item(Kind.ORGANIC, "reel")), null, 120, 30);
+        bridge.click.invoke(new View(activity));
+        assertEquals(Collections.singletonList("pick"), recorder.calls);
+        assertEquals(java.util.Arrays.asList("Download", "Download cover", "Download audio"), recorder.labels);
+        for (Runnable run : recorder.runs) run.run();
+        assertEquals("each row saves through the menu's own row", java.util.Arrays.asList("pick", "save null reel",
+                "save " + ReelDownload.COVER_OPTION + " reel", "save " + ReelDownload.AUDIO_OPTION + " reel"),
+                recorder.calls);
+    }
+
+    @Test
+    public void askWhatToSaveListsOnlyWhatTheReelHasAndSkipsALoneChoice() {
+        Settings.REEL_DOWNLOAD_BUTTON_ASKS.save(true);
+        recorder.sounds.add("song");
+        Column column = new Column(new Item(Kind.ORGANIC, "song"));
+        ReelDownloadButton.litho(column, null, 120, 30);
+        bridge.click.invoke(new View(activity));
+        assertEquals(java.util.Arrays.asList("Download", "Download audio"), recorder.labels);
+        recorder.runs.get(1).run();
+        assertEquals(java.util.Arrays.asList("pick", "save " + ReelDownload.AUDIO_OPTION + " song"), recorder.calls);
+
+        recorder.calls.clear();
+        column.item = new Item(Kind.ORGANIC, "bare");
+        bridge.click.invoke(new View(activity));
+        assertEquals("nothing but the reel itself saves without asking", Collections.singletonList("save null bare"),
+                recorder.calls);
+
+        recorder.calls.clear();
+        recorder.music.add("photo");
+        recorder.covers.add("photo");
+        column.item = new Item(Kind.ORGANIC, "photo");
+        bridge.click.invoke(new View(activity));
+        assertEquals("a photo with music keeps its video or photo choice", Collections.singletonList("choose"),
+                recorder.calls);
     }
 
     @Test

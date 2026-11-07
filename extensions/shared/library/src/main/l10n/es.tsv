@@ -874,6 +874,8 @@ Download button on feed posts	Botón de descarga en las publicaciones del feed
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them. Needs Download feed videos or photos.	Pone un icono de descarga en la fila bajo una publicación, a la izquierda de Guardar, para que un toque la guarde sin abrir el menú. En un carrusel pregunta si quieres esta página o todas. Necesita Descargar videos del feed o Descargar fotos del feed.
 Download button on reels	Botón de descarga en los reels
 Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	Pone un icono de descarga bajo Guardar junto a un reel, para que un toque lo guarde igual que Descargar en su menú. Necesita Descargar en los reels.
+Ask what to save	Preguntar qué guardar
+A tap on the download icon beside a reel lets you pick the reel, its cover or its sound, whichever it has.	Al tocar el icono de descarga junto a un reel puedes elegir el reel, su portada o su sonido, según lo que tenga.
 Nothing to download on this post	No hay nada que descargar en esta publicación
 # context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
 Hold to download	Mantener para descargar

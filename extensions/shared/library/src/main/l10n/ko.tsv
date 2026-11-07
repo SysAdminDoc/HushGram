@@ -873,6 +873,8 @@ Download button on feed posts	피드 게시물 다운로드 버튼
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them. Needs Download feed videos or photos.	게시물 아래 줄의 저장 왼쪽에 다운로드 아이콘을 넣어, 메뉴를 열지 않고 한 번 탭으로 저장합니다. 캐러셀에서는 이 페이지만 저장할지 모두 저장할지 묻습니다. 피드 동영상 다운로드 메뉴 추가 또는 피드 사진 다운로드가 필요합니다.
 Download button on reels	릴스 다운로드 버튼
 Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	릴스 옆 저장 아래에 다운로드 아이콘을 넣어, 한 번 탭으로 메뉴의 다운로드와 똑같이 저장합니다. 릴스 다운로드 메뉴 추가가 켜져 있어야 합니다.
+Ask what to save	저장할 항목 묻기
+A tap on the download icon beside a reel lets you pick the reel, its cover or its sound, whichever it has.	릴스 옆 다운로드 아이콘을 탭하면 릴스, 커버, 사운드 중 해당 릴스에 있는 것을 골라 저장할 수 있습니다.
 Nothing to download on this post	이 게시물에는 다운로드할 항목이 없습니다
 # context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
 Hold to download	길게 눌러 다운로드

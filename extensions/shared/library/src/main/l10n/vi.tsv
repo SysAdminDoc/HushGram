@@ -862,6 +862,8 @@ Download button on feed posts	Nút tải xuống trên bài viết bảng feed
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them. Needs Download feed videos or photos.	Đặt biểu tượng tải xuống ở hàng bên dưới bài viết, bên trái Lưu, để một lần nhấn là lưu mà không cần mở menu. Với ảnh nhiều trang, sẽ hỏi lưu trang này hay tất cả. Cần Tải video trên bảng feed hoặc ảnh.
 Download button on reels	Nút tải xuống trên reel
 Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	Đặt biểu tượng tải xuống dưới Lưu cạnh reel, để một lần nhấn là lưu như Tải xuống trong menu. Cần bật Tải xuống trên reel.
+Ask what to save	Hỏi lưu gì
+A tap on the download icon beside a reel lets you pick the reel, its cover or its sound, whichever it has.	Chạm vào biểu tượng tải xuống bên cạnh một thước phim để chọn thước phim, ảnh bìa hoặc âm thanh của nó, tùy theo những gì nó có.
 Nothing to download on this post	Bài viết này không có gì để tải
 Hold to download	Giữ để tải xuống
 Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Fingers below can make it three. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Giữ yên hai ngón tay trên ảnh hoặc video của bài viết bảng feed, hoặc trên reel, để lưu nội dung bên dưới, giống Tải xuống trong menu. Có thể đổi thành ba ngón ở Số ngón tay bên dưới. Nhấn giữ một ngón của Instagram vẫn như cũ. Cần Tải video trên bảng feed hoặc ảnh, và Tải xuống trên reel cho reel.

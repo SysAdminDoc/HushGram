@@ -94,6 +94,7 @@ public class DownloadSettingsTest {
         Settings.DOWNLOAD_CHOOSE_PAGES.resetToDefault();
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
         Settings.FEED_DOWNLOAD_ALL_PAGES.resetToDefault();
+        Settings.REEL_DOWNLOAD_BUTTON_ASKS.resetToDefault();
         Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
         Settings.REEL_NOT_INTERESTED_BUTTON.resetToDefault();
         Settings.REEL_BLOCK_BUTTON.resetToDefault();
@@ -131,16 +132,36 @@ public class DownloadSettingsTest {
             ShadowLooper.idleMainLooper();
             assertFalse("it waits for Download on reels", row.isEnabled());
             assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_DOWNLOAD_BUTTON.key));
+
+            // Ask what to save (#524) sits right under it and waits for it.
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, Settings.REEL_DOWNLOAD_BUTTON.key) + 1,
+                    indexOfKey(rows, Settings.REEL_DOWNLOAD_BUTTON_ASKS.key));
+            Preference asks = downloads.findPreference(Settings.REEL_DOWNLOAD_BUTTON_ASKS.key);
+            assertTrue(asks instanceof SwitchPreference);
+            assertEquals("Ask what to save", String.valueOf(asks.getTitle()));
+            assertFalse("it starts off", ((SwitchPreference) asks).isChecked());
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertFalse("it waits for the icon's switch", asks.isEnabled());
+            ((SwitchPreference) row).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(asks.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_DOWNLOAD_BUTTON_ASKS.key));
         }
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.VIDEO_DOWNLOAD);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             List<Preference> rows = rowsOf(pageIn(controller));
             assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_ALL_PAGES.key) + 1, indexOfKey(rows, Settings.REEL_DOWNLOAD_BUTTON.key));
+            assertEquals(indexOfKey(rows, Settings.REEL_DOWNLOAD_BUTTON.key) + 1,
+                    indexOfKey(rows, Settings.REEL_DOWNLOAD_BUTTON_ASKS.key));
         }
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.REEL_DOWNLOAD_BUTTON.key));
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.REEL_DOWNLOAD_BUTTON_ASKS.key));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_DOWNLOAD_BUTTON.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_DOWNLOAD_BUTTON_ASKS.key));
         }
     }
 
