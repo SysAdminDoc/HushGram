@@ -229,11 +229,17 @@ public final class ChatMediaWalk {
         return (PLAIN.equals(kind) || SHARE.equals(kind) || XMA_SHARE.equals(kind)) && !chat.expiring(message);
     }
 
-    /** One message that can't be read loses its page, not the walk. */
+    /**
+     * One message that can't be read loses its page, not the walk. Instagram's builder only finds a plain
+     * photo or video in one of the fields it can arrive in, so one it can't find goes the way a shared
+     * post does, which reads the media the message holds.
+     */
     @Nullable
     private static Object page(Messages chat, Object message) {
         try {
-            return PLAIN.equals(chat.kind(message)) ? chat.plainPage(message) : chat.sharedPage(message);
+            if (!PLAIN.equals(chat.kind(message))) return chat.sharedPage(message);
+            Object page = chat.plainPage(message);
+            return page != null ? page : chat.sharedPage(message);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.CHAT_MEDIA_WALK, "page", failure);
             return null;

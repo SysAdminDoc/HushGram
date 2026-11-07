@@ -53,6 +53,7 @@ public class ChatMediaWalkTest {
         boolean expiring;
         boolean broken;
         boolean empty;
+        boolean noPlainPage;
 
         Message(String id, String kind, long time) {
             this.id = id;
@@ -96,7 +97,7 @@ public class ChatMediaWalkTest {
         }
 
         @Override public Object plainPage(Object message) {
-            return page((Message) message);
+            return ((Message) message).noPlainPage ? null : page((Message) message);
         }
 
         @Override public Object sharedPage(Object message) {
@@ -226,6 +227,20 @@ public class ChatMediaWalkTest {
 
         assertEquals(Arrays.asList("first", "last"), ids(ChatMediaWalk.open(VIEWER, KEY, tap("last"), 0)));
         assertEquals(1, ChatMediaWalk.startIndex());
+    }
+
+    /** Seen on 454: the builder read one field of a sent video and answered null, and the tap lost its walk. */
+    @Test public void aPlainVideoTheBuilderCantReadStillGetsItsPage() {
+        Message video = plain("video", 10);
+        video.noPlainPage = true;
+        ChatMediaWalk.chatForTests = new Chat(video, new Message("post", "XMA_MEDIA_SHARE", 20));
+        List<Object> tapped = tap("video");
+
+        List<?> pages = ChatMediaWalk.open(VIEWER, KEY, tapped, 0);
+
+        assertEquals(Arrays.asList("video", "post"), ids(pages));
+        assertSame(tapped.get(0), pages.get(0));
+        assertEquals(0, ChatMediaWalk.startIndex());
     }
 
     @Test public void aChatThatCantBeReadOpensAsInstagramHasIt() {
