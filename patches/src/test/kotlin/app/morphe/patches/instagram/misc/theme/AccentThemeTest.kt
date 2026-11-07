@@ -344,6 +344,24 @@ class AccentThemeTest {
         val system = colorsV31.elements("color").associate { it.getAttribute("name") to it.textContent }
         assertEquals("@android:color/system_accent1_500", system[ringColor(WALLPAPER, AccentRole.FILL)])
         assertEquals("@android:color/system_accent1_200", system[ringColor(WALLPAPER, AccentRole.LINK_ON_DARK)])
+        // Solid story rings: every stop of the gradient at the one fill shade, so the ring is one color (#519).
+        val solid = styleItems(styles, "HushGramAccentRingsSolid_")
+        assertEquals((ACCENT_PALETTES.map { it.name } + WALLPAPER).map { solidRingStyle(it) }, solid.keys.toList())
+        assertEquals(gradient.map { it to "@color/hushgram_accent_purple_ring_fill" }, solid[solidRingStyle("PURPLE")])
+        assertEquals(gradient.map { it to "@color/${ringColor(WALLPAPER, AccentRole.FILL)}" }, solid[solidRingStyle(WALLPAPER)])
+
+        val yellowOnly = parse("<resources />")
+        val yellowColors = parse("<resources />")
+        addAccentResources(uses, declaring(listOf("igds_color_gradient_yellow")), yellowColors, yellowOnly)
+        assertEquals(
+            "the solid ring's shade is there even when no gradient stop takes it",
+            "#ff7638fa",
+            yellowColors.elements("color").associate { it.getAttribute("name") to it.textContent }["hushgram_accent_purple_ring_fill"],
+        )
+        assertEquals(
+            listOf("igds_color_gradient_yellow" to "@color/hushgram_accent_purple_ring_fill"),
+            styleItems(yellowOnly, "HushGramAccentRingsSolid_")[solidRingStyle("PURPLE")],
+        )
 
         val oneOfThem = parse("<resources />")
         addAccentResources(uses, declaring(listOf("igds_color_gradient_red")), parse("<resources />"), oneOfThem)
@@ -356,6 +374,11 @@ class AccentThemeTest {
         val none = parse("<resources />")
         addAccentResources(uses, parse("<resources />"), parse("<resources />"), none)
         assertTrue("no ring styles without the gradient", styleItems(none, "HushGramAccentRings_").isEmpty())
+        assertTrue("no solid ring styles without the gradient", styleItems(none, "HushGramAccentRingsSolid_").isEmpty())
+
+        val takenSolid = parse("<resources><style name=\"HushGramAccentRingsSolid_RED\" /></resources>")
+        val solidAgain = assertThrows(PatchException::class.java) { addAccentResources(uses, declaring(gradient), parse("<resources />"), takenSolid) }
+        assertTrue(solidAgain.message, solidAgain.message!!.contains("already have a HushGramAccentRingsSolid_RED"))
 
         val taken = parse("<resources><color name=\"hushgram_accent_red_ring_fill\">#ff000000</color></resources>")
         val again = assertThrows(PatchException::class.java) { addAccentResources(uses, declaring(gradient), taken, parse("<resources />")) }
@@ -817,6 +840,12 @@ class AccentThemeTest {
                     ),
                     items(ringStyle("PURPLE")),
                 )
+                assertEquals(
+                    "$code: the solid rings' attributes (#519)",
+                    RING_ATTRIBUTES.keys.map { it to "@color/hushgram_accent_purple_ring_fill" }.toSet(),
+                    items(solidRingStyle("PURPLE")),
+                )
+                assertTrue("$code: the wallpaper's solid rings", "style/${solidRingStyle(WALLPAPER)}" in added)
                 assertEquals(
                     "$code: every background it was meant to reach",
                     BACKGROUND_ATTRIBUTES.map { (attribute, step) -> attribute to "@color/${backgroundColor("PURPLE", IconTheme.DARK, step)}" }.toSet(),

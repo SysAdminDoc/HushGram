@@ -1750,6 +1750,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_accent_rings", FALSE, true, parent(ACCENT_COLOR));
 
     /**
+     * Under {@link #ACCENT_RINGS}: story rings take one shade of the picked color, the fill, instead
+     * of running light to deep (#519, {@link app.hushgram.extension.instagram.misc.AccentTheme}). A
+     * change shows after a restart. Off to start.
+     */
+    public static final BooleanSetting ACCENT_RINGS_SOLID =
+            new BooleanSetting("hushgram_accent_rings_solid", FALSE, true, parent(ACCENT_RINGS));
+
+    /**
      * Under {@link #ACCENT_COLOR}: screens, panels, cards and menus take a very dark or very light
      * shade of the picked color (#187, {@link app.hushgram.extension.instagram.misc.AccentTheme}).
      * Story and reel viewers keep theirs. A change shows after a restart. Off to start.

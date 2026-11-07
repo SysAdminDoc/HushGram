@@ -63,6 +63,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>With {@link Settings#ACCENT_RINGS} on, the picked color's ring style goes on (#187). It points the
  * {@code igds_color_gradient_*} attributes Instagram's story rings read at the picked shades. Other
  * things read those gradient colors too, a few pink highlights among them, and change with the rings.
+ * With {@link Settings#ACCENT_RINGS_SOLID} on too, the solid ring style goes on in its place, every
+ * stop at the picked fill, so a ring is one color (#519).
  *
  * <p>With {@link Settings#ACCENT_BACKGROUNDS} on, the picked color's background style goes on as well
  * (#187): the theme's screens, panels, cards and menus take a very dark or very light shade of it, for
@@ -209,7 +211,7 @@ public final class AccentTheme {
                 }
             }
             if (Settings.ACCENT_RINGS.get()) {
-                int rings = id(resources, ringStyle(hue), "style", app);
+                int rings = id(resources, Settings.ACCENT_RINGS_SOLID.get() ? solidRingStyle(hue) : ringStyle(hue), "style", app);
                 if (rings == 0) {
                     HookStatus.counted(FamilyNames.ACCENT_COLOR, RINGS_MISSING);
                 } else {
@@ -348,6 +350,11 @@ public final class AccentTheme {
     /** The style pointing the gradient Instagram's story rings read at [hue]'s shades (#187). */
     static String ringStyle(AccentHue hue) {
         return "HushGramAccentRings_" + hue.name();
+    }
+
+    /** The style pointing every stop of that gradient at [hue]'s fill, for Solid story rings (#519). */
+    static String solidRingStyle(AccentHue hue) {
+        return "HushGramAccentRingsSolid_" + hue.name();
     }
 
     /** The style pointing Instagram's background attributes at [hue]'s shades for a dark theme or a light one (#187). */

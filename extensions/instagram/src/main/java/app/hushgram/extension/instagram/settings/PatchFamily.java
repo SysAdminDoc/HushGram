@@ -165,7 +165,7 @@ public enum PatchFamily {
     REFRESH_RATE(FamilyNames.REFRESH_RATE, "refreshRate", null, Settings.HIGHEST_REFRESH_RATE),
     EMOJI_STYLE(FamilyNames.EMOJI_STYLE, "emojiStyle", null, Settings.NOTO_EMOJI),
     ACCENT_COLOR(FamilyNames.ACCENT_COLOR, "accentColor", null, Settings.ACCENT_COLOR, Settings.ACCENT_BADGES,
-            Settings.ACCENT_ICONS, Settings.ACCENT_RINGS, Settings.ACCENT_BACKGROUNDS),
+            Settings.ACCENT_ICONS, Settings.ACCENT_RINGS, Settings.ACCENT_RINGS_SOLID, Settings.ACCENT_BACKGROUNDS),
     LAUNCH_SCREEN(FamilyNames.LAUNCH_SCREEN, "launchScreen", null, Settings.LAUNCH_SCREEN),
     HEADER_TEXT(FamilyNames.HEADER_TEXT, "headerText", null),
     APP_ICON(FamilyNames.APP_ICON, "appIcon", "the home screen icon you picked"),

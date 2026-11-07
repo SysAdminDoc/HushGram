@@ -56,6 +56,7 @@ public class AccentThemeTest {
         Settings.ACCENT_BADGES.resetToDefault();
         Settings.ACCENT_ICONS.resetToDefault();
         Settings.ACCENT_RINGS.resetToDefault();
+        Settings.ACCENT_RINGS_SOLID.resetToDefault();
         Settings.ACCENT_BACKGROUNDS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -253,7 +254,7 @@ public class AccentThemeTest {
         List<String> asked = new ArrayList<>();
         Ids ids = (name, type) -> {
             if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
-            if (type.equals("style") && name.startsWith("HushGramAccentRings_")) {
+            if (type.equals("style") && (name.startsWith("HushGramAccentRings_") || name.startsWith("HushGramAccentRingsSolid_"))) {
                 asked.add(name);
                 return android.R.style.TextAppearance_Small;
             }
@@ -269,6 +270,19 @@ public class AccentThemeTest {
         assertEquals(List.of("HushGramAccentRings_TEAL"), asked);
         assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
                 + AccentTheme.RINGS + " 1"), HookStatus.report());
+
+        // Solid story rings swaps in the style with every stop at the fill (#519).
+        assertEquals("HushGramAccentRingsSolid_TEAL", AccentTheme.solidRingStyle(AccentHue.TEAL));
+        Settings.ACCENT_RINGS_SOLID.save(true);
+        asked.clear();
+        AccentTheme.apply(context, "igds_color_link");
+        assertEquals(List.of("HushGramAccentRingsSolid_TEAL"), asked);
+        Settings.ACCENT_RINGS.save(false);
+        asked.clear();
+        AccentTheme.apply(context, "igds_color_link");
+        assertEquals("solid alone does nothing with the rings off", List.of(), asked);
+        Settings.ACCENT_RINGS.save(true);
+        Settings.ACCENT_RINGS_SOLID.save(false);
 
         HookStatus.clear();
         Context bare = themed(THEMED + ".norings", (name, type) -> type.equals("style")

@@ -248,6 +248,15 @@ internal fun ringColor(palette: String, role: AccentRole): String =
 
 internal fun ringStyle(palette: String): String = "HushGramAccentRings_$palette"
 
+/** The shade every ring attribute takes in [solidRingStyle], for Solid story rings (#519). */
+internal val SOLID_RING_ROLE = AccentRole.FILL
+
+/** The style pointing every ring attribute at one shade, so a story's ring is a single color (#519). */
+internal fun solidRingStyle(palette: String): String = "HushGramAccentRingsSolid_$palette"
+
+/** The ring shades [rings] needs, the solid ring's included. */
+private fun ringRoles(rings: Map<String, AccentRole>): List<AccentRole> = (rings.values + SOLID_RING_ROLE).distinct()
+
 /**
  * How far a surface stands out from the screen under it, for the background styles (#187): how much of
  * a color's fill goes into black on a dark theme and into white on a light one, and the step of the
@@ -400,7 +409,9 @@ internal fun accentUses(styles: List<Document>, colors: Map<String, Set<Int>>): 
  *   and a style setting the attribute, and each of [GLYPH_ATTRIBUTES] declared, to each,
  *   `HushGramAccentIcons_PURPLE_dark`, for Icons in the accent color (#8);
  * - when attrs.xml declares any of [RING_ATTRIBUTES], each color's ring shades and a style setting
- *   those attributes to them, `HushGramAccentRings_PURPLE`, for Story rings in the accent color (#187);
+ *   those attributes to them, `HushGramAccentRings_PURPLE`, for Story rings in the accent color (#187),
+ *   and a style setting all of them to [SOLID_RING_ROLE]'s, `HushGramAccentRingsSolid_PURPLE`, for
+ *   Solid story rings (#519);
  * - when attrs.xml declares [BACKGROUND_ATTRIBUTE], each color's background shades for a light and a
  *   dark theme and a style setting each declared one of [BACKGROUND_ATTRIBUTES] to them,
  *   `HushGramAccentBackgrounds_PURPLE_dark`, for Backgrounds in the accent color (#187).
@@ -419,7 +430,7 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
     val iconAttributes = iconAttributes(attrs)
     val icons = iconAttributes.isNotEmpty()
     val rings = ringAttributes(attrs)
-    val ringRoles = rings.values.distinct()
+    val ringRoles = ringRoles(rings)
     val backgrounds = backgroundAttributes(attrs)
     val backgroundSteps = backgrounds.values.distinct()
     val adding = shades.map(::shadeAttribute) +
@@ -430,7 +441,7 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
             IconTheme.entries.flatMap { listOf(iconColor(palette.name, it), iconStyle(palette.name, it)) }
         } else emptyList()) +
         (if (rings.isNotEmpty()) ACCENT_PALETTES.flatMap { palette ->
-            ringRoles.map { ringColor(palette.name, it) } + ringStyle(palette.name)
+            ringRoles.map { ringColor(palette.name, it) } + ringStyle(palette.name) + solidRingStyle(palette.name)
         } else emptyList()) +
         (if (backgrounds.isNotEmpty()) ACCENT_PALETTES.flatMap { palette ->
             IconTheme.entries.flatMap { theme ->
@@ -508,6 +519,9 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
             styles.documentElement.appendChild(
                 styles.colorsStyle(ringStyle(palette.name), rings.mapValues { ringColor(palette.name, it.value) }),
             )
+            styles.documentElement.appendChild(
+                styles.colorsStyle(solidRingStyle(palette.name), rings.mapValues { ringColor(palette.name, SOLID_RING_ROLE) }),
+            )
         }
     }
     if (backgrounds.isNotEmpty()) {
@@ -536,7 +550,8 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
  *   style pointing the attribute, and each of [GLYPH_ATTRIBUTES] declared, at each, for Icons in the
  *   accent color (#8);
  * - when attrs.xml declares any of [RING_ATTRIBUTES], ring colors at the matching accent steps and a
- *   style pointing those attributes at them, for Story rings in the accent color (#187);
+ *   style pointing those attributes at them, for Story rings in the accent color (#187), and one
+ *   pointing all of them at [SOLID_RING_ROLE]'s, for Solid story rings (#519);
  * - when attrs.xml declares [BACKGROUND_ATTRIBUTE], background colors at the wallpaper's neutral family
  *   for a light and a dark theme and a style pointing each declared one of [BACKGROUND_ATTRIBUTES] at
  *   them, for Backgrounds in the accent color (#187).
@@ -553,13 +568,13 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
     val iconAttributes = iconAttributes(attrs)
     val icons = iconAttributes.isNotEmpty()
     val rings = ringAttributes(attrs)
-    val ringRoles = rings.values.distinct()
+    val ringRoles = ringRoles(rings)
     val backgrounds = backgroundAttributes(attrs)
     val backgroundSteps = backgrounds.values.distinct()
     val adding = opaque.map { wallpaperColor(it.shade) } + WALLPAPER_PALETTE_STYLE +
         (if (badges) listOf(WALLPAPER_BADGE_COLOR, WALLPAPER_BADGE_STYLE) else emptyList()) +
         (if (icons) IconTheme.entries.flatMap { listOf(iconColor(WALLPAPER, it), iconStyle(WALLPAPER, it)) } else emptyList()) +
-        (if (rings.isNotEmpty()) ringRoles.map { ringColor(WALLPAPER, it) } + ringStyle(WALLPAPER) else emptyList()) +
+        (if (rings.isNotEmpty()) ringRoles.map { ringColor(WALLPAPER, it) } + ringStyle(WALLPAPER) + solidRingStyle(WALLPAPER) else emptyList()) +
         (if (backgrounds.isNotEmpty()) IconTheme.entries.flatMap { theme ->
             backgroundSteps.map { backgroundColor(WALLPAPER, theme, it) } + backgroundStyle(WALLPAPER, theme)
         } else emptyList())
@@ -606,6 +621,7 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
     if (rings.isNotEmpty()) {
         for (role in ringRoles) color(ringColor(WALLPAPER, role), role)
         styles.documentElement.appendChild(styles.colorsStyle(ringStyle(WALLPAPER), rings.mapValues { ringColor(WALLPAPER, it.value) }))
+        styles.documentElement.appendChild(styles.colorsStyle(solidRingStyle(WALLPAPER), rings.mapValues { ringColor(WALLPAPER, SOLID_RING_ROLE) }))
     }
     if (backgrounds.isNotEmpty()) {
         val fill = WALLPAPER_FALLBACK.getValue(AccentRole.FILL)
