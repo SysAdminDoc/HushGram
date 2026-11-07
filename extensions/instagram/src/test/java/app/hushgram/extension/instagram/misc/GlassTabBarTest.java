@@ -2704,12 +2704,14 @@ public class GlassTabBarTest {
      * Instagram's touch strip for a reel's seek bar is placed by how far the reel stops above the screens'
      * bottom. Measured with its own margin back on for a frame and the pill's counted too (back from
      * HushGram's settings on the S22), it sat a bar's height too high, over the reel's More button, and
-     * took its taps. It goes back so its bottom edge is the seek bar's, or the viewer's with no seek bar
-     * showing. A strip hung from the top, or a reel off the screen, is left alone.
+     * took its taps. It goes back so it runs a seek bar's height past the seek bar's bottom edge, or the
+     * viewer's with no seek bar showing, where Instagram keeps it over its own bar (#526). A strip hung
+     * from the top, or a reel off the screen, is left alone.
      */
     @Test
     @Config(qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
     public void theSeekBarsTouchStripStaysOnTheReelAboveThePill() {
+        final int BELOW = 28;
         ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
         try {
             Activity activity = controller.get();
@@ -2738,44 +2740,79 @@ public class GlassTabBarTest {
             Rect scratch = new Rect();
             layOut(root);
 
-            assertTrue("a bar's height too high", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            assertTrue("a bar's height too high", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, BELOW, scratch));
             layOut(root);
-            assertEquals("on the seek bar of the reel on screen", bottomOnScreen(seekBar), bottomOnScreen(strip));
-            assertEquals(180, stripParams.bottomMargin);
-            assertFalse("settled, nothing moves", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            assertEquals("on the seek bar of the reel on screen, running on past it as over Instagram's own bar",
+                    bottomOnScreen(seekBar) + BELOW, bottomOnScreen(strip));
+            assertEquals(180 - BELOW, stripParams.bottomMargin);
+            assertFalse("settled, nothing moves", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, BELOW, scratch));
 
             stripParams.bottomMargin = 107;
             strip.setLayoutParams(stripParams);
-            assertFalse("not laid out again yet", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            assertFalse("not laid out again yet", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, BELOW, scratch));
             layOut(root);
-            assertTrue("measured before the reel was kept above the pill", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
-            assertEquals(180, stripParams.bottomMargin);
+            assertTrue("measured before the reel was kept above the pill", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, BELOW, scratch));
+            assertEquals(180 - BELOW, stripParams.bottomMargin);
 
             seekParams.bottomMargin = 300;
             seekBar.setLayoutParams(seekParams);
             layOut(root);
-            assertTrue("a seek bar higher up", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            assertTrue("a seek bar higher up", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, BELOW, scratch));
             layOut(root);
-            assertEquals(bottomOnScreen(seekBar), bottomOnScreen(strip));
+            assertEquals(bottomOnScreen(seekBar) + BELOW, bottomOnScreen(strip));
 
             seekBar.setVisibility(View.GONE);
             layOut(root);
-            assertTrue("no seek bar showing", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            assertTrue("no seek bar showing", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, BELOW, scratch));
             layOut(root);
-            assertEquals("the viewer's bottom edge", bottomOnScreen(viewer), bottomOnScreen(strip));
+            assertEquals("past the viewer's bottom edge", bottomOnScreen(viewer) + BELOW, bottomOnScreen(strip));
 
             stripParams.gravity = Gravity.TOP;
             stripParams.topMargin = 40;
             strip.setLayoutParams(stripParams);
             layOut(root);
-            assertFalse("hung from the top", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            assertFalse("hung from the top", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, BELOW, scratch));
             stripParams.gravity = Gravity.BOTTOM;
             stripParams.bottomMargin = 287;
             strip.setLayoutParams(stripParams);
             viewer.setTranslationX(-10000);
             layOut(root);
-            assertFalse("no reel on the screen", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, scratch));
+            assertFalse("no reel on the screen", GlassTabBar.stripOnTheReel(strip, viewers, scrubberId, BELOW, scratch));
             assertEquals(287, stripParams.bottomMargin);
+        } finally {
+            controller.pause().stop().destroy();
+        }
+    }
+
+    /**
+     * #526: the seek bar's touch strip runs over the pill's top edge, and a sideways drag that starts
+     * there seeks the reel. It used to start a slide across the tabs instead. Below the strip, or with no
+     * strip showing, the pill is the pill.
+     */
+    @Test
+    @Config(qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aDragOnTheSeekBarsStripIsNeverATabSlide() {
+        ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
+        try {
+            Activity activity = controller.get();
+            FrameLayout root = new FrameLayout(activity);
+            View bar = new View(activity);
+            root.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 177, Gravity.BOTTOM));
+            View strip = new View(activity);
+            FrameLayout.LayoutParams stripParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 112, Gravity.BOTTOM);
+            stripParams.bottomMargin = 177 - 28;
+            root.addView(strip, stripParams);
+            activity.setContentView(root);
+            layOut(root);
+
+            assertTrue("the pill's top edge, under the strip", GlassTabBar.onTheStrip(strip, bar, 300, 10));
+            assertTrue(GlassTabBar.onTheStrip(strip, bar, 0, 27));
+            assertFalse("past the strip's bottom edge", GlassTabBar.onTheStrip(strip, bar, 300, 28));
+            assertFalse("the tabs' row", GlassTabBar.onTheStrip(strip, bar, 300, 90));
+            assertFalse("no strip found", GlassTabBar.onTheStrip(null, bar, 300, 10));
+            strip.setVisibility(View.GONE);
+            layOut(root);
+            assertFalse("a strip that doesn't show", GlassTabBar.onTheStrip(strip, bar, 300, 10));
         } finally {
             controller.pause().stop().destroy();
         }

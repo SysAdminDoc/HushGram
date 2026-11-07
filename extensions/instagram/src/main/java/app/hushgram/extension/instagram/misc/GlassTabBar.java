@@ -366,9 +366,17 @@ public final class GlassTabBar {
     }
 
     /**
+     * How far Instagram's touch strip for a reel's seek bar runs on past the bottom of the seek bar, over
+     * the top of the tab bar, so a drag that starts just under the line still seeks (#526). Read off 454
+     * with HushGram paused: 28 px on a 2.8 density phone, as tall as the seek bar itself.
+     */
+    static final int STRIP_BELOW_DP = 10;
+
+    /**
      * Moves [strip], the strip Instagram lays over a reel's seek bar ({@link #TOUCH_STRIP}), so its bottom
-     * edge is the bottom edge of the seek bar ([scrubber]) showing in the one of [viewers] it lies across,
-     * or of that viewer when no seek bar shows. Returns whether it moved.
+     * edge is [below] pixels past the bottom edge of the seek bar ([scrubber]) showing in the one of
+     * [viewers] it lies across, or of that viewer when no seek bar shows. That's where Instagram puts it
+     * over its own bar. Returns whether it moved.
      *
      * <p>Instagram places the strip by how far the reel stops above the bottom of the screens, measured
      * as it lays them out. Back from another screen (HushGram's settings, say) it measures while its own
@@ -377,7 +385,7 @@ public final class GlassTabBar {
      * their taps. Measured before a viewer was kept above the pill, it sits over the pill's top instead.
      * A strip anchored from the top, or not laid out yet, is left alone.
      */
-    static boolean stripOnTheReel(View strip, Iterable<View> viewers, int scrubber, Rect scratch) {
+    static boolean stripOnTheReel(View strip, Iterable<View> viewers, int scrubber, int below, Rect scratch) {
         if (strip == null || !strip.isShown() || !strip.isLaidOut() || strip.isLayoutRequested()) return false;
         if (!(strip.getLayoutParams() instanceof FrameLayout.LayoutParams)) return false;
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) strip.getLayoutParams();
@@ -400,11 +408,26 @@ public final class GlassTabBar {
         View seekBar = scrubber == 0 ? null : shownWithId(viewer, scrubber, scratch, 0);
         View anchor = seekBar != null ? seekBar : viewer;
         anchor.getLocationOnScreen(at);
-        int off = bottom - (at[1] + anchor.getHeight());
+        int off = bottom - (at[1] + anchor.getHeight() + Math.max(0, below));
         if (off == 0 || params.bottomMargin + off < 0) return false;
         params.bottomMargin += off;
         strip.setLayoutParams(params);
         return true;
+    }
+
+    /**
+     * Whether [x], [y], in [bar]'s own pixels, lie on [strip], Instagram's touch strip for a reel's seek
+     * bar, while it shows. The strip runs over the pill's top edge, and a drag started there is the seek
+     * bar's, never a slide across the tabs (#526).
+     */
+    static boolean onTheStrip(@Nullable View strip, View bar, float x, float y) {
+        if (strip == null || !strip.isShown() || strip.getWidth() <= 0 || strip.getHeight() <= 0) return false;
+        int[] at = new int[2];
+        strip.getLocationOnScreen(at);
+        float left = at[0], top = at[1];
+        bar.getLocationOnScreen(at);
+        float sx = x + at[0] - left, sy = y + at[1] - top;
+        return sx >= 0 && sx < strip.getWidth() && sy >= 0 && sy < strip.getHeight();
     }
 
     /**
@@ -1496,8 +1519,9 @@ public final class GlassTabBar {
         }
 
         @Override public boolean onPill(float x, float y) {
-            // The compact row has no tabs to slide across.
-            return compact <= 0f && pill.pillBounds(touchArea) && touchArea.contains(x, y);
+            // The compact row has no tabs to slide across, and a drag on a reel's seek bar strip is the seek bar's.
+            return compact <= 0f && pill.pillBounds(touchArea) && touchArea.contains(x, y)
+                    && !onTheStrip(stripRef == null ? null : stripRef.get(), bar, x, y);
         }
 
         /**
@@ -2165,7 +2189,7 @@ public final class GlassTabBar {
                 strip = find(holder, TOUCH_STRIP);
                 stripRef = strip == null ? null : new WeakReference<>(strip);
             }
-            if (strip != null && stripOnTheReel(strip, viewers, id(holder.getContext(), SCRUBBER), reelsRect)) {
+            if (strip != null && stripOnTheReel(strip, viewers, id(holder.getContext(), SCRUBBER), dp(STRIP_BELOW_DP), reelsRect)) {
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_STRIP_KEPT);
             }
         }

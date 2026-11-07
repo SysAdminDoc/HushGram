@@ -38,6 +38,7 @@ Every HushGram release, newest first.
 * `Don't report Blend visits` now also keeps the time you last opened a Blend to yourself. Opening one sent that time in a request of its own, which the switch didn't cover. Reported in #474.
 * A 60 fps reel or story no longer saves at 30 fps when Instagram's own file is the same size as the smoother track. A tie on size now goes to the higher frame rate. Reported in #546.
 * With several of HushGram's icons on in the column beside a reel, the column no longer runs up past the top bar and cuts off Like. It gets drawn a little smaller instead, just enough to fit under the bar, and every icon still takes its own taps. Reported in #516.
+* With `Glass tab bar` on, a reel's seek bar is as easy to grab as it is with HushGram paused. Its touch area runs over the top of the bar again, and a sideways drag there moves through the reel instead of sliding across the tabs. Reported in #526.
 
 ## 0.0.19 (2026-11-06)
 
