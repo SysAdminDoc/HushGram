@@ -224,7 +224,7 @@ public enum PatchFamily {
             Settings.GROW_LIKE_HEART),
     REELS_TAB(FamilyNames.REELS_TAB, "reelsTab", null, Settings.HIDE_REELS_TAB, Settings.HIDE_SEARCH_TAB,
             Settings.HIDE_CREATE_TAB, Settings.HIDE_PROFILE_TAB, Settings.HIDE_HOME_CREATE_BUTTON,
-            Settings.HIDE_HOME_NOTIFICATIONS_BUTTON, Settings.SEARCH_BUTTON_ON_HOME, Settings.GHOST_BUTTON_ON_HOME,
+            Settings.HIDE_HOME_NOTIFICATIONS_BUTTON, Settings.HEART_COUNT, Settings.SEARCH_BUTTON_ON_HOME, Settings.GHOST_BUTTON_ON_HOME,
             Settings.CENTER_HOME_LOGO, Settings.CENTER_PROFILE_NAME, Settings.CENTER_SCREEN_TITLES,
             Settings.TITLES_AT_START, Settings.SHOW_REELS_TAB,
             Settings.SHOW_MESSAGES_TAB, Settings.MESSAGES_BUTTON_ON_HOME, Settings.SETTINGS_BUTTON_ON_HOME, Settings.MENU_BUTTON_ON_HOME, Settings.HIDE_HOME_MESSAGES_BUTTON,

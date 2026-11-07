@@ -1026,6 +1026,10 @@ Show categories as a grid	Kategorileri ızgara olarak göster
 Show categories as rows	Kategorileri satır olarak göster
 Show settings by category	Ayarları kategoriye göre göster
 Tab bar height	Sekme çubuğu yüksekliği
+# context: Tab bar settings: a list that draws the tab bar's icons bigger, by a share of Instagram's size (#541)
+Tab icon size	Sekme simgesi boyutu
+The icons on the tab bar are the size Instagram gives them.	Sekme çubuğundaki simgeler Instagram'ın verdiği boyuttadır.
+The icons on the tab bar are %1$s of the size Instagram gives them.	Sekme çubuğundaki simgeler, Instagram'ın verdiği boyutun %1$s oranındadır.
 Standard	Standart
 Blur strength	Bulanıklık gücü
 # context: the blur slider's value under its title; dp is Android's screen unit, keep it
@@ -1832,3 +1836,5 @@ Can slow down older phones.	Eski telefonları yavaşlatabilir.
 Blend post edges	Gönderi kenarlarını yumuşat
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	Bir gönderinin fotoğrafının veya videosunun üstünü ve altını parıltısına karıştırır, böylece kenar sert bir çizgi gibi görünmez.
+Count on the heart	Kalpte sayı
+The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Ana sayfanın üstündeki kalp, kırmızı nokta yerine Mesajlar'daki sayı gibi bekleyen bildirim sayısını gösterir. Değişikliği görmek için Instagram'ı yeniden başlat.

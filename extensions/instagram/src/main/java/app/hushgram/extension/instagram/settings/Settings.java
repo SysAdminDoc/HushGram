@@ -2704,6 +2704,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_ghost_button_on_home", FALSE, true);
 
     /**
+     * Count on the heart (#541): the heart on Home's header shows a number in place of its red dot
+     * ({@link app.hushgram.extension.instagram.reels.HeartCount}). Given as the header draws, and
+     * a heart already showing one keeps it, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HEART_COUNT =
+            new BooleanSetting("hushgram_heart_count", FALSE, true);
+
+    /**
      * The ghost switches Ghost mode turns, as their keys with a comma between (#251): its settings row,
      * the button on Home's header and the long presses all flip only these, and the others keep what you
      * set. Empty, or naming none of the switches in the build, means all of them, which is how it starts.
@@ -2820,6 +2828,13 @@ public class Settings extends BaseSettings {
      */
     public static final EnumSetting<app.hushgram.extension.instagram.reels.TabBarLayoutChoice> TAB_BAR_LAYOUT =
             new EnumSetting<>("hushgram_tab_bar_layout", app.hushgram.extension.instagram.reels.TabBarLayoutChoice.INSTAGRAM, true);
+
+    /**
+     * How big the tab bar's icons are drawn ({@link app.hushgram.extension.instagram.misc.TabIcons}, #541),
+     * as a share of Instagram's size. It takes effect on the next frame. Starts on Instagram's size.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.TabIconSize> TAB_ICON_SIZE =
+            new EnumSetting<>("hushgram_tab_icon_size", app.hushgram.extension.instagram.misc.TabIconSize.INSTAGRAM);
 
     /**
      * The speed locked with Instagram's own 2x lock on a reel stays for the next reels, until the

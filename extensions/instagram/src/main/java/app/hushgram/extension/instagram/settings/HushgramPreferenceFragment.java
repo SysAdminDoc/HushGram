@@ -136,6 +136,7 @@ import app.hushgram.extension.instagram.misc.GlassCorners;
 import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassReelsHide;
+import app.hushgram.extension.instagram.misc.TabIconSize;
 import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.misc.AppProxy;
 import app.hushgram.extension.instagram.misc.MaterialYou;
@@ -764,7 +765,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.HIDDEN_OWN_PROFILE_TABS.key.equals(key));
                     belongs |= family == PatchFamily.MESSAGE_BOX && Settings.HIDDEN_MESSAGE_BOX_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
-                            && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
+                            && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key)
+                            || Settings.TAB_ICON_SIZE.key.equals(key));
                     belongs |= family == PatchFamily.TAB_BAR_LAYOUT && Settings.TAB_BAR_LAYOUT.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.CAPTION_WORD_REELS && (Settings.REELS_BLOCKED_WORDS.key.equals(key)
@@ -4958,6 +4960,39 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How big the tab bar's icons are drawn (#541). Its summary says what the choice does. */
+    static TabIconSizeRow tabIconSizeRow(Context context) {
+        TabIconSizeRow row = new TabIconSizeRow(context);
+        row.setKey(Settings.TAB_ICON_SIZE.key);
+        row.setTitle(L10n.t("Tab icon size"));
+        row.setDialogTitle(L10n.t("Tab icon size"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        TabIconSize[] sizes = TabIconSize.values();
+        CharSequence[] entries = new CharSequence[sizes.length];
+        CharSequence[] values = new CharSequence[sizes.length];
+        for (int i = 0; i < sizes.length; i++) {
+            entries[i] = tabIconSizeLabel(sizes[i]);
+            values[i] = sizes[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.TAB_ICON_SIZE.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [size]: its share in Instagram's language's percent format, or Instagram's size. */
+    static String tabIconSizeLabel(TabIconSize size) {
+        if (size == TabIconSize.INSTAGRAM) return L10n.t("Instagram's size");
+        return NumberFormat.getPercentInstance(L10n.locale()).format(size.percent() / 100.0);
+    }
+
+    /** What the icons look like at [size], for the row's summary. */
+    static String tabIconSizeSummary(TabIconSize size) {
+        if (size == TabIconSize.INSTAGRAM) return L10n.t("The icons on the tab bar are the size Instagram gives them.");
+        return L10n.f("The icons on the tab bar are %1$s of the size Instagram gives them.",
+                L10n.isolate(NumberFormat.getPercentInstance(L10n.locale()).format(size.percent() / 100.0)));
+    }
+
     /** How much room a floating glass pill leaves under itself. Its summary is the step chosen. */
     static GlassLiftRow glassLiftRow(Context context) {
         GlassLiftRow row = new GlassLiftRow(context);
@@ -8247,6 +8282,50 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) step = candidate;
             }
             setSummary(glassHeightLabel(step));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /**
+     * The tab icon size's row (#541). Like the ring size's, it answers its summary itself, since
+     * ListPreference runs a summary through String.format and a share such as "120%" is no format.
+     */
+    static final class TabIconSizeRow extends ListPreference {
+        @Nullable
+        private String summary;
+
+        TabIconSizeRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            TabIconSize size = TabIconSize.INSTAGRAM;
+            for (TabIconSize candidate : TabIconSize.values()) {
+                if (candidate.name().equals(value)) size = candidate;
+            }
+            summary = tabIconSizeSummary(size);
+            setSummary(summary);
+        }
+
+        @Override
+        public CharSequence getSummary() {
+            return summary != null ? summary : super.getSummary();
         }
 
         @Override

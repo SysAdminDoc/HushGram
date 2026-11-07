@@ -1026,6 +1026,10 @@ Show categories as a grid	Mostrar las categorías en cuadrícula
 Show categories as rows	Mostrar las categorías en filas
 Show settings by category	Mostrar los ajustes por categoría
 Tab bar height	Altura de la barra de pestañas
+# context: Tab bar settings: a list that draws the tab bar's icons bigger, by a share of Instagram's size (#541)
+Tab icon size	Tamaño de los iconos de pestañas
+The icons on the tab bar are the size Instagram gives them.	Los iconos de la barra de pestañas tienen el tamaño que les da Instagram.
+The icons on the tab bar are %1$s of the size Instagram gives them.	Los iconos de la barra de pestañas tienen el %1$s del tamaño que les da Instagram.
 Standard	Estándar
 Blur strength	Intensidad del desenfoque
 # context: the blur slider's value under its title; dp is Android's screen unit, keep it
@@ -1832,3 +1836,5 @@ Can slow down older phones.	Puede hacer más lentos los teléfonos antiguos.
 Blend post edges	Difuminar los bordes de las publicaciones
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	Funde la parte superior e inferior de la foto o el video de una publicación con su brillo, para que el borde no se vea como una línea marcada.
+Count on the heart	Número en el corazón
+The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	El corazón de la parte superior de Inicio muestra cuántas notificaciones esperan, como el número de Mensajes, en lugar del punto rojo. Reinicia Instagram para ver el cambio.

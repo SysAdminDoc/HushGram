@@ -1006,6 +1006,10 @@ Show categories as a grid	Hiện danh mục dạng lưới
 Show categories as rows	Hiện danh mục dạng hàng
 Show settings by category	Hiện cài đặt theo danh mục
 Tab bar height	Chiều cao thanh tab
+# context: Tab bar settings: a list that draws the tab bar's icons bigger, by a share of Instagram's size (#541)
+Tab icon size	Kích thước biểu tượng tab
+The icons on the tab bar are the size Instagram gives them.	Các biểu tượng trên thanh tab có kích thước do Instagram đặt.
+The icons on the tab bar are %1$s of the size Instagram gives them.	Các biểu tượng trên thanh tab có kích thước bằng %1$s kích thước do Instagram đặt.
 Standard	Tiêu chuẩn
 Blur strength	Độ mờ
 %1$d dp	%1$d dp
@@ -1749,3 +1753,5 @@ Can slow down older phones.	Có thể làm chậm các điện thoại cũ.
 Blend post edges	Hòa viền bài đăng
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	Làm phần trên và dưới của ảnh hoặc video trong bài đăng hòa vào ánh sáng của nó, để viền không hiện thành một đường cứng.
+Count on the heart	Số trên trái tim
+The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Trái tim ở đầu trang chủ hiện số thông báo đang chờ, giống con số trên Tin nhắn, thay cho chấm đỏ. Hãy khởi động lại Instagram để thấy thay đổi.

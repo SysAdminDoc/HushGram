@@ -143,6 +143,42 @@ public class TabSwitchesSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_MESSAGES_TAB.key));
     }
 
+    @Test public void withoutThePatchThereIsNoTabIconSize() throws Exception {
+        open();
+        assertNull(row(Settings.TAB_ICON_SIZE.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.TAB_ICON_SIZE.key));
+    }
+
+    /** #541: the tab icon size is a list under Tab bar, starting at Instagram's size and taking effect without a restart. */
+    @Test public void tabIconSizeIsAChoiceUnderTabBarThatStartsAtInstagramsSize() throws Exception {
+        try {
+            open(PatchFamily.REELS_TAB);
+            Preference found = row(Settings.TAB_ICON_SIZE.key);
+            assertTrue(found instanceof HushgramPreferenceFragment.TabIconSizeRow);
+            HushgramPreferenceFragment.TabIconSizeRow choice = (HushgramPreferenceFragment.TabIconSizeRow) found;
+            assertEquals("Tab icon size", String.valueOf(choice.getTitle()));
+            assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), choice).getTitle()));
+            List<String> entries = new ArrayList<>();
+            for (CharSequence entry : choice.getEntries()) entries.add(String.valueOf(entry));
+            assertEquals(Arrays.asList("Instagram's size", "110%", "120%", "130%", "140%", "150%"), entries);
+            assertEquals("INSTAGRAM", choice.getValue());
+            assertEquals("The icons on the tab bar are the size Instagram gives them.", String.valueOf(choice.getSummary()));
+            assertFalse("the icons change on the next frame", Settings.TAB_ICON_SIZE.rebootApp);
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.TAB_ICON_SIZE.key));
+
+            choice.setValue("PERCENT_130");
+            org.robolectric.shadows.ShadowLooper.idleMainLooper();
+            assertEquals(app.hushgram.extension.instagram.misc.TabIconSize.PERCENT_130, Settings.TAB_ICON_SIZE.savedValue());
+            assertEquals("The icons on the tab bar are 130% of the size Instagram gives them.",
+                    String.valueOf(choice.getSummary()).replaceAll("\\P{ASCII}", ""));
+
+            page.searchSettings("icon size");
+            assertNotNull("a search finds it", row(Settings.TAB_ICON_SIZE.key));
+        } finally {
+            Settings.TAB_ICON_SIZE.resetToDefault();
+        }
+    }
+
     @Test public void theStartTabIsAChoiceUnderTabBarThatStartsAtHome() throws Exception {
         open(PatchFamily.REELS_TAB);
         Preference found = row(Settings.START_TAB.key);

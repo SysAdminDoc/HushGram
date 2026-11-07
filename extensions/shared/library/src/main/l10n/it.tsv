@@ -1026,6 +1026,10 @@ Show categories as a grid	Mostra le categorie come griglia
 Show categories as rows	Mostra le categorie come righe
 Show settings by category	Mostra le impostazioni per categoria
 Tab bar height	Altezza della barra delle schede
+# context: Tab bar settings: a list that draws the tab bar's icons bigger, by a share of Instagram's size (#541)
+Tab icon size	Dimensione delle icone delle schede
+The icons on the tab bar are the size Instagram gives them.	Le icone della barra delle schede hanno la dimensione che dà loro Instagram.
+The icons on the tab bar are %1$s of the size Instagram gives them.	Le icone della barra delle schede sono al %1$s della dimensione che dà loro Instagram.
 Standard	Standard
 Blur strength	Intensità della sfocatura
 # context: the blur slider's value under its title; dp is Android's screen unit, keep it
@@ -1832,3 +1836,5 @@ Can slow down older phones.	Può rallentare i telefoni più vecchi.
 Blend post edges	Sfuma i bordi dei post
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	Sfuma la parte superiore e inferiore della foto o del video di un post nel suo bagliore, così il bordo non si vede come una linea netta.
+Count on the heart	Numero sul cuore
+The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Il cuore in alto nella Home mostra quante notifiche ti aspettano, come il numero sui Messaggi, al posto del pallino rosso. Riavvia Instagram per vedere la modifica.

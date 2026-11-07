@@ -55,6 +55,7 @@ import app.hushgram.extension.instagram.metaai.MuseCard;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.RefreshRate;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.hushgram.extension.instagram.misc.TabIcons;
 import app.hushgram.extension.instagram.direct.GlassChat;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
@@ -161,6 +162,7 @@ public final class SettingsEntry {
         ReelsTopBar.install(context);
         BurnInGuard.install(context);
         ReelColumnFit.install(context);
+        TabIcons.install(context);
         ScrollBreak.install(context);
         TabStart.install(context);
         ProfileSaved.install(context);

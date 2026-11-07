@@ -1018,6 +1018,10 @@ Show categories as a grid	以格狀顯示分類
 Show categories as rows	以列顯示分類
 Show settings by category	依分類顯示設定
 Tab bar height	分頁列高度
+# context: Tab bar settings: a list that draws the tab bar's icons bigger, by a share of Instagram's size (#541)
+Tab icon size	分頁圖示大小
+The icons on the tab bar are the size Instagram gives them.	分頁列的圖示維持 Instagram 設定的大小。
+The icons on the tab bar are %1$s of the size Instagram gives them.	分頁列的圖示為 Instagram 設定大小的 %1$s。
 Standard	標準
 Blur strength	模糊強度
 # context: the blur slider's value under its title; dp is Android's screen unit, keep it
@@ -1835,3 +1839,5 @@ Can slow down older phones.	可能會讓較舊的手機變慢.
 Blend post edges	融合貼文邊緣
 # context: what that switch does
 Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.	讓貼文相片或影片的上下邊緣融入光暈，邊緣就不會像一條生硬的線.
+Count on the heart	愛心上的數字
+The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	首頁頂端的愛心會像訊息一樣顯示待讀通知的數量，取代紅點。請重新啟動 Instagram 以套用變更。

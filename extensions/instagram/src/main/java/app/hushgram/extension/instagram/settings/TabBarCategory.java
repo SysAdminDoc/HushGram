@@ -17,6 +17,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.hapticStyleRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.startTabRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tabBarLayoutRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tabIconSizeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
@@ -75,6 +76,9 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.HIDE_HOME_NOTIFICATIONS_BUTTON, L10n.t("Hide notifications on Home's header"),
                         L10n.t("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. "
                                 + "Restart Instagram to see the change.")));
+                glass.addPreference(toggle(context, Settings.HEART_COUNT, L10n.t("Count on the heart"),
+                        L10n.t("The heart at the top of Home shows how many notifications are waiting, like the "
+                                + "number on Messages, in place of the red dot. Restart Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.SEARCH_BUTTON_ON_HOME, L10n.t("Search button on Home's header"),
                         L10n.t("Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works "
                                 + "with the Search tab hidden too. Restart Instagram "
@@ -112,6 +116,7 @@ final class TabBarCategory {
                                 + "switches above. Restart Instagram to see the change on Home.")));
                 glass.addPreference(page.tabOrderRow(context));
                 glass.addPreference(startTabRow(context));
+                glass.addPreference(tabIconSizeRow(context));
             }
             if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
                 // Before Glass tab bar, since it works on Instagram's own bar too (#201).

@@ -203,6 +203,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.REELS_TAB.inBuild()) {
             settings.put(Settings.START_TAB.key, Settings.START_TAB);
             settings.put(Settings.TAB_ORDER.key, Settings.TAB_ORDER);
+            settings.put(Settings.TAB_ICON_SIZE.key, Settings.TAB_ICON_SIZE);
         }
         if (PatchFamily.GLASS_TAB_BAR.inBuild()) {
             settings.put(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE);
