@@ -123,6 +123,9 @@ final class DownloadsCategory {
             downloads.addPreference(toggle(context, Settings.DOWNLOAD_NO_HDR, L10n.t("Never save HDR video"),
                     L10n.t("For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram "
                             + "has at full size only in HDR is saved at its largest standard size instead.")));
+            downloads.addPreference(toggle(context, Settings.SAVE_VIDEOS_AS_MKV, L10n.t("Save videos as MKV"),
+                    L10n.t("Saves videos as .mkv files instead of .mp4, for galleries that show no thumbnail for VP9 "
+                            + "or AV1 videos. Nothing is re-encoded. A video Instagram sends as one file stays .mp4.")));
             downloads.addPreference(qualityRow(context));
             downloads.addPreference(folderRow(context));
             downloads.addPreference(fileNameRow(context));

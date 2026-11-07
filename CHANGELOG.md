@@ -12,6 +12,7 @@ Every HushGram release, newest first.
 * `Hide GIFs in comments` under Comments takes GIFs and stickers out of comments and the GIF button off the comment box. A comment with words keeps them. Asked for in #511.
 * `Solid story rings` sits under `Story rings in the accent color` and makes a story's ring one shade of your color instead of running light to dark. Asked for in #519.
 * `Ask what to save` sits under `Download button on reels`. With it on, a tap on the icon lets you pick the reel, its cover or its sound, whichever that reel has. A reel with nothing but itself to save still saves at once. Asked for in #524.
+* `Save videos as MKV` under Downloads saves a video as an .mkv file instead of an .mp4, for gallery apps that show a blank thumbnail for VP9 or AV1 videos. The picture and sound go in as they are, with nothing re-encoded, and the account, date and link still go in the file. A video Instagram sends as one file stays an .mp4. Asked for in #547.
 * `Hide the search bar` under Sharing takes the search bar off the top of the share sheet. Asked for in #545.
 
 ### Improvements

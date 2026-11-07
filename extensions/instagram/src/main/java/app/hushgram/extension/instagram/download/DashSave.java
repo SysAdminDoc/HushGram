@@ -218,15 +218,20 @@ final class DashSave {
             if (reserve(joined, room) < room) {
                 return Downloader.Result.noRoom("not enough free space to join the tracks");
             }
-            // A converted picture is H.264, which the muxer writes.
-            boolean own = !isH264 && ownWriter(video.codecs, Build.VERSION.SDK_INT);
-            if (own) {
-                String codec = video.codecs.startsWith("vp09") ? "VP9" : "AV1 before Android 14";
-                MediaSave.info(() -> "joining the tracks without MediaMuxer, which can't write " + codec
-                    + " into an MP4");
-            }
-            if (!(own ? Mp4Join.join(videoFile, audioFile, joined, progress) : join(videoFile, audioFile, joined, progress))) {
-                return cancelledJoining();
+            String mime = MkvJoin.wanted() ? joinMkv(videoFile, audioFile, joined, progress) : MP4;
+            if (mime == null) return cancelledJoining();
+            if (MP4.equals(mime)) {
+                // A converted picture is H.264, which the muxer writes.
+                boolean own = !isH264 && ownWriter(video.codecs, Build.VERSION.SDK_INT);
+                if (own) {
+                    String codec = video.codecs.startsWith("vp09") ? "VP9" : "AV1 before Android 14";
+                    MediaSave.info(() -> "joining the tracks without MediaMuxer, which can't write " + codec
+                        + " into an MP4");
+                }
+                if (!(own ? Mp4Join.join(videoFile, audioFile, joined, progress)
+                        : join(videoFile, audioFile, joined, progress))) {
+                    return cancelledJoining();
+                }
             }
             // The tracks are in the joined file now. Kept, they'd sit beside it and the gallery's
             // copy of it: the video on the phone four times over.
@@ -238,7 +243,7 @@ final class DashSave {
                     "the joined file is " + joined.length() + " bytes, more than " + maxBytes);
             }
 
-            Downloader.Result published = Downloader.publish(joined, "video/mp4", sink, progress);
+            Downloader.Result published = Downloader.publish(joined, mime, sink, progress);
             if (published.ok()) {
                 String holds = savedFormat(joined);
                 MediaSave.info(() -> "the saved file holds " + holds);
@@ -367,6 +372,25 @@ final class DashSave {
 
     private static Downloader.Result cancelledJoining() {
         return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled during the join");
+    }
+
+    private static final String MP4 = "video/mp4";
+
+    /**
+     * Joins the tracks into an MKV for {@code Save videos as MKV} (#547). Answers the MKV's MIME
+     * when it's written, null when the person cancelled, and the MP4's when the MKV writer can't
+     * take a track, so the caller joins an MP4 into the same file instead.
+     */
+    static String joinMkv(File video, File audio, File joined, Downloader.Progress progress) {
+        try {
+            if (!MkvJoin.join(video, audio, joined, progress)) return null;
+            MediaSave.info(() -> "joined the tracks into an MKV");
+            return MkvJoin.MIME;
+        } catch (IOException e) {
+            if (progress.cancelled()) return null;
+            MediaSave.failure(() -> "could not save the video as an MKV, so it's saved as an MP4", e);
+            return MP4;
+        }
     }
 
     /**

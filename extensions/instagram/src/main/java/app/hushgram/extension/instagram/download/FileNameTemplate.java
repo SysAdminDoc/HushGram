@@ -114,7 +114,7 @@ public final class FileNameTemplate {
      * template can't end with one: the writer adds the one the bytes call for.
      */
     private static final String[] MEDIA_EXTENSIONS = {
-        ".mp4", ".m4v", ".mov", ".webm", ".3gp", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".avif", ".gif",
+        ".mp4", ".m4v", ".mov", ".webm", ".mkv", ".3gp", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".avif", ".gif",
     };
 
     /** The template the next save uses. Never throws, and never answers anything but a clean one. */

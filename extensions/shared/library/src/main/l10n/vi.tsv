@@ -187,6 +187,9 @@ For phones that play AV1 badly. A video Instagram has at full size only as AV1 i
 Never save AV1 video	Không bao giờ lưu video AV1
 Never save HDR video	Không bao giờ lưu video HDR
 For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram has at full size only in HDR is saved at its largest standard size instead.	Dành cho ứng dụng hiện HDR bị ám vàng hoặc xanh lục, như Messenger. Video mà Instagram chỉ có kích thước đầy đủ ở dạng HDR sẽ được lưu ở cỡ tiêu chuẩn lớn nhất.
+# context: Downloads settings: a switch that saves joined videos as Matroska (.mkv) files instead of .mp4 (#547)
+Save videos as MKV	Lưu video dạng MKV
+Saves videos as .mkv files instead of .mp4, for galleries that show no thumbnail for VP9 or AV1 videos. Nothing is re-encoded. A video Instagram sends as one file stays .mp4.	Lưu video thành tệp .mkv thay vì .mp4, dành cho thư viện không hiện ảnh thu nhỏ của video VP9 hoặc AV1. Không mã hóa lại gì cả. Video mà Instagram gửi thành một tệp vẫn giữ .mp4.
 Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes or in HDR stay smaller.	Lưu video để ứng dụng khác mở được, ở kích thước đầy đủ. Video mà Instagram chỉ có ở dạng VP9 hoặc AV1 sẽ được chuyển sang H.264 trên điện thoại thay vì lưu ở cỡ nhỏ hơn. Chậm hơn, và video dài trên 3 phút hoặc ở dạng HDR vẫn nhỏ hơn.
 Converting to H.264	Đang chuyển sang H.264
 Download quality	Chất lượng tải xuống

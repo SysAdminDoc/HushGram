@@ -133,9 +133,10 @@ public final class PostMetadata {
         return "image/jpeg".equals(mime);
     }
 
-    private static boolean isMp4(String mime) {
-        // Every video save writes an MP4. A WebM or 3GP one would hold no moov, so it's left alone.
-        return "video/mp4".equals(mime) || "video/x-m4v".equals(mime);
+    private static boolean isVideo(String mime) {
+        // A video save writes an MP4, or an MKV with room kept for its tags (#547). A WebM or 3GP
+        // one would hold neither, so it's left alone.
+        return "video/mp4".equals(mime) || "video/x-m4v".equals(mime) || MkvJoin.MIME.equals(mime);
     }
 
     private static boolean wanted(PostDetails details) {
@@ -157,12 +158,12 @@ public final class PostMetadata {
      * caller's to check. On Android 9 the address is a {@code file://} the save owns; from Android
      * 10 it's the {@code content://} the save inserted, opened read-write. Fail open: the photo is
      * already saved, so a metadata write that throws is logged and swallowed, never raised. An MP4
-     * goes to {@link VideoMetadata}, which does the same.
+     * or MKV goes to {@link VideoMetadata}, which does the same.
      */
     static void writeTo(Context context, String published, String mime, PostDetails details) {
         if (context == null || published == null || !wanted(details)) return;
-        if (isMp4(mime)) {
-            VideoMetadata.writeTo(context, published, details);
+        if (isVideo(mime)) {
+            VideoMetadata.writeTo(context, published, mime, details);
             return;
         }
         if (!isJpeg(mime)) return;

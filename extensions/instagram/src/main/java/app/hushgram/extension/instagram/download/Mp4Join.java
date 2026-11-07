@@ -106,12 +106,12 @@ final class Mp4Join {
     private static final int DINF = type("dinf");
     private static final int DREF = type("dref");
     private static final int URL = type("url ");
-    private static final int VIDE = type("vide");
-    private static final int SOUN = type("soun");
+    static final int VIDE = type("vide");
+    static final int SOUN = type("soun");
     private static final int ENCV = type("encv");
     private static final int ENCA = type("enca");
 
-    private static final int[] IDENTITY = {0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000};
+    static final int[] IDENTITY = {0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000};
 
     /**
      * Joins the picture track of [video] and the sound track of [audio], each read from a
@@ -134,7 +134,7 @@ final class Mp4Join {
     // ---------------------------------------------------------------- reading the tracks
 
     /** One track: what its moov says of it, and each of its samples. */
-    private static final class Track {
+    static final class Track {
         final RandomAccessFile file;
         final int handler;
         /** What the report calls its file: "video" or "audio". */
@@ -899,7 +899,7 @@ final class Mp4Join {
     // ---------------------------------------------------------------- boxes
 
     /** A box: its type and its payload. */
-    private static final class Box {
+    static final class Box {
         final int type;
         final ByteBuffer data;
 
@@ -910,7 +910,7 @@ final class Mp4Join {
     }
 
     /** The boxes inside [parent], from its start to its limit. */
-    private static List<Box> children(ByteBuffer parent) throws IOException {
+    static List<Box> children(ByteBuffer parent) throws IOException {
         List<Box> boxes = new ArrayList<>();
         int at = 0;
         int end = parent.limit();
@@ -932,7 +932,7 @@ final class Mp4Join {
         return boxes;
     }
 
-    private static Box find(List<Box> boxes, int type) {
+    static Box find(List<Box> boxes, int type) {
         for (Box box : boxes) {
             if (box.type == type) return box;
         }
@@ -940,18 +940,18 @@ final class Mp4Join {
     }
 
     /** [buffer]'s bytes from [from] to [to], as a buffer of their own that starts at zero. */
-    private static ByteBuffer slice(ByteBuffer buffer, int from, int to) {
+    static ByteBuffer slice(ByteBuffer buffer, int from, int to) {
         ByteBuffer copy = buffer.duplicate();
         copy.limit(to);
         copy.position(from);
         return copy.slice();
     }
 
-    private static long u32(ByteBuffer buffer) {
+    static long u32(ByteBuffer buffer) {
         return buffer.getInt() & 0xFFFFFFFFL;
     }
 
-    private static int type(String name) {
+    static int type(String name) {
         return (name.charAt(0) << 24) | (name.charAt(1) << 16) | (name.charAt(2) << 8) | name.charAt(3);
     }
 
@@ -1044,7 +1044,7 @@ final class Mp4Join {
     }
 
     /** A growing list of ints, without boxing each one. */
-    private static final class Ints {
+    static final class Ints {
         private int[] values = new int[256];
         int size;
 

@@ -189,6 +189,9 @@ Never save AV1 video	Nunca guardar vídeos AV1
 # context: Downloads settings: a switch that passes HDR pictures over for apps that show HDR with a yellow or green cast (#352)
 Never save HDR video	Nunca guardar vídeos HDR
 For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram has at full size only in HDR is saved at its largest standard size instead.	Para apps que muestran el HDR con un tono amarillo o verde, como Messenger. Un vídeo que Instagram solo tiene a tamaño completo en HDR se guarda en su mayor tamaño estándar.
+# context: Downloads settings: a switch that saves joined videos as Matroska (.mkv) files instead of .mp4 (#547)
+Save videos as MKV	Guardar vídeos como MKV
+Saves videos as .mkv files instead of .mp4, for galleries that show no thumbnail for VP9 or AV1 videos. Nothing is re-encoded. A video Instagram sends as one file stays .mp4.	Guarda los vídeos como archivos .mkv en vez de .mp4, para galerías que no muestran miniatura en vídeos VP9 o AV1. No se vuelve a codificar nada. Un vídeo que Instagram envía como un solo archivo sigue siendo .mp4.
 Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes or in HDR stay smaller.	Guarda videos que otras apps pueden abrir, en tamaño completo. Un video que Instagram solo tiene en VP9 o AV1 se convierte a H.264 en tu teléfono en vez de guardarse más pequeño. Es más lento, y los videos de más de 3 minutos o en HDR se guardan más pequeños.
 Converting to H.264	Convirtiendo a H.264
 Download quality	Calidad de descarga

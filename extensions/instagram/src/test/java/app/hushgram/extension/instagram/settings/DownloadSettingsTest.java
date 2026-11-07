@@ -462,7 +462,6 @@ public class DownloadSettingsTest {
 
             int noHdr = indexOfKey(rows, Settings.DOWNLOAD_NO_HDR.key);
             assertEquals("the HDR switch isn't right under the AV1 one (#352)", noAv1 + 1, noHdr);
-            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, noHdr);
             Preference noHdrRow = rows.get(noHdr);
             assertTrue(noHdrRow instanceof SwitchPreference);
             assertFalse(((SwitchPreference) noHdrRow).isChecked());
@@ -470,6 +469,17 @@ public class DownloadSettingsTest {
             assertEquals("For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram "
                     + "has at full size only in HDR is saved at its largest standard size instead.",
                     String.valueOf(noHdrRow.getSummary()));
+
+            int mkv = indexOfKey(rows, Settings.SAVE_VIDEOS_AS_MKV.key);
+            assertEquals("the MKV switch isn't right under the HDR one (#547)", noHdr + 1, mkv);
+            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, mkv);
+            Preference mkvRow = rows.get(mkv);
+            assertTrue(mkvRow instanceof SwitchPreference);
+            assertFalse(((SwitchPreference) mkvRow).isChecked());
+            assertEquals("Save videos as MKV", String.valueOf(mkvRow.getTitle()));
+            assertEquals("Saves videos as .mkv files instead of .mp4, for galleries that show no thumbnail for VP9 "
+                    + "or AV1 videos. Nothing is re-encoded. A video Instagram sends as one file stays .mp4.",
+                    String.valueOf(mkvRow.getSummary()));
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
@@ -483,6 +493,8 @@ public class DownloadSettingsTest {
                     -1, indexOfKey(rows, Settings.DOWNLOAD_NO_AV1.key));
             assertEquals("an HDR row with no download in the build",
                     -1, indexOfKey(rows, Settings.DOWNLOAD_NO_HDR.key));
+            assertEquals("an MKV row with no download in the build",
+                    -1, indexOfKey(rows, Settings.SAVE_VIDEOS_AS_MKV.key));
         }
     }
 

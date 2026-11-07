@@ -194,6 +194,9 @@ Never save AV1 video	永不儲存 AV1 影片
 # context: Downloads settings: a switch that passes HDR pictures over for apps that show HDR with a yellow or green cast (#352)
 Never save HDR video	永不儲存 HDR 影片
 For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram has at full size only in HDR is saved at its largest standard size instead.	適用於會把 HDR 顯示成偏黃或偏綠的應用程式，例如 Messenger。Instagram 只有 HDR 完整尺寸的影片，會改以最大的標準尺寸儲存。
+# context: Downloads settings: a switch that saves joined videos as Matroska (.mkv) files instead of .mp4 (#547)
+Save videos as MKV	將影片儲存為 MKV
+Saves videos as .mkv files instead of .mp4, for galleries that show no thumbnail for VP9 or AV1 videos. Nothing is re-encoded. A video Instagram sends as one file stays .mp4.	將影片儲存為 .mkv 檔而非 .mp4，適用於不會顯示 VP9 或 AV1 影片縮圖的相簿。不會重新編碼。Instagram 以單一檔案傳送的影片仍會是 .mp4。
 Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes or in HDR stay smaller.	以完整尺寸儲存其他應用程式可開啟的影片。若 Instagram 僅提供 VP9 或 AV1，會在手機上轉換為 H.264，而非儲存較小的版本。處理較慢，超過 3 分鐘或 HDR 的影片仍會儲存較小的版本。
 Converting to H.264	正在轉換為 H.264
 Download quality	下載畫質

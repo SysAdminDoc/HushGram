@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.content.ContentValues;
 import android.content.Context;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
@@ -44,6 +45,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
+import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 
@@ -337,6 +339,91 @@ public class DashJoinTest {
         String report = LogBufferManager.buildExportText();
         assertFalse(report, report.contains("BUILD_ERROR"));
         assertEquals(0, workFiles());
+    }
+
+    /**
+     * With {@code Save videos as MKV} on, a VP9 picture and its sound reach the gallery as one
+     * Matroska file, named .mkv and typed video/x-matroska, written without the muxer (#547).
+     */
+    @Test
+    public void aSaveAsMkvReachesTheGalleryAsAnMkv() {
+        FragmentedMp4ForTests picture = FragmentedMp4ForTests.picture("vp09", 1080, 1920, 15_360);
+        FragmentedMp4ForTests.Fragment frames = picture.fragment(0L);
+        for (int i = 0; i < 60; i++) {
+            frames.add(i == 0 ? 4_000 : 600, 512, i == 0 ? FragmentedMp4ForTests.SYNC : FragmentedMp4ForTests.NON_SYNC, 0);
+        }
+        FragmentedMp4ForTests sound = FragmentedMp4ForTests.sound(44_100);
+        sound.edits = new long[][] {{0, 1_024, 0x00010000}};
+        FragmentedMp4ForTests.Fragment frames2 = sound.fragment(0L);
+        for (int i = 0; i < 88; i++) frames2.add(200, 1_024, FragmentedMp4ForTests.SYNC, 0);
+        byte[] pictureFile = picture.build();
+        byte[] soundFile = sound.build();
+        byte[] single = mp4(4_096);
+        server.serve("/vp9.mp4", 200, "video/mp4", pictureFile, pictureFile.length);
+        server.serve("/sound.mp4", 200, "audio/mp4", soundFile, soundFile.length);
+        server.serve("/single.mp4", 200, "video/mp4", single, single.length);
+        DashManifest.Track vp9 = new DashManifest.Track("video/mp4", "vp09.00.40.08", 1080, 1920, 711_000,
+                server.origin() + "/vp9.mp4");
+        DashManifest.Track aac = new DashManifest.Track("audio/mp4", "mp4a.40.2", 0, 0, 64_000,
+                server.origin() + "/sound.mp4");
+        MediaSave.policyForTests = policy;
+        MediaSaveTest.Gallery rows = Robolectric.setupContentProvider(MediaSaveTest.Gallery.class, MediaStore.AUTHORITY);
+        ByteArrayOutputStream published = new ByteArrayOutputStream();
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(rows.videoUri(1), published);
+        Settings.SAVE_VIDEOS_AS_MKV.save(true);
+        try {
+            Downloader.Result result = MediaSave.dashJob(context, vp9, aac, server.origin() + "/single.mp4")
+                    .run(new MediaStoreWriter(context, true), Downloader.SILENT);
+
+            assertEquals(result.toString(), Downloader.Status.OK, result.status);
+            byte[] saved = published.toByteArray();
+            assertArrayEquals("the gallery wasn't sent a Matroska file",
+                    new byte[] {0x1A, 0x45, (byte) 0xDF, (byte) 0xA3}, java.util.Arrays.copyOf(saved, 4));
+            ContentValues row = rows.rows.get(1L);
+            assertEquals("video/x-matroska", row.getAsString(MediaStore.MediaColumns.MIME_TYPE));
+            String name = row.getAsString(MediaStore.MediaColumns.DISPLAY_NAME);
+            assertTrue(name, name.endsWith(".mkv"));
+            assertEquals("the muxer was asked to write VP9", 0, FaultyMuxer.writes.get());
+            assertEquals("the single file was fetched in its place", 0, server.hits("/single.mp4"));
+            String report = LogBufferManager.buildExportText();
+            assertTrue(report, report.contains("joined the tracks into an MKV"));
+            assertFalse(report, report.contains("BUILD_ERROR"));
+            assertEquals(0, workFiles());
+        } finally {
+            Settings.SAVE_VIDEOS_AS_MKV.resetToDefault();
+        }
+    }
+
+    /**
+     * A pair the MKV can't be written from is saved as the MP4 it always was, by the join it always
+     * had, and the report says why.
+     */
+    @Test
+    public void aPairTheMkvCantHoldIsSavedAsAnMp4() {
+        byte[] single = mp4(4_096);
+        server.serve("/single.mp4", 200, "video/mp4", single, single.length);
+        MediaSave.policyForTests = policy;
+        MediaSaveTest.Gallery rows = Robolectric.setupContentProvider(MediaSaveTest.Gallery.class, MediaStore.AUTHORITY);
+        ByteArrayOutputStream published = new ByteArrayOutputStream();
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(rows.videoUri(1), published);
+        Settings.SAVE_VIDEOS_AS_MKV.save(true);
+        try {
+            Downloader.Result result = MediaSave.dashJob(context, video, audio, server.origin() + "/single.mp4")
+                    .run(new MediaStoreWriter(context, true), Downloader.SILENT);
+
+            assertEquals(result.toString(), Downloader.Status.OK, result.status);
+            assertEquals("the muxer didn't join the pair", PICTURES + SOUNDS, FaultyMuxer.writes.get());
+            ContentValues row = rows.rows.get(1L);
+            assertEquals("video/mp4", row.getAsString(MediaStore.MediaColumns.MIME_TYPE));
+            String name = row.getAsString(MediaStore.MediaColumns.DISPLAY_NAME);
+            assertTrue(name, name.endsWith(".mp4"));
+            assertEquals(0, server.hits("/single.mp4"));
+            String report = LogBufferManager.buildExportText();
+            assertTrue(report, report.contains("could not save the video as an MKV, so it's saved as an MP4"));
+            assertEquals(0, workFiles());
+        } finally {
+            Settings.SAVE_VIDEOS_AS_MKV.resetToDefault();
+        }
     }
 
     /** Only VP9, and AV1 before Android 14, skip the muxer. Every other picture keeps the join it always had. */

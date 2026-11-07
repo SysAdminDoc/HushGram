@@ -3446,6 +3446,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_no_hdr", FALSE);
 
     /**
+     * Saves a video HushGram joins from a picture track and a sound track as a Matroska file (.mkv)
+     * instead of an MP4 (#547). The samples are copied as they are, so nothing is re-encoded. A
+     * track the MKV writer can't take is saved as an MP4, as before. Starts off.
+     */
+    public static final BooleanSetting SAVE_VIDEOS_AS_MKV =
+            new BooleanSetting("hushgram_save_videos_as_mkv", FALSE);
+
+    /**
      * A save remembers what reached the gallery, and the same post, carousel page, reel, story,
      * cover or recording isn't saved again while its file is still where the save put it (#150).
      * Save all saves only the pages not saved before. Asked again within 30 seconds of being

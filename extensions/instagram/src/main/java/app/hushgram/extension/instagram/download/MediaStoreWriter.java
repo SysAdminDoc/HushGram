@@ -588,6 +588,7 @@ final class MediaStoreWriter implements Downloader.Sink {
         EXTENSIONS.put("video/x-m4v", ".m4v");
         EXTENSIONS.put("video/quicktime", ".mov");
         EXTENSIONS.put("video/webm", ".webm");
+        EXTENSIONS.put("video/x-matroska", ".mkv");
         EXTENSIONS.put("video/3gpp", ".3gp");
         EXTENSIONS.put("image/jpeg", ".jpg");
         EXTENSIONS.put("image/png", ".png");

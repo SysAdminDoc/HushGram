@@ -47,7 +47,7 @@ public class Mp4JoinTest {
     @Rule public final TemporaryFolder temp = new TemporaryFolder();
 
     /** Three seconds of VP9 at 30 fps in one-second fragments, the way a story's VP9 track comes. */
-    private static FragmentedMp4ForTests vp9Picture() {
+    static FragmentedMp4ForTests vp9Picture() {
         FragmentedMp4ForTests picture = FragmentedMp4ForTests.picture("vp09", 1080, 1920, 15_360);
         for (int f = 0; f < 3; f++) {
             FragmentedMp4ForTests.Fragment fragment = picture.fragment((long) f * 15_360);
@@ -60,7 +60,7 @@ public class Mp4JoinTest {
     }
 
     /** Three seconds of AAC at 44.1 kHz, with the edit list that trims the encoder's 1,024 priming samples. */
-    private static FragmentedMp4ForTests aacSound() {
+    static FragmentedMp4ForTests aacSound() {
         FragmentedMp4ForTests sound = FragmentedMp4ForTests.sound(44_100);
         sound.edits = new long[][] {{0, 1_024, 0x00010000}};
         sound.trexFlags = SYNC;
@@ -192,7 +192,7 @@ public class Mp4JoinTest {
     }
 
     /** Thirty frames in I P B B order, offsets from each frame's decode time to its shown time plus [delay]. */
-    private static FragmentedMp4ForTests bFramePicture(int trunVersion, long delay) {
+    static FragmentedMp4ForTests bFramePicture(int trunVersion, long delay) {
         FragmentedMp4ForTests picture = FragmentedMp4ForTests.picture("avc1", 720, 1280, 15_360);
         FragmentedMp4ForTests.Fragment fragment = picture.fragment(0L);
         fragment.trunVersion = trunVersion;
@@ -487,8 +487,8 @@ public class Mp4JoinTest {
 
     // ---------------------------------------------------------------- FFmpeg, where it's installed
 
-    private static final File FFMPEG = new File("C:\\Users\\--\\tools\\ffmpeg-9.0.1-full_build\\bin\\ffmpeg.exe");
-    private static final File FFPROBE = new File("C:\\Users\\--\\tools\\ffmpeg-9.0.1-full_build\\bin\\ffprobe.exe");
+    static final File FFMPEG = new File("C:\\Users\\--\\tools\\ffmpeg-9.0.1-full_build\\bin\\ffmpeg.exe");
+    static final File FFPROBE = new File("C:\\Users\\--\\tools\\ffmpeg-9.0.1-full_build\\bin\\ffprobe.exe");
 
     /**
      * Real VP9, AV1 and H.264 with B-frames, each beside real AAC, fragmented as a DASH packager
@@ -586,14 +586,14 @@ public class Mp4JoinTest {
     }
 
     /** Column [index] of every line of [csv], as numbers. */
-    private static long[] column(String csv, int index) {
+    static long[] column(String csv, int index) {
         String[] lines = csv.trim().split("\\r?\\n");
         long[] values = new long[lines.length];
         for (int i = 0; i < lines.length; i++) values[i] = Long.parseLong(lines[i].split(",")[index]);
         return values;
     }
 
-    private static File encode(File folder, String name, String... args) throws Exception {
+    static File encode(File folder, String name, String... args) throws Exception {
         File out = new File(folder, name);
         List<String> command = new ArrayList<>(Arrays.asList(FFMPEG.getPath(), "-v", "error", "-y"));
         command.addAll(Arrays.asList(args));
@@ -609,13 +609,13 @@ public class Mp4JoinTest {
      * adds to a plain file's last AAC packet, whose short duration (the same one the fragment gave)
      * it reads as padding to discard.
      */
-    private static String packets(File file, String stream) throws Exception {
+    static String packets(File file, String stream) throws Exception {
         return run(FFPROBE.getPath(), "-v", "error", "-select_streams", stream, "-show_entries",
                 "packet=pts,size,flags", "-of", "csv=p=0", file.getPath()).replaceAll(",+(\\r?\\n)", "$1");
     }
 
     /** What [command] prints, once it ends with 0. Java starts it with no console window. */
-    private static String run(String... command) throws Exception {
+    static String run(String... command) throws Exception {
         Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
         ByteArrayOutputStream printed = new ByteArrayOutputStream();
         try (InputStream in = process.getInputStream()) {

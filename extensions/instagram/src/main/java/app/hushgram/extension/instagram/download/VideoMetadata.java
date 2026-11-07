@@ -191,14 +191,15 @@ final class VideoMetadata {
     }
 
     /**
-     * Writes the post's details into the MP4 the save published at [published]: a {@code file://}
-     * or bare path the save owns on Android 9, the {@code content://} it inserted from Android 10,
-     * opened read-write. The switch is the caller's to check. Fail open: the video is already
-     * saved, so a write that throws is logged and swallowed, and the file is as it was.
+     * Writes the post's details into the MP4 or MKV ([mime]) the save published at [published]: a
+     * {@code file://} or bare path the save owns on Android 9, the {@code content://} it inserted
+     * from Android 10, opened read-write. The switch is the caller's to check. Fail open: the video
+     * is already saved, so a write that throws is logged and swallowed, and the file is as it was.
      */
-    static void writeTo(Context context, String published, PostDetails details) {
+    static void writeTo(Context context, String published, String mime, PostDetails details) {
         Map<Integer, String> items = items(details);
         if (context == null || published == null || items.isEmpty()) return;
+        boolean mkv = MkvJoin.MIME.equals(mime);
         try {
             Uri uri = Uri.parse(published);
             String scheme = uri.getScheme();
@@ -208,21 +209,23 @@ final class VideoMetadata {
                 // "rw" makes a file that isn't there, so a save that's gone stays gone.
                 if (path == null || !new File(path).isFile()) return;
                 try (RandomAccessFile file = new RandomAccessFile(path, "rw")) {
-                    wrote = write(over(file.getChannel(), file.getChannel()), items);
+                    Store store = over(file.getChannel(), file.getChannel());
+                    wrote = mkv ? MkvJoin.tag(store, items) : write(store, items);
                 }
-                if (wrote) PostMetadata.rescan(context, path, "video/mp4");
+                if (wrote) PostMetadata.rescan(context, path, mkv ? MkvJoin.MIME : "video/mp4");
             } else {
                 try (ParcelFileDescriptor descriptor = context.getContentResolver().openFileDescriptor(uri, "rw")) {
                     if (descriptor == null) return;
                     // Android's streams over a descriptor don't own it, so it closes once, last.
                     try (FileInputStream in = new FileInputStream(descriptor.getFileDescriptor());
                          FileOutputStream out = new FileOutputStream(descriptor.getFileDescriptor())) {
-                        wrote = write(over(in.getChannel(), out.getChannel()), items);
+                        Store store = over(in.getChannel(), out.getChannel());
+                        wrote = mkv ? MkvJoin.tag(store, items) : write(store, items);
                     }
                 }
             }
             if (wrote) MediaSave.info(() -> "tagged the saved video with where it came from");
-            else MediaSave.info(() -> "left the saved video untagged: not an MP4 layout the tag is written into");
+            else MediaSave.info(() -> "left the saved video untagged: not a layout the tag is written into");
         } catch (Throwable t) {
             MediaSave.failure(() -> "could not tag a saved video with where it came from", t);
         }
