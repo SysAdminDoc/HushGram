@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Improvements
+
+* **Tooling:** The release walk now reads the settings overview while its own header shows HushGram's name, Home's welcome screen on 454, a long reel with its scrubber, and a screen with the activity tooltip up.
+
 ## 0.0.19 (2026-11-06)
 
 ### Features
