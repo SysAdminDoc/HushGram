@@ -73,6 +73,8 @@ public final class GlassTopBar {
     private static final int CLEAR_DEPTH = 3;
     /** How many parents up from the header the one drawing the feed before it is looked for. */
     static final int HOST_DEPTH = 6;
+    /** How deep into the header a view drawing inside it is looked for, before it's taken that one does. */
+    private static final int SHOWN_DEPTH = 6;
 
     /** Headers already given the glass. Weak, so a header Home lets go of goes with it. Main thread. */
     private static final Set<View> GLAZED = Collections.newSetFromMap(new WeakHashMap<>());
@@ -132,6 +134,49 @@ public final class GlassTopBar {
         if (!(background instanceof Frost)) return new int[] {0, 0};
         Glass glass = ((Frost) background).glass;
         return new int[] {glass.above, glass.below};
+    }
+
+    /** Whether [header] has nothing showing in it, so its glass is only the strip behind the status bar. */
+    static boolean hollow(View header) {
+        Drawable background = header.getBackground();
+        return background instanceof Frost && ((Frost) background).glass.hollow;
+    }
+
+    /**
+     * Whether [header] has views in it and none would draw inside it: all hidden, faded out or moved out
+     * of its bounds. A header with no views in it at all isn't counted, that's nothing to go on.
+     */
+    static boolean showsNothing(View header) {
+        return header instanceof ViewGroup && ((ViewGroup) header).getChildCount() > 0
+                && !drawsInside((ViewGroup) header, 0f, 0f, header.getWidth(), header.getHeight(), 0);
+    }
+
+    private static boolean drawsInside(ViewGroup group, float x, float y, int wide, int tall, int depth) {
+        for (int i = 0, n = group.getChildCount(); i < n; i++) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE || child.getAlpha() <= 0f) continue;
+            if (child.getWidth() <= 0 || child.getHeight() <= 0) continue;
+            float left = x + child.getX() - group.getScrollX();
+            float top = y + child.getY() - group.getScrollY();
+            if (left >= wide || top >= tall || left + child.getWidth() <= 0 || top + child.getHeight() <= 0) continue;
+            if (!(child instanceof ViewGroup) || ((ViewGroup) child).getChildCount() == 0 || depth >= SHOWN_DEPTH) return true;
+            if (drawsInside((ViewGroup) child, left, top, wide, tall, depth + 1)) return true;
+        }
+        return false;
+    }
+
+    /** Each view directly in [header], its class, visibility, alpha, top and height, for the debug log. */
+    private static String children(View header) {
+        StringBuilder found = new StringBuilder();
+        if (!(header instanceof ViewGroup)) return "";
+        ViewGroup group = (ViewGroup) header;
+        for (int i = 0, n = group.getChildCount(); i < n; i++) {
+            View child = group.getChildAt(i);
+            found.append(child.getClass().getSimpleName()).append(' ').append(child.getVisibility())
+                    .append(' ').append(child.getAlpha()).append(' ').append(child.getY())
+                    .append(' ').append(child.getHeight()).append(", ");
+        }
+        return found.toString();
     }
 
     /** Whether [header]'s glass has its backdrop recorded. */
@@ -205,6 +250,11 @@ public final class GlassTopBar {
         /** How far the glass reaches past the header's top and bottom edges, to cover the status bar. */
         int above;
         int below;
+        /** Whether Home's header has nothing showing, and where the status bar is measured from its top edge. */
+        boolean hollow;
+        int stripTop;
+        int stripBottom;
+        private boolean describedHollow;
 
         @Nullable private RenderNode node;
         private int nodeBlurDp = -1;
@@ -288,13 +338,19 @@ public final class GlassTopBar {
             boolean night = (header.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                     == Configuration.UI_MODE_NIGHT_YES;
             base = base(original, cleared.values(), night);
+            int wasAbove = above;
+            int wasBelow = below;
+            boolean wasHollow = hollow;
             reachUnder(host);
+            // A header sliding only moves its node, and how far the glass reaches is drawn into that node.
+            if (above != wasAbove || below != wasBelow || hollow != wasHollow) frost.invalidateSelf();
         }
 
         /** Takes the feed behind the status bar, then works out how far the glass reaches over it. */
         private void reachUnder(@Nullable View host) {
             above = 0;
             below = 0;
+            hollow = false;
             if (reach == null || host == null || !(host.getParent() instanceof ViewGroup)) return;
             ViewGroup source = (ViewGroup) host.getParent();
             int gap = reach.reach(header, source, source.indexOfChild(host));
@@ -308,6 +364,14 @@ public final class GlassTopBar {
             // From the window's top edge down, even with the header slid partly away.
             above = Math.max(0, top);
             below = Math.max(0, gap - top - header.getHeight());
+            // An empty frosted band across the feed helps nobody: only the strip behind the clock stays (#513).
+            hollow = showsNothing(header);
+            stripTop = -top;
+            stripBottom = gap - top;
+            if (hollow && !describedHollow) {
+                describedHollow = true;
+                Logger.printDebug(() -> "Top bar glass: the header shows nothing, at " + top + ", holding " + children(header));
+            }
         }
 
         private void clearIn(ViewGroup group, int wide, int depth) {
@@ -337,6 +401,7 @@ public final class GlassTopBar {
             if (reach != null) reach.retreat();
             above = 0;
             below = 0;
+            hollow = false;
         }
 
         private void forgetBackdrop() {
@@ -479,7 +544,8 @@ public final class GlassTopBar {
             if (bounds.isEmpty()) return;
             int base = glass.base;
             // Past the header's edges over the status bar: nothing clips a background's own node there.
-            area.set(bounds.left, bounds.top - glass.above, bounds.right, bounds.bottom + glass.below);
+            if (glass.hollow) area.set(bounds.left, bounds.top + glass.stripTop, bounds.right, bounds.top + glass.stripBottom);
+            else area.set(bounds.left, bounds.top - glass.above, bounds.right, bounds.bottom + glass.below);
             boolean blurred = glass.drawBackdrop(canvas, area);
             paint.setColor(GlassTabBar.tint(base, blurred, GlassTabBar.opacityScale()));
             canvas.drawRect(area, paint);

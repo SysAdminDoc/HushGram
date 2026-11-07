@@ -7,11 +7,15 @@ package app.hushgram.extension.instagram.feed;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -25,6 +29,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import java.util.Collections;
@@ -163,6 +168,105 @@ public class GlassReachTest {
         frame();
         assertArrayEquals("slid past its own height, it reaches down to the status bar's bottom",
                 new int[] {0, 30}, GlassTopBar.reach(header));
+    }
+
+    @Test
+    public void aHeaderThatStillShowsSomethingKeepsItsBand() {
+        View logo = logoInHeader();
+        glaze();
+        assertFalse(GlassTopBar.hollow(header));
+
+        logo.setAlpha(0.3f);
+        frame();
+        assertFalse("half faded it still shows", GlassTopBar.hollow(header));
+
+        logo.setAlpha(1f);
+        logo.setTranslationY(HEADER - 1f);
+        frame();
+        assertFalse("one row of it is still inside", GlassTopBar.hollow(header));
+    }
+
+    @Test
+    public void aHeaderWithNoViewsInItKeepsItsBand() {
+        glaze();
+
+        assertEquals(0, header.getChildCount());
+        assertFalse(GlassTopBar.hollow(header));
+    }
+
+    @Test
+    public void aHeaderWithNothingShowingIsHollowUntilItShowsSomethingAgain() {
+        View logo = logoInHeader();
+        glaze();
+
+        logo.setVisibility(View.INVISIBLE);
+        frame();
+        assertTrue("hidden", GlassTopBar.hollow(header));
+
+        logo.setVisibility(View.VISIBLE);
+        frame();
+        assertFalse(GlassTopBar.hollow(header));
+
+        logo.setAlpha(0f);
+        frame();
+        assertTrue("faded out", GlassTopBar.hollow(header));
+
+        logo.setAlpha(1f);
+        ((View) logo.getParent()).setTranslationY(-HEADER);
+        frame();
+        assertTrue("moved out through its parent", GlassTopBar.hollow(header));
+
+        ((View) logo.getParent()).setTranslationY(0f);
+        frame();
+        assertFalse(GlassTopBar.hollow(header));
+    }
+
+    /** A hollow header leaves its own band out and the strip behind the clock in, wherever it has slid to. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void aHollowHeaderDrawsOnlyTheStripBehindTheClock() {
+        View logo = logoInHeader();
+        glaze();
+
+        int[] shown = drawnAcross(0);
+        assertNotEquals("the strip", 0, shown[0]);
+        assertNotEquals("the band", 0, shown[1]);
+
+        logo.setAlpha(0f);
+        frame();
+        int[] hollow = drawnAcross(0);
+        assertNotEquals("the strip stays", 0, hollow[0]);
+        assertEquals("the band goes", 0, hollow[1]);
+
+        // Slid up a little: the header's top is 35 under the window's top, and the strip hasn't moved.
+        header.setTranslationY(-40f);
+        frame();
+        int[] slid = drawnAcross(-40);
+        assertNotEquals("the strip stays", 0, slid[0]);
+        assertEquals("the band goes", 0, slid[1]);
+    }
+
+    /** The glass's alpha halfway down the strip and halfway down the header at rest, with the header slid by [moved]. */
+    private int[] drawnAcross(int moved) {
+        Bitmap bitmap = Bitmap.createBitmap(WIDE, STATUS + HEADER, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.translate(0, STATUS + moved);
+        Drawable frost = header.getBackground();
+        frost.setBounds(0, 0, WIDE, HEADER);
+        frost.draw(canvas);
+        return new int[] {Color.alpha(bitmap.getPixel(WIDE / 2, STATUS / 2)),
+                Color.alpha(bitmap.getPixel(WIDE / 2, STATUS + HEADER / 2 + moved))};
+    }
+
+    /** A logo two views deep in the header, the way Instagram's sits. */
+    private View logoInHeader() {
+        FrameLayout row = new FrameLayout(header.getContext());
+        View logo = new View(header.getContext());
+        row.addView(logo, new FrameLayout.LayoutParams(200, 80));
+        header.addView(row, new FrameLayout.LayoutParams(MATCH, MATCH));
+        layout();
+        return logo;
     }
 
     @Test
