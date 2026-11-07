@@ -8,9 +8,11 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCallingInto
 import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -56,25 +58,67 @@ internal class FriendsTabSite(val method: Method, val at: Int, val tab: Int, val
  * place) adds nothing and doesn't count.
  */
 internal fun BytecodePatchContext.findFriendsTab(): FriendsTabSite {
-    val sites = classesLoading(FRIENDS_TAB_ICON.toLong()).flatMap { classDef ->
-        classDef.methods.filter { it.parameterTypes.firstOrNull()?.toString() == TAB_LAYOUT }
-            .mapNotNull { method -> friendsTabIn(method) }
-    }
+    val known = sitesIn(classesLoading(FRIENDS_TAB_ICON.toLong()), { it == FRIENDS_TAB_ICON })
+    // An APK whose resource table numbers the facepile differently (#533 failed with none, on a
+    // file that may not be one of the builds checked here) still builds the tab the same way, so
+    // the tab strip's own callers are read for that shape with any icon of the app's. The Reels
+    // tab gets its icon the same way in the same method, so only the tab then handed on with the
+    // signed-in account, where its friends' faces load, counts.
+    val sites = known.ifEmpty { sitesIn(classesCallingInto(TAB_LAYOUT), { it ushr 24 == APP_PACKAGE }, ::loadsFaces) }
     return sites.singleOrNull() ?: throw PatchException(
         "$PATCH: expected one place building the Friends tab with its facepile icon and adding it to the tab strip, found " +
             if (sites.isEmpty()) "none" else sites.joinToString { "${it.method.definingClass}->${it.method.name}" },
     )
 }
 
-private fun BytecodePatchContext.friendsTabIn(method: Method): FriendsTabSite? {
+/** The app's resource package, the top byte of every id its own resource table declares. */
+private const val APP_PACKAGE = 0x7f
+
+private const val FACES_SESSION = "Lcom/instagram/common/session/UserSession;"
+
+private fun BytecodePatchContext.sitesIn(
+    classes: List<ClassDef>,
+    icon: (Int) -> Boolean,
+    keep: (List<Instruction>, FriendsTabSite) -> Boolean = { _, _ -> true },
+): List<FriendsTabSite> = classes.flatMap { classDef ->
+    classDef.methods.filter { it.parameterTypes.firstOrNull()?.toString() == TAB_LAYOUT }
+        .mapNotNull { method -> friendsTabIn(method, icon, keep) }
+}
+
+private fun BytecodePatchContext.friendsTabIn(
+    method: Method,
+    icon: (Int) -> Boolean,
+    keep: (List<Instruction>, FriendsTabSite) -> Boolean,
+): FriendsTabSite? {
     val code = method.implementation?.instructions?.toList() ?: return null
-    val found = (0 until code.size - 2).mapNotNull { at -> siteAt(method, code, at) }
+    val found = (0 until code.size - 2).mapNotNull { at -> siteAt(method, code, at, icon, keep) }
     return found.singleOrNull()
 }
 
-private fun BytecodePatchContext.siteAt(method: Method, code: List<Instruction>, at: Int): FriendsTabSite? {
+/**
+ * Whether the tab at [site] is handed, after its view is read, to a static method taking it and the
+ * signed-in account, the way the Friends tab is to load its faces on every 454 build.
+ */
+private fun loadsFaces(code: List<Instruction>, site: FriendsTabSite): Boolean {
+    val tabType = ((code[site.at - 1] as ReferenceInstruction).reference as MethodReference).definingClass
+    return (site.at + 1 until code.size).any { later ->
+        val call = code[later]
+        val called = ((call as? ReferenceInstruction)?.reference as? MethodReference) ?: return@any false
+        call.opcode == Opcode.INVOKE_STATIC && called.returnType == "V" &&
+            called.parameterTypes.map(Any::toString) == listOf(tabType, FACES_SESSION) &&
+            (call as FiveRegisterInstruction).registerC == site.tab
+    }
+}
+
+private fun BytecodePatchContext.siteAt(
+    method: Method,
+    code: List<Instruction>,
+    at: Int,
+    isIcon: (Int) -> Boolean,
+    keep: (List<Instruction>, FriendsTabSite) -> Boolean,
+): FriendsTabSite? {
     val icon = code[at]
-    if (icon.opcode != Opcode.CONST || (icon as NarrowLiteralInstruction).narrowLiteral != FRIENDS_TAB_ICON) return null
+    if (icon.opcode != Opcode.CONST || !isIcon((icon as NarrowLiteralInstruction).narrowLiteral)) return null
     val literal = (icon as OneRegisterInstruction).registerA
 
     val set = code[at + 1]
@@ -100,6 +144,8 @@ private fun BytecodePatchContext.siteAt(method: Method, code: List<Instruction>,
             called.returnType == "V" && (add as FiveRegisterInstruction).registerD == tab
     }
     if (!adds) return null
+    val site = FriendsTabSite(method, at + 2, tab, read.registerA)
+    if (!keep(code, site)) return null
     // A jump to the setter or the read could arrive holding something else in those registers.
     val jumps = method.jumpTargets()
     // 453 jumps to the read itself when a condition leaves out the icon, which still reads the
@@ -107,7 +153,7 @@ private fun BytecodePatchContext.siteAt(method: Method, code: List<Instruction>,
     if (at + 1 in jumps) {
         throw PatchException("$PATCH: something jumps into the Friends tab's icon and view in ${method.definingClass}->${method.name}")
     }
-    return FriendsTabSite(method, at + 2, tab, read.registerA)
+    return site
 }
 
 /** Whether [type] is a view, by its superclasses up to the first Android one. */

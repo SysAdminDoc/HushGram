@@ -7,19 +7,23 @@ package app.morphe.patches.instagram.reels.cleanup
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction31i
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -92,11 +96,25 @@ class FriendsTabFixtureTest {
         val without = PatchContexts.of(classes.filter { it.type != site.method.definingClass })
         val failure = assertThrows(PatchException::class.java) { without.findFriendsTab() }
         assertTrue("$label: ${failure.message}", failure.message!!.contains("found none"))
+
+        // The same build with the facepile numbered differently (#533): no class loads the known
+        // icon, and the tab strip's callers still give the one place, with the same registers.
+        val renumbered = PatchContexts.of(classes)
+        val building = renumbered.mutableClassDefBy(site.method.definingClass).methods.single {
+            it.name == site.method.name && it.parameterTypes.map(Any::toString) == site.method.parameterTypes.map(Any::toString)
+        }
+        val register = (icon as OneRegisterInstruction).registerA
+        building.replaceInstruction(site.at - 2, BuilderInstruction31i(Opcode.CONST, register, RENUMBERED_ICON))
+        val moved = renumbered.findFriendsTab()
+        assertEquals("$label: renumbered, the same method", site.method.name, moved.method.name)
+        assertEquals("$label: renumbered, the same class", site.method.definingClass, moved.method.definingClass)
+        assertEquals("$label: renumbered, the same read", listOf(site.at, site.tab, site.view), listOf(moved.at, moved.tab, moved.view))
     }
 
     /**
-     * The classes loading the facepile icon, from the dex files that name the tab strip (a method
-     * taking it needs it there), and the classes up the chain of every field those methods read.
+     * From the dex files that name the tab strip (a method taking it needs it there): the classes
+     * loading the facepile icon and every class calling into the strip, where a build that numbers
+     * the icon differently is searched, and the classes up the chain of every field they read.
      */
     private fun friendsTabClasses(bundle: File): List<ClassDef> {
         val loading = mutableListOf<ClassDef>()
@@ -105,7 +123,8 @@ class FriendsTabFixtureTest {
             for (classDef in dex.classes) {
                 val loads = classDef.methods.any { method ->
                     method.implementation?.instructions?.any {
-                        it.opcode == Opcode.CONST && (it as NarrowLiteralInstruction).narrowLiteral == FRIENDS_TAB_ICON
+                        it.opcode == Opcode.CONST && (it as NarrowLiteralInstruction).narrowLiteral == FRIENDS_TAB_ICON ||
+                            ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass == TAB_LAYOUT
                     } == true
                 }
                 if (loads) loading += ImmutableClassDef.of(classDef)
@@ -140,6 +159,9 @@ class FriendsTabFixtureTest {
 
     private companion object {
         const val TOP_BAR = "Lapp/hushgram/extension/instagram/reels/ReelsTopBar;"
+
+        /** A facepile id no 454 build gives it, as an APK with a reshuffled resource table might. */
+        const val RENUMBERED_ICON = FRIENDS_TAB_ICON + 0x41
         val VIEWS = setOf(
             "Landroid/view/View;", "Landroid/view/ViewGroup;", "Landroid/widget/LinearLayout;",
             "Landroid/widget/FrameLayout;", "Landroid/widget/RelativeLayout;",
