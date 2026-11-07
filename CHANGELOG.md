@@ -9,6 +9,7 @@ Every HushGram release, newest first.
 * **Tooling:** The release walk now reads the settings overview while its own header shows HushGram's name, Home's welcome screen on 454, a long reel with its scrubber, and a screen with the activity tooltip up.
 * **Tooling:** `patch-all-builds.ps1` merges a split bundle before patching it, like the other patching scripts.
 * **Tooling:** The release facts check reads the patch count and target build from the description's sentences, so a change's bullet that counts patches no longer stops a release.
+* **Tooling:** Morphe Desktop 2.1.1 now has its reviewed advisory exceptions, so the audit accepts it.
 
 ## 0.0.19 (2026-11-06)
 
