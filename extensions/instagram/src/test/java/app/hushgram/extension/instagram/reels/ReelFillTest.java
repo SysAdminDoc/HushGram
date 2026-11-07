@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
+import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 
@@ -28,8 +29,14 @@ public class ReelFillTest {
     /** The same reel in a 1080x2201 viewer, with the comment bar gone and the status bar still up. */
     private static final float BAR_GONE = 12.8f;
 
+    /**
+     * #544: a 1080x2316 screen's Reels tab viewer with the tab bar's room, 2199 tall under the status
+     * bar: (0.5625 - 1080/2199) / 0.5625 is 12.7% off.
+     */
+    private static final float TAB_BAR_GONE = 12.7f;
+
     /** Named like the enum Instagram hands the decision, a few of its sources. */
-    private enum Source { REPOSTS_GRID, SELF_REPOSTS_GRID, PROFILE_CLIPS, CLIPS_TAB }
+    private enum Source { REPOSTS_GRID, SELF_REPOSTS_GRID, PROFILE_CLIPS, CLIPS_TAB, CLIPS_TAB_HOMECOMING }
 
     /** A reel from the Reels tab, which the reposted reels switch doesn't cover. */
     private static boolean fill(float cropPercent) {
@@ -50,6 +57,50 @@ public class ReelFillTest {
         Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.resetToDefault();
         Settings.HIDE_REEL_COMMENT_BAR.resetToDefault();
         Settings.FILL_STORY_SCREEN.resetToDefault();
+        Settings.GLASS_TAB_BAR_REELS_HIDE.resetToDefault();
+        Settings.GLASS_TAB_BAR.resetToDefault();
+        Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
+        Settings.GLASS_TAB_BAR_REELS_BEHIND.resetToDefault();
+    }
+
+    /**
+     * #544: a Reels auto-hide gives the Reels tab's viewer the tab bar's height, and the reel came up
+     * low with a black band over it. That viewer fills, other viewers don't, and neither do reels past
+     * the cap.
+     */
+    @Test
+    public void theReelsTabFillsTheRoomAnAutoHiddenTabBarLeaves() {
+        Settings.FULL_SCREEN_REELS.save(false);
+        Settings.FILL_REEL_SCREEN.save(false);
+        assertFalse("the bar stays", fill(TAB_BAR_GONE));
+        Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.TWO_SECONDS);
+        assertTrue(fill(TAB_BAR_GONE));
+        assertTrue(ReelFill.fill(Source.CLIPS_TAB_HOMECOMING, TAB_BAR_GONE));
+        assertTrue("the bar still up before the wait", fill(7f));
+        assertFalse("a 4:5 reel still fits", fill(43.75f));
+        assertFalse(fill(ReelFill.MOST_CROP + 0.01f));
+        assertFalse("a reel from a profile keeps Instagram's choice", ReelFill.fill(Source.PROFILE_CLIPS, TAB_BAR_GONE));
+        assertFalse("not the source enum", ReelFill.fill("CLIPS_TAB", TAB_BAR_GONE));
+        assertFalse(ReelFill.fill(null, TAB_BAR_GONE));
+        Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.EIGHT_SECONDS);
+        assertTrue(fill(TAB_BAR_GONE));
+        Settings.FIT_REEL_SCREEN.save(true);
+        assertTrue("Show the whole reel is still asked first", ReelFill.fit());
+    }
+
+    /** #544: reels run behind the floating glass bar have its room too, only with the glass bar on. */
+    @Test
+    public void reelsRunBehindTheGlassBarFillToo() {
+        Settings.FULL_SCREEN_REELS.save(false);
+        Settings.FILL_REEL_SCREEN.save(false);
+        Settings.GLASS_TAB_BAR_REELS_BEHIND.save(true);
+        assertFalse("glass bar off", fill(TAB_BAR_GONE));
+        Settings.GLASS_TAB_BAR.save(true);
+        Settings.GLASS_TAB_BAR_FLOAT.save(true);
+        assertTrue(fill(TAB_BAR_GONE));
+        assertFalse(ReelFill.fill(Source.PROFILE_CLIPS, TAB_BAR_GONE));
+        Settings.GLASS_TAB_BAR_FLOAT.save(false);
+        assertFalse("a bar that doesn't float leaves the viewer above it", fill(TAB_BAR_GONE));
     }
 
     /** #436: stories answer on their own switch, whatever the reel switches say. */

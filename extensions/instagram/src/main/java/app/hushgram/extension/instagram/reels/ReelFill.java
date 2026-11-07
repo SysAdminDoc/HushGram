@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Utils;
@@ -24,6 +25,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * its height goes to the viewer, so on a 1080x2400 screen a 9:16 reel is about 13 percent off and gets
  * a black band above and below (#371). So a reel whose bar is hidden fills too: every reel with the
  * switch for all reels, only reposted ones with the switch for those.
+ *
+ * <p>The tab bar's room does the same on the Reels tab (#544): a Reels auto-hide gives the Reels tab's
+ * viewer the bar's height, and so does running reels behind the floating glass bar, so on a 1080x2316
+ * screen a 9:16 reel there is about 13 percent off and came up low with a wide black band above it,
+ * the top bar hidden or not. So the Reels tab's own viewer fills while either is on.
  *
  * <p>On a foldable or a large screen wider than 9:16, such as a 16:10 cover screen, Instagram keeps a
  * reel in a 9:16 column before the crop decision runs, so Fill also answers there ({@link #wide}, #491).
@@ -80,7 +86,8 @@ public final class ReelFill {
     /**
      * Asked as Instagram decides whether a reel fills the viewer, with the viewer's ClipsViewerSource
      * and how far the viewer's shape is from the reel's in percent. True when Full screen Reels and
-     * Fill the screen are both on, or this reel's comment bar is hidden, and the reel would lose no
+     * Fill the screen are both on, or this reel's comment bar is hidden, or this is the Reels tab's own
+     * viewer and it has the tab bar's room ({@link #tabBarRoom}), and the reel would lose no
      * more than {@link #MOST_CROP}, which crops it to fill the screen. False hands the decision back
      * to Instagram, and so does anything that throws.
      */
@@ -140,6 +147,19 @@ public final class ReelFill {
     private static boolean wanted(Object source) {
         return Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.get()
                 || (Settings.HIDE_REEL_COMMENT_BAR.get() && ReelDeclutter.opensRepost(source))
-                || (Settings.FILL_REEL_SCREEN.get() && Settings.FULL_SCREEN_REELS.get());
+                || (Settings.FILL_REEL_SCREEN.get() && Settings.FULL_SCREEN_REELS.get())
+                || (tabBarRoom() && source instanceof Enum
+                        && ReelsTopBar.REELS_TAB.contains(((Enum<?>) source).name()));
+    }
+
+    /**
+     * Whether the Reels tab's viewer gets the tab bar's height: a Reels auto-hide, which slides the bar
+     * away (Instagram's own bar or the glass one), or reels run behind the floating glass bar.
+     */
+    static boolean tabBarRoom() {
+        GlassReelsHide hide = Settings.GLASS_TAB_BAR_REELS_HIDE.get();
+        return (hide != null && hide != GlassReelsHide.NEVER)
+                || (Settings.GLASS_TAB_BAR.get() && Settings.GLASS_TAB_BAR_FLOAT.get()
+                        && Settings.GLASS_TAB_BAR_REELS_BEHIND.get());
     }
 }
