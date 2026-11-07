@@ -37,6 +37,7 @@ Every HushGram release, newest first.
 * `Story rings in the accent color` no longer leaves a pink tail on a story's ring. On 454 the default ring ends in a lavender Instagram added, and that one now takes your color too. Reported in #519.
 * `Don't report Blend visits` now also keeps the time you last opened a Blend to yourself. Opening one sent that time in a request of its own, which the switch didn't cover. Reported in #474.
 * A 60 fps reel or story no longer saves at 30 fps when Instagram's own file is the same size as the smoother track. A tie on size now goes to the higher frame rate. Reported in #546.
+* With several of HushGram's icons on in the column beside a reel, the column no longer runs up past the top bar and cuts off Like. It gets drawn a little smaller instead, just enough to fit under the bar, and every icon still takes its own taps. Reported in #516.
 
 ## 0.0.19 (2026-11-06)
 

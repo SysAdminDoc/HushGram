@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.direct.MessagesLock;
+import app.hushgram.extension.instagram.download.ReelColumnFit;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.feed.AmbientLight;
 import app.hushgram.extension.instagram.feed.CarouselArrows;
@@ -159,6 +160,7 @@ public final class SettingsEntry {
         RefreshRate.install(context);
         ReelsTopBar.install(context);
         BurnInGuard.install(context);
+        ReelColumnFit.install(context);
         ScrollBreak.install(context);
         TabStart.install(context);
         ProfileSaved.install(context);
