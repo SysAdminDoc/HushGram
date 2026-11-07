@@ -2795,6 +2795,13 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_start_tab", app.hushgram.extension.instagram.reels.StartTab.HOME, true);
 
     /**
+     * The tabs the bar was last built with, as the tab enum's names, comma separated. Not a choice:
+     * {@link app.hushgram.extension.instagram.reels.TabStart} keeps it so a start's first ask, which
+     * comes before that start's list, knows whether Messages is on the bar (#534). Left out of backups.
+     */
+    public static final StringSetting TAB_BAR_SEEN = new StringSetting("hushgram_tab_bar_seen", "", false, false);
+
+    /**
      * Which tab bar Instagram draws ({@link app.hushgram.extension.instagram.reels.TabBarLayout}, #356):
      * the one Instagram picks for the account, the newer swipe bar or the classic one. The tab host
      * lays itself out once, as Instagram starts, so a change takes a restart. Starts on Instagram's.

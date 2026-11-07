@@ -45,6 +45,7 @@ public class TabStartTest {
     @Before
     public void freshProcess() {
         TabStart.forgetForTests();
+        Settings.TAB_BAR_SEEN.resetToDefault();
         HookStatus.clear();
     }
 
@@ -53,6 +54,8 @@ public class TabStartTest {
         TabStart.forgetForTests();
         Settings.START_TAB.resetToDefault();
         Settings.TAB_ORDER.resetToDefault();
+        Settings.TAB_BAR_SEEN.resetToDefault();
+        Settings.SHOW_MESSAGES_TAB.resetToDefault();
         Settings.HIDE_REELS_TAB.resetToDefault();
         Settings.HIDE_SEARCH_TAB.resetToDefault();
         Settings.HIDE_PROFILE_TAB.resetToDefault();
@@ -181,13 +184,13 @@ public class TabStartTest {
     }
 
     /**
-     * With Tab order saved, the pager opens straight on the first tab asked for, which comes before
-     * the list (#55), so a Search, Reels or Profile choice answers it, unless a hide switch took that
-     * tab off. Messages, which not every bar has, still waits for the list, and so does every choice
-     * without an order saved, since a switch follows the list then.
+     * The pager can open straight on the first tab asked for, which comes before the list (#55,
+     * #534), so a Search, Reels or Profile choice answers it, with Tab order saved or not, unless a
+     * hide switch took that tab off. Messages, which not every bar has, waits for the list when
+     * nothing says it's on this one.
      */
     @Test
-    public void aSavedTabOrderLetsTheChoiceAnswerBeforeTheList() {
+    public void searchReelsAndProfileAnswerTheAskBeforeTheList() {
         Settings.TAB_ORDER.save("PROFILE,SEARCH,FEED,CLIPS");
         Settings.START_TAB.save(StartTab.PROFILE);
         TabStart.noteStart(launcher(), null);
@@ -205,13 +208,77 @@ public class TabStartTest {
         TabStart.noteStart(launcher(), null);
         assertSame("Messages waits for the list", Tab.FEED, ReelsTab.tab(Tab.FEED));
 
-        TabStart.forgetForTests();
         Settings.TAB_ORDER.resetToDefault();
+        for (StartTab choice : new StartTab[] {StartTab.SEARCH, StartTab.REELS, StartTab.PROFILE}) {
+            TabStart.forgetForTests();
+            Settings.START_TAB.save(choice);
+            TabStart.noteStart(launcher(), null);
+            assertSame("no order saved, " + choice, Tab.valueOf(choice.tab), ReelsTab.tab(Tab.FEED));
+        }
+    }
+
+    /**
+     * #534: Instagram 454 with no Tab order saved asks for Home once, before the list, and opens
+     * straight on the answer. Builds that switch to Home again once the list is built land on the
+     * choice too, and the switch after that is the person's.
+     */
+    @Test
+    public void theAskBeforeTheListOpensTheChoiceAndTheSwitchAfterTheListAgrees() {
         Settings.START_TAB.save(StartTab.PROFILE);
         TabStart.noteStart(launcher(), null);
-        assertSame("no order saved", Tab.FEED, ReelsTab.tab(Tab.FEED));
+        assertSame("the one ask on 454", Tab.PROFILE, ReelsTab.tab(Tab.FEED));
         ReelsTab.tabs(BAR);
+        assertSame("a switch to Home after the list", Tab.PROFILE, ReelsTab.tab(Tab.FEED));
+        assertSame("the next one is the person's", Tab.FEED, ReelsTab.tab(Tab.FEED));
+        String report = String.join(" | ", HookStatus.report());
+        assertTrue(report, report.contains("Start tab applied 1"));
+
+        TabStart.forgetForTests();
+        HookStatus.clear();
+        TabStart.noteStart(launcher(), null);
         assertSame(Tab.PROFILE, ReelsTab.tab(Tab.FEED));
+        ReelsTab.tabs(BAR);
+        assertSame("the pager settling on Profile", Tab.PROFILE, ReelsTab.tab(Tab.PROFILE));
+        assertSame("then a tap on Home", Tab.FEED, ReelsTab.tab(Tab.FEED));
+
+        TabStart.forgetForTests();
+        TabStart.noteStart(launcher(), null);
+        assertSame(Tab.PROFILE, ReelsTab.tab(Tab.FEED));
+        TabStart.noteResumed();
+        ShadowSystemClock.advanceBy(Duration.ofMillis(TabStart.STARTUP_MS + 1));
+        assertSame("no switch came, so a tap after startup passes", Tab.FEED, ReelsTab.tab(Tab.FEED));
+        report = String.join(" | ", HookStatus.report());
+        assertTrue(report, report.contains("Start tab applied 2"));
+        assertFalse(report, report.contains("Start tab skipped"));
+    }
+
+    /**
+     * A Messages choice answers the ask before the list when the bar is known to have Messages: Show
+     * the Messages tab puts it there, or the bar was last built with it, in this process or the one
+     * before. A list built without it after all sends the switch that follows to Home.
+     */
+    @Test
+    public void messagesAnswersBeforeTheListWhenTheBarIsKnownToHaveIt() {
+        Settings.START_TAB.save(StartTab.MESSAGES);
+        Settings.SHOW_MESSAGES_TAB.save(true);
+        TabStart.noteStart(launcher(), null);
+        assertSame("Show the Messages tab", Tab.DIRECT, ReelsTab.tab(Tab.FEED));
+        Settings.SHOW_MESSAGES_TAB.save(false);
+
+        TabStart.forgetForTests();
+        List<Tab> withMessages = Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.DIRECT, Tab.PROFILE);
+        coldStart(launcher(), withMessages, Tab.FEED);
+        TabStart.forgetForTests();
+        TabStart.noteStart(launcher(), null);
+        assertSame("the bar kept from the last process", Tab.DIRECT, ReelsTab.tab(Tab.FEED));
+        ReelsTab.tabs(BAR);
+        assertSame("this start's bar has no Messages", Tab.FEED, ReelsTab.tab(Tab.FEED));
+
+        TabStart.forgetForTests();
+        TabStart.noteStart(launcher(), null);
+        assertSame("the bar kept is the last one built", Tab.FEED, ReelsTab.tab(Tab.FEED));
+        assertTrue(Settings.TAB_BAR_SEEN.get(), Settings.TAB_BAR_SEEN.get().contains("PROFILE"));
+        assertFalse(Settings.TAB_BAR_SEEN.get(), Settings.TAB_BAR_SEEN.get().contains("DIRECT"));
     }
 
     @Test
@@ -300,15 +367,6 @@ public class TabStartTest {
         TabStart.forgetForTests();
         List<Tab> withMessages = Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.DIRECT, Tab.PROFILE);
         assertSame("Messages is on this one", Tab.DIRECT, coldStart(launcher(), withMessages, Tab.FEED));
-    }
-
-    @Test
-    public void aHomeAskedAheadOfTheListWaitsForTheSwitchThatFollows() {
-        Settings.START_TAB.save(StartTab.PROFILE);
-        TabStart.noteStart(launcher(), null);
-        assertSame("no list yet", Tab.FEED, ReelsTab.tab(Tab.FEED));
-        ReelsTab.tabs(BAR);
-        assertSame(Tab.PROFILE, ReelsTab.tab(Tab.FEED));
     }
 
     @Test
