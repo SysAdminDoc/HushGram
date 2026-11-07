@@ -11,6 +11,7 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
+import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -25,6 +26,25 @@ private const val PATCH = "Hide suggested people on profiles"
 internal const val FOLLOW_LIST = "$PROFILE_SUGGESTIONS->followList(I)I"
 internal const val SUGGESTED_TAB = "$PROFILE_SUGGESTIONS->suggestedTab(I)I"
 internal const val EXCLUDE_REQUEST_SUGGESTIONS = "$PROFILE_SUGGESTIONS->excludeRequestSuggestions(I)Z"
+internal const val SUGGESTED_SUBSCRIPTIONS = "$PROFILE_SUGGESTIONS->suggestedSubscriptions(Ljava/util/List;)Ljava/util/List;"
+internal const val MORE_SUGGESTED_SUBSCRIPTIONS = "$PROFILE_SUGGESTIONS->moreSuggestedSubscriptions(I)Z"
+internal const val FRIENDING_BUTTON = "$PROFILE_SUGGESTIONS->friendingButton(I)I"
+
+/**
+ * The requests the Subscriptions tab of your own follow lists makes for its Suggested subscriptions
+ * (#539): creators you follow that you could subscribe to, a page at a time, and creators you don't
+ * follow. Instagram keeps both paths, misspelling and all, since they're the server's.
+ */
+internal const val FOLLOWED_CREATORS_TO_SUBSCRIBE = "api/v1/fan_club/followed_creators_to_susbcribe_to/"
+internal const val UNCONNECTED_CREATORS_TO_SUBSCRIBE = "api/v1/fan_club/unconnected_creators_to_susbcribe_to/"
+
+/**
+ * What the follow lists' action bar names once it has added the Discover people button on your own
+ * lists (#539): the logger it checks it has, and where it says the button was seen. Of the
+ * follow lists pager's methods, only the bar loads both.
+ */
+internal const val FRIENDING_LOGGER = "friendingCenterEntryPointLogger"
+internal const val SELF_FOLLOW_LISTS = "self_follow_lists"
 
 /**
  * The variables of the request that loads the Follow requests screen (#441). Instagram keeps them:
@@ -213,3 +233,164 @@ internal fun BytecodePatchContext.hideRequestSuggestions(site: RequestSuggestion
         """,
     )
 }
+
+/** Where a Subscriptions tab request's reply says whether there's another page: the move-result and its register. */
+internal class PageCheck(val result: Int, val register: Int)
+
+/**
+ * A Subscriptions tab request's reply, read: its method, the move-result holding the creators it
+ * suggests and their register, and for the request that pages, where it reads whether there's more.
+ */
+internal class SubscriptionSite(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val result: Int,
+    val register: Int,
+    val more: PageCheck?,
+)
+
+/**
+ * Finds where the Subscriptions tab of your own follow lists reads the creators [endpoint] answers
+ * with (#539). One method loads the path, sends the request and reads its reply: after the path,
+ * the first call taking nothing but its receiver and answering a List hands over the creators, kept
+ * by the move-result right after it. With [pages], the next such call answering a boolean says
+ * whether there's another page, and its move-result goes straight into a field. Fails before
+ * anything changes when there isn't exactly one load of the path, either read is missing or kept in
+ * nothing, or something jumps in right after a read.
+ */
+internal fun BytecodePatchContext.findSuggestedSubscriptions(endpoint: String, pages: Boolean): SubscriptionSite {
+    val loads = classesLoadingString(endpoint).flatMap { classDef ->
+        classDef.methods.flatMap { method ->
+            val code = method.implementation?.instructions?.toList() ?: return@flatMap emptyList()
+            code.indices.filter { stringLoadedAt(code, it) == endpoint }.map { method to it }
+        }
+    }
+    val (method, load) = loads.singleOrNull() ?: refuse("expected one request for $endpoint, found ${loads.size}")
+    val where = "${method.definingClass}->${method.name}"
+    val code = method.implementation!!.instructions.toList()
+    val jumps = method.jumpTargets()
+    val read = (load + 1 until code.size).firstOrNull { code[it].asksReceiverFor("Ljava/util/List;") }
+        ?: refuse("$where never reads the creators $endpoint answers with")
+    if (code.getOrNull(read + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("$where reads the creators $endpoint answers with into nothing")
+    if (read + 2 in jumps) refuse("something in $where jumps past its read of the creators $endpoint answers with")
+    val more = if (!pages) null else {
+        val check = (read + 2 until code.size).firstOrNull { code[it].asksReceiverFor("Z") }
+            ?: refuse("$where never reads whether $endpoint has another page")
+        val result = code.getOrNull(check + 1)
+        if (result?.opcode != Opcode.MOVE_RESULT) refuse("$where reads whether $endpoint has another page into nothing")
+        val register = (result as OneRegisterInstruction).registerA
+        val keep = code.getOrNull(check + 2)
+        if (keep?.opcode != Opcode.IPUT_BOOLEAN || (keep as TwoRegisterInstruction).registerA != register) {
+            refuse("$where doesn't keep whether $endpoint has another page")
+        }
+        if (check + 2 in jumps) refuse("something in $where jumps past its read of whether $endpoint has another page")
+        PageCheck(check + 1, register)
+    }
+    return SubscriptionSite(
+        method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), read + 1,
+        (code[read + 1] as OneRegisterInstruction).registerA, more,
+    )
+}
+
+/** A virtual or interface call taking nothing but its receiver and answering [returns]. */
+private fun Instruction.asksReceiverFor(returns: String): Boolean {
+    if (opcode != Opcode.INVOKE_INTERFACE && opcode != Opcode.INVOKE_VIRTUAL) return false
+    val call = methodReference() ?: return false
+    return call.parameterTypes.isEmpty() && call.returnType == returns
+}
+
+/** Both of the Subscriptions tab's suggestion requests, each found or warned about, so the patch's other parts still go in. */
+internal fun BytecodePatchContext.findSuggestedSubscriptionsOrWarn(): List<SubscriptionSite> =
+    listOf(FOLLOWED_CREATORS_TO_SUBSCRIBE to true, UNCONNECTED_CREATORS_TO_SUBSCRIBE to false).mapNotNull { (endpoint, pages) ->
+        try {
+            findSuggestedSubscriptions(endpoint, pages)
+        } catch (refusal: PatchException) {
+            patchLog.warning("${refusal.message}. $PATCH goes in without hiding the Suggested subscriptions $endpoint brings.")
+            null
+        }
+    }
+
+/**
+ * Hands the creators to [SUGGESTED_SUBSCRIPTIONS] right after their move-result and, for the request
+ * that pages, whether there's another page to [MORE_SUGGESTED_SUBSCRIPTIONS] right after its own,
+ * each answer back in the same register. An empty list and no next page leave the tab with nothing
+ * to draw under Suggested subscriptions. The later read goes in first, so the earlier index holds.
+ */
+internal fun BytecodePatchContext.hideSuggestedSubscriptions(site: SubscriptionSite) {
+    val method = mutableClassDefBy(site.type).methods.single {
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+    }
+    site.more?.let { more ->
+        method.addInstructions(
+            more.result + 1,
+            """
+                invoke-static/range { v${more.register} .. v${more.register} }, $MORE_SUGGESTED_SUBSCRIPTIONS
+                move-result v${more.register}
+            """,
+        )
+    }
+    method.addInstructions(
+        site.result + 1,
+        """
+            invoke-static/range { v${site.register} .. v${site.register} }, $SUGGESTED_SUBSCRIPTIONS
+            move-result-object v${site.register}
+        """,
+    )
+}
+
+/**
+ * Finds the check the follow lists' action bar makes before adding the Discover people button
+ * (#539). The bar is the pager's (the class [findSuggestedTab] finds), and its one method loading
+ * both [FRIENDING_LOGGER] and [SELF_FOLLOW_LISTS]; the button's click handler loads both too, in a
+ * class of its own. Before the logger, one call answering a boolean has its answer tested right
+ * away by an if-eqz that leaves through a return-void: on someone else's lists the bar ends there,
+ * with no button. Fails before anything changes when the pager isn't found, there isn't exactly one
+ * such method or check, or something jumps in after the check.
+ */
+internal fun BytecodePatchContext.findFriendingButton(): FollowListSite {
+    val pager = findSuggestedTab().type
+    val bars = classesLoadingString(FRIENDING_LOGGER).filter { it.type == pager }.flatMap { classDef ->
+        classDef.methods.filter { method ->
+            val code = method.implementation?.instructions?.toList() ?: return@filter false
+            code.indices.any { stringLoadedAt(code, it) == FRIENDING_LOGGER } &&
+                code.indices.any { stringLoadedAt(code, it) == SELF_FOLLOW_LISTS }
+        }
+    }
+    val method = bars.singleOrNull()
+        ?: refuse("expected one action bar in $pager loading \"$FRIENDING_LOGGER\" and \"$SELF_FOLLOW_LISTS\", found ${bars.size}")
+    val where = "${method.definingClass}->${method.name}"
+    val flow = ControlFlow.of(method)
+    val code = flow.instructions
+    val logger = code.indices.first { stringLoadedAt(code, it) == FRIENDING_LOGGER }
+    val checks = (0 until logger).filter { at ->
+        val result = code.getOrNull(at + 1)
+        val test = code.getOrNull(at + 2)
+        code[at].methodReference()?.returnType == "Z" &&
+            result?.opcode == Opcode.MOVE_RESULT && test?.opcode == Opcode.IF_EQZ &&
+            (test as OneRegisterInstruction).registerA == (result as OneRegisterInstruction).registerA &&
+            code[flow.normal[at + 2].first()].opcode == Opcode.RETURN_VOID
+    }
+    val check = checks.singleOrNull() ?: refuse("expected one check in $where that ends the bar before its button, found ${checks.size}")
+    if (check + 2 in method.jumpTargets()) refuse("something in $where jumps past its check before the button")
+    return FollowListSite(
+        method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), check + 1,
+        (code[check + 1] as OneRegisterInstruction).registerA,
+    )
+}
+
+/** [findFriendingButton], or null with a warning, so the patch's other parts still go in. */
+internal fun BytecodePatchContext.findFriendingButtonOrWarn(): FollowListSite? = try {
+    findFriendingButton()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without hiding the Discover people button on your follow lists.")
+    null
+}
+
+/**
+ * Hands the action bar's answer to [FRIENDING_BUTTON] right after its move-result, the answer back
+ * in the same register. A 0 takes the bar out through its return, as on someone else's lists, so
+ * the Discover people button is never added. Only that button and the note that it was seen come
+ * after the check.
+ */
+internal fun BytecodePatchContext.hideFriendingButton(site: FollowListSite) = answer(site, FRIENDING_BUTTON)

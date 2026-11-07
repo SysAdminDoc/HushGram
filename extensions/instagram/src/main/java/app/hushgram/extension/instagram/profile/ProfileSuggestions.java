@@ -54,6 +54,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * them: an empty list draws no section, and the mutual followers above stay. The same switch as
  * {@link #followList} takes both.
  *
+ * <p>Your own follow lists add a Subscriptions tab, which asks the server for creators to suggest
+ * under the ones you're subscribed to, and a Discover people button in their action bar (#539). The
+ * tab hands each reply's creators to {@link #suggestedSubscriptions}, and whether there's another
+ * page to {@link #moreSuggestedSubscriptions}: an empty list and no next page draw no Suggested
+ * subscriptions. The bar hands its check that the lists are yours to {@link #friendingButton}: a 0
+ * ends it before the button, as on someone else's lists. The follow list switch takes these too.
+ *
  * <p>Your own profile can also show Complete your profile's cards (Add bio, Find people to follow)
  * above its posts. Its posts ask one check whether to add them, and {@link #hideCompletionCards}
  * answers first: a yes makes that check say no, so the cards are never added.
@@ -92,6 +99,8 @@ public final class ProfileSuggestions {
     static final String SUGGESTED_TAB = "suggested tab on follow lists";
     static final String FOLLOW_REQUESTS = "suggested people on follow requests";
     static final String MUTUAL_SUGGESTIONS = "suggested section under mutual followers";
+    static final String SUGGESTED_SUBSCRIPTIONS = "suggested subscriptions";
+    static final String FRIENDING_BUTTON = "discover people button on follow lists";
     static final String COMPLETION_CARDS = "complete your profile cards";
     static final String FOLLOW_BACKS = "people you don't follow back";
 
@@ -286,6 +295,58 @@ public final class ProfileSuggestions {
         HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
         if (accounts == null || accounts.isEmpty()) return accounts;
         return decides(MUTUAL_SUGGESTIONS, on) ? Collections.emptyList() : accounts;
+    }
+
+    /**
+     * Injected where the Subscriptions tab of your own follow lists reads the creators it suggests
+     * you subscribe to, right as the reply comes in (#539). Answers an empty list while Hide Suggested
+     * for you on follow lists is on, so the tab draws no Suggested subscriptions and the creators
+     * you're subscribed to stay, and [creators] as they came otherwise, or when anything goes wrong.
+     * The empty list can be added to. Counts only when there were creators to hide. Never throws.
+     */
+    public static List<?> suggestedSubscriptions(List<?> creators) {
+        return suggestedSubscriptions(creators, ProfileSuggestions::followListOn);
+    }
+
+    static List<?> suggestedSubscriptions(List<?> creators, BooleanSupplier on) {
+        HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
+        if (creators == null || creators.isEmpty()) return creators;
+        return decides(SUGGESTED_SUBSCRIPTIONS, on) ? new ArrayList<>() : creators;
+    }
+
+    /**
+     * Injected where that tab reads whether there's another page of creators to suggest (#539).
+     * False while Hide Suggested for you on follow lists is on, so a tab that draws none of them
+     * doesn't keep asking for more, and [more] as it came otherwise, or when anything goes wrong. It
+     * takes an int and answers a boolean, as {@link #excludeRequestSuggestions} does. Never throws.
+     */
+    public static boolean moreSuggestedSubscriptions(int more) {
+        return moreSuggestedSubscriptions(more, ProfileSuggestions::followListOn);
+    }
+
+    static boolean moreSuggestedSubscriptions(int more, BooleanSupplier on) {
+        if (more == 0) return false;
+        try {
+            return !on.getAsBoolean();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, SUGGESTED_SUBSCRIPTIONS, failure);
+            return true;
+        }
+    }
+
+    /**
+     * Injected right after the action bar of the follow lists checks they're your own, before it
+     * adds the Discover people button there (#539). Answers 0 while Hide Suggested for you on follow
+     * lists is on, so the bar ends as it does on someone else's lists, with no button, and [own]
+     * otherwise, or when anything goes wrong. A 0 coming in stays 0. Never throws.
+     */
+    public static int friendingButton(int own) {
+        return friendingButton(own, ProfileSuggestions::followListOn);
+    }
+
+    static int friendingButton(int own, BooleanSupplier on) {
+        if (own == 0) return 0;
+        return hides(FRIENDING_BUTTON, on) ? 0 : own;
     }
 
     /**

@@ -72,7 +72,7 @@ private const val INTEGER = "Ljava/lang/Integer;"
 /**
  * Takes the accounts Instagram suggests off profiles. In the default selection with its switch off:
  * suggestions are one of Instagram's features, so leaving them out is the user's pick. Asked for in
- * #15 and #20, its follow list switch in #139 (the Suggested tab and the mutual list's section in #302), its Complete your profile switch in #159 and its
+ * #15 and #20, its follow list switch in #139 (the Suggested tab and the mutual list's section in #302, Suggested subscriptions and the Discover people button in #539), its Complete your profile switch in #159 and its
  * People you don't follow back switch in #161, its suggestions in notifications switch in #181 and its
  * Featured in notifications switch in #259.
  */
@@ -80,7 +80,8 @@ private const val INTEGER = "Ljava/lang/Integer;"
 val hideProfileSuggestionsPatch = bytecodePatch(
     name = "Hide suggested people on profiles",
     description = "Takes Suggested for you and the Discover people button off profiles. Bios, counts and posts stay. " +
-        "More switches take Suggested for you off the follow lists, their Suggested tab and the Follow requests screen, the Complete your profile " +
+        "More switches take Suggested for you off the follow lists, their Suggested tab and the Follow requests screen, " +
+        "Suggested subscriptions and the Discover people button off your own follow lists, the Complete your profile " +
         "cards off your own profile, and People you don't follow back, suggested threads and people, and the " +
         "Featured section off your notifications. Starts off. Turn it on in HushGram settings > Profiles.",
 ) {
@@ -95,6 +96,8 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         val suggestedTab = findSuggestedTabOrWarn()
         val requestSuggestions = findRequestSuggestionsOrWarn()
         val mutualSuggestions = findMutualSuggestionsOrWarn()
+        val subscriptions = findSuggestedSubscriptionsOrWarn()
+        val friendingButton = findFriendingButtonOrWarn()
         val completion = findCompletionGate()
         val followBacks = findFollowBacks()
         val followBackSection = findFollowBackSectionOrWarn()
@@ -107,6 +110,8 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         suggestedTab?.let { hideSuggestedTab(it) }
         requestSuggestions?.let { hideRequestSuggestions(it) }
         mutualSuggestions?.let { hideMutualSuggestions(it) }
+        subscriptions.forEach { hideSuggestedSubscriptions(it) }
+        friendingButton?.let { hideFriendingButton(it) }
         hideCompletionCards(completion)
         hideFollowBacks(followBacks)
         followBackSection?.let { hideFollowBackSection(it) }

@@ -523,6 +523,70 @@ public class ProfileSuggestionsTest {
     }
 
     /**
+     * #539: the follow list switch also takes Suggested subscriptions off your own Subscriptions tab,
+     * with no next page asked for, and the Discover people button off your own follow lists. Off,
+     * paused or unready, all three answers stand.
+     */
+    @Test
+    public void suggestedSubscriptionsAndTheDiscoverButtonGoWithTheFollowListSwitch() {
+        List<Object> creators = Arrays.asList(new Object(), new Object());
+        assertSame("the profile switch alone", creators, ProfileSuggestions.suggestedSubscriptions(creators));
+        assertTrue("the profile switch alone", ProfileSuggestions.moreSuggestedSubscriptions(1));
+        assertEquals("the profile switch alone", 1, ProfileSuggestions.friendingButton(1));
+
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(true);
+        List<?> hidden = ProfileSuggestions.suggestedSubscriptions(creators);
+        assertTrue(hidden.isEmpty());
+        assertEquals("the reply keeps its creators", 2, creators.size());
+        @SuppressWarnings("unchecked") List<Object> added = (List<Object>) hidden;
+        added.add(new Object());
+        assertEquals("the empty answer can be added to", 1, hidden.size());
+        List<Object> none = Collections.emptyList();
+        assertSame("nothing to hide", none, ProfileSuggestions.suggestedSubscriptions(none));
+        assertNull(ProfileSuggestions.suggestedSubscriptions(null));
+        assertFalse("no next page", ProfileSuggestions.moreSuggestedSubscriptions(1));
+        assertFalse("the last page stays the last", ProfileSuggestions.moreSuggestedSubscriptions(0));
+        assertEquals(0, ProfileSuggestions.friendingButton(1));
+        assertEquals("someone else's lists stay without it", 0, ProfileSuggestions.friendingButton(0));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.SUGGESTED_SUBSCRIPTIONS));
+        assertTrue(report, report.contains(ProfileSuggestions.FRIENDING_BUTTON));
+        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
+        assertTrue("with the profile switch off", ProfileSuggestions.suggestedSubscriptions(creators).isEmpty());
+        assertEquals("with the profile switch off", 0, ProfileSuggestions.friendingButton(1));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", creators, ProfileSuggestions.suggestedSubscriptions(creators));
+        assertTrue("paused", ProfileSuggestions.moreSuggestedSubscriptions(1));
+        assertEquals("paused", 1, ProfileSuggestions.friendingButton(1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> {
+            assertSame("unready", creators, ProfileSuggestions.suggestedSubscriptions(creators));
+            assertTrue("unready", ProfileSuggestions.moreSuggestedSubscriptions(1));
+            assertEquals("unready", 1, ProfileSuggestions.friendingButton(1));
+        });
+
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(false);
+        assertSame("off", creators, ProfileSuggestions.suggestedSubscriptions(creators));
+        assertTrue("off", ProfileSuggestions.moreSuggestedSubscriptions(1));
+        assertEquals("off", 1, ProfileSuggestions.friendingButton(1));
+    }
+
+    /** A follow list switch that throws keeps the creators, the next page and the button, and says which hook threw. */
+    @Test
+    public void aThrowingSwitchKeepsSuggestedSubscriptionsAndTheDiscoverButton() {
+        List<Object> creators = Collections.singletonList(new Object());
+        assertSame(creators, ProfileSuggestions.suggestedSubscriptions(creators, THROWS));
+        assertTrue(ProfileSuggestions.moreSuggestedSubscriptions(1, THROWS));
+        assertEquals(1, ProfileSuggestions.friendingButton(1, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.SUGGESTED_SUBSCRIPTIONS + "'"));
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.FRIENDING_BUTTON + "'"));
+    }
+
+    /**
      * #159: the Complete your profile cards go only with their own switch. A hidden set is counted,
      * with the profile switch on or off; off, paused or unready, Instagram's own check stands.
      */
