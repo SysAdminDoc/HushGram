@@ -167,6 +167,9 @@ class ChatMediaWalkHookTest {
         assertTrue("$label: itemId reads the page's media id", calls("itemId").last() == "$MEDIA->getId()Ljava/lang/String;")
         assertTrue("$label: scroll names a direction", calls("scroll").any { it.contains("->valueOf(Ljava/lang/String;)") })
         assertTrue("$label: scroll sets it", calls("scroll").last().startsWith("$REBOUND_VIEW_PAGER->setScrollDirection("))
+        assertEquals("$label: forward turns the pager's reverse layout off", "$REBOUND_VIEW_PAGER->setReverseLayout(Z)V", calls("forward").last())
+        assertEquals("$label: forward asks for false", listOf(0), stub("forward").code().filter { it.opcode == Opcode.CONST_4 }.map { (it as NarrowLiteralInstruction).narrowLiteral })
+        assertTrue("$label: itemMedia reads the page's media", calls("itemMedia").last().endsWith(":$MEDIA"))
 
         // The shared post's page: the same builder the plain page goes through, in the same argument order.
         val shared = stub("sharedItem").code()
@@ -176,6 +179,13 @@ class ChatMediaWalkHookTest {
         val called = (call as ReferenceInstruction).reference as MethodReference
         assertEquals("$label: the fifth argument is media", MEDIA, called.parameterTypes[4].toString())
         assertEquals("$label: the page", called.returnType, plain.substringAfterLast(")"))
+        val flags = (18..21).map { register ->
+            shared.filterIsInstance<OneRegisterInstruction>().last { it.registerA == register && it is NarrowLiteralInstruction }
+                .let { (it as NarrowLiteralInstruction).narrowLiteral }
+        }
+        val round = shared.filterIsInstance<OneRegisterInstruction>().last { it.registerA == 17 && it is NarrowLiteralInstruction }
+        assertEquals("$label: not the small round page", 0, (round as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$label: the flags of a page a tap makes", listOf(1, 0, 0, 1), flags)
         assertTrue("$label: stubs fit the frames they use", site.stubs.all { (stub(it.name).implementation?.registerCount ?: 99) <= 25 })
     }
 
@@ -224,7 +234,7 @@ class ChatMediaWalkHookTest {
         const val HOLD_HOOK = 5
         val STUBS = setOf(
             "session", "factory", "messages", "kind", "time", "expiring", "plainItem", "legacyMedia", "attachment",
-            "previewId", "preview", "previewMedia", "sharedItem", "itemId", "scroll",
+            "previewId", "preview", "previewMedia", "sharedItem", "itemMedia", "itemId", "scroll", "forward",
         )
     }
 }

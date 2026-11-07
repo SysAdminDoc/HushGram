@@ -77,9 +77,15 @@ private const val LONG = "Ljava/lang/Long;"
 private const val STRING = "Ljava/lang/String;"
 private const val MEDIA_ID = "$MEDIA->getId()$STRING"
 
-/** How many arguments the page builder's full call takes, and how many of them are Instagram's flags at its end. */
+/** How many arguments the page builder's full call takes, and where Instagram's flags at its end start. */
 private const val PAGE_ARGUMENTS = 20
 private const val FIRST_FIXED_FLAG = 15
+
+/**
+ * What a tap on a photo that isn't AI generated hands those flags. The plain reader's own are no model,
+ * since the first of its flags makes a small round page with no header.
+ */
+private val PAGE_FLAGS = listOf(0, 1, 0, 0, 1)
 
 /** One of the extension's stubs: what its body becomes, and the registers that needs, its parameters among them. */
 internal class WalkStub(val name: String, val registers: Int, val body: String)
@@ -187,7 +193,6 @@ private class PageCall(
     val firstText: MethodReference,
     val secondText: MethodReference,
     val expiring: MethodReference,
-    val flags: List<Int>,
 )
 
 /**
@@ -224,6 +229,8 @@ private fun BytecodePatchContext.pageCall(viewer: ClassDef): PageCall {
     for (position in listOf(1, 2, 3, 12, 13)) {
         if (literal(position) != 0) refuse("${read.name}: argument $position isn't null")
     }
+    val flags = types.subList(FIRST_FIXED_FLAG, PAGE_ARGUMENTS)
+    if (flags.any { it != "Z" }) refuse("${read.name}: the builder's last arguments aren't its flags: $flags")
     val typeAt = originAt(code, at, start + 6)
     val typeCall = code.getOrNull(typeAt)?.called()?.takeIf { it.parameterTypes.size == 1 && it.returnType == types[6] }
         ?: refuse("${read.name}: argument 6 isn't made from one value")
@@ -250,7 +257,6 @@ private fun BytecodePatchContext.pageCall(viewer: ClassDef): PageCall {
         firstText = callOn(10, STRING),
         secondText = callOn(11, STRING),
         expiring = callOn(14, "Z"),
-        flags = (FIRST_FIXED_FLAG until PAGE_ARGUMENTS).map { literal(it) },
     )
 }
 
@@ -372,6 +378,9 @@ internal fun BytecodePatchContext.findMediaWalk(): MediaWalkSite {
     } ?: refuse("$directionType has no valueOf(String)")
     requireClassReachable(directionType)
     if (!AccessFlags.PUBLIC.isSet(directionOf.accessFlags)) refuse("${directionOf.text()} isn't public")
+    val reverse = pager.methods.singleOrNull { method ->
+        method.name == "setReverseLayout" && method.returnType == "V" && method.types() == listOf("Z") && AccessFlags.PUBLIC.isSet(method.accessFlags)
+    } ?: refuse("$REBOUND_VIEW_PAGER has no setReverseLayout")
 
     val drags = classesLoadingString(DRAG_NAN).flatMap { it.methods }.filter { loadsString(it, DRAG_NAN) }
     val drag = drags.singleOrNull() ?: refuse("no one method loads \"$DRAG_NAN\": ${drags.map { it.text() }}")
@@ -399,11 +408,11 @@ internal fun BytecodePatchContext.findMediaWalk(): MediaWalkSite {
     for (field in listOf(session, activity, page.kind, page.sender, shared.previewId, shared.preview, itemMedia)) requireReachable(field)
     for (method in listOf(
         builderOf, page.read, page.call, page.wrap, page.type, page.time, page.firstText, page.secondText, page.expiring,
-        shared.attachment, shared.convert, store.read, store.get, legacy, direction,
+        shared.attachment, shared.convert, store.read, store.get, legacy, direction, reverse,
     )) requireReachable(method)
 
     val declared = classDefBy(MEDIA_WALK).methods.map { it.name }.toSet()
-    val stubs = stubs(page, shared, store, legacy, direction, directionOf, session, activity, builderOf, itemMedia)
+    val stubs = stubs(page, shared, store, legacy, direction, directionOf, reverse, session, activity, builderOf, itemMedia)
     for (stub in stubs) if (stub.name !in declared) refuse("$MEDIA_WALK has no ${stub.name}")
 
     return MediaWalkSite(
@@ -427,6 +436,7 @@ private fun stubs(
     legacy: Method,
     direction: Method,
     directionOf: Method,
+    reverse: Method,
     session: FieldReference,
     activity: FieldReference,
     builderOf: Method,
@@ -520,7 +530,7 @@ private fun stubs(
             move-result-object v0
             return-object v0
         """),
-        // The same call the plain page makes, past its message's own media: no expiry, since a walk leaves those out.
+        // The call a tap makes for media that isn't the message's own to read: no expiry, since a walk leaves those out.
         WalkStub("sharedItem", 25, """
             move-object/from16 v0, p1
             check-cast v0, $message
@@ -549,13 +559,18 @@ private fun stubs(
             move-object v14, v3
             move-object v15, v3
             const/16 v16, 0x0
-            const/16 v17, ${page.flags[0]}
-            const/16 v18, ${page.flags[1]}
-            const/16 v19, ${page.flags[2]}
-            const/16 v20, ${page.flags[3]}
-            const/16 v21, ${page.flags[4]}
+            const/16 v17, ${PAGE_FLAGS[0]}
+            const/16 v18, ${PAGE_FLAGS[1]}
+            const/16 v19, ${PAGE_FLAGS[2]}
+            const/16 v20, ${PAGE_FLAGS[3]}
+            const/16 v21, ${PAGE_FLAGS[4]}
             invoke-static/range { v2 .. v21 }, ${page.call.text()}
             move-result-object v0
+            return-object v0
+        """),
+        WalkStub("itemMedia", 2, """
+            check-cast p0, ${page.item}
+            iget-object v0, p0, ${itemMedia.text()}
             return-object v0
         """),
         WalkStub("itemId", 2, """
@@ -574,6 +589,12 @@ private fun stubs(
             invoke-static { p1 }, ${directionOf.text()}
             move-result-object v0
             invoke-virtual { p0, v0 }, ${direction.text()}
+            return-void
+        """),
+        WalkStub("forward", 2, """
+            check-cast p0, $REBOUND_VIEW_PAGER
+            const/4 v0, 0x0
+            invoke-virtual { p0, v0 }, ${reverse.text()}
             return-void
         """),
     )

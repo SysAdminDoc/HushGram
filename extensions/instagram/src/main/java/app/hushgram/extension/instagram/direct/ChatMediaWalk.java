@@ -98,10 +98,20 @@ public final class ChatMediaWalk {
             return ChatMediaWalk.expiring(message);
         }
 
+        /**
+         * Instagram's reader finds a plain photo or video, but the page it makes is a small round one with
+         * no header, so the media it found goes the way a shared post's does. A photo still sending has
+         * no media to hand on and keeps the reader's page.
+         */
         @Override @Nullable public Object plainPage(Object message) {
-            Object page = plainItem(factory, message);
-            if (page == null) Logger.printDebug(() -> "Chat media walk: no page for a plain photo or video");
-            return page;
+            Object read = plainItem(factory, message);
+            if (read == null) {
+                Logger.printDebug(() -> "Chat media walk: Instagram's reader found no plain photo or video");
+                return null;
+            }
+            Object media = itemMedia(read);
+            Object page = media == null ? null : sharedItem(factory, message, media);
+            return page != null ? page : read;
         }
 
         @Override @Nullable public Object sharedPage(Object message) {
@@ -264,6 +274,7 @@ public final class ChatMediaWalk {
                 turned.remove(pager);
                 turn(pager, HORIZONTAL);
             }
+            if (walk) forward(pager);
             if (walk && pager instanceof View) walking = new WeakReference<>((View) pager);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.CHAT_MEDIA_WALK, "pager", failure);
@@ -364,6 +375,11 @@ public final class ChatMediaWalk {
         return null;
     }
 
+    /** Rewritten by the patch: the media on a page, or null. */
+    @Nullable public static Object itemMedia(Object item) {
+        return null;
+    }
+
     /** Rewritten by the patch: the id of the media on a page, or null. */
     @Nullable public static String itemId(Object item) {
         return null;
@@ -371,5 +387,12 @@ public final class ChatMediaWalk {
 
     /** Rewritten by the patch: sets the pager's direction by its name. */
     public static void scroll(Object pager, String direction) {
+    }
+
+    /**
+     * Rewritten by the patch: lays the pager's pages out first to last. The viewer's opener lays them out
+     * last to first each time, where a swipe up can't leave the first page, and reads nothing else of it.
+     */
+    public static void forward(Object pager) {
     }
 }
