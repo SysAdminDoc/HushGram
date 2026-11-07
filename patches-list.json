@@ -4041,7 +4041,7 @@
     },
     {
       "name": "Pure black dark mode",
-      "description": "Makes Instagram's dark mode pure black instead of dark gray, on the menus that slide up from the bottom too. It looks deeper and can save battery on an OLED screen. Buttons keep their grays so they stay easy to see. Works as soon as you patch it in, with no switch.",
+      "description": "Makes Instagram's dark mode pure black instead of dark gray, on the menus that slide up from the bottom and the one you get by holding a message too. It looks deeper and can save battery on an OLED screen. Buttons keep their grays so they stay easy to see. Works as soon as you patch it in, with no switch.",
       "category": "Interface",
       "use": false,
       "dependencies": [

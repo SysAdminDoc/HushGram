@@ -20,6 +20,7 @@ Every HushGram release, newest first.
 * **Tooling:** The release facts check reads the patch count and target build from the description's sentences, so a change's bullet that counts patches no longer stops a release.
 * **Tooling:** Morphe Desktop 2.1.1 now has its reviewed advisory exceptions, so the audit accepts it.
 * With `Keep a seek bar on Reels` on, Instagram's own track now glides between position updates too, and a round handle stays on the line's end. Reported in #10.
+* `Pure black dark mode` now turns the menu you get by holding a message, or a chat in your inbox, black too. Asked for in #543.
 
 ### Bug Fixes
 
