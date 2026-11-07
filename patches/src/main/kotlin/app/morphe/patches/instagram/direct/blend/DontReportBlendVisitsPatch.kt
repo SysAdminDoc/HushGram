@@ -5,10 +5,13 @@
 package app.morphe.patches.instagram.direct.blend
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.direct.ghost.ghostModeEntryPatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -17,6 +20,7 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -31,9 +35,16 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 internal const val BLEND_VISITS_PATCH = "Don't report Blend visits"
 internal const val BLEND_VISITS = "$EXTENSION_PACKAGE/direct/BlendVisits;"
 internal const val QUIET_VISIT = "$BLEND_VISITS->quiet(I)Z"
+internal const val SKIP_VISIT_TIME = "$BLEND_VISITS->skipsVisitTime()Z"
 
 /** The endpoint a Blend's reels load from when you open it. */
 internal const val BLEND_MEDIAS = "clips/get_blend_medias/"
+
+/**
+ * The marker the method sending the time you last opened a Blend (the UpdateBlendLastVisitedTime
+ * mutation) loads first thing (#474).
+ */
+internal const val BLEND_LAST_VISIT = "android_purge_26_q2_BlendRepository_updateBlendLastVisitedTime"
 
 /** (name, flag): how the request builder takes a boolean query parameter, the visit flag among them. */
 internal val FLAG_PARAMETER = listOf("Ljava/lang/String;", "Z")
@@ -50,7 +61,10 @@ val dontReportBlendVisitsPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.instagram())
     execute {
         requireStatusMethod("blendVisits")
-        quietBlendVisit(findBlendRequest())
+        val request = findBlendRequest()
+        val visitTime = findBlendVisitTime()
+        quietBlendVisit(request)
+        skipBlendVisitTime(visitTime)
         enableStatus("blendVisits")
     }
 }
@@ -103,6 +117,40 @@ internal fun quietBlendVisit(request: BlendRequest) {
             invoke-static/range { $flag .. $flag }, $QUIET_VISIT
             move-result $flag
         """,
+    )
+}
+
+/**
+ * The method sending the time you last opened a Blend ([BLEND_LAST_VISIT]), which is what shows
+ * the chat that you looked even with the visit message left out (#474). Proved before anything
+ * changes: one method loads the marker, it returns nothing, it has a local for the answer and
+ * nothing jumps back to its first instruction, where the early return goes.
+ */
+internal fun BytecodePatchContext.findBlendVisitTime(): MutableMethod {
+    val senders = classesLoadingString(BLEND_LAST_VISIT).flatMap { it.methods }.filter { loadsString(it, BLEND_LAST_VISIT) }
+    val found = senders.singleOrNull() ?: refuse("expected one method loading \"$BLEND_LAST_VISIT\", found ${senders.size}")
+    val types = found.parameterTypes.map(CharSequence::toString)
+    val sender = mutableClassDefBy(found.definingClass).methods.single {
+        it.name == found.name && it.returnType == found.returnType && it.parameterTypes.map(CharSequence::toString) == types
+    }
+    val where = "${sender.definingClass}->${sender.name}"
+    if (sender.returnType != "V") refuse("$where returns ${sender.returnType}, not nothing")
+    sender.requireLocals(BLEND_VISITS_PATCH, 1)
+    if (0 in sender.jumpTargets()) refuse("something jumps back to $where's first instruction")
+    return sender
+}
+
+/** The sender returns before it does anything while [SKIP_VISIT_TIME] answers true, so the time never goes out. */
+internal fun skipBlendVisitTime(sender: MutableMethod) {
+    sender.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $SKIP_VISIT_TIME
+            move-result v0
+            if-eqz v0, :send
+            return-void
+        """,
+        ExternalLabel("send", sender.getInstruction(0)),
     )
 }
 

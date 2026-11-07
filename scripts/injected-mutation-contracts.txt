@@ -299,6 +299,12 @@ shared-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z
 # or elsewhere, it isn't the hook.
 start-call Lapp/hushgram/extension/instagram/direct/BlendVisits;->quiet(I)Z in static (Lcom/instagram/common/session/UserSession;Ljava/lang/Boolean;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)L*; pooled holding clips/get_blend_medias/
 once-call Lapp/hushgram/extension/instagram/direct/BlendVisits;->quiet(I)Z in static (Lcom/instagram/common/session/UserSession;Ljava/lang/Boolean;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)L*; pooled holding clips/get_blend_medias/
+# It also asks BlendVisits.skipsVisitTime() first in the method sending the time you last opened a
+# Blend (the one loading android_purge_26_q2_BlendRepository_updateBlendLastVisitedTime, 0420.A0Q on
+# 386014758) and returns on a yes (#474). Left out, the visit time still goes out; twice or
+# elsewhere, it isn't the hook.
+start-call Lapp/hushgram/extension/instagram/direct/BlendVisits;->skipsVisitTime()Z in instance (*)V pooled holding android_purge_26_q2_BlendRepository_updateBlendLastVisitedTime
+once-call Lapp/hushgram/extension/instagram/direct/BlendVisits;->skipsVisitTime()Z in instance (*)V pooled holding android_purge_26_q2_BlendRepository_updateBlendLastVisitedTime
 #
 # The patch fingerprint picks the method that puts a sponsored item into a feed by
 # "cross_surface_duplicate_ad" and "Is ad pod", a static method answering a boolean. "Is ad pod" has

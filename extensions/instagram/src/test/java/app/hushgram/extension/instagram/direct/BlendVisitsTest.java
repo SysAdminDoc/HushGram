@@ -82,4 +82,30 @@ public class BlendVisitsTest {
         assertTrue(missing, missing.contains("'" + BlendVisits.SWITCH + "'"));
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
     }
+
+    @Test
+    public void withTheSwitchOnTheVisitTimeIsSkipped() {
+        assertTrue(BlendVisits.skipsVisitTime());
+        assertTrue(HookStatus.missing(FamilyNames.BLEND_VISITS).toString(), HookStatus.missing(FamilyNames.BLEND_VISITS).isEmpty());
+    }
+
+    @Test
+    public void offPausedUnreadyAndThrowingSendTheVisitTime() {
+        Settings.HIDE_BLEND_VISITS.resetToDefault();
+        assertFalse(BlendVisits.skipsVisitTime());
+        Settings.HIDE_BLEND_VISITS.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(BlendVisits.skipsVisitTime());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertFalse(BlendVisits.skipsVisitTime()));
+        assertTrue(BlendVisits.skipsVisitTime());
+
+        assertFalse(BlendVisits.skipsVisitTime(THROWS));
+        String missing = HookStatus.missing(FamilyNames.BLEND_VISITS).toString();
+        assertTrue(missing, missing.contains("'" + BlendVisits.SWITCH + "'"));
+    }
 }

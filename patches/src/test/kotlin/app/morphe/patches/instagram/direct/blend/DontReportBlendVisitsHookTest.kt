@@ -7,11 +7,13 @@ package app.morphe.patches.instagram.direct.blend
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -27,6 +29,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
@@ -49,6 +52,33 @@ class DontReportBlendVisitsHookTest {
         }
         assertEquals("Z", quiet.returnType)
         assertTrue(AccessFlags.PUBLIC.isSet(quiet.accessFlags) && AccessFlags.STATIC.isSet(quiet.accessFlags))
+        val skips = ExtensionDex.classDef(BLEND_VISITS).methods.single { it.name == "skipsVisitTime" && it.parameterTypes.isEmpty() }
+        assertEquals("Z", skips.returnType)
+        assertTrue(AccessFlags.PUBLIC.isSet(skips.accessFlags) && AccessFlags.STATIC.isSet(skips.accessFlags))
+    }
+
+    /** The visit time's sender asks the extension first and returns on a yes, before its marker or its call (#474). */
+    @Test
+    fun theVisitTimeAsksBeforeItGoesOut() {
+        val context = PatchContexts.of(listOf(repository()))
+        val sender = context.findBlendVisitTime()
+        val before = sender.code().map(::text)
+        skipBlendVisitTime(sender)
+        assertSkips("stand-in", sender, before)
+        assertEquals("the call stays", SEND.toString(), (sender.code()[5] as ReferenceInstruction).reference.toString())
+    }
+
+    @Test
+    fun aMissingOrDoubledVisitTimeFailsThePatch() {
+        refuses("found 0", listOf(repository(marker = false))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("found 2", listOf(repository(), repository("Lfixture/OtherRepository;"))) { skipBlendVisitTime(findBlendVisitTime()) }
+    }
+
+    @Test
+    fun aVisitTimeOfAnotherShapeFailsThePatch() {
+        refuses("returns Z, not nothing", listOf(repository(answers = true))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("has 0 local register(s), needs 1", listOf(repository(locals = 0))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("jumps back", listOf(repository(loop = true))) { skipBlendVisitTime(findBlendVisitTime()) }
     }
 
     @Test
@@ -113,13 +143,22 @@ class DontReportBlendVisitsHookTest {
         quietBlendVisit(request)
         assertHooked(label, request.method, request.flag)
         assertEquals("$label: the rest stays", before.map(::text), request.method.code().drop(2).filter { it.opcode != Opcode.NOP }.map(::text))
+
+        val sender = PatchContexts.of(FixtureDex.classesLoading(bundle, BLEND_LAST_VISIT)).findBlendVisitTime()
+        val stock = sender.code().filter { it.opcode != Opcode.NOP }.map(::text)
+        skipBlendVisitTime(sender)
+        assertSkips(label, sender, stock)
     }
 
     /** The patch refuses for the reason given, and nothing has changed. */
-    private fun refuses(reason: String, classes: List<ClassDef>) {
+    private fun refuses(
+        reason: String,
+        classes: List<ClassDef>,
+        patch: BytecodePatchContext.() -> Unit = { quietBlendVisit(findBlendRequest()) },
+    ) {
         val context = PatchContexts.of(classes)
         val before = classes.associate { it.type to it.methods.map { method -> method.code().map(::text) } }
-        val refusal = assertThrows(PatchException::class.java) { quietBlendVisit(context.findBlendRequest()) }
+        val refusal = assertThrows(PatchException::class.java) { context.patch() }
         assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains(reason))
         for (classDef in classes) {
             val after = context.mutableClassDefBy(classDef.type).methods.map { method -> method.code().map(::text) }
@@ -135,6 +174,23 @@ class DontReportBlendVisitsHookTest {
         assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
         assertEquals("$what: the answer goes back in the flag", flag, (code[1] as OneRegisterInstruction).registerA)
         assertEquals("$what: one call", 1, code.count { (it as? ReferenceInstruction)?.reference?.toString() == QUIET_VISIT })
+    }
+
+    /**
+     * [method] starts with the extension's answer in v0, a no going on to the first stock
+     * instruction and a yes returning, and the stock code ([before], no padding) follows unchanged.
+     */
+    private fun assertSkips(what: String, method: Method, before: List<String>) {
+        val code = method.code()
+        assertEquals("$what: the call", SKIP_VISIT_TIME, (code[0] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
+        assertEquals("$what: the answer goes in v0", 0, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the test", Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("$what: the test reads the answer", 0, (code[2] as OneRegisterInstruction).registerA)
+        assertEquals("$what: a no goes on to the stock code", 4, (code[2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$what: a yes returns", Opcode.RETURN_VOID, code[3].opcode)
+        assertEquals("$what: the rest stays", before, code.drop(4).filter { it.opcode != Opcode.NOP }.map(::text))
+        assertEquals("$what: one call", 1, code.count { (it as? ReferenceInstruction)?.reference?.toString() == SKIP_VISIT_TIME })
     }
 
     private fun text(instruction: Instruction): String = when (val reference = (instruction as? ReferenceInstruction)?.reference) {
@@ -182,6 +238,34 @@ class DontReportBlendVisitsHookTest {
                 ImmutableMethodImplementation(registers, code, null, null),
             )
             return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(request))
+        }
+
+        const val REPOSITORY = "Lfixture/BlendRepository;"
+        val SEND = ImmutableMethodReference(REPOSITORY, "launch", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "V")
+
+        /**
+         * Shaped like the Blend repository's visit time sender: an instance method of (thread, time)
+         * loading [BLEND_LAST_VISIT] into v0 first, then handing itself and both parameters on.
+         */
+        fun repository(
+            type: String = REPOSITORY,
+            marker: Boolean = true,
+            answers: Boolean = false,
+            locals: Int = 2,
+            loop: Boolean = false,
+        ): ClassDef {
+            val self = locals
+            val code = mutableListOf<ImmutableInstruction>()
+            if (marker) code += ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(BLEND_LAST_VISIT))
+            code += ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 3, self, self + 1, self + 2, 0, 0, SEND)
+            if (loop) code += ImmutableInstruction10t(Opcode.GOTO, -code.sumOf { it.codeUnits })
+            code += if (answers) ImmutableInstruction11x(Opcode.RETURN, 0) else ImmutableInstruction10x(Opcode.RETURN_VOID)
+            val sender = ImmutableMethod(
+                type, "updateLastVisit", SEND.parameterTypes.map { ImmutableMethodParameter(it.toString(), null, null) },
+                if (answers) "Z" else "V", AccessFlags.PUBLIC.value, null, null,
+                ImmutableMethodImplementation(locals + 3, code, null, null),
+            )
+            return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(sender))
         }
     }
 }

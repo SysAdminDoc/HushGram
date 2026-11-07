@@ -17,7 +17,8 @@ import java.util.function.BooleanSupplier;
  * <p>Opening a Blend loads its reels from Instagram, and that request carries a flag saying whether
  * to leave the "visited the Blend" message out of the chat the Blend belongs to. Instagram mostly
  * asks for the message. The patch hands that flag to {@link #quiet} first, so while the switch is on
- * the request always asks to leave it out.
+ * the request always asks to leave it out. Opening a Blend also sends the time you opened it, and
+ * {@link #skipsVisitTime} lets the patch skip that call while the switch is on.
  *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, the request asks what Instagram asked.
@@ -27,6 +28,7 @@ public final class BlendVisits {
     static final String SWITCH = "switch read";
 
     private static volatile boolean logged;
+    private static volatile boolean timeLogged;
 
     private BlendVisits() {
     }
@@ -54,6 +56,31 @@ public final class BlendVisits {
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BLEND_VISITS, SWITCH, t);
             return instagram;
+        }
+    }
+
+    /**
+     * Asked as Instagram goes to tell the server when you last opened a Blend
+     * (UpdateBlendLastVisitedTime), which is what shows the chat that you looked. True skips
+     * sending it. False while the switch is off, HushGram is paused or the settings aren't
+     * ready. Never throws.
+     */
+    public static boolean skipsVisitTime() {
+        return skipsVisitTime(BlendVisits::switchedOn);
+    }
+
+    static boolean skipsVisitTime(BooleanSupplier on) {
+        try {
+            HookStatus.invoked(FamilyNames.BLEND_VISITS);
+            if (!on.getAsBoolean()) return false;
+            if (!timeLogged) {
+                timeLogged = true;
+                Logger.printDebug(() -> "Blend: kept the time you opened it to yourself");
+            }
+            return true;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BLEND_VISITS, SWITCH, t);
+            return false;
         }
     }
 
