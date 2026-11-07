@@ -162,8 +162,9 @@ internal fun paletteColor(palette: AccentPalette, shade: String): String =
 internal fun paletteStyle(palette: AccentPalette): String = "HushGramAccentPalette_${palette.name}"
 
 /**
- * The theme attribute Instagram's red badges read, the dots and counts on its icons (#315). The like
- * heart and the red delete buttons read others, so pointing this one at the picked color leaves them red.
+ * The theme attribute Instagram's red badges read, the dots and counts on its icons (#315). The red
+ * delete buttons read others and stay red. The feed's liked heart reads this one through the tint list
+ * its binder builds for `ufi_heart_icon`, so it takes the picked color too (#519).
  */
 internal const val BADGE_ATTRIBUTE = "igds_color_icon_badge"
 
@@ -228,8 +229,10 @@ internal fun iconStyle(palette: String, theme: IconTheme): String =
 
 /**
  * The gradient attributes Instagram's story rings read through `GradientPatternStyle`, with the shade
- * each takes (#187). Light to deep, as the gradient runs. The close friends ring has its own pair and
- * stays green. A few other things read these colors, `igds_color_brand_ig_pink` among them.
+ * each takes (#187). Light to deep, as the gradient runs. On 454 a story's default ring runs yellow,
+ * orange, pink and then lavender, so lavender takes the deep end with purple; without it the ring
+ * ended in Instagram's own lavender (#519). The close friends ring has its own pair and stays green.
+ * A few other things read these colors, `igds_color_brand_ig_pink` among them.
  */
 internal val RING_ATTRIBUTES: Map<String, AccentRole> = linkedMapOf(
     "igds_color_gradient_yellow" to AccentRole.LINK_ON_DARK,
@@ -237,6 +240,7 @@ internal val RING_ATTRIBUTES: Map<String, AccentRole> = linkedMapOf(
     "igds_color_gradient_red" to AccentRole.FILL,
     "igds_color_gradient_pink" to AccentRole.FILL,
     "igds_color_gradient_purple" to AccentRole.PRESSED,
+    "igds_color_gradient_lavender" to AccentRole.PRESSED,
 )
 
 internal fun ringColor(palette: String, role: AccentRole): String =

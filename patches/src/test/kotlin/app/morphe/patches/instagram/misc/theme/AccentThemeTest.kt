@@ -314,7 +314,7 @@ class AccentThemeTest {
         val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
         val gradient = listOf(
             "igds_color_gradient_yellow", "igds_color_gradient_orange", "igds_color_gradient_red",
-            "igds_color_gradient_pink", "igds_color_gradient_purple",
+            "igds_color_gradient_pink", "igds_color_gradient_purple", "igds_color_gradient_lavender",
         )
         val attrs = declaring(gradient)
         val colors = parse("<resources />")
@@ -337,6 +337,7 @@ class AccentThemeTest {
                 "igds_color_gradient_red" to "@color/hushgram_accent_purple_ring_fill",
                 "igds_color_gradient_pink" to "@color/hushgram_accent_purple_ring_fill",
                 "igds_color_gradient_purple" to "@color/hushgram_accent_purple_ring_pressed",
+                "igds_color_gradient_lavender" to "@color/hushgram_accent_purple_ring_pressed",
             ),
             rings["HushGramAccentRings_PURPLE"],
         )
@@ -811,6 +812,8 @@ class AccentThemeTest {
                         "igds_color_gradient_red" to "@color/hushgram_accent_purple_ring_fill",
                         "igds_color_gradient_pink" to "@color/hushgram_accent_purple_ring_fill",
                         "igds_color_gradient_purple" to "@color/hushgram_accent_purple_ring_pressed",
+                        // The default story ring's deep end on 454 (#519).
+                        "igds_color_gradient_lavender" to "@color/hushgram_accent_purple_ring_pressed",
                     ),
                     items(ringStyle("PURPLE")),
                 )

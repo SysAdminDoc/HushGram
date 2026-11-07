@@ -45,7 +45,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>With {@link Settings#ACCENT_BADGES} on, the picked color's badge style goes on too (#315). It
  * points {@code igds_color_icon_badge}, the red of the dots and counts on Instagram's icons, at the
- * picked fill. The like heart and the red delete buttons read other attributes, so they stay red. The
+ * picked fill. The red delete buttons read other attributes, so they stay red. The feed's liked heart
+ * reads this one through the tint list its binder builds, so it takes the picked fill too (#519). The
  * tab bar's badges come from a theme wrapper Instagram builds off the main thread and styles with its
  * theme util, so they take the color through that hook rather than the activity's.
  *
@@ -56,7 +57,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the same shade: {@code glyphColorPrimary} (the top bar's heart, the back and overflow buttons, the
  * post buttons), {@code glyphColorSecondaryActive} (the selected profile tab) and
  * {@code feedSaveActiveColor} (the saved bookmark). Text keeps its own color, the unselected tabs stay
- * gray and the liked heart stays red. The wordmark is tinted with the primary text color, so it stays
+ * gray and the liked heart keeps the badge color. The wordmark is tinted with the primary text color, so it stays
  * too.
  *
  * <p>With {@link Settings#ACCENT_RINGS} on, the picked color's ring style goes on (#187). It points the
