@@ -53,6 +53,11 @@ private const val PACKAGE_MANAGER = "Landroid/content/pm/PackageManager;"
  * bar on a rail down the side. A foldable's hinge sensor marks the phone as a foldable on top of
  * that. With the switch on, every window sorts as compact and the hinge sensor is left out. Off to
  * start, so a tablet keeps Instagram's own layout until its owner picks the phone one.
+ *
+ * The sorting lives in two places on most builds: the factory, and the helper's "isn't this compact"
+ * check, which Redex built with its own copy of the factory's comparisons. Instagram's main activity
+ * and the rail ask that copy, so a hook on the factory alone changes the feed's header and leaves the
+ * rail (#515). A build that kept the check as a call to the factory needs only the factory's hook.
  */
 @Suppress("unused")
 val phoneLayoutPatch = bytecodePatch(
@@ -69,7 +74,7 @@ val phoneLayoutPatch = bytecodePatch(
         requireStatusMethod("phoneLayout")
         val width = findWidthClass()
         val hinge = findHingeCheck(width)
-        keepPhoneLayout(width, hinge)
+        keepPhoneLayout(width, findWidthCheck(width, hinge), hinge)
         enableStatus("phoneLayout")
     }
 }
@@ -78,6 +83,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 
 /** The width class enum's factory: the static `(I)` method answering the enum for a width in dp. */
 internal class WidthClass(val type: String, val factory: String)
+
+/** The big screen helper's static `(I)Z` check, answering whether a width in dp isn't compact. */
+internal class WidthCheck(val type: String, val name: String)
 
 /** The hinge check, and where the answer of its hasSystemFeature call is moved out and to which register. */
 internal class HingeCheck(val type: String, val name: String, val at: Int, val register: Int)
@@ -104,8 +112,37 @@ private fun Method.isWidthFactory(type: String): Boolean {
     if (!AccessFlags.STATIC.isSet(accessFlags) || returnType != type || parameterTypes.map(CharSequence::toString) != listOf("I")) {
         return false
     }
+    return holdsBothWidths()
+}
+
+private fun Method.holdsBothWidths(): Boolean {
     val literals = instructions().mapNotNull { (it as? NarrowLiteralInstruction)?.narrowLiteral }
     return MEDIUM_WIDTH in literals && EXPANDED_WIDTH in literals
+}
+
+/**
+ * Finds the static method in the big screen helper taking an int and answering a boolean that holds
+ * [MEDIUM_WIDTH] and [EXPANDED_WIDTH]: Instagram's "isn't this window compact" check, carrying its
+ * own copy of the factory's comparisons. Null on a build where that check calls the factory instead,
+ * so the factory's hook already covers it. Fails when there's more than one copy, when something
+ * jumps to a copy's first instruction, or when the helper has neither.
+ */
+internal fun BytecodePatchContext.findWidthCheck(width: WidthClass, hinge: HingeCheck): WidthCheck? {
+    val checks = mutableClassDefBy(hinge.type).methods.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == listOf("I")
+    }
+    val copies = checks.filter { it.holdsBothWidths() }
+    if (copies.size > 1 || (copies.isEmpty() && checks.none { it.callsFactory(width) })) {
+        refuse("expected one width check holding $MEDIUM_WIDTH and $EXPANDED_WIDTH dp or calling the factory in ${hinge.type}, found ${copies.size}")
+    }
+    val copy = copies.singleOrNull() ?: return null
+    if (0 in copy.jumpTargets()) refuse("something in ${copy.definingClass}->${copy.name} jumps to its first instruction")
+    return WidthCheck(copy.definingClass, copy.name)
+}
+
+private fun Method.callsFactory(width: WidthClass): Boolean = instructions().any {
+    val called = (it as? ReferenceInstruction)?.reference as? MethodReference
+    called != null && called.definingClass == width.type && called.name == width.factory
 }
 
 /**
@@ -139,22 +176,29 @@ internal fun BytecodePatchContext.findHingeCheck(width: WidthClass): HingeCheck 
 }
 
 /**
- * Hands the width to [PHONE_WIDTH] first thing in the factory, which answers a compact width while
- * the switch is on, and the hinge check's answer to [NOT_FOLDABLE] right after it's moved out.
- * Range calls, so the registers may be any.
+ * Hands the width to [PHONE_WIDTH] first thing in the factory and in the width check if the build
+ * has its own copy, which answers a compact width while the switch is on, and the hinge check's
+ * answer to [NOT_FOLDABLE] right after it's moved out. Range calls, so the registers may be any.
  */
-internal fun BytecodePatchContext.keepPhoneLayout(width: WidthClass, hinge: HingeCheck) {
-    val factory = mutableClassDefBy(width.type).methods.single {
-        it.name == width.factory && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == width.type &&
-            it.parameterTypes.map(CharSequence::toString) == listOf("I")
+internal fun BytecodePatchContext.keepPhoneLayout(width: WidthClass, widthCheck: WidthCheck?, hinge: HingeCheck) {
+    val sorters = listOfNotNull(
+        Triple(width.type, width.factory, width.type),
+        widthCheck?.let { Triple(it.type, it.name, "Z") },
+    ).map { (type, name, returns) ->
+        mutableClassDefBy(type).methods.single {
+            it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == returns &&
+                it.parameterTypes.map(CharSequence::toString) == listOf("I")
+        }
     }
-    factory.addInstructions(
-        0,
-        """
-            invoke-static/range { p0 .. p0 }, $PHONE_WIDTH
-            move-result p0
-        """,
-    )
+    for (sorter in sorters) {
+        sorter.addInstructions(
+            0,
+            """
+                invoke-static/range { p0 .. p0 }, $PHONE_WIDTH
+                move-result p0
+            """,
+        )
+    }
     val check = mutableClassDefBy(hinge.type).methods.single {
         it.name == hinge.name && it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == listOf(CONTEXT)
     }

@@ -19,6 +19,10 @@ Every HushGram release, newest first.
 * **Tooling:** Morphe Desktop 2.1.1 now has its reviewed advisory exceptions, so the audit accepts it.
 * With `Keep a seek bar on Reels` on, Instagram's own track now glides between position updates too, and a round handle stays on the line's end. Reported in #10.
 
+### Bug Fixes
+
+* `Phone layout on big screens` now takes the rail down the side away too. It only changed Home's header on 454, since Instagram's main screen asks a second copy of the width check. Reported in #515.
+
 ## 0.0.19 (2026-11-06)
 
 ### Features

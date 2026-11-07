@@ -1848,9 +1848,14 @@ once-call Lapp/hushgram/extension/instagram/misc/BottomSpace;->navigationBarHeig
 # PhoneLayout.foldable what hasSystemFeature answered in the big screen helper's hinge check
 # (01qi.A0A, the one Context check loading the hinge feature). Left out, a foldable or tablet keeps
 # the rail down the side with the switch on; twice or elsewhere, it isn't the hook the patch wrote.
-# PhoneLayoutHookTest checks both on every fixture build.
+# The same width hook goes first in the helper's own copy of that sorting (01vd.A06 on 454, the one
+# static int-to-boolean method loading 600 and 840), which the main activity and the rail ask (#515).
+# Builds 386014704 and 386014705 have no copy, their check calls the factory, and they aren't declared.
+# PhoneLayoutHookTest checks the hooks on every fixture build.
 start-call Lapp/hushgram/extension/instagram/misc/PhoneLayout;->width(I)I in static (I)LX/*; holding const:0x258 const:0x348
 once-call Lapp/hushgram/extension/instagram/misc/PhoneLayout;->width(I)I in static (I)LX/*; holding const:0x258 const:0x348
+start-call Lapp/hushgram/extension/instagram/misc/PhoneLayout;->width(I)I in static (I)Z holding const:0x258 const:0x348
+once-call Lapp/hushgram/extension/instagram/misc/PhoneLayout;->width(I)I in static (I)Z holding const:0x258 const:0x348
 once-call Lapp/hushgram/extension/instagram/misc/PhoneLayout;->foldable(I)Z in instance (Landroid/content/Context;)Z holding android.hardware.sensor.hinge_angle
 # Emoji style hands the replace strategy EmojiCompat's process was given to EmojiStyle.replaceStrategy
 # first thing in process (00Zx.A04 on 450, the one method holding both strings below) and keeps the

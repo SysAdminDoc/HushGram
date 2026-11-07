@@ -70,10 +70,23 @@ class PhoneLayoutHookTest {
         val hinge = context.findHingeCheck(width)
         assertEquals("the hinge check", HELPER to "hinge", hinge.type to hinge.name)
         assertEquals("its answer", 4 to 0, hinge.at to hinge.register)
+        val widthCheck = requireNotNull(context.findWidthCheck(width, hinge)) { "no width check" }
+        assertEquals("the width check", HELPER to "notCompact", widthCheck.type to widthCheck.name)
         val factoryBefore = context.method(WIDTH, "A00").code().map(::text)
+        val checkBefore = context.method(HELPER, "notCompact").code().map(::text)
         val hingeBefore = context.method(HELPER, "hinge").code().map(::text)
 
-        context.keepPhoneLayout(width, hinge)
+        context.keepPhoneLayout(width, widthCheck, hinge)
+
+        val inlined = context.method(HELPER, "notCompact").code()
+        assertEquals("width check: the hook comes first", PHONE_WIDTH, inlined[0].referenceText())
+        val sortingInlined = inlined[0] as RegisterRangeInstruction
+        assertEquals("width check: the hook takes the width (p0 is v1)", 1 to 1, sortingInlined.startRegister to sortingInlined.registerCount)
+        assertEquals("width check: the answer", Opcode.MOVE_RESULT, inlined[1].opcode)
+        assertEquals("width check: the answer goes back in the width", 1, (inlined[1] as OneRegisterInstruction).registerA)
+        assertEquals("width check: the rest stays", checkBefore, inlined.drop(2).map(::text))
+        assertEquals("the helper's other static stays", helper().methods.single { it.name == "sorts" }.code().map(::text),
+            context.method(HELPER, "sorts").code().map(::text))
 
         val factory = context.method(WIDTH, "A00").code()
         assertEquals("factory: the hook comes first", PHONE_WIDTH, factory[0].referenceText())
@@ -119,14 +132,36 @@ class PhoneLayoutHookTest {
         refuses("jumps onto the instruction after its hinge check", listOf(widthClass(), helper(jump = true)))
     }
 
-    /** In each declared build: the one width class factory and the big screen helper's hinge check. */
+    @Test
+    fun aMissingOrDoubledWidthCheckFailsThePatch() {
+        refuses("found 0", listOf(widthClass(), helper(widthChecks = 0, throughFactory = false)))
+        refuses("found 2", listOf(widthClass(), helper(widthChecks = 2)))
+        refuses("jumps to its first instruction", listOf(widthClass(), helper(checkJump = true)))
+    }
+
+    /** 454's builds 386014704 and 386014705 keep the check as a call to the factory: its hook covers them. */
+    @Test
+    fun aCheckCallingTheFactoryNeedsNoHookOfItsOwn() {
+        val context = PatchContexts.of(listOf(widthClass(), helper(widthChecks = 0)))
+        val width = context.findWidthClass()
+        val hinge = context.findHingeCheck(width)
+        assertEquals("no copy", null, context.findWidthCheck(width, hinge))
+        val sortsBefore = context.method(HELPER, "sorts").code().map(::text)
+
+        context.keepPhoneLayout(width, null, hinge)
+
+        assertEquals("the factory's hook", PHONE_WIDTH, context.method(WIDTH, "A00").code()[0].referenceText())
+        assertEquals("the check stays as it was", sortsBefore, context.method(HELPER, "sorts").code().map(::text))
+    }
+
+    /** In each declared build: the width class factory, the helper's own width check and its hinge check. */
     @Test
     fun eachDeclaredBuildKeepsThePhoneLayout() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                builds(bundle, bundle.name)
+                assertTrue("${bundle.name}: the helper has its own width check", builds(bundle, bundle.name))
                 checked++
             }
         }
@@ -139,25 +174,36 @@ class PhoneLayoutHookTest {
         for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
 
-    /** The enums naming MEDIUM and every class loading the hinge feature, the helper among them. */
-    private fun builds(bundle: File, label: String) {
+    /**
+     * The enums naming MEDIUM and every class loading the hinge feature, the helper among them. Says
+     * whether the build's helper has its own copy of the width check.
+     */
+    private fun builds(bundle: File, label: String): Boolean {
         val enums = FixtureDex.classesLoading(bundle, MEDIUM).filter { it.superclass == "Ljava/lang/Enum;" }
         val context = PatchContexts.of((enums + FixtureDex.classesLoading(bundle, HINGE_FEATURE)).distinctBy { it.type })
         val width = context.findWidthClass()
         val hinge = context.findHingeCheck(width)
+        val widthCheck = context.findWidthCheck(width, hinge)
         val factoryBefore = context.method(width.type, width.factory).code().map(::text)
+        val checkBefore = widthCheck?.let { context.method(it.type, it.name).code().map(::text) }
         val hingeBefore = context.method(hinge.type, hinge.name).code().map(::text)
 
-        context.keepPhoneLayout(width, hinge)
+        context.keepPhoneLayout(width, widthCheck, hinge)
 
         val factory = context.method(width.type, width.factory).code()
         assertEquals("$label: the width hook first", PHONE_WIDTH, factory[0].referenceText())
         assertEquals("$label: the factory's rest stays", factoryBefore, factory.drop(2).map(::text))
+        if (widthCheck != null) {
+            val inlined = context.method(widthCheck.type, widthCheck.name).code()
+            assertEquals("$label: the width check's hook first", PHONE_WIDTH, inlined[0].referenceText())
+            assertEquals("$label: the width check's rest stays", checkBefore, inlined.drop(2).map(::text))
+        }
         val check = context.method(hinge.type, hinge.name).code()
         assertEquals("$label: the hinge hook after the move-result", NOT_FOLDABLE, check[hinge.at + 1].referenceText())
         assertEquals("$label: one hinge hook", 1, check.count { it.referenceText() == NOT_FOLDABLE })
         assertEquals("$label: the hinge check's rest stays", hingeBefore,
             check.filterIndexed { at, _ -> at != hinge.at + 1 && at != hinge.at + 2 }.map(::text))
+        return widthCheck != null
     }
 
     /** The patch refuses for the reason given, and nothing has changed. */
@@ -166,7 +212,8 @@ class PhoneLayoutHookTest {
         val before = classes.associate { it.type to it.methods.map { method -> method.code().map(::text) } }
         val refusal = assertThrows(PatchException::class.java) {
             val width = context.findWidthClass()
-            context.keepPhoneLayout(width, context.findHingeCheck(width))
+            val hinge = context.findHingeCheck(width)
+            context.keepPhoneLayout(width, context.findWidthCheck(width, hinge), hinge)
         }
         assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains(reason))
         for (classDef in classes) {
@@ -256,21 +303,47 @@ class PhoneLayoutHookTest {
 
         /**
          * Shaped like Instagram's big screen helper: a static sorting a width through the factory and
-         * [checks] instance hinge checks reading hasSystemFeature into v0 and testing it. Without
-         * [kept] the answer is left unread; with [jump], a goto after the returns lands right after
-         * the move-result.
+         * [checks] instance hinge checks reading hasSystemFeature into v0 and testing it, with
+         * [widthChecks] static `(I)Z` checks carrying the factory's comparisons. Without [kept] the
+         * answer is left unread; with [jump], a goto after the returns lands right after the
+         * move-result; with [checkJump], the width check's first test jumps back to its start. Without
+         * [throughFactory] the static sorting through the factory takes a second int, so it's no check.
          */
-        fun helper(checks: Int = 1, kept: Boolean = true, jump: Boolean = false): ClassDef {
-            val sorts = ImmutableMethod(HELPER, "sorts", listOf(ImmutableMethodParameter("I", null, null)), "Z", static, null, null,
-                ImmutableMethodImplementation(2, listOf(
+        fun helper(
+            checks: Int = 1,
+            kept: Boolean = true,
+            jump: Boolean = false,
+            widthChecks: Int = 1,
+            checkJump: Boolean = false,
+            throughFactory: Boolean = true,
+        ): ClassDef {
+            val takes = List(if (throughFactory) 1 else 2) { ImmutableMethodParameter("I", null, null) }
+            val sorts = ImmutableMethod(HELPER, "sorts", takes, "Z", static, null, null,
+                ImmutableMethodImplementation(1 + takes.size, listOf(
                     ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 1, 0, 0, 0, 0,
                         ImmutableMethodReference(WIDTH, "A00", listOf("I"), WIDTH)),
                     ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
                     ImmutableInstruction11x(Opcode.RETURN, 0),
                 ), null, null))
             val hinges = List(checks) { n -> hingeCheck(HELPER, if (n == 0) "hinge" else "hinge$n", kept, jump) }
-            return ImmutableClassDef(HELPER, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(sorts) + hinges)
+            val inlined = List(widthChecks) { n -> widthCheck(if (n == 0) "notCompact" else "notCompact$n", checkJump) }
+            return ImmutableClassDef(HELPER, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(sorts) + hinges + inlined)
         }
+
+        /** The factory's comparisons with a boolean answer, as Redex built them into the helper. Two registers, so the width is v1. */
+        fun widthCheck(name: String, jump: Boolean): Method =
+            ImmutableMethod(HELPER, name, listOf(ImmutableMethodParameter("I", null, null)), "Z", static, null, null,
+                ImmutableMethodImplementation(2, listOf(
+                    ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                    ImmutableInstruction22t(Opcode.IF_LT, 1, 0, if (jump) -1 else 10),
+                    ImmutableInstruction21s(Opcode.CONST_16, 0, MEDIUM_WIDTH),
+                    ImmutableInstruction22t(Opcode.IF_LT, 1, 0, 6),
+                    ImmutableInstruction21s(Opcode.CONST_16, 0, EXPANDED_WIDTH),
+                    ImmutableInstruction11n(Opcode.CONST_4, 0, 1),
+                    ImmutableInstruction11x(Opcode.RETURN, 0),
+                    ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                    ImmutableInstruction11x(Opcode.RETURN, 0),
+                ), null, null))
 
         /** A camera helper with the same hinge check that never sorts a width. */
         fun camera(): ClassDef = ImmutableClassDef(CAMERA, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
