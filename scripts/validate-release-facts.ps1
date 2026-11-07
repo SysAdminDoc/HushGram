@@ -137,14 +137,16 @@ function Get-DescriptionFacts {
         Every "N patches" in it has to name the same N, and every "Instagram <build>" the same build,
         or it says two things and this throws. The lag check used to read the first of each and the
         equality check any of them, so a description quoting the catalog's count in one sentence and
-        a stale one in another passed the equality check, whichever the lag check had read. Answers
-        @{ PatchCount; TargetVersion }, each $null when the description names none.
+        a stale one in another passed the equality check, whichever the lag check had read. A change's
+        bullet isn't read: "no group runs past 16 patches" speaks for one change, not the release.
+        Answers @{ PatchCount; TargetVersion }, each $null when the description names none.
     #>
     param([string]$Text, [string]$Source)
 
-    $counts = @([regex]::Matches($Text, '(?<![\d.])(\d+) patches\b') | ForEach-Object { $_.Groups[1].Value } |
+    $sentences = @($Text -split '\r?\n' | Where-Object { $_ -notmatch '^\s*\*\s' }) -join "`n"
+    $counts = @([regex]::Matches($sentences, '(?<![\d.])(\d+) patches\b') | ForEach-Object { $_.Groups[1].Value } |
         Select-Object -Unique)
-    $builds = @([regex]::Matches($Text, 'Instagram\s+(\d+(?:\.\d+)+)(?!\d)') | ForEach-Object { $_.Groups[1].Value } |
+    $builds = @([regex]::Matches($sentences, 'Instagram\s+(\d+(?:\.\d+)+)(?!\d)') | ForEach-Object { $_.Groups[1].Value } |
         Select-Object -Unique)
     if ($counts.Count -gt 1) {
         throw "$Source names $($counts -join ' and ') patches, and it has to name one count."
