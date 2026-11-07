@@ -47,44 +47,77 @@ private const val HIGHEST_LISTED_REGISTER = 15
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** Where a ring builds its gradient: the builder's name, and the registers its colors and stops arrive in. */
-internal class RingGradient(val name: String, val colors: Int, val stops: Int)
+/** What the ring's own setter takes: the builder's parameters without the ring, which is `this` there. */
+internal val SETTER_PARAMETERS = GRADIENT_PARAMETERS.drop(1)
 
 /**
- * Finds the one place a ring builds its gradient, and checks it before anything changes. The ring
- * is a view that keeps its class name, and the builder is its one static method taking
- * [GRADIENT_PARAMETERS] and answering a gradient. It is called when a ring is measured and when it
- * is given a ring's colors, never once a frame. A seen story's ring is drawn with another paint and
- * doesn't come through here.
- *
- * The hook goes first, so nothing may jump back to the first instruction, and a call that lists
- * its registers has to be able to name the two it passes. The app must also still build its
- * default ring with [DEFAULT_RING_STOPS], which is what the extension knows a story's gradient by.
+ * Where a ring builds its gradient: the method's name and parameter types, and the registers its
+ * colors and stops arrive in.
  */
-internal fun BytecodePatchContext.findRingGradient(): RingGradient {
+internal class RingGradient(val name: String, val parameters: List<String>, val colors: Int, val stops: Int)
+
+/**
+ * Finds every place a ring builds its gradient, and checks each before anything changes. The ring
+ * is a view that keeps its class name. Its builder is its one static method taking
+ * [GRADIENT_PARAMETERS] and answering a gradient. Most of 454's builds also give the view a private
+ * setter taking [SETTER_PARAMETERS] that makes the same gradient with its own copy of the builder's
+ * code and keeps it (#518). That setter is what the stories row's rings go through, from the ring's
+ * measure and from every ring spec it's given, and the builder only serves a couple of other
+ * callers. Where the setter calls the builder instead, as on 386014704, only the builder makes
+ * a gradient. Both are called when a ring is measured or given its colors, never once a frame. A
+ * seen story's ring is drawn with another paint and doesn't come through here.
+ *
+ * No other method of the view may make a gradient from colors and stops, since the patch wouldn't
+ * know where its colors are. Each hook goes first, so nothing may jump back to a first
+ * instruction, and a call that lists its registers has to be able to name the two it passes. The
+ * app must also still build its default ring with [DEFAULT_RING_STOPS], which is what the
+ * extension knows a story's gradient by.
+ */
+internal fun BytecodePatchContext.findRingGradients(): List<RingGradient> {
     val spinner = classDefByOrNull(GRADIENT_SPINNER) ?: refuse("the build has no $GRADIENT_SPINNER")
-    val builders = spinner.methods.filter { it.buildsRingGradient() }
+    val builders = spinner.methods.filter { it.isRingBuilder() }
     val builder = builders.singleOrNull()
         ?: refuse("expected one static gradient builder taking stops and colors in $GRADIENT_SPINNER, found ${builders.size}")
-    val where = "$GRADIENT_SPINNER->${builder.name}"
-    val code = builder.implementation?.instructions?.toList() ?: refuse("$where has no body")
-    if (code.none { (it as? ReferenceInstruction)?.reference?.toString() == GRADIENT_FROM_ARRAYS }) {
-        refuse("$where no longer makes its gradient from an array of colors and an array of stops")
+    if (!builder.makesGradientFromArrays()) {
+        refuse("$GRADIENT_SPINNER->${builder.name} no longer makes its gradient from an array of colors and an array of stops")
     }
-    if (0 in builder.jumpTargets()) refuse("something jumps back to the first instruction of $where")
-    val colors = builder.parameterRegisterNumber(COLORS_PARAMETER)
-    val stops = builder.parameterRegisterNumber(STOPS_PARAMETER)
-    if (colors > HIGHEST_LISTED_REGISTER || stops > HIGHEST_LISTED_REGISTER) {
-        refuse("$where keeps its colors in v$colors and its stops in v$stops, past the registers a call can list")
+    val setters = spinner.methods.filter { it.isRingSetter() && it.makesGradientFromArrays() }
+    if (setters.size > 1) {
+        refuse("expected at most one setter in $GRADIENT_SPINNER making its own gradient from stops and colors, found ${setters.size}")
     }
+    val unread = spinner.methods.filter { it.makesGradientFromArrays() && !it.isRingBuilder() && !it.isRingSetter() }
+    if (unread.isNotEmpty()) {
+        refuse("${unread.joinToString { "$GRADIENT_SPINNER->${it.name}" }} makes a gradient from colors and stops the patch can't find")
+    }
+    val gradients = (builders + setters).map { it.ringGradient() }
     if (findDefaultRingStops().isEmpty()) {
         refuse("no method of a class loading \"$DEFAULT_RING\" loads the default ring's four stops")
     }
-    return RingGradient(builder.name, colors, stops)
+    return gradients
 }
 
-private fun Method.buildsRingGradient() = AccessFlags.STATIC.isSet(accessFlags) && returnType == LINEAR_GRADIENT &&
+/** Reads where the colors and stops arrive in a builder or the setter, refusing what the hook can't go into. */
+private fun Method.ringGradient(): RingGradient {
+    val where = "$GRADIENT_SPINNER->$name"
+    if (0 in jumpTargets()) refuse("something jumps back to the first instruction of $where")
+    // The setter has no ring parameter, so each of its parameters is one place earlier.
+    val shift = if (AccessFlags.STATIC.isSet(accessFlags)) 0 else 1
+    val colors = parameterRegisterNumber(COLORS_PARAMETER - shift)
+    val stops = parameterRegisterNumber(STOPS_PARAMETER - shift)
+    if (colors > HIGHEST_LISTED_REGISTER || stops > HIGHEST_LISTED_REGISTER) {
+        refuse("$where keeps its colors in v$colors and its stops in v$stops, past the registers a call can list")
+    }
+    return RingGradient(name, parameterTypes.map(CharSequence::toString), colors, stops)
+}
+
+private fun Method.isRingBuilder() = AccessFlags.STATIC.isSet(accessFlags) && returnType == LINEAR_GRADIENT &&
     parameterTypes.map(CharSequence::toString) == GRADIENT_PARAMETERS
+
+private fun Method.isRingSetter() = !AccessFlags.STATIC.isSet(accessFlags) && returnType == "V" &&
+    parameterTypes.map(CharSequence::toString) == SETTER_PARAMETERS
+
+private fun Method.makesGradientFromArrays() =
+    implementation?.instructions?.any { (it as? ReferenceInstruction)?.reference?.toString() == GRADIENT_FROM_ARRAYS } == true
 
 /**
  * The methods that put Instagram's default ring together: each is in a class loading
@@ -102,17 +135,22 @@ private fun Method.loadsEveryStop(): Boolean {
 }
 
 /**
- * Passes the builder's colors and stops through [RING_COLORS] first thing, and builds the gradient
- * from the answer. The ring's own fields are left alone, so Instagram's colors are what the hook is
- * given every time, and a ring whose hook answers them back is exactly Instagram's.
+ * Passes each builder's colors and stops through [RING_COLORS] first thing, and builds the
+ * gradient from the answer. The ring's own fields are left alone, so Instagram's colors are what
+ * the hook is given every time, and a ring whose hook answers them back is exactly Instagram's.
  */
-internal fun BytecodePatchContext.colorRingGradient(gradient: RingGradient) {
-    val builder = mutableClassDefBy(GRADIENT_SPINNER).methods.single { it.name == gradient.name && it.buildsRingGradient() }
-    builder.addInstructions(
-        0,
-        """
-            invoke-static { v${gradient.colors}, v${gradient.stops} }, $RING_COLORS
-            move-result-object v${gradient.colors}
-        """,
-    )
+internal fun BytecodePatchContext.colorRingGradients(gradients: List<RingGradient>) {
+    val spinner = mutableClassDefBy(GRADIENT_SPINNER)
+    for (gradient in gradients) {
+        val builder = spinner.methods.single {
+            it.name == gradient.name && it.parameterTypes.map(CharSequence::toString) == gradient.parameters
+        }
+        builder.addInstructions(
+            0,
+            """
+                invoke-static { v${gradient.colors}, v${gradient.stops} }, $RING_COLORS
+                move-result-object v${gradient.colors}
+            """,
+        )
+    }
 }

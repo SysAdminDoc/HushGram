@@ -29,6 +29,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10t
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
@@ -86,12 +87,13 @@ class StoryRingColorHookTest {
         val context = PatchContexts.of(listOf(spinner(), defaultRing()))
 
         assertEquals(listOf("$RING_SPEC->invoke"), context.findDefaultRingStops())
-        val gradient = context.findRingGradient()
+        val gradients = context.findRingGradients()
+        val gradient = gradients.single()
         assertEquals("build", gradient.name)
         assertEquals(12, gradient.colors)
         assertEquals(9, gradient.stops)
         val original = NeutralNativePath(context.builder(gradient))
-        context.colorRingGradient(gradient)
+        context.colorRingGradients(gradients)
 
         val builder = context.builder(gradient)
         assertColored("stand-in", builder)
@@ -99,6 +101,43 @@ class StoryRingColorHookTest {
         val code = builder.implementation!!.instructions.toList()
         assertEquals("the gradient's copy of the colors comes after the hook", Opcode.MOVE_OBJECT_FROM16, code[3].opcode)
         assertEquals(6, (code[3] as OneRegisterInstruction).registerA)
+    }
+
+    /**
+     * 454's ring view has a private setter with its own copy of the builder's code, and the stories
+     * row's rings go through it (#518). It asks too, with its colors and stops in the same registers
+     * as the builder's, since its `this` sits where the builder takes the ring.
+     */
+    @Test
+    fun theSetterThatMakesItsOwnGradientAsksToo() {
+        val context = PatchContexts.of(listOf(spinner(setters = 1), defaultRing()))
+
+        val gradients = context.findRingGradients()
+        assertEquals(listOf("build", "keep"), gradients.map { it.name })
+        val setter = gradients.single { it.name == "keep" }
+        assertEquals(SETTER_PARAMETERS, setter.parameters)
+        assertEquals(12, setter.colors)
+        assertEquals(9, setter.stops)
+        val originals = gradients.associate { it.name to NeutralNativePath(context.builder(it)) }
+        context.colorRingGradients(gradients)
+
+        for (gradient in gradients) {
+            val method = context.builder(gradient)
+            assertColored(gradient.name, method)
+            originals.getValue(gradient.name).assertPreserved(gradient.name, method, ADDED)
+        }
+    }
+
+    /** A setter that hands its arrays to the builder, as on 386014704, is left alone: the builder asks for it. */
+    @Test
+    fun aSetterThatCallsTheBuilderIsLeftAlone() {
+        val context = PatchContexts.of(listOf(spinner(setters = 1, setterMakesItsOwn = false), defaultRing()))
+
+        val gradients = context.findRingGradients()
+        assertEquals(listOf("build"), gradients.map { it.name })
+        context.colorRingGradients(gradients)
+        val setter = context.mutableClassDefBy(GRADIENT_SPINNER).methods.single { it.name == "keep" }
+        assertTrue(setter.implementation!!.instructions.none { (it as? ReferenceInstruction)?.reference?.toString() == RING_COLORS })
     }
 
     @Test
@@ -110,6 +149,22 @@ class StoryRingColorHookTest {
     fun noBuilderOrTwoFailsThePatch() {
         refuses("found 0", listOf(spinner(builders = 0), defaultRing()))
         refuses("found 2", listOf(spinner(builders = 2), defaultRing()))
+    }
+
+    @Test
+    fun twoSettersMakingTheirOwnGradientFailThePatch() {
+        refuses("at most one setter in $GRADIENT_SPINNER making its own gradient from stops and colors, found 2", listOf(spinner(setters = 2), defaultRing()))
+    }
+
+    /** Any other method of the ring making a gradient from arrays would draw colors the patch never sees. */
+    @Test
+    fun aGradientMadeAnywhereElseInTheRingFailsThePatch() {
+        refuses("$GRADIENT_SPINNER->drawn makes a gradient from colors and stops the patch can't find", listOf(spinner(elsewhere = true), defaultRing()))
+    }
+
+    @Test
+    fun aSetterJumpingBackToItsStartFailsThePatch() {
+        refuses("first instruction of $GRADIENT_SPINNER->keep", listOf(spinner(setters = 1, setterLoops = true), defaultRing()))
     }
 
     /** A builder that makes its gradient some other way wouldn't draw with the colors the hook answers. */
@@ -148,16 +203,19 @@ class StoryRingColorHookTest {
     /** A refusal leaves the builder as it was: everything is checked before the hook goes in. */
     @Test
     fun aRefusalLeavesTheBuilderAlone() {
-        val context = PatchContexts.of(listOf(spinner(), defaultRing(stops = emptyList())))
-        assertThrows(PatchException::class.java) { context.findRingGradient() }
-        val code = context.mutableClassDefBy(GRADIENT_SPINNER).methods.single { it.name == "build" }
-            .implementation!!.instructions.toList()
-        assertTrue(code.none { (it as? ReferenceInstruction)?.reference?.toString() == RING_COLORS })
+        val context = PatchContexts.of(listOf(spinner(setters = 1), defaultRing(stops = emptyList())))
+        assertThrows(PatchException::class.java) { context.findRingGradients() }
+        for (name in listOf("build", "keep")) {
+            val code = context.mutableClassDefBy(GRADIENT_SPINNER).methods.single { it.name == name }
+                .implementation!!.instructions.toList()
+            assertTrue(name, code.none { (it as? ReferenceInstruction)?.reference?.toString() == RING_COLORS })
+        }
     }
 
     /**
-     * In each declared build the ring view has its one builder, the hook lands first in it, and one
-     * method puts the default ring together with the four stops.
+     * In each declared build every place the ring view makes a gradient from colors and stops gets
+     * the hook first, and one method puts the default ring together with the four stops. The
+     * declared arm64 build makes it in two places, the builder and the setter the stories row uses.
      */
     @Test
     fun eachDeclaredBuildColorsTheRing() {
@@ -165,7 +223,7 @@ class StoryRingColorHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                builds(bundle, bundle.name)
+                assertEquals("${bundle.name}: places the ring makes its gradient", 2, builds(bundle, bundle.name))
                 checked++
             }
         }
@@ -177,7 +235,8 @@ class StoryRingColorHookTest {
         for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
 
-    private fun builds(bundle: File, label: String) {
+    /** Patches one build's ring view and answers how many places got the hook. */
+    private fun builds(bundle: File, label: String): Int {
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
@@ -189,12 +248,20 @@ class StoryRingColorHookTest {
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders.distinctBy { it.type }).distinctBy { it.type })
 
         assertEquals("$label: methods putting the default ring together", 1, context.findDefaultRingStops().size)
-        val gradient = context.findRingGradient()
-        val original = NeutralNativePath(context.builder(gradient))
-        context.colorRingGradient(gradient)
-        val builder = context.builder(gradient)
-        assertColored(label, builder)
-        original.assertPreserved(label, builder, ADDED)
+        val makers = context.classDefBy(GRADIENT_SPINNER).methods
+            .filter { method -> method.implementation?.instructions?.any { (it as? ReferenceInstruction)?.reference?.toString() == GRADIENT_FROM_ARRAYS } == true }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})" }.sorted()
+        val gradients = context.findRingGradients()
+        assertEquals("$label: every place the ring makes a gradient from colors and stops", makers,
+            gradients.map { "${it.name}(${it.parameters.joinToString("")})" }.sorted())
+        val originals = gradients.map { NeutralNativePath(context.builder(it)) }
+        context.colorRingGradients(gradients)
+        gradients.zip(originals).forEach { (gradient, original) ->
+            val method = context.builder(gradient)
+            assertColored("$label ${gradient.name}", method)
+            original.assertPreserved("$label ${gradient.name}", method, ADDED)
+        }
+        return gradients.size
     }
 
     /**
@@ -229,13 +296,13 @@ class StoryRingColorHookTest {
     }
 
     private fun refuses(why: String, classes: List<ClassDef>) {
-        val refusal = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findRingGradient() }
+        val refusal = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findRingGradients() }
         assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains(why))
     }
 
     private fun BytecodePatchContext.builder(gradient: RingGradient): Method =
         mutableClassDefBy(GRADIENT_SPINNER).methods.single {
-            it.name == gradient.name && it.parameterTypes.map(CharSequence::toString) == GRADIENT_PARAMETERS
+            it.name == gradient.name && it.parameterTypes.map(CharSequence::toString) == gradient.parameters
         }
 
     /** Whether the method loads the default ring's name or every one of its stops, read in one pass. */
@@ -272,36 +339,71 @@ class StoryRingColorHookTest {
          *     a15 :fallback const/4 v1, 0
          *     a16 return-object v1
          *     a17 goto a0                        only with [loops]
+         *
+         * With [setters] it also gets that many private setters, `keep` then `keepAgain`, taking
+         * [SETTER_PARAMETERS] with the ring as `this` in v8, so their stops and colors arrive in v9
+         * and v12 too. Each has the builder's code with return-void for each return. With
+         * [setterMakesItsOwn] false a setter makes its gradient from two ints instead, the way one
+         * that hands its arrays to the builder never makes one from arrays itself, and with
+         * [setterLoops] it ends jumping back to its start. With [elsewhere], a private `drawn(I)V`
+         * makes a gradient from arrays as well.
          */
-        fun spinner(builders: Int = 1, fromArrays: Boolean = true, loops: Boolean = false, registers: Int = 15): ClassDef {
+        fun spinner(
+            builders: Int = 1,
+            fromArrays: Boolean = true,
+            loops: Boolean = false,
+            registers: Int = 15,
+            setters: Int = 0,
+            setterMakesItsOwn: Boolean = true,
+            setterLoops: Boolean = false,
+            elsewhere: Boolean = false,
+        ): ClassDef {
             val first = registers - GRADIENT_PARAMETERS.size
             val stops = first + STOPS_PARAMETER
             val colors = first + COLORS_PARAMETER
-            val made = ImmutableMethodReference(
-                LINEAR_GRADIENT, "<init>",
-                if (fromArrays) listOf("F", "F", "F", "F", "[I", "[F", TILE_MODE) else listOf("F", "F", "F", "F", "I", "I", TILE_MODE),
-                "V",
-            )
-            val code = mutableListOf<Instruction>(
-                ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, 7, stops),
-                ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, 6, colors),
-                ImmutableInstruction21t(Opcode.IF_EQZ, stops, 11),
-                ImmutableInstruction11n(Opcode.CONST_4, 2, 0),
-                ImmutableInstruction21c(Opcode.SGET_OBJECT, first, ImmutableFieldReference(TILE_MODE, "CLAMP", TILE_MODE)),
-                ImmutableInstruction21c(Opcode.NEW_INSTANCE, 1, ImmutableTypeReference(LINEAR_GRADIENT)),
-                ImmutableInstruction3rc(Opcode.INVOKE_DIRECT_RANGE, 1, 8, made),
-                ImmutableInstruction11x(Opcode.RETURN_OBJECT, 1),
-                ImmutableInstruction11n(Opcode.CONST_4, 1, 0),
-                ImmutableInstruction11x(Opcode.RETURN_OBJECT, 1),
-            )
-            if (loops) code += ImmutableInstruction10t(Opcode.GOTO, -17)
+            fun code(arrays: Boolean, returnsGradient: Boolean, loop: Boolean): List<Instruction> {
+                val made = ImmutableMethodReference(
+                    LINEAR_GRADIENT, "<init>",
+                    if (arrays) listOf("F", "F", "F", "F", "[I", "[F", TILE_MODE) else listOf("F", "F", "F", "F", "I", "I", TILE_MODE),
+                    "V",
+                )
+                fun returns(): Instruction =
+                    if (returnsGradient) ImmutableInstruction11x(Opcode.RETURN_OBJECT, 1) else ImmutableInstruction10x(Opcode.RETURN_VOID)
+                val code = mutableListOf<Instruction>(
+                    ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, 7, stops),
+                    ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, 6, colors),
+                    ImmutableInstruction21t(Opcode.IF_EQZ, stops, 11),
+                    ImmutableInstruction11n(Opcode.CONST_4, 2, 0),
+                    ImmutableInstruction21c(Opcode.SGET_OBJECT, first, ImmutableFieldReference(TILE_MODE, "CLAMP", TILE_MODE)),
+                    ImmutableInstruction21c(Opcode.NEW_INSTANCE, 1, ImmutableTypeReference(LINEAR_GRADIENT)),
+                    ImmutableInstruction3rc(Opcode.INVOKE_DIRECT_RANGE, 1, 8, made),
+                    returns(),
+                    ImmutableInstruction11n(Opcode.CONST_4, 1, 0),
+                    returns(),
+                )
+                if (loop) code += ImmutableInstruction10t(Opcode.GOTO, -17)
+                return code
+            }
+            val builder = code(fromArrays, returnsGradient = true, loop = loops)
             val methods = listOf("build", "buildAgain").take(builders).map { name ->
                 ImmutableMethod(
                     GRADIENT_SPINNER, name, GRADIENT_PARAMETERS.map { ImmutableMethodParameter(it, null, null) }, LINEAR_GRADIENT,
                     AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value, null, null,
-                    ImmutableMethodImplementation(registers, code, null, null),
+                    ImmutableMethodImplementation(registers, builder, null, null),
                 )
-            }
+            } + listOf("keep", "keepAgain").take(setters).map { name ->
+                ImmutableMethod(
+                    GRADIENT_SPINNER, name, SETTER_PARAMETERS.map { ImmutableMethodParameter(it, null, null) }, "V",
+                    AccessFlags.PRIVATE.value or AccessFlags.FINAL.value, null, null,
+                    ImmutableMethodImplementation(registers, code(setterMakesItsOwn, returnsGradient = false, loop = setterLoops), null, null),
+                )
+            } + listOfNotNull(
+                ImmutableMethod(
+                    GRADIENT_SPINNER, "drawn", listOf(ImmutableMethodParameter("I", null, null)), "V",
+                    AccessFlags.PRIVATE.value or AccessFlags.FINAL.value, null, null,
+                    ImmutableMethodImplementation(registers, code(arrays = true, returnsGradient = false, loop = false), null, null),
+                ).takeIf { elsewhere },
+            )
             return ImmutableClassDef(
                 GRADIENT_SPINNER, AccessFlags.PUBLIC.value, "Landroid/view/View;",
                 null, null, null, null, methods,

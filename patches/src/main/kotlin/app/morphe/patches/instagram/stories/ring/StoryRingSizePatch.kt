@@ -58,9 +58,9 @@ val storyRingSizePatch = bytecodePatch(
         requireStatusMethod("storyRingSize")
         // Both are found before either is changed, so a build missing one is left as it was.
         val sizings = findRingSizes()
-        val gradient = findRingGradient()
+        val gradients = findRingGradients()
         scaleRingSizes(sizings)
-        colorRingGradient(gradient)
+        colorRingGradients(gradients)
         enableStatus("storyRingSize")
     }
 }

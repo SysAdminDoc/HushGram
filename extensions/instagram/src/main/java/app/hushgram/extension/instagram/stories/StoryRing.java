@@ -18,8 +18,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * around it all follow from that one size. The patch passes the size through {@link #size} wherever
  * Instagram settles it, so everything in the row grows or shrinks together.
  *
- * <p>The ring itself is one view that builds its gradient in one place, from the colors and stops
- * it was given. The patch passes those through {@link #colors} first, which swaps the colors of
+ * <p>The ring itself is one view that builds its gradient from the colors and stops it was given,
+ * in its static builder and, on most builds, in a setter of its own that the stories row goes
+ * through. The patch passes those through {@link #colors} first in each, which swaps the colors of
  * Instagram's own story gradient for the chosen ones. Nothing is kept: Instagram still holds its
  * own colors, and asks again each time a ring is measured or bound to another story.
  */
