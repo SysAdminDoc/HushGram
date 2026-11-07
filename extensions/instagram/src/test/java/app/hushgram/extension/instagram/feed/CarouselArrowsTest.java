@@ -711,6 +711,35 @@ public class CarouselArrowsTest {
         assertEquals(1f, instagramDots.getAlpha(), 0f);
     }
 
+    /** #527: the pill's frame closes the band Instagram keeps over a carousel's buttons for its dots, and off opens it. */
+    @Test
+    public void thePillClosesTheGapOverTheButtonsAndOffOpensIt() {
+        LinearLayout feed = (LinearLayout) footer.getParent();
+        feed.removeView(footer);
+        DotsGapTest.RecyclerView list = new DotsGapTest.RecyclerView(activity);
+        list.addView(footer, new FrameLayout.LayoutParams(WIDTH, FOOTER));
+        feed.addView(list, new LinearLayout.LayoutParams(WIDTH, FOOTER));
+        ((FrameLayout.LayoutParams) instagramDots.getLayoutParams()).gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        View like = new View(activity);
+        FrameLayout.LayoutParams under = new FrameLayout.LayoutParams(40, FOOTER - 8);
+        under.topMargin = 8;
+        footer.addView(like, under);
+        shadowOf(Looper.getMainLooper()).idle();
+
+        pillOn();
+        settle();
+
+        assertEquals(0f, instagramDots.getAlpha(), 0f);
+        assertEquals("pulled up by the band over the like button", -8, footer.getTop());
+
+        Settings.CAROUSEL_DOTS_PILL.save(false);
+        frame();
+        shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(0, footer.getTop());
+        assertEquals(1f, instagramDots.getAlpha(), 0f);
+    }
+
     @Test
     public void offTakesThePillAwayAndBringsInstagramsDotsBack() {
         pillOn();

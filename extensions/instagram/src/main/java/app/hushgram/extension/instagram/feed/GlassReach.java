@@ -147,7 +147,7 @@ final class GlassReach {
     }
 
     /** Whether [view] is a RecyclerView or a subclass of one, whatever Instagram named the subclass. */
-    private static boolean isRecycler(View view) {
+    static boolean isRecycler(View view) {
         for (Class<?> type = view.getClass(); type != null; type = type.getSuperclass()) {
             if (type.getSimpleName().equals("RecyclerView")) return true;
         }

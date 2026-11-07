@@ -339,6 +339,7 @@ public final class CarouselArrows {
         }
         pagers.clear();
         dots.clear();
+        DotsGap.openAll();
     }
 
     /**
@@ -432,6 +433,7 @@ public final class CarouselArrows {
             sessions.clear();
         }
         putBack();
+        DotsGap.resetForTests();
         kinds.clear();
         dotKinds.clear();
         turn = PATCHED;
@@ -572,6 +574,7 @@ public final class CarouselArrows {
             }
             // Set again each frame, in case Instagram set the dots' alpha back itself.
             if (dots != null && dots.getAlpha() != 0f) dots.setAlpha(0f);
+            if (dots != null) DotsGap.close(dots);
         }
 
         private static void show(View arrow, boolean shown) {
@@ -824,6 +827,7 @@ public final class CarouselArrows {
                     walk(owner.getWindow().getDecorView(), id, video, dotted, dotsId, new int[] {ReelCorners.MAX_VIEWS});
                 }
                 follow();
+                DotsGap.check();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.CAROUSEL_ARROWS, HOOK, failure);
             }
