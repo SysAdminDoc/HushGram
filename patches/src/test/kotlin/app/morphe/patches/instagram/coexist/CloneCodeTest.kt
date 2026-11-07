@@ -39,10 +39,12 @@ class CloneCodeTest {
     private val authorityLoads = mapOf(
         "386014704" to 38, "386014705" to 37, "386014712" to 39, "386014714" to 35, "386014718" to 39,
         "386014747" to 39, "386014757" to 37, "386014758" to 39, "386014759" to 37, "386014760" to 35,
+        "386014775" to 39,
     )
     private val keptLoads = mapOf(
         "386014704" to 87, "386014705" to 88, "386014712" to 88, "386014714" to 88, "386014718" to 88,
         "386014747" to 88, "386014757" to 88, "386014758" to 88, "386014759" to 88, "386014760" to 88,
+        "386014775" to 88,
     )
     private val uses = mapOf(
         SelfUse.INLINED to 5, SelfUse.PACKAGE_MANAGER to 7, SelfUse.OWN_INTENT to 9,
@@ -65,6 +67,7 @@ class CloneCodeTest {
     private val googlePlayUses = mapOf(
         "386014704" to 7, "386014705" to 7, "386014712" to 7, "386014714" to 7, "386014718" to 7,
         "386014747" to 7, "386014757" to 7, "386014758" to 7, "386014759" to 7, "386014760" to 7,
+        "386014775" to 7,
     )
 
     /** The uses in classes Redex leaves named, the same in every build. 453 renames the Play billing classes, so theirs count among the LX/ ones. */

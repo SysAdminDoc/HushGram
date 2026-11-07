@@ -50,10 +50,11 @@ internal object AppCompatibilities {
      * version code. Manager is told about every one, so a 32-bit phone is pointed at the
      * armeabi-v7a build rather than the arm64 one, which it can't install (#346).
      *
-     * Instagram ships 454.0.0.54.77 as ten builds (arm64 386014705, 386014712, 386014718,
-     * 386014747 and 386014758; armeabi-v7a 386014704 and 386014757; x86 386014759; x86_64
-     * 386014714 and 386014760). Manager takes one code per ABI, so each ABI's highest code is
-     * declared, the one Play hands that ABI, and the fixture tests read every build.
+     * Instagram ships 454.0.0.54.77 as many builds. The fixture tests read eleven: arm64 386014705,
+     * 386014712, 386014718, 386014747, 386014758 and 386014775; armeabi-v7a 386014704 and 386014757;
+     * x86 386014759; x86_64 386014714 and 386014760. Manager takes one code per ABI. Each ABI's
+     * highest code of the first ten is declared, the one Play handed that ABI then; 386014775 is a
+     * 360 to 480 dpi arm64 build that came out later, and the bundle fixture stays 386014758.
      */
     const val INSTAGRAM_TARGET_VERSION_CODE_ARMEABI_V7A = 386014757
     const val INSTAGRAM_TARGET_VERSION_CODE_X86 = 386014759
