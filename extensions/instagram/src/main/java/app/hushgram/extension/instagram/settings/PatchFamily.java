@@ -146,7 +146,7 @@ public enum PatchFamily {
     INBOX_SEARCH(FamilyNames.INBOX_SEARCH, "inboxSearch", null, Settings.HIDE_INBOX_SEARCH),
     INBOX_SUGGESTIONS(FamilyNames.INBOX_SUGGESTIONS, "inboxSuggestions", null, Settings.HIDE_INBOX_SUGGESTIONS),
     INSTANTS(FamilyNames.INSTANTS, "instants", null, Settings.HIDE_INSTANTS),
-    SHARE_SHEET(FamilyNames.SHARE_SHEET, "shareSheet", null, Settings.HIDE_SHARE_SHEET_GROUP),
+    SHARE_SHEET(FamilyNames.SHARE_SHEET, "shareSheet", null, Settings.HIDE_SHARE_SHEET_GROUP, Settings.HIDE_SHARE_SHEET_SEARCH),
     REPOST_BUTTON(FamilyNames.REPOST_BUTTON, "repostButton", null, Settings.HIDE_REPOST_BUTTON),
     HIDE_SHARE_BUTTON(FamilyNames.HIDE_SHARE_BUTTON, "hideShareButton", null, Settings.HIDE_SHARE_BUTTON),
     BOTTOM_SPACE(FamilyNames.BOTTOM_SPACE, "bottomSpace", null, Settings.REMOVE_BOTTOM_SPACE),

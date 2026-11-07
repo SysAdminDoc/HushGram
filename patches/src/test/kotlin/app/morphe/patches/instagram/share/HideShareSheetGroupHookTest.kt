@@ -19,6 +19,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -27,12 +29,15 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -42,7 +47,7 @@ class HideShareSheetGroupHookTest {
     /** Both hooks the patch writes are in the ShareSheet the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(HIDE_GROUP_BUTTON, HIDE_GROUP_ACTION, HIDE_GROUP_SEND)) {
+        for (hook in listOf(HIDE_GROUP_BUTTON, HIDE_GROUP_ACTION, HIDE_GROUP_SEND, HIDE_SEARCH_BOX)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -136,6 +141,36 @@ class HideShareSheetGroupHookTest {
         assertThrows(PatchException::class.java) { context.findShareSheet() }
     }
 
+    /** onViewCreated hands the search box to the extension right after it keeps the box it found (#545). */
+    @Test
+    fun theSearchBoxIsHandedOverRightAfterTheSheetKeepsIt() {
+        val context = PatchContexts.of(sheetClasses())
+
+        val site = context.findSearchBox()
+        assertEquals("onViewCreated", site.method.name)
+        assertEquals(1, site.at)
+        assertEquals(1, site.box)
+        context.hookSearchBox(site)
+
+        assertSearchBoxHooked("stand-in", context.mutableClassDefBy(SHARE_SHEET).methods.single { it.name == "onViewCreated" })
+    }
+
+    /** Two places keeping a found box is a sheet the patch hasn't seen: the switch stays out, the group buttons still go in. */
+    @Test
+    fun aSearchBoxKeptTwiceLeavesTheSwitchOut() {
+        val context = PatchContexts.of(sheetClasses(searchBoxWrites = 2))
+        assertThrows(PatchException::class.java) { context.findSearchBox() }
+        assertNull(context.findSearchBoxOrWarn())
+    }
+
+    /** A write of the field with no cast before it isn't the find, so there's nothing to hook. */
+    @Test
+    fun aSearchBoxNeverCastLeavesTheSwitchOut() {
+        val context = PatchContexts.of(sheetClasses(castsSearchBox = false))
+        assertThrows(PatchException::class.java) { context.findSearchBox() }
+        assertNull(context.findSearchBoxOrWarn())
+    }
+
     /** The show asks the extension first, and on a yes calls the hide with its session and returns. */
     @Test
     fun theGroupSendIsGuarded() {
@@ -209,9 +244,11 @@ class HideShareSheetGroupHookTest {
 
         val sites = context.findShareSheet()
         val send = context.findGroupSend()
+        val search = context.findSearchBox()
         context.guardGroupButton(sites.build)
         context.guardGroupAction(sites.reveals)
         context.guardGroupSend(send)
+        context.hookSearchBox(search)
 
         fun method(site: SheetMethod) = context.mutableClassDefBy(site.type).methods
             .single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
@@ -224,6 +261,28 @@ class HideShareSheetGroupHookTest {
         val guarded = context.mutableClassDefBy(SHARE_SHEET).methods.sumOf { m -> m.implementation!!.instructions.count { it.names(HIDE_GROUP_ACTION) } }
         assertEquals("$label: one guard per reveal and none elsewhere", sites.reveals.size, guarded)
         assertGroupSendGuarded("${label} ${send.show.name}", method(send.show), send.hide.name)
+        assertSearchBoxHooked("$label ${search.method.name}", method(search.method))
+        val handed = context.mutableClassDefBy(SHARE_SHEET).methods.sumOf { m -> m.implementation!!.instructions.count { it.names(HIDE_SEARCH_BOX) } }
+        assertEquals("$label: one search box hook and none elsewhere", 1, handed)
+    }
+
+    /**
+     * Right after the write keeping the found box in [STICKY_SEARCH_BOX], one range call hands the
+     * extension the register that write kept, and the write still has its cast before it.
+     */
+    private fun assertSearchBoxHooked(what: String, method: Method) {
+        val code = method.implementation!!.instructions.toList()
+        val hooks = code.indices.filter { code[it].names(HIDE_SEARCH_BOX) }
+        assertEquals("$what: hooks", 1, hooks.size)
+        val hook = hooks.single()
+        val kept = code[hook - 1]
+        assertEquals("$what: the write before it", Opcode.IPUT_OBJECT, kept.opcode)
+        assertTrue("$what: keeps the search box", kept.names("$SHARE_SHEET->$STICKY_SEARCH_BOX:$SEARCH_BOX"))
+        assertEquals("$what: the cast before that", SEARCH_BOX, (code[hook - 2] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: a range call", Opcode.INVOKE_STATIC_RANGE, code[hook].opcode)
+        val call = code[hook] as RegisterRangeInstruction
+        assertEquals("$what: one register", 1, call.registerCount)
+        assertEquals("$what: the kept box", (kept as TwoRegisterInstruction).registerA, call.startRegister)
     }
 
     /**
@@ -325,6 +384,8 @@ class HideShareSheetGroupHookTest {
             buildRegisters: Int = 9,
             inlined: Boolean = false,
             testsButton: Boolean = true,
+            searchBoxWrites: Int = 1,
+            castsSearchBox: Boolean = true,
         ): List<ClassDef> {
             // A0N(ViewStub, boolean, boolean), in nine registers on 449: this is v5, the stub v6.
             val build = listOfNotNull(
@@ -352,8 +413,14 @@ class HideShareSheetGroupHookTest {
                 },
                 ImmutableInstruction10x(Opcode.RETURN_VOID),
             )
-            val created = listOf(
-                ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 1, BUTTON),
+            // onViewCreated in five registers, this in v2: the found box cast and kept, as 454 does
+            // after requireViewById, then the button read.
+            val keep = listOfNotNull(
+                if (castsSearchBox) ImmutableInstruction21c(Opcode.CHECK_CAST, 1, ImmutableTypeReference(SEARCH_BOX)) else null,
+                ImmutableInstruction22c(Opcode.IPUT_OBJECT, 1, 2, BOX),
+            )
+            val created = (1..searchBoxWrites).flatMap { keep } + listOf(
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 2, BUTTON),
                 ImmutableInstruction10x(Opcode.RETURN_VOID),
             )
             // Inlined as 451's 385713073 has it: the same reveal in onActivityResult and onViewCreated, this in v2 of each.
@@ -365,7 +432,7 @@ class HideShareSheetGroupHookTest {
             } else {
                 listOf(
                     method("A0D", emptyList(), revealRegisters, reveal(revealRegisters - 1)),
-                    method("onViewCreated", parameters(VIEW, "Landroid/os/Bundle;"), 3, created),
+                    method("onViewCreated", parameters(VIEW, "Landroid/os/Bundle;"), 5, created),
                 )
             }
             val methods = listOfNotNull(

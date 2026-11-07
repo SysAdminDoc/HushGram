@@ -4,8 +4,11 @@
  */
 package app.hushgram.extension.instagram.share;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import android.view.View;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,6 +16,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -30,6 +34,31 @@ public class ShareSheetTest {
     @After
     public void switchBack() {
         Settings.HIDE_SHARE_SHEET_GROUP.resetToDefault();
+        Settings.HIDE_SHARE_SHEET_SEARCH.resetToDefault();
+    }
+
+    /** Hide the search bar takes the sheet's search bar away, and starts off so the bar stays (#545). */
+    @Test
+    public void theSearchBarGoesOnlyWhileItsSwitchIsOn() {
+        assertFalse(Settings.HIDE_SHARE_SHEET_SEARCH.defaultValue);
+        View box = new View(RuntimeEnvironment.getApplication());
+        ShareSheet.searchBox(box);
+        assertEquals(View.VISIBLE, box.getVisibility());
+
+        Settings.HIDE_SHARE_SHEET_SEARCH.save(true);
+        ShareSheet.searchBox(box);
+        assertEquals(View.GONE, box.getVisibility());
+    }
+
+    /** The group switch alone leaves the search bar, and a missing bar is no trouble. */
+    @Test
+    public void theGroupSwitchLeavesTheSearchBarAlone() {
+        View box = new View(RuntimeEnvironment.getApplication());
+        ShareSheet.searchBox(box);
+        assertEquals(View.VISIBLE, box.getVisibility());
+
+        Settings.HIDE_SHARE_SHEET_SEARCH.save(true);
+        ShareSheet.searchBox(null);
     }
 
     /** With the switch on, every group button stays away. */

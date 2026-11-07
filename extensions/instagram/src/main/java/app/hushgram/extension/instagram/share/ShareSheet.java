@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.share;
 
+import android.view.View;
+
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -20,7 +22,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * and {@link #hideGroupAction} right after each place the sheet shows the search box's own New
  * group action, which then turns that action off again. Once you pick people, the bar under the
  * sheet can also offer to send to them as a group, and the patch asks {@link #hideGroupSend}
- * before it shows that button.
+ * before it shows that button. Apart from the group switch, it hands {@link #searchBox} the sheet's
+ * search bar once the sheet has found it, for Hide the search bar.
  */
 public final class ShareSheet {
     private static volatile boolean logged;
@@ -47,6 +50,23 @@ public final class ShareSheet {
      */
     public static boolean hideGroupSend() {
         return hidden("group send");
+    }
+
+    /**
+     * Takes the share sheet's search bar away while Hide the search bar is on (#545). The patch calls
+     * this once the sheet has found the bar, and nothing in the sheet shows it again. Leaves the bar
+     * as it is before the settings are ready, with the switch off, or when anything goes wrong. Never
+     * throws.
+     */
+    public static void searchBox(View box) {
+        try {
+            HookStatus.invoked(FamilyNames.SHARE_SHEET);
+            if (box == null || !Utils.settingsReady() || !Settings.HIDE_SHARE_SHEET_SEARCH.get()) return;
+            box.setVisibility(View.GONE);
+            Logger.printDebug(() -> "Share sheet: hid the search bar");
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SHARE_SHEET, "search bar", failure);
+        }
     }
 
     /**

@@ -31,6 +31,8 @@ final class SharingCategory {
                         L10n.t("Leaves New group out of the share sheet, and the button that sends to the people you "
                                 + "picked as a group. Send separately stays, and you can still start a group from your messages.")));
                 sharing.addPreference(page.shareSheetButtonsRow(context));
+                sharing.addPreference(toggle(context, Settings.HIDE_SHARE_SHEET_SEARCH, L10n.t("Hide the search bar"),
+                        L10n.t("Takes the search bar off the top of the share sheet. The people you can send to still show.")));
             }
             if (build.contains(PatchFamily.REPOST_BUTTON)) {
                 sharing.addPreference(toggle(context, Settings.HIDE_REPOST_BUTTON, L10n.t("Hide the Repost button"),

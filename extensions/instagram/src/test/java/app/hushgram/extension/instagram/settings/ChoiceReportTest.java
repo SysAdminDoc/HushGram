@@ -69,13 +69,19 @@ public class ChoiceReportTest {
         try {
             Settings.HIDDEN_SHARE_SHEET_BUTTONS.save("copy_link");
             assertEquals("Hide group buttons on the share sheet: on (hushgram_hide_share_sheet_group=off,"
-                    + " hushgram_hidden_share_sheet_buttons=copy_link)", line(PatchFamily.SHARE_SHEET));
+                    + " hushgram_hide_share_sheet_search=off, hushgram_hidden_share_sheet_buttons=copy_link)", line(PatchFamily.SHARE_SHEET));
 
             Settings.HIDDEN_SHARE_SHEET_BUTTONS.save("");
             assertEquals("Hide group buttons on the share sheet: disabled by its switch (hushgram_hide_share_sheet_group=off,"
-                    + " hushgram_hidden_share_sheet_buttons=)", line(PatchFamily.SHARE_SHEET));
+                    + " hushgram_hide_share_sheet_search=off, hushgram_hidden_share_sheet_buttons=)", line(PatchFamily.SHARE_SHEET));
+
+            // Hide the search bar is a switch of the family too, so it alone makes the line say on (#545).
+            Settings.HIDE_SHARE_SHEET_SEARCH.save(true);
+            assertEquals("Hide group buttons on the share sheet: on (hushgram_hide_share_sheet_group=off,"
+                    + " hushgram_hide_share_sheet_search=on, hushgram_hidden_share_sheet_buttons=)", line(PatchFamily.SHARE_SHEET));
         } finally {
             Settings.HIDDEN_SHARE_SHEET_BUTTONS.resetToDefault();
+            Settings.HIDE_SHARE_SHEET_SEARCH.resetToDefault();
         }
     }
 

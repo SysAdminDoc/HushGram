@@ -1365,6 +1365,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_SHARE_SHEET_GROUP =
             new BooleanSetting("hushgram_hide_share_sheet_group", FALSE);
 
+    /** The search bar at the top of the share sheet (#545). Off to start. */
+    public static final BooleanSetting HIDE_SHARE_SHEET_SEARCH =
+            new BooleanSetting("hushgram_hide_share_sheet_search", FALSE);
+
     /**
      * The buttons the share sheet leaves out of its row of round buttons under the people, by the
      * name the sheet gives each, comma separated ({@link app.hushgram.extension.instagram.share.ShareSheetActions},
