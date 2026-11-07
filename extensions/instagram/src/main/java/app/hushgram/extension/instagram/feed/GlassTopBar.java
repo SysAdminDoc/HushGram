@@ -246,6 +246,8 @@ public final class GlassTopBar {
         int base = Color.BLACK;
         /** Takes Home's feed behind the status bar (#462). Null for a chat's header. */
         @Nullable private final GlassReach reach;
+        /** Whether the hairline runs along the bottom: Home's header has it, a chat's runs on into the messages (#537). */
+        final boolean lined;
         private boolean described;
         /** How far the glass reaches past the header's top and bottom edges, to cover the status bar. */
         int above;
@@ -272,6 +274,7 @@ public final class GlassTopBar {
             this.header = header;
             this.enabled = enabled;
             this.family = family;
+            this.lined = !FamilyNames.GLASS_CHAT.equals(family);
             this.frost = new Frost(this, header.getResources().getDisplayMetrics().density);
             this.reach = FamilyNames.HOME_TOP_BAR.equals(family) ? new GlassReach() : null;
         }
@@ -526,7 +529,7 @@ public final class GlassTopBar {
         }
     }
 
-    /** The header's background while the glass is on: the blur, the tint over it and the hairline. */
+    /** The header's background while the glass is on: the blur, the tint over it and, on Home, the hairline. */
     static final class Frost extends Drawable {
         final Glass glass;
         private final Paint paint = new Paint();
@@ -549,6 +552,7 @@ public final class GlassTopBar {
             boolean blurred = glass.drawBackdrop(canvas, area);
             paint.setColor(GlassTabBar.tint(base, blurred, GlassTabBar.opacityScale()));
             canvas.drawRect(area, paint);
+            if (!glass.lined) return;
             paint.setColor(hairline(base));
             canvas.drawRect(area.left, area.bottom - hairline, area.right, area.bottom, paint);
         }

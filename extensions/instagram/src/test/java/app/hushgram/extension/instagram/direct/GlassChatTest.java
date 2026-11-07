@@ -12,6 +12,8 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -29,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import java.util.HashMap;
@@ -240,6 +243,68 @@ public class GlassChatTest {
         frame();
         assertTrue(GlassTopBar.showing(header));
         assertTrue(hasDisc(back));
+    }
+
+    /** A chat's header has no line along its bottom: its glass runs on into the messages (#537). */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void aChatsHeaderHasNoLineAlongItsBottom() {
+        Settings.GLASS_CHAT.save(true);
+        frame();
+        assertTrue(GlassTopBar.showing(header));
+
+        Bitmap bitmap = Bitmap.createBitmap(100, 50, Bitmap.Config.ARGB_8888);
+        Drawable frost = header.getBackground();
+        frost.setBounds(0, 0, 100, 50);
+        frost.draw(new Canvas(bitmap));
+
+        assertEquals("the bottom row is the glass, not a line", bitmap.getPixel(50, 20), bitmap.getPixel(50, 49));
+    }
+
+    /**
+     * The discs are glass like the tab bar's (#537, #542), not flat grey: on a dark screen the rim is lit at
+     * the top left and again, less, at the bottom right, and a sheen runs down from the top. 44 dp at a
+     * density of 3 is 132 px across, a radius of 66 round (75, 75), with a rim 3 px wide just inside it.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void aDarkDiscIsLitAlongItsRimAndAcrossItsTop() {
+        Bitmap bitmap = Bitmap.createBitmap(150, 150, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(Color.BLACK);
+        GlassChat.Disc disc = new GlassChat.Disc(true, 3f);
+        disc.setBounds(0, 0, 150, 150);
+        disc.draw(canvas);
+
+        int topLeft = Color.red(bitmap.getPixel(29, 29));
+        int topRight = Color.red(bitmap.getPixel(120, 29));
+        int bottomRight = Color.red(bitmap.getPixel(120, 120));
+        assertTrue("lit at the top left: " + topLeft + " against " + topRight, topLeft > topRight + 40);
+        assertTrue("lit again at the bottom right: " + bottomRight + " against " + topRight, bottomRight > topRight + 20);
+        int high = Color.red(bitmap.getPixel(75, 30));
+        int low = Color.red(bitmap.getPixel(75, 110));
+        assertTrue("the sheen at the top: " + high + " against " + low, high > low + 15);
+        assertEquals("nothing past the disc", Color.BLACK, bitmap.getPixel(2, 2));
+    }
+
+    /** On a light screen the glass is frosted white over the header, with a soft shadow just under it. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void aLightDiscIsFrostedWhiteWithAShadowUnderIt() {
+        int under = 0xffdddddd;
+        Bitmap bitmap = Bitmap.createBitmap(150, 150, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(under);
+        GlassChat.Disc disc = new GlassChat.Disc(false, 3f);
+        disc.setBounds(0, 0, 150, 150);
+        disc.draw(canvas);
+
+        assertTrue("whiter than the header in the middle", Color.red(bitmap.getPixel(75, 75)) > Color.red(under));
+        assertTrue("the shadow just under the glass", Color.red(bitmap.getPixel(75, 140)) < Color.red(under));
+        assertEquals("nothing past the disc", under, bitmap.getPixel(2, 2));
     }
 
     @Test

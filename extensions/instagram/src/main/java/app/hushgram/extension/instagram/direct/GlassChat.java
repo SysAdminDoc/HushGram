@@ -10,9 +10,11 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
@@ -73,11 +75,26 @@ public final class GlassChat {
     static final long SEARCH_EVERY_MS = 400L;
     /** The disc's diameter, in dp, at most: a button's touch area can be larger than the circle drawn on it. */
     static final int DISC_DP = 44;
-    /** The disc's fill and its ring on a dark screen and on a light one. */
-    static final int FILL_DARK = 0x26ffffff;
-    static final int RING_DARK = 0x33ffffff;
-    static final int FILL_LIGHT = 0x14000000;
-    static final int RING_LIGHT = 0x24000000;
+    /**
+     * The disc's glass on a dark screen and on a light one (#537, #542), the liquid tab bar's look: a light fill
+     * over the header's blur, frosted white on a light screen, and a sheen down from its top.
+     */
+    static final int FILL_DARK = 0x1fffffff;
+    static final int FILL_LIGHT = 0x8cffffff;
+    static final int SHEEN_DARK = 0x2effffff;
+    static final int SHEEN_LIGHT = 0x73ffffff;
+    /**
+     * The rim, lit where the light falls at the top left, faint across the sides and lit again, less, at the
+     * bottom right, the way the light runs round the edge of a glass bead.
+     */
+    static final int RIM_LIT_DARK = 0xb3ffffff;
+    static final int RIM_FAINT_DARK = 0x14ffffff;
+    static final int RIM_BACK_DARK = 0x59ffffff;
+    static final int RIM_LIT_LIGHT = 0xffffffff;
+    static final int RIM_FAINT_LIGHT = 0x1a000000;
+    static final int RIM_BACK_LIGHT = 0x29000000;
+    /** The soft shadow under light glass, which has little to stand out against, as the tab bar's has. */
+    static final int SHADE_LIGHT = 0x1f000000;
 
     private static boolean registered;
     private static WeakReference<Activity> watched = new WeakReference<>(null);
@@ -246,21 +263,33 @@ public final class GlassChat {
         searchedAt = -SEARCH_EVERY_MS;
     }
 
-    /** The disc: a round, faintly lit fill with a ring, as wide as the button up to {@link #DISC_DP}. */
+    /**
+     * The disc: a round piece of glass as wide as the button up to {@link #DISC_DP}, over the header's blur. A
+     * light fill, a sheen down from the top and a rim lit at the top left and the bottom right, with a soft
+     * shadow under it on a light screen.
+     */
     static final class Disc extends Drawable {
         boolean night;
         private final float density;
         private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint sheen = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint shade = new Paint(Paint.ANTI_ALIAS_FLAG);
+        /** Where the gradients were last made for, so a still disc doesn't make them every frame. */
+        private float shapedX = Float.NaN;
+        private float shapedY = Float.NaN;
+        private float shapedRadius = Float.NaN;
+        private boolean shapedNight;
 
         Disc(boolean night, float density) {
             this.night = night;
             this.density = density;
-            ring.setStyle(Paint.Style.STROKE);
-            ring.setStrokeWidth(Math.max(1f, density / 2f));
+            rim.setStyle(Paint.Style.STROKE);
+            rim.setStrokeWidth(Math.max(1f, density));
+            shade.setColor(SHADE_LIGHT);
         }
 
-        /** The diameter drawn in [bounds]. */
+        /** The diameter drawn in [bounds], its shadow included. */
         float diameter(Rect bounds) {
             return Math.min(Math.min(bounds.width(), bounds.height()), DISC_DP * density);
         }
@@ -269,11 +298,37 @@ public final class GlassChat {
         public void draw(Canvas canvas) {
             Rect bounds = getBounds();
             if (bounds.isEmpty()) return;
+            float x = bounds.exactCenterX();
+            float y = bounds.exactCenterY();
             float radius = diameter(bounds) / 2f;
+            if (!night) {
+                // The shadow sits a little low and the glass a little in from it, so both stay in the button.
+                canvas.drawCircle(x, y + density / 2f, radius - density / 2f, shade);
+                radius -= density;
+            }
+            if (radius <= 0f) return;
+            shape(x, y, radius);
             fill.setColor(night ? FILL_DARK : FILL_LIGHT);
-            ring.setColor(night ? RING_DARK : RING_LIGHT);
-            canvas.drawCircle(bounds.exactCenterX(), bounds.exactCenterY(), radius, fill);
-            canvas.drawCircle(bounds.exactCenterX(), bounds.exactCenterY(), radius - ring.getStrokeWidth() / 2f, ring);
+            canvas.drawCircle(x, y, radius, fill);
+            canvas.drawCircle(x, y, radius, sheen);
+            canvas.drawCircle(x, y, radius - rim.getStrokeWidth() / 2f, rim);
+        }
+
+        /** Makes the sheen's and the rim's gradients again when the disc moved, changed size or changed shade. */
+        private void shape(float x, float y, float radius) {
+            if (x == shapedX && y == shapedY && radius == shapedRadius && night == shapedNight) return;
+            shapedX = x;
+            shapedY = y;
+            shapedRadius = radius;
+            shapedNight = night;
+            sheen.setShader(new LinearGradient(0f, y - radius, 0f, y + radius * 0.2f,
+                    night ? SHEEN_DARK : SHEEN_LIGHT, 0x00ffffff, Shader.TileMode.CLAMP));
+            float corner = radius * 0.7071f;
+            int[] colors = night
+                    ? new int[] {RIM_LIT_DARK, RIM_FAINT_DARK, RIM_FAINT_DARK, RIM_BACK_DARK}
+                    : new int[] {RIM_LIT_LIGHT, RIM_FAINT_LIGHT, RIM_FAINT_LIGHT, RIM_BACK_LIGHT};
+            rim.setShader(new LinearGradient(x - corner, y - corner, x + corner, y + corner,
+                    colors, new float[] {0f, 0.4f, 0.6f, 1f}, Shader.TileMode.CLAMP));
         }
 
         @Override public void setAlpha(int alpha) { }

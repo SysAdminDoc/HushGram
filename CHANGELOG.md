@@ -25,6 +25,7 @@ Every HushGram release, newest first.
 * **Tooling:** Morphe Desktop 2.1.1 now has its reviewed advisory exceptions, so the audit accepts it.
 * With `Keep a seek bar on Reels` on, Instagram's own track now glides between position updates too, and a round handle stays on the line's end. Reported in #10.
 * `Pure black dark mode` now turns the menu you get by holding a message, or a chat in your inbox, black too. Asked for in #543.
+* `Glass in chats` gives the back, call and video buttons real glass circles that match the liquid tab bar, with a lit rim and a sheen over the blurred header instead of flat grey. The thin line along the bottom of a chat's top bar is gone too, so the glass runs straight into the messages. Asked for in #537 and #542.
 
 ### Bug Fixes
 
