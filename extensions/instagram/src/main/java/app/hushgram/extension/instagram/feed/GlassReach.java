@@ -54,11 +54,20 @@ final class GlassReach {
     }
 
     /**
-     * Pulls the views [source] draws before its child at [index] up behind the status bar, once. Says
-     * how far, 0 when Home isn't laid out below the status bar or nothing could be pulled.
+     * Pulls the views [source] draws before its child at [index] up behind the status bar, once, and
+     * keeps every parent from [header]'s up to the window's top from clipping. A parent still clipping
+     * [header] would cut the glass off at its top edge, with the feed running sharp behind the clock
+     * above it (#513). Says how far, 0 when Home isn't laid out below the status bar or nothing could
+     * be pulled.
      */
-    int reach(ViewGroup source, int index) {
-        if (gap > 0) return gap;
+    int reach(View header, ViewGroup source, int index) {
+        if (gap > 0) {
+            // A parent can get its clip back, from Instagram or a layout it sets again.
+            for (ViewGroup group : unclipped.keySet()) {
+                if (group.getClipChildren()) group.setClipChildren(false);
+            }
+            return gap;
+        }
         int status = insets.applyAsInt(source);
         if (status <= 0 || index <= 0) return 0;
         View top = frameOf(source, status);
@@ -70,7 +79,7 @@ final class GlassReach {
                     && child.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) feeds.add(child);
         }
         if (feeds.isEmpty()) return 0;
-        for (View at = source; ; at = (View) at.getParent()) {
+        for (View at = (View) header.getParent(); ; at = (View) at.getParent()) {
             unclip((ViewGroup) at);
             if (at == top) break;
         }
@@ -164,7 +173,8 @@ final class GlassReach {
         View top = frame;
         float y = 0f;
         View at = header;
-        for (int depth = 0; top != null && at != top && depth <= DEPTH; depth++) {
+        // The parent at the window's top is up to DEPTH above the host, itself up to HOST_DEPTH above the header.
+        for (int depth = 0; top != null && at != top && depth <= DEPTH + GlassTopBar.HOST_DEPTH; depth++) {
             y += at.getY();
             ViewParent up = at.getParent();
             if (!(up instanceof View)) return Integer.MIN_VALUE;
@@ -172,6 +182,19 @@ final class GlassReach {
             if (at != top) y -= at.getScrollY();
         }
         return at == top ? Math.round(y) : Integer.MIN_VALUE;
+    }
+
+    /** Each parent of [view] up to the window's top, its class, height and whether it clips, for the debug log. */
+    static String parents(View view) {
+        StringBuilder found = new StringBuilder();
+        ViewParent up = view.getParent();
+        for (int depth = 0; up instanceof ViewGroup && depth <= DEPTH + GlassTopBar.HOST_DEPTH; depth++) {
+            ViewGroup group = (ViewGroup) up;
+            found.append(group.getClass().getSimpleName()).append(' ').append(group.getHeight())
+                    .append(group.getClipChildren() ? " clips, " : ", ");
+            up = group.getParent();
+        }
+        return found.toString();
     }
 
     /** Puts everything back as Instagram had it. */

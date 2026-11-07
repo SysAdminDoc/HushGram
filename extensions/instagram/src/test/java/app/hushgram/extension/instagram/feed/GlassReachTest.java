@@ -266,6 +266,11 @@ public class GlassReachTest {
         assertFalse(feedList.getClipToPadding());
         assertEquals("the header stays below the clock", STATUS, windowTop(header));
         assertArrayEquals(new int[] {STATUS, 0}, GlassTopBar.reach(header));
+        assertFalse("the wrapper lets the header's glass past its top edge", wrapper.getClipChildren());
+
+        wrapper.setClipChildren(true);
+        frame();
+        assertFalse("and keeps doing so if it gets its clip back", wrapper.getClipChildren());
 
         feedList.addView(new View(context), new FrameLayout.LayoutParams(MATCH, 400));
         frame();
@@ -273,9 +278,43 @@ public class GlassReachTest {
 
         Settings.SEE_THROUGH_HOME_TOP_BAR.save(false);
         frame();
+        assertTrue("off, the wrapper clips again", wrapper.getClipChildren());
         assertEquals(STATUS, windowTop(sticky));
         assertEquals(STATUS, windowTop(feedList));
         assertEquals(0, feedList.getPaddingTop());
         assertTrue(feedList.getClipToPadding());
+    }
+
+    /** Wrappers round the header and many parents between Home and the window's top: the glass still gets there. */
+    @Test
+    public void aLongChainOfParentsStillReachesTheWindowsTop() {
+        Context context = screen.getContext();
+        source.removeView(header);
+        FrameLayout outer = new FrameLayout(context);
+        FrameLayout at = outer;
+        for (int depth = 0; depth < GlassTopBar.HOST_DEPTH - 2; depth++) {
+            FrameLayout inner = new FrameLayout(context);
+            at.addView(inner, new FrameLayout.LayoutParams(MATCH, HEADER));
+            at = inner;
+        }
+        at.addView(header, new FrameLayout.LayoutParams(MATCH, HEADER));
+        source.addView(outer, new FrameLayout.LayoutParams(MATCH, HEADER));
+        panel.removeView(source);
+        FrameLayout down = panel;
+        for (int depth = 0; depth < 13; depth++) {
+            FrameLayout next = new FrameLayout(context);
+            down.addView(next, new FrameLayout.LayoutParams(MATCH, MATCH));
+            down = next;
+        }
+        down.addView(source, new FrameLayout.LayoutParams(MATCH, MATCH));
+        layout();
+
+        glaze();
+
+        assertEquals(0, windowTop(feed));
+        assertArrayEquals(new int[] {STATUS, 0}, GlassTopBar.reach(header));
+        for (ViewGroup group = (ViewGroup) header.getParent(); group != screen; group = (ViewGroup) group.getParent()) {
+            assertFalse(group.getClipChildren());
+        }
     }
 }

@@ -22,6 +22,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * `Phone layout on big screens` now takes the rail down the side away too. It only changed Home's header on 454, since Instagram's main screen asks a second copy of the width check. Reported in #515.
+* `See-through top bar` now reaches up behind the clock again instead of stopping at the header's top edge. Reported in #513.
 
 ## 0.0.19 (2026-11-06)
 

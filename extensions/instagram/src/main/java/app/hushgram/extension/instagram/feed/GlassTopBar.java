@@ -40,6 +40,7 @@ import app.hushgram.extension.instagram.misc.GlassBlur;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -70,6 +71,8 @@ public final class GlassTopBar {
     static final int HAIRLINE_LIGHT = 0x1f000000;
     /** How deep under the header a view as wide as it is has its background taken off. */
     private static final int CLEAR_DEPTH = 3;
+    /** How many parents up from the header the one drawing the feed before it is looked for. */
+    static final int HOST_DEPTH = 6;
 
     /** Headers already given the glass. Weak, so a header Home lets go of goes with it. Main thread. */
     private static final Set<View> GLAZED = Collections.newSetFromMap(new WeakHashMap<>());
@@ -146,7 +149,7 @@ public final class GlassTopBar {
     static View host(View header) {
         View at = header;
         int tall = Math.max(1, header.getHeight());
-        for (int depth = 0; depth < 6; depth++) {
+        for (int depth = 0; depth < HOST_DEPTH; depth++) {
             ViewParent up = at.getParent();
             if (!(up instanceof ViewGroup)) return null;
             if (((ViewGroup) up).getHeight() > 2 * tall) return at;
@@ -198,6 +201,7 @@ public final class GlassTopBar {
         int base = Color.BLACK;
         /** Takes Home's feed behind the status bar (#462). Null for a chat's header. */
         @Nullable private final GlassReach reach;
+        private boolean described;
         /** How far the glass reaches past the header's top and bottom edges, to cover the status bar. */
         int above;
         int below;
@@ -293,9 +297,13 @@ public final class GlassTopBar {
             below = 0;
             if (reach == null || host == null || !(host.getParent() instanceof ViewGroup)) return;
             ViewGroup source = (ViewGroup) host.getParent();
-            int gap = reach.reach(source, source.indexOfChild(host));
+            int gap = reach.reach(header, source, source.indexOfChild(host));
             if (gap <= 0) return;
             int top = reach.headerTop(header);
+            if (!described) {
+                described = true;
+                Logger.printDebug(() -> "Top bar glass: feed pulled up " + gap + ", header at " + top + ", parents " + GlassReach.parents(header));
+            }
             if (top == Integer.MIN_VALUE) return;
             // From the window's top edge down, even with the header slid partly away.
             above = Math.max(0, top);
