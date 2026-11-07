@@ -14,10 +14,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -97,17 +99,28 @@ public final class ChatMediaWalk {
         }
 
         @Override @Nullable public Object plainPage(Object message) {
-            return plainItem(factory, message);
+            Object page = plainItem(factory, message);
+            if (page == null) Logger.printDebug(() -> "Chat media walk: no page for a plain photo or video");
+            return page;
         }
 
         @Override @Nullable public Object sharedPage(Object message) {
             Object media = legacyMedia(message);
             if (media == null) {
                 Object attachment = attachment(message);
-                if (attachment == null || previewId(attachment) <= 0L || preview(attachment) == null) return null;
+                if (attachment == null || previewId(attachment) <= 0L || preview(attachment) == null) {
+                    Logger.printDebug(() -> "Chat media walk: a shared post with no preview, attachment " + (attachment != null));
+                    return null;
+                }
                 media = previewMedia(session, attachment);
             }
-            return media == null ? null : sharedItem(factory, message, media);
+            if (media == null) {
+                Logger.printDebug(() -> "Chat media walk: no media made from a shared post's attachment");
+                return null;
+            }
+            Object page = sharedItem(factory, message, media);
+            if (page == null) Logger.printDebug(() -> "Chat media walk: no page for a shared post's media");
+            return page;
         }
 
         @Override @Nullable public String id(Object page) {
@@ -139,7 +152,11 @@ public final class ChatMediaWalk {
         opening = false;
         try {
             HookStatus.invoked(FamilyNames.CHAT_MEDIA_WALK);
-            if (viewer == null || key == null || tapped == null || tapped.size() != 1 || index != 0) return tapped;
+            if (viewer == null || key == null || tapped == null || tapped.size() != 1 || index != 0) {
+                Logger.printDebug(() -> "Chat media walk: left alone, " + (tapped == null ? "no" : tapped.size())
+                        + " pages tapped at " + index + ", chat known " + (key != null));
+                return tapped;
+            }
             if (!Utils.settingsReady() || !Settings.SWIPE_CHAT_MEDIA.get()) return tapped;
             Object page = tapped.get(0);
             if (page == null) return tapped;
@@ -167,7 +184,10 @@ public final class ChatMediaWalk {
     static List<Object> pages(Messages chat, Object key, Object tapped) {
         String tappedId = chat.id(tapped);
         List<?> thread = tappedId == null ? null : chat.thread(key);
-        if (thread == null) return null;
+        if (thread == null) {
+            Logger.printDebug(() -> "Chat media walk: no walk, tapped page has an id " + (tappedId != null) + ", chat not read");
+            return null;
+        }
         List<Object> pictures = new ArrayList<>();
         for (Object message : thread) {
             if (message != null && isPicture(chat, message)) pictures.add(message);
@@ -184,9 +204,24 @@ public final class ChatMediaWalk {
             }
             pages.add(page);
         }
+        int found = slot;
+        Logger.printDebug(() -> "Chat media walk: " + thread.size() + " messages, " + kinds(chat, thread) + ", "
+                + pictures.size() + " with pictures, " + pages.size() + " pages, tapped slot " + found);
         if (slot < 0 || pages.size() < 2) return null;
         start = slot;
         return pages;
+    }
+
+    /** How many of each kind of message a chat has, for the log. A kind's name says nothing about what's in it. */
+    private static Map<String, Integer> kinds(Messages chat, List<?> thread) {
+        Map<String, Integer> kinds = new TreeMap<>();
+        for (Object message : thread) {
+            String kind = message == null ? null : chat.kind(message);
+            String name = kind == null ? "unknown" : kind;
+            Integer seen = kinds.get(name);
+            kinds.put(name, seen == null ? 1 : seen + 1);
+        }
+        return kinds;
     }
 
     private static boolean isPicture(Messages chat, Object message) {
