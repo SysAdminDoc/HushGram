@@ -19,6 +19,63 @@
           "optional": []
         }
       ]
+    },
+    {
+      "package": "com.instagram.android",
+      "versionName": "454.0.0.54.77",
+      "versionCode": "386014757",
+      "families": [
+        {
+          "family": "sanitizeSharingLinks",
+          "patch": "Sanitize sharing links",
+          "targets": ["permalink parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],
+          "optional": []
+        },
+        {
+          "family": "translatedStart",
+          "patch": "Start on x86 devices",
+          "targets": ["code protection call 1", "code protection call 2"],
+          "optional": []
+        }
+      ]
+    },
+    {
+      "package": "com.instagram.android",
+      "versionName": "454.0.0.54.77",
+      "versionCode": "386014759",
+      "families": [
+        {
+          "family": "sanitizeSharingLinks",
+          "patch": "Sanitize sharing links",
+          "targets": ["permalink parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],
+          "optional": []
+        },
+        {
+          "family": "translatedStart",
+          "patch": "Start on x86 devices",
+          "targets": ["code protection call 1", "code protection call 2"],
+          "optional": []
+        }
+      ]
+    },
+    {
+      "package": "com.instagram.android",
+      "versionName": "454.0.0.54.77",
+      "versionCode": "386014760",
+      "families": [
+        {
+          "family": "sanitizeSharingLinks",
+          "patch": "Sanitize sharing links",
+          "targets": ["permalink parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],
+          "optional": []
+        },
+        {
+          "family": "translatedStart",
+          "patch": "Start on x86 devices",
+          "targets": ["code protection call 1", "code protection call 2"],
+          "optional": []
+        }
+      ]
     }
   ]
 }
