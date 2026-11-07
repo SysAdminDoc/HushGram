@@ -1425,13 +1425,23 @@ public final class MediaSave {
     /**
      * Whether [video] suits [quality] better than the single file [fallback] of quality
      * [fallbackQuality]: at the best quality a larger picture, below it a nearer fit. On a tie the
-     * single file wins, one fetch and no join.
+     * single file wins, one fetch and no join, unless the picture runs smoother than
+     * [FILE_FRAME_RATE]: a single file doesn't say its frame rate, and a 60 fps story or reel's
+     * file of the same size saves at 30 (#546).
      */
     private static boolean beatsFile(DashManifest.Track video, Rendition fallback, int fallbackQuality,
             DownloadQuality quality) {
-        if (quality == DownloadQuality.BEST) return video.shortSide() > fallbackQuality;
-        return fallback == null || quality.compare(video.quality(), fallbackQuality) < 0;
+        boolean smoother = video.frameRate > FILE_FRAME_RATE;
+        if (quality == DownloadQuality.BEST) {
+            return video.shortSide() > fallbackQuality || (smoother && video.shortSide() == fallbackQuality);
+        }
+        if (fallback == null) return true;
+        int nearer = quality.compare(video.quality(), fallbackQuality);
+        return nearer < 0 || (smoother && nearer == 0);
     }
+
+    /** The frame rate a single file is taken to run at, which it never states (#546). */
+    static final int FILE_FRAME_RATE = 30;
 
     /**
      * The DASH save of [video] and [audio], then the single file [fallback] when that fails. Not

@@ -389,6 +389,33 @@ public class ConvertSaveTest {
     }
 
     /**
+     * #546: at the best quality a DASH picture smoother than 30 fps beats a single file of its
+     * size, which saved a 60 fps story at 30. At 30 fps or with no rate stated the file still wins
+     * a tie, and a smaller smooth picture still loses to a bigger file.
+     */
+    @Test
+    public void atOneSizeASmootherPictureBeatsTheSingleFile() {
+        String vp9 = "vp09.00.41.08";
+        MediaSave.DashChoice smooth = tie(vp9, 1080, 60);
+        assertTrue("the 60 fps picture beats the 1080p file", smooth.taken != null);
+        assertEquals(60, smooth.taken.video.frameRate);
+        assertEquals("its sound is joined", "mp4a.40.2", smooth.taken.audio.codecs);
+        assertNull("30 fps leaves the tie to the file", tie(vp9, 1080, 30).taken);
+        assertNull("no stated rate leaves the tie to the file", tie(vp9, 1080, 0).taken);
+        assertNull("a smaller smooth picture loses to the bigger file", tie(vp9, 720, 60).taken);
+        assertTrue("a bigger picture wins at any rate", tie(vp9, 1440, 30).taken != null);
+    }
+
+    /** The choice at the best quality between [codecs] at [shortSide] and [frameRate] fps and the 1080p single file. */
+    private static MediaSave.DashChoice tie(String codecs, int shortSide, int frameRate) {
+        String video = representation(codecs, shortSide, shortSide * 16 / 9, 4_000_000, shortSide + "p", "v" + shortSide);
+        if (frameRate > 0) video = video.replace("<Representation ", "<Representation frameRate=\"" + frameRate + "\" ");
+        String manifest = manifest(video, sound("mp4a.40.2", 128_000, "aac"));
+        return MediaSave.DashChoice.of(DashManifest.parse(manifest), SavesForTests.renditions(FULL),
+                DownloadQuality.BEST, false, false, null);
+    }
+
+    /**
      * #242: the same reel with both switches off. A default save would mux the manifest's only
      * sound, xHE-AAC, which many gallery apps play silent. The best picture is kept as it is and
      * joined with the 720p file's AAC sound, no transcode and no new switch. Refused before it
