@@ -1006,6 +1006,16 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.CommentEmojiRowSettingsTest" to listOf(
                 "missingPatchHasNoSwitch", "aloneItStillGetsComments", "switchStartsOffUnderCommentsAndHonorsPause"
             ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.feed.CommentGifsTest" to listOf(
+                "offToStartLeavesEverythingAlone", "onDropsACommentWithNothingButAPicture",
+                "onKeepsACommentWithWordsOrNoPicture", "onTakesThePictureOffAKeptComment",
+                "onTakesOnlyTheGifKindOffTheBox", "onTakesTheOlderLayoutsButtonOff", "pausedReadsAsOff",
+                "aFailingSetStaysAsItCameAndIsReported"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.CommentGifsSettingsTest" to listOf(
+                "missingPatchHasNoSwitch", "aloneItStillGetsComments", "flippingOnReachesTheScreenUnderSettings",
+                "switchStartsOffUnderCommentsAndHonorsPause"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.feed.CommentKeyboardTest" to listOf(
                 "offToStartBringsTheKeyboardUp", "onKeepsItDownEachTime", "pausedAndUnreadyBringItUp",
                 "aThrowingSwitchBringsItUpAndIsReported"

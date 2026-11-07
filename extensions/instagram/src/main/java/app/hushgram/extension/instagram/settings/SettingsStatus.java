@@ -422,6 +422,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean commentGifs() {
+        return false;
+    }
+
     public static boolean commentKeyboard() {
         return false;
     }

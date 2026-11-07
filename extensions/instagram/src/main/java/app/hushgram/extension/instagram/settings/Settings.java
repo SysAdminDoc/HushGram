@@ -2274,6 +2274,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_comment_emoji_row", FALSE);
 
     /**
+     * Comments lose their GIFs and stickers and the comment box its GIF button
+     * ({@link app.hushgram.extension.instagram.feed.CommentGifs}). Read as each comment's row is
+     * built and each frame of a resumed screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_COMMENT_GIFS =
+            new BooleanSetting("hushgram_hide_comment_gifs", FALSE);
+
+    /**
      * The comment sheet opens without bringing the keyboard up on its own
      * ({@link app.hushgram.extension.instagram.feed.CommentKeyboard}). A tap in the box still brings
      * it up. Read each time a sheet opens, so it needs no restart. Off to start.

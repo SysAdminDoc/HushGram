@@ -464,7 +464,8 @@
           "Save comment photo",
           "Hide comments",
           "Hide the comment emoji row",
-          "Open comments without the keyboard"
+          "Open comments without the keyboard",
+          "Hide GIFs in comments"
         ]
       },
       "anchors": [

@@ -2893,6 +2893,18 @@ first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->seekTo(Ljava/
 # patch wrote. HideCommentEmojiRowPatchTest checks the call, its register and the branch on all
 # the three 452 builds.
 once-call Lapp/hushgram/extension/instagram/feed/CommentEmojiRow;->hidesRow(I)Z holding replying_to_bar group_mention_banner
+# Hide GIFs in comments (#511) asks CommentGifs before the comment row builder does anything, the one
+# method loading both keys below (LX/0JCn.A00 on 454's 386014758): hiding, then dropsComment with the
+# raw comment's GIF, its media's GIF and its words, answering null for no row. keptGif takes the GIF the
+# builder reads on a comment that stays, and hidesMedia clears a sticker's media and string before the
+# row media's constructor. composerTypes takes the GIF kind from the set the comment box's state keeps.
+# Left out, GIFs stay with the switch on; twice or elsewhere, it isn't the call the patch wrote.
+# HideCommentGifsPatchTest checks each call, its registers and what follows it on every build.
+once-call Lapp/hushgram/extension/instagram/feed/CommentGifs;->hiding()Z holding photo_comment_child_missing_overlay_info \ssourceMediaId=
+once-call Lapp/hushgram/extension/instagram/feed/CommentGifs;->dropsComment(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)Z holding photo_comment_child_missing_overlay_info \ssourceMediaId=
+once-call Lapp/hushgram/extension/instagram/feed/CommentGifs;->keptGif(Ljava/lang/Object;)Ljava/lang/Object; holding photo_comment_child_missing_overlay_info \ssourceMediaId=
+once-call Lapp/hushgram/extension/instagram/feed/CommentGifs;->hidesMedia(Ljava/lang/Object;)Z holding photo_comment_child_missing_overlay_info \ssourceMediaId=
+first-call Lapp/hushgram/extension/instagram/feed/CommentGifs;->composerTypes(Ljava/util/Set;)Ljava/util/Set; outside Lapp/hushgram/extension/
 # Hide the audio icon on posts (#464) hands the value the feed post state's constructor stores in its
 # hide-the-audio-icon flag to FeedAudioIcon.hides, on the line before the store (LX/038z on 453). The
 # constructor loads no string, so the rule names the state's class by the label its toString prints
