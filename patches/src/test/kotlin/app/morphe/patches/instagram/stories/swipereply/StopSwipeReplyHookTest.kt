@@ -190,11 +190,20 @@ class StopSwipeReplyHookTest {
         // callers runs the test heap out. The swipe's manager, listener and composer are Redex's LX/ types.
         val near = delegates.single().fields.map { it.type }.filter { it.startsWith("LX/") }.toSet() + focusing
         val have = first.mapTo(HashSet()) { it.type }
+        // The patch and the checks below read a caller one method at a time, so a class that only calls
+        // in keeps the methods that do. Whole copies took the rest of the heap in a full area run, where
+        // these builds follow every other test in one JVM. The composer's interfaces stay on the list
+        // because the listener is one of them, and the patch asks who else calls it.
+        val asked = near + first.filter { it.type in focusing }.flatMap { it.interfaces }.filter { it.startsWith("LX/") }
         val second = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.type !in have && (classDef.type in near || classDef.methods.any { m -> m.code().any { it.method()?.definingClass?.let(near::contains) == true } })) {
+                if (classDef.type in have) continue
+                if (classDef.type in near) {
                     second += ImmutableClassDef.of(classDef)
+                } else if (classDef.methods.any { m -> m.code().any { it.method()?.definingClass?.let(near::contains) == true } }) {
+                    val calling = classDef.methods.filter { m -> m.code().any { it.method()?.definingClass?.let(asked::contains) == true } }
+                    second += ImmutableClassDef(classDef.type, classDef.accessFlags, classDef.superclass, classDef.interfaces, null, null, null, calling.map { ImmutableMethod.of(it) })
                 }
             }
         }
