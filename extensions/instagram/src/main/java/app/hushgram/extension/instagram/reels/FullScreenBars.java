@@ -62,6 +62,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * HushGram asked for is undone: the immersive flags it added (anything else Instagram set meanwhile
  * stays), or on Android 11 and newer every bar it hid, with the window's own swipe behaviour back.
  *
+ * <p>With the status bar hidden, a reels viewer's top bar would sit under a punch hole camera at the
+ * top edge, so {@link ReelsBarCutout} lowers it below the cutout until the status bar is back (#525).
+ *
  * <p>The check runs from a draw listener at most every {@link #CHECK_MS}, and acts only when the
  * answer changes, so a swipe that brought the bars back for a moment isn't fought. With both switches
  * off and nothing hidden, a frame looks at nothing and leaves no check behind it, and a paused
@@ -119,6 +122,8 @@ public final class FullScreenBars {
     private static Teller teller = FullScreenBars::tellHeights;
     static final String COUNT_KEYBOARD = "kept the navigation bar's space for the keyboard";
     private static Keyboard keyboard = FullScreenBars::keyboardInFront;
+    /** The camera cutout's height a test gave the window, or -1 for the window's own. */
+    private static int cutoutTop = -1;
 
     private FullScreenBars() {
     }
@@ -695,6 +700,12 @@ public final class FullScreenBars {
         askers.clear();
         teller = tells == null ? FullScreenBars::tellHeights : tells;
         keyboard = FullScreenBars::keyboardInFront;
+        cutoutTop = -1;
+    }
+
+    /** Tests give the window a camera cutout [top] pixels tall, since a test window has none. */
+    static void cutoutForTests(int top) {
+        cutoutTop = top;
     }
 
     /** Tests say whether the keyboard shows. */
@@ -793,6 +804,8 @@ public final class FullScreenBars {
         private boolean stopped;
         /** Whether the keyboard showed at the last frame with the navigation bar hidden (#288). */
         private boolean keys;
+        /** The reels top bars lowered below the camera cutout while the status bar is hidden (#525). */
+        private final ReelsBarCutout cutout = new ReelsBarCutout();
 
         Session(Activity activity) {
             this.activity = new WeakReference<>(activity);
@@ -897,9 +910,15 @@ public final class FullScreenBars {
                     show();
                     giveBackShownHeights();
                 }
+                cutout.follow(decor, hides(true), cutoutTop >= 0 ? cutoutTop : ReelsBarCutout.safeTop(decor));
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "check", failure);
             }
+        }
+
+        /** How many reels top bars are lowered below the camera cutout now, for tests. */
+        int barsLowered() {
+            return cutout.loweredCount();
         }
 
         @SuppressWarnings("deprecation")
@@ -931,6 +950,7 @@ public final class FullScreenBars {
 
         @SuppressWarnings("deprecation")
         void show() {
+            cutout.putBack();
             if (!hidden && !saved) return;
             hidden = false;
             saved = false;

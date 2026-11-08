@@ -47,7 +47,7 @@ public class FullScreenBarsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private static final int VIEWER = 7101, BAR = 7102, REELS_TAB = 7103, HOME_TAB = 7104, OTHER_TAB = 7105,
-            INBOX = 7106, CHAT = 7107;
+            INBOX = 7106, CHAT = 7107, TOP_BAR = 7108;
 
     /** The window's own size: a view is only on screen as far as the window goes. */
     private int W, H;
@@ -151,6 +151,85 @@ public class FullScreenBarsTest {
         showViewer(W, H);
         assertFalse(watch().isHidden());
         assertFalse(barsGone());
+    }
+
+    /** The viewer's top bar and the window's sizes as Instagram has them: laid out again, and its layout heard. */
+    private void relayout() {
+        layout();
+        activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnGlobalLayout();
+    }
+
+    /**
+     * With the status bar hidden, a reels top bar inside the camera cutout's band is lowered below it
+     * by padding and height, the way Instagram's edge to edge screens do it, and gets its own back when
+     * the bar shows again (#525). Padding Instagram gives it meanwhile is the bar's own from then on.
+     */
+    @Test public void theReelsTopBarMovesBelowTheCameraCutoutWhileTheStatusBarIsHidden() {
+        FullScreenBars.idForTests(ReelsTopBar.BAR_ID, TOP_BAR);
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        ViewGroup top = new FrameLayout(activity);
+        top.setId(TOP_BAR);
+        ((ViewGroup) viewer).addView(top, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 20));
+        relayout();
+        // The cutout reaches 30 pixels past where the bar starts, wherever the test window puts it.
+        FullScreenBars.cutoutForTests(ReelsBarCutout.layoutTop(top, activity.getWindow().getDecorView()) + 30);
+        View below = new FrameLayout(activity);
+        below.setId(TOP_BAR);
+        FrameLayout.LayoutParams low = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 20);
+        low.topMargin = 100;
+        ((ViewGroup) viewer).addView(below, low);
+        relayout();
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertEquals(30, top.getPaddingTop());
+        assertEquals("taller by as much, so its row keeps its height", 50, top.getLayoutParams().height);
+        assertEquals("a bar clear of the cutout stays as it is", 0, below.getPaddingTop());
+        assertEquals(1, session.barsLowered());
+
+        relayout();
+        session.evaluate();
+        assertEquals("lowered once, not again at each look", 30, top.getPaddingTop());
+        assertEquals(50, top.getLayoutParams().height);
+
+        top.setPadding(0, 40, 0, 0);
+        top.getLayoutParams().height = 60;
+        relayout();
+        session.evaluate();
+        assertEquals("Instagram's own padding already clears it", 40, top.getPaddingTop());
+        assertEquals(60, top.getLayoutParams().height);
+        assertEquals(0, session.barsLowered());
+
+        top.setPadding(0, 0, 0, 0);
+        top.getLayoutParams().height = 20;
+        relayout();
+        session.evaluate();
+        assertEquals(30, top.getPaddingTop());
+        assertEquals(50, top.getLayoutParams().height);
+
+        Settings.FULL_SCREEN_REELS.save(false);
+        session.evaluate();
+        assertFalse(session.isHidden());
+        assertEquals("the status bar back, the bar has its own padding", 0, top.getPaddingTop());
+        assertEquals(20, top.getLayoutParams().height);
+        assertEquals(0, session.barsLowered());
+    }
+
+    /** With the status bar kept and only the navigation bar hidden, the top bar stays where Instagram puts it (#525). */
+    @Test public void theTopBarStaysPutWhenOnlyTheNavigationBarHides() {
+        FullScreenBars.idForTests(ReelsTopBar.BAR_ID, TOP_BAR);
+        Settings.FULL_SCREEN_REELS.save(true);
+        Settings.FULL_SCREEN_HIDES.save(HiddenBars.NAVIGATION_BAR);
+        showViewer(W, H);
+        ViewGroup top = new FrameLayout(activity);
+        top.setId(TOP_BAR);
+        ((ViewGroup) viewer).addView(top, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 20));
+        relayout();
+        FullScreenBars.cutoutForTests(ReelsBarCutout.layoutTop(top, activity.getWindow().getDecorView()) + 30);
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertEquals(0, top.getPaddingTop());
+        assertEquals(20, top.getLayoutParams().height);
     }
 
     @Test public void aViewerFillingTheWindowHidesTheBarsAndLeavingItBringsThemBack() {
