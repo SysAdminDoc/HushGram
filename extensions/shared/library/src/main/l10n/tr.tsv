@@ -1889,3 +1889,6 @@ None yet. Custom stays Instagram's blue until you type one.	Henüz yok. Bir renk
 That isn't a color. Try #4A6B82.	Bu bir renk değil. #4A6B82 dene.
 Count on the heart	Kalpte sayı
 The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Ana sayfanın üstündeki kalp, kırmızı nokta yerine Mesajlar'daki sayı gibi bekleyen bildirim sayısını gösterir. Değişikliği görmek için Instagram'ı yeniden başlat.
+# context: a switch under Seek bar on feed videos
+Seek bar on the bottom edge	Alt kenarda arama çubuğu
+Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.	Arama çubuğunu videonun tam alt kenarına koyar, böylece kaydırırken yanlışlıkla dokunmak zorlaşır.

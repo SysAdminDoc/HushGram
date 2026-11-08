@@ -446,6 +446,13 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_feed_seek_bar_look", OverlayLook.SOLID, parentsAny(FEED_SEEK_BAR, FEED_SEEK_BUTTON));
 
     /**
+     * The seek bar on feed videos sits right on the video's bottom edge instead of a little above it
+     * (#567, {@link app.hushgram.extension.instagram.feed.FeedSeekBar}). Read as the bar updates. Off to start.
+     */
+    public static final BooleanSetting FEED_SEEK_BAR_ON_EDGE =
+            new BooleanSetting("hushgram_feed_seek_bar_on_edge", FALSE, parentsAny(FEED_SEEK_BAR, FEED_SEEK_BUTTON));
+
+    /**
      * A double tap on the left or right third of the video playing in a feed moves it back or ahead
      * {@link app.hushgram.extension.instagram.feed.FeedDoubleTapSkip#SKIP_MS} instead of liking the
      * post (#562, {@link app.hushgram.extension.instagram.feed.FeedDoubleTapSkip}). Off to start.

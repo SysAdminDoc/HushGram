@@ -8,6 +8,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.view.Gravity;
@@ -57,6 +58,9 @@ public final class FeedSeekBar {
 
     /** The bar's height, along the bottom of the video. */
     static final int HEIGHT_DP = 32;
+
+    /** The least the bar is tall on the bottom edge (#567), where it's only as tall as its round handle. */
+    static final int EDGE_MIN_DP = 12;
 
     static final String HOOK = "feed seek bar";
     static final String COUNT_SEEKS = "feed seeks";
@@ -218,6 +222,7 @@ public final class FeedSeekBar {
             }
             GlassSeekBar seek = bar != null && bar.getParent() == frame ? bar : attach(frame, view);
             seek.look(Settings.FEED_SEEK_BAR_LOOK.get());
+            fit(seek, ViewGroup.LayoutParams.MATCH_PARENT, barHeight(view, seek), 0);
             hiddenSince = -1;
             if (!dragging) {
                 if (seek.getMax() != duration) seek.setMax(duration);
@@ -237,6 +242,8 @@ public final class FeedSeekBar {
             }
             Toggle shown = button;
             if (shown != null && shown.getParent() == frame) {
+                int size = dp(view, BUTTON_DP);
+                fit(shown, size, size, barHeight(view, bar) + dp(view, 4));
                 shown.invalidate();
                 return;
             }
@@ -250,7 +257,7 @@ public final class FeedSeekBar {
             int size = dp(view, BUTTON_DP);
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size, Gravity.BOTTOM | Gravity.START);
             params.setMarginStart(dp(view, 8));
-            params.bottomMargin = dp(view, HEIGHT_DP + 4);
+            params.bottomMargin = barHeight(view, bar) + dp(view, 4);
             frame.addView(shown, frame.indexOfChild(view) + 1, params);
         }
 
@@ -309,7 +316,7 @@ public final class FeedSeekBar {
             }
             dragging = false;
             frame.addView(seek, frame.indexOfChild(view) + 1, new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, dp(view, HEIGHT_DP), Gravity.BOTTOM));
+                    ViewGroup.LayoutParams.MATCH_PARENT, barHeight(view, seek), Gravity.BOTTOM));
             if (!logged) {
                 logged = true;
                 Logger.printDebug(() -> "Seek bar on feed videos: added a seek bar to a feed video");
@@ -449,6 +456,28 @@ public final class FeedSeekBar {
             info.setCheckable(true);
             info.setChecked(barShown());
         }
+    }
+
+    /**
+     * How tall the bar is: room for a finger along the bottom of the video, or with
+     * {@link Settings#FEED_SEEK_BAR_ON_EDGE} on only its round handle's height, so it sits right on the
+     * video's bottom edge and the rest of the video takes taps and scrolls as before (#567).
+     */
+    static int barHeight(View view, @Nullable SeekBar seek) {
+        if (!Settings.FEED_SEEK_BAR_ON_EDGE.get()) return dp(view, HEIGHT_DP);
+        Drawable handle = seek != null ? seek.getThumb() : null;
+        return Math.max(handle != null ? handle.getIntrinsicHeight() : 0, dp(view, EDGE_MIN_DP));
+    }
+
+    /** Gives [child], already in a frame, the size and bottom margin asked, when it has others. */
+    private static void fit(View child, int width, int height, int bottomMargin) {
+        if (!(child.getLayoutParams() instanceof FrameLayout.LayoutParams)) return;
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) child.getLayoutParams();
+        if (params.width == width && params.height == height && params.bottomMargin == bottomMargin) return;
+        params.width = width;
+        params.height = height;
+        params.bottomMargin = bottomMargin;
+        child.setLayoutParams(params);
     }
 
     private static int dp(View view, int value) {

@@ -150,6 +150,7 @@ public class FeedSeekBarTest {
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
         Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
+        Settings.FEED_SEEK_BAR_ON_EDGE.resetToDefault();
         HookStatus.clear();
     }
 
@@ -160,6 +161,7 @@ public class FeedSeekBarTest {
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
         Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
+        Settings.FEED_SEEK_BAR_ON_EDGE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -263,6 +265,46 @@ public class FeedSeekBarTest {
         assertSame("one bar per player", bar, FeedSeekBar.barForTests());
         assertEquals(3, first.getChildCount());
         assertTrue(stand.calls.isEmpty());
+    }
+
+    /**
+     * #567: on the bottom edge the bar is only as tall as its round handle, so a scroll that starts low
+     * on the video lands on the video, and the button moves down with it. Flipping it back restores both.
+     */
+    @Test
+    public void onTheEdgeTheBarIsOnlyAsTallAsItsHandle() {
+        assertEquals(Boolean.FALSE, Settings.FEED_SEEK_BAR_ON_EDGE.defaultValue);
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.FEED_SEEK_BUTTON.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        SeekBar bar = bar();
+        float density = bar.getResources().getDisplayMetrics().density;
+        int roomy = Math.round(FeedSeekBar.HEIGHT_DP * density);
+        assertEquals(roomy, bar.getLayoutParams().height);
+        FeedSeekBar.Toggle button = null;
+        for (int at = 0; at < first.getChildCount(); at++) if (first.getChildAt(at) instanceof FeedSeekBar.Toggle) button = (FeedSeekBar.Toggle) first.getChildAt(at);
+        assertNotNull(button);
+        int gap = Math.round(4 * density);
+        assertEquals(roomy + gap, ((FrameLayout.LayoutParams) button.getLayoutParams()).bottomMargin);
+
+        Settings.FEED_SEEK_BAR_ON_EDGE.save(true);
+        FeedSeekBar.progress(player, 4000, 15000);
+        tick();
+        assertSame("the same bar, made thinner", bar, FeedSeekBar.barForTests());
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) bar.getLayoutParams();
+        int handle = bar.getThumb() != null ? bar.getThumb().getIntrinsicHeight() : 0;
+        int edge = Math.max(handle, Math.round(FeedSeekBar.EDGE_MIN_DP * density));
+        assertEquals(edge, params.height);
+        assertTrue("thinner than the roomy bar", params.height < roomy);
+        assertEquals("flush with the bottom", 0, params.bottomMargin);
+        assertEquals(Gravity.BOTTOM, params.gravity);
+        assertEquals(edge + gap, ((FrameLayout.LayoutParams) button.getLayoutParams()).bottomMargin);
+
+        Settings.FEED_SEEK_BAR_ON_EDGE.save(false);
+        FeedSeekBar.progress(player, 5000, 15000);
+        tick();
+        assertEquals(roomy, bar.getLayoutParams().height);
+        assertEquals(roomy + gap, ((FrameLayout.LayoutParams) button.getLayoutParams()).bottomMargin);
     }
 
     /** #472: like Instagram's own scrubber, the video pauses under the finger and plays on from where it lands. */

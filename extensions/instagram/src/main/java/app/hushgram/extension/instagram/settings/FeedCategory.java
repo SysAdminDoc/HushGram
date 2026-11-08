@@ -217,6 +217,9 @@ final class FeedCategory {
                     L10n.t("Adds a small button at the bottom left of a feed video that shows or hides its seek bar. "
                             + "It works with Seek bar on feed videos on or off.")));
             feed.addPreference(feedSeekBarLookRow(context));
+            feed.addPreference(toggle(context, Settings.FEED_SEEK_BAR_ON_EDGE, L10n.t("Seek bar on the bottom edge"),
+                    L10n.t("Puts the seek bar right on the bottom edge of the video, so it's harder to touch by "
+                            + "accident while you scroll.")));
             feed.addPreference(toggle(context, Settings.FEED_DOUBLE_TAP_SKIP, L10n.t("Double tap to skip on feed videos"),
                     L10n.t("Double tap the left side of the video playing in a feed to go back 10 seconds, or the "
                             + "right side to go ahead 10. A double tap in the middle works as before.")));

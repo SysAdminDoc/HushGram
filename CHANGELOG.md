@@ -30,6 +30,7 @@ Every HushGram release, newest first.
 * `Categories on their own page` under Settings entry opens a category you tap on a page of its own, with its name at the top, instead of under its row. Back takes you to the list where you left it. It needs `Expandable categories` on. Asked for in #525.
 * The viewing history has a category of its own in settings now, instead of sitting under Ads and privacy. Each row on its page shows a picture: a post's first photo, a reel's cover, a story's photo or first frame, a person's profile photo. Those load from Instagram's image servers the first time and stay on your phone, and `Clear viewing history` deletes them along with the list. Hold a row for `Copy link`, `Open profile` for a post or reel, or `Remove from history`. Asked for in #228.
 * `Double tap to skip on feed videos` under Feed lets a double tap on the left side of a video in your feed go back 10 seconds, and on the right side ahead 10, with arrows that flash on the side you tapped. A double tap in the middle still likes the post. It's off until you turn it on. Asked for in #562.
+* `Seek bar on the bottom edge` under `Seek bar on feed videos` moves the bar down onto the video's bottom edge, so a scroll is less likely to catch it. Asked for in #567.
 
 ### Improvements
 
