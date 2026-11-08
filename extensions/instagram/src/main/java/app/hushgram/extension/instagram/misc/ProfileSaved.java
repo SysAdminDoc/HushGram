@@ -64,7 +64,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * screen, which describes its rows as accessibility nodes whether or not a screen reader is on, so the row
  * is found by the label it carries, Saved, and a build that moves it still works. Every view is found by the
  * name Instagram gives it, and the profile counts as yours when it has the Create New button at the top
- * left, which other people's profiles don't.
+ * left or the chevron after your username that switches accounts, which other people's profiles don't.
  *
  * <p>While the menu opens and the row is tapped the screen is held invisible, so the menu doesn't flash by.
  * It's shown again whether or not the row was found, and if it wasn't, the menu is left open for you to tap
@@ -73,6 +73,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class ProfileSaved {
     static final String TAB_LAYOUT = "profile_tab_layout";
     static final String CREATE_BUTTON = "profile_header_create_button";
+    static final String SWITCH_ACCOUNTS = "action_bar_title_chevron";
     static final String ACTION_BUTTONS = "right_action_bar_buttons";
 
     /** How often the layout is looked at for a profile, at most. */
@@ -164,13 +165,24 @@ public final class ProfileSaved {
             View decor = activity.getWindow().getDecorView();
             View found = remembered(decor, TAB_LAYOUT, 0);
             if (!(found instanceof ViewGroup) || !found.isShown() || found.getWidth() <= 0) return;
-            View create = remembered(decor, CREATE_BUTTON, 1);
-            if (create == null || !create.isShown()) return;
+            if (!yours(decor)) return;
             remember(activity, (ViewGroup) found).keep();
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SAVED_ON_PROFILE, "tab", failure);
             why("threw " + failure);
         }
+    }
+
+    /**
+     * Whether [decor]'s screen shows your own profile: its Create New button, or with Hide the Create
+     * button on (#431), the chevron after your username that switches accounts. Other people's
+     * profiles show neither.
+     */
+    static boolean yours(View decor) {
+        View create = remembered(decor, CREATE_BUTTON, 1);
+        if (create != null && create.isShown()) return true;
+        View chevron = remembered(decor, SWITCH_ACCOUNTS, 2);
+        return chevron != null && chevron.isShown();
     }
 
     /** The row kept for [tabs], made on the first look at it. */
@@ -214,7 +226,7 @@ public final class ProfileSaved {
     }
 
     @SuppressWarnings("unchecked")
-    private static final WeakReference<View>[] seen = new WeakReference[2];
+    private static final WeakReference<View>[] seen = new WeakReference[3];
 
     static void why(String what) {
         if (DIAGNOSE) Log.w("HushSaved", what);

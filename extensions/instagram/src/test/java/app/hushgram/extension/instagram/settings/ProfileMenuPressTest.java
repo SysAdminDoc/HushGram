@@ -225,6 +225,34 @@ public class ProfileMenuPressTest {
         assertFalse(threads.isLongClickable());
     }
 
+    /**
+     * Hide the Create button leaves the plus out of your profile's bar, as on the S22 (#431). The
+     * chevron after your username still says it's yours, so the menu keeps the long press. Hidden,
+     * the chevron says nothing.
+     */
+    @Test public void withTheCreateButtonHiddenTheAccountChevronStillFindsTheMenu() {
+        int chevronId = View.generateViewId();
+        ProfileMenuPress.idForTests(ProfileMenuPress.SWITCH_ACCOUNTS, chevronId);
+        LinearLayout name = new LinearLayout(activity);
+        ImageView chevron = new ImageView(activity);
+        chevron.setId(chevronId);
+        name.addView(chevron);
+        ((LinearLayout) right.getParent()).addView(name, 1);
+        left.removeView(create);
+        Settings.PROFILE_MENU_LONG_PRESS.save(true);
+
+        chevron.setVisibility(View.GONE);
+        ProfileMenuPress.look(activity);
+        assertFalse("a hidden chevron counted as your profile", menu.isLongClickable());
+
+        chevron.setVisibility(View.VISIBLE);
+        ProfileMenuPress.look(activity);
+        assertTrue(ProfileMenuPress.carries(menu));
+        assertFalse(threads.isLongClickable());
+        assertTrue(menu.performLongClick());
+        assertEquals(1, shown());
+    }
+
     @Test public void aBarWithoutTheMenuGetsNothing() {
         Settings.PROFILE_MENU_LONG_PRESS.save(true);
         right.removeView(menu);

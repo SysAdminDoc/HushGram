@@ -81,6 +81,40 @@ public class ProfileSavedTest {
         assertNull(shadowOf(activity).getNextStartedActivity());
     }
 
+    /**
+     * With Hide the Create button on, your profile has no plus (#431). The chevron after your username
+     * still says it's yours. Someone else's profile has neither, and a hidden chevron says nothing.
+     */
+    @Test
+    public void withTheCreateButtonHiddenTheAccountChevronStillSaysItsYourProfile() {
+        int createId = android.view.View.generateViewId();
+        int chevronId = android.view.View.generateViewId();
+        GlassTabBar.idForTests(ProfileSaved.CREATE_BUTTON, createId);
+        GlassTabBar.idForTests(ProfileSaved.SWITCH_ACCOUNTS, chevronId);
+        try {
+            Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+            LinearLayout bar = new LinearLayout(activity);
+            android.widget.ImageView chevron = new android.widget.ImageView(activity);
+            chevron.setId(chevronId);
+            bar.addView(chevron);
+            activity.setContentView(bar);
+            android.view.View decor = activity.getWindow().getDecorView();
+
+            assertTrue("no plus, but the chevron shows", ProfileSaved.yours(decor));
+            chevron.setVisibility(android.view.View.GONE);
+            assertFalse("a hidden chevron counted as your profile", ProfileSaved.yours(decor));
+            bar.removeView(chevron);
+            assertFalse("someone else's profile counted as yours", ProfileSaved.yours(decor));
+            android.widget.ImageView create = new android.widget.ImageView(activity);
+            create.setId(createId);
+            bar.addView(create);
+            assertTrue("the plus alone still says it's yours", ProfileSaved.yours(decor));
+        } finally {
+            GlassTabBar.idForTests(ProfileSaved.CREATE_BUTTON, null);
+            GlassTabBar.idForTests(ProfileSaved.SWITCH_ACCOUNTS, null);
+        }
+    }
+
     @Test
     public void otherRowsAreNot() {
         assertFalse(ProfileSaved.isSavedLabel("Archive"));

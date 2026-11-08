@@ -155,6 +155,14 @@ public final class GlassTabBar {
 
     private static final java.util.HashMap<String, Integer> IDS = new java.util.HashMap<>();
 
+    /** Names an id for a test, whose app has none of Instagram's; null forgets it again. */
+    static void idForTests(String name, @Nullable Integer id) {
+        synchronized (IDS) {
+            if (id == null) IDS.remove(name);
+            else IDS.put(name, id);
+        }
+    }
+
     /** The number of the id called [name] in [context]'s app, or 0 when there isn't one. */
     static int id(Context context, String name) {
         synchronized (IDS) {

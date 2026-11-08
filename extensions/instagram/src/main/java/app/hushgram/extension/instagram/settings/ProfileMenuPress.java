@@ -31,9 +31,11 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * profile (#84), with {@link Settings#PROFILE_MENU_LONG_PRESS} on.
  *
  * <p>Nothing in Instagram's code changes. Instagram 450 keeps its view ids' names, so the button is
- * found by them: your own profile's top bar has the Create New button ({@link #CREATE_BUTTON}),
- * which other people's profiles don't, and the bar's right-hand group ({@link #RIGHT_BUTTONS}) ends
- * with the menu. Only that last button counts, and only when it's a shown, clickable image. The bar
+ * found by them: your own profile's top bar has the Create New button ({@link #CREATE_BUTTON}) and
+ * the chevron after your username that switches accounts ({@link #SWITCH_ACCOUNTS}), which other
+ * people's profiles don't. Either one shown is enough, since Hide the Create button takes the plus
+ * away (#431). The bar's right-hand group ({@link #RIGHT_BUTTONS}) ends with the menu. Only that
+ * last button counts, and only when it's a shown, clickable image. The bar
  * builds its buttons again now and then, so each Instagram screen is looked at after its layouts,
  * at most every {@link #LOOK_EVERY_MS}, while the switch is on.
  *
@@ -46,11 +48,15 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 public final class ProfileMenuPress {
     /** Instagram's name for the Create New button at the top left of your own profile. */
     static final String CREATE_BUTTON = "profile_header_create_button";
+    /** Instagram's name for the chevron after your username on your own profile, which switches accounts. */
+    static final String SWITCH_ACCOUNTS = "action_bar_title_chevron";
+    /** What tells your own profile's top bar from someone else's, in the order they're looked for. */
+    private static final String[] YOURS = {CREATE_BUTTON, SWITCH_ACCOUNTS};
     /** Instagram's name for the group of buttons at the right of a profile's top bar. */
     static final String RIGHT_BUTTONS = "right_action_bar_buttons";
     /** How often a screen is looked at, at most. The last layout of a burst gets one more look. */
     static final long LOOK_EVERY_MS = 600;
-    /** How far up from the Create New button the bar holding the right-hand group can be. */
+    /** How far up from the Create New button or the chevron the bar holding the right-hand group can be. */
     private static final int CLIMB = 8;
 
     private static volatile boolean registered;
@@ -60,8 +66,9 @@ public final class ProfileMenuPress {
     private static final WeakHashMap<Activity, Watch> watched = new WeakHashMap<>();
     /** The menu buttons that carry HushGram's long press. Neither side keeps a view alive. */
     private static final WeakHashMap<View, Press> bound = new WeakHashMap<>();
-    /** The Create New button last found, so a look doesn't walk the whole screen each time. */
-    private static WeakReference<View> create;
+    /** The Create New button and the chevron last found, so a look doesn't walk the whole screen each time. */
+    @SuppressWarnings("unchecked")
+    private static final WeakReference<View>[] seen = new WeakReference[YOURS.length];
 
     private ProfileMenuPress() {
     }
@@ -142,14 +149,12 @@ public final class ProfileMenuPress {
      * last shown button of its top bar's right-hand group isn't a clickable image.
      */
     static View menuButton(View decor) {
-        Context context = decor.getContext();
-        int createId = id(context, CREATE_BUTTON);
-        int rightId = id(context, RIGHT_BUTTONS);
-        if (createId == 0 || rightId == 0) return null;
-        View plus = rememberedCreate(decor, createId);
-        if (plus == null || !plus.isShown()) return null;
+        int rightId = id(decor.getContext(), RIGHT_BUTTONS);
+        if (rightId == 0) return null;
+        View yours = yours(decor);
+        if (yours == null) return null;
         ViewGroup right = null;
-        View at = plus;
+        View at = yours;
         for (int depth = 0; depth < CLIMB && right == null; depth++) {
             ViewParent parent = at.getParent();
             if (!(parent instanceof View)) return null;
@@ -166,14 +171,28 @@ public final class ProfileMenuPress {
         return null;
     }
 
-    private static View rememberedCreate(View decor, int createId) {
-        WeakReference<View> held = create;
+    /**
+     * The shown Create New button of your own profile on [decor]'s screen, or with that hidden, the
+     * shown chevron after your username. Null when neither shows: no profile of yours on screen.
+     */
+    static View yours(View decor) {
+        for (int slot = 0; slot < YOURS.length; slot++) {
+            View view = remembered(decor, slot);
+            if (view != null && view.isShown()) return view;
+        }
+        return null;
+    }
+
+    private static View remembered(View decor, int slot) {
+        int id = id(decor.getContext(), YOURS[slot]);
+        if (id == 0) return null;
+        WeakReference<View> held = seen[slot];
         View view = held == null ? null : held.get();
-        if (view != null && view.getId() == createId && view.isAttachedToWindow() && view.getRootView() == decor) {
+        if (view != null && view.getId() == id && view.isAttachedToWindow() && view.getRootView() == decor) {
             return view;
         }
-        view = decor.findViewById(createId);
-        create = view == null ? null : new WeakReference<>(view);
+        view = decor.findViewById(id);
+        seen[slot] = view == null ? null : new WeakReference<>(view);
         return view;
     }
 
@@ -251,7 +270,7 @@ public final class ProfileMenuPress {
         synchronized (IDS) {
             IDS.clear();
         }
-        create = null;
+        java.util.Arrays.fill(seen, null);
         resumed = null;
     }
 

@@ -23,12 +23,14 @@ import java.io.File
 
 /**
  * Saved on your profile writes no hook of its own: it switches its status method on, and the
- * extension finds your profile's tabs, its create button and the action bar by the ids Instagram's
- * layout gives them. So each build has to declare all three, or the bookmark quietly never shows.
+ * extension finds your profile's tabs, its create button, the account chevron after your username
+ * (the tell when Hide the Create button is on, #431) and the action bar by the ids Instagram's layout
+ * gives them. So each build has to declare all four, or the bookmark quietly never shows.
  */
 class ProfileSavedHookTest {
     private val saved = "$EXTENSION_PACKAGE/misc/ProfileSaved;"
-    private val ids = listOf("TAB_LAYOUT", "CREATE_BUTTON", "ACTION_BUTTONS").map { ExtensionDex.stringConstant(saved, it) }
+    private val ids = listOf("TAB_LAYOUT", "CREATE_BUTTON", "SWITCH_ACCOUNTS", "ACTION_BUTTONS")
+        .map { ExtensionDex.stringConstant(saved, it) }
 
     /** The patch switches its status method on and leaves the others as they were. */
     @Test
