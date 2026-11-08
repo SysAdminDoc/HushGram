@@ -584,6 +584,12 @@ single-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->watchLogo
 # through HomeTopBar.slidingViews, in the one method reading the navbar-hidden argument (04rY.A0g on
 # 453), once (#408). Left out, the logo and its buttons slide away with the switch on.
 once-call Lapp/hushgram/extension/instagram/feed/HomeTopBar;->slidingViews(Ljava/util/List;)Ljava/util/List; in instance (Z)V holding was_previous_homecoming_tab_navbar_hidden
+# The same patch runs every move of that controller's slide step (02nT.A02 on 454, the static
+# (controller, float) method that also fades the header's logo and buttons by how far it slid)
+# through HomeTopBar.slideBy first, which holds it at the top while it has the kept list (#513).
+# Left out, a warm start back into Home fades the logo and buttons away for good.
+start-call Lapp/hushgram/extension/instagram/feed/HomeTopBar;->slideBy(Ljava/util/List;F)F in static (LX/*;F)V holding setAlpha Ljava/lang/Math;->min(FF)F Ljava/lang/Math;->max(FF)F
+once-call Lapp/hushgram/extension/instagram/feed/HomeTopBar;->slideBy(Ljava/util/List;F)F in static (LX/*;F)V holding setAlpha Ljava/lang/Math;->min(FF)F Ljava/lang/Math;->max(FF)F
 # Spoof location sends every read of a Location's latitude, longitude and distance to SpoofLocation,
 # which answers the set place for a fix from the phone while the switch is on. One left in
 # Instagram's code is a read that tells Instagram where the phone really is.

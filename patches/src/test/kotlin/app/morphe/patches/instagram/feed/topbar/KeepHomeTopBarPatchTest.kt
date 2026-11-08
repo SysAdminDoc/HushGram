@@ -24,6 +24,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -46,6 +47,7 @@ class KeepHomeTopBarPatchTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$SLIDING_VIEWS is not in the extension: $declared", SLIDING_VIEWS.substringAfter("->") in declared)
+        assertTrue("$SLIDE_BY is not in the extension: $declared", SLIDE_BY.substringAfter("->") in declared)
     }
 
     /** The patch switches its status method on and leaves the others as they were. */
@@ -109,6 +111,41 @@ class KeepHomeTopBarPatchTest {
     @Test
     fun aListMadeEarlierFailsThePatch() = refused("doesn't make the header's list right before", classes(variant = "late"))
 
+    /** The step is the controller's static (itself, float) method reading the list the setup keeps, not its sibling. */
+    @Test
+    fun theSlideStepIsFound() {
+        val context = PatchContexts.of(classes())
+        val step = context.findSlideStep(context.findHeaderHandOff().setup)
+
+        assertEquals(CONTROLLER, step.type)
+        assertEquals("step", step.name)
+        assertEquals(VIEWS, step.field.toString())
+    }
+
+    /** The move goes through the hook first, with the list the step slides, and comes back in the move's register (#513). */
+    @Test
+    fun theStepRunsTheMoveThroughTheHookFirst() {
+        val context = PatchContexts.of(classes())
+        val stock = context.stepCode("step")
+
+        context.findSlideStep(context.findHeaderHandOff().setup).write(context)
+
+        assertStepHooked("stand-in", context.stepCode("step"), STEP_REGISTERS, VIEWS, stock)
+        assertEquals("the sibling step is left alone", 0, context.stepCode("nudge").count { it.reference()?.toString() == SLIDE_BY })
+    }
+
+    @Test
+    fun aSetupKeepingNoListFailsThePatch() = refusedStep("keep its list in one field", classes(controller = "nokeep"))
+
+    @Test
+    fun twoStepsReadingTheListFailThePatch() = refusedStep("found 2", classes(controller = "twosteps"))
+
+    @Test
+    fun aJumpToTheStepsStartFailsThePatch() = refusedStep("jumps to its first instruction", classes(controller = "loop"))
+
+    @Test
+    fun aStepPastV15FailsThePatch() = refusedStep("past v15", classes(controller = "wide"))
+
     /** The same call shape in a class without the argument's name isn't the header's hand-off. */
     @Test
     fun aSetupWithoutTheArgumentIsLeftAlone() {
@@ -146,15 +183,28 @@ class KeepHomeTopBarPatchTest {
 
     /**
      * Slices the fixture the way the finder reads it, every class loading the argument's name with
-     * the string pools they call, and runs the whole patch over it: one hand-off, hooked once.
+     * the string pools they call, plus the controller the hand-off names, and runs the whole patch
+     * over it: one hand-off and one slide step, each hooked once.
      */
     private fun keepsTopBar(bundle: File, label: String) {
         val holders = FixtureDex.classesHolding(bundle, NAVBAR_HIDDEN_ARGUMENT)
         assertTrue("$label: nothing holds $NAVBAR_HIDDEN_ARGUMENT", holders.isNotEmpty())
-        val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)) + FixtureDex.withStringPools(bundle, holders))
+        val sliced = FixtureDex.withStringPools(bundle, holders)
+        val controllerType = PatchContexts.of(sliced).findHeaderHandOff().setup.definingClass
+        val controller = FixtureDex.classes(bundle, setOf(controllerType)).values.filter { c -> sliced.none { it.type == c.type } }
+        val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)) + sliced + controller)
         val found = context.findHeaderHandOff()
+        val step = context.findSlideStep(found.setup)
+        val stock = context.stepCode(step.name, step.type)
+        val registers = context.classDefBy(step.type).methods.single { it.name == step.name && it.isStep(step.type) }.implementation!!.registerCount
 
         keepHomeTopBarPatch.execute(context)
+
+        assertStepHooked("$label ${step.type}->${step.name}", context.stepCode(step.name, step.type), registers, step.field.toString(), stock)
+        val stepped = context.mutableClassDefBy(step.type).methods.filter { method ->
+            method.code().any { it.reference()?.toString() == SLIDE_BY }
+        }.map { it.name }
+        assertEquals("$label: only the slide step is hooked", listOf(step.name), stepped)
 
         val status = context.method(SETTINGS_STATUS, HOME_TOP_BAR_STATUS).code()
         assertEquals("$label: status", 1, (status.first() as NarrowLiteralInstruction).narrowLiteral)
@@ -187,10 +237,44 @@ class KeepHomeTopBarPatchTest {
         assertEquals("$what: reading the hook's answer", list, read)
     }
 
+    /**
+     * The list read from the controller into v0, then the hook with that list and the move, its
+     * answer back in the move's register, and the stock step after it unchanged.
+     */
+    private fun assertStepHooked(what: String, code: List<Instruction>, registers: Int, field: String, stock: List<Instruction>) {
+        val controller = registers - 2
+        val move = registers - 1
+        assertEquals("$what: the list read first", Opcode.IGET_OBJECT, code[0].opcode)
+        val read = code[0] as TwoRegisterInstruction
+        assertEquals("$what: into v0 from the controller", 0 to controller, read.registerA to read.registerB)
+        assertEquals("$what: the list the setup keeps", field, code[0].reference().toString())
+        assertEquals("$what: then the hook", Opcode.INVOKE_STATIC to SLIDE_BY, code[1].opcode to code[1].reference().toString())
+        val hook = code[1] as FiveRegisterInstruction
+        assertEquals("$what: with the list and the move", listOf(2, 0, move), listOf(hook.registerCount, hook.registerC, hook.registerD))
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[2].opcode)
+        assertEquals("$what: back in the move's register", move, (code[2] as OneRegisterInstruction).registerA)
+        assertEquals("$what: one hook", 1, code.count { it.reference()?.toString() == SLIDE_BY })
+        fun opcodes(list: List<Instruction>) = list.map { it.opcode }.filter { it != Opcode.NOP }
+        assertEquals("$what: the stock step follows", opcodes(stock), opcodes(code.drop(3)))
+    }
+
     private fun refused(why: String, classes: List<ClassDef>) {
         val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findHeaderHandOff() }
         assertTrue(failure.message!!, failure.message!!.contains(why))
     }
+
+    private fun refusedStep(why: String, classes: List<ClassDef>) {
+        val context = PatchContexts.of(classes)
+        val setup = context.findHeaderHandOff().setup
+        val failure = assertThrows(PatchException::class.java) { context.findSlideStep(setup) }
+        assertTrue(failure.message!!, failure.message!!.contains(why))
+    }
+
+    private fun BytecodePatchContext.stepCode(name: String, type: String = CONTROLLER): List<Instruction> =
+        mutableClassDefBy(type).methods.single { it.name == name && it.isStep(type) }.implementation!!.instructions.toList()
+
+    private fun Method.isStep(type: String) =
+        AccessFlags.STATIC.isSet(accessFlags) && parameterTypes.map(CharSequence::toString) == listOf(type, "F")
 
     private fun BytecodePatchContext.home(found: HeaderHandOff): List<Instruction> =
         mutableClassDefBy(found.type).methods.single { it.name == found.name }.implementation!!.instructions.toList()
@@ -208,6 +292,10 @@ class KeepHomeTopBarPatchTest {
         const val ELSEWHERE = "Lfixture/Profile;"
         const val CONTROLLER = "Lfixture/Controller;"
         const val SETUP = "$CONTROLLER->setUp(Lfixture/Listener;Ljava/util/List;FZ)V"
+        const val LIST_TYPE = "Ljava/util/List;"
+        const val VIEWS = "$CONTROLLER->views:$LIST_TYPE"
+        const val OFFSET = "$CONTROLLER->offset:F"
+        const val STEP_REGISTERS = 4
 
         /**
          * Shaped like 453's LX/04rY->A0g(Z): reads the argument by name, wraps the header in a list
@@ -259,14 +347,79 @@ class KeepHomeTopBarPatchTest {
             return ImmutableMethod.of(method)
         }
 
-        fun classes(leaveOut: Boolean = false, second: Boolean = false, variant: String = "ok"): List<ClassDef> {
+        fun classes(leaveOut: Boolean = false, second: Boolean = false, variant: String = "ok", controller: String = "ok"): List<ClassDef> {
             fun fragment(type: String, method: Method) = ImmutableClassDef(
                 type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, OBJECT, null, null, null, null, listOf(method),
             )
             val home = if (leaveOut) emptyList() else listOf(fragment(HOME, home(HOME, variant)))
             val other = if (second) listOf(fragment(SECOND, home(SECOND, "ok"))) else emptyList()
-            return home + other + fragment(ELSEWHERE, home(ELSEWHERE, "plain")) +
+            return home + other + fragment(ELSEWHERE, home(ELSEWHERE, "plain")) + controllerClass(controller) +
                 ImmutableClassDef("Lfixture/Unrelated;", AccessFlags.PUBLIC.value, OBJECT, null, null, null, null, emptyList())
+        }
+
+        fun controllerMethod(name: String, parameters: List<String>, static: Boolean, registers: Int, smali: String): Method {
+            val flags = AccessFlags.PUBLIC.value or (if (static) AccessFlags.STATIC.value else 0)
+            val method = MutableMethod(
+                ImmutableMethod(
+                    CONTROLLER, name, parameters.map { ImmutableMethodParameter(it, null, null) }, "V", flags, null, null,
+                    ImmutableMethodImplementation(registers, emptyList(), null, null),
+                ),
+            )
+            method.addInstructionsWithLabels(0, smali.trimIndent())
+            return ImmutableMethod.of(method)
+        }
+
+        /**
+         * Shaped like 454's LX/02nT: setUp keeps the list it gets in a field, step (A02) adds the
+         * move to the offset and slides that list, and nudge has the step's shape but reads no list.
+         * "nokeep" drops the setup's store, "twosteps" adds a second step reading the list, "loop"
+         * branches back to the step's first instruction and "wide" gives the step 17 registers.
+         */
+        fun controllerClass(variant: String): ClassDef {
+            val keep = if (variant == "nokeep") "" else "iput-object p2, p0, $VIEWS"
+            val setUp = controllerMethod(
+                "setUp", listOf("Lfixture/Listener;", LIST_TYPE, "F", "Z"), false, 6,
+                """
+                    $keep
+                    iput-object p1, p0, $CONTROLLER->listener:Lfixture/Listener;
+                    return-void
+                """,
+            )
+            val slide = """
+                iget v1, p0, $OFFSET
+                add-float/2addr p1, v1
+                iput p1, p0, $OFFSET
+                iget-object v0, p0, $VIEWS
+                invoke-interface { v0 }, $LIST_TYPE->size()I
+                return-void
+            """
+            val step = when (variant) {
+                "loop" -> controllerMethod(
+                    "step", listOf(CONTROLLER, "F"), true, STEP_REGISTERS,
+                    """
+                        :top
+                        iget-object v0, p0, $VIEWS
+                        if-eqz v0, :top
+                        return-void
+                    """,
+                )
+                "wide" -> controllerMethod("step", listOf(CONTROLLER, "F"), true, 17, "iget-object v0, p0, $VIEWS\nreturn-void")
+                else -> controllerMethod("step", listOf(CONTROLLER, "F"), true, STEP_REGISTERS, slide)
+            }
+            val nudge = controllerMethod(
+                "nudge", listOf(CONTROLLER, "F"), true, 3,
+                """
+                    iget v0, p0, $OFFSET
+                    add-float/2addr v0, p1
+                    iput v0, p0, $OFFSET
+                    return-void
+                """,
+            )
+            val again = if (variant == "twosteps") listOf(controllerMethod("again", listOf(CONTROLLER, "F"), true, STEP_REGISTERS, slide)) else emptyList()
+            return ImmutableClassDef(
+                CONTROLLER, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, OBJECT, null, null, null, null,
+                listOf(setUp, step, nudge) + again,
+            )
         }
     }
 }

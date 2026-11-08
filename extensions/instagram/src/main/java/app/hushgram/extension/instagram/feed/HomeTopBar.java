@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.feed;
 
 import android.view.View;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -25,6 +26,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * state Instagram itself leaves it in when Home lets go of it, so it slides nothing and tells the
  * feed nothing moved. A header already slid away is put back first.
  *
+ * <p>An empty list stops the slide but not the fade: the controller also fades the header's logo and
+ * buttons by how far it thinks the header slid, and a warm start back into Home (after Android
+ * trimmed the app's memory in the background) sets that to the header's full height, leaving an
+ * empty bar at the top (#513). So the list handed over is {@link #KEPT}, and the patch runs every
+ * slide step through {@link #slideBy}, which holds the controller at the top while that list is
+ * the one it slides.
+ *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, the controller gets Instagram's list.
  *
@@ -34,7 +42,20 @@ public final class HomeTopBar {
     static final String HOOK = "header list";
     static final String COUNT_KEPT = "top bar kept";
 
+    /** The empty list the controller gets while the switch is on, its own instance so slideBy knows it. */
+    static final List<Object> KEPT = Collections.unmodifiableList(new ArrayList<>());
+
     private HomeTopBar() {
+    }
+
+    /**
+     * Injected at the top of the controller's slide step, with the list it slides and how far to
+     * move. While that list is {@link #KEPT} the answer moves it back past the top, which the step
+     * clamps to zero, so nothing slides or fades. Any other list moves as Instagram asked. Never
+     * throws.
+     */
+    public static float slideBy(List<?> sliding, float delta) {
+        return sliding == KEPT ? -Float.MAX_VALUE : delta;
     }
 
     /** Injected right before Home hands its header to the scroll controller. Never throws. */
@@ -53,7 +74,7 @@ public final class HomeTopBar {
                 if (view instanceof View) ((View) view).setTranslationY(0f);
             }
             HookStatus.counted(FamilyNames.HOME_TOP_BAR, COUNT_KEPT);
-            return Collections.emptyList();
+            return KEPT;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.HOME_TOP_BAR, HOOK, failure);
             return views;

@@ -104,6 +104,37 @@ public class HomeTopBarTest {
         assertTrue("on again once resumed and ready", HomeTopBar.slidingViews(views).isEmpty());
     }
 
+    /**
+     * The controller's slide step adds the move to its offset and clamps that between zero and the
+     * header's height, then fades the logo and buttons by it. A warm start back into Home moves it
+     * by the whole height (#513): with the kept list the offset still lands on zero, so nothing fades.
+     */
+    @Test
+    public void aKeptHeaderNeverSlidesOrFades() {
+        Settings.KEEP_HOME_TOP_BAR.save(true);
+        List<?> given = HomeTopBar.slidingViews(views);
+        assertSame("the controller gets the kept list", HomeTopBar.KEPT, given);
+
+        float height = 140f;
+        float offset = step(given, height, height, height);
+        assertEquals("a warm start's full-height move", 0f, offset, 0f);
+        assertEquals("a scroll from there", 0f, step(given, 25f, offset, height), 0f);
+        assertEquals("an offset left from before", 0f, step(given, 0f, 60f, height), 0f);
+    }
+
+    @Test
+    public void anyOtherListSlidesAsInstagramAsked() {
+        assertEquals("the switch off hands over Instagram's list", 25f, HomeTopBar.slideBy(HomeTopBar.slidingViews(views), 25f), 0f);
+        assertEquals("another empty list", -25f, HomeTopBar.slideBy(Collections.emptyList(), -25f), 0f);
+        assertEquals("no list", 25f, HomeTopBar.slideBy(null, 25f), 0f);
+        assertEquals("the controller's own math", 25f, step(views, 25f, 0f, 140f), 0f);
+    }
+
+    /** The step's math on 454 (LX/02nT->A02): max(0, min(height, move + offset)). */
+    private static float step(List<?> sliding, float move, float offset, float height) {
+        return Math.max(0f, Math.min(height, HomeTopBar.slideBy(sliding, move) + offset));
+    }
+
     @Test
     public void aNullListAndAThrowingSwitchFailOpen() {
         Settings.KEEP_HOME_TOP_BAR.save(true);
