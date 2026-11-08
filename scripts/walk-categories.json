@@ -14,6 +14,7 @@
             "op": "any",
             "patches": [
               "Hide ads",
+              "Hide Instagram Plus prompts",
               "Sanitize sharing links",
               "Open links in external browser",
               "Spoof location",

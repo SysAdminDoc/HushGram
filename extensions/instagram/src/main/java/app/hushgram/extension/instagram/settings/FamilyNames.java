@@ -17,6 +17,7 @@ package app.hushgram.extension.instagram.settings;
  */
 public final class FamilyNames {
     public static final String HIDE_ADS = "Hide ads";
+    public static final String HIDE_PLUS_UPSELL = "Hide Instagram Plus prompts";
     public static final String SANITIZE_SHARING_LINKS = "Sanitize sharing links";
     public static final String EXTERNAL_BROWSER = "Open links in external browser";
     public static final String BUILD_EXPIRED_POPUP = "Remove build expired popup";

@@ -2719,6 +2719,17 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->secondsDouble(D)D
 # Left out, the label shows with the switch on; twice or elsewhere, it isn't the filter the patch wrote.
 # Some builds may ask a string pool for the draw's string, so pool asks count (pooled).
 once-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->label(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)LX/*; pooled holding android_purge_26_q3_ClipsFastPlayComponent_render
+# Hide Instagram Plus prompts hands each answer of Instagram's Plus offer check to PlusUpsell.offer
+# right before its three returns (002K.A02 on 454's 386014758, the check every Plus card, menu row and
+# viewer list diamond asks first) (#559). Left out, a return answers yes with the switch on; anywhere
+# else, it isn't the filter the patch wrote. Some builds may pool the strings (pooled).
+once-call Lapp/hushgram/extension/instagram/ads/PlusUpsell;->offer(I)Z in static (Lcom/instagram/common/session/UserSession;LX/*;Ljava/lang/Boolean;Lkotlin/jvm/functions/Function0;)Z sites 3 pooled holding eligibility_decision server_unavailable
+# It also asks PlusUpsell.hide first where Meta's newer, cached Plus offer is built, the one static
+# method taking a snapshot in the resolver class that loads the fetch query (MetaSubsEntrypoint-
+# ExperienceResolver.A00 on 454's 386014758), and hands back no offer on a yes (#559). Left out,
+# accounts on that path keep the Plus card on a held chat with the switch on.
+start-call Lapp/hushgram/extension/instagram/ads/PlusUpsell;->hide()Z in static (Landroid/content/Context;LX/*;Lcom/meta/foa/subs/entrypointexperience/MetaSubsEntrypointExperienceSnapshot;Z)LX/*; pooled class-holding MetaSubsEntrypointExperienceBatchQuery
+once-call Lapp/hushgram/extension/instagram/ads/PlusUpsell;->hide()Z in static (Landroid/content/Context;LX/*;Lcom/meta/foa/subs/entrypointexperience/MetaSubsEntrypointExperienceSnapshot;Z)LX/*; pooled class-holding MetaSubsEntrypointExperienceBatchQuery
 # Stop swipe up to reply asks StorySwipeReply.keepsSwipe() first thing in the reply composer's
 # swipe listener, the one instance ()Z method focusing a text box in the class that reads a Redex
 # class's EditText field and loads both strings below (0Cjy.GOV on 453's 385914283, 0CwQ.GOv on

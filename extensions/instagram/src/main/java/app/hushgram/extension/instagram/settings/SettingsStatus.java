@@ -32,6 +32,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Hide Instagram Plus prompts patch. */
+    public static boolean hidePlusUpsell() {
+        return false;
+    }
+
     public static boolean sanitizeSharingLinks() {
         return false;
     }

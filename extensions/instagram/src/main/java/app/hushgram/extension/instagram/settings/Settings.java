@@ -160,6 +160,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_ADS =
             new BooleanSetting("hushgram_hide_ads", TRUE);
 
+    /**
+     * Instagram Plus offers in chats, stories and menus: the check each one asks first is told no
+     * ({@link app.hushgram.extension.instagram.ads.PlusUpsell}). Nothing Plus gives is turned on.
+     * Off to start (#559).
+     */
+    public static final BooleanSetting HIDE_PLUS_UPSELL =
+            new BooleanSetting("hushgram_hide_plus_upsell", FALSE);
+
     /** igsh, igshid, utm_source and the other tracking keys come off links that leave Instagram. */
     public static final BooleanSetting SANITIZE_SHARING_LINKS =
             new BooleanSetting("hushgram_sanitize_sharing_links", TRUE);

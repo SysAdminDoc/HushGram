@@ -40,6 +40,7 @@ import app.hushgram.extension.shared.settings.preference.LogBufferManager;
  */
 public enum PatchFamily {
     HIDE_ADS(FamilyNames.HIDE_ADS, "hideAds", null, Settings.HIDE_ADS),
+    HIDE_PLUS_UPSELL(FamilyNames.HIDE_PLUS_UPSELL, "hidePlusUpsell", null, Settings.HIDE_PLUS_UPSELL),
     SANITIZE_SHARING_LINKS(FamilyNames.SANITIZE_SHARING_LINKS, "sanitizeSharingLinks", null,
             Settings.SANITIZE_SHARING_LINKS),
     EXTERNAL_BROWSER(FamilyNames.EXTERNAL_BROWSER, "externalBrowser", null, Settings.OPEN_LINKS_EXTERNALLY),

@@ -48,6 +48,11 @@ final class PrivacyCategory {
                     L10n.t("Hides sponsored posts, reels, stories and the ad in comments. No empty gap is left where an "
                             + "ad would have been.")));
         }
+        if (build.contains(PatchFamily.HIDE_PLUS_UPSELL)) {
+            privacy.add(toggle(context, Settings.HIDE_PLUS_UPSELL, L10n.t("Hide Instagram Plus prompts"),
+                    L10n.t("Takes Instagram's offers to try Plus out of chats, stories and menus. Nothing that "
+                            + "comes with Plus is turned on.")));
+        }
         if (build.contains(PatchFamily.SANITIZE_SHARING_LINKS)) {
             privacy.add(toggle(context, Settings.SANITIZE_SHARING_LINKS, L10n.t("Sanitize sharing links"),
                     withCoverage(L10n.t("Removes tracking tags from links you copy or share, and opens bio links without "
