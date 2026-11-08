@@ -54,6 +54,10 @@ public class CommentFinderTest {
         int scrolls;
         View found;
         int foundIndex = -1;
+        int rowHeight = ROW;
+        int height = HEIGHT;
+        int shownFrom;
+        boolean drawnWhileShowing;
 
         FakeList(List<String> all, int loaded, int page, int delay) {
             this.all = all;
@@ -63,21 +67,38 @@ public class CommentFinderTest {
             layOut();
         }
 
+        /**
+         * Rows [rowHeight] high in a list [height] high whose top [shownFrom] sits under the box, each
+         * row's words drawn only while they show, the way Instagram's are.
+         */
+        static FakeList drawnWhileShowing(List<String> all, int rowHeight, int height, int shownFrom) {
+            FakeList list = new FakeList(all, all.size(), 0, 0);
+            list.rowHeight = rowHeight;
+            list.height = height;
+            list.shownFrom = shownFrom;
+            list.drawnWhileShowing = true;
+            for (View view : list.views.values()) list.parent.removeView(view);
+            list.views.clear();
+            list.layOut();
+            return list;
+        }
+
         View make(int index) {
+            if (drawnWhileShowing) return new DrawnWhileShowing(this, all.get(index));
             TextView text = new TextView(context);
             text.setText(all.get(index));
             return text;
         }
 
         private int max() {
-            return Math.max(0, loaded * ROW - HEIGHT);
+            return Math.max(0, loaded * rowHeight - height);
         }
 
         private List<View> layOut() {
             List<View> out = new ArrayList<>();
             for (int i = 0; i < loaded; i++) {
-                int top = i * ROW - offset;
-                boolean on = top + ROW > 0 && top < HEIGHT;
+                int top = i * rowHeight - offset;
+                boolean on = top + rowHeight > 0 && top < height;
                 View view = views.get(i);
                 if (on) {
                     if (view == null) {
@@ -85,7 +106,7 @@ public class CommentFinderTest {
                         views.put(i, view);
                     }
                     if (view.getParent() == null) parent.addView(view);
-                    view.layout(0, top, 500, top + ROW);
+                    view.layout(0, top, 500, top + rowHeight);
                     out.add(view);
                 } else if (view != null && view.getParent() != null) {
                     parent.removeView(view);
@@ -106,12 +127,12 @@ public class CommentFinderTest {
 
         @Override
         public int top() {
-            return 0;
+            return shownFrom;
         }
 
         @Override
         public int height() {
-            return HEIGHT;
+            return height;
         }
 
         @Override
@@ -175,6 +196,54 @@ public class CommentFinderTest {
         List<String> out = new ArrayList<>();
         for (int i = 0; i < count; i++) out.add(special.containsKey(i) ? special.get(i) : "comment number " + i);
         return out;
+    }
+
+    /** A comment row drawing its words, 150 down and 30 high, only while that line shows in the list. */
+    public static final class DrawnWhileShowing extends View {
+        private static final int LINE = 150;
+        private static final int LINE_HEIGHT = 30;
+        private final FakeList list;
+        private final String words;
+
+        DrawnWhileShowing(FakeList list, String words) {
+            super(list.context);
+            this.list = list;
+            this.words = words;
+        }
+
+        public CharSequence getText() {
+            int line = getTop() + LINE;
+            return line + LINE_HEIGHT > list.shownFrom && line < list.height ? words : "";
+        }
+    }
+
+    /**
+     * With the keyboard up and the list slid under the box only a sliver shows, and Instagram draws a
+     * comment's words only while they show. A row cut off by an edge is read again until all of it
+     * has shown, both ways, and the next press still goes past a match whose words scrolled away.
+     */
+    @Test
+    public void aRowCutOffByAnEdgeIsReadAgainUntilAllOfItHasShown() {
+        Map<Integer, String> worth = new HashMap<>();
+        worth.put(4, "wonder if it's worth it");
+        worth.put(9, "worth the climb");
+        FakeList list = FakeList.drawnWhileShowing(comments(30, worth), 300, 125, 50);
+        CommentFinder finder = new CommentFinder(list);
+        finder.search("worth");
+
+        finder.find(1);
+        list.settle();
+        assertEquals(4, list.foundIndex);
+        assertEquals("the match starts where rows start showing", 50, list.found.getTop());
+
+        finder.find(1);
+        list.settle();
+        assertEquals(9, list.foundIndex);
+
+        finder.find(-1);
+        list.settle();
+        assertEquals(4, list.foundIndex);
+        assertEquals(CommentFinder.CLEAR, list.last());
     }
 
     /** Down finds the nearest match, scrolls it to the top, and the next press goes past it, off screen too. Up comes back. */

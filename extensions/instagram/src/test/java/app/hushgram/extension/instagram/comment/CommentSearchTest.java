@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.content.Context;
@@ -17,6 +18,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -101,7 +103,12 @@ public class CommentSearchTest {
                     View.GONE, status.getVisibility());
 
             ShadowLooper.idleMainLooper(CommentSearch.FLASH_MILLIS + 1, TimeUnit.MILLISECONDS);
+            InputMethodManager keyboard = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            field.requestFocus();
+            keyboard.showSoftInput(field, 0);
+            assertTrue(shadowOf(keyboard).isSoftInputVisible());
             down.performClick();
+            assertFalse("an arrow closes the keyboard, so the list shows in full", shadowOf(keyboard).isSoftInputVisible());
             ShadowLooper.idleMainLooper(CommentFinder.WAIT_MILLIS * (CommentFinder.WAITS + 1), TimeUnit.MILLISECONDS);
             assertEquals("No more matches", String.valueOf(status.getText()));
             assertNull(rows[3].getForeground());

@@ -24,8 +24,10 @@ import java.util.regex.Pattern;
 /**
  * Walks a comments list for the rows that hold a search, for {@link CommentSearch}. It reads only
  * the rows on screen: when none below (or above) the last match holds the search, it scrolls the
- * list three quarters of a page and looks again, so Instagram loads the next comments the way it
- * does for a person scrolling. At the bottom it waits a moment for a page still loading, then says
+ * list three quarters of what shows and looks again, so Instagram loads the next comments the way it
+ * does for a person scrolling. Instagram draws a comment's words only while that part of its row
+ * shows, so a row cut off by the list's edge, or by the box over it, is read again on the next look
+ * until all of it has shown. At the bottom it waits a moment for a page still loading, then says
  * there's nothing more.
  *
  * <p>Everything it touches goes through {@link Host}, so a test can drive it one step at a time.
@@ -89,8 +91,8 @@ final class CommentFinder {
     private String needle = "";
     @Nullable
     private View last;
-    @Nullable
-    private String lastText;
+    /** Where [last] was scrolled to: while it's still there, the list hasn't moved and it's the same comment. */
+    private int lastTop;
     private int walk;
 
     CommentFinder(Host host) {
@@ -101,7 +103,6 @@ final class CommentFinder {
     void search(@Nullable CharSequence text) {
         needle = fold(text);
         last = null;
-        lastText = null;
         walk++;
         host.status(CLEAR);
     }
@@ -114,7 +115,7 @@ final class CommentFinder {
     void find(int direction) {
         if (needle.isEmpty()) return;
         int dir = direction < 0 ? -1 : 1;
-        step(dir, ++walk, start(dir), 0, 0);
+        step(dir, ++walk, start(dir), unread(dir), 0, 0);
     }
 
     /** Stops any walk under way. */
@@ -124,7 +125,9 @@ final class CommentFinder {
 
     private int start(int dir) {
         View previous = last;
-        if (previous != null && previous.getParent() != null && lastText != null && lastText.equals(text(previous))) {
+        // A row's words can be half drawn, so it's known by staying put, or else by still holding the search.
+        if (previous != null && previous.getParent() != null
+                && (previous.getTop() == lastTop || fold(text(previous)).contains(needle))) {
             return previous.getTop();
         }
         return edge(dir);
@@ -135,13 +138,23 @@ final class CommentFinder {
         return dir > 0 ? host.top() - 1 : host.height() + 1;
     }
 
-    private void step(final int dir, final int id, final int bound, final int pages, final int waits) {
+    /** A [seen] for a walk in [dir] that hasn't read anything yet. */
+    private static int unread(int dir) {
+        return dir > 0 ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+    }
+
+    /**
+     * One look. Only rows past [bound] count, the last match's top or the edge a walk starts from.
+     * [seen] is how far along [dir] rows have shown at an earlier look: a row all on that side of it
+     * has been read whole, and one reaching past it is read again.
+     */
+    private void step(final int dir, final int id, final int bound, final int seen, final int pages, final int waits) {
         if (id != walk || !host.alive()) return;
-        View hit = scan(dir, bound);
+        View hit = scan(dir, bound, seen);
         if (hit != null) {
             last = hit;
-            lastText = text(hit);
             host.scrollBy(hit.getTop() - host.top());
+            lastTop = hit.getTop();
             host.found(hit);
             host.status(CLEAR);
             return;
@@ -149,7 +162,7 @@ final class CommentFinder {
         if (!host.canScroll(dir)) {
             if (dir > 0 && waits < WAITS) {
                 host.status(SEARCHING);
-                host.later(() -> step(dir, id, bound, pages, waits + 1), WAIT_MILLIS);
+                host.later(() -> step(dir, id, bound, seen, pages, waits + 1), WAIT_MILLIS);
                 return;
             }
             host.status(NO_MORE);
@@ -159,27 +172,35 @@ final class CommentFinder {
             host.status(NO_MORE);
             return;
         }
+        // Everything showing has been read: down to the list's bottom, or up to where rows start showing.
+        final int shown = dir > 0 ? host.height() : host.top();
         final View marker = outermost(dir);
+        final int before = marker == null ? 0 : marker.getTop();
         host.status(SEARCHING);
-        host.scrollBy(dir * Math.max(1, host.height() * 3 / 4));
+        // Less than what shows, so every line of every row shows at one look or another.
+        host.scrollBy(dir * Math.max(1, (host.height() - host.top()) * 3 / 4));
         host.later(() -> {
-            // Every row that was on screen has been read, the marker being the farthest one; the next
-            // look reads only what scrolled in past it.
-            int next = marker != null && marker.getParent() != null ? marker.getTop() : edge(dir);
-            step(dir, id, next, pages + 1, 0);
+            if (marker == null || marker.getParent() == null) {
+                step(dir, id, edge(dir), unread(dir), pages + 1, 0);
+                return;
+            }
+            // The rows moved with the scroll, the marker by as much as any; the bounds move with them.
+            int moved = marker.getTop() - before;
+            step(dir, id, bound + moved, shown + moved, pages + 1, 0);
         }, STEP_MILLIS);
     }
 
-    /** The nearest row past [bound] in [dir] that holds the search, or null. */
+    /** The nearest row past [bound] in [dir] that holds the search and hasn't all shown yet, or null. */
     @Nullable
-    private View scan(int dir, int bound) {
+    private View scan(int dir, int bound, int seen) {
         View best = null;
         for (int i = 0, count = host.rows(); i < count; i++) {
             View row = host.row(i);
             if (row == null || row.getHeight() <= 0 || row.getVisibility() != View.VISIBLE) continue;
             int top = row.getTop();
             boolean past = dir > 0 ? top > bound : top < bound;
-            if (!past) continue;
+            boolean unseen = dir > 0 ? row.getBottom() > seen : top < seen;
+            if (!past || !unseen) continue;
             if (best != null && (dir > 0 ? top >= best.getTop() : top <= best.getTop())) continue;
             if (fold(text(row)).contains(needle)) best = row;
         }

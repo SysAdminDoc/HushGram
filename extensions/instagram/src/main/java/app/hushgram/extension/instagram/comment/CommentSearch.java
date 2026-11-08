@@ -220,16 +220,14 @@ public final class CommentSearch {
                 // A hardware Enter comes here twice, pressed and let go: only the press looks, or
                 // one Enter would skip a match. The keyboard's own search key comes with no event.
                 if (event != null && event.getAction() != KeyEvent.ACTION_DOWN) return true;
-                InputMethodManager keyboard = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (keyboard != null) keyboard.hideSoftInputFromWindow(field.getWindowToken(), 0);
-                finder.find(1);
+                find(finder, field, 1);
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.COMMENT_SEARCH, HOOK, failure);
             }
             return true;
         });
-        up.setOnClickListener(view -> find(finder, -1));
-        down.setOnClickListener(view -> find(finder, 1));
+        up.setOnClickListener(view -> find(finder, field, -1));
+        down.setOnClickListener(view -> find(finder, field, 1));
         bar.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
             public void onViewAttachedToWindow(View attached) {
@@ -243,8 +241,14 @@ public final class CommentSearch {
         return bar;
     }
 
-    private static void find(CommentFinder finder, int direction) {
+    /**
+     * Closes the keyboard and looks: with it open the list shows only a sliver, which the walk would
+     * crawl through a line at a time and the match would barely show in.
+     */
+    private static void find(CommentFinder finder, EditText field, int direction) {
         try {
+            InputMethodManager keyboard = (InputMethodManager) field.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (keyboard != null) keyboard.hideSoftInputFromWindow(field.getWindowToken(), 0);
             finder.find(direction);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.COMMENT_SEARCH, HOOK, failure);
