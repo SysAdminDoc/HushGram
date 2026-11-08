@@ -4,7 +4,6 @@
  */
 package app.morphe.patches.instagram.stories.seen
 
-import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.cloneMutable
@@ -89,16 +88,18 @@ internal class StoryTrayTargets(
 )
 
 /**
- * Where a tray response has just gone into the store: in [method] of the tray manager [manager],
- * taking [parameters], right before instruction [after], with register [request] holding the request
- * it was fetched for. The request's text says why it was fetched, which is what decides whether the
- * row starts over, since Instagram also fetches a tray when you come back from a longer watch (#377).
+ * Where a tray response goes into the store: in [method] of the tray manager [manager], taking
+ * [parameters], the store's call at instruction [at], with register [request] holding the request it
+ * was fetched for. The request's text says why it was fetched, which is what decides whether the row
+ * starts over, since Instagram also fetches a tray when you come back from a longer watch (#377). The
+ * hook goes before the call: the store hands Home the new tray on its way through, and told after,
+ * Home drew a reloaded row from the old places (#241).
  */
 internal class TrayResponse(
     val manager: String,
     val method: String,
     val parameters: List<String>,
-    val after: Int,
+    val at: Int,
     val request: Int,
 )
 
@@ -237,11 +238,7 @@ private fun BytecodePatchContext.trayResponse(store: String): TrayResponse {
     val at = calls.singleOrNull()
         ?: refuseTray("expected one call of $store taking the tray request in $where, found ${calls.size}")
     val request = code[at].argumentOfType(requestType) ?: refuseTray("can't read the tray request's register in $where")
-    val result = code.getOrNull(at + 1)?.takeIf {
-        it.opcode == Opcode.MOVE_RESULT || it.opcode == Opcode.MOVE_RESULT_WIDE || it.opcode == Opcode.MOVE_RESULT_OBJECT
-    }
-    if ((result as? OneRegisterInstruction)?.registerA == request) refuseTray("the store's answer replaces the tray request in $where")
-    return TrayResponse(manager.type, method.name, method.parameterTypes.map(Any::toString), if (result == null) at + 1 else at + 2, request)
+    return TrayResponse(manager.type, method.name, method.parameterTypes.map(Any::toString), at, request)
 }
 
 /** The register this call hands its argument of [type] in, or null when it's no call of a kind that says. */
@@ -374,12 +371,13 @@ internal fun BytecodePatchContext.orderStoryTray(found: StoryTrayTargets) {
             """,
         )
     }
-    // A tray response is in the store: what it was fetched for may start the row over (#377).
+    // A tray response is going into the store: what it was fetched for may start the row over (#377),
+    // and it has to before the store hands Home the new tray (#241).
     found.response?.let { response ->
         mutableClassDefBy(response.manager).methods.single {
             it.name == response.method && it.parameterTypes.map(Any::toString) == response.parameters
-        }.addInstructions(
-            response.after,
+        }.addInstructionsAtControlFlowLabel(
+            response.at,
             "invoke-static/range { v${response.request} .. v${response.request} }, $TRAY_RESPONDED",
         )
     }

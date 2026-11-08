@@ -228,27 +228,54 @@ public class StoryTrayOrderTest {
                 StoryTrayOrder.order(Arrays.<Object>asList(another, "b", "c"), ON, seenAre("a")));
     }
 
-    /** Only the reasons that start the row over forget its places, as the request's own text names them. */
+    /**
+     * Only a tray fetched after a watch, or the row's next page, keeps the row's places, as the
+     * request's own text names the reason. Every other fetch starts the row over, the reloads on
+     * coming back to the app included, and so does a request with no reason to read (#241).
+     */
     @Test
-    public void aTrayResponseStartsTheRowOverOnlyForItsReasons() {
+    public void onlyATrayAfterAWatchOrTheNextPageKeepsTheRowsPlaces() {
         List<Object> tray = Arrays.<Object>asList("a", "b", "c");
-        for (String reason : StoryTrayOrder.STARTS_OVER) {
+        for (String reason : StoryTrayOrder.KEEPS_PLACES) {
             assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
             StoryTrayOrder.responded("Request{mReason=" + reason + ", mInstanceNumber=3}");
-            assertEquals(reason, Arrays.<Object>asList("b", "c", "a"), StoryTrayOrder.order(tray, ON, seenAre("a")));
+            assertSame(reason, tray, StoryTrayOrder.order(tray, ON, seenAre("a")));
             StoryTrayOrder.refreshed();
         }
-        assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
         for (Object request : new Object[] {
-                "Request{mReason=consumption_based_refresh, mInstanceNumber=3}",
-                "Request{mReason=reset_to_home_after_story_consumption, mInstanceNumber=3}",
+                "Request{mReason=cold_start, mInstanceNumber=3}",
+                "Request{mReason=warm_start_with_feed, mInstanceNumber=3}",
+                "Request{mReason=pull_to_refresh, mInstanceNumber=3}",
                 "Request{mReason=auto_refresh, mInstanceNumber=3}",
+                "Request{mReason=fragment_refresh, mInstanceNumber=3}",
+                "Request{mReason=background_prefetch, mInstanceNumber=3}",
+                "Request{mReason=reset_to_home, mInstanceNumber=3}",
+                "Request{mReason=cross_tab_refresh, mInstanceNumber=3}",
                 "something else",
                 null,
         }) {
+            assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre()));
             StoryTrayOrder.responded(request);
-            assertSame(String.valueOf(request), tray, StoryTrayOrder.order(tray, ON, seenAre("a")));
+            assertEquals(String.valueOf(request), Arrays.<Object>asList("b", "c", "a"),
+                    StoryTrayOrder.order(tray, ON, seenAre("a")));
+            StoryTrayOrder.refreshed();
         }
+    }
+
+    /**
+     * The row's next page goes after every reel already placed, the watched ones held in place
+     * included. A new reel used to take the place one past the unseen reel ahead of it, level with
+     * a gray ring held there, so the page came out shuffled in among the gray rings (#241).
+     */
+    @Test
+    public void theNextPageGoesAfterTheRowNotAmongWatchedOnes() {
+        List<Object> first = Arrays.<Object>asList("a", "b", "c", "d");
+        assertSame(first, StoryTrayOrder.order(first, ON, seenAre()));
+        StoryTrayOrder.Seen watched = seenAre("c", "d");
+        assertSame("c and d stay where they were", first, StoryTrayOrder.order(first, ON, watched));
+        StoryTrayOrder.responded("Request{mReason=pagination, mInstanceNumber=4}");
+        List<Object> paged = Arrays.<Object>asList("a", "b", "c", "d", "e", "f");
+        assertSame(paged, StoryTrayOrder.order(paged, ON, watched));
     }
 
     @Test
@@ -258,7 +285,7 @@ public class StoryTrayOrderTest {
         assertEquals("no reason", "", StoryTrayOrder.reason("Request{}"));
     }
 
-    /** A request that won't even read leaves the places alone and shows in the diagnostics. */
+    /** A request that won't even read starts the row over, as Instagram would, and shows in the diagnostics. */
     @Test
     public void aRequestThatFailsToReadIsReported() {
         List<Object> tray = Arrays.<Object>asList("a", "b");
@@ -269,7 +296,7 @@ public class StoryTrayOrderTest {
                 throw new IllegalStateException("no");
             }
         });
-        assertSame(tray, StoryTrayOrder.order(tray, ON, seenAre("a")));
+        assertEquals(Arrays.<Object>asList("b", "a"), StoryTrayOrder.order(tray, ON, seenAre("a")));
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, report.contains(StoryTrayOrder.RESPONSE_HOOK));
     }

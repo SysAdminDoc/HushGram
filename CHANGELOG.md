@@ -56,6 +56,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* With `Gray out stories you've watched`, the story row no longer puts stories you've watched ahead of new ones after it reloads, like after a pull to refresh or coming back to the app. The next batch of stories that loads as you scroll the row also stays after the ones you had, instead of mixing in with the gray rings. Reported in #241.
 * Explore no longer leaves two blank spots in every fourth row when `Full size covers` is on. The switch tells Instagram the screen is 4320 pixels wide, and at a phone's pixel density that's a tablet, so Explore sent its grid for wider rows. The density now goes up with the size (for `Ask for larger photos` too), so the screen keeps a phone's size and covers still come in full. Reported in #433.
 * `Keep a viewing history` now records the reels you watch. It only heard about them while `Download button on reels` was on, so with that icon off the Reels list stayed empty. Reported in #228.
 * With `Rounded corners on Reels` on, opening the comments on a wide reel no longer cuts its video down to a thin strip. The rounded edge now moves up with the video. Reported in #522.

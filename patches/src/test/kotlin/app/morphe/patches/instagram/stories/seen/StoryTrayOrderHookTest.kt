@@ -101,20 +101,21 @@ class StoryTrayOrderHookTest {
                 }
                 assertEquals("${bundle.name}: one call of the hook per list", 2, context.calls(TRAY_ORDER))
 
-                // A tray response is told once, right after the store's call taking the request,
-                // with the very register that call was handed the request in (#377).
+                // A tray response is told once, right before the store's call taking the request, with
+                // the very register that call is handed the request in (#377). Before it, since the store
+                // hands Home the new tray on its way through (#241).
                 val response = found.response!!
                 fun ofTheResponse(method: Method) = method.name == response.method && method.parameterTypes.map(Any::toString) == response.parameters
                 val responseBefore = classes.single { it.type == response.manager }.methods.single(::ofTheResponse).code()
                 val responseAfter = context.mutableClassDefBy(response.manager).methods.single(::ofTheResponse).code()
                 val told = responseAfter.indexOfFirst { it.referenceText() == TRAY_RESPONDED }
                 assertEquals("${bundle.name}: a response is told once", 1, context.calls(TRAY_RESPONDED))
-                assertEquals("${bundle.name}: told where it was found", response.after, told)
+                assertEquals("${bundle.name}: told where it was found", response.at, told)
                 val tell = responseAfter[told] as RegisterRangeInstruction
                 assertEquals("${bundle.name}: told the request alone", listOf(response.request, 1), listOf(tell.startRegister, tell.registerCount))
-                val stored = responseAfter.subList(0, told).last { (it as? ReferenceInstruction)?.reference is MethodReference }
+                val stored = responseAfter[told + 1]
                 val storedCall = (stored as ReferenceInstruction).reference as MethodReference
-                assertEquals("${bundle.name}: it follows the store's call", found.store, storedCall.definingClass)
+                assertEquals("${bundle.name}: the store's call comes right after", found.store, storedCall.definingClass)
                 val requestAt = storedCall.parameterTypes.map(Any::toString).indexOf(response.parameters.first())
                 assertTrue("${bundle.name}: the store's call takes the request", requestAt >= 0)
                 (stored as? RegisterRangeInstruction)?.let {

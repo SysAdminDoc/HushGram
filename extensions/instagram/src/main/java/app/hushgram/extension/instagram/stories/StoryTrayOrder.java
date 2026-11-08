@@ -37,9 +37,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the new gray ring to the back with the row's scroll following it, leaving you among watched
  * stories. So a reel gets a place the first time it goes out unseen and holds it, whatever order the
  * store has it in and whether it's been watched since. A reel new to the row goes in beside the reel
- * the store has it behind. Watched reels that never had a place stay behind the rest. The places are
- * forgotten when a tray comes for a reason that starts the row over ({@link #STARTS_OVER}), or on a
- * restart.
+ * the store has it behind, or after every reel with a place when nothing behind it has one, so a page
+ * of reels loaded later never lands among watched ones held in place. Watched reels that never had a
+ * place stay behind the rest. The places last only through a tray fetched after a watch or one adding
+ * the row's next page ({@link #KEEPS_PLACES}). A tray fetched for any other reason starts the row
+ * over, and so does a restart. The patch tells of a tray before the store takes it in, since the store
+ * hands Home the new tray on the way: told after, Home drew a reloaded row from the old places, with
+ * the stories you'd watched still ahead of the new ones (#241).
  *
  * <p>Either switch off, a pause or settings that aren't ready give the list back as it came and
  * forget the places, and any failure deciding gives the list back as it came.
@@ -55,8 +59,13 @@ public final class StoryTrayOrder {
     static final int OWN = -2;
     static final String OWN_FIRST = "own story put first";
 
-    /** The reasons for fetching a tray that start the row over, by Instagram's names for them. */
-    static final List<String> STARTS_OVER = Arrays.asList("cold_start", "warm_start_with_feed", "pull_to_refresh");
+    /**
+     * The reasons for fetching a tray that keep the row's places, by Instagram's names for them: the
+     * fetches after a watch, and the row's next page. Any other reason, or one that can't be read,
+     * starts the row over (#241).
+     */
+    static final List<String> KEEPS_PLACES =
+            Arrays.asList("consumption_based_refresh", "reset_to_home_after_story_consumption", "pagination");
 
     /** What comes before the reason in a request's text: Request{mReason=name, mInstanceNumber=n}. */
     private static final String REASON = "mReason=";
@@ -91,15 +100,16 @@ public final class StoryTrayOrder {
     }
 
     /**
-     * Put by the patch where the store has taken in a tray response. The [request] it was fetched
-     * for says why in its text. Never throws.
+     * Put by the patch just before the store takes in a tray response, which hands Home the new tray
+     * on the way. The [request] it was fetched for says why in its text. Never throws.
      */
     public static void responded(Object request) {
         try {
             String reason = reason(String.valueOf(request));
             Logger.printDebug(() -> "Story tray: a tray came for " + reason);
-            if (STARTS_OVER.contains(reason)) refreshed();
+            if (!KEEPS_PLACES.contains(reason)) refreshed();
         } catch (Throwable failure) {
+            refreshed();
             report(RESPONSE_HOOK, failure);
         }
     }
@@ -194,7 +204,10 @@ public final class StoryTrayOrder {
     /**
      * Gives each of [unseen], in the store's order, a place when it has none: between the reel the
      * store has it behind and the next reel with a place, so a tray with reels new to it reads as the
-     * store has it. Call holding {@link #places}.
+     * store has it. With no placed reel behind it, it goes after every place in use, watched reels'
+     * included: one place past the reel ahead of it sat level with a watched reel held there, and the
+     * next page of the row came out shuffled in among the gray rings (#241). Call holding
+     * {@link #places}.
      */
     private static void givePlaces(List<Object> unseen) {
         for (int index = 0; index < unseen.size(); index++) {
@@ -206,10 +219,17 @@ public final class StoryTrayOrder {
                 after = places.get(unseen.get(next));
             }
             double place;
-            if (before == null) place = after == null ? 0 : after - 1;
-            else place = after == null ? before + 1 : (before + after) / 2;
+            if (after == null) place = last() + 1;
+            else place = before == null ? after - 1 : (before + after) / 2;
             places.put(reel, place);
         }
+    }
+
+    /** The highest place in use, or -1 with none. Call holding {@link #places}. */
+    private static double last() {
+        double last = -1;
+        for (double place : places.values()) last = Math.max(last, place);
+        return last;
     }
 
     private static void report(String hook, Throwable failure) {

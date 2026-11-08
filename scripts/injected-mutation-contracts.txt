@@ -1705,9 +1705,10 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySeenRings;->seen(Ljava/
 once-call Lapp/hushgram/extension/instagram/stories/StoryTrayOrder;->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;)Ljava/util/List; calling static LX/*;->*(Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/ArrayList; holding const:0x81133000016851
 once-call Lapp/hushgram/extension/instagram/stories/StoryTrayOrder;->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (ZZ)Ljava/util/List; holding main\sfeed\stray\sreels\sis\sempty
 # The tray manager's response method (07hG.G7Y on 386014758) tells StoryTrayOrder why each tray came,
-# right after the store has it, so a pull to refresh starts the row over and a fetch on the way back
-# from a longer watch doesn't (#377). Left out, a story just watched keeps its place even after a pull
-# to refresh; twice or elsewhere, it isn't the hook the patch wrote.
+# right before the store takes it in and hands Home the new tray, so only a fetch after a watch or the
+# row's next page keeps the places and any other reload starts the row over (#377, #241). Left out, a
+# story just watched keeps its place even after a pull to refresh; twice or elsewhere, it isn't the
+# hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoryTrayOrder;->responded(Ljava/lang/Object;)V in instance (LX/*;LX/*;LX/*;LX/*;J)V pooled holding ReelTrayManager.onReelTrayResponseReady\s-\suseCache:\s
 # Stories priority hands the same two lists to StoryPriority.order after that sort, once each (#451),
 # so the accounts a user listed go first while they have an unwatched story. Same two methods.
