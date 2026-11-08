@@ -13,6 +13,8 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -31,6 +33,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.shadows.ShadowAlertDialog;
 
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -76,6 +79,20 @@ public class SelectTextTest {
         assertNotNull("the text is in a selectable view", body);
         assertEquals("line one\nsee https://example.com now", body.getText().toString());
         assertTrue(body.getLinksClickable());
+    }
+
+    /** The window is in HushGram's dialog colours, black with Pure black, not the phone's grey (#525). */
+    @Test public void theWindowIsInHushgramsDialogColours() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        SelectText.show(activity, "Comment", "some text");
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        ScreenColors colors = ScreenColors.current();
+        Drawable panel = dialog.getWindow().getDecorView().getBackground();
+        assertTrue("HushGram's panel, not the theme's", panel instanceof GradientDrawable);
+        assertEquals(colors.dialog, ((GradientDrawable) panel).getColor().getDefaultColor());
+        TextView body = textIn(dialog.getWindow().getDecorView());
+        assertEquals(colors.title, body.getCurrentTextColor());
+        assertEquals(colors.heading, body.getLinkTextColors().getDefaultColor());
     }
 
     @Test public void aCommentGetsASelectRowOnceAndANewCommentReplacesIt() {

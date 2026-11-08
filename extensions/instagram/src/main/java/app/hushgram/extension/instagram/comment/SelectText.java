@@ -18,6 +18,7 @@ import java.util.List;
 import kotlin.jvm.functions.Function0;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
@@ -67,17 +68,25 @@ public final class SelectText {
             body.setTextSize(16);
             int pad = Math.round(context.getResources().getDisplayMetrics().density * 20);
             body.setPadding(pad, pad / 2, pad, pad / 2);
+            // In HushGram's own dialog colours, black with Pure black dark mode, rather than the
+            // phone's grey dialog (#525).
+            ScreenColors colors = ScreenColors.current();
+            body.setTextColor(colors.title);
+            body.setLinkTextColor(colors.heading);
+            body.setHighlightColor(ScreenColors.half(colors.accent));
             ScrollView scroll = new ScrollView(context);
             scroll.addView(body);
-            new AlertDialog.Builder(context)
+            AlertDialog dialog = new AlertDialog.Builder(context)
                     .setTitle(title)
                     .setView(scroll)
-                    .setPositiveButton(L10n.t(context, "Copy all"), (dialog, which) -> {
+                    .setPositiveButton(L10n.t(context, "Copy all"), (shown, which) -> {
                         Utils.setClipboard(context, title, text);
                         Utils.showToastShort(L10n.t(context, "Copied"));
                     })
                     .setNegativeButton(L10n.t(context, "Close"), null)
-                    .show();
+                    .create();
+            dialog.show();
+            ScreenColors.dialog(dialog);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.COMMENT_COPY, "select text", failure);
             try {
