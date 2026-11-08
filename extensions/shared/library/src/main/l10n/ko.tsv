@@ -704,6 +704,13 @@ Takes the row of quick emoji off above the comment box. The box itself stays.	�
 # context: Comments: the switch that takes GIFs and stickers out of a post's comments (#511). A comment that has words keeps its words and loses only the picture. A comment that's only a GIF disappears, and its replies with it. Comment box is the field where you type a comment.
 Hide GIFs in comments	댓글의 GIF 숨기기
 Takes GIFs and stickers out of comments, and the GIF button off the comment box. A comment with words keeps them. One that's only a GIF goes, along with its replies.	댓글에서 GIF와 스티커를 없애고 댓글 입력창의 GIF 버튼도 없앱니다. 글이 있는 댓글은 글이 그대로 남습니다. GIF만 있는 댓글은 답글과 함께 사라집니다.
+Search comments	댓글 검색
+Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.	게시물 댓글 위에 검색창을 추가합니다. 단어나 이름을 입력하면 그 내용이 있는 다음 댓글로 스크롤됩니다. 열지 않은 답글은 검색되지 않습니다.
+# context: the search box's two arrow buttons, read aloud by screen readers; and the line beside the box while it looks for more comments or when it finds no more
+Previous match	이전 결과
+Next match	다음 결과
+Searching...	검색 중...
+No more matches	더 이상 결과 없음
 Open comments without the keyboard	키보드 없이 댓글 열기
 Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.	댓글이 키보드가 내려간 상태로 열립니다. 댓글 입력란이나 답글 달기를 탭하면 키보드가 그대로 나타납니다.
 # context: Feed: the switch that hides the Follow and Subscribe buttons beside the author's name on a post (#248). Follow and Subscribe are the labels Instagram uses on those buttons.

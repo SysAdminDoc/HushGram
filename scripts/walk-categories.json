@@ -470,7 +470,8 @@
           "Hide comments",
           "Hide the comment emoji row",
           "Open comments without the keyboard",
-          "Hide GIFs in comments"
+          "Hide GIFs in comments",
+          "Search comments"
         ]
       },
       "anchors": [

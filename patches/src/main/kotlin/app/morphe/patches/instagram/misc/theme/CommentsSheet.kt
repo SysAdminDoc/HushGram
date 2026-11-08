@@ -70,9 +70,9 @@ internal fun BytecodePatchContext.blackenCommentsSheet(hooks: BottomSheetHooks) 
  * the return run it too. The 454 set-up method jumps onto its last return from seven places,
  * three of them after the sheet is fully set up.
  */
-private fun app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.hookReturns(call: String) {
+internal fun app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.hookReturns(call: String, patch: String = PATCH_NAME) {
     val returns = implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.map { it.index }
-    if (returns.isEmpty()) throw PatchException("$PATCH_NAME: $name returns nowhere")
+    if (returns.isEmpty()) throw PatchException("$patch: $name returns nowhere")
     returns.asReversed().forEach { addInstructionsAtControlFlowLabel(it, call) }
 }
 
@@ -83,17 +83,17 @@ private fun app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.hookReturns
  * creation is reached every time the sheet shows, from Reels, the feed and a post's page alike.
  * Fails when there are none.
  */
-internal fun BytecodePatchContext.findCommentsScreens(): List<String> {
+internal fun BytecodePatchContext.findCommentsScreens(patch: String = PATCH_NAME): List<String> {
     val screens = mutableListOf<String>()
     classDefForEach { classDef ->
         if (classDef.originalName()?.startsWith(COMMENTS_SCREEN_PREFIX) != true) return@classDefForEach
         if (classDef.methods.any { it.isViewCreated() }) screens += classDef.type
     }
-    if (screens.isEmpty()) throw PatchException("$PATCH_NAME: no comments sheet screen with an onViewCreated")
+    if (screens.isEmpty()) throw PatchException("$patch: no comments sheet screen with an onViewCreated")
     return screens
 }
 
-private fun Method.isViewCreated() = name == "onViewCreated" && returnType == "V" &&
+internal fun Method.isViewCreated() = name == "onViewCreated" && returnType == "V" &&
     parameters() == listOf("Landroid/view/View;", "Landroid/os/Bundle;") && !AccessFlags.STATIC.isSet(accessFlags)
 
 /**

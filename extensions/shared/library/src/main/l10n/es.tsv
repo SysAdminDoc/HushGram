@@ -705,6 +705,13 @@ Takes the row of quick emoji off above the comment box. The box itself stays.	Qu
 # context: Comments: the switch that takes GIFs and stickers out of a post's comments (#511). A comment that has words keeps its words and loses only the picture. A comment that's only a GIF disappears, and its replies with it. Comment box is the field where you type a comment.
 Hide GIFs in comments	Ocultar GIF en los comentarios
 Takes GIFs and stickers out of comments, and the GIF button off the comment box. A comment with words keeps them. One that's only a GIF goes, along with its replies.	Quita los GIF y stickers de los comentarios y el botón de GIF del cuadro de comentarios. Un comentario con texto conserva su texto. Uno que solo tiene un GIF desaparece junto con sus respuestas.
+Search comments	Buscar en los comentarios
+Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.	Añade un cuadro de búsqueda encima de los comentarios de una publicación. Escribe una palabra o un nombre y los comentarios se desplazan hasta el siguiente que lo tenga. Las respuestas que no has abierto no se buscan.
+# context: the search box's two arrow buttons, read aloud by screen readers; and the line beside the box while it looks for more comments or when it finds no more
+Previous match	Coincidencia anterior
+Next match	Coincidencia siguiente
+Searching...	Buscando...
+No more matches	No hay más coincidencias
 Open comments without the keyboard	Abrir los comentarios sin el teclado
 Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.	Los comentarios se abren con el teclado oculto. Tocar el cuadro de comentario, o Responder, lo sigue mostrando.
 # context: Feed: the switch that hides the Follow and Subscribe buttons beside the author's name on a post (#248). Follow and Subscribe are the labels Instagram uses on those buttons.

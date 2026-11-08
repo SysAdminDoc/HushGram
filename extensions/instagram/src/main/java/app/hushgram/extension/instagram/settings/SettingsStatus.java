@@ -435,6 +435,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Search comments patch. */
+    public static boolean commentSearch() {
+        return false;
+    }
+
     public static boolean commentKeyboard() {
         return false;
     }

@@ -27,7 +27,8 @@ final class CommentsCategory {
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.COMMENT_COPY) || build.contains(PatchFamily.COMMENT_PHOTO)
                 || build.contains(PatchFamily.HIDE_COMMENTS) || build.contains(PatchFamily.COMMENT_EMOJI_ROW)
-                || build.contains(PatchFamily.COMMENT_KEYBOARD) || build.contains(PatchFamily.COMMENT_GIFS)) {
+                || build.contains(PatchFamily.COMMENT_KEYBOARD) || build.contains(PatchFamily.COMMENT_GIFS)
+                || build.contains(PatchFamily.COMMENT_SEARCH)) {
             PreferenceCategory comments = category(screen, L10n.t("Comments"), SettingsIcons.COMMENTS,
                     L10n.t("Copy, save or hide comments."));
             if (build.contains(PatchFamily.COMMENT_COPY)) {
@@ -71,6 +72,10 @@ final class CommentsCategory {
                 comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_GIFS, L10n.t("Hide GIFs in comments"),
                         L10n.t("Takes GIFs and stickers out of comments, and the GIF button off the comment box. A comment with words keeps them. One that's only a GIF goes, along with its replies.")),
                         CommentGifs::switchChanged));
+            }
+            if (build.contains(PatchFamily.COMMENT_SEARCH)) {
+                comments.addPreference(toggle(context, Settings.COMMENT_SEARCH, L10n.t("Search comments"),
+                        L10n.t("Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.")));
             }
         }
     }

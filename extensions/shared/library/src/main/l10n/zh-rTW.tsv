@@ -709,6 +709,13 @@ Takes the row of quick emoji off above the comment box. The box itself stays.	�
 # context: Comments: the switch that takes GIFs and stickers out of a post's comments (#511). A comment that has words keeps its words and loses only the picture. A comment that's only a GIF disappears, and its replies with it. Comment box is the field where you type a comment.
 Hide GIFs in comments	隱藏留言中的 GIF
 Takes GIFs and stickers out of comments, and the GIF button off the comment box. A comment with words keeps them. One that's only a GIF goes, along with its replies.	移除留言中的 GIF 和貼圖，以及留言輸入框上的 GIF 按鈕。有文字的留言會保留文字，只有 GIF 的留言則會連同回覆一起隱藏。
+Search comments	搜尋留言
+Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.	在貼文的留言上方加入搜尋框。輸入文字或名稱，留言會捲動到下一則含有它的留言。你還沒展開的回覆不會被搜尋。
+# context: the search box's two arrow buttons, read aloud by screen readers; and the line beside the box while it looks for more comments or when it finds no more
+Previous match	上一個結果
+Next match	下一個結果
+Searching...	搜尋中...
+No more matches	沒有更多結果
 Open comments without the keyboard	開啟留言時不彈出鍵盤
 Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.	開啟留言時不顯示鍵盤。點擊留言輸入框或「回覆」仍會彈出鍵盤。
 # context: Feed: the switch that hides the Follow and Subscribe buttons beside the author's name on a post (#248). Follow and Subscribe are the labels Instagram uses on those buttons.

@@ -4681,6 +4681,20 @@
       ],
       "options": []
     },
+    {
+      "name": "Search comments",
+      "description": "Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it, loading more as they go. The arrows step forward and back through the matches. Replies you haven't opened aren't searched. Starts off. Turn it on in HushGram settings > Comments.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
       "compatibility": [
         {
           "name": "Instagram",
@@ -5151,7 +5165,7 @@
     {
       "name": "Skip the collections tray",
       "description": "Saving a post or reel shows Instagram's Saved message instead of the tray that asks you to start a collection. Starts off. Turn it on in HushGram settings > Feed.",
-      "category": "Interaction",
+      "category": "Fixes",
       "use": true,
       "dependencies": [
         "BytecodePatch",

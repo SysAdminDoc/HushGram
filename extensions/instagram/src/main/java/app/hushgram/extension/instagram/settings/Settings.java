@@ -2341,6 +2341,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_comment_gifs", FALSE);
 
     /**
+     * A search box above a post's comments that scrolls to the comments holding what's typed
+     * ({@link app.hushgram.extension.instagram.comment.CommentSearch}). Read as each comments sheet
+     * opens, so it needs no restart. Off to start (#560).
+     */
+    public static final BooleanSetting COMMENT_SEARCH =
+            new BooleanSetting("hushgram_comment_search", FALSE);
+
+    /**
      * The comment sheet opens without bringing the keyboard up on its own
      * ({@link app.hushgram.extension.instagram.feed.CommentKeyboard}). A tap in the box still brings
      * it up. Read each time a sheet opens, so it needs no restart. Off to start.

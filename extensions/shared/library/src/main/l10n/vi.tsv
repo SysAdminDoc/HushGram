@@ -701,6 +701,13 @@ Takes the row of quick emoji off above the comment box. The box itself stays.	G�
 # context: Comments: the switch that takes GIFs and stickers out of a post's comments (#511). A comment that has words keeps its words and loses only the picture. A comment that's only a GIF disappears, and its replies with it. Comment box is the field where you type a comment.
 Hide GIFs in comments	Ẩn GIF trong bình luận
 Takes GIFs and stickers out of comments, and the GIF button off the comment box. A comment with words keeps them. One that's only a GIF goes, along with its replies.	Gỡ GIF và nhãn dán khỏi bình luận, và gỡ nút GIF khỏi ô bình luận. Bình luận có chữ vẫn giữ phần chữ. Bình luận chỉ có GIF sẽ biến mất cùng các câu trả lời.
+Search comments	Tìm trong bình luận
+Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.	Thêm ô tìm kiếm phía trên phần bình luận của bài viết. Gõ một từ hoặc một cái tên, danh sách bình luận sẽ cuộn đến bình luận tiếp theo có chứa nó. Những câu trả lời bạn chưa mở sẽ không được tìm.
+# context: the search box's two arrow buttons, read aloud by screen readers; and the line beside the box while it looks for more comments or when it finds no more
+Previous match	Kết quả trước
+Next match	Kết quả tiếp theo
+Searching...	Đang tìm...
+No more matches	Không còn kết quả nào
 Open comments without the keyboard	Mở bình luận mà không bật bàn phím
 Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.	Bình luận mở với bàn phím thu xuống. Nhấn vào ô bình luận hoặc Trả lời vẫn gọi bàn phím lên.
 Hide Follow on posts	Ẩn Theo dõi trên bài viết
