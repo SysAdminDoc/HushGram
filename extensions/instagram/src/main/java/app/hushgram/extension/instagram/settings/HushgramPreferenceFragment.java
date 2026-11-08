@@ -633,6 +633,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         NotificationsCategory.add(this, screen, context, build);
         StorageCategory.add(this, screen, context, build);
         DownloadsCategory.add(this, screen, context, build);
+        ViewingHistoryCategory.add(this, screen, context, build);
         BatteryCategory.add(this, screen, context, build);
         UpdatesCategory.add(this, screen, context, build);
         EntryCategory.add(this, screen, context, build);
@@ -703,6 +704,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     aliases.append(' ').append(L10n.t("Reels"));
                 }
                 if (Settings.VIEW_DM_MEDIA_ANONYMOUSLY.key.equals(key)) aliases.append(' ').append(L10n.t("Ads and privacy"));
+                // These sat under Ads and privacy until they got a category of their own (#228).
+                if (Settings.VIEWING_HISTORY.key.equals(key) || VIEWING_HISTORY_ROW.equals(key)
+                        || CLEAR_VIEWING_HISTORY.equals(key)) {
+                    aliases.append(' ').append(L10n.t("Ads and privacy"));
+                }
                 if (Settings.REMOVE_BUILD_EXPIRED_POPUP.key.equals(key)) aliases.append(' ').append(L10n.t("Updates"));
                 // Instagram's menu calls clear mode Full screen (#480).
                 if (Settings.KEEP_REEL_CLEAR_MODE.key.equals(key) || Settings.START_REEL_CLEAR_MODE.key.equals(key)
@@ -1747,6 +1753,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         sayLocked();
         Utils.runOnMainThread(() -> { if (getView() != null) showLock(); });
         return false;
+    }
+
+    /** Whether the viewing history page may take a row off its list now. The settings lock holds it, as it holds Clear. */
+    static boolean viewingHistoryChangeAllowed(Preference row) {
+        return allowMutation(row, false);
     }
 
     /** Read-only policy for the final worker transaction, after every provider stream closed. */
@@ -4394,7 +4405,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Row row = new Row(context);
         row.setKey(VIEWING_HISTORY_ROW);
         row.setPersistent(false);
-        row.setTitle(L10n.t("Viewing history"));
+        // Its category is Viewing history, so the row says what it holds.
+        row.setTitle(L10n.t("Recently seen"));
         row.setSummary(L10n.t("Reading the list…"));
         row.setOnPreferenceClickListener(tapped -> {
             ViewingHistoryPage.open(tapped.getContext(), tapped);
@@ -4456,6 +4468,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             boolean cleared = ViewingHistory.clear(context);
             Utils.runOnMainThread(() -> {
+                ViewingHistoryPage.forgetPictures();
                 if (cleared) {
                     Utils.showToastShort(L10n.t("Viewing history cleared."));
                     list.setSummary(viewingHistorySummary(java.util.Collections.emptyList(), System.currentTimeMillis()));

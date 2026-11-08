@@ -173,7 +173,7 @@ public class SettingsCardsTest {
     @Test public void everyCategoryExpandsItsControlsBelowTheSameButton() throws Exception {
         open(true, EnumSet.allOf(PatchFamily.class));
         List<Preference> categories = categoryRows();
-        assertEquals("every category, Pause and diagnostics included", 23, categories.size());
+        assertEquals("every category, Pause and diagnostics included", 24, categories.size());
         for (Preference row : categories) {
             HushgramPreferenceFragment.Heading group = (HushgramPreferenceFragment.Heading) row;
             assertEquals(0, group.getPreferenceCount());

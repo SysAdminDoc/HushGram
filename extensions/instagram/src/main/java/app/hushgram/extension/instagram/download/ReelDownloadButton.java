@@ -230,8 +230,17 @@ public final class ReelDownloadButton {
         return null;
     }
 
-    /** Whether the column gets the icon at all: the switch and Download on reels. Paused answers no. Never throws. */
+    /**
+     * Whether the patched column calls {@link #litho} at all: the icon's switch with Download on
+     * reels, or the viewing history, which hears of each reel from that call (#228). Paused answers
+     * no. Never throws.
+     */
     public static boolean on() {
+        return iconOn() || ViewingHistory.on();
+    }
+
+    /** Whether the column gets the icon: the switch and Download on reels. Paused answers no. Never throws. */
+    static boolean iconOn() {
         try {
             return enabled();
         } catch (Throwable failure) {
@@ -239,6 +248,9 @@ public final class ReelDownloadButton {
             return false;
         }
     }
+
+    /** Where a reel the column shows goes while the viewing history is on. Tests swap it. */
+    static java.util.function.Consumer<Object> history = ViewingHistory::reel;
 
     /**
      * Called as the column beside a reel is composed, right after Save and its count join it, where
@@ -263,7 +275,7 @@ public final class ReelDownloadButton {
             if (column == null || !ViewingHistory.on()) return;
             Object item = bridge.item(column);
             if (item == null || !ORGANIC.equals(bridge.kind(item))) return;
-            ViewingHistory.reel(bridge.media(item));
+            history.accept(bridge.media(item));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "viewing history reel", failure);
         }

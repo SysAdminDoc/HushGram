@@ -732,6 +732,32 @@
       ]
     },
     {
+      "id": "settings-viewing-history",
+      "title": "Viewing history",
+      "builder": "ViewingHistoryCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Download any video"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Keep a viewing history",
+          "when": {
+            "op": "unconditional"
+          }
+        },
+        {
+          "title": "Clear viewing history",
+          "when": {
+            "op": "unconditional"
+          }
+        }
+      ]
+    },
+    {
       "id": "settings-battery",
       "title": "Battery",
       "builder": "BatteryCategory",

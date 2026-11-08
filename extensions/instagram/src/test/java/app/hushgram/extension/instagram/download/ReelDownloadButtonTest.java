@@ -238,6 +238,32 @@ public class ReelDownloadButtonTest {
         assertEquals(0, bridge.icons);
     }
 
+    /** #228: with the icon off, the viewing history still hears of each reel through the column's call. */
+    @Test
+    public void theViewingHistoryHearsOfReelsWithTheIconOff() {
+        java.util.function.Consumer<Object> original = ReelDownloadButton.history;
+        List<Object> seen = new ArrayList<>();
+        ReelDownloadButton.history = seen::add;
+        try {
+            Settings.REEL_DOWNLOAD_BUTTON.save(false);
+            Settings.VIEWING_HISTORY.save(true);
+            assertTrue("the column still calls in for the history", ReelDownloadButton.on());
+            assertFalse("but there's no icon to make room for", ReelDownloadButton.iconOn());
+            assertFalse(ReelColumnFit.anyIconOn());
+
+            assertNull(ReelDownloadButton.litho(new Column(new Item(Kind.ORGANIC, "reel")), null, 120, 30));
+            assertNull(ReelDownloadButton.lithoAboveMore(new Column(new Item(Kind.AD, "ad")), null, 120, 30));
+            assertEquals("the reel is noted, the ad isn't", Collections.singletonList("reel"), seen);
+            assertEquals(0, bridge.icons);
+
+            Settings.VIEWING_HISTORY.save(false);
+            assertFalse(ReelDownloadButton.on());
+        } finally {
+            ReelDownloadButton.history = original;
+            Settings.VIEWING_HISTORY.resetToDefault();
+        }
+    }
+
     @Test
     public void aReelGetsTheIconWithSavesSizeAndMarginInWhite() {
         Column column = new Column(new Item(Kind.ORGANIC, "reel"));

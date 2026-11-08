@@ -80,7 +80,7 @@ public final class ReelColumnFit {
 
     /** Whether any icon HushGram adds to the column is on. Paused answers no. Never throws. */
     static boolean anyIconOn() {
-        return ReelDownloadButton.on() || ReelFullScreenButton.on() || ReelSpeedButton.on() || ReelTextButton.on()
+        return ReelDownloadButton.iconOn() || ReelFullScreenButton.on() || ReelSpeedButton.on() || ReelTextButton.on()
                 || ReelSoundButton.on() || ReelNotInterestedButton.on() || ReelBlockButton.on();
     }
 

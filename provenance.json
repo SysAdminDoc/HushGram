@@ -235,6 +235,7 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/SettingsLock.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/ShimmerTitle.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/TypingFocusHold.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/ViewingHistoryCategory.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/DescriptionInfo.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/DisabledChoices.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/IconChoices.java",

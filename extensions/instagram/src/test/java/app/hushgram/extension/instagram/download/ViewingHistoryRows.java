@@ -14,7 +14,21 @@ public final class ViewingHistoryRows {
         ViewingHistory.add(context, kind, id, owner, time);
     }
 
+    public static void add(Context context, ViewingHistory.Kind kind, String id, String owner, String picture, long time) {
+        ViewingHistory.add(context, kind, id, owner, picture, time);
+    }
+
     public static ViewingHistory.Row row(ViewingHistory.Kind kind, String id, String owner) {
         return new ViewingHistory.Row(0L, kind, id, owner);
+    }
+
+    /** Has every picture fetch answer [bitmap] and put its address in [asked]. Answers what puts the real fetch back. */
+    public static Runnable fetchAnswering(android.graphics.Bitmap bitmap, java.util.Set<String> asked) {
+        ViewingHistory.Fetch original = ViewingHistory.fetch;
+        ViewingHistory.fetch = (context, url, size) -> {
+            asked.add(url);
+            return bitmap;
+        };
+        return () -> ViewingHistory.fetch = original;
     }
 }

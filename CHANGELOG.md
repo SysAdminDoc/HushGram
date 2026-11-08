@@ -28,6 +28,7 @@ Every HushGram release, newest first.
 * `Accent color` has a `Custom` choice now, with a `Custom color` row under it where you type any color as hex, like #4A6B82. Where text would be hard to read on it, HushGram makes it a bit darker or lighter. On Android 10 and older the colors Instagram draws in code take it, and its themes stay blue. Asked for in #520.
 * `Accent color` also has three calmer colors: Dusk blue, Pine and Slate. Asked for in #528.
 * `Categories on their own page` under Settings entry opens a category you tap on a page of its own, with its name at the top, instead of under its row. Back takes you to the list where you left it. It needs `Expandable categories` on. Asked for in #525.
+* The viewing history has a category of its own in settings now, instead of sitting under Ads and privacy. Each row on its page shows a picture: a post's first photo, a reel's cover, a story's photo or first frame, a person's profile photo. Those load from Instagram's image servers the first time and stay on your phone, and `Clear viewing history` deletes them along with the list. Hold a row for `Copy link`, `Open profile` for a post or reel, or `Remove from history`. Asked for in #228.
 
 ### Improvements
 
@@ -44,6 +45,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* `Keep a viewing history` now records the reels you watch. It only heard about them while `Download button on reels` was on, so with that icon off the Reels list stayed empty. Reported in #228.
 * With `Rounded corners on Reels` on, opening the comments on a wide reel no longer cuts its video down to a thin strip. The rounded edge now moves up with the video. Reported in #522.
 * `Phone layout on big screens` now takes the rail down the side away too. It only changed Home's header on 454, since Instagram's main screen asks a second copy of the width check. Reported in #515.
 * `See-through top bar` now reaches up behind the clock again instead of stopping at the header's top edge. Reported in #513.
