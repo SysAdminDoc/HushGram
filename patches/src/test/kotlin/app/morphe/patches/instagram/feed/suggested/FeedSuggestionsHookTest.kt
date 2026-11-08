@@ -68,21 +68,21 @@ class FeedSuggestionsHookTest {
     @Test
     fun aKindEnumMissingASuggestionUnitFailsThePatch() {
         val context = PatchContexts.of(
-            classes(kindNames = listOf("MEDIA", "AD", SUGGESTED_POST) + ACCOUNT_UNITS.drop(1) + THREADS_UNITS + SURVEY_UNITS + SHOPPING_UNITS),
+            classes(kindNames = listOf("MEDIA", "AD", SUGGESTED_POST) + ACCOUNT_UNITS.drop(1) + THREADS_UNITS + SURVEY_UNITS + STORY_UNITS + SHOPPING_UNITS),
         )
         assertThrows(PatchException::class.java) { context.filterSuggestedFeedItems() }
     }
 
     @Test
     fun aKindEnumMissingTheSuggestedPostFailsThePatch() {
-        val context = PatchContexts.of(classes(kindNames = listOf("MEDIA", "AD") + ACCOUNT_UNITS + THREADS_UNITS + SURVEY_UNITS + SHOPPING_UNITS))
+        val context = PatchContexts.of(classes(kindNames = listOf("MEDIA", "AD") + ACCOUNT_UNITS + THREADS_UNITS + SURVEY_UNITS + STORY_UNITS + SHOPPING_UNITS))
         assertThrows(PatchException::class.java) { context.filterSuggestedFeedItems() }
     }
 
     @Test
     fun aKindEnumMissingAThreadsUnitFailsThePatch() {
         val context = PatchContexts.of(
-            classes(kindNames = listOf("MEDIA", "AD", SUGGESTED_POST) + ACCOUNT_UNITS + THREADS_UNITS.dropLast(1) + SURVEY_UNITS + SHOPPING_UNITS),
+            classes(kindNames = listOf("MEDIA", "AD", SUGGESTED_POST) + ACCOUNT_UNITS + THREADS_UNITS.dropLast(1) + SURVEY_UNITS + STORY_UNITS + SHOPPING_UNITS),
         )
         assertThrows(PatchException::class.java) { context.filterSuggestedFeedItems() }
     }
@@ -90,7 +90,16 @@ class FeedSuggestionsHookTest {
     @Test
     fun aKindEnumMissingTheSurveyFailsThePatch() {
         val context = PatchContexts.of(
-            classes(kindNames = listOf("MEDIA", "AD", SUGGESTED_POST) + ACCOUNT_UNITS + THREADS_UNITS + SHOPPING_UNITS),
+            classes(kindNames = listOf("MEDIA", "AD", SUGGESTED_POST) + ACCOUNT_UNITS + THREADS_UNITS + STORY_UNITS + SHOPPING_UNITS),
+        )
+        assertThrows(PatchException::class.java) { context.filterSuggestedFeedItems() }
+    }
+
+    /** A build whose kind enum lost the story row (#557) fails instead of leaving the switch doing nothing. */
+    @Test
+    fun aKindEnumMissingTheStoryRowFailsThePatch() {
+        val context = PatchContexts.of(
+            classes(kindNames = listOf("MEDIA", "AD", SUGGESTED_POST) + ACCOUNT_UNITS + THREADS_UNITS + SURVEY_UNITS + SHOPPING_UNITS),
         )
         assertThrows(PatchException::class.java) { context.filterSuggestedFeedItems() }
     }
@@ -99,7 +108,7 @@ class FeedSuggestionsHookTest {
     fun aKindEnumMissingAShoppingUnitFailsThePatch() {
         val context = PatchContexts.of(
             classes(kindNames = listOf("MEDIA", "AD", SUGGESTED_POST) + ACCOUNT_UNITS + THREADS_UNITS + SURVEY_UNITS +
-                SHOPPING_UNITS.drop(1)),
+                STORY_UNITS + SHOPPING_UNITS.drop(1)),
         )
         assertThrows(PatchException::class.java) { context.filterSuggestedFeedItems() }
     }
@@ -133,7 +142,7 @@ class FeedSuggestionsHookTest {
     }
 
     private fun classes(
-        kindNames: List<String> = listOf("MEDIA", "AD", SUGGESTED_POST) + REEL_UNITS + ACCOUNT_UNITS + THREADS_UNITS + SURVEY_UNITS + SHOPPING_UNITS,
+        kindNames: List<String> = listOf("MEDIA", "AD", SUGGESTED_POST) + REEL_UNITS + ACCOUNT_UNITS + THREADS_UNITS + SURVEY_UNITS + STORY_UNITS + SHOPPING_UNITS,
         fetchNames: List<String> = listOf("COLD_START", "PULL_TO_REFRESH"),
     ) = FeedItemStandIns.classes(kindNames, fetchNames)
 }

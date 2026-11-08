@@ -59,6 +59,9 @@ internal val THREADS_UNITS = listOf(
 /** The survey Instagram asks you to fill in between posts ("in_feed_survey" in the feed's JSON). */
 internal val SURVEY_UNITS = listOf("FEED_SURVEY")
 
+/** A row of story cards between posts, like Expiring Stories ("stories_netego" in the feed's JSON, #557). */
+internal val STORY_UNITS = listOf("STORIES_NETEGO")
+
 /** The shopping units: products to shop, product picks from a post, and live shopping. */
 internal val SHOPPING_UNITS = listOf("SHOPPING_RECOMMENDATION_UNIT", "PRODUCT_PIVOTS", "LIVE_SHOPPING_NETEGO")
 
@@ -68,7 +71,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
     description = "Removes posts from accounts you don't follow, suggested accounts, surveys and shopping rows " +
         "from Home. It also takes shop tiles out of Explore and the shopping bag off posts with tagged products. " +
         "Posts from accounts you follow stay. Extra switches can also hide the 'Are you interested in this post?' " +
-        "question on Home and Reels, the caught up card, all videos, photos, carousels, posts " +
+        "question on Home and Reels, the caught up card, rows of stories about to expire, all videos, photos, carousels, posts " +
         "you've liked or posts from accounts you pick. A post's menu has Hide posts from this account to add one " +
         "to that list, and those posts leave Home on the next refresh. On by default. Turn it off in HushGram " +
         "settings > Feed.",
@@ -377,4 +380,4 @@ internal fun BytecodePatchContext.itemPost(itemType: String, patch: String = PAT
  * Explore's grid.
  */
 internal fun BytecodePatchContext.filterSuggestedFeedItems() =
-    filterParsedFeedItems(PATCH, SUGGESTIONS_FILTER, ACCOUNT_UNITS + SUGGESTED_POST + THREADS_UNITS + SURVEY_UNITS + SHOPPING_UNITS)
+    filterParsedFeedItems(PATCH, SUGGESTIONS_FILTER, ACCOUNT_UNITS + SUGGESTED_POST + THREADS_UNITS + SURVEY_UNITS + STORY_UNITS + SHOPPING_UNITS)

@@ -39,9 +39,9 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * account you don't follow, labeled "Suggested for you" or "Suggested Reel", is an
  * {@link #SUGGESTED_POST}, which carries its post inside it. A post from an account you follow is a
  * MEDIA item and stays. Threads' units ({@link #THREADS_UNITS}) bring in posts, communities and
- * accounts from Threads, a survey ({@link #SURVEY_UNITS}) asks you to rate what you saw, and the
- * {@link #SHOPPING_UNITS} offer products. Each comes back as null while its switch is on, and every
- * caller of that
+ * accounts from Threads, a survey ({@link #SURVEY_UNITS}) asks you to rate what you saw, a row of
+ * stories ({@link #STORY_UNITS}) shows the ones about to run out, and the {@link #SHOPPING_UNITS}
+ * offer products. Each comes back as null while its switch is on, and every caller of that
  * helper skips a null item, the home feed's page loads and its cache of recommended posts alike.
  *
  * <p>Explore's grid doesn't go through that helper (S22, Instagram 449), so it keeps its posts.
@@ -78,6 +78,12 @@ public final class FeedSuggestions {
     /** The survey between posts ("in_feed_survey" in the feed's JSON). */
     static final Set<String> SURVEY_UNITS = Collections.singleton("FEED_SURVEY");
 
+    /**
+     * A row of story cards between posts, like Expiring Stories ("stories_netego" in the feed's
+     * JSON, #557).
+     */
+    static final Set<String> STORY_UNITS = Collections.singleton("STORIES_NETEGO");
+
     /** Products to shop, product picks from a post, and live shopping. */
     static final Set<String> SHOPPING_UNITS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "SHOPPING_RECOMMENDATION_UNIT", "PRODUCT_PIVOTS", "LIVE_SHOPPING_NETEGO")));
@@ -90,6 +96,7 @@ public final class FeedSuggestions {
         kinds.add(SUGGESTED_POST);
         kinds.addAll(THREADS_UNITS);
         kinds.addAll(SURVEY_UNITS);
+        kinds.addAll(STORY_UNITS);
         kinds.addAll(SHOPPING_UNITS);
         KINDS = Collections.unmodifiableSet(kinds);
     }
@@ -324,7 +331,7 @@ public final class FeedSuggestions {
     private static boolean suggestionSwitchOn() {
         return Settings.HIDE_SUGGESTED_POSTS.get() || Settings.HIDE_SUGGESTED_ACCOUNTS.get()
                 || Settings.HIDE_THREADS_POSTS.get() || Settings.HIDE_FEED_SURVEYS.get()
-                || Settings.HIDE_FEED_SHOPPING.get();
+                || Settings.HIDE_FEED_STORY_ROWS.get() || Settings.HIDE_FEED_SHOPPING.get();
     }
 
     /**
@@ -996,6 +1003,7 @@ public final class FeedSuggestions {
         if (SUGGESTED_POST.equals(kind)) return Settings.HIDE_SUGGESTED_POSTS;
         if (THREADS_UNITS.contains(kind)) return Settings.HIDE_THREADS_POSTS;
         if (SURVEY_UNITS.contains(kind)) return Settings.HIDE_FEED_SURVEYS;
+        if (STORY_UNITS.contains(kind)) return Settings.HIDE_FEED_STORY_ROWS;
         if (SHOPPING_UNITS.contains(kind)) return Settings.HIDE_FEED_SHOPPING;
         return Settings.HIDE_SUGGESTED_ACCOUNTS;
     }

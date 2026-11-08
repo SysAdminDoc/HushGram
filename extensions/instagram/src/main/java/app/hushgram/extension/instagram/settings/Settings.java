@@ -996,6 +996,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_surveys", TRUE);
 
     /**
+     * The rows of stories Instagram puts between posts in the home feed, like Expiring Stories, the
+     * stories of accounts you follow that are about to run out (#557). Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_STORY_ROWS =
+            new BooleanSetting("hushgram_hide_feed_story_rows", FALSE);
+
+    /**
      * The "Are you interested in this post?" bubble with Not interested and Interested buttons that
      * Instagram adds under a post in Home's feed and under a reel (#131). Left out, never answered.
      * Off to start.

@@ -103,7 +103,8 @@ public class FeedSuggestionsTest {
      */
     private static BooleanSetting[] suggestionSwitches() {
         return new BooleanSetting[] {Settings.HIDE_SUGGESTED_POSTS, Settings.HIDE_SUGGESTED_ACCOUNTS,
-                Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS, Settings.HIDE_FEED_SHOPPING};
+                Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS, Settings.HIDE_FEED_STORY_ROWS,
+                Settings.HIDE_FEED_SHOPPING};
     }
 
     /** A home feed object, as the adapter reads its flag from, that says whether it's empty. */
@@ -155,6 +156,42 @@ public class FeedSuggestionsTest {
             assertNull(FeedSuggestions.filter(new Item(Kind.THREADS_IN_FEED_UNIT)));
         } finally {
             Settings.HIDE_FEED_SURVEYS.resetToDefault();
+        }
+    }
+
+    /**
+     * A row of stories between posts, like Expiring Stories, stays as built and goes while its own
+     * switch is on, leaving the other switches' units to them (#557).
+     */
+    @Test
+    public void aStoryRowIsTakenOutWhileItsSwitchIsOn() {
+        Item row = new Item(Kind.STORIES_NETEGO);
+        assertSame("off to start", row, FeedSuggestions.filter(row));
+        Settings.HIDE_FEED_STORY_ROWS.save(true);
+        Settings.HIDE_FEED_SURVEYS.save(false);
+        try {
+            assertNull(FeedSuggestions.filter(new Item(Kind.STORIES_NETEGO)));
+            Item survey = new Item(Kind.FEED_SURVEY);
+            assertSame(survey, FeedSuggestions.filter(survey));
+            Item post = new Item(Kind.MEDIA);
+            assertSame(post, FeedSuggestions.filter(post));
+        } finally {
+            Settings.HIDE_FEED_STORY_ROWS.resetToDefault();
+            Settings.HIDE_FEED_SURVEYS.resetToDefault();
+        }
+    }
+
+    /** With every other switch off, the story row's switch alone still has the filter running. */
+    @Test
+    public void theStoryRowSwitchAloneKeepsTheFilterOn() {
+        for (BooleanSetting setting : suggestionSwitches()) setting.save(false);
+        Settings.HIDE_FEED_STORY_ROWS.save(true);
+        try {
+            assertNull(FeedSuggestions.filter(new Item(Kind.STORIES_NETEGO)));
+            Item account = new Item(Kind.SUGGESTED_USERS);
+            assertSame(account, FeedSuggestions.filter(account));
+        } finally {
+            for (BooleanSetting setting : suggestionSwitches()) setting.resetToDefault();
         }
     }
 
@@ -245,7 +282,9 @@ public class FeedSuggestionsTest {
         Settings.HIDE_FEED_REELS.save(true);
         try {
             for (Kind kind : Kind.values()) {
-                boolean dropped = kind == Kind.CLIPS_NETEGO || FeedSuggestions.KINDS.contains(kind.name());
+                // Story rows stay unless their own switch is on, and it's off to start (#557).
+                boolean dropped = kind == Kind.CLIPS_NETEGO || FeedSuggestions.KINDS.contains(kind.name())
+                        && !FeedSuggestions.STORY_UNITS.contains(kind.name());
                 Item item = new Item(kind);
                 Object reelsFirst = FeedSuggestions.filter(FeedReels.filter(item));
                 Object suggestionsFirst = FeedReels.filter(FeedSuggestions.filter(item));

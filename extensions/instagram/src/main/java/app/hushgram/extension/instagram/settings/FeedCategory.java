@@ -103,6 +103,9 @@ final class FeedCategory {
                             + "feed.")));
             feed.addPreference(toggle(context, Settings.HIDE_FEED_SURVEYS, L10n.t("Hide surveys"),
                     L10n.t("Hides the cards between posts that ask you to rate what you saw.")));
+            feed.addPreference(toggle(context, Settings.HIDE_FEED_STORY_ROWS, L10n.t("Hide story rows"),
+                    L10n.t("Hides the rows of stories that Instagram puts between posts, like stories that are about "
+                            + "to expire. Pull down on Home to refresh after changing it.")));
             feed.addPreference(toggle(context, Settings.HIDE_FEED_SHOPPING, L10n.t("Hide shopping"),
                     L10n.t("Hides the rows of products to shop and live shopping that Instagram puts between posts, "
                             + "and the shop tiles in Explore. Posts with tagged products don't show the shopping "

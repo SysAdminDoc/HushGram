@@ -143,7 +143,8 @@ public class HomeNextPageTest {
     /** Every switch FeedSuggestions.filter takes items out for. Settings load only once the test's context is in place. */
     private static BooleanSetting[] suggestionSwitches() {
         return new BooleanSetting[] {Settings.HIDE_SUGGESTED_POSTS, Settings.HIDE_SUGGESTED_ACCOUNTS,
-                Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS, Settings.HIDE_FEED_SHOPPING};
+                Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS, Settings.HIDE_FEED_STORY_ROWS,
+                Settings.HIDE_FEED_SHOPPING};
     }
 
     private static void clear() {
