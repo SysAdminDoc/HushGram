@@ -49,7 +49,7 @@ Every HushGram release, newest first.
 * `Keep a viewing history` now records the reels you watch. It only heard about them while `Download button on reels` was on, so with that icon off the Reels list stayed empty. Reported in #228.
 * With `Rounded corners on Reels` on, opening the comments on a wide reel no longer cuts its video down to a thin strip. The rounded edge now moves up with the video. Reported in #522.
 * `Phone layout on big screens` now takes the rail down the side away too. It only changed Home's header on 454, since Instagram's main screen asks a second copy of the width check. Reported in #515.
-* `See-through top bar` now reaches up behind the clock again instead of stopping at the header's top edge. Reported in #513.
+* `See-through top bar` now reaches up behind the clock again instead of stopping at the header's top edge. Reported in #513 and #521.
 * `See-through top bar` no longer draws an empty frosted band across Home when nothing in the header is showing. Only the strip behind the clock stays. Reported in #513.
 * `Start tab` now works when you open Instagram from its icon without a saved `Tab order`. On 454 Instagram picks the first tab before the tab bar is built, and that pick used to need a saved order. Reported in #534.
 * `Clean up Reels` no longer stops patching when the APK numbers the Friends tab's icon differently. It now also finds the tab by how Instagram builds it. Reported in #533.
