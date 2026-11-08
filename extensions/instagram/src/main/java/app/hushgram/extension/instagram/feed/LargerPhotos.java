@@ -38,6 +38,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the reel covers and grid pictures the server sends at a third of the reported width (#214). It
  * changes only the reported screen, not the asked width.
  *
+ * <p>The density in the report goes up with the width and height, so the screen keeps its size in
+ * dp and only has more pixels. With the density kept, a 1080 phone reported at 4320 read as a
+ * tablet four times as wide, and Explore's grid came in blocks sized for a tablet's wider rows:
+ * laid out three to a row, every fourth row held one tile beside two blank slots (#433).
+ *
  * <p>Instagram builds its user agent once per run, so the screen it reports changes after a
  * restart. It also keeps the server's media replies in its cache folder across restarts, sized for
  * the screen it reported when it got them, so a reel opened before the switch came on kept its old
@@ -81,8 +86,15 @@ public final class LargerPhotos {
      */
     static final List<String> SIZED_REPLIES = Collections.unmodifiableList(Arrays.asList("http_responses"));
 
-    /** HushGram's note in the cache folder: the shorter side the kept replies were sized for. */
-    static final String SIZED_FOR = "hushgram_replies_sized_for";
+    /**
+     * HushGram's note in the cache folder: the shorter side the kept replies were sized for, with the
+     * density scaled alongside it. A new name, so replies a run kept under the old note, sized for a
+     * screen reported at its own density (#433), are dropped once.
+     */
+    static final String SIZED_FOR = "hushgram_replies_sized_for_dp";
+
+    /** The note before #433, deleted at the start that writes {@link #SIZED_FOR}. */
+    static final String OLD_NOTE = "hushgram_replies_sized_for";
 
     /** The screen's shorter side, once read. */
     private static volatile int shorter;
@@ -128,8 +140,9 @@ public final class LargerPhotos {
      * Injected where Instagram's user agent puts the screen in, with the density, width and height
      * it's about to write. While Full size covers is on and the shorter side is under
      * {@link #COVER_WIDTH}, or Ask for larger photos is on and it's under {@link #WIDTH}, scales the
-     * width and height so the shorter side is that, keeping the screen's shape. Leaves the parts as
-     * they were otherwise. Never throws.
+     * density, width and height so the shorter side is that, keeping the screen's shape and its size
+     * in dp. Leaves the parts as they were otherwise, a density that isn't a whole number above 0
+     * included. Never throws.
      */
     public static void screen(Object[] parts) {
         screen(parts, LargerPhotos::switchedOn, LargerPhotos::coversOn);
@@ -142,20 +155,25 @@ public final class LargerPhotos {
     static void screen(Object[] parts, BooleanSupplier on, BooleanSupplier covers) {
         try {
             HookStatus.invoked(FamilyNames.FULL_RESOLUTION);
-            if (parts == null || parts.length != 3 || !(parts[1] instanceof Integer) || !(parts[2] instanceof Integer)) {
+            if (parts == null || parts.length != 3 || !(parts[0] instanceof Integer)
+                    || !(parts[1] instanceof Integer) || !(parts[2] instanceof Integer)) {
                 return;
             }
+            int density = (Integer) parts[0];
             int width = (Integer) parts[1];
             int height = (Integer) parts[2];
+            // More pixels at the old density is a bigger screen, and Explore's blocks follow it (#433).
+            if (density <= 0) return;
             int shorter = Math.min(width, height);
             int target = reported(shorter, on, covers);
             if (target == shorter) return;
+            parts[0] = scaled(density, shorter, target);
             parts[1] = scaled(width, shorter, target);
             parts[2] = scaled(height, shorter, target);
             if (!loggedScreen) {
                 loggedScreen = true;
-                Logger.printDebug(() -> "Larger photos: reported the screen as " + parts[1] + "x" + parts[2]
-                        + " in place of " + width + "x" + height);
+                Logger.printDebug(() -> "Larger photos: reported the screen as " + parts[1] + "x" + parts[2] + " at "
+                        + parts[0] + "dpi in place of " + width + "x" + height + " at " + density + "dpi");
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_RESOLUTION, SCREEN, failure);
@@ -194,8 +212,8 @@ public final class LargerPhotos {
     /**
      * Deletes {@link #SIZED_REPLIES} under [cache] when its note says they were sized for another
      * width than [reported], or it can't be read, or there's none and [reported] isn't the screen's
-     * own [natural] width, then writes the note. Answers whether it deleted them. A link is deleted
-     * without what it points to.
+     * own [natural] width, then writes the note and deletes {@link #OLD_NOTE}. Answers whether it
+     * deleted them. A link is deleted without what it points to.
      */
     static boolean forgetSizedReplies(File cache, int natural, int reported) throws IOException {
         if (cache == null) return false;
@@ -211,6 +229,7 @@ public final class LargerPhotos {
         if (forget || !note.isFile()) {
             Files.write(note.toPath(), Integer.toString(reported).getBytes(StandardCharsets.UTF_8));
         }
+        Files.deleteIfExists(new File(cache, OLD_NOTE).toPath());
         return forget;
     }
 

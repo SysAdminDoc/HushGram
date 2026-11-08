@@ -56,6 +56,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* Explore no longer leaves two blank spots in every fourth row when `Full size covers` is on. The switch tells Instagram the screen is 4320 pixels wide, and at a phone's pixel density that's a tablet, so Explore sent its grid for wider rows. The density now goes up with the size (for `Ask for larger photos` too), so the screen keeps a phone's size and covers still come in full. Reported in #433.
 * `Keep a viewing history` now records the reels you watch. It only heard about them while `Download button on reels` was on, so with that icon off the Reels list stayed empty. Reported in #228.
 * With `Rounded corners on Reels` on, opening the comments on a wide reel no longer cuts its video down to a thin strip. The rounded edge now moves up with the video. Reported in #522.
 * `Phone layout on big screens` now takes the rail down the side away too. It only changed Home's header on 454, since Instagram's main screen asks a second copy of the width check. Reported in #515.

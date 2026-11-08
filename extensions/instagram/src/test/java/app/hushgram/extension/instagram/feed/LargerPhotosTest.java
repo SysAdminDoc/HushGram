@@ -94,33 +94,33 @@ public class LargerPhotosTest {
         assertArrayEquals(new Object[] {420, 1080, 2340}, parts);
         Settings.ASK_FOR_LARGER_PHOTOS.save(true);
         LargerPhotos.screen(parts);
-        assertArrayEquals(new Object[] {420, 1440, 3120}, parts);
+        assertArrayEquals(new Object[] {560, 1440, 3120}, parts);
     }
 
     @Test
     public void theReportedScreenKeepsItsShapeInEitherOrientation() {
         Object[] portrait = {420, 1080, 2340};
         LargerPhotos.screen(portrait, ON);
-        assertArrayEquals(new Object[] {420, 1440, 3120}, portrait);
+        assertArrayEquals(new Object[] {560, 1440, 3120}, portrait);
         Object[] landscape = {420, 2400, 1080};
         LargerPhotos.screen(landscape, ON);
-        assertArrayEquals(new Object[] {420, 3200, 1440}, landscape);
+        assertArrayEquals(new Object[] {560, 3200, 1440}, landscape);
     }
 
     @Test
     public void fullSizeCoversReportThreeTimesACoversWidthOnAnyPhone() {
         Object[] narrow = {320, 720, 1600};
         LargerPhotos.screen(narrow, OFF, ON);
-        assertArrayEquals(new Object[] {320, 4320, 9600}, narrow);
+        assertArrayEquals(new Object[] {1920, 4320, 9600}, narrow);
         Object[] wide = {560, 1440, 3088};
         LargerPhotos.screen(wide, ON, ON);
-        assertArrayEquals("a 1440 phone, which Ask for larger photos leaves alone", new Object[] {560, 4320, 9264}, wide);
+        assertArrayEquals("a 1440 phone, which Ask for larger photos leaves alone", new Object[] {1680, 4320, 9264}, wide);
         Object[] landscape = {420, 2400, 1080};
         LargerPhotos.screen(landscape, OFF, ON);
-        assertArrayEquals(new Object[] {420, 9600, 4320}, landscape);
+        assertArrayEquals(new Object[] {1680, 9600, 4320}, landscape);
         Object[] coverWider = {640, 3240, 7200};
         LargerPhotos.screen(coverWider, OFF, ON);
-        assertArrayEquals("a 1290 cover (#214) needs more than 3240", new Object[] {640, 4320, 9600}, coverWider);
+        assertArrayEquals("a 1290 cover (#214) needs more than 3240", new Object[] {853, 4320, 9600}, coverWider);
         Object[] huge = {640, 4320, 9600};
         LargerPhotos.screen(huge, OFF, ON);
         assertArrayEquals(new Object[] {640, 4320, 9600}, huge);
@@ -138,7 +138,7 @@ public class LargerPhotosTest {
         Settings.FULL_SIZE_COVERS.save(true);
         try {
             LargerPhotos.screen(parts);
-            assertArrayEquals(new Object[] {420, 4320, 9360}, parts);
+            assertArrayEquals(new Object[] {1680, 4320, 9360}, parts);
             Object[] throwing = {420, 1080, 2340};
             LargerPhotos.screen(throwing, ON, THROWS);
             assertArrayEquals(new Object[] {420, 1080, 2340}, throwing);
@@ -158,6 +158,16 @@ public class LargerPhotosTest {
         Object[] strings = {"420", "1080", "2340"};
         LargerPhotos.screen(strings, ON);
         assertArrayEquals(new Object[] {"420", "1080", "2340"}, strings);
+        // Without a density to scale, a bigger size is a bigger screen (#433), so none of it changes.
+        Object[] textDensity = {"420", 1080, 2340};
+        LargerPhotos.screen(textDensity, ON, ON);
+        assertArrayEquals(new Object[] {"420", 1080, 2340}, textDensity);
+        Object[] noDensity = {0, 1080, 2340};
+        LargerPhotos.screen(noDensity, ON, ON);
+        assertArrayEquals(new Object[] {0, 1080, 2340}, noDensity);
+        Object[] nullDensity = {null, 1080, 2340};
+        LargerPhotos.screen(nullDensity, ON, ON);
+        assertArrayEquals(new Object[] {null, 1080, 2340}, nullDensity);
         Object[] short2 = {420, 1080};
         LargerPhotos.screen(short2, ON);
         assertArrayEquals(new Object[] {420, 1080}, short2);
@@ -209,6 +219,32 @@ public class LargerPhotosTest {
         // A switch whose answer can't change the side isn't read.
         assertEquals(1440, LargerPhotos.reported(1440, THROWS, OFF));
         assertEquals(LargerPhotos.COVER_WIDTH, LargerPhotos.reported(LargerPhotos.COVER_WIDTH, THROWS, THROWS));
+    }
+
+    /**
+     * The reported screen has more pixels but the phone's size in dp, under either switch. Reported
+     * at its own density, a 1080 phone at 420 dpi under Full size covers was 1646 dp wide, a tablet,
+     * and Explore's grid came in blocks that left two blank slots in every fourth row of three (#433). The emulator's 720 by 1600 at 320 dpi is the screen that showed it.
+     */
+    @Test
+    public void theReportedScreenKeepsThePhonesSizeInDp() {
+        BooleanSupplier[] switches = {ON, OFF};
+        int[][] screens = {{320, 720, 1600}, {420, 1080, 2340}, {400, 1080, 2400}, {450, 1080, 2340},
+                {480, 1080, 1920}, {560, 1440, 3088}, {600, 1440, 3200}, {640, 1440, 2560}, {420, 2400, 1080}};
+        for (int[] screen : screens) {
+            for (BooleanSupplier on : switches) {
+                for (BooleanSupplier covers : switches) {
+                    Object[] parts = {screen[0], screen[1], screen[2]};
+                    LargerPhotos.screen(parts, on, covers);
+                    String what = screen[1] + "x" + screen[2] + " at " + screen[0] + " " + on + " " + covers + " wrote "
+                            + parts[1] + "x" + parts[2] + " at " + parts[0];
+                    int density = (Integer) parts[0];
+                    assertEquals(what, screen[1] * 160.0 / screen[0], (Integer) parts[1] * 160.0 / density, 1.0);
+                    assertEquals(what, screen[2] * 160.0 / screen[0], (Integer) parts[2] * 160.0 / density, 1.0);
+                    assertTrue(what, Math.min((Integer) parts[1], (Integer) parts[2]) * 160.0 / density < 600);
+                }
+            }
+        }
     }
 
     /** The first start at the screen's own size has nothing to drop and leaves a note of it. */
@@ -264,6 +300,33 @@ public class LargerPhotosTest {
         assertTrue(LargerPhotos.forgetSizedReplies(cache, 1080, 1440));
         assertFalse(new File(cache, "http_responses").exists());
         assertEquals("1440", note(cache));
+    }
+
+    /**
+     * Replies kept under the note from before #433 were sized for a screen reported at its own
+     * density, so under either switch they're dropped once, and the old note goes. With both off
+     * they were the screen's own and stay.
+     */
+    @Test
+    public void repliesKeptUnderTheOldNoteAreDroppedOnceUnderEitherSwitch() throws IOException {
+        File cache = cache();
+        write(new File(cache, LargerPhotos.OLD_NOTE), Integer.toString(LargerPhotos.COVER_WIDTH));
+        assertTrue(LargerPhotos.forgetSizedReplies(cache, 1080, LargerPhotos.COVER_WIDTH));
+        assertFalse(new File(cache, "http_responses").exists());
+        assertFalse(new File(cache, LargerPhotos.OLD_NOTE).exists());
+        assertTrue(new File(cache, "pending_likes/queued").isFile());
+        assertEquals(Integer.toString(LargerPhotos.COVER_WIDTH), note(cache));
+        write(new File(cache, "http_responses/0c2d.0"), "reply at 4320, phone dp");
+        assertFalse(LargerPhotos.forgetSizedReplies(cache, 1080, LargerPhotos.COVER_WIDTH));
+        assertTrue(new File(cache, "http_responses/0c2d.0").isFile());
+
+        File off = folder.newFolder("off");
+        write(new File(off, "http_responses/0a1b.0"), "reply");
+        write(new File(off, LargerPhotos.OLD_NOTE), "1080");
+        assertFalse(LargerPhotos.forgetSizedReplies(off, 1080, 1080));
+        assertTrue(new File(off, "http_responses/0a1b.0").isFile());
+        assertFalse(new File(off, LargerPhotos.OLD_NOTE).exists());
+        assertEquals("1080", note(off));
     }
 
     /** At Instagram's start the hook drops the replies in the application's own cache folder. */
