@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.feed;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -228,6 +229,55 @@ public class RoundedCornersTest {
         assertStock();
         assertFalse("the failure was reported", HookStatus.report().isEmpty());
         assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(FamilyNames.ROUNDED_POST_CORNERS));
+    }
+
+    /**
+     * A reel in the feed as Instagram 454 lays it out: a host the reel's size holding the video's
+     * container (and the frame inside that) with the shadow and the name row over its top (#571).
+     */
+    @Test
+    public void theViewOverAReelInTheFeedIsRoundedWithItsFrame() {
+        Activity activity = controller.get();
+        FrameLayout post = new FrameLayout(activity);
+        FrameLayout host = new FrameLayout(activity);
+        FrameLayout video = new FrameLayout(activity);
+        View shadow = new View(activity);
+        View names = new View(activity);
+        ((FrameLayout) frame.getParent()).removeView(frame);
+        video.addView(frame);
+        host.addView(video);
+        host.addView(shadow);
+        host.addView(names);
+        post.addView(host);
+        activity.setContentView(post);
+        post.layout(0, 0, 400, 500);
+        host.layout(0, 100, 400, 400);
+        video.layout(0, 0, 400, 300);
+        shadow.layout(0, 0, 400, 80);
+        names.layout(0, 0, 400, 40);
+
+        Settings.ROUNDED_POST_CORNERS.save(true);
+        RoundedCorners.made(holder);
+        frame.layout(0, 0, 400, 300);
+        assertSame("the host holding the shadow, not the post around it", host, RoundedCorners.cover(frame));
+        assertTrue(host.getClipToOutline());
+        assertEquals(CornerSize.SMALL.dp * density(), radiusOf(host), 0.01f);
+        assertFalse("the video's own container holds the frame alone", video.getClipToOutline());
+        assertEquals(2, RoundedCorners.roundedForTests());
+
+        Settings.ROUNDED_POST_CORNERS.save(false);
+        RoundedCorners.made(otherHolder);
+        assertFalse("off, the host goes back", host.getClipToOutline());
+        assertEquals(0, RoundedCorners.roundedForTests());
+    }
+
+    @Test
+    public void aFrameWithoutAViewItsSizeAroundItRoundsAlone() {
+        Settings.ROUNDED_POST_CORNERS.save(true);
+        RoundedCorners.made(holder);
+        frame.layout(0, 0, 400, 300);
+        assertNull(RoundedCorners.cover(frame));
+        assertEquals(1, RoundedCorners.roundedForTests());
     }
 
     @Test

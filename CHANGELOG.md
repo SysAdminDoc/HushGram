@@ -75,6 +75,7 @@ Every HushGram release, newest first.
 * On an account that doesn't have Instagram's Friends tab, tapping Friends again after you've left it opens it again. It used to do nothing until you tapped Reels first. Reported in #571.
 * With `Pick friends` on, holding the Friends tab opens the list again on builds where Instagram gives each tab a hold of its own, which only cleared the tab's tooltip. Reported in #571.
 * With `Pure black dark mode` on, the strip behind the navigation bar is black while comments are open and under a reel opened from the feed. It used to show the video through it. Reported in #571.
+* `Rounded post corners` now rounds the top corners of a reel in the feed too. The shadow behind its name row stayed square over them, which showed with `Ambient light` on. Reported in #571.
 * New `Keep the comment bar's space` switch under the comment bar switches in Reels. A reel you open from a post or a profile used to drop down into the room the hidden bar left, so the video, its buttons and the seek bar all moved. With this on, that room stays as an empty band and nothing moves. Reported in #523.
 
 ## 0.0.19 (2026-11-06)
