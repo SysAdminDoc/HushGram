@@ -2798,8 +2798,9 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySwipeReply;->keepsSwipe
 once-call Lapp/hushgram/extension/instagram/stories/StorySwipeReply;->keepsSwipe()Z in instance (Landroid/view/MotionEvent;Landroid/view/MotionEvent;Ljava/lang/Object;FFZ)Z holding reelViewerListenerManager camera_entry_point
 # Start feed videos with sound asks FeedSound.startWithSound() once, in the feed video controller's video
 # start, the one instance (Media, x, y, z, int, int, int, boolean, boolean, boolean) void method of the class
-# that loads the volume key handler's crash string. Left out, feed videos start as Instagram's own settings
-# say; twice or elsewhere, it isn't the call the patch wrote.
+# that loads the volume key handler's crash string. On a yes the same hook turns the account's audio state on
+# through the state's own setter (#504), a call Instagram's code already makes, so only the ask is counted. Left
+# out, feed videos start as Instagram's own settings say; twice or elsewhere, it isn't the call the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->startWithSound(Ljava/lang/Object;)I in instance (Lcom/instagram/feed/media/Media;L*;L*;L*;IIIZZZ)V class-holding feed_video_crash_when_adjusting_volume
 # Long press to zoom (#63): the feed media touch helper hands every touch on a post's frame to the
 # extension first, in its one instance (MotionEvent) boolean method, the one of that shape reading

@@ -3211,8 +3211,6 @@ public final class L10nTranslations {
                 "Datum und Uhrzeit, zu der die Story gepostet wurde, etwa 2. Okt., 15:45.");
         table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                 "Die Datei %1$s lie\u00df sich nicht entfernen. L\u00f6sche sie aus %2$s, um HushGram wieder einzuschalten.");
-        table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
-                "Das erste Video auf der Startseite spielt mit eingeschaltetem Ton, so als h\u00e4ttest du auf seinen Lautsprecher getippt. Klingelton und Lautst\u00e4rke deines Telefons z\u00e4hlen weiterhin, also bleibt es bei lautlos oder leiser Lautst\u00e4rke stumm.");
         table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
                 "Das Herz oben auf der Startseite zeigt, wie viele Benachrichtigungen warten, wie die Zahl bei Nachrichten, statt des roten Punkts. Starte Instagram neu, um die \u00c4nderung zu sehen.");
         table.put("The heart plays %1$s when you double tap a post.",
@@ -3283,11 +3281,11 @@ public final class L10nTranslations {
                 "Keine Dateiauswahl. Einstellungen unver\u00e4ndert.");
         table.put("These settings are locked. Ask to unlock first.",
                 "Einstellungen gesperrt. Erst Entsperren anfragen.");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "Diese Einstellungen sind gesperrt. Tippe, um die Wartezeit von %1$s zu starten, danach sind sie 10 Minuten lang offen.");
     }
 
     private static void fillDe26(Map<String, String> table) {
-        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
-                "Diese Einstellungen sind gesperrt. Tippe, um die Wartezeit von %1$s zu starten, danach sind sie 10 Minuten lang offen.");
         table.put("These settings open at %1$s, for 10 minutes.",
                 "Einstellungen \u00f6ffnen sich um %1$s f\u00fcr 10 Minuten.");
         table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
@@ -3406,11 +3404,11 @@ public final class L10nTranslations {
                 "Gel\u00f6schte Wiedergabepositionen wiederherstellen");
         table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
                 "R\u00fcckg\u00e4ngig konnte die Einstellungen nicht vollst\u00e4ndig wiederherstellen. Pr\u00fcfe die angezeigten Werte. R\u00fcckg\u00e4ngig wurde verbraucht.");
+        table.put("Undo has expired.",
+                "R\u00fcckg\u00e4ngig nicht mehr m\u00f6glich.");
     }
 
     private static void fillDe27(Map<String, String> table) {
-        table.put("Undo has expired.",
-                "R\u00fcckg\u00e4ngig nicht mehr m\u00f6glich.");
         table.put("Undo is available until %1$s.",
                 "R\u00fcckg\u00e4ngig ist bis %1$s verf\u00fcgbar.");
         table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
@@ -3481,6 +3479,8 @@ public final class L10nTranslations {
                 "Videos hei\u00dfen %1$s. Fotos hei\u00dfen %2$s, gefolgt von Datum und Uhrzeit.");
         table.put("Videos go to %1$s and photos to %2$s.",
                 "Videos landen in %1$s und Fotos in %2$s.");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "Videos auf der Startseite spielen mit eingeschaltetem Ton, so als h\u00e4ttest du auf den Lautsprecher eines Videos getippt. Schaltest du eins stumm, bleiben die folgenden stumm. Klingelton und Lautst\u00e4rke deines Telefons z\u00e4hlen weiterhin, also bleiben sie bei lautlos oder leiser Lautst\u00e4rke stumm.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Videos laufen in der besten Qualit\u00e4t bis %1$s, die Instagram f\u00fcr sie anbietet, oder der n\u00e4chsth\u00f6heren.");
         table.put("Videos play at the highest quality Instagram offers for each.",
@@ -6790,8 +6790,6 @@ public final class L10nTranslations {
                 "La fecha y la hora en que se public\u00f3 la historia, como 2 oct, 15:45.");
         table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                 "No se pudo eliminar el archivo %1$s. B\u00f3rralo de %2$s para volver a activar HushGram.");
-        table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
-                "El primer video de Inicio se reproduce con el sonido activado, igual que al tocar su altavoz. El timbre y el volumen del tel\u00e9fono siguen contando, as\u00ed que en silencio o con el volumen bajado se queda mudo.");
         table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
                 "El coraz\u00f3n de la parte superior de Inicio muestra cu\u00e1ntas notificaciones esperan, como el n\u00famero de Mensajes, en lugar del punto rojo. Reinicia Instagram para ver el cambio.");
         table.put("The heart plays %1$s when you double tap a post.",
@@ -6862,11 +6860,11 @@ public final class L10nTranslations {
                 "No hay selector de archivos. Tus ajustes no cambiaron.");
         table.put("These settings are locked. Ask to unlock first.",
                 "Ajustes bloqueados. Pide desbloquear primero.");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "Estos ajustes est\u00e1n bloqueados. Toca para empezar la espera de %1$s y luego se abren durante 10 minutos.");
     }
 
     private static void fillEs26(Map<String, String> table) {
-        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
-                "Estos ajustes est\u00e1n bloqueados. Toca para empezar la espera de %1$s y luego se abren durante 10 minutos.");
         table.put("These settings open at %1$s, for 10 minutes.",
                 "Los ajustes se abren a las %1$s, por 10 minutos.");
         table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
@@ -6985,11 +6983,11 @@ public final class L10nTranslations {
                 "Restaurar las posiciones borradas");
         table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
                 "Deshacer no pudo restaurar del todo los ajustes. Revisa los valores mostrados. Deshacer ya se us\u00f3.");
+        table.put("Undo has expired.",
+                "El plazo para restaurar ha terminado.");
     }
 
     private static void fillEs27(Map<String, String> table) {
-        table.put("Undo has expired.",
-                "El plazo para restaurar ha terminado.");
         table.put("Undo is available until %1$s.",
                 "Puedes deshacer hasta las %1$s.");
         table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
@@ -7060,6 +7058,8 @@ public final class L10nTranslations {
                 "Los videos se llaman %1$s. Las fotos se llaman %2$s seguido de la fecha y la hora.");
         table.put("Videos go to %1$s and photos to %2$s.",
                 "Los videos van a %1$s y las fotos a %2$s.");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "Los videos de Inicio se reproducen con el sonido activado, igual que al tocar el altavoz de un video. Si silencias uno, los siguientes siguen en silencio. El timbre y el volumen del tel\u00e9fono siguen contando, as\u00ed que en silencio o con el volumen bajado se quedan mudos.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Los videos se reproducen en la mejor calidad hasta %1$s que Instagram ofrece para cada uno, o en la m\u00e1s cercana por encima.");
         table.put("Videos play at the highest quality Instagram offers for each.",
@@ -10369,8 +10369,6 @@ public final class L10nTranslations {
                 "Tanggal dan jam cerita diposting, misalnya 2 Okt, 15.45.");
         table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                 "File %1$s tidak dapat dihapus. Hapus file itu dari %2$s untuk mengaktifkan HushGram lagi.");
-        table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
-                "Video pertama di Beranda diputar dengan suara menyala, sama seperti mengetuk speakernya. Mode dering dan volume ponsel tetap berlaku, jadi saat senyap atau volume dimatikan, video tetap tanpa suara.");
         table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
                 "Ikon hati di bagian atas Beranda menampilkan jumlah pemberitahuan yang menunggu, seperti angka di Pesan, sebagai ganti titik merah. Mulai ulang Instagram untuk melihat perubahannya.");
         table.put("The heart plays %1$s when you double tap a post.",
@@ -10441,11 +10439,11 @@ public final class L10nTranslations {
                 "Tidak ada pemilih file. Pengaturan tidak berubah.");
         table.put("These settings are locked. Ask to unlock first.",
                 "Pengaturan ini terkunci. Minta buka kunci dulu.");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "Pengaturan ini terkunci. Ketuk untuk memulai waktu tunggu %1$s, lalu pengaturan terbuka selama 10 menit.");
     }
 
     private static void fillIn26(Map<String, String> table) {
-        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
-                "Pengaturan ini terkunci. Ketuk untuk memulai waktu tunggu %1$s, lalu pengaturan terbuka selama 10 menit.");
         table.put("These settings open at %1$s, for 10 minutes.",
                 "Pengaturan ini terbuka pukul %1$s, selama 10 menit.");
         table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
@@ -10564,11 +10562,11 @@ public final class L10nTranslations {
                 "Pulihkan posisi yang dihapus");
         table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
                 "Urungkan tidak bisa memulihkan pengaturan sepenuhnya. Periksa nilai yang ditampilkan. Urungkan sudah terpakai.");
+        table.put("Undo has expired.",
+                "Waktu untuk memulihkan telah habis.");
     }
 
     private static void fillIn27(Map<String, String> table) {
-        table.put("Undo has expired.",
-                "Waktu untuk memulihkan telah habis.");
         table.put("Undo is available until %1$s.",
                 "Pembatalan tersedia hingga %1$s.");
         table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
@@ -10639,6 +10637,8 @@ public final class L10nTranslations {
                 "Video diberi nama %1$s. Foto diberi nama %2$s diikuti tanggal dan waktu.");
         table.put("Videos go to %1$s and photos to %2$s.",
                 "Video disimpan ke %1$s dan foto ke %2$s.");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "Video di Beranda diputar dengan suara menyala, sama seperti mengetuk speaker video. Jika kamu membisukan satu video, video berikutnya tetap tanpa suara. Mode dering dan volume ponsel tetap berlaku, jadi saat senyap atau volume dimatikan, video tetap tanpa suara.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Video diputar dengan kualitas terbaik hingga %1$s yang ditawarkan Instagram untuk masing-masing, atau yang terdekat di atasnya.");
         table.put("Videos play at the highest quality Instagram offers for each.",
@@ -13948,8 +13948,6 @@ public final class L10nTranslations {
                 "La data e l'ora di pubblicazione della storia, come 2 ott, 15:45.");
         table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                 "Impossibile rimuovere il file %1$s. Eliminalo da %2$s per riattivare HushGram.");
-        table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
-                "Il primo video nella Home parte con l'audio attivo, come toccando il suo altoparlante. La suoneria e il volume del telefono contano comunque, quindi in silenzioso o con il volume basso resta muto.");
         table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
                 "Il cuore in alto nella Home mostra quante notifiche ti aspettano, come il numero sui Messaggi, al posto del pallino rosso. Riavvia Instagram per vedere la modifica.");
         table.put("The heart plays %1$s when you double tap a post.",
@@ -14020,11 +14018,11 @@ public final class L10nTranslations {
                 "Nessun selettore di file. Impostazioni invariate.");
         table.put("These settings are locked. Ask to unlock first.",
                 "Impostazioni bloccate. Prima chiedi di sbloccarle.");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "Queste impostazioni sono bloccate. Tocca per avviare l'attesa di %1$s, poi restano aperte per 10 minuti.");
     }
 
     private static void fillIt26(Map<String, String> table) {
-        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
-                "Queste impostazioni sono bloccate. Tocca per avviare l'attesa di %1$s, poi restano aperte per 10 minuti.");
         table.put("These settings open at %1$s, for 10 minutes.",
                 "Si aprono alle %1$s, per 10 minuti.");
         table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
@@ -14143,11 +14141,11 @@ public final class L10nTranslations {
                 "Annulla la cancellazione delle posizioni");
         table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
                 "Annulla non ha potuto ripristinare del tutto le impostazioni. Controlla i valori mostrati. Annulla \u00e8 stato esaurito.");
+        table.put("Undo has expired.",
+                "Il tempo per annullare \u00e8 scaduto.");
     }
 
     private static void fillIt27(Map<String, String> table) {
-        table.put("Undo has expired.",
-                "Il tempo per annullare \u00e8 scaduto.");
         table.put("Undo is available until %1$s.",
                 "Puoi annullare fino alle %1$s.");
         table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
@@ -14218,6 +14216,8 @@ public final class L10nTranslations {
                 "I video si chiamano %1$s. Le foto si chiamano %2$s seguito da data e ora.");
         table.put("Videos go to %1$s and photos to %2$s.",
                 "I video vanno in %1$s e le foto in %2$s.");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "I video nella Home partono con l'audio attivo, come toccando l'altoparlante di un video. Se ne silenzi uno, i successivi restano muti. La suoneria e il volume del telefono contano comunque, quindi in silenzioso o con il volume basso restano muti.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "I video vengono riprodotti alla migliore qualit\u00e0 fino a %1$s offerta da Instagram per ognuno, o alla pi\u00f9 vicina sopra.");
         table.put("Videos play at the highest quality Instagram offers for each.",
@@ -17527,8 +17527,6 @@ public final class L10nTranslations {
                 "\uc2a4\ud1a0\ub9ac\uac00 \uac8c\uc2dc\ub41c \ub0a0\uc9dc\uc640 \uc2dc\uac04\uc785\ub2c8\ub2e4. \uc608: 10\uc6d4 2\uc77c \uc624\ud6c4 3:45");
         table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                 "%1$s \ud30c\uc77c\uc744 \uc0ad\uc81c\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. HushGram\uc744 \ub2e4\uc2dc \ud65c\uc131\ud654\ud558\ub824\uba74 %2$s\uc5d0\uc11c \ud574\ub2f9 \ud30c\uc77c\uc744 \uc0ad\uc81c\ud558\uc138\uc694");
-        table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
-                "\ud648\uc758 \uccab \ubc88\uc9f8 \ub3d9\uc601\uc0c1\uc774 \uc2a4\ud53c\ucee4\ub97c \ub204\ub978 \uac83\ucc98\ub7fc \uc18c\ub9ac\uac00 \ucf1c\uc9c4 \ucc44\ub85c \uc7ac\uc0dd\ub429\ub2c8\ub2e4. \ud734\ub300\uc804\ud654\uc758 \ubca8\uc18c\ub9ac \ubaa8\ub4dc\uc640 \ubcfc\ub968\uc740 \uadf8\ub300\ub85c \uc801\uc6a9\ub418\ubbc0\ub85c \ubb34\uc74c\uc774\uac70\ub098 \ubcfc\ub968\uc774 \uaebc\uc838 \uc788\uc73c\uba74 \uc870\uc6a9\ud55c \uc0c1\ud0dc\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4.");
         table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
                 "\ud648 \uc0c1\ub2e8\uc758 \ud558\ud2b8\uc5d0 \ube68\uac04 \uc810 \ub300\uc2e0 \uba54\uc2dc\uc9c0\ucc98\ub7fc \uae30\ub2e4\ub9ac\ub294 \uc54c\ub9bc \uc218\ub97c \ud45c\uc2dc\ud569\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
         table.put("The heart plays %1$s when you double tap a post.",
@@ -17599,11 +17597,11 @@ public final class L10nTranslations {
                 "\uc774 \ud734\ub300\ud3f0\uc5d0\ub294 \ud30c\uc77c \uc120\ud0dd\uae30\uac00 \uc5c6\uc2b5\ub2c8\ub2e4. \uc124\uc815\uc740 \ubc14\ub00c\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4.");
         table.put("These settings are locked. Ask to unlock first.",
                 "\uc774 \uc124\uc815\uc740 \uc7a0\uaca8 \uc788\uc2b5\ub2c8\ub2e4. \uba3c\uc800 \uc7a0\uae08 \ud574\uc81c\ub97c \uc694\uccad\ud558\uc138\uc694.");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "\uc774 \uc124\uc815\uc740 \uc7a0\uaca8 \uc788\uc2b5\ub2c8\ub2e4. \ud0ed\ud558\uba74 %1$s \ub300\uae30\uac00 \uc2dc\uc791\ub418\uace0, \ub05d\ub098\uba74 10\ubd84 \ub3d9\uc548 \uc5f4\ub9bd\ub2c8\ub2e4.");
     }
 
     private static void fillKo26(Map<String, String> table) {
-        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
-                "\uc774 \uc124\uc815\uc740 \uc7a0\uaca8 \uc788\uc2b5\ub2c8\ub2e4. \ud0ed\ud558\uba74 %1$s \ub300\uae30\uac00 \uc2dc\uc791\ub418\uace0, \ub05d\ub098\uba74 10\ubd84 \ub3d9\uc548 \uc5f4\ub9bd\ub2c8\ub2e4.");
         table.put("These settings open at %1$s, for 10 minutes.",
                 "\uc774 \uc124\uc815\uc740 %1$s\uc5d0 10\ubd84 \ub3d9\uc548 \uc5f4\ub9bd\ub2c8\ub2e4.");
         table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
@@ -17722,11 +17720,11 @@ public final class L10nTranslations {
                 "\uc704\uce58 \uc9c0\uc6b0\uae30 \uc2e4\ud589 \ucde8\uc18c");
         table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
                 "\ub418\ub3cc\ub9ac\uae30\ub85c \uc124\uc815\uc744 \uc644\uc804\ud788 \ubcf5\uc6d0\ud558\uc9c0 \ubabb\ud588\uc2b5\ub2c8\ub2e4. \ud45c\uc2dc\ub41c \uac12\uc744 \ud655\uc778\ud558\uc138\uc694. \ub418\ub3cc\ub9ac\uae30\ub294 \uc774\ubbf8 \uc0ac\uc6a9\ub418\uc5c8\uc2b5\ub2c8\ub2e4.");
+        table.put("Undo has expired.",
+                "\uc2e4\ud589 \ucde8\uc18c\uac00 \ub9cc\ub8cc\ub418\uc5c8\uc2b5\ub2c8\ub2e4");
     }
 
     private static void fillKo27(Map<String, String> table) {
-        table.put("Undo has expired.",
-                "\uc2e4\ud589 \ucde8\uc18c\uac00 \ub9cc\ub8cc\ub418\uc5c8\uc2b5\ub2c8\ub2e4");
         table.put("Undo is available until %1$s.",
                 "%1$s\uae4c\uc9c0 \uc2e4\ud589 \ucde8\uc18c\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4");
         table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
@@ -17797,6 +17795,8 @@ public final class L10nTranslations {
                 "\ub3d9\uc601\uc0c1 \ud30c\uc77c \uc774\ub984\uc740 %1$s\ub85c \uc9c0\uc815\ub429\ub2c8\ub2e4. \uc0ac\uc9c4\uc740 %2$s \ub4a4\uc5d0 \ub0a0\uc9dc\uc640 \uc2dc\uac04\uc774 \ubd99\uc740 \uc774\ub984\uc73c\ub85c \uc800\uc7a5\ub429\ub2c8\ub2e4");
         table.put("Videos go to %1$s and photos to %2$s.",
                 "\ub3d9\uc601\uc0c1\uc740 %1$s\uc5d0, \uc0ac\uc9c4\uc740 %2$s\uc5d0 \uc800\uc7a5\ub429\ub2c8\ub2e4");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "\ud648\uc758 \ub3d9\uc601\uc0c1\uc774 \ub3d9\uc601\uc0c1\uc758 \uc2a4\ud53c\ucee4\ub97c \ub204\ub978 \uac83\ucc98\ub7fc \uc18c\ub9ac\uac00 \ucf1c\uc9c4 \ucc44\ub85c \uc7ac\uc0dd\ub429\ub2c8\ub2e4. \ud558\ub098\ub97c \uc74c\uc18c\uac70\ud558\uba74 \uc774\ud6c4 \ub3d9\uc601\uc0c1\ub3c4 \uc74c\uc18c\uac70\ub41c \uc0c1\ud0dc\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4. \ud734\ub300\uc804\ud654\uc758 \ubca8\uc18c\ub9ac \ubaa8\ub4dc\uc640 \ubcfc\ub968\uc740 \uadf8\ub300\ub85c \uc801\uc6a9\ub418\ubbc0\ub85c \ubb34\uc74c\uc774\uac70\ub098 \ubcfc\ub968\uc774 \uaebc\uc838 \uc788\uc73c\uba74 \uc870\uc6a9\ud55c \uc0c1\ud0dc\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "\uac01 \ub3d9\uc601\uc0c1\uc740 Instagram\uc774 \uc81c\uacf5\ud558\ub294 \ud654\uc9c8 \uc911 %1$s \uc774\ud558\uc5d0\uc11c \uac00\uc7a5 \ub192\uc740 \ud654\uc9c8\ub85c \uc7ac\uc0dd\ub418\uba70, \ud574\ub2f9 \ud654\uc9c8\uc774 \uc5c6\uc73c\uba74 \uadf8\ubcf4\ub2e4 \ub192\uc740 \ud654\uc9c8 \uc911 \uac00\uc7a5 \uac00\uae4c\uc6b4 \ud654\uc9c8\ub85c \uc7ac\uc0dd\ub429\ub2c8\ub2e4");
         table.put("Videos play at the highest quality Instagram offers for each.",
@@ -21106,8 +21106,6 @@ public final class L10nTranslations {
                 "A data e o hor\u00e1rio em que o story foi postado, como 2 de out., 15:45.");
         table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                 "N\u00e3o foi poss\u00edvel remover o arquivo %1$s. Exclua-o de %2$s para reativar o HushGram.");
-        table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
-                "O primeiro v\u00eddeo do In\u00edcio toca com o som ligado, igual a tocar no alto-falante dele. O toque e o volume do celular continuam valendo, ent\u00e3o no silencioso ou com o volume zerado, ele fica mudo.");
         table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
                 "O cora\u00e7\u00e3o no topo da P\u00e1gina inicial mostra quantas notifica\u00e7\u00f5es est\u00e3o esperando, como o n\u00famero em Mensagens, no lugar do ponto vermelho. Reinicie o Instagram para ver a mudan\u00e7a.");
         table.put("The heart plays %1$s when you double tap a post.",
@@ -21178,11 +21176,11 @@ public final class L10nTranslations {
                 "N\u00e3o h\u00e1 seletor de arquivos. Configura\u00e7\u00f5es sem mudan\u00e7a.");
         table.put("These settings are locked. Ask to unlock first.",
                 "Configura\u00e7\u00f5es bloqueadas. Pe\u00e7a para desbloquear.");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "Estas configura\u00e7\u00f5es est\u00e3o bloqueadas. Toque para come\u00e7ar a espera de %1$s, depois elas abrem por 10 minutos.");
     }
 
     private static void fillPt_rBR26(Map<String, String> table) {
-        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
-                "Estas configura\u00e7\u00f5es est\u00e3o bloqueadas. Toque para come\u00e7ar a espera de %1$s, depois elas abrem por 10 minutos.");
         table.put("These settings open at %1$s, for 10 minutes.",
                 "Estas configura\u00e7\u00f5es abrem \u00e0s %1$s, por 10 minutos.");
         table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
@@ -21301,11 +21299,11 @@ public final class L10nTranslations {
                 "Restaurar posi\u00e7\u00f5es apagadas");
         table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
                 "Desfazer n\u00e3o conseguiu restaurar totalmente as configura\u00e7\u00f5es. Confira os valores mostrados. O Desfazer j\u00e1 foi usado.");
+        table.put("Undo has expired.",
+                "O prazo para restaurar terminou.");
     }
 
     private static void fillPt_rBR27(Map<String, String> table) {
-        table.put("Undo has expired.",
-                "O prazo para restaurar terminou.");
         table.put("Undo is available until %1$s.",
                 "Voc\u00ea pode desfazer at\u00e9 %1$s.");
         table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
@@ -21376,6 +21374,8 @@ public final class L10nTranslations {
                 "Os v\u00eddeos ser\u00e3o nomeados como %1$s. As fotos recebem o nome %2$s seguido da data e da hora.");
         table.put("Videos go to %1$s and photos to %2$s.",
                 "Os v\u00eddeos v\u00e3o para %1$s e as fotos para %2$s.");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "Os v\u00eddeos do In\u00edcio tocam com o som ligado, igual a tocar no alto-falante de um v\u00eddeo. Se voc\u00ea silenciar um, os pr\u00f3ximos continuam mudos. O toque e o volume do celular continuam valendo, ent\u00e3o no silencioso ou com o volume zerado, eles ficam mudos.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Os v\u00eddeos s\u00e3o reproduzidos na melhor qualidade at\u00e9 %1$s que o Instagram oferece para cada um, ou na mais pr\u00f3xima acima.");
         table.put("Videos play at the highest quality Instagram offers for each.",
@@ -24685,8 +24685,6 @@ public final class L10nTranslations {
                 "Hikayenin payla\u015f\u0131ld\u0131\u011f\u0131 tarih ve saat, \u00f6rne\u011fin 2 Eki 15:45.");
         table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                 "%1$s dosyas\u0131 kald\u0131r\u0131lamad\u0131. HushGram'u yeniden a\u00e7mak i\u00e7in onu %2$s i\u00e7inden sil.");
-        table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
-                "Ana Sayfa'daki ilk video, hoparl\u00f6r\u00fcne dokunmu\u015f gibi sesi a\u00e7\u0131k olarak oynar. Telefonunuzun zil modu ve ses d\u00fczeyi yine ge\u00e7erlidir, bu y\u00fczden sessizde veya ses kapal\u0131yken video sessiz kal\u0131r.");
         table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
                 "Ana sayfan\u0131n \u00fcst\u00fcndeki kalp, k\u0131rm\u0131z\u0131 nokta yerine Mesajlar'daki say\u0131 gibi bekleyen bildirim say\u0131s\u0131n\u0131 g\u00f6sterir. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
         table.put("The heart plays %1$s when you double tap a post.",
@@ -24757,11 +24755,11 @@ public final class L10nTranslations {
                 "Bu telefonda dosya se\u00e7ici yok. Ayarlar\u0131n de\u011fi\u015fmedi.");
         table.put("These settings are locked. Ask to unlock first.",
                 "Bu ayarlar kilitli. \u00d6nce kilidi a\u00e7may\u0131 iste.");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "Bu ayarlar kilitli. %1$s beklemeyi ba\u015flatmak i\u00e7in dokun, sonra 10 dakika a\u00e7\u0131k kal\u0131rlar.");
     }
 
     private static void fillTr26(Map<String, String> table) {
-        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
-                "Bu ayarlar kilitli. %1$s beklemeyi ba\u015flatmak i\u00e7in dokun, sonra 10 dakika a\u00e7\u0131k kal\u0131rlar.");
         table.put("These settings open at %1$s, for 10 minutes.",
                 "Bu ayarlar 10 dakikal\u0131\u011f\u0131na \u015fu saatte a\u00e7\u0131l\u0131r: %1$s");
         table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
@@ -24880,11 +24878,11 @@ public final class L10nTranslations {
                 "Silinen konumlar\u0131 geri y\u00fckle");
         table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
                 "Geri Al ayarlar\u0131 tamamen geri y\u00fckleyemedi. G\u00f6sterilen de\u011ferleri kontrol et. Geri Al kullan\u0131ld\u0131.");
+        table.put("Undo has expired.",
+                "Geri y\u00fckleme s\u00fcresi doldu.");
     }
 
     private static void fillTr27(Map<String, String> table) {
-        table.put("Undo has expired.",
-                "Geri y\u00fckleme s\u00fcresi doldu.");
         table.put("Undo is available until %1$s.",
                 "%1$s saatine kadar geri alabilirsiniz.");
         table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
@@ -24955,6 +24953,8 @@ public final class L10nTranslations {
                 "Videolar\u0131n ad\u0131 %1$s olur. Foto\u011fraflar\u0131n ad\u0131 %2$s ile ba\u015flar, ard\u0131ndan tarih ve saat gelir.");
         table.put("Videos go to %1$s and photos to %2$s.",
                 "Videolar %1$s klas\u00f6r\u00fcne, foto\u011fraflar %2$s klas\u00f6r\u00fcne kaydedilir.");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "Ana Sayfa'daki videolar, bir videonun hoparl\u00f6r\u00fcne dokunmu\u015f gibi sesi a\u00e7\u0131k olarak oynar. Birini sessize al\u0131rsan\u0131z sonrakiler de sessiz kal\u0131r. Telefonunuzun zil modu ve ses d\u00fczeyi yine ge\u00e7erlidir, bu y\u00fczden sessizde veya ses kapal\u0131yken videolar sessiz kal\u0131r.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Videolar, Instagram'\u0131n her biri i\u00e7in sundu\u011fu en fazla %1$s olan en iyi kalitede ya da hemen \u00fcst\u00fcndekinde oynat\u0131l\u0131r.");
         table.put("Videos play at the highest quality Instagram offers for each.",
@@ -28264,8 +28264,6 @@ public final class L10nTranslations {
                 "Ng\u00e0y v\u00e0 gi\u1edd \u0111\u0103ng tin, v\u00ed d\u1ee5 2 thg 10, 3:45 CH.");
         table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                 "Kh\u00f4ng x\u00f3a \u0111\u01b0\u1ee3c t\u1ec7p %1$s. H\u00e3y x\u00f3a t\u1ec7p \u0111\u00f3 kh\u1ecfi %2$s \u0111\u1ec3 b\u1eadt l\u1ea1i HushGram.");
-        table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
-                "Video \u0111\u1ea7u ti\u00ean tr\u00ean trang ch\u1ee7 ph\u00e1t c\u00f3 ti\u1ebfng, gi\u1ed1ng nh\u01b0 nh\u1ea5n loa c\u1ee7a n\u00f3. Chu\u00f4ng v\u00e0 \u00e2m l\u01b0\u1ee3ng \u0111i\u1ec7n tho\u1ea1i v\u1eabn c\u00f3 t\u00e1c d\u1ee5ng, n\u00ean \u1edf ch\u1ebf \u0111\u1ed9 im l\u1eb7ng ho\u1eb7c khi h\u1ea1 \u00e2m l\u01b0\u1ee3ng, video v\u1eabn kh\u00f4ng c\u00f3 ti\u1ebfng.");
         table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
                 "Tr\u00e1i tim \u1edf \u0111\u1ea7u trang ch\u1ee7 hi\u1ec7n s\u1ed1 th\u00f4ng b\u00e1o \u0111ang ch\u1edd, gi\u1ed1ng con s\u1ed1 tr\u00ean Tin nh\u1eafn, thay cho ch\u1ea5m \u0111\u1ecf. H\u00e3y kh\u1edfi \u0111\u1ed9ng l\u1ea1i Instagram \u0111\u1ec3 th\u1ea5y thay \u0111\u1ed5i.");
         table.put("The heart plays %1$s when you double tap a post.",
@@ -28336,11 +28334,11 @@ public final class L10nTranslations {
                 "\u0110i\u1ec7n tho\u1ea1i kh\u00f4ng c\u00f3 b\u1ed9 ch\u1ecdn t\u1ec7p. C\u00e0i \u0111\u1eb7t kh\u00f4ng \u0111\u1ed5i.");
         table.put("These settings are locked. Ask to unlock first.",
                 "C\u00e0i \u0111\u1eb7t \u0111ang b\u1ecb kh\u00f3a. H\u00e3y y\u00eau c\u1ea7u m\u1edf kh\u00f3a tr\u01b0\u1edbc.");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "C\u00e1c c\u00e0i \u0111\u1eb7t n\u00e0y \u0111ang b\u1ecb kh\u00f3a. Nh\u1ea5n \u0111\u1ec3 b\u1eaft \u0111\u1ea7u th\u1eddi gian ch\u1edd %1$s, sau \u0111\u00f3 ch\u00fang s\u1ebd m\u1edf trong 10 ph\u00fat.");
     }
 
     private static void fillVi26(Map<String, String> table) {
-        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
-                "C\u00e1c c\u00e0i \u0111\u1eb7t n\u00e0y \u0111ang b\u1ecb kh\u00f3a. Nh\u1ea5n \u0111\u1ec3 b\u1eaft \u0111\u1ea7u th\u1eddi gian ch\u1edd %1$s, sau \u0111\u00f3 ch\u00fang s\u1ebd m\u1edf trong 10 ph\u00fat.");
         table.put("These settings open at %1$s, for 10 minutes.",
                 "C\u00e1c c\u00e0i \u0111\u1eb7t n\u00e0y m\u1edf l\u00fac %1$s, trong 10 ph\u00fat.");
         table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
@@ -28459,11 +28457,11 @@ public final class L10nTranslations {
                 "Ho\u00e0n t\u00e1c vi\u1ec7c x\u00f3a v\u1ecb tr\u00ed");
         table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
                 "Ho\u00e0n t\u00e1c kh\u00f4ng kh\u00f4i ph\u1ee5c h\u1ebft \u0111\u01b0\u1ee3c c\u00e0i \u0111\u1eb7t. H\u00e3y ki\u1ec3m tra c\u00e1c gi\u00e1 tr\u1ecb \u0111ang hi\u1ec7n. L\u01b0\u1ee3t ho\u00e0n t\u00e1c \u0111\u00e3 d\u00f9ng h\u1ebft.");
+        table.put("Undo has expired.",
+                "\u0110\u00e3 h\u1ebft h\u1ea1n ho\u00e0n t\u00e1c.");
     }
 
     private static void fillVi27(Map<String, String> table) {
-        table.put("Undo has expired.",
-                "\u0110\u00e3 h\u1ebft h\u1ea1n ho\u00e0n t\u00e1c.");
         table.put("Undo is available until %1$s.",
                 "C\u00f3 th\u1ec3 ho\u00e0n t\u00e1c \u0111\u1ebfn %1$s.");
         table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
@@ -28534,6 +28532,8 @@ public final class L10nTranslations {
                 "Video \u0111\u01b0\u1ee3c \u0111\u1eb7t t\u00ean %1$s. \u1ea2nh \u0111\u01b0\u1ee3c \u0111\u1eb7t t\u00ean %2$s k\u00e8m ng\u00e0y gi\u1edd.");
         table.put("Videos go to %1$s and photos to %2$s.",
                 "Video l\u01b0u v\u00e0o %1$s v\u00e0 \u1ea3nh l\u01b0u v\u00e0o %2$s.");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "Video tr\u00ean trang ch\u1ee7 ph\u00e1t c\u00f3 ti\u1ebfng, gi\u1ed1ng nh\u01b0 nh\u1ea5n loa c\u1ee7a video. T\u1eaft ti\u1ebfng m\u1ed9t video th\u00ec c\u00e1c video sau c\u0169ng gi\u1eef t\u1eaft ti\u1ebfng. Chu\u00f4ng v\u00e0 \u00e2m l\u01b0\u1ee3ng \u0111i\u1ec7n tho\u1ea1i v\u1eabn c\u00f3 t\u00e1c d\u1ee5ng, n\u00ean \u1edf ch\u1ebf \u0111\u1ed9 im l\u1eb7ng ho\u1eb7c khi h\u1ea1 \u00e2m l\u01b0\u1ee3ng, video v\u1eabn kh\u00f4ng c\u00f3 ti\u1ebfng.");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "Video ph\u00e1t \u1edf ch\u1ea5t l\u01b0\u1ee3ng t\u1ed1t nh\u1ea5t \u0111\u1ebfn %1$s m\u00e0 Instagram cung c\u1ea5p cho t\u1eebng video, ho\u1eb7c g\u1ea7n nh\u1ea5t b\u00ean tr\u00ean.");
         table.put("Videos play at the highest quality Instagram offers for each.",
@@ -31843,8 +31843,6 @@ public final class L10nTranslations {
                 "\u9650\u6642\u52d5\u614b\u767c\u4f48\u7684\u65e5\u671f\u8207\u6642\u9593\uff0c\u4f8b\u5982 10 \u6708 2 \u65e5\u4e0b\u5348 3:45\u3002");
         table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
                 "\u7121\u6cd5\u79fb\u9664\u6a94\u6848 %1$s\u3002\u8acb\u5f9e %2$s \u522a\u9664\u5b83\uff0c\u4ee5\u91cd\u65b0\u555f\u7528 HushGram\u3002");
-        table.put("The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.",
-                "\u9996\u9801\u7b2c\u4e00\u90e8\u5f71\u7247\u6703\u958b\u555f\u8072\u97f3\u64ad\u653e\uff0c\u7b49\u540c\u9ede\u64ca\u5587\u53ed\u6309\u9215\u3002\u4ecd\u53d7\u624b\u6a5f\u9234\u8072\u8207\u97f3\u91cf\u8a2d\u5b9a\u5f71\u97ff\uff0c\u56e0\u6b64\u975c\u97f3\u6216\u97f3\u91cf\u8abf\u4f4e\u6642\u4ecd\u4e0d\u6703\u51fa\u8072\u3002");
         table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
                 "\u9996\u9801\u9802\u7aef\u7684\u611b\u5fc3\u6703\u50cf\u8a0a\u606f\u4e00\u6a23\u986f\u793a\u5f85\u8b80\u901a\u77e5\u7684\u6578\u91cf\uff0c\u53d6\u4ee3\u7d05\u9ede\u3002\u8acb\u91cd\u65b0\u555f\u52d5 Instagram \u4ee5\u5957\u7528\u8b8a\u66f4\u3002");
         table.put("The heart plays %1$s when you double tap a post.",
@@ -31915,11 +31913,11 @@ public final class L10nTranslations {
                 "\u9019\u652f\u624b\u6a5f\u6c92\u6709\u6a94\u6848\u9078\u64c7\u5668\u3002\u4f60\u7684\u8a2d\u5b9a\u672a\u8b8a\u66f4\u3002");
         table.put("These settings are locked. Ask to unlock first.",
                 "\u9019\u4e9b\u8a2d\u5b9a\u5df2\u9396\u5b9a\uff0c\u8acb\u5148\u8acb\u6c42\u89e3\u9396\u3002");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "\u9019\u4e9b\u8a2d\u5b9a\u5df2\u9396\u5b9a\u3002\u9ede\u64ca\u958b\u59cb\u7b49\u5f85 %1$s\uff0c\u4e4b\u5f8c\u6703\u958b\u653e\u8a2d\u5b9a 10 \u5206\u9418\u3002");
     }
 
     private static void fillZh_rTW26(Map<String, String> table) {
-        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
-                "\u9019\u4e9b\u8a2d\u5b9a\u5df2\u9396\u5b9a\u3002\u9ede\u64ca\u958b\u59cb\u7b49\u5f85 %1$s\uff0c\u4e4b\u5f8c\u6703\u958b\u653e\u8a2d\u5b9a 10 \u5206\u9418\u3002");
         table.put("These settings open at %1$s, for 10 minutes.",
                 "\u9019\u4e9b\u8a2d\u5b9a\u5c07\u65bc %1$s \u958b\u653e 10 \u5206\u9418\u3002");
         table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
@@ -32038,11 +32036,11 @@ public final class L10nTranslations {
                 "\u5fa9\u539f\u6e05\u9664\u64ad\u653e\u4f4d\u7f6e");
         table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
                 "\u672a\u80fd\u5b8c\u6574\u5fa9\u539f\u8a2d\u5b9a\uff0c\u8acb\u78ba\u8a8d\u986f\u793a\u7684\u503c\u3002\u5fa9\u539f\u6a5f\u6703\u5df2\u4f7f\u7528\u3002");
+        table.put("Undo has expired.",
+                "\u5fa9\u539f\u671f\u9650\u5df2\u904e\u3002");
     }
 
     private static void fillZh_rTW27(Map<String, String> table) {
-        table.put("Undo has expired.",
-                "\u5fa9\u539f\u671f\u9650\u5df2\u904e\u3002");
         table.put("Undo is available until %1$s.",
                 "\u53ef\u5728 %1$s \u524d\u5fa9\u539f\u3002");
         table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
@@ -32113,6 +32111,8 @@ public final class L10nTranslations {
                 "\u5f71\u7247\u6a94\u540d\u70ba %1$s\u3002\u7167\u7247\u4ee5 %2$s \u52a0\u4e0a\u65e5\u671f\u8207\u6642\u9593\u547d\u540d\u3002");
         table.put("Videos go to %1$s and photos to %2$s.",
                 "\u5f71\u7247\u5132\u5b58\u81f3 %1$s\uff0c\u7167\u7247\u5132\u5b58\u81f3 %2$s\u3002");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "\u9996\u9801\u5f71\u7247\u6703\u958b\u555f\u8072\u97f3\u64ad\u653e\uff0c\u7b49\u540c\u9ede\u64ca\u5f71\u7247\u7684\u5587\u53ed\u6309\u9215\u3002\u5c07\u5176\u4e2d\u4e00\u90e8\u975c\u97f3\u5f8c\uff0c\u4e4b\u5f8c\u7684\u5f71\u7247\u4e5f\u6703\u4fdd\u6301\u975c\u97f3\u3002\u4ecd\u53d7\u624b\u6a5f\u9234\u8072\u8207\u97f3\u91cf\u8a2d\u5b9a\u5f71\u97ff\uff0c\u56e0\u6b64\u975c\u97f3\u6216\u97f3\u91cf\u8abf\u4f4e\u6642\u4ecd\u4e0d\u6703\u51fa\u8072\u3002");
         table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
                 "\u6bcf\u90e8\u5f71\u7247\u7686\u4ee5 Instagram \u63d0\u4f9b\u3001\u4e0d\u8d85\u904e %1$s \u7684\u6700\u4f73\u756b\u8cea\u64ad\u653e\uff1b\u82e5\u7121\u7b26\u5408\u9805\u76ee\uff0c\u5247\u4f7f\u7528\u6700\u63a5\u8fd1\u4e14\u8f03\u9ad8\u7684\u756b\u8cea\u3002");
         table.put("Videos play at the highest quality Instagram offers for each.",

@@ -1075,7 +1075,7 @@ Never. Pick a time and the tab bar slides away once a reel has played that long 
 # context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
 On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	릴스에서 %1$d초 동안 터치가 없으면 탭 바가 아래로 사라집니다. 다시 보려면 화면 아래쪽 가장자리를 탭하거나 탭을 바꾸거나 뒤로를 누르세요. 변경한 뒤에는 Instagram을 다시 시작하세요.
 Start feed videos with sound	피드 동영상을 소리와 함께 시작
-The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	홈의 첫 번째 동영상이 스피커를 누른 것처럼 소리가 켜진 채로 재생됩니다. 휴대전화의 벨소리 모드와 볼륨은 그대로 적용되므로 무음이거나 볼륨이 꺼져 있으면 조용한 상태로 유지됩니다.
+Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.	홈의 동영상이 동영상의 스피커를 누른 것처럼 소리가 켜진 채로 재생됩니다. 하나를 음소거하면 이후 동영상도 음소거된 상태로 유지됩니다. 휴대전화의 벨소리 모드와 볼륨은 그대로 적용되므로 무음이거나 볼륨이 꺼져 있으면 조용한 상태로 유지됩니다.
 Tap a feed video to pause it	피드 동영상을 탭하여 일시정지
 Tap the video playing in a feed to pause it in place instead of opening it in Reels, and tap it again to play it. Ads keep Instagram's own tap.	피드에서 재생 중인 동영상을 누르면 릴스에서 열리는 대신 일시정지되고, 다시 누르면 재생됩니다. 광고는 Instagram의 기본 동작을 그대로 따릅니다.
 Hold for 2x on feed videos	피드 동영상 길게 눌러 2배속

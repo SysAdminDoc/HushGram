@@ -26,10 +26,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * tap on the speaker would have done.
  *
  * <p>The answer is yes for the first video each feed controller starts, once the switch is on and
- * the phone allows sound. Later videos start as Instagram starts them, so a video you mute with the
- * speaker doesn't get its sound turned back on by the next one. The phone's ringer and volume are
- * respected: with the ringer on silent or vibrate, or the media volume at zero, the answer is no
- * and the video stays muted. A no doesn't use up the controller's turn.
+ * the phone allows sound. On that yes the patch also turns the account's audio state on, the one a
+ * tap on the speaker sets, and the videos after the first start by that state (#504). A video you
+ * mute with the speaker turns it off again, so the next one doesn't get its sound turned back on.
+ * The phone's ringer and volume are respected: with the ringer on silent or vibrate, or the media
+ * volume at zero, the answer is no and the video stays muted. A no doesn't use up the controller's
+ * turn.
  */
 public final class FeedSound {
     /** What {@link HookStatus} counts: a feed video started with the sound turned on. */

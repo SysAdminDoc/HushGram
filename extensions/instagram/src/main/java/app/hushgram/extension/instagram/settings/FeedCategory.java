@@ -201,8 +201,9 @@ final class FeedCategory {
         }
         if (feedSound) {
             feed.addPreference(toggle(context, Settings.START_FEED_VIDEOS_WITH_SOUND, L10n.t("Start feed videos with sound"),
-                    L10n.t("The first video on Home plays with its sound on, the same as tapping its speaker. Your "
-                            + "phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.")));
+                    L10n.t("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the "
+                            + "ones after it stay muted. Your phone's ringer and volume still count, so on silent or with "
+                            + "the volume down, they stay quiet.")));
         }
         if (feedTapPause) {
             feed.addPreference(toggle(context, Settings.TAP_FEED_VIDEO_TO_PAUSE, L10n.t("Tap a feed video to pause it"),

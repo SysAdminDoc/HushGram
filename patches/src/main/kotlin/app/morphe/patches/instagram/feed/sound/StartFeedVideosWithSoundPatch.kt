@@ -21,6 +21,7 @@ import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.stories.sound.findAudioState
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -31,7 +32,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 
 private const val PATCH = "Start feed videos with sound"
 internal const val FEED_SOUND = "$EXTENSION_PACKAGE/feed/FeedSound;"
@@ -41,22 +44,28 @@ internal const val FEED_START_WITH_SOUND = "$FEED_SOUND->startWithSound(Ljava/la
 internal const val FEED_CONTROLLER_STRING = "feed_video_crash_when_adjusting_volume"
 
 private const val MEDIA = "Lcom/instagram/feed/media/Media;"
+private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
 /**
- * Starts the first feed video of a Home session with its sound on.
+ * Starts feed videos with their sound on, through Instagram's own audio state.
  *
  * Instagram 450's feed video controller starts each video through one method that takes the post's
  * Media, the player holder, three ints and three booleans. It makes the video's state object there
- * and gives it a boolean, whether the video starts with sound, that Instagram works out from its own
- * server settings (false for nearly everyone). The video's sound icon and the volume the player is
- * prepared with both follow that boolean, so setting it is what tapping the icon would have done.
- * The patch asks the extension once the boolean is known, only when it's false, and a yes sets it to
- * true. The extension answers yes for the first video each feed controller starts, while the switch
- * is on and the phone's ringer and media volume allow sound. A no, the switch off, Pause and a
- * settings screen that isn't ready all leave Instagram's code exactly as it was, and a tap on the
- * icon still mutes and unmutes. Reels and stories don't pass through this method.
+ * and gives it a boolean, whether the video starts with sound, that Instagram works out from the
+ * account's audio state (the one the speaker icon flips, off until you tap it). The video's sound
+ * icon and the volume the player is prepared with both follow that boolean. The patch asks the
+ * extension once the boolean is known, only when it's false. A yes sets it to true and sets the
+ * account's audio state to on with its own setter, the call the Reels audio toggle makes when it
+ * unmutes, so the videos after it start with sound too, the same as after a tap on the speaker
+ * (#504). Setting only the boolean left every video after the first muted.
+ *
+ * The extension answers yes for the first video each feed controller starts, while the switch is on
+ * and the phone's ringer and media volume allow sound. A video you mute turns the account's state
+ * off, and the next ones stay muted. A no, the switch off, Pause and a settings screen that isn't
+ * ready all leave Instagram's code exactly as it was. Stories don't pass through this method; Reels
+ * read the same audio state, as they do after a tap on a feed video's speaker.
  *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
@@ -64,8 +73,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 @Suppress("unused")
 val startFeedVideosWithSoundPatch = bytecodePatch(
     name = "Start feed videos with sound",
-    description = "Starts the first video on Home with its sound on, the same as tapping the video's speaker. Your " +
-        "phone's ringer and volume still count. Starts off. Turn it on in HushGram settings > Feed.",
+    description = "Starts videos on Home with their sound on, the same as tapping a video's speaker. Your phone's " +
+        "ringer and volume still count. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -80,13 +89,18 @@ val startFeedVideosWithSoundPatch = bytecodePatch(
 
 /**
  * The video start method, the index of the call that gives the video's state object its sound flag,
- * the register holding that flag, and the local the hook may borrow there.
+ * the register holding that flag, the controller's user session field, the account audio state's
+ * static factory and its boolean setter, and the three locals the hook may borrow there: the
+ * extension's answer, the audio state, and the setter's second boolean where it takes one.
  */
 internal class FeedSoundSite(
     val start: Method,
     val index: Int,
     val flag: Int,
-    val scratch: Int,
+    val session: FieldReference,
+    val factory: MethodReference,
+    val setter: MethodReference,
+    val scratch: List<Int>,
 )
 
 /**
@@ -96,6 +110,10 @@ internal class FeedSoundSite(
  * int, boolean, boolean), and then calls a method of that object taking one boolean, on the
  * register the object was made in. The register that call hands over is the flag, and every write
  * to it before the call must be a 0 or a 1.
+ *
+ * The controller keeps the account's user session in one instance field of its own, and the account
+ * audio state is the one the Reels audio toggle flips ([findAudioState]); its factory and setter
+ * must be reachable from the controller's package.
  */
 internal fun BytecodePatchContext.findFeedSoundSite(): FeedSoundSite {
     val holders = classesLoadingString(FEED_CONTROLLER_STRING)
@@ -114,8 +132,33 @@ internal fun BytecodePatchContext.findFeedSoundSite(): FeedSoundSite {
     if (index in start.jumpTargets()) refuse("something in $where jumps to the sound flag call")
     start.requireThisIntact(PATCH, listOf(index))
     if (call.flag >= start.localRegisterCount()) refuse("$where keeps the sound flag in a parameter register")
-    val scratch = start.freeLocalsAt(PATCH, index, 1, except = listOf(call.flag)).single()
-    return FeedSoundSite(start, index, call.flag, scratch)
+
+    val sessions = controller.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == USER_SESSION }
+    val session = sessions.singleOrNull()
+        ?: refuse("expected ${controller.type} to keep one $USER_SESSION field, found ${sessions.size}")
+    val (factory, _, setter) = findAudioState()
+    val stateType = factory.returnType
+    val state = classDefByOrNull(stateType) ?: refuse("the audio state $stateType isn't in the app")
+    val home = controller.type.substringBeforeLast('/')
+    fun reachable(flags: Int) = stateType.substringBeforeLast('/') == home ||
+        (AccessFlags.PUBLIC.isSet(flags) && AccessFlags.PUBLIC.isSet(state.accessFlags))
+    val factoryMethod = state.methods.singleOrNull {
+        it.name == factory.name && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(Any::toString) == listOf(USER_SESSION) && it.returnType == stateType
+    }
+    val setterMethod = state.methods.singleOrNull {
+        it.name == setter.name && !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
+            it.parameterTypes.map(Any::toString) == setter.parameterTypes.map(Any::toString)
+    }
+    if (factoryMethod == null || setterMethod == null || AccessFlags.PRIVATE.isSet(factoryMethod.accessFlags) ||
+        AccessFlags.PRIVATE.isSet(setterMethod.accessFlags) || !reachable(factoryMethod.accessFlags) ||
+        !reachable(setterMethod.accessFlags)
+    ) {
+        refuse("$where can't reach the audio state $stateType from the feed controller")
+    }
+
+    val scratch = start.freeLocalsAt(PATCH, index, 3, except = listOf(call.flag))
+    return FeedSoundSite(start, index, call.flag, ImmutableFieldReference.of(session), factory, setter, scratch)
 }
 
 private class FlagCall(val index: Int, val flag: Int)
@@ -210,19 +253,33 @@ internal fun writesReaching(method: Method, at: Int, register: Int): Set<Int> {
 
 /**
  * In front of the call that gives the video's state object its sound flag: when the flag is false, ask
- * [FEED_START_WITH_SOUND] with the controller, and on a yes make the flag true. A flag that is already
- * true goes straight on.
+ * [FEED_START_WITH_SOUND] with the controller, and on a yes make the flag true, take the account's
+ * audio state from the controller's session and set it to on, with false for the setter's second
+ * boolean where it takes one, as the story hook does. A flag that is already true, or no session,
+ * goes straight on.
  */
 internal fun BytecodePatchContext.applyFeedSound(site: FeedSoundSite) {
+    val (answer, state, extra) = site.scratch
+    val setter = if (site.setter.parameterTypes.size == 2) {
+        "const/4 v$extra, 0x0\n                invoke-virtual { v$state, v${site.flag}, v$extra }, ${site.setter}"
+    } else {
+        "invoke-virtual { v$state, v${site.flag} }, ${site.setter}"
+    }
     mutable(site.start).apply {
         addInstructionsWithLabels(
             site.index,
             """
                 if-nez v${site.flag}, :stock
                 invoke-static/range { p0 .. p0 }, $FEED_START_WITH_SOUND
-                move-result v${site.scratch}
-                if-eqz v${site.scratch}, :stock
+                move-result v$answer
+                if-eqz v$answer, :stock
                 const/4 v${site.flag}, 1
+                move-object/from16 v$state, p0
+                iget-object v$state, v$state, ${site.session}
+                if-eqz v$state, :stock
+                invoke-static { v$state }, ${site.factory}
+                move-result-object v$state
+                $setter
             """,
             ExternalLabel("stock", getInstruction(site.index)),
         )
