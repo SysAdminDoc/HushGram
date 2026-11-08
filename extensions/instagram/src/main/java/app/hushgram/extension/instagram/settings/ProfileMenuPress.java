@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -183,15 +184,20 @@ public final class ProfileMenuPress {
         return null;
     }
 
+    /**
+     * The shown view for [slot] on [decor]'s screen, remembered between looks while it stays shown.
+     * Instagram's top bar for other screens keeps a gone chevron of its own, and findViewById can hit
+     * that one first, so only a shown view is found or kept (#431).
+     */
     private static View remembered(View decor, int slot) {
         int id = id(decor.getContext(), YOURS[slot]);
         if (id == 0) return null;
         WeakReference<View> held = seen[slot];
         View view = held == null ? null : held.get();
-        if (view != null && view.getId() == id && view.isAttachedToWindow() && view.getRootView() == decor) {
+        if (view != null && view.getId() == id && view.isShown() && view.getRootView() == decor) {
             return view;
         }
-        view = decor.findViewById(id);
+        view = GlassTabBar.shownById(decor, id);
         seen[slot] = view == null ? null : new WeakReference<>(view);
         return view;
     }

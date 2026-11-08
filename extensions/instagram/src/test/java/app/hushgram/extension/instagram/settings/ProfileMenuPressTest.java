@@ -253,6 +253,37 @@ public class ProfileMenuPressTest {
         assertEquals(1, shown());
     }
 
+    /**
+     * Instagram's top bar for other screens keeps a gone chevron of its own, ahead of your profile's
+     * in the window (#431, seen on the S22 and an Android 16 emulator). A look before your profile
+     * shows finds only that one, and your profile's chevron still counts once it's there.
+     */
+    @Test public void aGoneChevronInAnotherBarDoesNotHideYourProfilesChevron() {
+        int chevronId = View.generateViewId();
+        ProfileMenuPress.idForTests(ProfileMenuPress.SWITCH_ACCOUNTS, chevronId);
+        LinearLayout shared = new LinearLayout(activity);
+        ImageView hidden = new ImageView(activity);
+        hidden.setId(chevronId);
+        hidden.setVisibility(View.GONE);
+        shared.addView(hidden);
+        ((FrameLayout) right.getParent().getParent()).addView(shared, 0);
+        left.removeView(create);
+        Settings.PROFILE_MENU_LONG_PRESS.save(true);
+
+        ProfileMenuPress.look(activity);
+        assertFalse("no chevron of yours shows yet", ProfileMenuPress.carries(menu));
+
+        LinearLayout name = new LinearLayout(activity);
+        ImageView chevron = new ImageView(activity);
+        chevron.setId(chevronId);
+        name.addView(chevron);
+        ((LinearLayout) right.getParent()).addView(name, 1);
+        ProfileMenuPress.look(activity);
+        assertTrue("the gone chevron hid yours", ProfileMenuPress.carries(menu));
+        assertTrue(menu.performLongClick());
+        assertEquals(1, shown());
+    }
+
     @Test public void aBarWithoutTheMenuGetsNothing() {
         Settings.PROFILE_MENU_LONG_PRESS.save(true);
         right.removeView(menu);

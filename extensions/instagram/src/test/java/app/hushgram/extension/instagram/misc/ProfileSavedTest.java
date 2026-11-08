@@ -115,6 +115,41 @@ public class ProfileSavedTest {
         }
     }
 
+    /**
+     * The top bar other screens share keeps a gone chevron ahead of your profile's (#431). Looked at
+     * before your profile shows, it's the only one, and once yours shows it still says it's yours.
+     */
+    @Test
+    public void aGoneChevronInAnotherBarDoesNotHideYours() {
+        int createId = android.view.View.generateViewId();
+        int chevronId = android.view.View.generateViewId();
+        GlassTabBar.idForTests(ProfileSaved.CREATE_BUTTON, createId);
+        GlassTabBar.idForTests(ProfileSaved.SWITCH_ACCOUNTS, chevronId);
+        try {
+            Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+            LinearLayout screen = new LinearLayout(activity);
+            LinearLayout shared = new LinearLayout(activity);
+            android.widget.ImageView hidden = new android.widget.ImageView(activity);
+            hidden.setId(chevronId);
+            hidden.setVisibility(android.view.View.GONE);
+            shared.addView(hidden);
+            screen.addView(shared);
+            activity.setContentView(screen);
+            android.view.View decor = activity.getWindow().getDecorView();
+
+            assertFalse("only the gone chevron is there", ProfileSaved.yours(decor));
+            LinearLayout bar = new LinearLayout(activity);
+            android.widget.ImageView chevron = new android.widget.ImageView(activity);
+            chevron.setId(chevronId);
+            bar.addView(chevron);
+            screen.addView(bar);
+            assertTrue("the gone chevron hid yours", ProfileSaved.yours(decor));
+        } finally {
+            GlassTabBar.idForTests(ProfileSaved.CREATE_BUTTON, null);
+            GlassTabBar.idForTests(ProfileSaved.SWITCH_ACCOUNTS, null);
+        }
+    }
+
     @Test
     public void otherRowsAreNot() {
         assertFalse(ProfileSaved.isSavedLabel("Archive"));

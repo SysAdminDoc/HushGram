@@ -212,15 +212,16 @@ public final class ProfileSaved {
 
     /**
      * The view called [name] in [decor]'s window, remembered between looks: finding a view by its id walks the
-     * whole screen, which is a few milliseconds on a busy one. A remembered view that has left the window is
-     * looked up again.
+     * whole screen, which is a few milliseconds on a busy one. A remembered view that has left the window or
+     * stopped showing is looked up again, and only shown views are found: the top bar other screens share
+     * keeps a gone chevron of its own, which once remembered hid yours for good (#431).
      */
     @Nullable
     private static View remembered(View decor, String name, int slot) {
         WeakReference<View> held = seen[slot];
         View view = held == null ? null : held.get();
-        if (view != null && view.isAttachedToWindow() && view.getRootView() == decor) return view;
-        view = GlassTabBar.find(decor, name);
+        if (view != null && view.isShown() && view.getRootView() == decor) return view;
+        view = GlassTabBar.findShown(decor, name);
         seen[slot] = view == null ? null : new WeakReference<>(view);
         return view;
     }

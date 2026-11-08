@@ -652,6 +652,31 @@ public final class GlassTabBar {
         return id == 0 ? null : root.findViewById(id);
     }
 
+    /** The first shown view called [name] under [root], or null ({@link #shownById}). */
+    @Nullable
+    static View findShown(View root, String name) {
+        int id = id(root.getContext(), name);
+        return id == 0 ? null : shownById(root, id);
+    }
+
+    /**
+     * The first view with [id] under [root] whose branch is all visible, or null. findViewById stops at
+     * the first match, and Instagram keeps hidden copies of some views ahead of the one on screen, like
+     * the gone account chevron in the top bar other screens share (#431). Hidden branches aren't walked.
+     */
+    @Nullable
+    public static View shownById(View root, int id) {
+        if (id == 0 || root.getVisibility() != View.VISIBLE) return null;
+        if (root.getId() == id) return root;
+        if (!(root instanceof ViewGroup)) return null;
+        ViewGroup group = (ViewGroup) root;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View found = shownById(group.getChildAt(i), id);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
     /**
      * Whether [story] is a story viewer that shows, laid out, with no screen showing after it in its
      * container. A screen opened from the story, such as a profile, goes after it there and has the bar.
