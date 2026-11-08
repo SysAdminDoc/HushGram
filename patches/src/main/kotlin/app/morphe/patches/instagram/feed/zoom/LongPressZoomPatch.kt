@@ -198,8 +198,11 @@ internal fun BytecodePatchContext.findLongPressZoomSite(): LongPressZoomSite {
     return LongPressZoomSite(touch, press, index, holderField, frameField, mediaField, scratch, mediaType)
 }
 
-/** The gesture listener [holder] keeps when it also keeps a media frame and a Media, else null. */
-private fun BytecodePatchContext.listenerOf(holder: ClassDef): ClassDef? {
+/**
+ * The gesture listener [holder] keeps when it also keeps a media frame and a Media, else null. Seek bar on feed
+ * videos finds the same listener for its double tap (#562).
+ */
+internal fun BytecodePatchContext.listenerOf(holder: ClassDef): ClassDef? {
     val types = holder.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.type }
     if (MEDIA_FRAME !in types || MEDIA !in types) return null
     val listeners = types.distinct().mapNotNull { type -> classDefByOrNull(type)?.takeIf { it.superclass == SIMPLE_LISTENER } }

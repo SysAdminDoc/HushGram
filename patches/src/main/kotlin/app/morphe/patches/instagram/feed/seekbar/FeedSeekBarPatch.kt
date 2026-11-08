@@ -6,14 +6,22 @@ package app.morphe.patches.instagram.feed.seekbar
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.feed.tabswipe.stopTabSwipingPatch
+import app.morphe.patches.instagram.feed.zoom.GESTURE_DETECTOR
+import app.morphe.patches.instagram.feed.zoom.MEDIA_FRAME
+import app.morphe.patches.instagram.feed.zoom.listenerOf
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -31,6 +39,8 @@ private const val PATCH = "Seek bar on feed videos"
 internal const val FEED_SEEK_BAR = "$EXTENSION_PACKAGE/feed/FeedSeekBar;"
 internal const val FEED_SEEK_READER = "$EXTENSION_PACKAGE/feed/FeedSeekReader;"
 internal const val FEED_PROGRESS = "$FEED_SEEK_BAR->progress(Ljava/lang/Object;II)V"
+internal const val FEED_DOUBLE_TAP_SKIP = "$EXTENSION_PACKAGE/feed/FeedDoubleTapSkip;"
+internal const val FEED_DOUBLE_TAP_HOOK = "$FEED_DOUBLE_TAP_SKIP->doubleTap(Landroid/view/View;Landroid/view/MotionEvent;)Z"
 
 /**
  * The report the feed's video player, IgFeedVideoPlayer, makes when a video's cover stays up while
@@ -42,6 +52,7 @@ internal const val SEEK_LISTENER = "Landroid/widget/SeekBar\$OnSeekBarChangeList
 private const val OBJECT = "Ljava/lang/Object;"
 private const val STRING = "Ljava/lang/String;"
 private const val VIEW = "Landroid/view/View;"
+private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 
 /** The reasons Instagram's feed scrubber pauses and plays its player with when a drag starts and lets go. */
 internal const val SEEK_PAUSE_REASON = "seek"
@@ -68,6 +79,11 @@ internal const val SEEK_PLAY_REASON = "start"
  * The main tabs' pager takes a sideways drag on the bar whatever the bar asks its parents, so the
  * patch brings [stopTabSwipingPatch]'s hooks, and a finger on the bar holds the tabs through them
  * until it lifts, that patch's switch on or off.
+ *
+ * Double tap to skip on feed videos (#562) rides on the same player and stubs: the gesture listener
+ * each feed post's media frame keeps (the one Long press to zoom finds) hands every double tap to
+ * FeedDoubleTapSkip first, with the frame and the tap, and returns true on a yes, before Instagram
+ * likes the post. See [findFeedDoubleTap].
  */
 @Suppress("unused")
 val feedSeekBarPatch = bytecodePatch(
@@ -75,7 +91,8 @@ val feedSeekBarPatch = bytecodePatch(
     description = "Shows a bar along the bottom of the video playing in your feed that you can drag to jump to any " +
         "point in it. Starts off. Turn it on in HushGram settings > Feed. Another switch there adds a small button " +
         "on the video that shows or hides the bar, and a choice under it makes the bar see-through or puts it on " +
-        "frosted glass.",
+        "frosted glass. One more lets a double tap on the left or right side of the video go back or ahead 10 seconds, " +
+        "while the middle still likes the post.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, stopTabSwipingPatch)
@@ -83,9 +100,72 @@ val feedSeekBarPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("feedSeekBar")
-        hookFeedSeek(findFeedSeek())
+        val seek = findFeedSeek()
+        val tap = findFeedDoubleTap()
+        hookFeedSeek(seek)
+        hookFeedDoubleTap(tap)
         enableStatus("feedSeekBar")
     }
+}
+
+/** The feed post gesture listener's double tap and the two reads the hook makes to reach the post's media frame (#562). */
+internal class FeedDoubleTapSite(val tap: Method, val holderField: FieldReference, val frameField: FieldReference)
+
+/**
+ * The feed post's gesture listener is the one Long press to zoom finds: the listener kept by the one
+ * class that makes a GestureDetector and also keeps a MediaFrameLayout and a Media. Its
+ * onDoubleTap(MotionEvent) reads its holder and the holder's frame itself, once each, which is also
+ * what proves the hook may read them. Nothing may jump back to its start, it needs two locals for
+ * the hook to borrow before Instagram's code writes them, and it mustn't call the extension yet.
+ */
+internal fun BytecodePatchContext.findFeedDoubleTap(): FeedDoubleTapSite {
+    val holders = classesCalling(GESTURE_DETECTOR, "<init>").filter { listenerOf(it) != null }
+    val holder = holders.singleOrNull()
+        ?: refuse("expected one class making a GestureDetector that keeps a media frame, a Media and a gesture listener, found ${holders.size}")
+    val listener = listenerOf(holder)!!
+    val taps = listener.methods.filter {
+        it.name == "onDoubleTap" && !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null && it.shape() == "($MOTION_EVENT)Z"
+    }
+    val tap = taps.singleOrNull() ?: refuse("expected ${listener.type} to hold one onDoubleTap, found ${taps.size}")
+    val where = "${listener.type}->${tap.name}"
+    val code = tap.code()
+    if (code.any { it.method()?.definingClass == FEED_DOUBLE_TAP_SKIP }) refuse("$where already calls $FEED_DOUBLE_TAP_SKIP")
+    if (0 in tap.jumpTargets()) refuse("something in $where jumps back to its start")
+    if (tap.localRegisterCount() < 2) refuse("$where has ${tap.localRegisterCount()} locals, and the hook borrows two")
+    fun read(owner: String, type: String): FieldReference {
+        val reads = code.filter { it.opcode == Opcode.IGET_OBJECT }.mapNotNull { it.field() }
+            .filter { it.definingClass == owner && it.type == type }.distinctBy(Any::toString)
+        return reads.singleOrNull() ?: refuse("expected $where to read one $type field of $owner, found ${reads.size}")
+    }
+    return FeedDoubleTapSite(tap, read(listener.type, holder.type), read(holder.type, MEDIA_FRAME))
+}
+
+/**
+ * First thing in the double tap, in two locals nothing has written yet: read the holder and its frame,
+ * ask [FEED_DOUBLE_TAP_HOOK] with the frame and the tap, and answer true on a yes. A no, or a listener
+ * without its holder, goes on with Instagram's own double tap exactly as it was.
+ */
+internal fun BytecodePatchContext.hookFeedDoubleTap(site: FeedDoubleTapSite) {
+    mutableClassDefBy(site.tap.definingClass).methods
+        .single { it.name == site.tap.name && it.shape() == site.tap.shape() && !AccessFlags.STATIC.isSet(it.accessFlags) }
+        .apply {
+            addInstructionsWithLabels(
+                0,
+                """
+                    move-object/from16 v0, p0
+                    iget-object v0, v0, ${site.holderField}
+                    if-eqz v0, :stock
+                    iget-object v0, v0, ${site.frameField}
+                    move-object/from16 v1, p1
+                    invoke-static { v0, v1 }, $FEED_DOUBLE_TAP_HOOK
+                    move-result v0
+                    if-eqz v0, :stock
+                    const/4 v0, 0x1
+                    return v0
+                """,
+                ExternalLabel("stock", getInstruction(0)),
+            )
+        }
 }
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")

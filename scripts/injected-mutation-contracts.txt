@@ -2956,6 +2956,11 @@ start-call Lapp/hushgram/extension/instagram/feed/FeedSeekBar;->progress(Ljava/l
 once-call Lapp/hushgram/extension/instagram/feed/FeedSeekBar;->progress(Ljava/lang/Object;II)V in instance (IIZ)V holding IgFeedVideoPlayer:\sPersistent\sVisible\sCover\sImage
 first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->view(Ljava/lang/Object;)Landroid/view/View; outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->seekTo(Ljava/lang/Object;IZ)Z outside Lapp/hushgram/extension/
+# Double tap to skip on feed videos (#562) asks FeedDoubleTapSkip.doubleTap first thing in the
+# onDoubleTap of the media frame's gesture listener, the one Long press to zoom finds, with the
+# holder's MediaFrameLayout and the event. Left out, a double tap only likes the post; twice or in
+# another method, it isn't the call the patch wrote. FeedDoubleTapHookTest finds it on every build.
+single-call Lapp/hushgram/extension/instagram/feed/FeedDoubleTapSkip;->doubleTap(Landroid/view/View;Landroid/view/MotionEvent;)Z in onDoubleTap
 # Hide the comment emoji row hands the comment sheet's emoji check (List.isEmpty on the strip's
 # emoji) to CommentEmojiRow.hidesRow right before the if-nez that skips the strip, in the one method
 # laying out the area above the box, the only one loading both keys below (0Fas.A0o on 451's

@@ -446,6 +446,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_feed_seek_bar_look", OverlayLook.SOLID, parentsAny(FEED_SEEK_BAR, FEED_SEEK_BUTTON));
 
     /**
+     * A double tap on the left or right third of the video playing in a feed moves it back or ahead
+     * {@link app.hushgram.extension.instagram.feed.FeedDoubleTapSkip#SKIP_MS} instead of liking the
+     * post (#562, {@link app.hushgram.extension.instagram.feed.FeedDoubleTapSkip}). Off to start.
+     */
+    public static final BooleanSetting FEED_DOUBLE_TAP_SKIP =
+            new BooleanSetting("hushgram_feed_double_tap_skip", FALSE);
+
+    /**
      * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
      * place of Instagram's own long press there ({@link app.hushgram.extension.instagram.feed.LongPressZoom}).
      * Off to start.

@@ -1742,6 +1742,9 @@ Accounts mentioned in this story	Akun yang disebut di cerita ini
 Pill look	Tampilan pil
 # context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
 Seek bar look	Tampilan bilah geser
+# context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
+Double tap to skip on feed videos	Ketuk dua kali untuk melompat di video feed
+Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	Ketuk dua kali sisi kiri video yang diputar di feed untuk mundur 10 detik, atau sisi kanan untuk maju 10 detik. Ketuk dua kali di tengah tetap berfungsi seperti biasa.
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	Padat
 # context: a look for the page-dots pill and the seek bars: partly transparent

@@ -1745,6 +1745,9 @@ Accounts mentioned in this story	此限時動態提及的帳號
 Pill look	膠囊樣式
 # context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
 Seek bar look	拖曳列樣式
+# context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
+Double tap to skip on feed videos	點兩下即可在動態影片中跳轉
+Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	在動態中播放的影片左側點兩下可倒退 10 秒，右側點兩下可快轉 10 秒。在中間點兩下則和以前一樣。
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	不透明
 # context: a look for the page-dots pill and the seek bars: partly transparent

@@ -1742,6 +1742,9 @@ Accounts mentioned in this story	Bu hikâyede bahsedilen hesaplar
 Pill look	Hap görünümü
 # context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
 Seek bar look	Arama çubuğu görünümü
+# context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
+Double tap to skip on feed videos	Akış videolarında atlamak için iki kez dokun
+Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	Akışta oynayan videonun sol tarafına iki kez dokunarak 10 saniye geri, sağ tarafına iki kez dokunarak 10 saniye ileri git. Ortaya iki kez dokunmak eskisi gibi çalışır.
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	Opak
 # context: a look for the page-dots pill and the seek bars: partly transparent

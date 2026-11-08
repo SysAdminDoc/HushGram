@@ -1742,6 +1742,9 @@ Accounts mentioned in this story	In dieser Story erwähnte Konten
 Pill look	Aussehen der Kapsel
 # context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
 Seek bar look	Aussehen der Suchleiste
+# context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
+Double tap to skip on feed videos	Doppeltippen zum Springen in Feed-Videos
+Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	Tippe doppelt auf die linke Seite des Videos, das im Feed läuft, um 10 Sekunden zurückzuspringen, oder auf die rechte Seite, um 10 vorzuspringen. Ein Doppeltippen in der Mitte funktioniert wie bisher.
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	Deckend
 # context: a look for the page-dots pill and the seek bars: partly transparent

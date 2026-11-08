@@ -1741,6 +1741,9 @@ Accounts mentioned in this story	이 스토리에서 언급한 계정
 Pill look	알약 스타일
 # context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
 Seek bar look	탐색 막대 스타일
+# context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
+Double tap to skip on feed videos	피드 동영상 두 번 탭하여 건너뛰기
+Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	피드에서 재생 중인 동영상의 왼쪽을 두 번 탭하면 10초 뒤로, 오른쪽을 두 번 탭하면 10초 앞으로 이동합니다. 가운데를 두 번 탭하면 전과 같이 작동합니다.
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	불투명
 # context: a look for the page-dots pill and the seek bars: partly transparent

@@ -112,6 +112,7 @@ public final class FeedSeekBar {
                 Utils.runOnMainThread(() -> progress(player, position, duration));
                 return;
             }
+            FeedDoubleTapSkip.fed(player, position, duration);
             Overlay overlay = current;
             if (overlay == null || overlay.removed || overlay.player.get() != player) {
                 if (player == null || !active()) return;
@@ -135,6 +136,11 @@ public final class FeedSeekBar {
         Overlay overlay = current;
         GlassSeekBar seek = overlay == null || overlay.removed ? null : overlay.bar;
         return seek != null && seek.getVisibility() == View.VISIBLE && seek.getParent() != null ? seek : null;
+    }
+
+    /** The feed's player as the stubs reach it, which {@link FeedDoubleTapSkip} moves too. */
+    static Player player() {
+        return feed;
     }
 
     @VisibleForTesting

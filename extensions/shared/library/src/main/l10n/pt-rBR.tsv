@@ -1742,6 +1742,9 @@ Accounts mentioned in this story	Contas mencionadas neste story
 Pill look	Visual da pílula
 # context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
 Seek bar look	Visual da barra de busca
+# context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
+Double tap to skip on feed videos	Tocar duas vezes para pular nos vídeos do feed
+Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	Toque duas vezes no lado esquerdo do vídeo que está tocando no feed para voltar 10 segundos, ou no lado direito para avançar 10. Tocar duas vezes no meio funciona como antes.
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	Sólido
 # context: a look for the page-dots pill and the seek bars: partly transparent
