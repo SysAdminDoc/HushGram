@@ -56,6 +56,9 @@ internal class HushgramIcon(
 /** Plum, the color of HushGram's mark. */
 private const val PLUM = "#FF3B0A3D"
 
+/** The cream of the retro camera's body, behind its picture. */
+internal const val RETRO_CREAM = "#FFBCA89A"
+
 private fun solid(color: String) = """
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
@@ -89,7 +92,9 @@ internal val HUSHGRAM_ICONS = listOf(
     // Instagram's gradient glyph on a dark tile (#327, #437) and its old camera icon on white (#437), each 52dp across.
     HushgramIcon("gradient", DARK_GRADIENT, instagramGlyph = false, art = "gradient.png"),
     // The camera fills its square, so themed icons show Instagram's glyph for it instead of a blank tile.
-    HushgramIcon("retro", solid("#FFFFFFFF"), instagramGlyph = false, art = "retro.png", artThemed = false),
+    // It runs past every launcher shape, its edge colors carried out to the corners, so no white frame
+    // shows around it (#565). The cream of its body is behind it all the same.
+    HushgramIcon("retro", solid(RETRO_CREAM), instagramGlyph = false, art = "retro.png", artThemed = false),
     // Instagram's glyph in a deep pink on pale pink, the colors of the picture asked for in #470.
     HushgramIcon("pink", solid("#FFF4DDE5"), instagramGlyph = true, glyphTint = "#FFCD4B6F"),
 )

@@ -176,6 +176,8 @@ class AppIconsTest {
         assertEquals("#FF2F2F2F", parse(files.getValue("drawable/hushgram_icon_gradient_background.xml")).elements("gradient").single().getAttribute("android:startColor"))
         assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_light_background.xml")).elements("solid").single().getAttribute("android:color"))
         assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_sketch_background.xml")).elements("solid").single().getAttribute("android:color"))
+        assertEquals("the camera's cream, not white, behind the retro camera (#565)", RETRO_CREAM,
+            parse(files.getValue("drawable/hushgram_icon_retro_background.xml")).elements("solid").single().getAttribute("android:color"))
         val black = parse(files.getValue("drawable/hushgram_icon_light_glyph.xml"))
         assertEquals("vector", black.documentElement.tagName)
         assertEquals("#FF000000", black.documentElement.getAttribute("android:tint"))
@@ -191,7 +193,8 @@ class AppIconsTest {
 
     /**
      * The hand-drawn icon's picture (#406) comes with the patch: one square PNG of black strokes on clear,
-     * with its ink inside the 66dp circle every launcher shape keeps.
+     * with its ink inside the 66dp circle every launcher shape keeps. The retro camera instead covers the
+     * whole layer, so no launcher shape shows a white frame around it (#565).
      */
     @Test
     fun theHandDrawnPictureComesWithThePatch() {
@@ -203,6 +206,17 @@ class AppIconsTest {
         for ((path, bytes) in art) {
             val image = javax.imageio.ImageIO.read(bytes.inputStream())
             assertEquals(path, image.width, image.height)
+            if (path.contains("_retro_")) {
+                var light = 0
+                for (y in 0 until image.height) for (x in 0 until image.width) {
+                    val argb = image.getRGB(x, y)
+                    assertEquals("opaque at $x,$y", 0xFF, argb ushr 24)
+                    if ((argb shr 16 and 0xFF) > 240 && (argb shr 8 and 0xFF) > 240 && (argb and 0xFF) > 240) light++
+                }
+                // The lens glint and the Insta label are the only near-white, a small share of the picture.
+                assertTrue("$path is the camera, not a white tile, $light near-white", light < image.width * image.height / 50)
+                continue
+            }
             assertTrue("$path has alpha", image.colorModel.hasAlpha())
             var farthest = 0.0
             var inked = 0
