@@ -1809,6 +1809,9 @@ The heart at the top of Home shows how many notifications are waiting, like the 
 # context: a switch under Seek bar on feed videos
 Seek bar on the bottom edge	Thanh tua ở mép dưới
 Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.	Đặt thanh tua sát mép dưới của video, để khó chạm nhầm hơn khi bạn cuộn.
+# context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
+Hide Made with Edits	Ẩn "Made with Edits"
+Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	Bỏ nhãn "Made with Edits" khỏi dòng dưới tên người đăng bài viết. Bài hát, địa điểm và các nhãn khác vẫn thay phiên hiện ở đó.
 # context: a switch on the Reels page
 Hide lives in Reels	Ẩn video trực tiếp trong Reels
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Bỏ qua các buổi phát trực tiếp mà Instagram chen vào giữa các reel ở tab Reels và khi bạn vuốt qua reel từ Khám phá.

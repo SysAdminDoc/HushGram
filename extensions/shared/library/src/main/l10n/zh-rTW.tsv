@@ -1895,6 +1895,9 @@ The heart at the top of Home shows how many notifications are waiting, like the 
 # context: a switch under Seek bar on feed videos
 Seek bar on the bottom edge	拖曳列貼齊底部邊緣
 Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.	把拖曳列放在影片最底部的邊緣，捲動時比較不容易誤觸。
+# context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
+Hide Made with Edits	隱藏「Made with Edits」
+Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	移除貼文作者下方那一行的「Made with Edits」標籤。歌曲、地點和其他標籤仍會在那裡輪流顯示。
 # context: a switch on the Reels page
 Hide lives in Reels	隱藏 Reels 中的直播
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	略過 Instagram 在 Reels 分頁中，以及從探索滑動瀏覽 Reels 時，夾在 Reels 之間的直播。

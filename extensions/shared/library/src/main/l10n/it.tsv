@@ -1892,6 +1892,9 @@ The heart at the top of Home shows how many notifications are waiting, like the 
 # context: a switch under Seek bar on feed videos
 Seek bar on the bottom edge	Barra di scorrimento sul bordo inferiore
 Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.	Mette la barra di scorrimento proprio sul bordo inferiore del video, così è più difficile toccarla per sbaglio mentre scorri.
+# context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
+Hide Made with Edits	Nascondi "Made with Edits"
+Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	Toglie l'etichetta "Made with Edits" dalla riga sotto l'autore di un post. La canzone, il luogo e le altre etichette continuano ad alternarsi lì.
 # context: a switch on the Reels page
 Hide lives in Reels	Nascondi le dirette nei Reels
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Lascia fuori le dirette che Instagram mette tra i reel nella scheda Reels e quando scorri i reel da Esplora.

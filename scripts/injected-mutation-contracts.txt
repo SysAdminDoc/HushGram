@@ -1496,6 +1496,11 @@ once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->offer(Ljava/la
 once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->option()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->hide(Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->allow(Ljava/util/List;)Ljava/util/List; in static (Z)Ljava/util/List; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->WHY_AM_I_SEEING_THIS:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->REPORT:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
+# Hide Made with Edits (#570) hands the label kinds list to EditsLabel.labels in the constructor of
+# the feed header's label state, right before it's stored (the one constructor of that 22-value
+# shape storing a List, 01Zp on 454's 386014758). Left out, the Edits label keeps its turn under
+# the author; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/EditsLabel;->labels(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/feed/media/Media;LX/*;LX/*;LX/*;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ZZZZZZ)V class-holding LX/*;->*:Ljava/util/List;
 #
 # Tap to play: IgGrootPlayer's play asks allowDirectStart() first, its prepare tells rebound()
 # first, and the autoplay check hands its answer to autoplayAllowed() where it returns, once on

@@ -452,6 +452,13 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean editsLabel() {
+        return false;
+    }
+
+        return false;
+    }
+
     /** Rewritten by the Hide activity bubbles patch. */
     public static boolean activityBubbles() {
         return false;

@@ -123,6 +123,7 @@ public final class FamilyNames {
     public static final String COMMENT_GIFS = "Hide GIFs in comments";
     public static final String COMMENT_SEARCH = "Search comments";
     public static final String FEED_FOLLOW = "Hide Follow on feed posts";
+    public static final String EDITS_LABEL = "Hide Made with Edits";
     public static final String ACTIVITY_BUBBLES = "Hide activity bubbles";
     public static final String HIDE_CAPTIONS = "Hide captions";
     public static final String FEED_AUDIO_ICON = "Hide the audio icon on posts";

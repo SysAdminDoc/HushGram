@@ -2388,6 +2388,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_follow", FALSE);
 
     /**
+     * "Made with Edits" in the line under a feed post's author (#570,
+     * {@link app.hushgram.extension.instagram.feed.EditsLabel}). Read as each post's header is built,
+     * so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_EDITS_LABEL =
+            new BooleanSetting("hushgram_hide_edits_label", FALSE);
+
+
+    /**
      * The little round pictures on posts and reels showing a friend liked, commented on or reshared
      * them ({@link app.hushgram.extension.instagram.feed.ActivityBubbles}). Read as each post is
      * built, so posts already on screen change when they load again. Off to start.

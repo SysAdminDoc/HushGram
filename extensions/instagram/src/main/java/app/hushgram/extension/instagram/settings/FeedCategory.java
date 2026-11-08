@@ -59,6 +59,7 @@ final class FeedCategory {
         boolean ambientLight = build.contains(PatchFamily.AMBIENT_LIGHT);
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
+        boolean editsLabel = build.contains(PatchFamily.EDITS_LABEL);
         boolean hideCaptions = build.contains(PatchFamily.HIDE_CAPTIONS);
         boolean feedAudioIcon = build.contains(PatchFamily.FEED_AUDIO_ICON);
         boolean homeTopBar = build.contains(PatchFamily.HOME_TOP_BAR);
@@ -66,7 +67,7 @@ final class FeedCategory {
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedHoldFast || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
-                || fullScreen || feedFollow || hideCaptions || feedAudioIcon || homeTopBar || activityBubbles
+                || fullScreen || feedFollow || editsLabel || hideCaptions || feedAudioIcon || homeTopBar || activityBubbles
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -282,6 +283,11 @@ final class FeedCategory {
             feed.addPreference(onFlip(toggle(context, Settings.HIDE_FEED_FOLLOW, L10n.t("Hide Follow on posts"),
                     L10n.t("Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.")),
                     FeedFollowButton::switchChanged));
+        }
+        if (editsLabel) {
+            feed.addPreference(toggle(context, Settings.HIDE_EDITS_LABEL, L10n.t("Hide Made with Edits"),
+                    L10n.t("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the "
+                            + "place and the other labels keep taking turns there.")));
         }
         if (activityBubbles) {
             feed.addPreference(toggle(context, Settings.HIDE_ACTIVITY_BUBBLES, L10n.t("Hide activity bubbles"),
