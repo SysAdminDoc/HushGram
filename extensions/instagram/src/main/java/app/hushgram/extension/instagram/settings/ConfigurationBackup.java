@@ -282,6 +282,7 @@ public final class ConfigurationBackup {
         settings.put(Settings.SETTINGS_SHORTCUT.key, Settings.SETTINGS_SHORTCUT);
         settings.put(Settings.SETTINGS_LOGO_PRESS.key, Settings.SETTINGS_LOGO_PRESS);
         settings.put(Settings.CATEGORY_PAGES.key, Settings.CATEGORY_PAGES);
+        settings.put(Settings.CATEGORY_OWN_PAGE.key, Settings.CATEGORY_OWN_PAGE);
         settings.put(Settings.CATEGORY_GRID.key, Settings.CATEGORY_GRID);
         settings.put(Settings.DESCRIPTIONS_BEHIND_INFO.key, Settings.DESCRIPTIONS_BEHIND_INFO);
         settings.put(Settings.SETTINGS_BLACK_LOOK.key, Settings.SETTINGS_BLACK_LOOK);

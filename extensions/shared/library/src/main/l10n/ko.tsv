@@ -677,6 +677,9 @@ Hide story rewinds	스토리 리와인드 숨기기
 Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.	홈 상단의 스토리 줄에서는 내 스토리를 포함해 아무것도 불러오지 않으며, 프로필의 하이라이트도 비어 있습니다. 데이터를 아낍니다. 프로필이나 채팅의 스토리 링은 여전히 스토리를 엽니다.
 Expandable categories	펼칠 수 있는 카테고리
 Tap a category to show or hide its settings on this page.	카테고리를 탭하면 이 페이지에서 해당 설정을 펼치거나 접을 수 있습니다.
+# context: Settings entry switch; with it on, tapping a settings category opens that category alone on its own page
+Categories on their own page	카테고리를 별도 페이지로
+With Expandable categories on, a tap opens a category on a page of its own. Back takes you to the list.	펼칠 수 있는 카테고리가 켜져 있으면 카테고리를 탭할 때 별도 페이지로 열립니다. 뒤로를 누르면 목록으로 돌아갑니다.
 Descriptions behind an info button	정보 버튼 뒤에 설명 숨기기
 Shows each switch by its name alone. Tap the i next to a name to read what it does.	각 스위치를 이름만으로 표시합니다. 이름 옆의 i를 탭하면 기능 설명을 볼 수 있습니다.
 Expanded	펼쳐짐

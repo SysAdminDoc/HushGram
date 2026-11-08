@@ -678,6 +678,9 @@ Hide story rewinds	Ocultar rewinds de stories
 Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.	Nada na fileira de stories no topo do Início carrega, nem o seu próprio story, e os destaques nos perfis também ficam vazios. Economiza dados. Um anel de story em um perfil ou em uma conversa ainda abre os stories.
 Expandable categories	Categorias expansíveis
 Tap a category to show or hide its settings on this page.	Toque em uma categoria para mostrar ou ocultar suas configurações nesta página.
+# context: Settings entry switch; with it on, tapping a settings category opens that category alone on its own page
+Categories on their own page	Categorias em página própria
+With Expandable categories on, a tap opens a category on a page of its own. Back takes you to the list.	Com Categorias expansíveis ativado, tocar em uma categoria a abre em uma página própria. Voltar leva você de volta à lista.
 Descriptions behind an info button	Descrições atrás de um botão de informação
 Shows each switch by its name alone. Tap the i next to a name to read what it does.	Mostra cada chave só pelo nome. Toque no i ao lado de um nome para ler o que ela faz.
 Expanded	Expandida

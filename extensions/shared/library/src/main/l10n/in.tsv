@@ -678,6 +678,9 @@ Hide story rewinds	Sembunyikan rewind cerita
 Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.	Tidak ada yang dimuat di baris cerita di bagian atas Beranda, termasuk cerita Anda sendiri, dan sorotan di profil juga tetap kosong. Menghemat data. Cincin cerita di profil atau di chat tetap membuka ceritanya.
 Expandable categories	Kategori yang dapat diperluas
 Tap a category to show or hide its settings on this page.	Ketuk kategori untuk menampilkan atau menyembunyikan pengaturannya di halaman ini.
+# context: Settings entry switch; with it on, tapping a settings category opens that category alone on its own page
+Categories on their own page	Kategori di halamannya sendiri
+With Expandable categories on, a tap opens a category on a page of its own. Back takes you to the list.	Dengan Kategori yang dapat diperluas aktif, ketukan membuka kategori di halamannya sendiri. Kembali membawamu ke daftar.
 Descriptions behind an info button	Deskripsi di balik tombol info
 Shows each switch by its name alone. Tap the i next to a name to read what it does.	Menampilkan setiap sakelar dengan namanya saja. Ketuk i di samping nama untuk membaca fungsinya.
 Expanded	Diperluas

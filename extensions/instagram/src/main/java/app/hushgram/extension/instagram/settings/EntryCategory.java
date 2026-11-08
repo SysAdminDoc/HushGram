@@ -46,6 +46,14 @@ final class EntryCategory {
                 wayInSummary(Settings.HIDE_MENU_ROW)));
         entry.addPreference(toggle(context, Settings.CATEGORY_PAGES, L10n.t("Expandable categories"),
                 L10n.t("Tap a category to show or hide its settings on this page.")));
+        SwitchPreference ownPage = toggle(context, Settings.CATEGORY_OWN_PAGE, L10n.t("Categories on their own page"),
+                L10n.t("With Expandable categories on, a tap opens a category on a page of its own. Back takes you to the list."));
+        ownPage.setOnPreferenceChangeListener((preference, value) -> {
+            // Posted, so the page follows the value this change saves.
+            Utils.runOnMainThread(() -> page.ownPagesChanged(entry));
+            return true;
+        });
+        entry.addPreference(ownPage);
         SwitchPreference descriptions = toggle(context, Settings.DESCRIPTIONS_BEHIND_INFO,
                 L10n.t("Descriptions behind an info button"),
                 L10n.t("Shows each switch by its name alone. Tap the i next to a name to read what it does."));

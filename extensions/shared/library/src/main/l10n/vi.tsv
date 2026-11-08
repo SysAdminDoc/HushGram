@@ -675,6 +675,9 @@ Hide story rewinds	Ẩn tin xem lại
 Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.	Không có gì trong hàng tin ở đầu trang chủ được tải, kể cả tin của bạn, và tin nổi bật trên trang cá nhân cũng trống. Tiết kiệm dữ liệu. Vòng tin trên trang cá nhân hoặc trong cuộc trò chuyện vẫn mở tin.
 Expandable categories	Danh mục mở rộng được
 Tap a category to show or hide its settings on this page.	Nhấn vào một danh mục để hiện hoặc ẩn cài đặt của nó trên trang này.
+# context: Settings entry switch; with it on, tapping a settings category opens that category alone on its own page
+Categories on their own page	Danh mục trên trang riêng
+With Expandable categories on, a tap opens a category on a page of its own. Back takes you to the list.	Khi bật Danh mục mở rộng được, nhấn vào một danh mục sẽ mở nó trên một trang riêng. Quay lại sẽ đưa bạn về danh sách.
 Descriptions behind an info button	Mô tả sau nút thông tin
 Shows each switch by its name alone. Tap the i next to a name to read what it does.	Chỉ hiện tên của từng công tắc. Nhấn chữ i cạnh tên để đọc công dụng.
 Expanded	Đã mở rộng

@@ -682,6 +682,9 @@ Hide story rewinds	隱藏限時動態往事回顧
 Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.	首頁頂端的限時動態橫列將不載入任何內容，包括你自己的限時動態；個人檔案的精選也會保持空白，以節省數據。仍可點擊個人檔案或聊天中的光圈開啟限時動態。
 Expandable categories	可展開的分類
 Tap a category to show or hide its settings on this page.	點選分類即可在此頁面顯示或隱藏該分類的設定。
+# context: Settings entry switch; with it on, tapping a settings category opens that category alone on its own page
+Categories on their own page	分類各自一頁
+With Expandable categories on, a tap opens a category on a page of its own. Back takes you to the list.	開啟「可展開的分類」時，點選分類會在獨立頁面開啟。按返回即可回到清單。
 Descriptions behind an info button	說明收在資訊按鈕後
 Shows each switch by its name alone. Tap the i next to a name to read what it does.	每個開關只顯示名稱。點一下名稱旁的 i 即可查看它的作用。
 Expanded	已展開

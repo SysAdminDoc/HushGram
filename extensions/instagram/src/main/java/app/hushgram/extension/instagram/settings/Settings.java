@@ -122,6 +122,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_category_pages", TRUE);
 
     /**
+     * A tapped category opens on a page of its own instead of under its row, and Back returns to the
+     * list (#525). Only means something while {@link #CATEGORY_PAGES} is on. Off to start. A
+     * page-look choice, so Pause doesn't turn it off.
+     */
+    public static final BooleanSetting CATEGORY_OWN_PAGE =
+            new BooleanSetting("hushgram_category_own_page", FALSE);
+
+    /**
      * The categories as two-column tiles instead of rows (#494). A tile opens its section in place,
      * below the tiles, as a row does. Only means something while {@link #CATEGORY_PAGES} is on.
      * Off to start. A page-look choice, so Pause doesn't turn it off.

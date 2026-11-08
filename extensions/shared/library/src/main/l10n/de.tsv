@@ -678,6 +678,9 @@ Hide story rewinds	Story-Rewinds ausblenden
 Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.	Nichts in der Stories-Leiste oben auf der Startseite lädt, auch deine eigene Story nicht, und Highlights auf Profilen bleiben ebenfalls leer. Spart Daten. Ein Story-Ring auf einem Profil oder in einem Chat öffnet seine Stories weiterhin.
 Expandable categories	Aufklappbare Kategorien
 Tap a category to show or hide its settings on this page.	Tippe auf eine Kategorie, um ihre Einstellungen auf dieser Seite ein- oder auszublenden.
+# context: Settings entry switch; with it on, tapping a settings category opens that category alone on its own page
+Categories on their own page	Kategorien auf eigener Seite
+With Expandable categories on, a tap opens a category on a page of its own. Back takes you to the list.	Mit aufklappbaren Kategorien öffnet ein Tippen eine Kategorie auf einer eigenen Seite. Zurück bringt dich zur Liste.
 Descriptions behind an info button	Beschreibungen hinter einer Info-Schaltfläche
 Shows each switch by its name alone. Tap the i next to a name to read what it does.	Zeigt jeden Schalter nur mit seinem Namen. Tippe auf das i neben einem Namen, um zu lesen, was er tut.
 Expanded	Aufgeklappt

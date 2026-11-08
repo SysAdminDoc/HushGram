@@ -18,6 +18,7 @@ Every HushGram release, newest first.
 * `Count on the heart` under Tab bar puts a number on the heart at the top of Home, like the one on Messages, instead of the red dot. It takes a restart. Asked for in #541.
 * `Accent color` has a `Custom` choice now, with a `Custom color` row under it where you type any color as hex, like #4A6B82. Where text would be hard to read on it, HushGram makes it a bit darker or lighter. On Android 10 and older the colors Instagram draws in code take it, and its themes stay blue. Asked for in #520.
 * `Accent color` also has three calmer colors: Dusk blue, Pine and Slate. Asked for in #528.
+* `Categories on their own page` under Settings entry opens a category you tap on a page of its own, with its name at the top, instead of under its row. Back takes you to the list where you left it. It needs `Expandable categories` on. Asked for in #525.
 
 ### Improvements
 

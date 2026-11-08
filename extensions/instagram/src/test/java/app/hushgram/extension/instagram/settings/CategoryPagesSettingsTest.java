@@ -51,6 +51,7 @@ public class CategoryPagesSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.CATEGORY_PAGES.resetToDefault();
+        Settings.CATEGORY_OWN_PAGE.resetToDefault();
         // The classic page's order and category lines; BlackSettingsPageTest covers the black one.
         Settings.SETTINGS_BLACK_LOOK.save(false);
         Settings.START_ON_FOLLOWING.resetToDefault();
@@ -69,6 +70,7 @@ public class CategoryPagesSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.CATEGORY_PAGES.resetToDefault();
+        Settings.CATEGORY_OWN_PAGE.resetToDefault();
         Settings.SETTINGS_BLACK_LOOK.resetToDefault();
         Settings.START_ON_FOLLOWING.resetToDefault();
         Settings.ONLY_FOLLOWING.resetToDefault();
@@ -690,6 +692,110 @@ public class CategoryPagesSettingsTest {
         assertFalse(categoryRow("Ads and privacy").expanded);
         assertNotNull(page.getPreferenceScreen().findPreference(Settings.START_ON_FOLLOWING.key));
         assertFalse(page.closeCategory());
+    }
+
+    /** #525: a tapped category fills the screen on its own, and Back puts the list back as it was. */
+    @Test public void onTheirOwnPagesACategoryFillsTheScreenAndBackReturnsToTheList() throws Exception {
+        Settings.CATEGORY_OWN_PAGE.save(true);
+        openDialog();
+        List<String> headers = shown(Preference.class);
+        Preference toggle = page.getPreferenceScreen().findPreference("hushgram_view_toggle");
+        assertNotNull(toggle);
+        HushgramPreferenceFragment.Heading feed = categoryRow("Feed");
+        tap(feed);
+        layoutPage();
+        assertEquals("no other category shares the page", List.of(), shown(Preference.class));
+        assertEquals(List.of("Feed"), shown(PreferenceCategory.class));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.START_ON_FOLLOWING.key));
+        assertNull("the home page's rows stay on the list", page.getPreferenceScreen().findPreference("hushgram_view_toggle"));
+        assertEquals("hushgram_settings_search", page.getPreferenceScreen().getPreference(0).getKey());
+        assertEquals("the bar names the page", "Feed", toolbarTitle());
+        assertEquals("a restart comes back to it", feed.getKey(), page.currentPage());
+
+        // A search from the page looks through everything, and ending it lands on the page again.
+        page.searchSettings("Hide ads");
+        layoutPage();
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
+        assertNull(page.getPreferenceScreen().findPreference("hushgram_view_toggle"));
+        assertTrue("Back ends the search first", page.closeCategory());
+        layoutPage();
+        assertEquals(List.of("Feed"), shown(PreferenceCategory.class));
+        assertEquals("Feed", toolbarTitle());
+
+        assertTrue("Back leaves the page", page.closeCategory());
+        layoutPage();
+        assertEquals(headers, shown(Preference.class));
+        assertEquals("every category folded again", List.of(), shown(PreferenceCategory.class));
+        assertSame(toggle, page.getPreferenceScreen().findPreference("hushgram_view_toggle"));
+        assertEquals("HushGram", toolbarTitle());
+        assertEquals("", page.currentPage());
+        assertFalse("and the next Back closes settings", page.closeCategory());
+    }
+
+    @Test public void theDialogsBackLeavesACategorysOwnPageBeforeClosing() throws Exception {
+        Settings.CATEGORY_OWN_PAGE.save(true);
+        openDialog();
+        tap(categoryRow("Notifications"));
+        Dialog window = dialog.getDialog();
+        window.onBackPressed();
+        ShadowLooper.idleMainLooper();
+        assertTrue("Back from a page stays in settings", window.isShowing());
+        assertTrue(shown(Preference.class).contains("Notifications"));
+        window.onBackPressed();
+        ShadowLooper.idleMainLooper();
+        assertFalse(window.isShowing());
+        dialog = null;
+    }
+
+    @Test public void recreationReopensTheCategorysOwnPage() throws Exception {
+        Settings.CATEGORY_OWN_PAGE.save(true);
+        openDialog();
+        tap(categoryRow("Feed"));
+        layoutPage();
+        controller.recreate();
+        ShadowLooper.idleMainLooper();
+        dialog = (SettingsDialog) controller.get().getFragmentManager().findFragmentByTag("category_pages");
+        page = (HushgramPreferenceFragment) dialog.getChildFragmentManager()
+                .findFragmentById(SettingsDialog.CONTAINER_ID);
+        layoutPage();
+        assertEquals(List.of("Feed"), shown(PreferenceCategory.class));
+        assertEquals(List.of(), shown(Preference.class));
+        assertEquals("Feed", toolbarTitle());
+        assertTrue(page.closeCategory());
+        layoutPage();
+        assertTrue(shown(Preference.class).contains("Feed"));
+    }
+
+    @Test public void theOwnPageSwitchKeepsYouOnSettingsEntryBothWays() throws Exception {
+        openDialog();
+        tap(categoryRow("Feed"));
+        tap(categoryRow("Settings entry"));
+        SwitchPreference own = (SwitchPreference) page.findPreference(Settings.CATEGORY_OWN_PAGE.key);
+        assertNotNull(own);
+        assertEquals("Categories on their own page", own.getTitle().toString());
+        assertFalse(own.isChecked());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CATEGORY_OWN_PAGE.key));
+
+        flip(own, true);
+        assertTrue(Settings.CATEGORY_OWN_PAGE.savedValue());
+        assertEquals("the section with the switch becomes the page", List.of("Settings entry"),
+                shown(PreferenceCategory.class));
+        assertEquals("Settings entry", toolbarTitle());
+        assertSame(own, page.getPreferenceScreen().findPreference(Settings.CATEGORY_OWN_PAGE.key));
+
+        flip(own, false);
+        assertEquals("HushGram", toolbarTitle());
+        assertTrue(categoryRow("Settings entry").expanded);
+        assertTrue("what was open before comes back", categoryRow("Feed").expanded);
+        assertFalse(page.closeCategory());
+    }
+
+    /** What a tap on a switch does: asks its change listener, then saves the new value. */
+    private void flip(SwitchPreference row, boolean value) {
+        assertTrue(row.getOnPreferenceChangeListener().onPreferenceChange(row, value));
+        row.setChecked(value);
+        ShadowLooper.idleMainLooper();
+        layoutPage();
     }
 
     @Test public void pauseLeavesTheListAsChosen() throws Exception {
