@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Picture in picture for reels` under Playback, right below `Keep playing in the background`, shrinks a playing reel into a small window over your other apps when you leave Instagram. It uses Instagram's own picture in picture, so it needs Android 15 or newer. Starts off. Asked for in #572.
+* `Show it on the profile picture` under `Mark who doesn't follow you back` swaps the words for a badge on each profile picture of your own Following list: a green check when the account follows you back, a red cross when it doesn't. Starts off. Asked for in #572.
 * New patch, `Search comments`. Its switch under Comments puts a search box above a post's comments. Type a word or a name and the list scrolls to the next comment that has it, pulling in more comments as it goes, and the arrows move between matches. Replies you haven't opened yet aren't searched. Asked for in #560.
 * New patch, `Split the notes row`. Its switch under Messages splits the row of notes at the top of your messages into three stacks, Instants, Notes and Stories, the layout Instagram is trying out on some accounts. It takes a restart. Asked for in #558.
 * New patch, `Hide Instagram Plus prompts`. Its switch under Ads and privacy takes the Try Instagram Plus card and See preview row off a chat you hold, and the other Plus offers Instagram asks about the same way. Nothing that comes with Plus gets turned on. Asked for in #559.

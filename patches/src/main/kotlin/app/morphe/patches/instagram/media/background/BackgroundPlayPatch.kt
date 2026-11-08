@@ -88,12 +88,18 @@ internal val backgroundPlayServicePatch = resourcePatch {
  * the notification's Stop all end that, and a release always goes through. The notification's
  * Pause and Play reach the player through stubs this patch fills. The manifest gets the service,
  * and the foreground service permissions when Instagram doesn't ask for them already.
+ *
+ * Its second switch, Picture in picture for reels (#572), turns on the small window Instagram
+ * already has for reels and keeps behind a server flag: see [allowReelsPip]. Leaving the Reels
+ * viewer then shrinks the reel into a window that keeps playing, and the hold above steps aside
+ * while Instagram is in that window.
  */
 @Suppress("unused")
 val backgroundPlayPatch = bytecodePatch(
     name = "Keep playing in the background",
     description = "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off, " +
-        "with a notification to pause or stop it. Starts off. Turn it on in HushGram settings > Playback.",
+        "with a notification to pause or stop it. A second switch plays reels in a small window when you leave " +
+        "instead. Starts off. Turn it on in HushGram settings > Playback.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, backgroundPlayServicePatch)
@@ -101,7 +107,10 @@ val backgroundPlayPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("backgroundPlay")
-        keepPlayingInBackground(findBackgroundPlaySites())
+        val sites = findBackgroundPlaySites()
+        val pip = findReelsPipChecks(PATCH)
+        keepPlayingInBackground(sites)
+        allowReelsPip(PATCH, pip)
         enableStatus("backgroundPlay")
     }
 }

@@ -1960,6 +1960,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_mark_following_list", FALSE);
 
     /**
+     * The Following list mark as a badge on each profile picture instead of words: a green check for
+     * an account that follows you back, a red cross for one that doesn't (#572)
+     * ({@link app.hushgram.extension.instagram.profile.FollowBadge}). Off to start. Read each time
+     * Instagram binds a row of a follow list.
+     */
+    public static final BooleanSetting FOLLOW_MARK_ON_PICTURE =
+            new BooleanSetting("hushgram_follow_mark_on_picture", FALSE, parent(MARK_FOLLOWING_LIST));
+
+    /**
      * Your own Following list with the accounts that don't follow you back first
      * ({@link app.hushgram.extension.instagram.profile.FollowingList}). Off to start. Read each time
      * Instagram rebuilds the rows of a follow list.
@@ -3423,6 +3432,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting KEEP_PLAYING_IN_BACKGROUND =
             new BooleanSetting("hushgram_keep_playing_in_background", FALSE);
+
+    /**
+     * Turns on Instagram's own picture in picture window for reels, which a server flag keeps off
+     * (#572, {@link app.hushgram.extension.instagram.media.ReelsPip}). Read as the Reels viewer opens
+     * and as you leave it. Off to start.
+     */
+    public static final BooleanSetting REELS_PICTURE_IN_PICTURE =
+            new BooleanSetting("hushgram_reels_picture_in_picture", FALSE);
 
     /**
      * Videos, reels and video stories start at the quality in {@link #PLAYBACK_QUALITY}, through

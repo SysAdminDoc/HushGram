@@ -1627,6 +1627,15 @@ once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->released(Ljav
 start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling static Ljava/lang/Math;->max(FF)F class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
 once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling static Ljava/lang/Math;->max(FF)F class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
 single-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->leaving(Landroid/app/Activity;)V in onUserLeaveHint
+# Its Picture in picture for reels switch (#572) asks ReelsPip.on first in Instagram's two reels
+# picture in picture checks and answers yes on a yes: the server check (04EI.A0B on 454's 386014758)
+# and the check of Instagram's own switch (084m.A09), each the one static (UserSession, boolean)
+# method loading its string. Left out, leaving a reel never opens the window with the switch on;
+# twice or elsewhere, it isn't the hook the patch wrote. Some builds may pool the strings (pooled).
+start-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z pooled holding android_purge_26_q2_ClipsViewerExperimentUtil_isPictureInPictureEnabledPersistentVersion
+once-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z pooled holding android_purge_26_q2_ClipsViewerExperimentUtil_isPictureInPictureEnabledPersistentVersion
+start-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z pooled holding android_purge_26_q2_ClipsViewerPipUtil_isClipsPipEnabled
+once-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z pooled holding android_purge_26_q2_ClipsViewerPipUtil_isClipsPipEnabled
 #
 # Default playback quality tells firstChoice() about the DASH format evaluator right after its
 # choice of a track first keeps its tracks, so the call isn't first. The choice is the one method

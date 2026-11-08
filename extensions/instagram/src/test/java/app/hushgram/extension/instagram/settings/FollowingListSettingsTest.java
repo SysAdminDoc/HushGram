@@ -38,6 +38,7 @@ public class FollowingListSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.MARK_FOLLOWING_LIST.resetToDefault();
+        Settings.FOLLOW_MARK_ON_PICTURE.resetToDefault();
         Settings.FOLLOWING_NOT_BACK_FIRST.resetToDefault();
         Settings.SHOW_FRIENDSHIP_STATUS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -53,6 +54,7 @@ public class FollowingListSettingsTest {
         PatchFamily.unfollowersForTests = null;
         Settings.TRACK_UNFOLLOWERS.resetToDefault();
         Settings.MARK_FOLLOWING_LIST.resetToDefault();
+        Settings.FOLLOW_MARK_ON_PICTURE.resetToDefault();
         Settings.FOLLOWING_NOT_BACK_FIRST.resetToDefault();
         Settings.SHOW_FRIENDSHIP_STATUS.resetToDefault();
         Settings.FRIENDSHIP_STATUS_CHIP.resetToDefault();
@@ -97,16 +99,45 @@ public class FollowingListSettingsTest {
         assertTrue(Settings.MARK_FOLLOWING_LIST.get());
         assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
-    /** Put accounts that don't follow you back first sits right under the mark's switch, starts off and is off while paused. */
+    /**
+     * Show it on the profile picture (#572) sits right under the mark's switch, needs it, starts off,
+     * is off while paused and leaves with it from a build whose follow list moved.
+     */
+    @Test public void pictureSwitchStartsOffUnderTheMarkAndHonorsPause() throws Exception {
+        open(true);
+        SwitchPreference picture = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FOLLOW_MARK_ON_PICTURE.key);
+        SwitchPreference mark = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MARK_FOLLOWING_LIST.key);
+        assertNotNull(picture);
+        assertEquals("Show it on the profile picture", picture.getTitle().toString());
+        assertFalse(picture.isChecked());
+        assertFalse(Settings.FOLLOW_MARK_ON_PICTURE.get());
+        assertEquals(mark.getOrder() + 1, picture.getOrder());
+        assertFalse(Settings.FOLLOW_MARK_ON_PICTURE.isAvailable());
+        Settings.MARK_FOLLOWING_LIST.save(true);
+        assertTrue(Settings.FOLLOW_MARK_ON_PICTURE.isAvailable());
+        assertTrue(PatchFamily.FRIENDSHIP_STATUS.switches.contains(Settings.FOLLOW_MARK_ON_PICTURE));
+        Settings.FOLLOW_MARK_ON_PICTURE.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.FOLLOW_MARK_ON_PICTURE.get());
+        assertTrue(Settings.FOLLOW_MARK_ON_PICTURE.savedValue());
+        PauseForTests.resume();
+        assertTrue(Settings.FOLLOW_MARK_ON_PICTURE.get());
+        controller.close();
+        PatchFamily.followingListMarkForTests = false;
+        open(true);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FOLLOW_MARK_ON_PICTURE.key));
+    }
+
+    /** Put accounts that don't follow you back first sits under the mark's two switches, starts off and is off while paused. */
     @Test public void orderSwitchStartsOffUnderTheMarkAndHonorsPause() throws Exception {
         open(true);
         SwitchPreference first = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FOLLOWING_NOT_BACK_FIRST.key);
-        SwitchPreference mark = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MARK_FOLLOWING_LIST.key);
+        SwitchPreference picture = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FOLLOW_MARK_ON_PICTURE.key);
         assertNotNull(first);
         assertEquals("Put accounts that don't follow you back first", first.getTitle().toString());
         assertFalse(first.isChecked());
         assertFalse(Settings.FOLLOWING_NOT_BACK_FIRST.get());
-        assertEquals(mark.getOrder() + 1, first.getOrder());
+        assertEquals(picture.getOrder() + 1, first.getOrder());
         assertTrue(PatchFamily.FRIENDSHIP_STATUS.switches.contains(Settings.FOLLOWING_NOT_BACK_FIRST));
         Settings.FOLLOWING_NOT_BACK_FIRST.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);

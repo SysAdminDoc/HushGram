@@ -55,6 +55,9 @@ final class ProfilesCategory {
                     profiles.addPreference(toggle(context, Settings.MARK_FOLLOWING_LIST, L10n.t("Mark who doesn't follow you back"),
                             L10n.t("On your own Following list, adds Doesn't follow you before the name of each account that "
                                     + "doesn't follow you back. Nothing shows until Instagram has checked.")));
+                    profiles.addPreference(toggle(context, Settings.FOLLOW_MARK_ON_PICTURE, L10n.t("Show it on the profile picture"),
+                            L10n.t("Puts a green check on the picture of each account that follows you back and a red cross "
+                                    + "on each one that doesn't, instead of the words.")));
                     profiles.addPreference(toggle(context, Settings.FOLLOWING_NOT_BACK_FIRST, L10n.t("Put accounts that don't follow you back first"),
                             L10n.t("On your own Following list, moves the accounts that don't follow you back to the top and "
                                     + "keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.")));

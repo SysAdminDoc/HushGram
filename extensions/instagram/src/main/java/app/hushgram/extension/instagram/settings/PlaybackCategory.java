@@ -67,6 +67,10 @@ final class PlaybackCategory {
                         L10n.t("Keep playing in the background"),
                         L10n.t("A video or reel playing with sound keeps going when you leave Instagram or turn the "
                                 + "screen off. A notification lets you pause or stop it.")));
+                playback.addPreference(toggle(context, Settings.REELS_PICTURE_IN_PICTURE,
+                        L10n.t("Picture in picture for reels"),
+                        L10n.t("Leaving Instagram while a reel plays shrinks it into a small window over your other "
+                                + "apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.")));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),

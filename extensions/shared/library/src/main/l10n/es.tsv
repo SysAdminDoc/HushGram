@@ -1908,3 +1908,9 @@ Leaves out the live broadcasts Instagram puts between reels in the Reels tab and
 # context: a switch on the Feed page; Watch again is the button on the card Instagram shows when a reel in the feed ends, next to Watch more reels
 Watch again in the feed	Volver a ver en el feed
 When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.	Cuando termina un reel en tu feed, Volver a ver lo reproduce otra vez ahí mismo en lugar de abrir Reels.
+# context: a switch on the Playback page under Keep playing in the background; Android's own name for picture in picture
+Picture in picture for reels	Imagen en imagen para reels
+Leaving Instagram while a reel plays shrinks it into a small window over your other apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.	Si sales de Instagram mientras se reproduce un reel, se reduce a una ventana pequeña sobre tus otras apps. Funciona en Reels y en los reels que abres desde el feed, en Android 15 o posterior.
+# context: a switch on the Profiles page under Mark who doesn't follow you back; it means the mark goes on each profile picture of your own Following list
+Show it on the profile picture	Mostrarlo en la foto de perfil
+Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.	Pone una marca verde en la foto de cada cuenta que te sigue y una cruz roja en cada una que no, en lugar del texto.

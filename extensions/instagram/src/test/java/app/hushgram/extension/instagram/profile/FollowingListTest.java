@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.profile;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -13,8 +14,13 @@ import static org.junit.Assert.assertTrue;
 import android.text.method.SingleLineTransformationMethod;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
+import android.view.Gravity;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.junit.After;
@@ -80,6 +86,7 @@ public class FollowingListTest {
 
     @After
     public void restore() {
+        FollowingList.pictureIdsForTests(-1, -1);
         FollowingList.forgetAnswers();
         Settings.MARK_FOLLOWING_LIST.resetToDefault();
         Settings.FOLLOWING_NOT_BACK_FIRST.resetToDefault();
@@ -402,6 +409,132 @@ public class FollowingListTest {
         assertFalse(row.text(), row.text().contains(MARK));
     }
 
+    /**
+     * #572: with the picture switch on, on your own Following list, an account that follows you back
+     * gets a green check on its profile picture and one that doesn't a red cross, by the same answers
+     * as the words. One not checked yet gets nothing, the name line stays as Instagram wrote it, and
+     * no other list gets a badge.
+     */
+    @Test
+    public void thePictureSwitchPutsACheckOrACrossOnThePicture() {
+        Reader reader = new Reader(Kind.FOLLOWING, ME, ME);
+        Object answeredYes = new Object();
+        reader.follows.put(answeredYes, null);
+        reader.answers.put(answeredYes, true);
+        Object cachedYes = new Object();
+        reader.follows.put(cachedYes, true);
+        reader.answers.put(cachedYes, false);
+        Row ana = new Row(), ben = new Row(), cat = new Row(), dan = new Row(), eve = new Row();
+
+        ana.bind(notFollowing, "Ana", reader, ON, ON);
+        ben.bind(following, "Ben", reader, ON, ON);
+        cat.bind(unknown, "Cat", reader, ON, ON);
+        dan.bind(answeredYes, "Dan", reader, ON, ON);
+        eve.bind(cachedYes, "Eve", reader, ON, ON);
+
+        assertNotNull(ana.badge());
+        assertFalse(ana.badge().followsYou);
+        assertEquals(Gravity.BOTTOM | Gravity.END, ana.picture.getForegroundGravity());
+        assertTrue(ben.badge().followsYou);
+        assertNull(cat.badge());
+        assertTrue(dan.badge().followsYou);
+        assertTrue(eve.badge().followsYou);
+        assertEquals("Ana", ana.text());
+        assertEquals("Ben", ben.text());
+
+        for (Reader other : new Reader[] {new Reader(Kind.FOLLOWERS, ME, ME), new Reader(Kind.FOLLOWING, "2002", ME)}) {
+            Row row = new Row();
+            row.bind(notFollowing, "Ana", other, ON, ON);
+            row.bind(following, "Ben", other, ON, ON);
+            assertNull(other.toString(), row.badge());
+        }
+    }
+
+    /**
+     * A recycled row gets its picture back as Instagram left it before the new account is looked at,
+     * and switching the mark or the picture switch off takes the badge away.
+     */
+    @Test
+    public void aRecycledRowLosesItsBadge() {
+        Reader reader = new Reader(Kind.FOLLOWING, ME, ME);
+        Row row = new Row();
+        ColorDrawable stock = new ColorDrawable(Color.BLUE);
+        row.picture.setForeground(stock);
+        row.picture.setForegroundGravity(Gravity.FILL);
+        int stockGravity = row.picture.getForegroundGravity();
+
+        row.bind(notFollowing, "Ana", reader, ON, ON);
+        assertFalse(row.badge().followsYou);
+        row.bind(following, "Ben", reader, ON, ON);
+        assertTrue(row.badge().followsYou);
+        row.bind(unknown, "Cat", reader, ON, ON);
+        assertSame(stock, row.picture.getForeground());
+        assertEquals(stockGravity, row.picture.getForegroundGravity());
+
+        row.bind(notFollowing, "Ana", reader, ON, ON);
+        row.bind(notFollowing, "Ana", reader, OFF, ON);
+        assertSame(stock, row.picture.getForeground());
+        assertEquals("Ana", row.text());
+
+        // The picture switch off: the badge goes and the words come back.
+        row.bind(notFollowing, "Ana", reader, ON, ON);
+        row.bind(notFollowing, "Ana", reader, ON, OFF);
+        assertSame(stock, row.picture.getForeground());
+        assertEquals(MARK + FriendshipStatus.SEPARATOR + "Ana", row.text());
+
+        // Instagram set a foreground of its own over the badge: that one stays, with the old gravity.
+        row.bind(notFollowing, "Ana", reader, ON, ON);
+        ColorDrawable later = new ColorDrawable(Color.RED);
+        row.picture.setForeground(later);
+        row.bind(unknown, "Cat", reader, ON, ON);
+        assertSame(later, row.picture.getForeground());
+        assertEquals(stockGravity, row.picture.getForegroundGravity());
+    }
+
+    /** A row whose picture can't be found gets the words, and a throwing picture switch leaves the row alone. */
+    @Test
+    public void noPictureGetsTheWordsAndAThrowingSwitchIsReported() {
+        Reader blind = new Reader(Kind.FOLLOWING, ME, ME) {
+            @Override
+            public View picture(View row) {
+                return null;
+            }
+        };
+        Row row = new Row();
+        row.bind(notFollowing, "Ana", blind, ON, ON);
+        assertEquals(MARK + FriendshipStatus.SEPARATOR + "Ana", row.text());
+        assertNull(row.badge());
+
+        Row other = new Row();
+        other.bind(notFollowing, "Ana", new Reader(Kind.FOLLOWING, ME, ME), ON, THROWS);
+        assertNull(other.badge());
+        assertEquals("Ana", other.text());
+        assertTrue(String.join("\n", HookStatus.report()), String.join("\n", HookStatus.report()).contains(FollowingList.ROW));
+    }
+
+    /** The patch finds the picture by Instagram's ids, the follow list's own first, and a build with neither gives null. */
+    @Test
+    public void thePictureIsFoundByInstagramsIds() {
+        int own = 0x7f0b18af, shared = 0x7f0b387b;
+        FrameLayout row = new FrameLayout(context);
+        View sharedPicture = new View(context);
+        sharedPicture.setId(shared);
+        View ownPicture = new View(context);
+        ownPicture.setId(own);
+        row.addView(sharedPicture);
+        row.addView(ownPicture);
+
+        FollowingList.pictureIdsForTests(own, shared);
+        assertSame(ownPicture, FollowingList.PATCHED.picture(row));
+        row.removeView(ownPicture);
+        assertSame(sharedPicture, FollowingList.PATCHED.picture(row));
+        FollowingList.pictureIdsForTests(0, 0);
+        assertNull(FollowingList.PATCHED.picture(row));
+        FollowingList.pictureIdsForTests(-1, -1);
+        assertNull(FollowingList.PATCHED.picture(row));
+        assertEquals(0, FollowingList.pictureIds[0]);
+    }
+
     /** Unpatched, the stubs know nothing, so the hook leaves every row alone and nothing it's handed makes it throw. */
     @Test
     public void theHookNeverThrows() {
@@ -542,10 +675,11 @@ public class FollowingListTest {
         SettingsContextRule.withoutContext(() -> assertFalse(FollowingList.asking()));
     }
 
-    /** A row of the list: its view, whose tag is the holder, and the holder's name line. */
+    /** A row of the list: its view, whose tag is the holder, and the holder's name line and profile picture. */
     private final class Row {
         final View view = new View(context);
         final TextView name;
+        final ImageView picture = new ImageView(context);
 
         Row() {
             this(new TextView(context));
@@ -553,30 +687,41 @@ public class FollowingListTest {
 
         Row(TextView name) {
             this.name = name;
-            view.setTag(new Holder(name));
+            view.setTag(new Holder(name, picture));
         }
 
         /** What Instagram's binder does with the name line, then the hook. */
         void bind(Object user, String fullName, Reader reader, BooleanSupplier on) {
+            bind(user, fullName, reader, on, OFF);
+        }
+
+        void bind(Object user, String fullName, Reader reader, BooleanSupplier on, BooleanSupplier onPicture) {
             if (fullName != null) {
                 name.setText(fullName);
                 name.setVisibility(View.VISIBLE);
             } else {
                 name.setVisibility(View.GONE);
             }
-            FollowingList.row(binder, view, user, reader, on);
+            FollowingList.row(binder, view, user, reader, on, onPicture);
         }
 
         String text() {
             return name.getText().toString();
         }
+
+        /** The badge on the picture, or null. */
+        FollowBadge badge() {
+            return picture.getForeground() instanceof FollowBadge ? (FollowBadge) picture.getForeground() : null;
+        }
     }
 
     private static final class Holder {
         final TextView name;
+        final View picture;
 
-        Holder(TextView name) {
+        Holder(TextView name, View picture) {
             this.name = name;
+            this.picture = picture;
         }
     }
 
@@ -629,6 +774,12 @@ public class FollowingListTest {
         @Override
         public TextView subtitle(Object holder) {
             return ((Holder) holder).name;
+        }
+
+        @Override
+        public View picture(View row) {
+            Object holder = row.getTag();
+            return holder instanceof Holder ? ((Holder) holder).picture : null;
         }
 
         @Override
