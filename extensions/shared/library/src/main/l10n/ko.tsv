@@ -1012,6 +1012,8 @@ Instagram's default	Instagram 기본값
 A tap on a reel pauses it, and another tap plays it again.	릴스를 탭하면 일시정지되고, 다시 탭하면 재생됩니다.
 A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.	재생 중인 릴스를 탭하면 소리가 꺼지거나 켜지고 계속 재생됩니다. 일시정지된 릴스는 탭하면 재생됩니다.
 A tap on a reel does what Instagram does.	릴스를 탭하면 Instagram이 하는 대로 동작합니다.
+Keep playing	계속 재생
+A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.	재생 중인 릴스를 탭해도 아무 일도 일어나지 않아 실수로 닿아도 멈추지 않습니다. 일시정지된 릴스는 탭하면 재생됩니다.
 Keep reels muted on the volume keys	볼륨 키를 눌러도 릴스 음소거 유지
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	볼륨 올리기는 휴대폰 볼륨을 그대로 올리지만, 음소거된 릴스는 직접 켤 때까지 음소거로 유지됩니다.
 Start stories with sound	스토리를 소리와 함께 시작
@@ -1468,6 +1470,8 @@ Only verified accounts	인증된 계정만
 Only accounts that aren't verified	인증되지 않은 계정만
 Pinch to zoom	두 손가락으로 확대
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	재생 중인 릴스를 사진처럼 두 손가락으로 확대합니다. 손가락을 떼면 원래대로 돌아갑니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Double tap to skip	두 번 탭하여 건너뛰기
+A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	릴스 왼쪽을 두 번 탭하면 10초 뒤로, 오른쪽을 두 번 탭하면 10초 앞으로 이동합니다. 가운데를 두 번 탭하면 그대로 좋아요가 눌립니다. 10초 미만의 릴스는 건너뛰지 않습니다.
 Mute notification types	알림 유형 무음
 Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.	체크한 알림 유형을 막습니다. Instagram 자체 알림 설정에서 끌 수 없는 유형도 막습니다.
 %1$d notification type is muted.	알림 유형 %1$d개가 무음입니다.

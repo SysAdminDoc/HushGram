@@ -1013,6 +1013,8 @@ Instagram's default	Padrão do Instagram
 A tap on a reel pauses it, and another tap plays it again.	Tocar em um reel o pausa, e outro toque o reproduz de novo.
 A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.	Tocar em um reel em reprodução liga ou desliga o som e o mantém tocando. Um reel pausado volta a tocar com um toque.
 A tap on a reel does what Instagram does.	Tocar em um reel faz o que o Instagram faz.
+Keep playing	Continuar tocando
+A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.	Tocar em um reel em reprodução não faz nada, assim um toque sem querer não o para. Um reel pausado volta a tocar com um toque.
 Keep reels muted on the volume keys	Manter reels silenciados com as teclas de volume
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	Aumentar o volume ainda sobe o volume do celular, mas um reel silenciado continua silenciado até você ativar o som.
 Start stories with sound	Iniciar stories com som
@@ -1469,6 +1471,8 @@ Only verified accounts	Só contas verificadas
 Only accounts that aren't verified	Só contas não verificadas
 Pinch to zoom	Pinçar para dar zoom
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	Com dois dedos você dá zoom em um reel que está tocando, como numa foto. Solte e ele volta ao normal. Reinicie o Instagram para ver a mudança.
+Double tap to skip	Toque duplo para pular
+A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	Um toque duplo no lado esquerdo de um reel volta 10 segundos, e no lado direito avança 10 segundos. Um toque duplo no meio ainda curte. Reels com menos de 10 segundos não pulam.
 Mute notification types	Silenciar tipos de notificação
 Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.	Bloqueia os tipos de notificação que você marcar, até os que as configurações de notificação do próprio Instagram não conseguem desativar.
 %1$d notification type is muted.	%1$d tipo de notificação está silenciado.

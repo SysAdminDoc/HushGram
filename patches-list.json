@@ -647,7 +647,7 @@
     },
     {
       "name": "Control taps and volume on Reels",
-      "description": "Lets you choose what a single tap on a reel does: Instagram's default, pause, or mute. Can also keep a reel muted when you press volume up. Both start at Instagram's behavior. Choose them in HushGram settings > Playback.",
+      "description": "Lets you choose what a single tap on a reel does: Instagram's default, pause, mute, or keep playing. Can also keep a reel muted when you press volume up. Both start at Instagram's behavior. Choose them in HushGram settings > Playback.",
       "category": "Playback",
       "use": true,
       "dependencies": [
@@ -931,6 +931,46 @@
       "name": "Don't send reel watch history",
       "description": "Stops Instagram from learning which reels you watched and how far you got. Reels you've already watched may come back. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Privacy",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Double tap to skip on Reels",
+      "description": "A double tap on the left side of a reel goes back 10 seconds and on the right side goes ahead 10 seconds, with Instagram's own skip. A double tap in the middle still likes it. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
       "use": true,
       "dependencies": [
         "BytecodePatch",

@@ -2635,6 +2635,10 @@ sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Land
 # nothing; twice or elsewhere, it isn't the hook the patch wrote. ReelTapAndVolumeHookTest checks on all seven 450
 # builds that it lands once, there.
 once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->muteInsteadOfPause()Z in instance (Landroid/view/View;L*;L*;)V holding android_purge_26_q3_PauseAndMuteNavigator_togglePause
+# When the choice isn't mute or pause, the same path asks ReelTapAndVolume.keepPlaying next, and returns before the
+# pause when it says so (#554). Left out, Keep playing pauses like Instagram's own tap; twice or elsewhere, it isn't
+# the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepPlaying()Z in instance (Landroid/view/View;L*;L*;)V holding android_purge_26_q3_PauseAndMuteNavigator_togglePause
 # The volume half asks ReelTapAndVolume.keepMuted in the Reels controller's volume runnable (the run()V that traces
 # ClipsVideoPlayerController_onVolumeAdjustedByUser), right after the marker call and past the stream adjustment, so
 # the key still does its work. Left out, the switch does nothing; twice or elsewhere, it isn't the hook the patch wrote.
@@ -2698,6 +2702,14 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelSound;->letsSoundOn(I)I 
 # on some and a lambda's invoke() on others (0TTI.invoke building 05C5 on 454's 386014758), so
 # the rule takes any parameters.
 once-call Lapp/hushgram/extension/instagram/reels/ReelZoom;->zoom(I)Z in (*)Ljava/lang/Object; sites 2 holding const:0x8105d100011b36 const:0x208105d100021b37
+# Double tap to skip on Reels hands the double tap to skip flag to ReelSkip.skip(int) where the Reels use case
+# reads it for each reel, the method tracing DoubleTapToSkipUseCase_getUiState (05KP.A0V on 454's 386014758), and
+# the skip's seconds it reads there, always as a double, to ReelSkip.secondsDouble (#554). Left out, the reel keeps
+# Instagram's answer. The gesture navigator reads the strip width and the seconds again, as floats on some 454 builds
+# and as doubles on others, so its hooks differ by build and get no rule here: DoubleTapSkipReelsHookTest checks on
+# every 454 build that each read there is answered once.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skip(I)Z holding android_purge_26_q3_DoubleTapToSkipUseCase_getUiState const:0x811254000164c9
+shared-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->secondsDouble(D)D holding android_purge_26_q3_DoubleTapToSkipUseCase_getUiState const:0x84125400020474
 # Stop swipe up to reply asks StorySwipeReply.keepsSwipe() first thing in the reply composer's
 # swipe listener, the one instance ()Z method focusing a text box in the class that reads a Redex
 # class's EditText field and loads both strings below (0Cjy.GOV on 453's 385914283, 0CwQ.GOv on

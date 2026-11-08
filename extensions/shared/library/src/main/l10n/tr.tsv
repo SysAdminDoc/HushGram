@@ -1013,6 +1013,8 @@ Instagram's default	Instagram'ın varsayılanı
 A tap on a reel pauses it, and another tap plays it again.	Bir reel'e dokunmak onu duraklatır, bir dokunuş daha tekrar oynatır.
 A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.	Oynayan bir reel'e dokunmak sesini kapatır veya açar ve oynamaya devam ettirir. Duraklatılmış bir reel dokunuşla oynar.
 A tap on a reel does what Instagram does.	Bir reel'e dokunmak Instagram'ın yaptığını yapar.
+Keep playing	Oynamaya devam et
+A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.	Oynayan bir reel'e dokunmak hiçbir şey yapmaz, böylece yanlışlıkla bir dokunuş onu durdurmaz. Duraklatılmış bir reel dokunuşla oynar.
 Keep reels muted on the volume keys	Ses tuşlarında reel'leri sessiz tut
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	Sesi artırmak telefonun sesini yine yükseltir, ancak sessize alınmış bir reel siz açana kadar sessiz kalır.
 Start stories with sound	Hikayeleri sesli başlat
@@ -1469,6 +1471,8 @@ Only verified accounts	Yalnızca doğrulanmış hesaplar
 Only accounts that aren't verified	Yalnızca doğrulanmamış hesaplar
 Pinch to zoom	İki parmakla yakınlaştır
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	Oynayan bir reel'i bir fotoğraf gibi iki parmakla yakınlaştırırsın. Parmaklarını kaldırınca eski haline döner. Değişikliği görmek için Instagram'ı yeniden başlat.
+Double tap to skip	Atlamak için çift dokun
+A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	Bir reel'in sol tarafına çift dokunmak 10 saniye geri, sağ tarafına çift dokunmak 10 saniye ileri gider. Ortaya çift dokunmak yine beğenir. 10 saniyeden kısa reel'ler atlamaz.
 Mute notification types	Bildirim türlerini sessize al
 Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.	İşaretlediğin bildirim türlerini durdurur, Instagram'ın kendi bildirim ayarlarının kapatamadıklarını da.
 %1$d notification type is muted.	%1$d bildirim türü sessizde.

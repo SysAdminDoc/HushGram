@@ -25,9 +25,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the settings aren't ready, or anything in here throws.
  */
 public final class ReelTapAndVolume {
-    /** What {@link HookStatus} counts: a tap sent to mute, and a tap left to pause the reel. */
+    /** What {@link HookStatus} counts: a tap sent to mute, a tap left to pause the reel, and a tap that left it playing. */
     static final String TAP_MUTED = "taps that muted";
     static final String TAP_PAUSED = "taps that paused";
+    static final String TAP_KEPT_PLAYING = "taps that kept it playing";
 
     /** What {@link HookStatus} counts for the volume keys: a volume up whose unmute was skipped. */
     static final String VOLUME_KEPT_MUTED = "volume ups kept muted";
@@ -56,10 +57,29 @@ public final class ReelTapAndVolume {
                 Logger.printDebug(() -> "Reel tap: muting instead of pausing");
                 return true;
             }
+            // Keep playing is asked next, by keepPlaying, and the reel doesn't pause.
+            if (choice == ReelTapChoice.KEEP_PLAYING) return false;
             if (choice == ReelTapChoice.PAUSE) HookStatus.counted(FamilyNames.REEL_TAP_AND_VOLUME, TAP_PAUSED);
             // The reel is about to pause: Burn-in guard's Light when paused (#457) brings the controls back.
             BurnInGuard.reelPaused();
             return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_TAP_AND_VOLUME, TAP, failure);
+            return false;
+        }
+    }
+
+    /**
+     * Asked on the same pause path after {@link #muteInsteadOfPause} said no. True means leave the
+     * playing reel as it is: the tap does nothing, so a stray touch doesn't stop it (#554). A paused
+     * reel never gets here, so a tap still plays it. Never throws.
+     */
+    public static boolean keepPlaying() {
+        try {
+            if (!Utils.settingsReady() || Settings.REEL_TAP_CHOICE.get() != ReelTapChoice.KEEP_PLAYING) return false;
+            HookStatus.counted(FamilyNames.REEL_TAP_AND_VOLUME, TAP_KEPT_PLAYING);
+            Logger.printDebug(() -> "Reel tap: kept playing");
+            return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_TAP_AND_VOLUME, TAP, failure);
             return false;

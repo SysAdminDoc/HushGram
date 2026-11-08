@@ -1005,6 +1005,8 @@ Instagram's default	Instagram 預設
 A tap on a reel pauses it, and another tap plays it again.	點擊 Reel 即可暫停，再次點擊即可繼續播放。
 A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.	點擊播放中的 Reel 會切換靜音並繼續播放。已暫停的 Reel 仍會在點擊後播放。
 A tap on a reel does what Instagram does.	點擊 Reel 時使用 Instagram 原本的操作。
+Keep playing	繼續播放
+A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.	點擊播放中的 Reel 不會有任何反應，誤觸也不會讓它停下。已暫停的 Reel 仍會在點擊後播放。
 Keep reels muted on the volume keys	按音量鍵時保持 Reels 靜音
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	音量加鍵仍會提高手機音量，但已靜音的 Reel 會維持靜音，直到你取消靜音。
 Start stories with sound	限時動態預設開啟聲音
@@ -1472,6 +1474,8 @@ Only verified accounts	僅限已驗證帳號
 Only accounts that aren't verified	僅限未驗證帳號
 Pinch to zoom	雙指縮放
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	用兩指放大正在播放的 Reels，就像放大相片一樣。放開手指就會恢復原狀。請重新啟動 Instagram 以套用變更。
+Double tap to skip	點兩下快轉
+A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	在 Reel 左側點兩下會倒退 10 秒，在右側點兩下會快轉 10 秒。在中間點兩下仍會按讚。不到 10 秒的 Reel 不會跳轉。
 Mute notification types	將通知類型設為靜音
 Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.	停止你勾選的通知類型，包括 Instagram 自己的通知設定無法關閉的類型。
 %1$d notification type is muted.	已將 %1$d 種通知類型設為靜音。

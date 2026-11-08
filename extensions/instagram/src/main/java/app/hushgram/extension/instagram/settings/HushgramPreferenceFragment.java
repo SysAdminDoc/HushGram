@@ -4761,6 +4761,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Pause");
             case MUTE:
                 return L10n.t("Mute");
+            case KEEP_PLAYING:
+                return L10n.t("Keep playing");
             default:
                 return L10n.t("Instagram's default");
         }
@@ -4773,6 +4775,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("A tap on a reel pauses it, and another tap plays it again.");
             case MUTE:
                 return L10n.t("A tap on a playing reel turns its sound off or on and keeps it playing. "
+                        + "A reel that's paused still plays on a tap.");
+            case KEEP_PLAYING:
+                return L10n.t("A tap on a playing reel does nothing, so a stray touch doesn't stop it. "
                         + "A reel that's paused still plays on a tap.");
             default:
                 return L10n.t("A tap on a reel does what Instagram does.");

@@ -112,7 +112,7 @@ internal class FlagLoad(
     val name: String,
     val parameters: List<String>,
     val returnType: String,
-    /** "Z" for a yes or no, "J" for a number. */
+    /** "Z" for a yes or no, "J" for a whole number, "F" or "D" for a fraction. */
     val answer: String,
     val loadAt: Int,
     /** The check-cast on the way to the call, or null. */
@@ -125,15 +125,27 @@ internal class FlagLoad(
 
 private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
 
+/** What a flag's read can answer, and which of those take two registers. */
+private val READ_AS = setOf("Z", "J", "F", "D")
+private val WIDE = setOf("J", "D")
+
 /**
  * Every place outside the extension that loads [flag], and the read it feeds: the load
  * (`const-wide`), then at most [READ_WITHIN] gotos and casts, a call taking the id last and
- * answering [answer] (`Z` or `J`), and its move-result. Fails, in [patch]'s name, when a load feeds
- * no such read, since that's an update the patch hasn't seen. An empty answer is the caller's to
- * refuse, with the count it expected.
+ * answering [answer] (`Z`, `J`, `F` or `D`), and its move-result. Fails, in [patch]'s name, when a
+ * load feeds no such read, since that's an update the patch hasn't seen. An empty answer is the
+ * caller's to refuse, with the count it expected.
  */
-internal fun BytecodePatchContext.findFlagLoads(patch: String, flag: Long, answer: String): List<FlagLoad> {
-    require(answer == "Z" || answer == "J") { "a flag is read as Z or J, not $answer" }
+internal fun BytecodePatchContext.findFlagLoads(patch: String, flag: Long, answer: String): List<FlagLoad> =
+    findFlagLoads(patch, flag, setOf(answer))
+
+/**
+ * [findFlagLoads] for a flag read as any of [answers]: 454's builds read one fraction as a float in
+ * some builds and as a double in others, and both in one build. Each load says which in its
+ * [FlagLoad.answer].
+ */
+internal fun BytecodePatchContext.findFlagLoads(patch: String, flag: Long, answers: Set<String>): List<FlagLoad> {
+    require(answers.isNotEmpty() && answers.all { it in READ_AS }) { "a flag is read as one of $READ_AS, not $answers" }
     val loads = mutableListOf<FlagLoad>()
     val loading = classesLoading(flag).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
@@ -150,7 +162,7 @@ internal fun BytecodePatchContext.findFlagLoads(patch: String, flag: Long, answe
                 (flow.normal[from] + flow.exceptional[from]).forEach { to -> predecessors[to] += from }
             }
             at.forEach { loadAt ->
-                loads += followLoad(patch, flag, answer, classDef.type, method, code, flow, predecessors, loadAt)
+                loads += followLoad(patch, flag, answers, classDef.type, method, code, flow, predecessors, loadAt)
             }
         }
     }
@@ -160,7 +172,7 @@ internal fun BytecodePatchContext.findFlagLoads(patch: String, flag: Long, answe
 private fun followLoad(
     patch: String,
     flag: Long,
-    answer: String,
+    answers: Set<String>,
     type: String,
     method: Method,
     code: List<Instruction>,
@@ -189,11 +201,12 @@ private fun followLoad(
     if (code[at].arguments().takeLast(2) != listOf(id, id + 1) || call.parameterTypes.lastOrNull()?.toString() != "J") {
         refuse(patch, "$where and then calls ${call.definingClass}->${call.name} without it last")
     }
-    if (call.returnType != answer) {
-        refuse(patch, "$where for ${call.definingClass}->${call.name}, which answers ${call.returnType}, not $answer")
+    val answer = call.returnType
+    if (answer !in answers) {
+        refuse(patch, "$where for ${call.definingClass}->${call.name}, which answers $answer, not ${answers.joinToString(" or ")}")
     }
     val resultAt = at + 1
-    val moveResult = if (answer == "J") Opcode.MOVE_RESULT_WIDE else Opcode.MOVE_RESULT
+    val moveResult = if (answer in WIDE) Opcode.MOVE_RESULT_WIDE else Opcode.MOVE_RESULT
     if (code.getOrNull(resultAt)?.opcode != moveResult) refuse(patch, "$where and drops the answer")
     // The read is this load's own when each step after the load is reached only from the step
     // before it. Anything else reaching a step (another id's load falling or jumping onto the
@@ -208,8 +221,8 @@ private fun followLoad(
 }
 
 /**
- * Passes [load]'s answer through [hook], an `(I)Z` method for a yes or no and a `(J)J` one for a
- * number, so only this flag's answer changes:
+ * Passes [load]'s answer through [hook], an `(I)Z` method for a yes or no and a `(J)J`, `(F)F` or
+ * `(D)D` one for a number, so only this flag's answer changes:
  * - A read of the load's own gets the hook right after its move-result.
  * - A shared read stays as it is for the other loads. This load gets a read of its own, a copy of
  *   the cast and the call put straight after the load, answered through the hook, which then jumps
@@ -229,7 +242,7 @@ internal fun BytecodePatchContext.answerFlagLoads(answers: List<Pair<FlagLoad, S
         val code = method.implementation!!.instructions.toList()
         class Write(val at: Int, val smali: String, val after: ExternalLabel?)
         val writes = inMethod.map { (load, hook) ->
-            val wide = load.answer == "J"
+            val wide = load.answer in WIDE
             val register = load.register
             val moveResult = if (wide) "move-result-wide" else "move-result"
             val answered = """

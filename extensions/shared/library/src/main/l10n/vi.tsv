@@ -995,6 +995,8 @@ Instagram's default	Mặc định của Instagram
 A tap on a reel pauses it, and another tap plays it again.	Nhấn vào reel sẽ tạm dừng và nhấn lần nữa sẽ phát lại.
 A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.	Nhấn vào reel đang phát sẽ bật hoặc tắt tiếng và reel vẫn phát. Reel đang tạm dừng vẫn phát khi nhấn.
 A tap on a reel does what Instagram does.	Nhấn vào reel làm đúng như Instagram làm.
+Keep playing	Tiếp tục phát
+A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.	Nhấn vào reel đang phát không làm gì cả, nên chạm nhầm cũng không dừng nó. Reel đang tạm dừng vẫn phát khi nhấn.
 Keep reels muted on the volume keys	Giữ reel tắt tiếng khi dùng phím âm lượng
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	Tăng âm lượng vẫn tăng âm lượng điện thoại, nhưng reel đã tắt tiếng vẫn tắt cho đến khi bạn bật lại.
 Start stories with sound	Bắt đầu tin có tiếng
@@ -1411,6 +1413,8 @@ Only verified accounts	Chỉ tài khoản đã xác minh
 Only accounts that aren't verified	Chỉ tài khoản chưa xác minh
 Pinch to zoom	Chụm để thu phóng
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	Hai ngón tay phóng to reel đang phát, như cách ảnh phóng to. Nhấc ra thì trở lại. Hãy khởi động lại Instagram để thấy thay đổi.
+Double tap to skip	Nhấn đúp để tua
+A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	Nhấn đúp vào bên trái reel để lùi 10 giây, và bên phải để tới 10 giây. Nhấn đúp ở giữa vẫn thích reel. Reel dưới 10 giây không tua.
 Mute notification types	Tắt tiếng loại thông báo
 Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.	Chặn các loại thông báo bạn tích, kể cả loại mà cài đặt thông báo của chính Instagram không tắt được.
 %1$d notification type is muted.	Đã tắt tiếng %1$d loại thông báo.

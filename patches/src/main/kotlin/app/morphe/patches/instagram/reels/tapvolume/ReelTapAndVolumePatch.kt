@@ -44,6 +44,7 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 private const val PATCH = "Control taps and volume on Reels"
 internal const val REEL_TAP_AND_VOLUME = "$EXTENSION_PACKAGE/reels/ReelTapAndVolume;"
 internal const val MUTE_INSTEAD_OF_PAUSE = "$REEL_TAP_AND_VOLUME->muteInsteadOfPause()Z"
+internal const val KEEP_PLAYING = "$REEL_TAP_AND_VOLUME->keepPlaying()Z"
 internal const val KEEP_MUTED = "$REEL_TAP_AND_VOLUME->keepMuted(II)Z"
 
 /** The purge marker, less its release, of the Reels controller's volume runnable: where it unmutes after a key press. */
@@ -75,7 +76,7 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 @Suppress("unused")
 val reelTapAndVolumePatch = bytecodePatch(
     name = "Control taps and volume on Reels",
-    description = "Lets you choose what a single tap on a reel does: Instagram's default, pause, or mute. " +
+    description = "Lets you choose what a single tap on a reel does: Instagram's default, pause, mute, or keep playing. " +
         "Can also keep a reel muted when you press volume up. Both start at Instagram's behavior. " +
         "Choose them in HushGram settings > Playback.",
 ) {
@@ -223,7 +224,8 @@ internal fun BytecodePatchContext.findReelTapSite(): ReelTapSite {
 
 /**
  * At the start of the tap's pause path: ask [MUTE_INSTEAD_OF_PAUSE], and on a yes toggle the
- * controller's audio and return. A no falls through to the pause.
+ * controller's audio and return. On a no ask [KEEP_PLAYING], and on a yes return with the reel
+ * still playing. A no to both falls through to the pause.
  */
 internal fun BytecodePatchContext.applyReelTap(site: ReelTapSite) {
     val (first, second, third) = site.scratch
@@ -241,13 +243,18 @@ internal fun BytecodePatchContext.applyReelTap(site: ReelTapSite) {
             """
                 invoke-static { }, $MUTE_INSTEAD_OF_PAUSE
                 move-result v$first
-                if-eqz v$first, :pause
+                if-eqz v$first, :keep_playing
                 iget-object v$first, p0, ${site.supplier}
                 invoke-interface { v$first }, $FUNCTION0->invoke()$OBJECT
                 move-result-object v$first
                 check-cast v$first, ${site.controller}
                 const/4 v$second, $BUTTON_REASON
                 $toggle
+                return-void
+                :keep_playing
+                invoke-static { }, $KEEP_PLAYING
+                move-result v$first
+                if-eqz v$first, :pause
                 return-void
             """,
             ExternalLabel("pause", getInstruction(site.index)),

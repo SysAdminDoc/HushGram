@@ -50,8 +50,13 @@ class ReelTapAndVolumeHookTest {
     private val tapMarker = "android_purge_26_q3_$TOGGLE_PAUSE"
     private val toggleMarker = "android_purge_26_q3_$TOGGLE_AUDIO"
 
-    /** The instructions the hook adds: ask, test, read the controller, call its toggle and return. */
-    private val hookLength = 10
+    /** The instructions the mute half adds: ask, test, read the controller, call its toggle and return. */
+    private val muteLength = 10
+
+    /** The instructions the keep playing half adds after it: ask, test, return. */
+    private val keepLength = 4
+
+    private val hookLength = muteLength + keepLength
 
     /** The hook the patch writes is in the ReelTapAndVolume the bundle ships, public and static. */
     @Test
@@ -60,6 +65,7 @@ class ReelTapAndVolumeHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$MUTE_INSTEAD_OF_PAUSE is not in the extension: $declared", MUTE_INSTEAD_OF_PAUSE.substringAfter("->") in declared)
+        assertTrue("$KEEP_PLAYING is not in the extension: $declared", KEEP_PLAYING.substringAfter("->") in declared)
     }
 
     /** The pause path asks first, a yes toggles the controller's audio with the button's reason and returns, and nothing else changes. */
@@ -76,11 +82,16 @@ class ReelTapAndVolumeHookTest {
         assertEquals(listOf(
             Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.IGET_OBJECT, Opcode.INVOKE_INTERFACE,
             Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST, Opcode.CONST_4, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID,
+            Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
         ), code.subList(ask, ask + hookLength).map { it.opcode })
         assertEquals("the toggle", "$controller->toggleAudio(I)V", code[ask + 8].referenceText())
         assertEquals("the audio button's reason", -3, (code[ask + 7] as com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction).narrowLiteral)
         assertEquals("the supplier read from this", "$navigator->supplier:$function0", code[ask + 3].referenceText())
-        assertTrue("a jump lands inside the hook", ask !in context.tap().jumpTargets())
+        assertEquals("a no to mute asks keep playing next", KEEP_PLAYING, code[ask + muteLength].referenceText())
+        val jumps = context.tap().jumpTargets()
+        assertTrue("a jump lands inside the hook", ask !in jumps)
+        assertTrue("the mute question's no doesn't go to keep playing", ask + muteLength in jumps)
+        assertTrue("a no to both doesn't go on to the pause", ask + hookLength in jumps)
         val now = code.map { it.describe() }
         assertEquals("only the hook is new", original, now.filterIndexed { at, _ -> at !in ask until ask + hookLength })
     }
@@ -157,15 +168,18 @@ class ReelTapAndVolumeHookTest {
                 assertEquals("$what: right after the load of the pause string", CLIPS_PAUSE, ((code[ask - 1] as ReferenceInstruction).reference as StringReference).string)
                 // 453's toggle takes a boolean after the reason, true from every audio button, so the hook loads it too.
                 val withFlag = site.toggle.parameterTypes.size == 2
-                val length = hookLength + if (withFlag) 1 else 0
+                val mute = muteLength + if (withFlag) 1 else 0
+                val length = mute + keepLength
+                assertEquals("$what: the mute half's last instruction", Opcode.RETURN_VOID, code[ask + mute - 1].opcode)
+                assertEquals("$what: keep playing is asked after it", KEEP_PLAYING, code[ask + mute].referenceText())
                 assertEquals("$what: the hook's last instruction", Opcode.RETURN_VOID, code[ask + length - 1].opcode)
                 assertTrue("$what: a jump lands inside the hook", ask !in tap.jumpTargets())
-                val toggle = code[ask + length - 2].referenceText()!!
+                val toggle = code[ask + mute - 2].referenceText()!!
                 assertTrue("$what: the toggle is the controller's: $toggle",
                     toggle.startsWith("${site.controller}->${site.toggle.name}(${if (withFlag) "IZ" else "I"})V"))
                 if (withFlag) {
                     assertEquals("$what: the toggle's flag", 1,
-                        (code[ask + length - 3] as com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction).narrowLiteral)
+                        (code[ask + mute - 3] as com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction).narrowLiteral)
                 }
                 val added = (ask until ask + length).toSet()
                 for ((method, original) in originals) {

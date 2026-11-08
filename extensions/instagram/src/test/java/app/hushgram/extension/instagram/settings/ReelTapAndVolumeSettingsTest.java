@@ -83,6 +83,7 @@ public class ReelTapAndVolumeSettingsTest {
         assertEquals("Instagram's default", row.getEntries()[0].toString());
         assertEquals("Pause", row.getEntries()[1].toString());
         assertEquals("Mute", row.getEntries()[2].toString());
+        assertEquals("Keep playing", row.getEntries()[3].toString());
         assertEquals(ReelTapChoice.DEFAULT.name(), row.getValue());
         assertEquals("A tap on a reel does what Instagram does.", row.getSummary().toString());
         PreferenceGroup playback = row.getParent();

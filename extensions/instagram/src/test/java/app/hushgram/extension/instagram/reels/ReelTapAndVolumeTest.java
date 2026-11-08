@@ -108,6 +108,36 @@ public class ReelTapAndVolumeTest {
     public void beforeTheSettingsAreReadyItIsInstagramsOwnTap() {
         Settings.REEL_TAP_CHOICE.save(ReelTapChoice.MUTE);
         SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.muteInsteadOfPause()));
+        Settings.REEL_TAP_CHOICE.save(ReelTapChoice.KEEP_PLAYING);
+        SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.keepPlaying()));
+    }
+
+    /** Keep playing (#554): mute says no, keep playing says yes, so the tap neither mutes nor pauses, and it's counted. */
+    @Test
+    public void keepPlayingLeavesThePlayingReelAloneAndCountsIt() {
+        Settings.REEL_TAP_CHOICE.save(ReelTapChoice.KEEP_PLAYING);
+        assertFalse("it doesn't mute", ReelTapAndVolume.muteInsteadOfPause());
+        assertTrue("it keeps playing", ReelTapAndVolume.keepPlaying());
+        String report = report();
+        assertTrue(report, report.contains(ReelTapAndVolume.TAP_KEPT_PLAYING + " 1"));
+        assertFalse(report, report.contains(ReelTapAndVolume.TAP_PAUSED));
+        assertFalse(report, report.contains(ReelTapAndVolume.TAP_MUTED));
+    }
+
+    /** Every other choice says no to keep playing, so Mute's toggle and the pause still happen. */
+    @Test
+    public void onlyKeepPlayingKeepsItPlaying() {
+        for (ReelTapChoice choice : new ReelTapChoice[] {ReelTapChoice.DEFAULT, ReelTapChoice.PAUSE, ReelTapChoice.MUTE}) {
+            Settings.REEL_TAP_CHOICE.save(choice);
+            assertFalse(choice.name(), ReelTapAndVolume.keepPlaying());
+        }
+        Settings.REEL_TAP_CHOICE.save(ReelTapChoice.KEEP_PLAYING);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused, Instagram's own tap", ReelTapAndVolume.keepPlaying());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue("back on", ReelTapAndVolume.keepPlaying());
     }
 
     /** The volume key starts at Instagram's own: no unmute is skipped, and nothing is counted. */

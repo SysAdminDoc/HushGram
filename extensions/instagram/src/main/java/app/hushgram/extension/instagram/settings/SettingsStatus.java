@@ -541,6 +541,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Double tap to skip on Reels patch. */
+    public static boolean reelDoubleTapSkip() {
+        return false;
+    }
+
     public static boolean reelAutoScroll() {
         return false;
     }

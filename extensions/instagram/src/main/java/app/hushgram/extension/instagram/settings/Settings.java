@@ -3232,9 +3232,10 @@ public class Settings extends BaseSettings {
 
     /**
      * What a single tap on a reel does ({@link app.hushgram.extension.instagram.reels.ReelTapAndVolume}):
-     * Instagram's own tap, pause, or mute. It starts as Instagram's own, so nothing changes until a
-     * choice is made. Paused, it answers Instagram's own like every setting. A reel you paused still
-     * resumes on a tap, and a double tap and a long press are untouched.
+     * Instagram's own tap, pause, mute, or keep playing, where a tap on a playing reel does nothing
+     * (#554). It starts as Instagram's own, so nothing changes until a choice is made. Paused, it
+     * answers Instagram's own like every setting. A reel you paused still resumes on a tap, and a
+     * double tap and a long press are untouched.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.reels.ReelTapChoice> REEL_TAP_CHOICE =
             new EnumSetting<>("hushgram_reel_tap_choice", app.hushgram.extension.instagram.reels.ReelTapChoice.DEFAULT);
@@ -3271,6 +3272,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting PINCH_ZOOM_REELS =
             new BooleanSetting("hushgram_pinch_zoom_reels", FALSE, true);
+
+    /**
+     * A double tap along the left edge of a reel goes back 10 seconds and one along the right edge
+     * goes ahead 10 seconds, through Instagram's own double tap to skip and its server flags
+     * ({@link app.hushgram.extension.instagram.reels.ReelSkip}). A double tap in the middle stays
+     * Instagram's like. Off to start (#554).
+     */
+    public static final BooleanSetting DOUBLE_TAP_SKIP_REELS =
+            new BooleanSetting("hushgram_double_tap_skip_reels", FALSE);
 
     /**
      * A video or reel over two minutes left partway picks up there the next time a player starts

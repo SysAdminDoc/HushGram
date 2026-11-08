@@ -253,6 +253,11 @@ final class ReelsCategory {
                     L10n.t("Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. "
                             + "Restart Instagram to see the change.")));
         }
+        if (build.contains(PatchFamily.REEL_DOUBLE_TAP_SKIP)) {
+            reels.add(toggle(context, Settings.DOUBLE_TAP_SKIP_REELS, L10n.t("Double tap to skip"),
+                    L10n.t("A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes "
+                            + "ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.")));
+        }
         if (build.contains(PatchFamily.REEL_BLUR_BARS)) {
             reels.add(toggle(context, Settings.BLUR_REEL_BARS, L10n.t("Blur the bars around a reel"),
                     slowsOlderPhones(L10n.t("A reel that doesn't fill the screen shows a blurred copy of itself above and below it "
