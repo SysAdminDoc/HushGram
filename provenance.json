@@ -432,6 +432,8 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/BackgroundPlayService.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/media/BackgroundPlayTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/media/BackgroundPlayNotificationTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/ReelsPip.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/media/ReelsPipTest.java",
         "patches/src/test/kotlin/app/morphe/patches/instagram/media/background/**",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/profile/GridJumpTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/GridJumpSettingsTest.java",
