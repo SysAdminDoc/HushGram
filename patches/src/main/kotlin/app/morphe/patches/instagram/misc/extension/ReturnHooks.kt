@@ -63,6 +63,42 @@ internal fun MutableMethod.filterEveryReturn(patch: String, filter: String) {
     }
 }
 
+/**
+ * Passes the object the `return-object` at [index] hands back through [filter], a static
+ * `(Ljava/lang/Object;)Ljava/lang/Object;` call, and casts the answer back to [type] before it
+ * returns, so the caller gets the filter's answer from that one return and the method's other
+ * returns stay as they were. Placed as [filterEveryReturn] places its calls: at the return's own
+ * label, or, when a try range covers the return, after it at the end of a stretch no try range
+ * covers (the method's end when that's the only one). Throws naming [patch] when [index] isn't an
+ * object return.
+ */
+internal fun MutableMethod.filterReturnAt(patch: String, index: Int, filter: String, type: String) {
+    val implementation = implementation ?: throw PatchException("$patch: $definingClass->$name has no body")
+    val code = implementation.instructions
+    val ret = code.getOrNull(index)?.takeIf { it.opcode == Opcode.RETURN_OBJECT }
+        ?: throw PatchException("$patch: $definingClass->$name has no object return at $index")
+    val register = (ret as OneRegisterInstruction).registerA
+    val call = """
+        invoke-static/range { v$register .. v$register }, $filter
+        move-result-object v$register
+        check-cast v$register, $type
+    """
+    val covered = coveredIndexes()
+    if (index !in covered) {
+        addInstructionsAtControlFlowLabel(index, call)
+        return
+    }
+    val tail = outsideEveryTry(covered)
+        ?: code.size.takeIf { code.last().opcode in NO_FALL_THROUGH && code.size - 1 !in covered }
+    if (tail == null) {
+        addInstructionsAtControlFlowLabel(index, call)
+        return
+    }
+    val location = ret.location
+    addInstructions(tail, call + "return-object v$register")
+    replaceInstruction(location.index, BuilderInstruction30t(Opcode.GOTO_32, implementation.newLabelForIndex(tail)))
+}
+
 /** Instructions after which nothing falls through. */
 private val NO_FALL_THROUGH = setOf(
     Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_WIDE, Opcode.RETURN_OBJECT,

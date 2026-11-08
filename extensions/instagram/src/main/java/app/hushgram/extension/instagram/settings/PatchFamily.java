@@ -248,6 +248,7 @@ public enum PatchFamily {
             Settings.START_REELS_MUTED),
     REEL_ZOOM(FamilyNames.REEL_ZOOM, "reelZoom", null, Settings.PINCH_ZOOM_REELS),
     REEL_DOUBLE_TAP_SKIP(FamilyNames.REEL_DOUBLE_TAP_SKIP, "reelDoubleTapSkip", null, Settings.DOUBLE_TAP_SKIP_REELS),
+    HIDE_REEL_2X_POPUP(FamilyNames.HIDE_REEL_2X_POPUP, "reelFastLabel", null, Settings.HIDE_REEL_2X_POPUP),
     REEL_AUTO_SCROLL(FamilyNames.REEL_AUTO_SCROLL, "reelAutoScroll", null, Settings.KEEP_REEL_AUTO_SCROLL,
             Settings.REEL_AUTO_ADVANCE),
     REEL_SCROLLING(FamilyNames.REEL_SCROLLING, "reelScrolling", null, Settings.STOP_REELS_SCROLLING,

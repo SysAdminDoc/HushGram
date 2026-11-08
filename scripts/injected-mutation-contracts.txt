@@ -2710,6 +2710,11 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelZoom;->zoom(I)Z in (*)Ljav
 # every 454 build that each read there is answered once.
 once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skip(I)Z holding android_purge_26_q3_DoubleTapToSkipUseCase_getUiState const:0x811254000164c9
 shared-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->secondsDouble(D)D holding android_purge_26_q3_DoubleTapToSkipUseCase_getUiState const:0x84125400020474
+# Hide the 2x popup on Reels hands the "2x" label a reel's fast play part builds to FastPlayLabel.label
+# where the part's draw returns it (0Bcw.A0q on 454's 386014758, returning 0Bcw.A00's answer) (#552).
+# Left out, the label shows with the switch on; twice or elsewhere, it isn't the filter the patch wrote.
+# Some builds may ask a string pool for the draw's string, so pool asks count (pooled).
+once-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->label(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)LX/*; pooled holding android_purge_26_q3_ClipsFastPlayComponent_render
 # Stop swipe up to reply asks StorySwipeReply.keepsSwipe() first thing in the reply composer's
 # swipe listener, the one instance ()Z method focusing a text box in the class that reads a Redex
 # class's EditText field and loads both strings below (0Cjy.GOV on 453's 385914283, 0CwQ.GOv on

@@ -3290,6 +3290,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_double_tap_skip_reels", FALSE);
 
     /**
+     * Keeps the "2x" label off a reel while a held finger plays it faster
+     * ({@link app.hushgram.extension.instagram.reels.FastPlayLabel}). The speed-up still works.
+     * Off to start (#552).
+     */
+    public static final BooleanSetting HIDE_REEL_2X_POPUP =
+            new BooleanSetting("hushgram_hide_reel_2x_popup", FALSE);
+
+    /**
      * A video or reel over two minutes left partway picks up there the next time a player starts
      * it ({@link app.hushgram.extension.instagram.media.ResumePlayback}). Starts off: it keeps the
      * IDs of the videos you left partway, for 30 days, in the app's own storage.

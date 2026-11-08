@@ -258,6 +258,10 @@ final class ReelsCategory {
                     L10n.t("A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes "
                             + "ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.")));
         }
+        if (build.contains(PatchFamily.HIDE_REEL_2X_POPUP)) {
+            reels.add(toggle(context, Settings.HIDE_REEL_2X_POPUP, L10n.t("Hide the 2x popup"),
+                    L10n.t("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.")));
+        }
         if (build.contains(PatchFamily.REEL_BLUR_BARS)) {
             reels.add(toggle(context, Settings.BLUR_REEL_BARS, L10n.t("Blur the bars around a reel"),
                     slowsOlderPhones(L10n.t("A reel that doesn't fill the screen shows a blurred copy of itself above and below it "

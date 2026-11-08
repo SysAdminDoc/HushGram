@@ -103,7 +103,7 @@ val swipeToProfilePatch = bytecodePatch(
     description = "Makes a left swipe on a reel open the profile of the person who posted it, like Instagram used " +
         "to. Tap Friends at the top to reach your friends' reels. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
-    category("Reels")
+    category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

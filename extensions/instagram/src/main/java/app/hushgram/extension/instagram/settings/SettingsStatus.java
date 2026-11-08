@@ -546,6 +546,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Hide the 2x popup on Reels patch. */
+    public static boolean reelFastLabel() {
+        return false;
+    }
+
     public static boolean reelAutoScroll() {
         return false;
     }

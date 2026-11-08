@@ -2332,7 +2332,7 @@
     {
       "name": "Hide suggested accounts in Reels",
       "description": "Leaves out the cards of accounts to follow that Instagram puts between reels. Every reel still plays. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Reels",
+      "category": "Profiles",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -2493,6 +2493,46 @@
       "name": "Hide that you're typing",
       "description": "Stops the people you're chatting with from seeing when you're typing. You still see when they type. Ghost mode, at the top of Ads and privacy, turns it on with the others. Starts off. Turn it on in HushGram settings > Messages.",
       "category": "Ghost mode",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide the 2x popup on Reels",
+      "description": "Takes the 2x label off a reel while you hold it to play faster. The speed-up still works. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -5845,7 +5885,7 @@
     {
       "name": "Swipe left to open the profile",
       "description": "Makes a left swipe on a reel open the profile of the person who posted it, like Instagram used to. Tap Friends at the top to reach your friends' reels. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Reels",
+      "category": "Profiles",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -6125,7 +6165,7 @@
     {
       "name": "Turn off HDR brightness boosts",
       "description": "Stops HDR photos and reels from making the screen brighter than everything else. Starts off. Turn it on in HushGram settings > Playback.",
-      "category": "Playback",
+      "category": "Fixes",
       "use": true,
       "dependencies": [
         "BytecodePatch",

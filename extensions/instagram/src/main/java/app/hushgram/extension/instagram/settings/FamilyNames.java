@@ -143,6 +143,7 @@ public final class FamilyNames {
     public static final String REEL_SOUND = "Start reels with sound";
     public static final String REEL_ZOOM = "Pinch to zoom on Reels";
     public static final String REEL_DOUBLE_TAP_SKIP = "Double tap to skip on Reels";
+    public static final String HIDE_REEL_2X_POPUP = "Hide the 2x popup on Reels";
     public static final String REEL_AUTO_SCROLL = "Keep Reels auto scroll on";
     public static final String REEL_SCROLLING = "Stop Reels scrolling";
     public static final String SWIPE_TO_PROFILE = "Swipe left to open the profile";
