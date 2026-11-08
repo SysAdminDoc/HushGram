@@ -1905,3 +1905,6 @@ Remove from saved	Hapus dari tersimpan
 # context: a switch on the Reels page
 Hide lives in Reels	Sembunyikan siaran langsung di Reels
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Menyembunyikan siaran langsung yang diselipkan Instagram di antara reel di tab Reels dan saat kamu menggeser reel dari Jelajahi.
+# context: a switch on the Feed page; Watch again is the button on the card Instagram shows when a reel in the feed ends, next to Watch more reels
+Watch again in the feed	Tonton lagi di feed
+When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.	Saat reel di feed kamu selesai, Tonton lagi memutarnya ulang di situ juga, bukan membuka Reels.

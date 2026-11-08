@@ -210,6 +210,7 @@ public enum PatchFamily {
     FEED_FOLLOW(FamilyNames.FEED_FOLLOW, "feedFollow", null, Settings.HIDE_FEED_FOLLOW),
     EDITS_LABEL(FamilyNames.EDITS_LABEL, "editsLabel", null, Settings.HIDE_EDITS_LABEL),
     FEED_SAVE(FamilyNames.FEED_SAVE, "feedSave", null, Settings.SAVE_IN_POST_MENU, Settings.HIDE_FEED_SAVE_BUTTON),
+    WATCH_AGAIN(FamilyNames.WATCH_AGAIN, "watchAgain", null, Settings.WATCH_AGAIN_IN_FEED),
     ACTIVITY_BUBBLES(FamilyNames.ACTIVITY_BUBBLES, "activityBubbles", null, Settings.HIDE_ACTIVITY_BUBBLES),
     HIDE_CAPTIONS(FamilyNames.HIDE_CAPTIONS, "hideCaptions", null, Settings.HIDE_CAPTIONS),
     FEED_AUDIO_ICON(FamilyNames.FEED_AUDIO_ICON, "feedAudioIcon", null, Settings.HIDE_FEED_AUDIO_ICON),

@@ -4850,7 +4850,8 @@
         "Use the system photo picker",
         "View DM photos and videos anonymously",
         "View live anonymously",
-        "View stories anonymously"
+        "View stories anonymously",
+        "Watch again in the feed"
       ],
       "branches": [
         {

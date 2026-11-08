@@ -2409,6 +2409,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_FEED_SAVE_BUTTON =
             new BooleanSetting("hushgram_hide_feed_save_button", FALSE);
 
+    /**
+     * "Watch again" on a feed reel's end card replays the reel in the feed instead of opening Reels
+     * (#568, {@link app.hushgram.extension.instagram.feed.WatchAgain}). Read as each end card is set
+     * up, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting WATCH_AGAIN_IN_FEED =
+            new BooleanSetting("hushgram_watch_again_in_feed", FALSE);
 
     /**
      * The little round pictures on posts and reels showing a friend liked, commented on or reshared

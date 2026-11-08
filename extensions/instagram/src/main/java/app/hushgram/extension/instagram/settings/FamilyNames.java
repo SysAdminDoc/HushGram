@@ -125,6 +125,7 @@ public final class FamilyNames {
     public static final String FEED_FOLLOW = "Hide Follow on feed posts";
     public static final String EDITS_LABEL = "Hide Made with Edits";
     public static final String FEED_SAVE = "Save in the post menu";
+    public static final String WATCH_AGAIN = "Watch again in the feed";
     public static final String ACTIVITY_BUBBLES = "Hide activity bubbles";
     public static final String HIDE_CAPTIONS = "Hide captions";
     public static final String FEED_AUDIO_ICON = "Hide the audio icon on posts";

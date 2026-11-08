@@ -1905,3 +1905,6 @@ Remove from saved	Quitar de guardados
 # context: a switch on the Reels page
 Hide lives in Reels	Ocultar directos en Reels
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Deja fuera las transmisiones en directo que Instagram pone entre reels en la pestaña Reels y cuando deslizas por reels desde Explorar.
+# context: a switch on the Feed page; Watch again is the button on the card Instagram shows when a reel in the feed ends, next to Watch more reels
+Watch again in the feed	Volver a ver en el feed
+When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.	Cuando termina un reel en tu feed, Volver a ver lo reproduce otra vez ahí mismo en lugar de abrir Reels.

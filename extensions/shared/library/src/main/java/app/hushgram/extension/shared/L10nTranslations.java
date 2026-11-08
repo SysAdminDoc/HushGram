@@ -54,7 +54,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildDe() {
-        Map<String, String> table = new HashMap<>(3442);
+        Map<String, String> table = new HashMap<>(3446);
         fillDe0(table);
         fillDe1(table);
         fillDe2(table);
@@ -3505,6 +3505,8 @@ public final class L10nTranslations {
                 "Erst auf Tippen suchen");
         table.put("Wait stopped. These settings stay locked.",
                 "Warten abgebrochen. Weiterhin gesperrt.");
+        table.put("Watch again in the feed",
+                "Erneut ansehen im Feed");
         table.put("Watch on TV",
                 "Auf dem Fernseher ansehen");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
@@ -3527,11 +3529,13 @@ public final class L10nTranslations {
                 "Beginnt ein Kommentar mit @Namen, wie die meisten Antworten, l\u00e4sst Kopieren sie weg. Der Kommentar in Instagram bleibt gleich.");
         table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
                 "Wenn ein Reel endet, wechselt Reels zum n\u00e4chsten, statt es noch einmal abzuspielen. Daf\u00fcr wird Instagrams eigenes automatisches Scrollen genutzt, auch bei Konten, denen Instagram es nicht anbietet. Solange es an ist, kann Instagrams eigener Schalter f\u00fcr automatisches Scrollen es nicht ausschalten. Starte Instagram neu, um die \u00c4nderung zu sehen.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Ist das Reel nicht auf dem ersten Bildschirm, zeigt das Profil eine Schaltfl\u00e4che \u201eReel finden\u201c, statt selbst zu scrollen.");
     }
 
     private static void fillDe28(Map<String, String> table) {
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "Wenn ein Reel in deinem Feed endet, spielt \u201eErneut ansehen\u201c es direkt dort noch einmal ab, statt Reels zu \u00f6ffnen.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Ist das Reel nicht auf dem ersten Bildschirm, zeigt das Profil eine Schaltfl\u00e4che \u201eReel finden\u201c, statt selbst zu scrollen.");
         table.put("Where the mention pill goes",
                 "Wo die Erw\u00e4hnungen stehen");
         table.put("Where videos wait",
@@ -3617,7 +3621,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildEs() {
-        Map<String, String> table = new HashMap<>(3442);
+        Map<String, String> table = new HashMap<>(3446);
         fillEs0(table);
         fillEs1(table);
         fillEs2(table);
@@ -7068,6 +7072,8 @@ public final class L10nTranslations {
                 "Esperar un toque para buscarlo");
         table.put("Wait stopped. These settings stay locked.",
                 "Espera detenida. Estos ajustes siguen bloqueados.");
+        table.put("Watch again in the feed",
+                "Volver a ver en el feed");
         table.put("Watch on TV",
                 "Ver en la tele");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
@@ -7090,11 +7096,13 @@ public final class L10nTranslations {
                 "Si un comentario empieza con @nombres, como la mayor\u00eda de las respuestas, Copiar los deja fuera. El comentario en Instagram no cambia.");
         table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
                 "Cuando termina un reel, Reels pasa al siguiente en lugar de reproducirlo otra vez. Usa el desplazamiento autom\u00e1tico de Instagram, incluso en cuentas a las que Instagram no se lo ofrece. Mientras est\u00e9 activado, el interruptor de desplazamiento autom\u00e1tico de Instagram no puede desactivarlo. Reinicia Instagram para ver el cambio.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Si el reel no est\u00e1 en la primera pantalla, el perfil muestra un bot\u00f3n Buscar el reel en lugar de desplazarse solo.");
     }
 
     private static void fillEs28(Map<String, String> table) {
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "Cuando termina un reel en tu feed, Volver a ver lo reproduce otra vez ah\u00ed mismo en lugar de abrir Reels.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Si el reel no est\u00e1 en la primera pantalla, el perfil muestra un bot\u00f3n Buscar el reel en lugar de desplazarse solo.");
         table.put("Where the mention pill goes",
                 "D\u00f3nde va la etiqueta de menciones");
         table.put("Where videos wait",
@@ -7180,7 +7188,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildIn() {
-        Map<String, String> table = new HashMap<>(3442);
+        Map<String, String> table = new HashMap<>(3446);
         fillIn0(table);
         fillIn1(table);
         fillIn2(table);
@@ -10631,6 +10639,8 @@ public final class L10nTranslations {
                 "Tunggu ketukan untuk mencarinya");
         table.put("Wait stopped. These settings stay locked.",
                 "Menunggu dihentikan. Pengaturan tetap terkunci.");
+        table.put("Watch again in the feed",
+                "Tonton lagi di feed");
         table.put("Watch on TV",
                 "Tonton di TV");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
@@ -10653,11 +10663,13 @@ public final class L10nTranslations {
                 "Jika komentar diawali @nama, seperti kebanyakan balasan, Salin tidak menyertakannya. Komentar di Instagram tetap sama.");
         table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
                 "Saat sebuah reel selesai, Reels pindah ke reel berikutnya alih-alih memutarnya lagi. Fitur ini memakai gulir otomatis milik Instagram, bahkan di akun yang tidak ditawari fitur itu oleh Instagram. Selama aktif, sakelar gulir otomatis milik Instagram tidak bisa mematikannya. Mulai ulang Instagram untuk melihat perubahannya.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Jika reel tidak ada di layar pertama, profil menampilkan tombol Cari reel alih-alih menggulir sendiri.");
     }
 
     private static void fillIn28(Map<String, String> table) {
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "Saat reel di feed kamu selesai, Tonton lagi memutarnya ulang di situ juga, bukan membuka Reels.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Jika reel tidak ada di layar pertama, profil menampilkan tombol Cari reel alih-alih menggulir sendiri.");
         table.put("Where the mention pill goes",
                 "Letak label sebutan");
         table.put("Where videos wait",
@@ -10743,7 +10755,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildIt() {
-        Map<String, String> table = new HashMap<>(3442);
+        Map<String, String> table = new HashMap<>(3446);
         fillIt0(table);
         fillIt1(table);
         fillIt2(table);
@@ -14194,6 +14206,8 @@ public final class L10nTranslations {
                 "Aspetta un tocco per trovarlo");
         table.put("Wait stopped. These settings stay locked.",
                 "Attesa interrotta. Tutto resta bloccato.");
+        table.put("Watch again in the feed",
+                "Guarda di nuovo nel feed");
         table.put("Watch on TV",
                 "Guarda sulla TV");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
@@ -14216,11 +14230,13 @@ public final class L10nTranslations {
                 "Se un commento inizia con dei @nomi, come la maggior parte delle risposte, Copia li tralascia. Il commento su Instagram resta invariato.");
         table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
                 "Quando un reel finisce, i reel passano al successivo invece di ripeterlo. Usa lo scorrimento automatico di Instagram, anche sugli account dove Instagram non lo offre. Finch\u00e9 \u00e8 attivo, l'interruttore Scorrimento automatico di Instagram non pu\u00f2 disattivarlo. Riavvia Instagram per vedere la modifica.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Quando il reel non \u00e8 nella prima schermata, il profilo mostra un pulsante Trova il reel invece di scorrere da solo.");
     }
 
     private static void fillIt28(Map<String, String> table) {
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "Quando un reel nel tuo feed finisce, Guarda di nuovo lo riproduce di nuovo l\u00ec, invece di aprire Reels.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Quando il reel non \u00e8 nella prima schermata, il profilo mostra un pulsante Trova il reel invece di scorrere da solo.");
         table.put("Where the mention pill goes",
                 "Dove va l'etichetta delle menzioni");
         table.put("Where videos wait",
@@ -14306,7 +14322,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildKo() {
-        Map<String, String> table = new HashMap<>(3442);
+        Map<String, String> table = new HashMap<>(3446);
         fillKo0(table);
         fillKo1(table);
         fillKo2(table);
@@ -17757,6 +17773,8 @@ public final class L10nTranslations {
                 "\ud0ed\ud560 \ub54c\uae4c\uc9c0 \uae30\ub2e4\ub838\ub2e4 \ucc3e\uae30");
         table.put("Wait stopped. These settings stay locked.",
                 "\ub300\uae30\ub97c \uba48\ucdc4\uc2b5\ub2c8\ub2e4. \uc774 \uc124\uc815\uc740 \uc7a0\uae34 \uc0c1\ud0dc\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4.");
+        table.put("Watch again in the feed",
+                "\ud53c\ub4dc\uc5d0\uc11c \ub2e4\uc2dc \ubcf4\uae30");
         table.put("Watch on TV",
                 "TV\ub85c \ubcf4\uae30");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
@@ -17779,11 +17797,13 @@ public final class L10nTranslations {
                 "\ub300\ubd80\ubd84\uc758 \ub2f5\uae00\ucc98\ub7fc \ub313\uae00\uc774 @\uc774\ub984\uc73c\ub85c \uc2dc\uc791\ud558\uba74 \ubcf5\uc0ac\ud560 \ub54c \ube7c\uace0 \ubcf5\uc0ac\ud569\ub2c8\ub2e4. Instagram\uc758 \ub313\uae00\uc740 \uadf8\ub300\ub85c\uc785\ub2c8\ub2e4.");
         table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
                 "\ub9b4\uc2a4\uac00 \ub05d\ub098\uba74 \ub2e4\uc2dc \uc7ac\uc0dd\ud558\uc9c0 \uc54a\uace0 \ub2e4\uc74c \ub9b4\uc2a4\ub85c \ub118\uc5b4\uac11\ub2c8\ub2e4. Instagram\uc758 \uc790\ub3d9 \uc2a4\ud06c\ub864\uc744 \uc0ac\uc6a9\ud558\uba70, Instagram\uc774 \uc774 \uae30\ub2a5\uc744 \uc81c\uacf5\ud558\uc9c0 \uc54a\ub294 \uacc4\uc815\uc5d0\uc11c\ub3c4 \uc791\ub3d9\ud569\ub2c8\ub2e4. \ucf1c\uc838 \uc788\ub294 \ub3d9\uc548\uc5d0\ub294 Instagram\uc758 \uc790\ub3d9 \uc2a4\ud06c\ub864 \uc2a4\uc704\uce58\ub85c \ub04c \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "\ub9b4\uc2a4\uac00 \uccab \ud654\uba74\uc5d0 \uc5c6\uc73c\uba74 \ud504\ub85c\ud544\uc774 \uc9c1\uc811 \uc2a4\ud06c\ub864\ud558\ub294 \ub300\uc2e0 \ub9b4\uc2a4 \ucc3e\uae30 \ubc84\ud2bc\uc744 \ud45c\uc2dc\ud569\ub2c8\ub2e4.");
     }
 
     private static void fillKo28(Map<String, String> table) {
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "\ud53c\ub4dc\uc758 \ub9b4\uc2a4\uac00 \ub05d\ub0ac\uc744 \ub54c \ub2e4\uc2dc \ubcf4\uae30\ub97c \ub204\ub974\uba74 \ub9b4\uc2a4 \ud0ed\uc744 \uc5f4\uc9c0 \uc54a\uace0 \uadf8 \uc790\ub9ac\uc5d0\uc11c \ub2e4\uc2dc \uc7ac\uc0dd\ud569\ub2c8\ub2e4.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "\ub9b4\uc2a4\uac00 \uccab \ud654\uba74\uc5d0 \uc5c6\uc73c\uba74 \ud504\ub85c\ud544\uc774 \uc9c1\uc811 \uc2a4\ud06c\ub864\ud558\ub294 \ub300\uc2e0 \ub9b4\uc2a4 \ucc3e\uae30 \ubc84\ud2bc\uc744 \ud45c\uc2dc\ud569\ub2c8\ub2e4.");
         table.put("Where the mention pill goes",
                 "\uc5b8\uae09 \ud45c\uc2dc \uc704\uce58");
         table.put("Where videos wait",
@@ -17869,7 +17889,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildPt_rBR() {
-        Map<String, String> table = new HashMap<>(3442);
+        Map<String, String> table = new HashMap<>(3446);
         fillPt_rBR0(table);
         fillPt_rBR1(table);
         fillPt_rBR2(table);
@@ -21320,6 +21340,8 @@ public final class L10nTranslations {
                 "Esperar um toque para procurar");
         table.put("Wait stopped. These settings stay locked.",
                 "Espera parada. Configura\u00e7\u00f5es seguem bloqueadas.");
+        table.put("Watch again in the feed",
+                "Assistir de novo no feed");
         table.put("Watch on TV",
                 "Assistir na TV");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
@@ -21342,11 +21364,13 @@ public final class L10nTranslations {
                 "Quando um coment\u00e1rio come\u00e7a com @nomes, como a maioria das respostas, Copiar deixa eles de fora. O coment\u00e1rio no Instagram continua igual.");
         table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
                 "Quando um reel termina, o Reels passa para o pr\u00f3ximo em vez de toc\u00e1-lo de novo. Usa a rolagem autom\u00e1tica do pr\u00f3prio Instagram, mesmo em contas em que o Instagram n\u00e3o a oferece. Enquanto estiver ativado, o bot\u00e3o de rolagem autom\u00e1tica do pr\u00f3prio Instagram n\u00e3o consegue desativ\u00e1-lo. Reinicie o Instagram para ver a mudan\u00e7a.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Quando o reel n\u00e3o est\u00e1 na primeira tela, o perfil mostra um bot\u00e3o Encontrar o reel em vez de rolar sozinho.");
     }
 
     private static void fillPt_rBR28(Map<String, String> table) {
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "Quando um reel no seu feed termina, Assistir de novo toca ele outra vez ali mesmo, em vez de abrir o Reels.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Quando o reel n\u00e3o est\u00e1 na primeira tela, o perfil mostra um bot\u00e3o Encontrar o reel em vez de rolar sozinho.");
         table.put("Where the mention pill goes",
                 "Onde fica a etiqueta de men\u00e7\u00f5es");
         table.put("Where videos wait",
@@ -21432,7 +21456,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildTr() {
-        Map<String, String> table = new HashMap<>(3442);
+        Map<String, String> table = new HashMap<>(3446);
         fillTr0(table);
         fillTr1(table);
         fillTr2(table);
@@ -24883,6 +24907,8 @@ public final class L10nTranslations {
                 "Bulmak i\u00e7in dokunmay\u0131 bekle");
         table.put("Wait stopped. These settings stay locked.",
                 "Bekleme durduruldu. Bu ayarlar kilitli kal\u0131r.");
+        table.put("Watch again in the feed",
+                "Ak\u0131\u015fta tekrar izle");
         table.put("Watch on TV",
                 "TV'de izle");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
@@ -24905,11 +24931,13 @@ public final class L10nTranslations {
                 "Bir yorum \u00e7o\u011fu yan\u0131t gibi @adlarla ba\u015fl\u0131yorsa Kopyala bunlar\u0131 d\u0131\u015far\u0131da b\u0131rak\u0131r. Instagram'daki yorum ayn\u0131 kal\u0131r.");
         table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
                 "Bir reel bitti\u011finde Reels onu yeniden oynatmak yerine sonrakine ge\u00e7er. Instagram'\u0131n kendi otomatik kayd\u0131rmas\u0131n\u0131 kullan\u0131r, Instagram'\u0131n bunu sunmad\u0131\u011f\u0131 hesaplarda bile. A\u00e7\u0131kken Instagram'\u0131n kendi otomatik kayd\u0131rma anahtar\u0131 bunu kapatamaz. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Reel ilk ekranda de\u011filse profil kendi kayd\u0131rmak yerine bir Reel'i bul d\u00fc\u011fmesi g\u00f6sterir.");
     }
 
     private static void fillTr28(Map<String, String> table) {
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "Ak\u0131\u015f\u0131ndaki bir reels bitti\u011finde Tekrar izle, Reels'i a\u00e7mak yerine onu orada yeniden oynat\u0131r.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Reel ilk ekranda de\u011filse profil kendi kayd\u0131rmak yerine bir Reel'i bul d\u00fc\u011fmesi g\u00f6sterir.");
         table.put("Where the mention pill goes",
                 "Bahsetme etiketinin yeri");
         table.put("Where videos wait",
@@ -24995,7 +25023,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildVi() {
-        Map<String, String> table = new HashMap<>(3442);
+        Map<String, String> table = new HashMap<>(3446);
         fillVi0(table);
         fillVi1(table);
         fillVi2(table);
@@ -28446,6 +28474,8 @@ public final class L10nTranslations {
                 "Ch\u1edd nh\u1ea5n m\u1edbi t\u00ecm");
         table.put("Wait stopped. These settings stay locked.",
                 "\u0110\u00e3 d\u1eebng ch\u1edd. C\u00e0i \u0111\u1eb7t v\u1eabn b\u1ecb kh\u00f3a.");
+        table.put("Watch again in the feed",
+                "Xem l\u1ea1i ngay trong b\u1ea3ng feed");
         table.put("Watch on TV",
                 "Xem tr\u00ean TV");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
@@ -28468,11 +28498,13 @@ public final class L10nTranslations {
                 "Khi b\u00ecnh lu\u1eadn b\u1eaft \u0111\u1ea7u b\u1eb1ng @t\u00ean, nh\u01b0 h\u1ea7u h\u1ebft c\u00e1c c\u00e2u tr\u1ea3 l\u1eddi, Sao ch\u00e9p s\u1ebd b\u1ecf ph\u1ea7n \u0111\u00f3. B\u00ecnh lu\u1eadn tr\u00ean Instagram kh\u00f4ng \u0111\u1ed5i.");
         table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
                 "Khi reel k\u1ebft th\u00fac, Reels chuy\u1ec3n sang reel k\u1ebf ti\u1ebfp thay v\u00ec ph\u00e1t l\u1ea1i. D\u00f9ng t\u1ef1 \u0111\u1ed9ng cu\u1ed9n c\u1ee7a ch\u00ednh Instagram, k\u1ec3 c\u1ea3 tr\u00ean t\u00e0i kho\u1ea3n m\u00e0 Instagram kh\u00f4ng c\u00f3 t\u00ednh n\u0103ng n\u00e0y. Khi b\u1eadt, c\u00f4ng t\u1eafc T\u1ef1 \u0111\u1ed9ng cu\u1ed9n c\u1ee7a Instagram kh\u00f4ng t\u1eaft \u0111\u01b0\u1ee3c. H\u00e3y kh\u1edfi \u0111\u1ed9ng l\u1ea1i Instagram \u0111\u1ec3 th\u1ea5y thay \u0111\u1ed5i.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Khi reel kh\u00f4ng \u1edf m\u00e0n h\u00ecnh \u0111\u1ea7u ti\u00ean, trang c\u00e1 nh\u00e2n hi\u1ec7n n\u00fat T\u00ecm reel thay v\u00ec t\u1ef1 cu\u1ed9n.");
     }
 
     private static void fillVi28(Map<String, String> table) {
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "Khi m\u1ed9t th\u01b0\u1edbc phim trong b\u1ea3ng feed k\u1ebft th\u00fac, Xem l\u1ea1i s\u1ebd ph\u00e1t l\u1ea1i ngay t\u1ea1i \u0111\u00f3 thay v\u00ec m\u1edf Reels.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Khi reel kh\u00f4ng \u1edf m\u00e0n h\u00ecnh \u0111\u1ea7u ti\u00ean, trang c\u00e1 nh\u00e2n hi\u1ec7n n\u00fat T\u00ecm reel thay v\u00ec t\u1ef1 cu\u1ed9n.");
         table.put("Where the mention pill goes",
                 "V\u1ecb tr\u00ed nh\u00e3n l\u01b0\u1ee3t nh\u1eafc");
         table.put("Where videos wait",
@@ -28558,7 +28590,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildZh_rTW() {
-        Map<String, String> table = new HashMap<>(3442);
+        Map<String, String> table = new HashMap<>(3446);
         fillZh_rTW0(table);
         fillZh_rTW1(table);
         fillZh_rTW2(table);
@@ -32009,6 +32041,8 @@ public final class L10nTranslations {
                 "\u9ede\u64ca\u5f8c\u624d\u5c0b\u627e");
         table.put("Wait stopped. These settings stay locked.",
                 "\u5df2\u53d6\u6d88\u7b49\u5f85\u3002\u9019\u4e9b\u8a2d\u5b9a\u4ecd\u7dad\u6301\u9396\u5b9a\u3002");
+        table.put("Watch again in the feed",
+                "\u5728\u52d5\u614b\u4e2d\u518d\u770b\u4e00\u6b21");
         table.put("Watch on TV",
                 "\u5728\u96fb\u8996\u4e0a\u89c0\u770b");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
@@ -32031,11 +32065,13 @@ public final class L10nTranslations {
                 "\u82e5\u7559\u8a00\u4ee5 @\u540d\u7a31 \u958b\u982d\uff08\u591a\u6578\u56de\u8986\u7686\u5982\u6b64\uff09\uff0c\u8907\u88fd\u6642\u6703\u5c07\u5176\u7565\u904e\u3002Instagram \u4e2d\u7684\u7559\u8a00\u4e0d\u6703\u6539\u8b8a\u3002");
         table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
                 "Reel \u7d50\u675f\u5f8c\u6703\u5207\u63db\u81f3\u4e0b\u4e00\u5247\uff0c\u800c\u975e\u91cd\u64ad\u3002\u4f7f\u7528 Instagram \u672c\u8eab\u7684\u81ea\u52d5\u6372\u52d5\uff0c\u5373\u4f7f\u5e33\u865f\u672a\u63d0\u4f9b\u6b64\u529f\u80fd\u4e5f\u9069\u7528\u3002\u555f\u7528\u671f\u9593\uff0cInstagram \u7684\u300c\u81ea\u52d5\u6372\u52d5\u300d\u958b\u95dc\u7121\u6cd5\u5c07\u5176\u95dc\u9589\u3002\u8acb\u91cd\u65b0\u555f\u52d5 Instagram \u4ee5\u5957\u7528\u8b8a\u66f4\u3002");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "\u82e5\u7b2c\u4e00\u500b\u756b\u9762\u6c92\u6709\u8a72 Reel\uff0c\u500b\u4eba\u6a94\u6848\u6703\u986f\u793a\u300c\u5c0b\u627e Reel\u300d\u6309\u9215\uff0c\u800c\u975e\u81ea\u52d5\u6372\u52d5\u3002");
     }
 
     private static void fillZh_rTW28(Map<String, String> table) {
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "\u52d5\u614b\u4e2d\u7684 Reels \u64ad\u5b8c\u6642\uff0c\u300c\u518d\u770b\u4e00\u6b21\u300d\u6703\u76f4\u63a5\u5728\u539f\u8655\u91cd\u64ad\uff0c\u4e0d\u6703\u958b\u555f Reels.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "\u82e5\u7b2c\u4e00\u500b\u756b\u9762\u6c92\u6709\u8a72 Reel\uff0c\u500b\u4eba\u6a94\u6848\u6703\u986f\u793a\u300c\u5c0b\u627e Reel\u300d\u6309\u9215\uff0c\u800c\u975e\u81ea\u52d5\u6372\u52d5\u3002");
         table.put("Where the mention pill goes",
                 "\u63d0\u53ca\u6a19\u7c64\u7684\u4f4d\u7f6e");
         table.put("Where videos wait",

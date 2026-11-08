@@ -1822,3 +1822,6 @@ Remove from saved	Gỡ khỏi mục đã lưu
 # context: a switch on the Reels page
 Hide lives in Reels	Ẩn video trực tiếp trong Reels
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Bỏ qua các buổi phát trực tiếp mà Instagram chen vào giữa các reel ở tab Reels và khi bạn vuốt qua reel từ Khám phá.
+# context: a switch on the Feed page; Watch again is the button on the card Instagram shows when a reel in the feed ends, next to Watch more reels
+Watch again in the feed	Xem lại ngay trong bảng feed
+When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.	Khi một thước phim trong bảng feed kết thúc, Xem lại sẽ phát lại ngay tại đó thay vì mở Reels.

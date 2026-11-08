@@ -1905,3 +1905,6 @@ Remove from saved	Kaydedilenlerden kaldır
 # context: a switch on the Reels page
 Hide lives in Reels	Reels'te canlı yayınları gizle
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Instagram'ın Reels sekmesinde ve Keşfet'ten açtığın reel'leri kaydırırken reel'lerin arasına koyduğu canlı yayınları göstermez.
+# context: a switch on the Feed page; Watch again is the button on the card Instagram shows when a reel in the feed ends, next to Watch more reels
+Watch again in the feed	Akışta tekrar izle
+When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.	Akışındaki bir reels bittiğinde Tekrar izle, Reels'i açmak yerine onu orada yeniden oynatır.

@@ -62,6 +62,7 @@ final class FeedCategory {
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
         boolean editsLabel = build.contains(PatchFamily.EDITS_LABEL);
         boolean feedSave = build.contains(PatchFamily.FEED_SAVE);
+        boolean watchAgain = build.contains(PatchFamily.WATCH_AGAIN);
         boolean hideCaptions = build.contains(PatchFamily.HIDE_CAPTIONS);
         boolean feedAudioIcon = build.contains(PatchFamily.FEED_AUDIO_ICON);
         boolean homeTopBar = build.contains(PatchFamily.HOME_TOP_BAR);
@@ -69,7 +70,7 @@ final class FeedCategory {
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedHoldFast || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
-                || fullScreen || feedFollow || editsLabel || feedSave || hideCaptions || feedAudioIcon || homeTopBar || activityBubbles
+                || fullScreen || feedFollow || editsLabel || feedSave || watchAgain || hideCaptions || feedAudioIcon || homeTopBar || activityBubbles
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -207,6 +208,10 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.TAP_FEED_VIDEO_TO_PAUSE, L10n.t("Tap a feed video to pause it"),
                     L10n.t("Tap the video playing in a feed to pause it in place instead of opening it in Reels, and tap it "
                             + "again to play it. Ads keep Instagram's own tap.")));
+        }
+        if (watchAgain) {
+            feed.addPreference(toggle(context, Settings.WATCH_AGAIN_IN_FEED, L10n.t("Watch again in the feed"),
+                    L10n.t("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.")));
         }
         if (feedHoldFast) {
             feed.addPreference(toggle(context, Settings.HOLD_FEED_VIDEO_FAST, L10n.t("Hold for 2x on feed videos"),

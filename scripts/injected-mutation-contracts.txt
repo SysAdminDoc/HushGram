@@ -1507,6 +1507,11 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->allow(Ljava/util/
 # shape storing a List, 01Zp on 454's 386014758). Left out, the Edits label keeps its turn under
 # the author; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/EditsLabel;->labels(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/feed/media/Media;LX/*;LX/*;LX/*;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ZZZZZZ)V class-holding LX/*;->*:Ljava/util/List;
+# Watch again in the feed (#568) hands the end card controller's in-place replay flag to
+# WatchAgain.inFeed in its constructor, right before it's stored (05Wa's A07 on 454's 386014758,
+# the class that loads continue_watching). Left out, Watch again keeps opening Reels; twice or
+# elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->inFeed(I)Z in instance (Landroid/content/Context;L*;L*;L*;ZZZZZ)V pooled class-holding continue_watching
 #
 # Tap to play: IgGrootPlayer's play asks allowDirectStart() first, its prepare tells rebound()
 # first, and the autoplay check hands its answer to autoplayAllowed() where it returns, once on

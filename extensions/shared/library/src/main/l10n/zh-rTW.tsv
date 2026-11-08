@@ -1908,3 +1908,6 @@ Remove from saved	從已儲存移除
 # context: a switch on the Reels page
 Hide lives in Reels	隱藏 Reels 中的直播
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	略過 Instagram 在 Reels 分頁中，以及從探索滑動瀏覽 Reels 時，夾在 Reels 之間的直播。
+# context: a switch on the Feed page; Watch again is the button on the card Instagram shows when a reel in the feed ends, next to Watch more reels
+Watch again in the feed	在動態中再看一次
+When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.	動態中的 Reels 播完時，「再看一次」會直接在原處重播，不會開啟 Reels.
