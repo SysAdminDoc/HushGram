@@ -135,6 +135,7 @@ public final class FamilyNames {
     public static final String REELS_TAB = "Hide the Reels tab";
     public static final String REELS_SUGGESTIONS = "Hide suggested accounts in Reels";
     public static final String PAID_PARTNERSHIP_REELS = "Hide paid partnership Reels";
+    public static final String LIVE_REELS = "Hide lives in Reels";
     public static final String AI_LABELED_REELS = "Hide AI-labeled reels";
     public static final String CAPTION_WORD_REELS = "Hide reels by caption words";
     public static final String LOW_VIEW_REELS = "Hide reels with few views";

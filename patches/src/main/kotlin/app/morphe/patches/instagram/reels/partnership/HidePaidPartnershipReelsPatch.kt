@@ -87,7 +87,7 @@ val hidePaidPartnershipReelsPatch = bytecodePatch(
     description = "Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have " +
         "their own switch. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
-    category("Reels")
+    category("Ads")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

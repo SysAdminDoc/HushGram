@@ -1891,3 +1891,6 @@ The heart at the top of Home shows how many notifications are waiting, like the 
 # context: a switch under Seek bar on feed videos
 Seek bar on the bottom edge	아래쪽 가장자리에 탐색 막대
 Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.	탐색 막대를 동영상 아래쪽 가장자리에 바로 붙여, 스크롤하다가 실수로 건드리기 어렵게 합니다.
+# context: a switch on the Reels page
+Hide lives in Reels	릴스에서 라이브 숨기기
+Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	릴스 탭과 탐색 탭에서 릴스를 넘길 때 Instagram이 릴스 사이에 넣는 라이브 방송을 빼고 보여줍니다.

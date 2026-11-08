@@ -53,6 +53,11 @@ final class ReelsCategory {
                     L10n.t("Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. "
                             + "Ads have their own switch.")));
         }
+        if (build.contains(PatchFamily.LIVE_REELS)) {
+            reels.add(toggle(context, Settings.HIDE_LIVE_REELS, L10n.t("Hide lives in Reels"),
+                    L10n.t("Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when "
+                            + "you swipe through reels from Explore.")));
+        }
         if (build.contains(PatchFamily.AI_LABELED_REELS)) {
             reels.add(toggle(context, Settings.HIDE_AI_LABELED_REELS, L10n.t("Hide AI-labeled reels"),
                     L10n.t("Leaves out reels that carry Instagram's own AI label. A reel without that label stays, "

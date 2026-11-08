@@ -2257,6 +2257,11 @@ once-call Lapp/hushgram/extension/instagram/reels/LowViewReels;->page(Ljava/util
 # HidePaidPartnershipReelsHookTest.
 once-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
 
+# Hide lives in Reels hands the same pages, at the same join, to LiveReels.page, once (#566). Its
+# stub asks a reel item for the part the live preview code reads (09Vs.A00 on 454's 386014758), which
+# HideLiveReelsHookTest finds on every build of 454.
+once-call Lapp/hushgram/extension/instagram/reels/LiveReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
+
 # Show a reel's exact time hands the Reels title and the list of its column's parts to
 # ReelPostTime.line just before the title makes that column (the one method loading the title's
 # render marker below), once, so the line with the time goes in after the name row and Instagram's

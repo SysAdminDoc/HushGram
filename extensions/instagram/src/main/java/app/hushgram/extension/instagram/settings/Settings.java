@@ -2174,6 +2174,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_paid_partnership_reels", FALSE);
 
     /**
+     * Previews of live broadcasts Instagram puts between reels in the Reels tab and in Explore's
+     * swiping (#566, {@link app.hushgram.extension.instagram.reels.LiveReels}). Read as each page of
+     * reels arrives, so a change shows from the next page. Off to start.
+     */
+    public static final BooleanSetting HIDE_LIVE_REELS =
+            new BooleanSetting("hushgram_hide_reel_lives", FALSE);
+
+    /**
      * Reels whose post carries Instagram's own AI label
      * ({@link app.hushgram.extension.instagram.reels.AiLabeledReels}). Read as each page of reels
      * arrives, so a change shows from the next page. Off to start.

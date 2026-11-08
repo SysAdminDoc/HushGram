@@ -1892,3 +1892,6 @@ The heart at the top of Home shows how many notifications are waiting, like the 
 # context: a switch under Seek bar on feed videos
 Seek bar on the bottom edge	Bilah geser di tepi bawah
 Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.	Menaruh bilah geser tepat di tepi bawah video, jadi lebih sulit tersentuh tanpa sengaja saat kamu menggulir.
+# context: a switch on the Reels page
+Hide lives in Reels	Sembunyikan siaran langsung di Reels
+Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Menyembunyikan siaran langsung yang diselipkan Instagram di antara reel di tab Reels dan saat kamu menggeser reel dari Jelajahi.

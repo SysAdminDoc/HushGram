@@ -378,6 +378,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean liveReels() {
+        return false;
+    }
+
     public static boolean aiLabeledReels() {
         return false;
     }

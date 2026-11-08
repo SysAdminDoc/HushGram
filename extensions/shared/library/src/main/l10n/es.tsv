@@ -1892,3 +1892,6 @@ The heart at the top of Home shows how many notifications are waiting, like the 
 # context: a switch under Seek bar on feed videos
 Seek bar on the bottom edge	Barra de búsqueda en el borde inferior
 Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.	Coloca la barra de búsqueda justo en el borde inferior del video, para que sea más difícil tocarla sin querer al desplazarte.
+# context: a switch on the Reels page
+Hide lives in Reels	Ocultar directos en Reels
+Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Deja fuera las transmisiones en directo que Instagram pone entre reels en la pestaña Reels y cuando deslizas por reels desde Explorar.
