@@ -141,6 +141,8 @@ public final class CommentsSheet {
     /** Paints the screen's root and its sheet; false when the sheet isn't above the root yet. */
     private static boolean paintScreen(View root) {
         tint(root, "comments screen");
+        // The strip under the navigation bar shows the reel unless something covers it (#571).
+        if (root.isAttachedToWindow()) PureBlackNav.commentsShown(root);
         View sheet = findSheet(root);
         if (sheet == null) return false;
         tint(sheet, "comments sheet");
