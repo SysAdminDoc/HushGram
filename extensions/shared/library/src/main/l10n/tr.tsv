@@ -1626,6 +1626,8 @@ Nothing logged yet. With Recent unfollowers on, each time you scroll your own Fo
 %1$s started following you, %2$s	%1$s seni takip etmeye başladı, %2$s
 Hide the Map bubble	Harita balonunu gizle
 Takes only the Map bubble out of the row of notes. Your notes stay.	Notlar satırından yalnızca Harita balonunu kaldırır. Notların kalır.
+Split the notes row	Notlar satırını böl
+Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.	Notlar satırını Instants, Notlar ve Hikayeler olmak üzere üç yığına böler, Instagram'ın denediği düzen budur. Değişikliği görmek için Instagram'ı yeniden başlat.
 Hide Saved in the plus menu	Artı menüsündeki Kaydedilenler'i gizle
 Takes Saved off the menu the plus button opens in a chat's message bar.	Bir sohbetin mesaj çubuğundaki artı düğmesinin açtığı menüden Kaydedilenler'i kaldırır.
 Hide AI images in the plus menu	Artı menüsündeki yapay zeka görsellerini gizle

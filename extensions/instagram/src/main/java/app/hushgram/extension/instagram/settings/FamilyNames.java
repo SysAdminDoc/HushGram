@@ -79,6 +79,7 @@ public final class FamilyNames {
     public static final String ALL_RECENT_SEARCHES = "Show all recent searches";
     public static final String EXPLORE_MENU = "Explore without personalization";
     public static final String NOTES_ROW = "Hide the notes row";
+    public static final String SPLIT_NOTES_ROW = "Split the notes row";
     public static final String INBOX_SEARCH = "Hide the search bar in Messages";
     public static final String INBOX_SUGGESTIONS = "Hide suggested accounts in DMs";
     public static final String INSTANTS = "Hide Instants";

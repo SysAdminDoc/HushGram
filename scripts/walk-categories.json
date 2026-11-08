@@ -229,6 +229,7 @@
         "op": "any",
         "patches": [
           "Hide the notes row",
+          "Split the notes row",
           "Hide the search bar in Messages",
           "Hide suggested accounts in DMs",
           "Hide Instants",

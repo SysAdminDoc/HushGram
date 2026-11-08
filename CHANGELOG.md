@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* New patch, `Split the notes row`. Its switch under Messages splits the row of notes at the top of your messages into three stacks, Instants, Notes and Stories, the layout Instagram is trying out on some accounts. It takes a restart. Asked for in #558.
 * New patch, `Hide Instagram Plus prompts`. Its switch under Ads and privacy takes the Try Instagram Plus card and See preview row off a chat you hold, and the other Plus offers Instagram asks about the same way. Nothing that comes with Plus gets turned on. Asked for in #559.
 * `Hide story rows` under Feed takes out the rows of stories Instagram puts between posts on Home, like Expiring Stories. It's off until you turn it on. Asked for in #557.
 * `Swipe through a chat's photos and posts` under Messages lets you open a photo, video or shared post from a chat and swipe up through the chat's other photos, videos and shared posts, in chat order. Asked for in #350.

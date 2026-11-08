@@ -192,6 +192,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean splitNotesRow() {
+        return false;
+    }
+
     public static boolean inboxSearch() {
         return false;
     }

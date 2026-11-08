@@ -1364,6 +1364,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_notes_map", FALSE);
 
     /**
+     * The top of your messages split into three stacks, Instants, Notes and Stories
+     * ({@link app.hushgram.extension.instagram.direct.SplitNotesRow}). Instagram reads its test once
+     * when your messages are first set up, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting SPLIT_NOTES_ROW =
+            new BooleanSetting("hushgram_split_notes_row", FALSE, true);
+
+    /**
      * The search bar at the top of your messages, the Meta AI one included
      * ({@link app.hushgram.extension.instagram.direct.InboxSearchBar}). Read each time Instagram
      * works out your messages again, so a change shows the next time they update. Off to start.
