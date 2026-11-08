@@ -114,6 +114,7 @@ public final class ReelsTopBar {
     static final String COUNT_BUTTON_PUT_BACK = "Reels top bar button put back";
     static final String COUNT_FRIENDS_SEEN = "Reels Friends tab built";
     static final String COUNT_FRIENDS_HID = "Reels Friends tab hidden";
+    static final String COUNT_FRIENDS_AGAIN = "Reels Friends tab opened again";
     /** The most views looked at inside one bar for its buttons. */
     static final int MAX_BAR_VIEWS = 200;
 
@@ -133,23 +134,58 @@ public final class ReelsTopBar {
     private static final Set<View> FRIENDS_TABS = Collections.synchronizedSet(
             Collections.newSetFromMap(new WeakHashMap<>()));
 
+    /** Whether {@link #friendsTabAnyway} has given a viewer its tabs this run. */
+    private static volatile boolean gaveTabs;
+
     private ReelsTopBar() {
     }
 
     /**
      * Called by the patch as Instagram builds the Friends tab at the top of Reels, with the tab's
      * view. Only marks it: the search hides it while the switch is on, so turning it off or pausing
-     * puts it back. Holding it opens the list of friends to pick when that switch is on (#503).
+     * puts it back. Holding it opens the list of friends to pick when that switch is on (#503), and
+     * a tap goes through {@link #friendsTapped} first.
      */
     public static void friendsTab(View tab) {
         try {
             if (tab == null) return;
             FRIENDS_TABS.add(tab);
             FriendLanePicks.watch(tab);
+            tab.setOnClickListener(ReelsTopBar::friendsTapped);
             HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_FRIENDS_SEEN);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "Friends tab", failure);
         }
+    }
+
+    /**
+     * A tap on the Friends tab, which runs before the strip selects it (#571). On an account that
+     * has the tabs only through {@link #friendsTabAnyway}, Friends opens as a viewer of its own, and
+     * coming back from it leaves Friends selected in the strip. A second tap then reads as the tab
+     * already being there, and Instagram does nothing. So a tap on the selected Friends tab there
+     * selects Reels first, as you'd do by hand, and the strip goes on to select Friends as a new
+     * choice, which opens it again. Instagram's own tabs, which change lanes in place, are left alone.
+     */
+    static void friendsTapped(View tab) {
+        try {
+            if (!gaveTabs || tab == null || !tab.isSelected()) return;
+            if (!Utils.settingsReady() || HushgramPause.isPaused()) return;
+            View reels = reelsTab(tab);
+            if (reels == null || reels.isSelected()) return;
+            reels.performClick();
+            HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_FRIENDS_AGAIN);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "Friends tab tap", failure);
+        }
+    }
+
+    /** The Reels tab beside [friends]: the first tab in its strip, a view of the same class. */
+    static View reelsTab(View friends) {
+        if (!(friends.getParent() instanceof ViewGroup)) return null;
+        ViewGroup strip = (ViewGroup) friends.getParent();
+        if (strip.getChildCount() < 2) return null;
+        View first = strip.getChildAt(0);
+        return first == friends || first.getClass() != friends.getClass() ? null : first;
     }
 
     /**
@@ -161,11 +197,18 @@ public final class ReelsTopBar {
         try {
             if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
             if (!Settings.SHOW_REELS_FRIENDS_TAB.get() || Settings.HIDE_REELS_FRIENDS_TAB.get()) return false;
-            return source instanceof Enum && REELS_TAB.contains(((Enum<?>) source).name());
+            boolean yes = source instanceof Enum && REELS_TAB.contains(((Enum<?>) source).name());
+            if (yes) gaveTabs = true;
+            return yes;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "Friends tab anyway", failure);
             return false;
         }
+    }
+
+    /** Forgets that a viewer was given its tabs, for tests. */
+    static void forgetGivenTabs() {
+        gaveTabs = false;
     }
 
     /** Whether [view] is a Friends tab Instagram built, as the patch handed it over. */

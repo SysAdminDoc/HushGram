@@ -80,6 +80,7 @@ public class ReelsTopBarTest {
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
         Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
+        ReelsTopBar.forgetGivenTabs();
         HookStatus.clear();
         ReelsTopBar.idForTests(ReelsTopBar.BAR_ID, BAR_ID);
         controller = Robolectric.buildActivity(Activity.class).setup();
@@ -732,6 +733,40 @@ public class ReelsTopBarTest {
         if (marked) ReelsTopBar.friendsTab(friends);
         layout();
         return new Tabs(strip, reels, friends);
+    }
+
+    /**
+     * Where HushGram gave the Reels tab its tabs, Friends opens as a viewer of its own and stays
+     * selected after coming back, so a tap on it selects Reels first and Friends is new again (#571).
+     */
+    @Test public void aTapOnTheSelectedFriendsTabSelectsReelsFirstWhereHushGramGaveTheTabs() {
+        Row tab = showRow(ClipsViewerSource.CLIPS_TAB);
+        Tabs tabs = tabs(tab.bar, true);
+        List<String> taps = new ArrayList<>();
+        tabs.reels.setOnClickListener(reels -> {
+            taps.add("reels");
+            tabs.reels.setSelected(true);
+            tabs.friends.setSelected(false);
+        });
+        tabs.friends.setSelected(true);
+        assertTrue(tabs.friends.performClick());
+        assertTrue("Instagram's own tabs are left alone", taps.isEmpty());
+
+        Settings.SHOW_REELS_FRIENDS_TAB.save(true);
+        assertTrue(ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
+        tabs.friends.performClick();
+        assertEquals(1, taps.size());
+        assertEquals("reels", taps.get(0));
+        assertFalse(tabs.friends.isSelected());
+        tabs.friends.performClick();
+        assertEquals("a tap on Friends while Reels is selected is Instagram's", 1, taps.size());
+
+        tabs.friends.setSelected(true);
+        tabs.reels.setSelected(false);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        tabs.friends.performClick();
+        assertEquals("paused", 1, taps.size());
+        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_FRIENDS_AGAIN, 1));
     }
 
     @Test public void theFriendsTabGoesAndReelsHasTheStripToItself() {
