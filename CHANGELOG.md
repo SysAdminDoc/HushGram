@@ -73,6 +73,7 @@ Every HushGram release, newest first.
 * With `Page dots on a pill` on, a carousel's buttons sit right under the photo, the way they do on a single photo. Instagram kept an empty strip there for the dots the pill replaces. Reported in #527.
 * With `Pure black dark mode` on, a photo or GIF in a comment no longer has gray corners. Instagram's newer comments screen has a theme of its own with a dark gray background, and the corners were painted in it. That theme goes black now too. Reported in #538.
 * On an account that doesn't have Instagram's Friends tab, tapping Friends again after you've left it opens it again. It used to do nothing until you tapped Reels first. Reported in #571.
+* With `Pick friends` on, holding the Friends tab opens the list again on builds where Instagram gives each tab a hold of its own, which only cleared the tab's tooltip. Reported in #571.
 * New `Keep the comment bar's space` switch under the comment bar switches in Reels. A reel you open from a post or a profile used to drop down into the room the hidden bar left, so the video, its buttons and the seek bar all moved. With this on, that room stays as an empty band and nothing moves. Reported in #523.
 
 ## 0.0.19 (2026-11-06)
