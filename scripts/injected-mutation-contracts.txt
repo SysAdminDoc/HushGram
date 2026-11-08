@@ -1500,7 +1500,10 @@ once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->allow(Ljava/ut
 # Unsave on the short menu's list before its return, the same two places. Instagram's own handler
 # already knows what a tap on SAVE or UNSAVE does, so nothing goes in the tapped-option handler.
 # SaveInPostMenuHookTest checks both on every build of 454. Left out, the menu has no Save row.
+# The builder adds Instagram's own Save to some posts after that spot, so its rows are settled
+# before the return, where the added row comes back out. Left out, those posts show Save twice.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
+once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->settle(Ljava/lang/Object;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
 once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->allow(Ljava/util/List;)Ljava/util/List; in static (Z)Ljava/util/List; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->WHY_AM_I_SEEING_THIS:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->REPORT:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
 # Hide Made with Edits (#570) hands the label kinds list to EditsLabel.labels in the constructor of
 # the feed header's label state, right before it's stored (the one constructor of that 22-value

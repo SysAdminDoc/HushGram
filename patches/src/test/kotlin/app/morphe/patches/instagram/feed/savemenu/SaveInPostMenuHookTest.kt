@@ -24,7 +24,9 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import java.io.File
@@ -43,7 +45,7 @@ class SaveInPostMenuHookTest {
         val declared = ExtensionDex.classDef(SAVE_ROW).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(OFFER_SAVE, ALLOW_SAVE)) {
+        for (hook in listOf(OFFER_SAVE, ALLOW_SAVE, SETTLE_SAVE)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -100,7 +102,22 @@ class SaveInPostMenuHookTest {
         val written = classes.map { it.type }.filter { it != SAVE_ROW }.distinct().flatMap { context.mutableClassDefBy(it).methods }
         val offers = written.filter { method -> method.code().any { it.referenceText() == OFFER_SAVE } }
         assertEquals("$label: the methods offering the row", 1, offers.size)
-        assertEquals("$label: one offer", 1, offers.single().code().count { it.referenceText() == OFFER_SAVE })
+        val builder = offers.single().code()
+        assertEquals("$label: one offer", 1, builder.count { it.referenceText() == OFFER_SAVE })
+        // Instagram adds its own Save or Unsave to some posts after the offer, so the builder settles
+        // its rows right before each return: the call sits there and hands on the register returned.
+        val returns = builder.indices.filter { builder[it].opcode == Opcode.RETURN_OBJECT }
+        assertTrue("$label: the builder returns its rows", returns.isNotEmpty())
+        assertEquals("$label: one settle per return", returns.size, builder.count { it.referenceText() == SETTLE_SAVE })
+        for (at in returns) {
+            val settle = builder[at - 1]
+            assertEquals("$label: settle right before the return at $at", SETTLE_SAVE, settle.referenceText())
+            assertEquals(
+                "$label: settle reads the list returned at $at",
+                (builder[at] as OneRegisterInstruction).registerA,
+                (settle as RegisterRangeInstruction).startRegister,
+            )
+        }
         val allows = written.filter { method -> method.code().any { it.referenceText() == ALLOW_SAVE } }
         assertEquals("$label: the short menu lists keeping the row", 1, allows.size)
         val short = allows.single().code()

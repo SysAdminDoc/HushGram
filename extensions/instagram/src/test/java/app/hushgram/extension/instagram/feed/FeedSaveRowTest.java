@@ -97,7 +97,7 @@ public class FeedSaveRowTest {
 
     @After
     public void restore() {
-        FeedSaveRow.hider().resetForTests();
+        FeedSaveRow.resetForTests();
         Settings.SAVE_IN_POST_MENU.resetToDefault();
         Settings.HIDE_FEED_SAVE_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -175,6 +175,150 @@ public class FeedSaveRowTest {
 
         String missing = HookStatus.missing(FamilyNames.FEED_SAVE).toString();
         assertTrue(missing, missing.contains(FeedSaveRow.HOOK));
+    }
+
+    /**
+     * A menu row holding its option the way Instagram's do, and equal to any other row with the same
+     * option, so only identity tells the offered row from Instagram's own.
+     */
+    private static final class Row {
+        final String option;
+
+        Row(Object option) {
+            this.option = (String) option;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof Row && ((Row) other).option.equals(option);
+        }
+
+        @Override
+        public int hashCode() {
+            return option.hashCode();
+        }
+    }
+
+    /** Offers the row through an adder that puts a [Row] on the end of the rows, as the builder's does. */
+    private void offerRow(boolean saved) {
+        FeedSaveRow.offer(MENU, rows, () -> true, menu -> POST, post -> saved,
+                (menu, list, option, label) -> rows.add(new Row(option)), () -> SAVE, () -> UNSAVE);
+    }
+
+    private void settle() {
+        FeedSaveRow.settle(rows, () -> SAVE, () -> UNSAVE, FeedSaveRow::optionOf);
+    }
+
+    /**
+     * Instagram adds its own Save to a suggested post's menu after the offer, and the short menu
+     * keeps both: the offered row comes out and Instagram's stays, so there's one Save (#569).
+     */
+    @Test
+    public void instagramsOwnSaveRowIsTheOneLeft() {
+        Row hide = new Row("HIDE");
+        rows.add(hide);
+        offerRow(false);
+        Row theirs = new Row(SAVE);
+        rows.add(theirs);
+
+        settle();
+
+        assertEquals(2, rows.size());
+        assertSame(hide, rows.get(0));
+        assertSame("Instagram's row stays, not the equal one offered", theirs, rows.get(1));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(FeedSaveRow.COUNT_SETTLED));
+    }
+
+    /** A saved post where Instagram adds its own Unsave keeps Instagram's too. */
+    @Test
+    public void instagramsOwnUnsaveRowIsTheOneLeft() {
+        offerRow(true);
+        Row theirs = new Row(UNSAVE);
+        rows.add(theirs);
+
+        settle();
+
+        assertEquals(Collections.singletonList(theirs), rows);
+        assertSame(theirs, rows.get(0));
+    }
+
+    /** Where Instagram adds no Save of its own the offered row stays, and settling again changes nothing. */
+    @Test
+    public void theOfferedRowStaysWhenItIsTheOnlyOne() {
+        offerRow(true);
+        Object ours = rows.get(0);
+        rows.add(new Row("REPORT"));
+
+        settle();
+        rows.add(new Row(UNSAVE));
+        settle();
+
+        assertEquals(3, rows.size());
+        assertSame(ours, rows.get(0));
+    }
+
+    /** An offer that added nothing forgets the row the one before it added, and nothing is settled. */
+    @Test
+    public void aStaleOfferIsForgotten() {
+        offerRow(false);
+        Object ours = rows.get(0);
+        Settings.SAVE_IN_POST_MENU.save(false);
+        FeedSaveRow.offer(MENU, rows, FeedSaveRow::wanted, menu -> POST, post -> false,
+                (menu, list, option, label) -> rows.add(new Row(option)), () -> SAVE, () -> UNSAVE);
+        rows.add(new Row(SAVE));
+
+        settle();
+        FeedSaveRow.settle(null);
+        FeedSaveRow.settle("not rows");
+
+        assertEquals(2, rows.size());
+        assertSame(ours, rows.get(0));
+    }
+
+    /** A reader that throws leaves the rows as they were and says which hook threw. */
+    @Test
+    public void aThrowingReaderLeavesTheRows() {
+        offerRow(false);
+        rows.add(new Row(SAVE));
+
+        FeedSaveRow.settle(rows, () -> SAVE, () -> UNSAVE, (row, sample) -> {
+            throw new IllegalAccessException("sealed row");
+        });
+
+        assertEquals(2, rows.size());
+        String missing = HookStatus.missing(FamilyNames.FEED_SAVE).toString();
+        assertTrue(missing, missing.contains(FeedSaveRow.HOOK));
+    }
+
+    private enum Option { SAVE, UNSAVE, HIDE }
+
+    private static class OptionRow {
+        final Option option;
+
+        OptionRow(Option option) {
+            this.option = option;
+        }
+    }
+
+    private static final class LabeledRow extends OptionRow {
+        final CharSequence label;
+
+        LabeledRow(Option option, CharSequence label) {
+            super(option);
+            this.label = label;
+        }
+    }
+
+    /** The option is read off the row's field of the option's type, a superclass's included. */
+    @Test
+    public void theOptionIsReadOffTheRowsField() throws Exception {
+        assertSame(Option.UNSAVE, FeedSaveRow.optionOf(new LabeledRow(Option.UNSAVE, "Remove"), Option.SAVE));
+        assertSame(Option.HIDE, FeedSaveRow.optionOf(new OptionRow(Option.HIDE), Option.SAVE));
+        assertNull("a row with no field of that type", FeedSaveRow.optionOf(new Row("SAVE"), Option.SAVE));
+        assertEquals("the same row class read for another type", "SAVE", FeedSaveRow.optionOf(new Row("SAVE"), SAVE));
+        assertNull(FeedSaveRow.optionOf(null, Option.SAVE));
+        assertNull(FeedSaveRow.optionOf(new OptionRow(Option.HIDE), null));
     }
 
     /** The short menu's kept options take Save and Unsave on the end, so the row added above stays. */

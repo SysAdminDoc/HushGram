@@ -39,6 +39,7 @@ internal const val FEED_SAVE_STATUS = "feedSave"
 internal const val SAVE_ROW = "$EXTENSION_PACKAGE/feed/FeedSaveRow;"
 internal const val OFFER_SAVE = "$SAVE_ROW->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V"
 internal const val ALLOW_SAVE = "$SAVE_ROW->allow(Ljava/util/List;)Ljava/util/List;"
+internal const val SETTLE_SAVE = "$SAVE_ROW->settle(Ljava/lang/Object;)V"
 
 /** Instagram's own Save and Unsave options, which its feed menu handles a tap on itself. */
 internal const val SAVE_OPTION = "$OPTION->SAVE:$OPTION"
@@ -104,7 +105,8 @@ internal fun BytecodePatchContext.findSavedCheck(): SavedCheck {
  * Save in the post menu's hooks, found: the feed menu Download any video adds its rows to (found by
  * the same finders, so it shows with Download left out), its short menu's list of kept options,
  * the saved check and the row's stubs in the extension's FeedSaveRow. Nothing is changed until
- * [write].
+ * [write]. The builder adds Instagram's own Save or Unsave to some posts after anyone else's rows,
+ * so a settle call before each of its returns takes the added row out again where that happened.
  */
 internal class FeedSaveRowHooks(
     private val context: BytecodePatchContext,
@@ -133,10 +135,16 @@ internal class FeedSaveRowHooks(
                 """,
             )
         }
-        mutable(menu.builder).addInstructionsAtControlFlowLabel(
-            others.at,
-            "invoke-static { v${others.state}, v${others.rows} }, $OFFER_SAVE",
-        )
+        val builder = mutable(menu.builder)
+        val built = builder.code()
+        val inserts = built.indices.filter { built[it].opcode == Opcode.RETURN_OBJECT }.map { index ->
+            val rows = (built[index] as OneRegisterInstruction).registerA
+            index to "invoke-static/range { v$rows .. v$rows }, $SETTLE_SAVE"
+        } + (others.at to "invoke-static { v${others.state}, v${others.rows} }, $OFFER_SAVE")
+        // The highest index first, so the ones below it stay where they were.
+        for ((index, call) in inserts.sortedByDescending { it.first }) {
+            builder.addInstructionsAtControlFlowLabel(index, call)
+        }
         postOf.addInstructions(
             0,
             """
@@ -174,6 +182,9 @@ internal fun BytecodePatchContext.findFeedSaveRow(): FeedSaveRowHooks {
         "expected one list of the options the short feed menu keeps, found " +
             if (menu.shortLists.isEmpty()) "none" else menu.shortLists.joinToString { "${it.definingClass}->${it.name}" },
     )
+    if (menu.builder.code().none { it.opcode == Opcode.RETURN_OBJECT }) {
+        refuse("${menu.builder.definingClass}->${menu.builder.name}, the feed menu's builder, never hands back its rows")
+    }
     val returns = shortList.code().filter { it.opcode == Opcode.RETURN_OBJECT }
     if (returns.isEmpty()) refuse("${shortList.definingClass}->${shortList.name} never returns its list")
     returns.map { (it as OneRegisterInstruction).registerA }.firstOrNull { it > 15 }?.let {

@@ -9,8 +9,13 @@ import android.content.Context;
 
 import androidx.annotation.Nullable;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -34,6 +39,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * button does and shows its usual confirmation. Whether the post is saved is read the way
  * Instagram's older menu reads it. The button is hidden by {@link ViewHider}, only inside a feed
  * post's row of buttons.
+ *
+ * <p>Instagram's builder adds its own Save or Unsave row to some posts' menus, suggested posts
+ * among them, after the spot the row goes in. The short menu used to drop that one, but it keeps
+ * Save now, so {@link #settle} takes the added row back out wherever Instagram built its own.
  */
 public final class FeedSaveRow {
     /** The row of buttons under a feed post, and its Save button. */
@@ -43,6 +52,12 @@ public final class FeedSaveRow {
     static final String HOOK = "feed save row";
     static final String COUNT_OFFERED = "save rows added";
     static final String COUNT_HIDDEN = "feed save buttons hidden";
+    static final String COUNT_SETTLED = "save rows left to Instagram's own";
+
+    /** The row {@link #offer} added on this thread, until the builder hands its rows back. */
+    private static final ThreadLocal<Object> OFFERED = new ThreadLocal<>();
+    /** A row class and option type's field holding the option, or no field where it has none. */
+    private static final Map<List<Class<?>>, Field[]> OPTION_FIELDS = new ConcurrentHashMap<>();
 
     private static final ViewHider HIDER = new ViewHider(FamilyNames.FEED_SAVE, "feed save button", COUNT_HIDDEN,
             () -> Settings.HIDE_FEED_SAVE_BUTTON.get(), BUTTONS, SAVE_BUTTON);
@@ -104,6 +119,7 @@ public final class FeedSaveRow {
 
     static void offer(Object menu, ArrayList<?> rows, BooleanSupplier on, Function<Object, Object> postOf,
             Function<Object, Boolean> savedOf, Adder adder, Supplier<Object> save, Supplier<Object> unsave) {
+        OFFERED.remove();
         try {
             if (menu == null || rows == null) return;
             HookStatus.invoked(FamilyNames.FEED_SAVE);
@@ -113,11 +129,81 @@ public final class FeedSaveRow {
             boolean saved = Boolean.TRUE.equals(savedOf.apply(post));
             Object option = saved ? unsave.get() : save.get();
             if (option == null) return;
+            int before = rows.size();
             adder.add(menu, rows, option, saved ? L10n.t("Remove from saved") : L10n.t("Save"));
+            if (rows.size() == before + 1) OFFERED.set(rows.get(before));
             HookStatus.counted(FamilyNames.FEED_SAVE, COUNT_OFFERED);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SAVE, HOOK, failure);
         }
+    }
+
+    /**
+     * Injected before the feed menu's builder hands back [rows]. Takes the row {@link #offer} added
+     * out again when another row carries Save or Unsave, Instagram's own, so the menu shows one.
+     * Never throws.
+     */
+    public static void settle(Object rows) {
+        settle(rows, FeedSaveRow::saveOption, FeedSaveRow::unsaveOption, FeedSaveRow::optionOf);
+    }
+
+    interface OptionReader {
+        Object optionOf(Object row, Object sample) throws ReflectiveOperationException;
+    }
+
+    static void settle(Object rows, Supplier<Object> save, Supplier<Object> unsave, OptionReader reader) {
+        Object ours = OFFERED.get();
+        OFFERED.remove();
+        if (ours == null || !(rows instanceof List)) return;
+        try {
+            List<?> list = (List<?>) rows;
+            Object saveOption = save.get();
+            Object unsaveOption = unsave.get();
+            int at = -1;
+            boolean theirs = false;
+            for (int index = 0; index < list.size(); index++) {
+                Object row = list.get(index);
+                // By identity: a row class can count two rows with the same option as equal.
+                if (row == ours) {
+                    at = index;
+                    continue;
+                }
+                Object option = reader.optionOf(row, saveOption);
+                if (option != null && (option == saveOption || option == unsaveOption)) theirs = true;
+            }
+            if (at < 0 || !theirs) return;
+            list.remove(at);
+            HookStatus.counted(FamilyNames.FEED_SAVE, COUNT_SETTLED);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SAVE, HOOK, failure);
+        }
+    }
+
+    /**
+     * The option [row] carries: the first field of its class, or a superclass, of [sample]'s type,
+     * the way Instagram's menu rows hold theirs. Null when it has none.
+     */
+    static Object optionOf(Object row, Object sample) throws IllegalAccessException {
+        if (row == null || sample == null) return null;
+        Class<?> type = sample instanceof Enum ? ((Enum<?>) sample).getDeclaringClass() : sample.getClass();
+        List<Class<?>> key = Arrays.asList(row.getClass(), type);
+        Field[] found = OPTION_FIELDS.get(key);
+        if (found == null) {
+            found = optionField(row.getClass(), type);
+            OPTION_FIELDS.put(key, found);
+        }
+        return found.length == 0 ? null : found[0].get(row);
+    }
+
+    private static Field[] optionField(Class<?> rowType, Class<?> optionType) {
+        for (Class<?> at = rowType; at != null && at != Object.class; at = at.getSuperclass()) {
+            for (Field field : at.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) || field.getType() != optionType) continue;
+                field.setAccessible(true);
+                return new Field[] {field};
+            }
+        }
+        return new Field[0];
     }
 
     /**
@@ -157,5 +243,6 @@ public final class FeedSaveRow {
 
     public static void resetForTests() {
         HIDER.resetForTests();
+        OFFERED.remove();
     }
 }
