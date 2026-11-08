@@ -43,6 +43,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
@@ -267,10 +268,24 @@ public final class GlassTabBar {
 
     /**
      * How far a reel's caption, buttons and seek bar are raised so nothing touchable sits under the pill
-     * when the reel runs behind it: the slot, while the slot is kept. Otherwise 0 (#372).
+     * when the reel runs behind it: the slot, while the slot is kept (#372). With no slot kept, as over a
+     * reel opened from a feed post where Instagram hides its bar (#347), the viewer can run down over the
+     * navigation bar, where nothing pads it, so the band clears [nav], how far the viewer reaches into
+     * that bar ({@link #intoTheNavigationBar}), and the seek bar stays off the gesture handle (#450). A
+     * viewer that stops at the slot needs no lift.
      */
-    static int reelsBandLift(boolean keep, boolean behind, int slot) {
-        return keep && behind ? Math.max(0, slot) : 0;
+    static int reelsBandLift(boolean keep, boolean behind, int slot, int nav) {
+        if (!keep) return Math.max(0, nav);
+        return behind ? Math.max(0, slot) : 0;
+    }
+
+    /**
+     * How far a view whose bottom is at [bottom] in a window [window] tall reaches into the navigation bar
+     * [nav] tall at the window's foot: 0 for one that stops above it, never more than [nav].
+     */
+    static int intoTheNavigationBar(int bottom, int window, int nav) {
+        if (nav <= 0 || window <= 0) return 0;
+        return Math.max(0, Math.min(nav, bottom - (window - nav)));
     }
 
     private static int liftReels(View view, View bar, int id, int wanted, java.util.Map<View, Integer> given,
@@ -1056,7 +1071,12 @@ public final class GlassTabBar {
      * up, under a sheet, or with its bar hidden for a paused reel (#222).
      */
     static int reelsMargin(int slot) {
-        return Math.max(0, slot) + Math.max(0, navTaken - navGiven);
+        return Math.max(0, slot) + navUnpadded();
+    }
+
+    /** The navigation bar's height Instagram was answered 0 for and doesn't pad its screens by itself. */
+    static int navUnpadded() {
+        return Math.max(0, navTaken - navGiven);
     }
 
     /** {@link #sheetRoom} for a pill that floats, 0 for one that doesn't. */
@@ -1424,8 +1444,14 @@ public final class GlassTabBar {
         private long reelsLookedAt = Long.MIN_VALUE / 2;
         /** The margin the last look gave the Reels viewers, or -1 before the first. */
         private int reelsWanted = -1;
-        /** How far the last look raised each reel's caption, buttons and seek bar for a reel run behind the pill (#372). */
-        private int reelsBandLift;
+        /** Whether the last look kept the pill's slot under the Reels viewers ({@link #reelsKeepTheSlot}). */
+        private boolean reelsKept;
+        /** Whether the last look had the reels run behind the pill ({@link #reelsRunBehind}, #372). */
+        private boolean reelsBehind;
+        /** The pill's slot at the last look ({@link #reelsMargin}). */
+        private int reelsSlot;
+        /** Where {@link #navUnder} reads a viewer's place in its window. */
+        private final int[] viewerAt = new int[2];
         /** Every Reels viewer the last look met. */
         private final java.util.Set<View> viewers = java.util.Collections.newSetFromMap(new WeakHashMap<>());
         /** The views raised over a reel to clear the pill (#221), each with the translation it was given. */
@@ -2032,11 +2058,15 @@ public final class GlassTabBar {
             boolean behind = reelsRunBehind(Settings.GLASS_TAB_BAR_REELS_BEHIND.get(),
                     Settings.GLASS_TAB_BAR_REELS_HIDE.get());
             int wanted = reelsViewerMargin(keep, behind, slot);
-            int bandLift = reelsBandLift(keep, behind, slot);
-            if (wanted == reelsWanted && bandLift == reelsBandLift && now - reelsLookedAt < REELS_LOOK_MS) return;
+            if (wanted == reelsWanted && keep == reelsKept && behind == reelsBehind && slot == reelsSlot
+                    && now - reelsLookedAt < REELS_LOOK_MS) {
+                return;
+            }
             reelsLookedAt = now;
             reelsWanted = wanted;
-            reelsBandLift = bandLift;
+            reelsKept = keep;
+            reelsBehind = behind;
+            reelsSlot = slot;
             viewers.clear();
             int moved = reelsAboveTheBar(holder, bar, id(holder.getContext(), REELS_ROOT), wanted, lifted, viewers);
             if (moved > 0) {
@@ -2073,7 +2103,7 @@ public final class GlassTabBar {
                 reelAnchors(viewer, info, scrubber, footers, anchors, footerViews, 0);
                 int footer = 0;
                 for (View view : footerViews) footer += overlapFooter(view);
-                footer += reelsBandLift;
+                footer += reelsBandLift(reelsKept, reelsBehind, reelsSlot, reelsKept ? 0 : navUnder(viewer));
                 for (View anchor : anchors) {
                     View band = bands.get(anchor);
                     if (band == null || !holds(band, anchor)) {
@@ -2096,6 +2126,24 @@ public final class GlassTabBar {
                 }
             }
             raisedNow.clear();
+        }
+
+        /**
+         * How far [viewer] reaches into the navigation bar at its window's foot ({@link #intoTheNavigationBar}).
+         * The bar counts at its full height whether it shows or Full screen Reels hides it, since a swipe up
+         * from that strip still leaves the app. Measured on the viewer, since what Instagram was last told
+         * about the bar says nothing once Full screen Reels hides it as the reel opens (#450). Without the
+         * window's insets, the height Instagram was answered 0 for ({@link #navUnpadded}).
+         */
+        private int navUnder(View viewer) {
+            WindowInsets insets = viewer.getRootWindowInsets();
+            View root = viewer.getRootView();
+            if (insets == null || root == null) return navUnpadded();
+            int nav = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    ? insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars()).bottom
+                    : insets.getStableInsetBottom();
+            viewer.getLocationInWindow(viewerAt);
+            return intoTheNavigationBar(viewerAt[1] + viewer.getHeight(), root.getHeight(), nav);
         }
 
         /**
