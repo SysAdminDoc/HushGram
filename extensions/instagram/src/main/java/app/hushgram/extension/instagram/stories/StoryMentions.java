@@ -18,10 +18,12 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -38,6 +40,7 @@ import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.ViewParent;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -54,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.function.Consumer;
 
 import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.download.PictureFetch;
@@ -1021,7 +1025,7 @@ public final class StoryMentions {
         rows.setOrientation(LinearLayout.VERTICAL);
         rows.setPadding(0, Dim.dp(8), 0, Dim.dp(8));
         for (Mention person : people) {
-            rows.addView(row(themed, person, () -> {
+            rows.addView(row(themed, person, sheet, () -> {
                 leaving[0] = true;
                 backToList = new BackToList(people, activity, heldList.get() == dialog ? heldViewer.get() : null);
                 watch(activity);
@@ -1054,20 +1058,41 @@ public final class StoryMentions {
     /** How much of the screen's height a sheet's accounts take before they scroll. */
     static final float SHEET_ROWS_SHARE = 0.6f;
 
+    /** The glass sheet's corners, its gap to the screen's sides and bottom, and its widest width, in dp (#525). */
+    static final int GLASS_CORNER_DP = 24;
+    static final int GLASS_GAP_DP = 8;
+    static final int GLASS_WIDEST_DP = 560;
+    /** How far the story behind the glass sheet is blurred, in dp. */
+    static final int GLASS_BLUR_DP = 24;
+    /** How much of the sheet's color covers a blurred story, and a story the phone won't blur. */
+    static final int GLASS_ALPHA = 0xB8;
+    static final int CLEAR_ALPHA = 0xEE;
+    /** How much the story dims around the sheet. */
+    static final float GLASS_DIM = 0.3f;
+    /** For tests: whether the phone blurs what's behind a window, or null to ask it. */
+    @Nullable static Boolean blursForTests;
+    /** How much of the card color a row in the glass sheet keeps. */
+    static final int ROW_GLASS_ALPHA = 0x66;
+
     /**
      * The sheet's content: "Story mentions" over a line saying what it lists, the account [rows],
-     * and a Close as wide as the sheet, on the settings' card color with rounded top corners.
+     * and a Close as wide as the sheet. Its glass tint is the window's background ({@link
+     * #alongTheBottom}); the sheet adds the light catching its top and a thin rim (#525).
      */
     private static View sheet(Context themed, LinearLayout rows, AlertDialog dialog) {
         ScreenColors colors = ScreenColors.DEFAULT;
         LinearLayout sheet = new LinearLayout(themed);
         sheet.setOrientation(LinearLayout.VERTICAL);
         sheet.setPadding(0, Dim.dp(20), 0, Dim.dp(16));
-        GradientDrawable surface = new GradientDrawable();
-        surface.setColor(colors.dialog);
-        float corner = Dim.dp(12);
-        surface.setCornerRadii(new float[] {corner, corner, corner, corner, 0, 0, 0, 0});
-        sheet.setBackground(surface);
+        float corner = Dim.dp(GLASS_CORNER_DP);
+        GradientDrawable sheen = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[] {colors.light ? 0x59FFFFFF : 0x1FFFFFFF, Color.TRANSPARENT, Color.TRANSPARENT});
+        sheen.setCornerRadius(corner);
+        GradientDrawable rim = new GradientDrawable();
+        rim.setColor(Color.TRANSPARENT);
+        rim.setCornerRadius(corner);
+        rim.setStroke(Math.max(1, Dim.dp(1)), colors.light ? 0x99FFFFFF : 0x33FFFFFF);
+        sheet.setBackground(new LayerDrawable(new Drawable[] {sheen, rim}));
 
         TextView title = new TextView(themed);
         title.setText(L10n.t(themed, "Story mentions"));
@@ -1120,18 +1145,96 @@ public final class StoryMentions {
         return sheet;
     }
 
-    /** Lays [dialog]'s window along the bottom of the screen, as wide as it, with no backing of its own. */
+    /**
+     * Floats [dialog]'s window along the bottom of the screen as a pane of glass (#525): a card with
+     * a small gap to the sides and bottom, tinted with the sheet's color, with the story blurred
+     * behind it where the phone blurs behind windows (Android 12 and up, unless battery saver or the
+     * phone turns that off, which it follows while the sheet is open). Without the blur the tint is
+     * nearly solid, so the names stay easy to read over any story.
+     *
+     * <p>The blur covers the window and takes its corners from the window's background, which is why
+     * the window is the card's size and the tint its background.
+     */
     private static void alongTheBottom(AlertDialog dialog) {
         Window window = dialog.getWindow();
         if (window == null) return;
-        window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        window.setGravity(Gravity.BOTTOM);
+        GradientDrawable glass = new GradientDrawable();
+        glass.setCornerRadius(Dim.dp(GLASS_CORNER_DP));
+        int color = ScreenColors.DEFAULT.dialog;
+        glass.setColor(tint(color, false));
+        window.setBackgroundDrawable(glass);
+        int screen = dialog.getContext().getResources().getDisplayMetrics().widthPixels;
+        window.setLayout(Math.min(screen - 2 * Dim.dp(GLASS_GAP_DP), Dim.dp(GLASS_WIDEST_DP)),
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        window.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        WindowManager.LayoutParams place = window.getAttributes();
+        place.y = Dim.dp(GLASS_GAP_DP);
+        window.setAttributes(place);
+        // A shadow would show through the tint as a dark smudge; the rim draws the edge instead.
+        window.setElevation(0);
+        window.setDimAmount(GLASS_DIM);
         window.setWindowAnimations(android.R.style.Animation_InputMethod);
+        try {
+            frost(window, glass, color, blurs(dialog.getContext()));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && blursForTests == null) followBlur(dialog, window, glass, color);
+        } catch (Throwable failure) {
+            frost(window, glass, color, false);
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "glass sheet", failure);
+        }
     }
 
-    /** A row with [person]'s picture, then their full name over their @username. */
-    private static View row(Context themed, Mention person, Runnable open) {
+    /** Whether the phone blurs what's behind a window right now. */
+    static boolean blurs(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false;
+        Boolean forTests = blursForTests;
+        if (forTests != null) return forTests;
+        WindowManager manager = context.getSystemService(WindowManager.class);
+        return manager != null && manager.isCrossWindowBlurEnabled();
+    }
+
+    /** [color] as the glass tint: see-through over a blurred story, nearly solid over a sharp one. */
+    static int tint(int color, boolean blurred) {
+        return (color & 0x00FFFFFF) | ((blurred ? GLASS_ALPHA : CLEAR_ALPHA) << 24);
+    }
+
+    private static void frost(Window window, GradientDrawable glass, int color, boolean blurred) {
+        glass.setColor(tint(color, blurred));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) window.setBackgroundBlurRadius(blurred ? Dim.dp(GLASS_BLUR_DP) : 0);
+    }
+
+    /** Re-tints the sheet when the phone turns blurring behind windows on or off while it's open. */
+    private static void followBlur(AlertDialog dialog, Window window, GradientDrawable glass, int color) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+        WindowManager manager = dialog.getContext().getSystemService(WindowManager.class);
+        if (manager == null) return;
+        Consumer<Boolean> follow = blurred -> {
+            try {
+                frost(window, glass, color, Boolean.TRUE.equals(blurred));
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_MENTIONS, "glass sheet blur", failure);
+            }
+        };
+        View decor = window.getDecorView();
+        View.OnAttachStateChangeListener attach = new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View view) {
+                manager.addCrossWindowBlurEnabledListener(follow);
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View view) {
+                manager.removeCrossWindowBlurEnabledListener(follow);
+            }
+        };
+        decor.addOnAttachStateChangeListener(attach);
+        if (decor.isAttachedToWindow()) attach.onViewAttachedToWindow(decor);
+    }
+
+    /**
+     * A row with [person]'s picture, then their full name over their @username, on a card that's
+     * see-through in the glass sheet ([glass]).
+     */
+    private static View row(Context themed, Mention person, boolean glass, Runnable open) {
         LinearLayout row = new LinearLayout(themed);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -1140,9 +1243,9 @@ public final class StoryMentions {
         ScreenColors colors = ScreenColors.DEFAULT;
         int secondary = colors.summary;
         GradientDrawable surface = new GradientDrawable();
-        surface.setColor(colors.card);
+        surface.setColor(glass ? (colors.card & 0x00FFFFFF) | (ROW_GLASS_ALPHA << 24) : colors.card);
         surface.setCornerRadius(Dim.dp(12));
-        surface.setStroke(Dim.dp(1), colors.outline);
+        surface.setStroke(Dim.dp(1), glass ? (colors.light ? 0x80FFFFFF : 0x26FFFFFF) : colors.outline);
         row.setBackground(new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(colors.heading)), surface, null));
         LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -1401,6 +1504,7 @@ public final class StoryMentions {
         viewer = new WeakReference<>(null);
         heldViewer = new WeakReference<>(null);
         heldList = new WeakReference<>(null);
+        blursForTests = null;
         Application app = watching.get();
         if (app != null) app.unregisterActivityLifecycleCallbacks(COMEBACK);
         watching = new WeakReference<>(null);

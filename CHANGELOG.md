@@ -29,6 +29,7 @@ Every HushGram release, newest first.
 * `Pure black dark mode` now turns the menu you get by holding a message, or a chat in your inbox, black too. Asked for in #543.
 * With `Full screen Reels` hiding the status bar, the Reels and Friends tabs and the buttons at the top of a reel now sit just below a punch hole camera instead of under it. Asked for in #525.
 * `Select text` opens a comment, caption or bio in HushGram's own dark window now, black with `Pure black dark mode`, instead of the phone's gray one. Asked for in #525.
+* The story mentions sheet you open from the top bar floats over the story as a pane of glass now, with the story blurred behind it on Android 12 and up. Phones that can't blur get a nearly solid tint so the names stay readable. Asked for in #525.
 * `Glass in chats` gives the back, call and video buttons real glass circles that match the liquid tab bar, with a lit rim and a sheen over the blurred header instead of flat grey. The thin line along the bottom of a chat's top bar is gone too, so the glass runs straight into the messages. Asked for in #537 and #542.
 
 ### Bug Fixes

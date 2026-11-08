@@ -50,6 +50,7 @@ import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.PatchFamily;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -1070,7 +1071,10 @@ public class StoryMentionsTest {
         assertEquals("1 mention", pill().getText().toString());
     }
 
-    /** From the top bar the list is a sheet along the bottom, with a Close as wide as it (#468). */
+    /**
+     * From the top bar the list is a sheet floating just above the bottom, with a Close as wide as
+     * it (#468), a small gap to the screen's sides and bottom (#525).
+     */
     @Test
     public void theTopBarPillsListIsASheetAlongTheBottom() {
         topBar();
@@ -1082,7 +1086,11 @@ public class StoryMentionsTest {
         assertTrue(dialog.isShowing());
         android.view.WindowManager.LayoutParams window = dialog.getWindow().getAttributes();
         assertEquals(android.view.Gravity.BOTTOM, window.gravity & android.view.Gravity.VERTICAL_GRAVITY_MASK);
-        assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, window.width);
+        assertEquals(android.view.Gravity.CENTER_HORIZONTAL, window.gravity & android.view.Gravity.HORIZONTAL_GRAVITY_MASK);
+        int screen = dialog.getContext().getResources().getDisplayMetrics().widthPixels;
+        int gap = Dim.dp(StoryMentions.GLASS_GAP_DP);
+        assertEquals("a gap to each side", Math.min(screen - 2 * gap, Dim.dp(StoryMentions.GLASS_WIDEST_DP)), window.width);
+        assertEquals("and to the bottom", gap, window.y);
         View content = dialog.getWindow().getDecorView();
         assertNotNull("its title", find(content, view -> "Story mentions".equals(textOf(view))));
         assertNotNull("what it lists", find(content, view -> "Accounts mentioned in this story".equals(textOf(view))));
@@ -1093,6 +1101,69 @@ public class StoryMentionsTest {
         assertEquals("as wide as the sheet", ViewGroup.LayoutParams.MATCH_PARENT, close.getLayoutParams().width);
         assertTrue(close.performClick());
         assertFalse("Close closes it", dialog.isShowing());
+    }
+
+    /**
+     * The sheet is a pane of glass (#525): its window's background is the tint, rounded the same at
+     * every corner so the blur behind it is too, see-through where the phone blurs the story and
+     * nearly solid where it can't. The rows show the glass through them; the centered list's don't.
+     */
+    @Test
+    public void theSheetIsGlassOverTheStory() {
+        topBar();
+        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.TOP_BAR);
+        bind(ANA, BO);
+        boolean canBlur = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S;
+        for (boolean blurring : new boolean[] {true, false}) {
+            StoryMentions.blursForTests = blurring;
+            assertTrue(pill().performClick());
+            AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+            assertTrue(dialog.isShowing());
+            View decor = dialog.getWindow().getDecorView();
+            android.graphics.drawable.GradientDrawable glass = gradientIn(decor.getBackground());
+            assertNotNull("the window's background is the tint", glass);
+            assertEquals("one corner all round", Dim.dp(StoryMentions.GLASS_CORNER_DP), glass.getCornerRadius(), 0.01f);
+            // The blur behind a window takes its corners from this outline, and only from a round rect.
+            android.graphics.Outline outline = new android.graphics.Outline();
+            glass.setBounds(0, 0, Dim.dp(300), Dim.dp(200));
+            glass.getOutline(outline);
+            assertEquals(Dim.dp(StoryMentions.GLASS_CORNER_DP), outline.getRadius(), 0.01f);
+            int tint = glass.getColor().getDefaultColor();
+            assertEquals("the sheet's own colour", ScreenColors.DEFAULT.dialog & 0x00FFFFFF, tint & 0x00FFFFFF);
+            boolean blurred = blurring && canBlur;
+            assertEquals("see-through only over a blur", blurred ? StoryMentions.GLASS_ALPHA : StoryMentions.CLEAR_ALPHA, tint >>> 24);
+            assertEquals(StoryMentions.GLASS_DIM, dialog.getWindow().getAttributes().dimAmount, 0.001f);
+            View row = find(decor, view -> "Ana Lima, @ana".contentEquals(String.valueOf(view.getContentDescription())));
+            android.graphics.drawable.GradientDrawable card = (android.graphics.drawable.GradientDrawable)
+                    ((android.graphics.drawable.RippleDrawable) row.getBackground()).getDrawable(0);
+            assertEquals("a row lets the glass through", StoryMentions.ROW_GLASS_ALPHA, card.getColor().getDefaultColor() >>> 24);
+            dialog.dismiss();
+        }
+
+        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.UNDER_NAME);
+        bind(ANA, BO);
+        assertTrue(pill().performClick());
+        AlertDialog list = (AlertDialog) ShadowDialog.getLatestDialog();
+        View row = find(list.getWindow().getDecorView(), view -> "Ana Lima, @ana".contentEquals(String.valueOf(view.getContentDescription())));
+        android.graphics.drawable.GradientDrawable card = (android.graphics.drawable.GradientDrawable)
+                ((android.graphics.drawable.RippleDrawable) row.getBackground()).getDrawable(0);
+        assertEquals("the centered list's rows stay solid", ScreenColors.DEFAULT.card, card.getColor().getDefaultColor());
+    }
+
+    /** The gradient [drawable] is, or the one a window wrapped it in (an inset, or a layer under a blur), else null. */
+    private static android.graphics.drawable.GradientDrawable gradientIn(android.graphics.drawable.Drawable drawable) {
+        if (drawable instanceof android.graphics.drawable.GradientDrawable) return (android.graphics.drawable.GradientDrawable) drawable;
+        if (drawable instanceof android.graphics.drawable.DrawableWrapper) {
+            return gradientIn(((android.graphics.drawable.DrawableWrapper) drawable).getDrawable());
+        }
+        if (drawable instanceof android.graphics.drawable.LayerDrawable) {
+            android.graphics.drawable.LayerDrawable layers = (android.graphics.drawable.LayerDrawable) drawable;
+            for (int i = 0; i < layers.getNumberOfLayers(); i++) {
+                android.graphics.drawable.GradientDrawable found = gradientIn(layers.getDrawable(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     /** A row in the sheet opens the profile and the sheet comes back with the story, as the list does. */
