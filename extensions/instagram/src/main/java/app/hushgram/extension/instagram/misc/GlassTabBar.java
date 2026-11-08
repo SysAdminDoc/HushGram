@@ -169,25 +169,39 @@ public final class GlassTabBar {
 
     /**
      * Each child of [content], and the sibling of [content] whose id is [pager] (0 for none), whose
-     * bottom margin is [barHeight] gets [wanted] in its place. Any other margin is left alone.
+     * bottom margin is [barHeight] gets [wanted] in its place. Any other margin is left alone. Returns
+     * how many changed.
      */
-    static void screensAboveTheBar(ViewGroup content, int pager, int barHeight, int wanted) {
-        for (int i = 0; i < content.getChildCount(); i++) aboveTheBar(content.getChildAt(i), barHeight, wanted);
-        if (pager == 0 || !(content.getParent() instanceof ViewGroup)) return;
+    static int screensAboveTheBar(ViewGroup content, int pager, int barHeight, int wanted) {
+        int changed = 0;
+        for (int i = 0; i < content.getChildCount(); i++) changed += aboveTheBar(content.getChildAt(i), barHeight, wanted);
+        if (pager == 0 || !(content.getParent() instanceof ViewGroup)) return changed;
         ViewGroup holder = (ViewGroup) content.getParent();
         for (int i = 0; i < holder.getChildCount(); i++) {
             View sibling = holder.getChildAt(i);
-            if (sibling.getId() == pager) aboveTheBar(sibling, barHeight, wanted);
+            if (sibling.getId() == pager) changed += aboveTheBar(sibling, barHeight, wanted);
         }
+        return changed;
     }
 
-    private static void aboveTheBar(View screen, int barHeight, int wanted) {
-        if (!(screen.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return;
+    private static int aboveTheBar(View screen, int barHeight, int wanted) {
+        if (!(screen.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return 0;
         ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) screen.getLayoutParams();
-        if (margins.bottomMargin == barHeight) {
-            margins.bottomMargin = wanted;
-            screen.setLayoutParams(margins);
-        }
+        if (margins.bottomMargin != barHeight) return 0;
+        margins.bottomMargin = wanted;
+        screen.setLayoutParams(margins);
+        return 1;
+    }
+
+    /**
+     * Writes a debug line naming a margin HushGram just changed under Instagram's screens. Each change lays
+     * the Reels viewer out again in the next frame, and a reel laid out twice in a row can stop on its
+     * cover while its sound plays on (#222, #509), so a diagnostic taken right after a frozen reel shows
+     * which change came just before it.
+     */
+    static void movedForReels(String what, int changed, int margin) {
+        if (changed <= 0) return;
+        Logger.printDebug(() -> "Glass tab bar: " + what + " (" + changed + " moved, bottom margin " + margin + ")");
     }
 
     /**
@@ -1776,8 +1790,10 @@ public final class GlassTabBar {
             if (holder == null || !(holder.getParent() instanceof ViewGroup)) return false;
             int wanted = HushgramPause.isPaused() ? 0 : sheetRoom(floating);
             int dimmer = id(holder.getContext(), SHEET_DIMMER);
-            if (sheetsAboveTheNavigationBar((ViewGroup) holder.getParent(), dimmer, wanted, sheetLifts) == 0) return false;
+            int moved = sheetsAboveTheNavigationBar((ViewGroup) holder.getParent(), dimmer, wanted, sheetLifts);
+            if (moved == 0) return false;
             HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_SHEETS_LIFTED);
+            movedForReels("lifted the sheets", moved, wanted);
             return true;
         }
 
@@ -2014,9 +2030,11 @@ public final class GlassTabBar {
             reelsWanted = wanted;
             reelsBandLift = bandLift;
             viewers.clear();
-            if (reelsAboveTheBar(holder, bar, id(holder.getContext(), REELS_ROOT), wanted, lifted, viewers) > 0) {
+            int moved = reelsAboveTheBar(holder, bar, id(holder.getContext(), REELS_ROOT), wanted, lifted, viewers);
+            if (moved > 0) {
                 reelsMoved = true;
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REELS_LIFTED);
+                movedForReels("lifted the Reels viewer", moved, wanted);
             }
         }
 
@@ -2143,6 +2161,7 @@ public final class GlassTabBar {
                 footer.setLayoutParams(margins);
                 footerMoved = true;
                 if (height > 0) HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_FOOTER_OVERLAID);
+                Logger.printDebug(() -> "Glass tab bar: laid the Reels footer over the reel (top margin " + -height + ")");
             }
             if (height == 0) overlapped.remove(footer);
             else overlapped.put(footer, -height);
@@ -2239,7 +2258,8 @@ public final class GlassTabBar {
             if (originalBarHeight <= 0 || params == null || params.height <= 0) return;
             int wanted = floating ? 0 : params.height;
             if (wanted == originalBarHeight) return;
-            screensAboveTheBar(content, id(content.getContext(), SWIPE_PAGER), originalBarHeight, wanted);
+            movedForReels("put the screens above the bar",
+                    screensAboveTheBar(content, id(content.getContext(), SWIPE_PAGER), originalBarHeight, wanted), wanted);
         }
 
         @Override public boolean onPreDraw() {

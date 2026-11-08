@@ -52,6 +52,7 @@ Every HushGram release, newest first.
 * `Select text` opens a comment, caption or bio in HushGram's own dark window now, black with `Pure black dark mode`, instead of the phone's gray one. Asked for in #525.
 * The story mentions sheet from the top bar floats over the story as glass now, with the story blurred behind it on Android 12 and up. Phones that can't blur get a nearly solid tint so names stay readable. Asked for in #525.
 * `Glass in chats` gives the back, call and video buttons real glass circles that match the liquid tab bar, with a lit rim instead of flat grey. The thin line under a chat's top bar is gone too. Asked for in #537 and #542.
+* With debug logging on, the diagnostic report now has a timed line each time the glass or classic tab bar moves a screen, the Reels viewer, a sheet or the space under a reel. A report taken right after a reel freezes on its cover shows what moved just before it. Reported in #509 and #222.
 
 ### Bug Fixes
 

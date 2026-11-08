@@ -2016,23 +2016,27 @@ public class GlassTabBarTest {
         holder.addView(pager);
         holder.addView(other);
 
-        GlassTabBar.screensAboveTheBar(content, 0x7f0b0001, 126, 0);
+        // The count is what the debug line reports (#509), so a pass that moves nothing writes nothing.
+        assertEquals("the content's screen and the pager moved", 2,
+                GlassTabBar.screensAboveTheBar(content, 0x7f0b0001, 126, 0));
 
         assertEquals("the content's screen", 0, margin(screen));
         assertEquals("a screen Instagram already let run down", 0, margin(hiddenBar));
         assertEquals("Home's swipe pager", 0, margin(pager));
         assertEquals("another sibling", 126, margin(other));
+        assertEquals("the same pass again moves nothing", 0,
+                GlassTabBar.screensAboveTheBar(content, 0x7f0b0001, 126, 0));
 
         View tallerPager = withMargin(new View(context), 126);
         tallerPager.setId(0x7f0b0003);
         holder.addView(tallerPager);
-        GlassTabBar.screensAboveTheBar(content, 0x7f0b0003, 126, 150);
+        assertEquals("only the new pager moved", 1, GlassTabBar.screensAboveTheBar(content, 0x7f0b0003, 126, 150));
         assertEquals("not floating, the pager stops at a taller pill's top", 150, margin(tallerPager));
         assertEquals("a margin already changed stays", 0, margin(pager));
 
         View noPager = withMargin(new View(context), 126);
         holder.addView(noPager);
-        GlassTabBar.screensAboveTheBar(content, 0, 126, 0);
+        assertEquals(0, GlassTabBar.screensAboveTheBar(content, 0, 126, 0));
         assertEquals("no pager id, no sibling touched", 126, margin(noPager));
     }
 

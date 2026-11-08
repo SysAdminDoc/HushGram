@@ -132,6 +132,7 @@ final class PlainScrollHide implements GlassScrollHide.Room {
         }
         if (changed > 0) {
             HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_ROOM);
+            GlassTabBar.movedForReels("gave the screens the hidden bar's room", changed, 0);
         } else {
             Logger.printDebug(() -> "Glass tab bar: no screen stops at Instagram's bar (height " + height + ")");
         }
@@ -140,6 +141,8 @@ final class PlainScrollHide implements GlassScrollHide.Room {
     private void giveBack() {
         boolean shows = bar.getVisibility() == View.VISIBLE;
         List<View> views = new ArrayList<>(given.keySet());
+        int back = 0;
+        int margin = 0;
         for (View view : views) {
             Integer had = given.get(view);
             if (!shows || had == null || !(view.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) continue;
@@ -147,8 +150,11 @@ final class PlainScrollHide implements GlassScrollHide.Room {
             if (margins.bottomMargin != 0) continue;
             margins.bottomMargin = had;
             view.setLayoutParams(margins);
+            back++;
+            margin = had;
         }
         given.clear();
+        GlassTabBar.movedForReels("gave the bar's room back", back, margin);
         View shadow = shadowHidden == null ? null : shadowHidden.get();
         shadowHidden = null;
         // The shadow is put back whatever the bar does: Instagram hides it its own way (GONE), and nothing else would.
