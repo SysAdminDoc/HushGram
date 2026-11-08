@@ -74,7 +74,7 @@ public class GlassReachTest {
         panel = new FrameLayout(activity);
         source = new FrameLayout(activity);
         feed = new FrameLayout(activity);
-        list = new FrameLayout(activity);
+        list = new MainFeedRecyclerView(activity);
         list.addView(new View(activity), new FrameLayout.LayoutParams(MATCH, 400));
         feed.addView(list, new FrameLayout.LayoutParams(MATCH, MATCH));
         header = new FrameLayout(activity);
@@ -124,6 +124,10 @@ public class GlassReachTest {
         int[] at = new int[2];
         view.getLocationInWindow(at);
         return at[1];
+    }
+
+    private static int margin(View view) {
+        return ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).topMargin;
     }
 
     private void glaze() {
@@ -387,6 +391,159 @@ public class GlassReachTest {
         assertEquals(STATUS, windowTop(feedList));
         assertEquals(0, feedList.getPaddingTop());
         assertTrue(feedList.getClipToPadding());
+    }
+
+    /** Profile swapped into the panel Home was in keeps its own header below the clock, and Home coming back reaches up again. */
+    @Test
+    public void anotherTabInHomesPanelPutsHomeBackUntilHomeShowsAgain() {
+        glaze();
+        assertEquals(-STATUS, margin(feed));
+
+        Context context = screen.getContext();
+        feed.removeView(list);
+        FrameLayout profile = new RecyclerView(context);
+        profile.addView(new View(context), new FrameLayout.LayoutParams(MATCH, 400));
+        feed.addView(profile, new FrameLayout.LayoutParams(MATCH, MATCH));
+        frame();
+        frame();
+
+        assertEquals("another tab isn't moved", 0, margin(feed));
+        assertEquals(STATUS, windowTop(profile));
+        assertEquals(0, profile.getPaddingTop());
+        assertEquals("Home's list gets its own padding back", 0, list.getPaddingTop());
+        assertTrue(list.getClipToPadding());
+        assertArrayEquals(new int[] {0, 0}, GlassTopBar.reach(header));
+
+        feed.removeView(profile);
+        feed.addView(list, new FrameLayout.LayoutParams(MATCH, MATCH));
+        frame();
+        frame();
+
+        assertEquals(-STATUS, margin(feed));
+        assertEquals(STATUS, list.getPaddingTop());
+        assertArrayEquals(new int[] {STATUS, 0}, GlassTopBar.reach(header));
+    }
+
+    /** Reels moves the panel up to the window's top and hides the header: Home mustn't stay pulled up past it. */
+    @Test
+    public void thePanelMovingOrTheHeaderGoingPutsHomeBack() {
+        glaze();
+
+        margins(panel, 0);
+        frame();
+        frame();
+        assertEquals("the panel at the window's top isn't pulled past it", 0, margin(feed));
+        assertEquals(0, windowTop(feed));
+        assertEquals(0, list.getPaddingTop());
+        assertArrayEquals(new int[] {0, 0}, GlassTopBar.reach(header));
+
+        margins(panel, STATUS);
+        frame();
+        frame();
+        assertEquals("back below the status bar, it reaches up again", -STATUS, margin(feed));
+
+        header.setVisibility(View.GONE);
+        frame();
+        frame();
+        assertEquals("no header, no glass to make room for", 0, margin(feed));
+        assertEquals(0, list.getPaddingTop());
+    }
+
+    private void margins(View view, int top) {
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+        params.topMargin = top;
+        view.setLayoutParams(params);
+        layout();
+    }
+
+    /**
+     * Home in a tab pager that comes in after the header, beside an empty panel: the pager is what's
+     * pulled up, Home's list in its page on screen is what's padded, and swiping to the next tab puts it back.
+     */
+    @Test
+    public void thePagerHoldingHomeIsPulledUpAndNotTheEmptyPanelBesideIt() {
+        Context context = screen.getContext();
+        source.removeAllViews();
+        FrameLayout empty = new FrameLayout(context);
+        source.addView(empty, new FrameLayout.LayoutParams(MATCH, MATCH));
+        source.addView(header, new FrameLayout.LayoutParams(MATCH, HEADER));
+        layout();
+
+        glaze();
+        assertEquals("an empty panel isn't moved", 0, margin(empty));
+        assertArrayEquals(new int[] {0, 0}, GlassTopBar.reach(header));
+
+        FrameLayout pager = new FrameLayout(context);
+        FrameLayout pages = new RecyclerView(context);
+        FrameLayout homePage = new FrameLayout(context);
+        FrameLayout homeList = new MainFeedRecyclerView(context);
+        homePage.addView(homeList, new FrameLayout.LayoutParams(MATCH, MATCH));
+        FrameLayout nextPage = new FrameLayout(context);
+        nextPage.addView(new RecyclerView(context), new FrameLayout.LayoutParams(MATCH, MATCH));
+        pages.addView(homePage, new FrameLayout.LayoutParams(MATCH, MATCH));
+        FrameLayout.LayoutParams beside = new FrameLayout.LayoutParams(WIDE, MATCH);
+        beside.leftMargin = WIDE;
+        pages.addView(nextPage, beside);
+        pager.addView(pages, new FrameLayout.LayoutParams(MATCH, MATCH));
+        source.addView(pager, 1, new FrameLayout.LayoutParams(MATCH, MATCH));
+        layout();
+        frame();
+
+        assertEquals("the pager holding Home is pulled up", -STATUS, margin(pager));
+        assertEquals(0, margin(empty));
+        assertEquals("Home's list is padded", STATUS, homeList.getPaddingTop());
+        assertEquals("the pages aren't, or Home would start below the clock again", 0, pages.getPaddingTop());
+        assertEquals(0, windowTop(homeList));
+        assertArrayEquals(new int[] {STATUS, 0}, GlassTopBar.reach(header));
+
+        pages.scrollTo(WIDE, 0);
+        frame();
+        frame();
+        assertEquals("the next tab puts Home back", 0, margin(pager));
+        assertEquals(0, homeList.getPaddingTop());
+        assertArrayEquals(new int[] {0, 0}, GlassTopBar.reach(header));
+    }
+
+    /**
+     * Instagram already running Home's feed behind the status bar, with only the header below it: nothing
+     * moves and the glass reaches up over the posts, wherever the header slides.
+     */
+    @Test
+    public void instagramsOwnFeedBehindTheClockGetsTheGlassUpThere() {
+        margins(panel, 0);
+        margins(header, STATUS);
+        assertEquals(0, windowTop(feed));
+        assertEquals(STATUS, windowTop(header));
+
+        glaze();
+
+        assertEquals("nothing moves", 0, margin(feed));
+        assertEquals(0, list.getPaddingTop());
+        assertTrue(list.getClipToPadding());
+        assertArrayEquals("the glass reaches up to the window's top", new int[] {STATUS, 0}, GlassTopBar.reach(header));
+        assertFalse("the header's parent lets the glass past its top edge", source.getClipChildren());
+
+        header.setTranslationY(-HEADER - 30f);
+        frame();
+        assertArrayEquals(new int[] {0, 30}, GlassTopBar.reach(header));
+
+        Settings.SEE_THROUGH_HOME_TOP_BAR.save(false);
+        frame();
+        assertTrue(source.getClipChildren());
+        assertArrayEquals(new int[] {0, 0}, GlassTopBar.reach(header));
+    }
+
+    /** A header further down than the status bar's height, over Instagram's own feed, keeps its glass to itself. */
+    @Test
+    public void aHeaderFarBelowTheClockOverInstagramsOwnFeedIsLeftAlone() {
+        margins(panel, 0);
+        margins(header, STATUS + 50);
+
+        glaze();
+
+        assertTrue(GlassTopBar.showing(header));
+        assertArrayEquals(new int[] {0, 0}, GlassTopBar.reach(header));
+        assertTrue(source.getClipChildren());
     }
 
     /** Wrappers round the header and many parents between Home and the window's top: the glass still gets there. */

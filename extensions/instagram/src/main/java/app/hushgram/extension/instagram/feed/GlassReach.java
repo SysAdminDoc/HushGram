@@ -11,28 +11,32 @@ import android.view.WindowInsets;
 
 import androidx.annotation.Nullable;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
 /**
- * Takes the See-through top bar behind the status bar (#462). Instagram lays Home out below the
- * status bar: a parent at the window's top moves the panel holding Home down by the status bar's
- * height, so nothing scrolls behind the clock and the glass stopped at the header's top edge.
+ * Takes the See-through top bar behind the status bar (#462). Instagram lays Home out one of two ways.
+ * Mostly a parent at the window's top moves the panel holding Home down by the status bar's height, so
+ * nothing scrolls behind the clock and the glass stopped at the header's top edge. Some phones get Home's
+ * feed running up behind the status bar already, with only the header below it, and there the glass
+ * stopped at the header's top edge over the posts.
  *
- * <p>While the glass is on, the feed views drawn before the header are pulled up by that gap, the list
- * in each is padded by it so the first post starts where it did, and every parent from the header's up
- * to the one at the window's top stops clipping. The posts then run on behind the status bar and the
- * glass reaches up over them. Nothing moves unless the gap is exactly the status bar's height, and
- * everything is put back when the glass comes off. Main thread only.
+ * <p>In the first, the view drawn before the header that holds Home's list is pulled up by that gap, the
+ * list is padded by it so the first post starts where it did, and every parent from the header's up to
+ * the one at the window's top stops clipping. The posts then run on behind the status bar and the glass
+ * reaches up over them. In the second nothing moves, only the parents stop clipping so the glass gets
+ * up there. Nothing moves unless the gap is exactly the status bar's height, and only for Home's own
+ * list: another tab in the same panel, Reels full screen or the header gone puts everything back until
+ * Home is showing again, and so does the glass coming off. Main thread only.
  */
 final class GlassReach {
     /** How many parents up from the header's the one at the window's top is looked for. */
     private static final int DEPTH = 16;
-    /** How deep into a feed view the list it scrolls is looked for. */
-    private static final int LIST_DEPTH = 4;
+    /** How deep into a feed view Home's list is looked for: through a tab pager, its page and the page's wrappers. */
+    private static final int LIST_DEPTH = 8;
+    /** Home's list, by the name it keeps in Instagram. */
+    private static final String HOME_LIST = "MainFeedRecyclerView";
 
     /** The status bar's height over [view]'s window. Swapped in tests. */
     static ToIntFunction<View> insets = GlassReach::statusBar;
@@ -45,7 +49,11 @@ final class GlassReach {
     private final Map<View, Object[]> padded = new HashMap<>();
     /** The parent at the window's top, while the feed reaches it. */
     @Nullable private View frame;
-    /** How far the feed was pulled up, 0 while it isn't. */
+    /** Home's list and the panel holding the header, while the glass reaches up, and where that panel sat. */
+    @Nullable private View home;
+    @Nullable private View panel;
+    private int panelTop;
+    /** How far the glass reaches up behind the status bar, 0 while it doesn't. */
     int gap;
 
     static int statusBar(View view) {
@@ -54,46 +62,122 @@ final class GlassReach {
     }
 
     /**
-     * Pulls the views [source] draws before its child at [index] up behind the status bar, once, and
-     * keeps every parent from [header]'s up to the window's top from clipping. A parent still clipping
-     * [header] would cut the glass off at its top edge, with the feed running sharp behind the clock
-     * above it (#513). Says how far, 0 when Home isn't laid out below the status bar or nothing could
-     * be pulled.
+     * Takes Home's feed in [source], drawn before its child at [index], up behind the status bar, or
+     * finds Instagram already ran it up there, and keeps every parent from [header]'s up to the window's
+     * top from clipping. A parent still clipping [header] would cut the glass off at its top edge, with
+     * the feed running sharp behind the clock above it (#513). Says how far the glass reaches up, 0
+     * while Home isn't showing under a header just below the status bar.
      */
     int reach(View header, ViewGroup source, int index) {
         if (gap > 0) {
-            // A parent can get its clip back, from Instagram or a layout it sets again.
-            for (ViewGroup group : unclipped.keySet()) {
-                if (group.getClipChildren()) group.setClipChildren(false);
+            if (holds(header, source)) {
+                // A parent can get its clip back, from Instagram or a layout it sets again.
+                for (ViewGroup group : unclipped.keySet()) {
+                    if (group.getClipChildren()) group.setClipChildren(false);
+                }
+                return gap;
             }
-            return gap;
+            // Laid out as it was pulled until the next frame, so Home is looked for again then.
+            retreat();
+            return 0;
         }
+        if (!header.isShown()) return 0;
         int status = insets.applyAsInt(source);
         if (status <= 0 || index <= 0) return 0;
         View top = frameOf(source, status);
+        if (top != null && pull(header, source, index, status, top)) return gap;
+        top = alreadyBehind(header, source, index, status);
         if (top == null) return 0;
-        List<View> feeds = new ArrayList<>();
+        unclipUpTo(header, top);
+        hold(top, source, status);
+        return gap;
+    }
+
+    /**
+     * Pulls the view in [source] before [index] that holds Home's list up by [status] and pads the list
+     * by it, with every parent from [header]'s up to [top] unclipped. False when none holds Home's list:
+     * another tab is in the panel, or the tab pager holding Home isn't there yet.
+     */
+    private boolean pull(View header, ViewGroup source, int index, int status, View top) {
         for (int i = 0; i < index; i++) {
-            View child = source.getChildAt(i);
-            if (child.getTop() == 0 && child.getHeight() == source.getHeight() && child.getHeight() > 0
-                    && child.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) feeds.add(child);
-        }
-        if (feeds.isEmpty()) return 0;
-        for (View at = (View) header.getParent(); ; at = (View) at.getParent()) {
-            unclip((ViewGroup) at);
-            if (at == top) break;
-        }
-        for (View feed : feeds) {
+            View feed = source.getChildAt(i);
+            if (feed.getTop() != 0 || feed.getHeight() != source.getHeight() || feed.getHeight() <= 0
+                    || !(feed.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) continue;
+            View list = homeIn(feed);
+            if (list == null) continue;
+            unclipUpTo(header, top);
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) feed.getLayoutParams();
             pulled.put(feed, params.topMargin);
             params.topMargin -= status;
             feed.setLayoutParams(params);
-            View list = listIn(feed);
-            if (list != null) pad(list, status);
+            pad(list, status);
+            hold(top, source, status);
+            home = list;
+            return true;
         }
+        return false;
+    }
+
+    /**
+     * The parent at the window's top, when Instagram itself runs Home's list, in a view [source] draws
+     * before [index], up behind the status bar while [header] sits below it. Null otherwise.
+     */
+    @Nullable
+    private View alreadyBehind(View header, ViewGroup source, int index, int status) {
+        int[] at = new int[2];
+        header.getLocationInWindow(at);
+        int headerTop = at[1];
+        if (headerTop <= 0 || headerTop > status) return null;
+        View list = null;
+        for (int i = 0; i < index && list == null; i++) {
+            View feed = source.getChildAt(i);
+            if (!feed.isShown() || feed.getWidth() != source.getWidth()) continue;
+            feed.getLocationInWindow(at);
+            if (at[1] <= 0 && at[1] + feed.getHeight() > headerTop) list = homeIn(feed);
+        }
+        if (list == null) return null;
+        View view = header;
+        for (int depth = 0; depth < DEPTH + GlassTopBar.HOST_DEPTH; depth++) {
+            ViewParent up = view.getParent();
+            if (!(up instanceof ViewGroup)) return null;
+            view = (View) up;
+            view.getLocationInWindow(at);
+            if (at[1] <= 0) {
+                home = list;
+                return view;
+            }
+        }
+        return null;
+    }
+
+    private void hold(View top, ViewGroup source, int status) {
+        int[] at = new int[2];
+        source.getLocationInWindow(at);
         frame = top;
+        panel = source;
+        panelTop = at[1];
         gap = status;
-        return gap;
+    }
+
+    /**
+     * Whether the glass still reaches up over Home: [header] showing in the same panel, the panel where
+     * it was, and Home's list showing across the screen, not a tab beside it in a pager.
+     */
+    private boolean holds(View header, ViewGroup source) {
+        View list = home;
+        if (list == null || source != panel || !header.isShown() || !list.isShown()) return false;
+        int[] at = new int[2];
+        source.getLocationInWindow(at);
+        if (at[1] != panelTop) return false;
+        list.getLocationInWindow(at);
+        return Math.abs(at[0]) < Math.max(1, list.getWidth() / 2);
+    }
+
+    private void unclipUpTo(View header, View top) {
+        for (View at = (View) header.getParent(); ; at = (View) at.getParent()) {
+            unclip((ViewGroup) at);
+            if (at == top) break;
+        }
     }
 
     /**
@@ -118,38 +202,37 @@ final class GlassReach {
     }
 
     /**
-     * The list [feed] scrolls: the first RecyclerView as big as it, which on Home's first frame has no
-     * posts in it yet, else the deepest view that size with children of its own. Padding a view around
-     * the RecyclerView instead would leave the list, and the posts it clips, below the status bar.
+     * Home's list in [feed], which on Home's first frame has no posts in it yet: down through the views
+     * filling their parent from its corner, so through a tab pager only into the page on screen. Null
+     * when another tab is showing. Padding a view around the list instead would leave the list, and the
+     * posts it clips, below the status bar.
      */
     @Nullable
-    private static View listIn(View feed) {
-        View found = null;
+    static View homeIn(View feed) {
         View at = feed;
-        for (int depth = 0; depth < LIST_DEPTH && at instanceof ViewGroup; depth++) {
+        for (int depth = 0; depth <= LIST_DEPTH && at instanceof ViewGroup; depth++) {
+            if (named(at, HOME_LIST)) return at;
             ViewGroup group = (ViewGroup) at;
             View next = null;
-            for (int i = 0, n = group.getChildCount(); i < n; i++) {
+            for (int i = 0, n = group.getChildCount(); i < n && next == null; i++) {
                 View child = group.getChildAt(i);
-                if (child.getTop() != 0 || child.getHeight() != feed.getHeight() || child.getWidth() != feed.getWidth()
-                        || !(child instanceof ViewGroup)) continue;
-                if (isRecycler(child)) return child;
-                if (((ViewGroup) child).getChildCount() > 0) {
-                    next = child;
-                    break;
-                }
+                if (child.getVisibility() == View.VISIBLE && child.getLeft() - group.getScrollX() == 0
+                        && child.getTop() == 0 && child.getWidth() == group.getWidth()
+                        && child.getHeight() == group.getHeight() && child.getHeight() > 0) next = child;
             }
-            if (next == null) break;
-            found = next;
             at = next;
         }
-        return found;
+        return null;
     }
 
     /** Whether [view] is a RecyclerView or a subclass of one, whatever Instagram named the subclass. */
     static boolean isRecycler(View view) {
+        return named(view, "RecyclerView");
+    }
+
+    private static boolean named(View view, String name) {
         for (Class<?> type = view.getClass(); type != null; type = type.getSuperclass()) {
-            if (type.getSimpleName().equals("RecyclerView")) return true;
+            if (type.getSimpleName().equals(name)) return true;
         }
         return false;
     }
@@ -219,6 +302,13 @@ final class GlassReach {
         padded.clear();
         unclipped.clear();
         frame = null;
+        home = null;
+        panel = null;
         gap = 0;
+    }
+
+    /** Whether the glass reaches up by moving Home's feed, not over Instagram's own, for the debug log. */
+    boolean pulledUp() {
+        return !pulled.isEmpty();
     }
 }

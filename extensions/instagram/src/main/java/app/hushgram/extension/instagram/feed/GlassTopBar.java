@@ -361,7 +361,8 @@ public final class GlassTopBar {
             int top = reach.headerTop(header);
             if (!described) {
                 described = true;
-                Logger.printDebug(() -> "Top bar glass: feed pulled up " + gap + ", header at " + top + ", parents " + GlassReach.parents(header));
+                String how = reach.pulledUp() ? "feed pulled up " : "Instagram's feed already up ";
+                Logger.printDebug(() -> "Top bar glass: " + how + gap + ", header at " + top + ", parents " + GlassReach.parents(header));
             }
             if (top == Integer.MIN_VALUE) return;
             // From the window's top edge down, even with the header slid partly away.
