@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.net.Uri;
 import android.os.Looper;
 
@@ -28,10 +29,12 @@ import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
+import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.preference.LogBufferManager;
@@ -61,6 +64,9 @@ public class ReelDownloadTest {
         Settings.DOWNLOAD_REEL_COVER.resetToDefault();
         Settings.DOWNLOAD_REEL_AUDIO.resetToDefault();
         Settings.POST_DETAILS.resetToDefault();
+        Settings.SPEED_IN_REEL_MENU.resetToDefault();
+        ReelSpeedButton.resetForTests();
+        Built.keepSpeed = true;
     }
 
     /** With the switch on, every reel gets the row, whatever Instagram and its flag say. */
@@ -210,7 +216,7 @@ public class ReelDownloadTest {
     /** The two options a photo with music gets, by the names the extension gives them. */
     private enum Ours {
         HUSHGRAM_DOWNLOAD_AS_VIDEO, HUSHGRAM_DOWNLOAD_AS_PHOTO, HUSHGRAM_DOWNLOAD_REEL, HUSHGRAM_DOWNLOAD_COVER, HUSHGRAM_DOWNLOAD_AUDIO,
-        HUSHGRAM_REEL_DETAILS
+        HUSHGRAM_REEL_DETAILS, HUSHGRAM_REEL_SPEED
     }
 
     /** A photo the Reels viewer shows with music that has a track to fetch. */
@@ -630,5 +636,179 @@ public class ReelDownloadTest {
         assertEquals("an id no package owns", 0x7f7f7f7f,
                 ReelDownload.rowIcon(ReelDownload.DETAILS_OPTION, 0x7f7f7f7f, context, "ic_menu_info_details"));
         assertTrue(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("reel menu row icon"));
+    }
+
+    /** Whether this build has Keep the reel speed, as the patch writes its status method. */
+    @Implements(value = SettingsStatus.class, isInAndroidSdk = false)
+    public static class Built {
+        static boolean keepSpeed = true;
+
+        @Implementation protected static boolean keepReelSpeed() { return keepSpeed; }
+    }
+
+    /**
+     * With Speed in the reel menu on, a reel with a video file or a manifest gets Playback speed
+     * after Download, and after Details when that's on too (#553). A photo gets none, and neither
+     * does a build without Keep the reel speed, whose player setter a pick goes through.
+     */
+    @Test
+    @Config(shadows = {Item.class, Built.class})
+    public void aVideoReelGetsPlaybackSpeedWithItsSwitch() {
+        Item.videos = List.of(new MediaSave.Rendition(META + "720.mp4", 720, 1280, 0));
+        assertFalse("Speed in the reel menu starts off", Settings.SPEED_IN_REEL_MENU.get());
+        assertFalse(ReelDownload.rows(null, new Object(), null, null, null));
+        assertTrue(Item.rows.isEmpty());
+
+        Settings.SPEED_IN_REEL_MENU.save(true);
+        assertTrue(ReelDownload.rows(null, new Object(), null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_REEL_SPEED=Playback speed"), Item.rows);
+
+        Item.rows.clear();
+        Settings.POST_DETAILS.save(true);
+        assertTrue(ReelDownload.rows(null, new Object(), null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_REEL_DETAILS=Details",
+                "HUSHGRAM_REEL_SPEED=Playback speed"), Item.rows);
+        Settings.POST_DETAILS.save(false);
+
+        Item.rows.clear();
+        Item.videos = null;
+        Item.manifest = "<MPD/>";
+        assertTrue("a manifest alone", ReelDownload.rows(null, new Object(), null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_REEL_SPEED=Playback speed"), Item.rows);
+
+        Item.rows.clear();
+        Item.manifest = null;
+        Item.pictures = List.of(new MediaSave.Rendition(META + "1080.jpg", 1080, 1350, 0));
+        assertFalse("a photo", ReelDownload.rows(null, new Object(), null, null, null));
+        assertTrue(Item.rows.isEmpty());
+
+        Item.pictures = null;
+        Item.videos = List.of(new MediaSave.Rendition(META + "720.mp4", 720, 1280, 0));
+        Built.keepSpeed = false;
+        assertFalse("a build without Keep the reel speed", ReelDownload.rows(null, new Object(), null, null, null));
+        assertTrue(Item.rows.isEmpty());
+    }
+
+    /**
+     * With Download on reels off, Playback speed alone still lets Instagram's Download row into a
+     * video reel's menu and takes its place there, the way Open in another player does. The reduced
+     * menu gets the row too. With Speed in the reel menu off as well, the menu stays Instagram's.
+     */
+    @Test
+    @Config(shadows = {Item.class, Built.class})
+    public void playbackSpeedComesWithoutDownload() {
+        Settings.DOWNLOAD_REELS.save(false);
+        Settings.SPEED_IN_REEL_MENU.save(true);
+        Item.videos = List.of(new MediaSave.Rendition(META + "720.mp4", 720, 1280, 0));
+        Object reel = new Object();
+
+        assertTrue(ReelDownload.offerRow(0, reel));
+        assertTrue("Instagram's own Download row stays out", ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(List.of("HUSHGRAM_REEL_SPEED=Playback speed"), Item.rows);
+
+        Item.rows.clear();
+        assertTrue(ReelDownload.offerRow(1, reel));
+        assertFalse(ReelDownload.withholdRow(1));
+        assertTrue(ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(List.of("HUSHGRAM_REEL_SPEED=Playback speed"), Item.rows);
+
+        List<Object> reduced = options(Option.PLAYBACK_CONTROLS, Option.REPORT);
+        ReelDownload.addTo(reduced, Option.DOWNLOAD);
+        assertEquals(options(Option.DOWNLOAD, Option.PLAYBACK_CONTROLS, Option.REPORT), reduced);
+
+        Item.rows.clear();
+        Settings.SPEED_IN_REEL_MENU.save(false);
+        assertFalse(ReelDownload.offerRow(0, reel));
+        assertFalse(ReelDownload.rows(null, reel, null, null, null));
+        assertTrue(Item.rows.isEmpty());
+        List<Object> plain = options(Option.PLAYBACK_CONTROLS, Option.REPORT);
+        ReelDownload.addTo(plain, Option.DOWNLOAD);
+        assertEquals(options(Option.PLAYBACK_CONTROLS, Option.REPORT), plain);
+    }
+
+    /**
+     * A tap on Playback speed lists the speeds with the one playing checked, and a pick goes on the
+     * reel on screen. A pick that doesn't take says so. With the switch turned off while the menu was
+     * open, nothing is listed, and the row stays ours either way, so Instagram never gets the tap.
+     */
+    @Test
+    @Config(shadows = Built.class)
+    public void aTapOnPlaybackSpeedListsTheSpeedsAndAPickGoesOnTheReel() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Settings.SPEED_IN_REEL_MENU.save(true);
+        List<Float> listed = new ArrayList<>();
+        List<Float> chosen = new ArrayList<>();
+        boolean[] takes = {true};
+        ReelSpeedButton.speed = new ReelSpeedButton.Speed() {
+            @Override public float playing() {
+                return 1.5f;
+            }
+
+            @Override public boolean choose(float speed) {
+                chosen.add(speed);
+                return takes[0];
+            }
+        };
+        ReelSpeedButton.lists = (on, playing, pick) -> {
+            listed.add(playing);
+            pick.chose(2f);
+        };
+        ShadowToast.reset();
+
+        assertTrue(ReelDownload.save(Ours.HUSHGRAM_REEL_SPEED, new Object(), activity));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(List.of(1.5f), listed);
+        assertEquals(List.of(2f), chosen);
+        assertNull("a pick that took said something", ShadowToast.getTextOfLatestToast());
+
+        takes[0] = false;
+        assertTrue(ReelDownload.save(Ours.HUSHGRAM_REEL_SPEED, new Object(), activity));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Speed didn't change", String.valueOf(ShadowToast.getTextOfLatestToast()));
+
+        listed.clear();
+        Settings.SPEED_IN_REEL_MENU.save(false);
+        Settings.DOWNLOAD_REELS.save(false);
+        assertTrue("the row went on to Instagram", ReelDownload.save(Ours.HUSHGRAM_REEL_SPEED, new Object(), activity));
+        assertTrue(listed.isEmpty());
+        assertTrue(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("reel menu speed tapped 2"));
+    }
+
+    /** The list a tap shows: the speed icon's speeds, the one playing checked, and a tap on one picks it. */
+    @Test
+    public void theListHasTheIconsSpeedsWithThePlayingOneChecked() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        List<Float> picked = new ArrayList<>();
+
+        ReelSpeedButton.LISTS.show(activity, 1.75f, picked::add);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertTrue(dialog.isShowing());
+        List<String> labels = new ArrayList<>();
+        for (CharSequence item : Shadows.shadowOf(dialog).getItems()) labels.add(String.valueOf(item));
+        assertEquals(List.of("0.5x", "1x", "1.5x", "1.75x", "2x", "2.5x", "3x"), labels);
+        assertEquals(3, dialog.getListView().getCheckedItemPosition());
+
+        Shadows.shadowOf(dialog).clickOnItem(4);
+        assertEquals(List.of(2f), picked);
+        assertFalse(dialog.isShowing());
+    }
+
+    /**
+     * Playback speed takes Instagram's 24dp timer, the size of the other rows' glyphs, never the speed
+     * icon's 32dp speedometer, and keeps Download's arrow in a build without the timer.
+     */
+    @Test
+    public void playbackSpeedTakesTheTimerGlyph() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        int download = android.R.drawable.ic_menu_save;
+
+        assertEquals(android.R.drawable.ic_media_ff,
+                ReelDownload.rowIcon(ReelDownload.SPEED_OPTION, download, context, "no_such_icon", "ic_media_ff"));
+        assertEquals(download, ReelDownload.rowIcon(ReelDownload.SPEED_OPTION, download, context, ReelDownload.SPEED_ICONS));
+        for (String icon : ReelDownload.SPEED_ICONS) {
+            assertTrue(icon + " is a 24dp glyph", icon.endsWith("_24"));
+            assertFalse(icon + " is the speed icon's", List.of(ReelSpeedButton.ICON_NAMES).subList(0, 2).contains(icon));
+        }
     }
 }

@@ -334,6 +334,36 @@ public class DownloadSettingsTest {
         }
     }
 
+    /**
+     * Speed in the reel menu (#553) follows the Full screen button under Reels, only with Keep the
+     * reel speed, whose player setter a pick goes through. It starts off, doesn't wait for Download
+     * on reels, and goes in a settings file.
+     */
+    @Test
+    public void speedInTheReelMenuFollowsTheIconsWithKeepTheReelSpeed() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.KEEP_REEL_SPEED, PatchFamily.REEL_DECLUTTER);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            Preference menu = section(page.getPreferenceScreen(), "Reels").findPreference(Settings.SPEED_IN_REEL_MENU.key);
+            assertTrue("the menu switch isn't under Reels", menu instanceof SwitchPreference);
+            assertEquals("Speed in the reel menu", String.valueOf(menu.getTitle()));
+            assertTrue(String.valueOf(menu.getSummary()).contains("0.5x to 3x"));
+            assertFalse("it starts off", ((SwitchPreference) menu).isChecked());
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, Settings.FULL_SCREEN_BUTTON_ON_REELS.key) + 1, indexOfKey(rows, Settings.SPEED_IN_REEL_MENU.key));
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertTrue("it waited for Download on reels", menu.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SPEED_IN_REEL_MENU.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.REEL_DECLUTTER);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals("no menu speed without Keep the reel speed", -1,
+                    indexOfKey(rowsOf(pageIn(controller)), Settings.SPEED_IN_REEL_MENU.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.SPEED_IN_REEL_MENU.key));
+        }
+    }
+
     /** Hidden sounds lists each sound by title and artist, checked; unchecking one brings its reels back and checking it hides them again. */
     @Test
     public void hiddenSoundsListsEachSoundAndUncheckingOneBringsItsReelsBack() {

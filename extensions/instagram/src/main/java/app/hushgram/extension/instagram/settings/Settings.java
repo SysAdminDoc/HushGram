@@ -3182,6 +3182,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SPEED_BUTTON_ON_REELS = new BooleanSetting("hushgram_speed_button_on_reels", FALSE);
 
     /**
+     * A Playback speed row in the menu a reel's three dots open, whose tap picks the reel's speed
+     * from the same list as the speed icon (#553), so the icon can stay off. Starts off, so the menu
+     * stays Instagram's own.
+     */
+    public static final BooleanSetting SPEED_IN_REEL_MENU = new BooleanSetting("hushgram_speed_in_reel_menu", FALSE);
+
+    /**
      * A Full screen icon in the column beside a reel whose tap turns on Instagram's own Full screen,
      * its clear mode, for that reel (#480). Starts off, so the column stays Instagram's own.
      */

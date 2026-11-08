@@ -1776,6 +1776,8 @@ Burn-in guard also fades the top and bottom of a story while you watch without t
 # context: Reels settings: a switch for a speed icon beside each reel that opens a list of speeds, after Copy text button on reels (#480). Keep the reel speed is HushGram's switch of that name
 Speed button on reels	릴스 속도 버튼
 Puts a speed icon beside a reel. Tap it to pick a speed from 0.5x to 3x. With Keep the reel speed on, the next reels play at it too.	릴스 옆에 속도 아이콘을 추가합니다. 탭해서 0.5x에서 3x 사이의 속도를 고르세요. 릴스 속도 유지가 켜져 있으면 다음 릴스도 그 속도로 재생됩니다.
+Speed in the reel menu	릴스 메뉴에 속도 추가
+Adds Playback speed to the menu a reel's three dots open. Pick a speed there from 0.5x to 3x. With Keep the reel speed on, the next reels play at it too.	릴스의 점 세 개를 누르면 열리는 메뉴에 재생 속도를 추가합니다. 거기서 0.5x에서 3x 사이의 속도를 고르세요. 릴스 속도 유지가 켜져 있으면 다음 릴스도 그 속도로 재생됩니다.
 # context: Reels settings: a switch for an icon beside each reel that does what Instagram's own Full screen row in the reel's menu does (#480). Full screen is Instagram's term for it (bundled 453 string packs: Vollbild, pantalla completa, layar penuh, schermo intero, 전체 화면, tela cheia, tam ekran, toàn màn hình, 全螢幕); Start every reel in clear mode is HushGram's switch of that name
 Full screen button on reels	릴스 전체 화면 버튼
 Puts a Full screen icon beside a reel, so one tap does what Full screen in its menu does. Start every reel in clear mode opens every reel that way.	릴스 옆에 전체 화면 아이콘을 추가해, 한 번 탭하면 메뉴의 전체 화면과 같은 동작을 합니다. 모든 릴스를 클리어 모드로 시작을 켜면 모든 릴스가 그렇게 열립니다.

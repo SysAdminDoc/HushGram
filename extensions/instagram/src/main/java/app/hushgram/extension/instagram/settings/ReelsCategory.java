@@ -337,6 +337,11 @@ final class ReelsCategory {
                         L10n.t("Puts a Full screen icon beside a reel, so one tap does what Full screen in its menu "
                                 + "does. Start every reel in clear mode opens every reel that way.")));
             }
+            if (build.contains(PatchFamily.KEEP_REEL_SPEED)) {
+                reels.add(toggle(context, Settings.SPEED_IN_REEL_MENU, L10n.t("Speed in the reel menu"),
+                        L10n.t("Adds Playback speed to the menu a reel's three dots open. Pick a speed there from "
+                                + "0.5x to 3x. With Keep the reel speed on, the next reels play at it too.")));
+            }
         }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"), SettingsIcons.REELS,

@@ -131,13 +131,24 @@ public final class ReelDownload {
 
     /** Instagram's info glyphs, the Details row's icon, first found wins. */
     static final String[] DETAILS_ICONS = {"instagram_info_outline_24", "instagram_info_pano_outline_24"};
+    /**
+     * Playback speed's glyph in the menu. The speed icon's speedometer is drawn at 32dp, which pushed
+     * the row's label past the others, so the menu takes the 24dp timer every other row's size matches.
+     */
+    static final String[] SPEED_ICONS = {"instagram_timer_outline_24", "instagram_timer_pano_outline_24"};
+
+    /**
+     * The name of the Playback speed row a reel with a video gets with Speed in the reel menu on
+     * (#553), after Details, so it sits right above Instagram's own Playback row.
+     */
+    static final String SPEED_OPTION = "HUSHGRAM_REEL_SPEED";
 
     /** Counted when a reel Instagram keeps Download off gets the player row alone. */
     static final String PLAYER_ALONE = "player row alone";
 
     /** Every row of ours, by name. */
     private static final List<String> OUR_ROWS = Arrays.asList(VIDEO_OPTION, PHOTO_OPTION, REEL_OPTION, COVER_OPTION,
-            AUDIO_OPTION, PLAYER_OPTION, DETAILS_OPTION);
+            AUDIO_OPTION, PLAYER_OPTION, DETAILS_OPTION, SPEED_OPTION);
 
     /** What the menu found for a reel's cover, and what a tap on Download cover started. */
     static final String HAS_COVER = "has cover";
@@ -203,7 +214,7 @@ public final class ReelDownload {
         playerOnly = false;
         playerFits = false;
         if (on()) return true;
-        playerFits = ExternalPlayer.offers(media) || detailsFit(media);
+        playerFits = ExternalPlayer.offers(media) || detailsFit(media) || speedFit(media);
         if (eligible) return true;
         playerOnly = playerFits;
         return playerOnly;
@@ -241,7 +252,7 @@ public final class ReelDownload {
         try {
             if (options == null || download == null || options.contains(download)) return;
             boolean player = !on();
-            if (player && !ExternalPlayer.on() && !PostInfo.on()) return;
+            if (player && !ExternalPlayer.on() && !PostInfo.on() && !ReelSpeedButton.inMenu()) return;
             int at = 0;
             for (int i = 0; i < options.size(); i++) {
                 Object option = options.get(i);
@@ -274,6 +285,7 @@ public final class ReelDownload {
                 Object player = media != null && ExternalPlayer.offers(media) ? InstagramMedia.reelOption(PLAYER_OPTION) : null;
                 boolean added = player != null && playerRow(menu, context, player, sheet, rowState);
                 added |= detailsRow(menu, media, context, sheet, rowState);
+                added |= speedRow(menu, media, context, sheet, rowState);
                 if (added && alone) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, PLAYER_ALONE);
                 return alone;
             }
@@ -313,10 +325,11 @@ public final class ReelDownload {
     }
 
     /**
-     * Download, then Download cover, Download audio and Open in another player, in Download's place
-     * for [media], a reel with a video, and whether they went in. Download cover needs its switch
-     * and a picture the reel lists, Download audio its switch and a manifest, whose sound is a track
-     * of its own, and Open in another player its switch and a video file a player can open. With
+     * Download, then Download cover, Download audio, Open in another player, Details and Playback
+     * speed, in Download's place for [media], a reel with a video, and whether they went in. Download
+     * cover needs its switch and a picture the reel lists, Download audio its switch and a manifest,
+     * whose sound is a track of its own, Open in another player its switch and a video file a player
+     * can open, and Details and Playback speed their switches. With
      * none, the reel keeps Instagram's one row. Once Download is in, the answer is yes even if a
      * row after it isn't, so Instagram's own row doesn't come as a second Download.
      */
@@ -325,13 +338,18 @@ public final class ReelDownload {
         boolean audio = audioOn() && InstagramMedia.dashManifest(media) != null;
         boolean player = ExternalPlayer.offers(media);
         boolean details = detailsFit(media);
-        if (!cover && !audio && !player && !details) return false;
+        boolean speed = speedFit(media);
+        if (!cover && !audio && !player && !details && !speed) return false;
         Object reel = InstagramMedia.reelOption(REEL_OPTION);
         Object coverRow = cover ? InstagramMedia.reelOption(COVER_OPTION) : null;
         Object audioRow = audio ? InstagramMedia.reelOption(AUDIO_OPTION) : null;
         Object playerRow = player ? InstagramMedia.reelOption(PLAYER_OPTION) : null;
         Object detailsOption = details ? InstagramMedia.reelOption(DETAILS_OPTION) : null;
-        if (reel == null || coverRow == null && audioRow == null && playerRow == null && detailsOption == null) return false;
+        Object speedOption = speed ? InstagramMedia.reelOption(SPEED_OPTION) : null;
+        if (reel == null || coverRow == null && audioRow == null && playerRow == null && detailsOption == null
+                && speedOption == null) {
+            return false;
+        }
         if (!InstagramMedia.addReelRow(menu, context, reel, sheet, rowState,
                 StoryDownload.label(StoryDownload.Choice.STORY))) {
             return false;
@@ -354,6 +372,7 @@ public final class ReelDownload {
         }
         if (playerRow != null) playerRow(menu, context, playerRow, sheet, rowState);
         if (detailsOption != null) addDetails(menu, context, detailsOption, sheet, rowState);
+        if (speedOption != null) addSpeed(menu, context, speedOption, sheet, rowState);
         return true;
     }
 
@@ -379,19 +398,20 @@ public final class ReelDownload {
 
     /**
      * The icon of the reel or feed menu row named [name]. Every row of ours starts from Download's
-     * arrow [download]; Details (the reel's or the feed post's) answers Instagram's info glyph from
-     * the package the arrow comes from, which on a second copy is still Instagram's own, or
-     * [download] when the build has none. Called by the reel and feed option bridges the patches
+     * arrow [download]; Details (the reel's or the feed post's) answers Instagram's info glyph, and
+     * Playback speed its 24dp timer glyph, from the package the arrow comes from, which on a second copy
+     * is still Instagram's own, or [download] when the build has none. Called by the reel and feed option bridges the patches
      * write. Never throws.
      */
     public static int rowIcon(String name, int download) {
-        return rowIcon(name, download, Utils.getContext(), DETAILS_ICONS);
+        return rowIcon(name, download, Utils.getContext(),
+                SPEED_OPTION.equals(name) ? SPEED_ICONS : DETAILS_ICONS);
     }
 
     static int rowIcon(String name, int download, Context context, String... icons) {
         try {
-            boolean details = DETAILS_OPTION.equals(name) || PostInfo.OPTION.equals(name);
-            if (!details || download == 0 || context == null) return download;
+            boolean own = DETAILS_OPTION.equals(name) || PostInfo.OPTION.equals(name) || SPEED_OPTION.equals(name);
+            if (!own || download == 0 || context == null) return download;
             Resources resources = context.getResources();
             String owner = resources.getResourcePackageName(download);
             for (String icon : icons) {
@@ -426,6 +446,37 @@ public final class ReelDownload {
             return InstagramMedia.addReelRow(menu, context, option, sheet, rowState, L10n.t(Utils.getContext(), "Details"));
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu details row", t);
+            return false;
+        }
+    }
+
+    /**
+     * Whether the reel [media] gets a Playback speed row: Speed in the reel menu is on and the reel
+     * has a video file or a manifest, so there's a player to speed up.
+     */
+    private static boolean speedFit(Object media) {
+        return media != null && ReelSpeedButton.inMenu()
+                && (!renditions(media).isEmpty() || InstagramMedia.dashManifest(media) != null);
+    }
+
+    /** Adds Playback speed to the reel menu when [media] gets it, and whether it went in. Never throws. */
+    private static boolean speedRow(Object menu, Object media, Object context, Object sheet, Object rowState) {
+        try {
+            if (!speedFit(media)) return false;
+            Object option = InstagramMedia.reelOption(SPEED_OPTION);
+            return option != null && addSpeed(menu, context, option, sheet, rowState);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu speed row", t);
+            return false;
+        }
+    }
+
+    private static boolean addSpeed(Object menu, Object context, Object option, Object sheet, Object rowState) {
+        try {
+            return InstagramMedia.addReelRow(menu, context, option, sheet, rowState,
+                    L10n.t(Utils.getContext(), "Playback speed"));
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu speed row", t);
             return false;
         }
     }
@@ -497,6 +548,11 @@ public final class ReelDownload {
         // Details has its own switch too, and opens the sheet a feed post's Details does.
         if (DETAILS_OPTION.equals(row)) {
             if (activity != null) PostInfo.show(media, null, activity);
+            return true;
+        }
+        // Playback speed too, and its pick goes on the reel on screen.
+        if (SPEED_OPTION.equals(row)) {
+            ReelSpeedButton.fromMenu(activity);
             return true;
         }
         if (!on()) return false;

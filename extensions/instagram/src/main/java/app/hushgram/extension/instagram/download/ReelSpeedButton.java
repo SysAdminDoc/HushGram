@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.download;
 
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.ColorFilter;
@@ -18,6 +20,8 @@ import kotlin.jvm.functions.Function1;
 
 import app.hushgram.extension.instagram.reels.ReelSpeed;
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.PatchFamily;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -96,6 +100,70 @@ public final class ReelSpeedButton {
         });
         menu.show();
     };
+
+    /** Shows the speeds as a list over [activity], [playing] checked, and hands a pick to [chosen]. Replaced by tests. */
+    interface Lists {
+        void show(Activity activity, float playing, Chosen chosen);
+    }
+
+    static final Lists LISTS = (activity, playing, chosen) -> {
+        CharSequence[] labels = new CharSequence[SPEEDS.length];
+        int checked = -1;
+        for (int i = 0; i < SPEEDS.length; i++) {
+            labels[i] = label(SPEEDS[i]);
+            if (checked < 0 && same(SPEEDS[i], playing)) checked = i;
+        }
+        AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle(L10n.t(activity, "Playback speed"))
+                .setSingleChoiceItems(labels, checked, (shown, which) -> {
+                    shown.dismiss();
+                    if (which >= 0 && which < SPEEDS.length) chosen.chose(SPEEDS[which]);
+                })
+                .setNegativeButton(L10n.t(activity, "Cancel"), null)
+                .create();
+        dialog.show();
+        ScreenColors.dialog(dialog);
+    };
+
+    static volatile Lists lists = LISTS;
+
+    /**
+     * Whether a reel's three-dot menu gets Playback speed (#553): its own switch, with Keep the reel
+     * speed in the build, since a pick goes through that patch's player setter. Paused answers no.
+     * Never throws.
+     */
+    public static boolean inMenu() {
+        try {
+            return Utils.settingsReady() && Settings.SPEED_IN_REEL_MENU.get() && PatchFamily.KEEP_REEL_SPEED.inBuild();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu speed switch", failure);
+            return false;
+        }
+    }
+
+    /**
+     * A tap on Playback speed in a reel's three-dot menu: the speeds as a list over [activity], the
+     * one playing checked, and a pick goes on the reel on screen as the icon's does. Never throws.
+     */
+    static void fromMenu(@Nullable Activity activity) {
+        try {
+            if (activity == null || activity.isFinishing() || !inMenu()) return;
+            HookStatus.counted(FamilyNames.REEL_DOWNLOAD, "reel menu speed tapped");
+            lists.show(activity, speed.playing(), picked -> pickFromMenu(activity, picked));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu speed", failure);
+        }
+    }
+
+    /** A speed picked from the menu's list: on the reel on screen, or a toast when it didn't take. */
+    private static void pickFromMenu(Context context, float picked) {
+        try {
+            if (!inMenu()) return;
+            if (!speed.choose(picked)) Utils.showToastShort(L10n.t(context, "Speed didn't change"));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu speed pick", failure);
+        }
+    }
 
     /** Whether the icon's own switch is on. Paused answers no. Never throws. */
     public static boolean on() {
@@ -212,6 +280,7 @@ public final class ReelSpeedButton {
         glyph = 0;
         logged = false;
         speed = PATCHED;
+        lists = LISTS;
     }
 
     /** A tap on the icon: the speeds, and a pick goes on the reel on screen. */
