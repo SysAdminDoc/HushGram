@@ -69,6 +69,7 @@ Every HushGram release, newest first.
 * The retro camera app icon fills the whole icon now, whatever shape your launcher gives it. It used to sit small on a white tile. Reported in #565.
 * `Don't report Blend visits` now also keeps the time you last opened a Blend to yourself. Opening one sent that time in a request of its own, which the switch didn't cover. Reported in #474.
 * A 60 fps reel or story no longer saves at 30 fps when Instagram's own file is the same size as the smoother track. A tie on size now goes to the higher frame rate. Reported in #546.
+* A save the connection drops partway through gets one more try right away. A 1080p story whose download was cut off used to fall back to the 720p file. Reported in #546.
 * With several of HushGram's icons on in the column beside a reel, the column no longer runs up past the top bar and cuts off Like. It gets drawn a little smaller instead, just enough to fit under the bar, and every icon still takes its own taps. Reported in #516.
 * With `Glass tab bar` on, a reel's seek bar is as easy to grab as it is with HushGram paused. Its touch area runs over the top of the bar again, and a drag that starts there moves through the reel instead of pressing a tab or sliding across the tabs. Reported in #526.
 * With `Glass tab bar` on, the pill no longer pops back up over a chat's message box when the keyboard opens or closes. Instagram showed its tab bar again every time HushGram passed it the new bar heights, and now it leaves the bar hidden while a chat is open.

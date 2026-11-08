@@ -76,6 +76,8 @@ final class LocalServer implements Closeable {
     private final Map<String, AtomicInteger> hits = new ConcurrentHashMap<>();
     /** Routes whose body never ends, and how many bytes each sends at a time. */
     private final Map<String, Integer> endless = new ConcurrentHashMap<>();
+    /** Routes whose next answer ends after this many bytes of the body, once. */
+    private final Map<String, Integer> cutOnce = new ConcurrentHashMap<>();
     /** Routes never answered. */
     private final Set<String> stalled = ConcurrentHashMap.newKeySet();
     /** Counted down when a route's client let go of its connection before the server did. */
@@ -122,6 +124,15 @@ final class LocalServer implements Closeable {
      */
     void serveHeld(String path, String type, byte[] head, long length, long holdAfter, CountDownLatch release) {
         routes.put(path, new Route(200, type, head, length, null, length, holdAfter, release, true));
+    }
+
+    /**
+     * Answer [path] with [body], all of it announced, but end the first answer after [cutAfter]
+     * bytes of it, the way a phone's network can drop a long read (#546). Later requests get it all.
+     */
+    void serveCutOnce(String path, String type, byte[] body, int cutAfter) {
+        serve(path, type, body);
+        cutOnce.put(path, cutAfter);
     }
 
     void redirect(String path, String location) {
@@ -209,6 +220,13 @@ final class LocalServer implements Closeable {
         head.append("\r\n");
 
         OutputStream out = client.getOutputStream();
+        Integer cut = cutOnce.remove(path);
+        if (cut != null) {
+            out.write(head.toString().getBytes(StandardCharsets.ISO_8859_1));
+            out.write(route.body, 0, Math.min(cut, route.body.length));
+            out.flush();
+            return;
+        }
         try {
             out.write(head.toString().getBytes(StandardCharsets.ISO_8859_1));
             out.write(route.body);

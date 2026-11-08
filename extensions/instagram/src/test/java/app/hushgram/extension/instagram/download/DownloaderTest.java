@@ -386,6 +386,44 @@ public class DownloaderTest {
         assertFalse("the short file was kept", into.exists());
     }
 
+    /**
+     * A phone's TLS dropped a long read and the 1080p 60 fps track was given up for the 720p file
+     * (#546). A fetch cut off partway is made once more at once, and the second whole answer is kept.
+     */
+    @Test
+    public void aFetchCutOffPartwayIsTriedOnceMore() throws IOException {
+        byte[] body = mp4(200_000);
+        server.serveCutOnce("/cut.mp4", "video/mp4", body, 70_000);
+        File into = temp.newFile();
+        Downloader.Result result = fetch("/cut.mp4", Downloader.Kind.VIDEO, into, Downloader.MAX_BYTES);
+        assertEquals(result.toString(), Downloader.Status.OK, result.status);
+        assertEquals("tries", 2, hitsOf("/cut.mp4"));
+        assertArrayEquals("the second answer, whole", body, Files.readAllBytes(into.toPath()));
+    }
+
+    /** A second cut ends it, with one retry only, and both reasons in the log. */
+    @Test
+    public void aFetchCutOffTwiceFailsAfterOneRetry() throws IOException {
+        serve("/short-twice.mp4", 200, "video/mp4", mp4(3000), 8000);
+        File into = temp.newFile();
+        Downloader.Result result = fetch("/short-twice.mp4", Downloader.Kind.VIDEO, into, Downloader.MAX_BYTES);
+        assertNotEquals(result.toString(), Downloader.Status.OK, result.status);
+        assertEquals("tries", 2, hitsOf("/short-twice.mp4"));
+        assertTrue(result.reason, result.reason.contains("on a second try after"));
+        assertFalse("the short file was kept", into.exists());
+    }
+
+    /** An answer that isn't the file is never fetched again: only a cut-off is. */
+    @Test
+    public void anErrorAnswerIsNotTriedAgain() throws IOException {
+        serve("/error.mp4", 500, "text/html", HTML, HTML.length);
+        assertRefused(Downloader.Status.HTTP_ERROR, "/error.mp4", Downloader.Kind.VIDEO, Downloader.MAX_BYTES);
+        assertEquals("tries", 1, hitsOf("/error.mp4"));
+        serve("/expired.mp4", 403, "text/html", HTML, HTML.length);
+        assertRefused(Downloader.Status.EXPIRED, "/expired.mp4", Downloader.Kind.VIDEO, Downloader.MAX_BYTES);
+        assertEquals("tries", 1, hitsOf("/expired.mp4"));
+    }
+
     @Test
     public void anExpiredSignatureSaysSo() throws IOException {
         serve("/old.mp4", 403, "text/html", HTML, HTML.length);
@@ -951,7 +989,8 @@ public class DownloaderTest {
                     protocolPolicy(), 1024, Downloader.SILENT);
             assertEquals(Downloader.Status.NETWORK_ERROR, result.status);
             assertTrue("close replaced the primary failure: " + result, result.reason.endsWith("ReadFailure"));
-            assertEquals(1, closed.get());
+            // A failed read is a cut-off, so it's tried once more, and each try closes its own stream.
+            assertEquals(2, closed.get());
             assertFalse(file.exists());
         }
     }
@@ -964,7 +1003,8 @@ public class DownloaderTest {
             Downloader.Result result = Downloader.fetch(protocol.url, Downloader.Kind.IMAGE, temp.newFile(),
                     protocolPolicy(), 1024, Downloader.SILENT);
             assertEquals(result.toString(), expected, result.status);
-            assertEquals("the response stream remained open", 1, closed.get());
+            // A failed read is a cut-off and gets one more try: one stream per try, each closed.
+            assertEquals("the response stream remained open", failRead ? 2 : 1, closed.get());
             assertTrue("the connection remained open", disconnected.get() > 0);
         }
     }

@@ -16,10 +16,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+
+import javax.net.ssl.SSLProtocolException;
 
 /**
  * Fetches one address into a file in the cache, checks what arrived, and only then hands it to a
@@ -31,8 +34,9 @@ import java.util.Set;
  *
  * <p>The shape of this class comes from one measured fact. An address of Facebook carries an
  * {@code oh} and an {@code oe} parameter, the server signs them, and they stop working after a few
- * hours. So there is no queue, no scheduler and no retry anywhere in here. The fetch starts when
- * the user taps and either finishes or reports why not. That is also why this feature does not use
+ * hours. So there is no queue and no scheduler in here, and the only retry is the one a fetch the
+ * network cut off partway gets straight away, while its address is seconds old (#546). The fetch
+ * starts when the user taps and either finishes or reports why not. That is also why this feature does not use
  * {@code DownloadManager}, which is otherwise the obvious choice. That class queues, and a queued
  * fetch of an address with hours to live is the one thing that cannot be allowed.
  *
@@ -239,37 +243,56 @@ final class Downloader {
          * so the person saving is told storage was the reason (#348).
          */
         final boolean lowStorage;
+        /**
+         * The answer had begun and the network ended it early: a read the connection dropped, a
+         * TLS record that broke (SSLProtocolException on a Redmi Note 7, #546), or a body shorter
+         * than it announced. A second fetch straight away can finish it.
+         */
+        final boolean cutOff;
 
-        private Result(Status status, String reason, String mime, boolean lower, boolean noRoom, boolean lowStorage) {
+        private Result(Status status, String reason, String mime, boolean lower, boolean noRoom, boolean lowStorage,
+                boolean cutOff) {
             this.status = status;
             this.reason = reason;
             this.mime = mime;
             this.lower = lower;
             this.noRoom = noRoom;
             this.lowStorage = lowStorage;
+            this.cutOff = cutOff;
         }
 
         static Result ok(String mime) {
-            return new Result(Status.OK, null, mime, false, false, false);
+            return new Result(Status.OK, null, mime, false, false, false, false);
         }
 
         static Result fail(Status status, String reason) {
-            return new Result(status, reason, null, false, false, false);
+            return new Result(status, reason, null, false, false, false, false);
+        }
+
+        /** A fetch the network ended partway (#546). */
+        static Result cutOff(Status status, String reason) {
+            return new Result(status, reason, null, false, false, false, true);
         }
 
         /** A write failure for want of free space (#348). */
         static Result noRoom(String reason) {
-            return new Result(Status.WRITE_ERROR, reason, null, false, true, false);
+            return new Result(Status.WRITE_ERROR, reason, null, false, true, false, false);
         }
 
         /** This result, told that the saved picture is below the manifest's. */
         Result lower() {
-            return new Result(status, reason, mime, true, noRoom, lowStorage);
+            return new Result(status, reason, mime, true, noRoom, lowStorage, cutOff);
         }
 
         /** This result, told that the saved picture is below the manifest's because storage was low. */
         Result lowerForStorage() {
-            return new Result(status, reason, mime, true, noRoom, true);
+            return new Result(status, reason, mime, true, noRoom, true, cutOff);
+        }
+
+        /** This second try's failure, with the first try's reason for the log. */
+        Result after(Result first) {
+            return new Result(status, reason + ", on a second try after " + first.reason, mime, lower, noRoom,
+                    lowStorage, cutOff);
         }
 
         boolean ok() {
@@ -368,13 +391,29 @@ final class Downloader {
      * <p>No header is set on the request. A captured address was fetched from an unrelated machine
      * with none at all and answered 200, so a guessed {@code User-Agent} or {@code Referer} can
      * only make a refusal more likely.
+     *
+     * <p>A fetch the network cut off partway ({@link Result#cutOff}) is made once more at once, from
+     * the start. A phone whose TLS dropped a long read saved the 720p file in place of a 1080p 60 fps
+     * track the next try would have fetched (#546). A refusal, an error answer, a timeout or a
+     * cancel is never tried again.
      */
     static Result fetch(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes, Progress progress) {
+        Result first = fetchOnce(url, kind, into, policy, maxBytes, progress);
+        if (!first.cutOff || progress.cancelled()) return first;
+        Result again = fetchOnce(url, kind, into, policy, maxBytes, progress);
+        if (again.ok() || again.status == Status.CANCELLED) return again;
+        return again.after(first);
+    }
+
+    private static Result fetchOnce(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes,
+            Progress progress) {
         boolean kept = false;
+        boolean reading = false;
         Result result = null;
         try {
             Object opened = connect(url, kind, policy, maxBytes, progress);
             if (opened instanceof Result) return (Result) opened;
+            reading = true;
             try (Prepared response = (Prepared) opened) {
                 result = receive(response, kind, into, maxBytes, progress);
             }
@@ -388,7 +427,11 @@ final class Downloader {
                 return Result.fail(Status.WRITE_ERROR, "the cache could not hold the file: "
                     + e.getCause().getClass().getSimpleName());
             }
-            return Result.fail(Status.NETWORK_ERROR, "the fetch failed: " + e.getClass().getSimpleName());
+            String why = "the fetch failed: " + e.getClass().getSimpleName();
+            // Only a failure before the body was all in is a cut. A close that fails after it isn't.
+            boolean cut = result == null
+                && ((reading && !(e instanceof SocketTimeoutException)) || e instanceof SSLProtocolException);
+            return cut ? Result.cutOff(Status.NETWORK_ERROR, why) : Result.fail(Status.NETWORK_ERROR, why);
         } catch (Throwable t) {
             if (progress.cancelled()) return cancelled();
             if (result != null && !result.ok()) return result;
@@ -437,7 +480,8 @@ final class Downloader {
         }
         if (total > maxBytes) return Result.fail(Status.TOO_LARGE, "the body ran past " + maxBytes + " bytes");
         if (expected >= 0 && total != expected) {
-            return Result.fail(Status.WRITE_ERROR, "the body was " + total + " of " + expected + " bytes");
+            String why = "the body was " + total + " of " + expected + " bytes";
+            return total < expected ? Result.cutOff(Status.WRITE_ERROR, why) : Result.fail(Status.WRITE_ERROR, why);
         }
         // Name the checked bytes. DASH audio keeps its specific declared container for the join.
         if (kind == Kind.AUDIO && isSpecific(declared)) return Result.ok(declared);
