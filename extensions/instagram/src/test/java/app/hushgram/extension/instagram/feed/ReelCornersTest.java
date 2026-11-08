@@ -168,6 +168,41 @@ public class ReelCornersTest {
         assertEquals(new Rect(0, 150, 400, 650), outlineRect(frame));
     }
 
+    /**
+     * Opening the comments on a wide reel slides its video up by moving it, with no new layout, and a
+     * portrait reel's video is scaled down too. The outline goes where the video is drawn in the same
+     * frame, rather than staying at its laid-out place and cutting it to a strip (#522).
+     */
+    @Test
+    public void aWideReelSlidUpForTheCommentsKeepsItsVideoWhole() {
+        Frame frame = new Frame(activity);
+        frame.setId(first.getId());
+        View video = new View(activity);
+        frame.addView(video, new FrameLayout.LayoutParams(400, 240, Gravity.CENTER));
+        pager.addView(frame, new FrameLayout.LayoutParams(400, 800));
+        shadowOf(Looper.getMainLooper()).idle();
+        Settings.ROUNDED_REEL_CORNERS.save(true);
+        ReelCorners.watch(activity);
+        frame();
+        assertEquals(new Rect(0, 280, 400, 520), outlineRect(frame));
+
+        int asked = frame.asked;
+        video.setTranslationY(-240);
+        assertFalse("the frame is drawn", frame());
+
+        assertTrue("the outline is asked for again without a layout", frame.asked > asked);
+        assertEquals(new Rect(0, 40, 400, 280), outlineRect(frame));
+
+        video.setTranslationY(0);
+        video.setPivotX(0);
+        video.setPivotY(0);
+        video.setScaleX(0.5f);
+        video.setScaleY(0.5f);
+        frame();
+
+        assertEquals("scaled from its top left corner", new Rect(0, 280, 200, 400), outlineRect(frame));
+    }
+
     @Test
     public void offToStartLeavesReelsAlone() {
         assertFalse(Settings.ROUNDED_REEL_CORNERS.get());

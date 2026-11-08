@@ -207,6 +207,8 @@ final class FrameCorners {
                     HookStatus.recoveredViewId(FamilyNames.ROUNDED_POST_CORNERS, frame);
                     float radius = Settings.ROUNDED_CORNER_SIZE.get().dp * owner.getResources().getDisplayMetrics().density;
                     walk(owner.getWindow().getDecorView(), id, radius, new int[] {MAX_VIEWS});
+                } else {
+                    rounded.followChildren();
                 }
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.ROUNDED_POST_CORNERS, hook, failure);

@@ -61,7 +61,10 @@ final class RoundedFrames {
     /**
      * The part of [view] its shown children cover, within its own bounds, or all of it when they
      * cover none. A reel's frame fills the screen and holds the video at its own size, so a video with
-     * black bars above and below is rounded at its corners rather than the screen's (#456).
+     * black bars above and below is rounded at its corners rather than the screen's (#456). Each child
+     * counts where it's drawn, moved and scaled, not where it was laid out: opening the comments on a
+     * wide reel slides its video up by moving it, and an outline left at the old place cut the video
+     * down to a strip (#522). Rotation isn't followed, since nothing in a reel's frame turns.
      */
     static Rect shown(View view) {
         Rect whole = new Rect(0, 0, view.getWidth(), view.getHeight());
@@ -70,11 +73,21 @@ final class RoundedFrames {
         Rect covered = new Rect();
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
-            if (child.getVisibility() == View.VISIBLE) {
-                covered.union(child.getLeft(), child.getTop(), child.getRight(), child.getBottom());
-            }
+            if (child.getVisibility() == View.VISIBLE) covered.union(drawn(child));
         }
         return covered.isEmpty() || !covered.intersect(whole) ? whole : covered;
+    }
+
+    /** Where [child] is drawn in its parent: its laid-out box moved and scaled about its pivot. */
+    static Rect drawn(View child) {
+        float scaleX = child.getScaleX();
+        float scaleY = child.getScaleY();
+        float left = child.getLeft() + child.getTranslationX() + child.getPivotX() * (1 - scaleX);
+        float top = child.getTop() + child.getTranslationY() + child.getPivotY() * (1 - scaleY);
+        float right = left + child.getWidth() * scaleX;
+        float bottom = top + child.getHeight() * scaleY;
+        return new Rect((int) Math.floor(Math.min(left, right)), (int) Math.floor(Math.min(top, bottom)),
+                (int) Math.ceil(Math.max(left, right)), (int) Math.ceil(Math.max(top, bottom)));
     }
 
     private final Map<View, Kept> kept = new WeakHashMap<>();
@@ -101,17 +114,34 @@ final class RoundedFrames {
             before = new Kept(view);
             kept.put(view, before);
         } else if (before.radius == radius) {
-            ViewOutlineProvider provider = view.getOutlineProvider();
-            if (provider instanceof Rounded) {
-                Rounded rounded = (Rounded) provider;
-                if (!rounded.given.equals(rounded.wanted(view))) view.invalidateOutline();
-            }
+            follow(view);
             return false;
         }
         before.radius = radius;
         view.setOutlineProvider(new Rounded(radius, aroundChildren));
         view.setClipToOutline(true);
         return true;
+    }
+
+    /** Asks for [view]'s outline again if what its children show has moved since it was last given. */
+    private static void follow(View view) {
+        ViewOutlineProvider provider = view.getOutlineProvider();
+        if (provider instanceof Rounded) {
+            Rounded rounded = (Rounded) provider;
+            if (!rounded.given.equals(rounded.wanted(view))) view.invalidateOutline();
+        }
+    }
+
+    /**
+     * Has every frame rounded around its children follow them when they moved without a layout, as a
+     * reel's video does while the comments slide open. Before each frame is drawn, so the outline
+     * moves in the same frame as the video.
+     */
+    void followChildren() {
+        if (!aroundChildren) return;
+        for (View view : new ArrayList<>(kept.keySet())) {
+            if (view != null && view.isAttachedToWindow()) follow(view);
+        }
     }
 
     /** Gives every frame rounded so far its outline provider and clipping back, and forgets them. */
