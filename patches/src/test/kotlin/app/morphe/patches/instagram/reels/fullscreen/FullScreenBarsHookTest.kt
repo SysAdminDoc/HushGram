@@ -16,9 +16,11 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -38,7 +40,7 @@ class FullScreenBarsHookTest {
         val declared = ExtensionDex.classDef(FULL_SCREEN_BARS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(BAR_HEIGHT_HOOK, NAV_BAR_HEIGHT_HOOK, KEEP_STATUS_BAR_HEIGHT, KEEP_NAV_BAR_HEIGHT, HEIGHTS_ASKED, HEIGHTS_DROPPED, TELL_HEIGHTS)) {
+        for (hook in listOf(BAR_HEIGHT_HOOK, NAV_BAR_HEIGHT_HOOK, KEEP_STATUS_BAR_HEIGHT, KEEP_NAV_BAR_HEIGHT, HEIGHTS_ASKED, HEIGHTS_DROPPED, TELL_HEIGHTS, TAB_BAR_KEPT_HOOK)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -136,6 +138,48 @@ class FullScreenBarsHookTest {
             assertEquals("$what: the one the insets listener calls", call.toString(), code[1].referenceText())
             assertEquals("$what: with the two heights", listOf(listener, listener + 1, listener + 2), code[1].arguments())
             assertEquals("$what: then returns", Opcode.RETURN_VOID, code[2].opcode)
+        }
+    }
+
+    /**
+     * A chat's tab bar stays hidden through a tell: the main activity's method that shows or hides
+     * the bar, the one private (I)V its layout for a new screen size calls on it, asks
+     * [TAB_BAR_KEPT_HOOK] first with the visibility and returns when told to, and is otherwise as it
+     * was. It's the method that hands that visibility to the bar's view.
+     */
+    @Test
+    fun eachBuildKeepsTheTabBarThroughATell() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        assertEquals("a declared build has no fixture", versions, versions.filter { v -> bundles.any { it.name.contains("-$v-") } }.toSet())
+        for (bundle in bundles + Fixtures.otherBuilds()) {
+            val label = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
+            val types = FixtureDex.classesLoading(bundle, TAB_BAR_MIGRATION).map { it.type }.toSet()
+            assertTrue("$label: the main activity loads $TAB_BAR_MIGRATION", MAIN_ACTIVITY in types)
+            val context = PatchContexts.of(FixtureDex.classes(bundle, types).values)
+            val method = context.tabBarVisibilityMethod()
+            val what = "$label: ${method.name}"
+            val visibility = method.implementation!!.registerCount - 1
+            assertTrue("$what hands the visibility to a view", method.code().any {
+                it.opcode == Opcode.INVOKE_STATIC && (it.reference() as? MethodReference)?.parameterTypes?.map(Any::toString) ==
+                    listOf("Landroid/view/View;", "I", "I") && it.arguments().getOrNull(1) == visibility
+            })
+            val native = NeutralNativePath(method)
+
+            context.keepTabBarThroughTells()
+
+            val code = method.code()
+            assertEquals("$what asks first", TAB_BAR_KEPT_HOOK, code[0].referenceText())
+            assertEquals("$what: an invoke-static", Opcode.INVOKE_STATIC, code[0].opcode)
+            assertEquals("$what: with the visibility", listOf(visibility), code[0].arguments())
+            assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
+            val answer = (code[1] as OneRegisterInstruction).registerA
+            assertTrue("$what: in a register of its own", answer < visibility - 1)
+            assertEquals("$what: a no goes on", Opcode.IF_EQZ, code[2].opcode)
+            assertEquals("$what: tested on the answer", answer, (code[2] as OneRegisterInstruction).registerA)
+            assertEquals("$what: to the stock code", code[2].codeUnits + code[3].codeUnits, (code[2] as OffsetInstruction).codeOffset)
+            assertEquals("$what: a yes returns", Opcode.RETURN_VOID, code[3].opcode)
+            native.assertPreserved(what, method, setOf(0, 1, 2, 3))
         }
     }
 

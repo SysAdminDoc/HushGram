@@ -111,6 +111,9 @@ public final class FullScreenBars {
     /** How many of an activity's bar heights listeners are kept to be told a new pair (#200). */
     static final int ASKERS_KEPT = 16;
     static final String COUNT_TOLD = "screens told the bars' new heights";
+    static final String COUNT_TAB_BAR_KEPT = "kept the tab bar hidden through a tell";
+    /** Whether the kept listeners are being told a pair right now. Main thread only. */
+    private static boolean telling;
     /**
      * Each activity's kept bar heights listeners, newest last. Held strongly, since Instagram lets a
      * listener go once it has called it, and each listener holds its screen, which holds the activity:
@@ -527,15 +530,35 @@ public final class FullScreenBars {
      * in one layout ({@link GlassTabBar#heightsTold}, #222).
      */
     private static void tellAll(List<Object> listeners) {
-        for (Object listener : listeners) {
-            try {
-                teller.tell(listener, keptStatus, keptNav);
-            } catch (Throwable failure) {
-                HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights told", failure);
+        telling = true;
+        try {
+            for (Object listener : listeners) {
+                try {
+                    teller.tell(listener, keptStatus, keptNav);
+                } catch (Throwable failure) {
+                    HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights told", failure);
+                }
             }
+        } finally {
+            telling = false;
         }
         GlassTabBar.heightsTold();
         HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_TOLD);
+    }
+
+    /**
+     * Whether Instagram's main activity should leave its tab bar as it is rather than show it, called
+     * first in the activity's method that shows or hides the bar with [visibility]. The activity's own
+     * heights listener is one of the kept ones, and being told a pair lays the bar out again and shows
+     * it, over a chat that had just hidden it: with a floating glass pill the chat's opening and its
+     * keyboard change the navigation bar's height, so the pill came back over the message box. Only a
+     * show asked for while HushGram tells the kept listeners is skipped. Instagram never makes that
+     * call itself, since it lets a listener go once it has called it.
+     */
+    public static boolean keepsTabBarThroughATell(int visibility) {
+        if (!telling || visibility != View.VISIBLE) return false;
+        HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_TAB_BAR_KEPT);
+        return true;
     }
 
     /** How a kept listener is told a pair of heights: the patch-filled stub outside tests. */

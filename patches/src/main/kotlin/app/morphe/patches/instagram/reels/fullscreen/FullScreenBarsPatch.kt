@@ -6,15 +6,19 @@ package app.morphe.patches.instagram.reels.fullscreen
 
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -38,6 +42,11 @@ internal const val KEEP_NAV_BAR_HEIGHT = "$FULL_SCREEN_BARS->keepNavBarHeight(I)
 internal const val HEIGHTS_ASKED = "$FULL_SCREEN_BARS->heightsAsked(Landroid/app/Activity;Ljava/lang/Object;)V"
 internal const val HEIGHTS_DROPPED = "$FULL_SCREEN_BARS->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V"
 internal const val TELL_HEIGHTS = "$FULL_SCREEN_BARS->tellHeights(Ljava/lang/Object;II)V"
+internal const val TAB_BAR_KEPT_HOOK = "$FULL_SCREEN_BARS->keepsTabBarThroughATell(I)Z"
+internal const val MAIN_ACTIVITY = "Lcom/instagram/mainactivity/InstagramMainActivity;"
+
+/** What the main activity's layout for a new screen size logs as it moves the tab bar, held by that method alone. */
+internal const val TAB_BAR_MIGRATION = "tab_bar_migration_remove"
 private const val ACTIVITY = "Landroid/app/Activity;"
 
 /** What Instagram's window insets listener logs when it keeps a new status bar height. */
@@ -73,6 +82,7 @@ internal val barHeightsPatch = bytecodePatch {
             ?: refuse("the window insets listener keeps its heights in two classes")
         fillKeptHeights(stores)
         followHeightListeners(holder, listener.heightsListenerCall())
+        keepTabBarThroughTells()
         routeBarHeights(listener)
     }
 }
@@ -230,6 +240,53 @@ internal fun BytecodePatchContext.followHeightListeners(holderType: String, call
             check-cast p0, $type
             invoke-interface { p0, p1, p2 }, $type->${call.name}(II)V
         """,
+    )
+}
+
+/**
+ * The main activity's method that shows or hides its tab bar, like A0V(I)V on 454: the one private
+ * (I)V the activity's static layout for a new screen size ([TAB_BAR_MIGRATION]) calls on it. That
+ * layout runs from the activity's own bar heights listener, one of those FullScreenBars keeps and
+ * tells, and shows the bar again.
+ */
+internal fun BytecodePatchContext.tabBarVisibilityMethod(): MutableMethod {
+    val main = classDefByOrNull(MAIN_ACTIVITY) ?: refuse("$MAIN_ACTIVITY isn't in the app")
+    val layout = main.methods.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && loadsString(it, TAB_BAR_MIGRATION)
+    }.singleOrNull() ?: refuse("$MAIN_ACTIVITY has no single static method loading $TAB_BAR_MIGRATION")
+    val shown = layout.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
+        val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+        call?.takeIf {
+            instruction.opcode == Opcode.INVOKE_DIRECT && it.definingClass == MAIN_ACTIVITY && it.returnType == "V" &&
+                it.parameterTypes.map(Any::toString) == listOf("I")
+        }?.name
+    }.distinct().singleOrNull() ?: refuse("the activity's layout for a new screen size calls no single private (I)V on it")
+    val method = mutableClassDefBy(MAIN_ACTIVITY).methods.singleOrNull {
+        it.name == shown && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf("I") &&
+            !AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("$MAIN_ACTIVITY has no instance V $shown(I)")
+    if ((method.implementation?.registerCount ?: 0) < 3) refuse("$MAIN_ACTIVITY->$shown(I)V has no register of its own")
+    return method
+}
+
+/**
+ * Has the tab bar's show-or-hide method ask [TAB_BAR_KEPT_HOOK] first and return when it says to.
+ * A chat hides the bar, and with a floating glass pill its opening and its keyboard change the
+ * navigation bar's height, so FullScreenBars tells the kept listeners a new pair, the activity's own
+ * among them, whose layout then showed the pill over the message box. The extension answers yes only
+ * for a show asked for during a tell.
+ */
+internal fun BytecodePatchContext.keepTabBarThroughTells() {
+    val method = tabBarVisibilityMethod()
+    method.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { p1 }, $TAB_BAR_KEPT_HOOK
+            move-result v0
+            if-eqz v0, :shown
+            return-void
+        """,
+        ExternalLabel("shown", method.getInstruction(0)),
     )
 }
 

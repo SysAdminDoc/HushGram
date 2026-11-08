@@ -566,6 +566,35 @@ public class FullScreenBarsTest {
         }
     }
 
+    /**
+     * A chat hides the tab bar, and with a floating pill its keyboard changes the navigation bar's
+     * height. The main activity's own listener is kept, and being told the new pair lays the bar out
+     * and shows it: that show is skipped, so the pill stays off the message box. A hide still goes
+     * through, a listener that throws ends the tell all the same, and a show outside a tell goes through.
+     */
+    @Test public void aTellLeavesTheTabBarAChatHid() {
+        List<String> asked = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> {
+            asked.add(listener + " show " + FullScreenBars.keepsTabBarThroughATell(View.VISIBLE));
+            asked.add(listener + " hide " + FullScreenBars.keepsTabBarThroughATell(View.GONE));
+            if ("broken".equals(listener)) throw new IllegalStateException("listener failed");
+        });
+        FullScreenBars.registeredForTests(true);
+        try {
+            Settings.GLASS_TAB_BAR.save(true);
+            Settings.GLASS_TAB_BAR_FLOAT.save(true);
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, "main activity");
+            FullScreenBars.heightsAsked(activity, "broken");
+            heights(75, 135);
+            assertEquals(Arrays.asList("main activity show true", "main activity hide false", "broken show true", "broken hide false"), asked);
+            assertFalse("a show outside a tell goes through", FullScreenBars.keepsTabBarThroughATell(View.VISIBLE));
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
     /** An activity keeps its newest listeners only, so a screen built again and again doesn't pile them up. */
     @Test public void anActivityKeepsItsNewestListeners() {
         FullScreenBars.registeredForTests(true);

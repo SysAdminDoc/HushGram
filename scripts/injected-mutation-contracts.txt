@@ -2878,6 +2878,14 @@ start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;Z)V calling static LX/*;->*(Landroid/app/Activity;)LX/*; holding LX/*;->*:Ljava/util/List; Ljava/util/List;->add(Ljava/lang/Object;)Z
 start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/WeakHashMap; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/WeakHashMap; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
+# A chat's tab bar through a tell: the main activity's method that shows or hides its tab bar (A0V on
+# 454, private, the one (I)V its layout for a new screen size calls on it) asks
+# FullScreenBars.keepsTabBarThroughATell first and returns on a yes. The activity's own heights
+# listener is a kept one, and being told a pair ran that layout, which showed the floating pill over
+# a chat's message box. Left out, the pill comes back over the box as the keyboard comes and goes.
+# The method loads no string, so it's the class's one instance (I)V handing a view a visibility.
+start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->keepsTabBarThroughATell(I)Z in instance (I)V calling static LX/*;->*(Landroid/view/View;II)V pooled class-holding tab_bar_migration_remove
+once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->keepsTabBarThroughATell(I)Z in instance (I)V calling static LX/*;->*(Landroid/view/View;II)V pooled class-holding tab_bar_migration_remove
 # Fill the screen (#288), under Full screen Reels: Instagram's reel crop decision (08JU.A02 on 452,
 # the one method naming both purge flags below) asks ReelFill.fill with the viewer's source and the
 # crop percentage right after working it out, and returns true (fill) on a yes. Left out, reels close
