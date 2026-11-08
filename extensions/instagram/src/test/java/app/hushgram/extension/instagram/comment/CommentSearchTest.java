@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.comment;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -109,6 +110,81 @@ public class CommentSearchTest {
             assertTrue("up goes back to the first bike", flashed(rows[1]));
             assertFalse(flashed(rows[3]));
             assertEquals(View.GONE, status.getVisibility());
+        }
+    }
+
+    private static void lay(View view, int width, int height) {
+        view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+        view.layout(0, 0, width, height);
+    }
+
+    @Test
+    public void aFeedPostsListSlidingUpUnderTheAiRowGoesUnderTheBoxNotOverIt() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            FrameLayout sheet = new FrameLayout(activity);
+            LinearLayout column = new LinearLayout(activity);
+            column.setOrientation(LinearLayout.VERTICAL);
+            column.setClipToPadding(false);
+            View aiRow = new View(activity);
+            column.addView(aiRow, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 63));
+            FrameLayout container = new FrameLayout(activity);
+            container.addView(new Comments(activity), new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            LinearLayout.LayoutParams slide = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+            column.addView(container, slide);
+            sheet.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            activity.setContentView(sheet);
+
+            assertTrue(CommentSearch.place(container));
+            assertTrue("a view made again keeps one box", CommentSearch.place(container));
+            View box = sheet.findViewWithTag(CommentSearch.TAG);
+            assertSame("the box sits in the sheet, over the column", sheet, box.getParent());
+            assertEquals(sheet.indexOfChild(column) + 1, sheet.indexOfChild(box));
+            assertEquals(2, sheet.getChildCount());
+
+            // Instagram's scroll-away: the row goes up and the list follows it, an action bar deep.
+            aiRow.setTranslationY(-112);
+            slide.topMargin = -112;
+            container.setLayoutParams(slide);
+            lay(sheet, 320, 600);
+            ShadowLooper.idleMainLooper();
+            lay(sheet, 320, 600);
+
+            assertTrue(box.getHeight() > 0);
+            assertEquals("the column keeps room for the box", box.getHeight(), column.getPaddingTop());
+            assertEquals(column.getTop() + column.getPaddingTop(), box.getBottom());
+            assertTrue("the column clips what slides into that room", column.getClipToPadding());
+            assertTrue("the list did slide up into it", container.getTop() < column.getPaddingTop());
+            CommentSearch.ListHost host = new CommentSearch.ListHost(container, new TextView(activity), 0);
+            assertEquals("a match lands below the box, not under it",
+                    column.getPaddingTop() - container.getTop(), host.top());
+
+            slide.topMargin = 0;
+            container.setLayoutParams(slide);
+            lay(sheet, 320, 600);
+            assertEquals("with nothing slid under the box, rows start at the list's top", 0, host.top());
+        }
+    }
+
+    @Test
+    public void aColumnWithNoFrameAroundItGetsTheBoxRightAboveTheList() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            LinearLayout outer = new LinearLayout(activity);
+            LinearLayout column = new LinearLayout(activity);
+            column.setOrientation(LinearLayout.VERTICAL);
+            column.addView(new View(activity), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 63));
+            FrameLayout container = new FrameLayout(activity);
+            column.addView(container, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+            outer.addView(column);
+            activity.setContentView(outer);
+
+            assertTrue(CommentSearch.place(container));
+            View box = column.findViewWithTag(CommentSearch.TAG);
+            assertSame(column, box.getParent());
+            assertEquals(column.indexOfChild(container) - 1, column.indexOfChild(box));
+            assertEquals(0, column.getPaddingTop());
         }
     }
 }

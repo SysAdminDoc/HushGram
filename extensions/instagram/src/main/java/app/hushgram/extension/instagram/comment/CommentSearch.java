@@ -23,6 +23,7 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -93,21 +94,69 @@ public final class CommentSearch {
     /** Puts the box above [root]'s comments list; false when there's no list it can go above. */
     static boolean add(ViewGroup root) {
         View container = byName(root, LIST_CONTAINER);
-        if (container == null || !(container.getParent() instanceof LinearLayout)) {
+        return container != null && place(container);
+    }
+
+    /**
+     * Puts the box over the column holding [container]. A feed post's sheet slides the Meta AI row
+     * above the list away as the list scrolls, pulling the list up behind it with a negative top
+     * margin as deep as an action bar, which is past the row's own height. A box between the two
+     * had the list drawn over it. So the box goes in the column's frame, above the column, and the
+     * column keeps a top padding as tall as the box, clipped, so what slides up goes under the box.
+     * With no frame around the column, the box goes in the column right above the list.
+     */
+    static boolean place(View container) {
+        if (!(container.getParent() instanceof LinearLayout)
+                || ((LinearLayout) container.getParent()).getOrientation() != LinearLayout.VERTICAL) {
             HookStatus.counted(FamilyNames.COMMENT_SEARCH, COUNT_NO_LIST);
             return false;
         }
         LinearLayout column = (LinearLayout) container.getParent();
-        if (column.getOrientation() != LinearLayout.VERTICAL) {
-            HookStatus.counted(FamilyNames.COMMENT_SEARCH, COUNT_NO_LIST);
-            return false;
+        ViewGroup frame = column.getParent() instanceof FrameLayout ? (ViewGroup) column.getParent() : column;
+        if (frame.findViewWithTag(TAG) != null) return true;
+        View box = box(column.getContext(), container);
+        if (frame == column) {
+            column.addView(box, column.indexOfChild(container),
+                    new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        } else {
+            FrameLayout.LayoutParams where = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
+            if (column.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+                ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) column.getLayoutParams();
+                where.setMargins(margins.leftMargin, margins.topMargin, margins.rightMargin, 0);
+            }
+            frame.addView(box, frame.indexOfChild(column) + 1, where);
+            keepRoom(column, box);
         }
-        if (column.findViewWithTag(TAG) != null) return true;
-        View box = box(root.getContext(), container);
-        column.addView(box, column.indexOfChild(container),
-                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         HookStatus.counted(FamilyNames.COMMENT_SEARCH, COUNT_BAR);
         return true;
+    }
+
+    /** Keeps [column]'s top padding [box]'s height more than it was, from the first frame on. */
+    private static void keepRoom(LinearLayout column, View box) {
+        int base = column.getPaddingTop();
+        column.setClipToPadding(true);
+        int width = column.getResources().getDisplayMetrics().widthPixels;
+        box.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.AT_MOST),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        pad(column, base + box.getMeasuredHeight());
+        View.OnLayoutChangeListener fit = (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            try {
+                if (box.getParent() != null && box.getHeight() > 0 && column.getPaddingTop() != base + box.getHeight()) {
+                    column.post(() -> pad(column, base + box.getHeight()));
+                }
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.COMMENT_SEARCH, HOOK, failure);
+            }
+        };
+        box.addOnLayoutChangeListener(fit);
+        column.addOnLayoutChangeListener(fit);
+    }
+
+    private static void pad(LinearLayout column, int top) {
+        if (column.getPaddingTop() != top) {
+            column.setPadding(column.getPaddingLeft(), top, column.getPaddingRight(), column.getPaddingBottom());
+        }
     }
 
     /** The bar: the field, then the status, then the up and down arrows. */
@@ -255,10 +304,24 @@ public final class CommentSearch {
             return now == null ? null : now.getChildAt(index);
         }
 
+        /** Where rows start showing: below the list's padding, and below the box once the list slides up under it. */
         @Override
         public int top() {
             ViewGroup now = list();
-            return now == null ? 0 : now.getPaddingTop();
+            return now == null ? 0 : Math.max(now.getPaddingTop(), underTheBox(now));
+        }
+
+        /** How far down [list] the column's top padding, the box's room, reaches. */
+        private int underTheBox(View list) {
+            if (!(container.getParent() instanceof ViewGroup)) return 0;
+            int listTop = 0;
+            View view = list;
+            while (view != null && view != container) {
+                listTop += view.getTop();
+                view = view.getParent() instanceof View ? (View) view.getParent() : null;
+            }
+            if (view == null) return 0;
+            return ((ViewGroup) container.getParent()).getPaddingTop() - (container.getTop() + listTop);
         }
 
         @Override
