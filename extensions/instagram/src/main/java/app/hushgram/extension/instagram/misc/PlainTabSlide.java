@@ -98,6 +98,12 @@ final class PlainTabSlide implements GlassTabSlide.Host {
                 && y >= bar.getPaddingTop() && y < bar.getHeight() - bar.getPaddingBottom();
     }
 
+    /** Instagram's own bar leaves the seek bar's strip to Instagram. */
+    @Nullable
+    @Override public View stripAt(float x, float y) {
+        return null;
+    }
+
     @Override public void follow(float x) {
         View tab = Float.isNaN(x) ? null : slide.tabAt(x);
         if (tab == null) {

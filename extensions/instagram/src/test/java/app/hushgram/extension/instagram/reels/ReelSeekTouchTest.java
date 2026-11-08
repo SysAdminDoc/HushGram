@@ -227,6 +227,28 @@ public class ReelSeekTouchTest {
         onMore.recycle();
     }
 
+    /**
+     * #526: a press the glass tab bar hands the strip, from where the strip runs over the bar, stays
+     * Instagram's seek even with a button under the point, and the next ordinary press is gated again.
+     */
+    @Test
+    public void aPressFromTheTabBarStaysWithTheSeekBar() {
+        long down = SystemClock.uptimeMillis();
+        int[] actions = {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP};
+        for (int i = 0; i < actions.length; i++) {
+            MotionEvent event = MotionEvent.obtain(down, down + 20L * i, actions[i], MORE_X - 40f * i, MORE_Y - strip.getTop(), 0);
+            assertTrue(ReelSeekTouch.fromTheBar(strip, event));
+            event.recycle();
+        }
+        assertEquals(Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP), instagram);
+        assertTrue("More saw none of it", moreTouches.isEmpty());
+
+        instagram.clear();
+        tap(MORE_X, MORE_Y);
+        assertTrue("an ordinary press on More is More's again", instagram.isEmpty());
+        assertEquals(MotionEvent.ACTION_DOWN, (int) moreTouches.get(0));
+    }
+
     /** A strip with no parent, or a press outside it, is Instagram's. */
     @Test
     public void aStripOutOfPlaceGivesNothingAway() {

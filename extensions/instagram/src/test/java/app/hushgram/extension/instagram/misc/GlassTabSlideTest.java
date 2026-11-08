@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -34,8 +35,12 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
+import app.hushgram.extension.instagram.reels.ReelSeekTouch;
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Slide across the tabs (#136): which touches turn into a slide, what Instagram still gets, where the
@@ -58,9 +63,15 @@ public class GlassTabSlideTest {
     private static final class Pill implements GlassTabSlide.Host {
         final List<Float> follows = new ArrayList<>();
         boolean fails;
+        /** A reel's seek bar strip over the bar's top 28 pixels, or null on a screen without one. */
+        View strip;
 
         @Override public boolean onPill(float x, float y) {
             return x >= 20 && x < 1060 && y >= 10 && y < 140;
+        }
+
+        @Override public View stripAt(float x, float y) {
+            return strip != null && y >= 0 && y < 28 ? strip : null;
         }
 
         @Override public void follow(float x) {
@@ -72,6 +83,8 @@ public class GlassTabSlideTest {
             return follows.get(follows.size() - 1);
         }
     }
+
+    @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private ActivityController<Probe> controller;
     private Probe activity;
@@ -353,6 +366,118 @@ public class GlassTabSlideTest {
         assertEquals("the rebuilt bar gets the slide", middle(3), next.last(), 0.01f);
         assertTrue("the old bar's glass hears nothing", pill.follows.isEmpty());
         dispatch(MotionEvent.ACTION_UP, middle(3), 75);
+    }
+
+    /**
+     * Puts a reel's seek bar strip over the bar's top 28 pixels, the way Instagram's runs over the pill, and
+     * answers the touches it gets as action, x and y in its own pixels.
+     */
+    private List<float[]> stripOverTheBar() {
+        List<float[]> got = new ArrayList<>();
+        View strip = new View(activity);
+        strip.setOnTouchListener((view, event) -> {
+            got.add(new float[] {event.getActionMasked(), event.getX(), event.getY()});
+            return true;
+        });
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(1080, 60);
+        params.topMargin = 1770 - 32;
+        root.addView(strip, params);
+        layout();
+        pill.strip = strip;
+        return got;
+    }
+
+    /**
+     * #526: a drag that starts on the seek bar's strip, where it runs over the bar, goes to the strip from
+     * start to end, in the strip's own pixels. Instagram's screen and its tabs get none of it, and nothing
+     * slides, even sideways past the slop.
+     */
+    @Test public void aDragOnTheSeekBarsStripGoesToTheStrip() {
+        List<float[]> got = stripOverTheBar();
+        assertTrue(touch(MotionEvent.ACTION_DOWN, middle(1), 10));
+        assertEquals(GlassTabSlide.ROUTED, slide.state());
+        assertTrue(touch(MotionEvent.ACTION_MOVE, middle(3), 14));
+        assertTrue(touch(MotionEvent.ACTION_UP, middle(3), 14));
+        assertEquals(GlassTabSlide.IDLE, slide.state());
+
+        assertEquals(3, got.size());
+        assertEquals(MotionEvent.ACTION_DOWN, (int) got.get(0)[0]);
+        assertEquals(MotionEvent.ACTION_MOVE, (int) got.get(1)[0]);
+        assertEquals(MotionEvent.ACTION_UP, (int) got.get(2)[0]);
+        assertEquals("in the strip's pixels", middle(1), got.get(0)[1], 0.5f);
+        assertEquals("the strip starts 32 pixels above the bar", 42f, got.get(0)[2], 0.5f);
+        assertEquals(middle(3), got.get(2)[1], 0.5f);
+        assertTrue("no slide", pill.follows.isEmpty());
+        assertTrue("Instagram's screen got nothing", activity.actions.isEmpty());
+        assertTrue(clicked.isEmpty());
+
+        assertFalse("below the strip, the tabs are Instagram's again", touch(MotionEvent.ACTION_DOWN, middle(2), 75));
+        assertEquals(3, got.size());
+    }
+
+    /**
+     * With Slide across the tabs off the slide watches only for the strip: a sideways drag on the pill is
+     * Instagram's, a drag on the strip is the strip's, and paused, both are Instagram's.
+     */
+    @Test public void withSlidesOffOnlyTheStripsDragsAreKept() {
+        slide = new GlassTabSlide(bar, pill, running::get, false);
+        assertFalse(slide.slides());
+        List<float[]> got = stripOverTheBar();
+        assertFalse(touch(MotionEvent.ACTION_DOWN, middle(0), 75));
+        assertFalse(touch(MotionEvent.ACTION_MOVE, middle(3), 78));
+        assertFalse(touch(MotionEvent.ACTION_UP, middle(3), 78));
+        assertTrue("no slide", pill.follows.isEmpty());
+
+        assertTrue(touch(MotionEvent.ACTION_DOWN, middle(0), 20));
+        assertTrue(touch(MotionEvent.ACTION_MOVE, middle(3), 22));
+        assertTrue(touch(MotionEvent.ACTION_CANCEL, middle(3), 22));
+        assertEquals(3, got.size());
+        assertEquals(MotionEvent.ACTION_CANCEL, (int) got.get(2)[0]);
+        assertEquals(GlassTabSlide.IDLE, slide.state());
+
+        running.set(false);
+        assertFalse("paused", touch(MotionEvent.ACTION_DOWN, middle(0), 20));
+        assertEquals(3, got.size());
+    }
+
+    /**
+     * #526 as the phone has it: the strip's own gate (#452) hands a plain press over a tab to the tab, so
+     * the drags the bar routes go through as presses from the bar, and Instagram's seek gets all of them.
+     */
+    @Test public void theStripsGateLetsTheSeekHaveTheBarsDrags() {
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        stripOverTheBar();
+        View strip = pill.strip;
+        List<Integer> seek = new ArrayList<>();
+        ReelSeekTouch.listen(strip, (view, event) -> {
+            seek.add(event.getActionMasked());
+            return true;
+        });
+        long now = SystemClock.uptimeMillis();
+        MotionEvent plain = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, middle(1), 46f, 0);
+        strip.dispatchTouchEvent(plain);
+        plain.recycle();
+        assertTrue("handed over plainly, the gate gives the press to the tab under it", seek.isEmpty());
+
+        assertTrue(touch(MotionEvent.ACTION_DOWN, middle(1), 14));
+        assertTrue(touch(MotionEvent.ACTION_MOVE, middle(3), 16));
+        assertTrue(touch(MotionEvent.ACTION_UP, middle(3), 16));
+        assertEquals(Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP), seek);
+        assertTrue("no tab opened", clicked.isEmpty());
+        assertTrue("Instagram's screen got nothing", activity.actions.isEmpty());
+    }
+
+    /** A failure mid-drag hands the strip a cancel, since it had the drag's start, and the rest is Instagram's. */
+    @Test public void givingUpOnAStripDragCancelsItOnTheStrip() {
+        List<float[]> got = stripOverTheBar();
+        assertTrue(touch(MotionEvent.ACTION_DOWN, middle(1), 10));
+        slide.giveUp();
+        assertEquals(GlassTabSlide.REFUSED, slide.state());
+        assertEquals(2, got.size());
+        assertEquals(MotionEvent.ACTION_CANCEL, (int) got.get(1)[0]);
+        assertFalse(touch(MotionEvent.ACTION_MOVE, middle(2), 10));
+        assertEquals(2, got.size());
     }
 
     /** Anything that throws is counted, and the gesture is Instagram's from there on. */

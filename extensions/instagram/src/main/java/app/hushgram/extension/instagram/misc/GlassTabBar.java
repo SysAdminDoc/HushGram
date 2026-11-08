@@ -751,6 +751,7 @@ public final class GlassTabBar {
     static final String COUNT_TAB_BACKGROUND = "Tab's own capsule taken off";
     /** Counted each time Instagram's touch strip for a reel's seek bar is moved back onto the seek bar. */
     static final String COUNT_STRIP_KEPT = "Seek bar's touch strip kept on the reel";
+    static final String COUNT_STRIP_WATCHED = "seek bar strip watching";
     /** Counted each time the navigation bar's height is answered 0 so the screens run behind the gesture handle (#144). */
     static final String COUNT_NAV_BEHIND = "Screens run behind the gesture handle";
     /** Counted each time the pill shows or hides and the window's insets are asked for again. */
@@ -1360,8 +1361,14 @@ public final class GlassTabBar {
          * for it (#170). Null with the switch off and the wait on Never.
          */
         @Nullable private final GlassScrollHide scrollHide;
-        /** Carries the capsule along with a finger slid across the pill, with that switch on (#136). Null with it off. */
-        @Nullable private final GlassTabSlide slide;
+        /**
+         * Carries the capsule along with a finger slid across the pill, with that switch on (#136), and hands a
+         * drag on a reel's seek bar strip to the strip either way (#526).
+         */
+        private final GlassTabSlide slide;
+        /** The window the slide watches once a reel's strip turns up, kept while Slide across the tabs is off. */
+        @Nullable private WeakReference<Window> stripWindow;
+        private boolean stripWatched;
         /** Where a sliding finger holds the capsule's middle, in the bar's pixels, or NaN while none does. */
         private float dragX = Float.NaN;
         private final RectF touchArea = new RectF();
@@ -1472,8 +1479,7 @@ public final class GlassTabBar {
             this.scrollHide = hideOnScroll || shrinkOnScroll || reelsMillis > 0
                     ? new GlassScrollHide(bar, () -> !HushgramPause.isPaused(), hideOnScroll || shrinkOnScroll, reelsMillis,
                             shrinkOnScroll ? this : null) : null;
-            this.slide = Settings.GLASS_TAB_BAR_SLIDE.get()
-                    ? new GlassTabSlide(bar, this, () -> !HushgramPause.isPaused()) : null;
+            this.slide = new GlassTabSlide(bar, this, () -> !HushgramPause.isPaused(), Settings.GLASS_TAB_BAR_SLIDE.get());
             this.base = baseColor(bar.getBackground());
             this.originalLeft = bar.getPaddingLeft();
             this.originalRight = bar.getPaddingRight();
@@ -1508,8 +1514,15 @@ public final class GlassTabBar {
             if (scrollHide != null) scrollHide.restoreNow();
         }
 
+        /**
+         * With Slide across the tabs on, [window]'s touches go through the slide from now on. With it off, only
+         * once a reel's seek bar strip turns up ({@link #watchTheStrip}), so a screen without one stays as it was.
+         */
         void watchSlides(Window window) {
-            if (slide == null) return;
+            if (!slide.slides()) {
+                stripWindow = new WeakReference<>(window);
+                return;
+            }
             try {
                 GlassTabSlide.install(window, slide);
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, GlassTabSlide.COUNT_WATCHING);
@@ -1518,10 +1531,29 @@ public final class GlassTabBar {
             }
         }
 
+        /** Has the window's touches go through the slide once a reel's strip shows, with Slide across the tabs off (#526). */
+        private void watchTheStrip() {
+            if (stripWatched || slide.slides()) return;
+            Window window = stripWindow == null ? null : stripWindow.get();
+            if (window == null) return;
+            stripWatched = true;
+            try {
+                GlassTabSlide.install(window, slide);
+                HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_STRIP_WATCHED);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "seek bar strip", failure);
+            }
+        }
+
         @Override public boolean onPill(float x, float y) {
             // The compact row has no tabs to slide across, and a drag on a reel's seek bar strip is the seek bar's.
-            return compact <= 0f && pill.pillBounds(touchArea) && touchArea.contains(x, y)
-                    && !onTheStrip(stripRef == null ? null : stripRef.get(), bar, x, y);
+            return compact <= 0f && pill.pillBounds(touchArea) && touchArea.contains(x, y) && stripAt(x, y) == null;
+        }
+
+        @Nullable
+        @Override public View stripAt(float x, float y) {
+            View strip = stripRef == null ? null : stripRef.get();
+            return onTheStrip(strip, bar, x, y) ? strip : null;
         }
 
         /**
@@ -2189,6 +2221,7 @@ public final class GlassTabBar {
                 strip = find(holder, TOUCH_STRIP);
                 stripRef = strip == null ? null : new WeakReference<>(strip);
             }
+            if (strip != null) watchTheStrip();
             if (strip != null && stripOnTheReel(strip, viewers, id(holder.getContext(), SCRUBBER), dp(STRIP_BELOW_DP), reelsRect)) {
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_STRIP_KEPT);
             }

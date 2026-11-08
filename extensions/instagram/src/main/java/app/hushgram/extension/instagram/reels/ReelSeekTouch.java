@@ -39,8 +39,24 @@ public final class ReelSeekTouch {
     private static final float SEEN_ALPHA = 0.05f;
 
     private static volatile boolean loggedPass;
+    /** Set while the glass tab bar hands the strip a press that went down over the bar. Main thread only. */
+    private static boolean barPress;
 
     private ReelSeekTouch() {
+    }
+
+    /**
+     * Hands {@code event} to {@code strip} for the glass tab bar, which catches the presses that land
+     * where the strip runs over its top (#526). Those were meant for the seek bar, so the gate keeps
+     * them for Instagram's listener even with a tab under the point. Answers what the strip answered.
+     */
+    public static boolean fromTheBar(View strip, MotionEvent event) {
+        barPress = true;
+        try {
+            return strip.dispatchTouchEvent(event);
+        } finally {
+            barPress = false;
+        }
     }
 
     /**
@@ -63,7 +79,7 @@ public final class ReelSeekTouch {
 
         @Override
         public boolean onTouch(View strip, MotionEvent event) {
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) passing = givesWay(strip, event);
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) passing = !barPress && givesWay(strip, event);
             return !passing && instagram.onTouch(strip, event);
         }
     }
