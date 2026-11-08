@@ -1895,6 +1895,13 @@ Puts the seek bar right on the bottom edge of the video, so it's harder to touch
 # context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
 Hide Made with Edits	"Made with Edits" etiketini gizle
 Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	Bir gönderinin sahibinin altındaki satırdan "Made with Edits" etiketini kaldırır. Şarkı, konum ve diğer etiketler orada sırayla görünmeye devam eder.
+# context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
+Save in the post menu	Gönderi menüsünde Kaydet
+Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Bir gönderinin üç noktasının açtığı menüye Kaydet ekler, zaten kaydettiysen Kaydedilenlerden kaldır ekler.
+Hide the Save button	Kaydet düğmesini gizle
+Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Akışındaki gönderilerin altındaki Kaydet düğmesini kaldırır, böylece yanlışlıkla bir dokunuş hiçbir şeyi kaydetmez.
+# context: the row in a feed post's three-dot menu for a post you already saved
+Remove from saved	Kaydedilenlerden kaldır
 # context: a switch on the Reels page
 Hide lives in Reels	Reels'te canlı yayınları gizle
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Instagram'ın Reels sekmesinde ve Keşfet'ten açtığın reel'leri kaydırırken reel'lerin arasına koyduğu canlı yayınları göstermez.

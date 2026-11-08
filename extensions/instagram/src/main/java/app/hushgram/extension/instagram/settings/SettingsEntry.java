@@ -46,6 +46,7 @@ import app.hushgram.extension.instagram.feed.CarouselPeek;
 import app.hushgram.extension.instagram.feed.CommentEmojiRow;
 import app.hushgram.extension.instagram.feed.CommentGifs;
 import app.hushgram.extension.instagram.feed.FeedFollowButton;
+import app.hushgram.extension.instagram.feed.FeedSaveRow;
 import app.hushgram.extension.instagram.feed.HideCaptions;
 import app.hushgram.extension.instagram.feed.FollowingFeed;
 import app.hushgram.extension.instagram.feed.ReelCorners;
@@ -169,6 +170,7 @@ public final class SettingsEntry {
         CommentEmojiRow.install(context);
         CommentGifs.install(context);
         FeedFollowButton.install(context);
+        FeedSaveRow.install(context);
         HideCaptions.install(context);
         FollowingFeed.install(context);
         ReelCorners.install(context);

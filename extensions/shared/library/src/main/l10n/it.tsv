@@ -1895,6 +1895,13 @@ Puts the seek bar right on the bottom edge of the video, so it's harder to touch
 # context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
 Hide Made with Edits	Nascondi "Made with Edits"
 Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	Toglie l'etichetta "Made with Edits" dalla riga sotto l'autore di un post. La canzone, il luogo e le altre etichette continuano ad alternarsi lì.
+# context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
+Save in the post menu	Salva nel menu del post
+Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Aggiunge Salva al menu dei tre puntini di un post, oppure Rimuovi dagli elementi salvati se l'hai già salvato.
+Hide the Save button	Nascondi il pulsante Salva
+Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Toglie il pulsante Salva dal fondo dei post nel tuo feed, così un tocco per sbaglio non ne salva nessuno.
+# context: the row in a feed post's three-dot menu for a post you already saved
+Remove from saved	Rimuovi dagli elementi salvati
 # context: a switch on the Reels page
 Hide lives in Reels	Nascondi le dirette nei Reels
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	Lascia fuori le dirette che Instagram mette tra i reel nella scheda Reels e quando scorri i reel da Esplora.

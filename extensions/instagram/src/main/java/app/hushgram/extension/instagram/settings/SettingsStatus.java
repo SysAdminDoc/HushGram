@@ -456,6 +456,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean feedSave() {
+        return false;
+    }
+
         return false;
     }
 

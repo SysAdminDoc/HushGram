@@ -2395,6 +2395,20 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_EDITS_LABEL =
             new BooleanSetting("hushgram_hide_edits_label", FALSE);
 
+    /**
+     * A Save row in a feed post's menu, or Remove from saved on a saved post (#569,
+     * {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). Read as the menu opens. Off to start.
+     */
+    public static final BooleanSetting SAVE_IN_POST_MENU =
+            new BooleanSetting("hushgram_save_in_post_menu", FALSE);
+
+    /**
+     * The Save button under a feed post (#569, {@link app.hushgram.extension.instagram.feed.FeedSaveRow}).
+     * Read before each frame of a resumed screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_SAVE_BUTTON =
+            new BooleanSetting("hushgram_hide_feed_save_button", FALSE);
+
 
     /**
      * The little round pictures on posts and reels showing a friend liked, commented on or reshared

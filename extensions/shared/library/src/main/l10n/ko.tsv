@@ -1894,6 +1894,13 @@ Puts the seek bar right on the bottom edge of the video, so it's harder to touch
 # context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
 Hide Made with Edits	"Made with Edits" 숨기기
 Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	게시물 작성자 아래 줄에서 "Made with Edits" 라벨을 없앱니다. 노래, 장소와 다른 라벨은 계속 번갈아 표시됩니다.
+# context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
+Save in the post menu	게시물 메뉴에 저장 추가
+Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	게시물의 점 세 개 메뉴에 저장을 추가합니다. 이미 저장한 게시물에는 저장됨에서 삭제가 표시됩니다.
+Hide the Save button	저장 버튼 숨기기
+Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	피드 게시물 아래쪽의 저장 버튼을 없애서 실수로 눌러 저장되는 일이 없게 합니다.
+# context: the row in a feed post's three-dot menu for a post you already saved
+Remove from saved	저장됨에서 삭제
 # context: a switch on the Reels page
 Hide lives in Reels	릴스에서 라이브 숨기기
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	릴스 탭과 탐색 탭에서 릴스를 넘길 때 Instagram이 릴스 사이에 넣는 라이브 방송을 빼고 보여줍니다.

@@ -1898,6 +1898,13 @@ Puts the seek bar right on the bottom edge of the video, so it's harder to touch
 # context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
 Hide Made with Edits	隱藏「Made with Edits」
 Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	移除貼文作者下方那一行的「Made with Edits」標籤。歌曲、地點和其他標籤仍會在那裡輪流顯示。
+# context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
+Save in the post menu	貼文選單中的儲存
+Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	在貼文三個點開啟的選單中加入「儲存」，已儲存的貼文則顯示「從已儲存移除」。
+Hide the Save button	隱藏儲存按鈕
+Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	移除動態中貼文底部的儲存按鈕，避免誤觸而儲存貼文。
+# context: the row in a feed post's three-dot menu for a post you already saved
+Remove from saved	從已儲存移除
 # context: a switch on the Reels page
 Hide lives in Reels	隱藏 Reels 中的直播
 Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.	略過 Instagram 在 Reels 分頁中，以及從探索滑動瀏覽 Reels 時，夾在 Reels 之間的直播。

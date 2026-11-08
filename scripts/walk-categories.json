@@ -103,7 +103,8 @@
           "Hide the audio icon on posts",
           "Keep Home's top bar",
           "Hide activity bubbles",
-          "Hide Made with Edits"
+          "Hide Made with Edits",
+          "Save in the post menu"
         ]
       },
       "anchors": [

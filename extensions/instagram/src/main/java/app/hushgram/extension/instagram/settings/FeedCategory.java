@@ -25,6 +25,7 @@ import java.util.Set;
 import app.hushgram.extension.instagram.feed.AmbientLight;
 import app.hushgram.extension.instagram.feed.CarouselArrows;
 import app.hushgram.extension.instagram.feed.FeedFollowButton;
+import app.hushgram.extension.instagram.feed.FeedSaveRow;
 import app.hushgram.extension.instagram.feed.HideCaptions;
 import app.hushgram.extension.instagram.feed.CarouselPeek;
 import app.hushgram.extension.instagram.feed.ReelCorners;
@@ -60,6 +61,7 @@ final class FeedCategory {
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
         boolean editsLabel = build.contains(PatchFamily.EDITS_LABEL);
+        boolean feedSave = build.contains(PatchFamily.FEED_SAVE);
         boolean hideCaptions = build.contains(PatchFamily.HIDE_CAPTIONS);
         boolean feedAudioIcon = build.contains(PatchFamily.FEED_AUDIO_ICON);
         boolean homeTopBar = build.contains(PatchFamily.HOME_TOP_BAR);
@@ -67,7 +69,7 @@ final class FeedCategory {
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedHoldFast || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
-                || fullScreen || feedFollow || editsLabel || hideCaptions || feedAudioIcon || homeTopBar || activityBubbles
+                || fullScreen || feedFollow || editsLabel || feedSave || hideCaptions || feedAudioIcon || homeTopBar || activityBubbles
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -288,6 +290,13 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.HIDE_EDITS_LABEL, L10n.t("Hide Made with Edits"),
                     L10n.t("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the "
                             + "place and the other labels keep taking turns there.")));
+        }
+        if (feedSave) {
+            feed.addPreference(toggle(context, Settings.SAVE_IN_POST_MENU, L10n.t("Save in the post menu"),
+                    L10n.t("Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.")));
+            feed.addPreference(onFlip(toggle(context, Settings.HIDE_FEED_SAVE_BUTTON, L10n.t("Hide the Save button"),
+                    L10n.t("Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.")),
+                    FeedSaveRow::switchChanged));
         }
         if (activityBubbles) {
             feed.addPreference(toggle(context, Settings.HIDE_ACTIVITY_BUBBLES, L10n.t("Hide activity bubbles"),

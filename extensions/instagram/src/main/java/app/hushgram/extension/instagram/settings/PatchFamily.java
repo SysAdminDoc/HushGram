@@ -209,6 +209,7 @@ public enum PatchFamily {
     COMMENT_SEARCH(FamilyNames.COMMENT_SEARCH, "commentSearch", null, Settings.COMMENT_SEARCH),
     FEED_FOLLOW(FamilyNames.FEED_FOLLOW, "feedFollow", null, Settings.HIDE_FEED_FOLLOW),
     EDITS_LABEL(FamilyNames.EDITS_LABEL, "editsLabel", null, Settings.HIDE_EDITS_LABEL),
+    FEED_SAVE(FamilyNames.FEED_SAVE, "feedSave", null, Settings.SAVE_IN_POST_MENU, Settings.HIDE_FEED_SAVE_BUTTON),
     ACTIVITY_BUBBLES(FamilyNames.ACTIVITY_BUBBLES, "activityBubbles", null, Settings.HIDE_ACTIVITY_BUBBLES),
     HIDE_CAPTIONS(FamilyNames.HIDE_CAPTIONS, "hideCaptions", null, Settings.HIDE_CAPTIONS),
     FEED_AUDIO_ICON(FamilyNames.FEED_AUDIO_ICON, "feedAudioIcon", null, Settings.HIDE_FEED_AUDIO_ICON),
