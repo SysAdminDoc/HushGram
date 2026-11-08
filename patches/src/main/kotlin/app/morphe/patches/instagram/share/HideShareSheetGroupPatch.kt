@@ -296,7 +296,8 @@ internal class SearchBoxSite(val method: SheetMethod, val at: Int, val box: Int)
 /**
  * Finds where the share sheet keeps the search box it just found by its id: the one write of
  * [STICKY_SEARCH_BOX] in the sheet of a value cast to [SEARCH_BOX] by the instruction before, which
- * onViewCreated makes. Nothing else in the sheet shows or hides the box. Fails unless there's
+ * onViewCreated makes. The sheet shows the box again a few lines later, which the extension undoes
+ * each time the box is laid out. Fails unless there's
  * exactly one, with no branch entering right after it, where the hook goes.
  */
 internal fun BytecodePatchContext.findSearchBox(): SearchBoxSite {

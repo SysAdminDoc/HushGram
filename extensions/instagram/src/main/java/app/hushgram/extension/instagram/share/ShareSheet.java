@@ -54,20 +54,37 @@ public final class ShareSheet {
 
     /**
      * Takes the share sheet's search bar away while Hide the search bar is on (#545). The patch calls
-     * this once the sheet has found the bar, and nothing in the sheet shows it again. Leaves the bar
-     * as it is before the settings are ready, with the switch off, or when anything goes wrong. Never
-     * throws.
+     * this once the sheet has found the bar, but a few lines later the sheet shows the bar itself, so
+     * the bar also goes again each time the sheet lays it out. Leaves the bar as it is before the
+     * settings are ready, with the switch off, or when anything goes wrong. Never throws.
      */
     public static void searchBox(View box) {
         try {
             HookStatus.invoked(FamilyNames.SHARE_SHEET);
             if (box == null || !Utils.settingsReady() || !Settings.HIDE_SHARE_SHEET_SEARCH.get()) return;
             box.setVisibility(View.GONE);
+            box.removeOnLayoutChangeListener(KEEP_HIDDEN);
+            box.addOnLayoutChangeListener(KEEP_HIDDEN);
             Logger.printDebug(() -> "Share sheet: hid the search bar");
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SHARE_SHEET, "search bar", failure);
         }
     }
+
+    /**
+     * Hides the search bar again whenever the sheet lays it out while the switch is on. A gone view
+     * is never laid out, so this only acts after something showed the bar.
+     */
+    private static final View.OnLayoutChangeListener KEEP_HIDDEN =
+            (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                try {
+                    if (view.getVisibility() == View.GONE || !Settings.HIDE_SHARE_SHEET_SEARCH.get()) return;
+                    view.setVisibility(View.GONE);
+                    Logger.printDebug(() -> "Share sheet: hid the search bar the sheet showed again");
+                } catch (Throwable failure) {
+                    HookStatus.threw(FamilyNames.SHARE_SHEET, "search bar", failure);
+                }
+            };
 
     /**
      * True while Hide group buttons is on, and false before the settings are ready or when anything goes

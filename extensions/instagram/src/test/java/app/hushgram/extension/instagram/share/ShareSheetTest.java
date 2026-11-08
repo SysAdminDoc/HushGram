@@ -50,6 +50,26 @@ public class ShareSheetTest {
         assertEquals(View.GONE, box.getVisibility());
     }
 
+    /**
+     * The sheet shows the bar itself right after handing it over (454's onViewCreated), so the bar
+     * goes again the next time it's laid out, and stays once the switch is off (#545).
+     */
+    @Test
+    public void theSearchBarStaysGoneWhenTheSheetShowsItAgain() {
+        Settings.HIDE_SHARE_SHEET_SEARCH.save(true);
+        View box = new View(RuntimeEnvironment.getApplication());
+        ShareSheet.searchBox(box);
+        ShareSheet.searchBox(box);
+        box.setVisibility(View.VISIBLE);
+        box.layout(0, 0, 688, 88);
+        assertEquals(View.GONE, box.getVisibility());
+
+        Settings.HIDE_SHARE_SHEET_SEARCH.save(false);
+        box.setVisibility(View.VISIBLE);
+        box.layout(0, 0, 688, 90);
+        assertEquals(View.VISIBLE, box.getVisibility());
+    }
+
     /** The group switch alone leaves the search bar, and a missing bar is no trouble. */
     @Test
     public void theGroupSwitchLeavesTheSearchBarAlone() {
