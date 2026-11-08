@@ -113,6 +113,17 @@ internal const val MENU_BACKGROUND = "igds_context_menu_background_color"
 internal val DARK_MENUS = listOf("IgdsPrismBGBlurFallbackFixDark", "IgdsSemanticColorsDark")
 
 /**
+ * The dark theme Instagram's newer comments screen wraps itself in (#538). It sets the screen's and
+ * the sheet's backgrounds to bds_grey_9_95_transparent, #f2262626, and a photo or GIF in a comment
+ * paints its rounded corners in that color, so on a sheet that's black they showed as gray squares
+ * round each picture. StoryCommentColorsDarkLegacy inherits both.
+ */
+internal const val COMMENT_COLORS = "StoryCommentColorsDark"
+
+/** The backgrounds [COMMENT_COLORS] sets to its gray. Its dividers keep theirs. The patch fails unless both change. */
+internal val COMMENT_BACKGROUNDS = listOf("igds_color_primary_background", SHEET_BACKGROUND)
+
+/**
  * The selector a row of the Likes list paints itself with, over a sheet that's black already (#248).
  * Its normal item fills with [ROW_BACKGROUND], #ff191c1f on 453, and its pressed item with another
  * attribute, #ff25292e.
@@ -194,6 +205,14 @@ internal fun blackenStories(styles: Document): List<String> = blackenAttribute(s
  */
 internal fun blackenMenus(styles: Document): List<String> = blackenAttribute(styles, MENU_BACKGROUND, DARK_MENUS)
 
+/**
+ * Points each of [COMMENT_BACKGROUNDS] at [PURE_BLACK_COLOR] in [COMMENT_COLORS] if one decoded
+ * styles.xml holds it, and answers the attributes it changed. The comments' text, dividers and
+ * highlighted rows keep their colors.
+ */
+internal fun blackenComments(styles: Document): List<String> =
+    COMMENT_BACKGROUNDS.filter { blackenAttribute(styles, it, listOf(COMMENT_COLORS)).isNotEmpty() }
+
 private fun blackenAttribute(styles: Document, attribute: String, names: List<String>): List<String> {
     val list = styles.getElementsByTagName("style")
     val changed = mutableListOf<String>()
@@ -269,7 +288,8 @@ internal fun BytecodePatchContext.blackenLiterals(): List<String> {
 
 /**
  * Writes pure black into the decoded styles: the backgrounds [blackenStyles] owns, the sheets
- * [blackenSheets] owns, the story viewer [blackenStories] owns and the dark launch screen
+ * [blackenSheets] owns, the story viewer [blackenStories] owns, the held-message menu
+ * [blackenMenus] owns, the comments theme [blackenComments] owns and the dark launch screen
  * [blackenLaunchScreen] owns, then into the row [blackenRow] owns. Only that row's file, the styles
  * files that name [PRISM_BLACK_COLOR] and the night ones naming [SPLASH_BACKGROUND_COLOR] are
  * opened: document() writes its file back, and the
@@ -296,6 +316,7 @@ internal fun ResourcePatchContext.blackenThemes() {
     val sheets = mutableListOf<String>()
     val stories = mutableListOf<String>()
     val menus = mutableListOf<String>()
+    val comments = mutableListOf<String>()
     val launchScreens = mutableListOf<String>()
     values.forEach { directory ->
         val file = File(directory, "styles.xml")
@@ -310,6 +331,7 @@ internal fun ResourcePatchContext.blackenThemes() {
                 sheets += blackenSheets(styles)
                 stories += blackenStories(styles)
                 menus += blackenMenus(styles)
+                comments += blackenComments(styles)
             }
             if (launch && blackenLaunchScreen(styles) > 0) launchScreens += directory.name
         }
@@ -324,6 +346,8 @@ internal fun ResourcePatchContext.blackenThemes() {
     if (grayStories.isNotEmpty()) throw PatchException("$PATCH: ${grayStories.joinToString()} no longer set $STORY_BACKGROUND")
     val grayMenus = DARK_MENUS - menus.toSet()
     if (grayMenus.isNotEmpty()) throw PatchException("$PATCH: ${grayMenus.joinToString()} no longer set $MENU_BACKGROUND")
+    val grayComments = COMMENT_BACKGROUNDS - comments.toSet()
+    if (grayComments.isNotEmpty()) throw PatchException("$PATCH: $COMMENT_COLORS no longer sets ${grayComments.joinToString()}")
     if (launchScreens.none { "v31" in it.split('-') }) {
         throw PatchException("$PATCH: the dark $INSTAGRAM_LAUNCH_THEME for Android 12 no longer names $SPLASH_BACKGROUND_COLOR")
     }
