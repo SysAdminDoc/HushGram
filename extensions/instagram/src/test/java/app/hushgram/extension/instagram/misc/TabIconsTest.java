@@ -197,6 +197,44 @@ public class TabIconsTest {
         assertScale("after the press", 1.3f, home);
     }
 
+    /**
+     * At 140% on a phone the Home icon lost its roof and the Profile picture came out square: each
+     * was cut off where its parent's edges were. The parents up to the tab stop clipping while the
+     * icons are bigger, the bar still does, and Instagram's size puts each parent back as it was.
+     */
+    @Test
+    public void aBiggerIconIsNotCutOffByItsParents() {
+        FrameLayout wrapper = new FrameLayout(activity);
+        ImageView reels = icon(home.getId());
+        wrapper.addView(reels, new FrameLayout.LayoutParams(48, 48));
+        FrameLayout reelsTab = new FrameLayout(activity);
+        reelsTab.setPadding(4, 4, 4, 4);
+        reelsTab.addView(wrapper, new FrameLayout.LayoutParams(48, 48, Gravity.CENTER));
+        bar.addView(reelsTab, tabParams());
+        FrameLayout searchTab = (FrameLayout) search.getParent();
+        searchTab.setClipChildren(false);
+        Settings.TAB_ICON_SIZE.save(TabIconSize.PERCENT_140);
+        TabIcons.watch(activity);
+
+        frame();
+
+        assertScale("reels", 1.4f, reels);
+        assertFalse("the icon's own wrapper", wrapper.getClipChildren());
+        assertFalse("the tab", reelsTab.getClipChildren());
+        assertFalse("the tab's padding", reelsTab.getClipToPadding());
+        assertFalse("the Profile picture's tab", ((ViewGroup) profile.getParent()).getClipChildren());
+        assertTrue("the bar still holds them in", bar.getClipChildren());
+
+        Settings.TAB_ICON_SIZE.save(TabIconSize.INSTAGRAM);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+
+        assertScale("reels", 1f, reels);
+        assertTrue("the wrapper clips again", wrapper.getClipChildren());
+        assertTrue("the tab clips again", reelsTab.getClipChildren());
+        assertTrue("the tab's padding clips again", reelsTab.getClipToPadding());
+        assertFalse("a tab that didn't clip before still doesn't", searchTab.getClipChildren());
+    }
+
     @Test
     public void instagramsSizeAgainPutsTheIconsBack() {
         Settings.TAB_ICON_SIZE.save(TabIconSize.PERCENT_140);

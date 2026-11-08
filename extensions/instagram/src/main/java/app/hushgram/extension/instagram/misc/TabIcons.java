@@ -9,6 +9,7 @@ import android.app.Application;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 
 import androidx.annotation.Nullable;
 
@@ -30,7 +31,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * Draws the tab bar's icons at the size picked under Tab icon size (#541).
  *
  * <p>No part of Instagram's code changes. Before each frame the bar is found by its name, and in each
- * tab the icon (or, on Profile, the picture) is drawn bigger from its own center. The tab's touch area
+ * tab the icon (or, on Profile, the picture) is drawn bigger from its own center, with its parents up
+ * to the tab no longer cutting it off at its old size. The tab's touch area
  * and the badges beside the icon stay as Instagram made them. Instagram animates an icon's size when
  * it's pressed, so an icon caught at a size that is neither Instagram's nor the one given here is left
  * to finish, and gets its size again once it's back. Instagram's size, a pause, or anything thrown puts
@@ -50,8 +52,13 @@ public final class TabIcons {
 
     private static final ResourceIdCache ids = new ResourceIdCache();
     private static final WeakHashMap<Activity, Session> sessions = new WeakHashMap<>();
+    /** The most parents between an icon and its tab that are looked at. */
+    private static final int MAX_DEPTH = 8;
+
     /** The icons given a size here, and the size, so only those are put back. */
     private static final WeakHashMap<View, Float> sized = new WeakHashMap<>();
+    /** The parents told not to clip here, and whether each clipped its children and its padding before. */
+    private static final WeakHashMap<ViewGroup, boolean[]> unclipped = new WeakHashMap<>();
     private static volatile boolean registered;
 
     private TabIcons() {
@@ -110,8 +117,38 @@ public final class TabIcons {
         boolean changed = false;
         int count = Math.min(bar.getChildCount(), MAX_TABS);
         for (int i = 0; i < count; i++) {
-            View icon = iconOf(bar.getChildAt(i), iconId, avatarId);
-            if (icon != null) changed |= scale(icon, wanted);
+            View tab = bar.getChildAt(i);
+            View icon = iconOf(tab, iconId, avatarId);
+            if (icon == null) continue;
+            changed |= scale(icon, wanted);
+            if (wanted != 1f) changed |= unclip(icon, tab);
+        }
+        return changed;
+    }
+
+    /**
+     * Lets [icon] draw past its parents' edges, up to and including [tab], so a bigger icon isn't cut
+     * off where its old size ended (the Profile picture came out square). The bar still holds it in.
+     * Answers whether a parent changed.
+     */
+    private static boolean unclip(View icon, View tab) {
+        boolean changed = false;
+        ViewParent parent = icon.getParent();
+        for (int depth = 0; parent instanceof ViewGroup && depth < MAX_DEPTH; depth++) {
+            ViewGroup group = (ViewGroup) parent;
+            if (!unclipped.containsKey(group)) {
+                unclipped.put(group, new boolean[]{group.getClipChildren(), group.getClipToPadding()});
+            }
+            if (group.getClipChildren()) {
+                group.setClipChildren(false);
+                changed = true;
+            }
+            if (group.getClipToPadding()) {
+                group.setClipToPadding(false);
+                changed = true;
+            }
+            if (group == tab) break;
+            parent = group.getParent();
         }
         return changed;
     }
@@ -162,6 +199,20 @@ public final class TabIcons {
             }
         }
         sized.clear();
+        for (Map.Entry<ViewGroup, boolean[]> each : new ArrayList<>(unclipped.entrySet())) {
+            ViewGroup group = each.getKey();
+            if (group == null) continue;
+            boolean[] was = each.getValue();
+            if (was[0] && !group.getClipChildren()) {
+                group.setClipChildren(true);
+                changed = true;
+            }
+            if (was[1] && !group.getClipToPadding()) {
+                group.setClipToPadding(true);
+                changed = true;
+            }
+        }
+        unclipped.clear();
         return changed;
     }
 
@@ -171,7 +222,7 @@ public final class TabIcons {
      */
     private static boolean apply(Activity owner, Session session, boolean laidOut) {
         float wanted = wantedScale();
-        if (wanted == 1f) return !sized.isEmpty() && putBack();
+        if (wanted == 1f) return (!sized.isEmpty() || !unclipped.isEmpty()) && putBack();
         View bar = session.bar == null ? null : session.bar.get();
         if (laidOut || bar == null || !bar.isAttachedToWindow()) {
             int barId = id(owner, TAB_BAR);
