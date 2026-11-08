@@ -1799,13 +1799,17 @@ once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupSend()Z 
 # kind above holds a callee to one call in its method, where this one is called three times in each.
 # StoryRingSizeHookTest checks on the 449 fixture that all nine land right after their
 # double-to-float and that no branch lands on one.
-# Its color is one guard instead: StoryRing.colors goes first in the ring view's one gradient
-# builder, the static method of GradientSpinner taking the ring, its stops, its start and end, its
-# colors and its size. It loads no string, so the rule holds it by the tile mode it reads. Left out,
-# a chosen color does nothing; twice or elsewhere, it isn't the guard the patch wrote.
+# Its color is a guard in each of the ring view's two gradient makers instead: StoryRing.colors goes
+# first in the static builder of GradientSpinner taking the ring, its stops, its start and end, its
+# colors and its size, and first in the instance setter taking the same arrays without the ring,
+# which 454 calls when a ring redraws and which makes its own gradient. Neither loads a string, so
+# each rule holds its method by the tile mode it reads. Left out of either, a chosen color does
+# nothing on the rings that maker draws; twice or elsewhere, it isn't the guard the patch wrote.
 # StoryRingColorHookTest checks on every 450 fixture that it lands first and passes the colors on.
 start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I in static (Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;[F[F[F[III)Landroid/graphics/LinearGradient; holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
 once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I in static (Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;[F[F[F[III)Landroid/graphics/LinearGradient; holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
+start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I in instance ([F[F[F[III)V holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
+once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I in instance ([F[F[F[III)V holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
 # Hide the Repost button answers FALSE first thing in the post model's getter of
 # enable_media_notes_production, the one instance method taking nothing and answering a Boolean
 # that loads the field's name (Media.A3o on 449). Its other hooks filter the reads of the field
