@@ -113,8 +113,10 @@ public final class LiveReels {
 
     /**
      * A Reels item's live preview part, or null for anything else, a reel included. The patch writes
-     * the body, which checks the item is Instagram's clips item and asks it for that part by the
-     * key Instagram's own live preview code uses. Null as built.
+     * the body, which checks the item is Instagram's clips item, asks it for that part by the key
+     * Instagram's own live preview code uses, and keeps the part only when it passes that code's own
+     * check for a broadcast. Every reel carries a part, an empty one for a plain reel, so the lookup
+     * alone would call every reel a live. Null as built.
      */
     public static Object livePreview(Object item) {
         return null;
