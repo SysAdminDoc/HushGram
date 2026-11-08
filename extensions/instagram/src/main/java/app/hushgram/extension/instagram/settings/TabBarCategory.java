@@ -101,6 +101,9 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.MENU_BUTTON_ON_HOME, L10n.t("Menu button on Home's header"),
                         L10n.t("Adds a menu button at the top of Home with your viewing history, Ghost mode and "
                                 + "HushGram settings. Restart Instagram to see the change.")));
+                glass.addPreference(toggle(context, Settings.HISTORY_BUTTON_ON_HOME, L10n.t("History button on Home's header"),
+                        L10n.t("Adds a clock at the top of Home that opens your viewing history in one tap. Restart "
+                                + "Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.CENTER_HOME_LOGO, L10n.t("Center the logo on Home's header"),
                         L10n.t("Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden "
                                 + "or added. A feed's name shown there is centered too. Restart Instagram to see the change.")));

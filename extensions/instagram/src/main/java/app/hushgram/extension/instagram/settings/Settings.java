@@ -2880,6 +2880,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_menu_button_on_home", FALSE, true);
 
     /**
+     * A clock on Home's header that opens the viewing history in one tap (#228,
+     * {@link app.hushgram.extension.instagram.settings.HistoryHeaderButton}). The header builds it as it
+     * draws, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HISTORY_BUTTON_ON_HOME =
+            new BooleanSetting("hushgram_history_button_on_home", FALSE, true);
+
+    /**
      * Instagram's own Messages button is off Home's header, for accounts that still have it there and
      * put Messages on the tab bar with Show the Messages tab (#210). Each header draw hides it, and
      * no Messages button of HushGram's goes in ({@link app.hushgram.extension.instagram.reels.MessagesHeaderButton}).

@@ -27,6 +27,7 @@ Every HushGram release, newest first.
 * New patch, `Hide the 2x popup on Reels`. Its switch under Reels takes the 2x label off a reel while you hold it to play faster, and the speed-up keeps working. Asked for in #552.
 * `Tab icon size` under Tab bar draws the icons on the bottom tab bar bigger, from 110% up to 150% of Instagram's size. It works on Instagram's bar and the glass one, and a change shows right away. Asked for in #541.
 * `Count on the heart` under Tab bar puts a number on the heart at the top of Home, like the one on Messages, instead of the red dot. It takes a restart. Asked for in #541.
+* `History button on Home's header` under Tab bar puts a clock at the top of Home. One tap opens your viewing history. It starts off. Asked for in #228.
 * `Accent color` has a `Custom` choice now, with a `Custom color` row under it where you type any color as hex, like #4A6B82. Where text would be hard to read on it, HushGram makes it a bit darker or lighter. On Android 10 and older the colors Instagram draws in code take it, and its themes stay blue. Asked for in #520.
 * `Accent color` also has three calmer colors: Dusk blue, Pine and Slate. Asked for in #528.
 * `Categories on their own page` under Settings entry opens a category you tap on a page of its own, with its name at the top, instead of under its row. Back takes you to the list where you left it. It needs `Expandable categories` on. Asked for in #525.

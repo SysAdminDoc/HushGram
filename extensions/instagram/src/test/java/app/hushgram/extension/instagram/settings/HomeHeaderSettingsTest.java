@@ -175,6 +175,19 @@ public class HomeHeaderSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.MENU_BUTTON_ON_HOME.key));
     }
 
+    /** History button on Home's header (#228) sits under Tab bar, starts off and asks for a restart. */
+    @Test public void theHistoryButtonSwitchStartsOff() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.HISTORY_BUTTON_ON_HOME.key);
+        assertNotNull(toggle);
+        assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), toggle).getTitle()));
+        assertEquals("History button on Home's header", String.valueOf(toggle.getTitle()));
+        assertTrue(String.valueOf(toggle.getSummary()).endsWith("Restart Instagram to see the change."));
+        assertFalse(toggle.isChecked());
+        assertTrue(PatchFamily.REELS_TAB.switches.contains(Settings.HISTORY_BUTTON_ON_HOME));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HISTORY_BUTTON_ON_HOME.key));
+    }
+
     /** Hide Messages on Home's header (#210) follows Messages button on Home's header, starts off and asks for a restart. */
     @Test public void theHideMessagesSwitchFollowsTheMessagesButtonOneAndStartsOff() throws Exception {
         open();

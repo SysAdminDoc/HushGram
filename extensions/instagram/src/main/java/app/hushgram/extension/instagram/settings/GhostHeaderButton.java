@@ -108,6 +108,8 @@ public final class GhostHeaderButton {
         place(header);
         SettingsHeaderButton.place(header);
         HomeMenuButton.place(header);
+        // After the menu button, so it can go in right before it.
+        HistoryHeaderButton.place(header);
         HeartCount.show(header);
         HomeLogo.center(header);
     }

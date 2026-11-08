@@ -466,6 +466,8 @@
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/GlassLensStrengthTest.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/HomeMenuButton.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/HomeMenuButtonTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/HistoryHeaderButton.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/HistoryHeaderButtonTest.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/ProfileMenuPress.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/ProfileMenuPressTest.java",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/settings/LogoLongPress.kt",
