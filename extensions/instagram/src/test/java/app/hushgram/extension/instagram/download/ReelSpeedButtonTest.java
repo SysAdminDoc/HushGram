@@ -280,10 +280,10 @@ public class ReelSpeedButtonTest {
     }
 
     @Test
-    public void theMenuOffersTheSixSpeedsAsked() {
+    public void theMenuOffersTheSevenSpeedsAsked() {
         StringBuilder labels = new StringBuilder();
         for (float each : ReelSpeedButton.SPEEDS) labels.append(ReelSpeedButton.label(each)).append(' ');
-        assertEquals("0.5x 1x 1.5x 1.75x 2x 3x", labels.toString().trim());
+        assertEquals("2.5x between 2x and 3x (#551)", "0.5x 1x 1.5x 1.75x 2x 2.5x 3x", labels.toString().trim());
     }
 
     @Test
@@ -301,23 +301,24 @@ public class ReelSpeedButtonTest {
         PopupMenu popup = ShadowPopupMenu.getLatestPopupMenu();
         assertNotNull("Instagram's own kind of menu opens by the icon", popup);
         Menu items = popup.getMenu();
-        assertEquals(6, items.size());
+        assertEquals(7, items.size());
         assertEquals("1.75x", String.valueOf(items.getItem(3).getTitle()));
         for (int i = 0; i < items.size(); i++) {
             assertEquals("only what plays now is checked: " + items.getItem(i).getTitle(), i == 2, items.getItem(i).isChecked());
         }
 
+        assertEquals("2.5x", String.valueOf(items.getItem(5).getTitle()));
         Shadows.shadowOf(popup).getOnMenuItemClickListener().onMenuItemClick(items.getItem(5));
-        assertEquals(List.of(3f), speed.chosen);
+        assertEquals(List.of(2.5f), speed.chosen);
         assertNull("a pick that took shows no toast", ShadowToast.getTextOfLatestToast());
 
         speed.takes = false;
         assertNull(bridge.click.invoke(icon));
         PopupMenu again = ShadowPopupMenu.getLatestPopupMenu();
-        assertTrue("now 3x is checked", again.getMenu().getItem(5).isChecked());
+        assertTrue("now 2.5x is checked", again.getMenu().getItem(5).isChecked());
         Shadows.shadowOf(again).getOnMenuItemClickListener().onMenuItemClick(again.getMenu().getItem(0));
         ShadowLooper.idleMainLooper();
-        assertEquals(List.of(3f, 0.5f), speed.chosen);
+        assertEquals(List.of(2.5f, 0.5f), speed.chosen);
         assertEquals("with no reel playing it says so", "Speed didn't change", ShadowToast.getTextOfLatestToast());
     }
 

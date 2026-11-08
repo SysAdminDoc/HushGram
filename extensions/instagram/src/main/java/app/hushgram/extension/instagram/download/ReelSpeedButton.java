@@ -44,8 +44,8 @@ public final class ReelSpeedButton {
     /** Instagram's speed glyphs, by name since the numbers change from build to build, then its timer. */
     static final String[] ICON_NAMES = {"basel_icons_svg_speed", "exo_styled_controls_speed",
             "instagram_timer_outline_24", "instagram_timer_pano_outline_24"};
-    /** The speeds offered, in the order the menu lists them. */
-    static final float[] SPEEDS = {0.5f, 1f, 1.5f, 1.75f, 2f, 3f};
+    /** The speeds offered, in the order the menu lists them. 2.5x is for speech still clear past 2x (#551). */
+    static final float[] SPEEDS = {0.5f, 1f, 1.5f, 1.75f, 2f, 2.5f, 3f};
 
     /** Instagram's glyph, looked up once: 0 until then, -1 when this build has none. */
     static volatile int glyph;
