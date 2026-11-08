@@ -4,8 +4,11 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import android.view.View;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,6 +16,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -161,6 +165,56 @@ public class ReelDeclutterTest {
             Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(false);
         }
         assertFalse(ReelDeclutter.hideCommentBar(Source.CLIPS_TAB));
+    }
+
+    /**
+     * #523: a reel opened from the feed dropped down into the room of the bar the switch hid. With
+     * Keep the comment bar's space on, a bar a switch hid goes back to invisible as Instagram's hide
+     * returns. A shown bar, a missing one and a bar no switch hid stay as they are.
+     */
+    @Test
+    public void keepingTheSpaceLeavesAHiddenBarInvisible() {
+        assertFalse("its own switch needs a bar switch on", Settings.KEEP_REEL_COMMENT_BAR_SPACE.isAvailable());
+        Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(true);
+        try {
+            assertTrue(Settings.KEEP_REEL_COMMENT_BAR_SPACE.isAvailable());
+            View bar = bar(View.GONE);
+            ReelDeclutter.keepCommentBarSpace(bar, Source.PROFILE_CLIPS);
+            assertEquals("off to start, the room goes", View.GONE, bar.getVisibility());
+
+            Settings.KEEP_REEL_COMMENT_BAR_SPACE.save(true);
+            ReelDeclutter.keepCommentBarSpace(bar, Source.PROFILE_CLIPS);
+            assertEquals(View.INVISIBLE, bar.getVisibility());
+            View shown = bar(View.VISIBLE);
+            ReelDeclutter.keepCommentBarSpace(shown, Source.PROFILE_CLIPS);
+            assertEquals("a shown bar stays shown", View.VISIBLE, shown.getVisibility());
+            ReelDeclutter.keepCommentBarSpace(null, Source.PROFILE_CLIPS);
+
+            Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(false);
+            Settings.HIDE_REEL_COMMENT_BAR.save(true);
+            assertTrue(Settings.KEEP_REEL_COMMENT_BAR_SPACE.isAvailable());
+            View profile = bar(View.GONE);
+            ReelDeclutter.keepCommentBarSpace(profile, Source.PROFILE_CLIPS);
+            assertEquals("Instagram's own hide of a bar no switch covers", View.GONE, profile.getVisibility());
+            View repost = bar(View.GONE);
+            ReelDeclutter.keepCommentBarSpace(repost, Source.REPOSTS_GRID);
+            assertEquals(View.INVISIBLE, repost.getVisibility());
+
+            Settings.KEEP_REEL_COMMENT_BAR_SPACE.save(false);
+            View off = bar(View.GONE);
+            ReelDeclutter.keepCommentBarSpace(off, Source.REPOSTS_GRID);
+            assertEquals(View.GONE, off.getVisibility());
+        } finally {
+            Settings.KEEP_REEL_COMMENT_BAR_SPACE.resetToDefault();
+            Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.resetToDefault();
+            Settings.HIDE_REEL_COMMENT_BAR.resetToDefault();
+        }
+    }
+
+    private static View bar(int visibility) {
+        View bar = new View(RuntimeEnvironment.getApplication());
+        bar.setVisibility(visibility);
+        return bar;
     }
 
     /** Something that isn't a type, or a type's name as a string, is never taken for one. */

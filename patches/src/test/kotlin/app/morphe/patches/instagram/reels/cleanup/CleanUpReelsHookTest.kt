@@ -52,7 +52,7 @@ class CleanUpReelsHookTest {
     fun theHooksAreInTheExtension() {
         for (hook in listOf(
             HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR, HIDE_EVERY_COMMENT_BAR,
-            HIDE_SAVE_BUTTON, HIDE_SAVE_COUNT, HIDE_DIRECT_REPLY_BAR,
+            HIDE_SAVE_BUTTON, HIDE_SAVE_COUNT, HIDE_DIRECT_REPLY_BAR, KEEP_COMMENT_BAR_SPACE,
         )) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
@@ -83,6 +83,7 @@ class CleanUpReelsHookTest {
         val bar = context.mutableClassDefBy(BAR)
         assertCommentBarGuarded("stand-in", bar.methods.single { it.name == "A0t" }, bar.methods.single { it.name == "onViewCreated" },
             "$BAR->source:$CLIPS_VIEWER_SOURCE", "$BAR->A0r()V", "$BAR->bar:$VIEW", 0)
+        assertSpaceKept("stand-in", bar.methods.single { it.name == "A0r" }, "$BAR->bar:$VIEW", "$BAR->source:$CLIPS_VIEWER_SOURCE", 1)
         val back = context.mutableClassDefBy(UNVANISH).methods.single()
         assertUnVanishGuarded("stand-in", back, 5, 2, "$BAR->source:$CLIPS_VIEWER_SOURCE", "$BAR->A0r()V", 0)
         val show = context.mutableClassDefBy(REPLY_BASE).methods.single { it.name == "A0u" }
@@ -145,6 +146,7 @@ class CleanUpReelsHookTest {
             "unVanish jumping past the hook" to classes(unVanish = "jumped"),
             "unVanish without a trace" to classes(unVanish = "no trace"),
             "unVanish's hide reading what's written after the trace" to classes(unVanish = "rewritten"),
+            "a hide with one local" to classes(barHide = "one local"),
         )) {
             val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).hideReelParts() }
             assertTrue("$case: ${failure.message}", failure.message!!.contains("comment bar"))
@@ -362,6 +364,11 @@ class CleanUpReelsHookTest {
         assertCommentBarGuarded("$label: comment bar", after(show), after(created),
             "${source.definingClass}->${source.name}:${source.type}", "${hide.definingClass}->${hide.name}()V",
             "${bar.definingClass}->${bar.name}:${bar.type}", null)
+        // Where the hide returns, the bar and the source go to the space hook (#523).
+        val returns = hide.instructions().count { it.opcode == Opcode.RETURN_VOID }
+        assertEquals("$label: hide size", hide.instructions().size + 3 * returns, after(hide).instructions().size)
+        assertSpaceKept("$label: hide", after(hide), "${bar.definingClass}->${bar.name}:${bar.type}",
+            "${source.definingClass}->${source.name}:${source.type}", returns)
         // And in unVanish, right after the marker's trace, on the register the hide is called on.
         val unVanish = classes.flatMap { it.methods }.single { COMMENT_BAR_UNVANISH in it.markers() }
         val unVanishCode = unVanish.instructions()
@@ -536,6 +543,34 @@ class CleanUpReelsHookTest {
     }
 
     /**
+     * Each of the hide's [returns] returns is right after the bar and the source, both read off the
+     * controller, go to the space hook, and every branch of the hide that went to a return lands on
+     * that hook instead, so no way out of the hide skips it.
+     */
+    private fun assertSpaceKept(what: String, hide: Method, bar: String, source: String, returns: Int) {
+        val code = hide.instructions()
+        val self = hide.implementation!!.registerCount - 1
+        val ends = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
+        assertEquals("$what: its returns", returns, ends.size)
+        for (end in ends) {
+            val hook = code.subList(end - 3, end)
+            assertEquals("$what: the hook before v$end", listOf(Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC), hook.map { it.opcode })
+            assertEquals("$what: the bar", bar, (hook[0] as ReferenceInstruction).reference.toString())
+            assertEquals("$what: the source", source, (hook[1] as ReferenceInstruction).reference.toString())
+            assertEquals("$what: both off the controller", listOf(self, self), hook.take(2).map { (it as TwoRegisterInstruction).registerB })
+            val call = hook[2] as FiveRegisterInstruction
+            assertEquals("$what: the hook", KEEP_COMMENT_BAR_SPACE, (call as ReferenceInstruction).reference.toString())
+            assertEquals("$what: handed the bar and the source", hook.take(2).map { (it as TwoRegisterInstruction).registerA },
+                listOf(call.registerC, call.registerD))
+        }
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        code.indices.filter { code[it] is OffsetInstruction }.forEach { at ->
+            val landed = addresses.indexOf(addresses[at] + (code[at] as OffsetInstruction).codeOffset)
+            assertFalse("$what: the branch at $at skips the hook", landed in ends)
+        }
+    }
+
+    /**
      * unVanish asks the hook with the source read off the controller in [controller] at [at], right
      * after its trace, and goes to its own call of Instagram's hide when it says so, or on to its
      * own next instruction.
@@ -595,6 +630,7 @@ class CleanUpReelsHookTest {
         barSource: Boolean = true,
         barStores: Int = 1,
         barThisReused: Boolean = false,
+        barHide: String = "ok",
         unVanish: String = "ok",
         replyBar: String = "ok",
         productCtaLabel: String = "Ljava/lang/String;",
@@ -666,7 +702,7 @@ class CleanUpReelsHookTest {
                 static = false,
             ),
         )
-        return renders + saves + checks + productCta + bubbles + lineCheck + lineType + line + commentBar(barSource, barStores, barThisReused) +
+        return renders + saves + checks + productCta + bubbles + lineCheck + lineType + line + commentBar(barSource, barStores, barThisReused, barHide) +
             unVanish(unVanish) + replyBar(replyBar)
     }
 
@@ -801,9 +837,10 @@ class CleanUpReelsHookTest {
     /**
      * A comment bar controller shaped like Instagram 450's: a show and a hide taking nothing, the
      * hide reading the bar, and onViewCreated keeping the bar it inflates, with the viewer's source
-     * in a field of its own.
+     * in a field of its own. The hide is 454's: it skips to its return when there's no bar, and sets
+     * the bar gone otherwise. [hide] "one local" keeps the bar in its only local.
      */
-    private fun commentBar(source: Boolean, stores: Int, thisReused: Boolean): ClassDef {
+    private fun commentBar(source: Boolean, stores: Int, thisReused: Boolean, hide: String = "ok"): ClassDef {
         val fields = listOfNotNull(
             ImmutableField(BAR, "bar", VIEW, AccessFlags.PUBLIC.value, null, null, null),
             if (source) ImmutableField(BAR, "source", CLIPS_VIEWER_SOURCE, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null) else null,
@@ -815,11 +852,23 @@ class CleanUpReelsHookTest {
                 const-string v0, "android_purge_26_q2_$COMMENT_BAR_SHOW"
                 return-void
             """, static = false),
-            method(BAR, "A0r", emptyList(), "V", 2, """
-                const-string v0, "android_purge_26_q2_$COMMENT_BAR_HIDE"
-                iget-object v0, p0, $BAR->bar:$VIEW
-                return-void
-            """, static = false),
+            if (hide == "one local") {
+                method(BAR, "A0r", emptyList(), "V", 2, """
+                    const-string v0, "android_purge_26_q2_$COMMENT_BAR_HIDE"
+                    iget-object v0, p0, $BAR->bar:$VIEW
+                    return-void
+                """, static = false)
+            } else {
+                method(BAR, "A0r", emptyList(), "V", 3, """
+                    const-string v0, "android_purge_26_q2_$COMMENT_BAR_HIDE"
+                    iget-object v1, p0, $BAR->bar:$VIEW
+                    if-eqz v1, :done
+                    const/16 v0, 0x8
+                    invoke-virtual { v1, v0 }, $VIEW->setVisibility(I)V
+                    :done
+                    return-void
+                """, static = false)
+            },
             method(BAR, "onViewCreated", listOf(VIEW, "Landroid/os/Bundle;"), "V", 5, """
                 const-string v0, "android_purge_26_q2_$COMMENT_BAR_CREATED"
                 $reuse

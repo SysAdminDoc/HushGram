@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import android.view.View;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -108,6 +110,7 @@ public final class ReelDeclutter {
     static final String COUNT_SAVE_HIDDEN = "reel Save buttons hidden";
     static final String COUNT_SAVE_COUNT_HIDDEN = "reel save counts hidden";
     static final String COUNT_REPLY_BAR_HIDDEN = "chat reel reply bars kept hidden";
+    static final String COUNT_COMMENT_BAR_SPACE_KEPT = "hidden comment bars that kept their space";
 
     /** The line types the debug log has named, each once a run. */
     private static final Set<String> LOGGED = Collections.synchronizedSet(new HashSet<>());
@@ -178,6 +181,34 @@ public final class ReelDeclutter {
     /** Whether [source], the viewer's ClipsViewerSource, is one of {@link #REPOSTS}. */
     static boolean opensRepost(Object source) {
         return source instanceof Enum && REPOSTS.contains(((Enum<?>) source).name());
+    }
+
+    /**
+     * Called as the comment bar controller's hide returns, with [bar], the bar it hid, and [source],
+     * the viewer's ClipsViewerSource. Instagram's hide takes the bar out of the layout, so the viewer
+     * grows into its room and the reel, its buttons and the seek bar drop down (#523). When Keep the
+     * comment bar's space is on and a switch hid this bar, it goes back to invisible, keeping its room
+     * empty, the way Instagram's own vanish leaves it. A bar Instagram vanished, or one that's still
+     * shown, stays as it is. Never throws.
+     */
+    public static void keepCommentBarSpace(View bar, Object source) {
+        try {
+            if (bar == null || bar.getVisibility() != View.GONE || !Utils.settingsReady()) return;
+            if (!keepsCommentBarSpace(source)) return;
+            bar.setVisibility(View.INVISIBLE);
+            HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_COMMENT_BAR_SPACE_KEPT);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "comment bar space", failure);
+        }
+    }
+
+    /**
+     * Whether a reel opened from [source] keeps a hidden comment bar's room: Keep the comment bar's
+     * space is on and one of the switches hides that reel's bar.
+     */
+    static boolean keepsCommentBarSpace(Object source) {
+        return Settings.KEEP_REEL_COMMENT_BAR_SPACE.get() && (Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.get()
+                || (Settings.HIDE_REEL_COMMENT_BAR.get() && opensRepost(source)));
     }
 
     /**

@@ -805,6 +805,8 @@ Turn on Show if a profile follows you to use this choice.	請啟用「顯示帳�
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	隱藏從個人檔案轉發分頁開啟的 Reel 下方的「新增留言」列。仍可透過留言按鈕開啟留言。
 Hide the comment bar on all reels	隱藏所有 Reels 的留言列
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	隱藏每則 Reel 下方的「新增留言」列，包括 Reels 分頁中的影片。仍可透過留言按鈕開啟留言。
+Keep the comment bar's space	保留留言列的空間
+Leaves an empty band where a hidden comment bar was on reels you open from a post or a profile, so the reel, its buttons and the seek bar don't move down.	在從貼文或個人檔案開啟的 Reel 上，於隱藏的留言列原處留下一條空白帶，讓 Reel、按鈕和進度列不會往下移。
 Adds Copy username and Copy bio to the menu on someone's profile. Each copies the text exactly as the account has it.	在他人個人檔案的選單中新增「複製使用者名稱」與「複製個人簡介」，依帳號原文完整複製。
 Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.	在他人個人檔案的選單中新增「檢視個人檔案相片」，以 Instagram 提供的最大尺寸全螢幕開啟，支援雙指縮放並提供儲存按鈕。
 Bio	個人簡介

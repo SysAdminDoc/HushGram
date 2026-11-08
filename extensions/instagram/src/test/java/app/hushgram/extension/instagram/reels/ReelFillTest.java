@@ -56,6 +56,7 @@ public class ReelFillTest {
         Settings.FIT_REEL_SCREEN.resetToDefault();
         Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.resetToDefault();
         Settings.HIDE_REEL_COMMENT_BAR.resetToDefault();
+        Settings.KEEP_REEL_COMMENT_BAR_SPACE.resetToDefault();
         Settings.FILL_STORY_SCREEN.resetToDefault();
         Settings.GLASS_TAB_BAR_REELS_HIDE.resetToDefault();
         Settings.GLASS_TAB_BAR.resetToDefault();
@@ -181,6 +182,29 @@ public class ReelFillTest {
         assertFalse("this reel keeps its bar", ReelFill.fill(Source.CLIPS_TAB, BAR_GONE));
         assertFalse("not the source enum", ReelFill.fill("REPOSTS_GRID", BAR_GONE));
         assertFalse(ReelFill.fill(null, BAR_GONE));
+    }
+
+    /**
+     * #523: Keep the comment bar's space leaves the bar's room empty, so the viewer doesn't grow and
+     * those reels are left to Instagram. The Reels tab's bar keeps no room, so that viewer still fills,
+     * and so does Fill the screen.
+     */
+    @Test
+    public void keepingTheBarsSpaceLeavesThoseReelsToInstagram() {
+        Settings.FULL_SCREEN_REELS.save(false);
+        Settings.FILL_REEL_SCREEN.save(false);
+        Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(true);
+        Settings.KEEP_REEL_COMMENT_BAR_SPACE.save(true);
+        assertFalse(ReelFill.fill(Source.PROFILE_CLIPS, BAR_GONE));
+        assertFalse(ReelFill.fill(Source.REPOSTS_GRID, BAR_GONE));
+        assertTrue("the Reels tab's bar keeps no room", ReelFill.fill(Source.CLIPS_TAB, BAR_GONE));
+        assertTrue(ReelFill.fill(Source.CLIPS_TAB_HOMECOMING, BAR_GONE));
+        Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(false);
+        Settings.HIDE_REEL_COMMENT_BAR.save(true);
+        assertFalse(ReelFill.fill(Source.REPOSTS_GRID, BAR_GONE));
+        Settings.FULL_SCREEN_REELS.save(true);
+        Settings.FILL_REEL_SCREEN.save(true);
+        assertTrue("Fill the screen still fills", ReelFill.fill(Source.REPOSTS_GRID, TALL_SCREEN));
     }
 
     /** Full screen Reels and the switch for all reels don't care where a reel was opened from. */

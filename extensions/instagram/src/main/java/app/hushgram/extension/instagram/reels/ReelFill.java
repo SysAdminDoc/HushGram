@@ -24,7 +24,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Hiding the comment bar makes the viewer taller the same way, with neither of those switches on:
  * its height goes to the viewer, so on a 1080x2400 screen a 9:16 reel is about 13 percent off and gets
  * a black band above and below (#371). So a reel whose bar is hidden fills too: every reel with the
- * switch for all reels, only reposted ones with the switch for those.
+ * switch for all reels, only reposted ones with the switch for those. Keep the comment bar's space
+ * leaves that room empty instead, so the viewer doesn't grow and those reels are left to Instagram.
  *
  * <p>The tab bar's room does the same on the Reels tab (#544): a Reels auto-hide gives the Reels tab's
  * viewer the bar's height, and so does running reels behind the floating glass bar, so on a 1080x2316
@@ -145,11 +146,20 @@ public final class ReelFill {
     }
 
     private static boolean wanted(Object source) {
-        return Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.get()
-                || (Settings.HIDE_REEL_COMMENT_BAR.get() && ReelDeclutter.opensRepost(source))
+        boolean reelsTab = source instanceof Enum && ReelsTopBar.REELS_TAB.contains(((Enum<?>) source).name());
+        return (commentBarRoom(source) && (reelsTab || !ReelDeclutter.keepsCommentBarSpace(source)))
                 || (Settings.FILL_REEL_SCREEN.get() && Settings.FULL_SCREEN_REELS.get())
-                || (tabBarRoom() && source instanceof Enum
-                        && ReelsTopBar.REELS_TAB.contains(((Enum<?>) source).name()));
+                || (tabBarRoom() && reelsTab);
+    }
+
+    /**
+     * Whether a switch hides the comment bar of a reel opened from [source]. Its room goes to the
+     * viewer unless Keep the comment bar's space leaves it empty, which it does everywhere but the
+     * Reels tab, whose bar is a component that keeps no room (#523).
+     */
+    private static boolean commentBarRoom(Object source) {
+        return Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.get()
+                || (Settings.HIDE_REEL_COMMENT_BAR.get() && ReelDeclutter.opensRepost(source));
     }
 
     /**

@@ -2405,6 +2405,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_comment_bar_everywhere", FALSE);
 
     /**
+     * Leaves the room of a hidden comment bar empty under a reel opened from a post or a profile, so
+     * the reel, its buttons and the seek bar stay where they'd be with the bar (#523). The Reels tab's
+     * own bar keeps no room. Off to start.
+     */
+    public static final BooleanSetting KEEP_REEL_COMMENT_BAR_SPACE =
+            new BooleanSetting("hushgram_keep_reel_comment_bar_space", FALSE,
+                    parentsAny(HIDE_REEL_COMMENT_BAR, HIDE_REEL_COMMENT_BAR_EVERYWHERE));
+
+    /**
      * The reply bar under a reel opened from a chat (#177): the Reply to field, the quick reactions
      * and the plus button. The chat's own message box is another view and stays. Off to start.
      */

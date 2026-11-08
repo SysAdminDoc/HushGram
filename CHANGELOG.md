@@ -46,6 +46,7 @@ Every HushGram release, newest first.
 * With `Glass tab bar` on, a reel's seek bar is as easy to grab as it is with HushGram paused. Its touch area runs over the top of the bar again, and a sideways drag there moves through the reel instead of sliding across the tabs. Reported in #526.
 * With `Page dots on a pill` on, a carousel's buttons sit right under the photo, the way they do on a single photo. Instagram kept an empty strip there for the dots the pill replaces. Reported in #527.
 * With `Pure black dark mode` on, a photo or GIF in a comment no longer has gray corners. Instagram's newer comments screen has a theme of its own with a dark gray background, and the corners were painted in it. That theme goes black now too. Reported in #538.
+* New `Keep the comment bar's space` switch under the comment bar switches in Reels. A reel you open from a post or a profile used to drop down into the room the hidden bar left, so the video, its buttons and the seek bar all moved. With this on, that room stays as an empty band and nothing moves. Reported in #523.
 
 ## 0.0.19 (2026-11-06)
 
