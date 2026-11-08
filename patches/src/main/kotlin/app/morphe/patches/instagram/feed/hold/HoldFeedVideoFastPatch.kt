@@ -63,7 +63,7 @@ internal const val STRIP_FLAG = 0x840ec40007038cL
  */
 @Suppress("unused")
 val holdFeedVideoFastPatch = bytecodePatch(
-    name = PATCH,
+    name = "Hold for 2x on feed videos",
     description = "Press and hold a video in a feed to play it at 2x with Instagram's own speed-up, and let go " +
         "for normal speed. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
