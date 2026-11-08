@@ -371,7 +371,8 @@ private val pureBlackStylesPatch = resourcePatch {
 val pureBlackPatch = bytecodePatch(
     name = "Pure black dark mode",
     description = "Makes Instagram's dark mode pure black instead of dark gray, on the menus that slide up from " +
-        "the bottom and the one you get by holding a message too. It looks deeper and can save battery on an OLED screen. Buttons keep their grays so they " +
+        "the bottom, the one you get by holding a message or a chat, and the notes above your chats too. It looks deeper and can save battery on an " +
+        "OLED screen. Buttons keep their grays so they " +
         "stay easy to see. Works as soon as you patch it in, with no switch.",
     default = false,
 ) {
@@ -393,6 +394,12 @@ val pureBlackPatch = bytecodePatch(
         blackenStoryBackdrops(findStoryBackdrops())
         // A new notification's row is the theme's own tint, not a palette's black (#374).
         blackenNewRowTints(findNewRowTintReads())
+        // A note's bubble takes its gray from code, not from a theme: the inbox's notes row is
+        // Compose, and the older bubble view has a setter (#543).
+        blackenNoteCards()
+        blackenNoteBubbles()
+        // So is the Instagram Plus card over the menu from holding a chat, which is Compose (#543).
+        blackenPeekCards()
         enableStatus("pureBlack")
     }
 }

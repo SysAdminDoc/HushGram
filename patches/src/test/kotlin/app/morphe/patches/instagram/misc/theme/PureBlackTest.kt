@@ -18,6 +18,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -797,6 +798,284 @@ class PureBlackTest {
         assertTrue(failure.message!!, "theme" in failure.message!!)
     }
 
+    /** A note's bubble hands the color its setter gets through the hook before keeping it (#543). */
+    @Test
+    fun aNoteBubbleTakesItsColorThroughTheHook() {
+        val patch = PatchContexts.of(listOf(noteBubbleView(NOTE_BUBBLE_SETTER)))
+
+        patch.blackenNoteBubbles()
+
+        val code = patch.classDefBy(NOTE_BUBBLE_VIEW).methods.single { it.name == NOTE_BUBBLE_SETTER }
+            .implementation!!.instructions.toList()
+        val call = code[0] as Instruction3rc
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, call.opcode)
+        assertEquals(NOTE_BUBBLE, call.reference.toString())
+        assertEquals("the color is p1", 5, call.startRegister)
+        assertEquals(1, call.registerCount)
+        assertEquals(Opcode.MOVE_RESULT, code[1].opcode)
+        assertEquals(5, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals("the setter's own code follows", Opcode.IPUT, code[2].opcode)
+        assertEquals(5, (code[2] as TwoRegisterInstruction).registerA)
+    }
+
+    /** A bubble whose setter was renamed would stay gray, so the patch fails instead. */
+    @Test
+    fun aNoteBubbleWithoutItsSetterFails() {
+        val patch = PatchContexts.of(listOf(noteBubbleView("setBubbleColor")))
+
+        val failure = assertThrows(PatchException::class.java) { patch.blackenNoteBubbles() }
+        assertTrue(failure.message!!, NOTE_BUBBLE_SETTER in failure.message!!)
+    }
+
+    @Test
+    fun aBuildWithoutTheNoteBubbleFails() {
+        val patch = PatchContexts.of(listOf(classDef("Lfixture/Other;", "return-void")))
+
+        val failure = assertThrows(PatchException::class.java) { patch.blackenNoteBubbles() }
+        assertTrue(failure.message!!, "gone" in failure.message!!)
+    }
+
+    /** The bubble view with one instance [setter] taking an int, which it keeps in a field. */
+    private fun noteBubbleView(setter: String): ClassDef {
+        val mutable = MutableMethod(
+            ImmutableMethod(
+                NOTE_BUBBLE_VIEW, setter, listOf(ImmutableMethodParameter("I", null, null)), "V",
+                AccessFlags.PUBLIC.value, null, null, ImmutableMethodImplementation(6, emptyList(), null, null),
+            ),
+        )
+        mutable.addInstructionsWithLabels(0, """
+            iput p1, p0, $NOTE_BUBBLE_VIEW->color:I
+            return-void
+        """.trimIndent())
+        return ImmutableClassDef(
+            NOTE_BUBBLE_VIEW, AccessFlags.PUBLIC.value, "Landroid/view/View;", null, null, null, emptyList(),
+            listOf(ImmutableMethod.of(mutable)),
+        )
+    }
+
+    /** Each build's note bubble has the one setter, and the hook goes in first on its color (#543). */
+    private fun noteBubblesGoBlack(bundle: File, label: String) {
+        val view = FixtureDex.classes(bundle, setOf(NOTE_BUBBLE_VIEW)).values.singleOrNull()
+        assertTrue("${label}: $NOTE_BUBBLE_VIEW is in the build", view != null)
+        val patch = PatchContexts.of(listOf(view!!))
+        val setter = { method: Method -> method.name == NOTE_BUBBLE_SETTER && method.parameterTypes.map(Any::toString) == listOf("I") }
+        val stock = view.methods.single(setter).implementation!!
+        val stockSize = stock.instructions.count { it.opcode != Opcode.NOP }
+
+        patch.blackenNoteBubbles()
+
+        val code = patch.classDefBy(NOTE_BUBBLE_VIEW).methods.single(setter)
+            .implementation!!.instructions.filter { it.opcode != Opcode.NOP }
+        val call = code[0] as Instruction3rc
+        assertEquals("${label}: the hook comes first", NOTE_BUBBLE, call.reference.toString())
+        assertEquals("${label}: on the color, p1", stock.registerCount - 1, call.startRegister)
+        assertEquals("${label}: the color comes back", stock.registerCount - 1, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals("${label}: the setter keeps its own code", stockSize + 2, code.size)
+    }
+
+    /**
+     * The Instagram Plus card's one color read, its fill, goes through the hook before the card
+     * hands it on (#543). A class that doesn't load the tag keeps its reads.
+     */
+    @Test
+    fun thePlusCardTakesItsFillThroughTheHook() {
+        val card = "Lfixture/PeekCard;"
+        val other = "Lfixture/OtherCard;"
+        val read = { type: String, tag: String ->
+            classDef(type, """
+                const-string v0, "$tag"
+                iget-wide v2, v5, $FAKE_THEME->fill:J
+                invoke-static { v2, v3 }, Lfixture/Surface;->draw(J)V
+                return-void
+            """)
+        }
+        val patch = PatchContexts.of(listOf(read(card, PEEK_UPSELL_TAG), read(other, "message_peek")))
+
+        patch.blackenPeekCards()
+
+        val code = patch.code(card)
+        assertEquals(Opcode.IGET_WIDE, code[1].opcode)
+        val call = code[2] as Instruction3rc
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, call.opcode)
+        assertEquals(PEEK_CARD, call.reference.toString())
+        assertEquals(2, call.startRegister)
+        assertEquals(2, call.registerCount)
+        assertEquals(Opcode.MOVE_RESULT_WIDE, code[3].opcode)
+        assertEquals(2, (code[3] as OneRegisterInstruction).registerA)
+        assertEquals("the surface gets what the hook answered", Opcode.INVOKE_STATIC, code[4].opcode)
+        assertEquals("a card without the tag", Opcode.INVOKE_STATIC, patch.code(other)[2].opcode)
+    }
+
+    /** A card reading two colors doesn't say which is its fill, so the patch fails. */
+    @Test
+    fun aPlusCardReadingTwoColorsFails() {
+        val patch = PatchContexts.of(listOf(classDef("Lfixture/PeekCard;", """
+            const-string v0, "$PEEK_UPSELL_TAG"
+            iget-wide v1, v5, $FAKE_THEME->fill:J
+            iget-wide v3, v5, $FAKE_THEME->text:J
+            return-void
+        """)))
+
+        val failure = assertThrows(PatchException::class.java) { patch.blackenPeekCards() }
+        assertTrue(failure.message!!, "reads 2 colors" in failure.message!!)
+    }
+
+    @Test
+    fun aBuildWithoutThePlusCardFails() {
+        val patch = PatchContexts.of(listOf(classDef("Lfixture/Other;", "return-void")))
+
+        val failure = assertThrows(PatchException::class.java) { patch.blackenPeekCards() }
+        assertTrue(failure.message!!, "found 0" in failure.message!!)
+    }
+
+    /**
+     * Each build has the one Plus card, its one color read takes the hook, and the hooked fill is
+     * what the card hands to its surface's long arguments (#543).
+     */
+    private fun plusCardsGoBlack(bundle: File, label: String) {
+        val classes = FixtureDex.classesLoading(bundle, PEEK_UPSELL_TAG)
+        val patch = PatchContexts.of(classes)
+
+        patch.blackenPeekCards()
+
+        val hooked = classes.flatMap { classDef ->
+            patch.classDefBy(classDef.type).methods.mapNotNull { method ->
+                method.implementation?.instructions?.toList()?.takeIf { code ->
+                    code.any { (it as? ReferenceInstruction)?.reference?.toString() == PEEK_CARD }
+                }
+            }
+        }
+        assertEquals("${label}: the Plus card's hooks", 1, hooked.size)
+        val code = hooked.single()
+        val at = code.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == PEEK_CARD }
+        val fill = (code[at - 1] as TwoRegisterInstruction).registerA
+        assertEquals("${label}: the hook follows the read", Opcode.IGET_WIDE, code[at - 1].opcode)
+        assertEquals("${label}: on the fill", fill, (code[at] as Instruction3rc).startRegister)
+        assertEquals("${label}: the fill comes back", fill, (code[at + 1] as OneRegisterInstruction).registerA)
+        assertTrue("${label}: the fill reaches a call after the hook",
+            code.drop(at + 2).any { instruction ->
+                instruction is Instruction3rc && fill in instruction.startRegister until instruction.startRegister + instruction.registerCount ||
+                    (instruction as? TwoRegisterInstruction)?.registerB == fill
+            })
+    }
+
+    private val NOTE_CARD_TYPE = "Lfixture/NoteCard;"
+
+    /**
+     * The inbox's note card picks its fill on three paths: the color it's handed, the theme's, or
+     * one made from the note's own theme. They meet where the hook goes, and both jumps into that
+     * spot land on the hook (#543). Another composable taking a note's theme keeps its code.
+     */
+    @Test
+    fun aNoteCardTakesItsFillThroughTheHook() {
+        val other = "Lfixture/NoteText;"
+        val patch = PatchContexts.of(listOf(
+            noteCard(NOTE_CARD_TYPE, "${NOTE_CARD_TRACE}NotesTrayBubbleCard.kt:88)"),
+            noteCard(other, "com.instagram.direct.inbox.notes.tray.compose.bubble.NotesTrayBubbleText (NotesTrayBubbleText.kt:40)"),
+        ))
+
+        patch.blackenNoteCards()
+
+        val code = patch.code(NOTE_CARD_TYPE)
+        val call = code[14] as Instruction3rc
+        assertEquals("the hook goes where the paths meet", NOTE_CARD, call.reference.toString())
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, call.opcode)
+        assertEquals("on the fill", 16, call.startRegister)
+        assertEquals(2, call.registerCount)
+        assertEquals(Opcode.MOVE_RESULT_WIDE, code[15].opcode)
+        assertEquals(16, (code[15] as OneRegisterInstruction).registerA)
+        assertEquals("after the made color's write", 16, (code[13] as OneRegisterInstruction).registerA)
+        assertEquals("the card reads what the hook answered", 16, (code[16] as TwoRegisterInstruction).registerB)
+        assertEquals("the handed color jumps onto the hook", 14, (code[5] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("so does the theme's", 14, (code[10] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("a note's own theme still has its path", 6, (code[2] as BuilderOffsetInstruction).target.location.index)
+        assertTrue("another composable", patch.code(other).none { (it as? ReferenceInstruction)?.reference?.toString() == NOTE_CARD })
+    }
+
+    /** A card whose paths fill different registers doesn't say which is the fill, so the patch fails. */
+    @Test
+    fun aNoteCardWithoutOneFillFails() {
+        val patch = PatchContexts.of(listOf(noteCard(NOTE_CARD_TYPE, "${NOTE_CARD_TRACE}NotesTrayBubbleCard.kt:88)", themed = 18)))
+
+        val failure = assertThrows(PatchException::class.java) { patch.blackenNoteCards() }
+        assertTrue(failure.message!!, "one register" in failure.message!!)
+    }
+
+    @Test
+    fun aBuildWithoutTheNoteCardFails() {
+        val patch = PatchContexts.of(listOf(classDef("Lfixture/Other;", "return-void")))
+
+        val failure = assertThrows(PatchException::class.java) { patch.blackenNoteCards() }
+        assertTrue(failure.message!!, "found 0" in failure.message!!)
+    }
+
+    /**
+     * A note card the way 454 builds one: the handed color and the theme's are read into v16 (the
+     * theme's on the path where [themed] says), a text color goes to v30, and a note's own theme
+     * makes the color last, all meeting at :filled.
+     */
+    private fun noteCard(type: String, trace: String, themed: Int = 16): ClassDef {
+        val mutable = MutableMethod(
+            ImmutableMethod(
+                type, "A08", listOf(ImmutableMethodParameter(NOTE_CUSTOM_THEME, null, null)), "V",
+                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+                ImmutableMethodImplementation(34, emptyList(), null, null),
+            ),
+        )
+        mutable.addInstructionsWithLabels(0, """
+            const-string v0, "$trace"
+            move-object/from16 v1, p0
+            if-eqz v1, :themed
+            iget-wide v2, v1, $NOTE_CUSTOM_THEME->fill:J
+            move-wide/from16 v16, v2
+            goto :filled
+            :themed
+            iget-wide v4, v5, $FAKE_THEME->notes:J
+            move-wide/from16 v$themed, v4
+            iget-wide v6, v5, $FAKE_THEME->text:J
+            move-wide/from16 v30, v6
+            if-nez v0, :filled
+            invoke-static { v0 }, Lfixture/Compose;->parse(Ljava/lang/String;)J
+            move-result-wide v18
+            move-wide/from16 v16, v18
+            :filled
+            move-wide/from16 v20, v16
+            invoke-static/range { v20 .. v21 }, Lfixture/Surface;->draw(J)V
+            return-void
+        """.trimIndent())
+        return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, emptyList(), listOf(ImmutableMethod.of(mutable)))
+    }
+
+    /**
+     * Each build has the one note card on the inbox's notes row. Its hook goes on the fill right
+     * after the fill's last write, the jumps there land on the hook, and the card reads the fill
+     * after it (#543).
+     */
+    private fun noteCardsGoBlack(cards: List<ClassDef>, label: String) {
+        assertEquals("${label}: the note cards", 1, cards.size)
+        val isCard = { method: Method -> NOTE_CUSTOM_THEME in method.parameterTypes.map(Any::toString) && tracesNoteCard(method) }
+        val stock = cards.single().methods.single(isCard).implementation!!.instructions.count { it.opcode != Opcode.NOP }
+        val patch = PatchContexts.of(cards)
+
+        patch.blackenNoteCards()
+
+        val code = patch.classDefBy(cards.single().type).methods.single(isCard).implementation!!.instructions.toList()
+        val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == NOTE_CARD }
+        assertEquals("${label}: the card's hooks", 1, hooks.size)
+        val at = hooks.single()
+        val call = code[at] as Instruction3rc
+        val fill = call.startRegister
+        assertEquals("${label}: on the whole color", 2, call.registerCount)
+        assertEquals("${label}: the fill comes back", Opcode.MOVE_RESULT_WIDE, code[at + 1].opcode)
+        assertEquals("${label}: into the fill", fill, (code[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("${label}: right after the fill's last write", fill, (code[at - 1] as OneRegisterInstruction).registerA)
+        assertTrue("${label}: the jumps there land on the hook",
+            code.any { (it as? BuilderOffsetInstruction)?.target?.location?.index == at })
+        assertTrue("${label}: the card reads the fill after the hook",
+            code.drop(at + 2).any { (it as? TwoRegisterInstruction)?.registerB == fill && it.opcode != Opcode.IGET_WIDE })
+        assertEquals("${label}: the card keeps its own code", stock + 2, code.count { it.opcode != Opcode.NOP })
+    }
+
     /** The theme class of these fake pages, its palette and [classes], in one patch context. */
     private fun newRowContext(vararg classes: ClassDef): app.morphe.patcher.patch.BytecodePatchContext {
         val fields = (listOf("tint") + (0 until NEW_ROW_THEME_COLORS).map { "f$it" }).map { name ->
@@ -954,8 +1233,12 @@ class PureBlackTest {
         val classes = mutableListOf<ClassDef>()
         val animators = mutableListOf<ClassDef>()
         val tinters = mutableListOf<ClassDef>()
+        val cards = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
+                if (classDef.methods.any { NOTE_CUSTOM_THEME in it.parameterTypes.map(Any::toString) && tracesNoteCard(it) }) {
+                    cards += ImmutableClassDef.of(classDef)
+                }
                 if (classDef.methods.any { it.implementation?.instructions?.any(::isPrismBlack) == true }) {
                     classes += ImmutableClassDef.of(classDef)
                 }
@@ -969,6 +1252,9 @@ class PureBlackTest {
         }
         storyBackdropsGoBlack(animators, label)
         newRowTintsGoBlack(bundle, label, tinters)
+        noteBubblesGoBlack(bundle, label)
+        noteCardsGoBlack(cards, label)
+        plusCardsGoBlack(bundle, label)
         val patch = PatchContexts.of(classes)
 
         val changed = patch.blackenLiterals()
