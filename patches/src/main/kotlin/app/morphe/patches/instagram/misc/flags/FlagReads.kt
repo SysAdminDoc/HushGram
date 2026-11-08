@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -102,7 +103,7 @@ internal fun BytecodePatchContext.answerFlagReads(reads: List<FlagRead>, hook: S
 
 /**
  * One load of a server flag and the read it feeds, found by following the load through at most a
- * goto and a cast to the call that reads it. [shared] says whether another path reaches the same
+ * goto, a cast and a move-wide to the call that reads it. [shared] says whether another path reaches the same
  * read: 449 picks between an ordinary reel's flag and an ad's in a branch and reads whichever it
  * picked in one place, so answering that read would answer both.
  */
@@ -121,9 +122,15 @@ internal class FlagLoad(
     val resultAt: Int,
     val register: Int,
     val shared: Boolean,
+    /**
+     * The move-wide that copies the id into the call's registers on the way, or null. 454's feed
+     * press entry loads a flag into a high register and moves it down to the call's.
+     */
+    val moveAt: Int? = null,
 )
 
 private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+private val MOVE_WIDES = setOf(Opcode.MOVE_WIDE, Opcode.MOVE_WIDE_FROM16, Opcode.MOVE_WIDE_16)
 
 /** What a flag's read can answer, and which of those take two registers. */
 private val READ_AS = setOf("Z", "J", "F", "D")
@@ -131,7 +138,7 @@ private val WIDE = setOf("J", "D")
 
 /**
  * Every place outside the extension that loads [flag], and the read it feeds: the load
- * (`const-wide`), then at most [READ_WITHIN] gotos and casts, a call taking the id last and
+ * (`const-wide`), then at most [READ_WITHIN] gotos, casts and one move-wide of the id, a call taking the id last and
  * answering [answer] (`Z`, `J`, `F` or `D`), and its move-result. Fails, in [patch]'s name, when a
  * load feeds no such read, since that's an update the patch hasn't seen. An empty answer is the
  * caller's to refuse, with the count it expected.
@@ -181,18 +188,25 @@ private fun followLoad(
     loadAt: Int,
 ): FlagLoad {
     val where = "$type->${method.name} loads ${flag.toString(16)}"
-    val id = (code[loadAt] as OneRegisterInstruction).registerA
+    var id = (code[loadAt] as OneRegisterInstruction).registerA
     // The way from the load to the read, the load first.
     val path = mutableListOf(loadAt)
     var at = flow.normal[loadAt].singleOrNull() ?: refuse(patch, "$where and doesn't go on to one instruction")
     var castAt: Int? = null
-    while (code[at].opcode in GOTOS || code[at].opcode == Opcode.CHECK_CAST) {
+    var moveAt: Int? = null
+    while (code[at].opcode in GOTOS || code[at].opcode == Opcode.CHECK_CAST || code[at].opcode in MOVE_WIDES) {
         if (path.size > READ_WITHIN) refuse(patch, "$where with no read of it in reach")
         if (code[at].opcode == Opcode.CHECK_CAST) {
             if (castAt != null) refuse(patch, "$where and casts twice before reading it")
             val cast = (code[at] as OneRegisterInstruction).registerA
             if (cast == id || cast == id + 1) refuse(patch, "$where and casts the id's register")
             castAt = at
+        } else if (code[at].opcode in MOVE_WIDES) {
+            if (moveAt != null) refuse(patch, "$where and moves it twice before reading it")
+            val move = code[at] as TwoRegisterInstruction
+            if (move.registerB != id) refuse(patch, "$where and moves another register before reading it")
+            id = move.registerA
+            moveAt = at
         }
         path += at
         at = flow.normal[at].singleOrNull() ?: refuse(patch, "$where and branches before reading it")
@@ -216,7 +230,7 @@ private fun followLoad(
     val shared = path.zipWithNext().any { (from, to) -> predecessors[to] != setOf(from) }
     return FlagLoad(
         flag, type, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType, answer,
-        loadAt, castAt, at, resultAt, (code[resultAt] as OneRegisterInstruction).registerA, shared,
+        loadAt, castAt, at, resultAt, (code[resultAt] as OneRegisterInstruction).registerA, shared, moveAt,
     )
 }
 
@@ -225,7 +239,7 @@ private fun followLoad(
  * `(D)D` one for a number, so only this flag's answer changes:
  * - A read of the load's own gets the hook right after its move-result.
  * - A shared read stays as it is for the other loads. This load gets a read of its own, a copy of
- *   the cast and the call put straight after the load, answered through the hook, which then jumps
+ *   the cast, the move and the call put straight after the load, answered through the hook, which then jumps
  *   to the instruction after the shared read's move-result. Every branch that went to the shared
  *   read still goes there, since code put in front of an instruction leaves its label on it.
  *
@@ -252,7 +266,7 @@ internal fun BytecodePatchContext.answerFlagLoads(answers: List<Pair<FlagLoad, S
             if (!load.shared) {
                 Write(load.resultAt + 1, answered, null)
             } else {
-                val ownRead = listOfNotNull(load.castAt, load.callAt).joinToString("\n") { code[it].toSmali() }
+                val ownRead = listOfNotNull(load.castAt, load.moveAt, load.callAt).sorted().joinToString("\n") { code[it].toSmali() }
                 Write(
                     load.loadAt + 1,
                     """
@@ -273,8 +287,12 @@ internal fun BytecodePatchContext.answerFlagLoads(answers: List<Pair<FlagLoad, S
     }
 }
 
-/** A check-cast or an invoke written out as smali, registers and reference as they are. */
+/** A check-cast, a move-wide or an invoke written out as smali, registers and reference as they are. */
 private fun Instruction.toSmali(): String {
+    if (opcode in MOVE_WIDES) {
+        val move = this as TwoRegisterInstruction
+        return "${opcode.name} v${move.registerA}, v${move.registerB}" // opcode-name-ok: the smali mnemonic is wanted
+    }
     val reference = (this as ReferenceInstruction).reference.toString()
     return when (this) {
         is OneRegisterInstruction -> "${opcode.name} v$registerA, $reference"

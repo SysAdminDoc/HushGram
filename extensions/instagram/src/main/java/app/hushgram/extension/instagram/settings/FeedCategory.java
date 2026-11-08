@@ -51,6 +51,7 @@ final class FeedCategory {
         boolean homePlace = build.contains(PatchFamily.HOME_PLACE);
         boolean feedSound = build.contains(PatchFamily.FEED_SOUND);
         boolean feedTapPause = build.contains(PatchFamily.FEED_TAP_PAUSE);
+        boolean feedHoldFast = build.contains(PatchFamily.FEED_HOLD_FAST);
         boolean feedSeekBar = build.contains(PatchFamily.FEED_SEEK_BAR);
         boolean longPressZoom = build.contains(PatchFamily.LONG_PRESS_ZOOM);
         boolean roundedCorners = build.contains(PatchFamily.ROUNDED_POST_CORNERS);
@@ -63,7 +64,7 @@ final class FeedCategory {
         boolean homeTopBar = build.contains(PatchFamily.HOME_TOP_BAR);
         boolean activityBubbles = build.contains(PatchFamily.ACTIVITY_BUBBLES);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
-                || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedSeekBar || longPressZoom
+                || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedHoldFast || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
                 || fullScreen || feedFollow || hideCaptions || feedAudioIcon || homeTopBar || activityBubbles
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
@@ -200,6 +201,10 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.TAP_FEED_VIDEO_TO_PAUSE, L10n.t("Tap a feed video to pause it"),
                     L10n.t("Tap the video playing in a feed to pause it in place instead of opening it in Reels, and tap it "
                             + "again to play it. Ads keep Instagram's own tap.")));
+        }
+        if (feedHoldFast) {
+            feed.addPreference(toggle(context, Settings.HOLD_FEED_VIDEO_FAST, L10n.t("Hold for 2x on feed videos"),
+                    L10n.t("Press and hold a video in a feed to play it at 2x, and let go to go back to normal speed.")));
         }
         if (feedSeekBar) {
             feed.addPreference(toggle(context, Settings.FEED_SEEK_BAR, L10n.t("Seek bar on feed videos"),

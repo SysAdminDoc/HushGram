@@ -407,6 +407,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_tap_feed_video_to_pause", FALSE);
 
     /**
+     * A press held on a video in a feed plays it at 2x until the finger lifts, with Instagram's own
+     * speed-up ({@link app.hushgram.extension.instagram.feed.FeedHoldSpeed}). Off to start.
+     */
+    public static final BooleanSetting HOLD_FEED_VIDEO_FAST =
+            new BooleanSetting("hushgram_hold_feed_video_fast", FALSE);
+
+    /**
      * A seek bar along the bottom of the video playing in a feed, which moves the video to where a
      * drag lets go ({@link app.hushgram.extension.instagram.feed.FeedSeekBar}). Off to start.
      */

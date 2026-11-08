@@ -240,6 +240,10 @@ public final class FeedTapPause {
         try {
             if (handler == null || media == null || state == null) return false;
             if (!switchedOn()) return false;
+            if (FeedHoldSpeed.holding()) {
+                Logger.printDebug(() -> "Feed video: left a held press to Hold for 2x");
+                return false;
+            }
             HookStatus.bound(FamilyNames.FEED_TAP_PAUSE, PRESS);
             Videos feed = videos;
             if (target(feed, feed.controllerOf(handler), media, state, true) == null) return false;

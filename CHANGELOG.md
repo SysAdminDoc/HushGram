@@ -16,6 +16,7 @@ Every HushGram release, newest first.
 * `Hide the search bar` under Sharing takes the search bar off the top of the share sheet. Asked for in #545.
 * `Speed button on reels` has 2.5x in its list too, for talking videos that are still easy to follow past 2x. Asked for in #551.
 * New patch, `Double tap to skip on Reels`. Its switch under Reels turns on Instagram's own skip: a double tap on the left side of a reel goes back 10 seconds, and on the right side ahead 10. A double tap in the middle still likes it. `A tap on a reel` under Playback also has `Keep playing` now, so a stray tap doesn't stop the reel. Asked for in #554.
+* New patch, `Hold for 2x on feed videos`. Turn on its switch under Feed, then press and hold a video in your feed and it plays at 2x with Instagram's own speed-up. Let go and it's back to normal speed. Asked for in #552.
 * `Tab icon size` under Tab bar draws the icons on the bottom tab bar bigger, from 110% up to 150% of Instagram's size. It works on Instagram's bar and the glass one, and a change shows right away. Asked for in #541.
 * `Count on the heart` under Tab bar puts a number on the heart at the top of Home, like the one on Messages, instead of the red dot. It takes a restart. Asked for in #541.
 * `Accent color` has a `Custom` choice now, with a `Custom color` row under it where you type any color as hex, like #4A6B82. Where text would be hard to read on it, HushGram makes it a bit darker or lighter. On Android 10 and older the colors Instagram draws in code take it, and its themes stay blue. Asked for in #520.

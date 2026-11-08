@@ -2892,6 +2892,15 @@ start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->pressed(Ljava/l
 once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
 start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V in instance (Lcom/instagram/feed/media/Media;L*;L*;Z)V class-holding FeedMediaTapHandlerV2-softError
 once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V in instance (Lcom/instagram/feed/media/Media;L*;L*;Z)V class-holding FeedMediaTapHandlerV2-softError
+# Hold for 2x on feed videos answers the hold-for-2x flags in that same press entry (02g8.A05 on 454's
+# 386014758): FeedHoldSpeed.fast takes the press entry's call to the static helper reading the whole
+# feature's flag, each kind of post's flag (one a read of its own, two through a read they share,
+# answered with copies of it), the speed-up's and a carousel's, six sites; fixedStrip takes whether
+# the hold strip is a fixed width, and strip the strip's share of the width (#552). Left out, a held
+# feed video opens Reels; twice or elsewhere, they aren't the hooks the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->fast(I)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V sites 6 class-holding FeedMediaTapHandlerV2-softError
+once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->fixedStrip(I)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
+once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->strip(D)D in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
 # On 451 a tap can reach Reels without the handler (the video's overlays, a server-sent tap), and
 # every way in ends in the feed's one Reels launcher, the instance (View, entry point, two objects,
 # Media, state, List, boolean, boolean) void method holding the contextual feed's profile argument
