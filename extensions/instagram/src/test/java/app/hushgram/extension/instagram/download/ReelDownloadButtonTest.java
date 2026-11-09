@@ -137,6 +137,7 @@ public class ReelDownloadButtonTest {
         final List<String> calls = new ArrayList<>();
         final Set<Object> empty = new HashSet<>();
         final Set<Object> music = new HashSet<>();
+        final Set<Object> carousels = new HashSet<>();
         final Set<Object> covers = new HashSet<>();
         final Set<Object> sounds = new HashSet<>();
         Runnable video;
@@ -165,6 +166,10 @@ public class ReelDownloadButtonTest {
 
         @Override public void nothing(Context context) {
             calls.add("nothing");
+        }
+
+        @Override public boolean carousel(Object media) {
+            return carousels.contains(media);
         }
 
         @Override public boolean cover(Object media) {
@@ -199,6 +204,7 @@ public class ReelDownloadButtonTest {
         ReelDownloadButton.bridge = originalBridge;
         ReelDownloadButton.resetForTests();
         Settings.REEL_DOWNLOAD_BUTTON_ASKS.resetToDefault();
+        Settings.FEED_DOWNLOAD_ALL_PAGES.resetToDefault();
         Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
         Settings.DOWNLOAD_REELS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -426,6 +432,63 @@ public class ReelDownloadButtonTest {
         recorder.photo.run();
         assertEquals(java.util.Arrays.asList("choose", "save " + ReelDownload.VIDEO_OPTION + " song",
                 "save " + ReelDownload.PHOTO_OPTION + " song"), recorder.calls);
+    }
+
+    /** #190: a carousel with music in the Reels viewer, which Explore and Search open, skips the popup. */
+    @Test
+    public void saveEveryPageTakesACarouselWithMusicWithoutAsking() {
+        Settings.FEED_DOWNLOAD_ALL_PAGES.save(true);
+        recorder.music.add("song");
+        recorder.carousels.add("song");
+        Column column = new Column(new Item(Kind.ORGANIC, "song"));
+        ReelDownloadButton.litho(column, null, 120, 30);
+        bridge.click.invoke(new View(activity));
+        assertEquals(Collections.singletonList("save " + ReelDownload.PHOTO_OPTION + " song"), recorder.calls);
+    }
+
+    /** With the switch off the same carousel still gets the choice. */
+    @Test
+    public void aCarouselWithMusicStillAsksWithSaveEveryPageOff() {
+        recorder.music.add("song");
+        recorder.carousels.add("song");
+        Column column = new Column(new Item(Kind.ORGANIC, "song"));
+        ReelDownloadButton.litho(column, null, 120, 30);
+        bridge.click.invoke(new View(activity));
+        assertEquals(Collections.singletonList("choose"), recorder.calls);
+    }
+
+    /** A single photo with music isn't a carousel, so the switch leaves its choice alone. */
+    @Test
+    public void saveEveryPageLeavesASinglePhotoWithMusicAlone() {
+        Settings.FEED_DOWNLOAD_ALL_PAGES.save(true);
+        recorder.music.add("song");
+        Column column = new Column(new Item(Kind.ORGANIC, "song"));
+        ReelDownloadButton.litho(column, null, 120, 30);
+        bridge.click.invoke(new View(activity));
+        assertEquals(Collections.singletonList("choose"), recorder.calls);
+    }
+
+    /** Ask what to save doesn't stop a carousel either, and it goes the way a plain tap does. */
+    @Test
+    public void saveEveryPageSkipsAskWhatToSaveOnACarousel() {
+        Settings.FEED_DOWNLOAD_ALL_PAGES.save(true);
+        Settings.REEL_DOWNLOAD_BUTTON_ASKS.save(true);
+        recorder.carousels.add("pages");
+        recorder.covers.add("pages");
+        Column column = new Column(new Item(Kind.ORGANIC, "pages"));
+        ReelDownloadButton.litho(column, null, 120, 30);
+        bridge.click.invoke(new View(activity));
+        assertEquals(Collections.singletonList("save null pages"), recorder.calls);
+    }
+
+    /** The switch is reachable with only the icon beside reels on. */
+    @Test
+    public void saveEveryPageWaitsForEitherDownloadIcon() {
+        Settings.REEL_DOWNLOAD_BUTTON.save(false);
+        Settings.FEED_DOWNLOAD_BUTTON.save(false);
+        assertFalse(Settings.FEED_DOWNLOAD_ALL_PAGES.isAvailable());
+        Settings.REEL_DOWNLOAD_BUTTON.save(true);
+        assertTrue(Settings.FEED_DOWNLOAD_ALL_PAGES.isAvailable());
     }
 
     @Test

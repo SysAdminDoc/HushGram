@@ -140,6 +140,11 @@ public final class ReelDownloadButton {
 
         void nothing(Context context);
 
+        /** Whether [media] is a carousel of two or more pages. */
+        default boolean carousel(Object media) {
+            return false;
+        }
+
         /** Whether [media] lists a cover picture to save on its own. */
         default boolean cover(Object media) {
             return false;
@@ -181,6 +186,11 @@ public final class ReelDownloadButton {
 
         @Override public void nothing(Context context) {
             Feedback.show(context.getApplicationContext(), L10n.t(context, "Nothing to download on this post"), false);
+        }
+
+        @Override public boolean carousel(Object media) {
+            List<?> pages = InstagramMedia.carouselMedia(media);
+            return pages != null && pages.size() >= 2;
         }
 
         @Override public boolean cover(Object media) {
@@ -453,7 +463,8 @@ public final class ReelDownloadButton {
     /**
      * What a tap does with the reel [column] shows now: the menu's Download, or for a photo with
      * music a choice of video or photo first, or with Ask what to save on a choice of the reel, its
-     * cover and its sound ({@link #ask}). A reel with nothing to save, or one tapped after
+     * cover and its sound ({@link #ask}). With Save every page without asking on, a carousel skips
+     * both and saves all its pages, as the feed's icon does (#190). A reel with nothing to save, or one tapped after
      * Download on reels went off, gets a short note. Off or paused, nothing. Never throws.
      */
     static void tap(View anchor, Object column, @Nullable Activity activity) {
@@ -464,12 +475,17 @@ public final class ReelDownloadButton {
                 if (switchedOn()) actions.nothing(contextOf(anchor, activity));
                 return;
             }
+            boolean everyPage = actions.carousel(media) && Settings.FEED_DOWNLOAD_ALL_PAGES.get();
             if (actions.music(media)) {
+                if (everyPage) {
+                    save(anchor, ReelDownload.PHOTO_OPTION, media, activity);
+                    return;
+                }
                 actions.choose(anchor, () -> save(anchor, ReelDownload.VIDEO_OPTION, media, activity),
                         () -> save(anchor, ReelDownload.PHOTO_OPTION, media, activity));
                 return;
             }
-            if (asks() && ask(anchor, media, activity)) return;
+            if (!everyPage && asks() && ask(anchor, media, activity)) return;
             save(anchor, null, media, activity);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel download button tap", failure);

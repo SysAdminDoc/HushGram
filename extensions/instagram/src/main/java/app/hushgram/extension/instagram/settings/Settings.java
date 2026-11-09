@@ -3295,14 +3295,6 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_feed_download_button", FALSE, parentsAny(DOWNLOAD_VIDEOS, DOWNLOAD_PHOTOS));
 
     /**
-     * Under {@link #FEED_DOWNLOAD_BUTTON}: a tap on a carousel saves every page at once, as Save all
-     * does, instead of asking for this page or all of them (#190). A post with one page saves as it
-     * always did. Starts off, so the icon keeps asking.
-     */
-    public static final BooleanSetting FEED_DOWNLOAD_ALL_PAGES =
-            new BooleanSetting("hushgram_feed_download_all_pages", FALSE, parent(FEED_DOWNLOAD_BUTTON));
-
-    /**
      * A Download icon in the column beside a reel, under Save, so a tap saves the reel without
      * opening its menu (#178). It saves what Download in the reel's menu saves, through the same call
      * ({@link app.hushgram.extension.instagram.download.ReelDownloadButton}), so it waits for Download
@@ -3310,6 +3302,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting REEL_DOWNLOAD_BUTTON =
             new BooleanSetting("hushgram_reel_download_button", FALSE, parent(DOWNLOAD_REELS));
+
+    /**
+     * Under either Download icon: a tap on a carousel saves every page at once, as Save all does,
+     * instead of asking (#190), beside a feed post and in the Reels viewer that Explore and Search
+     * open carousels in. A post with one page saves as it always did. Starts off, so the icons keep
+     * asking.
+     */
+    public static final BooleanSetting FEED_DOWNLOAD_ALL_PAGES =
+            new BooleanSetting("hushgram_feed_download_all_pages", FALSE, parentsAny(FEED_DOWNLOAD_BUTTON, REEL_DOWNLOAD_BUTTON));
 
     /**
      * With it on, a tap on that Download icon asks what to save first: the reel, its cover or its

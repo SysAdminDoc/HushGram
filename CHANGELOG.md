@@ -67,6 +67,8 @@ Every HushGram release, newest first.
 
 * `Backgrounds in the accent color` now reaches the message list. Its rows and search field stayed near-black under a colored page because that screen takes its grays from code instead of the theme. Refs #577.
 * With `Gray out stories you've watched`, the story row no longer puts watched stories ahead of new ones after it reloads, and the next batch stays after the ones you had. Reported in #241.
+* `Save every page without asking` works on the download icon beside a reel too, so a carousel opened from Explore, Search or Reels saves all its pages with no popup. Reported in #190.
+* With `Gray out stories you've watched`, the story row no longer puts stories you've watched ahead of new ones after it reloads, like after a pull to refresh or coming back to the app. The next batch of stories that loads as you scroll the row also stays after the ones you had, instead of mixing in with the gray rings. Reported in #241.
 * With `Hide the Create button` on, a long press on your profile's menu opens the HushGram settings again. With the button gone, the long press couldn't tell it was on your own profile. Reported in #431.
 * `See-through top bar` reaches behind the clock on more phones. Where the tabs swipe sideways, only Home's page moves up, so Reels and the other tabs stay put. Reported in #462.
 * With `Glass tab bar` on, the seek bar on a reel opened outside the Reels tab sits above the gesture handle instead of on the screen's bottom edge. Reported in #450.
