@@ -1528,6 +1528,10 @@ once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->inFeed(I)Z in inst
 # the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z pooled holding android_purge_26_q3_AuthorInfoNavigator_navigateToNormalProfile
 once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z pooled holding android_purge_26_q3_ClipsViewerUtils_launchProfile
+# And both tab hosts let ReelProfileTabBar.keepTabRoot answer their root check, in the method that decides
+# on the tab bar (03ja's A02 and 02lW's A03 on 454). The check itself stays as it is for its other callers.
+once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->keepTabRoot(ILjava/lang/Object;)I in static (L*;)V calling instance Landroidx/fragment/app/Fragment;->getChildFragmentManager()L*; pooled class-holding IgTabHostFragment.loadFragment
+once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->keepTabRoot(ILjava/lang/Object;)I in static (L*;)V calling instance Landroidx/fragment/app/Fragment;->getChildFragmentManager()L*; pooled class-holding IgSwipeableTabHostFragment.loadFragment
 #
 # Tap to play: IgGrootPlayer's play asks allowDirectStart() first, its prepare tells rebound()
 # first, and the autoplay check hands its answer to autoplayAllowed() where it returns, once on

@@ -31,9 +31,11 @@ import java.io.File
 
 /**
  * Keep the tab bar on a reel's profile (#385): in every build of 454 both routes that open a
- * reel author's profile ask the extension first, and skip the launch when it says yes.
+ * reel author's profile ask the extension first, and skip the launch when it says yes. Both tab
+ * hosts let the extension answer whether a tab is at its root.
  */
 class ReelProfileTabBarPatchTest {
+    private val PROFILE_SCREEN = "Lcom/instagram/profile/fragment/UserDetailFragment;"
     private val markers = listOf(AUTHOR_PROFILE, VIEWER_PROFILE)
 
     private fun bundles(): List<File> {
@@ -42,7 +44,7 @@ class ReelProfileTabBarPatchTest {
     }
 
     private fun context(bundle: File, extra: List<ClassDef> = emptyList()): BytecodePatchContext =
-        PatchContexts.of((markers + FOLLOW_PROMPT).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type } + extra)
+        PatchContexts.of((markers + FOLLOW_PROMPT + FEED_TAG).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type } + extra)
 
     @Test
     fun theHookAndTheStubAreInTheExtension() {
@@ -50,7 +52,69 @@ class ReelProfileTabBarPatchTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$REEL_PROFILE_HOOK is not in the extension: $hooks", REEL_PROFILE_HOOK.substringAfter("->") in hooks)
+        assertTrue("$TAB_ROOT_HOOK is not in the extension: $hooks", TAB_ROOT_HOOK.substringAfter("->") in hooks)
         assertEquals(1, ExtensionDex.classDef(REEL_PROFILE_TARGETS).methods.count { it.name == "push" })
+        assertEquals(1, ExtensionDex.classDef(REEL_PROFILE_TARGETS).methods.count { it.name == "fragments" })
+    }
+
+    /** Both tab hosts let the extension answer the root check, right after they read it. */
+    @Test
+    fun eachBuildLetsBothTabHostsAskTheExtension() {
+        var checked = 0
+        for (bundle in bundles()) {
+            val context = context(bundle)
+            val check = context.findTabRootCheck()
+            val hosts = context.findTabHosts(check.method)
+            assertEquals("${bundle.name}: two hosts decide on the bar", 2, hosts.size)
+            assertEquals("${bundle.name}: two different hosts", 2, hosts.map { it.method.definingClass }.distinct().size)
+            for (host in hosts) {
+                assertEquals("${bundle.name}: the answer is what the check returned", Opcode.MOVE_RESULT, host.method.code()[host.hookAt - 1].opcode)
+                context.keepProfileAsTabRoot(host)
+
+                val method = context.mutableClassDefBy(host.method.definingClass).methods.first {
+                    it.name == host.method.name && it.parameterTypes.map(CharSequence::toString) == host.method.parameterTypes.map(CharSequence::toString)
+                }
+                val code = method.code()
+                assertEquals("${bundle.name}: the hook follows the read", TAB_ROOT_HOOK, code[host.hookAt].reference().toString())
+                assertEquals(
+                    "${bundle.name}: the hook is handed the answer and the host",
+                    listOf(host.answer, method.implementation!!.registerCount - 1),
+                    (code[host.hookAt] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD) },
+                )
+                assertEquals("${bundle.name}: the hook's answer replaces it", host.answer, (code[host.hookAt + 1] as OneRegisterInstruction).registerA)
+                assertEquals("${bundle.name}: the read is the hook's", Opcode.MOVE_RESULT, code[host.hookAt + 1].opcode)
+                checked++
+            }
+        }
+        assertEquals("both hosts in every build of 454", Fixtures.BUILDS * 2, checked)
+    }
+
+    /** The stub reads what the root check reads, so the extension sees the same screens. */
+    @Test
+    fun eachBuildListsAHostsScreensThroughPublicCalls() {
+        var checked = 0
+        for (bundle in bundles()) {
+            val first = context(bundle)
+            val check = first.findTabRootCheck()
+            val manager = first.findTabHosts(check.method).map { it.manager }.distinctBy { it.toString() }.single()
+            val owners = FixtureDex.classes(bundle, setOfNotNull(manager.definingClass, check.fragments.definingClass, check.store?.definingClass)).values.toList()
+            val full = context(bundle, owners + ExtensionDex.classDef(REEL_PROFILE_TARGETS))
+            full.requirePublic(listOf(manager, check.fragments))
+            check.store?.let { full.requirePublic(it) }
+            full.writeFragmentList(manager, check)
+
+            val code = full.mutableClassDefBy(REEL_PROFILE_TARGETS).methods.single { it.name == "fragments" }.code()
+            assertEquals(
+                "${bundle.name}: the host's manager, then its screens",
+                listOf(manager.toString(), check.fragments.toString()),
+                code.filter { it.opcode == Opcode.INVOKE_VIRTUAL }.map { it.reference().toString() },
+            )
+            check.store?.let { store -> assertEquals("${bundle.name}: the store is read", store.toString(), code.first { it.opcode == Opcode.IGET_OBJECT }.reference().toString()) }
+            assertEquals("${bundle.name}: the list is returned", Opcode.RETURN_OBJECT, code[if (check.store == null) 5 else 6].opcode)
+            assertEquals("${bundle.name}: Instagram keeps the profile screen's name", 1, FixtureDex.classes(bundle, setOf(PROFILE_SCREEN)).size)
+            checked++
+        }
+        assertEquals("every build of 454 is read", Fixtures.BUILDS, checked)
     }
 
     @Test

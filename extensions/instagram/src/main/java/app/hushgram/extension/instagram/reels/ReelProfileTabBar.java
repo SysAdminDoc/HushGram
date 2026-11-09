@@ -6,6 +6,8 @@ package app.hushgram.extension.instagram.reels;
 
 import android.app.Activity;
 
+import java.util.List;
+
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -16,6 +18,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * in a screen of its own, and that screen has no tab bar, so the bar is gone from the profile's first
  * frame and from any reel opened from it. With the switch on, the profile goes onto the tab the reel
  * is playing on, the way Instagram's other profile links do. Back then returns to the reel.
+ *
+ * <p>On some accounts the tab host itself hides the bar for anything pushed on a tab and stops the
+ * screens asking for it back, so being on the tab isn't enough. {@link #keepTabRoot} answers that
+ * host's check: a profile on top counts as the tab's root, and everything else stays as it was.
  */
 public final class ReelProfileTabBar {
     private ReelProfileTabBar() {
@@ -23,9 +29,15 @@ public final class ReelProfileTabBar {
 
     static final String TAB_BAR = "tab_bar";
     static final String WHAT = "open a reel's profile on the tab";
+    static final String PROFILE_SCREEN = "com.instagram.profile.fragment.UserDetailFragment";
+    static final String WHAT_ROOT = "keep the tab bar on a profile";
 
     interface Push {
         void onTheTab(Object activity, Object factory, Object session, Object config);
+    }
+
+    interface Screens {
+        List<?> of(Object host);
     }
 
     /**
@@ -49,6 +61,25 @@ public final class ReelProfileTabBar {
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.REEL_PROFILE_TAB_BAR, WHAT, t);
             return false;
+        }
+    }
+
+    /** Called with a tab host's answer to whether it's at its root, which decides on the tab bar. Non-zero is yes. */
+    public static int keepTabRoot(int atRoot, Object host) {
+        return keepTabRoot(atRoot, host, PROFILE_SCREEN, ReelProfileTabBarTargets::fragments);
+    }
+
+    static int keepTabRoot(int atRoot, Object host, String profile, Screens screens) {
+        if (atRoot != 0) return atRoot;
+        try {
+            if (!Settings.REEL_PROFILE_TAB_BAR.get()) return atRoot;
+            List<?> added = screens.of(host);
+            if (added.isEmpty()) return atRoot;
+            Object top = added.get(added.size() - 1);
+            return top != null && profile.equals(top.getClass().getName()) ? 1 : atRoot;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_PROFILE_TAB_BAR, WHAT_ROOT, t);
+            return atRoot;
         }
     }
 }

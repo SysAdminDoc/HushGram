@@ -22,6 +22,10 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 
@@ -107,5 +111,55 @@ public class ReelProfileTabBarTest {
     @Test
     public void somethingOtherThanAnActivityIsLeftAlone() {
         assertFalse(ReelProfileTabBar.open(new Object(), factory, session, config));
+    }
+
+    private static final class Profile {
+    }
+
+    private static final class ReelViewer {
+    }
+
+    private int root(int atRoot, Object... added) {
+        List<Object> screens = Arrays.asList(added);
+        return ReelProfileTabBar.keepTabRoot(atRoot, activity, Profile.class.getName(), host -> {
+            assertSame(activity, host);
+            return screens;
+        });
+    }
+
+    @Test
+    public void aProfileOnTopCountsAsTheTabsRoot() {
+        assertEquals(1, root(0, new ReelViewer(), new Profile()));
+    }
+
+    /** The reel stays full screen: the screen on top decides, and the bar comes back only for a profile. */
+    @Test
+    public void anythingElseOnTopStaysPushed() {
+        assertEquals(0, root(0, new Profile(), new ReelViewer()));
+        assertEquals(0, root(0));
+    }
+
+    @Test
+    public void aTabAlreadyAtItsRootStaysThere() {
+        assertEquals(1, root(1, new ReelViewer()));
+    }
+
+    @Test
+    public void theSwitchOffLeavesTheAnswerAlone() {
+        Settings.REEL_PROFILE_TAB_BAR.resetToDefault();
+
+        assertEquals(0, root(0, new Profile()));
+    }
+
+    @Test
+    public void aListThatThrowsLeavesTheAnswerAlone() {
+        assertEquals(0, ReelProfileTabBar.keepTabRoot(0, activity, Profile.class.getName(), host -> {
+            throw new IllegalStateException("no child manager");
+        }));
+    }
+
+    @Test
+    public void theStubListsNothingUnpatched() {
+        assertEquals(Collections.emptyList(), ReelProfileTabBarTargets.fragments(activity));
     }
 }
