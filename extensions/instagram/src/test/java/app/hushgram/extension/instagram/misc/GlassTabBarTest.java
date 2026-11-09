@@ -59,6 +59,7 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.util.ReflectionHelpers;
 
+import app.hushgram.extension.instagram.reels.ReelBlurBars;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -2244,6 +2245,116 @@ public class GlassTabBarTest {
         assertEquals("the viewer is left out", 0, drawn.get());
         assertEquals("what's behind it still shows", Color.RED, glass.getPixel(50, 30));
         assertEquals("and so does what's round it", Color.GREEN, glass.getPixel(50, 80));
+    }
+
+    /**
+     * #583: Instagram's rows leave their background to the window, so what the glass recorded there was
+     * empty and the sharp screen under the pill showed through. The bar's colour goes under everything now,
+     * and what's drawn still goes over it, with a SurfaceView's place still cleared.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theGlassFillsWhatTheScreensLeaveEmptyWithTheBarsColour() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout parent = new FrameLayout(context);
+        FrameLayout feed = new FrameLayout(context);
+        View row = new View(context);
+        row.setBackground(new ColorDrawable(Color.GREEN));
+        CountingSurface video = new CountingSurface(context);
+        feed.addView(row);
+        feed.addView(video);
+        View bar = new View(context);
+        parent.addView(feed);
+        parent.addView(bar);
+        parent.layout(0, 0, 100, 100);
+        feed.layout(0, 0, 100, 100);
+        row.layout(0, 10, 100, 30);
+        video.layout(0, 50, 100, 70);
+        bar.layout(0, 80, 100, 100);
+        Set<View> paths = new HashSet<>();
+        assertTrue(GlassTabBar.surfacePaths(parent, 1, paths));
+
+        Bitmap glass = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
+        GlassTabBar.drawUnderBar(new Canvas(glass), Color.WHITE, parent, 1, 0, 100, paths, new HashSet<>(), null, null);
+
+        assertEquals("nothing drawn there, so the bar's colour fills it", Color.WHITE, glass.getPixel(50, 5));
+        assertEquals("and under the last row", Color.WHITE, glass.getPixel(50, 40));
+        assertEquals("a row draws over it", Color.GREEN, glass.getPixel(50, 20));
+        assertEquals("a SurfaceView's place stays cleared", 0, glass.getPixel(50, 60));
+    }
+
+    /**
+     * #583: the viewer stays out of the glass (#222), and a copy of its reel goes in its place, through
+     * the video's own crop, so a floating pill blurs the reel behind it. Before a copy, the place is clear.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aFloatingPillBlursACopyOfTheReelInTheLeftOutViewersPlace() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout parent = new FrameLayout(context);
+        parent.setBackground(new ColorDrawable(Color.RED));
+        AtomicInteger drawn = new AtomicInteger();
+        FrameLayout viewer = new FrameLayout(context) {
+            @Override public void draw(Canvas canvas) {
+                drawn.incrementAndGet();
+                super.draw(canvas);
+            }
+        };
+        TextureView video = new TextureView(context);
+        View elsewhere = new TextureView(context);
+        viewer.addView(video);
+        viewer.addView(elsewhere);
+        parent.addView(viewer);
+        parent.addView(new View(context));
+        parent.layout(0, 0, 100, 200);
+        viewer.layout(0, 0, 100, 200);
+        video.layout(0, 80, 100, 200);
+        elsewhere.layout(0, 0, 100, 60);
+        Matrix shiftedDown = new Matrix();
+        shiftedDown.setTranslate(0, 20);
+        video.setTransform(shiftedDown);
+
+        Set<View> paths = new HashSet<>();
+        Set<View> skipped = new HashSet<>();
+        assertTrue(GlassTabBar.leaveOut(viewer, parent, paths, skipped));
+        ReelFrames reels = new ReelFrames();
+
+        Bitmap before = Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888);
+        GlassTabBar.drawUnderBar(new Canvas(before), Color.BLACK, parent, 1, 150, 50, paths, skipped, null, reels);
+        assertEquals("no copy yet: the place stays clear, not the bar's colour", 0, before.getPixel(50, 170));
+
+        ReelBlurBars.FrameSource original = ReelFrames.source;
+        Map<View, Integer> asked = new HashMap<>();
+        ReelFrames.source = (from, reuse, width, height) -> {
+            asked.merge(from, 1, Integer::sum);
+            assertEquals(100 / ReelFrames.SCALE, width);
+            assertEquals(120 / ReelFrames.SCALE, height);
+            Bitmap frame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            frame.eraseColor(Color.YELLOW);
+            return frame;
+        };
+        try {
+            assertTrue(reels.copy(viewer, parent, 150, 50, 1000L));
+            assertNull("only the video behind the strip is copied", asked.get(elsewhere));
+            assertEquals(Integer.valueOf(1), asked.get(video));
+            reels.copy(viewer, parent, 150, 50, 1000L + ReelFrames.COPY_EVERY_MS - 1);
+            assertEquals("a copy too soon isn't taken", Integer.valueOf(1), asked.get(video));
+            reels.copy(viewer, parent, 150, 50, 1000L + ReelFrames.COPY_EVERY_MS);
+            assertEquals(Integer.valueOf(2), asked.get(video));
+
+            Bitmap glass = Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888);
+            GlassTabBar.drawUnderBar(new Canvas(glass), Color.BLACK, parent, 1, 150, 50, paths, skipped, null, reels);
+            assertEquals("the reel's copy fills the video's place", Color.YELLOW, glass.getPixel(50, 170));
+            assertEquals("through the video's crop", 0, glass.getPixel(50, 90));
+            assertEquals("and the viewer's other place stays clear", 0, glass.getPixel(50, 40));
+            assertEquals("the viewer itself is never drawn again (#222)", 0, drawn.get());
+
+            viewer.setTranslationY(-100);
+            assertFalse("moved off the strip, the reel isn't copied", reels.copy(viewer, parent, 150, 50, 5000L));
+            viewer.setTranslationY(0);
+        } finally {
+            ReelFrames.source = original;
+        }
     }
 
     private static final class CountingSurface extends SurfaceView {

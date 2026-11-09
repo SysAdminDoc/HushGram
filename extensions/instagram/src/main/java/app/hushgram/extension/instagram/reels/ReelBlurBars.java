@@ -136,13 +136,13 @@ public final class ReelBlurBars {
     static final int STATUS_DIM_ALPHA = 150;
 
     /** Reads a video's current frame. Swapped in tests, since a stand-in video has no surface. */
-    interface FrameSource {
+    public interface FrameSource {
         /** The video's frame at [width] by [height], reusing [reuse] when it's the same size, or null when there is none. */
         @Nullable
         Bitmap frame(TextureView video, @Nullable Bitmap reuse, int width, int height);
     }
 
-    static final FrameSource TEXTURE = (video, reuse, width, height) -> {
+    public static final FrameSource TEXTURE = (video, reuse, width, height) -> {
         if (reuse != null && !reuse.isRecycled() && reuse.isMutable() && reuse.getWidth() == width && reuse.getHeight() == height) {
             return video.getBitmap(reuse);
         }
