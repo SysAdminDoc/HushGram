@@ -90,6 +90,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+import app.hushgram.extension.instagram.direct.CallBlockMode;
 import app.hushgram.extension.instagram.direct.ChatAccounts;
 import app.hushgram.extension.instagram.direct.ChatLocks;
 import app.hushgram.extension.instagram.direct.HiddenChats;
@@ -791,6 +792,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_UPLOAD_QUALITY && (Settings.UPLOAD_QUALITY_APPLIES_TO.key.equals(key)
                             || Settings.UPLOAD_VIDEO_BITRATE.key.equals(key));
                     belongs |= family == PatchFamily.STORY_PRIORITY && Settings.STORY_PRIORITY_ACCOUNTS.key.equals(key);
+                    belongs |= family == PatchFamily.CALL_BLOCKER
+                            && (Settings.CALL_BLOCK_MODE.key.equals(key) || Settings.CALL_BLOCK_ACCOUNTS.key.equals(key));
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
                             || HIDDEN_CHATS_ROW.equals(key) || PINNED_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
@@ -6303,6 +6306,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((PlaybackQualityRow) preference).showSummary();
         } else if (preference instanceof TapToPlayScopeRow) {
             ((TapToPlayScopeRow) preference).showSummary();
+        } else if (preference instanceof CallBlockModeRow) {
+            ((CallBlockModeRow) preference).showSummary();
         } else if (preference instanceof ReelTapChoiceRow) {
             ((ReelTapChoiceRow) preference).showSummary();
         } else if (preference instanceof BurnInGuardRow) {
@@ -6358,6 +6363,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((PlaybackQualityRow) listPreference).showSummary();
         } else if (listPreference instanceof TapToPlayScopeRow) {
             ((TapToPlayScopeRow) listPreference).showSummary();
+        } else if (listPreference instanceof CallBlockModeRow) {
+            ((CallBlockModeRow) listPreference).showSummary();
         } else if (listPreference instanceof ReelTapChoiceRow) {
             ((ReelTapChoiceRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryTimeModeRow) {
@@ -7105,6 +7112,107 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(ConfigurationBackup.MAX_WORDS_TEXT)});
         row.setText(Settings.STORY_PRIORITY_ACCOUNTS.savedValue());
         return row;
+    }
+
+    /** The people Call blocker's list reads, one to a line (#578). */
+    static AccountsRow callBlockAccountsRow(Context context) {
+        AccountsRow row = new AccountsRow(context);
+        row.setKey(Settings.CALL_BLOCK_ACCOUNTS.key);
+        row.setTitle(L10n.t("Your call list"));
+        row.setDialogTitle(L10n.t("Your call list"));
+        row.setDialogMessage(L10n.t("Usernames, one on each line. A leading @ and capital letters don't matter."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        field.setMaxLines(8);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(ConfigurationBackup.MAX_WORDS_TEXT)});
+        row.setText(Settings.CALL_BLOCK_ACCOUNTS.savedValue());
+        return row;
+    }
+
+    /** Who can ring your phone with a call (#578). Its summary says what the choice does. */
+    static CallBlockModeRow callBlockModeRow(Context context) {
+        CallBlockModeRow row = new CallBlockModeRow(context);
+        row.setKey(Settings.CALL_BLOCK_MODE.key);
+        row.setTitle(L10n.t("Who can call you"));
+        row.setDialogTitle(L10n.t("Who can call you"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        CallBlockMode[] modes = CallBlockMode.values();
+        CharSequence[] entries = new CharSequence[modes.length];
+        CharSequence[] values = new CharSequence[modes.length];
+        for (int i = 0; i < modes.length; i++) {
+            entries[i] = callBlockModeLabel(modes[i]);
+            values[i] = modes[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.CALL_BLOCK_MODE.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [mode]. */
+    static String callBlockModeLabel(CallBlockMode mode) {
+        switch (mode) {
+            case NOBODY:
+                return L10n.t("Nobody");
+            case ONLY_LIST:
+                return L10n.t("Only people on your list");
+            case EXCEPT_LIST:
+                return L10n.t("Everyone except your list");
+            default:
+                return L10n.t("Everyone");
+        }
+    }
+
+    /** What [mode] does, for the row's summary. */
+    static String callBlockModeSummary(CallBlockMode mode) {
+        switch (mode) {
+            case NOBODY:
+                return L10n.t("No call rings your phone. Callers just get no answer.");
+            case ONLY_LIST:
+                return L10n.t("Only people on your list ring your phone. Anyone else gets no answer.");
+            case EXCEPT_LIST:
+                return L10n.t("People on your list don't ring your phone. Everyone else still does.");
+            default:
+                return L10n.t("Everyone can ring your phone, as usual.");
+        }
+    }
+
+    /** Call blocker's choice. Its summary follows the value, whoever sets it. */
+    static final class CallBlockModeRow extends ListPreference {
+        CallBlockModeRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            CallBlockMode mode = CallBlockMode.EVERYONE;
+            for (CallBlockMode candidate : CallBlockMode.values()) {
+                if (candidate.name().equals(getValue())) mode = candidate;
+            }
+            setSummary(callBlockModeSummary(mode));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
     }
 
     /** What the priority accounts row says under its title: how many accounts it holds, or that it has none. */

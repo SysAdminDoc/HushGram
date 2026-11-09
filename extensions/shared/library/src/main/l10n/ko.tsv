@@ -1922,3 +1922,16 @@ Leaving Instagram while a reel plays shrinks it into a small window over your ot
 # context: a switch on the Profiles page under Mark who doesn't follow you back; it means the mark goes on each profile picture of your own Following list
 Show it on the profile picture	프로필 사진에 표시
 Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.	나를 맞팔로우하는 계정의 사진에는 초록색 체크를, 그렇지 않은 계정의 사진에는 빨간색 X를 문구 대신 표시합니다.
+
+# context: Messages rows of Call blocker: Who can call you, its four choices and their summaries, and the list row with its dialog message (#578)
+Who can call you	전화할 수 있는 사람
+Your call list	내 통화 목록
+Usernames, one on each line. A leading @ and capital letters don't matter.	사용자 이름을 한 줄에 하나씩 입력하세요. 앞의 @와 대문자는 상관없습니다.
+Nobody	아무도 안 됨
+Only people on your list	목록에 있는 사람만
+Everyone except your list	목록을 제외한 모든 사람
+Everyone	모든 사람
+No call rings your phone. Callers just get no answer.	어떤 전화도 울리지 않습니다. 건 사람은 그냥 응답을 받지 못합니다.
+Only people on your list ring your phone. Anyone else gets no answer.	목록에 있는 사람의 전화만 울립니다. 다른 사람은 응답을 받지 못합니다.
+People on your list don't ring your phone. Everyone else still does.	목록에 있는 사람의 전화는 울리지 않습니다. 다른 사람의 전화는 그대로 울립니다.
+Everyone can ring your phone, as usual.	평소처럼 누구나 전화할 수 있습니다.

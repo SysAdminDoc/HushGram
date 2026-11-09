@@ -653,6 +653,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Call blocker patch. */
+    public static boolean callBlocker() {
+        return false;
+    }
+
     /** Rewritten by the Chat plus menu patch. */
     public static boolean plusMenu() {
         return false;

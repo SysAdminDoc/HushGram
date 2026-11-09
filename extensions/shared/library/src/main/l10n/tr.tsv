@@ -1923,3 +1923,16 @@ Leaving Instagram while a reel plays shrinks it into a small window over your ot
 # context: a switch on the Profiles page under Mark who doesn't follow you back; it means the mark goes on each profile picture of your own Following list
 Show it on the profile picture	Profil fotoğrafında göster
 Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.	Seni geri takip eden her hesabın fotoğrafına yeşil bir onay işareti, etmeyenlerinkine kırmızı bir çarpı koyar, yazının yerine.
+
+# context: Messages rows of Call blocker: Who can call you, its four choices and their summaries, and the list row with its dialog message (#578)
+Who can call you	Seni kimler arayabilir
+Your call list	Arama listen
+Usernames, one on each line. A leading @ and capital letters don't matter.	Kullanıcı adları, her satıra bir tane. Baştaki @ ve büyük harfler fark etmez.
+Nobody	Hiç kimse
+Only people on your list	Yalnızca listendeki kişiler
+Everyone except your list	Listen dışındaki herkes
+Everyone	Herkes
+No call rings your phone. Callers just get no answer.	Hiçbir arama telefonunu çaldırmaz. Arayanlar yalnızca yanıt alamaz.
+Only people on your list ring your phone. Anyone else gets no answer.	Telefonunu yalnızca listendeki kişiler çaldırır. Diğerleri yanıt alamaz.
+People on your list don't ring your phone. Everyone else still does.	Listendeki kişiler telefonunu çaldırmaz. Diğerleri çaldırmaya devam eder.
+Everyone can ring your phone, as usual.	Herkes seni her zamanki gibi arayabilir.

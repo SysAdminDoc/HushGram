@@ -1923,3 +1923,16 @@ Leaving Instagram while a reel plays shrinks it into a small window over your ot
 # context: a switch on the Profiles page under Mark who doesn't follow you back; it means the mark goes on each profile picture of your own Following list
 Show it on the profile picture	Auf dem Profilbild zeigen
 Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.	Setzt ein grünes Häkchen auf das Bild jedes Kontos, das dir zurückfolgt, und ein rotes Kreuz auf jedes, das es nicht tut, statt der Worte.
+
+# context: Messages rows of Call blocker: Who can call you, its four choices and their summaries, and the list row with its dialog message (#578)
+Who can call you	Wer dich anrufen kann
+Your call list	Deine Anrufliste
+Usernames, one on each line. A leading @ and capital letters don't matter.	Nutzernamen, einer pro Zeile. Ein @ am Anfang und Großbuchstaben spielen keine Rolle.
+Nobody	Niemand
+Only people on your list	Nur Personen auf deiner Liste
+Everyone except your list	Alle außer deiner Liste
+Everyone	Alle
+No call rings your phone. Callers just get no answer.	Kein Anruf lässt dein Handy klingeln. Anrufer bekommen einfach keine Antwort.
+Only people on your list ring your phone. Anyone else gets no answer.	Nur Personen auf deiner Liste lassen dein Handy klingeln. Alle anderen bekommen keine Antwort.
+People on your list don't ring your phone. Everyone else still does.	Personen auf deiner Liste lassen dein Handy nicht klingeln. Alle anderen schon.
+Everyone can ring your phone, as usual.	Alle können dich wie gewohnt anrufen.

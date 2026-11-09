@@ -1926,3 +1926,16 @@ Leaving Instagram while a reel plays shrinks it into a small window over your ot
 # context: a switch on the Profiles page under Mark who doesn't follow you back; it means the mark goes on each profile picture of your own Following list
 Show it on the profile picture	顯示在大頭貼照上
 Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.	在有回追你的帳號大頭貼照上加綠色勾勾，在未回追的帳號上加紅色叉叉，取代文字。
+
+# context: Messages rows of Call blocker: Who can call you, its four choices and their summaries, and the list row with its dialog message (#578)
+Who can call you	誰可以打給你
+Your call list	你的通話名單
+Usernames, one on each line. A leading @ and capital letters don't matter.	使用者名稱，每行一個。開頭的 @ 和大小寫都沒有影響。
+Nobody	沒有人
+Only people on your list	只有名單上的人
+Everyone except your list	名單以外的所有人
+Everyone	所有人
+No call rings your phone. Callers just get no answer.	沒有任何來電會響。對方只會得不到回應。
+Only people on your list ring your phone. Anyone else gets no answer.	只有名單上的人來電才會響。其他人得不到回應。
+People on your list don't ring your phone. Everyone else still does.	名單上的人來電不會響。其他人照常會響。
+Everyone can ring your phone, as usual.	所有人都能像平常一樣打給你。

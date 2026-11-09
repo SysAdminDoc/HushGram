@@ -1840,3 +1840,16 @@ Leaving Instagram while a reel plays shrinks it into a small window over your ot
 # context: a switch on the Profiles page under Mark who doesn't follow you back; it means the mark goes on each profile picture of your own Following list
 Show it on the profile picture	Hiển thị trên ảnh đại diện
 Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.	Đặt dấu tích xanh lá trên ảnh của mỗi tài khoản theo dõi lại bạn và dấu X đỏ trên mỗi tài khoản không theo dõi lại, thay cho dòng chữ.
+
+# context: Messages rows of Call blocker: Who can call you, its four choices and their summaries, and the list row with its dialog message (#578)
+Who can call you	Ai có thể gọi cho bạn
+Your call list	Danh sách cuộc gọi của bạn
+Usernames, one on each line. A leading @ and capital letters don't matter.	Tên người dùng, mỗi dòng một tên. Dấu @ ở đầu và chữ hoa không quan trọng.
+Nobody	Không ai
+Only people on your list	Chỉ những người trong danh sách
+Everyone except your list	Mọi người trừ danh sách của bạn
+Everyone	Mọi người
+No call rings your phone. Callers just get no answer.	Không cuộc gọi nào đổ chuông trên điện thoại của bạn. Người gọi chỉ không nhận được trả lời.
+Only people on your list ring your phone. Anyone else gets no answer.	Chỉ những người trong danh sách mới làm điện thoại đổ chuông. Người khác không nhận được trả lời.
+People on your list don't ring your phone. Everyone else still does.	Những người trong danh sách không làm điện thoại đổ chuông. Người khác vẫn gọi được.
+Everyone can ring your phone, as usual.	Mọi người có thể gọi cho bạn như bình thường.

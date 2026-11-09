@@ -937,6 +937,28 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_CALL_BUTTONS = new BooleanSetting("hushgram_hide_call_buttons", FALSE);
 
     /**
+     * Who can ring your phone with an Instagram call
+     * ({@link app.hushgram.extension.instagram.direct.CallBlocker}, #578). Everyone to start.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.direct.CallBlockMode> CALL_BLOCK_MODE =
+            new EnumSetting<>("hushgram_call_block_mode", app.hushgram.extension.instagram.direct.CallBlockMode.EVERYONE);
+
+    /**
+     * The people {@link #CALL_BLOCK_MODE} reads, one to a line. A control, not a switch. Empty to
+     * start, and only in use for the two choices that read a list.
+     */
+    public static final StringSetting CALL_BLOCK_ACCOUNTS =
+            new StringSetting("hushgram_call_block_accounts", "", new Setting.Availability() {
+                @Override public boolean isAvailable() {
+                    return CALL_BLOCK_MODE.savedValue().usesList();
+                }
+
+                @Override public List<Setting<?>> getParentSettings() {
+                    return Collections.singletonList(CALL_BLOCK_MODE);
+                }
+            });
+
+    /**
      * The Like button under a post asks before it likes or unlikes the post
      * ({@link app.hushgram.extension.instagram.feed.LikeConfirm}). A double tap isn't asked about.
      * Off to start.

@@ -1923,3 +1923,16 @@ Leaving Instagram while a reel plays shrinks it into a small window over your ot
 # context: a switch on the Profiles page under Mark who doesn't follow you back; it means the mark goes on each profile picture of your own Following list
 Show it on the profile picture	Tampilkan di foto profil
 Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.	Menaruh centang hijau di foto setiap akun yang mengikuti balik kamu dan silang merah di setiap akun yang tidak, sebagai ganti tulisan.
+
+# context: Messages rows of Call blocker: Who can call you, its four choices and their summaries, and the list row with its dialog message (#578)
+Who can call you	Siapa yang bisa meneleponmu
+Your call list	Daftar panggilanmu
+Usernames, one on each line. A leading @ and capital letters don't matter.	Nama pengguna, satu per baris. Tanda @ di depan dan huruf besar tidak berpengaruh.
+Nobody	Tidak ada
+Only people on your list	Hanya orang di daftarmu
+Everyone except your list	Semua kecuali daftarmu
+Everyone	Semua orang
+No call rings your phone. Callers just get no answer.	Tidak ada panggilan yang berdering di ponselmu. Penelepon hanya tidak mendapat jawaban.
+Only people on your list ring your phone. Anyone else gets no answer.	Hanya orang di daftarmu yang membuat ponselmu berdering. Yang lain tidak mendapat jawaban.
+People on your list don't ring your phone. Everyone else still does.	Orang di daftarmu tidak membuat ponselmu berdering. Yang lain tetap bisa.
+Everyone can ring your phone, as usual.	Semua orang bisa meneleponmu seperti biasa.

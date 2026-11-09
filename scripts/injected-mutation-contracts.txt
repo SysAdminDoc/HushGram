@@ -2589,6 +2589,13 @@ once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljav
 # MediaCacheHookTest checks where it lands on each declared build.
 start-call Lapp/hushgram/extension/instagram/misc/MediaCache;->beforeVideoCache(Ljava/lang/String;)V in static (Ljava/lang/Integer;Ljava/lang/String;)Ljava/io/File; holding /ExoPlayerCacheDir/videocache /ExoPlayerCacheDir/videoprefetchcache /ExoPlayerCacheDir/videocachemetadata
 once-call Lapp/hushgram/extension/instagram/misc/MediaCache;->beforeVideoCache(Ljava/lang/String;)V in static (Ljava/lang/Integer;Ljava/lang/String;)Ljava/io/File; holding /ExoPlayerCacheDir/videocache /ExoPlayerCacheDir/videoprefetchcache /ExoPlayerCacheDir/videocachemetadata
+# Call blocker hands CallBlocker.drop the call object first thing in the method that turns an
+# incoming call into its ring (0gKo.A01 on 454), the one method taking RtcConnectionEntity and
+# loading the incoming call's intent action. Left out, every call rings whatever the choice says;
+# twice or elsewhere, it isn't the guard the patch wrote. CallBlockerHookTest checks where it lands
+# on each declared build.
+start-call Lapp/hushgram/extension/instagram/direct/CallBlocker;->drop(Ljava/lang/Object;)Z in * (*Lcom/instagram/rtc/signaling/models/RtcConnectionEntity;*)V pooled holding "rtc_call_activity_intent_action_incoming_call"
+once-call Lapp/hushgram/extension/instagram/direct/CallBlocker;->drop(Ljava/lang/Object;)Z in * (*Lcom/instagram/rtc/signaling/models/RtcConnectionEntity;*)V pooled holding "rtc_call_activity_intent_action_incoming_call"
 # Ask before a call hands CallConfirm.hold the chat's call start's own arguments first thing in that
 # start (01YY.A02 on 450), the one instance (chat, entry point, co-watch arguments, video) method,
 # here picked by the shape and the account schema text it loads. Left out, a call starts without the
