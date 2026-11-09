@@ -89,7 +89,8 @@ internal val HUSHGRAM_ICONS = listOf(
     HushgramIcon("light", solid("#FFFFFFFF"), instagramGlyph = true, glyphTint = "#FF000000"),
     // A user's pencil drawing of Instagram's glyph, 48dp across in the 108dp layer (#406).
     HushgramIcon("sketch", solid("#FFFFFFFF"), instagramGlyph = false, art = "sketch.png"),
-    // Instagram's gradient glyph on a dark tile (#327, #437) and its old camera icon on white (#437), each 52dp across.
+    // Instagram's gradient glyph on a dark tile (#327, #437), 55dp across so its corners just reach the
+    // safe circle; at 38dp it looked small on the home screen (#327). Then its old camera icon (#437).
     HushgramIcon("gradient", DARK_GRADIENT, instagramGlyph = false, art = "gradient.png"),
     // The camera fills its square, so themed icons show Instagram's glyph for it instead of a blank tile.
     // It runs past every launcher shape, its edge colors carried out to the corners, so no white frame

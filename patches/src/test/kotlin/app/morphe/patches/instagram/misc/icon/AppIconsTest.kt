@@ -231,6 +231,9 @@ class AppIconsTest {
             assertTrue("$path has ink, $inked", inked > 1000)
             assertTrue("$path has real transparent pixels, $clear", clear > inked / 4)
             assertTrue("$path inside the safe circle, $farthest dp", farthest < 33)
+            if (path.contains("_gradient_")) {
+                assertTrue("$path fills the safe circle, so it isn't small on the home screen (#327), $farthest dp", farthest > 31)
+            }
         }
     }
 
