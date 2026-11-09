@@ -145,7 +145,7 @@ final class TabBarCategory {
                                 + "a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as "
                                 + "you scroll is on. Restart Instagram after changing it."))));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_REFRACT, L10n.t("Bend light at the edges"),
-                        slowsOlderPhones(L10n.t("The liquid pill's rim bends what's behind it like real glass, so what passes under the "
+                        slowsOlderPhones(L10n.t("The pill's rim bends what's behind it like real glass, so what passes under the "
                                 + "edge shows upside down. Android 13 and newer. Restart Instagram after changing it."))));
                 SliderRow refractRow = glassRefractRow(context);
                 preview.follow(refractRow, GlassPreview.BEND);

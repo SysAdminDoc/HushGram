@@ -4833,7 +4833,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** How hard the liquid pill bends what's behind its edge, from a slider in percent of the standard bend (#391). */
+    /** How hard the pill bends what's behind its edge, liquid or not, from a slider in percent of the standard bend (#391). */
     static SliderRow glassRefractRow(Context context) {
         SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_REFRACT_STRENGTH, 10, L10n.t("%1$d%%"));
         row.setTitle(L10n.t("Refraction intensity"));

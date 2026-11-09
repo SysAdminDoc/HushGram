@@ -1512,7 +1512,7 @@ public final class GlassTabBar {
         private final Rect reelsRect = new Rect();
         /** The liquid look (#65): a round pill and highlight, Search in a circle of its own, and the compact row on a scroll. */
         private final boolean liquid;
-        /** Whether the liquid pill's rim bends what's behind it (#369). */
+        /** Whether the pill's rim bends what's behind it (#369), the liquid pill's or the standard one's (#391). */
         private final boolean refract;
         /** How far the liquid bar has shrunk to its compact row: 0 is the whole bar, 1 the tab you're on and Search. */
         private float compact;
@@ -1542,7 +1542,7 @@ public final class GlassTabBar {
             this.lift = liftPx(Settings.GLASS_TAB_BAR_LIFT.get(), floating, density);
             this.room = lift;
             this.liquid = Settings.GLASS_TAB_BAR_LIQUID.get();
-            this.refract = liquid && Settings.GLASS_TAB_BAR_REFRACT.get();
+            this.refract = Settings.GLASS_TAB_BAR_REFRACT.get();
             boolean hideOnScroll = Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get();
             // The liquid look shrinks the bar as a list scrolls down, unless a scroll is to take it away altogether
             // or the pill is to keep its full size (#256).
@@ -2541,6 +2541,8 @@ public final class GlassTabBar {
                 // Light glass has nothing under it to stand out against, so it gets a soft shadow.
                 if (!dark) shadow(canvas, rect, radius);
                 boolean blurred = blurWanted && !tries.resting(SystemClock.uptimeMillis()) && drawBackdrop(canvas);
+                // The standard pill's rim bends too, round its own corners (#391). Paused, it's the plain pill.
+                if (blurred && refract && !HushgramPause.isPaused()) paintRim(canvas, rect, radius);
                 fill.setColor(tint(base, blurred, opacityScale()));
                 canvas.drawRoundRect(rect, radius, radius, fill);
 
@@ -2736,13 +2738,7 @@ public final class GlassTabBar {
              */
             private void paintRims(Canvas canvas, boolean apart) {
                 if (!GlassLens.supported()) return;
-                GlassLens pillRim = rimLens;
-                if (pillRim == null) {
-                    pillRim = new GlassLens(true);
-                    rimLens = pillRim;
-                }
-                pillRim.paint(canvas, node, nodeLeft, nodeTop, DOWNSAMPLE, bar.getWidth(), bar.getHeight(), shrunk,
-                        shrunk.height() / 2f);
+                paintRim(canvas, shrunk, shrunk.height() / 2f);
                 if (!apart) return;
                 GlassLens searchRim = circleRim;
                 if (searchRim == null) {
@@ -2751,6 +2747,17 @@ public final class GlassTabBar {
                 }
                 searchRim.paint(canvas, node, nodeLeft, nodeTop, DOWNSAMPLE, bar.getWidth(), bar.getHeight(), circle,
                         circle.height() / 2f);
+            }
+
+            /** The pill's rim over [box] with [corner] corners, the liquid pill's or the standard one's (#391). */
+            private void paintRim(Canvas canvas, RectF box, float corner) {
+                if (!GlassLens.supported()) return;
+                GlassLens pillRim = rimLens;
+                if (pillRim == null) {
+                    pillRim = new GlassLens(true);
+                    rimLens = pillRim;
+                }
+                pillRim.paint(canvas, node, nodeLeft, nodeTop, DOWNSAMPLE, bar.getWidth(), bar.getHeight(), box, corner);
             }
 
             /**

@@ -1605,12 +1605,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_keep_size", FALSE, true, parent(GLASS_TAB_BAR_LIQUID));
 
     /**
-     * Under {@link #GLASS_TAB_BAR_LIQUID}: the liquid pill's rim bends what's behind it the way the edge of real
-     * glass does, so what passes under the edge shows mirrored and upside down (#369). Android 13 and newer,
-     * where the bar can run a shader. Read as the bar is built, so a change asks for a restart. Off to start.
+     * Under {@link #GLASS_TAB_BAR_BLUR}: the pill's rim bends what's behind it the way the edge of real glass
+     * does, so what passes under the edge shows mirrored and upside down (#369). The liquid pill and the
+     * standard one both bend (#391), and only where the pill is blurred. Android 13 and newer, where the bar
+     * can run a shader. Read as the bar is built, so a change asks for a restart. Off to start.
      */
     public static final BooleanSetting GLASS_TAB_BAR_REFRACT =
-            new BooleanSetting("hushgram_glass_tab_bar_refract", FALSE, true, parent(GLASS_TAB_BAR_LIQUID));
+            new BooleanSetting("hushgram_glass_tab_bar_refract", FALSE, true, parent(GLASS_TAB_BAR_BLUR));
 
     /**
      * Under {@link #GLASS_TAB_BAR_HAPTICS}: which tick plays ({@link app.hushgram.extension.instagram.misc.HapticStyle}).
@@ -1630,7 +1631,7 @@ public class Settings extends BaseSettings {
                     .withRange(0, 150);
 
     /**
-     * Under {@link #GLASS_TAB_BAR_REFRACT}: how far the liquid pill bends what's behind it, in percent of the
+     * Under {@link #GLASS_TAB_BAR_REFRACT}: how far the pill's rim bends what's behind it, in percent of the
      * bend it has always had, from a slider (#391). Zero leaves the backdrop straight, higher bends it harder.
      * Read as the pill draws, so a change shows on the bar without a restart.
      */

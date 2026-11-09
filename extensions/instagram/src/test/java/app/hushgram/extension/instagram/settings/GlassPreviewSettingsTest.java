@@ -98,8 +98,8 @@ public class GlassPreviewSettingsTest {
         assertFalse(slider.isEnabled());
         assertEquals("Turn on Glass tab bar to use this slider.", String.valueOf(slider.getSummary()));
         check(Settings.GLASS_TAB_BAR.key);
-        assertEquals("Turn on Liquid glass look to use this slider.", String.valueOf(slider.getSummary()));
-        check(Settings.GLASS_TAB_BAR_LIQUID.key);
+        // The standard pill bends too, so the liquid look isn't in the way (#391); the blur starts on.
+        assertFalse(Settings.GLASS_TAB_BAR_LIQUID.savedValue());
         assertEquals("Turn on Bend light at the edges to use this slider.", String.valueOf(slider.getSummary()));
         check(Settings.GLASS_TAB_BAR_REFRACT.key);
         assertTrue(slider.isEnabled());

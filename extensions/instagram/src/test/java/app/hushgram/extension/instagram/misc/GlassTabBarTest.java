@@ -1869,6 +1869,49 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #391: with the liquid look off, Bend light at the edges paints the rim over the standard pill too, round
+     * its own corners, and there's no Search circle to give a rim of its own. Off, no rim is made. Paused, the
+     * bar is the plain pill and no rim is asked for.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void theStandardPillBendsLightAtItsEdgesToo() {
+        GlassTabBar.animationsOnForTests = false;
+        for (boolean refract : new boolean[]{true, false}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+                FrameLayout feed = new FrameLayout(host.activity);
+                feed.setBackgroundColor(Color.RED);
+                host.root.addView(feed, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                Settings.GLASS_TAB_BAR_LIQUID.save(false);
+                Settings.GLASS_TAB_BAR_REFRACT.save(refract);
+                GlassTabBar.apply(host.activity);
+                host.frame();
+                host.frame();
+                Object pill = host.bar.getBackground();
+                assertTrue("no backdrop recorded", (boolean) ReflectionHelpers.getField(pill, "recorded"));
+                host.recordBackground();
+                GlassLens rim = ReflectionHelpers.getField(pill, "rimLens");
+                assertNull("no circle beside the standard pill", ReflectionHelpers.getField(pill, "circleRim"));
+                if (!refract) {
+                    assertNull("off, no rim", rim);
+                    continue;
+                }
+                assertNotNull("the standard pill gets the rim", rim);
+                assertEquals(1, rim.asked);
+
+                PauseForTests.pause(HushgramPause.Reason.SWITCH);
+                try {
+                    host.recordBackground();
+                    assertEquals("paused, the plain pill", 1, rim.asked);
+                } finally {
+                    PauseForTests.resume();
+                }
+            }
+        }
+    }
+
     @Test
     public void theCapsuleSlideIsTimedNotCountedAndEasesOut() {
         assertEquals(0f, GlassTabBar.slideProgress(0), 0f);

@@ -85,6 +85,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
+        Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.resetToDefault();
@@ -535,14 +536,15 @@ public class TabBarAndBatterySettingsTest {
 
     /**
      * Bend light at the edges (#369) is a switch right after the liquid look, off to start, offered
-     * while the liquid look is on, backed up, and read as the bar is built, so it asks for a restart.
+     * while the pill is blurred, liquid or not (#391), backed up, and read as the bar is built, so it
+     * asks for a restart.
      */
-    @Test public void bendLightAtTheEdgesSitsUnderTheLiquidLookAndStartsOff() throws Exception {
+    @Test public void bendLightAtTheEdgesSitsUnderTheBlurAndStartsOff() throws Exception {
         open(PatchFamily.GLASS_TAB_BAR);
         SwitchPreference refract = (SwitchPreference) row(Settings.GLASS_TAB_BAR_REFRACT.key);
         assertNotNull(refract);
         assertEquals("Bend light at the edges", String.valueOf(refract.getTitle()));
-        assertEquals("The liquid pill's rim bends what's behind it like real glass, so what passes under the edge "
+        assertEquals("The pill's rim bends what's behind it like real glass, so what passes under the edge "
                 + "shows upside down. Android 13 and newer. Restart Instagram after changing it. Can slow down older phones.",
                 String.valueOf(refract.getSummary()));
         assertFalse(refract.isChecked());
@@ -560,10 +562,15 @@ public class TabBarAndBatterySettingsTest {
         assertEquals("right after Liquid glass look", liquidAt + 1, refractAt);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_REFRACT.key));
 
-        assertFalse("no liquid look, no rim", Settings.GLASS_TAB_BAR_REFRACT.isAvailable());
+        assertFalse("no glass bar, no rim", Settings.GLASS_TAB_BAR_REFRACT.isAvailable());
         Settings.GLASS_TAB_BAR.save(true);
-        Settings.GLASS_TAB_BAR_LIQUID.save(true);
-        assertTrue(Settings.GLASS_TAB_BAR_REFRACT.isAvailable());
+        assertFalse(Settings.GLASS_TAB_BAR_LIQUID.savedValue());
+        assertTrue("the standard pill bends too (#391)", Settings.GLASS_TAB_BAR_REFRACT.isAvailable());
+        Settings.GLASS_TAB_BAR_REFRACT.save(true);
+        assertTrue("and so is its slider", Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.isAvailable());
+        Settings.GLASS_TAB_BAR_BLUR.save(false);
+        assertFalse("no blur, nothing to bend", Settings.GLASS_TAB_BAR_REFRACT.isAvailable());
+        assertFalse(Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.isAvailable());
     }
 
     /**
