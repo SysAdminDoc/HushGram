@@ -1522,6 +1522,13 @@ once-call Lapp/hushgram/extension/instagram/feed/EditsLabel;->labels(Ljava/util/
 # elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->inFeed(I)Z in instance (Landroid/content/Context;L*;L*;L*;ZZZZZ)V pooled class-holding continue_watching
 #
+# Keep the tab bar on a reel's profile (#385) asks ReelProfileTabBar.open before the launcher of
+# the profile's own screen, on both routes a reel opens one by (09Ts's A02 and 044g's A0D on 454's
+# 386014758). Left out, the profile keeps opening with no tab bar. Twice or elsewhere, it isn't
+# the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z pooled holding android_purge_26_q3_AuthorInfoNavigator_navigateToNormalProfile
+once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z pooled holding android_purge_26_q3_ClipsViewerUtils_launchProfile
+#
 # Tap to play: IgGrootPlayer's play asks allowDirectStart() first, its prepare tells rebound()
 # first, and the autoplay check hands its answer to autoplayAllowed() where it returns, once on
 # 449 and twice on 454, whose check has two returns. The touch dispatch feeds the tap clock first. IgVideoPlayerImpl's playInternal asks

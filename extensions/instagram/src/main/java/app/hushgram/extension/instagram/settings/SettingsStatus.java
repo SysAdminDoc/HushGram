@@ -593,6 +593,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean reelProfileTabBar() {
+        return false;
+    }
+
     public static boolean reelOrigin() {
         return false;
     }

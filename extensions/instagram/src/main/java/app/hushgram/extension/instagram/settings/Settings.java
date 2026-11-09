@@ -3177,6 +3177,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_swipe_to_profile", FALSE, true);
 
     /**
+     * A profile opened from a reel stays on the tab, with the tab bar under it (#385,
+     * {@link app.hushgram.extension.instagram.reels.ReelProfileTabBar}). Read at each tap, so it needs
+     * no restart. Off to start.
+     */
+    public static final BooleanSetting REEL_PROFILE_TAB_BAR =
+            new BooleanSetting("hushgram_reel_profile_tab_bar", FALSE);
+
+    /**
      * After {@link #REEL_CAP_COUNT} reels in a session, swiping in Reels stops until Instagram has been
      * in the background for {@link #REEL_CAP_BREAK} minutes
      * ({@link app.hushgram.extension.instagram.reels.ReelScrolling}). Read at each new reel. Off to start.

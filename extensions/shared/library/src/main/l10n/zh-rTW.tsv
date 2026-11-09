@@ -1959,3 +1959,5 @@ Shows the time above your finger while you drag a seek bar on a feed video, stor
 Swipe right on Home opens	在首頁向右滑動會開啟
 The camera, as Instagram has it. Pick a tab and the same swipe opens that tab instead.	相機，與 Instagram 原本相同。選擇分頁後，同樣的滑動會改為開啟該分頁。
 A swipe right on Home opens %1$s. The + button still opens the camera.	在首頁向右滑動會開啟 %1$s。+ 按鈕仍會開啟相機。
+Keep the tab bar on a reel's profile	在 Reel 的個人檔案保留分頁列
+A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	從 Reel 開啟的個人檔案會留在目前的分頁，下方保留分頁列。返回會回到 Reel.

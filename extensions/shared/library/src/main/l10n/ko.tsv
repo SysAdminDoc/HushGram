@@ -1955,3 +1955,5 @@ Shows the time above your finger while you drag a seek bar on a feed video, stor
 Swipe right on Home opens	홈에서 오른쪽으로 스와이프하면 열기
 The camera, as Instagram has it. Pick a tab and the same swipe opens that tab instead.	Instagram 기본 동작인 카메라입니다. 탭을 고르면 같은 스와이프로 그 탭이 열립니다.
 A swipe right on Home opens %1$s. The + button still opens the camera.	홈에서 오른쪽으로 스와이프하면 %1$s 탭이 열립니다. + 버튼은 계속 카메라를 엽니다.
+Keep the tab bar on a reel's profile	릴스 프로필에서 탭 바 유지
+A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	릴스에서 연 프로필이 지금 있는 탭에서 열리고 아래에 탭 바가 보입니다. 뒤로 가면 릴스로 돌아갑니다.

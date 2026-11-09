@@ -311,6 +311,11 @@ final class ReelsCategory {
                     L10n.t("A left swipe on a reel opens the creator's profile, like Instagram used to. Tap "
                             + "Friends at the top to reach your friends' reels.")));
         }
+        if (build.contains(PatchFamily.REEL_PROFILE_TAB_BAR)) {
+            reels.add(toggle(context, Settings.REEL_PROFILE_TAB_BAR, L10n.t("Keep the tab bar on a reel's profile"),
+                    L10n.t("A profile you open from a reel stays on the tab you're on, with the tab bar under it. "
+                            + "Back goes back to the reel.")));
+        }
         if (build.contains(PatchFamily.REEL_ORIGIN)) {
             reels.add(toggle(context, Settings.FIND_REEL_ORIGIN, L10n.t("Find the reel you came from"),
                     L10n.t("Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel "
