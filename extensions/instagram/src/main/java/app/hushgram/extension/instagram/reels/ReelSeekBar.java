@@ -124,6 +124,7 @@ public final class ReelSeekBar {
      */
     public static void progress(SeekBar bar, int progress) {
         ReelTimeLabel.update(bar, progress, ReelSeekBar::switchedOn);
+        ReelSeekRoom.keep(bar);
     }
 
     /**
