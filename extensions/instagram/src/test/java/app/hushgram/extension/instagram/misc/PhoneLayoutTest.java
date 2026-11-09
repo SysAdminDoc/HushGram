@@ -67,6 +67,22 @@ public class PhoneLayoutTest {
                 HookStatus.missing(FamilyNames.PHONE_LAYOUT).isEmpty());
     }
 
+    /** The glass needs the bottom tab bar, which a big screen's layout doesn't have (#582). */
+    @Test
+    public void theGlassTabBarKeepsAPhoneLayoutOnABigScreen() {
+        Settings.PHONE_LAYOUT.resetToDefault();
+        Settings.GLASS_TAB_BAR.save(true);
+        try {
+            assertEquals(PhoneLayout.PHONE_WIDTH, PhoneLayout.width(1280));
+            assertFalse(PhoneLayout.foldable(1));
+            assertEquals(411, PhoneLayout.width(411));
+        } finally {
+            Settings.GLASS_TAB_BAR.resetToDefault();
+        }
+        assertEquals(1280, PhoneLayout.width(1280));
+        assertTrue(PhoneLayout.foldable(1));
+    }
+
     @Test
     public void offPausedUnreadyAndThrowingKeepInstagramsAnswer() {
         Settings.PHONE_LAYOUT.resetToDefault();

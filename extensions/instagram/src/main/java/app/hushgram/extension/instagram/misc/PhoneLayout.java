@@ -89,7 +89,11 @@ public final class PhoneLayout {
         }
     }
 
+    /**
+     * The switch, or the Glass tab bar: the glass is drawn on the tab bar along the bottom, and the big
+     * screen layout has only the rail down the side, so with the rail the glass never showed on a tablet (#582).
+     */
     private static boolean switchedOn() {
-        return Utils.settingsReady() && Settings.PHONE_LAYOUT.get();
+        return Utils.settingsReady() && (Settings.PHONE_LAYOUT.get() || Settings.GLASS_TAB_BAR.get());
     }
 }
