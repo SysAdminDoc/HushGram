@@ -2601,8 +2601,8 @@ once-call Lapp/hushgram/extension/instagram/misc/MediaCache;->beforeVideoCache(L
 # loading the incoming call's intent action. Left out, every call rings whatever the choice says;
 # twice or elsewhere, it isn't the guard the patch wrote. CallBlockerHookTest checks where it lands
 # on each declared build.
-start-call Lapp/hushgram/extension/instagram/direct/CallBlocker;->drop(Ljava/lang/Object;)Z in * (*Lcom/instagram/rtc/signaling/models/RtcConnectionEntity;*)V pooled holding "rtc_call_activity_intent_action_incoming_call"
-once-call Lapp/hushgram/extension/instagram/direct/CallBlocker;->drop(Ljava/lang/Object;)Z in * (*Lcom/instagram/rtc/signaling/models/RtcConnectionEntity;*)V pooled holding "rtc_call_activity_intent_action_incoming_call"
+start-call Lapp/hushgram/extension/instagram/direct/CallBlocker;->drop(Ljava/lang/Object;)Z in (*Lcom/instagram/rtc/signaling/models/RtcConnectionEntity;*)V pooled holding rtc_call_activity_intent_action_incoming_call
+once-call Lapp/hushgram/extension/instagram/direct/CallBlocker;->drop(Ljava/lang/Object;)Z in (*Lcom/instagram/rtc/signaling/models/RtcConnectionEntity;*)V pooled holding rtc_call_activity_intent_action_incoming_call
 # Ask before a call hands CallConfirm.hold the chat's call start's own arguments first thing in that
 # start (01YY.A02 on 450), the one instance (chat, entry point, co-watch arguments, video) method,
 # here picked by the shape and the account schema text it loads. Left out, a call starts without the
@@ -2937,9 +2937,8 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->bitrate
 # writing the frame rate the setter falls back to 30 on. Fewer calls leave a path at Instagram's rate.
 once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->frameRate(Ljava/lang/Object;I)I in instance (LX/*;)V calling instance LX/*;->*()Z sites 3 pooled holding const:0x895440 ig_media_transcode_param null\stranscode\sparam
 # Its Video resolution choice (#37) hands StoryUploadQuality.resolution the width Instagram's width step
-# (0Wot.A00 on 454) was asked for, 1080, 1440 or 0, with the upload's share type, as the first thing there.
+# (0Wot.A00 on 454) was asked for, 1080, 1440 or 0, with the upload's share type, read just before it.
 # Left out, Video resolution does nothing.
-start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->resolution(Ljava/lang/Object;I)I in static (Landroid/content/Context;Lcom/instagram/common/session/UserSession;LX/*;IZZZZ)LX/*; calling instance LX/*;->*()Lcom/instagram/pendingmedia/model/constants/ShareType; holding const:0x438 const:0x5a0
 once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->resolution(Ljava/lang/Object;I)I in static (Landroid/content/Context;Lcom/instagram/common/session/UserSession;LX/*;IZZZZ)LX/*; calling instance LX/*;->*()Lcom/instagram/pendingmedia/model/constants/ShareType; holding const:0x438 const:0x5a0
 # Its Photo quality choice (#37) hands StoryUploadQuality.photoQuality the JPEG quality first in the static
 # factory (0BWX.A02 on 454) of the class that calls Bitmap.compress with it. Left out, Photo quality does nothing.
