@@ -731,6 +731,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.BURN_IN_STORIES.key.equals(key)
                             || Settings.START_REEL_CLEAR_MODE.key.equals(key));
                     belongs |= family == PatchFamily.REEL_SCROLLING && (Settings.SCROLL_BREAK.key.equals(key)
+                            || Settings.SCROLL_BREAK_LENGTH.key.equals(key)
                             || Settings.REEL_CAP_COUNT.key.equals(key) || Settings.REEL_CAP_BREAK.key.equals(key));
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
@@ -4693,14 +4694,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return time == ScrollBreakTime.OFF ? L10n.t("Off") : L10n.f("After %1$d minutes", time.minutes);
     }
 
-    /** [time], then what it does, for the row's summary. */
+    /** [time], then what it does for the break length on the slider under it (#297), for the row's summary. */
     static String scrollBreakSummary(ScrollBreakTime time) {
         if (time == ScrollBreakTime.OFF) {
-            return L10n.t("Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a "
+            return L10n.t("Off. It can cover the Home, Reels and Explore tabs for a break after you've spent a "
                     + "while on them.");
         }
-        return L10n.f("After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 "
-                + "minutes. Messages, your profile and the tab bar still work.", time.minutes);
+        return L10n.f("After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for %2$d "
+                + "minutes. Messages, your profile and the tab bar still work.", time.minutes,
+                Settings.SCROLL_BREAK_LENGTH.savedValue());
+    }
+
+    /** How long the scroll break lasts, from a slider under Take a scroll break (#297). */
+    static SliderRow scrollBreakLengthRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.SCROLL_BREAK_LENGTH, 5, L10n.t("%1$d minutes"));
+        row.setTitle(L10n.t("Break length"));
+        row.setText(String.valueOf(Settings.SCROLL_BREAK_LENGTH.savedValue()));
+        return row;
     }
 
     /** The home screen icon (#284). Its summary says the choice. */

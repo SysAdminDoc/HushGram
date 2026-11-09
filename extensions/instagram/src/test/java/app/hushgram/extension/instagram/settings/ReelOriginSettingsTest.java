@@ -95,9 +95,10 @@ public class ReelOriginSettingsTest {
         assertEquals("its two sliders follow Stop after a set number of reels", Settings.REEL_CAP_COUNT.key, keys[cap + 1]);
         assertEquals(Settings.REEL_CAP_BREAK.key, keys[cap + 2]);
         assertEquals("then Take a scroll break", Settings.SCROLL_BREAK.key, keys[cap + 3]);
-        assertEquals("then this switch", Settings.FIND_REEL_ORIGIN.key, keys[cap + 4]);
-        assertEquals("then Wait for a tap, last", Settings.FIND_REEL_ORIGIN_ON_TAP.key, keys[cap + 5]);
-        assertEquals(keys.length - 1, cap + 5);
+        assertEquals("and its Break length slider (#297)", Settings.SCROLL_BREAK_LENGTH.key, keys[cap + 4]);
+        assertEquals("then this switch", Settings.FIND_REEL_ORIGIN.key, keys[cap + 5]);
+        assertEquals("then Wait for a tap, last", Settings.FIND_REEL_ORIGIN_ON_TAP.key, keys[cap + 6]);
+        assertEquals(keys.length - 1, cap + 6);
         assertFalse(row.isChecked());
         assertFalse(Settings.FIND_REEL_ORIGIN.get());
         assertFalse("each profile opened from a reel reads the switch, so no restart prompt", Settings.FIND_REEL_ORIGIN.rebootApp);

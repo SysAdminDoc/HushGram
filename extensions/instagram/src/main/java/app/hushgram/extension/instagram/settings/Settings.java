@@ -3127,12 +3127,29 @@ public class Settings extends BaseSettings {
                     .withRange(5, 120);
 
     /**
-     * After this long on Home's feed, Reels and Explore, a break screen covers them for 5 minutes
-     * ({@link app.hushgram.extension.instagram.reels.ScrollBreak}, #297). Read each second, so a
-     * change shows at once. Off to start.
+     * After this long on Home's feed, Reels and Explore, a break screen covers them for
+     * {@link #SCROLL_BREAK_LENGTH} ({@link app.hushgram.extension.instagram.reels.ScrollBreak}, #297).
+     * Read each second, so a change shows at once. Off to start.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.reels.ScrollBreakTime> SCROLL_BREAK =
             new EnumSetting<>("hushgram_scroll_break", app.hushgram.extension.instagram.reels.ScrollBreakTime.OFF);
+
+    /**
+     * Under {@link #SCROLL_BREAK}: how many minutes the break screen stays, and how long in the background
+     * counts as a break, from a slider (#297). Starts on the 5 minutes it's always been, and is only offered
+     * while a time is picked.
+     */
+    public static final IntegerSetting SCROLL_BREAK_LENGTH =
+            new IntegerSetting("hushgram_scroll_break_length",
+                    app.hushgram.extension.instagram.reels.ScrollBreak.BREAK_MINUTES, false, new Setting.Availability() {
+                        @Override public boolean isAvailable() {
+                            return SCROLL_BREAK.savedValue() != app.hushgram.extension.instagram.reels.ScrollBreakTime.OFF;
+                        }
+
+                        @Override public List<Setting<?>> getParentSettings() {
+                            return Collections.singletonList(SCROLL_BREAK);
+                        }
+                    }).withRange(5, 120);
 
     /**
      * A profile opened from a reel scrolls its Reels tab to that reel, or its posts grid for a photo

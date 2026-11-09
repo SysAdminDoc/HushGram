@@ -661,8 +661,10 @@ Time away before swiping comes back	Thời gian rời đi trước khi vuốt tr
 %1$d minutes in the background	%1$d phút ở chế độ nền
 Take a scroll break	Nghỉ giải lao khi cuộn
 After %1$d minutes	Sau %1$d phút
-Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a while on them.	Tắt. Có thể che các tab Trang chủ, Reels và Khám phá trong 5 phút sau khi bạn dùng chúng một lúc.
-After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work.	Sau %1$d phút ở các tab Trang chủ, Reels và Khám phá, màn hình nghỉ giải lao sẽ che chúng trong 5 phút. Tin nhắn, trang cá nhân và thanh tab vẫn dùng được.
+Off. It can cover the Home, Reels and Explore tabs for a break after you've spent a while on them.	Tắt. Có thể che các tab Trang chủ, Reels và Khám phá để nghỉ giải lao sau khi bạn dùng chúng một lúc.
+After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for %2$d minutes. Messages, your profile and the tab bar still work.	Sau %1$d phút ở các tab Trang chủ, Reels và Khám phá, màn hình nghỉ giải lao sẽ che chúng trong %2$d phút. Tin nhắn, trang cá nhân và thanh tab vẫn dùng được.
+Break length	Thời lượng nghỉ
+%1$d minutes	%1$d phút
 Time for a break	Đến giờ nghỉ rồi
 Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	Trang chủ, Reels và Khám phá mở lại khi đếm ngược kết thúc. Tin nhắn và trang cá nhân vẫn dùng được.
 Time for a break. Home, Reels and Explore open again in %1$s.	Đến giờ nghỉ rồi. Trang chủ, Reels và Khám phá mở lại sau %1$s.

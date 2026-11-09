@@ -667,8 +667,10 @@ Time away before swiping comes back	恢復滑動前的離開時間
 Take a scroll break	捲動休息時間
 # context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
 After %1$d minutes	%1$d 分鐘後
-Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a while on them.	已關閉。可在使用首頁、Reels 與探索一段時間後，遮住這些分頁 5 分鐘。
-After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work.	在首頁、Reels 與探索分頁使用 %1$d 分鐘後，會顯示休息畫面並遮住這些分頁 5 分鐘。私訊、個人檔案與分頁列仍可使用。
+Off. It can cover the Home, Reels and Explore tabs for a break after you've spent a while on them.	已關閉。可在使用首頁、Reels 與探索一段時間後，遮住這些分頁讓你休息一下。
+After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for %2$d minutes. Messages, your profile and the tab bar still work.	在首頁、Reels 與探索分頁使用 %1$d 分鐘後，會顯示休息畫面並遮住這些分頁 %2$d 分鐘。私訊、個人檔案與分頁列仍可使用。
+Break length	休息時間長度
+%1$d minutes	%1$d 分鐘
 Time for a break	該休息一下了
 Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	倒數結束後，首頁、Reels 與探索會重新開放。私訊與個人檔案仍可使用。
 # context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59

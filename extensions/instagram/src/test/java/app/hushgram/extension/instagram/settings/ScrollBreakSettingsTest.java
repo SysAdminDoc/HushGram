@@ -14,6 +14,9 @@ import android.app.Activity;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.SeekBar;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +51,7 @@ public class ScrollBreakSettingsTest {
 
     @Before public void prepare() {
         Settings.SCROLL_BREAK.resetToDefault();
+        Settings.SCROLL_BREAK_LENGTH.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -59,6 +63,7 @@ public class ScrollBreakSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.SCROLL_BREAK.resetToDefault();
+        Settings.SCROLL_BREAK_LENGTH.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
 
@@ -86,10 +91,12 @@ public class ScrollBreakSettingsTest {
             if (Settings.SCROLL_BREAK.key.equals(key)) pause = i;
         }
         assertEquals("right after Stop after a set number of reels and its two sliders", cap + 3, pause);
+        assertTrue("Off says what it does", row.getSummary().toString().contains("for a break"));
 
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : row.getEntries()) entries.add(entry.toString());
-        assertEquals(Arrays.asList("Off", "After 10 minutes", "After 20 minutes", "After 30 minutes", "After 60 minutes"),
+        assertEquals(Arrays.asList("Off", "After 5 minutes", "After 10 minutes", "After 15 minutes", "After 20 minutes",
+                "After 30 minutes", "After 45 minutes", "After 60 minutes", "After 90 minutes", "After 120 minutes"),
                 entries);
         assertEquals(ScrollBreakTime.OFF, Settings.SCROLL_BREAK.get());
         assertEquals("OFF", row.getValue());
@@ -102,6 +109,56 @@ public class ScrollBreakSettingsTest {
                 + "Messages, your profile and the tab bar still work.", row.getSummary().toString());
 
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SCROLL_BREAK.key));
+    }
+
+    /**
+     * #297: Break length is a slider right under Take a scroll break, 5 to 120 minutes, starting on the 5 the
+     * break has always lasted. It waits for a time to be picked, the list's summary says the length picked,
+     * and it's backed up.
+     */
+    @Test public void breakLengthIsASliderUnderItThatTheSummaryFollows() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_SCROLLING));
+        ListPreference list = (ListPreference) page.getPreferenceScreen().findPreference(Settings.SCROLL_BREAK.key);
+        Preference found = page.getPreferenceScreen().findPreference(Settings.SCROLL_BREAK_LENGTH.key);
+        assertTrue(found instanceof HushgramPreferenceFragment.SliderRow);
+        HushgramPreferenceFragment.SliderRow length = (HushgramPreferenceFragment.SliderRow) found;
+        assertEquals("Break length", String.valueOf(length.getTitle()));
+        PreferenceGroup reels = list.getParent();
+        int at = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            if (Settings.SCROLL_BREAK.key.equals(reels.getPreference(i).getKey())) at = i;
+        }
+        assertEquals("right under Take a scroll break", Settings.SCROLL_BREAK_LENGTH.key, reels.getPreference(at + 1).getKey());
+
+        assertFalse("off, there's no break to size", Settings.SCROLL_BREAK_LENGTH.isAvailable());
+        assertFalse(length.isEnabled());
+        assertEquals("Turn on Take a scroll break to use this slider.", String.valueOf(length.getSummary()));
+        SeekBar slider = sliderOf(length);
+        assertEquals("5 to 120 minutes in steps of 5", 23, slider.getMax());
+        assertEquals(0, slider.getProgress());
+
+        list.setValue("TEN_MINUTES");
+        ShadowLooper.idleMainLooper();
+        assertTrue(Settings.SCROLL_BREAK_LENGTH.isAvailable());
+        assertTrue(length.isEnabled());
+        assertEquals("5 minutes (standard)", String.valueOf(length.getSummary()));
+
+        length.choose(60);
+        ShadowLooper.idleMainLooper();
+        assertEquals(60, (int) Settings.SCROLL_BREAK_LENGTH.savedValue());
+        assertEquals("60 minutes", String.valueOf(length.getSummary()));
+        assertEquals("the list says the break picked", "After 10 minutes on the Home, Reels and Explore tabs, a break "
+                + "screen covers them for 60 minutes. Messages, your profile and the tab bar still work.",
+                String.valueOf(list.getSummary()));
+        assertFalse("the next break reads it", Settings.SCROLL_BREAK_LENGTH.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SCROLL_BREAK_LENGTH.key));
+    }
+
+    private SeekBar sliderOf(Preference row) {
+        View view = row.getView(null, (ViewGroup) controller.get().findViewById(android.R.id.content));
+        View slider = view.findViewWithTag("hushgram_slider");
+        assertTrue("the row carries its slider", slider instanceof SeekBar);
+        return (SeekBar) slider;
     }
 
     @Test public void searchFindsItUnderItsPatch() throws Exception {

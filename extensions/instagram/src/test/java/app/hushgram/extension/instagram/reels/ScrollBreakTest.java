@@ -60,6 +60,7 @@ public class ScrollBreakTest {
 
     @Before public void prepare() {
         Settings.SCROLL_BREAK.resetToDefault();
+        Settings.SCROLL_BREAK_LENGTH.resetToDefault();
         PauseForTests.resume();
         ScrollBreak.forgetForTests();
         ScrollBreak.clock = () -> now;
@@ -90,6 +91,7 @@ public class ScrollBreakTest {
         ScrollBreak.forgetForTests();
         controller.close();
         Settings.SCROLL_BREAK.resetToDefault();
+        Settings.SCROLL_BREAK_LENGTH.resetToDefault();
         PauseForTests.resume();
     }
 
@@ -234,6 +236,38 @@ public class ScrollBreakTest {
         open();
         spend(9 * MINUTE);
         assertNull("five minutes away was the break", cover());
+    }
+
+    /** #297: the break lasts the minutes on the Break length slider, and only that long away counts as one. */
+    @Test public void anHourOnTheSliderMakesAnHourLongBreak() {
+        Settings.SCROLL_BREAK.save(ScrollBreakTime.TEN_MINUTES);
+        Settings.SCROLL_BREAK_LENGTH.save(60);
+        open();
+        spend(10 * MINUTE);
+        assertEquals("60:00", cover().countdownText());
+        spend(59 * MINUTE);
+        assertEquals("1:00", cover().countdownText());
+        spend(MINUTE);
+        assertNull("the hour is over", cover());
+
+        spend(9 * MINUTE);
+        ScrollBreak.paused(activity);
+        ScrollBreak.stopped(now);
+        now += ScrollBreak.BREAK_MS;
+        open();
+        spend(MINUTE);
+        assertNotNull("five minutes away isn't an hour's break", cover());
+
+        ScrollBreak.forgetForTests();
+        ScrollBreak.clock = () -> now;
+        open();
+        spend(9 * MINUTE);
+        ScrollBreak.paused(activity);
+        ScrollBreak.stopped(now);
+        now += 60 * MINUTE;
+        open();
+        spend(9 * MINUTE);
+        assertNull("an hour away was the break", cover());
     }
 
     @Test public void turningItOffOrPausingTakesTheBreakScreenAway() {

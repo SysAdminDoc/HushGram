@@ -172,6 +172,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.REEL_TAP_AND_VOLUME.inBuild()) settings.put(Settings.REEL_TAP_CHOICE.key, Settings.REEL_TAP_CHOICE);
         if (PatchFamily.REEL_SCROLLING.inBuild()) {
             settings.put(Settings.SCROLL_BREAK.key, Settings.SCROLL_BREAK);
+            settings.put(Settings.SCROLL_BREAK_LENGTH.key, Settings.SCROLL_BREAK_LENGTH);
             settings.put(Settings.REEL_CAP_COUNT.key, Settings.REEL_CAP_COUNT);
             settings.put(Settings.REEL_CAP_BREAK.key, Settings.REEL_CAP_BREAK);
         }

@@ -663,8 +663,10 @@ Time away before swiping comes back	Tempo fora antes de o deslizar voltar
 Take a scroll break	Fazer uma pausa da rolagem
 # context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
 After %1$d minutes	Depois de %1$d minutos
-Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a while on them.	Desativado. Pode cobrir as abas Início, Reels e Explorar por 5 minutos depois que você passar um tempo nelas.
-After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work.	Depois de %1$d minutos nas abas Início, Reels e Explorar, uma tela de pausa cobre elas por 5 minutos. As mensagens, seu perfil e a barra de abas continuam funcionando.
+Off. It can cover the Home, Reels and Explore tabs for a break after you've spent a while on them.	Desativado. Pode cobrir as abas Início, Reels e Explorar para uma pausa depois que você passar um tempo nelas.
+After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for %2$d minutes. Messages, your profile and the tab bar still work.	Depois de %1$d minutos nas abas Início, Reels e Explorar, uma tela de pausa cobre elas por %2$d minutos. As mensagens, seu perfil e a barra de abas continuam funcionando.
+Break length	Duração da pausa
+%1$d minutes	%1$d minutos
 Time for a break	Hora de uma pausa
 Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	Início, Reels e Explorar abrem de novo quando a contagem regressiva termina. As mensagens e seu perfil continuam funcionando.
 # context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59

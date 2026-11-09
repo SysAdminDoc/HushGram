@@ -663,8 +663,10 @@ Time away before swiping comes back	Pause, bis das Wischen zurückkommt
 Take a scroll break	Scroll-Pause machen
 # context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
 After %1$d minutes	Nach %1$d Minuten
-Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a while on them.	Aus. Es kann die Tabs Startseite, Reels und Entdecken für 5 Minuten abdecken, nachdem du eine Weile darauf verbracht hast.
-After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work.	Nach %1$d Minuten auf den Tabs Startseite, Reels und Entdecken deckt ein Pausenbildschirm sie für 5 Minuten ab. Nachrichten, dein Profil und die Tableiste funktionieren weiter.
+Off. It can cover the Home, Reels and Explore tabs for a break after you've spent a while on them.	Aus. Es kann die Tabs Startseite, Reels und Entdecken für eine Pause abdecken, nachdem du eine Weile darauf verbracht hast.
+After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for %2$d minutes. Messages, your profile and the tab bar still work.	Nach %1$d Minuten auf den Tabs Startseite, Reels und Entdecken deckt ein Pausenbildschirm sie für %2$d Minuten ab. Nachrichten, dein Profil und die Tableiste funktionieren weiter.
+Break length	Pausenlänge
+%1$d minutes	%1$d Minuten
 Time for a break	Zeit für eine Pause
 Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	Startseite, Reels und Entdecken öffnen sich wieder, wenn der Countdown abgelaufen ist. Nachrichten und dein Profil funktionieren weiter.
 # context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59
