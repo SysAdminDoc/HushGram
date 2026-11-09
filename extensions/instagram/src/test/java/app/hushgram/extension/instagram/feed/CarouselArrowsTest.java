@@ -949,6 +949,66 @@ public class CarouselArrowsTest {
         assertTrue(shows(next()));
     }
 
+    /** The feed's number: its text alone in a host with no id, which draws the dark pill behind it. */
+    private FrameLayout numberInPill(int width) {
+        int id = View.generateViewId();
+        CarouselNumber.idForTests(activity, CarouselNumber.NAMES[1], id);
+        FrameLayout pill = new FrameLayout(activity);
+        View number = new View(activity);
+        number.setId(id);
+        pill.addView(number, new FrameLayout.LayoutParams(36, 30, Gravity.CENTER));
+        root.addView(pill, new FrameLayout.LayoutParams(width, 56, Gravity.TOP | Gravity.END));
+        settle();
+        return pill;
+    }
+
+    @Test
+    public void theEmptyPillGoesWithItsNumberAndComesBackWithIt() {
+        FrameLayout pill = numberInPill(80);
+
+        numberOff();
+
+        assertEquals(View.GONE, pill.getChildAt(0).getVisibility());
+        assertEquals(View.INVISIBLE, pill.getVisibility());
+
+        Settings.CAROUSEL_HIDE_NUMBER.save(false);
+        frame();
+
+        assertEquals(View.VISIBLE, pill.getVisibility());
+    }
+
+    @Test
+    public void aHostThatLosesItsNumberIsReadyForTheRowThatGetsItNext() {
+        FrameLayout pill = numberInPill(80);
+        numberOff();
+        assertEquals(View.INVISIBLE, pill.getVisibility());
+
+        pill.removeViewAt(0);
+
+        assertEquals(View.VISIBLE, pill.getVisibility());
+    }
+
+    @Test
+    public void aParentHoldingMoreThanTheNumberStays() {
+        FrameLayout pill = numberInPill(80);
+        pill.addView(new View(activity));
+
+        numberOff();
+
+        assertEquals(View.GONE, pill.getChildAt(0).getVisibility());
+        assertEquals(View.VISIBLE, pill.getVisibility());
+    }
+
+    @Test
+    public void aWideWrapperAroundOnlyTheNumberStays() {
+        FrameLayout wrapper = numberInPill(WIDTH);
+
+        numberOff();
+
+        assertEquals(View.GONE, wrapper.getChildAt(0).getVisibility());
+        assertEquals(View.VISIBLE, wrapper.getVisibility());
+    }
+
     @Test
     public void aBuildWithoutAnyNumberIdSaysSoAndArrowsStillShow() {
         Settings.CAROUSEL_HIDE_NUMBER.save(true);

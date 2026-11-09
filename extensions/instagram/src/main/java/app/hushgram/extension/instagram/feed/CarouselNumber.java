@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.feed;
 import android.app.Activity;
 import android.content.Context;
 import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
 
@@ -37,6 +38,10 @@ final class CarouselNumber {
     private static final ResourceIdCache ids = new ResourceIdCache();
     /** Each number hidden and how it stood before. Main thread only. */
     private static final Map<View, Integer> hidden = new WeakHashMap<>();
+    /** Each number whose empty pill is hidden, with that pill. Main thread only. */
+    private static final Map<View, Pill> pills = new WeakHashMap<>();
+    /** A pill is at most this fraction of what's around it, so a wrapper that happens to hold only the number stays. */
+    private static final int PILL_SHARE = 3;
 
     private CarouselNumber() {
     }
@@ -68,10 +73,28 @@ final class CarouselNumber {
     }
 
     static void hide(View view) {
+        hidePill(view);
         if (view.getVisibility() == View.GONE) return;
         if (!hidden.containsKey(view)) HookStatus.counted(FamilyNames.CAROUSEL_ARROWS, COUNT_HIDDEN);
         hidden.put(view, view.getVisibility());
         view.setVisibility(View.GONE);
+    }
+
+    /**
+     * On the feed the dark pill behind the number has no id. It's the small host around the text, and it would stay
+     * up empty. Litho hands that host to other rows once the number comes out of it, so it goes back right then.
+     */
+    private static void hidePill(View number) {
+        if (pills.containsKey(number) || !(number.getParent() instanceof ViewGroup)) return;
+        ViewGroup holder = (ViewGroup) number.getParent();
+        if (holder.getId() != View.NO_ID || holder.getChildCount() != 1 || holder.getVisibility() != View.VISIBLE) return;
+        if (!(holder.getParent() instanceof View)) return;
+        int width = holder.getWidth();
+        if (width <= 0 || width * PILL_SHARE > ((View) holder.getParent()).getWidth()) return;
+        Pill pill = new Pill(holder);
+        pills.put(number, pill);
+        number.addOnAttachStateChangeListener(pill);
+        holder.setVisibility(View.INVISIBLE);
     }
 
     /** Brings back every number hidden, each as it stood. Instagram's next bind has the last word on a reused row. */
@@ -81,6 +104,40 @@ final class CarouselNumber {
             if (view != null && view.getVisibility() == View.GONE) view.setVisibility(entry.getValue());
         }
         hidden.clear();
+        for (Map.Entry<View, Pill> entry : pills.entrySet()) {
+            View number = entry.getKey();
+            if (number != null) number.removeOnAttachStateChangeListener(entry.getValue());
+            entry.getValue().show();
+        }
+        pills.clear();
+    }
+
+    /** A pill put away until its number leaves it. */
+    private static final class Pill implements View.OnAttachStateChangeListener {
+        private final View holder;
+
+        Pill(View holder) {
+            this.holder = holder;
+        }
+
+        void show() {
+            if (holder.getVisibility() == View.INVISIBLE) holder.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        public void onViewAttachedToWindow(View number) {
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(View number) {
+            try {
+                number.removeOnAttachStateChangeListener(this);
+                pills.remove(number);
+                show();
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.CAROUSEL_ARROWS, "page number pill", failure);
+            }
+        }
     }
 
     /** Tests give the number an id of their own, since a test app has none of Instagram's. */
@@ -91,5 +148,6 @@ final class CarouselNumber {
     static void resetForTests() {
         ids.clear();
         hidden.clear();
+        pills.clear();
     }
 }
