@@ -313,8 +313,8 @@ public final class AccentTheme {
         try {
             HookStatus.invoked(FamilyNames.ACCENT_COLOR);
             if ((value & 0xffffffffL) != 0) return value;
-            int[] surfaces = darkSurfaces;
-            if (surfaces == null || AccentColor.picked() == null || !Settings.ACCENT_BACKGROUNDS.get()) return value;
+            int[] surfaces = paintedSurfaces();
+            if (surfaces == null) return value;
             int argb = (int) (value >>> 32);
             int step = surfaceStep(argb & 0xffffff);
             if (step < 0) return value;
@@ -324,6 +324,22 @@ public final class AccentTheme {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose surface", failure);
             return value;
         }
+    }
+
+    /** The shades {@link #rememberSurfaces} kept, while Backgrounds in the accent color is painting with them, or null. */
+    @Nullable
+    private static int[] paintedSurfaces() {
+        int[] surfaces = darkSurfaces;
+        return surfaces == null || AccentColor.picked() == null || !Settings.ACCENT_BACKGROUNDS.get() ? null : surfaces;
+    }
+
+    /**
+     * Whether Backgrounds in the accent color is painting a dark theme's surfaces. Pure black's fills ask
+     * first: Material You's neutral shades are gray enough to pass for Instagram's own dark gray, and
+     * would otherwise go black on a colored page (#577).
+     */
+    static boolean paintsSurfaces() {
+        return paintedSurfaces() != null;
     }
 
     /** Which of {@link #SURFACE_ATTRIBUTES} a dark gray of Instagram's stands for, or -1. Black is Pure black's page. */

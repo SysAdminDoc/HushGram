@@ -5,6 +5,14 @@
 package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import android.app.Application;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.widget.LinearLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -12,6 +20,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -94,6 +103,44 @@ public class ComposeSurfaceTest {
     @Test public void pausedStays() {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertEquals(compose(0xff0c1014), AccentTheme.composeSurface(compose(0xff0c1014)));
+    }
+
+    /** Material You's neutral 700 reads as a dark gray to Pure black, which blackened the note on a colored page. */
+    @Test public void pureBlackLeavesTheFillsOfAPaintedPage() {
+        int materialYouTop = 0xff44464f;
+        assertEquals(materialYouTop, NoteBubble.color(materialYouTop));
+        assertEquals(compose(materialYouTop), NoteBubble.card(compose(materialYouTop)));
+        assertEquals(compose(materialYouTop), PeekCard.color(compose(materialYouTop)));
+    }
+
+    @Test public void pureBlackStillBlackensWithoutPaintedBackgrounds() {
+        Settings.ACCENT_BACKGROUNDS.save(false);
+        assertEquals(0xff000000, NoteBubble.color(0xff44464f));
+        assertEquals(compose(0xff000000), NoteBubble.card(compose(0xff44464f)));
+        assertEquals(compose(0xff000000), PeekCard.color(compose(0xff44464f)));
+        Settings.ACCENT_BACKGROUNDS.save(true);
+        AccentTheme.darkSurfacesForTests(null);
+        assertEquals(0xff000000, NoteBubble.color(0xff44464f));
+    }
+
+    @Test public void aPaintedPageKeepsItsCommentsSheet() {
+        LinearLayout painted = nightRoot();
+        CommentsSheet.contentShown(new Object(), painted);
+        assertNull(painted.getBackground().getColorFilter());
+
+        Settings.ACCENT_BACKGROUNDS.save(false);
+        LinearLayout black = nightRoot();
+        CommentsSheet.contentShown(new Object(), black);
+        assertNotNull(black.getBackground().getColorFilter());
+    }
+
+    private static LinearLayout nightRoot() {
+        Application app = RuntimeEnvironment.getApplication();
+        Configuration night = new Configuration(app.getResources().getConfiguration());
+        night.uiMode = (night.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | Configuration.UI_MODE_NIGHT_YES;
+        LinearLayout root = new LinearLayout(app.createConfigurationContext(night));
+        root.setBackground(new ColorDrawable(Color.rgb(25, 28, 31)));
+        return root;
     }
 
     @Test public void noDarkThemeSeenStays() {

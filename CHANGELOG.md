@@ -71,6 +71,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * `Backgrounds in the accent color` now reaches the message list. Its rows and search field stayed near-black under a colored page because that screen takes its grays from code instead of the theme. Refs #577.
+* `Pure black dark mode` no longer paints a note's bubble, the Instagram Plus card or the comments sheet black on top of `Backgrounds in the accent color`. Refs #577.
 * With `Gray out stories you've watched`, the story row no longer puts watched stories ahead of new ones after it reloads, and the next batch stays after the ones you had. Reported in #241.
 * With `Gray out stories you've watched`, the highlight tiles at the end of the story row stay there instead of jumping ahead of watched stories, where they looked like a watched story with a new ring. Reported in #241.
 * `Ambient light` shows on the posts that were missing it. Instagram's frame around those pictures comes out a pixel taller than the picture, and the glow was drawn on that frame with no room to show. Reported in #580.

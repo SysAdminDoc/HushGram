@@ -29,12 +29,13 @@ public final class NoteBubble {
 
     /**
      * Injected where the bubble takes its fill. Answers black for an opaque dark gray and {@code color}
-     * itself for anything else, so the day theme's white and a note's own dark color stay. Never throws.
+     * itself for anything else, so the day theme's white and a note's own dark color stay. A page the
+     * accent's backgrounds are painting keeps its bubble too, since black would stand out on it. Never throws.
      */
     public static int color(int color) {
         try {
             HookStatus.invoked(FamilyNames.PURE_BLACK);
-            if (color >>> 24 != 0xff) return color;
+            if (color >>> 24 != 0xff || AccentTheme.paintsSurfaces()) return color;
             int red = (color >> 16) & 0xff;
             int green = (color >> 8) & 0xff;
             int blue = color & 0xff;

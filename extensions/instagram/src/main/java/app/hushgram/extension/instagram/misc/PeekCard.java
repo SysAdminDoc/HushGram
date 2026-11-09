@@ -42,7 +42,7 @@ public final class PeekCard {
             }
             if ((color & 0xffffffffL) != 0) return color;
             int argb = (int) (color >>> 32);
-            if (argb >>> 24 == 0) return color;
+            if (argb >>> 24 == 0 || AccentTheme.paintsSurfaces()) return color;
             int red = (argb >> 16) & 0xff;
             int green = (argb >> 8) & 0xff;
             int blue = argb & 0xff;
