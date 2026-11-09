@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -140,6 +141,16 @@ class StoryTrayOrderHookTest {
                         stub.indexOfFirst { it.referenceText() == read.toString() } in 0 until nativeSeen
                     })
                 assertEquals("${bundle.name}: native seen is read once", 1, stub.count { it.referenceText() == "${found.reelClass}->${found.seenCheck}(${USER_SESSION})Z" })
+
+                // A highlight rewind's tile never has a seen time, and counted as new it jumps the watched stories (#241).
+                val rewindPrefix = stub.indexOfFirst { it.referenceText() == "highlightRewind:" }
+                assertTrue("${bundle.name}: a rewind is told apart before native seen", rewindPrefix in 0 until nativeSeen)
+                assertEquals("${bundle.name}: by its id's prefix", "Ljava/lang/String;->startsWith(Ljava/lang/String;)Z", stub[rewindPrefix + 1].referenceText())
+                val rewindBranch = stub[rewindPrefix + 3] as OffsetInstruction
+                val specialAt = stub.indexOfFirst { it.referenceText() == "add_to_story" }
+                val specialBranch = stub[specialAt + 3] as OffsetInstruction
+                assertEquals("${bundle.name}: a rewind is left in its slot like the other special tiles",
+                        branchTarget(stub, specialAt + 3, specialBranch), branchTarget(stub, rewindPrefix + 3, rewindBranch))
 
                 checked += version
                 builds++
@@ -310,6 +321,10 @@ class StoryTrayOrderHookTest {
         listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
 
     private fun Method.key() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
+    /** The code address the [branch] at [index] of [code] lands on. */
+    private fun branchTarget(code: List<Instruction>, index: Int, branch: OffsetInstruction): Int =
+        code.take(index).sumOf { it.codeUnits } + branch.codeOffset
 
     internal fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

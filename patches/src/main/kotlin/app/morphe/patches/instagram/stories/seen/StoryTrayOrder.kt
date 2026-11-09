@@ -409,6 +409,10 @@ internal fun BytecodePatchContext.orderStoryTray(found: StoryTrayTargets) {
             invoke-virtual { v0 }, Ljava/lang/String;->isEmpty()Z
             move-result v1
             if-nez v1, :pinned
+            const-string v1, "highlightRewind:"
+            invoke-virtual { v0, v1 }, Ljava/lang/String;->startsWith(Ljava/lang/String;)Z
+            move-result v1
+            if-nez v1, :pinned
             const-string v1, "add_to_story"
             invoke-virtual { v1, v0 }, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
             move-result v0

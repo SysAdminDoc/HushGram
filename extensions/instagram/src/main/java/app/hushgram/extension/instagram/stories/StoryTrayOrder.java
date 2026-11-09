@@ -27,7 +27,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Home's feed adapter asks the reel store for the tray's reels and the store, with that flag off,
  * hands them back in the order the server sent. So the patch hands the store's answer to
  * {@link #order}, which sorts only ordinary story slots, unseen first and watched after, each
- * half in its original order. Create and special entries keep their native slots, and the signed-in
+ * half in its original order. Create and special entries keep their native slots, the highlight
+ * rewind tiles at the row's end included (no seen time, so they'd pass for new), and the signed-in
  * account's own `Your story` reel goes first, ahead of the watched ones pushed back (#241).
  * Nothing is added or dropped.
  *
