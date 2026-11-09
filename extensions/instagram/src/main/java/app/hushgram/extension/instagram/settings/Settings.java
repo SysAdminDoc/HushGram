@@ -537,6 +537,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting CAROUSEL_DOTS_PILL =
             new BooleanSetting("hushgram_carousel_dots_pill", FALSE);
 
+    /** Takes Instagram's own page number, like 3/5, off a carousel post (#581). Off to start. */
+    public static final BooleanSetting CAROUSEL_HIDE_NUMBER =
+            new BooleanSetting("hushgram_carousel_hide_number", FALSE);
+
     /**
      * How {@link #CAROUSEL_DOTS_PILL}'s pill looks (#471): solid, as it always was, see-through, or frosted
      * glass that blurs the page under it. Starts solid, so no one's pill changes until they pick. Read as

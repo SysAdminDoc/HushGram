@@ -1487,6 +1487,9 @@ Previous page	Trang trước
 Next page	Trang sau
 Page dots on a pill	Chấm trang trên viên thuốc
 Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	Đưa các chấm trang của bài viết nhiều trang lên viên thuốc tròn ở cuối ảnh hoặc video, trang đang xem màu xanh dương.
+# context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
+Hide page number	Ẩn số trang
+Takes the number like 3/5 off the corner of a carousel post's photo or video.	Bỏ số như 3/5 ở góc ảnh hoặc video của bài viết dạng băng chuyền.
 Ambient light	Ánh sáng môi trường
 Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	Đặt quầng sáng dịu theo màu của bài viết quanh ảnh hoặc video, và trong các dải quanh reel không lấp đầy màn hình. Quầng sáng đổi theo video khi phát.
 Glow spread	Độ lan của quầng sáng

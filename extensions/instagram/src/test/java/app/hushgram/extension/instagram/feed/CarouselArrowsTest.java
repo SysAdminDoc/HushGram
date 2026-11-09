@@ -184,6 +184,7 @@ public class CarouselArrowsTest {
         Settings.CAROUSEL_ARROWS.resetToDefault();
         Settings.CAROUSEL_DOTS_PILL.resetToDefault();
         Settings.CAROUSEL_PILL_LOOK.resetToDefault();
+        Settings.CAROUSEL_HIDE_NUMBER.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -864,6 +865,98 @@ public class CarouselArrowsTest {
         assertEquals(1f, instagramDots.getAlpha(), 0f);
         String missing = HookStatus.missing(FAMILY).toString();
         assertTrue(missing, missing.contains(CarouselArrows.DOTS));
+    }
+
+    /** Instagram's page number over the carousel, with an id the test app can resolve. */
+    private View number() {
+        int id = View.generateViewId();
+        CarouselNumber.idForTests(activity, CarouselNumber.NAMES[0], id);
+        View number = new View(activity);
+        number.setId(id);
+        root.addView(number, new FrameLayout.LayoutParams(60, 30, Gravity.TOP | Gravity.END));
+        shadowOf(Looper.getMainLooper()).idle();
+        return number;
+    }
+
+    private void laidOut() {
+        activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnGlobalLayout();
+        frame();
+    }
+
+    private void numberOff() {
+        Settings.CAROUSEL_HIDE_NUMBER.save(true);
+        CarouselArrows.watch(activity);
+        laidOut();
+    }
+
+    @Test
+    public void theNumberGoesWithOnlyItsSwitchOnAndTheCarouselGetsNothingElse() {
+        View number = number();
+
+        numberOff();
+
+        assertEquals(View.GONE, number.getVisibility());
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+    }
+
+    @Test
+    public void theNumberInstagramShowsAgainGoesOnTheNextLayout() {
+        View number = number();
+        numberOff();
+
+        number.setVisibility(View.VISIBLE);
+        laidOut();
+
+        assertEquals(View.GONE, number.getVisibility());
+    }
+
+    @Test
+    public void theNumberStaysWhileItsSwitchIsOff() {
+        View number = number();
+
+        on();
+        laidOut();
+
+        assertEquals(View.VISIBLE, number.getVisibility());
+    }
+
+    @Test
+    public void turningTheSwitchOffBringsTheNumberBackAsItStood() {
+        View number = number();
+        number.setVisibility(View.INVISIBLE);
+        numberOff();
+        assertEquals(View.GONE, number.getVisibility());
+
+        Settings.CAROUSEL_HIDE_NUMBER.save(false);
+        frame();
+
+        assertEquals(View.INVISIBLE, number.getVisibility());
+        assertFalse(CarouselArrows.listeningForTests(activity));
+    }
+
+    @Test
+    public void turningItOffUnderTheArrowsBringsTheNumberBack() {
+        View number = number();
+        Settings.CAROUSEL_HIDE_NUMBER.save(true);
+        on();
+        laidOut();
+        assertEquals(View.GONE, number.getVisibility());
+
+        Settings.CAROUSEL_HIDE_NUMBER.save(false);
+        laidOut();
+
+        assertEquals(View.VISIBLE, number.getVisibility());
+        assertTrue(shows(next()));
+    }
+
+    @Test
+    public void aBuildWithoutAnyNumberIdSaysSoAndArrowsStillShow() {
+        Settings.CAROUSEL_HIDE_NUMBER.save(true);
+        on();
+        laidOut();
+
+        assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).toString().contains(CarouselNumber.NAMES[0]));
+        assertTrue(shows(next()));
     }
 
     @Test

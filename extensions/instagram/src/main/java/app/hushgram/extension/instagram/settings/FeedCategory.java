@@ -270,6 +270,9 @@ final class FeedCategory {
                     L10n.t("Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, "
                             + "with the page you're on in blue.")), CarouselArrows::switchChanged));
             feed.addPreference(carouselPillLookRow(context));
+            feed.addPreference(onFlip(toggle(context, Settings.CAROUSEL_HIDE_NUMBER, L10n.t("Hide page number"),
+                    L10n.t("Takes the number like 3/5 off the corner of a carousel post's photo or video.")),
+                    CarouselArrows::switchChanged));
         }
         if (ambientLight) {
             feed.addPreference(onFlip(toggle(context, Settings.AMBIENT_LIGHT, L10n.t("Ambient light"),
