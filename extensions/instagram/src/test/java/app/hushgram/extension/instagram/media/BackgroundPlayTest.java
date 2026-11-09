@@ -271,16 +271,52 @@ public class BackgroundPlayTest {
         assertEquals("the extension's own pause isn't held", List.of(false), players.heldOwnPause);
     }
 
-    /** Instagram letting the player go, or the screen closing, ends it. */
+    /**
+     * The Reels viewer releasing the held player as its fragment stops keeps it playing; another
+     * player's release goes through. Stop in the notification then pauses it and lets the release
+     * through with Instagram's own reason, which isn't held a second time.
+     */
     @Test
-    public void releaseOrCloseEndsIt() {
+    public void aHeldReleaseGoesThroughWhenTheSessionEnds() {
         background(player);
-        BackgroundPlay.released(other);
+        assertFalse("another player's release goes through", BackgroundPlay.releasing(other, "fragment_stopped"));
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
         assertEquals(BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
-        BackgroundPlay.released(player);
-        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
-        assertTrue("a released player isn't paused", players.calls.isEmpty());
+        assertTrue("a held release leaves the video playing", players.calls.isEmpty());
+        assertTrue(players.playing.contains(player));
 
+        BackgroundPlay.stopFromNotification();
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(List.of("pause", "release fragment_stopped"), players.calls);
+        assertEquals("the extension's own release isn't held", List.of(false), players.heldOwnRelease);
+    }
+
+    /**
+     * Coming back to Instagram after a held release lets it through as the screen starts, before
+     * its fragments start their players again, and leaves the video unpaused. A screen starting
+     * with no release held, or another screen, changes nothing.
+     */
+    @Test
+    public void comingBackLetsAHeldReleaseThrough() {
+        background(player);
+        BackgroundPlay.restarted(screen);
+        assertEquals("nothing held, nothing to end", BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
+
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
+        BackgroundPlay.restarted(Robolectric.buildActivity(Activity.class).setup().get());
+        assertEquals("another screen", BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
+
+        BackgroundPlay.restarted(screen);
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(List.of("release fragment_stopped"), players.calls);
+        assertEquals(List.of(false), players.heldOwnRelease);
+    }
+
+    /** The screen closing ends it with a pause. */
+    @Test
+    public void closingEndsIt() {
         background(player);
         BackgroundPlay.destroyed(screen);
         assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
@@ -421,7 +457,8 @@ public class BackgroundPlayTest {
     public void nullsAreHarmless() {
         BackgroundPlay.started(null);
         BackgroundPlay.volume(null, 1f);
-        BackgroundPlay.released(null);
+        assertFalse(BackgroundPlay.releasing(null, null));
+        BackgroundPlay.restarted(null);
         BackgroundPlay.leaving(null);
         assertFalse(BackgroundPlay.hold(null, null));
         BackgroundPlay.pauseFromNotification();
@@ -467,10 +504,18 @@ public class BackgroundPlayTest {
         final Set<Object> playing = new HashSet<>();
         final List<String> calls = new ArrayList<>();
         final List<Boolean> heldOwnPause = new ArrayList<>();
+        final List<Boolean> heldOwnRelease = new ArrayList<>();
 
         @Override
         public boolean playing(Object player) {
             return playing.contains(player);
+        }
+
+        @Override
+        public void release(Object player, String reason) {
+            heldOwnRelease.add(BackgroundPlay.releasing(player, reason));
+            playing.remove(player);
+            calls.add("release " + reason);
         }
 
         @Override

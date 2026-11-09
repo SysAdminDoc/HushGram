@@ -1618,20 +1618,32 @@ once-call Lapp/hushgram/extension/instagram/media/ResumePlayback;->sessionEnded(
 # and the hold goes in right after it, so its rules are once-call; each claims the other's method.
 # The pause and the stop are picked the way Resume's rules pick them. playInternal tells started()
 # right after Tap to play's allowStart() guard, so once-call too. Nothing else hooks the release or
-# the volume setter, so released() and volume() come first there: the release is the player's one
+# the volume setter, so releasing() and volume() come first there: the release is the player's one
 # other method taking a string and answering nothing that calls a (String, boolean) method, its
-# stop, and the volume setter the one taking a float and an int that clamps with Math.max.
+# stop, and the volume setter the one taking a float and an int that clamps with Math.max. The
+# story viewer's own player (09Yv on 454) gets hold() first in its pause, the one (String) method
+# loading fragment_paused that hands the player to an audio focus (listener, boolean) call,
+# started() first in its static start, the one (player, String, boolean, boolean) loading autoplay
+# that reads a ReelItem field, and volume() first in its volume setter, the one (float, int) that
+# reads a ReelItem field and sets the engine's (float). Nothing else hooks those three.
 # IgFragmentActivity's onUserLeaveHint tells leaving(), the one call to it in the APK. Left out, a
-# video still pauses when you leave Instagram with the switch on, or the notification never shows;
-# twice or elsewhere, it isn't the hook the patch wrote. The four BackgroundPlay stubs the patch
-# fills are the extension's own methods, so they get no rule; BackgroundPlayPatchTest checks them.
+# video or a story still pauses when you leave Instagram with the switch on, or the notification
+# never shows; twice or elsewhere, it isn't the hook the patch wrote. The five BackgroundPlay stubs
+# the patch fills are the extension's own methods, so they get no rule; BackgroundPlayPatchTest
+# checks them.
 once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->hold(Ljava/lang/Object;Ljava/lang/String;)Z in instance (Ljava/lang/String;)V calling instance LX/*;->*(Ljava/lang/String;)V class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
 once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->hold(Ljava/lang/Object;Ljava/lang/String;)Z in instance (Ljava/lang/String;Z)V holding clips_pip ig_text
+start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->hold(Ljava/lang/Object;Ljava/lang/String;)Z in instance (Ljava/lang/String;)V holding fragment_paused LX/*;->*(Landroid/media/AudioManager$OnAudioFocusChangeListener;Z)V
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->hold(Ljava/lang/Object;Ljava/lang/String;)Z in instance (Ljava/lang/String;)V holding fragment_paused LX/*;->*(Landroid/media/AudioManager$OnAudioFocusChangeListener;Z)V
 once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->started(Ljava/lang/Object;)V in static (L*;Ljava/lang/String;ZZ)V holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
-start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->released(Ljava/lang/Object;)V in instance (Ljava/lang/String;)V calling instance LX/*;->*(Ljava/lang/String;Z)V class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
-once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->released(Ljava/lang/Object;)V in instance (Ljava/lang/String;)V calling instance LX/*;->*(Ljava/lang/String;Z)V class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->started(Ljava/lang/Object;)V in static (L*;Ljava/lang/String;ZZ)V holding autoplay LX/*;->*:Lcom/instagram/model/reels/ReelItem;
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->started(Ljava/lang/Object;)V in static (L*;Ljava/lang/String;ZZ)V holding autoplay LX/*;->*:Lcom/instagram/model/reels/ReelItem;
+start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->releasing(Ljava/lang/Object;Ljava/lang/String;)Z in instance (Ljava/lang/String;)V calling instance LX/*;->*(Ljava/lang/String;Z)V class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->releasing(Ljava/lang/Object;Ljava/lang/String;)Z in instance (Ljava/lang/String;)V calling instance LX/*;->*(Ljava/lang/String;Z)V class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
 start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling static Ljava/lang/Math;->max(FF)F class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
 once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling static Ljava/lang/Math;->max(FF)F class-holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling instance LX/*;->*(F)V holding LX/*;->*:Lcom/instagram/model/reels/ReelItem;
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling instance LX/*;->*(F)V holding LX/*;->*:Lcom/instagram/model/reels/ReelItem;
 single-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->leaving(Landroid/app/Activity;)V in onUserLeaveHint
 # Its Picture in picture for reels switch (#572) asks ReelsPip.on first in Instagram's two reels
 # picture in picture checks and answers yes on a yes: the server check (04EI.A0B on 454's 386014758)

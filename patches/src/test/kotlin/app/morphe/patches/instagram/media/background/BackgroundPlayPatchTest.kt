@@ -43,25 +43,35 @@ import java.io.File
 class BackgroundPlayPatchTest {
     private val player = "Lfixture/VideoPlayer;"
     private val groot = "Lfixture/GrootPlayer;"
+    private val story = "Lfixture/StoryPlayer;"
+    private val state = "Lfixture/PlayerState;"
+    private val clock = "Lfixture/PlayerClock;"
+    private val focusListener = "Landroid/media/AudioManager\$OnAudioFocusChangeListener;"
     private val activity = "Lcom/instagram/base/activity/IgFragmentActivity;"
     private val string = "Ljava/lang/String;"
     private val objectType = "Ljava/lang/Object;"
     private val playInternal = "$player->A0I($player${string}ZZ)V"
 
     /**
-     * The pause and the stop ask the hold hook first, with the player and the reason, and return
-     * when it says yes; a no lands on the method's own first instruction. The release, playInternal,
-     * the volume setter and the leave hint each tell the extension first thing, with their own
-     * registers. The other (String) and (String, boolean) methods are left alone.
+     * The pauses and the stop ask the hold hook first, and the release the releasing hook, with the
+     * player and the reason, and return when it says yes; a no lands on the method's own first
+     * instruction. playInternal, the story start, both volume setters and the leave hint each tell
+     * the extension first thing, with their own registers. The other methods are left alone.
      */
     @Test
     fun eachHookGoesFirst() {
         val context = PatchContexts.of(classes())
         context.keepPlayingInBackground(context.findBackgroundPlaySites())
 
-        for ((name, first) in listOf("A0Z" to Opcode.CONST_STRING, "A0d" to Opcode.CONST_STRING)) {
-            val code = context.method(player, name).code()
-            assertEquals("$name asks first", HOLD, code[0].referenceText())
+        for ((owner, name, hook, first) in listOf(
+            Guarded(player, "A0Z", HOLD, Opcode.CONST_STRING),
+            Guarded(player, "A0d", HOLD, Opcode.CONST_STRING),
+            Guarded(player, "A0a", RELEASING, Opcode.CONST_4),
+            // Outside its lock: a yes never takes it, a no lands on the monitor-enter.
+            Guarded(story, "Ggb", HOLD, Opcode.MONITOR_ENTER),
+        )) {
+            val code = context.method(owner, name).code()
+            assertEquals("$name asks first", hook, code[0].referenceText())
             assertEquals("$name: this and the reason", listOf(1, 2), code[0].rangeRegisters())
             assertEquals("$name: the answer in v0", 0, (code[1] as OneRegisterInstruction).registerA)
             assertEquals(Opcode.IF_EQZ, code[2].opcode)
@@ -69,18 +79,22 @@ class BackgroundPlayPatchTest {
             assertEquals("$name: a no runs Instagram's own code", 4, code.target(2))
             assertEquals(first, code[4].opcode)
         }
-        assertEquals(RELEASED, context.method(player, "A0a").code()[0].referenceText())
-        assertEquals("the release hands this", listOf(1), context.method(player, "A0a").code()[0].rangeRegisters())
         assertEquals(STARTED_PLAYING, context.method(player, "A0I").code()[0].referenceText())
         assertEquals("playInternal hands its player", listOf(1), context.method(player, "A0I").code()[0].rangeRegisters())
-        assertEquals(VOLUME, context.method(player, "A0S").code()[0].referenceText())
-        assertEquals("the setter hands this and the volume asked for", listOf(1, 2), context.method(player, "A0S").code()[0].rangeRegisters())
+        assertEquals(STARTED_PLAYING, context.method(story, "A09").code()[0].referenceText())
+        assertEquals("the story start hands its player", listOf(1), context.method(story, "A09").code()[0].rangeRegisters())
+        for ((owner, name) in listOf(player to "A0S", story to "A0H")) {
+            assertEquals(VOLUME, context.method(owner, name).code()[0].referenceText())
+            assertEquals("$name hands this and the volume asked for", listOf(1, 2), context.method(owner, name).code()[0].rangeRegisters())
+        }
         assertEquals(LEAVING, context.method(activity, "onUserLeaveHint").code()[0].referenceText())
 
-        for (name in listOf("A0b", "Ga8", "A0c", "A0o")) {
-            assertTrue("$name stays as it was", context.method(player, name).code().none { it.referenceText()?.startsWith(BACKGROUND_PLAY) == true })
+        for ((owner, name) in listOf(player to "A0b", player to "Ga8", player to "A0c", player to "A0o", story to "Gzq", story to "Gqk")) {
+            assertTrue("$name stays as it was", context.method(owner, name).code().none { it.referenceText()?.startsWith(BACKGROUND_PLAY) == true })
         }
     }
+
+    private data class Guarded(val owner: String, val name: String, val hook: String, val first: Opcode)
 
     /**
      * Resume long videos' stopped hook stays first in the pause and the stop, and Tap to play's start
@@ -147,16 +161,29 @@ class BackgroundPlayPatchTest {
         }
     }
 
-    /** The stubs check for a player, cast it, and call its own methods or read its engine. */
+    /**
+     * The stubs check for either player, cast it, and call its own methods or read its engine. The
+     * story player's playing reads down its engine to the same boolean its pause asks.
+     */
     @Test
-    fun theStubsReachThePlayer() {
+    fun theStubsReachEitherPlayer() {
         val context = PatchContexts.of(classes())
         context.keepPlayingInBackground(context.findBackgroundPlaySites())
 
-        assertEquals(listOf(player, player, "$player->A0o()Z"), context.references("playing"))
-        assertEquals(listOf(player, player, FRAGMENT_PAUSED, "$player->A0Z(${string})V"), context.references("pause"))
-        assertEquals(listOf(player, player, RESUME, "$player->A0c(${string}Z)V"), context.references("play"))
-        assertEquals(listOf(player, player, "$player->A0F:$groot"), context.references("engine"))
+        assertEquals(
+            listOf(player, player, "$player->A0o()Z", story, story, "$story->A0E:$groot", "$groot->A07:$state", "$state->A0A:$clock", "$clock->A0a()Z"),
+            context.references("playing"),
+        )
+        assertEquals(
+            listOf(player, player, FRAGMENT_PAUSED, "$player->A0Z(${string})V", story, story, FRAGMENT_PAUSED, "$story->Ggb(${string})V"),
+            context.references("pause"),
+        )
+        assertEquals(
+            listOf(player, player, RESUME, "$player->A0c(${string}Z)V", story, story, FRAGMENT_RESUMED, "$story->Gzq(${string}Z)V"),
+            context.references("play"),
+        )
+        assertEquals(listOf(player, player, "$player->A0a(${string})V"), context.references("release"))
+        assertEquals(listOf(player, player, "$player->A0F:$groot", story, story, "$story->A0E:$groot"), context.references("engine"))
         assertEquals(Opcode.RETURN_OBJECT, context.method(BACKGROUND_PLAY, "engine").code().last().opcode)
     }
 
@@ -170,6 +197,8 @@ class BackgroundPlayPatchTest {
             Variant(leaveHint = false) to "has no onUserLeaveHint",
             Variant(secondEngineField = true) to "expected one $groot field",
             Variant(stopAsks = false) to "both its pause and its stop ask",
+            Variant(story = false) to "expected one story player",
+            Variant(hiddenClock = true) to "can't reach $clock->A0a()Z",
         )) {
             val context = PatchContexts.of(classes(variant))
             try {
@@ -178,7 +207,8 @@ class BackgroundPlayPatchTest {
             } catch (refused: PatchException) {
                 assertTrue("$variant: ${refused.message}", refused.message.orEmpty().contains(why))
             }
-            for (method in context.classDefBy(player).methods) {
+            val methods = context.classDefBy(player).methods + (context.classDefByOrNull(story)?.methods ?: emptyList())
+            for (method in methods) {
                 assertTrue("$variant: ${method.name} changed", method.code().none { it.referenceText()?.startsWith(BACKGROUND_PLAY) == true })
             }
         }
@@ -206,32 +236,50 @@ class BackgroundPlayPatchTest {
 
     private fun builds(bundle: File, label: String) {
         val players = FixtureDex.classesHolding(bundle, PLAY_INTERNAL)
+        val stories = FixtureDex.classesLoading(bundle, FRAGMENT_RESUMED)
         val activities = FixtureDex.classes(bundle, setOf(activity)).values
         // withStringPools carries the pools Redex moved the reasons into.
-        val classes = (FixtureDex.withStringPools(bundle, players) + activities + ExtensionDex.classDef(BACKGROUND_PLAY))
+        val sliced = (FixtureDex.withStringPools(bundle, players + stories) + activities + ExtensionDex.classDef(BACKGROUND_PLAY))
             .distinctBy { it.type }
-        val context = PatchContexts.of(classes)
+        // The engine's classes the story player's playing check reads, so their access is checked too.
+        val engine = FixtureDex.classes(
+            bundle,
+            PatchContexts.of(sliced).findBackgroundPlaySites().story.playing.map { it.substringBefore("->") }.toSet(),
+        ).values
+        val context = PatchContexts.of((sliced + engine).distinctBy { it.type })
         val sites = context.findBackgroundPlaySites()
+        val story = sites.story
         assertEquals("$label: the player", players.single().type, sites.player)
+        assertEquals("$label: the engine's classes", 3, engine.size)
         if ("386014758" in label) {
             assertEquals(
                 "$label: Instagram's names",
                 listOf("A0Z", "A0d", "A0a", "A0c", "A0o", "A0S", "${sites.player}->A0F:LX/04Ul;"),
                 listOf(sites.pause.name, sites.stop.name, sites.release.name, sites.play.name, sites.isPlaying.name, sites.setVolume.name, sites.engine),
             )
+            assertEquals(
+                "$label: the story player's names",
+                listOf(
+                    "LX/09Yv;", "Ggb", "Gzq", "A09", "A0H", "LX/09Yv;->A0E:LX/04Ul;",
+                    "LX/04Ul;->A07:LX/04Wi;", "LX/04Wi;->A0A:LX/04Wj;", "LX/04Wj;->A0a()Z",
+                ),
+                listOf(story.type, story.pause.name, story.resume.name, story.start.name, story.setVolume.name, story.engine) + story.playing,
+            )
         }
 
         context.keepPlayingInBackground(sites)
         for ((method, hook) in listOf(
-            sites.pause to HOLD, sites.stop to HOLD, sites.release to RELEASED, sites.playInternal to STARTED_PLAYING,
+            sites.pause to HOLD, sites.stop to HOLD, sites.release to RELEASING, sites.playInternal to STARTED_PLAYING,
             sites.setVolume to VOLUME, sites.leaveHint to LEAVING,
+            story.pause to HOLD, story.start to STARTED_PLAYING, story.setVolume to VOLUME,
         )) {
             val code = context.method(method.definingClass, method.name, method.parameterTypes.map(Any::toString)).code()
             assertEquals("$label ${method.name}: the hook goes first", hook, code[0].referenceText())
             assertEquals("$label ${method.name}: and only there", 1, code.count { it.referenceText() == hook })
-            if (hook == HOLD) assertEquals("$label ${method.name}: a no runs Instagram's own code", 4, code.target(2))
+            if (hook == HOLD || hook == RELEASING) assertEquals("$label ${method.name}: a no runs Instagram's own code", 4, code.target(2))
         }
-        assertEquals("$label: playing reads the player's own", "${sites.player}->${sites.isPlaying.name}()Z", context.references("playing").last())
+        assertEquals("$label: playing reads the player's own", "${sites.player}->${sites.isPlaying.name}()Z", context.references("playing")[2])
+        assertEquals("$label: and the story player's", story.playing.last(), context.references("playing").last())
     }
 
     private data class Variant(
@@ -241,6 +289,8 @@ class BackgroundPlayPatchTest {
         val leaveHint: Boolean = true,
         val secondEngineField: Boolean = false,
         val stopAsks: Boolean = true,
+        val story: Boolean = true,
+        val hiddenClock: Boolean = false,
     )
 
     private fun classes(v: Variant = Variant()): List<ClassDef> {
@@ -326,6 +376,73 @@ class BackgroundPlayPatchTest {
             classDef(player, methods, fields),
             classDef(activity, if (v.leaveHint) listOf(leave) else emptyList(), superclass = "Landroid/app/Activity;"),
             ExtensionDex.classDef(BACKGROUND_PLAY),
+        ) + engineClasses(v) + if (v.story) listOf(storyPlayer()) else emptyList()
+    }
+
+    /**
+     * The story player: it listens for audio focus and drives the same engine. Its pause is
+     * synchronized and asks the engine's state whether the video plays before pausing the engine, its
+     * resume starts it again through the static start, and its volume setter sets the engine's.
+     */
+    private fun storyPlayer(): ClassDef {
+        val pause = method("Ggb", listOf(string), "V", 3, owner = story, body = """
+            monitor-enter p0
+            const-string v0, "$FRAGMENT_PAUSED"
+            iget-object v0, p0, $story->A0E:$groot
+            if-eqz v0, :done
+            iget-object v0, v0, $groot->A07:$state
+            iget-object v0, v0, $state->A0A:$clock
+            invoke-virtual { v0 }, $clock->A0a()Z
+            move-result v0
+            if-eqz v0, :done
+            iget-object v0, p0, $story->A0E:$groot
+            invoke-virtual { v0, p1 }, $groot->A0Z($string)V
+            :done
+            monitor-exit p0
+            return-void
+        """)
+        // Another (String) method handing its reason to the engine, without the pause's reason.
+        val other = method("Gqk", listOf(string), "V", 3, owner = story, body = """
+            iget-object v0, p0, $story->A0E:$groot
+            invoke-virtual { v0, p1 }, $groot->A0b($string)V
+            return-void
+        """)
+        val resume = method("Gzq", listOf(string, "Z"), "V", 4, owner = story, body = """
+            const-string v0, "$FRAGMENT_RESUMED"
+            if-ne p1, v0, :done
+            const/4 v0, 0x1
+            invoke-static { p0, p1, p2, v0 }, $story->A09($story${string}ZZ)V
+            :done
+            return-void
+        """)
+        val start = method("A09", listOf(story, string, "Z", "Z"), "V", 5, static = true, owner = story, body = """
+            const-string v0, "$RESUME"
+            iget-object v0, p0, $story->A0E:$groot
+            invoke-virtual { v0, p1, p2 }, $groot->A0c(${string}Z)V
+            return-void
+        """)
+        val setVolume = method("A0H", listOf("F", "I"), "V", 4, owner = story, body = """
+            iget-object v0, p0, $story->A0E:$groot
+            invoke-virtual { v0, p1 }, $groot->A0P(F)V
+            return-void
+        """)
+        return classDef(
+            story, listOf(pause, other, resume, start, setVolume),
+            listOf(ImmutableField(story, "A0E", groot, PUBLIC, null, null, null)),
+            interfaces = listOf(focusListener),
+        )
+    }
+
+    /** The engine and the two classes the story player reads down to whether it plays. */
+    private fun engineClasses(v: Variant): List<ClassDef> {
+        val plays = method("A0a", emptyList(), "Z", 2, flags = if (v.hiddenClock) AccessFlags.FINAL.value else PUBLIC, owner = clock, body = """
+            const/4 v0, 0x1
+            return v0
+        """)
+        return listOf(
+            classDef(groot, emptyList(), listOf(ImmutableField(groot, "A07", state, PUBLIC, null, null, null))),
+            classDef(state, emptyList(), listOf(ImmutableField(state, "A0A", clock, PUBLIC, null, null, null))),
+            classDef(clock, listOf(plays)),
         )
     }
 
@@ -379,8 +496,13 @@ class BackgroundPlayPatchTest {
         return ImmutableMethod.of(mutable)
     }
 
-    private fun classDef(type: String, methods: List<Method>, fields: List<ImmutableField> = emptyList(), superclass: String = objectType): ClassDef =
-        ImmutableClassDef(type, PUBLIC, superclass, null, null, null, fields, methods)
+    private fun classDef(
+        type: String,
+        methods: List<Method>,
+        fields: List<ImmutableField> = emptyList(),
+        superclass: String = objectType,
+        interfaces: List<String> = emptyList(),
+    ): ClassDef = ImmutableClassDef(type, PUBLIC, superclass, interfaces, null, null, fields, methods)
 
     private companion object {
         val PUBLIC = AccessFlags.PUBLIC.value

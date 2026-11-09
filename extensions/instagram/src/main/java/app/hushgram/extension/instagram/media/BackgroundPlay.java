@@ -32,22 +32,28 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Helper for the "Keep playing in the background" patch (#497).
  *
  * <p>Instagram pauses the video on screen when you leave it: going home, switching apps or turning
- * the screen off pauses its fragment, and the fragment pauses IgVideoPlayerImpl. With the switch on,
- * this class picks the video that was playing with sound as you left ({@link #leaving} and the
- * screen-off check in {@link #watch}) and answers yes to {@link #hold} for that player's pause and
- * stop, so it plays on. Once the screen it plays on has stopped, {@link BackgroundPlayService} runs
- * in the foreground with a media notification: Pause or Play, Stop, and a tap that brings Instagram
- * back.
+ * the screen off pauses its fragment, and the fragment pauses IgVideoPlayerImpl, or the story
+ * viewer's own player, which drives the same engine without it. With the switch on, this class
+ * picks the video that was playing with sound as you left ({@link #leaving} and the screen-off
+ * check in {@link #watch}) and answers yes to {@link #hold} for that player's pause and stop, so it
+ * plays on. Once the screen it plays on has stopped, {@link BackgroundPlayService} runs in the
+ * foreground with a media notification: Pause or Play, Stop, and a tap that brings Instagram back.
+ *
+ * <p>The Reels viewer a feed video opens in lets its player go as its screen stops. That release is
+ * held too ({@link #releasing}) and goes through when the session ends: when you come back, before
+ * the screen's fragments start and take a player again, so Instagram sees the same order it would
+ * have without this.
  *
  * <p>Everything else stops it as before. Coming back to the same screen ends the session with the
  * video still playing. Another Instagram screen opening over it pauses it, as Instagram would have.
  * Instagram's own handling of a lost audio focus still pauses or mutes it (a mute pauses it here,
- * and the sound coming back within {@link #MUTE_RESUME_MS} plays it again). Releasing the player,
- * picture in picture, the screen closing, Instagram being swiped away, and Stop in the notification
- * all end it. A session left paused for {@link #PAUSED_LIMIT_MS} ends by itself.
+ * and the sound coming back within {@link #MUTE_RESUME_MS} plays it again). Picture in picture, the
+ * screen closing, Instagram being swiped away, and Stop in the notification all end it. A session
+ * left paused for {@link #PAUSED_LIMIT_MS} ends by itself.
  *
- * <p>The patch writes the bodies of {@link #playing}, {@link #pause}, {@link #play} and
- * {@link #engine}. Every hook runs on the main thread, and none of them ever throws into Instagram.
+ * <p>The patch writes the bodies of {@link #playing}, {@link #pause}, {@link #play},
+ * {@link #release} and {@link #engine}. Every hook runs on the main thread, and none of them ever
+ * throws into Instagram.
  */
 public final class BackgroundPlay {
     /** How long after you leave the screen it plays on still has to be up before the session is dropped. */
@@ -79,6 +85,9 @@ public final class BackgroundPlay {
         void pause(Object player);
 
         void play(Object player);
+
+        default void release(Object player, @Nullable String reason) {
+        }
     }
 
     @Nullable
@@ -108,8 +117,12 @@ public final class BackgroundPlay {
     private static WeakReference<Activity> resumedScreen;
     private static long mutedAt = NONE;
     private static long pausedSince = NONE;
-    /** True while this class pauses the held player itself, so that pause goes through. */
+    /** True while this class pauses or releases the held player itself, so that call goes through. */
     private static boolean passing;
+    /** Whether Instagram asked to release the held player during the session, and its reason. */
+    private static boolean releaseHeld;
+    @Nullable
+    private static String releaseReason;
     private static boolean watching;
 
     private BackgroundPlay() {
@@ -117,7 +130,7 @@ public final class BackgroundPlay {
 
     // ---- Stubs the patch fills ----
 
-    /** Whether [player], an IgVideoPlayerImpl, is playing. The patch writes the body; false unpatched. */
+    /** Whether [player], an IgVideoPlayerImpl or a story player, is playing. The patch writes the body; false unpatched. */
     public static boolean playing(Object player) {
         return false;
     }
@@ -128,6 +141,10 @@ public final class BackgroundPlay {
 
     /** Plays [player] again. The patch writes the body. */
     public static void play(Object player) {
+    }
+
+    /** Releases [player], an IgVideoPlayerImpl, with Instagram's own [reason]. The patch writes the body. */
+    public static void release(Object player, @Nullable String reason) {
     }
 
     /** [player]'s IgGrootPlayer, which Tap to play knows it by. The patch writes the body; null unpatched. */
@@ -164,7 +181,10 @@ public final class BackgroundPlay {
         }
     }
 
-    /** At the top of IgVideoPlayerImpl's playInternal, after Tap to play's guard, each time [player] starts playing. */
+    /**
+     * At the top of IgVideoPlayerImpl's playInternal, after Tap to play's guard, and of the story
+     * player's start, each time [player] starts playing.
+     */
     public static void started(Object player) {
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
@@ -181,7 +201,7 @@ public final class BackgroundPlay {
         }
     }
 
-    /** At the top of IgVideoPlayerImpl's setVolume, with the volume it's asked for. */
+    /** At the top of IgVideoPlayerImpl's and the story player's setVolume, with the volume it's asked for. */
     public static void volume(Object player, float volume) {
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
@@ -218,9 +238,10 @@ public final class BackgroundPlay {
     }
 
     /**
-     * At the top of IgVideoPlayerImpl's pause and stop, after Resume long videos' hook, with Instagram's reason. True, and the
-     * pause or stop returns at once, only for the player held as you left, while the switch is on.
-     * A pause for the audio focus always goes through.
+     * At the top of IgVideoPlayerImpl's pause and stop, after Resume long videos' hook, and of the
+     * story player's pause, with Instagram's reason. True, and the pause or stop returns at once,
+     * only for the player held as you left, while the switch is on. A pause for the audio focus
+     * always goes through.
      */
     public static boolean hold(Object player, @Nullable String reason) {
         try {
@@ -252,17 +273,39 @@ public final class BackgroundPlay {
         }
     }
 
-    /** At the top of IgVideoPlayerImpl's release. The held player going ends the session. */
-    public static void released(Object player) {
+    /**
+     * At the top of IgVideoPlayerImpl's release, with Instagram's reason. True, and the release
+     * returns at once, only for the held player while the switch is on: the Reels viewer lets its
+     * player go as its screen stops, which used to end the session there (#497). The release goes
+     * through when the session ends.
+     */
+    public static boolean releasing(Object player, @Nullable String reason) {
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
-            boolean ours;
+            Activity screen;
             synchronized (LOCK) {
-                ours = phase != Phase.IDLE && player != null && player == heldLocked();
+                if (passing || phase == Phase.IDLE || player == null || player != heldLocked()) return false;
+                screen = leavingScreen != null ? leavingScreen.get() : null;
             }
-            if (ours) end(false, "Instagram let the player go");
+            if (!on()) {
+                end(false, "the switch is off");
+                return false;
+            }
+            if (screen != null && inPictureInPicture(screen)) {
+                end(false, "Instagram went to picture in picture");
+                return false;
+            }
+            synchronized (LOCK) {
+                if (phase == Phase.IDLE || player != heldLocked()) return false;
+                releaseHeld = true;
+                releaseReason = reason;
+            }
+            HookStatus.counted(FamilyNames.BACKGROUND_PLAY, KEPT);
+            log(() -> "kept the video playing through Instagram's release" + (reason == null ? "" : " (\"" + reason + "\")"));
+            return true;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "player release", t);
+            return false;
         }
     }
 
@@ -418,6 +461,18 @@ public final class BackgroundPlay {
         }
     }
 
+    /**
+     * The video's screen starting again. With a release held, the session ends here, so the
+     * release goes through before the screen's fragments start and take a player back.
+     */
+    static void restarted(Activity screen) {
+        boolean ours;
+        synchronized (LOCK) {
+            ours = phase != Phase.IDLE && releaseHeld && leavingScreen != null && leavingScreen.get() == screen;
+        }
+        if (ours) end(false, "Instagram came back");
+    }
+
     static void resumed(Activity screen) {
         Object player;
         boolean same;
@@ -449,23 +504,33 @@ public final class BackgroundPlay {
         if (ours) end(true, "the video's screen closed");
     }
 
-    /** Ends the session, pausing the held video first when [pause], and takes the notification down. */
+    /**
+     * Ends the session, pausing the held video first when [pause], lets a release Instagram asked
+     * for go through, and takes the notification down.
+     */
     static void end(boolean pause, String why) {
         Object player;
         boolean wasBackground;
+        boolean release;
+        String reason;
         synchronized (LOCK) {
             if (phase == Phase.IDLE) return;
             wasBackground = phase == Phase.BACKGROUND;
             player = heldLocked();
+            release = releaseHeld;
+            reason = releaseReason;
             phase = Phase.IDLE;
             held = null;
             leavingScreen = null;
             mutedAt = NONE;
             pausedSince = NONE;
+            releaseHeld = false;
+            releaseReason = null;
         }
         if (pause && player != null) pauseThrough(player);
+        if (release && player != null) releaseThrough(player, reason);
         if (wasBackground && !serviceForTests) BackgroundPlayService.finish();
-        log(() -> "background playback ended: " + why);
+        log(() -> "background playback ended: " + why + (release ? ", and Instagram's release went through" : ""));
     }
 
     // ---- Helpers ----
@@ -557,6 +622,23 @@ public final class BackgroundPlay {
         }
     }
 
+    private static void releaseThrough(Object player, @Nullable String reason) {
+        synchronized (LOCK) {
+            passing = true;
+        }
+        try {
+            Control control = controlForTests;
+            if (control != null) control.release(player, reason);
+            else release(player, reason);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "release", t);
+        } finally {
+            synchronized (LOCK) {
+                passing = false;
+            }
+        }
+    }
+
     private static void playThrough(Object player) {
         try {
             Control control = controlForTests;
@@ -629,6 +711,8 @@ public final class BackgroundPlay {
             mutedAt = NONE;
             pausedSince = NONE;
             passing = false;
+            releaseHeld = false;
+            releaseReason = null;
         }
         // Each test has an application of its own to watch.
         watching = false;
@@ -704,6 +788,12 @@ public final class BackgroundPlay {
 
         @Override
         public void onActivityStarted(Activity activity) {
+            // Runs inside the activity's onStart, before it starts its fragments.
+            try {
+                restarted(activity);
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "activity start", t);
+            }
         }
 
         @Override
