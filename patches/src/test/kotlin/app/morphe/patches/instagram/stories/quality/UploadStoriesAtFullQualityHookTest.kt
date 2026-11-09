@@ -43,6 +43,10 @@ class UploadStoriesAtFullQualityHookTest {
     private val store = "Lfixture/Store;"
     private val wrapper = "Lfixture/TranscodeJob;"
     private val params = "Lfixture/TranscodeParams;"
+    private val widths = "Lfixture/Widths;"
+    private val upload = "Lfixture/Upload;"
+    private val encoder = "Lfixture/PhotoEncoder;"
+    private val renderer = "Lfixture/PhotoRenderer;"
     private val reader = "$prefs->A00($store)Z"
 
     /** The hook the patch writes is in the StoryUploadQuality the bundle ships, public and static. */
@@ -52,7 +56,9 @@ class UploadStoriesAtFullQualityHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$FULL_QUALITY is not in the extension: $declared", FULL_QUALITY.substringAfter("->") in declared)
-        assertTrue("$BITRATE_HOOK is not in the extension: $declared", BITRATE_HOOK.substringAfter("->") in declared)
+        for (hook in listOf(BITRATE_HOOK, RESOLUTION_HOOK, FRAME_RATE_HOOK, PHOTO_QUALITY_HOOK)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
     }
 
     /** The check asks the extension first and returns its yes, and nothing else changes. */
@@ -70,6 +76,7 @@ class UploadStoriesAtFullQualityHookTest {
         assertEquals("the check", strategy to "A08", check.type to check.name)
         assertEquals("the share type field", "A03", check.shareType.name)
         assertEquals("the setter", listOf("A07", wrapper, "A02", "A01", "A04"), listOf(setter.name, setter.parameter, setter.holder.name) + setter.bitrate.map { it.name })
+        assertEquals("the frame rate", "A02", setter.frameRate.name)
         assertHooked("stand-in", context.mutableClassDefBy(strategy).methods.single { it.name == "A08" }, check)
         assertBitrateHooked("stand-in", context.mutableClassDefBy(strategy).methods.single { it.name == "A07" }, check, setter)
         for (c in classes) {
@@ -165,6 +172,147 @@ class UploadStoriesAtFullQualityHookTest {
         assertTrue("nothing written", classes.flatMap { c -> context.mutableClassDefBy(c.type).methods }.none { m -> m.code().any { it.referenceText() == BITRATE_HOOK } })
     }
 
+    /** A setter with no frame rate fallback to find fails at patch time, saying so. */
+    @Test
+    fun aSetterWithNoFrameRateFails() {
+        val context = PatchContexts.of(classes(frameRateFallback = false))
+        val check = context.findStoryUploadQuality()
+        val failure = assertThrows(PatchException::class.java) { context.findBitrateSetter(check) }
+        assertTrue(failure.message, failure.message!!.contains("reads 0 frame rates with the $DEFAULT_FRAME_RATE fps fallback, expected one"))
+    }
+
+    /** The width step hands the hook the upload's share type and its width first, and takes the answer. */
+    @Test
+    fun theWidthStepAsksTheHookFirst() {
+        val classes = widthClasses()
+        val context = PatchContexts.of(classes)
+        val step = context.findWidthStep()
+        context.raiseWidth(step)
+        assertEquals("the step", widths to "A00", step.method.definingClass to step.method.name)
+        assertEquals("the getter", "DXk", step.shareType.name)
+        val method = context.mutableClassDefBy(widths).methods.single { it.name == "A00" }
+        assertWidthHooked("stand-in", method, step)
+        assertEquals("the call", Opcode.INVOKE_VIRTUAL, method.code()[2].opcode)
+    }
+
+    /** An upload that's an interface gets its share type through invoke-interface. */
+    @Test
+    fun anInterfaceUploadIsAskedThroughTheInterface() {
+        val context = PatchContexts.of(widthClasses(interfaceUpload = true))
+        val step = context.findWidthStep()
+        context.raiseWidth(step)
+        val method = context.mutableClassDefBy(widths).methods.single { it.name == "A00" }
+        assertEquals("the call", Opcode.INVOKE_INTERFACE, method.code()[2].opcode)
+    }
+
+    /** A width step the patch can't read fails at patch time, saying what it found. */
+    @Test
+    fun aWidthStepThePatchCantReadFails() {
+        val cases = listOf(
+            widthClasses(second = 1280) to "doesn't load both $WIDTH_1080 and $WIDTH_1440",
+            widthClasses(getter = false) to "has 0 share type getters, expected one",
+            widthClasses(calls = false) to "expected one width step called from $VIDEO_INGESTION_STEP, found 0",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.findWidthStep() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    /** The photo setup swaps the quality it's handed for the hook's answer, first thing. */
+    @Test
+    fun thePhotoSetupAsksTheHookFirst() {
+        val context = PatchContexts.of(photoClasses())
+        val setup = context.findPhotoSetup()
+        context.raisePhotoQuality(setup)
+        assertEquals("the setup", encoder to "A02", setup.definingClass to setup.name)
+        assertPhotoHooked("stand-in", context.mutableClassDefBy(encoder).methods.single { it.name == "A02" })
+    }
+
+    /** Some builds move Bitmap.compress into a helper, and a class handing that helper the format is still the setup. */
+    @Test
+    fun aSetupCompressingThroughAHelperIsStillFound() {
+        val context = PatchContexts.of(photoClasses(throughHelper = true))
+        val setup = context.findPhotoSetup()
+        assertEquals("the setup", encoder to "A02", setup.definingClass to setup.name)
+    }
+
+    /** A photo setup with nothing compressing a bitmap beside it isn't the one, and the patch says so. */
+    @Test
+    fun aPhotoSetupThePatchCantReadFails() {
+        val context = PatchContexts.of(photoClasses(compress = false))
+        val failure = assertThrows(PatchException::class.java) { context.findPhotoSetup() }
+        assertTrue(failure.message, failure.message!!.contains("expected one photo setup"))
+    }
+
+    /** Every declared build has the one width step and the one photo setup, and each is hooked once, first. */
+    @Test
+    fun eachBuildAsksForTheWidthAndThePhotoQuality() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
+        assertEquals("every build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        val failures = mutableListOf<String>()
+        for (bundle in bundles) {
+            val wanted = FixtureDex.classesLoading(bundle, "image/webp").toMutableList()
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    val relevant = classDef.type == VIDEO_INGESTION_STEP || classDef.methods.any { method ->
+                        val types = method.parameterTypes.map(CharSequence::toString)
+                        val shareTypeGetter = method.returnType == SHARE_TYPE && types.isEmpty()
+                        val widthShape = types.size == 8 && types[3] == "I" && types.drop(4).all { it == "Z" } && types[0] == "Landroid/content/Context;"
+                        val photoShape = types.size == 4 && types[0] == "Landroid/graphics/Bitmap;" && method.returnType == classDef.type
+                        shareTypeGetter || widthShape || photoShape
+                    }
+                    if (relevant) wanted += ImmutableClassDef.of(classDef)
+                }
+            }
+            val classes = FixtureDex.withStringPools(bundle, wanted.distinctBy { it.type })
+            val context = PatchContexts.of(classes)
+
+            val step = context.findWidthStep()
+            val setup = runCatching { context.findPhotoSetup() }.getOrElse {
+                failures += "${bundle.name}: ${it.message}"
+                continue
+            }
+            context.raiseWidth(step)
+            context.raisePhotoQuality(setup)
+
+            val everything = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+            assertEquals("${bundle.name}: width hooks", 1, everything.count { m -> m.code().any { it.referenceText() == RESOLUTION_HOOK } })
+            assertEquals("${bundle.name}: photo hooks", 1, everything.count { m -> m.code().any { it.referenceText() == PHOTO_QUALITY_HOOK } })
+            assertWidthHooked(bundle.name, context.mutableClassDefBy(step.method.definingClass).methods.single { it.name == step.method.name && it.parameterTypes.size == 8 }, step)
+            assertPhotoHooked(bundle.name, context.mutableClassDefBy(setup.definingClass).methods.single { it.name == setup.name && it.parameterTypes.size == 4 })
+        }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    /** The upload read, skipped when null, its share type, the width read, the call, and the answer written back to the width. */
+    private fun assertWidthHooked(what: String, method: Method, step: WidthStep) {
+        val code = method.code()
+        val first = method.implementation!!.registerCount - method.parameterTypes.size
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == RESOLUTION_HOOK })
+        assertEquals("$what: the upload", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+        assertEquals("$what: the upload's register", first + 2, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: a null upload skips it", Opcode.IF_EQZ, code[1].opcode)
+        assertEquals("$what: the getter", "${step.shareType.definingClass}->${step.shareType.name}()$SHARE_TYPE", code[2].referenceText())
+        assertEquals("$what: the width's register", first + 3, (code[4] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the hook", RESOLUTION_HOOK, code[5].referenceText())
+        assertEquals("$what: written back", first + 3, (code[7] as TwoRegisterInstruction).registerA)
+        val address = code.runningFold(0) { at, instruction -> at + instruction.codeUnits }
+        assertEquals("$what: null lands on Instagram's first instruction", 8, address.indexOf(address[1] + (code[1] as OffsetInstruction).codeOffset))
+    }
+
+    /** The quality read, the call, and the answer written back to the quality. */
+    private fun assertPhotoHooked(what: String, method: Method) {
+        val code = method.code()
+        val quality = method.implementation!!.registerCount - method.parameterTypes.size + 2
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == PHOTO_QUALITY_HOOK })
+        assertEquals("$what: the quality's register", quality, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the hook", PHOTO_QUALITY_HOOK, code[1].referenceText())
+        assertEquals("$what: written back", quality, (code[3] as TwoRegisterInstruction).registerA)
+    }
+
     /**
      * The hook first: the share type field read off `this` into v0, the call with it, its answer in
      * v0, a branch past the yes to Instagram's first instruction, and the yes returned. One call in all.
@@ -209,6 +357,14 @@ class UploadStoriesAtFullQualityHookTest {
             assertEquals("$what: share type field", check.shareType.name, ((code[at - 1] as ReferenceInstruction).reference as FieldReference).name)
             assertEquals("$what: both fields written", 2, code.subList(at, at + 6).count { it.opcode == Opcode.IPUT })
         }
+        val rates = code.indices.filter { code[it].referenceText() == FRAME_RATE_HOOK }
+        assertEquals("$what: a frame rate hook for each bitrate hook", hooks.size, rates.size)
+        for (at in rates) {
+            assertEquals("$what: frame rate read", setter.frameRate.name, ((code[at - 2] as ReferenceInstruction).reference as FieldReference).name)
+            assertEquals("$what: share type read for it", check.shareType.name, ((code[at - 1] as ReferenceInstruction).reference as FieldReference).name)
+            assertEquals("$what: frame rate written", Opcode.IPUT, code[at + 3].opcode)
+            assertEquals("$what: frame rate field", setter.frameRate.name, ((code[at + 3] as ReferenceInstruction).reference as FieldReference).name)
+        }
         if (hooks.size == 1) {
             val start = hooks[0] - 4
             val address = code.runningFold(0) { here, instruction -> here + instruction.codeUnits }
@@ -241,6 +397,7 @@ class UploadStoriesAtFullQualityHookTest {
         loopsToStart: Boolean = false,
         locals: Int = 4,
         twoBitrateFields: Boolean = true,
+        frameRateFallback: Boolean = true,
     ): List<ClassDef> {
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
         val instance = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
@@ -290,6 +447,7 @@ class UploadStoriesAtFullQualityHookTest {
                 if-eqz v0, :done
                 const v1, $bitrate
                 iget-object v2, p1, $wrapper->A02:$params
+                ${if (frameRateFallback) "iget v0, v2, $params->A02:I\n if-gtz v0, :rate\n const/16 v0, 0x1e\n :rate" else ""}
                 iput v1, v2, $params->A01:I
                 ${if (twoBitrateFields) "iput v1, v2, $params->A04:I" else ""}
                 :done
@@ -314,6 +472,85 @@ class UploadStoriesAtFullQualityHookTest {
             classDef(strategy, checks + setter, shareTypeFields),
             classDef(logger, listOf(loggerAsk)),
         )
+    }
+
+    /** Shaped like 454's: the ingestion step calling the width step, which knows 1080 and 1440, with an upload that has a share type getter. */
+    private fun widthClasses(second: Int = WIDTH_1440, getter: Boolean = true, calls: Boolean = true, interfaceUpload: Boolean = false): List<ClassDef> {
+        val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+        val parameters = listOf("Landroid/content/Context;", "Lcom/instagram/common/session/UserSession;", upload, "I", "Z", "Z", "Z", "Z")
+        val widthStep = method(
+            widths, "A00", parameters, "Ljava/lang/Object;", 3, static,
+            """
+                const/16 v0, $WIDTH_1080
+                move/from16 v1, p3
+                if-eq v1, v0, :done
+                const/16 v0, $second
+                :done
+                const/4 v2, 0x0
+                return-object v2
+            """,
+        )
+        val call = "invoke-static/range {v0 .. v7}, $widths->A00(${parameters.joinToString("")})Ljava/lang/Object;"
+        val ingestion = method(
+            VIDEO_INGESTION_STEP, "A01", emptyList(), "V", 8, static,
+            """
+                const/4 v0, 0x0
+                const/4 v1, 0x0
+                const/4 v2, 0x0
+                const/16 v3, $WIDTH_1440
+                const/4 v4, 0x0
+                const/4 v5, 0x0
+                const/4 v6, 0x0
+                const/4 v7, 0x0
+                ${if (calls) call else ""}
+                return-void
+            """,
+        )
+        val shareType = method(upload, "DXk", emptyList(), SHARE_TYPE, 1, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "const/4 v0, 0x0\n return-object v0")
+        val other = method(upload, "A00", emptyList(), "Ljava/lang/Object;", 1, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "const/4 v0, 0x0\n return-object v0")
+        val flags = AccessFlags.PUBLIC.value or if (interfaceUpload) AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value else AccessFlags.FINAL.value
+        return listOf(
+            classDef(widths, listOf(widthStep)),
+            classDef(VIDEO_INGESTION_STEP, listOf(ingestion)),
+            ImmutableClassDef(upload, flags, "Ljava/lang/Object;", null, null, null, emptyList(), listOf(if (getter) shareType else other)),
+        )
+    }
+
+    /** Shaped like 454's: the renderer naming both picture types and calling the setup, whose class calls Bitmap.compress. */
+    private fun photoClasses(compress: Boolean = true, throughHelper: Boolean = false): List<ClassDef> {
+        val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+        val instance = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val bitmap = "Landroid/graphics/Bitmap;"
+        val parameters = listOf(bitmap, store, "I", "I")
+        val format = "Landroid/graphics/Bitmap\$CompressFormat;"
+        val compressCall = when {
+            throughHelper -> "invoke-static {v0}, LX/compressHelper;->A02($format)Z"
+            compress -> "invoke-virtual {v0, v0}, $bitmap->compress(Ljava/lang/Object;)Z"
+            else -> "invoke-virtual {v0, v0}, $bitmap->sameAs(Ljava/lang/Object;)Z"
+        }
+        val setup = method(encoder, "A02", parameters, encoder, 1, static, "const/4 v0, 0x0\n return-object v0")
+        val compressing = method(
+            encoder, "A05", emptyList(), "Z", 2, instance,
+            """
+                const/4 v0, 0x0
+                $compressCall
+                move-result v1
+                return v1
+            """,
+        )
+        val render = method(
+            renderer, "A01", emptyList(), "V", 5, static,
+            """
+                const-string v0, "image/webp"
+                const-string v1, "image/jpeg"
+                const/4 v2, 0x0
+                const/4 v3, 0x0
+                const/16 v4, 0x5f
+                invoke-static {v2, v3, v4, v4}, $encoder->A02(${parameters.joinToString("")})$encoder
+                return-void
+            """,
+        )
+        return listOf(classDef(encoder, listOf(setup, compressing)), classDef(renderer, listOf(render)))
     }
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, flags: Int, body: String): Method {
@@ -347,7 +584,7 @@ class UploadStoriesAtFullQualityHookTest {
         /** The instructions the hook adds: the field read, the call, its answer, the branch, the yes and its return. */
         const val HOOK_SIZE = 6
 
-        /** What the bitrate hook adds before one return: its ten instructions, Instagram's return staying after them. */
-        const val BITRATE_HOOK_SIZE = 10
+        /** What the bitrate and frame rate hooks add before one return: their sixteen instructions, Instagram's return staying after them. */
+        const val BITRATE_HOOK_SIZE = 16
     }
 }

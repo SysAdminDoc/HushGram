@@ -793,7 +793,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.LOW_VIEW_REELS
                             && (Settings.MIN_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES.key.equals(key));
                     belongs |= family == PatchFamily.STORY_UPLOAD_QUALITY && (Settings.UPLOAD_QUALITY_APPLIES_TO.key.equals(key)
-                            || Settings.UPLOAD_VIDEO_BITRATE.key.equals(key));
+                            || Settings.UPLOAD_VIDEO_BITRATE.key.equals(key) || Settings.UPLOAD_VIDEO_RESOLUTION.key.equals(key)
+                            || Settings.UPLOAD_FRAME_RATE.key.equals(key) || Settings.UPLOAD_PHOTO_QUALITY.key.equals(key));
                     belongs |= family == PatchFamily.STORY_PRIORITY && Settings.STORY_PRIORITY_ACCOUNTS.key.equals(key);
                     belongs |= family == PatchFamily.CALL_BLOCKER
                             && (Settings.CALL_BLOCK_MODE.key.equals(key) || Settings.CALL_BLOCK_ACCOUNTS.key.equals(key));
@@ -4547,6 +4548,59 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setEntries(entries);
         row.setEntryValues(values);
         row.setValue(Settings.UPLOAD_VIDEO_BITRATE.savedValue().name());
+        row.setSummary(row.getEntry());
+        return row;
+    }
+
+    /** The least video width an upload asks for (#37). */
+    static UploadChoiceRow uploadResolutionRow(Context context) {
+        app.hushgram.extension.instagram.stories.UploadResolution[] widths = app.hushgram.extension.instagram.stories.UploadResolution.values();
+        CharSequence[] entries = new CharSequence[widths.length];
+        CharSequence[] values = new CharSequence[widths.length];
+        for (int i = 0; i < widths.length; i++) {
+            entries[i] = widths[i].width == 0 ? L10n.t("Instagram's own") : widths[i].width + "p";
+            values[i] = widths[i].name();
+        }
+        return uploadChoiceRow(context, Settings.UPLOAD_VIDEO_RESOLUTION.key, L10n.t("Video resolution"), entries, values,
+                Settings.UPLOAD_VIDEO_RESOLUTION.savedValue().name());
+    }
+
+    /** The least frame rate an upload is encoded at (#37). */
+    static UploadChoiceRow uploadFrameRateRow(Context context) {
+        app.hushgram.extension.instagram.stories.UploadFrameRate[] rates = app.hushgram.extension.instagram.stories.UploadFrameRate.values();
+        CharSequence[] entries = new CharSequence[rates.length];
+        CharSequence[] values = new CharSequence[rates.length];
+        for (int i = 0; i < rates.length; i++) {
+            entries[i] = rates[i].fps == 0 ? L10n.t("Instagram's own") : rates[i].fps + " fps";
+            values[i] = rates[i].name();
+        }
+        return uploadChoiceRow(context, Settings.UPLOAD_FRAME_RATE.key, L10n.t("Video frame rate"), entries, values,
+                Settings.UPLOAD_FRAME_RATE.savedValue().name());
+    }
+
+    /** The least JPEG quality a photo being prepared gets (#37). */
+    static UploadChoiceRow uploadPhotoQualityRow(Context context) {
+        app.hushgram.extension.instagram.stories.UploadPhotoQuality[] qualities = app.hushgram.extension.instagram.stories.UploadPhotoQuality.values();
+        CharSequence[] entries = new CharSequence[qualities.length];
+        CharSequence[] values = new CharSequence[qualities.length];
+        for (int i = 0; i < qualities.length; i++) {
+            entries[i] = qualities[i].percent == 0 ? L10n.t("Instagram's own")
+                    : java.text.NumberFormat.getPercentInstance(L10n.locale()).format(qualities[i].percent / 100.0);
+            values[i] = qualities[i].name();
+        }
+        return uploadChoiceRow(context, Settings.UPLOAD_PHOTO_QUALITY.key, L10n.t("Photo quality"), entries, values,
+                Settings.UPLOAD_PHOTO_QUALITY.savedValue().name());
+    }
+
+    private static UploadChoiceRow uploadChoiceRow(Context context, String key, String title, CharSequence[] entries, CharSequence[] values, String value) {
+        UploadChoiceRow row = new UploadChoiceRow(context);
+        row.setKey(key);
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(value);
         row.setSummary(row.getEntry());
         return row;
     }

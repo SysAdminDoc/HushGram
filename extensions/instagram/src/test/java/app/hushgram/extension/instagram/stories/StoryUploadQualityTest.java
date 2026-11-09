@@ -38,6 +38,9 @@ public class StoryUploadQualityTest {
         Settings.UPLOAD_STORIES_AT_FULL_QUALITY.resetToDefault();
         Settings.UPLOAD_QUALITY_APPLIES_TO.resetToDefault();
         Settings.UPLOAD_VIDEO_BITRATE.resetToDefault();
+        Settings.UPLOAD_VIDEO_RESOLUTION.resetToDefault();
+        Settings.UPLOAD_FRAME_RATE.resetToDefault();
+        Settings.UPLOAD_PHOTO_QUALITY.resetToDefault();
         HookStatus.clear();
     }
 
@@ -46,6 +49,9 @@ public class StoryUploadQualityTest {
         Settings.UPLOAD_STORIES_AT_FULL_QUALITY.resetToDefault();
         Settings.UPLOAD_QUALITY_APPLIES_TO.resetToDefault();
         Settings.UPLOAD_VIDEO_BITRATE.resetToDefault();
+        Settings.UPLOAD_VIDEO_RESOLUTION.resetToDefault();
+        Settings.UPLOAD_FRAME_RATE.resetToDefault();
+        Settings.UPLOAD_PHOTO_QUALITY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -139,6 +145,93 @@ public class StoryUploadQualityTest {
         SettingsContextRule.beforeThePauseIsDecided(() -> assertEquals("pause undecided", 9_000_000, StoryUploadQuality.bitrate(ShareType.STORY, 9_000_000)));
 
         assertEquals("back on", 50_000_000, StoryUploadQuality.bitrate(ShareType.STORY, 9_000_000));
+    }
+
+    /** The three new choices start at Instagram's own, and then nothing moves even with the switch on. */
+    @Test
+    public void theNewChoicesStartAtInstagramsOwn() {
+        assertEquals(UploadResolution.INSTAGRAM, Settings.UPLOAD_VIDEO_RESOLUTION.get());
+        assertEquals(UploadFrameRate.INSTAGRAM, Settings.UPLOAD_FRAME_RATE.get());
+        assertEquals(UploadPhotoQuality.INSTAGRAM, Settings.UPLOAD_PHOTO_QUALITY.get());
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        assertEquals(1080, StoryUploadQuality.resolution(ShareType.STORY, 1080));
+        assertEquals(30, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+        assertEquals(84, StoryUploadQuality.photoQuality(84));
+    }
+
+    /** A chosen width is a floor for a covered upload, and raises the width Instagram didn't ask for too. */
+    @Test
+    public void resolutionRaisesACoveredUpload() {
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P1440);
+        assertEquals(1440, StoryUploadQuality.resolution(ShareType.STORY, 1080));
+        assertEquals("not asked", 1440, StoryUploadQuality.resolution(ShareType.STORY, 0));
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P1080);
+        assertEquals("already wider", 1440, StoryUploadQuality.resolution(ShareType.STORY, 1440));
+        assertEquals("post, stories only", 0, StoryUploadQuality.resolution(ShareType.FEED, 0));
+        Settings.UPLOAD_QUALITY_APPLIES_TO.save(UploadScope.ALL);
+        assertEquals("post, everything", 1080, StoryUploadQuality.resolution(ShareType.FEED, 0));
+        assertEquals("not an enum", 0, StoryUploadQuality.resolution("STORY", 0));
+        assertEquals("no share type", 0, StoryUploadQuality.resolution(null, 0));
+        assertTrue(HookStatus.missing(FamilyNames.STORY_UPLOAD_QUALITY).toString(),
+                HookStatus.missing(FamilyNames.STORY_UPLOAD_QUALITY).isEmpty());
+    }
+
+    /** A chosen frame rate is a floor for a covered upload, and fills in one Instagram didn't set. */
+    @Test
+    public void frameRateRaisesACoveredUpload() {
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        Settings.UPLOAD_FRAME_RATE.save(UploadFrameRate.FPS_60);
+        assertEquals(60, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+        assertEquals("not set", 60, StoryUploadQuality.frameRate(ShareType.STORY, 0));
+        assertEquals("already higher", 120, StoryUploadQuality.frameRate(ShareType.STORY, 120));
+        assertEquals("reel, stories only", 30, StoryUploadQuality.frameRate(ShareType.CLIPS, 30));
+        Settings.UPLOAD_QUALITY_APPLIES_TO.save(UploadScope.ALL);
+        assertEquals("reel, everything", 60, StoryUploadQuality.frameRate(ShareType.CLIPS, 30));
+    }
+
+    /** A chosen photo quality is a floor with the switch on, for every photo, and never touches an unset one. */
+    @Test
+    public void photoQualityRaisesWithTheSwitchOn() {
+        Settings.UPLOAD_PHOTO_QUALITY.save(UploadPhotoQuality.Q100);
+        assertEquals("switch off", 84, StoryUploadQuality.photoQuality(84));
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        assertEquals(100, StoryUploadQuality.photoQuality(84));
+        assertEquals("nothing to raise", 0, StoryUploadQuality.photoQuality(0));
+        Settings.UPLOAD_PHOTO_QUALITY.save(UploadPhotoQuality.Q90);
+        assertEquals("already higher", 95, StoryUploadQuality.photoQuality(95));
+    }
+
+    /** Paused, or before the settings are read, the three new choices are Instagram's. */
+    @Test
+    public void theNewChoicesFailOpen() {
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P1440);
+        Settings.UPLOAD_FRAME_RATE.save(UploadFrameRate.FPS_60);
+        Settings.UPLOAD_PHOTO_QUALITY.save(UploadPhotoQuality.Q100);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 1080, StoryUploadQuality.resolution(ShareType.STORY, 1080));
+        assertEquals("paused", 30, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+        assertEquals("paused", 84, StoryUploadQuality.photoQuality(84));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> {
+            assertEquals("no context", 1080, StoryUploadQuality.resolution(ShareType.STORY, 1080));
+            assertEquals("no context", 30, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+            assertEquals("no context", 84, StoryUploadQuality.photoQuality(84));
+        });
+        SettingsContextRule.beforeThePauseIsDecided(() -> {
+            assertEquals("pause undecided", 1080, StoryUploadQuality.resolution(ShareType.STORY, 1080));
+            assertEquals("pause undecided", 30, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+            assertEquals("pause undecided", 84, StoryUploadQuality.photoQuality(84));
+        });
+
+        assertEquals("back on", 1440, StoryUploadQuality.resolution(ShareType.STORY, 1080));
+        assertEquals("back on", 60, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+        assertEquals("back on", 100, StoryUploadQuality.photoQuality(84));
     }
 
     /** Paused, or before the settings are read, Instagram's own check runs. */

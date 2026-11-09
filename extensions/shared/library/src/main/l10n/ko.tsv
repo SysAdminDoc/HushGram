@@ -233,6 +233,9 @@ Upload quality applies to	업로드 화질 적용 대상
 Stories only	스토리만
 Stories, posts and reels	스토리, 게시물, 릴스
 Video bitrate	동영상 비트레이트
+Video resolution	동영상 해상도
+Video frame rate	동영상 프레임 속도
+Photo quality	사진 품질
 %1$s Mbps	%1$s Mbps
 Download feed videos	피드 동영상 다운로드 메뉴 추가
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	피드에서 동영상이 포함된 게시물의 메뉴에 다운로드를 추가하며, 설정한 다운로드 화질로 저장할 수 있습니다. 이 기능을 비활성화하거나 HushGram을 일시 정지하면 Instagram의 원래 메뉴가 다시 표시됩니다

@@ -74,9 +74,28 @@ public class StoryUploadQualitySettingsTest {
         assertEquals(Arrays.toString(keys), Settings.DOWNLOAD_STORIES.key, keys[at - 3]);
         assertEquals(Arrays.toString(keys), Settings.UPLOAD_QUALITY_APPLIES_TO.key, keys[at + 1]);
         assertEquals(Arrays.toString(keys), Settings.UPLOAD_VIDEO_BITRATE.key, keys[at + 2]);
-        assertEquals(Arrays.toString(keys), keys.length - 3, at);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_VIDEO_RESOLUTION.key, keys[at + 3]);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_FRAME_RATE.key, keys[at + 4]);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_PHOTO_QUALITY.key, keys[at + 5]);
+        assertEquals(Arrays.toString(keys), keys.length - 6, at);
         assertEquals("Upload stories at full quality", PatchFamily.STORY_UPLOAD_QUALITY.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_STORIES_AT_FULL_QUALITY.key));
+    }
+    @Test public void theNewChoicesListWhatTheyOffer() throws Exception {
+        open(EnumSet.of(PatchFamily.STORY_UPLOAD_QUALITY));
+        assertEquals("[Instagram's own, 1080p, 1440p]", entries(Settings.UPLOAD_VIDEO_RESOLUTION.key, "Video resolution"));
+        assertEquals("[Instagram's own, 60 fps]", entries(Settings.UPLOAD_FRAME_RATE.key, "Video frame rate"));
+        assertEquals("[Instagram's own, 90%, 95%, 100%]", entries(Settings.UPLOAD_PHOTO_QUALITY.key, "Photo quality"));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_VIDEO_RESOLUTION.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_FRAME_RATE.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_PHOTO_QUALITY.key));
+    }
+    private String entries(String key, String title) {
+        android.preference.ListPreference row = (android.preference.ListPreference) page.getPreferenceScreen().findPreference(key);
+        assertNotNull(key, row);
+        assertEquals(title, row.getTitle().toString());
+        assertEquals("Instagram's own", row.getSummary().toString());
+        return Arrays.toString(row.getEntries());
     }
     @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
         open(EnumSet.of(PatchFamily.STORY_UPLOAD_QUALITY));

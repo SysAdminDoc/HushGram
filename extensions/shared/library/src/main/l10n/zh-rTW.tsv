@@ -237,6 +237,9 @@ Upload quality applies to	上傳畫質套用範圍
 Stories only	僅限時動態
 Stories, posts and reels	限時動態、貼文和 Reels
 Video bitrate	影片位元率
+Video resolution	影片解析度
+Video frame rate	影片影格率
+Photo quality	相片品質
 %1$s Mbps	%1$s Mbps
 Download feed videos	下載動態首頁影片
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	在動態首頁的影片貼文選單中新增「下載」，使用下方的畫質設定。關閉或暫停後會還原 Instagram 原本的選單。

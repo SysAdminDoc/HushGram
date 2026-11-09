@@ -28,6 +28,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * bitrate Instagram settles on after its checks ({@link #bitrate}) up to 50 Mbps. Instagram's servers
  * still re-encode what arrives, so a higher bitrate improves the source they work from.
  *
+ * <p>Three more choices under it (#37): Video resolution ({@link #resolution}) and Video frame rate
+ * ({@link #frameRate}), covered the same way, and Photo quality ({@link #photoQuality}), the JPEG
+ * quality of a photo being prepared, which has no share type where it's chosen and so covers every
+ * photo while the switch is on.
+ *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or anything
  * thrown, Instagram asks its own setting as before.
  */
@@ -37,6 +42,15 @@ public final class StoryUploadQuality {
 
     /** What's counted for each upload given a higher video bitrate. */
     static final String RAISED_BITRATE = "uploads given a higher video bitrate";
+
+    /** What's counted for each upload given a wider video. */
+    static final String RAISED_RESOLUTION = "uploads given a higher video resolution";
+
+    /** What's counted for each upload given a higher frame rate. */
+    static final String RAISED_FRAME_RATE = "uploads given a higher frame rate";
+
+    /** What's counted for each photo given a higher JPEG quality. */
+    static final String RAISED_PHOTO = "photos given a higher quality";
 
     /** The share type Instagram gives a story posted to your story, as its enum names it. */
     static final String STORY = "STORY";
@@ -79,6 +93,65 @@ public final class StoryUploadQuality {
             return wanted;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_UPLOAD_QUALITY, "story upload bitrate", failure);
+            return instagram;
+        }
+    }
+
+    /**
+     * Injected first in Instagram's width step for an upload, with its share type and the width it
+     * was asked for (0, 1080 or 1440). Returns the Video resolution choice when it's wider, for an
+     * upload the switch covers, and Instagram's own otherwise. Never throws, and never waits for the
+     * settings.
+     */
+    public static int resolution(Object shareType, int instagram) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_UPLOAD_QUALITY);
+            if (!covered(shareType)) return instagram;
+            UploadResolution choice = Settings.UPLOAD_VIDEO_RESOLUTION.get();
+            if (choice == null || choice.width <= instagram) return instagram;
+            HookStatus.counted(FamilyNames.STORY_UPLOAD_QUALITY, RAISED_RESOLUTION);
+            return choice.width;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_UPLOAD_QUALITY, "story upload resolution", failure);
+            return instagram;
+        }
+    }
+
+    /**
+     * Injected where Instagram's video encoder settings are final, with the upload's share type and
+     * the frame rate it worked out (0 when it didn't). Returns the Video frame rate choice when it's
+     * higher, for an upload the switch covers, and Instagram's own otherwise. Never throws, and never
+     * waits for the settings.
+     */
+    public static int frameRate(Object shareType, int instagram) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_UPLOAD_QUALITY);
+            if (!covered(shareType)) return instagram;
+            UploadFrameRate choice = Settings.UPLOAD_FRAME_RATE.get();
+            if (choice == null || choice.fps <= instagram) return instagram;
+            HookStatus.counted(FamilyNames.STORY_UPLOAD_QUALITY, RAISED_FRAME_RATE);
+            return choice.fps;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_UPLOAD_QUALITY, "story upload frame rate", failure);
+            return instagram;
+        }
+    }
+
+    /**
+     * Injected first where Instagram sets up the JPEG for a photo it's preparing, with the quality it
+     * chose. Returns the Photo quality choice when it's higher and the switch is on, and Instagram's
+     * own otherwise. Never throws, and never waits for the settings.
+     */
+    public static int photoQuality(int instagram) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_UPLOAD_QUALITY);
+            if (instagram <= 0 || !Utils.settingsReady() || !Settings.UPLOAD_STORIES_AT_FULL_QUALITY.get()) return instagram;
+            UploadPhotoQuality choice = Settings.UPLOAD_PHOTO_QUALITY.get();
+            if (choice == null || choice.percent <= instagram) return instagram;
+            HookStatus.counted(FamilyNames.STORY_UPLOAD_QUALITY, RAISED_PHOTO);
+            return choice.percent;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_UPLOAD_QUALITY, "photo upload quality", failure);
             return instagram;
         }
     }

@@ -398,6 +398,21 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_upload_video_bitrate", app.hushgram.extension.instagram.stories.UploadBitrate.INSTAGRAM,
                     parent(UPLOAD_STORIES_AT_FULL_QUALITY));
 
+    /** Under {@link #UPLOAD_STORIES_AT_FULL_QUALITY}: the least video width an upload it covers asks for (#37). */
+    public static final EnumSetting<app.hushgram.extension.instagram.stories.UploadResolution> UPLOAD_VIDEO_RESOLUTION =
+            new EnumSetting<>("hushgram_upload_video_resolution", app.hushgram.extension.instagram.stories.UploadResolution.INSTAGRAM,
+                    parent(UPLOAD_STORIES_AT_FULL_QUALITY));
+
+    /** Under {@link #UPLOAD_STORIES_AT_FULL_QUALITY}: the least frame rate an upload it covers is encoded at (#37). */
+    public static final EnumSetting<app.hushgram.extension.instagram.stories.UploadFrameRate> UPLOAD_FRAME_RATE =
+            new EnumSetting<>("hushgram_upload_frame_rate", app.hushgram.extension.instagram.stories.UploadFrameRate.INSTAGRAM,
+                    parent(UPLOAD_STORIES_AT_FULL_QUALITY));
+
+    /** Under {@link #UPLOAD_STORIES_AT_FULL_QUALITY}: the least JPEG quality a photo being prepared gets (#37). */
+    public static final EnumSetting<app.hushgram.extension.instagram.stories.UploadPhotoQuality> UPLOAD_PHOTO_QUALITY =
+            new EnumSetting<>("hushgram_upload_photo_quality", app.hushgram.extension.instagram.stories.UploadPhotoQuality.INSTAGRAM,
+                    parent(UPLOAD_STORIES_AT_FULL_QUALITY));
+
     /**
      * The first feed video of a Home session starts with its sound on, through the video's own sound
      * flag, when the phone's ringer is on and its volume is up

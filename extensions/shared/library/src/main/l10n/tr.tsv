@@ -232,6 +232,9 @@ Upload quality applies to	Yükleme kalitesinin geçerli olduğu yerler
 Stories only	Yalnızca hikayeler
 Stories, posts and reels	Hikayeler, gönderiler ve Reels
 Video bitrate	Video bit hızı
+Video resolution	Video çözünürlüğü
+Video frame rate	Video kare hızı
+Photo quality	Fotoğraf kalitesi
 %1$s Mbps	%1$s Mbps
 Download feed videos	Akıştaki videoları indir
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	Akışındaki videolu bir gönderinin menüsüne İndir ekler. Aşağıdaki kaliteyi kullanır. Kapalıyken veya duraklatıldığında Instagram'ın kendi menüsü geri gelir.

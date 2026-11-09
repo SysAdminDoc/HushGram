@@ -125,6 +125,9 @@ public final class ConfigurationBackup {
         if (PatchFamily.STORY_UPLOAD_QUALITY.inBuild()) {
             settings.put(Settings.UPLOAD_QUALITY_APPLIES_TO.key, Settings.UPLOAD_QUALITY_APPLIES_TO);
             settings.put(Settings.UPLOAD_VIDEO_BITRATE.key, Settings.UPLOAD_VIDEO_BITRATE);
+            settings.put(Settings.UPLOAD_VIDEO_RESOLUTION.key, Settings.UPLOAD_VIDEO_RESOLUTION);
+            settings.put(Settings.UPLOAD_FRAME_RATE.key, Settings.UPLOAD_FRAME_RATE);
+            settings.put(Settings.UPLOAD_PHOTO_QUALITY.key, Settings.UPLOAD_PHOTO_QUALITY);
         }
         if (PatchFamily.ROUNDED_POST_CORNERS.inBuild()) settings.put(Settings.ROUNDED_CORNER_SIZE.key, Settings.ROUNDED_CORNER_SIZE);
         if (PatchFamily.AMBIENT_LIGHT.inBuild()) {

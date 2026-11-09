@@ -16,6 +16,9 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storySeekBarLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyTimeModeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadBitrateRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadFrameRateRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadPhotoQualityRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadResolutionRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadScopeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
@@ -207,6 +210,9 @@ final class StoriesCategory {
                             + "difference viewers see is small. Photo stories already go up larger than Instagram keeps.")));
             stories.add(uploadScopeRow(context));
             stories.add(uploadBitrateRow(context));
+            stories.add(uploadResolutionRow(context));
+            stories.add(uploadFrameRateRow(context));
+            stories.add(uploadPhotoQualityRow(context));
         }
         if (build.contains(PatchFamily.STORY_FONTS)) {
             stories.add(toggle(context, Settings.STORY_FONTS, L10n.t("Your fonts in story text"),

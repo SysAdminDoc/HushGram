@@ -109,9 +109,12 @@ public class StoryFontsSettingsTest {
         for (int i = 0; i < keys.length; i++) keys[i] = stories.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.STORY_FONTS.key);
         // Upload quality's own rows (#37) sit between it and the fonts.
-        assertEquals(Arrays.toString(keys), Settings.UPLOAD_STORIES_AT_FULL_QUALITY.key, keys[at - 3]);
-        assertEquals(Arrays.toString(keys), Settings.UPLOAD_QUALITY_APPLIES_TO.key, keys[at - 2]);
-        assertEquals(Arrays.toString(keys), Settings.UPLOAD_VIDEO_BITRATE.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_STORIES_AT_FULL_QUALITY.key, keys[at - 6]);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_QUALITY_APPLIES_TO.key, keys[at - 5]);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_VIDEO_BITRATE.key, keys[at - 4]);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_VIDEO_RESOLUTION.key, keys[at - 3]);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_FRAME_RATE.key, keys[at - 2]);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_PHOTO_QUALITY.key, keys[at - 1]);
         assertEquals(Arrays.toString(keys), HushgramPreferenceFragment.STORY_FONTS_ROW, keys[at + 1]);
         Preference list = stories.getPreference(at + 1);
         assertEquals("Your story fonts", list.getTitle().toString());
