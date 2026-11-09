@@ -62,6 +62,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* `Backgrounds in the accent color` now reaches the message list. Its rows and search field stayed near-black under a colored page because that screen takes its grays from code instead of the theme. Refs #577.
 * With `Gray out stories you've watched`, the story row no longer puts watched stories ahead of new ones after it reloads, and the next batch stays after the ones you had. Reported in #241.
 * With `Hide the Create button` on, a long press on your profile's menu opens the HushGram settings again. With the button gone, the long press couldn't tell it was on your own profile. Reported in #431.
 * `See-through top bar` reaches behind the clock on more phones. Where the tabs swipe sideways, only Home's page moves up, so Reels and the other tabs stay put. Reported in #462.

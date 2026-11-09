@@ -28,6 +28,14 @@ internal const val SWAP_COMPOSE = "$ACCENT_COLOR->composeColor(J)J"
 /** The blues a palette has to store for the patch to know it found 451's: the dark link and Prism's indigo fill (#8). */
 internal val NEEDED_PALETTE_BLUES = listOf(0x85a1ff, 0x4a5df9)
 
+internal const val SWAP_SURFACE = "$ACCENT_THEME->composeSurface(J)J"
+
+/** The fields holding the grays a dark Compose screen paints itself with, by palette (#577). */
+internal val PALETTE_SURFACES = mapOf(
+    "Lcom/instagram/compose/core/theme/BasePrismColors;" to listOf("BLACK", "GRAY_8", "GRAY_9", "GRAY_10", "GRAY_1100"),
+    "Lcom/instagram/compose/core/theme/BasePrismColorsV2;" to listOf("GRAY_1300", "GRAY_1400", "GRAY_1500", "GRAY_1600"),
+)
+
 private val WIDE_CONSTS = setOf(Opcode.CONST_WIDE, Opcode.CONST_WIDE_32, Opcode.CONST_WIDE_16)
 
 private fun refuse(why: String): Nothing = throw PatchException("$PATCH: $why")
@@ -82,6 +90,46 @@ internal fun BytecodePatchContext.swapComposePalettes(stores: List<PaletteStore>
                 """,
             )
         }
+    }
+}
+
+/** Refuses unless every palette holds its [PALETTE_SURFACES] and a set-up to repaint them in, and the extension has the hook. */
+internal fun BytecodePatchContext.requirePaletteSurfaces() {
+    for ((type, fields) in PALETTE_SURFACES) {
+        val palette = classDefByOrNull(type) ?: refuse("$type is gone")
+        val held = palette.fields.map { it.name }.toSet()
+        fields.firstOrNull { it !in held }?.let { refuse("$type has no $it") }
+        if (palette.methods.none { it.name == "<clinit>" }) refuse("$type has no set-up")
+    }
+    if (classDefByOrNull(ACCENT_THEME)?.methods?.any {
+            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == SWAP_SURFACE &&
+                AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+        } != true
+    ) {
+        refuse("the extension has no public static $SWAP_SURFACE")
+    }
+}
+
+/**
+ * Backgrounds in the accent color's Compose half (#577): the message list and other Compose screens
+ * paint their rows from these palettes, so the theme styles never reach them. Each surface is read
+ * back through AccentTheme.composeSurface and stored again as the set-up ends, after every store and
+ * Pure black's rewrite. The registers are free there, right before the return.
+ */
+internal fun BytecodePatchContext.swapComposeSurfaces() {
+    for ((type, fields) in PALETTE_SURFACES) {
+        val setUp = mutableClassDefBy(type).methods.single { it.name == "<clinit>" }
+        val returns = setUp.implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.map { it.index }
+        if (returns.isEmpty()) refuse("$type's set-up has no return")
+        val repaint = fields.joinToString("\n") {
+            """
+                sget-wide v0, $type->$it:J
+                invoke-static/range { v0 .. v1 }, $SWAP_SURFACE
+                move-result-wide v0
+                sput-wide v0, $type->$it:J
+            """
+        }
+        for (at in returns.asReversed()) setUp.addInstructionsAtControlFlowLabel(at, repaint)
     }
 }
 

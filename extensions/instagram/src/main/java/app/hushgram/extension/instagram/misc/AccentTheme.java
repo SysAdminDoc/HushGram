@@ -136,6 +136,18 @@ public final class AccentTheme {
     /** The theme attribute Instagram's screens paint themselves with, the patch's BACKGROUND_ATTRIBUTE. */
     static final String BACKGROUND_ATTRIBUTE = "igds_color_primary_background";
 
+    /** What's counted each time one of the Compose palettes' dark grays takes an accent background's shade. */
+    static final String SURFACES = "Compose surfaces given accent backgrounds";
+
+    /** The theme attributes holding the page, raised and top background shades, the patch's BACKGROUND_ATTRIBUTES steps. */
+    private static final String[] SURFACE_ATTRIBUTES = {
+            BACKGROUND_ATTRIBUTE, "igds_color_elevated_background", "igds_color_secondary_background",
+    };
+
+    /** The shades {@link #SURFACE_ATTRIBUTES} last held on a dark theme given the accent backgrounds, or null for none yet. */
+    @Nullable
+    private static volatile int[] darkSurfaces;
+
     /** Resource numbers by type and name, 0 for none. They don't change while the app runs. */
     private static final Map<String, Integer> IDS = new HashMap<>();
 
@@ -252,7 +264,8 @@ public final class AccentTheme {
             if (Settings.ACCENT_BACKGROUNDS.get()) {
                 int attr = id(resources, BACKGROUND_ATTRIBUTE, "attr", app);
                 int icon = id(resources, ICON_ATTRIBUTE, "attr", app);
-                int backgrounds = attr == 0 || icon == 0 ? 0 : id(resources, backgroundStyle(hue, dark(context, theme, icon)), "style", app);
+                boolean dark = icon != 0 && dark(context, theme, icon);
+                int backgrounds = attr == 0 || icon == 0 ? 0 : id(resources, backgroundStyle(hue, dark), "style", app);
                 if (backgrounds == 0) {
                     HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS_MISSING);
                 } else if (!paintsItsOwnBackground(theme, attr)) {
@@ -260,10 +273,73 @@ public final class AccentTheme {
                 } else {
                     theme.applyStyle(backgrounds, true);
                     HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS);
+                    if (dark) rememberSurfaces(resources, theme, app);
                 }
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme", failure);
+        }
+    }
+
+    /** Keeps the shades [theme] now holds for {@link #SURFACE_ATTRIBUTES}, leaving the last ones if any can't be read. */
+    private static void rememberSurfaces(Resources resources, Resources.Theme theme, String app) {
+        int[] surfaces = new int[SURFACE_ATTRIBUTES.length];
+        TypedValue value = new TypedValue();
+        for (int step = 0; step < surfaces.length; step++) {
+            int attr = id(resources, SURFACE_ATTRIBUTES[step], "attr", app);
+            if (attr == 0 || !theme.resolveAttribute(attr, value, true)
+                    || value.type < TypedValue.TYPE_FIRST_COLOR_INT || value.type > TypedValue.TYPE_LAST_COLOR_INT) {
+                return;
+            }
+            surfaces[step] = value.data;
+        }
+        darkSurfaces = surfaces;
+    }
+
+    /** Sets what {@link #rememberSurfaces} keeps, for tests. */
+    static void darkSurfacesForTests(@Nullable int[] surfaces) {
+        darkSurfaces = surfaces;
+    }
+
+    /**
+     * Injected at the end of the set-up of Instagram's Compose palettes, once for each gray a dark
+     * screen paints itself with (#577). Compose screens such as the message list take those from the
+     * code, not the theme, so {@link #apply} alone leaves their rows and search field near-black under
+     * a colored page. With Backgrounds in the accent color on and a dark theme seen, answers [value] as
+     * the same shade the theme's own backgrounds hold, keeping the alpha, and [value] itself for any
+     * other color. Light themes stay, since those grays are their text. Never throws.
+     */
+    public static long composeSurface(long value) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if ((value & 0xffffffffL) != 0) return value;
+            int[] surfaces = darkSurfaces;
+            if (surfaces == null || AccentColor.picked() == null || !Settings.ACCENT_BACKGROUNDS.get()) return value;
+            int argb = (int) (value >>> 32);
+            int step = surfaceStep(argb & 0xffffff);
+            if (step < 0) return value;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, SURFACES);
+            return (long) (argb & 0xff000000 | surfaces[step] & 0xffffff) << 32;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose surface", failure);
+            return value;
+        }
+    }
+
+    /** Which of {@link #SURFACE_ATTRIBUTES} a dark gray of Instagram's stands for, or -1. Black is Pure black's page. */
+    private static int surfaceStep(int rgb) {
+        switch (rgb) {
+            case 0x000000:
+            case 0x0c1014:
+                return 0;
+            case 0x191c1f:
+                return 1;
+            case 0x212328:
+            case 0x25292e:
+            case 0x2b3036:
+                return 2;
+            default:
+                return -1;
         }
     }
 
