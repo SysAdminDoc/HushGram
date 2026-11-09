@@ -67,16 +67,19 @@ public class ReelReplyBarSettingsTest {
         PreferenceGroup reels = (PreferenceGroup) row.getParent();
         assertEquals("Reels", reels.getTitle().toString());
         int everywhere = -1;
+        int space = -1;
         int reply = -1;
         int topBar = -1;
         for (int i = 0; i < reels.getPreferenceCount(); i++) {
             String key = reels.getPreference(i).getKey();
             if (Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.key.equals(key)) everywhere = i;
+            if (Settings.KEEP_REEL_COMMENT_BAR_SPACE.key.equals(key)) space = i;
             if (Settings.HIDE_REEL_REPLY_BAR.key.equals(key)) reply = i;
             if (Settings.HIDE_REELS_TOP_BAR.key.equals(key)) topBar = i;
         }
         assertTrue("the comment bar's switch for all reels is there", everywhere >= 0);
-        assertEquals("right after Hide the comment bar on all reels", everywhere + 1, reply);
+        assertEquals("Keep the comment bar's space follows it", everywhere + 1, space);
+        assertEquals("right after the comment bar's two rows", space + 1, reply);
         assertEquals("and before Hide the top bar on the Reels tab", reply + 1, topBar);
         assertFalse(Settings.HIDE_REEL_REPLY_BAR.defaultValue);
         assertFalse(Settings.HIDE_REEL_REPLY_BAR.get());
