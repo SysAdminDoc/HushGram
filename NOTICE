@@ -45,6 +45,16 @@ Font placement hints were adjusted here. Privacy descriptions and notification c
 https://github.com/SysAdminDoc/HushGram/pull/313
 https://github.com/JhouHank/HushGram
 
+Thai translation
+----------------
+
+MangaThatsFine (Nuttapong Sessee) contributed the Thai translation in PR #593.
+The table was imported from commit
+302a414fca5ff81bb626e67e08ff6261069559c4, under GPL-3.0-only.
+Rows for strings added after that pull request are maintained here.
+https://github.com/SysAdminDoc/HushGram/pull/593
+https://github.com/MangaThatsFine/HushGram
+
 The contributor credits their Piko translations as a terminology reference.
 The table retains that reference, and Piko's notice is reproduced below.
 

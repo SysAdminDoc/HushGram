@@ -3,6 +3,17 @@
   "rules": [
     {
       "paths": [
+        "extensions/shared/library/src/main/l10n/th.tsv"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/MangaThatsFine/HushGram",
+      "commit": "302a414fca5ff81bb626e67e08ff6261069559c4",
+      "blob": "6f3ba88d2de33bb622db2b2995ac30818cde681b",
+      "license": "GPL-3.0-only",
+      "changes": "MangaThatsFine's Thai table, imported from HushGram PR #593. Three rows whose English has since changed were left out, 41 rows for newer strings were added here, and 10 toasts were shortened to fit two lines."
+    },
+    {
+      "paths": [
         "extensions/shared/library/src/main/l10n/zh-rTW.tsv"
       ],
       "origin": "ported",

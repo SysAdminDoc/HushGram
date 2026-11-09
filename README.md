@@ -395,7 +395,7 @@ When a patch depends on how Instagram behaves on its own, compare against the or
 
 Translations live in UTF-8 TSV files under `extensions/shared/library/src/main/l10n`, with the English text as the lookup key. `scripts/crowdin-l10n.py` prepares review worksheets, `scripts/sync-l10n.py import` brings a reviewed file back, and `scripts/gen-l10n.py` regenerates the class the extension carries. They need Python 3.12 or newer. The [translation guide](docs/translations.md) has the whole workflow and the review rules.
 
-The tables cover German, Spanish, Indonesian, Italian, Korean, Brazilian Portuguese, Turkish, Vietnamese and Traditional Chinese (Taiwan). JhouHank contributed the Traditional Chinese table in [#313](https://github.com/SysAdminDoc/HushGram/pull/313). Traditional Chinese script preferences and Hong Kong or Macao locales use its Taiwan wording. Explicit Simplified Chinese keeps the existing fallback.
+The tables cover German, Spanish, Indonesian, Italian, Korean, Brazilian Portuguese, Thai, Turkish, Vietnamese and Traditional Chinese (Taiwan). JhouHank contributed the Traditional Chinese table in [#313](https://github.com/SysAdminDoc/HushGram/pull/313), and MangaThatsFine the Thai one in [#593](https://github.com/SysAdminDoc/HushGram/pull/593). Traditional Chinese script preferences and Hong Kong or Macao locales use its Taiwan wording. Explicit Simplified Chinese keeps the existing fallback.
 
 ## Where the patches come from
 
