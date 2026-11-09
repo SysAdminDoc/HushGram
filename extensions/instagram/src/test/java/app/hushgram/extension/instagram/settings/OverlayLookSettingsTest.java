@@ -29,6 +29,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.EnumSetting;
 import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.instagram.feed.OverlayLook;
+import app.hushgram.extension.instagram.feed.SeekShape;
 
 /**
  * Pill look and the two Seek bar looks (#471): each sits right under the switch it styles, starts solid,
@@ -70,6 +71,41 @@ public class OverlayLookSettingsTest {
         Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
         Settings.STORY_SEEK_BAR.resetToDefault();
         Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
+        Settings.SEEK_BAR_SHAPE.resetToDefault();
+    }
+
+    /** #586: the shape sits right under the feed's look, covers every seek bar and travels with an export. */
+    @Test public void seekShapeSitsUnderTheFeedLookAndTakesAnySeekBar() throws Exception {
+        Settings.STORY_SEEK_BAR.save(true);
+        open(EnumSet.of(PatchFamily.FEED_SEEK_BAR));
+        Preference found = page.getPreferenceScreen().findPreference(Settings.SEEK_BAR_SHAPE.key);
+        assertTrue(found instanceof HushgramPreferenceFragment.ChoiceRow);
+        HushgramPreferenceFragment.ChoiceRow<?> row = (HushgramPreferenceFragment.ChoiceRow<?>) found;
+        PreferenceGroup group = (PreferenceGroup) row.getParent();
+        assertEquals("Feed", String.valueOf(group.getTitle()));
+        int lookAt = -1;
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            if (Settings.FEED_SEEK_BAR_LOOK.key.equals(group.getPreference(i).getKey())) lookAt = i;
+        }
+        assertTrue(lookAt >= 0);
+        assertEquals("right under the look", row, group.getPreference(lookAt + 1));
+        List<String> entries = new ArrayList<>();
+        for (CharSequence entry : row.getEntries()) entries.add(String.valueOf(entry));
+        assertEquals(Arrays.asList("Standard", "Thin line", "Rounded", "Expressive", "Wave"), entries);
+        assertEquals("STANDARD", row.getValue());
+        assertEquals("The bar and round handle you know.", String.valueOf(row.getSummary()));
+
+        row.setValue("WAVE");
+        ShadowLooper.idleMainLooper();
+        assertEquals(SeekShape.WAVE, Settings.SEEK_BAR_SHAPE.savedValue());
+        assertEquals("A wavy line for the part played, with a tall handle.", String.valueOf(row.getSummary()));
+
+        Settings.STORY_SEEK_BAR.save(false);
+        ShadowLooper.idleMainLooper();
+        row.showSummary();
+        assertEquals("Turn on a seek bar on feed videos, stories or reels to use this choice.", String.valueOf(row.getSummary()));
+        assertEquals("the choice is kept", SeekShape.WAVE, Settings.SEEK_BAR_SHAPE.savedValue());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SEEK_BAR_SHAPE.key));
     }
 
     private void open(EnumSet<PatchFamily> build) throws Exception {

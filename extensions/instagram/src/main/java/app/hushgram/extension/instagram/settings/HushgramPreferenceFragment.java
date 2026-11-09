@@ -110,6 +110,7 @@ import app.hushgram.extension.instagram.feed.AmbientSpread;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
 import app.hushgram.extension.instagram.feed.OverlayLook;
+import app.hushgram.extension.instagram.feed.SeekShape;
 import app.hushgram.extension.instagram.misc.CustomIcon;
 import app.hushgram.extension.instagram.misc.HeaderPicture;
 import app.hushgram.extension.instagram.misc.HeaderText;
@@ -741,7 +742,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_MENTIONS && Settings.STORY_MENTIONS_LOOK.key.equals(key);
                     belongs |= family == PatchFamily.CAROUSEL_ARROWS && Settings.CAROUSEL_PILL_LOOK.key.equals(key);
-                    belongs |= family == PatchFamily.FEED_SEEK_BAR && Settings.FEED_SEEK_BAR_LOOK.key.equals(key);
+                    belongs |= family == PatchFamily.FEED_SEEK_BAR && (Settings.FEED_SEEK_BAR_LOOK.key.equals(key)
+                            || Settings.SEEK_BAR_SHAPE.key.equals(key));
                     belongs |= family == PatchFamily.STORY_SEEK_BAR && Settings.STORY_SEEK_BAR_LOOK.key.equals(key);
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));
@@ -6028,21 +6030,44 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static OverlayLookRow overlayLookRow(Context context, EnumSetting<OverlayLook> setting, String title,
             String[] summaries, String needs) {
         OverlayLookRow row = new OverlayLookRow(context, setting, summaries, needs);
+        OverlayLook[] looks = OverlayLook.values();
+        String[] labels = new String[looks.length];
+        for (int i = 0; i < looks.length; i++) labels[i] = overlayLookLabel(looks[i]);
+        fill(row, setting, looks, labels, title);
+        return row;
+    }
+
+    /** The shape every seek bar takes (#586, #592). Its values are the shapes' own names. */
+    static ChoiceRow<SeekShape> seekShapeRow(Context context) {
+        String title = L10n.t("Seek bar shape");
+        ChoiceRow<SeekShape> row = new ChoiceRow<>(context, Settings.SEEK_BAR_SHAPE, SeekShape.values(), new String[] {
+                L10n.t("The bar and round handle you know."),
+                L10n.t("A thin line with no handle that grows while you drag it. On feed videos it sits on the bottom edge."),
+                L10n.t("A thicker rounded bar with no handle."),
+                L10n.t("A rounded bar split by a tall handle."),
+                L10n.t("A wavy line for the part played, with a tall handle."),
+        }, L10n.t("Turn on a seek bar on feed videos, stories or reels to use this choice."));
+        fill(row, Settings.SEEK_BAR_SHAPE, SeekShape.values(), new String[] {
+                L10n.t("Standard"),
+                L10n.t("Thin line"),
+                L10n.t("Rounded"),
+                L10n.t("Expressive"),
+                L10n.t("Wave"),
+        }, title);
+        return row;
+    }
+
+    /** Sets [row] up to choose among [choices], called [labels] in the list, with their own names as its values. */
+    private static <E extends Enum<E>> void fill(ChoiceRow<E> row, EnumSetting<E> setting, E[] choices, String[] labels, String title) {
         row.setKey(setting.key);
         row.setTitle(title);
         row.setDialogTitle(title);
         row.setNegativeButtonText(L10n.t("Cancel"));
-        OverlayLook[] looks = OverlayLook.values();
-        CharSequence[] entries = new CharSequence[looks.length];
-        CharSequence[] values = new CharSequence[looks.length];
-        for (int i = 0; i < looks.length; i++) {
-            entries[i] = overlayLookLabel(looks[i]);
-            values[i] = looks[i].name();
-        }
-        row.setEntries(entries);
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) values[i] = choices[i].name();
+        row.setEntries(labels);
         row.setEntryValues(values);
         row.setValue(setting.savedValue().name());
-        return row;
     }
 
     /** What the list calls [look]. */
@@ -6320,8 +6345,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryTimeModeRow) preference).showSummary();
         } else if (preference instanceof StoryMentionsLookRow) {
             ((StoryMentionsLookRow) preference).showSummary();
-        } else if (preference instanceof OverlayLookRow) {
-            ((OverlayLookRow) preference).showSummary();
+        } else if (preference instanceof ChoiceRow) {
+            ((ChoiceRow<?>) preference).showSummary();
         } else if (preference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) preference).showSummary();
         } else if (preference instanceof HiddenBarsRow) {
@@ -6371,8 +6396,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryTimeModeRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryMentionsLookRow) {
             ((StoryMentionsLookRow) listPreference).showSummary();
-        } else if (listPreference instanceof OverlayLookRow) {
-            ((OverlayLookRow) listPreference).showSummary();
+        } else if (listPreference instanceof ChoiceRow) {
+            ((ChoiceRow<?>) listPreference).showSummary();
         } else if (listPreference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) listPreference).showSummary();
         } else if (listPreference instanceof HiddenBarsRow) {
@@ -9139,14 +9164,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    static final class OverlayLookRow extends ListPreference {
-        private final EnumSetting<OverlayLook> setting;
+    static final class OverlayLookRow extends ChoiceRow<OverlayLook> {
+        OverlayLookRow(Context context, EnumSetting<OverlayLook> setting, String[] summaries, String needs) {
+            super(context, setting, OverlayLook.values(), summaries, needs);
+        }
+    }
+
+    /** A list of [choices] for an enum [setting], [summaries] saying what each one is, and [needs] while its switch is off. */
+    static class ChoiceRow<E extends Enum<E>> extends ListPreference {
+        private final EnumSetting<E> setting;
+        private final E[] choices;
         private final String[] summaries;
         private final String needs;
 
-        OverlayLookRow(Context context, EnumSetting<OverlayLook> setting, String[] summaries, String needs) {
+        ChoiceRow(Context context, EnumSetting<E> setting, E[] choices, String[] summaries, String needs) {
             super(context);
             this.setting = setting;
+            this.choices = choices;
             this.summaries = summaries;
             this.needs = needs;
         }
@@ -9159,11 +9193,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
         void showSummary() {
             if (setting == null) return;
-            OverlayLook look = OverlayLook.SOLID;
-            for (OverlayLook candidate : OverlayLook.values()) {
-                if (candidate.name().equals(getValue())) look = candidate;
+            E chosen = choices[0];
+            for (E candidate : choices) {
+                if (candidate.name().equals(getValue())) chosen = candidate;
             }
-            setSummary(setting.isAvailable() ? summaries[look.ordinal()] : needs);
+            setSummary(setting.isAvailable() ? summaries[chosen.ordinal()] : needs);
         }
 
         @Override

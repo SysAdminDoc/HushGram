@@ -13,6 +13,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.cornerSizeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSeekBarLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.seekShapeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
@@ -226,6 +227,10 @@ final class FeedCategory {
                     L10n.t("Adds a small button at the bottom left of a feed video that shows or hides its seek bar. "
                             + "It works with Seek bar on feed videos on or off.")));
             feed.addPreference(feedSeekBarLookRow(context));
+            feed.addPreference(seekShapeRow(context));
+            feed.addPreference(toggle(context, Settings.SEEK_PREVIEW, L10n.t("Preview while you drag a seek bar"),
+                    L10n.t("Shows the time above your finger while you drag a seek bar on a feed video, story or reel, "
+                            + "and a small picture of that moment when Instagram has one for the video.")));
             feed.addPreference(toggle(context, Settings.FEED_SEEK_BAR_ON_EDGE, L10n.t("Seek bar on the bottom edge"),
                     L10n.t("Puts the seek bar right on the bottom edge of the video, so it's harder to touch by "
                             + "accident while you scroll.")));

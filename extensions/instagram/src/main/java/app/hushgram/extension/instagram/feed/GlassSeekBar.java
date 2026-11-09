@@ -39,6 +39,7 @@ public final class GlassSeekBar extends SeekBar {
     private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF capsule = new RectF();
     private OverlayLook look;
+    private SeekShape shape = SeekShape.STANDARD;
 
     public GlassSeekBar(Context context, String family, String hook) {
         super(context);
@@ -61,6 +62,14 @@ public final class GlassSeekBar extends SeekBar {
 
     public OverlayLook look() {
         return look;
+    }
+
+    /** Draws as [wanted], along the bar's bottom edge when [flush]. Only the standard shape has the frosted capsule. */
+    public void shape(SeekShape wanted, boolean flush) {
+        if (wanted == null) return;
+        if (wanted != SeekShape.STANDARD) backdrop.release();
+        shape = wanted;
+        SeekShapes.apply(this, wanted, look, flush);
     }
 
     /** The colour of the part played with [look]. */
@@ -98,7 +107,7 @@ public final class GlassSeekBar extends SeekBar {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        if (look == OverlayLook.FROSTED && getWidth() > 0 && getHeight() > 0) {
+        if (look == OverlayLook.FROSTED && shape == SeekShape.STANDARD && getWidth() > 0 && getHeight() > 0) {
             backdrop.record(this, SystemClock.uptimeMillis());
             RectF shape = capsule();
             float radius = shape.height() / 2f;

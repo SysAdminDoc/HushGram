@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.stories;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -36,6 +37,7 @@ import java.util.List;
 
 import app.hushgram.extension.instagram.feed.GlassSeekBar;
 import app.hushgram.extension.instagram.feed.OverlayLook;
+import app.hushgram.extension.instagram.feed.SeekShape;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -109,6 +111,7 @@ public class StorySeekBarTest {
         StorySeekBar.resetForTests();
         Settings.STORY_SEEK_BAR.resetToDefault();
         Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
+        Settings.SEEK_BAR_SHAPE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -293,6 +296,23 @@ public class StorySeekBarTest {
         tick();
         assertEquals(OverlayLook.SEE_THROUGH, bar.look());
         assertSame("the same bar, restyled", bar, StorySeekBar.barForTests());
+    }
+
+    /** #586: the story bar takes the same shape as the others, and Standard gives its own back. */
+    @Test
+    public void theBarTakesTheChosenShape() {
+        Settings.STORY_SEEK_BAR.save(true);
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.EXPRESSIVE);
+        StorySeekBar.resumed(viewer);
+        tick();
+        SeekBar bar = bar();
+        assertEquals("SeekShapeDrawable", bar.getProgressDrawable().getClass().getSimpleName());
+        assertEquals("a shape has no round handle", 0, bar.getThumb().getIntrinsicWidth());
+
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.STANDARD);
+        tick();
+        assertSame("the same bar", bar, StorySeekBar.barForTests());
+        assertFalse("SeekShapeDrawable".equals(bar.getProgressDrawable().getClass().getSimpleName()));
     }
 
     @Test

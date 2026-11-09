@@ -102,6 +102,8 @@ internal const val PHOTO_BAR_ON = "$REEL_SEEK_BAR->photoBarOn()Z"
 internal const val PHOTO_REEL = "$REEL_SEEK_BAR->photoReel(ILjava/lang/Object;Ljava/lang/String;)Z"
 internal const val PHOTO_ROW = "$REEL_SEEK_BAR->photoRow(Ljava/lang/Object;Ljava/lang/String;)V"
 internal const val PHOTO_PROGRESS = "$REEL_SEEK_BAR->photoProgress(Ljava/lang/String;II)V"
+internal const val SEEK_PREVIEW_ON = "$EXTENSION_PACKAGE/feed/SeekPreview;->on()Z"
+internal const val REMEMBER_REEL = "$REEL_SEEK_BAR->rememberReel(Ljava/lang/Object;Ljava/lang/String;)V"
 
 /** The marker of the Reels player's position callback (on 454 LX/04Kf->A1M), which every reel's player goes through. */
 internal const val PLAYER_PROGRESS = "ClipsVideoPlayerController_onProgressUpdate"
@@ -589,6 +591,22 @@ private fun BytecodePatchContext.applyPhotoHooks(sites: PhotoSites) {
             invoke-static { v1, v0 }, $PHOTO_ROW
         """,
         ExternalLabel("instagram", row.getInstruction(0)),
+    )
+    // Ahead of that, on its own switch: the seek preview's pictures need each reel's post (#567).
+    row.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static {}, $SEEK_PREVIEW_ON
+            move-result v0
+            if-eqz v0, :seek_preview_off
+            move-object/from16 v0, v${row.parameterRegisterNumber(1)}
+            if-eqz v0, :seek_preview_off
+            iget-object v1, v0, ${sites.media}
+            invoke-virtual { v0 }, ${sites.id}
+            move-result-object v0
+            invoke-static { v1, v0 }, $REMEMBER_REEL
+        """,
+        ExternalLabel("seek_preview_off", row.getInstruction(0)),
     )
 
     val player = mutable(sites.player)

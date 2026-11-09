@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import app.hushgram.extension.instagram.feed.GlassSeekBar;
+import app.hushgram.extension.instagram.feed.SeekPreview;
+import app.hushgram.extension.instagram.feed.SeekShapes;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -232,6 +234,7 @@ public final class StorySeekBar {
             GlassSeekBar seek = bar != null ? bar : make(owner);
             if (seek == null) return;
             seek.look(Settings.STORY_SEEK_BAR_LOOK.get());
+            seek.shape(SeekShapes.wanted(), false);
             if (!dragging) {
                 if (seek.getMax() != duration) seek.setMax(duration);
                 int position = player.position(owner);
@@ -373,6 +376,7 @@ public final class StorySeekBar {
 
         @Override
         public void onProgressChanged(SeekBar seek, int progress, boolean fromUser) {
+            if (fromUser && dragging) SeekPreview.dragged(seek, progress, null, FamilyNames.STORY_SEEK_BAR);
         }
 
         @Override

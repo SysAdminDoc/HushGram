@@ -49,7 +49,7 @@ class ReelSeekBarHookTest {
     /** The hooks the patch writes are in the ReelSeekBar and ReelSeekTouch the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, LISTEN, PHOTO_BAR_ON, PHOTO_REEL, PHOTO_ROW, PHOTO_PROGRESS)) {
+        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, LISTEN, PHOTO_BAR_ON, PHOTO_REEL, PHOTO_ROW, PHOTO_PROGRESS, SEEK_PREVIEW_ON, REMEMBER_REEL)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -501,9 +501,15 @@ class ReelSeekBarHookTest {
      */
     private fun assertPhotoHooked(what: String, context: BytecodePatchContext, sites: ReelSeekBarSites) {
         val photo = sites.photo
+        // The seek preview's own switched block runs first in the row, and lets go straight onto the photo bar's switch (#567).
+        val rowFlow = ControlFlow.of(context.method(photo.row))
+        val photoRowAt = rowFlow.instructions.indexOfFirst { it.calls(PHOTO_BAR_ON) }
+        assertTrue("$what: the preview's switch comes first", rowFlow.instructions[0].calls(SEEK_PREVIEW_ON))
+        assertEquals("$what: the post is remembered once", 1, rowFlow.instructions.count { it.calls(REMEMBER_REEL) })
+        assertTrue("$what: off, the row goes on to the photo bar's switch", photoRowAt in rowFlow.normal[2])
         for ((method, start, hook) in listOf(
             Triple(context.method(photo.answer), photo.answerAt, PHOTO_REEL),
-            Triple(context.method(photo.row), 0, PHOTO_ROW),
+            Triple(context.method(photo.row), photoRowAt, PHOTO_ROW),
             Triple(context.method(photo.player), 0, PHOTO_PROGRESS),
         )) {
             val name = "$what ${method.definingClass}->${method.name}"

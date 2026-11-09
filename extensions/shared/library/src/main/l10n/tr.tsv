@@ -1936,3 +1936,17 @@ No call rings your phone. Callers just get no answer.	Hiçbir arama telefonunu �
 Only people on your list ring your phone. Anyone else gets no answer.	Telefonunu yalnızca listendeki kişiler çaldırır. Diğerleri yanıt alamaz.
 People on your list don't ring your phone. Everyone else still does.	Listendeki kişiler telefonunu çaldırmaz. Diğerleri çaldırmaya devam eder.
 Everyone can ring your phone, as usual.	Herkes seni her zamanki gibi arayabilir.
+# context: Seek bar shape and preview (#567, #586, #592)
+Seek bar shape	Arama çubuğu şekli
+Thin line	İnce çizgi
+Rounded	Yuvarlatılmış
+Expressive	Etkileyici
+Wave	Dalga
+The bar and round handle you know.	Bildiğiniz çubuk ve yuvarlak tutamaç.
+A thin line with no handle that grows while you drag it. On feed videos it sits on the bottom edge.	Sürüklerken kalınlaşan, tutamaçsız ince bir çizgi. Akış videolarında alt kenarda durur.
+A thicker rounded bar with no handle.	Tutamaçsız, daha kalın yuvarlatılmış bir çubuk.
+A rounded bar split by a tall handle.	Uzun bir tutamaçla bölünmüş yuvarlatılmış bir çubuk.
+A wavy line for the part played, with a tall handle.	Oynatılan kısım için dalgalı bir çizgi ve uzun bir tutamaç.
+Turn on a seek bar on feed videos, stories or reels to use this choice.	Bu seçimi kullanmak için akış videolarında, hikayelerde veya Reels'te bir arama çubuğunu açın.
+Preview while you drag a seek bar	Arama çubuğunu sürüklerken önizleme
+Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.	Bir akış videosunda, hikayede veya Reels videosunda arama çubuğunu sürüklerken parmağınızın üstünde süreyi ve Instagram'da o video için varsa o anın küçük bir resmini gösterir.

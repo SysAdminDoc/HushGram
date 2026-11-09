@@ -41,6 +41,7 @@ import org.robolectric.shadows.ShadowSystemClock;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import app.hushgram.extension.instagram.feed.SeekShape;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -90,8 +91,30 @@ public class ReelSeekThumbTest {
         Settings.BIG_REEL_SEEK_BAR.resetToDefault();
         Settings.DM_REEL_SEEK_BAR.resetToDefault();
         Settings.REEL_SEEK_BAR.resetToDefault();
+        Settings.SEEK_BAR_SHAPE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
+    }
+
+    /** #586: a shape draws the reel's bar in place of its handle and thicker track, and Standard hands Instagram's back. */
+    @Test public void aShapeTakesOverTheReelBarAndStandardHandsItBack() {
+        Drawable track = bar.getProgressDrawable();
+        Settings.REEL_SEEK_THUMB.save(true);
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.WAVE);
+        refresh();
+        assertTrue(ReelSeekBar.shaped());
+        assertFalse("the shape has its own handle", ReelSeekBar.thumbOn());
+        assertFalse(ReelSeekBar.bigOn());
+        assertEquals("SeekShapeDrawable", bar.getProgressDrawable().getClass().getSimpleName());
+        assertEquals(0, bar.getThumb().getIntrinsicWidth());
+
+        Settings.REEL_SEEK_THUMB.save(false);
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.STANDARD);
+        refresh();
+        assertFalse(ReelSeekBar.shaped());
+        assertSame(track, bar.getProgressDrawable());
+        assertSame(original, bar.getThumb());
+        assertEquals(3, bar.getThumbOffset());
     }
 
     @Test public void defaultOffLeavesTheNativeDrawableAndOffset() {

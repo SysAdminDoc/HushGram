@@ -1853,3 +1853,17 @@ No call rings your phone. Callers just get no answer.	Không cuộc gọi nào �
 Only people on your list ring your phone. Anyone else gets no answer.	Chỉ những người trong danh sách mới làm điện thoại đổ chuông. Người khác không nhận được trả lời.
 People on your list don't ring your phone. Everyone else still does.	Những người trong danh sách không làm điện thoại đổ chuông. Người khác vẫn gọi được.
 Everyone can ring your phone, as usual.	Mọi người có thể gọi cho bạn như bình thường.
+# context: Seek bar shape and preview (#567, #586, #592)
+Seek bar shape	Hình dạng thanh tua
+Thin line	Đường mảnh
+Rounded	Bo tròn
+Expressive	Biểu cảm
+Wave	Sóng
+The bar and round handle you know.	Thanh và nút tròn quen thuộc.
+A thin line with no handle that grows while you drag it. On feed videos it sits on the bottom edge.	Một đường mảnh không có nút, dày lên khi bạn kéo. Trên video bảng feed, nó nằm ở cạnh dưới.
+A thicker rounded bar with no handle.	Một thanh bo tròn dày hơn, không có nút.
+A rounded bar split by a tall handle.	Một thanh bo tròn được chia bởi một nút cao.
+A wavy line for the part played, with a tall handle.	Một đường lượn sóng cho phần đã phát, kèm một nút cao.
+Turn on a seek bar on feed videos, stories or reels to use this choice.	Hãy bật thanh tua trên video bảng feed, tin hoặc Reels để dùng lựa chọn này.
+Preview while you drag a seek bar	Xem trước khi kéo thanh tua
+Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.	Hiện thời gian phía trên ngón tay khi bạn kéo thanh tua trên video bảng feed, tin hoặc Reels, cùng một ảnh nhỏ của khoảnh khắc đó khi Instagram có ảnh cho video.

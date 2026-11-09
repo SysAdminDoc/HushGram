@@ -1936,3 +1936,17 @@ No call rings your phone. Callers just get no answer.	Tidak ada panggilan yang b
 Only people on your list ring your phone. Anyone else gets no answer.	Hanya orang di daftarmu yang membuat ponselmu berdering. Yang lain tidak mendapat jawaban.
 People on your list don't ring your phone. Everyone else still does.	Orang di daftarmu tidak membuat ponselmu berdering. Yang lain tetap bisa.
 Everyone can ring your phone, as usual.	Semua orang bisa meneleponmu seperti biasa.
+# context: Seek bar shape and preview (#567, #586, #592)
+Seek bar shape	Bentuk bilah geser
+Thin line	Garis tipis
+Rounded	Membulat
+Expressive	Ekspresif
+Wave	Gelombang
+The bar and round handle you know.	Bilah dan pegangan bulat yang sudah biasa.
+A thin line with no handle that grows while you drag it. On feed videos it sits on the bottom edge.	Garis tipis tanpa pegangan yang membesar saat digeser. Pada video feed, garis ini berada di tepi bawah.
+A thicker rounded bar with no handle.	Bilah membulat yang lebih tebal, tanpa pegangan.
+A rounded bar split by a tall handle.	Bilah membulat yang dipisahkan oleh pegangan tinggi.
+A wavy line for the part played, with a tall handle.	Garis bergelombang untuk bagian yang sudah diputar, dengan pegangan tinggi.
+Turn on a seek bar on feed videos, stories or reels to use this choice.	Aktifkan bilah geser di video feed, cerita, atau Reels untuk menggunakan pilihan ini.
+Preview while you drag a seek bar	Pratinjau saat menggeser bilah geser
+Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.	Menampilkan waktu di atas jari saat Anda menggeser bilah geser di video feed, cerita, atau Reels, serta gambar kecil dari momen itu jika Instagram memilikinya untuk video tersebut.

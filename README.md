@@ -346,7 +346,7 @@ On Windows, `Get-FileHash -Algorithm SHA256 .\patches-<version>.mpp` prints the 
 
 ## Privacy
 
-HushGram doesn't collect anything and has no server. It opens connections itself in two places. One fetches media you ask for, like a save, a picture you open with View profile picture or the small pictures in See who a story mentions. That all comes over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and an address anywhere else is refused. The other downloads an emoji pack when you pick one under Emoji style, once, from its maker's own release on GitHub, and keeps it only if its size and SHA-256 match the file HushGram names. Apart from that, its code names four addresses:
+HushGram doesn't collect anything and has no server. It opens connections itself in two places. One fetches media you ask for, like a save, a picture you open with View profile picture, the small pictures in See who a story mentions or the picture strip behind a seek bar's preview. That all comes over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and an address anywhere else is refused. The other downloads an emoji pack when you pick one under Emoji style, once, from its maker's own release on GitHub, and keeps it only if its size and SHA-256 match the file HushGram names. Apart from that, its code names four addresses:
 
 - `github.com`, for the link to this page in settings. It opens in your browser, only when you tap it. The Twemoji and Blobmoji packs download from their release pages there.
 - `raw.githubusercontent.com`, where the OpenMoji pack downloads from, only when you pick it.

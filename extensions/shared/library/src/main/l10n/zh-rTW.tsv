@@ -1939,3 +1939,17 @@ No call rings your phone. Callers just get no answer.	沒有任何來電會響�
 Only people on your list ring your phone. Anyone else gets no answer.	只有名單上的人來電才會響。其他人得不到回應。
 People on your list don't ring your phone. Everyone else still does.	名單上的人來電不會響。其他人照常會響。
 Everyone can ring your phone, as usual.	所有人都能像平常一樣打給你。
+# context: Seek bar shape and preview (#567, #586, #592)
+Seek bar shape	拖曳列形狀
+Thin line	細線
+Rounded	圓角
+Expressive	表現力
+Wave	波浪
+The bar and round handle you know.	您熟悉的拖曳列與圓形拖曳鈕。
+A thin line with no handle that grows while you drag it. On feed videos it sits on the bottom edge.	沒有拖曳鈕的細線，拖曳時會變粗。在動態影片上會貼齊下緣。
+A thicker rounded bar with no handle.	較粗的圓角拖曳列，沒有拖曳鈕。
+A rounded bar split by a tall handle.	由高拖曳鈕分隔的圓角拖曳列。
+A wavy line for the part played, with a tall handle.	已播放部分為波浪線，並附高拖曳鈕。
+Turn on a seek bar on feed videos, stories or reels to use this choice.	請啟用動態影片、限時動態或 Reels 的拖曳列以使用此選項。
+Preview while you drag a seek bar	拖曳拖曳列時預覽
+Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.	在動態影片、限時動態或 Reels 上拖曳拖曳列時，於手指上方顯示時間，若 Instagram 有該影片的圖片，也會顯示該時刻的小圖。

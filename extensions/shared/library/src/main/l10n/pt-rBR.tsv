@@ -1936,3 +1936,17 @@ No call rings your phone. Callers just get no answer.	Nenhuma chamada toca no se
 Only people on your list ring your phone. Anyone else gets no answer.	Só quem está na sua lista faz seu celular tocar. Os outros não recebem resposta.
 People on your list don't ring your phone. Everyone else still does.	Quem está na sua lista não faz seu celular tocar. Os outros continuam fazendo.
 Everyone can ring your phone, as usual.	Todos podem te ligar, como sempre.
+# context: Seek bar shape and preview (#567, #586, #592)
+Seek bar shape	Forma da barra de busca
+Thin line	Linha fina
+Rounded	Arredondada
+Expressive	Expressiva
+Wave	Onda
+The bar and round handle you know.	A barra e o controle redondo de sempre.
+A thin line with no handle that grows while you drag it. On feed videos it sits on the bottom edge.	Uma linha fina sem controle que cresce enquanto você arrasta. Nos vídeos do feed ela fica na borda inferior.
+A thicker rounded bar with no handle.	Uma barra arredondada mais grossa, sem controle.
+A rounded bar split by a tall handle.	Uma barra arredondada dividida por um controle alto.
+A wavy line for the part played, with a tall handle.	Uma linha ondulada para a parte reproduzida, com um controle alto.
+Turn on a seek bar on feed videos, stories or reels to use this choice.	Ative uma barra de busca nos vídeos do feed, nos stories ou nos Reels para usar esta opção.
+Preview while you drag a seek bar	Prévia ao arrastar uma barra de busca
+Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.	Mostra o tempo acima do seu dedo enquanto você arrasta uma barra de busca em um vídeo do feed, story ou Reel, e uma imagem pequena daquele momento quando o Instagram tem uma para o vídeo.

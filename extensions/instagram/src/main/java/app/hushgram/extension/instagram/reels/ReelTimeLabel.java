@@ -42,6 +42,11 @@ import java.util.Objects;
 import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
 
+import app.hushgram.extension.instagram.feed.OverlayLook;
+import app.hushgram.extension.instagram.feed.SeekPreview;
+import app.hushgram.extension.instagram.feed.SeekShape;
+import app.hushgram.extension.instagram.feed.SeekShapes;
+import app.hushgram.extension.instagram.feed.SeekSheet;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -381,9 +386,13 @@ final class ReelTimeLabel {
                 // An ad's bar, a bar on another screen, or one taken out of its container.
                 if (label != null) remove(bar, label);
                 ease(bar, false);
+                SeekShapes.restore(bar);
                 return;
             }
             int max = bar.getMax();
+            // In this order round the handle: each gets Instagram's drawables back from the other before it keeps them.
+            SeekShape shape = ReelSeekBar.shaped() ? SeekShapes.wanted() : SeekShape.STANDARD;
+            if (shape == SeekShape.STANDARD) SeekShapes.restore(bar);
             boolean labelOn = on.getAsBoolean() || ReelSeekBar.photoShown(reelOf(bar));
             boolean thumbOn = ReelSeekBar.thumbOn() && max > 0 && bar.isAttachedToWindow();
             if (tracker == null && thumbOn) tracker = track(bar, on);
@@ -393,6 +402,10 @@ final class ReelTimeLabel {
                 // A bar first seen playing learns its reel here, so binding that reel again doesn't start it over.
                 if (state.bound == null) state.bound = reelOf(bar);
                 updateThumb(bar, state, thumbOn);
+            }
+            if (shape != SeekShape.STANDARD) SeekShapes.apply(bar, shape, OverlayLook.SOLID, true);
+            if (bar.isPressed() && SeekPreview.on()) {
+                SeekPreview.dragged(bar, progress, SeekSheet.ofMedia(ReelSeekBar.mediaOf(reelOf(bar))), FamilyNames.REEL_SEEK_BAR);
             }
             ease(bar, (labelOn || ReelSeekBar.thumbOn()) && max > 0);
             if (!labelOn || max <= 0) {

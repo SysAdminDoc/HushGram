@@ -62,6 +62,9 @@ public final class FeedSeekBar {
     /** The least the bar is tall on the bottom edge (#567), where it's only as tall as its round handle. */
     static final int EDGE_MIN_DP = 12;
 
+    /** How tall the bar is on the bottom edge with a {@linkplain SeekShape#tallHandle() tall handle}, which needs the room. */
+    static final int EDGE_TALL_DP = 22;
+
     static final String HOOK = "feed seek bar";
     static final String COUNT_SEEKS = "feed seeks";
     static final String COUNT_TOGGLES = "feed seek bar toggles";
@@ -75,6 +78,8 @@ public final class FeedSeekBar {
         boolean seekTo(Object player, int positionMs);
         boolean pause(Object player);
         boolean play(Object player);
+        /** The picture strip of the post the player has now, for the preview while a drag moves. */
+        @Nullable default SeekSheet sheet(Object player) { return null; }
     }
 
     static final Player PATCHED = new Player() {
@@ -82,6 +87,7 @@ public final class FeedSeekBar {
         @Override public boolean seekTo(Object player, int positionMs) { return FeedSeekReader.seekTo(player, positionMs, true); }
         @Override public boolean pause(Object player) { return FeedSeekReader.pause(player, null) != null; }
         @Override public boolean play(Object player) { return FeedSeekReader.play(player, null, null, null) != null; }
+        @Override public SeekSheet sheet(Object player) { return SeekSheet.ofMedia(FeedSeekReader.media(player)); }
     };
 
     private static Player feed = PATCHED;
@@ -222,6 +228,8 @@ public final class FeedSeekBar {
             }
             GlassSeekBar seek = bar != null && bar.getParent() == frame ? bar : attach(frame, view);
             seek.look(Settings.FEED_SEEK_BAR_LOOK.get());
+            SeekShape shape = SeekShapes.wanted();
+            seek.shape(shape, Settings.FEED_SEEK_BAR_ON_EDGE.get() || shape == SeekShape.LINE);
             fit(seek, ViewGroup.LayoutParams.MATCH_PARENT, barHeight(view, seek), 0);
             hiddenSince = -1;
             if (!dragging) {
@@ -375,6 +383,13 @@ public final class FeedSeekBar {
 
         @Override
         public void onProgressChanged(SeekBar seek, int progress, boolean fromUser) {
+            if (!fromUser || !dragging || !SeekPreview.on()) return;
+            try {
+                Object owner = player.get();
+                SeekPreview.dragged(seek, progress, owner != null ? feed.sheet(owner) : null, FamilyNames.FEED_SEEK_BAR);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FEED_SEEK_BAR, HOOK, failure);
+            }
         }
 
         /**
@@ -464,7 +479,9 @@ public final class FeedSeekBar {
      * video's bottom edge and the rest of the video takes taps and scrolls as before (#567).
      */
     static int barHeight(View view, @Nullable SeekBar seek) {
-        if (!Settings.FEED_SEEK_BAR_ON_EDGE.get()) return dp(view, HEIGHT_DP);
+        SeekShape shape = SeekShapes.wanted();
+        if (!Settings.FEED_SEEK_BAR_ON_EDGE.get() && shape != SeekShape.LINE) return dp(view, HEIGHT_DP);
+        if (shape.tallHandle()) return dp(view, EDGE_TALL_DP);
         Drawable handle = seek != null ? seek.getThumb() : null;
         return Math.max(handle != null ? handle.getIntrinsicHeight() : 0, dp(view, EDGE_MIN_DP));
     }

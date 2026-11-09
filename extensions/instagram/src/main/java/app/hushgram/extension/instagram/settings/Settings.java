@@ -17,6 +17,7 @@ import app.hushgram.extension.instagram.download.HoldFingers;
 import app.hushgram.extension.instagram.download.HoldTime;
 import app.hushgram.extension.instagram.download.SaveFolder;
 import app.hushgram.extension.instagram.feed.OverlayLook;
+import app.hushgram.extension.instagram.feed.SeekShape;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
@@ -3053,6 +3054,23 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting PHOTO_REEL_SEEK_BAR =
             new BooleanSetting("hushgram_photo_reel_seek_bar", FALSE);
+
+    /**
+     * The shape of the seek bars on feed videos, stories and reels (#586, #592), one choice for all
+     * of them. {@link SeekShape#STANDARD} to start, which leaves each bar as it's always been.
+     */
+    public static final EnumSetting<SeekShape> SEEK_BAR_SHAPE =
+            new EnumSetting<>("hushgram_seek_bar_shape", SeekShape.STANDARD,
+                    parentsAny(FEED_SEEK_BAR, FEED_SEEK_BUTTON, STORY_SEEK_BAR, REEL_SEEK_BAR, BIG_REEL_SEEK_BAR, DM_REEL_SEEK_BAR));
+
+    /**
+     * A card above the finger while a seek bar on a feed video, story or reel is dragged (#567, #592):
+     * the time, and a picture of that moment from the strip Instagram sends with a video, fetched only
+     * when a drag gets to it. Off to start.
+     */
+    public static final BooleanSetting SEEK_PREVIEW =
+            new BooleanSetting("hushgram_seek_preview", FALSE,
+                    parentsAny(FEED_SEEK_BAR, FEED_SEEK_BUTTON, STORY_SEEK_BAR, REEL_SEEK_BAR, BIG_REEL_SEEK_BAR, DM_REEL_SEEK_BAR));
 
     /**
      * A reel shows the date and time it was posted on a line under its author's name

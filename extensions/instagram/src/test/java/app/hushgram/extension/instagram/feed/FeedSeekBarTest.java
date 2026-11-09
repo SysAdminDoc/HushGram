@@ -151,12 +151,17 @@ public class FeedSeekBarTest {
         Settings.FEED_SEEK_BUTTON.resetToDefault();
         Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
         Settings.FEED_SEEK_BAR_ON_EDGE.resetToDefault();
+        Settings.SEEK_BAR_SHAPE.resetToDefault();
+        Settings.SEEK_PREVIEW.resetToDefault();
         HookStatus.clear();
     }
 
     @After
     public void restore() {
         FeedSeekBar.resetForTests();
+        SeekPreview.resetForTests();
+        Settings.SEEK_BAR_SHAPE.resetToDefault();
+        Settings.SEEK_PREVIEW.resetToDefault();
         TabSwipe.forgetForTests();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
@@ -543,6 +548,72 @@ public class FeedSeekBarTest {
         tick();
         drag.stop();
         assertEquals(Arrays.asList("pause", "play"), stand.calls);
+    }
+
+    /** #586: a shape takes over the bar as it follows the video, and Standard hands it back. */
+    @Test
+    public void theBarTakesTheChosenShapeAndGivesItBack() {
+        Settings.FEED_SEEK_BAR.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        SeekBar bar = bar();
+        assertFalse(bar.getProgressDrawable() instanceof SeekShapeDrawable);
+
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.ROUNDED);
+        FeedSeekBar.progress(player, 4000, 15000);
+        tick();
+        assertSame("the same bar, reshaped", bar, FeedSeekBar.barForTests());
+        assertTrue(bar.getProgressDrawable() instanceof SeekShapeDrawable);
+        assertEquals("a shape has no round handle", 0, bar.getThumb().getIntrinsicWidth());
+
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.STANDARD);
+        FeedSeekBar.progress(player, 5000, 15000);
+        tick();
+        assertFalse(bar.getProgressDrawable() instanceof SeekShapeDrawable);
+    }
+
+    /** #567: the thin line lies on the edge with no switch, and a shape with a tall handle gets room for it there. */
+    @Test
+    public void aLineSitsOnTheEdgeAndATallHandleGetsRoom() {
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.LINE);
+        FeedSeekBar.progress(player, 3000, 15000);
+        tick();
+        SeekBar bar = bar();
+        float density = bar.getResources().getDisplayMetrics().density;
+        assertEquals(Math.round(FeedSeekBar.EDGE_MIN_DP * density), bar.getLayoutParams().height);
+        assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.LINE, true));
+
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.WAVE);
+        FeedSeekBar.progress(player, 4000, 15000);
+        tick();
+        assertEquals("off the edge it keeps its room", Math.round(FeedSeekBar.HEIGHT_DP * density), bar.getLayoutParams().height);
+        assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.WAVE, false));
+
+        Settings.FEED_SEEK_BAR_ON_EDGE.save(true);
+        FeedSeekBar.progress(player, 5000, 15000);
+        tick();
+        assertEquals(Math.round(FeedSeekBar.EDGE_TALL_DP * density), bar.getLayoutParams().height);
+        assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.WAVE, true));
+    }
+
+    /** #567: dragging shows the time above the finger; the player moving on its own doesn't. */
+    @Test
+    public void onlyADragShowsThePreview() {
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.SEEK_PREVIEW.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        SeekBar bar = bar();
+        SeekBar.OnSeekBarChangeListener listener = shadowOf(bar).getOnSeekBarChangeListener();
+        listener.onProgressChanged(bar, 4000, false);
+        assertNull("nothing while it plays", SeekPreview.cardForTests());
+        listener.onProgressChanged(bar, 4000, true);
+        assertNull("nothing before the drag starts", SeekPreview.cardForTests());
+
+        bar.setPressed(true);
+        new Listener(bar).start();
+        listener.onProgressChanged(bar, 5000, true);
+        assertNotNull(SeekPreview.cardForTests());
+        assertEquals("0:05 / 0:15", SeekPreview.timeForTests());
     }
 
     /** The bar's own drag callbacks, as a finger on it gives them. */

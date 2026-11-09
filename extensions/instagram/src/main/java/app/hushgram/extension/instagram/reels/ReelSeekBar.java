@@ -6,10 +6,15 @@ package app.hushgram.extension.instagram.reels;
 
 import android.widget.SeekBar;
 
+import androidx.annotation.Nullable;
+
+import java.lang.ref.WeakReference;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 
+import app.hushgram.extension.instagram.feed.SeekShapes;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -149,12 +154,41 @@ public final class ReelSeekBar {
 
     /** Whether the bar gets a thumb: Round handle on the seek bar, or a restyled bar, which always has one. */
     static boolean thumbOn() {
-        return Utils.settingsReady() && (Settings.REEL_SEEK_THUMB.get() || styled());
+        return Utils.settingsReady() && !shaped() && (Settings.REEL_SEEK_THUMB.get() || styled());
     }
+
+    /** Whether a {@code SeekShape} draws the bar, which takes the place of the handle and the thicker track. */
+    static boolean shaped() {
+        return switchedOn() && SeekShapes.changed();
+    }
+
+    /**
+     * Keeps the post of the reel [id], for the preview's pictures, while the preview's on. The row a
+     * reel's bound from may be worked out off the main thread.
+     */
+    public static void rememberReel(@Nullable Object media, @Nullable String id) {
+        if (media != null && id != null) REEL_MEDIA.put(ReelTimeLabel.REEL_TAG_PREFIX + id, new WeakReference<>(media));
+    }
+
+    /** The post of the reel tagged [tag], when it's been seen and is still around. */
+    @Nullable
+    static Object mediaOf(@Nullable String tag) {
+        WeakReference<Object> media = tag != null ? REEL_MEDIA.get(tag) : null;
+        return media != null ? media.get() : null;
+    }
+
+    private static final int REMEMBERED_REELS = 32;
+    private static final Map<String, WeakReference<Object>> REEL_MEDIA = Collections.synchronizedMap(
+            new LinkedHashMap<String, WeakReference<Object>>(REMEMBERED_REELS, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, WeakReference<Object>> eldest) {
+                    return size() > REMEMBERED_REELS;
+                }
+            });
 
     /** Whether the bar's track is drawn by HushGram: thicker with a dark fade behind it, or like DM videos. */
     static boolean bigOn() {
-        return Utils.settingsReady() && styled();
+        return Utils.settingsReady() && !shaped() && styled();
     }
 
     /** Whether the restyled bar takes the look of a video in a chat, which wins over the bigger bar. */
