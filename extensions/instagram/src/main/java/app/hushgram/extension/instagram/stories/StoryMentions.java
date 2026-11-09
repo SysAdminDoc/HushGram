@@ -385,7 +385,9 @@ public final class StoryMentions {
         } else if (!onScreen(pill)) {
             return;
         } else if (!waiting.matches(pill.people)) {
-            if (waiting.away) backToList = null;
+            // Only a story moving on in the viewer the list was left from ends it. A story opened from
+            // the profile is another viewer, and its mentions left the list closed when you came back (#403).
+            if (waiting.away && viewer.get() == waiting.viewer.get()) backToList = null;
         } else if (waiting.away) {
             backToList = null;
             waiting.holding = false;

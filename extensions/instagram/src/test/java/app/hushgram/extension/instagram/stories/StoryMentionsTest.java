@@ -1008,6 +1008,34 @@ public class StoryMentionsTest {
         assertSame("and the old list is forgotten", first, ShadowDialog.getLatestDialog());
     }
 
+    /**
+     * #403 again: watching the profile's own story, which mentions other accounts, opens it in a
+     * viewer of its own. That story doesn't end the wait, and the list opens again when the first
+     * story comes back.
+     */
+    @Test
+    public void aStoryOpenedFromTheProfileDoesntEndTheComeBack() {
+        Object viewer = new Object();
+        StoryMentions.viewerShown(viewer);
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        pill().setVisibility(View.GONE);
+        idle();
+
+        StoryMentions.viewerShown(new Object());
+        bind(BO);
+        idle();
+        assertSame("the profile's story doesn't open the list", first, ShadowDialog.getLatestDialog());
+
+        StoryMentions.viewerShown(viewer);
+        bind(ANA, BO);
+        idle();
+        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotSame(first, again);
+        assertTrue("the list is open again", again.isShowing());
+    }
+
     /** The look starts under the name, as the pill was before there was a choice (#468). */
     @Test
     public void theLookStartsUnderTheNameAndIsntASwitch() {
