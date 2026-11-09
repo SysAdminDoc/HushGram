@@ -304,16 +304,31 @@ public final class AmbientLight {
         return null;
     }
 
-    /** A reel's stage: the nearest view from [video]'s parent up to [frame] that spans at least nine tenths of the frame. */
+    /**
+     * A reel's stage: the nearest view from [video]'s parent up to [frame] that spans at least nine
+     * tenths of the frame. Rounded corners on Reels clips the frame to the video, and a glow inside
+     * the frame with it, so a parent of the frame's own size takes the stage when there is one (#580).
+     */
     @Nullable
     static ViewGroup reelStageOf(View video, View frame) {
         ViewParent parent = video.getParent();
         for (int i = 0; i < STAGE_DEPTH && parent instanceof ViewGroup; i++, parent = parent.getParent()) {
             ViewGroup group = (ViewGroup) parent;
-            if (group.getWidth() >= frame.getWidth() * 0.9f && group.getHeight() >= frame.getHeight() * 0.9f) return group;
+            if (group.getWidth() >= frame.getWidth() * 0.9f && group.getHeight() >= frame.getHeight() * 0.9f) {
+                return outsideFrame(group, frame);
+            }
             if (group == frame) return null;
         }
         return null;
+    }
+
+    /** [frame]'s parent when it's no bigger than the frame, else [stage]. */
+    private static ViewGroup outsideFrame(ViewGroup stage, View frame) {
+        ViewParent above = frame.getParent();
+        if (!(above instanceof ViewGroup)) return stage;
+        ViewGroup parent = (ViewGroup) above;
+        boolean sameSize = parent.getWidth() <= frame.getWidth() + ROUNDING && parent.getHeight() <= frame.getHeight() + ROUNDING;
+        return sameSize ? parent : stage;
     }
 
     /**

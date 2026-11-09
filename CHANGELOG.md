@@ -75,6 +75,7 @@ Every HushGram release, newest first.
 * With `Gray out stories you've watched`, the story row no longer puts watched stories ahead of new ones after it reloads, and the next batch stays after the ones you had. Reported in #241.
 * With `Gray out stories you've watched`, the highlight tiles at the end of the story row stay there instead of jumping ahead of watched stories, where they looked like a watched story with a new ring. Reported in #241.
 * `Ambient light` shows on the posts that were missing it. Instagram's frame around those pictures comes out a pixel taller than the picture, and the glow was drawn on that frame with no room to show. Reported in #580.
+* `Ambient light` glows around a reel that doesn't fill the screen when `Rounded corners on Reels` is on. The rounding was cutting the glow off with the empty space around the video. Reported in #580.
 * `Save every page without asking` works on the download icon beside a reel too, so a carousel opened from Explore, Search or Reels saves all its pages with no popup. Reported in #190.
 * A reel's seek bar no longer ends up in the strip at the bottom of the screen when the tab bar has moved out of the way, so scrubbing can't swipe you home. Reported in #450.
 * `Glass tab bar` now works on tablets and a foldable's inner screen. It keeps Instagram's phone layout there, since the glass needs the tab bar along the bottom and the big screen layout only has the rail down the side.

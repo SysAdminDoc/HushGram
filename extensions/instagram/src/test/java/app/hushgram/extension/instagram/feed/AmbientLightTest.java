@@ -596,6 +596,43 @@ public class AmbientLightTest {
         assertNull(container.getBackground());
     }
 
+    /**
+     * A reel opened from a link fills the window, in a page the size of its frame. Rounded corners on
+     * Reels clips the frame to the video, so a glow on the frame or inside it never showed (#580).
+     */
+    @Test
+    public void aReelGlowsOutsideTheFrameRoundedCornersClip() {
+        FrameLayout reelRoot = new FrameLayout(activity);
+        FrameLayout page = new FrameLayout(activity);
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        frame.setClipToOutline(true);
+        FrameLayout container = new FrameLayout(activity);
+        TextureView video = new TextureView(activity);
+        container.addView(video, match());
+        frame.addView(container, match());
+        page.addView(frame, match());
+        reelRoot.addView(page, new FrameLayout.LayoutParams(WIDTH, REEL));
+        activity.setContentView(reelRoot);
+        root = reelRoot;
+        shadowOf(Looper.getMainLooper()).idle();
+        Matrix scale = new Matrix();
+        scale.setScale(1f, 0.5f, WIDTH / 2f, REEL / 2f);
+        video.setTransform(scale);
+
+        on();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertTrue(String.valueOf(page.getBackground()), page.getBackground() instanceof AmbientLight.Glow);
+        assertNull(frame.getBackground());
+        assertNull(container.getBackground());
+        assertEquals(new Rect(0, REEL / 4, WIDTH, REEL * 3 / 4), AmbientLight.litRectForTests(video));
+
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        int band = background(page).getPixel(WIDTH / 2, REEL / 4 - 4);
+        assertTrue("the band above shows the reel's top: " + hex(band), Color.alpha(band) > 80);
+    }
+
     @Test
     public void aReelThatFillsItsFrameHasNothingToGlowIn() {
         TextureView video = reel(1f);
