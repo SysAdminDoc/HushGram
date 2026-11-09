@@ -504,6 +504,22 @@ public class AmbientLightTest {
     }
 
     @Test
+    public void aFrameOnePixelTallerThanThePictureIsNotItsStage() {
+        // On 454 the zoom container often rounds up a pixel over the picture, and the glow had no room (#580).
+        row.getLayoutParams().height = MEDIA + 1;
+        list.getLayoutParams().height = 3 + HEADER + MEDIA + 1 + FOOTER + 5;
+        row.requestLayout();
+        list.requestLayout();
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(MEDIA + 1, row.getHeight());
+
+        on();
+
+        assertEquals("the glow goes on the list, around the header and the buttons",
+                new Rect(0, 3 + HEADER, WIDTH, 3 + HEADER + MEDIA), AmbientLight.litRectForTests(media));
+    }
+
+    @Test
     public void aPageMostlyOffScreenGetsNoGlow() {
         MediaFrameLayout next = new MediaFrameLayout(activity);
         row.addView(next, new FrameLayout.LayoutParams(WIDTH, MEDIA));
