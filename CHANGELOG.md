@@ -53,6 +53,7 @@ Every HushGram release, newest first.
 ### Improvements
 
 * Dusk blue, Pine and Slate are now full color sets. Story rings and Instagram's other gradients run through three colors, likes and badges get the set's own color, and backgrounds start from its screen color.
+* **Tooling:** `scripts/gen-readme-patches.py` writes the README's patch table and counts from `patches-list.json` and leaves the rest of the README alone.
 * **Tooling:** The release walk now reads the settings overview while its own header shows HushGram's name, Home's welcome screen on 454, a long reel with its scrubber, and a screen with the activity tooltip up.
 * **Tooling:** `patch-all-builds.ps1` merges a split bundle before patching it, like the other patching scripts.
 * **Tooling:** The release facts check reads the patch count and target build from the description's sentences, so a change's bullet that counts patches no longer stops a release.
@@ -76,17 +77,17 @@ Every HushGram release, newest first.
 * `Save every page without asking` works on the download icon beside a reel too, so a carousel opened from Explore, Search or Reels saves all its pages with no popup. Reported in #190.
 * A reel's seek bar no longer ends up in the strip at the bottom of the screen when the tab bar has moved out of the way, so scrubbing can't swipe you home. Reported in #450.
 * `Glass tab bar` now works on tablets and a foldable's inner screen. It keeps Instagram's phone layout there, since the glass needs the tab bar along the bottom and the big screen layout only has the rail down the side.
-* With `Gray out stories you've watched`, the story row no longer puts stories you've watched ahead of new ones after it reloads, like after a pull to refresh or coming back to the app. The next batch of stories that loads as you scroll the row also stays after the ones you had, instead of mixing in with the gray rings. Reported in #241.
+* With `Gray out stories you've watched`, the story row keeps watched stories behind new ones after it reloads, and the next batch that loads as you scroll stays after the ones you had. Reported in #241.
 * With `Hide the Create button` on, a long press on your profile's menu opens the HushGram settings again. With the button gone, the long press couldn't tell it was on your own profile. Reported in #431.
 * `See-through top bar` reaches behind the clock on more phones. Where the tabs swipe sideways, only Home's page moves up, so Reels and the other tabs stay put. Reported in #462.
 * With `Glass tab bar` on, the seek bar on a reel opened outside the Reels tab sits above the gesture handle instead of on the screen's bottom edge. Reported in #450.
 * `Start feed videos with sound` now turns the sound on for every video on Home, not just the first. Mute one and the next ones stay muted. On silent or vibrate they start muted. Reported in #504.
 * `Keep playing in the background` keeps going after you open a video. Videos opened from your feed, the Reels tab and stories used to stop a few seconds after you left Instagram. Reported in #497.
-* `See-through top bar` reaches behind the clock on more phones. Where Instagram already runs Home's posts up under the clock, the glass now covers that strip too. Where the tabs swipe sideways, only Home's page moves up, so Reels and the other tabs stay where they were. Reported in #462.
-* With `Glass tab bar` on, the seek bar on a reel opened outside the Reels tab, like from a post in your feed, sits above the gesture handle now instead of on the screen's bottom edge. Scrubbing there used to swipe you home. Reported in #450.
+* `See-through top bar` reaches behind the clock on more phones. Where Home's posts already run under the clock, the glass now covers that strip. Where the tabs swipe sideways, only Home's page moves up. Reported in #462.
+* With `Glass tab bar` on, the seek bar on a reel opened outside the Reels tab sits above the gesture handle instead of on the screen's edge, where scrubbing swiped you home. Reported in #450.
 * The floating `Glass tab bar` pill now frosts over a playing reel instead of staying clear, and on Home and Profile the sharp screen no longer shows through half of it. Reported in #583.
-* `Start feed videos with sound` now turns the sound on for every video on Home, not just the first one, the same as tapping a video's speaker. Mute one and the next ones stay muted. Your ringer still counts, so on silent or vibrate videos start muted. Reported in #504.
-* `Keep playing in the background` keeps going after you open a video. A video opened from your feed, the Reels tab and stories used to stop a few seconds after you left Instagram, since Instagram let go of the player. Stories play on too now. Reported in #497.
+* `Start feed videos with sound` now turns the sound on for every video on Home, the same as tapping a speaker. Mute one and the rest stay muted. On silent or vibrate they start muted. Reported in #504.
+* `Keep playing in the background` keeps going after you open a video from your feed, Reels or stories. Those used to stop a few seconds after you left Instagram. Reported in #497.
 * `See who a story mentions` opens its list again after you watch the story of a profile you went to from it. That story used to end the list, so coming back left it closed. Reported in #403.
 * Explore no longer leaves two blank spots in every fourth row when `Full size covers` is on. Covers still come in full, and `Ask for larger photos` got the same fix. Reported in #433.
 * `Keep a viewing history` now records the reels you watch. It only heard about them while `Download button on reels` was on, so with that icon off the Reels list stayed empty. Reported in #228.
