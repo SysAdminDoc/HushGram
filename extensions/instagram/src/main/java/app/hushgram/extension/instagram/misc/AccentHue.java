@@ -14,7 +14,8 @@ package app.hushgram.extension.instagram.misc;
  * and the pale one are worked out from the fill, as Instagram's are from its blue.
  *
  * <p>{@link #DUSK}, {@link #PINE} and {@link #SLATE} are the calmer colors asked for in #528, their
- * link shades worked out as {@link CustomAccent} works out a typed color's.
+ * link shades worked out as {@link CustomAccent} works out a typed color's. Each is a whole set: the
+ * patch gives its story ring gradient, badges and backgrounds the set's own colors.
  *
  * <p>{@link #WALLPAPER} is Material You (#187, #264): its shades are Android 12's wallpaper tones,
  * read as Instagram runs ({@link MaterialYou}), so its own fields hold nothing. {@link #CUSTOM} is the

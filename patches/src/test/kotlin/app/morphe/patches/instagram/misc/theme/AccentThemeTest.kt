@@ -440,17 +440,67 @@ class AccentThemeTest {
     @Test
     fun instagramsTextStaysReadableOnEveryBackground() {
         for (palette in ACCENT_PALETTES) {
-            val fill = palette.shades.getValue(AccentRole.FILL)
             for (step in BackgroundStep.entries) {
-                val dark = contrast(0xf5f5f5, backgroundShade(fill, IconTheme.DARK, step))
+                val dark = contrast(0xf5f5f5, palette.background(IconTheme.DARK, step))
                 assertTrue("${palette.name} $step on a dark theme: $dark", dark >= 7.0)
-                val light = contrast(0x0c1014, backgroundShade(fill, IconTheme.LIGHT, step))
+                val light = contrast(0x0c1014, palette.background(IconTheme.LIGHT, step))
                 assertTrue("${palette.name} $step on a light theme: $light", light >= 7.0)
             }
         }
     }
 
-    private fun declaring(attributes: List<String>) =
+    /** Dusk blue, Pine and Slate are the whole sets asked for in #528: three gradient stops, a likes color and screen colors. */
+    @Test
+    fun theCalmColorsCarryTheirWholeSet() {
+        val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
+        val attrs = declaring(RING_ATTRIBUTES.keys + BADGE_ATTRIBUTE + BACKGROUND_ATTRIBUTE + "igds_color_secondary_background")
+        val colors = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+
+        val values = colors.elements("color").associate { it.getAttribute("name") to it.textContent }
+        val rings = styleItems(styles, "HushGramAccentRings_")
+        for ((palette, stops) in mapOf(
+            "DUSK" to listOf("#ff4a6b82", "#ff769f95", "#ffc8d5b9"),
+            "PINE" to listOf("#ff2a6f68", "#ffe07a5f", "#fff2cc8f"),
+            "SLATE" to listOf("#ff3a506b", "#ff00a896", "#ff6fffe9"),
+        )) {
+            val painted = rings.getValue(ringStyle(palette)).associate { (attribute, color) -> attribute to values[color.removePrefix("@color/")] }
+            assertEquals(palette, stops[0], painted["igds_color_gradient_purple"])
+            assertEquals(palette, stops[0], painted["igds_color_gradient_lavender"])
+            assertEquals(palette, stops[1], painted["igds_color_gradient_red"])
+            assertEquals(palette, stops[1], painted["igds_color_gradient_pink"])
+            assertEquals(palette, stops[2], painted["igds_color_gradient_orange"])
+            assertEquals(palette, stops[2], painted["igds_color_gradient_yellow"])
+            assertEquals(
+                "Solid story rings stay on the color you picked",
+                stops[0],
+                values[styleItems(styles, "HushGramAccentRingsSolid_").getValue(solidRingStyle(palette)).first().second.removePrefix("@color/")],
+            )
+        }
+
+        assertEquals("#ffd48c70", values["hushgram_accent_dusk_badge"])
+        assertEquals("#ffe09f3e", values["hushgram_accent_pine_badge"])
+        assertEquals("#ff5bc0be", values["hushgram_accent_slate_badge"])
+
+        assertEquals("#ff182022", values[backgroundColor("DUSK", IconTheme.DARK, BackgroundStep.BASE)])
+        assertEquals("#fff4f6f4", values[backgroundColor("DUSK", IconTheme.LIGHT, BackgroundStep.BASE)])
+        assertEquals("#ff1f2421", values[backgroundColor("PINE", IconTheme.DARK, BackgroundStep.BASE)])
+        assertEquals("#fffaf6f0", values[backgroundColor("PINE", IconTheme.LIGHT, BackgroundStep.BASE)])
+        assertEquals("#ff0b132b", values[backgroundColor("SLATE", IconTheme.DARK, BackgroundStep.BASE)])
+        assertEquals("#ffeceff1", values[backgroundColor("SLATE", IconTheme.LIGHT, BackgroundStep.BASE)])
+        assertEquals("a raised surface stands off the screen", "#ff243239", values[backgroundColor("DUSK", IconTheme.DARK, BackgroundStep.TOP)])
+
+        assertEquals("other colors keep their shades", "@color/hushgram_accent_teal_ring_fill", rings.getValue(ringStyle("TEAL")).toMap()["igds_color_gradient_pink"])
+        assertEquals("other colors' badges stay the fill", "#ff00838f", values["hushgram_accent_teal_badge"])
+
+        val taken = parse("<resources><color name=\"hushgram_accent_pine_ring_stop_fill\">#ff000000</color></resources>")
+        val again = assertThrows(PatchException::class.java) { addAccentResources(uses, declaring(RING_ATTRIBUTES.keys), taken, parse("<resources />")) }
+        assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_pine_ring_stop_fill"))
+    }
+
+    private fun declaring(attributes: Collection<String>) =
         parse("<resources>" + attributes.joinToString("") { "<attr name=\"$it\" format=\"reference|color\" />" } + "</resources>")
 
     private fun styleItems(styles: org.w3c.dom.Document, prefix: String): Map<String, List<Pair<String, String>>> =
