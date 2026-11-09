@@ -342,6 +342,12 @@ public final class AccentTheme {
         return paintedSurfaces() != null;
     }
 
+    /** The opaque shade a raised sheet has while the accent's backgrounds are painting, or [otherwise]. */
+    static int raisedSurface(int otherwise) {
+        int[] surfaces = paintedSurfaces();
+        return surfaces == null ? otherwise : 0xff000000 | surfaces[1];
+    }
+
     /** Which of {@link #SURFACE_ATTRIBUTES} a dark gray of Instagram's stands for, or -1. Black is Pure black's page. */
     private static int surfaceStep(int rgb) {
         switch (rgb) {

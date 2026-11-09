@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.os.Looper;
 import android.view.Gravity;
@@ -22,12 +23,16 @@ import android.widget.LinearLayout;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+
+import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.SettingsContextRule;
 
 /**
  * Pure black's cover for the strip behind the navigation bar (#571): on under a comments screen and
@@ -38,6 +43,9 @@ public class PureBlackNavTest {
     private static final int VIEWER = 0x7f0b7001;
     private static final int TAB_BAR = 0x7f0b7002;
     private static final int INSET = 60;
+    private static final int RAISED = 0xff223344;
+
+    @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private ActivityController<Activity> controller;
     private FrameLayout frame;
@@ -58,6 +66,10 @@ public class PureBlackNavTest {
     public void restore() {
         PureBlackNav.resetForTests(null);
         controller.close();
+        Settings.ACCENT_COLOR.resetToDefault();
+        Settings.ACCENT_HUE.resetToDefault();
+        Settings.ACCENT_BACKGROUNDS.resetToDefault();
+        AccentTheme.darkSurfacesForTests(null);
     }
 
     private View add(int id, int height) {
@@ -133,6 +145,38 @@ public class PureBlackNavTest {
         frame.removeView(comments);
         settle();
         assertNull(PureBlackNav.cover(decor));
+    }
+
+    @Test
+    @Config(qualifiers = "night")
+    public void aCommentsSheetOnAPaintedPageGetsAStripInItsOwnShade() {
+        paintBackgrounds();
+        LinearLayout comments = new LinearLayout(controller.get());
+        frame.addView(comments, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 600, Gravity.BOTTOM));
+        shadowOf(Looper.getMainLooper()).idle();
+        PureBlackNav.commentsShown(comments);
+        PureBlackNav.refresh(decor);
+        assertEquals(RAISED, PureBlackNav.coverColor(decor));
+
+        Settings.ACCENT_BACKGROUNDS.save(false);
+        PureBlackNav.refresh(decor);
+        assertEquals(Color.BLACK, PureBlackNav.coverColor(decor));
+    }
+
+    @Test
+    @Config(qualifiers = "night")
+    public void aViewersStripStaysBlackOnAPaintedPage() {
+        paintBackgrounds();
+        add(VIEWER, ViewGroup.LayoutParams.MATCH_PARENT);
+        settle();
+        assertEquals(Color.BLACK, PureBlackNav.coverColor(decor));
+    }
+
+    private static void paintBackgrounds() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_BACKGROUNDS.save(true);
+        AccentTheme.darkSurfacesForTests(new int[] {0xff112233, RAISED, 0xff334455});
     }
 
     @Test

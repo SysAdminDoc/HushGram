@@ -112,7 +112,13 @@ public final class PureBlackNav {
         return cover == null || !cover.shown ? null : new Rect(cover.strip.getBounds());
     }
 
-    /** Whether the strip should be black now. */
+    /** The color [decor]'s cover has, for tests. */
+    static int coverColor(View decor) {
+        Cover cover = COVERS.get(decor);
+        return cover == null ? 0 : cover.strip.getColor();
+    }
+
+    /** Whether the strip should be covered now. */
     static boolean wanted(View decor) {
         return isNight(decor) && (commentsShowing(decor) || bareViewer(decor));
     }
@@ -259,6 +265,7 @@ public final class PureBlackNav {
                     return;
                 }
                 strip.setBounds(0, window.getHeight() - inset, window.getWidth(), window.getHeight());
+                strip.setColor(commentsShowing(window) ? AccentTheme.raisedSurface(Color.BLACK) : Color.BLACK);
                 if (shown) {
                     strip.invalidateSelf();
                     return;
