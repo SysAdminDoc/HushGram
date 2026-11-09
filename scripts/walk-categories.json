@@ -790,6 +790,15 @@
               "Stop background wake-ups"
             ]
           }
+        },
+        {
+          "title": "Stop background feed refresh",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Stop background wake-ups"
+            ]
+          }
         }
       ]
     },

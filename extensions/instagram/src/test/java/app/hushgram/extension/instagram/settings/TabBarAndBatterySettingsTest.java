@@ -98,6 +98,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.SAVED_ON_PROFILE.resetToDefault();
         Settings.STOP_HEARTBEAT.resetToDefault();
         Settings.STOP_UPLOAD_ALARM.resetToDefault();
+        Settings.STOP_BACKGROUND_FETCH.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
     }
@@ -118,7 +119,7 @@ public class TabBarAndBatterySettingsTest {
         open();
         for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
                 Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key,
-                Settings.STOP_UPLOAD_ALARM.key)) {
+                Settings.STOP_UPLOAD_ALARM.key, Settings.STOP_BACKGROUND_FETCH.key)) {
             assertNull(key, row(key));
         }
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key));
@@ -660,16 +661,22 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(Settings.SAVED_ON_PROFILE.rebootApp);
     }
 
-    @Test public void batteryHoldsBothAlarmSwitchesAndBothStartOff() throws Exception {
+    @Test public void batteryHoldsAllThreeWakeUpSwitchesAndAllStartOff() throws Exception {
         open(PatchFamily.STOP_HEARTBEAT);
         SwitchPreference heartbeat = (SwitchPreference) row(Settings.STOP_HEARTBEAT.key);
         SwitchPreference upload = (SwitchPreference) row(Settings.STOP_UPLOAD_ALARM.key);
+        SwitchPreference fetch = (SwitchPreference) row(Settings.STOP_BACKGROUND_FETCH.key);
         assertNotNull(heartbeat);
         assertNotNull(upload);
+        assertNotNull(fetch);
         assertEquals("Battery", String.valueOf(sectionOf(page.getPreferenceScreen(), heartbeat).getTitle()));
         assertSame(sectionOf(page.getPreferenceScreen(), heartbeat), sectionOf(page.getPreferenceScreen(), upload));
+        assertSame(sectionOf(page.getPreferenceScreen(), heartbeat), sectionOf(page.getPreferenceScreen(), fetch));
+        assertEquals("Stop background feed refresh", String.valueOf(fetch.getTitle()));
         assertFalse(heartbeat.isChecked());
         assertFalse(upload.isChecked());
-        assertEquals(Arrays.asList(Settings.STOP_HEARTBEAT, Settings.STOP_UPLOAD_ALARM), PatchFamily.STOP_HEARTBEAT.switches);
+        assertFalse(fetch.isChecked());
+        assertEquals(Arrays.asList(Settings.STOP_HEARTBEAT, Settings.STOP_UPLOAD_ALARM, Settings.STOP_BACKGROUND_FETCH),
+                PatchFamily.STOP_HEARTBEAT.switches);
     }
 }

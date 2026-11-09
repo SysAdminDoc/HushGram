@@ -939,6 +939,8 @@ Stop the background heartbeat	Ferma il battito in background
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram sveglia il telefono ogni minuto o due, anche a schermo spento, solo per segnalare che è ancora in esecuzione. Questo lo ferma. Messaggi, notifiche e tutto ciò che vedi non cambiano.
 Stop the analytics upload alarm	Ferma la sveglia di invio dell'analisi
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram imposta una sveglia per risvegliare il telefono e inviare i suoi eventi di utilizzo cinque minuti dopo. Questo ferma quella sveglia. Gli eventi partono la prossima volta che usi l'app.
+Stop background feed refresh	Ferma l'aggiornamento del feed in background
+About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.	Circa ogni mezz'ora, Instagram sveglia il telefono per scaricare il tuo feed in anticipo. Questo lo ferma. Il feed si carica quando apri l'app, e messaggi e notifiche continuano ad arrivare.
 Haptic style	Stile del feedback aptico
 Short tick	Tic breve
 System tick	Tic di sistema

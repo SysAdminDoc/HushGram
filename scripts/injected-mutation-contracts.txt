@@ -2683,6 +2683,14 @@ once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stop()Z in (L*;)V h
 # It also routes the AlarmManager.set call that sets the analytics upload alarm through the extension, in the
 # static upload scheduler holding the alarm's tag and its intent action.
 sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Landroid/app/AlarmManager;IJLandroid/app/PendingIntent;)V replacing Landroid/app/AlarmManager;->set(IJLandroid/app/PendingIntent;)V in static (L*;L*;I)V holding AnalyticsUploadAlarm action_batch_upload
+# And it asks first thing in the background prefetch scheduler (0Guo.A08 on 454), the static method handed
+# the job service class that queues the prefetch through JobScheduler or WorkManager and holds both their
+# failure messages, and first thing in the prefetch job service's onStartJob, the one that stores the
+# scheduler it runs (#341). StopHeartbeatFixtureTest checks both on each declared build.
+start-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stopBackgroundFetch(Ljava/lang/Class;)Z in static (L*;Ljava/lang/Class;Ljava/util/List;)V pooled holding scheduleJobWithJobScheduler()\sfailed:\s scheduleJobWithWorkManager()\sfailed:\s
+once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stopBackgroundFetch(Ljava/lang/Class;)Z in static (L*;Ljava/lang/Class;Ljava/util/List;)V pooled holding scheduleJobWithJobScheduler()\sfailed:\s scheduleJobWithWorkManager()\sfailed:\s
+start-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->skipBackgroundFetch()Z in instance (Landroid/app/job/JobParameters;)Z holding Lcom/instagram/jobscheduler/bgfetch/scheduler/IgBgFetchSchedulerService;->A00:LX/*;
+once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->skipBackgroundFetch()Z in instance (Landroid/app/job/JobParameters;)Z holding Lcom/instagram/jobscheduler/bgfetch/scheduler/IgBgFetchSchedulerService;->A00:LX/*;
 
 # Ghost mode from the inbox: GhostModeEntry.longPress() goes into the inbox header's static builder
 # (07OJ.A01 on 450's 385611438), right after the New message button's tap listener is stored in its

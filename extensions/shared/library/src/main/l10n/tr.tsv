@@ -939,6 +939,8 @@ Stop the background heartbeat	Arka plandaki kalp atışını durdur
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram, ekran kapalıyken bile her bir iki dakikada bir telefonunu yalnızca hâlâ çalıştığını not etmek için uyandırır. Bu, bunu durdurur. Mesajlar, bildirimler ve gördüğün her şey etkilenmez.
 Stop the analytics upload alarm	Analiz yükleme alarmını durdur
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur. Veriler uygulamayı bir sonraki kullanışında gider.
+Stop background feed refresh	Arka planda akış yenilemeyi durdur
+About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.	Instagram yaklaşık yarım saatte bir, akışını önceden indirmek için telefonunu uyandırır. Bu, bunu durdurur. Akış bunun yerine uygulamayı açtığında yüklenir, mesajlar ve bildirimler gelmeye devam eder.
 Haptic style	Haptik stili
 Short tick	Kısa tık
 System tick	Sistem tıkı

@@ -9,6 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -25,18 +26,20 @@ private const val STOP = "$EXTENSION_PACKAGE/misc/Heartbeat;->stop()Z"
 private const val SET_UPLOAD_ALARM =
     "$EXTENSION_PACKAGE/misc/Heartbeat;->setUploadAlarm(Landroid/app/AlarmManager;IJLandroid/app/PendingIntent;)V"
 private const val ALARM_SET = "Landroid/app/AlarmManager;->set(IJLandroid/app/PendingIntent;)V"
+private const val STOP_BACKGROUND_FETCH = "$EXTENSION_PACKAGE/misc/Heartbeat;->stopBackgroundFetch(Ljava/lang/Class;)Z"
+private const val SKIP_BACKGROUND_FETCH = "$EXTENSION_PACKAGE/misc/Heartbeat;->skipBackgroundFetch()Z"
 
 /**
- * Skips Instagram's heartbeat alarm and its analytics upload alarm, each behind its own switch. See
- * Heartbeat in the extension. In the default selection with both switches off.
+ * Skips Instagram's heartbeat alarm, its analytics upload alarm and its background prefetch job, each
+ * behind its own switch. See Heartbeat in the extension. In the default selection with every switch off.
  */
 @Suppress("unused")
 val stopHeartbeatPatch = bytecodePatch(
     name = "Stop background wake-ups",
-    description = "Stops two alarms that wake your phone while Instagram is in the background. One goes off every " +
-        "minute or two only to note that Instagram is still running, and the other wakes it five minutes later to " +
-        "upload usage events. Messages and notifications still arrive. Starts off. Turn it on in HushGram " +
-        "settings > Battery.",
+    description = "Stops three things that wake your phone while Instagram is in the background. One alarm goes off " +
+        "every minute or two only to note that Instagram is still running, another wakes it five minutes later to " +
+        "upload usage events, and a job about every half hour downloads your feed ahead of time. Messages and " +
+        "notifications still arrive. Starts off. Turn it on in HushGram settings > Battery.",
 ) {
     category("Fixes")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -72,6 +75,47 @@ val stopHeartbeatPatch = bytecodePatch(
             replaceInstruction(index, registers.joinToString(prefix = "invoke-static { ", postfix = " }, $SET_UPLOAD_ALARM") { "v$it" })
         }
 
+        stopBackgroundFetch(
+            findBgFetchScheduler(),
+            uniqueMethod("Stop background wake-ups", "background prefetch job", BgFetchJobStartFingerprint),
+        )
+
         enableStatus("stopHeartbeat")
+    }
+}
+
+/**
+ * The prefetch scheduler (static, the job service class its second input) returns before queueing anything
+ * when the extension says so, and the extension cancels what it queued earlier for that class. A prefetch job
+ * queued before the switch went on ends as soon as it starts, done, with nothing fetched.
+ */
+internal fun stopBackgroundFetch(scheduler: MutableMethod, start: MutableMethod) {
+    scheduler.apply {
+        requireLocals("Stop background wake-ups", 1)
+        val service = implementation!!.registerCount - 2
+        addInstructionsWithLabels(
+            0,
+            """
+                invoke-static/range { v$service .. v$service }, $STOP_BACKGROUND_FETCH
+                move-result v0
+                if-eqz v0, :schedule
+                return-void
+            """,
+            ExternalLabel("schedule", getInstruction(0)),
+        )
+    }
+    start.apply {
+        requireLocals("Stop background wake-ups", 1)
+        addInstructionsWithLabels(
+            0,
+            """
+                invoke-static { }, $SKIP_BACKGROUND_FETCH
+                move-result v0
+                if-eqz v0, :fetch
+                const/4 v0, 0x0
+                return v0
+            """,
+            ExternalLabel("fetch", getInstruction(0)),
+        )
     }
 }

@@ -40,6 +40,7 @@ Every HushGram release, newest first.
 * New patch, `Watch again in the feed`. With its switch on under Feed, Watch again at the end of a reel in your feed plays it over in place instead of opening Reels. `Watch more reels` still opens Reels. Asked for in #568.
 * `Seek bar on the bottom edge` under `Seek bar on feed videos` moves the bar down onto the video's bottom edge, so a scroll is less likely to catch it. Asked for in #567.
 * `Take a scroll break` lets you pick how long you scroll and how long the break lasts. The list runs from 5 minutes up to 2 hours, and a `Break length` slider under it sets the break from 5 to 120 minutes. It used to be 5 minutes every time. Asked for in #297.
+* `Stop background feed refresh` under Battery stops the job that wakes your phone about every half hour to download your feed ahead of time. Your feed loads when you open Instagram instead, and messages and notifications still come in. It starts off. Reported in #341.
 
 ### Improvements
 

@@ -924,6 +924,8 @@ Stop the background heartbeat	Ngừng nhịp nền
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram đánh thức điện thoại mỗi một hai phút, kể cả khi tắt màn hình, chỉ để ghi nhận là nó vẫn đang chạy. Mục này ngăn điều đó. Tin nhắn, thông báo và mọi thứ bạn thấy không bị ảnh hưởng.
 Stop the analytics upload alarm	Ngừng báo thức tải phân tích
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram đặt báo thức để đánh thức điện thoại và gửi sự kiện sử dụng sau năm phút. Mục này ngăn báo thức đó. Các sự kiện sẽ gửi vào lần tới bạn dùng ứng dụng.
+Stop background feed refresh	Ngừng làm mới bảng tin trong nền
+About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.	Khoảng nửa giờ một lần, Instagram đánh thức điện thoại để tải trước bảng tin. Mục này ngăn điều đó. Bảng tin sẽ tải khi bạn mở ứng dụng, còn tin nhắn và thông báo vẫn đến.
 Haptic style	Kiểu rung
 Short tick	Rung ngắn
 System tick	Rung hệ thống

@@ -5804,7 +5804,7 @@
     },
     {
       "name": "Stop background wake-ups",
-      "description": "Stops two alarms that wake your phone while Instagram is in the background. One goes off every minute or two only to note that Instagram is still running, and the other wakes it five minutes later to upload usage events. Messages and notifications still arrive. Starts off. Turn it on in HushGram settings > Battery.",
+      "description": "Stops three things that wake your phone while Instagram is in the background. One alarm goes off every minute or two only to note that Instagram is still running, another wakes it five minutes later to upload usage events, and a job about every half hour downloads your feed ahead of time. Messages and notifications still arrive. Starts off. Turn it on in HushGram settings > Battery.",
       "category": "Fixes",
       "use": true,
       "dependencies": [

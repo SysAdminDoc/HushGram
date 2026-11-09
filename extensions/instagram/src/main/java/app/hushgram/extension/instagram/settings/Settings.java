@@ -1741,6 +1741,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_upload_alarm", FALSE);
 
     /**
+     * Instagram stops queueing the job that wakes the phone about every half hour to download the feed ahead
+     * of time, cancels the ones it queued, and ends any that still starts
+     * ({@link app.hushgram.extension.instagram.misc.Heartbeat#stopBackgroundFetch}). Read each time a job would
+     * be queued or start. Off to start.
+     */
+    public static final BooleanSetting STOP_BACKGROUND_FETCH =
+            new BooleanSetting("hushgram_stop_background_fetch", FALSE);
+
+    /**
      * Instagram's windows ask Android for the display's fastest mode at the resolution it runs at
      * ({@link app.hushgram.extension.instagram.misc.RefreshRate}). Read as each activity resumes, so
      * no restart. Off to start.

@@ -938,6 +938,8 @@ Stop the background heartbeat	백그라운드 하트비트 중지
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram은 화면이 꺼져 있을 때도 1~2분마다 휴대폰을 깨워 아직 실행 중이라고 기록만 합니다. 이를 멈춥니다. 메시지, 알림, 화면에 보이는 모든 것은 그대로입니다.
 Stop the analytics upload alarm	분석 업로드 알람 중지
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram은 5분 뒤 사용 데이터를 보내기 위해 휴대폰을 깨우는 알람을 설정합니다. 이 알람을 멈춥니다. 데이터는 다음에 앱을 사용할 때 전송됩니다.
+Stop background feed refresh	백그라운드 피드 새로고침 중지
+About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.	Instagram은 약 30분마다 휴대폰을 깨워 피드를 미리 내려받습니다. 이를 멈춥니다. 피드는 앱을 열 때 불러오며, 메시지와 알림은 계속 도착합니다.
 Haptic style	햅틱 스타일
 Short tick	짧은 틱
 System tick	시스템 틱

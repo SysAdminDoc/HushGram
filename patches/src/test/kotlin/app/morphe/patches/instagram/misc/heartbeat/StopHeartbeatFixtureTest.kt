@@ -11,8 +11,12 @@ import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -47,6 +51,11 @@ class StopHeartbeatFixtureTest {
     }
 
     private fun Method.signature() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
+    /** A body's opcodes with alignment nops dropped and a goto of any width read as one. */
+    private fun List<Instruction>.kinds() = filter { it.opcode != Opcode.NOP }.map {
+        if (it.opcode == Opcode.GOTO_16 || it.opcode == Opcode.GOTO_32) Opcode.GOTO else it.opcode
+    }
 
     @Test
     fun eachBuildHasOneHeartbeatAndOneUploadAlarmToChange() {
@@ -89,7 +98,60 @@ class StopHeartbeatFixtureTest {
         }
     }
 
+    /**
+     * #341: every build has one prefetch scheduler, static, handed the job service class second, with a
+     * register free for the check, and the job service's onStartJob has one too. The patch's own finders
+     * pick them, and patched, each asks the extension first: the scheduler with the class it's handed,
+     * returning when told, and onStartJob answering false, done, when told.
+     */
+    @Test
+    fun eachBuildsPrefetchSchedulerAndJobStartAskTheExtensionFirst() {
+        var checked = 0
+        for (build in builds()) {
+            val label = "${build.parentFile.name}/${build.name}"
+            val classes = FixtureDex.classesLoading(build, BG_FETCH_JOB_FAILED) +
+                FixtureDex.classes(build, setOf(BG_FETCH_SERVICE)).values
+            val context = PatchContexts.of(classes.distinctBy { it.type })
+
+            val scheduler = context.findBgFetchScheduler()
+            assertTrue("$label: the scheduler isn't static", scheduler.isStatic())
+            val schedulerInputs = scheduler.parameterTypes.size
+            assertTrue("$label: no register free in the scheduler", scheduler.implementation!!.registerCount - schedulerInputs >= 1)
+            val start = context.uniqueMethod("Stop background wake-ups", "background prefetch job", BgFetchJobStartFingerprint)
+            assertTrue("$label: no register free in onStartJob", start.implementation!!.registerCount - 2 >= 1)
+            val service = scheduler.implementation!!.registerCount - 2
+            val stockScheduler = scheduler.implementation!!.instructions.toList()
+            val stockStart = start.implementation!!.instructions.toList()
+
+            stopBackgroundFetch(scheduler, start)
+
+            val patched = scheduler.implementation!!.instructions.toList()
+            val ask = patched[0] as RegisterRangeInstruction
+            assertEquals("$label: the scheduler asks first", "$EXTENSION/misc/Heartbeat;->stopBackgroundFetch(Ljava/lang/Class;)Z",
+                (patched[0] as ReferenceInstruction).reference.toString())
+            assertEquals("$label: handing it the job service class", service, ask.startRegister)
+            assertEquals(1, ask.registerCount)
+            assertEquals("Ljava/lang/Class;", scheduler.parameterTypes[1].toString())
+            assertEquals(Opcode.MOVE_RESULT, patched[1].opcode)
+            assertEquals(Opcode.IF_EQZ, patched[2].opcode)
+            assertEquals(Opcode.RETURN_VOID, patched[3].opcode)
+            assertEquals("$label: the scheduler's own code follows", stockScheduler.kinds(), patched.drop(4).kinds())
+
+            val started = start.implementation!!.instructions.toList()
+            assertEquals("$label: the job asks first", "$EXTENSION/misc/Heartbeat;->skipBackgroundFetch()Z",
+                (started[0] as ReferenceInstruction).reference.toString())
+            assertEquals(Opcode.IF_EQZ, started[2].opcode)
+            assertEquals(Opcode.CONST_4, started[3].opcode)
+            assertEquals(0, (started[3] as NarrowLiteralInstruction).narrowLiteral)
+            assertEquals(Opcode.RETURN, started[4].opcode)
+            assertEquals("$label: onStartJob's own code follows", stockStart.kinds(), started.drop(5).kinds())
+            checked++
+        }
+        assertEquals("every build is read", Fixtures.BUILDS, checked)
+    }
+
     private companion object {
+        const val EXTENSION = "Lapp/hushgram/extension/instagram"
         const val HEARTBEAT_TAG = "WarmHeartbeat"
         const val NO_ALARM_MANAGER = "AlarmManager not available, cannot schedule heartbeat"
         const val UPLOAD_TAG = "AnalyticsUploadAlarm"
