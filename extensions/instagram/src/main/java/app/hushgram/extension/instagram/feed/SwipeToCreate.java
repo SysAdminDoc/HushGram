@@ -4,7 +4,16 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.app.Activity;
+import android.os.SystemClock;
+import android.view.View;
+
+import androidx.annotation.Nullable;
+
+import java.lang.ref.WeakReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -26,12 +35,41 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * their own reasons, and a swipe that starts in the camera (back to Home) starts below 0, so both go on as
  * before.
  *
- * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or
- * anything thrown, the move goes where Instagram sent it.
+ * <p>{@code Swipe right on Home opens} ({@link HomeSwipe}, #589) picks a tab for that swipe. The same
+ * moves are held, the panels never leave Home, and the tab's button is clicked once the finger has gone
+ * {@link #OPEN_AT} of the screen's width or flung that way. Held at Home, each step of a drag comes in as
+ * how far that step went, so the steps add up to the swipe. A tab that isn't on the bar leaves the swipe
+ * to the switch, as if none were picked.
+ *
+ * <p>The hook fails open: with the switch off, no tab picked, HushGram paused, the settings not read yet
+ * or anything thrown, the move goes where Instagram sent it.
  */
 public final class SwipeToCreate {
     /** The reason Instagram gives every move a finger makes. */
     static final String DRAG = "swipe";
+
+    /** How much of the screen's width a swipe covers before it opens the picked tab. */
+    static final float OPEN_AT = 0.25f;
+
+    /** Where a fling's move ends: the camera's panel. No drag step gets that far. */
+    private static final float FLUNG = -1f;
+
+    /** A step this long after the last one belongs to a new swipe. */
+    static final long NEW_SWIPE_AFTER_MS = 300;
+
+    static final String TAB_BAR = "tab_bar";
+
+    /** What a swipe that opened its tab is counted under. */
+    static final String COUNT_OPENED = "Swipe right on Home opened the picked tab";
+
+    /** How far toward the camera this swipe has gone, as a share of the screen's width. */
+    private static float swiped;
+    /** When this swipe's last step came, by the uptime clock. */
+    private static long lastStep = Long.MIN_VALUE / 2;
+    /** Whether this swipe has opened its tab. */
+    private static boolean opened;
+    /** The picked tab's button for this swipe, cleared when it's not on the bar. */
+    private static WeakReference<View> button = new WeakReference<>(null);
 
     private SwipeToCreate() {
     }
@@ -39,7 +77,7 @@ public final class SwipeToCreate {
     /** Before any added native getter or reason read, decide whether this hook can act. */
     public static int enabled() {
         try {
-            return enabled(SwipeToCreate::switchedOn);
+            return enabled(() -> switchedOn() || picked() != HomeSwipe.CAMERA);
         } catch (Throwable failure) {
             // Even constructing the stateless supplier must leave the native setter alone.
             HookStatus.threw(FamilyNames.SWIPE_TO_CREATE, "swipe gate", failure);
@@ -66,14 +104,20 @@ public final class SwipeToCreate {
      * @param reason  why the move happens
      */
     public static int hold(float target, float current, String reason) {
-        return hold(target, current, reason, SwipeToCreate::switchedOn);
+        return hold(target, current, reason, SwipeToCreate::switchedOn, SwipeToCreate::picked, SwipeToCreate::buttonFor);
     }
 
     static int hold(float target, float current, String reason, BooleanSupplier on) {
+        return hold(target, current, reason, on, () -> HomeSwipe.CAMERA, tab -> null);
+    }
+
+    static int hold(float target, float current, String reason, BooleanSupplier on, Supplier<HomeSwipe> tab,
+            Function<HomeSwipe, View> buttons) {
         try {
             HookStatus.invoked(FamilyNames.SWIPE_TO_CREATE);
             // NaN fails both comparisons, so a broken position is left alone.
             if (!DRAG.equals(reason) || !(target < 0f) || !(current >= 0f)) return 0;
+            if (openTab(target, current, tab.get(), buttons)) return 1;
             if (!on.getAsBoolean()) return 0;
             Logger.printDebug(() -> "Swipe to create: held a swipe toward the camera at Home");
             return 1;
@@ -83,7 +127,66 @@ public final class SwipeToCreate {
         }
     }
 
+    /**
+     * Adds this step to the swipe and clicks [tab]'s button when the swipe has gone far enough or was
+     * flung, once a swipe. Says whether the swipe is the tab's: false for the camera, or a tab with no
+     * button on the bar.
+     */
+    private static boolean openTab(float target, float current, HomeSwipe tab, Function<HomeSwipe, View> buttons) {
+        if (tab == HomeSwipe.CAMERA) return false;
+        long now = SystemClock.uptimeMillis();
+        if (now - lastStep > NEW_SWIPE_AFTER_MS) {
+            swiped = 0f;
+            opened = false;
+            button = new WeakReference<>(buttons.apply(tab));
+        }
+        lastStep = now;
+        View found = button.get();
+        if (found == null) return false;
+        swiped += current - target;
+        if (!opened && (target <= FLUNG || swiped >= OPEN_AT)) {
+            opened = true;
+            if (found.performClick()) {
+                HookStatus.counted(FamilyNames.SWIPE_TO_CREATE, COUNT_OPENED);
+                Logger.printDebug(() -> "Swipe to create: a swipe on Home opened " + tab);
+            }
+        }
+        return true;
+    }
+
+    /** [tab]'s button on the shown activity's tab bar, or null when it isn't there. */
+    @Nullable
+    private static View buttonFor(HomeSwipe tab) {
+        Activity activity = Utils.getActivity();
+        if (activity == null || tab.button == null) return null;
+        View root = activity.getWindow().getDecorView();
+        return buttonIn(root, id(activity, TAB_BAR), id(activity, tab.button));
+    }
+
+    /** The view with [tabId] inside the one with [barId] under [root], or null when either is missing. */
+    @Nullable
+    static View buttonIn(View root, int barId, int tabId) {
+        View bar = barId == 0 ? null : root.findViewById(barId);
+        return bar == null || tabId == 0 ? null : bar.findViewById(tabId);
+    }
+
+    private static int id(Activity activity, String name) {
+        return activity.getResources().getIdentifier(name, "id", activity.getPackageName());
+    }
+
+    /** Starts the next step on a new swipe. Tests only. */
+    static void forgetSwipeForTests() {
+        swiped = 0f;
+        opened = false;
+        lastStep = Long.MIN_VALUE / 2;
+        button = new WeakReference<>(null);
+    }
+
     private static boolean switchedOn() {
         return Utils.settingsReady() && Settings.STOP_SWIPE_TO_CREATE.get();
+    }
+
+    private static HomeSwipe picked() {
+        return Utils.settingsReady() ? Settings.HOME_SWIPE_OPENS.get() : HomeSwipe.CAMERA;
     }
 }

@@ -12,6 +12,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.cornerSizeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSeekBarLookRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.homeSwipeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.seekShapeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
@@ -147,6 +148,7 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.STOP_SWIPE_TO_CREATE, L10n.t("Stop swipe to create"),
                     L10n.t("A sideways swipe on Home no longer opens the camera. The + button and every other way "
                             + "into the camera still work.")));
+            feed.addPreference(homeSwipeRow(context));
         }
         if (tabSwipe) {
             feed.addPreference(toggle(context, Settings.STOP_TAB_SWIPING, L10n.t("Stop swiping between tabs"),

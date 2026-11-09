@@ -157,6 +157,7 @@ import app.hushgram.extension.instagram.reels.HiddenBars;
 import app.hushgram.extension.instagram.reels.HiddenSounds;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.ScrollBreakTime;
+import app.hushgram.extension.instagram.feed.HomeSwipe;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.reels.TabBarLayoutChoice;
 import app.hushgram.extension.instagram.reels.TabOrder;
@@ -786,6 +787,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key)
                             || Settings.TAB_ICON_SIZE.key.equals(key));
                     belongs |= family == PatchFamily.TAB_BAR_LAYOUT && Settings.TAB_BAR_LAYOUT.key.equals(key);
+                    belongs |= family == PatchFamily.SWIPE_TO_CREATE && Settings.HOME_SWIPE_OPENS.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.CAPTION_WORD_REELS && (Settings.REELS_BLOCKED_WORDS.key.equals(key)
                             || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key)
@@ -5806,6 +5808,50 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         });
     }
 
+    /** What a swipe right on Home opens (#589). Its summary says what the choice does. */
+    static HomeSwipeRow homeSwipeRow(Context context) {
+        HomeSwipeRow row = new HomeSwipeRow(context);
+        row.setKey(Settings.HOME_SWIPE_OPENS.key);
+        row.setTitle(L10n.t("Swipe right on Home opens"));
+        row.setDialogTitle(L10n.t("Swipe right on Home opens"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        HomeSwipe[] choices = HomeSwipe.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = homeSwipeLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.HOME_SWIPE_OPENS.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [choice]. */
+    static String homeSwipeLabel(HomeSwipe choice) {
+        switch (choice) {
+            case SEARCH:
+                return L10n.t("Search");
+            case REELS:
+                return L10n.t("Reels");
+            case MESSAGES:
+                return L10n.t("Messages");
+            case PROFILE:
+                return L10n.t("Profile");
+            default:
+                return L10n.t("Camera");
+        }
+    }
+
+    /** What [choice] does, for the row's summary. */
+    static String homeSwipeSummary(HomeSwipe choice) {
+        if (choice == HomeSwipe.CAMERA) {
+            return L10n.t("The camera, as Instagram has it. Pick a tab and the same swipe opens that tab instead.");
+        }
+        return L10n.f("A swipe right on Home opens %1$s. The + button still opens the camera.", homeSwipeLabel(choice));
+    }
+
     /** The tab Instagram opens on when it's started from its icon. Its summary says what the choice does. */
     static StartTabRow startTabRow(Context context) {
         StartTabRow row = new StartTabRow(context);
@@ -6408,6 +6454,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((HiddenBarsRow) preference).showSummary();
         } else if (preference instanceof StartTabRow) {
             ((StartTabRow) preference).showSummary();
+        } else if (preference instanceof HomeSwipeRow) {
+            ((HomeSwipeRow) preference).showSummary();
         } else if (preference instanceof TabBarLayoutRow) {
             ((TabBarLayoutRow) preference).showSummary();
         } else if (preference instanceof FontRow) {
@@ -6459,6 +6507,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((HiddenBarsRow) listPreference).showSummary();
         } else if (listPreference instanceof StartTabRow) {
             ((StartTabRow) listPreference).showSummary();
+        } else if (listPreference instanceof HomeSwipeRow) {
+            ((HomeSwipeRow) listPreference).showSummary();
         } else if (listPreference instanceof TabBarLayoutRow) {
             ((TabBarLayoutRow) listPreference).showSummary();
         } else if (listPreference instanceof FontRow) {
@@ -8602,6 +8652,41 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /** Hide the tab bar on Reels' choice of how long (#170). Its summary says what the choice does, as Burn-in guard's does. */
+    static final class HomeSwipeRow extends ListPreference {
+        HomeSwipeRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            HomeSwipe choice = HomeSwipe.CAMERA;
+            for (HomeSwipe candidate : HomeSwipe.values()) {
+                if (candidate.name().equals(getValue())) choice = candidate;
+            }
+            setSummary(homeSwipeSummary(choice));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
     static final class GlassReelsHideRow extends ListPreference {
         GlassReelsHideRow(Context context) {
             super(context);

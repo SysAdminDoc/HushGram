@@ -212,6 +212,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.FRIENDSHIP_STATUS.inBuild()) settings.put(Settings.FOLLOW_LABEL_PLACE.key, Settings.FOLLOW_LABEL_PLACE);
         if (PatchFamily.FULL_SCREEN_BARS.inBuild()) settings.put(Settings.FULL_SCREEN_HIDES.key, Settings.FULL_SCREEN_HIDES);
         if (PatchFamily.TAB_BAR_LAYOUT.inBuild()) settings.put(Settings.TAB_BAR_LAYOUT.key, Settings.TAB_BAR_LAYOUT);
+        if (PatchFamily.SWIPE_TO_CREATE.inBuild()) settings.put(Settings.HOME_SWIPE_OPENS.key, Settings.HOME_SWIPE_OPENS);
         if (PatchFamily.REELS_TAB.inBuild()) {
             settings.put(Settings.START_TAB.key, Settings.START_TAB);
             settings.put(Settings.TAB_ORDER.key, Settings.TAB_ORDER);

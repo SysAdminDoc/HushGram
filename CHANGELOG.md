@@ -9,6 +9,7 @@ Every HushGram release, newest first.
 * `Upload stories at full quality` adds `Video resolution` up to 1440p, `Video frame rate` up to 60 fps and `Photo quality` up to 100. Instagram still re-encodes on its servers, so these set what leaves your phone. Asked for in #37.
 * `Seek bar shape` under Feed gives the seek bars on feed videos, stories and reels a new look: a thin line, a thicker rounded bar, a bar split by a tall handle, or a wave. They grow while you drag.
 * `Preview while you drag a seek bar` under Feed shows the time above your finger on feed videos, stories and reels, with a small picture of that moment when Instagram has one.
+* `Swipe right on Home opens` picks what that swipe does: the camera, as it is now, or Search, Reels, Messages or Profile. Asked for in #589.
 * `Picture in picture for reels` under Playback, below `Keep playing in the background`, shrinks a playing reel into a small window over other apps when you leave Instagram. Needs Android 15 or newer. Starts off. Asked for in #572.
 * `Show it on the profile picture` under `Mark who doesn't follow you back` swaps the words for a badge on each profile picture in your Following list. Green check means they follow back, red cross means they don't. Starts off. Asked for in #572.
 * New patch, `Search comments`. Its switch under Comments puts a search box above a post's comments. Type a word or name to jump to the next match, loading more as needed. Arrows step between matches. Unopened replies aren't searched. Asked for in #560.

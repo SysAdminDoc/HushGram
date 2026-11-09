@@ -2211,6 +2211,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_swipe_to_create", FALSE);
 
     /**
+     * What a swipe right on Home opens ({@link app.hushgram.extension.instagram.feed.HomeSwipe}), the camera
+     * to start. Read at each step of a swipe, so a change shows on the next one.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.feed.HomeSwipe> HOME_SWIPE_OPENS =
+            new EnumSetting<>("hushgram_home_swipe_opens", app.hushgram.extension.instagram.feed.HomeSwipe.CAMERA);
+
+    /**
      * A sideways swipe between the main tabs
      * ({@link app.hushgram.extension.instagram.feed.TabSwipe}). Read at each touch, so a change
      * shows on the next swipe. Off to start.
