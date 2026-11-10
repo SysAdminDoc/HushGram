@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import app.hushgram.extension.instagram.misc.ScreenReport;
 import app.hushgram.extension.instagram.misc.VersionCode;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -673,11 +674,12 @@ public enum PatchFamily {
     }
 
     /**
-     * Registers the [PATCHES] report section, and tells Hook status which families no pause
-     * reaches, so a paused export marks only the ones a switch runs. Registering twice keeps one.
+     * Registers the [PATCHES] and [SCREEN] report sections, and tells Hook status which families no
+     * pause reaches, so a paused export marks only the ones a switch runs. Registering twice keeps one.
      */
     public static void registerDiagnostics() {
         LogBufferManager.registerReportSection(REPORT);
+        LogBufferManager.registerReportSection(ScreenReport.SECTION);
         for (PatchFamily family : values()) {
             if (family.switches.isEmpty() && family.staysWhilePaused != null) HookStatus.runsWhilePaused(family.patchName);
         }
