@@ -96,7 +96,7 @@ public final class ReelFullScreenButton {
             Object icon = null;
             if (drawable != null) {
                 // The last icon over More is the one that makes up the margin More takes back.
-                long under = aboveMore && !ReelSpeedButton.shows(column) && !ReelTextButton.shows(column)
+                long under = aboveMore && !ReelMuteButton.shows(column) && !ReelSpeedButton.shows(column) && !ReelTextButton.shows(column)
                         && !ReelSoundButton.shows(column) && !ReelBlockButton.shows(column)
                         && !ReelNotInterestedButton.shows(column) && !ReelDownloadButton.shows(column)
                         ? ReelDownloadButton.underAboveMore(column, context, margin) : margin;

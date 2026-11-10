@@ -3412,6 +3412,19 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting FULL_SCREEN_BUTTON_ON_REELS = new BooleanSetting("hushgram_full_screen_button_on_reels", FALSE);
 
     /**
+     * A speaker icon in the column beside a reel whose tap turns the reel's sound off or on while it
+     * keeps playing (#608). Starts off, so the column stays Instagram's own.
+     */
+    public static final BooleanSetting MUTE_BUTTON_ON_REELS = new BooleanSetting("hushgram_mute_button_on_reels", FALSE);
+
+    /**
+     * The same speaker beside clear mode's exit button, so it stays in reach once the column is gone
+     * (#608). Starts off, so clear mode stays Instagram's own.
+     */
+    public static final BooleanSetting MUTE_BUTTON_IN_CLEAR_MODE =
+            new BooleanSetting("hushgram_mute_button_in_clear_mode", FALSE, parent(MUTE_BUTTON_ON_REELS));
+
+    /**
      * The sounds Hide reels by sound hides, a line for each: the sound's id, a tab, its title, a tab
      * and who made it. Empty to start. It reads empty while HushGram is paused, and a backup leaves it
      * out, like Hidden accounts.

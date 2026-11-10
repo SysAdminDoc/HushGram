@@ -354,6 +354,13 @@ final class ReelsCategory {
                         L10n.t("Adds Playback speed to the menu a reel's three dots open. Pick a speed there from "
                                 + "0.5x to 3x. With Keep the reel speed on, the next reels play at it too.")));
             }
+            if (build.contains(PatchFamily.REEL_TAP_AND_VOLUME)) {
+                reels.add(toggle(context, Settings.MUTE_BUTTON_ON_REELS, L10n.t("Mute button on reels"),
+                        L10n.t("Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel "
+                                + "keeps playing.")));
+                reels.add(toggle(context, Settings.MUTE_BUTTON_IN_CLEAR_MODE, L10n.t("Mute button in clear mode"),
+                        L10n.t("Keeps the speaker icon next to clear mode's exit button.")));
+            }
         }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"), SettingsIcons.REELS,

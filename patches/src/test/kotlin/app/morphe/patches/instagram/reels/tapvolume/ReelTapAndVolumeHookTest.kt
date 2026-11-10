@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.instagram.media.taptoplay.CLIPS_PAUSE
 import app.morphe.patches.instagram.media.taptoplay.TOGGLE_PAUSE
+import app.morphe.patches.instagram.reels.speed.MAYBE_RESUME_PLAYER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -34,7 +35,9 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -66,6 +69,13 @@ class ReelTapAndVolumeHookTest {
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$MUTE_INSTEAD_OF_PAUSE is not in the extension: $declared", MUTE_INSTEAD_OF_PAUSE.substringAfter("->") in declared)
         assertTrue("$KEEP_PLAYING is not in the extension: $declared", KEEP_PLAYING.substringAfter("->") in declared)
+        // The speaker icon's (#608): the controller handed over, and the two stubs the patch fills.
+        val speaker = listOf(SPEAKER_RESUMING.substringAfter("->"), "$TOGGLE_AUDIO_STUB($objectType)V", "$AUDIO_ON_STUB($objectType)I")
+        for (signature in speaker) assertTrue("$signature is not in the extension: $declared", signature in declared)
+        val icon = ExtensionDex.classDef(SPEAKER_REFRESH.substringBefore("->")).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$SPEAKER_REFRESH is not in the extension: $icon", SPEAKER_REFRESH.substringAfter("->") in icon)
     }
 
     /** The pause path asks first, a yes toggles the controller's audio with the button's reason and returns, and nothing else changes. */
@@ -384,8 +394,166 @@ class ReelTapAndVolumeHookTest {
         }
     }
 
+    /**
+     * The speaker icon (#608): maybeResumePlayer hands the extension the controller first thing, the audio
+     * toggle asks the icon to redraw first thing, the toggle stub calls the toggle with the audio button's
+     * reason, and the sound stub reads the player's flag first, then the session's state, else -1.
+     */
+    @Test
+    fun theSpeakerIconsHooksGoInAndBothStubsAreFilled() {
+        val context = PatchContexts.of(volumeClasses(resumes = 1) + bridges())
+        val resumeBefore = context.controllerMethod("maybeResumePlayer").code().map { it.describe() }
+        val toggleBefore = context.controllerMethod("toggleAudio").code().map { it.describe() }
+
+        var site: SpeakerSite? = null
+        context.apply { site = findSpeakerSite(tapSite(), findVolumeSite()).also { applySpeaker(it!!) } }
+
+        assertTrue("the player's way is open", site!!.playerOpen)
+        assertTrue("the session's way is open", site!!.sessionOpen)
+        val resume = context.controllerMethod("maybeResumePlayer").code()
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, resume[0].opcode)
+        assertEquals("the controller handed over first", SPEAKER_RESUMING, resume[0].referenceText())
+        // One local, then this and the int.
+        assertEquals("as this", listOf(1), resume[0].arguments())
+        assertEquals("only the hook is new", resumeBefore, resume.drop(1).map { it.describe() })
+        val toggle = context.controllerMethod("toggleAudio").code()
+        assertEquals("the icon redraws first thing in the toggle", SPEAKER_REFRESH, toggle[0].referenceText())
+        assertEquals("only the redraw is new", toggleBefore, toggle.drop(1).map { it.describe() })
+
+        val stubs = context.mutableClassDefBy(REEL_TAP_AND_VOLUME).methods
+        val flip = stubs.single { it.name == TOGGLE_AUDIO_STUB }.code()
+        assertEquals(listOf(Opcode.CHECK_CAST, Opcode.CONST_4, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID), flip.map { it.opcode })
+        assertEquals(volumeController, flip[0].referenceText())
+        assertEquals("the audio button's reason", -3, (flip[1] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$volumeController->toggleAudio(I)V", flip[2].referenceText())
+
+        val read = stubs.single { it.name == AUDIO_ON_STUB }.code()
+        assertEquals(
+            "the player's state first, then the session's",
+            listOf(
+                volumeController, "$volumeController->list()$vList", "$vList->pos()I", "$vList->at(I)$vHolder",
+                "$volumeController->factory:$vFactory", "$vFactory->make($vHolder)$vPlayer", "$vPlayer->state()$vPState",
+                "$vPState->flag:Z", "$volumeController->session:$userSession", "$audioState->of($userSession)$audioState",
+                "$audioState->isOn()Z",
+            ),
+            read.mapNotNull { it.referenceText() },
+        )
+        assertEquals("every step that can be null falls back", 7, read.count { it.opcode == Opcode.IF_EQZ })
+        assertEquals("unknown is -1", -1, (read.single { it.opcode == Opcode.CONST_4 } as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("the flag, the state or unknown", 3, read.count { it.opcode == Opcode.RETURN })
+    }
+
+    /**
+     * A build where the speaker can't be wired leaves it out with a warning instead of failing the patch,
+     * so the tap and the volume keys still go in, and nothing is changed for it.
+     */
+    @Test
+    fun aSpeakerThePatchCantWireIsLeftOutAndChangesNothing() {
+        val cases = listOf(
+            volumeClasses(resumes = 0) + bridges() to "no maybeResumePlayer",
+            volumeClasses(resumes = 2) + bridges() to "two of them",
+            volumeClasses(resumes = 1, resumeOwner = "Lfixture/Elsewhere;") + bridges() to "outside the controller",
+            volumeClasses(resumes = 1, resumeStatic = true) + bridges() to "static",
+            volumeClasses(resumes = 1, resumeJumpedTo = true) + bridges() to "jumped to at its start",
+            volumeClasses(resumes = 1, controllerPublic = false) + bridges() to "a controller the extension can't see",
+            volumeClasses(resumes = 1) + bridges(stubs = false) to "an extension without the stubs",
+            volumeClasses(resumes = 1) to "no extension class",
+        )
+        for ((classes, what) in cases) {
+            val context = PatchContexts.of(classes)
+            val site = with(context) { findSpeakerSite(tapSite(), findVolumeSite()) }
+            assertEquals(what, null, site)
+            for (original in classes) {
+                val now = context.mutableClassDefBy(original.type).methods.associateBy { it.key() }
+                for (method in original.methods) {
+                    assertEquals(
+                        "$what: ${original.type}->${method.name} changed",
+                        method.code().map { it.describe() }, now.getValue(method.key()).code().map { it.describe() },
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * In each of the version's builds the speaker's site is found with the tap and the volume keys, with
+     * the extension's own stubs: the controller is handed over first thing in maybeResumePlayer as this,
+     * the toggle redraws the icon first thing, and both stubs are filled from what the build has.
+     */
+    @Test
+    fun eachDeclaredBuildHoldsItsSpeaker() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        assertEquals("every 452 build", Fixtures.BUILDS, bundles.size)
+        for (bundle in bundles) {
+            val name = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
+            val controllers = FixtureDex.classesHolding(bundle, toggleMarker)
+            val named = controllers.flatMap { c -> c.methods.flatMap { m -> m.code().flatMap { instruction ->
+                when (val ref = instruction.reference()) {
+                    is com.android.tools.smali.dexlib2.iface.reference.MethodReference -> listOf(ref.definingClass, ref.returnType) + ref.parameterTypes.map(Any::toString)
+                    is com.android.tools.smali.dexlib2.iface.reference.FieldReference -> listOf(ref.definingClass, ref.type)
+                    else -> emptyList()
+                }
+            } } }.filter { it.startsWith("L") }
+            val wanted = (FixtureDex.classesHolding(bundle, tapMarker) + controllers + FixtureDex.classesHolding(bundle, volumeMarker) +
+                FixtureDex.classesHolding(bundle, resumeMarker)).map { it.type }.toSet() + named
+            for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
+                val what = "$name ($read)"
+                val context = PatchContexts.of(classesOf(bundle, wanted).values + ExtensionDex.classDef(REEL_TAP_AND_VOLUME))
+                val tap = context.findReelTapSite()
+                val volume = context.findVolumeSite()
+                val site = context.findSpeakerSite(tap, volume)
+                assertNotNull("$what: the speaker's site", site)
+                assertTrue("$what: the extension can read the sound one way", site!!.playerOpen || site.sessionOpen)
+                val resumeLength = site.resume.code().size
+                context.apply {
+                    applyReelTap(tap)
+                    applyKeepMuted(volume)
+                    applySpeaker(site)
+                }
+
+                val resume = context.mutableClassDefBy(site.resume.definingClass).methods.single { it.key() == site.resume.key() }
+                val code = resume.code()
+                assertEquals("$what: the controller handed over first", SPEAKER_RESUMING, code[0].referenceText())
+                val parameters = resume.parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
+                assertEquals("$what: as this", listOf(resume.implementation!!.registerCount - parameters - 1), code[0].arguments())
+                assertEquals("$what: maybeResumePlayer grew by the hook", resumeLength + 1, code.size)
+                val toggle = context.mutableClassDefBy(site.controller).methods.single { it.key() == site.toggle.key() }
+                assertEquals("$what: the icon redraws first thing in the toggle", SPEAKER_REFRESH, toggle.code()[0].referenceText())
+
+                val stubs = context.mutableClassDefBy(REEL_TAP_AND_VOLUME).methods
+                val flip = stubs.single { it.name == TOGGLE_AUDIO_STUB }.code()
+                assertTrue("$what: the stub calls the toggle", flip.any { it.referenceText()?.startsWith("${site.controller}->${site.toggle.name}(") == true })
+                assertEquals("$what: the audio button's reason", -3, (flip.first { it.opcode == Opcode.CONST_4 } as NarrowLiteralInstruction).narrowLiteral)
+                val asked = stubs.single { it.name == AUDIO_ON_STUB }.code().mapNotNull { it.referenceText() }
+                if (site.playerOpen) assertTrue("$what: the player's flag is read", site.audio.player.flag.toString() in asked)
+                if (site.sessionOpen) assertEquals("$what: the session's state is read last", site.audio.isOn.toString(), asked.last())
+            }
+        }
+    }
+
     private fun BytecodePatchContext.volumeRun(): MutableMethod =
         mutableClassDefBy(runnable).methods.single { it.name == "run" }
+
+    private fun BytecodePatchContext.controllerMethod(name: String): MutableMethod =
+        mutableClassDefBy(volumeController).methods.single { it.name == name }
+
+    /** The tap's site, on the volume runnable's controller: the speaker reads only the controller and its audio toggle. */
+    private fun BytecodePatchContext.tapSite(): ReelTapSite {
+        val toggle = classDefBy(volumeController).methods.single { it.name == "toggleAudio" }
+        return ReelTapSite(toggle, 0, ImmutableFieldReference(navigator, "supplier", function0), volumeController, toggle, emptyList())
+    }
+
+    /** The extension's ReelTapAndVolume as the bundle merges it: the two stubs the patch fills, or none. */
+    private fun bridges(stubs: Boolean = true): ClassDef = classDef(
+        REEL_TAP_AND_VOLUME,
+        if (!stubs) listOf(method(REEL_TAP_AND_VOLUME, "other", emptyList(), "V", 0, body = "return-void", static = true))
+        else listOf(
+            method(REEL_TAP_AND_VOLUME, TOGGLE_AUDIO_STUB, listOf(objectType), "V", 0, body = "return-void", static = true),
+            method(REEL_TAP_AND_VOLUME, AUDIO_ON_STUB, listOf(objectType), "I", 1, body = "const/4 v0, -0x1\nreturn v0", static = true),
+        ),
+    )
 
     private fun BytecodePatchContext.tap(): MutableMethod =
         mutableClassDefBy(navigator).methods.single { it.name == "togglePause" }
@@ -457,6 +625,7 @@ class ReelTapAndVolumeHookTest {
     private val runnable = "Lfixture/VolumeRunnable;"
     private val audio = "Landroid/media/AudioManager;"
     private val volumeMarker = "android_purge_26_q3_$VOLUME_ADJUSTED"
+    private val resumeMarker = "android_purge_26_q3_$MAYBE_RESUME_PLAYER"
     private val volumeController = "Lfixture/VolumeController;"
     private val audioState = "Lfixture/AudioState;"
     private val hiddenAudioState = "Lother/pkg/AudioState;"
@@ -471,6 +640,7 @@ class ReelTapAndVolumeHookTest {
     /**
      * The runnable: it traces its own marker, adjusts the stream volume with an int it reads from its own field, and
      * then traces the volume marker, after which its unmute would follow. v0 is rewritten right after the marker.
+     * With [resumes], the controller (or [resumeOwner]) also starts each reel through maybeResumePlayer.
      */
     private fun volumeClasses(
         runs: Int = 1,
@@ -484,6 +654,11 @@ class ReelTapAndVolumeHookTest {
         stateReachable: Boolean = true,
         holderAsked: Boolean = false,
         listCast: Boolean = false,
+        resumes: Int = 0,
+        resumeOwner: String = volumeController,
+        resumeStatic: Boolean = false,
+        resumeJumpedTo: Boolean = false,
+        controllerPublic: Boolean = true,
     ): List<ClassDef> {
         // 454's toggle asks its list (an interface) for the current holder instead of a position and the holder there.
         // Other 454 builds keep the position, but the controller answers the list as an interface the toggle casts back.
@@ -549,8 +724,19 @@ class ReelTapAndVolumeHookTest {
                 return-void
             """)
         }
-        val controllerMethods = if (toggles == 0) listOf(method(volumeController, "other", emptyList(), "V", 0, body = "return-void"))
-        else (0 until toggles).map { toggle(if (it == 0) "toggleAudio" else "toggleAudioAgain") }
+        val resume = { name: String ->
+            method(resumeOwner, name, listOf("I"), "V", 1, body = """
+                ${if (resumeJumpedTo) ":top" else ""}
+                const-string v0, "$resumeMarker"
+                invoke-static { v0 }, $trace
+                ${if (resumeJumpedTo) "if-eqz p1, :top" else ""}
+                return-void
+            """, static = resumeStatic)
+        }
+        val resumeMethods = (0 until resumes).map { resume(if (it == 0) "maybeResumePlayer" else "maybeResumePlayerAgain") }
+        val controllerMethods = (if (toggles == 0) listOf(method(volumeController, "other", emptyList(), "V", 0, body = "return-void"))
+        else (0 until toggles).map { toggle(if (it == 0) "toggleAudio" else "toggleAudioAgain") }) +
+            if (resumeOwner == volumeController) resumeMethods else emptyList()
         val stateMethods = listOf(
             method(state, "of", listOf(userSession), state, 1, body = "const/4 v0, 0x0\nreturn-object v0", static = true),
             method(state, "isOn", emptyList(), "Z", 1, body = "const/4 v0, 0x1\nreturn v0"),
@@ -565,6 +751,7 @@ class ReelTapAndVolumeHookTest {
                 volumeController,
                 controllerMethods + (if (toggles == 0) emptyList() else listOf(pub("list", volumeController, if (listCast) vListIntf else vList, emptyList()))),
                 fields = listOf("session" to userSession, "factory" to vFactory),
+                public = controllerPublic,
             ),
             classDef(state, stateMethods, public = stateReachable),
             if (holderAsked) {
@@ -577,7 +764,7 @@ class ReelTapAndVolumeHookTest {
             classDef(vFactory, listOf(pub("make", vFactory, vPlayer, listOf(vHolder)))),
             classDef(vPlayer, listOf(pub("state", vPlayer, vPState, emptyList()))),
             classDef(vPState, emptyList(), fields = listOf("flag" to "Z")),
-        )
+        ) + if (resumeOwner == volumeController || resumes == 0) emptyList() else listOf(classDef(resumeOwner, resumeMethods))
     }
 
     private fun method(

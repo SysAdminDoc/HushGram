@@ -102,6 +102,8 @@ public class DownloadSettingsTest {
         Settings.TEXT_BUTTON_ON_REELS.resetToDefault();
         Settings.SPEED_BUTTON_ON_REELS.resetToDefault();
         Settings.FULL_SCREEN_BUTTON_ON_REELS.resetToDefault();
+        Settings.MUTE_BUTTON_ON_REELS.resetToDefault();
+        Settings.MUTE_BUTTON_IN_CLEAR_MODE.resetToDefault();
         Settings.HIDDEN_SOUNDS.resetToDefault();
         Settings.HOLD_TO_DOWNLOAD.resetToDefault();
         Settings.HOLD_FINGERS.resetToDefault();
@@ -331,6 +333,52 @@ public class DownloadSettingsTest {
             assertEquals("no column to put them in without the reel download", -1, indexOfKey(rows, Settings.SPEED_BUTTON_ON_REELS.key));
             assertEquals(-1, indexOfKey(rows, Settings.FULL_SCREEN_BUTTON_ON_REELS.key));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_BUTTON_ON_REELS.key));
+        }
+    }
+
+    /**
+     * Mute button on reels and Mute button in clear mode (#608) close the column's switches under
+     * Reels, only with Control taps and volume on Reels, whose audio toggle a tap goes through. Both
+     * start off, clear mode's waits for the icon's own, and both go in a settings file.
+     */
+    @Test
+    public void theMuteButtonsCloseTheColumnsSwitchesWithTheTapPatch() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.KEEP_REEL_SPEED, PatchFamily.REEL_TAP_AND_VOLUME);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference mute = reels.findPreference(Settings.MUTE_BUTTON_ON_REELS.key);
+            assertTrue("the mute button isn't under Reels", mute instanceof SwitchPreference);
+            assertEquals("Mute button on reels", String.valueOf(mute.getTitle()));
+            assertTrue(String.valueOf(mute.getSummary()).contains("speaker icon"));
+            assertFalse("it starts off", ((SwitchPreference) mute).isChecked());
+            Preference clear = reels.findPreference(Settings.MUTE_BUTTON_IN_CLEAR_MODE.key);
+            assertTrue("the clear mode one isn't under Reels", clear instanceof SwitchPreference);
+            assertEquals("Mute button in clear mode", String.valueOf(clear.getTitle()));
+            assertFalse("it starts off", ((SwitchPreference) clear).isChecked());
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, Settings.SPEED_IN_REEL_MENU.key) + 1, indexOfKey(rows, Settings.MUTE_BUTTON_ON_REELS.key));
+            assertEquals(indexOfKey(rows, Settings.MUTE_BUTTON_ON_REELS.key) + 1, indexOfKey(rows, Settings.MUTE_BUTTON_IN_CLEAR_MODE.key));
+            assertFalse("clear mode's speaker waits for the icon's switch", clear.isEnabled());
+            ((SwitchPreference) mute).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(clear.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.MUTE_BUTTON_ON_REELS.key));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.MUTE_BUTTON_IN_CLEAR_MODE.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.KEEP_REEL_SPEED);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            assertEquals("no speaker without Control taps and volume on Reels", -1, indexOfKey(rows, Settings.MUTE_BUTTON_ON_REELS.key));
+            assertEquals(-1, indexOfKey(rows, Settings.MUTE_BUTTON_IN_CLEAR_MODE.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.MUTE_BUTTON_ON_REELS.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.MUTE_BUTTON_IN_CLEAR_MODE.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_TAP_AND_VOLUME);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals("no column to put it in without the reel download", -1,
+                    indexOfKey(rowsOf(pageIn(controller)), Settings.MUTE_BUTTON_ON_REELS.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.MUTE_BUTTON_ON_REELS.key));
         }
     }
 

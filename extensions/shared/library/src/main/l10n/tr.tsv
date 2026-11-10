@@ -1963,3 +1963,11 @@ The camera, as Instagram has it. Pick a tab and the same swipe opens that tab in
 A swipe right on Home opens %1$s. The + button still opens the camera.	Ana sayfada sağa kaydırma %1$s sekmesini açar. + düğmesi kamerayı açmaya devam eder.
 Keep the tab bar on a reel's profile	Bir reel profilinde sekme çubuğunu koru
 A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	Bir reel üzerinden açtığın profil bulunduğun sekmede kalır ve altında sekme çubuğu görünür. Geri, reel'e döndürür.
+Mute button on reels	Reels'te ses düğmesi
+Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel keeps playing.	Bir reel'in yanına hoparlör simgesi koyar. Reel oynamaya devam ederken sesi kapatmak ya da açmak için dokun.
+Mute button in clear mode	Temiz modda ses düğmesi
+Keeps the speaker icon next to clear mode's exit button.	Hoparlör simgesini temiz moddan çıkış düğmesinin yanında tutar.
+# context: TalkBack label of the speaker icon beside a reel and next to clear mode's exit button (#608)
+Sound	Ses
+# context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
+Sound didn't change	Ses değişmedi

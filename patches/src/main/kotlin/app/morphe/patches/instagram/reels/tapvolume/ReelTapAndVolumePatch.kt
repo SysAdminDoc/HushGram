@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.reels.tapvolume
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
@@ -11,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.download.reel.rewriteStub
 import app.morphe.patches.instagram.media.taptoplay.CLIPS_PAUSE
 import app.morphe.patches.instagram.media.taptoplay.FUNCTION0
 import app.morphe.patches.instagram.media.taptoplay.TOGGLE_PAUSE
@@ -21,10 +23,12 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.speed.MAYBE_RESUME_PLAYER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -46,6 +50,14 @@ internal const val REEL_TAP_AND_VOLUME = "$EXTENSION_PACKAGE/reels/ReelTapAndVol
 internal const val MUTE_INSTEAD_OF_PAUSE = "$REEL_TAP_AND_VOLUME->muteInsteadOfPause()Z"
 internal const val KEEP_PLAYING = "$REEL_TAP_AND_VOLUME->keepPlaying()Z"
 internal const val KEEP_MUTED = "$REEL_TAP_AND_VOLUME->keepMuted(II)Z"
+
+/** The speaker icon's (#608): the controller about to start a reel, and the icon's redraw. */
+internal const val SPEAKER_RESUMING = "$REEL_TAP_AND_VOLUME->resuming(Ljava/lang/Object;)V"
+internal const val SPEAKER_REFRESH = "$EXTENSION_PACKAGE/download/ReelMuteButton;->refresh()V"
+
+/** The extension's stubs the patch fills for the speaker icon: the toggle's call and the sound state's read. */
+internal const val TOGGLE_AUDIO_STUB = "toggleAudio"
+internal const val AUDIO_ON_STUB = "audioOn"
 
 /** The purge marker, less its release, of the Reels controller's volume runnable: where it unmutes after a key press. */
 internal const val VOLUME_ADJUSTED = "ClipsVideoPlayerController_onVolumeAdjustedByUser"
@@ -89,8 +101,10 @@ val reelTapAndVolumePatch = bytecodePatch(
         // Both sites are found before anything changes, so a build missing one changes nothing.
         val tapSite = findReelTapSite()
         val volumeSite = findVolumeSite()
+        val speakerSite = findSpeakerSite(tapSite, volumeSite)
         applyReelTap(tapSite)
         applyKeepMuted(volumeSite)
+        speakerSite?.let { applySpeaker(it) }
         enableStatus("reelTapAndVolume")
     }
 }
@@ -358,44 +372,57 @@ private fun BytecodePatchContext.findAudioState(run: Method, runCode: List<Instr
     }
     val audio = found.distinctBy { "${it.sessionField}${it.state}${it.isOn}${it.player.flag}${it.player.playerFor}" }.singleOrNull()
         ?: refuse("$where: expected the audio toggle to read Reels sound state once, found ${found.size}")
-    // The runnable reaches all of it from its own class, so each piece must be public or share its package.
-    val package0 = run.definingClass.substringBeforeLast('/')
-    fun shares(type: String) = type.substringBeforeLast('/') == package0
-    fun open(type: String, flags: Int) = shares(type) || (AccessFlags.PUBLIC.isSet(flags) && AccessFlags.PUBLIC.isSet(classDefBy(type).accessFlags))
-    val sessionField = classDefBy(controller).fields.singleOrNull { it.name == audio.sessionField.name }
+    classDefBy(controller).fields.singleOrNull { it.name == audio.sessionField.name }
         ?: refuse("$where: ${audio.sessionField} isn't a field of $controller")
     val stateClass = classDefBy(audio.state.returnType)
-    val factory = stateClass.methods.singleOrNull {
+    stateClass.methods.singleOrNull {
         it.name == audio.state.name && it.parameterTypes.map(Any::toString) == listOf(USER_SESSION) && AccessFlags.STATIC.isSet(it.accessFlags)
     } ?: refuse("$where: ${audio.state} isn't a static of ${stateClass.type}")
-    val ask = stateClass.methods.singleOrNull {
+    stateClass.methods.singleOrNull {
         it.name == audio.isOn.name && it.parameterTypes.isEmpty() && it.returnType == "Z" && !AccessFlags.STATIC.isSet(it.accessFlags)
     } ?: refuse("$where: ${audio.isOn} isn't an instance method of ${stateClass.type}")
-    if (!open(controller, AccessFlags.PUBLIC.value) || !open(controller, sessionField.accessFlags) ||
-        !open(stateClass.type, factory.accessFlags) || !open(stateClass.type, ask.accessFlags)
-    ) {
-        refuse("$where can't reach the audio state from its own class")
-    }
-    val p = audio.player
+    // The runnable reaches all of it from its own class, so each piece must be public or share its package.
+    if (!sessionReachable(run.definingClass, controller, audio)) refuse("$where can't reach the audio state from its own class")
+    if (!playerReachable(run.definingClass, audio.player)) refuse("$where can't reach the player's audio state from its own class")
+    return audio
+}
+
+/** Whether code in [from]'s class can use a member of [type] with [flags]: same package, or public in a public class. */
+private fun BytecodePatchContext.opensTo(from: String, type: String, flags: Int): Boolean =
+    type.substringBeforeLast('/') == from.substringBeforeLast('/') ||
+        (AccessFlags.PUBLIC.isSet(flags) && classDefByOrNull(type)?.let { AccessFlags.PUBLIC.isSet(it.accessFlags) } == true)
+
+/** Whether code in [from]'s class can read the session's sound state through [controller], the way [audio] says the toggle does. */
+private fun BytecodePatchContext.sessionReachable(from: String, controller: String, audio: AudioState): Boolean {
+    val sessionField = classDefByOrNull(controller)?.fields?.singleOrNull { it.name == audio.sessionField.name } ?: return false
+    val stateClass = classDefByOrNull(audio.state.returnType) ?: return false
+    val factory = stateClass.methods.singleOrNull {
+        it.name == audio.state.name && it.parameterTypes.map(Any::toString) == listOf(USER_SESSION) && AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: return false
+    val ask = stateClass.methods.singleOrNull {
+        it.name == audio.isOn.name && it.parameterTypes.isEmpty() && it.returnType == "Z" && !AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: return false
+    return opensTo(from, controller, AccessFlags.PUBLIC.value) && opensTo(from, controller, sessionField.accessFlags) &&
+        opensTo(from, stateClass.type, factory.accessFlags) && opensTo(from, stateClass.type, ask.accessFlags)
+}
+
+/** Whether code in [from]'s class can walk [player] from the controller to the player's sound flag. */
+private fun BytecodePatchContext.playerReachable(from: String, player: PlayerAudio): Boolean {
     fun reaches(method: MethodReference, interfaceCall: Boolean = false): Boolean {
         val owner = classDefByOrNull(method.definingClass) ?: return false
         val declared = owner.methods.singleOrNull {
             it.name == method.name && it.returnType == method.returnType &&
                 it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
-        } ?: return interfaceCall && AccessFlags.INTERFACE.isSet(owner.accessFlags) && open(owner.type, AccessFlags.PUBLIC.value)
-        return open(owner.type, declared.accessFlags)
+        } ?: return interfaceCall && AccessFlags.INTERFACE.isSet(owner.accessFlags) && opensTo(from, owner.type, AccessFlags.PUBLIC.value)
+        return opensTo(from, owner.type, declared.accessFlags)
     }
     fun fieldOpen(field: FieldReference): Boolean {
         val declared = classDefByOrNull(field.definingClass)?.fields?.singleOrNull { it.name == field.name && it.type == field.type } ?: return false
-        return open(field.definingClass, declared.accessFlags)
+        return opensTo(from, field.definingClass, declared.accessFlags)
     }
-    if (!reaches(p.currentList) || p.indexOf?.let { reaches(it) } == false || !reaches(p.holderAt, p.holderInterface) || !reaches(p.playerFor) ||
-        p.listCast?.let { classDefByOrNull(it) != null && open(it, AccessFlags.PUBLIC.value) } == false ||
-        !reaches(p.stateOf, p.stateOfInterface) || !fieldOpen(p.factoryField) || !fieldOpen(p.flag)
-    ) {
-        refuse("$where can't reach the player's audio state from its own class")
-    }
-    return audio
+    return reaches(player.currentList) && player.indexOf?.let { reaches(it) } != false && reaches(player.holderAt, player.holderInterface) &&
+        reaches(player.playerFor) && player.listCast?.let { classDefByOrNull(it) != null && opensTo(from, it, AccessFlags.PUBLIC.value) } != false &&
+        reaches(player.stateOf, player.stateOfInterface) && fieldOpen(player.factoryField) && fieldOpen(player.flag)
 }
 
 /**
@@ -557,6 +584,143 @@ internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
             ExternalLabel("stock", getInstruction(site.index)),
         )
     }
+}
+
+/**
+ * What the speaker icon beside a reel (#608) needs: the controller's maybeResumePlayer, its audio
+ * toggle, and the sound state the toggle reads, with whether the extension can read it the player's
+ * way ([playerOpen]) and the session's ([sessionOpen]).
+ */
+internal class SpeakerSite(
+    val resume: Method,
+    val toggle: Method,
+    val controller: String,
+    val audio: AudioState,
+    val playerOpen: Boolean,
+    val sessionOpen: Boolean,
+)
+
+/**
+ * The controller starts each reel through the one method marked [MAYBE_RESUME_PLAYER], an instance
+ * method of its own, so a hook first thing there hands the extension the controller of the reel on
+ * screen. The icon's tap calls the controller's audio toggle from the extension, so the controller
+ * must be public (the toggle already is), and the icon reads the sound state the way the volume key's
+ * hook does, through whichever of its two routes the extension can reach. Null with a warning when any
+ * of it isn't so: the tap and the volume keys still go in.
+ */
+internal fun BytecodePatchContext.findSpeakerSite(tap: ReelTapSite, volume: VolumeSite): SpeakerSite? {
+    fun leftOut(why: String): SpeakerSite? {
+        patchLog.warning("$PATCH: $why. The speaker icon beside a reel does nothing in this build.")
+        return null
+    }
+    val controller = tap.controller
+    val resumes = mutableListOf<Method>()
+    val marked = typesMarked(MAYBE_RESUME_PLAYER)
+    classDefForEach { classDef ->
+        if (classDef.type !in marked) return@classDefForEach
+        classDef.methods.forEach { method -> if (MAYBE_RESUME_PLAYER in method.markers()) resumes += method }
+    }
+    val resume = resumes.singleOrNull() ?: return leftOut("expected one method marked $MAYBE_RESUME_PLAYER, found ${resumes.size}")
+    val where = "${resume.definingClass}->${resume.name}"
+    if (resume.definingClass != controller) return leftOut("$where isn't in $controller")
+    if (AccessFlags.STATIC.isSet(resume.accessFlags) || resume.implementation == null) return leftOut("$where isn't an instance method with a body")
+    if (0 in resume.jumpTargets()) return leftOut("something in $where jumps to its start")
+    if (0 in tap.toggle.jumpTargets()) return leftOut("something in $controller->${tap.toggle.name} jumps to its start")
+    if (!AccessFlags.PUBLIC.isSet(classDefBy(controller).accessFlags)) return leftOut("$controller isn't public, so the extension can't call its audio toggle")
+    val stubs = classDefByOrNull(REEL_TAP_AND_VOLUME)?.methods?.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf(OBJECT) &&
+            (it.name == TOGGLE_AUDIO_STUB && it.returnType == "V" || it.name == AUDIO_ON_STUB && it.returnType == "I")
+    } ?: emptyList()
+    if (stubs.size != 2) return leftOut("$REEL_TAP_AND_VOLUME doesn't have its $TOGGLE_AUDIO_STUB and $AUDIO_ON_STUB stubs")
+    val audio = volume.audio
+    val playerOpen = playerReachable(REEL_TAP_AND_VOLUME, audio.player)
+    val sessionOpen = sessionReachable(REEL_TAP_AND_VOLUME, controller, audio)
+    if (!playerOpen && !sessionOpen) patchLog.warning("$PATCH: the extension can't read the Reels sound state, so the speaker icon always shows sound on.")
+    return SpeakerSite(resume, tap.toggle, controller, audio, playerOpen, sessionOpen)
+}
+
+/**
+ * Hands the extension the controller first thing in maybeResumePlayer (through the range form, which
+ * names `this` wherever it sits), asks the icon to redraw first thing in the audio toggle, so a mute
+ * from Instagram's own button or a tap shows on the icon too, and fills the extension's two stubs: the
+ * toggle's call with the reason the audio button gives, and the sound state, read the player's way
+ * first and the session's way when the reel has no player yet, -1 when neither can be read.
+ */
+internal fun BytecodePatchContext.applySpeaker(site: SpeakerSite) {
+    mutable(site.resume).addInstructions(0, "invoke-static/range { p0 .. p0 }, $SPEAKER_RESUMING")
+    mutable(site.toggle).addInstructions(0, "invoke-static { }, $SPEAKER_REFRESH")
+
+    val bridges = mutableClassDefBy(REEL_TAP_AND_VOLUME)
+    fun stub(name: String) = bridges.methods.single {
+        it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf(OBJECT)
+    }
+    val call = when (site.toggle.parameterTypes.map(Any::toString)) {
+        listOf("I") -> "invoke-virtual { p0, v0 }, ${site.controller}->${site.toggle.name}(I)V"
+        else -> """
+            const/4 v1, 0x1
+            invoke-virtual { p0, v0, v1 }, ${site.controller}->${site.toggle.name}(IZ)V
+        """.trimIndent()
+    }
+    rewriteStub(
+        bridges, stub(TOGGLE_AUDIO_STUB), 2,
+        """
+            check-cast p0, ${site.controller}
+            const/4 v0, $BUTTON_REASON
+            $call
+            return-void
+        """,
+    )
+
+    val audio = site.audio
+    val player = audio.player
+    val holder = player.indexOf?.let { indexOf ->
+        """
+            ${player.listCast?.let { "check-cast v0, $it" } ?: ""}
+            invoke-virtual { v0 }, $indexOf
+            move-result v1
+            invoke-virtual { v0, v1 }, ${player.holderAt}
+        """
+    } ?: "${if (player.holderInterface) "invoke-interface" else "invoke-virtual"} { v0 }, ${player.holderAt}"
+    val byPlayer = if (!site.playerOpen) "" else """
+        invoke-virtual { p0 }, ${player.currentList}
+        move-result-object v0
+        if-eqz v0, :session
+        $holder
+        move-result-object v0
+        if-eqz v0, :session
+        iget-object v1, p0, ${player.factoryField}
+        if-eqz v1, :session
+        invoke-virtual { v1, v0 }, ${player.playerFor}
+        move-result-object v0
+        if-eqz v0, :session
+        ${if (player.stateOfInterface) "invoke-interface" else "invoke-virtual"} { v0 }, ${player.stateOf}
+        move-result-object v0
+        if-eqz v0, :session
+        iget-boolean v1, v0, ${player.flag}
+        return v1
+    """
+    val bySession = if (!site.sessionOpen) "" else """
+        iget-object v1, p0, ${audio.sessionField}
+        if-eqz v1, :unknown
+        invoke-static { v1 }, ${audio.state}
+        move-result-object v1
+        if-eqz v1, :unknown
+        invoke-virtual { v1 }, ${audio.isOn}
+        move-result v1
+        return v1
+    """
+    rewriteStub(
+        bridges, stub(AUDIO_ON_STUB), 2,
+        """
+            check-cast p0, ${site.controller}
+            $byPlayer
+            :session
+            $bySession
+            :unknown
+            const/4 v1, -1
+            return v1
+        """,
+    )
 }
 
 private const val AUDIO_MANAGER = "Landroid/media/AudioManager;"

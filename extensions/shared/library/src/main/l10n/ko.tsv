@@ -1962,3 +1962,11 @@ The camera, as Instagram has it. Pick a tab and the same swipe opens that tab in
 A swipe right on Home opens %1$s. The + button still opens the camera.	홈에서 오른쪽으로 스와이프하면 %1$s 탭이 열립니다. + 버튼은 계속 카메라를 엽니다.
 Keep the tab bar on a reel's profile	릴스 프로필에서 탭 바 유지
 A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	릴스에서 연 프로필이 지금 있는 탭에서 열리고 아래에 탭 바가 보입니다. 뒤로 가면 릴스로 돌아갑니다.
+Mute button on reels	릴스 음소거 버튼
+Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel keeps playing.	릴스 옆에 스피커 아이콘을 추가합니다. 탭하면 릴스가 계속 재생되는 동안 소리를 끄거나 켭니다.
+Mute button in clear mode	클리어 모드 음소거 버튼
+Keeps the speaker icon next to clear mode's exit button.	클리어 모드의 나가기 버튼 옆에 스피커 아이콘을 유지합니다.
+# context: TalkBack label of the speaker icon beside a reel and next to clear mode's exit button (#608)
+Sound	소리
+# context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
+Sound didn't change	소리가 바뀌지 않았습니다

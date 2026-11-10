@@ -1880,3 +1880,11 @@ The camera, as Instagram has it. Pick a tab and the same swipe opens that tab in
 A swipe right on Home opens %1$s. The + button still opens the camera.	Vuốt sang phải trên Trang chủ sẽ mở %1$s. Nút + vẫn mở máy ảnh.
 Keep the tab bar on a reel's profile	Giữ thanh tab trên trang cá nhân của reel
 A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	Trang cá nhân mở từ reel sẽ ở ngay tab bạn đang dùng, với thanh tab bên dưới. Quay lại sẽ trở về reel.
+Mute button on reels	Nút tắt tiếng trên reel
+Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel keeps playing.	Đặt một biểu tượng loa bên cạnh reel. Chạm vào để tắt hoặc bật âm thanh trong khi reel vẫn phát.
+Mute button in clear mode	Nút tắt tiếng trong chế độ xem sạch
+Keeps the speaker icon next to clear mode's exit button.	Giữ biểu tượng loa bên cạnh nút thoát chế độ xem sạch.
+# context: TalkBack label of the speaker icon beside a reel and next to clear mode's exit button (#608)
+Sound	Âm thanh
+# context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
+Sound didn't change	Không đổi được âm thanh

@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.reels.speed
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
@@ -14,6 +15,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.reels.tapvolume.SPEAKER_RESUMING
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -115,6 +117,28 @@ class KeepReelSpeedHookTest {
         val ad = context.method(REEL_SPEED, AD_ITEM_STUB)
         assertEquals(listOf(Opcode.CHECK_CAST, Opcode.IGET_BOOLEAN, Opcode.RETURN), ad.take(3).map { it.opcode })
         assertEquals("$item->ad:Z", ad[1].referenceText())
+    }
+
+    /**
+     * Control taps and volume (#608) hands the extension the controller first thing in maybeResumePlayer.
+     * With that hook already in, the reel and its player still go right in front of the play call.
+     */
+    @Test
+    fun aHookFirstInMaybeResumePlayerLeavesThePlayCallsHooksInFront() {
+        val context = PatchContexts.of(classes())
+        context.mutableClassDefBy(controller).methods.single { it.name == "A0E" }
+            .addInstructions(0, "invoke-static/range { p0 .. p0 }, $SPEAKER_RESUMING")
+
+        context.keepReelSpeed()
+
+        val resume = context.method(controller, "A0E")
+        assertEquals("the controller's hook stays first", SPEAKER_RESUMING, resume[0].referenceText())
+        val itemHook = resume.indexOfFirst { it.referenceText() == ITEM }
+        assertCall("the reel handed over", resume[itemHook], ITEM, listOf(3))
+        assertCall("the player handed over", resume[itemHook + 1], RESUMING, listOf(1))
+        assertTrue("the play call doesn't follow", resume[itemHook + 2].referenceText()!!.startsWith("$player->play("))
+        val branch = resume.indexOfFirst { it.opcode == Opcode.IF_EQZ }
+        assertEquals("the branch to the play call lands on the hooks", itemHook, resume.target(branch))
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */

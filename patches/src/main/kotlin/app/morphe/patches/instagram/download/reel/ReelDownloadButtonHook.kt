@@ -173,6 +173,7 @@ internal fun BytecodePatchContext.addReelDownloadButtonWhereItFits() {
     addTextButtonWhereItFits(site)
     addSpeedButtonWhereItFits(site)
     addFullScreenButtonWhereItFits(site)
+    addMuteButtonWhereItFits(site)
 }
 
 /**

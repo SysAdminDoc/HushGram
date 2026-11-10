@@ -769,6 +769,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             && (Settings.SPEED_BUTTON_ON_REELS.key.equals(key) || Settings.SPEED_IN_REEL_MENU.key.equals(key));
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.REEL_DECLUTTER)
                             && Settings.FULL_SCREEN_BUTTON_ON_REELS.key.equals(key);
+                    belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.REEL_TAP_AND_VOLUME)
+                            && (Settings.MUTE_BUTTON_ON_REELS.key.equals(key) || Settings.MUTE_BUTTON_IN_CLEAR_MODE.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && (Settings.HIDE_SOUND_REELS.key.equals(key)
                             || HIDDEN_SOUNDS_ROW.equals(key));
                     belongs |= family == PatchFamily.ACCENT_COLOR && (Settings.ACCENT_HUE.key.equals(key)

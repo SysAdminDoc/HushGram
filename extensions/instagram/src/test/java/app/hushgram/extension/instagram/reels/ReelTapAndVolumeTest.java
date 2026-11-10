@@ -48,6 +48,7 @@ public class ReelTapAndVolumeTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
+        ReelTapAndVolume.forget();
     }
 
     private static String report() {
@@ -196,5 +197,39 @@ public class ReelTapAndVolumeTest {
     public void beforeTheSettingsAreReadyTheUnmuteHappens() {
         Settings.KEEP_REELS_MUTED.save(true);
         SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.keepMuted(1, 0)));
+    }
+
+    /**
+     * The speaker icon (#608) toggles the reel the last started controller plays: before any reel has
+     * started there's nothing to toggle and no sound to read, and a null handed over keeps the one held.
+     */
+    @Test
+    public void theSpeakerIconTogglesTheReelLastStarted() {
+        ReelTapAndVolume.forget();
+        assertFalse("no reel has started", ReelTapAndVolume.toggle());
+        assertEquals(-1, ReelTapAndVolume.soundOn());
+        assertFalse(report(), report().contains(ReelTapAndVolume.ICON_TOGGLED));
+
+        Object controller = new Object();
+        ReelTapAndVolume.resuming(controller);
+        assertTrue(ReelTapAndVolume.toggle());
+        ReelTapAndVolume.resuming(null);
+        assertTrue("a null keeps the controller held", ReelTapAndVolume.toggle());
+        assertTrue(report(), report().contains(ReelTapAndVolume.ICON_TOGGLED + " 2"));
+        // Unpatched, the read answers it can't tell, and the icon shows sound on.
+        assertEquals(-1, ReelTapAndVolume.soundOn());
+    }
+
+    /** Paused or before the settings are ready, the speaker icon toggles nothing. */
+    @Test
+    public void pausedTheSpeakerIconTogglesNothing() {
+        ReelTapAndVolume.resuming(new Object());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ReelTapAndVolume.toggle());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.toggle()));
+        assertFalse(report(), report().contains(ReelTapAndVolume.ICON_TOGGLED));
     }
 }

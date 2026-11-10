@@ -1963,3 +1963,11 @@ The camera, as Instagram has it. Pick a tab and the same swipe opens that tab in
 A swipe right on Home opens %1$s. The + button still opens the camera.	Deslizar a la derecha en Inicio abre %1$s. El botón + sigue abriendo la cámara.
 Keep the tab bar on a reel's profile	Mantener la barra de pestañas en el perfil de un reel
 A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	Un perfil que abres desde un reel se queda en la pestaña en la que estás, con la barra de pestañas debajo. Atrás te lleva de vuelta al reel.
+Mute button on reels	Botón de silencio en los reels
+Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel keeps playing.	Pone un icono de altavoz junto a un reel. Tócalo para quitar o poner el sonido mientras el reel sigue reproduciéndose.
+Mute button in clear mode	Botón de silencio en el modo limpio
+Keeps the speaker icon next to clear mode's exit button.	Mantiene el icono de altavoz junto al botón para salir del modo limpio.
+# context: TalkBack label of the speaker icon beside a reel and next to clear mode's exit button (#608)
+Sound	Sonido
+# context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
+Sound didn't change	El sonido no cambió

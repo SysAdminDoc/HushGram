@@ -13,6 +13,10 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.download.reel.MUTE_CLEAR_MODE
+import app.morphe.patches.instagram.download.reel.MUTE_ICON_TYPE
+import app.morphe.patches.instagram.download.reel.addMuteButtonToClearMode
+import app.morphe.patches.instagram.download.reel.findClearModeRowAdd
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -90,6 +94,60 @@ class ClearModeHookTest {
         val stubs = listOf("$CLEAR_MODE_ENTER_STUB($anyType$anyType)V", "$CLEAR_MODE_ID_STUB($anyType)$stringType")
         for (signature in hooks.map { it.substringAfter("->") } + stubs) {
             assertTrue("$signature is not in the extension: $declared", signature in declared)
+        }
+    }
+
+    /**
+     * Mute button in clear mode (#608): the speaker goes in the list the exit button's render hands
+     * its row, right after the last add to it, with that list. A render shaped any other way, or an
+     * extension without the speaker, is refused and the render is left as it was.
+     */
+    @Test
+    fun theClearModeSpeakerGoesInRightAfterTheRowListsLastAdd() {
+        val buttonRow = "Lfixture/ButtonRow;"
+        val arrayList = "Ljava/util/ArrayList;"
+        fun render(
+            lists: Int = 1, answered: Boolean = true, answerOverList: Boolean = false, rowTakesList: Boolean = true,
+            rowJumpedTo: Boolean = false,
+        ) = classDef(button, listOf(method(button, "render", listOf(anyType), anyType, 5, buildString {
+            appendLine("const-string v0, \"${marker(CLEAR_MODE_BUTTON)}\"")
+            appendLine("invoke-static { v0 }, $purge")
+            repeat(lists) { appendLine("new-instance v1, $arrayList\ninvoke-direct { v1 }, $arrayList-><init>()V") }
+            appendLine("invoke-virtual { v1, p1 }, $arrayList->add(Ljava/lang/Object;)Z")
+            appendLine("invoke-virtual { v1, p1 }, $arrayList->add(Ljava/lang/Object;)Z")
+            if (answered) appendLine("move-result ${if (answerOverList) "v1" else "v2"}")
+            if (rowJumpedTo) appendLine("if-eqz v2, :row\n:row")
+            appendLine("new-instance v0, $buttonRow")
+            appendLine(if (rowTakesList) "invoke-direct { v0, v1 }, $buttonRow-><init>(Ljava/util/List;)V" else "invoke-direct { v0 }, $buttonRow-><init>()V")
+            appendLine("return-object v0")
+        })))
+
+        for (answered in listOf(true, false)) {
+            val stock = render(answered = answered)
+            val context = PatchContexts.of(listOf(stock, ExtensionDex.classDef(MUTE_ICON_TYPE)))
+            val (_, at, list) = context.findClearModeRowAdd()
+            assertEquals("answered $answered: the list is v1", 1, list)
+            context.addMuteButtonToClearMode()
+            val code = context.method(button, "render")
+            assertEquals("answered $answered: one call more", stock.methods.single().code().size + 1, code.size)
+            assertEquals("answered $answered: in front of the row", buttonRow, code[at + 1].type())
+            assertEquals("answered $answered: the speaker's hook", MUTE_CLEAR_MODE, code[at].referenceText())
+            assertEquals("answered $answered: by range", Opcode.INVOKE_STATIC_RANGE, code[at].opcode)
+            assertEquals("answered $answered: with the list", listOf(1), code[at].registers())
+            assertEquals("answered $answered: after the last add", "add", code[if (answered) at - 2 else at - 1].methodRef()?.name)
+        }
+
+        for ((what, classes) in listOf(
+            "no speaker in the extension" to listOf(render()),
+            "two lists" to listOf(render(lists = 2), ExtensionDex.classDef(MUTE_ICON_TYPE)),
+            "the add's answer over the list" to listOf(render(answerOverList = true), ExtensionDex.classDef(MUTE_ICON_TYPE)),
+            "a row that takes no list" to listOf(render(rowTakesList = false), ExtensionDex.classDef(MUTE_ICON_TYPE)),
+            "a jump onto the row" to listOf(render(rowJumpedTo = true), ExtensionDex.classDef(MUTE_ICON_TYPE)),
+        )) {
+            val context = PatchContexts.of(classes)
+            assertThrows("$what: refused", PatchException::class.java) { context.findClearModeRowAdd() }
+            context.addMuteButtonToClearMode()
+            assertEquals("$what: the render is as it was", classes.first().methods.single().code().map { it.opcode }, context.method(button, "render").map { it.opcode })
         }
     }
 
@@ -431,7 +489,7 @@ class ClearModeHookTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                builds(bundle, bundle.name)
+                builds(bundle, bundle.name, declared = true)
                 checked += version
             }
         }
@@ -440,10 +498,10 @@ class ClearModeHookTest {
 
     @Test
     fun eachOtherBuildGetsEveryHookToo() {
-        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name, declared = false)
     }
 
-    private fun builds(bundle: File, label: String) {
+    private fun builds(bundle: File, label: String, declared: Boolean) {
         val markers = CLEAR_MODE_MARKERS.toSet()
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
@@ -484,7 +542,7 @@ class ClearModeHookTest {
         val called = render.code().mapNotNull { it.methodRef()?.definingClass }.filter { it.startsWith("LX/") }
         val extra = FixtureDex.classes(bundle, setOf(reasonType, itemType, stateType) + rowFields + heldFields + built + called).values +
             FixtureDex.classesHolding(bundle, CLEAR_MODE_FLAG_NAME)
-        val context = PatchContexts.of((holders + extra + ExtensionDex.classDef(CLEAR_MODE)).distinctBy { it.type })
+        val context = PatchContexts.of((holders + extra + ExtensionDex.classDef(CLEAR_MODE) + ExtensionDex.classDef(MUTE_ICON_TYPE)).distinctBy { it.type })
 
         context.keepClearMode()
 
@@ -565,6 +623,26 @@ class ClearModeHookTest {
         assertEquals("$name: the buzz answers nothing", "V", buzz?.returnType)
         assertTrue("$name: the buzz is the haptics helper's", context.classDefBy(buzz!!.definingClass).fields.any { it.type == VIBRATOR })
         assertEquals("$name: a yes skips the buzz alone", quiet + 4, newRender.target(quiet + 2))
+
+        // The speaker in clear mode (#608): with the list the render hands its row, right after its
+        // last add to it and right before the row is built. Another build may be left without it.
+        val rowAdd = runCatching { context.findClearModeRowAdd() }
+        if (declared || rowAdd.isSuccess) {
+            val (_, rowAt, rowList) = rowAdd.getOrThrow()
+            context.addMuteButtonToClearMode()
+            val spoken = after(render)
+            assertEquals("$name: one call more in the render", newRender.count { it.opcode != Opcode.NOP } + 1, spoken.count { it.opcode != Opcode.NOP })
+            assertEquals("$name: the speaker's hook", MUTE_CLEAR_MODE, spoken[rowAt].referenceText())
+            assertEquals("$name: it's handed the list", listOf(rowList), spoken[rowAt].registers())
+            val addAt = if (spoken[rowAt - 1].opcode == Opcode.MOVE_RESULT) rowAt - 2 else rowAt - 1
+            assertEquals("$name: an add to the list comes just before", "add", spoken[addAt].methodRef()?.name)
+            assertEquals("$name: the add is to that list", rowList, spoken[addAt].registers().first())
+            assertEquals("$name: the row is built right after", Opcode.NEW_INSTANCE, spoken[rowAt + 1].opcode)
+            val listMade = spoken.single { it.opcode == Opcode.NEW_INSTANCE && it.type() == "Ljava/util/ArrayList;" }
+            assertEquals("$name: the list is the one the render builds", rowList, (listMade as OneRegisterInstruction).registerA)
+        } else {
+            assertTrue("$name: a render the speaker can't go in is refused", rowAdd.exceptionOrNull() is PatchException)
+        }
 
         // The seek bar row: the reel state's flag, read off this through the row's state, goes in with
         // Instagram's unboxed answer right before the row tests it, and the row tests what comes back.

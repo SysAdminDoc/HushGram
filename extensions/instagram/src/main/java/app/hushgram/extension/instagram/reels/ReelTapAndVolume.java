@@ -4,11 +4,17 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import androidx.annotation.Nullable;
+
+import java.lang.ref.WeakReference;
+
+import app.hushgram.extension.instagram.download.ReelMuteButton;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * What the Control taps and volume on Reels patch asks. Its volume half is {@link #keepMuted}.
@@ -20,6 +26,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * controller's own toggle (the one the audio button calls) and return, so the reel keeps playing.
  * A reel you paused still resumes on a tap, a double tap still likes and a long press does what it
  * did.
+ *
+ * <p>The speaker icon beside a reel (#608) goes through the same toggle. The patch hands this class
+ * the controller each time it starts a reel ({@link #resuming}), so a tap on the icon flips the
+ * sound of the reel on screen ({@link #toggle}) and the icon reads it the way the toggle does
+ * ({@link #soundOn}).
  *
  * <p>Every answer is Instagram's own while the choice is Instagram's default, HushGram is paused,
  * the settings aren't ready, or anything in here throws.
@@ -37,10 +48,87 @@ public final class ReelTapAndVolume {
     static final String TAP = "reel tap";
     static final String VOLUME = "reel volume key";
 
+    /** What {@link HookStatus} counts for the speaker icon (#608): a tap that turned the sound off or on. */
+    static final String ICON_TOGGLED = "speaker icon taps";
+
     /** {@link android.media.AudioManager#ADJUST_RAISE}, the direction a press of volume up hands the Reels runnable. */
     private static final int ADJUST_RAISE = 1;
 
+    /** The Reels controller that started a reel last, weakly: the one on screen, for the speaker icon. */
+    @Nullable
+    private static volatile WeakReference<Object> onScreen;
+
     private ReelTapAndVolume() {
+    }
+
+    // ------------------------------------------------------------------ what the patch fills in
+
+    /** Filled in by the patch: the controller's audio toggle, called the way its audio button calls it. Only a controller may be passed. */
+    public static void toggleAudio(Object controller) {
+    }
+
+    /**
+     * Filled in by the patch: whether the controller's reel plays with sound, read the way its audio
+     * toggle reads it, 1 on, 0 off, -1 when it can't be told. Only a controller may be passed.
+     */
+    public static int audioOn(Object controller) {
+        return -1;
+    }
+
+    // ------------------------------------------------------------------ the speaker icon (#608)
+
+    /** The hook, first thing in the Reels controller's maybeResumePlayer: the controller about to start a reel. Never throws. */
+    public static void resuming(@Nullable Object controller) {
+        try {
+            if (controller == null) return;
+            WeakReference<Object> held = onScreen;
+            if (held == null || held.get() != controller) onScreen = new WeakReference<>(controller);
+            // A new reel may start muted or with sound, so the icon reads it again.
+            ReelMuteButton.refresh();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_TAP_AND_VOLUME, "reel start", failure);
+        }
+    }
+
+    /**
+     * The speaker icon's tap: turns the sound of the reel on screen off or on through its controller's
+     * own toggle, so the reel keeps playing. False when HushGram is paused or no reel has started since
+     * Instagram did. Never throws.
+     */
+    public static boolean toggle() {
+        try {
+            if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
+            Object controller = controller();
+            if (controller == null) return false;
+            toggleAudio(controller);
+            HookStatus.counted(FamilyNames.REEL_TAP_AND_VOLUME, ICON_TOGGLED);
+            Logger.printDebug(() -> "Reel speaker icon: sound toggled");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_TAP_AND_VOLUME, "speaker icon", failure);
+            return false;
+        }
+    }
+
+    /** Whether the reel on screen plays with sound: 1 on, 0 off, -1 when it can't be told. Never throws. */
+    public static int soundOn() {
+        try {
+            Object controller = controller();
+            return controller == null ? -1 : audioOn(controller);
+        } catch (Throwable failure) {
+            return -1;
+        }
+    }
+
+    @Nullable
+    private static Object controller() {
+        WeakReference<Object> held = onScreen;
+        return held == null ? null : held.get();
+    }
+
+    /** Forgets the controller. For tests. */
+    static void forget() {
+        onScreen = null;
     }
 
     /**
@@ -98,6 +186,8 @@ public final class ReelTapAndVolume {
     public static boolean keepMuted(int direction, int audioOn) {
         try {
             HookStatus.invoked(FamilyNames.REEL_TAP_AND_VOLUME);
+            // Instagram may unmute right after this, so the speaker icon reads the sound again then.
+            ReelMuteButton.refresh();
             if (!Utils.settingsReady() || !Settings.KEEP_REELS_MUTED.get() || direction != ADJUST_RAISE) return false;
             if (audioOn != 0) return false;
             HookStatus.counted(FamilyNames.REEL_TAP_AND_VOLUME, VOLUME_KEPT_MUTED);

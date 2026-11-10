@@ -1966,3 +1966,11 @@ The camera, as Instagram has it. Pick a tab and the same swipe opens that tab in
 A swipe right on Home opens %1$s. The + button still opens the camera.	在首頁向右滑動會開啟 %1$s。+ 按鈕仍會開啟相機。
 Keep the tab bar on a reel's profile	在 Reel 的個人檔案保留分頁列
 A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	從 Reel 開啟的個人檔案會留在目前的分頁，下方保留分頁列。返回會回到 Reel.
+Mute button on reels	Reels 靜音按鈕
+Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel keeps playing.	在 Reel 旁加入喇叭圖示。點一下即可在 Reel 繼續播放時關閉或開啟聲音。
+Mute button in clear mode	清爽模式靜音按鈕
+Keeps the speaker icon next to clear mode's exit button.	在清爽模式的離開按鈕旁保留喇叭圖示。
+# context: TalkBack label of the speaker icon beside a reel and next to clear mode's exit button (#608)
+Sound	聲音
+# context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
+Sound didn't change	聲音未變更

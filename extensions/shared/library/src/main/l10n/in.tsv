@@ -1963,3 +1963,11 @@ The camera, as Instagram has it. Pick a tab and the same swipe opens that tab in
 A swipe right on Home opens %1$s. The + button still opens the camera.	Geser ke kanan di Beranda membuka %1$s. Tombol + tetap membuka kamera.
 Keep the tab bar on a reel's profile	Pertahankan bilah tab di profil reel
 A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	Profil yang kamu buka dari reel tetap di tab yang sedang kamu buka, dengan bilah tab di bawahnya. Kembali membawamu ke reel.
+Mute button on reels	Tombol bisukan di reel
+Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel keeps playing.	Menaruh ikon speaker di samping reel. Ketuk untuk mematikan atau menyalakan suara sementara reel tetap diputar.
+Mute button in clear mode	Tombol bisukan di mode bersih
+Keeps the speaker icon next to clear mode's exit button.	Tetap menampilkan ikon speaker di samping tombol keluar mode bersih.
+# context: TalkBack label of the speaker icon beside a reel and next to clear mode's exit button (#608)
+Sound	Suara
+# context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
+Sound didn't change	Suara tidak berubah

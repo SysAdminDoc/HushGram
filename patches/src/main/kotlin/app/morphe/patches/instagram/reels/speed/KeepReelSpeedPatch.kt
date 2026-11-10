@@ -242,8 +242,13 @@ internal fun BytecodePatchContext.applyReelSpeedHooks(found: ReelSpeedHooks) {
     mutable(found.setter).addInstructions(0, "invoke-static/range { ${found.speedParameter} .. ${found.speedParameter} }, $SPEED_SET")
 
     val item = found.resume.parameterRegister(0)
-    mutable(found.resume).addInstructionsAtControlFlowLabel(
-        found.play,
+    val resume = mutable(found.resume)
+    // Found again in the method as it stands now: the speaker icon's hook (#608) may sit ahead of the play call.
+    val playCall = found.resume.code()[found.play].methodReference().toString()
+    val play = resume.code().indexOfFirst { it.methodReference()?.toString() == playCall }
+    if (play < 0) refuse("${found.resume.text()} lost its play call")
+    resume.addInstructionsAtControlFlowLabel(
+        play,
         """
             invoke-static/range { $item .. $item }, $ITEM
             invoke-static/range { v${found.player} .. v${found.player} }, $RESUMING

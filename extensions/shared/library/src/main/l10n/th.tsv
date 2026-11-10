@@ -1960,3 +1960,11 @@ The camera, as Instagram has it. Pick a tab and the same swipe opens that tab in
 A swipe right on Home opens %1$s. The + button still opens the camera.	การปัดขวาบนหน้าหลักจะเปิด %1$s ปุ่ม + ยังคงเปิดกล้อง
 Keep the tab bar on a reel's profile	คงแถบแท็บไว้บนโปรไฟล์ที่เปิดจากรีลส์
 A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	โปรไฟล์ที่คุณเปิดจากรีลส์จะอยู่ในแท็บเดิมที่คุณใช้อยู่ โดยมีแถบแท็บอยู่ด้านล่าง การกดย้อนกลับจะกลับไปที่รีลส์
+Mute button on reels	ปุ่มปิดเสียงในรีลส์
+Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel keeps playing.	แสดงไอคอนลำโพงข้างรีลส์ แตะเพื่อปิดหรือเปิดเสียงขณะที่รีลส์ยังเล่นต่อ
+Mute button in clear mode	ปุ่มปิดเสียงในโหมดล้างหน้าจอ
+Keeps the speaker icon next to clear mode's exit button.	คงไอคอนลำโพงไว้ข้างปุ่มออกจากโหมดล้างหน้าจอ
+# context: TalkBack label of the speaker icon beside a reel and next to clear mode's exit button (#608)
+Sound	เสียง
+# context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
+Sound didn't change	ไม่ได้เปลี่ยนเสียง

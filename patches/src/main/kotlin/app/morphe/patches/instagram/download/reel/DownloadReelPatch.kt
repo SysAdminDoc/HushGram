@@ -134,7 +134,7 @@ val downloadReelPatch = bytecodePatch(
         "the quality, and best is the default. A separate Download cover switch also saves the reel's cover " +
         "picture, the largest one the post carries, and Download audio saves just its sound. Download as video on " +
         "a carousel with music saves every page, in order. A separate switch under Downloads puts a download icon under Save beside each reel, " +
-        "and others add a Lens icon for copying a reel's text, a speed icon and a Full screen icon, or put " +
+        "and others add a Lens icon for copying a reel's text, a speed icon, a Full screen icon and a speaker icon, or put " +
         "Playback speed in a reel's menu. On by default. Turn it off in HushGram settings > Reels.",
     default = true,
 ) {
@@ -147,6 +147,7 @@ val downloadReelPatch = bytecodePatch(
         requireStatusMethod("reelDownload")
         offerDownloadOnEveryReel()
         addReelDownloadButtonWhereItFits()
+        addMuteButtonToClearMode()
         enableStatus("reelDownload")
     }
 }

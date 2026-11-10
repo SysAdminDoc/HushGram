@@ -10,6 +10,7 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -82,6 +83,7 @@ class ReelNotInterestedHookTest {
         for ((type, hooks) in listOf(
             SPEED_ICON_TYPE to listOf(SPEED_ICON_ON, SPEED_ICON_LITHO, SPEED_ICON_LITHO_ABOVE_MORE),
             FULL_SCREEN_ICON_TYPE to listOf(FULL_SCREEN_ICON_ON, FULL_SCREEN_ICON_LITHO, FULL_SCREEN_ICON_LITHO_ABOVE_MORE),
+            MUTE_ICON_TYPE to listOf(MUTE_ICON_ON, MUTE_ICON_LITHO, MUTE_ICON_LITHO_ABOVE_MORE, MUTE_CLEAR_MODE),
         )) {
             val declared = ExtensionDex.classDef(type).methods
                 .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
@@ -132,6 +134,7 @@ class ReelNotInterestedHookTest {
         classes[TEXT_TYPE] = ExtensionDex.classDef(TEXT_TYPE)
         classes[SPEED_ICON_TYPE] = ExtensionDex.classDef(SPEED_ICON_TYPE)
         classes[FULL_SCREEN_ICON_TYPE] = ExtensionDex.classDef(FULL_SCREEN_ICON_TYPE)
+        classes[MUTE_ICON_TYPE] = ExtensionDex.classDef(MUTE_ICON_TYPE)
         val context = PatchContexts.of(classes.values.toList())
 
         val site = context.findReelButtonSite()
@@ -286,7 +289,27 @@ class ReelNotInterestedHookTest {
             assertTrue("$name: $litho eight after on()", full[at + 8].names(litho))
             assertTrue("$name: the Full screen icon is added by the column's own add", full[at + 13].names(site.add.toString()))
         }
-        for (type in listOf(SPEED_ICON_TYPE, FULL_SCREEN_ICON_TYPE)) {
+        // The speaker (#608) goes in front of Full screen. Full screen's block skips onto the speed
+        // icon's, so a speaker put there was jumped over whenever Full screen was off.
+        val muteStarts = context.findPlayerIconStarts(site, MUTE_ICON_TYPE, "mute")
+        assertEquals("$name: the speaker starts where the Full screen icon does", fullAsks, muteStarts.map { it.second })
+        context.addPlayerIcons(site, muteStarts, MUTE_ICON_ON, MUTE_ICON_LITHO, MUTE_ICON_LITHO_ABOVE_MORE)
+        val muted = renderOf().instructions()
+        assertEquals("$name: fourteen more for the speaker at each place", full.size + 28, muted.size)
+        val muteAsks = muted.indices.filter { muted[it].names(MUTE_ICON_ON) }
+        assertEquals("$name: the speaker's on() at both places", 2, muteAsks.size)
+        assertEquals("$name: its lithoAboveMore() over More alone", 1, muted.count { it.names(MUTE_ICON_LITHO_ABOVE_MORE) })
+        val jumps = renderOf().jumpTargets()
+        muteAsks.zip(site.sites.sortedBy { it.at }).forEach { (at, place) ->
+            assertTrue("$name: nothing jumps onto the speaker's block, so it's never skipped", at !in jumps)
+            assertTrue("$name: the Full screen icon's block follows right after", muted[at + 14].names(FULL_SCREEN_ICON_ON))
+            assertTrue("$name: then the speed icon's", muted[at + 28].names(SPEED_ICON_ON))
+            assertTrue("$name: then Download's, after text, sound, Block and Not interested", muted[at + 98].names(REEL_BUTTON_ON))
+            val litho = if (place.aboveMore) MUTE_ICON_LITHO_ABOVE_MORE else MUTE_ICON_LITHO
+            assertTrue("$name: $litho eight after on()", muted[at + 8].names(litho))
+            assertTrue("$name: the speaker is added by the column's own add", muted[at + 13].names(site.add.toString()))
+        }
+        for (type in listOf(SPEED_ICON_TYPE, FULL_SCREEN_ICON_TYPE, MUTE_ICON_TYPE)) {
             val without = PatchContexts.of(classes.values.filter { it.type != type })
             val refused = runCatching { without.findPlayerIconStarts(site, type, type) }.exceptionOrNull()
             assertTrue("$name: an extension without $type is refused before anything changes", refused is PatchException)

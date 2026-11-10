@@ -255,6 +255,10 @@ public final class ConfigurationBackup {
             if (PatchFamily.REEL_DECLUTTER.inBuild()) {
                 settings.put(Settings.FULL_SCREEN_BUTTON_ON_REELS.key, Settings.FULL_SCREEN_BUTTON_ON_REELS);
             }
+            if (PatchFamily.REEL_TAP_AND_VOLUME.inBuild()) {
+                settings.put(Settings.MUTE_BUTTON_ON_REELS.key, Settings.MUTE_BUTTON_ON_REELS);
+                settings.put(Settings.MUTE_BUTTON_IN_CLEAR_MODE.key, Settings.MUTE_BUTTON_IN_CLEAR_MODE);
+            }
         }
         if (PatchFamily.REEL_POST_TIME.inBuild()) {
             settings.put(Settings.REEL_POST_TIME_SECONDS.key, Settings.REEL_POST_TIME_SECONDS);
