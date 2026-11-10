@@ -65,6 +65,7 @@ import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.ui.Dim;
@@ -218,6 +219,7 @@ public final class StoryMentions {
             if (waiting == null || waiting.story.get() != activity) return;
             waiting.away = true;
             waiting.behind = true;
+            Logger.printDebug(() -> "Story mentions: the story went behind the profile");
         }
 
         @Override
@@ -231,6 +233,7 @@ public final class StoryMentions {
             if (decor == null) return;
             decor.post(() -> {
                 try {
+                    Logger.printDebug(() -> "Story mentions: the story is back in front, " + PILLS.size() + " pills");
                     for (Pill pill : new ArrayList<>(PILLS)) if (pill.getRootView() == decor) settleShown(pill);
                 } catch (Throwable failure) {
                     HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
@@ -303,6 +306,7 @@ public final class StoryMentions {
             BackToList waiting = backToList;
             if (waiting == null || !waiting.holding || waiting.stale() || waiting.viewer.get() != resuming) return false;
             waiting.skipped = true;
+            Logger.printDebug(() -> "Story mentions: the story waits for its list");
             new Handler(Looper.getMainLooper()).postDelayed(() -> playIfTheListStaysAway(waiting), COMEBACK_HOLD_MS);
             return true;
         } catch (Throwable failure) {
@@ -317,6 +321,7 @@ public final class StoryMentions {
         waiting.holding = false;
         Object held = waiting.viewer.get();
         if (held == null) return;
+        Logger.printDebug(() -> "Story mentions: the list didn't come back, so the story plays");
         try {
             playback().play(held);
         } catch (Throwable failure) {
@@ -357,7 +362,10 @@ public final class StoryMentions {
     /** [pill] went off screen: if a profile is open over its story, the list waits for it to return. */
     private static void pillLeft(Pill pill) {
         BackToList waiting = backToList;
-        if (waiting != null && waiting.matches(pill.people)) waiting.away = true;
+        if (waiting != null && waiting.matches(pill.people)) {
+            waiting.away = true;
+            Logger.printDebug(() -> "Story mentions: the pill left the screen");
+        }
     }
 
     /**
@@ -382,16 +390,25 @@ public final class StoryMentions {
         if (waiting == null || pill.people.isEmpty()) return;
         if (waiting.stale()) {
             backToList = null;
+            Logger.printDebug(() -> "Story mentions: the list waited too long to come back");
         } else if (!onScreen(pill)) {
+            Logger.printDebug(() -> "Story mentions: a pill showed off the screen");
             return;
         } else if (!waiting.matches(pill.people)) {
             // Only a story moving on in the viewer the list was left from ends it. A story opened from
             // the profile is another viewer, and its mentions left the list closed when you came back (#403).
-            if (waiting.away && viewer.get() == waiting.viewer.get()) backToList = null;
+            if (waiting.away && viewer.get() == waiting.viewer.get()) {
+                backToList = null;
+                Logger.printDebug(() -> "Story mentions: the story moved on, so the list stays closed");
+            }
         } else if (waiting.away) {
             backToList = null;
             waiting.holding = false;
+            Logger.printDebug(() -> "Story mentions: the list opens again");
+            // The last touch may have gone down on the profile, a post opened from it say, so the pill
+            // whose context doesn't lead to its activity is looked for in the story's (#403).
             Activity activity = activityOf(pill);
+            if (activity == null) activity = showsIn(pill, waiting.story.get());
             list(activity != null ? activity : pill.getContext(), pill.people);
         }
     }
@@ -1011,6 +1028,7 @@ public final class StoryMentions {
         Activity activity = activity(context);
         if (activity == null) {
             HookStatus.counted(FamilyNames.STORY_MENTIONS, LIST_NO_ACTIVITY);
+            Logger.printDebug(() -> "Story mentions: no activity to show the list in");
             return null;
         }
         if (people.isEmpty()) return null;
@@ -1030,6 +1048,7 @@ public final class StoryMentions {
             rows.addView(row(themed, person, sheet, () -> {
                 leaving[0] = true;
                 backToList = new BackToList(people, activity, heldList.get() == dialog ? heldViewer.get() : null);
+                Logger.printDebug(() -> "Story mentions: the list waits for a profile to close");
                 watch(activity);
                 dialog.dismiss();
                 openProfile(activity, person.username);
@@ -1038,6 +1057,7 @@ public final class StoryMentions {
         // Names by the picture in a right-to-left layout, in the sheet too, which isn't a painted dialog.
         ScreenColors.startTextAtTheStart(rows);
         dialog.setOnDismissListener(shown -> {
+            if (!leaving[0] && backToList != null) Logger.printDebug(() -> "Story mentions: the list closed");
             if (!leaving[0]) backToList = null;
             release(shown, !leaving[0]);
         });
@@ -1468,10 +1488,15 @@ public final class StoryMentions {
     static Activity activityOf(View view) {
         Activity own = activity(view.getContext());
         if (own != null) return own;
-        Activity last = touched.get();
-        Window window = last == null ? null : last.getWindow();
+        return showsIn(view, touched.get());
+    }
+
+    /** [activity] when [view] is laid out in its window, or null. */
+    @Nullable
+    private static Activity showsIn(View view, @Nullable Activity activity) {
+        Window window = activity == null ? null : activity.getWindow();
         View decor = window == null ? null : window.peekDecorView();
-        return decor != null && view.getRootView() == decor ? last : null;
+        return decor != null && view.getRootView() == decor ? activity : null;
     }
 
     @Nullable

@@ -787,6 +787,50 @@ public class StoryMentionsTest {
         assertNotNull(find(again.getWindow().getDecorView(), view -> "@bo.k".equals(textOf(view))));
     }
 
+    /**
+     * #403 on the S22: a post opened from the profile took the last touch, and the pill, whose
+     * context doesn't lead to the story's activity, found no activity to open the list in when Back
+     * came to the story. The list opens in the activity it was left from.
+     */
+    @Test
+    public void theListComesBackAfterATapOnTheProfile() {
+        Context plain = new ContextThemeWrapper(activity.getApplicationContext(), android.R.style.Theme_DeviceDefault);
+        root.removeView(header);
+        header = new LinearLayout(plain);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setId(StoryMentions.headerIdForTests);
+        TextView name = new TextView(plain);
+        name.setText("someone");
+        header.addView(name);
+        root.addView(header);
+        bind(ANA, BO);
+        float[] center = layOut(pill());
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], center[1])));
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], center[1])));
+        AlertDialog first = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(first);
+        tapAccount(first, "Ana Lima, @ana");
+        controller.pause();
+        idle();
+
+        ActivityController<Activity> profile = Robolectric.buildActivity(Activity.class).setup();
+        try {
+            assertFalse("a tap on a post is Instagram's", StoryMentions.touch(profile.get(), event(MotionEvent.ACTION_DOWN, 1, 1)));
+            assertFalse(StoryMentions.touch(profile.get(), event(MotionEvent.ACTION_UP, 1, 1)));
+            profile.pause();
+            controller.resume();
+            idle();
+        } finally {
+            profile.close();
+        }
+
+        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotSame(first, again);
+        assertTrue("the list is open again", again.isShowing());
+        String report = HookStatus.report().toString();
+        assertFalse(report, report.contains(StoryMentions.LIST_NO_ACTIVITY));
+    }
+
     @Test
     public void thePillAndTheActivityBothComingBackOpenTheListOnce() {
         bind(ANA, BO);
