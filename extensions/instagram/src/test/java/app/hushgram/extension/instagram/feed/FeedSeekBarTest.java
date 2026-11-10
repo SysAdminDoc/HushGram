@@ -18,6 +18,7 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -118,6 +119,8 @@ public class FeedSeekBarTest {
     /** The feed's list, noting when a child asks it not to take a touch. */
     private static final class Feed extends LinearLayout {
         boolean keptOut;
+        /** Whether it scrolls the way Instagram's feed list does, so a SeekBar in it waits for a sideways move. */
+        boolean scrolls;
 
         Feed(Context context) {
             super(context);
@@ -127,6 +130,11 @@ public class FeedSeekBarTest {
         public void requestDisallowInterceptTouchEvent(boolean disallow) {
             keptOut = disallow;
             super.requestDisallowInterceptTouchEvent(disallow);
+        }
+
+        @Override
+        public boolean shouldDelayChildPressedState() {
+            return scrolls;
         }
     }
 
@@ -429,6 +437,46 @@ public class FeedSeekBarTest {
     }
 
     @Test
+    public void aScrollThatStartsOnTheBarGoesBackToTheFeed() {
+        feed.scrolls = true;
+        Settings.FEED_SEEK_BAR.save(true);
+        View mainList = mainTabs();
+        FeedSeekBar.progress(player, 3000, 15000);
+        SeekBar bar = bar();
+        int progress = bar.getProgress();
+        int slop = ViewConfiguration.get(bar.getContext()).getScaledTouchSlop();
+
+        touch(bar, MotionEvent.ACTION_DOWN, 100, 10);
+        assertTrue(feed.keptOut);
+        touch(bar, MotionEvent.ACTION_MOVE, 102, 10 - slop / 2f);
+        assertTrue("a move inside the slop keeps the bar's claim", feed.keptOut);
+        touch(bar, MotionEvent.ACTION_MOVE, 104, 10 - slop - 4);
+        assertFalse("the feed takes the scroll", feed.keptOut);
+        assertTrue("and so do the main tabs", TabSwipe.input(mainList, 1));
+        touch(bar, MotionEvent.ACTION_CANCEL, 104, 10 - slop - 4);
+        assertEquals("nothing seeked", progress, bar.getProgress());
+    }
+
+    @Test
+    public void aSidewaysDragOnTheBarKeepsItsClaim() {
+        feed.scrolls = true;
+        Settings.FEED_SEEK_BAR.save(true);
+        View mainList = mainTabs();
+        FeedSeekBar.progress(player, 3000, 15000);
+        SeekBar bar = bar();
+        int slop = ViewConfiguration.get(bar.getContext()).getScaledTouchSlop();
+
+        touch(bar, MotionEvent.ACTION_DOWN, 100, 10);
+        touch(bar, MotionEvent.ACTION_MOVE, 100 + slop * 3, 10 + slop / 2f);
+        assertTrue(feed.keptOut);
+        touch(bar, MotionEvent.ACTION_MOVE, 100 + slop * 3, 10 + slop * 4);
+        assertTrue("a drag under way stays the bar's when the finger drifts down", feed.keptOut);
+        assertFalse(TabSwipe.input(mainList, 1));
+        touch(bar, MotionEvent.ACTION_UP, 100 + slop * 3, 10 + slop * 4);
+        assertTrue(TabSwipe.input(mainList, 1));
+    }
+
+    @Test
     public void withTheSwitchOffAFingerOnTheBarLeavesTheMainTabs() {
         Settings.FEED_SEEK_BAR.save(true);
         View mainList = mainTabs();
@@ -449,7 +497,11 @@ public class FeedSeekBarTest {
     }
 
     private static void touch(View view, int action) {
-        MotionEvent event = MotionEvent.obtain(0, 0, action, 100, 10, 0);
+        touch(view, action, 100, 10);
+    }
+
+    private static void touch(View view, int action, float x, float y) {
+        MotionEvent event = MotionEvent.obtain(0, 0, action, x, y, 0);
         view.dispatchTouchEvent(event);
         event.recycle();
     }

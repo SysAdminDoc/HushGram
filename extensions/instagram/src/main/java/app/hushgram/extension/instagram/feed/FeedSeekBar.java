@@ -14,6 +14,7 @@ import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
@@ -196,6 +197,10 @@ public final class FeedSeekBar {
         int followed = -1;
         long followedAt = -1;
         boolean followWaits;
+        /** Whether a finger on the bar holds the feed and the tabs, and where it landed. */
+        boolean claimed;
+        float downX;
+        float downY;
 
         Overlay(Object player) {
             this.player = new WeakReference<>(player);
@@ -346,15 +351,29 @@ public final class FeedSeekBar {
          * A finger landing on the bar keeps the feed and Instagram's main tabs from taking the drag
          * until it lifts. Both claim a sideways or upward move before a SeekBar in a scrolling list
          * starts its own, and the tabs' list takes it even when the bar asks its parents not to, so
-         * the tabs are held through {@link TabSwipe}.
+         * the tabs are held through {@link TabSwipe}. A finger that moves up or down past the touch slop
+         * before the bar starts its own drag is a scroll that began on the bar, so the feed and the
+         * tabs get it back and Home scrolls.
          */
         @Override
         public boolean onTouch(View view, MotionEvent event) {
             int action = event.getActionMasked();
             if (action == MotionEvent.ACTION_DOWN && !removed && wanted()) {
+                claimed = true;
+                downX = event.getX();
+                downY = event.getY();
                 TabSwipe.hold(true);
                 if (view.getParent() != null) view.getParent().requestDisallowInterceptTouchEvent(true);
+            } else if (action == MotionEvent.ACTION_MOVE && claimed && !dragging) {
+                float across = Math.abs(event.getX() - downX);
+                float down = Math.abs(event.getY() - downY);
+                if (down > ViewConfiguration.get(view.getContext()).getScaledTouchSlop() && down > across) {
+                    claimed = false;
+                    TabSwipe.hold(false);
+                    if (view.getParent() != null) view.getParent().requestDisallowInterceptTouchEvent(false);
+                }
             } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                claimed = false;
                 TabSwipe.hold(false);
             }
             return false;
