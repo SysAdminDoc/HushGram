@@ -89,8 +89,8 @@ public class AmbientLightSettingsTest {
         String[] keys = new String[feed.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.AMBIENT_LIGHT.key);
-        assertEquals(Arrays.toString(keys), Settings.CAROUSEL_PILL_LOOK.key, keys[at - 1]);
-        assertEquals(Arrays.toString(keys), Settings.CAROUSEL_DOTS_PILL.key, keys[at - 2]);
+        assertEquals(Arrays.toString(keys), Settings.CAROUSEL_HIDE_NUMBER.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.CAROUSEL_PILL_LOOK.key, keys[at - 2]);
         assertEquals(Arrays.toString(keys), Settings.AMBIENT_LIGHT_SPREAD.key, keys[at + 1]);
         assertEquals(Arrays.toString(keys), Settings.AMBIENT_LIGHT_SPEED.key, keys[at + 2]);
         assertEquals(Arrays.toString(keys), Settings.AMBIENT_LIGHT_BLEND.key, keys[at + 3]);
