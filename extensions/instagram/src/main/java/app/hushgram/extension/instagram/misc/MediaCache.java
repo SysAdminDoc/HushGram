@@ -42,11 +42,13 @@ import app.hushgram.extension.shared.settings.Setting;
  * minute stays too, since Instagram may still be writing it. The folders themselves stay, so code
  * holding one keeps working.
  *
- * <p>The two caches, as Instagram 450 names them:
+ * <p>The two caches, as Instagram 450 and 454 name them:
  * <ul>
  *   <li>Images: {@code image_scoped}, the path Meta's storage registry gives the image cache
  *       ({@code X.02ix.A00}, "cache/image_scoped"), and {@code images}, that cache's older name
- *       ({@code X.05Nm.A06}).
+ *       ({@code X.05Nm.A06}). Instagram 454 keeps its pictures in {@code images.stash} instead, one
+ *       file each in its {@code clean} folder beside an empty {@code imagev3} file, so only
+ *       {@code clean} is cleared there and that file stays.
  *   <li>Video: {@code ExoPlayerCacheDir}. The video player's cache settings put it in the cache
  *       folder ({@code X.06jh.A0N}, {@code getCacheDir()}), and {@code X.08nf.A00} names its folders
  *       videocache, videoprefetchcache and videocachemetadata.
@@ -71,7 +73,7 @@ public final class MediaCache {
     static final long SETTLE_MILLIS = 60_000;
 
     /** The image cache's folders in the cache folder (see the class comment). */
-    static final List<String> IMAGE_FOLDERS = Collections.unmodifiableList(Arrays.asList("image_scoped", "images"));
+    static final List<String> IMAGE_FOLDERS = Collections.unmodifiableList(Arrays.asList("image_scoped", "images", "images.stash/clean"));
 
     /** The video cache's folder in the cache folder (see the class comment). */
     static final String VIDEO_FOLDER = "ExoPlayerCacheDir";

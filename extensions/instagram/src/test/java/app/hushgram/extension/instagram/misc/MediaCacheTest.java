@@ -92,6 +92,21 @@ public class MediaCacheTest {
         assertTrue(report, report.contains(MediaCache.CLEARED + " 1"));
     }
 
+    /** Instagram 454's pictures are files in images.stash/clean, and the stash's imagev3 file isn't one. */
+    @Test
+    public void on454TheImagesInTheStashGoAndItsMarkerStays() throws IOException {
+        File picture = file("images.stash/clean/3fa1c0d2e4b5a697.0", 600, OLD);
+        File writing = file("images.stash/clean/7b2e9d4c1a0f3e58.0", 200, NOW - 5_000);
+        File marker = file("images.stash/imagev3", 0, OLD);
+
+        assertEquals(600, MediaCache.clearIfOver(context, 500, NOW));
+
+        assertFalse(picture.exists());
+        assertTrue("a picture still being written stays", writing.exists());
+        assertTrue("the stash's own file stays", marker.exists());
+        assertTrue("the folder stays", new File(cache, "images.stash/clean").isDirectory());
+    }
+
     /**
      * The first time Instagram names the video cache's folders in a process, before its player has
      * built the cache, the video cache a clear asked for goes: all of it, index and metadata with it.

@@ -72,6 +72,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* `Clear saved copies now`, and the clear that runs on its own, empty the photo cache on Instagram 454 too. That version keeps its pictures in a new folder, so nothing was being freed.
 * `Backgrounds in the accent color` now reaches the message list. Its rows and search field stayed near-black under a colored page because that screen takes its grays from code instead of the theme. Refs #577.
 * `Pure black dark mode` no longer paints a note's bubble, the Instagram Plus card, the comments sheet or the strip under it black on top of `Backgrounds in the accent color`. Refs #577.
 * With `Gray out stories you've watched`, the story row no longer puts watched stories ahead of new ones after it reloads, and the next batch stays after the ones you had. Reported in #241.
