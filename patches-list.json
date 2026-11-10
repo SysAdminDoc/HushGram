@@ -368,7 +368,7 @@
     {
       "name": "Call blocker",
       "description": "Lets you choose who can ring your phone with an Instagram call: everyone, nobody, only people on your list, or everyone except them. A stopped call just goes unanswered for the caller. Everyone to start. Change it in HushGram settings > Messages.",
-      "category": "Messages",
+      "category": "Privacy",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -2732,7 +2732,7 @@
     {
       "name": "Hide the Community Standards reminder",
       "description": "Takes the banner reminding you to be respectful off the bottom of a chat. Starts off. Turn it on in HushGram settings > Messages.",
-      "category": "Messages",
+      "category": "Fixes",
       "use": true,
       "dependencies": [
         "BytecodePatch",

@@ -70,6 +70,7 @@ Every HushGram release, newest first.
 * The story mentions sheet from the top bar floats over the story as glass now, with the story blurred behind it on Android 12 and up. Phones that can't blur get a nearly solid tint so names stay readable. Asked for in #525.
 * `Glass in chats` gives the back, call and video buttons real glass circles that match the liquid tab bar, with a lit rim instead of flat grey. The thin line under a chat's top bar is gone too. Asked for in #537 and #542.
 * With debug logging on, the diagnostic report has a timed line each time a tab bar moves a screen, the Reels viewer, a sheet or the space under a reel. Reported in #509 and #222.
+* In Morphe Manager, `Call blocker` now sits under Privacy and `Hide the Community Standards reminder` under Fixes, so the Messages group stays short. Both switches are still on the Messages settings page.
 
 ### Bug Fixes
 

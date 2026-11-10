@@ -50,7 +50,7 @@ val hideKindnessReminderPatch = bytecodePatch(
         "Turn it on in HushGram settings > Messages.",
     default = true,
 ) {
-    category("Messages")
+    category("Fixes")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

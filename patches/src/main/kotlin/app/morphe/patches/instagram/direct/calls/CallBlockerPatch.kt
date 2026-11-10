@@ -46,7 +46,7 @@ val callBlockerPatch = bytecodePatch(
         "start. Change it in HushGram settings > Messages.",
     default = true,
 ) {
-    category("Messages")
+    category("Privacy")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
