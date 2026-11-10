@@ -182,21 +182,35 @@ public final class GlassTabBar {
      * how many changed.
      */
     static int screensAboveTheBar(ViewGroup content, int pager, int barHeight, int wanted) {
+        return screensAboveTheBar(content, pager, barHeight, wanted, new WeakHashMap<>());
+    }
+
+    /**
+     * {@link #screensAboveTheBar}, leaving alone each view whose margin is the one the Reels viewers were
+     * given ([reels], {@link #reelsAboveTheBar}). On the classic bar the Reels viewer is one of the
+     * content's screens, and a pill with no lift and no navigation bar under it gives the viewer a slot
+     * exactly as tall as Instagram's bar. Taken for Instagram's margin, it went back to 0 every frame and
+     * the slot came back with each Reels look, so the reel jumped up and down about ten times a second (#512).
+     */
+    static int screensAboveTheBar(ViewGroup content, int pager, int barHeight, int wanted,
+            Map<View, Integer> reels) {
         int changed = 0;
-        for (int i = 0; i < content.getChildCount(); i++) changed += aboveTheBar(content.getChildAt(i), barHeight, wanted);
+        for (int i = 0; i < content.getChildCount(); i++) changed += aboveTheBar(content.getChildAt(i), barHeight, wanted, reels);
         if (pager == 0 || !(content.getParent() instanceof ViewGroup)) return changed;
         ViewGroup holder = (ViewGroup) content.getParent();
         for (int i = 0; i < holder.getChildCount(); i++) {
             View sibling = holder.getChildAt(i);
-            if (sibling.getId() == pager) changed += aboveTheBar(sibling, barHeight, wanted);
+            if (sibling.getId() == pager) changed += aboveTheBar(sibling, barHeight, wanted, reels);
         }
         return changed;
     }
 
-    private static int aboveTheBar(View screen, int barHeight, int wanted) {
+    private static int aboveTheBar(View screen, int barHeight, int wanted, Map<View, Integer> reels) {
         if (!(screen.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return 0;
         ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) screen.getLayoutParams();
         if (margins.bottomMargin != barHeight) return 0;
+        Integer given = reels.get(screen);
+        if (given != null && given == barHeight) return 0;
         margins.bottomMargin = wanted;
         screen.setLayoutParams(margins);
         return 1;
@@ -2368,7 +2382,7 @@ public final class GlassTabBar {
             int wanted = floating ? 0 : params.height;
             if (wanted == originalBarHeight) return;
             movedForReels("put the screens above the bar",
-                    screensAboveTheBar(content, id(content.getContext(), SWIPE_PAGER), originalBarHeight, wanted), wanted);
+                    screensAboveTheBar(content, id(content.getContext(), SWIPE_PAGER), originalBarHeight, wanted, lifted), wanted);
         }
 
         @Override public boolean onPreDraw() {

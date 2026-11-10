@@ -2708,6 +2708,41 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #512: on the classic bar the Reels viewer is one of the content's own screens. A pill with no lift
+     * and no navigation bar room gives it a slot as tall as Instagram's bar, and the walk that runs the
+     * screens behind the pill took that slot for Instagram's margin and zeroed it every frame, so the
+     * reel jumped. The slot stays, and a plain screen at Instagram's height still runs behind.
+     */
+    @Test
+    public void aReelsSlotAsTallAsInstagramsBarIsNotTakenForInstagramsMargin() {
+        Context context = RuntimeEnvironment.getApplication();
+        int reels = 0x7f0b0010;
+        FrameLayout holder = new FrameLayout(context);
+        FrameLayout content = new FrameLayout(context);
+        View viewer = withMargin(new FrameLayout(context), 0);
+        viewer.setId(reels);
+        content.addView(viewer);
+        View home = withMargin(new FrameLayout(context), 126);
+        content.addView(home);
+        FrameLayout bar = new FrameLayout(context);
+        holder.addView(content);
+        holder.addView(bar);
+        Map<View, Integer> given = new HashMap<>();
+
+        assertEquals(1, GlassTabBar.reelsAboveTheBar(holder, bar, reels, 126, given));
+        assertEquals(1, GlassTabBar.screensAboveTheBar(content, 0, 126, 0, given));
+        assertEquals("the Reels slot", 126, margin(viewer));
+        assertEquals("a plain screen", 0, margin(home));
+        assertEquals("settled, nothing to give back", 0, GlassTabBar.reelsAboveTheBar(holder, bar, reels, 126, given));
+
+        assertEquals(1, GlassTabBar.reelsAboveTheBar(holder, bar, reels, 0, given));
+        withMargin(viewer, 126);
+        assertEquals("a margin the pill no longer holds is Instagram's", 1,
+                GlassTabBar.screensAboveTheBar(content, 0, 126, 0, given));
+        assertEquals(0, margin(viewer));
+    }
+
+    /**
      * #347: a reel opened from a feed post has Instagram hide the bar with Home selected, and the
      * pill's slot kept under that viewer was a blank band. The slot stays while the bar shows, and with
      * the Reels tab selected, where Instagram hides the bar for a paused reel (#221).
