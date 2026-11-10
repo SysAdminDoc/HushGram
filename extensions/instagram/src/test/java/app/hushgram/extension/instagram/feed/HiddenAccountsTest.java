@@ -181,6 +181,37 @@ public class HiddenAccountsTest {
         assertNull("off, Favorites leaves it out too", home(new Item("nasa")));
     }
 
+    /**
+     * 454 sends Favorites' paging source in the request's extra parameters, not its parameters: a
+     * page asked that way still keeps the post, and the next request with neither reads as For you's.
+     */
+    @Test
+    public void favoritesInTheExtrasKeepsHiddenAccountsToo() {
+        signIn("1");
+        HiddenAccounts.add("nasa");
+        Settings.HIDDEN_IN_FAVORITES.save(true);
+
+        asks(null);
+        Map<String, String> extras = new LinkedHashMap<>();
+        extras.put(HiddenAccounts.PAGINATION_SOURCE, HiddenAccounts.FAVORITES);
+        HiddenAccounts.homeRequestExtras(extras);
+        Item kept = new Item("nasa");
+        assertSame(kept, home(kept));
+
+        asks(null);
+        HiddenAccounts.homeRequestExtras(new LinkedHashMap<String, String>());
+        assertNull("For you still leaves it out", home(new Item("nasa")));
+
+        asks(HiddenAccounts.FAVORITES);
+        Map<String, Object> odd = new LinkedHashMap<>();
+        odd.put(HiddenAccounts.PAGINATION_SOURCE, 7);
+        HiddenAccounts.homeRequestExtras(odd);
+        HiddenAccounts.homeRequestExtras(null);
+        Item still = new Item("nasa");
+        assertSame("extras with no text source leave the parameters' alone", still, home(still));
+        assertFalse(String.join("\n", HookStatus.report()).contains("threw"));
+    }
+
     /** A request with no parameters, or a paging source that isn't text, reads as For you's and never throws. */
     @Test
     public void anOddRequestReadsAsForYou() {

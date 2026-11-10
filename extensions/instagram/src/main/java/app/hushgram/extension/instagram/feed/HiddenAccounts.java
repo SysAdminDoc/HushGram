@@ -111,6 +111,20 @@ public final class HiddenAccounts {
     }
 
     /**
+     * Injected in the same builder after {@link #homeRequest}, where it reads the request's extra
+     * parameters. On 454 that's where Favorites' paging source rides when Home is on Favorites, so
+     * a source found here wins over none in the parameters. Never throws.
+     */
+    public static void homeRequestExtras(@Nullable Map<?, ?> extras) {
+        try {
+            Object source = extras == null ? null : extras.get(PAGINATION_SOURCE);
+            if (source instanceof String) lastSource = (String) source;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home request extras", failure);
+        }
+    }
+
+    /**
      * Injected first thing in the constructor of Home's cache source, with the session it's made
      * for. Keeps that session's account as the signed-in one, and saves it when the settings are
      * ready. Never waits for them and never throws.

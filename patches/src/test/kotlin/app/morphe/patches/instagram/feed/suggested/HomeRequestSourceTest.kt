@@ -22,6 +22,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -36,35 +38,49 @@ import org.junit.Test
 /**
  * Keep hidden accounts in Favorites' request hook (#601): the map of a request for a page of Home,
  * holding its paging source, goes to HiddenAccounts.homeRequest right before Instagram copies it
- * into the request, every branch onto that copy included. A build where it can't be told for sure
- * changes nothing.
+ * into the request, every branch onto that copy included, and the request's extra parameters,
+ * where 454 puts Favorites' paging source, go to HiddenAccounts.homeRequestExtras right after the
+ * builder reads them. A build where it can't be told for sure changes nothing.
  */
 class HomeRequestSourceTest {
     private val builder = "Lfixture/HomeRequest;"
     private val session = "Lcom/instagram/common/session/UserSession;"
+    private val config = "Lfixture/RequestConfig;"
+    private val extrasField = "$config->extras:Ljava/util/Map;"
     private val entrySet = "Ljava/util/AbstractMap;->entrySet()Ljava/util/Set;"
+    private val extrasEntrySet = "Ljava/util/Map;->entrySet()Ljava/util/Set;"
 
     @Test
     fun theHookIsInTheExtension() {
         val declared = ExtensionDex.classDef(HIDDEN_ACCOUNTS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$HIDDEN_ACCOUNTS->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$HOME_REQUEST is not in the extension: $declared", HOME_REQUEST in declared)
+        for (hook in listOf(HOME_REQUEST, HOME_REQUEST_EXTRAS)) assertTrue("$hook is not in the extension: $declared", hook in declared)
     }
 
     /**
      * Shaped like 454's 03bn.A01: the map is made, the paging source key loaded, a branch skips the
-     * put when there's no source, and both ways meet at the map's entrySet().
+     * put when there's no source, and both ways meet at the map's entrySet(). Later the config's
+     * extra parameters are read and copied too.
      */
     private fun request(
         name: String = "A01",
         eager: Boolean = true,
         overwritten: Boolean = false,
         jumpedOver: Boolean = false,
-    ): Method = method(
-        name,
-        listOfNotNull(
-            if (jumpedOver) "if-nez p2, :copy" else null,
+        extrasReads: Int = 1,
+        extrasFirst: Boolean = false,
+        jumpPastExtrasRead: Boolean = false,
+    ): Method {
+        val extras = (1..extrasReads).flatMap { read ->
+            listOfNotNull(
+                "iget-object v2, p3, $extrasField",
+                if (read == 1 && jumpPastExtrasRead) ":extras" else null,
+                "invoke-interface {v2}, $extrasEntrySet",
+                "move-result-object v0",
+            )
+        }
+        val params = listOfNotNull(
             if (eager) "const-string v0, \"$EAGER_REFRESH\"" else "const-string v0, \"other\"",
             "new-instance v1, Ljava/util/LinkedHashMap;",
             "invoke-direct {v1}, Ljava/util/LinkedHashMap;-><init>()V",
@@ -76,15 +92,31 @@ class HomeRequestSourceTest {
             ":copy",
             "invoke-virtual {v1}, $entrySet",
             "move-result-object v0",
-            "return-void",
+        )
+        val start = listOfNotNull(
+            if (jumpedOver) "if-nez p2, :copy" else null,
+            if (jumpPastExtrasRead) "if-nez p2, :extras" else null,
+        )
+        val body = if (extrasFirst) start + extras + params else start + params + extras
+        return method(name, listOf("Landroid/content/Context;", session, "I", config), "V", body + "return-void")
+    }
+
+    /** Elsewhere in the app: the config's extra parameters read for their paging source. */
+    private fun extrasReader(): Method = method(
+        "reader", listOf(config), "Ljava/lang/Object;",
+        listOf(
+            "iget-object v0, p0, $extrasField",
+            "const-string v1, \"$PAGINATION_SOURCE\"",
+            "invoke-interface {v0, v1}, Ljava/util/Map;->get(Ljava/lang/Object;)Ljava/lang/Object;",
+            "move-result-object v0",
+            "return-object v0",
         ),
     )
 
-    private fun method(name: String, body: List<String>): Method {
-        val parameters = listOf("Landroid/content/Context;", session, "I")
+    private fun method(name: String, parameters: List<String>, returns: String, body: List<String>): Method {
         val mutable = MutableMethod(
             ImmutableMethod(
-                builder, name, parameters.map { ImmutableMethodParameter(it, null, null) }, "V",
+                builder, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns,
                 AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value, null, null,
                 ImmutableMethodImplementation(3 + parameters.size, emptyList(), null, null),
             ),
@@ -93,8 +125,11 @@ class HomeRequestSourceTest {
         return ImmutableMethod.of(mutable)
     }
 
-    private fun classes(vararg methods: Method): List<ClassDef> = listOf(
-        ImmutableClassDef(builder, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, null, methods.toList()),
+    private fun classes(vararg methods: Method, reader: Boolean = true): List<ClassDef> = listOf(
+        ImmutableClassDef(
+            builder, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, null,
+            methods.toList() + listOfNotNull(if (reader) extrasReader() else null),
+        ),
         ExtensionDex.classDef(HIDDEN_ACCOUNTS),
     )
 
@@ -104,7 +139,7 @@ class HomeRequestSourceTest {
 
         requireNotNull(context.homeRequestSourceOrWarn()).write()
 
-        val method = context.mutableClassDefBy(builder).methods.single()
+        val method = context.mutableClassDefBy(builder).methods.single { it.name == "A01" }
         val code = method.implementation!!.instructions.toList()
         val hook = code.indexOfFirst { it.methodText() == HOME_REQUEST }
         assertEquals(Opcode.INVOKE_STATIC_RANGE, code[hook].opcode)
@@ -114,6 +149,15 @@ class HomeRequestSourceTest {
         val branch = code.single { it.opcode == Opcode.IF_EQZ } as BuilderOffsetInstruction
         assertEquals("the branch with no source runs the hook too", hook, branch.target.location.index)
         assertEquals("the hook once", 1, code.count { it.methodText() == HOME_REQUEST })
+
+        val extras = code.indexOfFirst { it.methodText() == HOME_REQUEST_EXTRAS }
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, code[extras].opcode)
+        assertEquals("the extras' register", 2, (code[extras] as RegisterRangeInstruction).startRegister)
+        assertEquals(1, (code[extras] as RegisterRangeInstruction).registerCount)
+        assertEquals("right after the extras are read", extrasField, code[extras - 1].reference().toString())
+        assertEquals("before they're copied", extrasEntrySet, code[extras + 1].methodText())
+        assertTrue("after the parameters' hook", extras > hook)
+        assertEquals("the extras hook once", 1, code.count { it.methodText() == HOME_REQUEST_EXTRAS })
     }
 
     /** A builder that can't be told for sure, or two of them, leave every method as it was. */
@@ -124,6 +168,11 @@ class HomeRequestSourceTest {
             "the map's register written over on the way" to classes(request(overwritten = true)),
             "a way in that skips the map's making" to classes(request(jumpedOver = true)),
             "two builders" to classes(request(), request(name = "A02")),
+            "no read of the extras" to classes(request(extrasReads = 0)),
+            "two reads of the extras" to classes(request(extrasReads = 2)),
+            "the extras read before the parameters" to classes(request(extrasFirst = true)),
+            "a jump onto right after the extras' read" to classes(request(jumpPastExtrasRead = true)),
+            "nothing reads a paging source from the extras" to classes(request(), reader = false),
         )) {
             val context = PatchContexts.of(built)
             assertNull(case, context.homeRequestSourceOrWarn())
@@ -168,6 +217,17 @@ class HomeRequestSourceTest {
             assertEquals("$where: right before the copy", "entrySet", (copy.reference() as MethodReference).name)
             assertEquals("$where: of the same map", map, (copy as? FiveRegisterInstruction)?.registerC ?: (copy as RegisterRangeInstruction).startRegister)
             assertTrue("$where: nothing jumps past the hook onto the copy", hook + 1 !in method.jumpTargets())
+
+            assertEquals("$where: the extras hook once", 1, code.count { it.methodText() == HOME_REQUEST_EXTRAS })
+            val extras = code.indexOfFirst { it.methodText() == HOME_REQUEST_EXTRAS }
+            assertTrue("$where: after the parameters' hook", extras > hook)
+            val read = code[extras - 1]
+            assertEquals("$where: right after a field read", Opcode.IGET_OBJECT, read.opcode)
+            val field = read.reference() as FieldReference
+            assertEquals("$where: the extras are a Map", "Ljava/util/Map;", field.type)
+            assertEquals("$where: of the request's config, the fifth parameter", parameters[4], field.definingClass)
+            assertEquals("$where: handed what was read", (read as TwoRegisterInstruction).registerA, (code[extras] as RegisterRangeInstruction).startRegister)
+            assertTrue("$where: nothing jumps onto the extras hook", extras !in method.jumpTargets())
 
             val shaped = sliced.flatMap { it.methods }.filter { m ->
                 AccessFlags.STATIC.isSet(m.accessFlags) && m.returnType == "V" &&
