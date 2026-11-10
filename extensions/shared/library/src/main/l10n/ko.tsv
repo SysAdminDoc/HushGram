@@ -1973,3 +1973,6 @@ Sound didn't change	소리가 바뀌지 않았습니다
 # context: Stories switch that moves the row along a story's bottom (Send message box, like, share) off the story at a large font (#598)
 Keep story buttons below the story	스토리 버튼을 스토리 아래에 두기
 With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.	글꼴이나 화면 크기가 클 때 스토리 하단의 답장 상자와 버튼이 스토리를 가리지 않고 그 아래 빈 공간에 놓입니다.
+# context: switch under Hidden accounts; Favorites, For you and Following are Instagram's Home feed choices (#601)
+Keep hidden accounts in Favorites	즐겨찾기에서는 숨긴 계정 표시
+Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.	숨긴 계정의 게시물이 즐겨찾기에는 계속 보입니다. 추천과 팔로잉에서는 빠집니다. 바꾼 뒤에는 홈을 아래로 당겨 새로고침하세요.

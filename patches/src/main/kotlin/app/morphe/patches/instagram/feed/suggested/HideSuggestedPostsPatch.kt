@@ -83,6 +83,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
 
     execute {
         requireStatusMethod(FEED_TYPES_STATUS)
+        requireStatusMethod(FAVORITES_SOURCE_STATUS)
         // Found before anything changes, so a build where Explore's sections or the products
         // indicator moved stops the patch with Home's filter not yet written.
         val exploreShops = findExploreShopSections()
@@ -121,18 +122,23 @@ val hideSuggestedPostsPatch = bytecodePatch(
         homeFeedTypesOrWarn()?.let {
             // Found with the rest, before anything is written: the menu row reads the author stub it fills.
             val menuRow = hideAccountRowOrWarn()
+            // Keep hidden accounts in Favorites reads which feed each request for a page of Home is for (#601).
+            val requestSource = homeRequestSourceOrWarn()
             it.write()
             // Hidden accounts tells signed-in accounts apart when Home's cache source is found too.
             // Without it, one list counts for every account.
             homeAccountOrWarn()?.write()
             menuRow?.write()
+            requestSource?.write()
             enableStatus(FEED_TYPES_STATUS)
+            if (requestSource != null) enableStatus(FAVORITES_SOURCE_STATUS)
         }
         enableStatus("feedSuggestions")
     }
 }
 
 internal const val FEED_TYPES_STATUS = "feedTypes"
+internal const val FAVORITES_SOURCE_STATUS = "favoritesSource"
 internal const val FEED_SUGGESTIONS = "$EXTENSION_PACKAGE/feed/FeedSuggestions;"
 internal const val HOME_TYPES_FILTER = "$FEED_SUGGESTIONS->homeItem(Ljava/lang/Object;)Ljava/lang/Object;"
 

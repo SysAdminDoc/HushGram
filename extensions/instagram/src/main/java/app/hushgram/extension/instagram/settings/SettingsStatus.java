@@ -172,6 +172,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by Hide suggested posts when the parameters of Home's requests were found too. */
+    public static boolean favoritesSource() {
+        return false;
+    }
+
     public static boolean metaAi() {
         return false;
     }

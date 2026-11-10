@@ -1127,6 +1127,13 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_hidden_accounts", "", false, false);
 
     /**
+     * Posts from {@link #HIDDEN_ACCOUNTS} still show in the Favorites feed, read from the paging
+     * source of Home's request (#601). Off to start.
+     */
+    public static final BooleanSetting HIDDEN_IN_FAVORITES =
+            new BooleanSetting("hushgram_hidden_in_favorites", FALSE);
+
+    /**
      * The id of the account Home was last set up for, so a restart that opens settings before Home
      * still shows that account's hidden accounts. Not a switch, and left out of a backup.
      */

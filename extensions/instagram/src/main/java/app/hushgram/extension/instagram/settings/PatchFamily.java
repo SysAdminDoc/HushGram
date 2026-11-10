@@ -131,7 +131,7 @@ public enum PatchFamily {
     FEED_SUGGESTIONS(FamilyNames.FEED_SUGGESTIONS, "feedSuggestions", null, Settings.HIDE_SUGGESTED_ACCOUNTS,
             Settings.HIDE_SUGGESTED_POSTS, Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS,
             Settings.HIDE_FEED_STORY_ROWS, Settings.HIDE_FEED_SHOPPING, Settings.HIDE_FEED_INTEREST, Settings.HIDE_CAUGHT_UP_CARD, Settings.HIDE_FEED_VIDEOS,
-            Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED),
+            Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED, Settings.HIDDEN_IN_FAVORITES),
     HOME_FEED(FamilyNames.HOME_FEED, "homeFeed", null, Settings.HIDE_HOME_FEED),
     FOLLOWING_FEED(FamilyNames.FOLLOWING_FEED, "followingFeed", null, Settings.START_ON_FOLLOWING,
             Settings.ONLY_FOLLOWING, Settings.LOGO_ON_FOLLOWING, Settings.FOLLOWING_FALLBACK, Settings.FOLLOWING_MIX),
@@ -423,6 +423,23 @@ public enum PatchFamily {
         return FEED_SUGGESTIONS.inBuild() && SettingsStatus.feedTypes();
     }
 
+    /** Whether a test says this build tells which feed Home asks for, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean favoritesSourceForTests;
+
+    /**
+     * Whether this build tells a page of Favorites from one of For you or Following, which Keep
+     * hidden accounts in Favorites needs. Hide suggested posts goes in without it when the
+     * parameters of Home's requests have moved, so that switch isn't offered then.
+     */
+    public static boolean favoritesSourceInBuild() {
+        Boolean forced = favoritesSourceForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(FEED_SUGGESTIONS);
+        return feedTypesInBuild() && SettingsStatus.favoritesSource();
+    }
+
     /** Whether a test says this build mixes Following into For you, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean followingMixForTests;
@@ -483,6 +500,8 @@ public enum PatchFamily {
                 if (family == FEED_SUGGESTIONS && !feedTypesInBuild()) {
                     lines.add("  Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts: "
                             + "not in this build (Home's feed or a post's details didn't match)");
+                } else if (family == FEED_SUGGESTIONS && !favoritesSourceInBuild()) {
+                    lines.add("  Keep hidden accounts in Favorites: not in this build (Home's requests didn't match)");
                 }
                 if (family == COMMENT_COPY && !commentAuthorInBuild()) {
                     lines.add("  Copy the commenter's username: not in this build (the comment menu's label or the comment's author didn't match)");

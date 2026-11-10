@@ -1977,3 +1977,6 @@ Sound didn't change	聲音未變更
 # context: Stories switch that moves the row along a story's bottom (Send message box, like, share) off the story at a large font (#598)
 Keep story buttons below the story	將限時動態按鈕留在限時動態下方
 With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.	字型或顯示大小較大時，限時動態底部的回覆框和按鈕會放在下方的空白處，而不會遮住限時動態。
+# context: switch under Hidden accounts; Favorites, For you and Following are Instagram's Home feed choices (#601)
+Keep hidden accounts in Favorites	在「最愛」保留隱藏的帳號
+Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.	隱藏帳號的貼文仍會出現在「最愛」。「為你推薦」與「追蹤中」不會顯示這些貼文。變更後請下拉重新整理首頁。

@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -44,8 +45,21 @@ public final class HiddenAccounts {
     /** The report's count of posts Hidden accounts took out of Home. */
     static final String REMOVED = "hidden account posts removed";
 
+    /** The report's count of posts from hidden accounts kept in Favorites. */
+    static final String KEPT_IN_FAVORITES = "hidden account posts kept in Favorites";
+
     /** The longest username Instagram allows. */
     static final int MAX_LENGTH = 30;
+
+    /** The request parameter naming the feed a page of Home is asked for. */
+    static final String PAGINATION_SOURCE = "pagination_source";
+
+    /** Favorites' paging source, its feed type's server value. */
+    static final String FAVORITES = "favorites";
+
+    /** The paging source of the last request for a page of Home, null for For you's. Tests clear it. */
+    @Nullable
+    private static volatile String lastSource;
 
     /** The account Home's cache source was last made for in this run. Null before one is. Tests clear it. */
     @Nullable
@@ -70,6 +84,29 @@ public final class HiddenAccounts {
             this.text = text;
             this.account = account;
             this.names = names;
+        }
+    }
+
+    /**
+     * Whether a post from a hidden account stays because the page being read is Favorites' and
+     * Keep hidden accounts in Favorites is on (#601). Favorites only holds accounts you picked.
+     */
+    static boolean keptInFavorites() {
+        return Utils.settingsReady() && Settings.HIDDEN_IN_FAVORITES.get() && FAVORITES.equals(lastSource);
+    }
+
+    /**
+     * Injected where Instagram has built the parameters of a request for a page of Home, For you,
+     * Following and Favorites alike, just before it copies them into the request. Notes the paging
+     * source they carry, Favorites' when Home is on Favorites and none on For you. Home asks for one
+     * page at a time, so the page parsed next is that request's. Never throws.
+     */
+    public static void homeRequest(@Nullable Map<?, ?> params) {
+        try {
+            Object source = params == null ? null : params.get(PAGINATION_SOURCE);
+            lastSource = source instanceof String ? (String) source : null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home request source", failure);
         }
     }
 
@@ -282,5 +319,6 @@ public final class HiddenAccounts {
     public static void resetForTests() {
         account = null;
         snapshot = null;
+        lastSource = null;
     }
 }

@@ -1891,3 +1891,6 @@ Sound didn't change	Không đổi được âm thanh
 # context: Stories switch that moves the row along a story's bottom (Send message box, like, share) off the story at a large font (#598)
 Keep story buttons below the story	Giữ nút tin bên dưới tin
 With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.	Khi phông chữ hoặc kích thước hiển thị lớn, ô trả lời và các nút ở cuối tin nằm trong khoảng trống bên dưới thay vì che tin.
+# context: switch under Hidden accounts; Favorites, For you and Following are Instagram's Home feed choices (#601)
+Keep hidden accounts in Favorites	Giữ tài khoản bị ẩn trong Yêu thích
+Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.	Bài viết từ các tài khoản bạn đã ẩn vẫn hiện trong Yêu thích. Dành cho bạn và Đang theo dõi sẽ bỏ chúng ra. Hãy kéo xuống trên trang chủ để làm mới sau khi thay đổi.

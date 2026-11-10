@@ -1974,3 +1974,6 @@ Sound didn't change	El sonido no cambió
 # context: Stories switch that moves the row along a story's bottom (Send message box, like, share) off the story at a large font (#598)
 Keep story buttons below the story	Botones de la historia debajo de la historia
 With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.	Con una fuente o un tamaño de pantalla grandes, el cuadro de respuesta y los botones de abajo de una historia quedan en el espacio debajo, en vez de tapar la historia.
+# context: switch under Hidden accounts; Favorites, For you and Following are Instagram's Home feed choices (#601)
+Keep hidden accounts in Favorites	Mantener las cuentas ocultas en Favoritos
+Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.	Las publicaciones de tus cuentas ocultas siguen apareciendo en Favoritos. Para ti y Seguidos las dejan fuera. Desliza Inicio hacia abajo para actualizar después de cambiarlo.

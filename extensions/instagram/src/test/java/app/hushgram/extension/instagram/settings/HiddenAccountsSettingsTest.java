@@ -110,6 +110,31 @@ public class HiddenAccountsSettingsTest {
         assertNull("Home's reads moved", row());
     }
 
+    /**
+     * Keep hidden accounts in Favorites sits under the list, starts off, and isn't offered on a
+     * build that can't tell which feed Home asks for, where the report says so (#601).
+     */
+    @Test public void theFavoritesSwitchNeedsHomesRequests() throws Exception {
+        try {
+            open(true);
+            Preference kept = page.getPreferenceScreen().findPreference(Settings.HIDDEN_IN_FAVORITES.key);
+            assertNotNull(kept);
+            assertEquals("Keep hidden accounts in Favorites", kept.getTitle().toString());
+            assertFalse(Settings.HIDDEN_IN_FAVORITES.get());
+            assertTrue(PatchFamily.FEED_SUGGESTIONS.switches.contains(Settings.HIDDEN_IN_FAVORITES));
+            controller.close();
+
+            PatchFamily.favoritesSourceForTests = false;
+            open(true);
+            assertNotNull("the list stays", row());
+            assertNull("Home's requests moved", page.getPreferenceScreen().findPreference(Settings.HIDDEN_IN_FAVORITES.key));
+            assertTrue(PatchFamily.reportLines(EnumSet.of(PatchFamily.FEED_SUGGESTIONS), false)
+                    .contains("  Keep hidden accounts in Favorites: not in this build (Home's requests didn't match)"));
+        } finally {
+            PatchFamily.favoritesSourceForTests = null;
+        }
+    }
+
     @Test public void anEmptyListSaysHowToAddOne() throws Exception {
         open(true);
         assertTrue(row().getOnPreferenceClickListener().onPreferenceClick(row()));

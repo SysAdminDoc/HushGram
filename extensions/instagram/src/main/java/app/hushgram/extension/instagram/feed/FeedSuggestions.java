@@ -750,13 +750,19 @@ public final class FeedSuggestions {
     }
 
     /**
-     * [item], or null when its post's author is on {@link HiddenAccounts} for the signed-in account.
-     * The author isn't read while the list is empty. A post whose author can't be read stays.
+     * [item], or null when its post's author is on {@link HiddenAccounts} for the signed-in account,
+     * unless the page is Favorites' and Keep hidden accounts in Favorites is on. The author isn't
+     * read while the list is empty. A post whose author can't be read stays.
      */
     private static Object byAuthor(Object item, Function<Object, String> authorOf) {
         try {
             if (HiddenAccounts.hidden().isEmpty()) return item;
             if (!HiddenAccounts.hides(authorOf.apply(item))) return item;
+            if (HiddenAccounts.keptInFavorites()) {
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, HiddenAccounts.KEPT_IN_FAVORITES);
+                Logger.printDebug(() -> "Feed suggestions: kept a post from a hidden account in Favorites");
+                return item;
+            }
             FeedFilterCounters.removed(TYPES_ROUTE, 1, HiddenAccounts.HIDDEN);
             HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, HiddenAccounts.REMOVED);
             typesTookOut = true;

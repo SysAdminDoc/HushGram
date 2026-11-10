@@ -1974,3 +1974,6 @@ Sound didn't change	Ses değişmedi
 # context: Stories switch that moves the row along a story's bottom (Send message box, like, share) off the story at a large font (#598)
 Keep story buttons below the story	Hikaye düğmelerini hikayenin altında tut
 With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.	Yazı tipi veya ekran boyutu büyükken, bir hikayenin altındaki yanıt kutusu ve düğmeler hikayeyi kapatmak yerine altındaki boşlukta durur.
+# context: switch under Hidden accounts; Favorites, For you and Following are Instagram's Home feed choices (#601)
+Keep hidden accounts in Favorites	Gizli hesapları Favoriler'de tut
+Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.	Gizli hesaplarının gönderileri Favoriler'de görünmeye devam eder. Senin için ve Takip Edilenler onları göstermez. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.

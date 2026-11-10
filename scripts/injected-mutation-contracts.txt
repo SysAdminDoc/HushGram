@@ -998,6 +998,11 @@ once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Lj
 # the list stays the last new account's after switching back to an earlier one.
 start-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (L*;)V holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
 once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (L*;)V holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
+# Keep hidden accounts in Favorites (#601) reads which feed each request for a page of Home is for. Every feed/timeline
+# request, For you, Following and Favorites alike, is built in one static method holding both strings below, which puts
+# the paging source in a map and then copies that map into the request; the map goes to homeRequest right before the
+# copy, branches onto it included. Left out, Favorites leaves hidden accounts' posts out like the other feeds.
+once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeRequest(Ljava/util/Map;)V in static (Landroid/content/Context;LX/*;LX/*;Lcom/instagram/common/session/UserSession;LX/*;LX/*;)V pooled holding pagination_source is_feed_eager_refresh
 #
 # Hide suggested posts answers the home feed adapter's "no next page" flag through feedEnded() at
 # each of its two reads: the method adding the loading row, and the adapter's empty check. 452

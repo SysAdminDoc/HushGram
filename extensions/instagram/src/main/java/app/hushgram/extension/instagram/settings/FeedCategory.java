@@ -137,6 +137,12 @@ final class FeedCategory {
                         L10n.t("Removes posts you've already liked from Home and Following. A post you like now "
                                 + "stays until you pull down on Home to refresh.")));
                 feed.addPreference(page.hiddenAccountsRow(context));
+                if (PatchFamily.favoritesSourceInBuild()) {
+                    feed.addPreference(toggle(context, Settings.HIDDEN_IN_FAVORITES,
+                            L10n.t("Keep hidden accounts in Favorites"),
+                            L10n.t("Posts from your hidden accounts still show in Favorites. For you and Following "
+                                    + "leave them out. Pull down on Home to refresh after changing it.")));
+                }
             }
         }
         if (homeFeed) {

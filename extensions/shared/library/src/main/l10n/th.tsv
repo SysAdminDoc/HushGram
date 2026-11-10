@@ -1971,3 +1971,6 @@ Sound didn't change	ไม่ได้เปลี่ยนเสียง
 # context: Stories switch that moves the row along a story's bottom (Send message box, like, share) off the story at a large font (#598)
 Keep story buttons below the story	ให้ปุ่มสตอรี่อยู่ใต้สตอรี่
 With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.	เมื่อใช้ฟอนต์หรือขนาดการแสดงผลใหญ่ ช่องตอบกลับและปุ่มด้านล่างสตอรี่จะอยู่ในพื้นที่ว่างใต้สตอรี่ แทนที่จะบังสตอรี่
+# context: switch under Hidden accounts; Favorites, For you and Following are Instagram's Home feed choices (#601)
+Keep hidden accounts in Favorites	แสดงบัญชีที่ซ่อนไว้ใน "รายการโปรด"
+Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.	โพสต์จากบัญชีที่คุณซ่อนไว้จะยังแสดงใน "รายการโปรด" ส่วน "สำหรับคุณ" และ "กำลังติดตาม" จะไม่แสดงโพสต์เหล่านั้น ให้ดึงหน้าหลักลงเพื่อรีเฟรชหลังจากเปลี่ยนการตั้งค่านี้
