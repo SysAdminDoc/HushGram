@@ -79,6 +79,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* Picking `Download` or `Loop this story` in a story's menu plays the story on once the menu closes. It used to stay paused until you tapped it. Reported in #610.
 * With `Peek at the next carousel page` on, Instagram no longer crashes while you scroll Home past carousels. When Instagram reused a carousel for another post, it could look for a page slot the carousel no longer had.
 * With `Peek at the next carousel page` on, `Ambient light` glows around the smaller page you see instead of leaving a square behind it, where the full-size page would have been. Reported in #585.
 * With `Full size covers` on, Explore scrolls smoothly again. Each grid picture was decoded at full size for a tile a third of the screen wide, so the grid stuttered and used a lot more memory. Pictures are now decoded just big enough to stay sharp in their tile, and an opened post still shows them at full size. Reported in #595.

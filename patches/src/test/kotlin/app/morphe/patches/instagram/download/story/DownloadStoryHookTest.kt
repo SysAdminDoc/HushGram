@@ -64,7 +64,7 @@ class DownloadStoryHookTest {
     /** The hooks the patch writes are in the extension the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(LABELS, SAVE_STORY, BUILDING, LABEL_LIST)) {
+        for (hook in listOf(LABELS, SAVE_STORY, BUILDING, LABEL_LIST, MENU_CLOSED)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -152,25 +152,33 @@ class DownloadStoryHookTest {
         assertEquals("one return", 1, code.count { it.opcode == Opcode.RETURN_OBJECT })
     }
 
-    /** A tap asks save() first, with the tapped label and the menu's class; any other label goes on. */
+    /**
+     * A tap asks save() first, with the tapped label and the menu's class; any other label goes on.
+     * After a yes, a handler given the menu's dismiss listener hands it to menuClosed(), which plays
+     * the story again (#610); one without a listener just returns.
+     */
     @Test
     fun theHandlersAskSaveFirst() {
         val context = PatchContexts.of(classes())
 
         context.offerDownloadOnEveryStory()
 
-        for ((name, registers) in listOf("A0I" to (23 to 17), "A0P" to (9 to 8))) {
+        val ask = listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ)
+        for ((name, registers, dismiss) in listOf(Triple("A0I", 23 to 17, 11), Triple("A0P", 9 to 8, null))) {
             val code = context.method(helper, name).code()
-            assertEquals(
-                name,
-                listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID),
-                code.take(6).map { it.opcode },
-            )
+            val yes = if (dismiss == null) listOf(Opcode.RETURN_VOID) else listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC, Opcode.RETURN_VOID)
+            val moved = ask.size + yes.size
+            assertEquals(name, ask + yes, code.take(moved).map { it.opcode })
             assertEquals("$name: the label", registers.first, (code[0] as TwoRegisterInstruction).registerB)
             assertEquals("$name: the menu", registers.second, (code[1] as TwoRegisterInstruction).registerB)
             assertEquals(SAVE_STORY, code[2].referenceText())
-            assertEquals("$name: the original code moved", Opcode.CONST_STRING, code[6].opcode)
-            assertEquals("$name: the branch", 6, code.target(4))
+            if (dismiss != null) {
+                assertEquals("$name: the dismiss listener", dismiss, (code[5] as TwoRegisterInstruction).registerB)
+                assertEquals("$name: menuClosed()'s argument", 0, (code[6] as Instruction35c).registerC)
+                assertEquals(MENU_CLOSED, code[6].referenceText())
+            }
+            assertEquals("$name: the original code moved", Opcode.CONST_STRING, code[moved].opcode)
+            assertEquals("$name: the branch", moved, code.target(4))
         }
         assertEquals("a method taking no label changed", Opcode.RETURN_VOID, context.method(helper, "A0J").code().first().opcode)
     }
@@ -396,7 +404,14 @@ class DownloadStoryHookTest {
                 handlers.forEach { handler ->
                     val code = context.method(menu.type, handler.name, handler.parameterTypes.map(Any::toString)).code()
                     assertEquals("${bundle.name}: ${handler.name}'s first call", SAVE_STORY, code[2].referenceText())
+                    if (dismiss in handler.parameterTypes.map(Any::toString)) {
+                        assertEquals("${bundle.name}: ${handler.name} after a yes", MENU_CLOSED, code[6].referenceText())
+                    }
                 }
+                assertTrue(
+                    "${bundle.name}: no handler takes the dismiss listener",
+                    handlers.any { handler -> dismiss in handler.parameterTypes.map(Any::toString) },
+                )
                 val lookups = classes.filter { it.looksLabelsUp() }.flatMap { listenerClass ->
                     val code = context.method(listenerClass.type, "onClick", listOf("Landroid/content/DialogInterface;", "I")).code()
                     code.indices.filter { index ->

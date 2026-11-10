@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.download;
 
 import android.content.Context;
+import android.content.DialogInterface;
 
 import androidx.annotation.Nullable;
 
@@ -272,6 +273,22 @@ public final class StoryDownload {
             // handler goes ahead instead, and passes over a label it doesn't know.
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return false;
+        }
+    }
+
+    /**
+     * Runs [listener], the dismiss listener the story menu's handler was given, after {@link #save}
+     * handled the tap. Instagram hands it on to what its own row opens, which plays the story again
+     * when it's done, and the sheet doesn't run it after a row tap, so the story stayed paused once
+     * one of HushGram's rows closed the menu (#610). Never throws.
+     */
+    public static void menuClosed(Object listener) {
+        try {
+            if (listener instanceof DialogInterface.OnDismissListener) {
+                ((DialogInterface.OnDismissListener) listener).onDismiss(null);
+            }
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu closed", t);
         }
     }
 

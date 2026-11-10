@@ -56,6 +56,8 @@ private const val STORY_DOWNLOAD = "$EXTENSION_PACKAGE/download/StoryDownload;"
 internal const val LABELS = "$STORY_DOWNLOAD->labels([Ljava/lang/CharSequence;)[Ljava/lang/CharSequence;"
 internal const val SAVE_STORY = "$STORY_DOWNLOAD->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z"
 internal const val BUILDING = "$STORY_DOWNLOAD->building(Ljava/lang/Object;)V"
+internal const val MENU_CLOSED = "$STORY_DOWNLOAD->menuClosed(Ljava/lang/Object;)V"
+private const val DISMISS_LISTENER = "Landroid/content/DialogInterface\$OnDismissListener;"
 private const val STORY_DOWNLOAD_BUTTON = "$EXTENSION_PACKAGE/stories/StoryDownloadButton;"
 internal const val BIND_DOWNLOAD = "$STORY_DOWNLOAD_BUTTON->bind(Ljava/lang/Object;Ljava/lang/Object;)V"
 private const val OBJECT = "Ljava/lang/Object;"
@@ -82,7 +84,9 @@ private val CLICK_PARAMETERS = listOf("Landroid/content/DialogInterface;", "I")
  * first tells the extension which menu it's building, from the parameter that holds it, since a
  * builder can reuse that register before it returns. Its labels get Download added where it returns
  * them (Download as video and Download as photo for a photo story with music), and each handler asks
- * the extension first, which saves the story when the label is one of those. Your own highlights'
+ * the extension first, which saves the story when the label is one of those. A handler that takes the
+ * menu's dismiss listener hands it on to what Instagram's row opens, which plays the story again
+ * when it's done, so after a yes the listener goes to the extension, which runs it (#610). Your own highlights'
  * menus are built as a list, which gets the same rows added in place before it's returned (#339).
  * A few older dialogs, shown for special story items,
  * skip the handlers: their click listener looks the tapped label up in a builder's labels itself,
@@ -208,6 +212,12 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory(withButton: Boolean 
         val parameters = method.parameterTypes.map(Any::toString)
         val first = method.implementation!!.registerCount - parameters.sumOf { if (it == "J" || it == "D") 2 else 1 }
         fun register(index: Int) = first + parameters.take(index).sumOf { if (it == "J" || it == "D") 2 else 1 }
+        val dismiss = parameters.indexOf(DISMISS_LISTENER)
+        // The sheet doesn't run the listener after a row tap, so without this the story stays paused.
+        val playOn = if (dismiss < 0) "" else """
+            move-object/from16 v0, v${register(dismiss)}
+            invoke-static { v0 }, $MENU_CLOSED
+        """
         method.addInstructionsWithLabels(
             0,
             """
@@ -216,6 +226,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory(withButton: Boolean 
                 invoke-static { v0, v1 }, $SAVE_STORY
                 move-result v0
                 if-eqz v0, :handle
+                $playOn
                 return-void
             """,
             ExternalLabel("handle", method.getInstruction(0)),

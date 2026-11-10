@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.content.DialogInterface;
 import android.os.Looper;
 import android.text.SpannableString;
 
@@ -356,5 +357,23 @@ public class StoryDownloadTest {
         }
         Settings.DOWNLOAD_STORIES.save(false);
         assertFalse("a tap was taken from Instagram", StoryDownload.save("Download as photo", new Object()));
+    }
+
+    /**
+     * After one of HushGram's rows took the tap, the menu's dismiss listener runs once, which plays
+     * the story again (#610). Anything else, or a listener that throws, is passed over.
+     */
+    @Test
+    public void aClosedMenuRunsItsDismissListener() {
+        List<DialogInterface> ran = new ArrayList<>();
+        StoryDownload.menuClosed((DialogInterface.OnDismissListener) ran::add);
+        assertEquals("the listener ran once, as Instagram runs it", Collections.singletonList(null), ran);
+
+        StoryDownload.menuClosed(null);
+        StoryDownload.menuClosed(new Object());
+        StoryDownload.menuClosed((DialogInterface.OnDismissListener) dialog -> {
+            throw new IllegalStateException("gone");
+        });
+        assertEquals(1, ran.size());
     }
 }
