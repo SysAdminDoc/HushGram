@@ -2005,3 +2005,26 @@ Hide posts from business and creator accounts	Sembunyikan postingan dari akun bi
 Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	Menghapus postingan dari akun bisnis dan kreator dari Beranda dan Mengikuti, termasuk teman yang memakainya. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.
 # context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
 Favorites still shows them.	Favorit tetap menampilkannya.
+# context: switch in HushGram settings > Profiles; keeps the username, bio and profile picture of each profile opened, on the phone, and says when one changed (#611)
+Keep profile history	Simpan riwayat profil
+Remembers the username, bio and profile picture of each profile you open, on this phone only, and tells you when one changed since your last visit. Pictures are copied from Instagram's image servers. Turn it off and it stops at once.	Mengingat nama pengguna, bio, dan foto profil setiap profil yang kamu buka, hanya di ponsel ini, dan memberi tahu saat ada yang berubah sejak kunjungan terakhirmu. Foto disalin dari server gambar Instagram. Matikan dan pencatatan langsung berhenti.
+# context: row and page title in HushGram settings > Profiles listing the old usernames, bios and profile pictures Keep profile history saw replaced (#611)
+Profile changes	Perubahan profil
+Nothing here yet. With Keep profile history on, the old usernames, bios and pictures of profiles you open show up here.	Belum ada apa pun. Dengan Simpan riwayat profil aktif, nama pengguna, bio, dan foto lama dari profil yang kamu buka muncul di sini.
+# context: last line of the Profile changes row; %1$d is how many old values are listed (#611)
+Tap to see all %1$d, or search them.	Ketuk untuk melihat semua %1$d atau mencarinya.
+# context: a row on the Profile changes page; %1$s is the account's old username, %2$s Android's relative time of the change, like 2 days ago (#611)
+Was @%1$s, %2$s	Dulu @%1$s, %2$s
+# context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
+Old profile picture, %s	Foto profil lama, %s
+Old bio, %s	Bio lama, %s
+Clear profile history	Hapus riwayat profil
+Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	Melupakan semua nama pengguna, bio, dan foto di daftar, untuk semua akunmu. Pengaturan sakelar tidak berubah.
+Profile history cleared.	Riwayat profil dihapus.
+Couldn't clear the profile history. Try again.	Riwayat profil tidak bisa dihapus. Coba lagi.
+# context: toast when a profile opened has a different username than last time; %s is the old username (#611)
+Used to be @%s	Dulunya @%s
+# context: toast when a profile opened has a new profile picture and bio since last time (#611)
+New profile picture and bio	Foto profil dan bio baru
+New profile picture	Foto profil baru
+Their bio changed	Bionya berubah

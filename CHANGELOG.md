@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Keep profile history` under Profiles remembers the username, bio and profile picture of each profile you open, on your phone only. When one changed since your last visit, a toast tells you, like "Used to be @oldname". `Profile changes` lists every old username, bio and picture, newest first, with a search box, and tapping one opens that profile. Starts off. Asked for in #590 and #611.
 * HushGram's settings are now in Thai, thanks to MangaThatsFine in #593.
 * `Keep hidden accounts in Favorites` sits under `Hidden accounts` in Feed. Turn it on and posts from accounts you've hidden still show when Home is on Favorites, while For you and Following leave them out. Starts off. Asked for in #601.
 * `Hide posts from business and creator accounts` under Feed takes posts by business and creator accounts out of Home and Following, friends who use one included. A collab post goes too when one of its authors is a business or creator account. Favorites still shows them. Starts off. Asked for in #579.

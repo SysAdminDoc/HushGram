@@ -6,12 +6,15 @@
  */
 package app.hushgram.extension.instagram.settings;
 
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_PROFILE_HISTORY;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_UNFOLLOWERS;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearProfileHistory;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearUnfollowers;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.followerHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.followLabelPlaceRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.profileHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.unfollowersRow;
 
@@ -42,6 +45,24 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.ABOUT_ACCOUNT_BUTTON, L10n.t("About this account button"),
                         L10n.t("Puts an (i) next to the three dots on a profile that opens Instagram's About this account "
                                 + "for that account. Instagram took its own away.")));
+                profiles.addPreference(toggle(context, Settings.PROFILE_HISTORY, L10n.t("Keep profile history"),
+                        L10n.t("Remembers the username, bio and profile picture of each profile you open, on this phone "
+                                + "only, and tells you when one changed since your last visit. Pictures are copied from "
+                                + "Instagram's image servers. Turn it off and it stops at once.")));
+                Preference profileChanges = profileHistoryRow(context);
+                profiles.addPreference(profileChanges);
+                Row clearProfileHistory = new Row(context);
+                clearProfileHistory.setKey(CLEAR_PROFILE_HISTORY);
+                clearProfileHistory.setPersistent(false);
+                clearProfileHistory.actsAtOnce = true;
+                clearProfileHistory.setTitle(L10n.t("Clear profile history"));
+                clearProfileHistory.setSummary(L10n.t("Forgets every username, bio and picture on the list, for all "
+                        + "your accounts. The switch stays as it is."));
+                clearProfileHistory.setOnPreferenceClickListener(p -> {
+                    clearProfileHistory(p, profileChanges);
+                    return true;
+                });
+                profiles.addPreference(mark(clearProfileHistory, SettingsIcons.DELETE));
             }
             if (build.contains(PatchFamily.FRIENDSHIP_STATUS)) {
                 profiles.addPreference(toggle(context, Settings.SHOW_FRIENDSHIP_STATUS, L10n.t("Show if a profile follows you"),

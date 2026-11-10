@@ -2008,3 +2008,26 @@ Hide posts from business and creator accounts	隱藏商業和創作者帳號的�
 Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	從首頁與追蹤中移除商業和創作者帳號的貼文，包括使用這類帳號的朋友。變更後請下拉重新整理首頁。
 # context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
 Favorites still shows them.	「最愛」仍會顯示這些貼文。
+# context: switch in HushGram settings > Profiles; keeps the username, bio and profile picture of each profile opened, on the phone, and says when one changed (#611)
+Keep profile history	保留個人檔案紀錄
+Remembers the username, bio and profile picture of each profile you open, on this phone only, and tells you when one changed since your last visit. Pictures are copied from Instagram's image servers. Turn it off and it stops at once.	只在這支手機上記住你開啟的每個個人檔案的使用者名稱、個人簡介和個人檔案相片，並在上次造訪後有變動時告訴你。相片會從 Instagram 的圖片伺服器複製。關閉後會立即停止。
+# context: row and page title in HushGram settings > Profiles listing the old usernames, bios and profile pictures Keep profile history saw replaced (#611)
+Profile changes	個人檔案變更
+Nothing here yet. With Keep profile history on, the old usernames, bios and pictures of profiles you open show up here.	目前還沒有內容。開啟「保留個人檔案紀錄」後，你開啟過的個人檔案的舊使用者名稱、個人簡介和相片會顯示在這裡。
+# context: last line of the Profile changes row; %1$d is how many old values are listed (#611)
+Tap to see all %1$d, or search them.	輕觸即可查看全部 %1$d 項，或進行搜尋。
+# context: a row on the Profile changes page; %1$s is the account's old username, %2$s Android's relative time of the change, like 2 days ago (#611)
+Was @%1$s, %2$s	曾為 @%1$s，%2$s
+# context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
+Old profile picture, %s	舊的個人檔案相片，%s
+Old bio, %s	舊的個人簡介，%s
+Clear profile history	清除個人檔案紀錄
+Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	清除清單中所有的使用者名稱、個人簡介和相片，涵蓋你的所有帳號。開關維持原狀。
+Profile history cleared.	已清除個人檔案紀錄。
+Couldn't clear the profile history. Try again.	無法清除個人檔案紀錄，請再試一次。
+# context: toast when a profile opened has a different username than last time; %s is the old username (#611)
+Used to be @%s	以前是 @%s
+# context: toast when a profile opened has a new profile picture and bio since last time (#611)
+New profile picture and bio	新的個人檔案相片和個人簡介
+New profile picture	新的個人檔案相片
+Their bio changed	個人簡介已變更

@@ -2005,3 +2005,26 @@ Hide posts from business and creator accounts	Ocultar publicaciones de cuentas d
 Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	Quita de Inicio y de Seguidos las publicaciones de cuentas de empresa y de creador, incluidas las de amigos que usan una. Desliza Inicio hacia abajo para actualizar después de cambiarlo.
 # context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
 Favorites still shows them.	Favoritos las sigue mostrando.
+# context: switch in HushGram settings > Profiles; keeps the username, bio and profile picture of each profile opened, on the phone, and says when one changed (#611)
+Keep profile history	Guardar un historial de perfiles
+Remembers the username, bio and profile picture of each profile you open, on this phone only, and tells you when one changed since your last visit. Pictures are copied from Instagram's image servers. Turn it off and it stops at once.	Recuerda el nombre de usuario, la presentación y la foto del perfil de cada perfil que abres, solo en este teléfono, y te avisa cuando algo cambió desde tu última visita. Las fotos se copian de los servidores de imágenes de Instagram. Desactívalo y se detiene al instante.
+# context: row and page title in HushGram settings > Profiles listing the old usernames, bios and profile pictures Keep profile history saw replaced (#611)
+Profile changes	Cambios en perfiles
+Nothing here yet. With Keep profile history on, the old usernames, bios and pictures of profiles you open show up here.	Aún no hay nada. Con Guardar un historial de perfiles activado, aquí aparecen los nombres de usuario, presentaciones y fotos anteriores de los perfiles que abres.
+# context: last line of the Profile changes row; %1$d is how many old values are listed (#611)
+Tap to see all %1$d, or search them.	Toca para ver los %1$d o buscar entre ellos.
+# context: a row on the Profile changes page; %1$s is the account's old username, %2$s Android's relative time of the change, like 2 days ago (#611)
+Was @%1$s, %2$s	Era @%1$s, %2$s
+# context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
+Old profile picture, %s	Foto del perfil anterior, %s
+Old bio, %s	Presentación anterior, %s
+Clear profile history	Borrar el historial de perfiles
+Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	Olvida todos los nombres de usuario, presentaciones y fotos de la lista, de todas tus cuentas. El interruptor se queda como está.
+Profile history cleared.	Historial de perfiles borrado.
+Couldn't clear the profile history. Try again.	No se borró el historial de perfiles. Reinténtalo.
+# context: toast when a profile opened has a different username than last time; %s is the old username (#611)
+Used to be @%s	Antes era @%s
+# context: toast when a profile opened has a new profile picture and bio since last time (#611)
+New profile picture and bio	Nueva foto del perfil y presentación
+New profile picture	Nueva foto del perfil
+Their bio changed	Cambió su presentación

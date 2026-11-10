@@ -221,6 +221,7 @@ public final class ProfileExtras {
             Object shown = screen == null ? null : account.of(screen);
             user(bar, shown);
             ViewingHistory.profile(shown);
+            ProfileHistory.seen(shown);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras account", failure);
         }

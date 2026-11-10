@@ -208,7 +208,7 @@ public enum PatchFamily {
             Settings.REPLY_WITH_COMMENT_GIFS, Settings.SHOW_COMMENT_GIF_NAMES),
     PROFILE_PICTURE(FamilyNames.PROFILE_PICTURE, "profilePicture", null, Settings.SAVE_PROFILE_PICTURES,
             Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT, Settings.PROFILE_EXTRAS_BUTTON,
-            Settings.ABOUT_ACCOUNT_BUTTON),
+            Settings.ABOUT_ACCOUNT_BUTTON, Settings.PROFILE_HISTORY),
     VOICE_MESSAGE(FamilyNames.VOICE_MESSAGE, "voiceMessage", null, Settings.DOWNLOAD_VOICE_MESSAGES),
     HIDE_COMMENTS(FamilyNames.HIDE_COMMENTS, "hideComments", null, Settings.HIDE_COMMENTS),
     COMMENT_EMOJI_ROW(FamilyNames.COMMENT_EMOJI_ROW, "commentEmojiRow", null, Settings.HIDE_COMMENT_EMOJI_ROW),

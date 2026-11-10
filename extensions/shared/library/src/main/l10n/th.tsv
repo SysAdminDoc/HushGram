@@ -2002,3 +2002,26 @@ Hide posts from business and creator accounts	ซ่อนโพสต์จา�
 Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	ลบโพสต์จากบัญชีธุรกิจและบัญชีครีเอเตอร์ออกจากหน้าหลักและ "กำลังติดตาม" รวมถึงเพื่อนที่ใช้บัญชีประเภทนี้ ให้ดึงหน้าหลักลงเพื่อรีเฟรชหลังจากเปลี่ยนการตั้งค่านี้
 # context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
 Favorites still shows them.	"รายการโปรด" ยังคงแสดงโพสต์เหล่านี้
+# context: switch in HushGram settings > Profiles; keeps the username, bio and profile picture of each profile opened, on the phone, and says when one changed (#611)
+Keep profile history	เก็บประวัติโปรไฟล์
+Remembers the username, bio and profile picture of each profile you open, on this phone only, and tells you when one changed since your last visit. Pictures are copied from Instagram's image servers. Turn it off and it stops at once.	จำชื่อผู้ใช้ ประวัติ และรูปโปรไฟล์ของทุกโปรไฟล์ที่คุณเปิดไว้ในโทรศัพท์เครื่องนี้เท่านั้น และบอกคุณเมื่อมีอะไรเปลี่ยนไปตั้งแต่ครั้งล่าสุดที่คุณเข้าชม รูปจะคัดลอกมาจากเซิร์ฟเวอร์รูปภาพของ Instagram ปิดเมื่อใดก็หยุดทันที
+# context: row and page title in HushGram settings > Profiles listing the old usernames, bios and profile pictures Keep profile history saw replaced (#611)
+Profile changes	การเปลี่ยนแปลงโปรไฟล์
+Nothing here yet. With Keep profile history on, the old usernames, bios and pictures of profiles you open show up here.	ยังไม่มีอะไร เมื่อเปิด "เก็บประวัติโปรไฟล์" ไว้ ชื่อผู้ใช้ ประวัติ และรูปเก่าของโปรไฟล์ที่คุณเปิดจะแสดงที่นี่
+# context: last line of the Profile changes row; %1$d is how many old values are listed (#611)
+Tap to see all %1$d, or search them.	แตะเพื่อดูทั้งหมด %1$d รายการ หรือค้นหา
+# context: a row on the Profile changes page; %1$s is the account's old username, %2$s Android's relative time of the change, like 2 days ago (#611)
+Was @%1$s, %2$s	เคยเป็น @%1$s %2$s
+# context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
+Old profile picture, %s	รูปโปรไฟล์เดิม %s
+Old bio, %s	ประวัติเดิม %s
+Clear profile history	ล้างประวัติโปรไฟล์
+Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	ลบชื่อผู้ใช้ ประวัติ และรูปทั้งหมดในรายการสำหรับทุกบัญชีของคุณ โดยสวิตช์จะยังคงอยู่ในสถานะเดิม
+Profile history cleared.	ล้างประวัติโปรไฟล์แล้ว
+Couldn't clear the profile history. Try again.	ล้างประวัติโปรไฟล์ไม่ได้ โปรดลองอีกครั้ง
+# context: toast when a profile opened has a different username than last time; %s is the old username (#611)
+Used to be @%s	เคยใช้ชื่อ @%s
+# context: toast when a profile opened has a new profile picture and bio since last time (#611)
+New profile picture and bio	รูปโปรไฟล์และประวัติใหม่
+New profile picture	รูปโปรไฟล์ใหม่
+Their bio changed	ประวัติเปลี่ยนไปแล้ว

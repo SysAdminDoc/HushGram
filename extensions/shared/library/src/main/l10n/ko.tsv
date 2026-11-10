@@ -2004,3 +2004,26 @@ Hide posts from business and creator accounts	비즈니스 및 크리에이터 �
 Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	비즈니스 및 크리에이터 계정의 게시물을 홈과 팔로잉에서 없앱니다. 이런 계정을 쓰는 친구도 포함됩니다. 바꾼 뒤에는 홈을 아래로 당겨 새로고침하세요.
 # context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
 Favorites still shows them.	즐겨찾기에는 계속 표시됩니다.
+# context: switch in HushGram settings > Profiles; keeps the username, bio and profile picture of each profile opened, on the phone, and says when one changed (#611)
+Keep profile history	프로필 기록 남기기
+Remembers the username, bio and profile picture of each profile you open, on this phone only, and tells you when one changed since your last visit. Pictures are copied from Instagram's image servers. Turn it off and it stops at once.	여는 프로필마다 사용자 이름, 소개, 프로필 사진을 이 휴대폰에만 기억해 두고, 지난번 방문 이후 바뀐 것이 있으면 알려 줍니다. 사진은 Instagram 이미지 서버에서 복사합니다. 끄면 바로 멈춥니다.
+# context: row and page title in HushGram settings > Profiles listing the old usernames, bios and profile pictures Keep profile history saw replaced (#611)
+Profile changes	프로필 변경 내역
+Nothing here yet. With Keep profile history on, the old usernames, bios and pictures of profiles you open show up here.	아직 아무것도 없습니다. 프로필 기록 남기기를 켜면 여는 프로필의 예전 사용자 이름, 소개, 사진이 여기에 표시됩니다.
+# context: last line of the Profile changes row; %1$d is how many old values are listed (#611)
+Tap to see all %1$d, or search them.	탭하면 %1$d개 모두 보거나 검색할 수 있습니다.
+# context: a row on the Profile changes page; %1$s is the account's old username, %2$s Android's relative time of the change, like 2 days ago (#611)
+Was @%1$s, %2$s	이전 이름 @%1$s, %2$s
+# context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
+Old profile picture, %s	이전 프로필 사진, %s
+Old bio, %s	이전 소개, %s
+Clear profile history	프로필 기록 지우기
+Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	목록에 있는 모든 사용자 이름, 소개, 사진을 모든 계정에 대해 지웁니다. 스위치는 그대로 유지됩니다.
+Profile history cleared.	프로필 기록을 지웠습니다.
+Couldn't clear the profile history. Try again.	프로필 기록을 지우지 못했습니다. 다시 시도해 주세요.
+# context: toast when a profile opened has a different username than last time; %s is the old username (#611)
+Used to be @%s	이전 이름 @%s
+# context: toast when a profile opened has a new profile picture and bio since last time (#611)
+New profile picture and bio	새 프로필 사진과 소개
+New profile picture	새 프로필 사진
+Their bio changed	소개가 바뀌었습니다

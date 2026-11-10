@@ -1922,3 +1922,26 @@ Hide posts from business and creator accounts	Ẩn bài viết từ tài khoản
 Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	Gỡ bài viết của tài khoản doanh nghiệp và nhà sáng tạo khỏi trang chủ và Đang theo dõi, kể cả bạn bè dùng loại tài khoản này. Hãy kéo xuống trên trang chủ để làm mới sau khi thay đổi.
 # context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
 Favorites still shows them.	Yêu thích vẫn hiển thị chúng.
+# context: switch in HushGram settings > Profiles; keeps the username, bio and profile picture of each profile opened, on the phone, and says when one changed (#611)
+Keep profile history	Giữ lịch sử trang cá nhân
+Remembers the username, bio and profile picture of each profile you open, on this phone only, and tells you when one changed since your last visit. Pictures are copied from Instagram's image servers. Turn it off and it stops at once.	Ghi nhớ tên người dùng, tiểu sử và ảnh đại diện của từng trang cá nhân bạn mở, chỉ trên điện thoại này, và cho bạn biết khi có gì thay đổi kể từ lần ghé trước. Ảnh được sao chép từ máy chủ hình ảnh của Instagram. Tắt đi là dừng ngay.
+# context: row and page title in HushGram settings > Profiles listing the old usernames, bios and profile pictures Keep profile history saw replaced (#611)
+Profile changes	Thay đổi trang cá nhân
+Nothing here yet. With Keep profile history on, the old usernames, bios and pictures of profiles you open show up here.	Chưa có gì. Khi bật Giữ lịch sử trang cá nhân, tên người dùng, tiểu sử và ảnh cũ của các trang cá nhân bạn mở sẽ hiện ở đây.
+# context: last line of the Profile changes row; %1$d is how many old values are listed (#611)
+Tap to see all %1$d, or search them.	Nhấn để xem cả %1$d mục hoặc tìm kiếm.
+# context: a row on the Profile changes page; %1$s is the account's old username, %2$s Android's relative time of the change, like 2 days ago (#611)
+Was @%1$s, %2$s	Từng là @%1$s, %2$s
+# context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
+Old profile picture, %s	Ảnh đại diện cũ, %s
+Old bio, %s	Tiểu sử cũ, %s
+Clear profile history	Xóa lịch sử trang cá nhân
+Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	Quên mọi tên người dùng, tiểu sử và ảnh trong danh sách, cho mọi tài khoản của bạn. Công tắc giữ nguyên.
+Profile history cleared.	Đã xóa lịch sử trang cá nhân.
+Couldn't clear the profile history. Try again.	Không xóa được lịch sử trang cá nhân. Hãy thử lại.
+# context: toast when a profile opened has a different username than last time; %s is the old username (#611)
+Used to be @%s	Từng là @%s
+# context: toast when a profile opened has a new profile picture and bio since last time (#611)
+New profile picture and bio	Ảnh đại diện và tiểu sử mới
+New profile picture	Ảnh đại diện mới
+Their bio changed	Tiểu sử đã thay đổi

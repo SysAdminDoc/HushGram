@@ -3811,6 +3811,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_viewing_history", FALSE);
 
     /**
+     * Remembers, only on this phone, the username, bio and profile picture of each profile opened,
+     * and says so when one changed since the last visit (#590, #611). It reads what Instagram
+     * already loaded for the profile screen and fetches nothing but the picture shown. Old values
+     * stay listed on the Profile changes page until Clear profile history. The list stays out of
+     * settings backups and the diagnostic report. Starts off.
+     */
+    public static final BooleanSetting PROFILE_HISTORY =
+            new BooleanSetting("hushgram_profile_history", FALSE);
+
+    /**
      * The name a saved video gets: {date}, {video_id}, {owner} and {posted} fill in per save, the
      * last three only when the save knows them, and the default is IG_VID_ and the date and time.
      * Photos keep their IG_IMG_ names. Cleaned like the folder wherever it's read
