@@ -129,6 +129,7 @@ Every HushGram release, newest first.
 * `Rounded post corners` now rounds the top corners of a reel in the feed too. The shadow behind its name row stayed square over them, which showed with `Ambient light` on. Reported in #571.
 * New `Keep the comment bar's space` switch under the comment bar switches in Reels. A reel opened from a post or profile used to slide into the hidden bar's space. This keeps that space empty so nothing moves. Reported in #523.
 * With `Seek bar on feed videos` on, a swipe up or down that starts on a video's seek bar scrolls Home instead of doing nothing. Dragging along the bar still moves through the video.
+* The Saved bookmark on your profile opens Saved again. Instagram now ignores its own Saved link unless Instagram itself sent it, so tapping the bookmark did nothing. Reported in #492.
 
 ## 0.0.19 (2026-11-06)
 

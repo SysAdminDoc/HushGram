@@ -14,20 +14,23 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
-import android.content.pm.ResolveInfo;
-import android.net.Uri;
+import android.os.Bundle;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
 import java.lang.ref.WeakReference;
 
+import com.instagram.common.session.UserSession;
+
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -51,32 +54,61 @@ public class ProfileSavedTest {
         assertSame(ProfileSaved.childId(), ProfileSaved.childId());
     }
 
+    /** Instagram's main screen, holding the signed-in account in a field named however the build names it. */
+    public static class SignedIn extends Activity {
+        private final UserSession A06 = new UserSession("token-1");
+    }
+
+    /** Puts Instagram's Saved screen in [activity]'s app, the way 453 and 454 have it. */
+    private static void addSavedScreen(Activity activity) {
+        shadowOf(activity.getPackageManager()).addActivityIfNotPresent(savedScreen());
+    }
+
+    private static ComponentName savedScreen() {
+        return new ComponentName(RuntimeEnvironment.getApplication().getPackageName(), ProfileSaved.SAVED_HANDLER);
+    }
+
+    /** Takes out the screen a test added, so no other test finds it. */
+    @After
+    public void removeSavedScreen() {
+        shadowOf(RuntimeEnvironment.getApplication().getPackageManager()).removeActivity(savedScreen());
+    }
+
     /**
-     * In a language HushGram has no table for, the menu row can't be found by its label, so the tap goes to
-     * Instagram's own Saved link instead, with no menu involved.
+     * In a language HushGram has no table for, the menu row can't be found by its label, so the tap opens
+     * Instagram's Saved screen instead, with no menu involved. The screen is started by name with the
+     * account's session in the router's bundle: Instagram drops its own link when anything else sends it.
      */
     @Test
-    public void openingSavedAsksInstagramsOwnSavedLinkWithoutTheMenu() {
-        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
-        Intent link = new Intent(Intent.ACTION_VIEW, Uri.parse("instagram://saved")).setPackage(activity.getPackageName());
-        ResolveInfo answer = new ResolveInfo();
-        answer.activityInfo = new ActivityInfo();
-        answer.activityInfo.packageName = activity.getPackageName();
-        answer.activityInfo.name = "com.instagram.urlhandlers.saved.SavedUrlHandlerActivity";
-        shadowOf(activity.getPackageManager()).addResolveInfoForIntent(link, answer);
+    public void openingSavedStartsInstagramsSavedScreenForTheSignedInAccount() {
+        Activity activity = Robolectric.buildActivity(SignedIn.class).setup().get();
+        addSavedScreen(activity);
 
         ProfileSaved.open(activity);
 
         Intent started = shadowOf(activity).getNextStartedActivity();
         assertNotNull("Saved was asked for", started);
+        assertEquals(new ComponentName(activity.getPackageName(), "com.instagram.urlhandlers.saved.SavedUrlHandlerActivity"),
+                started.getComponent());
         assertEquals("instagram://saved", String.valueOf(started.getData()));
-        assertEquals(activity.getPackageName(), started.getPackage());
+        Bundle bundle = started.getBundleExtra("com.instagram.url.extra.BUNDLE");
+        assertNotNull("the screen finishes at once without the router's bundle", bundle);
+        assertEquals("token-1", bundle.getString("IgSessionManager.SESSION_TOKEN_KEY"));
         assertEquals("the screen was never held back for a menu", 1f, activity.getWindow().getDecorView().getAlpha(), 0f);
     }
 
+    /** A screen holding no session can't name the account, so the menu does it instead. */
     @Test
-    public void withNothingAnsweringTheLinkOpenSavedScreenSaysSo() {
+    public void withNoSessionOpenSavedScreenSaysSo() {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        addSavedScreen(activity);
+        assertFalse(ProfileSaved.openSavedScreen(activity));
+        assertNull(shadowOf(activity).getNextStartedActivity());
+    }
+
+    @Test
+    public void withNoSavedScreenOpenSavedScreenSaysSo() {
+        Activity activity = Robolectric.buildActivity(SignedIn.class).setup().get();
         assertFalse(ProfileSaved.openSavedScreen(activity));
         assertNull(shadowOf(activity).getNextStartedActivity());
     }
