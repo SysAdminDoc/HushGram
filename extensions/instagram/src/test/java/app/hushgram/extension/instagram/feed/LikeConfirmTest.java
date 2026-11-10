@@ -117,6 +117,37 @@ public class LikeConfirmTest {
     }
 
     /**
+     * A comment's heart (TRUE, or null from the older caller) asks over the screen in front, a
+     * double tap (FALSE) goes through unasked, and Continue lets the second run through (#614).
+     */
+    @Test public void aCommentsHeartAsksAndItsDoubleTapDoesnt() {
+        Settings.ASK_BEFORE_LIKE.save(true);
+        Activity original = Utils.getActivity();
+        try {
+            Utils.setActivity(activity);
+            assertFalse("a double tap", LikeConfirm.holdComment(new Object(), new Object(), Boolean.FALSE, "a", "b"));
+            assertNull("nothing asked", ShadowDialog.getLatestDialog());
+
+            assertTrue("held while the question is up", LikeConfirm.holdComment(new Object(), new Object(), Boolean.TRUE, "a", "b"));
+            AlertDialog question = shown();
+            assertEquals("Like or unlike this comment?", Shadows.shadowOf(question).getTitle().toString());
+            assertSame(activity, ConfirmDialog.activityOf(question.getContext()));
+            assertTrue("a second tap is held", LikeConfirm.holdComment(new Object(), new Object(), null, "a", "b"));
+            assertEquals(1, ShadowDialog.getShownDialogs().size());
+            tap(question, AlertDialog.BUTTON_POSITIVE);
+            assertFalse("Continue lets the run through", question.isShowing());
+            assertNull(LikeConfirm.open());
+
+            Utils.setActivity(null);
+            assertFalse("no screen in front", LikeConfirm.holdComment(new Object(), new Object(), Boolean.TRUE, "a", "b"));
+        } finally {
+            Utils.setActivity(original);
+        }
+        assertTrue("a post still asks about the post", like(activity));
+        assertEquals("Like or unlike this post?", Shadows.shadowOf(shown()).getTitle().toString());
+    }
+
+    /**
      * A second tap before the question goes away, a quick double tap on Like, is held without a
      * second question, so Continue likes once. Once it's gone, the question is let go.
      */

@@ -27,6 +27,7 @@ import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.Field
+import com.android.tools.smali.dexlib2.iface.Method
 
 private const val LIKE_PATCH = "Ask before a like"
 
@@ -38,10 +39,17 @@ internal const val HOLD_REEL_LIKE = "$LIKE_CONFIRM->holdReel(Ljava/lang/Object;L
     "Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;" +
     "Ljava/lang/Object;II)Z"
 
+internal const val HOLD_COMMENT_LIKE = "$LIKE_CONFIRM->holdComment(Ljava/lang/Object;Ljava/lang/Object;" +
+    "Ljava/lang/Boolean;Ljava/lang/String;Ljava/lang/String;)Z"
+
 /** The extension's stubs the patch fills: the handler's screen, and a second call to each handler. */
 internal const val CONTEXT_OF_STUB = "contextOf"
 internal const val LIKE_AGAIN_STUB = "likeAgain"
 internal const val LIKE_REEL_AGAIN_STUB = "likeReelAgain"
+internal const val LIKE_COMMENT_AGAIN_STUB = "likeCommentAgain"
+
+/** The comment list's store, which the class holding the list's like entry keeps (#614). */
+internal const val COMMENT_LIST_REPOSITORY = "Lcom/instagram/comments/mvvm/data/MediaCommentListRepository;"
 
 /** The marker the Like button's handler on a reel files as it starts, which nothing else loads (#603). */
 internal const val REEL_LIKE_TAP = "android_purge_26_q3_LikeActionHandler_handleLikeButtonTap"
@@ -53,6 +61,7 @@ private const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 private const val FUNCTION1 = "Lkotlin/jvm/functions/Function1;"
 private const val OBJECT = "Ljava/lang/Object;"
 private const val STRING = "Ljava/lang/String;"
+private const val BOOLEAN = "Ljava/lang/Boolean;"
 private const val VIEW = "Landroid/view/View;"
 
 /**
@@ -68,14 +77,14 @@ internal object LikeButtonFingerprint : Fingerprint(
 )
 
 /**
- * The Like button under a post and on a reel waits for a question while the switch is on. Included
- * in the default selection with its switch off, so asking is the user's pick.
+ * The Like button under a post, on a reel and beside a comment waits for a question while the switch
+ * is on. Included in the default selection with its switch off, so asking is the user's pick.
  */
 @Suppress("unused")
 val askBeforeLikePatch = bytecodePatch(
     name = "Ask before a like",
-    description = "Asks you to confirm before the Like button under a post or on a reel likes or unlikes it, so a " +
-        "stray tap doesn't do it for you. Starts off. Turn it on in HushGram settings > Feed.",
+    description = "Asks you to confirm before the Like button under a post, on a reel or on a comment likes or " +
+        "unlikes it, so a stray tap doesn't do it for you. Starts off. Turn it on in HushGram settings > Feed.",
     default = true,
 ) {
     category("Interaction")
@@ -85,8 +94,10 @@ val askBeforeLikePatch = bytecodePatch(
     execute {
         requireStatusMethod("askBeforeLike")
         val reels = findReelLikeButton()
+        val comments = findCommentLikeButton()
         askBeforeLike()
         askBeforeReelLike(reels)
+        askBeforeCommentLike(comments)
         enableStatus("askBeforeLike")
     }
 }
@@ -254,6 +265,81 @@ internal fun askBeforeReelLike(found: ReelLikeTargets) {
         0,
         """
             invoke-static/range { p0 .. p11 }, $HOLD_REEL_LIKE
+            move-result v0
+            if-eqz v0, :instagram
+            return-void
+        """,
+        ExternalLabel("instagram", handler.getInstruction(0)),
+    )
+}
+
+/** The comment list's like entry and the extension's stub calling it again. */
+internal class CommentLikeTargets(val handler: MutableMethod, val likeAgain: MutableMethod)
+
+/**
+ * Finds the comment list's like entry and checks it before anything changes: the one instance
+ * method, in a class keeping the comment list's store, taking one of Instagram's public classes, a
+ * Boolean and two strings and returning nothing, public in a public class, with a local for the
+ * hook's answer and nothing jumping to its first instruction. The heart beside a comment hands it
+ * TRUE, a double tap FALSE.
+ */
+internal fun BytecodePatchContext.findCommentLikeButton(): CommentLikeTargets {
+    val found = mutableListOf<Method>()
+    classDefForEach { classDef ->
+        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.fields.none { it.type == COMMENT_LIST_REPOSITORY && !AccessFlags.STATIC.isSet(it.accessFlags) }) return@classDefForEach
+        classDef.methods.filterTo(found) { it.commentLikeShaped() }
+    }
+    val entry = found.singleOrNull()
+        ?: refuse("expected one (object, Boolean, String, String) method beside $COMMENT_LIST_REPOSITORY, found ${found.size}")
+    val owner = classDefByOrNull(entry.definingClass) ?: refuse("${entry.definingClass} isn't in the app")
+    val where = "${owner.type}->${entry.name}"
+    if (!AccessFlags.PUBLIC.isSet(owner.accessFlags) || !AccessFlags.PUBLIC.isSet(entry.accessFlags)) refuse("$where isn't public")
+    val state = entry.parameterTypes[0].toString()
+    val stateClass = classDefByOrNull(state)
+    if (stateClass == null || !AccessFlags.PUBLIC.isSet(stateClass.accessFlags)) refuse("$where takes $state, which isn't a public class in the app")
+    val types = entry.parameterTypes.map(CharSequence::toString)
+    val handler = mutableClassDefBy(owner.type).methods.single {
+        it.name == entry.name && it.returnType == entry.returnType && it.parameterTypes.map(CharSequence::toString) == types
+    }
+    if (handler.localRegisterCount() < 1) refuse("$where has no local for the answer")
+    if (0 in handler.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
+
+    val extension = classDefByOrNull(LIKE_CONFIRM) ?: refuse("the extension has no $LIKE_CONFIRM")
+    extension.publicStatic(HOLD_COMMENT_LIKE) ?: refuse("the extension has no public static $HOLD_COMMENT_LIKE")
+    val stub = mutableClassDefBy(LIKE_CONFIRM).staticStub(LIKE_COMMENT_AGAIN_STUB, listOf(OBJECT, OBJECT, BOOLEAN, STRING, STRING), "V", 5)
+        ?: refuse("$LIKE_CONFIRM has no static void $LIKE_COMMENT_AGAIN_STUB taking what the comment like entry takes")
+    return CommentLikeTargets(handler, stub)
+}
+
+private fun Method.commentLikeShaped(): Boolean = returnType == "V" && implementation != null &&
+    !AccessFlags.STATIC.isSet(accessFlags) && parameterTypes.map(CharSequence::toString).let {
+        it.size == 4 && it[0].startsWith("L") && it[0] != BOOLEAN && it[0] != STRING && it[1] == BOOLEAN &&
+            it[2] == STRING && it[3] == STRING
+    }
+
+/**
+ * Fills the stub with a call back into the comment list's like entry, then asks the extension first
+ * in the entry, with its own arguments. A yes returns before Instagram does anything. A double tap's
+ * FALSE goes through unasked, in the extension.
+ */
+internal fun askBeforeCommentLike(found: CommentLikeTargets) {
+    val handler = found.handler
+    val owner = handler.definingClass
+    val types = handler.parameterTypes.map(CharSequence::toString)
+    found.likeAgain.addInstructions(
+        0,
+        """
+            check-cast p0, $owner
+            check-cast p1, ${types[0]}
+            invoke-virtual/range { p0 .. p4 }, $owner->${handler.name}(${types.joinToString("")})V
+            return-void
+        """,
+    )
+    handler.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { p0 .. p4 }, $HOLD_COMMENT_LIKE
             move-result v0
             if-eqz v0, :instagram
             return-void

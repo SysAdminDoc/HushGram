@@ -2676,6 +2676,13 @@ once-call Lapp/hushgram/extension/instagram/feed/LikeConfirm;->hold(Ljava/lang/O
 # where it lands on each declared build.
 start-call Lapp/hushgram/extension/instagram/feed/LikeConfirm;->holdReel(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;II)Z in instance (Landroid/view/View;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ZZ)V pooled holding android_purge_26_q3_LikeActionHandler_handleLikeButtonTap
 once-call Lapp/hushgram/extension/instagram/feed/LikeConfirm;->holdReel(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;II)Z in instance (Landroid/view/View;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ZZ)V pooled holding android_purge_26_q3_LikeActionHandler_handleLikeButtonTap
+# On a comment (#614) it hands LikeConfirm.holdComment the comment list's like entry's own arguments
+# first thing in it (0ILp.Fm7 on 454), the one instance (comment state, Boolean, two strings) method in
+# a class keeping the comment list's store. The heart beside a comment hands it TRUE and a double tap
+# FALSE, which the extension lets through. AskBeforeLikeHookTest checks where it lands on each
+# declared build.
+start-call Lapp/hushgram/extension/instagram/feed/LikeConfirm;->holdComment(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Boolean;Ljava/lang/String;Ljava/lang/String;)Z in instance (LX/*;Ljava/lang/Boolean;Ljava/lang/String;Ljava/lang/String;)V class-holding LX/*;->*:Lcom/instagram/comments/mvvm/data/MediaCommentListRepository;
+once-call Lapp/hushgram/extension/instagram/feed/LikeConfirm;->holdComment(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Boolean;Ljava/lang/String;Ljava/lang/String;)Z in instance (LX/*;Ljava/lang/Boolean;Ljava/lang/String;Ljava/lang/String;)V class-holding LX/*;->*:Lcom/instagram/comments/mvvm/data/MediaCommentListRepository;
 # Ask before a refresh hands RefreshConfirm.listener the refresh listener the pull-down refresh
 # layout's end-of-pull animation reads (04Vu.onAnimationEnd on 450, the one onAnimationEnd reading
 # the layout's listener field), once, right after the read. Left out, a pull never asks.

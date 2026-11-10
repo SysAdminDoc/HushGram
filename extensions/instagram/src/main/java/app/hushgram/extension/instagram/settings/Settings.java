@@ -996,7 +996,7 @@ public class Settings extends BaseSettings {
             });
 
     /**
-     * The Like button under a post asks before it likes or unlikes the post
+     * The Like button under a post, on a reel or beside a comment asks before it likes or unlikes
      * ({@link app.hushgram.extension.instagram.feed.LikeConfirm}). A double tap isn't asked about.
      * Off to start.
      */

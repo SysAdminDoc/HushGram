@@ -57,6 +57,7 @@ Every HushGram release, newest first.
 * `Take a scroll break` now lets you pick how long you scroll, from 5 minutes up to 2 hours, and a `Break length` slider sets the break from 5 to 120 minutes. Asked for in #297.
 * `Stop background feed refresh` under Battery stops the job that wakes your phone about every half hour to fetch your feed. Your feed loads when you open Instagram, and messages and notifications still come in. Reported in #341.
 * `Ask before a like` covers reels now. Tap the heart on a reel and it asks "Like or unlike this post?" first, same as in the feed. Asked for in #603.
+* `Ask before a like` asks about the heart beside a comment too, so a stray tap doesn't like it. Double tapping a comment still likes it straight away. Asked for in #614.
 
 ### Improvements
 

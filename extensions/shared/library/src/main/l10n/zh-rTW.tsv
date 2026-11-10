@@ -760,12 +760,13 @@ Ask before a like	按讚前詢問
 Ask before a refresh	重新整理前詢問
 Continue	繼續
 Like or unlike this post?	要對這則貼文按讚或收回讚嗎？
+Like or unlike this comment?	要對這則留言按讚或收回讚嗎？
 Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.	下拉重新整理首頁、Reels 或其他清單前先詢問。取消會保留畫面上的內容。
 Skip the collections tray	略過珍藏分類面板
 Saving a post or reel shows Instagram's Saved message instead of the tray that asks you to start a collection.	儲存貼文或 Reels 時，Instagram 只會顯示已儲存的訊息，而不是要你建立珍藏分類的面板。
 Refresh	重新整理
 Refresh this list?	要重新整理此清單嗎？
-Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.	透過貼文下方或 Reels 上的按讚按鈕按讚或收回讚前先詢問，避免誤觸。雙擊則不會詢問。
+Asks before the Like button under a post, on a reel or on a comment likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.	透過貼文下方、Reels 上或留言上的按讚按鈕按讚或收回讚前先詢問，避免誤觸。雙擊則不會詢問。
 Adds a row next to Download on a reel and a feed video that plays it in an app you pick, such as VLC. The player streams it from Instagram's servers.	在 Reel 與動態首頁影片的「下載」旁新增選項，使用你選擇的應用程式（例如 VLC）播放。播放器會從 Instagram 伺服器串流播放。
 Couldn't open another player	無法開啟其他播放器
 No app on this phone can play this video	手機上沒有可播放此影片的應用程式
