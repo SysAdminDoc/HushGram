@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.media.background.RESUME
 import app.morphe.patches.instagram.media.resume.IS_SPONSORED
 import app.morphe.patches.instagram.media.resume.MEDIA_ID
 import app.morphe.patches.instagram.media.resume.PRODUCT_TYPE_LABEL
@@ -23,6 +24,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -139,6 +141,51 @@ class StopVideoLoopingPatchTest {
         assertEquals("anything else isn't touched", reloop.size - 1, reloop.target(reloop.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
     }
 
+    /**
+     * StopLooping.position and length ask the player's own readers, and StopLooping.restart seeks
+     * the player to the start and plays it the way Instagram resumes a video, so a video that ended
+     * plays again when it's looped from its menu (#610).
+     */
+    @Test
+    fun restartSeeksToTheStartAndPlays() {
+        val context = PatchContexts.of(classes())
+        assertNull(context.stopVideoLooping())
+        for ((name, reader) in listOf("position" to "BxZ", "length" to "A0L")) {
+            val stub = context.method(STOP_LOOPING, name).code()
+            assertEquals(name, listOf(player, player, "$player->$reader()I"), stub.mapNotNull { it.referenceText() })
+            val none = stub[stub.size - 2] as NarrowLiteralInstruction
+            assertEquals("$name answers -1 for anything else", -1, none.narrowLiteral)
+            assertEquals(stub.size - 2, stub.target(stub.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
+        }
+        val seek = "$player->A0U(IZZ)V"
+        val play = "$player->A0c(Ljava/lang/String;Z)V"
+        val restart = context.method(STOP_LOOPING, "restart").code()
+        assertEquals(
+            "a player, cast, the seek, the reason, the play",
+            listOf(player, player, seek, RESUME, play),
+            restart.mapNotNull { it.referenceText() },
+        )
+        val seekAt = restart.indexOfFirst { it.referenceText() == seek }
+        val zero = restart[seekAt - 1]
+        assertEquals(0, (zero as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("to the start, neither logged nor exact", List(3) { (zero as OneRegisterInstruction).registerA }, restart[seekAt].registers().drop(1))
+        val playAt = restart.indexOfFirst { it.referenceText() == play }
+        assertEquals("played as a resume, not after a seek", 0, (restart[playAt - 1] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("anything else isn't touched", restart.size - 1, restart.target(restart.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
+    }
+
+    /** Without a seek it can call the loop still goes in, and an ended video looped from its menu just stays put. */
+    @Test
+    fun withoutASeekTheLoopStillGoesIn() {
+        val context = PatchContexts.of(classes(Variant(noSeek = true)))
+        assertNull(context.stopVideoLooping())
+        assertTrue("the setter is hooked", context.method(player, "A0i").code().any { it.referenceText() == LOOP })
+        assertEquals("reloop was filled", "$player->A0i(Z)V", context.method(STOP_LOOPING, "reloop").code().mapNotNull { it.referenceText() }.last())
+        assertEquals("restart stays empty", 1, context.method(STOP_LOOPING, "restart").code().size)
+        assertEquals("position stays empty", 2, context.method(STOP_LOOPING, "position").code().size)
+        assertEquals("length stays empty", 2, context.method(STOP_LOOPING, "length").code().size)
+    }
+
     /** Each shape the patch can't place the hook in safely leaves every class as it was and says why. */
     @Test
     fun refusesAndChangesNothing() {
@@ -162,6 +209,7 @@ class StopVideoLoopingPatchTest {
             assertEquals("$variant: the stub was filled", 2, context.method(STOP_LOOPING, "reels").code().size)
             assertEquals("$variant: videoId was filled", 2, context.method(STOP_LOOPING, "videoId").code().size)
             assertEquals("$variant: reloop was filled", 1, context.method(STOP_LOOPING, "reloop").code().size)
+            assertEquals("$variant: restart was filled", 1, context.method(STOP_LOOPING, "restart").code().size)
         }
     }
 
@@ -243,6 +291,15 @@ class StopVideoLoopingPatchTest {
         val setter = sites.sites.single { !AccessFlags.STATIC.isSet(it.first.accessFlags) }.first
         assertEquals("$label: reloop calls the setter", "${sites.player}->${setter.name}(Z)V", reloop.last())
         assertTrue("$label: with the player's own flag, $reloop", reloop[2].startsWith("${sites.player}->") && reloop[2].endsWith(":Z"))
+
+        val reads = listOf("position", "length").map { name ->
+            context.method(STOP_LOOPING, name).code().mapNotNull { it.methodReference()?.key() }.single()
+        }
+        assertTrue("$label: two of the player's int readers, $reads", reads.distinct().size == 2 && reads.all { it.startsWith("${sites.player}->") && it.endsWith("()I") })
+        val restart = context.method(STOP_LOOPING, "restart").code().mapNotNull { it.methodReference()?.key() }
+        assertEquals("$label: restart seeks, then plays", 2, restart.size)
+        assertTrue("$label: the player's seek, $restart", restart[0].startsWith("${sites.player}->") && restart[0].endsWith("(IZZ)V"))
+        assertTrue("$label: the player's play, $restart", restart[1].startsWith("${sites.player}->") && restart[1].endsWith("(Ljava/lang/String;Z)V"))
     }
 
     private data class Variant(
@@ -255,6 +312,7 @@ class StopVideoLoopingPatchTest {
         val rangeCall: Boolean = false,
         val noMediaIdReader: Boolean = false,
         val hiddenFlag: Boolean = false,
+        val noSeek: Boolean = false,
     )
 
     private fun classes(v: Variant = Variant()): List<ClassDef> {
@@ -296,9 +354,38 @@ class StopVideoLoopingPatchTest {
             iget-object v0, v0, $source->mediaId:$string
             return-object v0
         """)
+        // Where it is, answering 0 past a day, and how long the video is, narrowed from a long.
+        val position = method(player, "BxZ", emptyList(), "I", 3, static = false, body = """
+            iget v0, p0, $player->at:I
+            const v1, 0x5265c00
+            if-gt v0, v1, :past
+            return v0
+            :past
+            const/4 v0, 0x0
+            return v0
+        """)
+        val length = method(player, "A0L", emptyList(), "I", 3, static = false, body = """
+            iget-wide v0, p0, $player->duration:J
+            long-to-int v0, v0
+            return v0
+        """)
+        // The seek (position, log it, exact), and the play (reason, playAfterSeek) Instagram resumes through.
+        val seek = method(player, "A0U", listOf("I", "Z", "Z"), "V", 5, static = false, body = """
+            const-string v0, "clips_viewer"
+            const-string v0, "$RESUME"
+            iput p1, p0, $player->at:I
+            return-void
+        """)
+        val play = method(player, "A0c", listOf(string, "Z"), "V", 5, static = false, body = """
+            const-string v0, "$RESUME"
+            const/4 v1, 0x0
+            invoke-static { p0, p1, p2, v1 }, $player->A0I($player${string}ZZ)V
+            return-void
+        """)
         val loggerFlags = if (v.hiddenLogger) AccessFlags.FINAL.value else AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val videoPlayer = classDef(
-            player, listOfNotNull(internal, setter, other, reader.takeUnless { v.noMediaIdReader }),
+            player,
+            listOfNotNull(internal, setter, other, reader.takeUnless { v.noMediaIdReader }, position, length, seek.takeUnless { v.noSeek }, play),
             listOf(
                 ImmutableField(player, "engine", groot, AccessFlags.PUBLIC.value, null, null, null),
                 ImmutableField(player, "looping", "Z", if (v.hiddenFlag) 0 else AccessFlags.PUBLIC.value, null, null, null),

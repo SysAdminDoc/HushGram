@@ -170,6 +170,43 @@ public class StopLoopingTest {
         assertTrue(String.join("\n", HookStatus.report()).contains(StopLooping.UNLOOPED));
     }
 
+    /**
+     * A video that already stopped on its last frame plays again from the start when it's looped
+     * from its menu, since a new flag alone doesn't move it (#610). One still playing, paused partway
+     * or whose length isn't known is only handed its flag, and taking the loop off restarts nothing.
+     */
+    @Test
+    @Config(shadows = {Built.class, Posts.class})
+    public void anEndedVideoPlaysAgainWhenLooped() {
+        Players players = new Players();
+        StopLooping.access = players;
+        Object ended = new Object();
+        Object nearlyEnded = new Object();
+        Object partway = new Object();
+        Object unknown = new Object();
+        Object elsewhere = new Object();
+        for (Object one : List.of(ended, nearlyEnded, partway, unknown)) players.playing.put(one, "3711");
+        players.playing.put(elsewhere, "4802");
+        players.at.put(ended, new int[] {31_000, 31_000});
+        players.at.put(nearlyEnded, new int[] {31_000 - StopLooping.END_MS, 31_000});
+        players.at.put(partway, new int[] {12_000, 31_000});
+        players.at.put(elsewhere, new int[] {9_000, 9_000});
+        for (Object one : List.of(ended, nearlyEnded, partway, unknown, elsewhere)) StopLooping.loop(one, 1);
+
+        assertEquals(Boolean.TRUE, StopLooping.toggle("3711_42"));
+        assertEquals(List.of(ended, nearlyEnded), sorted(players.restarted, ended, nearlyEnded));
+        assertEquals("each player showing it still gets its flag", 4, players.relooped.size());
+
+        players.restarted.clear();
+        assertEquals(Boolean.FALSE, StopLooping.toggle("3711_42"));
+        assertTrue("taking the loop off restarts nothing", players.restarted.isEmpty());
+
+        assertTrue(StopLooping.ended(ended));
+        assertFalse(StopLooping.ended(partway));
+        assertFalse("no length, no end", StopLooping.ended(unknown));
+        assertEquals("the unpatched stub knows no length", -1, StopLooping.PATCHED.length(ended));
+    }
+
     /** With the switch off, paused, or for media without an ID, the row changes nothing. */
     @Test
     @Config(shadows = {Built.class, Posts.class})
@@ -224,10 +261,12 @@ public class StopLoopingTest {
         return sorted;
     }
 
-    /** Players and the media ID each plays, standing in for the patch's readers. */
+    /** Players, the media ID each plays and where each is in it, standing in for the patch's readers. */
     private static final class Players implements StopLooping.Player {
         final Map<Object, String> playing = new IdentityHashMap<>();
+        final Map<Object, int[]> at = new IdentityHashMap<>();
         final List<Object> relooped = new ArrayList<>();
+        final List<Object> restarted = new ArrayList<>();
 
         @Override
         public String videoId(Object player) {
@@ -237,6 +276,23 @@ public class StopLoopingTest {
         @Override
         public void reloop(Object player) {
             relooped.add(player);
+        }
+
+        @Override
+        public int position(Object player) {
+            int[] where = at.get(player);
+            return where == null ? -1 : where[0];
+        }
+
+        @Override
+        public int length(Object player) {
+            int[] where = at.get(player);
+            return where == null ? -1 : where[1];
+        }
+
+        @Override
+        public void restart(Object player) {
+            restarted.add(player);
         }
     }
 
