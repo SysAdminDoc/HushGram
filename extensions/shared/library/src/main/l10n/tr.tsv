@@ -2031,3 +2031,31 @@ Used to be @%s	Eskiden @%s idi
 New profile picture and bio	Yeni profil fotoğrafı ve biyografi
 New profile picture	Yeni profil fotoğrafı
 Their bio changed	Biyografisi değişti
+# context: Profiles > title of the switch that hides the Threads badge under the bio on other people's profiles (#627)
+Hide the Threads badge	Threads rozetini gizle
+# context: Profiles > summary of Hide the Threads badge (#627)
+Takes the Threads badge from under the bio on other people's profiles. Yours keeps it.	Başkalarının profillerinde biyografinin altındaki Threads rozetini kaldırır. Seninki onu korur.
+# context: Profiles > title of the switch that hides links to someone's Facebook profile, page or group under their bio (#627)
+Hide Facebook links	Facebook bağlantılarını gizle
+# context: Profiles > summary of Hide Facebook links (#627)
+Takes the links to someone's Facebook profile, page or group from under their bio. Yours keeps them.	Birinin Facebook profiline, sayfasına veya grubuna giden bağlantıları biyografisinin altından kaldırır. Seninki onları korur.
+# context: Profiles > title of the switch that hides the WhatsApp link under someone's bio (#627)
+Hide the WhatsApp link	WhatsApp bağlantısını gizle
+# context: Profiles > summary of Hide the WhatsApp link (#627)
+Takes the link to someone's WhatsApp from under their bio. Yours keeps it.	Birinin WhatsApp'ına giden bağlantıyı biyografisinin altından kaldırır. Seninki onu korur.
+# context: Profiles > title of the switch that hides the song someone picked for their profile (#627)
+Hide the profile song	Profil şarkısını gizle
+# context: Profiles > summary of Hide the profile song (#627)
+Takes the song someone picked for their profile from under their bio. Yours keeps it.	Birinin profili için seçtiği şarkıyı biyografisinin altından kaldırır. Seninki onu korur.
+# context: Profiles > title of the switch that hides the interests (activities) someone lists under their bio (#627)
+Hide interests	İlgi alanlarını gizle
+# context: Profiles > summary of Hide interests (#627)
+Takes the interests someone added, like reading or hiking, from under their bio. Yours keeps them.	Birinin eklediği, okuma veya yürüyüş gibi ilgi alanlarını biyografisinin altından kaldırır. Seninki onları korur.
+# context: Profiles > title of the switch that hides the invite to someone's broadcast channel under their bio (#627)
+Hide channel invites	Kanal davetlerini gizle
+# context: Profiles > summary of Hide channel invites (#627)
+Takes the invite to someone's broadcast channel from under their bio. Yours keeps it.	Birinin yayın kanalına davetini biyografisinin altından kaldırır. Seninki onu korur.
+# context: Profiles > title of the switch that hides every other banner under the bio on other people's profiles (#627)
+Hide the other profile banners	Diğer profil afişlerini gizle
+# context: Profiles > summary of Hide the other profile banners (#627)
+Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	Başkalarının profillerinde biyografinin altındaki diğer afişleri, örneğin etkinlikleri, bağış kampanyalarını, okulları ve çalışma saatlerini kaldırır. Seninki onları korur.

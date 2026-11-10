@@ -2234,6 +2234,63 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_profile_notes", FALSE);
 
     /**
+     * The Threads badge in the row of banners under the bio on other people's profiles, yours kept
+     * ({@link app.hushgram.extension.instagram.profile.ProfileBanners}, #627). Read each time
+     * Instagram builds a profile's header, so a change shows on the next profile opened. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_THREADS_BADGE =
+            new BooleanSetting("hushgram_hide_profile_threads_badge", FALSE);
+
+    /**
+     * The links to a Facebook profile, page or group in the row of banners under the bio on other
+     * people's profiles, yours kept ({@link app.hushgram.extension.instagram.profile.ProfileBanners},
+     * #627). Read each time Instagram builds a profile's header. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_FACEBOOK_LINKS =
+            new BooleanSetting("hushgram_hide_profile_facebook_links", FALSE);
+
+    /**
+     * The WhatsApp link in the row of banners under the bio on other people's profiles, yours kept
+     * ({@link app.hushgram.extension.instagram.profile.ProfileBanners}, #627). Read each time
+     * Instagram builds a profile's header. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_WHATSAPP_LINK =
+            new BooleanSetting("hushgram_hide_profile_whatsapp_link", FALSE);
+
+    /**
+     * The song someone picked for their profile, in the row of banners under the bio on other
+     * people's profiles, yours kept ({@link app.hushgram.extension.instagram.profile.ProfileBanners},
+     * #627). Read each time Instagram builds a profile's header. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_SONG =
+            new BooleanSetting("hushgram_hide_profile_song", FALSE);
+
+    /**
+     * The interests someone added to their profile, in the row of banners under the bio on other
+     * people's profiles, yours kept ({@link app.hushgram.extension.instagram.profile.ProfileBanners},
+     * #627). Read each time Instagram builds a profile's header. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_INTERESTS =
+            new BooleanSetting("hushgram_hide_profile_interests", FALSE);
+
+    /**
+     * The invite to someone's broadcast channel in the row of banners under the bio on other
+     * people's profiles, yours kept ({@link app.hushgram.extension.instagram.profile.ProfileBanners},
+     * #627). Read each time Instagram builds a profile's header. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_CHANNEL_BANNER =
+            new BooleanSetting("hushgram_hide_profile_channel_banner", FALSE);
+
+    /**
+     * Every other kind in the row of banners under the bio on other people's profiles (events,
+     * fundraisers, schools, business hours and kinds Instagram adds later), yours kept and the Muse
+     * banner left to Hide Meta AI ({@link app.hushgram.extension.instagram.profile.ProfileBanners},
+     * #627). Read each time Instagram builds a profile's header. Off to start.
+     */
+    public static final BooleanSetting HIDE_OTHER_PROFILE_BANNERS =
+            new BooleanSetting("hushgram_hide_other_profile_banners", FALSE);
+
+    /**
      * Opening someone's profile goes on to their posts as a scrolling list, the one Instagram opens for a
      * tapped post, with the grid one Back away ({@link app.hushgram.extension.instagram.profile.PostsList}).
      * Read each time a posts tab comes up, so a change shows on the next profile opened. Off to start.

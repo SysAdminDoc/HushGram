@@ -1948,3 +1948,31 @@ Used to be @%s	Từng là @%s
 New profile picture and bio	Ảnh đại diện và tiểu sử mới
 New profile picture	Ảnh đại diện mới
 Their bio changed	Tiểu sử đã thay đổi
+# context: Profiles > title of the switch that hides the Threads badge under the bio on other people's profiles (#627)
+Hide the Threads badge	Ẩn huy hiệu Threads
+# context: Profiles > summary of Hide the Threads badge (#627)
+Takes the Threads badge from under the bio on other people's profiles. Yours keeps it.	Gỡ huy hiệu Threads bên dưới tiểu sử trên trang cá nhân của người khác. Trang của bạn vẫn giữ.
+# context: Profiles > title of the switch that hides links to someone's Facebook profile, page or group under their bio (#627)
+Hide Facebook links	Ẩn liên kết Facebook
+# context: Profiles > summary of Hide Facebook links (#627)
+Takes the links to someone's Facebook profile, page or group from under their bio. Yours keeps them.	Gỡ liên kết đến trang cá nhân, Trang hoặc nhóm Facebook của người khác bên dưới tiểu sử. Trang của bạn vẫn giữ.
+# context: Profiles > title of the switch that hides the WhatsApp link under someone's bio (#627)
+Hide the WhatsApp link	Ẩn liên kết WhatsApp
+# context: Profiles > summary of Hide the WhatsApp link (#627)
+Takes the link to someone's WhatsApp from under their bio. Yours keeps it.	Gỡ liên kết đến WhatsApp của người khác bên dưới tiểu sử. Trang của bạn vẫn giữ.
+# context: Profiles > title of the switch that hides the song someone picked for their profile (#627)
+Hide the profile song	Ẩn bài hát trên trang cá nhân
+# context: Profiles > summary of Hide the profile song (#627)
+Takes the song someone picked for their profile from under their bio. Yours keeps it.	Gỡ bài hát mà người khác chọn cho trang cá nhân bên dưới tiểu sử. Trang của bạn vẫn giữ.
+# context: Profiles > title of the switch that hides the interests (activities) someone lists under their bio (#627)
+Hide interests	Ẩn sở thích
+# context: Profiles > summary of Hide interests (#627)
+Takes the interests someone added, like reading or hiking, from under their bio. Yours keeps them.	Gỡ các sở thích người khác đã thêm, như đọc sách hay đi bộ đường dài, bên dưới tiểu sử. Trang của bạn vẫn giữ.
+# context: Profiles > title of the switch that hides the invite to someone's broadcast channel under their bio (#627)
+Hide channel invites	Ẩn lời mời tham gia kênh
+# context: Profiles > summary of Hide channel invites (#627)
+Takes the invite to someone's broadcast channel from under their bio. Yours keeps it.	Gỡ lời mời tham gia kênh phát sóng của người khác bên dưới tiểu sử. Trang của bạn vẫn giữ.
+# context: Profiles > title of the switch that hides every other banner under the bio on other people's profiles (#627)
+Hide the other profile banners	Ẩn các biểu ngữ khác trên trang cá nhân
+# context: Profiles > summary of Hide the other profile banners (#627)
+Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	Gỡ các biểu ngữ còn lại bên dưới tiểu sử trên trang cá nhân của người khác, như sự kiện, gây quỹ, trường học và giờ mở cửa. Trang của bạn vẫn giữ.

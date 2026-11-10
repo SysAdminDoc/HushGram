@@ -355,6 +355,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean profileBanners() {
+        return false;
+    }
+
     public static boolean profilePostsList() {
         return false;
     }

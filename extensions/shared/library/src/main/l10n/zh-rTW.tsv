@@ -2034,3 +2034,31 @@ Used to be @%s	以前是 @%s
 New profile picture and bio	新的個人檔案相片和個人簡介
 New profile picture	新的個人檔案相片
 Their bio changed	個人簡介已變更
+# context: Profiles > title of the switch that hides the Threads badge under the bio on other people's profiles (#627)
+Hide the Threads badge	隱藏 Threads 徽章
+# context: Profiles > summary of Hide the Threads badge (#627)
+Takes the Threads badge from under the bio on other people's profiles. Yours keeps it.	移除他人個人檔案中個人簡介下方的 Threads 徽章。你自己的個人檔案仍會保留。
+# context: Profiles > title of the switch that hides links to someone's Facebook profile, page or group under their bio (#627)
+Hide Facebook links	隱藏 Facebook 連結
+# context: Profiles > summary of Hide Facebook links (#627)
+Takes the links to someone's Facebook profile, page or group from under their bio. Yours keeps them.	移除他人個人簡介下方連到 Facebook 個人檔案、粉絲專頁或社團的連結。你自己的個人檔案仍會保留。
+# context: Profiles > title of the switch that hides the WhatsApp link under someone's bio (#627)
+Hide the WhatsApp link	隱藏 WhatsApp 連結
+# context: Profiles > summary of Hide the WhatsApp link (#627)
+Takes the link to someone's WhatsApp from under their bio. Yours keeps it.	移除他人個人簡介下方連到 WhatsApp 的連結。你自己的個人檔案仍會保留。
+# context: Profiles > title of the switch that hides the song someone picked for their profile (#627)
+Hide the profile song	隱藏個人檔案歌曲
+# context: Profiles > summary of Hide the profile song (#627)
+Takes the song someone picked for their profile from under their bio. Yours keeps it.	移除他人為個人檔案挑選、顯示在個人簡介下方的歌曲。你自己的個人檔案仍會保留。
+# context: Profiles > title of the switch that hides the interests (activities) someone lists under their bio (#627)
+Hide interests	隱藏興趣
+# context: Profiles > summary of Hide interests (#627)
+Takes the interests someone added, like reading or hiking, from under their bio. Yours keeps them.	移除他人在個人簡介下方新增的興趣，例如閱讀或健行。你自己的個人檔案仍會保留。
+# context: Profiles > title of the switch that hides the invite to someone's broadcast channel under their bio (#627)
+Hide channel invites	隱藏頻道邀請
+# context: Profiles > summary of Hide channel invites (#627)
+Takes the invite to someone's broadcast channel from under their bio. Yours keeps it.	移除他人個人簡介下方的廣播頻道邀請。你自己的個人檔案仍會保留。
+# context: Profiles > title of the switch that hides every other banner under the bio on other people's profiles (#627)
+Hide the other profile banners	隱藏其他個人檔案橫幅
+# context: Profiles > summary of Hide the other profile banners (#627)
+Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	移除他人個人檔案中個人簡介下方的其餘橫幅，例如活動、募款、學校與營業時間。你自己的個人檔案仍會保留。

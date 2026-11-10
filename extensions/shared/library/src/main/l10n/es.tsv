@@ -2031,3 +2031,31 @@ Used to be @%s	Antes era @%s
 New profile picture and bio	Nueva foto del perfil y presentación
 New profile picture	Nueva foto del perfil
 Their bio changed	Cambió su presentación
+# context: Profiles > title of the switch that hides the Threads badge under the bio on other people's profiles (#627)
+Hide the Threads badge	Ocultar la insignia de Threads
+# context: Profiles > summary of Hide the Threads badge (#627)
+Takes the Threads badge from under the bio on other people's profiles. Yours keeps it.	Quita la insignia de Threads de debajo de la biografía en los perfiles de otras personas. El tuyo la conserva.
+# context: Profiles > title of the switch that hides links to someone's Facebook profile, page or group under their bio (#627)
+Hide Facebook links	Ocultar enlaces de Facebook
+# context: Profiles > summary of Hide Facebook links (#627)
+Takes the links to someone's Facebook profile, page or group from under their bio. Yours keeps them.	Quita los enlaces al perfil, la página o el grupo de Facebook de alguien de debajo de su biografía. El tuyo los conserva.
+# context: Profiles > title of the switch that hides the WhatsApp link under someone's bio (#627)
+Hide the WhatsApp link	Ocultar el enlace de WhatsApp
+# context: Profiles > summary of Hide the WhatsApp link (#627)
+Takes the link to someone's WhatsApp from under their bio. Yours keeps it.	Quita el enlace al WhatsApp de alguien de debajo de su biografía. El tuyo lo conserva.
+# context: Profiles > title of the switch that hides the song someone picked for their profile (#627)
+Hide the profile song	Ocultar la canción del perfil
+# context: Profiles > summary of Hide the profile song (#627)
+Takes the song someone picked for their profile from under their bio. Yours keeps it.	Quita la canción que alguien eligió para su perfil de debajo de su biografía. El tuyo la conserva.
+# context: Profiles > title of the switch that hides the interests (activities) someone lists under their bio (#627)
+Hide interests	Ocultar intereses
+# context: Profiles > summary of Hide interests (#627)
+Takes the interests someone added, like reading or hiking, from under their bio. Yours keeps them.	Quita los intereses que alguien añadió, como leer o hacer senderismo, de debajo de su biografía. El tuyo los conserva.
+# context: Profiles > title of the switch that hides the invite to someone's broadcast channel under their bio (#627)
+Hide channel invites	Ocultar invitaciones a canales
+# context: Profiles > summary of Hide channel invites (#627)
+Takes the invite to someone's broadcast channel from under their bio. Yours keeps it.	Quita la invitación al canal de difusión de alguien de debajo de su biografía. El tuyo la conserva.
+# context: Profiles > title of the switch that hides every other banner under the bio on other people's profiles (#627)
+Hide the other profile banners	Ocultar los demás banners del perfil
+# context: Profiles > summary of Hide the other profile banners (#627)
+Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	Quita el resto de los banners de debajo de la biografía en los perfiles de otras personas, como eventos, recaudaciones de fondos, escuelas y horarios. El tuyo los conserva.

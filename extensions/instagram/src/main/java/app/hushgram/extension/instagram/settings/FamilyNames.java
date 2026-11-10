@@ -112,6 +112,7 @@ public final class FamilyNames {
     public static final String PROFILE_TABS = "Hide profile tabs";
     public static final String THREADS_BUTTON = "Hide the Threads button";
     public static final String PROFILE_NOTES = "Hide Notes on profile pictures";
+    public static final String PROFILE_BANNERS = "Hide profile banners";
     public static final String PROFILE_POSTS_LIST = "Profile posts as a list";
     public static final String PROFILE_GRID_JUMP = "Jump a profile's posts to a date";
     public static final String COMMENT_COPY = "Copy comment";

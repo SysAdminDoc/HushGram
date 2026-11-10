@@ -2030,3 +2030,31 @@ Used to be @%s	이전 이름 @%s
 New profile picture and bio	새 프로필 사진과 소개
 New profile picture	새 프로필 사진
 Their bio changed	소개가 바뀌었습니다
+# context: Profiles > title of the switch that hides the Threads badge under the bio on other people's profiles (#627)
+Hide the Threads badge	Threads 배지 숨기기
+# context: Profiles > summary of Hide the Threads badge (#627)
+Takes the Threads badge from under the bio on other people's profiles. Yours keeps it.	다른 사람 프로필의 소개 아래에 있는 Threads 배지를 없앱니다. 내 프로필에는 그대로 남습니다.
+# context: Profiles > title of the switch that hides links to someone's Facebook profile, page or group under their bio (#627)
+Hide Facebook links	Facebook 링크 숨기기
+# context: Profiles > summary of Hide Facebook links (#627)
+Takes the links to someone's Facebook profile, page or group from under their bio. Yours keeps them.	소개 아래에 있는 다른 사람의 Facebook 프로필, 페이지, 그룹 링크를 없앱니다. 내 프로필에는 그대로 남습니다.
+# context: Profiles > title of the switch that hides the WhatsApp link under someone's bio (#627)
+Hide the WhatsApp link	WhatsApp 링크 숨기기
+# context: Profiles > summary of Hide the WhatsApp link (#627)
+Takes the link to someone's WhatsApp from under their bio. Yours keeps it.	소개 아래에 있는 다른 사람의 WhatsApp 링크를 없앱니다. 내 프로필에는 그대로 남습니다.
+# context: Profiles > title of the switch that hides the song someone picked for their profile (#627)
+Hide the profile song	프로필 노래 숨기기
+# context: Profiles > summary of Hide the profile song (#627)
+Takes the song someone picked for their profile from under their bio. Yours keeps it.	다른 사람이 프로필에 고른 노래를 소개 아래에서 없앱니다. 내 프로필에는 그대로 남습니다.
+# context: Profiles > title of the switch that hides the interests (activities) someone lists under their bio (#627)
+Hide interests	관심사 숨기기
+# context: Profiles > summary of Hide interests (#627)
+Takes the interests someone added, like reading or hiking, from under their bio. Yours keeps them.	다른 사람이 추가한 독서나 하이킹 같은 관심사를 소개 아래에서 없앱니다. 내 프로필에는 그대로 남습니다.
+# context: Profiles > title of the switch that hides the invite to someone's broadcast channel under their bio (#627)
+Hide channel invites	채널 초대 숨기기
+# context: Profiles > summary of Hide channel invites (#627)
+Takes the invite to someone's broadcast channel from under their bio. Yours keeps it.	소개 아래에 있는 다른 사람의 방송 채널 초대를 없앱니다. 내 프로필에는 그대로 남습니다.
+# context: Profiles > title of the switch that hides every other banner under the bio on other people's profiles (#627)
+Hide the other profile banners	다른 프로필 배너 숨기기
+# context: Profiles > summary of Hide the other profile banners (#627)
+Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	다른 사람 프로필의 소개 아래에 있는 나머지 배너(이벤트, 기부 캠페인, 학교, 영업시간 등)를 없앱니다. 내 프로필에는 그대로 남습니다.

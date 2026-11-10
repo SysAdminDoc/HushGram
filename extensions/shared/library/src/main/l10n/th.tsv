@@ -2028,3 +2028,31 @@ Used to be @%s	เคยใช้ชื่อ @%s
 New profile picture and bio	รูปโปรไฟล์และประวัติใหม่
 New profile picture	รูปโปรไฟล์ใหม่
 Their bio changed	ประวัติเปลี่ยนไปแล้ว
+# context: Profiles > title of the switch that hides the Threads badge under the bio on other people's profiles (#627)
+Hide the Threads badge	ซ่อนป้าย Threads
+# context: Profiles > summary of Hide the Threads badge (#627)
+Takes the Threads badge from under the bio on other people's profiles. Yours keeps it.	นำป้าย Threads ใต้ประวัติย่อออกจากโปรไฟล์ของคนอื่น โปรไฟล์ของคุณยังคงมีอยู่
+# context: Profiles > title of the switch that hides links to someone's Facebook profile, page or group under their bio (#627)
+Hide Facebook links	ซ่อนลิงก์ Facebook
+# context: Profiles > summary of Hide Facebook links (#627)
+Takes the links to someone's Facebook profile, page or group from under their bio. Yours keeps them.	นำลิงก์ไปยังโปรไฟล์ เพจ หรือกลุ่ม Facebook ของผู้อื่นออกจากใต้ประวัติย่อ โปรไฟล์ของคุณยังคงมีอยู่
+# context: Profiles > title of the switch that hides the WhatsApp link under someone's bio (#627)
+Hide the WhatsApp link	ซ่อนลิงก์ WhatsApp
+# context: Profiles > summary of Hide the WhatsApp link (#627)
+Takes the link to someone's WhatsApp from under their bio. Yours keeps it.	นำลิงก์ไปยัง WhatsApp ของผู้อื่นออกจากใต้ประวัติย่อ โปรไฟล์ของคุณยังคงมีอยู่
+# context: Profiles > title of the switch that hides the song someone picked for their profile (#627)
+Hide the profile song	ซ่อนเพลงประจำโปรไฟล์
+# context: Profiles > summary of Hide the profile song (#627)
+Takes the song someone picked for their profile from under their bio. Yours keeps it.	นำเพลงที่ผู้อื่นเลือกไว้สำหรับโปรไฟล์ออกจากใต้ประวัติย่อ โปรไฟล์ของคุณยังคงมีอยู่
+# context: Profiles > title of the switch that hides the interests (activities) someone lists under their bio (#627)
+Hide interests	ซ่อนความสนใจ
+# context: Profiles > summary of Hide interests (#627)
+Takes the interests someone added, like reading or hiking, from under their bio. Yours keeps them.	นำความสนใจที่ผู้อื่นเพิ่มไว้ เช่น การอ่านหรือการเดินป่า ออกจากใต้ประวัติย่อ โปรไฟล์ของคุณยังคงมีอยู่
+# context: Profiles > title of the switch that hides the invite to someone's broadcast channel under their bio (#627)
+Hide channel invites	ซ่อนคำเชิญเข้าช่อง
+# context: Profiles > summary of Hide channel invites (#627)
+Takes the invite to someone's broadcast channel from under their bio. Yours keeps it.	นำคำเชิญเข้าช่องถ่ายทอดของผู้อื่นออกจากใต้ประวัติย่อ โปรไฟล์ของคุณยังคงมีอยู่
+# context: Profiles > title of the switch that hides every other banner under the bio on other people's profiles (#627)
+Hide the other profile banners	ซ่อนแบนเนอร์อื่นๆ ในโปรไฟล์
+# context: Profiles > summary of Hide the other profile banners (#627)
+Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	นำแบนเนอร์อื่นๆ ใต้ประวัติย่อออกจากโปรไฟล์ของคนอื่น เช่น กิจกรรม การระดมทุน โรงเรียน และเวลาทำการ โปรไฟล์ของคุณยังคงมีอยู่
