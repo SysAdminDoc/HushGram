@@ -154,6 +154,21 @@ public final class HomeLogo {
         }
     }
 
+    /**
+     * Called as Instagram's title view pads the start of the views holding its logo by [room], what
+     * the logo's chevron takes, which keeps a logo in the middle there once the chevron shows. Answers
+     * 0 with the logo at the start, so that padding goes back to the views' end padding and the logo
+     * stays where the start row ends (#602), and [room] otherwise. Never throws.
+     */
+    public static int chevronRoom(int room) {
+        try {
+            return placement() == START ? 0 : room;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REELS_TAB, "home header chevron", failure);
+            return room;
+        }
+    }
+
     /** Centers each view [title] switches between across it, as {@link #placeTitle} does. */
     static void centerTitle(ViewGroup title, Changes changes) throws IllegalAccessException {
         placeTitle(title, changes, MIDDLE);

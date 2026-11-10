@@ -96,11 +96,13 @@ val hideReelsTabPatch = bytecodePatch(
         // Home's header and what its Search button calls are found first too, so a build that lacks
         // any of it is left as it was.
         val header = findHomeHeader()
+        val chevron = findChevronRoom()
         val tabs = findReelsTab()
         val search = findSearchButton(tabs)
         val home = findHomeTab(tabs)
         hideReelsTab(tabs)
         hideHomeHeaderButtons(header)
+        keepChevronRoom(chevron)
         addSearchButton(search)
         hideHomeTab(home)
         enableStatus("reelsTab")

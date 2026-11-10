@@ -55,6 +55,37 @@ class HomeHeaderHookTest {
         for (stub in listOf(HEADER_ROW_STUB, HEADER_START_ROW_STUB, HEADER_TITLE_STUB)) {
             assertTrue("the $stub stub is not in the extension: $declared", "$stub(Ljava/lang/Object;)Ljava/lang/Object;" in declared)
         }
+        val logo = ExtensionDex.classDef(CHEVRON_ROOM.substringBefore("->")).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$CHEVRON_ROOM is not in the extension: $logo", CHEVRON_ROOM.substringAfter("->") in logo)
+    }
+
+    /**
+     * The chevron's room is the register added to the end padding View.getPaddingEnd() just answered,
+     * when the sum is the start padding the next setPaddingRelative call gets. A sum written again
+     * before that call doesn't count.
+     */
+    @Test
+    fun theChevronsRoomIsWhatTheEndPaddingIsAddedTo() {
+        val code = standCode(
+            """
+                const/4 v5, 0x0
+                invoke-virtual { v4 }, Landroid/view/View;->getPaddingEnd()I
+                move-result v3
+                add-int/2addr v3, v5
+                invoke-virtual { v4 }, Landroid/view/View;->getPaddingTop()I
+                move-result v2
+                invoke-virtual { v4 }, Landroid/view/View;->getPaddingEnd()I
+                move-result v1
+                add-int/2addr v1, v5
+                const/4 v1, 0x0
+                invoke-virtual { v4, v3, v2, v1, v0 }, Landroid/view/View;->setPaddingRelative(IIII)V
+                return-void
+            """,
+            registers = 7,
+        )
+        assertEquals(listOf(3 to 5), code.indices.mapNotNull { index -> roomAdded(code, index)?.let { index to it } })
     }
 
     /**
@@ -179,6 +210,28 @@ class HomeHeaderHookTest {
             assertTrue("$name: the title view ${hook.title}", hook.title.startsWith("$MAIN_FEED_ACTION_BAR->"))
             assertReadStub(context, name, HEADER_START_ROW_STUB, hook.start)
             assertReadStub(context, name, HEADER_TITLE_STUB, hook.title)
+
+            // The title view's onMeasure hands the room it keeps for the logo's chevron to the
+            // extension right before adding it to the end padding it pads the logo's start with,
+            // keeps the answer in the same register and its own code around it (#602).
+            val titleView = FixtureDex.classes(bundle, setOf(TITLE_VIEW)).values.single()
+            val titleContext = PatchContexts.of(listOf(titleView, ExtensionDex.classDef(CHEVRON_ROOM.substringBefore("->"))))
+            val chevron = titleContext.findChevronRoom()
+            val measureBefore = chevron.method.code().map { it.describe() }
+            titleContext.keepChevronRoom(chevron)
+            val measure = titleContext.mutableClassDefBy(TITLE_VIEW).methods.single { it.name == "onMeasure" }.code()
+            assertEquals("$name: the chevron's hook", CHEVRON_ROOM, measure[chevron.index].referenceText())
+            assertEquals(
+                "$name: hands over the room", listOf(chevron.room, 1),
+                (measure[chevron.index] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) },
+            )
+            assertEquals("$name: the answer", Opcode.MOVE_RESULT, measure[chevron.index + 1].opcode)
+            assertEquals("$name: the answer's register", chevron.room, (measure[chevron.index + 1] as OneRegisterInstruction).registerA)
+            assertTrue("$name: the add of the room", measure[chevron.index + 2].opcode in setOf(Opcode.ADD_INT_2ADDR, Opcode.ADD_INT))
+            assertEquals(
+                "$name: onMeasure's own code", measureBefore,
+                (measure.take(chevron.index) + measure.drop(chevron.index + 2)).map { it.describe() },
+            )
         }
     }
 

@@ -20,6 +20,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -48,6 +50,12 @@ internal const val TOASTING_BADGE = "Lcom/instagram/notifications/badging/ui/com
 
 /** The header's title view, holding the logo and the feed's name: a class Instagram's layouts name, so every build keeps it. */
 internal const val TITLE_VIEW = "Lcom/instagram/actionbar/ActionBarTitleViewSwitcher;"
+
+/**
+ * Called with the room the title view keeps for the logo's chevron as it pads the start of the views
+ * holding the logo, answering the room to keep (#602).
+ */
+internal const val CHEVRON_ROOM = "$EXTENSION_PACKAGE/reels/HomeLogo;->chevronRoom(I)I"
 
 private const val OBJECT = "Ljava/lang/Object;"
 private const val INTEGER = "Ljava/lang/Integer;"
@@ -310,6 +318,92 @@ private fun BytecodePatchContext.readFromHeader(stub: String, field: String) {
         const/4 v0, 0x0
         return-object v0
     """)
+}
+
+/**
+ * Where [TITLE_VIEW]'s onMeasure works out the start padding it gives the views holding the logo, so a
+ * logo in the middle stays there once its chevron shows: the method, the index of the add that puts
+ * the room the chevron takes on top of those views' end padding, and the register holding that room.
+ */
+internal class ChevronRoomHook(val method: Method, val index: Int, val room: Int)
+
+/**
+ * Finds [ChevronRoomHook], failing before anything changes when it isn't there exactly once. In
+ * [TITLE_VIEW]'s onMeasure(II)V, View.getPaddingEnd()'s answer is moved into a register one add then
+ * puts the chevron's room on, and the sum is the start padding the next View.setPaddingRelative call
+ * gets. With the logo at the start that padding pushes the logo off it once the feed scrolls and the
+ * chevron shows (#602).
+ */
+internal fun BytecodePatchContext.findChevronRoom(): ChevronRoomHook {
+    val title = classDefByOrNull(TITLE_VIEW) ?: refuse("this Instagram build has no $TITLE_VIEW")
+    val measures = title.methods.filter { method ->
+        method.name == "onMeasure" && method.parameterTypes.map(CharSequence::toString) == listOf("I", "I") && method.returnType == "V"
+    }
+    val measure = measures.singleOrNull() ?: refuse("expected one onMeasure(II)V in $TITLE_VIEW, found ${measures.size}")
+    val code = measure.code()
+    val adds = code.indices.mapNotNull { index -> roomAdded(code, index)?.let { index to it } }
+    val (index, room) = adds.singleOrNull()
+        ?: refuse("expected $TITLE_VIEW's onMeasure to add one room to the end padding it pads the logo's start with, found ${adds.size}")
+    if (measure.jumpTargets().contains(index)) refuse("something jumps to the add of the chevron's room in $TITLE_VIEW's onMeasure")
+    // move-result names its register in eight bits.
+    if (room > 255) refuse("$TITLE_VIEW's onMeasure keeps the chevron's room in v$room, past v255")
+    val logo = classDefByOrNull(CHEVRON_ROOM.substringBefore("->")) ?: refuse("the extension has no ${CHEVRON_ROOM.substringBefore("->")}")
+    if (logo.methods.none { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == CHEVRON_ROOM.substringAfter("->") && it.isPublicStatic() }) {
+        refuse("the extension has no public static $CHEVRON_ROOM")
+    }
+    return ChevronRoomHook(measure, index, room)
+}
+
+/**
+ * The register holding the room added at [index] of [code], when that instruction adds it to the end
+ * padding View.getPaddingEnd() just answered, and the sum is the start padding the next
+ * View.setPaddingRelative call gets, with nothing writing it in between. Otherwise null.
+ */
+internal fun roomAdded(code: List<Instruction>, index: Int): Int? {
+    if (index < 2) return null
+    val read = (code[index - 2] as? ReferenceInstruction)?.reference as? MethodReference
+    if (read == null || read.definingClass != VIEW || read.name != "getPaddingEnd" || read.parameterTypes.isNotEmpty() || read.returnType != "I") return null
+    val moved = code[index - 1]
+    if (moved.opcode != Opcode.MOVE_RESULT) return null
+    val padding = (moved as OneRegisterInstruction).registerA
+    val add = code[index]
+    val (sum, room) = when (add.opcode) {
+        Opcode.ADD_INT_2ADDR -> (add as TwoRegisterInstruction).takeIf { it.registerA == padding }?.let { it.registerA to it.registerB }
+        Opcode.ADD_INT -> (add as ThreeRegisterInstruction).let {
+            when (padding) {
+                it.registerB -> it.registerA to it.registerC
+                it.registerC -> it.registerA to it.registerB
+                else -> null
+            }
+        }
+        else -> null
+    } ?: return null
+    if (room == padding) return null
+    for (next in code.subList(index + 1, code.size)) {
+        val method = (next as? ReferenceInstruction)?.reference as? MethodReference
+        if (method != null && method.definingClass == VIEW && method.name == "setPaddingRelative" &&
+            method.parameterTypes.map(CharSequence::toString) == listOf("I", "I", "I", "I")
+        ) {
+            return room.takeIf { next.opcode == Opcode.INVOKE_VIRTUAL && (next as FiveRegisterInstruction).registerD == sum }
+        }
+        if (next.opcode.setsRegister() && (next as? OneRegisterInstruction)?.registerA == sum) return null
+    }
+    return null
+}
+
+/**
+ * Hands the room [hook] found to [CHEVRON_ROOM] right before the add, keeping the answer in the same
+ * register, so the start padding the title view sets is the end padding plus what the extension
+ * answers. Only called once [findChevronRoom] found everything.
+ */
+internal fun BytecodePatchContext.keepChevronRoom(hook: ChevronRoomHook) {
+    mutableClassDefBy(TITLE_VIEW).methods.single { it.sameShape(hook.method) }.addInstructions(
+        hook.index,
+        """
+            invoke-static/range { v${hook.room} .. v${hook.room} }, $CHEVRON_ROOM
+            move-result v${hook.room}
+        """,
+    )
 }
 
 private fun Method.isPublicStatic() = AccessFlags.PUBLIC.isSet(accessFlags) && AccessFlags.STATIC.isSet(accessFlags)

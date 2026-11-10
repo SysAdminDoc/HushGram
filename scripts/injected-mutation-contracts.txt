@@ -2267,6 +2267,12 @@ once-call Lapp/hushgram/extension/instagram/reels/HomeHeader;->buttons(Ljava/uti
 # all seven.
 start-call Lapp/hushgram/extension/instagram/settings/GhostHeaderButton;->drew(Landroid/view/View;)V in instance (LX/*;Lcom/instagram/common/session/UserSession;LX/*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView
 once-call Lapp/hushgram/extension/instagram/settings/GhostHeaderButton;->drew(Landroid/view/View;)V in instance (LX/*;Lcom/instagram/common/session/UserSession;LX/*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView
+# Its Logo and titles at the start switch (#602) hands HomeLogo.chevronRoom the room
+# ActionBarTitleViewSwitcher.onMeasure keeps for the logo's chevron, right before adding it to the
+# end padding it pads the logo's start with through setPaddingRelative. The class keeps its name and
+# onMeasure is its one (II)V. Left out, the logo moves off the start once the chevron shows; twice or
+# elsewhere, it isn't the hook the patch wrote. HomeHeaderHookTest checks all seven 450 builds.
+once-call Lapp/hushgram/extension/instagram/reels/HomeLogo;->chevronRoom(I)I in instance (II)V holding Landroid/view/View;->getPaddingEnd()I Landroid/view/View;->setPaddingRelative(IIII)V
 # Profile posts as a list hands a profile's posts tab to PostsList.resumed first thing in the tab's
 # onResume (ProfileMediaTabFragment keeps its name and onResume in 450, and onResume is the one ()V
 # method of the class calling an onResume). The class is the only one holding both strings. Left

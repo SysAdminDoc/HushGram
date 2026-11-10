@@ -535,4 +535,26 @@ public class HomeLogoTest {
         assertEquals(Gravity.CENTER_VERTICAL | Gravity.START, HomeLogo.started(Gravity.CENTER));
         assertEquals(Gravity.BOTTOM | Gravity.START, HomeLogo.started(Gravity.END | Gravity.BOTTOM));
     }
+
+    /**
+     * Instagram's title view pads the logo's start by the room its chevron takes once the chevron
+     * shows, which keeps a centered logo centered. At the start that room goes, so the logo doesn't
+     * move off the start as the feed scrolls (#602). In the middle, as Instagram has it, paused or
+     * before the settings are read, Instagram's room stays.
+     */
+    @Test public void atTheStartTheChevronKeepsNoRoomBeforeTheLogo() {
+        assertEquals(54, HomeLogo.chevronRoom(54));
+        Settings.CENTER_HOME_LOGO.save(true);
+        assertEquals(54, HomeLogo.chevronRoom(54));
+        Settings.TITLES_AT_START.save(true);
+        assertEquals(0, HomeLogo.chevronRoom(54));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(54, HomeLogo.chevronRoom(54));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals(54, HomeLogo.chevronRoom(54)));
+        assertEquals(List.of(), HookStatus.report());
+    }
 }
