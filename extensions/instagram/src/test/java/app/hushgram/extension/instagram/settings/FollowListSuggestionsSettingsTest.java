@@ -128,8 +128,8 @@ public class FollowListSuggestionsSettingsTest {
         for (int i = 0; i < keys.length; i++) keys[i] = notifications.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.GROUP_NOTIFICATIONS.key, Settings.GROUP_NOTIFICATIONS_BY_TYPE.key,
                 Settings.MUTED_NOTIFICATION_CHANNELS.key, Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key,
-                Settings.HIDE_NOTIFICATION_SUGGESTIONS.key, Settings.HIDE_NOTIFICATION_FEATURED.key,
-                Settings.HIDE_FEATURED_DOT.key), Arrays.asList(keys));
+                Settings.HIDE_NOTIFICATION_SUGGESTIONS.key, Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.key,
+                Settings.HIDE_NOTIFICATION_FEATURED.key, Settings.HIDE_FEATURED_DOT.key), Arrays.asList(keys));
         assertEquals("Group or mute Instagram's notifications, and take suggestions off the Notifications page.",
                 ((HushgramPreferenceFragment.Heading) notifications).intro);
     }
@@ -164,6 +164,22 @@ public class FollowListSuggestionsSettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse(Settings.HIDE_NOTIFICATION_SUGGESTIONS.get());
         assertTrue(Settings.HIDE_NOTIFICATION_SUGGESTIONS.savedValue());
+    }
+    /** #259: Hide channel invites in notifications comes right after Hide suggestions in notifications, starts off and is kept in a backup. */
+    @Test public void hideChannelInvitesComesAfterSuggestionsAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.key);
+        assertNotNull(row);
+        assertEquals("Hide channel invites in notifications", row.getTitle().toString());
+        PreferenceGroup notifications = row.getParent();
+        assertEquals("Notifications", notifications.getTitle().toString());
+        String[] keys = new String[notifications.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = notifications.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.HIDE_NOTIFICATION_SUGGESTIONS.key,
+                keys[Arrays.asList(keys).indexOf(Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.key) - 1]);
+        assertFalse(Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.get());
+        assertTrue(PatchFamily.PROFILE_SUGGESTIONS.switches.contains(Settings.HIDE_NOTIFICATION_CHANNEL_INVITES));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.key));
     }
     @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
         open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));

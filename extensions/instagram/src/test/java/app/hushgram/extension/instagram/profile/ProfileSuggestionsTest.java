@@ -72,6 +72,7 @@ public class ProfileSuggestionsTest {
         Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();
         Settings.HIDE_NOTIFICATION_SUGGESTIONS.resetToDefault();
         Settings.HIDE_NOTIFICATION_FEATURED.resetToDefault();
+        Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -936,6 +937,69 @@ public class ProfileSuggestionsTest {
         Settings.HIDE_NOTIFICATION_FEATURED.save(false);
         ProfileSuggestions.notificationParsed(nudge, "ig_text_app_thread_you_may_enjoy");
         assertSame("off", nudge, ProfileSuggestions.keepNotification(nudge));
+    }
+
+    /**
+     * #259 on 454: Threads rows also come as ig_text_post_app_ ("Suggested thread for you by nasa" is
+     * ig_text_post_app_daily_digest), and those leave with the same switches as the ig_text_app_ ones.
+     */
+    @Test
+    public void textPostAppRowsAreThreadsRowsToo() {
+        assertTrue(ProfileSuggestions.isFeaturedNudge("ig_text_post_app_daily_digest"));
+        assertTrue(ProfileSuggestions.isFeaturedNudge("ig_text_post_app_unconnected_daily_digest"));
+        assertTrue(ProfileSuggestions.isSuggestion("ig_text_post_app_unconnected_daily_digest"));
+        assertFalse("from an account you follow", ProfileSuggestions.isSuggestion("ig_text_post_app_daily_digest"));
+        assertFalse(ProfileSuggestions.isFeaturedNudge("ig_text_post_app_reply"));
+        assertFalse(ProfileSuggestions.isFeaturedNudge("ig_text_post_app_mention"));
+        assertFalse("not Threads", ProfileSuggestions.isFeaturedNudge("ig_text_post_daily_digest"));
+
+        Object digest = new Object();
+        Settings.HIDE_NOTIFICATION_FEATURED.save(true);
+        ProfileSuggestions.notificationParsed(digest, "ig_text_post_app_daily_digest");
+        assertNull(ProfileSuggestions.keepNotification(digest));
+        Settings.HIDE_NOTIFICATION_FEATURED.save(false);
+        ProfileSuggestions.notificationParsed(digest, "ig_text_post_app_daily_digest");
+        assertSame("off", digest, ProfileSuggestions.keepNotification(digest));
+    }
+
+    /**
+     * #259: "cnn invited you to join their channel" (igd_broadcast_chat_creation on 454) and a roundup of
+     * channel invites leave with Hide channel invites in notifications, and only with it. Other rows stay.
+     */
+    @Test
+    public void channelInvitesGoWithTheirOwnSwitch() {
+        assertTrue(ProfileSuggestions.isChannelInvite("igd_broadcast_chat_creation"));
+        assertTrue(ProfileSuggestions.isChannelInvite("igd_broadcast_channel_invites_digest"));
+        assertTrue(ProfileSuggestions.isChannelInvite("ig_channel_invite_reminder"));
+        assertFalse(ProfileSuggestions.isChannelInvite("igd_broadcast_chat_message"));
+        assertFalse(ProfileSuggestions.isChannelInvite("unseen_direct_message_reminder"));
+        assertFalse(ProfileSuggestions.isChannelInvite("user_followed"));
+        assertFalse(ProfileSuggestions.isChannelInvite(null));
+
+        Object invite = new Object();
+        Object follow = new Object();
+        Settings.HIDE_NOTIFICATION_SUGGESTIONS.save(true);
+        Settings.HIDE_NOTIFICATION_FEATURED.save(true);
+        ProfileSuggestions.notificationParsed(invite, "igd_broadcast_chat_creation");
+        assertSame("the other switches", invite, ProfileSuggestions.keepNotification(invite));
+
+        Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.save(true);
+        ProfileSuggestions.notificationParsed(invite, "igd_broadcast_chat_creation");
+        assertNull(ProfileSuggestions.keepNotification(invite));
+        ProfileSuggestions.notificationParsed(follow, "user_followed");
+        assertSame(follow, ProfileSuggestions.keepNotification(follow));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.CHANNEL_INVITES + " 1"));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ProfileSuggestions.notificationParsed(invite, "igd_broadcast_chat_creation");
+        assertSame("paused", invite, ProfileSuggestions.keepNotification(invite));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.save(false);
+        ProfileSuggestions.notificationParsed(invite, "igd_broadcast_chat_creation");
+        assertSame("off", invite, ProfileSuggestions.keepNotification(invite));
     }
 
     /** #259: the list builder skips a row tagged priority_stories only while the Featured switch is on. */

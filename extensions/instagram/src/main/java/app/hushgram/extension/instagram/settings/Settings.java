@@ -2102,6 +2102,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_notification_suggestions", FALSE);
 
     /**
+     * Notification rows inviting you to join someone's channel, one at a time or as a roundup
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#isChannelInvite}, #259). Read
+     * each time the notifications load, so off or paused, they're back on the next load. Off to start.
+     */
+    public static final BooleanSetting HIDE_NOTIFICATION_CHANNEL_INVITES =
+            new BooleanSetting("hushgram_hide_notification_channel_invites", FALSE);
+
+    /**
      * The Featured section at the top of your notifications, header and rows: posts and threads the
      * server picks to show you there
      * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#featuredRows}, #259). Read

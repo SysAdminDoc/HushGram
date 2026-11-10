@@ -139,8 +139,12 @@ public final class ProfileSuggestions {
             "find_friend_activity",
             "ig_text_app_non_onboarded_unconnected_daily_digest")));
 
-    /** The prefix of every Threads ("text app") row, and the words in the names of those from accounts you aren't connected to. */
-    static final String THREADS_PREFIX = "ig_text_app_";
+    /**
+     * The prefixes of Threads rows, and the words in the names of those from accounts you aren't connected
+     * to. Some accounts get "text app" rows and others "text post app" ones: "Suggested thread for you by
+     * <name>" is ig_text_post_app_daily_digest on Instagram 454 (#259, 2026-11-09).
+     */
+    static final List<String> THREADS_PREFIXES = Collections.unmodifiableList(Arrays.asList("ig_text_app_", "ig_text_post_app_"));
     static final List<String> THREADS_SUGGESTION_WORDS = Collections.unmodifiableList(Arrays.asList("unconnected", "suggest", "recommend"));
 
     /**
@@ -160,16 +164,24 @@ public final class ProfileSuggestions {
             "reply", "replies", "like", "likes", "liked", "mention", "mentions", "repost", "reposts", "quote", "quotes",
             "follow", "follower", "followers", "tag", "tagged", "comment", "comments", "message", "reaction", "reactions"));
 
+    /** What's counted when Hide channel invites in notifications takes an invite off. */
+    static final String CHANNEL_INVITES = "channel invites in notifications";
+
+    /** The start of the name of "<name> invited you to join their channel" rows on Instagram 454 (#259). */
+    static final String CHANNEL_CREATED = "igd_broadcast_chat_creat";
+
     /** A row the parser just read: what it is, and the switches that take it out of the list. */
     private static final class Marked {
         final WeakReference<Object> row;
         final boolean suggestion;
         final boolean featured;
+        final boolean invite;
 
-        Marked(Object row, boolean suggestion, boolean featured) {
+        Marked(Object row, boolean suggestion, boolean featured, boolean invite) {
             this.row = new WeakReference<>(row);
             this.suggestion = suggestion;
             this.featured = featured;
+            this.invite = invite;
         }
     }
 
@@ -420,7 +432,8 @@ public final class ProfileSuggestions {
             FeedFilterCounters.sawKind(NOTIFICATIONS, type == null ? NO_TYPE : type);
             boolean suggestion = row != null && isSuggestion(type);
             boolean featured = row != null && isFeaturedNudge(type);
-            lastSuggestion.set(suggestion || featured ? new Marked(row, suggestion, featured) : null);
+            boolean invite = row != null && isChannelInvite(type);
+            lastSuggestion.set(suggestion || featured || invite ? new Marked(row, suggestion, featured, invite) : null);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, SUGGESTION_ROWS, failure);
         }
@@ -434,11 +447,32 @@ public final class ProfileSuggestions {
     static boolean isSuggestion(String type) {
         if (type == null) return false;
         if (SUGGESTION_TYPES.contains(type)) return true;
-        if (!type.startsWith(THREADS_PREFIX)) return false;
+        String name = threadsName(type);
+        if (name == null) return false;
         for (String word : THREADS_SUGGESTION_WORDS) {
-            if (type.contains(word)) return true;
+            if (name.contains(word)) return true;
         }
         return false;
+    }
+
+    /** The part of a Threads row's name after its prefix, or null for a row that isn't from Threads. */
+    private static String threadsName(String type) {
+        if (type == null) return null;
+        for (String prefix : THREADS_PREFIXES) {
+            if (type.startsWith(prefix)) return type.substring(prefix.length());
+        }
+        return null;
+    }
+
+    /**
+     * Whether a row of this kind invites you to join someone's channel: "<name> invited you to join their
+     * channel" is igd_broadcast_chat_creation on 454, and a name about channel or broadcast invites
+     * takes the "You have 10+ channel invites from people you follow" roundup too (#259).
+     */
+    static boolean isChannelInvite(String type) {
+        if (type == null) return false;
+        if (type.startsWith(CHANNEL_CREATED)) return true;
+        return (type.contains("channel") || type.contains("broadcast")) && type.contains("invit");
     }
 
     /**
@@ -448,8 +482,9 @@ public final class ProfileSuggestions {
      * takes every Threads row that isn't something you took part in (#259).
      */
     static boolean isFeaturedNudge(String type) {
-        if (type == null || !type.startsWith(THREADS_PREFIX)) return false;
-        for (String word : type.substring(THREADS_PREFIX.length()).split("_")) {
+        String name = threadsName(type);
+        if (name == null) return false;
+        for (String word : name.split("_")) {
             if (THREADS_ACTIVITY_WORDS.contains(word)) return false;
         }
         return true;
@@ -458,12 +493,14 @@ public final class ProfileSuggestions {
     /**
      * Injected where the notifications' reply adds each row it parsed to its list, the null check
      * right after. Answers null, which that check skips, for a row {@link #notificationParsed} found
-     * to be a suggestion while Hide suggestions in notifications is on, or a Threads nudge while Hide
-     * Featured in notifications is on. Any other row, the switch off, paused or unready, or anything
-     * going wrong, answers [row] as it came. Never throws.
+     * to be a suggestion while Hide suggestions in notifications is on, a Threads nudge while Hide
+     * Featured in notifications is on, or a channel invite while Hide channel invites in notifications
+     * is on. Any other row, the switch off, paused or unready, or anything going wrong, answers [row] as
+     * it came. Never throws.
      */
     public static Object keepNotification(Object row) {
-        return keepNotification(row, ProfileSuggestions::notificationSuggestionsOn, ProfileSuggestions::featuredOn);
+        return keepNotification(row, ProfileSuggestions::notificationSuggestionsOn, ProfileSuggestions::featuredOn,
+                ProfileSuggestions::channelInvitesOn);
     }
 
     static Object keepNotification(Object row, BooleanSupplier on) {
@@ -471,6 +508,10 @@ public final class ProfileSuggestions {
     }
 
     static Object keepNotification(Object row, BooleanSupplier on, BooleanSupplier featuredOn) {
+        return keepNotification(row, on, featuredOn, () -> false);
+    }
+
+    static Object keepNotification(Object row, BooleanSupplier on, BooleanSupplier featuredOn, BooleanSupplier invitesOn) {
         if (row == null) return null;
         Marked marked;
         try {
@@ -483,6 +524,7 @@ public final class ProfileSuggestions {
         }
         if (marked.suggestion && decides(SUGGESTION_ROWS, on)) return null;
         if (marked.featured && decides(FEATURED, featuredOn)) return null;
+        if (marked.invite && decides(CHANNEL_INVITES, invitesOn)) return null;
         return row;
     }
 
@@ -627,5 +669,9 @@ public final class ProfileSuggestions {
 
     private static boolean featuredOn() {
         return Utils.settingsReady() && Settings.HIDE_NOTIFICATION_FEATURED.get();
+    }
+
+    private static boolean channelInvitesOn() {
+        return Utils.settingsReady() && Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.get();
     }
 }

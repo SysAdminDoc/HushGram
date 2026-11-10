@@ -62,6 +62,9 @@ final class NotificationsCategory {
                     L10n.t("Takes rows that only suggest something off your notifications, like a thread from an "
                             + "account you don't follow or someone you might know. Likes, comments, mentions and "
                             + "new followers stay.")));
+            notifications.addPreference(toggle(context, Settings.HIDE_NOTIFICATION_CHANNEL_INVITES,
+                    L10n.t("Hide channel invites in notifications"),
+                    L10n.t("Takes invites to join someone's channel off your notifications. Everything else stays.")));
             notifications.addPreference(toggle(context, Settings.HIDE_NOTIFICATION_FEATURED,
                     L10n.t("Hide Featured in notifications"),
                     L10n.t("Takes the Featured section off the top of your notifications, the posts and threads "
