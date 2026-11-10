@@ -238,7 +238,11 @@ public final class FriendLanePicks {
             if (activity == null) return false;
             List<String> roster = roster();
             if (roster.isEmpty()) {
-                Utils.showToastShort(L10n.t("Open the Friends tab first."));
+                // Instagram marks the open tab selected. Open with nobody named means its reels haven't
+                // named a friend yet, or it's all caught up (#503).
+                Utils.showToastShort(tab.isSelected()
+                        ? L10n.t("No friends to pick yet.")
+                        : L10n.t("Open the Friends tab first."));
                 return true;
             }
             ask(activity, roster);

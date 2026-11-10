@@ -285,6 +285,24 @@ public class FriendLanePicksTest {
         assertEquals("Open the Friends tab first.", ShadowToast.getTextOfLatestToast());
     }
 
+    /** #503: the tab open and still nobody named, as an all-caught-up Friends tab is, says so. */
+    @Test
+    public void holdingTheOpenTabWithNobodyToListSaysSo() {
+        Settings.FRIENDS_TAB_PICKS.save("");
+        View tab = tab();
+        tab.setSelected(true);
+        assertTrue(tab.performLongClick());
+        assertNull(ShadowAlertDialog.getLatestAlertDialog());
+        ShadowLooper.idleMainLooper();
+        assertEquals("No friends to pick yet.", ShadowToast.getTextOfLatestToast());
+
+        page(Arrays.asList(new Clip("ana")), LANE);
+        assertTrue(tab.performLongClick());
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertTrue("once a friend is named the list opens", dialog != null && dialog.isShowing());
+    }
+
     @Test
     public void holdingListsTheFriendsAndEachChoiceIsSavedAsItsMade() {
         Settings.FRIENDS_TAB_PICKS.save("bo");
