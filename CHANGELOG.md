@@ -51,6 +51,7 @@ Every HushGram release, newest first.
 * `Seek bar on the bottom edge` under `Seek bar on feed videos` moves the bar down onto the video's bottom edge, so a scroll is less likely to catch it. Asked for in #567.
 * `Take a scroll break` now lets you pick how long you scroll, from 5 minutes up to 2 hours, and a `Break length` slider sets the break from 5 to 120 minutes. Asked for in #297.
 * `Stop background feed refresh` under Battery stops the job that wakes your phone about every half hour to fetch your feed. Your feed loads when you open Instagram, and messages and notifications still come in. Reported in #341.
+* `Ask before a like` covers reels now. Tap the heart on a reel and it asks "Like or unlike this post?" first, same as in the feed. Asked for in #603.
 
 ### Improvements
 

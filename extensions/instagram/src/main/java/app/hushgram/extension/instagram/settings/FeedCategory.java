@@ -168,8 +168,8 @@ final class FeedCategory {
         }
         if (askLike) {
             feed.addPreference(toggle(context, Settings.ASK_BEFORE_LIKE, L10n.t("Ask before a like"),
-                    L10n.t("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do "
-                            + "it for you. Double taps aren't asked about.")));
+                    L10n.t("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap "
+                            + "doesn't do it for you. Double taps aren't asked about.")));
         }
         if (askRefresh) {
             feed.addPreference(toggle(context, Settings.ASK_BEFORE_REFRESH, L10n.t("Ask before a refresh"),

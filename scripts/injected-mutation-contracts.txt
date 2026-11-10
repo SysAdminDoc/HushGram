@@ -2652,6 +2652,12 @@ once-call Lapp/hushgram/extension/instagram/direct/CallButtons;->bound(Landroid/
 # declared build.
 start-call Lapp/hushgram/extension/instagram/feed/LikeConfirm;->hold(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;I)Z in instance (Lcom/instagram/feed/media/Media;L*;Ljava/lang/String;Lkotlin/jvm/functions/Function0;I)V holding like_media
 once-call Lapp/hushgram/extension/instagram/feed/LikeConfirm;->hold(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/Object;I)Z in instance (Lcom/instagram/feed/media/Media;L*;Ljava/lang/String;Lkotlin/jvm/functions/Function0;I)V holding like_media
+# On a reel (#603) it hands LikeConfirm.holdReel the reel's Like button handler's own arguments first
+# thing in it (05WF.EDM on 454), the one instance (button, three objects, four strings, callback, two
+# booleans) method filing LikeActionHandler's handleLikeButtonTap marker. AskBeforeLikeHookTest checks
+# where it lands on each declared build.
+start-call Lapp/hushgram/extension/instagram/feed/LikeConfirm;->holdReel(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;II)Z in instance (Landroid/view/View;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ZZ)V pooled holding android_purge_26_q3_LikeActionHandler_handleLikeButtonTap
+once-call Lapp/hushgram/extension/instagram/feed/LikeConfirm;->holdReel(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;II)Z in instance (Landroid/view/View;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ZZ)V pooled holding android_purge_26_q3_LikeActionHandler_handleLikeButtonTap
 # Ask before a refresh hands RefreshConfirm.listener the refresh listener the pull-down refresh
 # layout's end-of-pull animation reads (04Vu.onAnimationEnd on 450, the one onAnimationEnd reading
 # the layout's listener field), once, right after the read. Left out, a pull never asks.

@@ -522,8 +522,8 @@ public final class L10nTranslations {
                 "Bittet Android, Instagram mit der schnellsten Bildwiederholrate deines Displays bei gleicher Aufl\u00f6sung laufen zu lassen. Manche Handys setzen Apps ein eigenes Limit, und der Energiesparmodus kann die Rate trotzdem senken.");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "Fragt nach, bevor das Herunterziehen die Startseite, Reels oder eine andere Liste aktualisiert. Mit \u201eAbbrechen\u201c bleibt, was auf dem Bildschirm ist.");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "Fragt nach, bevor der Like-Button unter einem Beitrag ein Like setzt oder zur\u00fccknimmt, damit ein versehentliches Tippen nichts ausl\u00f6st. Bei einem Doppeltippen wird nicht gefragt.");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "Fragt nach, bevor der Like-Button unter einem Beitrag oder auf einem Reel ein Like setzt oder zur\u00fccknimmt, damit ein versehentliches Tippen nichts ausl\u00f6st. Bei einem Doppeltippen wird nicht gefragt.");
         table.put("At once",
                 "Sofort");
         table.put("Attachment",
@@ -4207,8 +4207,8 @@ public final class L10nTranslations {
                 "Pide a Android que ejecute Instagram a la tasa de refresco m\u00e1s alta de tu pantalla, con la misma resoluci\u00f3n. Algunos tel\u00e9fonos ponen su propio l\u00edmite a las apps, y el ahorro de bater\u00eda a\u00fan puede bajarla.");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "Pregunta antes de que deslizar hacia abajo actualice Inicio, Reels u otra lista. Cancelar mantiene lo que hay en pantalla.");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "Pregunta antes de que el bot\u00f3n Me gusta bajo una publicaci\u00f3n d\u00e9 o quite el me gusta, para que un toque accidental no lo haga. Con doble toque no pregunta.");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "Pregunta antes de que el bot\u00f3n Me gusta bajo una publicaci\u00f3n o en un reel d\u00e9 o quite el me gusta, para que un toque accidental no lo haga. Con doble toque no pregunta.");
         table.put("At once",
                 "Al instante");
         table.put("Attachment",
@@ -7892,8 +7892,8 @@ public final class L10nTranslations {
                 "Meminta Android menjalankan Instagram pada refresh rate tertinggi layarmu, dengan resolusi yang sama. Beberapa ponsel punya batas sendiri untuk aplikasi, dan penghemat baterai tetap bisa menurunkannya.");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "Bertanya dulu sebelum tarik ke bawah menyegarkan Beranda, Reels, atau daftar lain. Batal mempertahankan apa yang ada di layar.");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "Bertanya dulu sebelum tombol Suka di bawah postingan menyukai atau membatalkan suka, jadi ketukan tidak sengaja tidak melakukannya. Ketuk dua kali tidak ditanyakan.");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "Bertanya dulu sebelum tombol Suka di bawah postingan atau di reel menyukai atau membatalkan suka, jadi ketukan tidak sengaja tidak melakukannya. Ketuk dua kali tidak ditanyakan.");
         table.put("At once",
                 "Langsung");
         table.put("Attachment",
@@ -11577,8 +11577,8 @@ public final class L10nTranslations {
                 "Chiede ad Android di eseguire Instagram alla massima frequenza di aggiornamento dello schermo, con la stessa risoluzione. Alcuni telefoni pongono un limite proprio alle app e il risparmio energetico pu\u00f2 comunque abbassarla.");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "Chiede prima che tirare verso il basso aggiorni la Home, i reel o un'altra lista. Annulla mantiene ci\u00f2 che c'\u00e8 sullo schermo.");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "Chiede prima che il pulsante Mi piace sotto un post metta o tolga il Mi piace, cos\u00ec un tocco accidentale non lo fa al posto tuo. I doppi tocchi non vengono chiesti.");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "Chiede prima che il pulsante Mi piace sotto un post o su un reel metta o tolga il Mi piace, cos\u00ec un tocco accidentale non lo fa al posto tuo. I doppi tocchi non vengono chiesti.");
         table.put("At once",
                 "Subito");
         table.put("Attachment",
@@ -15262,8 +15262,8 @@ public final class L10nTranslations {
                 "\ud654\uba74\uc758 \uac00\uc7a5 \ub192\uc740 \uc8fc\uc0ac\uc728, \uac19\uc740 \ud574\uc0c1\ub3c4\ub85c Instagram\uc744 \uc2e4\ud589\ud558\ub3c4\ub85d Android\uc5d0 \uc694\uccad\ud569\ub2c8\ub2e4. \uc77c\ubd80 \ud734\ub300\uc804\ud654\ub294 \uc571\uc5d0 \uc790\uccb4 \uc81c\ud55c\uc744 \ub450\uba70, \uc808\uc804 \ubaa8\ub4dc\uac00 \uc8fc\uc0ac\uc728\uc744 \ub0ae\ucd9c \uc218\ub3c4 \uc788\uc2b5\ub2c8\ub2e4.");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "\uc544\ub798\ub85c \ub2f9\uaca8 \ud648, \ub9b4\uc2a4 \ub610\ub294 \ub2e4\ub978 \ubaa9\ub85d\uc744 \uc0c8\ub85c\uace0\uce68\ud558\uae30 \uc804\uc5d0 \uba3c\uc800 \ubb3b\uc2b5\ub2c8\ub2e4. \ucde8\uc18c\ud558\uba74 \ud654\uba74\uc5d0 \uc788\ub294 \ub0b4\uc6a9\uc774 \uadf8\ub300\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4.");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "\uac8c\uc2dc\ubb3c \uc544\ub798\uc758 \uc88b\uc544\uc694 \ubc84\ud2bc\uc774 \uc88b\uc544\uc694\ub97c \ub204\ub974\uac70\ub098 \ucde8\uc18c\ud558\uae30 \uc804\uc5d0 \uba3c\uc800 \ubb3c\uc5b4\uc11c, \uc2e4\uc218\ub85c \ud0ed\ud574\ub3c4 \ubc14\ub00c\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \ub450 \ubc88 \ud0ed\ud560 \ub54c\ub294 \ubb3b\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "\uac8c\uc2dc\ubb3c \uc544\ub798\ub098 \ub9b4\uc2a4\uc758 \uc88b\uc544\uc694 \ubc84\ud2bc\uc774 \uc88b\uc544\uc694\ub97c \ub204\ub974\uac70\ub098 \ucde8\uc18c\ud558\uae30 \uc804\uc5d0 \uba3c\uc800 \ubb3c\uc5b4\uc11c, \uc2e4\uc218\ub85c \ud0ed\ud574\ub3c4 \ubc14\ub00c\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \ub450 \ubc88 \ud0ed\ud560 \ub54c\ub294 \ubb3b\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.");
         table.put("At once",
                 "\ubc14\ub85c");
         table.put("Attachment",
@@ -18947,8 +18947,8 @@ public final class L10nTranslations {
                 "Pede ao Android que execute o Instagram na maior taxa de atualiza\u00e7\u00e3o da tela, na mesma resolu\u00e7\u00e3o. Alguns celulares mant\u00eam um limite pr\u00f3prio para apps, e a economia de bateria ainda pode reduzi-la.");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "Pergunta antes de puxar para baixo atualizar o In\u00edcio, o Reels ou outra lista. Cancelar mant\u00e9m o que est\u00e1 na tela.");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "Pergunta antes de o bot\u00e3o Curtir embaixo de um post curtir ou descurtir, para que um toque sem querer n\u00e3o fa\u00e7a isso. Toque duplo n\u00e3o pergunta.");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "Pergunta antes de o bot\u00e3o Curtir embaixo de um post ou em um reel curtir ou descurtir, para que um toque sem querer n\u00e3o fa\u00e7a isso. Toque duplo n\u00e3o pergunta.");
         table.put("At once",
                 "Na hora");
         table.put("Attachment",
@@ -22632,8 +22632,8 @@ public final class L10nTranslations {
                 "\u0e02\u0e2d\u0e43\u0e2b\u0e49 Android \u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19 Instagram \u0e14\u0e49\u0e27\u0e22\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e23\u0e35\u0e40\u0e1f\u0e23\u0e0a\u0e2a\u0e39\u0e07\u0e2a\u0e38\u0e14\u0e02\u0e2d\u0e07\u0e2b\u0e19\u0e49\u0e32\u0e08\u0e2d\u0e17\u0e35\u0e48\u0e04\u0e27\u0e32\u0e21\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e40\u0e14\u0e34\u0e21 \u0e42\u0e17\u0e23\u0e28\u0e31\u0e1e\u0e17\u0e4c\u0e1a\u0e32\u0e07\u0e23\u0e38\u0e48\u0e19\u0e2d\u0e32\u0e08\u0e08\u0e33\u0e01\u0e31\u0e14\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e41\u0e2d\u0e1b\u0e44\u0e27\u0e49 \u0e41\u0e25\u0e30\u0e42\u0e2b\u0e21\u0e14\u0e1b\u0e23\u0e30\u0e2b\u0e22\u0e31\u0e14\u0e41\u0e1a\u0e15\u0e40\u0e15\u0e2d\u0e23\u0e35\u0e48\u0e22\u0e31\u0e07\u0e04\u0e07\u0e25\u0e14\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e14\u0e31\u0e07\u0e01\u0e25\u0e48\u0e32\u0e27\u0e25\u0e07\u0e44\u0e14\u0e49");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "\u0e16\u0e32\u0e21\u0e01\u0e48\u0e2d\u0e19\u0e17\u0e35\u0e48\u0e01\u0e32\u0e23\u0e40\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e25\u0e07\u0e08\u0e30\u0e23\u0e35\u0e40\u0e1f\u0e23\u0e0a\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01 \u0e23\u0e35\u0e25\u0e2a\u0e4c \u0e2b\u0e23\u0e37\u0e2d\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e2d\u0e37\u0e48\u0e19 \u0e01\u0e32\u0e23\u0e41\u0e15\u0e30 \"\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01\" \u0e08\u0e30\u0e04\u0e07\u0e2a\u0e34\u0e48\u0e07\u0e17\u0e35\u0e48\u0e2d\u0e22\u0e39\u0e48\u0e1a\u0e19\u0e2b\u0e19\u0e49\u0e32\u0e08\u0e2d\u0e44\u0e27\u0e49");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "\u0e16\u0e32\u0e21\u0e01\u0e48\u0e2d\u0e19\u0e17\u0e35\u0e48\u0e1b\u0e38\u0e48\u0e21\u0e16\u0e39\u0e01\u0e43\u0e08\u0e43\u0e15\u0e49\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e08\u0e30\u0e01\u0e14\u0e16\u0e39\u0e01\u0e43\u0e08\u0e2b\u0e23\u0e37\u0e2d\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01\u0e01\u0e32\u0e23\u0e01\u0e14\u0e16\u0e39\u0e01\u0e43\u0e08 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e1b\u0e49\u0e2d\u0e07\u0e01\u0e31\u0e19\u0e44\u0e21\u0e48\u0e43\u0e2b\u0e49\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e42\u0e14\u0e22\u0e44\u0e21\u0e48\u0e15\u0e31\u0e49\u0e07\u0e43\u0e08\u0e01\u0e14\u0e16\u0e39\u0e01\u0e43\u0e08\u0e43\u0e2b\u0e49\u0e04\u0e38\u0e13 \u0e17\u0e31\u0e49\u0e07\u0e19\u0e35\u0e49\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e2a\u0e2d\u0e07\u0e04\u0e23\u0e31\u0e49\u0e07\u0e08\u0e30\u0e44\u0e21\u0e48\u0e21\u0e35\u0e01\u0e32\u0e23\u0e16\u0e32\u0e21");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "\u0e16\u0e32\u0e21\u0e01\u0e48\u0e2d\u0e19\u0e17\u0e35\u0e48\u0e1b\u0e38\u0e48\u0e21\u0e16\u0e39\u0e01\u0e43\u0e08\u0e43\u0e15\u0e49\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e2b\u0e23\u0e37\u0e2d\u0e1a\u0e19\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e08\u0e30\u0e01\u0e14\u0e16\u0e39\u0e01\u0e43\u0e08\u0e2b\u0e23\u0e37\u0e2d\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01\u0e01\u0e32\u0e23\u0e01\u0e14\u0e16\u0e39\u0e01\u0e43\u0e08 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e1b\u0e49\u0e2d\u0e07\u0e01\u0e31\u0e19\u0e44\u0e21\u0e48\u0e43\u0e2b\u0e49\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e42\u0e14\u0e22\u0e44\u0e21\u0e48\u0e15\u0e31\u0e49\u0e07\u0e43\u0e08\u0e01\u0e14\u0e16\u0e39\u0e01\u0e43\u0e08\u0e43\u0e2b\u0e49\u0e04\u0e38\u0e13 \u0e17\u0e31\u0e49\u0e07\u0e19\u0e35\u0e49\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e2a\u0e2d\u0e07\u0e04\u0e23\u0e31\u0e49\u0e07\u0e08\u0e30\u0e44\u0e21\u0e48\u0e21\u0e35\u0e01\u0e32\u0e23\u0e16\u0e32\u0e21");
         table.put("At once",
                 "\u0e17\u0e31\u0e19\u0e17\u0e35");
         table.put("Attachment",
@@ -26317,8 +26317,8 @@ public final class L10nTranslations {
                 "Android'den Instagram'\u0131 ekran\u0131n\u0131n en y\u00fcksek yenileme h\u0131z\u0131nda, ayn\u0131 \u00e7\u00f6z\u00fcn\u00fcrl\u00fckte \u00e7al\u0131\u015ft\u0131rmas\u0131n\u0131 ister. Baz\u0131 telefonlar uygulamalara kendi s\u0131n\u0131r\u0131n\u0131 koyar ve pil tasarrufu h\u0131z\u0131 yine de d\u00fc\u015f\u00fcrebilir.");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "A\u015fa\u011f\u0131 \u00e7ekmenin Ana Sayfa'y\u0131, Reels'i veya ba\u015fka bir listeyi yenilemesinden \u00f6nce sorar. \u0130ptal, ekrandakini korur.");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "Bir g\u00f6nderinin alt\u0131ndaki Be\u011fen d\u00fc\u011fmesi be\u011fenmeden veya be\u011feniyi geri almadan \u00f6nce sorar, b\u00f6ylece yanl\u0131\u015fl\u0131kla dokunma bunu yapmaz. \u00c7ift dokunu\u015fta sorulmaz.");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "Bir g\u00f6nderinin alt\u0131ndaki veya bir reel'deki Be\u011fen d\u00fc\u011fmesi be\u011fenmeden veya be\u011feniyi geri almadan \u00f6nce sorar, b\u00f6ylece yanl\u0131\u015fl\u0131kla dokunma bunu yapmaz. \u00c7ift dokunu\u015fta sorulmaz.");
         table.put("At once",
                 "Hemen");
         table.put("Attachment",
@@ -30002,8 +30002,8 @@ public final class L10nTranslations {
                 "Y\u00eau c\u1ea7u Android ch\u1ea1y Instagram \u1edf t\u1ed1c \u0111\u1ed9 l\u00e0m m\u1edbi cao nh\u1ea5t c\u1ee7a m\u00e0n h\u00ecnh, v\u1edbi c\u00f9ng \u0111\u1ed9 ph\u00e2n gi\u1ea3i. M\u1ed9t s\u1ed1 \u0111i\u1ec7n tho\u1ea1i v\u1eabn gi\u1eef gi\u1edbi h\u1ea1n ri\u00eang cho \u1ee9ng d\u1ee5ng v\u00e0 ch\u1ebf \u0111\u1ed9 ti\u1ebft ki\u1ec7m pin c\u00f3 th\u1ec3 h\u1ea1 t\u1ed1c \u0111\u1ed9 n\u00e0y xu\u1ed1ng.");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "H\u1ecfi tr\u01b0\u1edbc khi k\u00e9o xu\u1ed1ng l\u00e0m m\u1edbi trang ch\u1ee7, Reels ho\u1eb7c danh s\u00e1ch kh\u00e1c. H\u1ee7y gi\u1eef nguy\u00ean n\u1ed9i dung tr\u00ean m\u00e0n h\u00ecnh.");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "H\u1ecfi tr\u01b0\u1edbc khi n\u00fat Th\u00edch d\u01b0\u1edbi b\u00e0i vi\u1ebft th\u00edch ho\u1eb7c b\u1ecf th\u00edch, \u0111\u1ec3 l\u1ee1 ch\u1ea1m kh\u00f4ng l\u00e0m thay b\u1ea1n. Nh\u1ea5n \u0111\u00fap kh\u00f4ng b\u1ecb h\u1ecfi.");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "H\u1ecfi tr\u01b0\u1edbc khi n\u00fat Th\u00edch d\u01b0\u1edbi b\u00e0i vi\u1ebft ho\u1eb7c tr\u00ean reel th\u00edch ho\u1eb7c b\u1ecf th\u00edch, \u0111\u1ec3 l\u1ee1 ch\u1ea1m kh\u00f4ng l\u00e0m thay b\u1ea1n. Nh\u1ea5n \u0111\u00fap kh\u00f4ng b\u1ecb h\u1ecfi.");
         table.put("At once",
                 "Ngay l\u1eadp t\u1ee9c");
         table.put("Attachment",
@@ -33687,8 +33687,8 @@ public final class L10nTranslations {
                 "\u8981\u6c42 Android \u4ee5\u87a2\u5e55\u6700\u9ad8\u7684\u66f4\u65b0\u7387\u3001\u76f8\u540c\u7684\u89e3\u6790\u5ea6\u57f7\u884c Instagram\u3002\u90e8\u5206\u624b\u6a5f\u6703\u70ba\u61c9\u7528\u7a0b\u5f0f\u8a2d\u5b9a\u81ea\u5df1\u7684\u4e0a\u9650\uff0c\u7701\u96fb\u6a21\u5f0f\u4e5f\u4ecd\u53ef\u80fd\u8abf\u4f4e\u66f4\u65b0\u7387\u3002");
         table.put("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.",
                 "\u4e0b\u62c9\u91cd\u65b0\u6574\u7406\u9996\u9801\u3001Reels \u6216\u5176\u4ed6\u6e05\u55ae\u524d\u5148\u8a62\u554f\u3002\u53d6\u6d88\u6703\u4fdd\u7559\u756b\u9762\u4e0a\u7684\u5167\u5bb9\u3002");
-        table.put("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
-                "\u900f\u904e\u8cbc\u6587\u4e0b\u65b9\u7684\u6309\u8b9a\u6309\u9215\u6309\u8b9a\u6216\u6536\u56de\u8b9a\u524d\u5148\u8a62\u554f\uff0c\u907f\u514d\u8aa4\u89f8\u3002\u96d9\u64ca\u5247\u4e0d\u6703\u8a62\u554f\u3002");
+        table.put("Asks before the Like button under a post or on a reel likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "\u900f\u904e\u8cbc\u6587\u4e0b\u65b9\u6216 Reels \u4e0a\u7684\u6309\u8b9a\u6309\u9215\u6309\u8b9a\u6216\u6536\u56de\u8b9a\u524d\u5148\u8a62\u554f\uff0c\u907f\u514d\u8aa4\u89f8\u3002\u96d9\u64ca\u5247\u4e0d\u6703\u8a62\u554f\u3002");
         table.put("At once",
                 "\u7acb\u5373");
         table.put("Attachment",

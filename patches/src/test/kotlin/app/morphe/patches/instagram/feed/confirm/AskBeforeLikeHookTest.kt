@@ -67,6 +67,49 @@ class AskBeforeLikeHookTest {
     }
 
     @Test
+    fun theLikeButtonOnAReelAsksFirstAndItsStubCallsItAgain() {
+        val context = PatchContexts.of(listOf(reelHandler(), reelClass(ITEM), reelClass(STATE), reelClass(SOURCE), extension()))
+        askBeforeReelLike(context.findReelLikeButton())
+
+        val code = context.reelCode()!!
+        assertTrue("hold first", code[0].calls(HOLD_REEL_LIKE))
+        val hold = code[0] as RegisterRangeInstruction
+        assertEquals("holdReel takes the handler and its eleven values", 12, hold.registerCount)
+        assertEquals("starting at the handler itself", REEL_REGISTERS - 12, hold.startRegister)
+        assertEquals(listOf(Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID, Opcode.CONST_STRING), code.subList(1, 5).map { it.opcode })
+        assertEquals(0, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals(0, (code[2] as OneRegisterInstruction).registerA)
+        assertEquals("once", 1, code.count { it.calls(HOLD_REEL_LIKE) })
+
+        val again = context.stub(LIKE_REEL_AGAIN_STUB)
+        val base = context.stubRegisters(LIKE_REEL_AGAIN_STUB) - 12
+        assertEquals(List(6) { Opcode.CHECK_CAST } + listOf(Opcode.INVOKE_VIRTUAL_RANGE, Opcode.RETURN_VOID), again.take(8).map { it.opcode })
+        assertEquals(listOf(REEL_HANDLER, VIEW, ITEM, STATE, SOURCE, FUNCTION1), again.take(6).map { it.referenced() })
+        assertEquals("the handler, button, three objects and callback", listOf(0, 1, 2, 3, 4, 9).map { base + it },
+            again.take(6).map { (it as OneRegisterInstruction).registerA })
+        assertEquals("$REEL_HANDLER->onTap(${REEL_PARAMETERS.joinToString("")})V", again[6].referenced())
+        assertEquals(12, (again[6] as RegisterRangeInstruction).registerCount)
+        assertEquals(base, (again[6] as RegisterRangeInstruction).startRegister)
+    }
+
+    @Test
+    fun aReelLikeButtonThatIsntTheOneFailsUnchanged() {
+        val others = listOf(reelClass(ITEM), reelClass(STATE), reelClass(SOURCE), extension())
+        refusesReel("no handler filing the tap", listOf(reelHandler(body = "return-void")) + others)
+        refusesReel("a static handler", listOf(reelHandler(static = true)) + others)
+        refusesReel("two handlers", listOf(reelHandler(twice = true)) + others)
+        refusesReel("a handler class that isn't public", listOf(reelHandler(classFlags = AccessFlags.FINAL.value)) + others)
+        refusesReel("an int where a boolean goes", listOf(reelHandler(parameters = REEL_PARAMETERS.dropLast(1) + "I")) + others)
+        refusesReel("no callback", listOf(reelHandler(parameters = REEL_PARAMETERS.take(8) + OBJECT_TYPE + REEL_PARAMETERS.drop(9))) + others)
+        refusesReel("an item that isn't in the app", listOf(reelHandler(), reelClass(STATE), reelClass(SOURCE), extension()))
+        refusesReel("a source that isn't public", listOf(reelHandler(), reelClass(ITEM), reelClass(STATE), reelClass(SOURCE, 0), extension()))
+        refusesReel("no register of its own", listOf(reelHandler(registers = 12, body = "const-string p5, \"$REEL_LIKE_TAP\"\nreturn-void")) + others)
+        refusesReel("a jump onto its first instruction",
+            listOf(reelHandler(body = ":top\nconst-string v0, \"$REEL_LIKE_TAP\"\nif-eqz p10, :top\nreturn-void")) + others)
+        refusesReel("no extension", listOf(reelHandler(), reelClass(ITEM), reelClass(STATE), reelClass(SOURCE)))
+    }
+
+    @Test
     fun aLikeButtonThatIsntTheOneFailsThePatchUnchanged() {
         refuses("no handler filing like_media", listOf(handler(body = "return-void"), position(), fragment(), extension()))
         refuses("a static handler", listOf(handler(static = true), position(), fragment(), extension()))
@@ -86,7 +129,8 @@ class AskBeforeLikeHookTest {
 
     /**
      * On every declared build's fixture: the one Like button handler filing like_media takes the
-     * hold first and once, and the stubs reach its fragment and call it again.
+     * hold first and once, and the stubs reach its fragment and call it again. The same for the
+     * reel's handler filing the tap marker.
      */
     @Test
     fun eachDeclaredBuildAsksBeforeALike() {
@@ -95,6 +139,7 @@ class AskBeforeLikeHookTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 builds(bundle, bundle.name)
+                reelBuilds(bundle, bundle.name)
                 checked++
             }
         }
@@ -104,7 +149,10 @@ class AskBeforeLikeHookTest {
     /** The same checks on every other build of the version, each compiled on its own. */
     @Test
     fun eachOtherBuildAsksBeforeALikeToo() {
-        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+        for (base in Fixtures.otherBuilds()) {
+            builds(base, base.parentFile.name)
+            reelBuilds(base, base.parentFile.name)
+        }
     }
 
     private fun builds(bundle: File, label: String) {
@@ -126,6 +174,35 @@ class AskBeforeLikeHookTest {
         assertEquals(label, 1, code.count { it.calls(HOLD_LIKE) })
         assertTrue("$label: the stub reaches the fragment", context.stub(CONTEXT_OF_STUB)[1].referenced().startsWith("${handler.definingClass}->"))
         assertTrue("$label: and calls the handler again", context.stub(LIKE_AGAIN_STUB)[4].referenced().startsWith("${handler.definingClass}->${handler.name}("))
+    }
+
+    private fun reelBuilds(bundle: File, label: String) {
+        val loading = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, REEL_LIKE_TAP))
+        val shaped = loading.flatMap { it.methods }.filter { it.reelShaped() }
+        assertTrue("$label: a reel Like handler's shape", shaped.isNotEmpty())
+        val taken = FixtureDex.classes(bundle, shaped.flatMap { it.parameterTypes.subList(1, 4).map(Any::toString) }.toSet()).values
+        val context = PatchContexts.of((loading + taken).distinctBy { it.type } + extension())
+        val found = context.findReelLikeButton()
+        val stock = shaped.single { it.definingClass == found.handler.definingClass && it.name == found.handler.name }
+        askBeforeReelLike(found)
+
+        val code = found.handler.implementation!!.instructions.toList()
+        assertTrue("$label: hold first", code[0].calls(HOLD_REEL_LIKE))
+        assertEquals(label, stock.implementation!!.registerCount - 12, (code[0] as RegisterRangeInstruction).startRegister)
+        assertEquals(label, listOf(Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID), code.subList(1, 4).map { it.opcode })
+        assertEquals("$label: Instagram's own code follows", stock.implementation!!.instructions.first().opcode, code[4].opcode)
+        assertEquals(label, 1, code.count { it.calls(HOLD_REEL_LIKE) })
+        assertTrue("$label: the stub calls the handler again",
+            context.stub(LIKE_REEL_AGAIN_STUB)[6].referenced().startsWith("${stock.definingClass}->${stock.name}("))
+    }
+
+    private fun refusesReel(case: String, classes: List<ClassDef>) {
+        val context = PatchContexts.of(classes)
+        val before = context.reelCode()?.map { it.opcode }
+        val stub = context.classDefByOrNull(LIKE_CONFIRM)?.let { context.stub(LIKE_REEL_AGAIN_STUB).map { it.opcode } }
+        assertThrows(case, PatchException::class.java) { askBeforeReelLike(context.findReelLikeButton()) }
+        assertEquals(case, before, context.reelCode()?.map { it.opcode })
+        assertEquals(case, stub, context.classDefByOrNull(LIKE_CONFIRM)?.let { context.stub(LIKE_REEL_AGAIN_STUB).map { it.opcode } })
     }
 
     private fun refuses(case: String, classes: List<ClassDef>) {
@@ -154,14 +231,37 @@ class AskBeforeLikeHookTest {
     private fun BytecodePatchContext.handlerCode(): List<Instruction>? =
         classDefByOrNull(HANDLER)?.let { mutableClassDefBy(HANDLER).methods.first { it.name == "onLike" }.implementation!!.instructions.toList() }
 
+    /** The reel handler's shape: the button, three objects, four strings, a callback and two booleans. */
+    private fun Method.reelShaped(): Boolean = returnType == "V" && !AccessFlags.STATIC.isSet(accessFlags) &&
+        parameterTypes.map(Any::toString).let {
+            it.size == 11 && it[0] == VIEW && it.subList(4, 8).all { type -> type == STRING_TYPE } && it[8] == FUNCTION1 &&
+                it[9] == "Z" && it[10] == "Z"
+        }
+
+    private fun BytecodePatchContext.reelCode(): List<Instruction>? =
+        classDefByOrNull(REEL_HANDLER)?.let { mutableClassDefBy(REEL_HANDLER).methods.first { it.name == "onTap" }.implementation!!.instructions.toList() }
+
     private fun BytecodePatchContext.stub(name: String): List<Instruction> =
         mutableClassDefBy(LIKE_CONFIRM).methods.single { it.name == name }.implementation!!.instructions.toList()
+
+    private fun BytecodePatchContext.stubRegisters(name: String): Int =
+        mutableClassDefBy(LIKE_CONFIRM).methods.single { it.name == name }.implementation!!.registerCount
 
     private companion object {
         const val HANDLER = "Lfixture/LikeHandler;"
         const val POSITION = "Lfixture/Position;"
         const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
         const val HANDLER_REGISTERS = 8
+        const val REEL_HANDLER = "Lfixture/ReelLikeHandler;"
+        const val ITEM = "Lfixture/ReelItem;"
+        const val STATE = "Lfixture/ReelState;"
+        const val SOURCE = "Lfixture/ReelSource;"
+        const val VIEW = "Landroid/view/View;"
+        const val FUNCTION1 = "Lkotlin/jvm/functions/Function1;"
+        const val STRING_TYPE = "Ljava/lang/String;"
+        const val OBJECT_TYPE = "Ljava/lang/Object;"
+        const val REEL_REGISTERS = 14
+        val REEL_PARAMETERS = listOf(VIEW, ITEM, STATE, SOURCE) + List(4) { STRING_TYPE } + listOf(FUNCTION1, "Z", "Z")
         val PUBLIC = AccessFlags.PUBLIC.value
         val PUBLIC_FINAL = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
 
@@ -188,6 +288,28 @@ class AskBeforeLikeHookTest {
             val fields = fragments.map { ImmutableField(HANDLER, it, FRAGMENT, fieldFlags, null, null, null) }
             return ImmutableClassDef(HANDLER, classFlags, "Ljava/lang/Object;", null, null, null, fields, methods)
         }
+
+        /**
+         * The Like button's handler on a reel as 454 has it: an instance method taking the button,
+         * three of Instagram's classes, four strings, a callback and two booleans, filing the tap
+         * marker. v0 and v1 are its locals.
+         */
+        fun reelHandler(
+            body: String = "const-string v0, \"$REEL_LIKE_TAP\"\ninvoke-static { v0 }, Lfixture/Log;->file(Ljava/lang/String;)V\nreturn-void",
+            static: Boolean = false,
+            twice: Boolean = false,
+            classFlags: Int = PUBLIC_FINAL,
+            parameters: List<String> = REEL_PARAMETERS,
+            registers: Int = REEL_REGISTERS,
+        ): ClassDef {
+            val flags = if (static) PUBLIC_FINAL or AccessFlags.STATIC.value else PUBLIC_FINAL
+            val methods = mutableListOf(method(REEL_HANDLER, "onTap", parameters, "V", registers, flags, body))
+            if (twice) methods += method(REEL_HANDLER, "onTapAgain", parameters, "V", registers, flags, body)
+            return ImmutableClassDef(REEL_HANDLER, classFlags, "Ljava/lang/Object;", null, null, null, null, methods)
+        }
+
+        fun reelClass(type: String, flags: Int = PUBLIC_FINAL): ClassDef =
+            ImmutableClassDef(type, flags, "Ljava/lang/Object;", null, null, null, null, null)
 
         fun position(flags: Int = PUBLIC_FINAL): ClassDef =
             ImmutableClassDef(POSITION, flags, "Ljava/lang/Object;", null, null, null, null, null)

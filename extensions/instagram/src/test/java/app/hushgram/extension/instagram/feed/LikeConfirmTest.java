@@ -96,6 +96,26 @@ public class LikeConfirmTest {
                 HookStatus.report());
     }
 
+    /** A reel's Like button asks over the screen the button is on; one that isn't a view lets the tap through (#603). */
+    @Test public void aReelsLikeAsksOverItsButtonsScreen() {
+        Settings.ASK_BEFORE_LIKE.save(true);
+        assertFalse("no view, no screen", LikeConfirm.holdReel(new Object(), new Object(), null, null, null,
+                "a", "b", "c", "d", null, 1, 0));
+        assertNull("nothing asked", ShadowDialog.getLatestDialog());
+
+        android.view.View button = new android.view.View(activity);
+        assertTrue("held while the question is up", LikeConfirm.holdReel(new Object(), button, null, null, null,
+                "a", "b", "c", "d", null, 1, 0));
+        AlertDialog question = shown();
+        assertSame(activity, ConfirmDialog.activityOf(question.getContext()));
+        assertTrue("a second tap is held", LikeConfirm.holdReel(new Object(), button, null, null, null,
+                "a", "b", "c", "d", null, 0, 1));
+        assertEquals(1, ShadowDialog.getShownDialogs().size());
+        tap(question, AlertDialog.BUTTON_POSITIVE);
+        assertFalse("Continue lets the run through", question.isShowing());
+        assertNull(LikeConfirm.open());
+    }
+
     /**
      * A second tap before the question goes away, a quick double tap on Like, is held without a
      * second question, so Continue likes once. Once it's gone, the question is let go.
