@@ -740,8 +740,15 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting LOCK_APP = new BooleanSetting("hushgram_lock_app", FALSE);
 
     /**
-     * How long after you leave Instagram the two locks above lock again. It starts at right away,
-     * which is what they did before the choice. It isn't a switch: the two above are.
+     * Saved, its collections and its search stay covered until the phone's lock says it's you,
+     * while the messages stay as Lock your messages leaves them
+     * ({@link app.hushgram.extension.instagram.direct.MessagesLock}). Off to start.
+     */
+    public static final BooleanSetting LOCK_SAVED = new BooleanSetting("hushgram_lock_saved", FALSE);
+
+    /**
+     * How long after you leave Instagram the locks above lock again. It starts at right away,
+     * which is what they did before the choice. It isn't a switch: the ones above are.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.direct.LockDelay> LOCK_AGAIN =
             new EnumSetting<>("hushgram_lock_again", app.hushgram.extension.instagram.direct.LockDelay.RIGHT_AWAY);
@@ -807,7 +814,7 @@ public class Settings extends BaseSettings {
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
-        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN, LOCKED_CHATS,
+        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_SAVED, LOCK_AGAIN, LOCKED_CHATS,
                 UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
     }
 

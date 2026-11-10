@@ -67,6 +67,7 @@ public class PinBypassTest {
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
         Settings.LOCK_MESSAGES.save(true);
         Settings.LOCK_APP.save(true);
+        Settings.LOCK_SAVED.save(true);
         Settings.UNLOCK_WITH.save(UnlockWith.PIN);
         assertTrue(PinLock.set(PIN));
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.MESSAGES_LOCK);
@@ -87,6 +88,7 @@ public class PinBypassTest {
         BaseSettings.PAUSED.save(false);
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCK_APP.resetToDefault();
+        Settings.LOCK_SAVED.resetToDefault();
         Settings.LOCK_AGAIN.resetToDefault();
         Settings.UNLOCK_WITH.resetToDefault();
         Settings.LOCK_PIN.resetToDefault();
@@ -145,6 +147,11 @@ public class PinBypassTest {
     @Test
     public void turningLockAllOfInstagramOffAsksThePin() {
         checkSwitch(Settings.LOCK_APP.key, "Lock all of Instagram");
+    }
+
+    @Test
+    public void turningLockSavedOffAsksThePin() {
+        checkSwitch(Settings.LOCK_SAVED.key, "Lock Saved");
     }
 
     private void checkSwitch(String key, String query) {

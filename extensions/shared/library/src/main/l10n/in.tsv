@@ -1977,3 +1977,8 @@ With a large font or display size, the reply box and buttons at the bottom of a 
 # context: switch under Hidden accounts; Favorites, For you and Following are Instagram's Home feed choices (#601)
 Keep hidden accounts in Favorites	Tetap tampilkan akun tersembunyi di Favorit
 Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.	Postingan dari akun tersembunyimu tetap muncul di Favorit. Untuk Anda dan Mengikuti tidak menampilkannya. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.
+# context: switch next to Lock your messages; Saved is Instagram's page of your saved posts and collections (#597)
+Lock Saved	Kunci Tersimpan
+Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	Tersimpan dan semua isinya tetap tertutup sampai sidik jari, wajah, atau kunci layar Anda memastikan itu Anda.
+Saved is locked	Tersimpan terkunci
+Unlock Saved	Buka kunci Tersimpan

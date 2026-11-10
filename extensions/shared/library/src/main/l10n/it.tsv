@@ -1977,3 +1977,8 @@ With a large font or display size, the reply box and buttons at the bottom of a 
 # context: switch under Hidden accounts; Favorites, For you and Following are Instagram's Home feed choices (#601)
 Keep hidden accounts in Favorites	Mantieni gli account nascosti nei Preferiti
 Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.	I post dei tuoi account nascosti restano visibili nei Preferiti. Per te e Seguiti li lasciano fuori. Tira verso il basso nella Home per aggiornare dopo averlo cambiato.
+# context: switch next to Lock your messages; Saved is Instagram's page of your saved posts and collections (#597)
+Lock Saved	Blocca Salvati
+Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	I Salvati e tutto ciò che contengono restano coperti finché la tua impronta, il tuo volto o il blocco schermo non confermano che sei tu.
+Saved is locked	I Salvati sono bloccati
+Unlock Saved	Sblocca Salvati

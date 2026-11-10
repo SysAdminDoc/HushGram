@@ -8,6 +8,7 @@ Every HushGram release, newest first.
 
 * HushGram's settings are now in Thai, thanks to MangaThatsFine in #593.
 * `Keep hidden accounts in Favorites` sits under `Hidden accounts` in Feed. Turn it on and posts from accounts you've hidden still show when Home is on Favorites, while For you and Following leave them out. Starts off. Asked for in #601.
+* `Lock Saved` sits with the message locks in Messages. Saved, your collections and the search inside Saved stay covered until your fingerprint, face or screen lock says it's you, and your messages stay as they were. Starts off. Asked for in #597.
 * `Mute button on reels` under Reels puts a speaker icon in the column beside a reel. Tap it to turn the sound off or on while the reel keeps playing. `Mute button in clear mode` keeps it next to clear mode's exit button too. Both start off. Asked for in #608.
 * `Upload stories at full quality` adds `Video resolution` up to 1440p, `Video frame rate` up to 60 fps and `Photo quality` up to 100. Instagram still re-encodes on its servers, so these set what leaves your phone. Asked for in #37.
 * `Seek bar shape` under Feed gives the seek bars on feed videos, stories and reels a new look: a thin line, a thicker rounded bar, a bar split by a tall handle, or a wave. They grow while you drag. Asked for in #586 and #592.

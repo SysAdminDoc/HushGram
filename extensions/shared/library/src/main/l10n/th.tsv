@@ -1974,3 +1974,8 @@ With a large font or display size, the reply box and buttons at the bottom of a 
 # context: switch under Hidden accounts; Favorites, For you and Following are Instagram's Home feed choices (#601)
 Keep hidden accounts in Favorites	แสดงบัญชีที่ซ่อนไว้ใน "รายการโปรด"
 Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.	โพสต์จากบัญชีที่คุณซ่อนไว้จะยังแสดงใน "รายการโปรด" ส่วน "สำหรับคุณ" และ "กำลังติดตาม" จะไม่แสดงโพสต์เหล่านั้น ให้ดึงหน้าหลักลงเพื่อรีเฟรชหลังจากเปลี่ยนการตั้งค่านี้
+# context: switch next to Lock your messages; Saved is Instagram's page of your saved posts and collections (#597)
+Lock Saved	ล็อก "บันทึกแล้ว"
+Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	"บันทึกแล้ว" และทุกอย่างในนั้นจะถูกปิดกั้นไว้จนกว่าลายนิ้วมือ ใบหน้า หรือการล็อกหน้าจอจะยืนยันตัวตนของคุณ
+Saved is locked	"บันทึกแล้ว" ถูกล็อกอยู่
+Unlock Saved	ปลดล็อก "บันทึกแล้ว"

@@ -240,6 +240,9 @@ final class MessagesCategory {
                 messages.addPreference(lockToggle(context, Settings.LOCK_APP, L10n.t("Lock all of Instagram"),
                         L10n.t("All of Instagram stays covered until your fingerprint, face or screen lock says it's "
                                 + "you, your messages too.")));
+                messages.addPreference(lockToggle(context, Settings.LOCK_SAVED, L10n.t("Lock Saved"),
+                        L10n.t("Saved and everything in it stay covered until your fingerprint, face or screen lock "
+                                + "says it's you.")));
                 messages.addPreference(lockDelayRow(context));
                 messages.addPreference(unlockWithRow(context));
                 messages.addPreference(changePinRow(context));
