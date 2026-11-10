@@ -83,12 +83,7 @@ Every HushGram release, newest first.
 * `Save every page without asking` works on the download icon beside a reel too, so a carousel opened from Explore, Search or Reels saves all its pages with no popup. Reported in #190.
 * A reel's seek bar no longer ends up in the strip at the bottom of the screen when the tab bar has moved out of the way, so scrubbing can't swipe you home. Reported in #450.
 * `Glass tab bar` now works on tablets and a foldable's inner screen. It keeps Instagram's phone layout there, since the glass needs the tab bar along the bottom and the big screen layout only has the rail down the side.
-* With `Gray out stories you've watched`, the story row keeps watched stories behind new ones after it reloads, and the next batch that loads as you scroll stays after the ones you had. Reported in #241.
 * With `Hide the Create button` on, a long press on your profile's menu opens the HushGram settings again. With the button gone, the long press couldn't tell it was on your own profile. Reported in #431.
-* `See-through top bar` reaches behind the clock on more phones. Where the tabs swipe sideways, only Home's page moves up, so Reels and the other tabs stay put. Reported in #462.
-* With `Glass tab bar` on, the seek bar on a reel opened outside the Reels tab sits above the gesture handle instead of on the screen's bottom edge. Reported in #450.
-* `Start feed videos with sound` now turns the sound on for every video on Home, not just the first. Mute one and the next ones stay muted. On silent or vibrate they start muted. Reported in #504.
-* `Keep playing in the background` keeps going after you open a video. Videos opened from your feed, the Reels tab and stories used to stop a few seconds after you left Instagram. Reported in #497.
 * `See-through top bar` reaches behind the clock on more phones. Where Home's posts already run under the clock, the glass now covers that strip. Where the tabs swipe sideways, only Home's page moves up. Reported in #462.
 * With `Glass tab bar` on, the seek bar on a reel opened outside the Reels tab sits above the gesture handle instead of on the screen's edge, where scrubbing swiped you home. Reported in #450.
 * The floating `Glass tab bar` pill now frosts over a playing reel instead of staying clear, and on Home and Profile the sharp screen no longer shows through half of it. Reported in #583.
