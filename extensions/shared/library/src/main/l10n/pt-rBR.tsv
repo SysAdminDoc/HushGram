@@ -1971,3 +1971,6 @@ Keeps the speaker icon next to clear mode's exit button.	Mantém o ícone de alt
 Sound	Som
 # context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
 Sound didn't change	O som não mudou
+# context: Stories switch that moves the row along a story's bottom (Send message box, like, share) off the story at a large font (#598)
+Keep story buttons below the story	Botões do story abaixo do story
+With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.	Com fonte ou tamanho de tela grandes, a caixa de resposta e os botões na parte de baixo de um story ficam no espaço abaixo dele, em vez de cobrir o story.

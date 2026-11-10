@@ -1970,3 +1970,6 @@ Keeps the speaker icon next to clear mode's exit button.	클리어 모드의 나
 Sound	소리
 # context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
 Sound didn't change	소리가 바뀌지 않았습니다
+# context: Stories switch that moves the row along a story's bottom (Send message box, like, share) off the story at a large font (#598)
+Keep story buttons below the story	스토리 버튼을 스토리 아래에 두기
+With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.	글꼴이나 화면 크기가 클 때 스토리 하단의 답장 상자와 버튼이 스토리를 가리지 않고 그 아래 빈 공간에 놓입니다.

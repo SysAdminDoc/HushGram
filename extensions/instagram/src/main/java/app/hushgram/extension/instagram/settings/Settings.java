@@ -358,6 +358,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_story_reply_box", FALSE);
 
     /**
+     * The row along a story's bottom moves down off the story when a large font or display size makes
+     * it cover the story ({@link app.hushgram.extension.instagram.stories.StoryButtonsRoom}). Read before
+     * each frame, and the row goes back the frame after it turns off. On to start.
+     */
+    public static final BooleanSetting KEEP_STORY_BUTTONS_BELOW =
+            new BooleanSetting("hushgram_keep_story_buttons_below", TRUE);
+
+    /**
      * The font files picked in settings show up in the story text editor alongside Instagram's own fonts
      * ({@link app.hushgram.extension.instagram.stories.StoryFonts}). Read each time the editor lists
      * its fonts. Off to start, and turned on when a font is added.

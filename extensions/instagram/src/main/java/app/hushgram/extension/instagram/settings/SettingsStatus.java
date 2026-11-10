@@ -105,6 +105,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyButtonsRoom() {
+        return false;
+    }
+
     public static boolean storyFonts() {
         return false;
     }

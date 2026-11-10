@@ -2786,6 +2786,11 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySeekBar;->paused(Ljava/
 # hides; twice or elsewhere, it isn't the call the patch wrote.
 # HideStoryReplyBoxHookTest checks on the fixtures that the call sits right after the super call.
 once-call Lapp/hushgram/extension/instagram/stories/StoryReplyBox;->resumed(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onResume
+# Keep story buttons below the story tells StoryButtonsRoom the story viewer came back, once, right
+# after ReelViewerFragment's onResume hands on to its superclass's (#598). Left out, the row stays
+# over the story at a large font; twice or elsewhere, it isn't the call the patch wrote.
+# StoryButtonsRoomHookTest checks on the fixtures that the call sits right after the super call.
+once-call Lapp/hushgram/extension/instagram/stories/StoryButtonsRoom;->resumed(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onResume
 # Start reels with sound asks ReelSound.wanted() once, right after the Reels viewer's onCreate
 # (the one holding ClipsViewerFragment.onCreate) calls its super, and on a yes hands the viewer's
 # source to ReelSound.startWithSound() and tells ReelSound.opened() whether the sound was on, in

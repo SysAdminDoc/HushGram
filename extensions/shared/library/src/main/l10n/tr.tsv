@@ -1971,3 +1971,6 @@ Keeps the speaker icon next to clear mode's exit button.	Hoparlör simgesini tem
 Sound	Ses
 # context: toast when a tap on the speaker icon couldn't reach the reel's sound (#608)
 Sound didn't change	Ses değişmedi
+# context: Stories switch that moves the row along a story's bottom (Send message box, like, share) off the story at a large font (#598)
+Keep story buttons below the story	Hikaye düğmelerini hikayenin altında tut
+With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.	Yazı tipi veya ekran boyutu büyükken, bir hikayenin altındaki yanıt kutusu ve düğmeler hikayeyi kapatmak yerine altındaki boşlukta durur.

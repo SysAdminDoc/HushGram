@@ -155,6 +155,11 @@ final class StoriesCategory {
                     L10n.t("Takes the Send message box off the bottom of other people's stories. The like and "
                             + "share buttons next to it stay where they are.")));
         }
+        if (build.contains(PatchFamily.STORY_BUTTONS_ROOM)) {
+            stories.add(toggle(context, Settings.KEEP_STORY_BUTTONS_BELOW, L10n.t("Keep story buttons below the story"),
+                    L10n.t("With a large font or display size, the reply box and buttons at the bottom of a story "
+                            + "sit in the space under it instead of covering the story.")));
+        }
         if (build.contains(PatchFamily.STORY_TIME)) {
             stories.add(toggle(context, Settings.SHOW_STORY_TIME, L10n.t("Show a story's exact time"),
                     L10n.t("A story's header shows its time the way the choice below says, instead of how long ago. "
