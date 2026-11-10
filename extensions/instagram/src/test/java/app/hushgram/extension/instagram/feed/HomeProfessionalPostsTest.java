@@ -18,6 +18,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
@@ -155,26 +157,92 @@ public class HomeProfessionalPostsTest {
 
     /**
      * is_professional_account answers first. Only when it doesn't say does account_type, where 2 is
-     * a business and 3 a creator. No post, or neither saying, keeps it.
+     * a business and 3 a creator. No user, or neither saying, keeps it.
      */
     @Test
-    public void theAuthorsFlagAnswersBeforeItsAccountType() {
-        Object post = new Object();
-        assertEquals(FeedSuggestions.PROFESSIONAL_ACCOUNT, FeedSuggestions.postProfessional(post, p -> 2, p -> 1));
-        assertEquals(FeedSuggestions.PERSONAL, FeedSuggestions.postProfessional(post, p -> 1, p -> 2));
-        assertEquals(FeedSuggestions.PROFESSIONAL_ACCOUNT, FeedSuggestions.postProfessional(post, p -> 0, p -> 2));
-        assertEquals(FeedSuggestions.PROFESSIONAL_ACCOUNT, FeedSuggestions.postProfessional(post, p -> 0, p -> 3));
-        assertEquals(FeedSuggestions.PERSONAL, FeedSuggestions.postProfessional(post, p -> 0, p -> 1));
-        assertEquals(FeedSuggestions.UNSAID, FeedSuggestions.postProfessional(post, p -> 0, p -> 0));
-        assertEquals(FeedSuggestions.UNSAID, FeedSuggestions.postProfessional(post, p -> 0, p -> 4));
-        assertEquals(FeedSuggestions.UNSAID, FeedSuggestions.postProfessional(null, p -> 2, p -> 2));
+    public void theUsersFlagAnswersBeforeItsAccountType() {
+        Object user = new Object();
+        assertEquals(FeedSuggestions.PROFESSIONAL_ACCOUNT, FeedSuggestions.userProfessional(user, u -> 2, u -> 1));
+        assertEquals(FeedSuggestions.PERSONAL, FeedSuggestions.userProfessional(user, u -> 1, u -> 2));
+        assertEquals(FeedSuggestions.PROFESSIONAL_ACCOUNT, FeedSuggestions.userProfessional(user, u -> 0, u -> 2));
+        assertEquals(FeedSuggestions.PROFESSIONAL_ACCOUNT, FeedSuggestions.userProfessional(user, u -> 0, u -> 3));
+        assertEquals(FeedSuggestions.PERSONAL, FeedSuggestions.userProfessional(user, u -> 0, u -> 1));
+        assertEquals(FeedSuggestions.UNSAID, FeedSuggestions.userProfessional(user, u -> 0, u -> 0));
+        assertEquals(FeedSuggestions.UNSAID, FeedSuggestions.userProfessional(user, u -> 0, u -> 4));
+        assertEquals(FeedSuggestions.UNSAID, FeedSuggestions.userProfessional(null, u -> 2, u -> 2));
     }
 
-    /** The stubs the patch fills answer 0 as built, so an unpatched Home keeps every post. */
+    /** A user standing in for Instagram's, with the account_type it says (0 for a bare record). */
+    private static final class User {
+        final int accountType;
+
+        User(int accountType) {
+            this.accountType = accountType;
+        }
+    }
+
+    /** A post standing in for Instagram's, with its user and coauthors. */
+    private static final class Post {
+        final User user;
+        final List<User> coauthors;
+
+        Post(User user, User... coauthors) {
+            this.user = user;
+            this.coauthors = coauthors.length == 0 ? null : Arrays.asList(coauthors);
+        }
+    }
+
+    private static int professional(Object post) {
+        return FeedSuggestions.postProfessional(post, p -> ((Post) p).user, p -> ((Post) p).coauthors,
+                u -> 0, u -> ((User) u).accountType);
+    }
+
+    /**
+     * A collab post from an account you follow comes with its user as a bare record and the account
+     * you follow among its coauthors (#579, "bbcnews and 2 others" on Instagram 454). The user
+     * answers when it says, and only when it doesn't do the coauthors.
+     */
+    @Test
+    public void aCollabPostWhoseUserDoesntSayAsksItsCoauthors() {
+        User bare = new User(0);
+        User business = new User(2);
+        User creator = new User(3);
+        User personal = new User(1);
+        assertEquals("a business coauthor", FeedSuggestions.PROFESSIONAL_ACCOUNT, professional(new Post(bare, bare, business)));
+        assertEquals("a creator coauthor", FeedSuggestions.PROFESSIONAL_ACCOUNT, professional(new Post(null, creator)));
+        assertEquals("one business among them", FeedSuggestions.PROFESSIONAL_ACCOUNT, professional(new Post(bare, personal, business)));
+        assertEquals("personal coauthors", FeedSuggestions.PERSONAL, professional(new Post(bare, bare, personal)));
+        assertEquals("no coauthor says", FeedSuggestions.UNSAID, professional(new Post(bare, bare, new User(4))));
+        assertEquals("no coauthors", FeedSuggestions.UNSAID, professional(new Post(bare)));
+        assertEquals("a personal user keeps it", FeedSuggestions.PERSONAL, professional(new Post(personal, business)));
+        assertEquals("a business user", FeedSuggestions.PROFESSIONAL_ACCOUNT, professional(new Post(business, personal)));
+        assertEquals(FeedSuggestions.UNSAID, FeedSuggestions.postProfessional(null, p -> business, p -> null, u -> 2, u -> 2));
+
+        int[] coauthorReads = {0};
+        FeedSuggestions.postProfessional(new Post(business, personal), p -> ((Post) p).user, p -> {
+            coauthorReads[0]++;
+            return ((Post) p).coauthors;
+        }, u -> 0, u -> ((User) u).accountType);
+        assertEquals("a user that says reads no coauthors", 0, coauthorReads[0]);
+    }
+
+    /** With the switch on, Home takes a collab post out when its business coauthor is the one that says. */
+    @Test
+    public void onTakesOutACollabPostFromABusiness() {
+        Settings.HIDE_FEED_PROFESSIONAL.save(true);
+        Post collab = new Post(new User(0), new User(0), new User(2));
+        assertNull(home(collab, HomeProfessionalPostsTest::professional));
+        Post friends = new Post(new User(0), new User(1));
+        assertSame(friends, home(friends, HomeProfessionalPostsTest::professional));
+    }
+
+    /** The stubs the patch fills answer 0 or null as built, so an unpatched Home keeps every post. */
     @Test
     public void asBuiltNoAuthorSays() {
         Settings.HIDE_FEED_PROFESSIONAL.save(true);
         Object post = new Object();
+        assertNull(FeedSuggestions.postUser(post));
+        assertNull(FeedSuggestions.coauthors(post));
         assertEquals(0, FeedSuggestions.professional(post));
         assertEquals(0, FeedSuggestions.accountType(post));
         Item item = new Item(FeedSuggestions.PROFESSIONAL_ACCOUNT);

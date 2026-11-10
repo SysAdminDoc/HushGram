@@ -249,39 +249,52 @@ internal class HomeFeedTypes(
 }
 
 /**
- * Hide posts from business and creator accounts (#579), found: the post's user getter, the user's
- * is_professional_account and account_type getters, and the extension's stubs reading them. Kept
- * apart from [HomeFeedTypes], so a build where an account's type moved keeps the other type switches.
+ * Hide posts from business and creator accounts (#579), found: the post's user and coauthor_producers
+ * getters, the user's is_professional_account and account_type getters, and the extension's stubs
+ * reading them. Kept apart from [HomeFeedTypes], so a build where an account's type moved keeps the
+ * other type switches.
  */
 internal class HomeProfessional(
+    private val postUserStub: MutableMethod,
+    private val coauthorsStub: MutableMethod,
     private val professionalStub: MutableMethod,
     private val accountTypeStub: MutableMethod,
     private val owner: Method,
+    private val coauthors: Method,
     private val professional: Method,
     private val accountType: Method,
 ) {
     fun write() {
+        fillPostStub(postUserStub, owner)
+        fillPostStub(coauthorsStub, coauthors)
         // FeedSuggestions.professional answers 2 for a professional account and 1 for a personal one.
         fillUserStub(professionalStub, professional, "Ljava/lang/Boolean;->booleanValue()Z", "add-int/lit8 p0, p0, 0x1")
         fillUserStub(accountTypeStub, accountType, "Ljava/lang/Integer;->intValue()I", "")
     }
 
+    /** Fills [target], a static stub taking a post, to answer the post's [getter]. */
+    private fun fillPostStub(target: MutableMethod, getter: Method) {
+        target.addInstructions(
+            0,
+            """
+                check-cast p0, $MEDIA
+                invoke-virtual { p0 }, $MEDIA->${getter.name}()${getter.returnType}
+                move-result-object p0
+                return-object p0
+            """,
+        )
+    }
+
     /**
-     * Fills [target], a static (Object)I stub taking a post, to read the post's user and answer
-     * [getter]'s boxed value through [unbox] and [then], or 0 when the post or its user doesn't say.
-     * Each way out returns on its own, so p0 never merges an object and an int at one return.
+     * Fills [target], a static (Object)I stub taking a user, to answer [getter]'s boxed value through
+     * [unbox] and [then], or 0 when the user doesn't say. Each way out returns on its own, so p0
+     * never merges an object and an int at one return.
      */
     private fun fillUserStub(target: MutableMethod, getter: Method, unbox: String, then: String) {
         target.addInstructionsWithLabels(
             0,
             """
-                check-cast p0, $MEDIA
-                invoke-virtual { p0 }, $MEDIA->${owner.name}()${owner.returnType}
-                move-result-object p0
-                if-nez p0, :user
-                const/4 p0, 0x0
-                return p0
-                :user
+                check-cast p0, $USER
                 invoke-virtual { p0 }, $USER->${getter.name}()${getter.returnType}
                 move-result-object p0
                 if-nez p0, :boxed
@@ -303,9 +316,12 @@ internal class HomeProfessional(
  */
 internal fun BytecodePatchContext.homeProfessionalOrWarn(): HomeProfessional? = try {
     HomeProfessional(
+        staticStub(FEED_SUGGESTIONS, "postUser", OBJECT),
+        staticStub(FEED_SUGGESTIONS, "coauthors", LIST_TYPE),
         staticStub(FEED_SUGGESTIONS, "professional", "I"),
         staticStub(FEED_SUGGESTIONS, "accountType", "I"),
         publicGetter(MEDIA, "user", USER),
+        publicGetter(MEDIA, "coauthor_producers", LIST_TYPE),
         publicGetter(USER, "is_professional_account", "Ljava/lang/Boolean;"),
         publicGetter(USER, "account_type", "Ljava/lang/Integer;"),
     )
@@ -404,6 +420,7 @@ internal fun BytecodePatchContext.homeFeedTypesOrWarn(): HomeFeedTypes? = try {
 
 private const val STRING = "Ljava/lang/String;"
 private const val OBJECT = "Ljava/lang/Object;"
+private const val LIST_TYPE = "Ljava/util/List;"
 
 /** The extension's static (Object) stub [name] on [owner], answering [returns], which the patch fills. */
 internal fun BytecodePatchContext.staticStub(owner: String, name: String, returns: String): MutableMethod =

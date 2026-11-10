@@ -793,8 +793,8 @@ public final class FeedSuggestions {
 
     /**
      * [item], or null while Hide posts from business and creator accounts is on and its post's author is
-     * one (#579). Favorites keeps them, since it only holds accounts you picked. A post whose author
-     * doesn't say, or an item with no post, stays.
+     * one, or its author doesn't say and a coauthor is (#579). Favorites keeps them, since it only
+     * holds accounts you picked. A post whose authors don't say, or an item with no post, stays.
      */
     private static Object byProfessional(Object item, ToIntFunction<Object> professionalOf) {
         try {
@@ -803,6 +803,12 @@ public final class FeedSuggestions {
             int said = professionalOf.applyAsInt(item);
             FeedFilterCounters.sawKind(TYPES_ROUTE, said == PROFESSIONAL_ACCOUNT ? PROFESSIONAL
                     : said == PERSONAL ? "personal" : "account unsaid");
+            if (said == UNSAID) {
+                boolean post = homePost(item) != null;
+                String kind = item == null ? "nothing" : item.getClass().getName();
+                Logger.printDebug(() -> "Feed suggestions: kept a Home item (" + kind + (post ? ", a post" : ", no post")
+                        + ") whose authors don't say whether they're business or creator accounts");
+            }
             if (said != PROFESSIONAL_ACCOUNT) return item;
             FeedFilterCounters.removed(TYPES_ROUTE, 1, PROFESSIONAL);
             HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, PROFESSIONAL_REMOVED);
@@ -816,20 +822,45 @@ public final class FeedSuggestions {
     }
 
     /**
-     * Whether the author of the post {@link #homePost} finds in [item] is a business or creator
-     * account: {@link #PROFESSIONAL_ACCOUNT}, {@link #PERSONAL}, or {@link #UNSAID} without a post or
-     * when the author says neither. Read from the author's is_professional_account, else from its
-     * account_type, where 2 is a business and 3 a creator.
+     * Whether the post {@link #homePost} finds in [item] is from a business or creator account:
+     * {@link #PROFESSIONAL_ACCOUNT}, {@link #PERSONAL}, or {@link #UNSAID} without a post or when no
+     * author says. See {@link #postProfessional}.
      */
     static int itemProfessional(Object item) {
-        return postProfessional(homePost(item), FeedSuggestions::professional, FeedSuggestions::accountType);
+        return postProfessional(homePost(item), FeedSuggestions::postUser, FeedSuggestions::coauthors,
+                FeedSuggestions::professional, FeedSuggestions::accountType);
     }
 
-    static int postProfessional(Object post, ToIntFunction<Object> professionalOf, ToIntFunction<Object> accountTypeOf) {
+    /**
+     * The post's user answers when it says. Instagram often sends a collab post's user as a bare
+     * record, the account you follow among its coauthors with the whole one ("bbcnews and 2 others"
+     * under a regional page), so when the user doesn't say, a business or creator coauthor makes it
+     * one, and a personal coauthor makes it personal.
+     */
+    static int postProfessional(Object post, Function<Object, Object> userOf, Function<Object, List<?>> coauthorsOf,
+            ToIntFunction<Object> professionalOf, ToIntFunction<Object> accountTypeOf) {
         if (post == null) return UNSAID;
-        int said = professionalOf.applyAsInt(post);
+        int said = userProfessional(userOf.apply(post), professionalOf, accountTypeOf);
+        if (said != UNSAID) return said;
+        List<?> coauthors = coauthorsOf.apply(post);
+        if (coauthors == null) return UNSAID;
+        for (Object coauthor : coauthors) {
+            int coauthorSaid = userProfessional(coauthor, professionalOf, accountTypeOf);
+            if (coauthorSaid == PROFESSIONAL_ACCOUNT) return PROFESSIONAL_ACCOUNT;
+            if (coauthorSaid == PERSONAL) said = PERSONAL;
+        }
+        return said;
+    }
+
+    /**
+     * Whether [user] is a business or creator account, read from its is_professional_account, else
+     * from its account_type, where 2 is a business and 3 a creator.
+     */
+    static int userProfessional(Object user, ToIntFunction<Object> professionalOf, ToIntFunction<Object> accountTypeOf) {
+        if (user == null) return UNSAID;
+        int said = professionalOf.applyAsInt(user);
         if (said == PERSONAL || said == PROFESSIONAL_ACCOUNT) return said;
-        int type = accountTypeOf.applyAsInt(post);
+        int type = accountTypeOf.applyAsInt(user);
         return type == 2 || type == 3 ? PROFESSIONAL_ACCOUNT : type == 1 ? PERSONAL : UNSAID;
     }
 
@@ -929,21 +960,33 @@ public final class FeedSuggestions {
         return 0;
     }
 
+    /** A post's user, or null. The patch writes the body, which reads it. Null as built. */
+    public static Object postUser(Object post) {
+        return null;
+    }
+
     /**
-     * Whether a post's author is a business or creator account: 2 when its is_professional_account
-     * says so, 1 when it says not, and 0 when the post has no author or the author doesn't say. The
-     * patch writes the body, which reads the post's user and that flag. 0 as built.
+     * A post's coauthors (coauthor_producers, the other accounts on a collab post), or null. The
+     * patch writes the body, which reads them. Null as built.
      */
-    public static int professional(Object post) {
+    public static List<?> coauthors(Object post) {
+        return null;
+    }
+
+    /**
+     * Whether a user is a business or creator account: 2 when its is_professional_account says so,
+     * 1 when it says not, and 0 when it doesn't say. The patch writes the body, which reads that
+     * flag. 0 as built.
+     */
+    public static int professional(Object user) {
         return 0;
     }
 
     /**
-     * The account_type of a post's author, 1 for a personal account, 2 for a business and 3 for a
-     * creator, and 0 when the post has no author or the author doesn't say. The patch writes the
-     * body, which reads the post's user and that field. 0 as built.
+     * A user's account_type, 1 for a personal account, 2 for a business and 3 for a creator, and 0
+     * when it doesn't say. The patch writes the body, which reads that field. 0 as built.
      */
-    public static int accountType(Object post) {
+    public static int accountType(Object user) {
         return 0;
     }
 
