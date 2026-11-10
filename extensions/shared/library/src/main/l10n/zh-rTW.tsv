@@ -1384,6 +1384,8 @@ Show all recent searches	顯示所有最近搜尋
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	在搜尋列下方列出所有最近搜尋，而非僅前幾筆。「查看全部」與每列的 x 仍可照常使用。
 Hide the call buttons in chats	隱藏聊天中的通話按鈕
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	移除聊天頂端的語音與視訊通話按鈕，名稱仍保有顯示空間。關閉後，下次開啟聊天就會恢復。
+Hide the Community Standards reminder	隱藏社群守則提醒
+Takes the banner reminding you to be respectful off the bottom of a chat.	移除聊天底部提醒你保持尊重的橫幅。
 Buttons in the message box	訊息輸入框按鈕
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	訊息輸入框中的所有按鈕皆會顯示。取消勾選用不到的按鈕，文字輸入框與傳送按鈕一律保留。
 Left off the message box: %1$s. The text box and Send stay.	訊息輸入框中已隱藏：%1$s。文字輸入框與傳送按鈕仍會保留。

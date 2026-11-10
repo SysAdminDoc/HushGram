@@ -1396,6 +1396,8 @@ Show all recent searches	Tampilkan semua pencarian terbaru
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Menampilkan semua pencarian terbaru di bawah kolom pencarian, bukan hanya beberapa yang pertama. Lihat semua dan tanda x di tiap baris tetap berfungsi seperti biasa.
 Hide the call buttons in chats	Sembunyikan tombol panggilan di chat
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	Menghapus tombol panggilan suara dan video dari bagian atas chat. Nama tetap punya ruangnya. Matikan, dan tombolnya kembali saat chat dibuka lagi.
+Hide the Community Standards reminder	Sembunyikan pengingat Standar Komunitas
+Takes the banner reminding you to be respectful off the bottom of a chat.	Menghapus banner di bagian bawah chat yang mengingatkanmu untuk bersikap sopan.
 Buttons in the message box	Tombol di kotak pesan
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Semua tombol di kotak pesan ditampilkan. Hapus centang pada yang tidak kamu pakai. Kotak teks dan Kirim selalu tetap ada.
 Left off the message box: %1$s. The text box and Send stay.	Dihilangkan dari kotak pesan: %1$s. Kotak teks dan Kirim tetap ada.

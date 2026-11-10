@@ -953,6 +953,12 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_CALL_BUTTONS = new BooleanSetting("hushgram_hide_call_buttons", FALSE);
 
     /**
+     * The banner reminding you to be respectful stays off the bottom of a chat
+     * ({@link app.hushgram.extension.instagram.direct.KindnessReminder}, #588). Off to start.
+     */
+    public static final BooleanSetting HIDE_KINDNESS_REMINDER = new BooleanSetting("hushgram_hide_kindness_reminder", FALSE);
+
+    /**
      * Who can ring your phone with an Instagram call
      * ({@link app.hushgram.extension.instagram.direct.CallBlocker}, #578). Everyone to start.
      */

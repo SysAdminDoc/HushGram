@@ -657,6 +657,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Hide the Community Standards reminder patch. */
+    public static boolean kindnessReminder() {
+        return false;
+    }
+
     /** Rewritten by the Call blocker patch. */
     public static boolean callBlocker() {
         return false;

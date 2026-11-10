@@ -1396,6 +1396,8 @@ Show all recent searches	Mostrar todas as pesquisas recentes
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Lista todas as pesquisas recentes abaixo da barra de pesquisa, e não só as primeiras. Ver tudo e o x de cada linha funcionam como antes.
 Hide the call buttons in chats	Ocultar os botões de chamada nas conversas
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	Tira os botões de chamada de voz e de vídeo do topo de uma conversa. O nome mantém o seu espaço. Se você desativar, eles voltam na próxima vez que abrir uma conversa.
+Hide the Community Standards reminder	Ocultar o lembrete dos Padrões da Comunidade
+Takes the banner reminding you to be respectful off the bottom of a chat.	Remove da parte de baixo da conversa o aviso que lembra você de ser respeitoso.
 Buttons in the message box	Botões da caixa de mensagem
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Todos os botões da caixa de mensagem aparecem. Desmarque os que você não usa. A caixa de texto e o Enviar sempre ficam.
 Left off the message box: %1$s. The text box and Send stay.	Fora da caixa de mensagem: %1$s. A caixa de texto e o Enviar ficam.

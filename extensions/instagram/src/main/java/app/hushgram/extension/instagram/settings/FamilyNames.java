@@ -178,6 +178,7 @@ public final class FamilyNames {
     public static final String CHAT_HISTORY = "Chat history tools";
     public static final String PREVIEW_CHATS = "Preview chats";
     public static final String ASK_BEFORE_CALL = "Ask before a call";
+    public static final String KINDNESS_REMINDER = "Hide the Community Standards reminder";
     public static final String CALL_BLOCKER = "Call blocker";
     public static final String MESSAGE_BOX = "Message box buttons";
     public static final String PLUS_MENU = "Chat plus menu";

@@ -300,6 +300,12 @@ start-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z 
 shared-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z in instance (JLjava/lang/String;Ljava/util/List;)V class-holding ScreenshotDetectorByContent Started\snew\sscreenshot\ssession
 start-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z in static (L*;Ljava/lang/String;Ljava/util/List;)V pooled holding Reporting\sscreenshot:\s%s\s->\s%s
 shared-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z in static (L*;Ljava/lang/String;Ljava/util/List;)V pooled holding Reporting\sscreenshot:\s%s\s->\s%s
+# Hide the Community Standards reminder hands KindnessReminder the boolean first in the one callback
+# loading direct_kindness_reminder, and the count a public chat reads just before it compares it.
+# Left out, the banner comes back in that kind of chat.
+start-call Lapp/hushgram/extension/instagram/direct/KindnessReminder;->mayShow(I)I in instance (Z)V pooled holding direct_kindness_reminder
+once-call Lapp/hushgram/extension/instagram/direct/KindnessReminder;->mayShow(I)I in instance (Z)V pooled holding direct_kindness_reminder
+once-call Lapp/hushgram/extension/instagram/direct/KindnessReminder;->timesShown(I)I in instance ()V pooled holding kindness_reminder_public_chat_shown
 # Don't report Blend visits asks BlendVisits.quiet() first in the static request for a Blend's reels
 # (the one method loading clips/get_blend_medias/), handing it the boolean Instagram sends as
 # force_disable_visitation_xma. Left out, opening a Blend posts the visit message in its chat; twice

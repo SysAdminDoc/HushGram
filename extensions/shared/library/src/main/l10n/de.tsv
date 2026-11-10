@@ -1396,6 +1396,8 @@ Show all recent searches	Alle letzten Suchen anzeigen
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Zeigt unter der Suchleiste alle letzten Suchen, nicht nur die ersten paar. „Alle ansehen“ und das x an jeder Zeile funktionieren wie vorher.
 Hide the call buttons in chats	Anruf-Buttons in Chats ausblenden
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	Nimmt die Sprach- und Videoanruf-Buttons oben aus einem Chat. Der Name behält seinen Platz. Wenn du es ausschaltest, sind sie beim nächsten Öffnen eines Chats wieder da.
+Hide the Community Standards reminder	Community-Standards-Hinweis ausblenden
+Takes the banner reminding you to be respectful off the bottom of a chat.	Entfernt das Banner unten im Chat, das dich daran erinnert, respektvoll zu sein.
 Buttons in the message box	Schaltflächen im Nachrichtenfeld
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Alle Schaltflächen im Nachrichtenfeld werden angezeigt. Entferne das Häkchen bei denen, die du nicht brauchst. Das Textfeld und Senden bleiben immer.
 Left off the message box: %1$s. The text box and Send stay.	Aus dem Nachrichtenfeld entfernt: %1$s. Das Textfeld und Senden bleiben.

@@ -1396,6 +1396,8 @@ Show all recent searches	Tüm son aramaları göster
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Arama çubuğunun altında yalnızca ilk birkaçını değil, tüm son aramaları listeler. Tümünü gör ve her satırdaki x eskisi gibi çalışır.
 Hide the call buttons in chats	Sohbetlerdeki arama düğmelerini gizle
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	Sohbetin üstündeki sesli ve görüntülü arama düğmelerini kaldırır. İsim yerini korur. Kapatırsan düğmeler sohbeti bir sonraki açışında geri gelir.
+Hide the Community Standards reminder	Topluluk Standartları hatırlatıcısını gizle
+Takes the banner reminding you to be respectful off the bottom of a chat.	Sohbetin altındaki saygılı olmanı hatırlatan afişi kaldırır.
 Buttons in the message box	Mesaj kutusundaki düğmeler
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Mesaj kutusundaki tüm düğmeler görünür. Kullanmadıklarının işaretini kaldır. Metin kutusu ve Gönder her zaman kalır.
 Left off the message box: %1$s. The text box and Send stay.	Mesaj kutusundan çıkarılanlar: %1$s. Metin kutusu ve Gönder kalır.

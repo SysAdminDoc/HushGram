@@ -47,6 +47,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.PREVIEW_CHATS)
                 || build.contains(PatchFamily.ASK_BEFORE_CALL)
                 || build.contains(PatchFamily.CALL_BLOCKER)
+                || build.contains(PatchFamily.KINDNESS_REMINDER)
                 || build.contains(PatchFamily.MESSAGE_BOX)
                 || build.contains(PatchFamily.PLUS_MENU)
                 || build.contains(PatchFamily.GLASS_CHAT)
@@ -203,6 +204,10 @@ final class MessagesCategory {
             if (build.contains(PatchFamily.CALL_BLOCKER)) {
                 messages.addPreference(callBlockModeRow(context));
                 messages.addPreference(callBlockAccountsRow(context));
+            }
+            if (build.contains(PatchFamily.KINDNESS_REMINDER)) {
+                messages.addPreference(toggle(context, Settings.HIDE_KINDNESS_REMINDER, L10n.t("Hide the Community Standards reminder"),
+                        L10n.t("Takes the banner reminding you to be respectful off the bottom of a chat.")));
             }
             if (build.contains(PatchFamily.MESSAGE_BOX)) {
                 messages.addPreference(page.messageBoxRow(context));

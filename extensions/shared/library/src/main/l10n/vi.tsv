@@ -1339,6 +1339,8 @@ Show all recent searches	Hiện mọi nội dung tìm gần đây
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Liệt kê mọi nội dung tìm gần đây dưới thanh tìm kiếm, không chỉ vài mục đầu. Xem tất cả và dấu x trên mỗi hàng hoạt động như trước.
 Hide the call buttons in chats	Ẩn nút gọi trong cuộc trò chuyện
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	Gỡ nút gọi thoại và gọi video khỏi đầu cuộc trò chuyện. Tên vẫn giữ chỗ. Tắt mục này thì các nút quay lại vào lần mở cuộc trò chuyện sau.
+Hide the Community Standards reminder	Ẩn lời nhắc Tiêu chuẩn cộng đồng
+Takes the banner reminding you to be respectful off the bottom of a chat.	Gỡ biểu ngữ nhắc bạn giữ lịch sự ở cuối cuộc trò chuyện.
 Buttons in the message box	Nút trong ô tin nhắn
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Mọi nút trong ô tin nhắn đều hiện. Bỏ tích những nút bạn không dùng. Ô văn bản và Gửi luôn được giữ.
 Left off the message box: %1$s. The text box and Send stay.	Đã bỏ khỏi ô tin nhắn: %1$s. Ô văn bản và Gửi vẫn giữ.

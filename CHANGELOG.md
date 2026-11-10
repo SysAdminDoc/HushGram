@@ -17,6 +17,7 @@ Every HushGram release, newest first.
 * New patch, `Search comments`. Its switch under Comments puts a search box above a post's comments. Type a word or name to jump to the next match, loading more as needed. Arrows step between matches. Unopened replies aren't searched. Asked for in #560.
 * New patch, `Split the notes row`. Its switch under Messages splits the notes row at the top of your messages into three stacks (Instants, Notes and Stories), the layout Instagram is testing on some accounts. Takes a restart. Asked for in #558.
 * New patch, `Hide Instagram Plus prompts`. Its switch under Ads and privacy takes the Try Instagram Plus card and See preview row off a chat you hold, plus other Plus offers shown the same way. Nothing from Plus turns on. Asked for in #559.
+* `Hide the Community Standards reminder` under Messages takes the "Help keep Instagram a supportive place" banner off the bottom of a chat. Asked for in #588.
 * `Who can call you` under Messages stops Instagram calls from ringing your phone: nobody, only people on your list, or everyone except them. Callers just get no answer. Asked for in #578.
 * `Hide page number` under Feed takes the number like 3/5 off the corner of a carousel post. Starts off. Asked for in #581.
 * `Hide story rows` under Feed takes out the rows of stories Instagram puts between posts on Home, like Expiring Stories. It's off until you turn it on. Asked for in #557.

@@ -1387,6 +1387,8 @@ Show all recent searches	แสดงการค้นหาล่าสุด�
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	แสดงรายการค้นหาล่าสุดทั้งหมดใต้แถบค้นหา ไม่ใช่แค่สองสามรายการแรก โดย "ดูทั้งหมด" และเครื่องหมาย x ในแต่ละแถวจะยังคงทำงานเหมือนเดิม
 Hide the call buttons in chats	ซ่อนปุ่มโทรในแชท
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	นำปุ่มโทรด้วยเสียงและวิดีโอคอลออกจากด้านบนของแชท โดยชื่อจะยังคงมีพื้นที่ตามเดิม หากปิดการตั้งค่านี้ ปุ่มจะกลับมาในครั้งต่อไปที่เปิดแชท
+Hide the Community Standards reminder	ซ่อนการแจ้งเตือนมาตรฐานชุมชน
+Takes the banner reminding you to be respectful off the bottom of a chat.	นำแบนเนอร์ที่เตือนให้คุณสุภาพออกจากด้านล่างของแชท
 Buttons in the message box	ปุ่มในกล่องข้อความ
 Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	ปุ่มทั้งหมดในกล่องข้อความจะแสดงขึ้น ยกเลิกการเลือกปุ่มที่คุณไม่ได้ใช้งาน โดยกล่องข้อความและปุ่ม "ส่ง" จะยังคงอยู่เสมอ
 Left off the message box: %1$s. The text box and Send stay.	นำออกจากกล่องข้อความ: %1$s โดยกล่องข้อความและปุ่ม "ส่ง" จะยังคงอยู่
