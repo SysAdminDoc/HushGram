@@ -390,25 +390,47 @@ public class CommentPhotoSaveTest {
         clean();
     }
 
-    /** A GIF sticker, and a GIF with no file on Meta's servers, get no Save row and fetch nothing. */
-    @Test public void aGifStickerAndAGiphyOnlyGifGetNoRow() {
-        List<?> stock = Collections.singletonList(new Object());
-        NativePhoto.selected = new Object();
-        NativePhoto.gifOnComment = true;
+    /**
+     * #623: a comment's GIF sticker gets Save too, and saves like a GIF: a .gif from Instagram's own
+     * copy in the pictures folder, with Giphy's copy never fetched.
+     */
+    @Test public void aCommentGifStickerSavesInstagramsOwnCopyAsAGif() throws Exception {
+        server.serve("/sticker.gif", "image/gif", gifBody());
         NativePhoto.gifFile = server.origin() + "/sticker.gif";
         NativePhoto.sticker = true;
-        HookStatus.clear();
-        assertSame(stock, CommentPhoto.rows(stock, NativePhoto.selected, context));
-        assertEquals(Collections.singletonList(FamilyNames.COMMENT_PHOTO
-                + ": invoked 1, 0 found, 0 missing. Counted: comment GIF 1, GIF sticker 1"), HookStatus.report());
+        Row row = gifMenu("comment GIF 1, GIF sticker 1, GIF found 1");
+        assertNull(row.callback.invoke());
+        waitForSave();
+        assertEquals(1, server.hits("/sticker.gif"));
+        if (Build.VERSION.SDK_INT == 28) {
+            List<File> saved = savedIn(legacy);
+            assertEquals(1, saved.size());
+            assertTrue(saved.get(0).getName(), saved.get(0).getName().endsWith(".gif"));
+            assertArrayEquals(gifBody(), java.nio.file.Files.readAllBytes(saved.get(0).toPath()));
+        } else {
+            assertEquals(1, gallery.rows.size());
+            ContentValues values = gallery.rows.values().iterator().next();
+            assertEquals("image/gif", values.getAsString(MediaStore.MediaColumns.MIME_TYPE));
+            assertTrue(values.getAsString(MediaStore.MediaColumns.DISPLAY_NAME).endsWith(".gif"));
+            assertArrayEquals(gifBody(), published.toByteArray());
+        }
+        clean();
+    }
 
-        NativePhoto.sticker = false;
-        NativePhoto.gifFile = null;
-        HookStatus.clear();
-        assertSame(stock, CommentPhoto.rows(stock, NativePhoto.selected, context));
-        assertEquals(Collections.singletonList(FamilyNames.COMMENT_PHOTO + ": invoked 1, 0 found, 0 missing. Counted: "
-                + "comment GIF 1, GIF refused (its host is not one of Meta's media servers) 1"), HookStatus.report());
-        assertEquals(0, server.hits("/sticker.gif"));
+    /** A GIF or a sticker with no file on Meta's servers gets no Save row and fetches nothing. */
+    @Test public void aGiphyOnlyGifOrStickerGetsNoRow() {
+        List<?> stock = Collections.singletonList(new Object());
+        for (Boolean sticker : Arrays.asList(false, true)) {
+            NativePhoto.selected = new Object();
+            NativePhoto.gifOnComment = true;
+            NativePhoto.gifFile = null;
+            NativePhoto.sticker = sticker;
+            HookStatus.clear();
+            assertSame(stock, CommentPhoto.rows(stock, NativePhoto.selected, context));
+            assertEquals(Collections.singletonList(FamilyNames.COMMENT_PHOTO + ": invoked 1, 0 found, 0 missing. Counted: "
+                    + "comment GIF 1, " + (sticker ? "GIF sticker 1, " : "")
+                    + "GIF refused (its host is not one of Meta's media servers) 1"), HookStatus.report());
+        }
         assertEquals(0, MediaSave.savesInFlight());
     }
 

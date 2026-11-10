@@ -12,7 +12,7 @@ import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 
 /**
- * Save in the common comment menu, for a photo or GIF the comment itself carries.
+ * Save in the common comment menu, for a photo, GIF or sticker the comment itself carries.
  *
  * The selected comment keeps the raw comment it was converted from, and that keeps its own
  * media_comment_info, parsed from the server's JSON or read from its tree, with the photo's Media
@@ -20,7 +20,8 @@ import app.morphe.patches.shared.compat.AppCompatibilities
  * save picks the largest without building an address. The parent post's media_info is never read.
  * A GIF comment's giphy_media_info lists Giphy's fixed_height rendition twice, Instagram's own copy
  * and Giphy's, each with a GIF, WebP and MP4 address; the bridges read those as they are, and the
- * extension keeps only the ones on Meta's servers. The row shares the renderer's one call with Copy
+ * extension keeps only the ones on Meta's servers. A sticker (is_sticker) has the same model and is
+ * saved the same way (#623); only the GIF reply leaves it out. The row shares the renderer's one call with Copy
  * comment and has its own row type, so either patch works alone or with the other.
  *
  * Its second switch, Reply with a comment's GIF (#402), adds a GIF row to a comment carrying a GIF.
@@ -36,12 +37,12 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 @Suppress("unused")
 val saveCommentPhotoPatch = bytecodePatch(
     name = "Save comment photo",
-    description = "Adds Save to the menu on a comment that has its own photo or GIF, saving the largest size " +
-        "Instagram sent. A GIF is saved as a .gif in Pictures/Instagram, taken from Instagram's own copy, not " +
-        "Giphy. If Instagram lists only an animated WebP or an MP4 for it, you get that file instead, and an MP4 " +
-        "goes in Movies/Instagram like a video. It can also add a GIF reply to a comment with a GIF, sending " +
-        "that same GIF back as your reply, or show a comment GIF's or sticker's name in that menu. Starts off. " +
-        "Turn it on in HushGram settings > Comments.",
+    description = "Adds Save to the menu you get by pressing and holding a comment that has its own photo, GIF or " +
+        "sticker, saving the largest size Instagram sent. A GIF or sticker is saved as a .gif in Pictures/Instagram, " +
+        "taken from Instagram's own copy, not Giphy. If Instagram lists only an animated WebP or an MP4 for it, " +
+        "you get that file instead, and an MP4 goes in Movies/Instagram like a video. It can also add a GIF " +
+        "reply to a comment with a GIF, sending that same GIF back as your reply, or show a comment GIF's or " +
+        "sticker's name in that menu. Starts off. Turn it on in HushGram settings > Comments.",
     default = true,
 ) {
     category("Downloads")

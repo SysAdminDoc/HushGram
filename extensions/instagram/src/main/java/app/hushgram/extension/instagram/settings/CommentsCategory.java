@@ -45,7 +45,7 @@ final class CommentsCategory {
             }
             if (build.contains(PatchFamily.COMMENT_PHOTO)) {
                 comments.addPreference(toggle(context, Settings.SAVE_COMMENT_PHOTOS, L10n.t("Save comment photo"),
-                        L10n.t("Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.")));
+                        L10n.t("Press and hold a comment that has its own photo, GIF or sticker, and its menu gets Save. Saves the largest size Instagram sent.")));
                 if (PatchFamily.commentGifReplyInBuild()) {
                     comments.addPreference(toggle(context, Settings.REPLY_WITH_COMMENT_GIFS, L10n.t("Reply with a comment's GIF"),
                             L10n.t("When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.")));

@@ -505,7 +505,7 @@ Adds Copy username to a selected comment's menu, for the account that wrote it.	
 Comment copied	คัดลอกความคิดเห็นแล้ว
 Couldn't copy comment	ไม่สามารถคัดลอกความคิดเห็นได้
 Save comment photo	บันทึกรูปภาพในความคิดเห็น
-Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	เพิ่มตัวเลือก "บันทึก" ในเมนูของความคิดเห็นที่เลือกเมื่อความคิดเห็นนั้นมีรูปภาพหรือ GIF โดยจะบันทึกขนาดที่ใหญ่ที่สุดที่ Instagram ส่งมา
+Press and hold a comment that has its own photo, GIF or sticker, and its menu gets Save. Saves the largest size Instagram sent.	กดค้างที่ความคิดเห็นที่มีรูปภาพ GIF หรือสติกเกอร์ของตัวเอง แล้วเมนูจะมีตัวเลือก "บันทึก" โดยจะบันทึกขนาดที่ใหญ่ที่สุดที่ Instagram ส่งมา
 Reply with a comment's GIF	ตอบกลับด้วย GIF ของความคิดเห็น
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	เมื่อความคิดเห็นมี GIF เมนูของความคิดเห็นนั้นจะมีตัวเลือก "ตอบกลับด้วย GIF" ซึ่งจะส่ง GIF นั้นกลับไปเป็นการตอบกลับของคุณแบบเคลื่อนไหว
 Show a comment GIF's name	แสดงชื่อ GIF ของความคิดเห็น

@@ -2454,7 +2454,7 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SELECT_TEXT =
             new BooleanSetting("hushgram_select_text", FALSE);
 
-    /** An explicit Save action for a photo the comment itself carries. Off until enabled. */
+    /** An explicit Save action for a photo, GIF or sticker the comment itself carries. Off until enabled. */
     public static final BooleanSetting SAVE_COMMENT_PHOTOS =
             new BooleanSetting("hushgram_save_comment_photos", FALSE);
 

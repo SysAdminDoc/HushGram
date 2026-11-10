@@ -257,13 +257,13 @@ public class CommentPhotoTest {
         final String name;
         final List<String> reads;
         final String counts;
-        final boolean found;
+        final boolean sticker;
         final Consumer<FakeReads> makes;
-        GifCase(String name, List<String> reads, String counts, boolean found, Consumer<FakeReads> makes) {
+        GifCase(String name, List<String> reads, String counts, boolean sticker, Consumer<FakeReads> makes) {
             this.name = name;
             this.reads = reads;
             this.counts = counts;
-            this.found = found;
+            this.sticker = sticker;
             this.makes = makes;
         }
     }
@@ -271,33 +271,33 @@ public class CommentPhotoTest {
     /**
      * A GIF the comment carries itself, or one its media carries, typed as a photo or untyped, is
      * counted where it was found and read as a GIF, never as a photo or a video. A GIF sticker, or
-     * an is_sticker that isn't plainly false, gets nothing.
+     * an is_sticker that isn't plainly false, is read the same way and counted as a sticker too (#623).
      */
-    @Test public void aGifTheCommentOrItsMediaCarriesIsReadAsAGifUnlessItsASticker() {
+    @Test public void aGifOrStickerTheCommentOrItsMediaCarriesIsReadAsAGif() {
         List<String> own = Arrays.asList("selected", "raw", "gif", "gifSticker");
         List<String> typed = Arrays.asList("selected", "raw", "gif", "info", "media", "kind", "photoKind", "mediaGif", "gifSticker");
         List<String> untyped = Arrays.asList("selected", "raw", "gif", "info", "media", "kind", "mediaGif", "gifSticker");
         List<GifCase> cases = Arrays.asList(
-                new GifCase("the comment's own GIF", own, "comment GIF 1", true, reads -> reads.gifAnswer = reads.gif),
-                new GifCase("an is_sticker of false", own, "comment GIF 1", true, reads -> {
+                new GifCase("the comment's own GIF", own, "comment GIF 1", false, reads -> reads.gifAnswer = reads.gif),
+                new GifCase("an is_sticker of false", own, "comment GIF 1", false, reads -> {
                     reads.gifAnswer = reads.gif;
                     reads.stickerAnswer = false;
                 }),
-                new GifCase("a typed media's GIF", typed, "media GIF 1", true, reads -> reads.mediaGifAnswer = reads.gif),
-                new GifCase("an untyped media's GIF, before its video", untyped, "media GIF 1", true, reads -> {
+                new GifCase("a typed media's GIF", typed, "media GIF 1", false, reads -> reads.mediaGifAnswer = reads.gif),
+                new GifCase("an untyped media's GIF, before its video", untyped, "media GIF 1", false, reads -> {
                     reads.kindAnswer = null;
                     reads.videoVersionsAnswer = Collections.singletonList(new Object());
                     reads.mediaGifAnswer = reads.gif;
                 }),
-                new GifCase("a GIF sticker", own, "comment GIF 1, GIF sticker 1", false, reads -> {
+                new GifCase("a GIF sticker", own, "comment GIF 1, GIF sticker 1", true, reads -> {
                     reads.gifAnswer = reads.gif;
                     reads.stickerAnswer = true;
                 }),
-                new GifCase("a media's GIF sticker", typed, "media GIF 1, GIF sticker 1", false, reads -> {
+                new GifCase("a media's GIF sticker", typed, "media GIF 1, GIF sticker 1", true, reads -> {
                     reads.mediaGifAnswer = reads.gif;
                     reads.stickerAnswer = true;
                 }),
-                new GifCase("an is_sticker of another type", own, "comment GIF 1, GIF sticker 1", false, reads -> {
+                new GifCase("an is_sticker of another type", own, "comment GIF 1, GIF sticker 1", true, reads -> {
                     reads.gifAnswer = reads.gif;
                     reads.stickerAnswer = "false";
                 }));
@@ -306,19 +306,68 @@ public class CommentPhotoTest {
             FakeReads reads = new FakeReads();
             gif.makes.accept(reads);
             CommentPhoto.Carried carried = CommentPhoto.carried(reads.comment, reads);
-            if (gif.found) {
-                assertNotNull(gif.name, carried);
-                assertSame(gif.name, reads.gif, carried.gif);
-                assertNull(gif.name, carried.photo);
-            } else {
-                assertNull(gif.name, carried);
-            }
+            assertNotNull(gif.name, carried);
+            assertSame(gif.name, reads.gif, carried.gif);
+            assertNull(gif.name, carried.photo);
+            assertEquals(gif.name, gif.sticker, carried.sticker);
             assertEquals(gif.name, gif.reads, reads.made);
             assertEquals(gif.name, counted(gif.counts), HookStatus.report());
         }
     }
 
-    /** #502: a sticker has a name too, so this read answers one where Save's read doesn't, and counts nothing. */
+    /**
+     * #623: a sticker comment's Save reads the sticker's files as a GIF's, Instagram's own copy on
+     * Meta's servers, and saves it as a .gif. A sticker listed only on Giphy's servers gets no Save.
+     */
+    @Test public void aStickerCommentSavesTheStickerFromInstagramsOwnCopy() {
+        HookStatus.clear();
+        FakeReads reads = new FakeReads();
+        reads.gifAnswer = reads.gif;
+        reads.stickerAnswer = true;
+        CommentPhotoDownload.Snapshot sticker = CommentPhoto.media(reads.comment, reads);
+        assertNotNull(sticker);
+        assertEquals(CommentPhotoDownload.Snapshot.Format.GIF, sticker.format);
+        assertEquals(1, sticker.sizes.size());
+        assertEquals("https://scontent.cdninstagram.com/proxied.gif", sticker.sizes.get(0).url);
+        assertEquals(200, sticker.sizes.get(0).width);
+        assertEquals(150, sticker.sizes.get(0).height);
+        assertEquals(counted("comment GIF 1, GIF sticker 1, GIF found 1"), HookStatus.report());
+
+        List<?> rows = CommentPhoto.rows(stock, sticker, context, nativeRows, save);
+        assertEquals("the sticker's menu gets Save", 2, rows.size());
+        assertNull(((Row) rows.get(1)).callback.invoke());
+        assertEquals(Collections.singletonList(CommentPhotoDownload.Snapshot.Format.GIF), formats);
+        assertEquals("https://scontent.cdninstagram.com/proxied.gif", queued.get(0).get(0).url);
+
+        HookStatus.clear();
+        FakeReads giphyOnly = new FakeReads();
+        giphyOnly.mediaGifAnswer = giphyOnly.gif;
+        giphyOnly.stickerAnswer = true;
+        giphyOnly.proxiedAnswer = null;
+        assertNull("nothing is fetched from Giphy", CommentPhoto.media(giphyOnly.comment, giphyOnly));
+        assertEquals(counted("media GIF 1, GIF sticker 1, GIF refused (its host is not one of Meta's media servers) 1"),
+                HookStatus.report());
+    }
+
+    /** A GIF reply sends a GIF back, never a sticker, and its read counts nothing: Save's read did. */
+    @Test public void theGifReplyReadLeavesAStickerOut() {
+        HookStatus.clear();
+        FakeReads gif = new FakeReads();
+        gif.gifAnswer = gif.gif;
+        assertSame(gif.gif, CommentPhoto.gif(gif.comment, gif));
+        FakeReads sticker = new FakeReads();
+        sticker.gifAnswer = sticker.gif;
+        sticker.stickerAnswer = true;
+        assertNull(CommentPhoto.gif(sticker.comment, sticker));
+        assertTrue(sticker.made.contains("gifSticker"));
+        FakeReads mediaSticker = new FakeReads();
+        mediaSticker.mediaGifAnswer = mediaSticker.gif;
+        mediaSticker.stickerAnswer = "yes";
+        assertNull(CommentPhoto.gif(mediaSticker.comment, mediaSticker));
+        assertTrue("nothing counted: " + HookStatus.report(), HookStatus.report().isEmpty());
+    }
+
+    /** #502: a sticker has a name too, so this read answers one, never testing is_sticker, and counts nothing. */
     @Test public void theNameReadAnswersAnyGifOrStickerTheCommentCarries() {
         HookStatus.clear();
         FakeReads sticker = new FakeReads();

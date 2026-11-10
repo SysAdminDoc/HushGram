@@ -17,7 +17,7 @@ import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
-/** An explicit Save action in the selected comment's native menu, for the comment's own photo or GIF. */
+/** An explicit Save action in the selected comment's native menu, for the comment's own photo, GIF or sticker. */
 public final class CommentPhoto {
     private CommentPhoto() {}
 
@@ -97,6 +97,7 @@ public final class CommentPhoto {
     static final String NO_KIND_VIDEO = "no media_type, has video";
     /** The comment's media carries a GIF, read next as a GIF. */
     static final String MEDIA_GIF = "media GIF";
+    /** The GIF is a sticker. Save reads it as a GIF all the same (#623), and a GIF reply leaves it out. */
     static final String GIF_STICKER = "GIF sticker";
     /**
      * Instagram's media types are single digits (1 photo, 2 video, 8 carousel). Anything else shares
@@ -105,12 +106,7 @@ public final class CommentPhoto {
     private static final int KINDS_NAMED = 10;
 
     private static final NativeRows NATIVE = new NativeRows() {
-        public CommentPhotoDownload.Snapshot media(Object comment) {
-            Carried carried = carried(comment, READS);
-            if (carried == null) return null;
-            if (carried.gif != null) return CommentPhotoDownload.gif(gifFiles(carried.gif, READS));
-            return CommentPhotoDownload.Snapshot.photo(CommentPhotoDownload.snapshot(carried.photo));
-        }
+        public CommentPhotoDownload.Snapshot media(Object comment) { return CommentPhoto.media(comment, READS); }
         public PostDetails details(Object comment) { return CommentPhoto.details(comment, READS); }
         public Object row(Object callback) { return CommentPhotoNative.newRow(callback); }
         public Object callback(Object row) { return CommentPhotoNative.callback(row); }
@@ -189,22 +185,37 @@ public final class CommentPhoto {
         return PostDetails.of(null, author, written);
     }
 
-    /** What the selected comment carries of its own: the Media of a still photo, or a GIF. */
+    /** What the selected comment carries of its own: the Media of a still photo, or a GIF or sticker. */
     static final class Carried {
         final Object photo;
         final Object gif;
+        /** Whether [gif] is a sticker: saved like any GIF, but never sent back as a GIF reply. */
+        final boolean sticker;
 
-        private Carried(Object photo, Object gif) {
+        private Carried(Object photo, Object gif, boolean sticker) {
             this.photo = photo;
             this.gif = gif;
+            this.sticker = sticker;
         }
     }
 
     /**
+     * What [comment]'s Save row would save: its own photo's sizes, or its GIF's or sticker's files
+     * on Meta's servers. Null when it carries neither or none of them can be saved, counted by why.
+     */
+    static CommentPhotoDownload.Snapshot media(Object comment, PhotoReads reads) {
+        Carried carried = carried(comment, reads);
+        if (carried == null) return null;
+        if (carried.gif != null) return CommentPhotoDownload.gif(gifFiles(carried.gif, reads));
+        return CommentPhotoDownload.Snapshot.photo(CommentPhotoDownload.snapshot(carried.photo));
+    }
+
+    /**
      * What the selected comment carries of its own, or null for anything else: another object, a
-     * comment with no media, a video, a GIF sticker. Each null is counted under the step that found
-     * nothing, so a report from a phone says where a comment's read stopped. A GIF, the comment's
-     * own or its media's, is counted where it was found and goes on to be read as a GIF.
+     * comment with no media, a video. Each null is counted under the step that found nothing, so a
+     * report from a phone says where a comment's read stopped. A GIF, the comment's own or its
+     * media's, is counted where it was found and goes on to be read as a GIF, and so does a sticker,
+     * counted as one as well (#623).
      *
      * <p>The server leaves media_type out of a comment's own media. Without it, the media passes as
      * a still photo only with no GIF and no video, counted either way, and the sizes read then
@@ -214,15 +225,23 @@ public final class CommentPhoto {
         return carried(comment, reads, true);
     }
 
-    /** The selected comment's own GIF, or null, read without counting: Save's read already counted it. */
+    /**
+     * The selected comment's own GIF, or null, read without counting: Save's read already counted it.
+     * A sticker is null here, since a GIF reply sends a GIF and never a sticker.
+     */
     static Object gif(Object comment) {
-        Carried carried = carried(comment, READS, false);
-        return carried == null ? null : carried.gif;
+        return gif(comment, READS);
+    }
+
+    /** {@link #gif(Object)} through [reads]. */
+    static Object gif(Object comment, PhotoReads reads) {
+        Carried carried = carried(comment, reads, false);
+        return carried == null || carried.sticker ? null : carried.gif;
     }
 
     /**
-     * The selected comment's own GIF or sticker, or null, read without counting. {@link #carried}
-     * keeps a sticker out because Save can't use one, but a sticker has a name like any GIF (#502).
+     * The selected comment's own GIF or sticker, or null, read without counting, for its name
+     * (#502). Unlike {@link #carried} it reads a media's GIF whatever the media's type.
      */
     static Object gifOrSticker(Object comment, PhotoReads reads) {
         if (!reads.selected(comment)) return null;
@@ -257,7 +276,7 @@ public final class CommentPhoto {
             if (mediaGif != null) return gif(mediaGif, MEDIA_GIF, reads, count);
             if (hasVideo(reads, media)) return refused(NO_KIND_VIDEO, count);
             if (count) HookStatus.counted(FamilyNames.COMMENT_PHOTO, NO_KIND_STILL);
-            return new Carried(media, null);
+            return new Carried(media, null, false);
         }
         int value = kind instanceof Integer ? (Integer) kind : -1;
         if (value != reads.photoKind()) {
@@ -265,18 +284,19 @@ public final class CommentPhoto {
         }
         Object mediaGif = reads.mediaGif(media);
         if (mediaGif != null) return gif(mediaGif, MEDIA_GIF, reads, count);
-        return new Carried(media, null);
+        return new Carried(media, null, false);
     }
 
     /**
-     * [gif], counted at [where] it was found, unless it's a sticker: an is_sticker of anything but
-     * false or nothing keeps it out, counted as one.
+     * [gif], counted at [where] it was found. An is_sticker of anything but false or nothing marks
+     * it a sticker, counted as one too. Its files are read the same way as a GIF's.
      */
     private static Carried gif(Object gif, String where, PhotoReads reads, boolean count) {
         if (count) HookStatus.counted(FamilyNames.COMMENT_PHOTO, where);
-        Object sticker = reads.gifSticker(gif);
-        if (sticker != null && !Boolean.FALSE.equals(sticker)) return refused(GIF_STICKER, count);
-        return new Carried(null, gif);
+        Object flag = reads.gifSticker(gif);
+        boolean sticker = flag != null && !Boolean.FALSE.equals(flag);
+        if (sticker && count) HookStatus.counted(FamilyNames.COMMENT_PHOTO, GIF_STICKER);
+        return new Carried(null, gif, sticker);
     }
 
     /**
