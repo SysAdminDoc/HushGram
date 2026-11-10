@@ -138,7 +138,8 @@ final class StoriesCategory {
         if (build.contains(PatchFamily.STORY_LOOP)) {
             stories.add(toggle(context, Settings.LOOP_STORIES, L10n.t("Loop a story"),
                     L10n.t("A story plays again from the start when it ends, until you tap or swipe to move on. "
-                            + "Ads still move on. With Stop Story auto-advance on too, stories loop.")));
+                            + "Ads still move on. With Stop Story auto-advance on too, stories loop.") + " "
+                            + L10n.t("To loop one story, tap Loop this story in its menu.")));
         }
         if (build.contains(PatchFamily.STORY_SOUND)) {
             stories.add(toggle(context, Settings.START_STORIES_WITH_SOUND, L10n.t("Start stories with sound"),

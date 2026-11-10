@@ -1989,3 +1989,11 @@ This video plays once	วิดีโอนี้จะเล่นครั้�
 Loop didn't change	ไม่ได้เปลี่ยนการเล่นซ้ำ
 # context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
 To loop one video anyway, tap Loop this video in its menu.	หากต้องการเล่นวิดีโอเดียวซ้ำ ให้แตะ เล่นวิดีโอนี้ซ้ำ ในเมนูของวิดีโอนั้น
+# context: row in a story's three-dot menu while Loop a story is off; makes only the story on screen play again from the start when it ends (#610)
+Loop this story	เล่นสตอรี่นี้ซ้ำ
+Stop looping this story	หยุดเล่นสตอรี่นี้ซ้ำ
+# context: toasts after tapping Loop this story or Stop looping this story (#610)
+Looping this story	กำลังเล่นสตอรี่นี้ซ้ำ
+This story plays once	สตอรี่นี้จะเล่นครั้งเดียว
+# context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
+To loop one story, tap Loop this story in its menu.	หากต้องการเล่นสตอรี่เดียวซ้ำ ให้แตะ เล่นสตอรี่นี้ซ้ำ ในเมนูของสตอรี่นั้น

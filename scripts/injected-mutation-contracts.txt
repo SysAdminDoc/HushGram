@@ -781,6 +781,11 @@ once-call Lapp/hushgram/extension/instagram/direct/LastActive;->exact(J)Ljava/la
 # on 452, A1U on 454). Left out, a finished story moves on; twice or elsewhere, it isn't the answer the patch
 # wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoryLoop;->loop(I)Z in instance (Lcom/instagram/model/reels/ReelItem;)Z holding const:0x810f9f00015620
+# Loop this story (#610) has the same check tell asking() which story item it's about, first thing,
+# so loop() can say yes for one story looped from its menu. Left out, Loop this story loops nothing;
+# twice or elsewhere, it isn't the item the patch handed on.
+start-call Lapp/hushgram/extension/instagram/stories/StoryLoop;->asking(Ljava/lang/Object;)V in instance (Lcom/instagram/model/reels/ReelItem;)Z holding const:0x810f9f00015620
+once-call Lapp/hushgram/extension/instagram/stories/StoryLoop;->asking(Ljava/lang/Object;)V in instance (Lcom/instagram/model/reels/ReelItem;)Z holding const:0x810f9f00015620
 # Smooth story opening passes the story viewer animator's spring stiffness and damping ratio
 # through stiffness() and damping() right before its constructor sets them (#409). The constructor
 # holds no string, so the rules name the class by the reveal it logs and pick the constructor by

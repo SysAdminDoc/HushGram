@@ -18,6 +18,7 @@ import java.util.Set;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.stories.StoryLoop;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -43,6 +44,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *       quality, a photo at its largest size. Download as photo saves the picture even when the
  *       story has a video. Any other label goes on to Instagram.
  * </ul>
+ *
+ * <p>With Loop a story in the build and its switch off, the menu also gets Loop this story last,
+ * whatever the Download switch says, and a tap on it loops that story through {@link StoryLoop}
+ * (#610). The row reads Stop looping this story once it loops.
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with the switch
  * off, or when something throws, the menu is Instagram's own.
@@ -115,18 +120,28 @@ public final class StoryDownload {
     /**
      * The labels [labels] of a story's menu, with HushGram's rows at the end when the switch is on:
      * Download, Download as video and Download as photo for a photo story with music, or Download
-     * and Download as photo for a filmed video. A menu that has the rows already is left alone.
-     * Never throws.
+     * and Download as photo for a filmed video. Loop this story goes last when the story gets it
+     * ({@link #loopLabel}). A menu that has the rows already is left alone. Never throws.
      */
     public static CharSequence[] labels(CharSequence[] labels) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
-            if (labels == null || !on()) return labels;
-            return labels(labels, rows(building.get()));
+            if (labels == null) return labels;
+            Object menu = building.get();
+            return withLoop(on() ? labels(labels, rows(menu)) : labels, menu);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return labels;
         }
+    }
+
+    /** [labels] with Loop this story at the end when the story [menu] is open on gets it. */
+    private static CharSequence[] withLoop(CharSequence[] labels, Object menu) {
+        String loop = loopLabel(menu);
+        if (loop == null || hasLoop(Arrays.asList(labels))) return labels;
+        CharSequence[] more = Arrays.copyOf(labels, labels.length + 1);
+        more[labels.length] = loop;
+        return more;
     }
 
     static CharSequence[] labels(CharSequence[] labels, Rows which) {
@@ -148,15 +163,60 @@ public final class StoryDownload {
     public static void labelList(List<Object> labels) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
-            if (labels == null || !on()) return;
-            CharSequence[] more = labels(new CharSequence[0], rows(building.get()));
-            for (Object label : labels) {
-                if (label instanceof CharSequence && more[0].toString().contentEquals((CharSequence) label)) return;
-            }
-            labels.addAll(Arrays.asList(more));
+            if (labels == null) return;
+            Object menu = building.get();
+            if (on()) addRows(labels, labels(new CharSequence[0], rows(menu)));
+            String loop = loopLabel(menu);
+            if (loop != null && !hasLoop(labels)) labels.add(loop);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
         }
+    }
+
+    /** Adds [more], HushGram's Download rows, to [labels] unless its first row is there already. */
+    private static void addRows(List<Object> labels, CharSequence[] more) {
+        for (Object label : labels) {
+            if (label instanceof CharSequence && more[0].toString().contentEquals((CharSequence) label)) return;
+        }
+        labels.addAll(Arrays.asList(more));
+    }
+
+    /**
+     * Loop this story, or Stop looping this story once it loops, for the story [menu] is open on,
+     * or null when its menu doesn't get the row: Loop a story isn't in the build, its switch is on,
+     * or the story has no media ID.
+     */
+    @Nullable
+    static String loopLabel(Object menu) {
+        if (menu == null || !StoryLoop.offersRow()) return null;
+        Object media = InstagramMedia.storyMedia(menu);
+        if (InstagramMedia.mediaId(media) == null) return null;
+        Context context = Utils.getContext();
+        return StoryLoop.looping(media) ? L10n.t(context, "Stop looping this story") : L10n.t(context, "Loop this story");
+    }
+
+    /** Whether [labels] has Loop this story or Stop looping this story already. */
+    private static boolean hasLoop(List<?> labels) {
+        for (Object label : labels) {
+            if (label instanceof CharSequence && isLoop((CharSequence) label)) return true;
+        }
+        return false;
+    }
+
+    /** Whether [label] is Loop this story or Stop looping this story, however the menu styled it. */
+    private static boolean isLoop(CharSequence label) {
+        Context context = Utils.getContext();
+        return L10n.t(context, "Loop this story").contentEquals(label)
+                || L10n.t(context, "Stop looping this story").contentEquals(label);
+    }
+
+    /** Loops the story [menu] is open on, or takes its loop off, and says which. */
+    private static void toggleLoop(Object menu) {
+        Context context = Utils.getContext().getApplicationContext();
+        Boolean loops = StoryLoop.toggle(InstagramMedia.storyMedia(menu));
+        String said = loops == null ? L10n.t(context, "Loop didn't change")
+                : loops ? L10n.t(context, "Looping this story") : L10n.t(context, "This story plays once");
+        Feedback.show(context, said, false);
     }
 
     /**
@@ -192,11 +252,17 @@ public final class StoryDownload {
     /**
      * Saves the story [menu] is open on when [label], the tapped one, is one of HushGram's rows and
      * the switch is on, and answers whether it did, in which case Instagram's handler is skipped. A
-     * save that can't start says so. Never throws.
+     * save that can't start says so. Loop this story loops the story instead, or takes its loop off.
+     * Never throws.
      */
     public static boolean save(CharSequence label, Object menu) {
         try {
-            if (label == null || !on()) return false;
+            if (label == null) return false;
+            if (StoryLoop.offersRow() && isLoop(label)) {
+                toggleLoop(menu);
+                return true;
+            }
+            if (!on()) return false;
             Choice choice = choice(label);
             if (choice == null) return false;
             start(choice, InstagramMedia.storyMedia(menu));

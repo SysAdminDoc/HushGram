@@ -4,7 +4,9 @@
  */
 package app.hushgram.extension.instagram.stories;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
@@ -14,7 +16,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 
+import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -41,6 +46,7 @@ public class StoryLoopTest {
 
     @After
     public void restore() {
+        StoryLoop.forget();
         StoryLoop.inBuildForTests = null;
         Settings.LOOP_STORIES.resetToDefault();
         Settings.BLOCK_STORY_AUTO_ADVANCE.resetToDefault();
@@ -170,6 +176,114 @@ public class StoryLoopTest {
         assertTrue(StoryAdvance.hold());
         assertFalse(StoryAdvance.holdUnlessItLoops());
         assertTrue(held(CANT_LOOP));
+    }
+
+    /**
+     * #610: with the switch off, Loop this story loops just the story it was tapped on. The check
+     * tells which item it's asking about first, and only a looped one gets the yes. A second tap
+     * takes the loop off. Paused, nothing loops but what Instagram loops itself.
+     */
+    @Test
+    @Config(shadows = Media.class)
+    public void oneStoryLoopsFromItsMenu() {
+        Settings.LOOP_STORIES.save(false);
+        assertTrue(StoryLoop.offersRow());
+        assertEquals(Boolean.TRUE, StoryLoop.toggle("111_1"));
+        assertTrue(StoryLoop.looping("111_1"));
+        assertFalse(StoryLoop.looping("222_2"));
+
+        Item looped = new Item("111_1");
+        Item other = new Item("222_2");
+        StoryLoop.asking(looped);
+        assertTrue("the looped story", StoryLoop.loop(0));
+        StoryLoop.asking(other);
+        assertFalse("another story", StoryLoop.loop(0));
+        assertTrue("another story, Instagram's own yes", StoryLoop.loop(1));
+        StoryLoop.asking(null);
+        assertFalse("no item", StoryLoop.loop(0));
+
+        StoryLoop.asking(looped);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", StoryLoop.loop(0));
+        assertFalse("paused, no row", StoryLoop.offersRow());
+        assertNull("paused, nothing changes", StoryLoop.toggle("111_1"));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue("resumed", StoryLoop.loop(0));
+
+        assertEquals(Boolean.FALSE, StoryLoop.toggle("111_1"));
+        assertFalse(StoryLoop.looping("111_1"));
+        assertFalse("loop taken off", StoryLoop.loop(0));
+        String report = String.valueOf(HookStatus.report());
+        assertTrue(report, report.contains(StoryLoop.LOOPED) && report.contains(StoryLoop.UNLOOPED));
+    }
+
+    /** With the switch on, without the patch, or for a story with no media ID, there's no row and nothing changes. */
+    @Test
+    @Config(shadows = Media.class)
+    public void noRowWithTheSwitchOnOrWithoutAnId() {
+        assertFalse("every story loops already", StoryLoop.offersRow());
+        assertNull(StoryLoop.toggle("111_1"));
+
+        Settings.LOOP_STORIES.save(false);
+        assertNull("no media", StoryLoop.toggle(null));
+        assertNull("a blank ID", StoryLoop.toggle("  "));
+        assertFalse(StoryLoop.looping(null));
+
+        StoryLoop.inBuildForTests = false;
+        assertFalse("without the patch", StoryLoop.offersRow());
+        assertNull(StoryLoop.toggle("111_1"));
+    }
+
+    /**
+     * With Stop Story auto-advance on and Loop's switch off, a story looped from its menu is let
+     * through to loop, and every other story is still held.
+     */
+    @Test
+    @Config(shadows = Media.class)
+    public void stopLetsAStoryLoopedFromItsMenuThrough() {
+        Settings.LOOP_STORIES.save(false);
+        assertFalse("nothing looped yet, Stop holds outright", StoryLoop.takesOver());
+        assertTrue(StoryAdvance.hold());
+
+        StoryLoop.toggle("111_1");
+        assertTrue(StoryLoop.takesOver());
+        assertFalse(StoryAdvance.hold());
+        assertTrue(StoryAdvance.holdUnlessItLoops());
+        Item looped = new Item("111_1");
+        Item other = new Item("222_2");
+        assertFalse("the looped story loops", held(() -> {
+            StoryLoop.asking(looped);
+            return StoryLoop.loop(0);
+        }));
+        assertTrue("another story is held", held(() -> {
+            StoryLoop.asking(other);
+            return StoryLoop.loop(0);
+        }));
+    }
+
+    /** A story item as the check holds it, with the media ID its Media answers. */
+    private static final class Item {
+        final String media;
+
+        Item(String media) {
+            this.media = media;
+        }
+    }
+
+    /** The bridges as the patches write them: an item's Media, and that Media's ID (here the Media is its ID). */
+    @Implements(value = InstagramMedia.class, isInAndroidSdk = false)
+    public static class Media {
+        @Implementation
+        protected static Object storyItemMedia(Object item) {
+            return item instanceof Item ? ((Item) item).media : null;
+        }
+
+        @Implementation
+        protected static String mediaId(Object media) {
+            return media instanceof String ? (String) media : null;
+        }
     }
 
     /** Instagram's loop check for one finished story. */

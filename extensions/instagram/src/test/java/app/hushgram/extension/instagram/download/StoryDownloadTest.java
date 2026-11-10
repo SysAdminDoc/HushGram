@@ -31,8 +31,12 @@ import org.robolectric.annotation.Implements;
 import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
+import app.hushgram.extension.instagram.stories.StoryLoop;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.PauseForTests;
 
 /** What the story menu's hooks answer, and what a tap on Download does with them. */
 @RunWith(RobolectricTestRunner.class)
@@ -46,9 +50,15 @@ public class StoryDownloadTest {
         Story.manifest = null;
         Story.flagged = null;
         Story.posted = null;
+        Story.id = null;
+        Built.storyLoop = false;
+        StoryLoop.forget();
         StoryDownload.building(null);
         HookStatus.clear();
         Settings.DOWNLOAD_STORIES.save(true);
+        Settings.LOOP_STORIES.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
     }
 
     /** With the switch on, Download goes at the end of any story's menu, and only once. */
@@ -253,6 +263,77 @@ public class StoryDownloadTest {
         @Implementation protected static String dashManifest(Object media) { return manifest; }
         @Implementation protected static Boolean storyImageWithMusic(Object media) { return flagged; }
         @Implementation protected static Integer originalMediaType(Object media) { return posted; }
+
+        static String id;
+
+        @Implementation protected static String mediaId(Object media) { return media == null ? null : id; }
+    }
+
+    /** Whether this build has Loop a story, as the patch writes its status method. */
+    @Implements(value = SettingsStatus.class, isInAndroidSdk = false)
+    public static class Built {
+        static boolean storyLoop;
+
+        @Implementation protected static boolean storyLoop() { return storyLoop; }
+    }
+
+    /**
+     * #610: with Loop a story in the build and its switch off, a story's menu gets Loop this story
+     * last, with Download on or off. A tap loops the story, says so and turns the label to Stop
+     * looping this story, and a second tap takes the loop off. There's no row with the switch on,
+     * in a build without the patch, or for a story with no media ID.
+     */
+    @Test
+    @Config(shadows = {Story.class, Built.class})
+    public void aStoryGetsLoopThisStory() {
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Built.storyLoop = true;
+        Settings.LOOP_STORIES.save(false);
+        Object menu = new Object();
+        StoryDownload.building(menu);
+        Story.media = new Object();
+        Story.id = "3456789_123";
+
+        assertArrayEquals(new CharSequence[] {"Report", "Download", "Loop this story"},
+                StoryDownload.labels(new CharSequence[] {"Report"}));
+        CharSequence[] already = {"Report", "Download", new SpannableString("Loop this story")};
+        assertSame("added twice", already, StoryDownload.labels(already));
+
+        ShadowToast.reset();
+        assertTrue(StoryDownload.save(new SpannableString("Loop this story"), menu));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Looping this story", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        assertArrayEquals(new CharSequence[] {"Report", "Download", "Stop looping this story"},
+                StoryDownload.labels(new CharSequence[] {"Report"}));
+
+        Settings.DOWNLOAD_STORIES.save(false);
+        List<Object> list = new ArrayList<>(Arrays.asList("Edit highlight"));
+        StoryDownload.labelList(list);
+        assertEquals(Arrays.asList("Edit highlight", "Stop looping this story"), list);
+        StoryDownload.labelList(list);
+        assertEquals("added twice", 2, list.size());
+
+        assertTrue(StoryDownload.save("Stop looping this story", menu));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("This story plays once", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        assertArrayEquals(new CharSequence[] {"Report", "Loop this story"}, StoryDownload.labels(new CharSequence[] {"Report"}));
+        assertFalse("Download off, Download is still Instagram's", StoryDownload.save("Download", menu));
+
+        Story.id = null;
+        CharSequence[] noId = {"Report"};
+        assertSame("a story with no media ID", noId, StoryDownload.labels(noId));
+
+        Story.id = "3456789_123";
+        Settings.LOOP_STORIES.save(true);
+        CharSequence[] loopsAll = {"Report"};
+        assertSame("every story loops already", loopsAll, StoryDownload.labels(loopsAll));
+        assertFalse("the label is Instagram's again", StoryDownload.save("Loop this story", menu));
+
+        Settings.LOOP_STORIES.save(false);
+        Built.storyLoop = false;
+        CharSequence[] unpatched = {"Report"};
+        assertSame("without the patch", unpatched, StoryDownload.labels(unpatched));
     }
 
     /** Each of HushGram's rows is HushGram's to handle, however the menu styled it, and Instagram's aren't. */

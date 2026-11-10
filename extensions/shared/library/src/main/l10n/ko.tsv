@@ -1991,3 +1991,11 @@ This video plays once	이 동영상은 한 번만 재생됩니다
 Loop didn't change	반복이 바뀌지 않았습니다
 # context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
 To loop one video anyway, tap Loop this video in its menu.	동영상 하나만 반복하려면 메뉴에서 이 동영상 반복을 누르세요.
+# context: row in a story's three-dot menu while Loop a story is off; makes only the story on screen play again from the start when it ends (#610)
+Loop this story	이 스토리 반복
+Stop looping this story	이 스토리 반복 중지
+# context: toasts after tapping Loop this story or Stop looping this story (#610)
+Looping this story	이 스토리를 반복합니다
+This story plays once	이 스토리는 한 번만 재생됩니다
+# context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
+To loop one story, tap Loop this story in its menu.	스토리 하나만 반복하려면 메뉴에서 이 스토리 반복을 누르세요.

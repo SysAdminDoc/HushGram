@@ -309,6 +309,14 @@ public final class InstagramMedia {
         return null;
     }
 
+    /**
+     * The Media of [item], a story item as the story viewer holds it, read through the field the
+     * story menu reads ({@link #storyMedia}), or null for an item with none.
+     */
+    public static Object storyItemMedia(Object item) {
+        return null;
+    }
+
     /** The post a feed menu's builder is building rows for, read off its state. */
     public static Object feedMenuMedia(Object menu) {
         return null;

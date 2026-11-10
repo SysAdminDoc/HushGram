@@ -1909,3 +1909,11 @@ This video plays once	Video này chỉ phát một lần
 Loop didn't change	Không đổi được chế độ lặp
 # context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
 To loop one video anyway, tap Loop this video in its menu.	Để vẫn lặp lại riêng một video, nhấn Lặp lại video này trong menu của video đó.
+# context: row in a story's three-dot menu while Loop a story is off; makes only the story on screen play again from the start when it ends (#610)
+Loop this story	Lặp lại tin này
+Stop looping this story	Dừng lặp lại tin này
+# context: toasts after tapping Loop this story or Stop looping this story (#610)
+Looping this story	Đang lặp lại tin này
+This story plays once	Tin này chỉ phát một lần
+# context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
+To loop one story, tap Loop this story in its menu.	Để lặp lại riêng một tin, nhấn Lặp lại tin này trong menu của tin đó.

@@ -156,6 +156,10 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory(withButton: Boolean 
         it.name == "storyMedia" && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
     } ?: throw PatchException("$PATCH: $INSTAGRAM_MEDIA has no static storyMedia(Object)")
+    val storyItemMedia = mutableClassDefBy(INSTAGRAM_MEDIA).methods.singleOrNull {
+        it.name == "storyItemMedia" && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
+    } ?: throw PatchException("$PATCH: $INSTAGRAM_MEDIA has no static storyItemMedia(Object)")
     val button = if (withButton) findStoryButton(media) else null
     val lookups = listeners.flatMap { it.labelLookups(type, builders) }
     val handled = handlers.map { mutable(it) }
@@ -244,6 +248,18 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory(withButton: Boolean 
             check-cast p0, $type
             iget-object p0, p0, $story
             if-eqz p0, :none
+            iget-object p0, p0, $media
+            :none
+            return-object p0
+        """,
+    )
+    // The same Media off the story item the loop check is asked about, so Loop this story (#610)
+    // reads the ID the menu's row toggled.
+    storyItemMedia.addInstructionsWithLabels(
+        0,
+        """
+            if-eqz p0, :none
+            check-cast p0, $REEL_ITEM
             iget-object p0, p0, $media
             :none
             return-object p0

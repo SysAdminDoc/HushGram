@@ -1992,3 +1992,11 @@ This video plays once	Dieses Video läuft einmal
 Loop didn't change	Wiederholung nicht geändert
 # context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
 To loop one video anyway, tap Loop this video in its menu.	Um ein einzelnes Video trotzdem zu wiederholen, tippe in seinem Menü auf Dieses Video wiederholen.
+# context: row in a story's three-dot menu while Loop a story is off; makes only the story on screen play again from the start when it ends (#610)
+Loop this story	Diese Story wiederholen
+Stop looping this story	Diese Story nicht mehr wiederholen
+# context: toasts after tapping Loop this story or Stop looping this story (#610)
+Looping this story	Diese Story wird wiederholt
+This story plays once	Diese Story läuft einmal
+# context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
+To loop one story, tap Loop this story in its menu.	Um eine einzelne Story zu wiederholen, tippe in ihrem Menü auf Diese Story wiederholen.

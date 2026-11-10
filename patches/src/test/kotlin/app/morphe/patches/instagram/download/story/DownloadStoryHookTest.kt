@@ -236,6 +236,20 @@ class DownloadStoryHookTest {
         assertEquals("a null story skips the Media", 4, code.target(2))
     }
 
+    /** storyItemMedia() reads that same Media straight off a story item, for Loop this story's check (#610). */
+    @Test
+    fun theItemBridgeReadsTheSameMedia() {
+        val context = PatchContexts.of(classes())
+
+        context.offerDownloadOnEveryStory()
+
+        val code = context.method(INSTAGRAM_MEDIA, "storyItemMedia").code()
+        assertEquals(listOf(Opcode.IF_EQZ, Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT), code.take(4).map { it.opcode })
+        assertEquals(REEL_ITEM, code[1].referenceText())
+        assertEquals("$REEL_ITEM->A16:$MEDIA", code[2].referenceText())
+        assertEquals("a null item skips the Media", 3, code.target(0))
+    }
+
     /** Each picture bridge casts its argument and calls the getter that reads its field. */
     @Test
     fun thePictureBridgesCallTheGetters() {
@@ -394,6 +408,11 @@ class DownloadStoryHookTest {
                 lookups.forEach { (owner, first) -> assertEquals("${bundle.name}: $owner after the lookup", SAVE_STORY, first) }
                 val bridges = context.classDefBy(INSTAGRAM_MEDIA).methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.name in storyBridges }
                 bridges.forEach { assertEquals("${bundle.name}: ${it.name}", Opcode.CHECK_CAST, it.code().first().opcode) }
+                assertEquals(
+                    "${bundle.name}: the item bridge reads the menu's Media",
+                    context.method(INSTAGRAM_MEDIA, "storyMedia").code()[3].referenceText(),
+                    context.method(INSTAGRAM_MEDIA, "storyItemMedia").code()[2].referenceText(),
+                )
                 checked += version
             }
         }
@@ -619,6 +638,7 @@ class DownloadStoryHookTest {
         assertTrue("the list builder changed", context.method(helper, "A05").code().none { it.referenceText() == LABEL_LIST || it.referenceText() == BUILDING })
         assertEquals("a handler changed", Opcode.CONST_STRING, context.method(helper, "A0I").code().first().opcode)
         assertEquals("the story bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "storyMedia").code().first().opcode)
+        assertEquals("the item bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "storyItemMedia").code().first().opcode)
         assertEquals("a bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "videoVersions").code().first().opcode)
         assertEquals("the music bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "storyImageWithMusic").code().first().opcode)
         assertEquals("the posted type bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "originalMediaType").code().first().opcode)

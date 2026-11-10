@@ -1992,3 +1992,11 @@ This video plays once	Video ini tidak diulang
 Loop didn't change	Pengulangan tidak berubah
 # context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
 To loop one video anyway, tap Loop this video in its menu.	Untuk tetap mengulang satu video, ketuk Ulangi video ini di menunya.
+# context: row in a story's three-dot menu while Loop a story is off; makes only the story on screen play again from the start when it ends (#610)
+Loop this story	Ulangi cerita ini
+Stop looping this story	Berhenti mengulangi cerita ini
+# context: toasts after tapping Loop this story or Stop looping this story (#610)
+Looping this story	Cerita ini diulang
+This story plays once	Cerita ini tidak diulang
+# context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
+To loop one story, tap Loop this story in its menu.	Untuk mengulang satu cerita, ketuk Ulangi cerita ini di menunya.

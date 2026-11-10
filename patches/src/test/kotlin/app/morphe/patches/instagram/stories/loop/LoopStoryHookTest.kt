@@ -50,6 +50,7 @@ class LoopStoryHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$LOOP is not in the extension: $declared", LOOP.substringAfter("->") in declared)
+        assertTrue("$ASKING is not in the extension: $declared", ASKING.substringAfter("->") in declared)
     }
 
     /** The viewer's loop check gets its flag answered through the extension; the handler stays as it was. */
@@ -61,6 +62,7 @@ class LoopStoryHookTest {
 
         val viewer = context.mutableClassDefBy(STORY_VIEWER)
         assertLoopAnswered("stand-in", viewer.methods.single { it.name == "plays" })
+        assertAsksFirst("stand-in", viewer.methods.single { it.name == "plays" })
         assertEquals("the finished story handler was touched", handlerSize(), viewer.methods.single { it.name == "FrS" }.code().size)
     }
 
@@ -80,6 +82,7 @@ class LoopStoryHookTest {
 
             val viewer = context.mutableClassDefBy(STORY_VIEWER)
             assertLoopAnswered("stop first $stopFirst", viewer.methods.single { it.name == "plays" })
+            assertAsksFirst("stop first $stopFirst", viewer.methods.single { it.name == "plays" })
             val handler = viewer.methods.single { it.name == "FrS" }.code()
             assertEquals("stop first $stopFirst: the hold", HOLD, handler.first().referenceText())
             assertEquals("stop first $stopFirst: the guard's second hook", HOLD_UNLESS_IT_LOOPS, handler[3].referenceText())
@@ -103,13 +106,14 @@ class LoopStoryHookTest {
             classes(checkTakes = "Ljava/lang/Object;") to "$flagHex is read in $check(Ljava/lang/Object;)Z, not in the story viewer's check of one story item",
             classes(asks = 0) to "expected the finished story handler $STORY_VIEWER->FrS to ask $check once, found 0",
             classes(asks = 2) to "expected the finished story handler $STORY_VIEWER->FrS to ask $check once, found 2",
+            classes(loopsBack = true) to "something jumps back to $check's first instruction",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
             val failure = assertThrows(expected, PatchException::class.java) { context.loop() }
             assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
             val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
-                .filter { method -> method.code().any { it.referenceText() == LOOP } }
+                .filter { method -> method.code().any { it.referenceText() == LOOP || it.referenceText() == ASKING } }
             assertTrue("$expected: something was written to $written", written.isEmpty())
         }
     }
@@ -155,7 +159,9 @@ class LoopStoryHookTest {
         val patched = context.mutableClassDefBy(STORY_VIEWER).methods
         val check = patched.single { it.name == read.name && it.parameterTypes.map(CharSequence::toString) == listOf(storyItem) }
         assertLoopAnswered(label, check)
+        assertAsksFirst(label, check)
         assertEquals("${label}: methods hooked", 1, patched.count { m -> m.code().any { it.referenceText() == LOOP } })
+        assertEquals("${label}: methods telling the item", 1, patched.count { m -> m.code().any { it.referenceText() == ASKING } })
         val askers = viewer.methods.filter { m -> m.code().any { it.calls(read.name) } }
         // On 452 the listener bridge only forwards the item, and the handler it forwards to asks.
         val handler = askers.filter { it.returnType == "V" }
@@ -193,6 +199,16 @@ class LoopStoryHookTest {
         assertEquals("$what: the register", register, (code[result + 2] as OneRegisterInstruction).registerA)
     }
 
+    /** First thing in the check: the range call handing its one parameter, the story item, to [ASKING]. */
+    private fun assertAsksFirst(what: String, method: Method) {
+        val first = method.code().first()
+        assertEquals("$what: the item's call", Opcode.INVOKE_STATIC_RANGE, first.opcode)
+        assertEquals("$what: the item's hook", ASKING, first.referenceText())
+        val range = first as RegisterRangeInstruction
+        assertEquals("$what: the item, the check's last register", method.implementation!!.registerCount - 1, range.startRegister)
+        assertEquals("$what: one register", 1, range.registerCount)
+    }
+
     private fun BytecodePatchContext.loop() = loopStories()
 
     private fun handlerSize() = classes().single { it.type == STORY_VIEWER }.methods.single { it.name == "FrS" }.code().size
@@ -211,6 +227,7 @@ class LoopStoryHookTest {
         sharedRead: Boolean = false,
         checkOwner: String = STORY_VIEWER,
         checkTakes: String = storyItem,
+        loopsBack: Boolean = false,
     ): List<ClassDef> {
         val bridge = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value or AccessFlags.BRIDGE.value or AccessFlags.SYNTHETIC.value
         // Three locals, this in v3, the item in v4.
@@ -244,8 +261,10 @@ class LoopStoryHookTest {
         val check = method(
             checkOwner, "plays", listOf(checkTakes), "Z", 3, AccessFlags.PRIVATE.value or AccessFlags.FINAL.value,
             listOf(
+                if (loopsBack) ":top" else "",
                 "invoke-virtual {v4}, Ljava/lang/Object;->hashCode()I",
                 "move-result v0",
+                if (loopsBack) "if-ltz v0, :top" else "",
                 "if-nez v0, :no",
                 readFlag,
                 ":no",

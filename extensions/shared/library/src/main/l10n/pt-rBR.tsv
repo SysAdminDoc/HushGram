@@ -1992,3 +1992,11 @@ This video plays once	Este vídeo não se repete
 Loop didn't change	A repetição não mudou
 # context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
 To loop one video anyway, tap Loop this video in its menu.	Para repetir só um vídeo mesmo assim, toque em Repetir este vídeo no menu dele.
+# context: row in a story's three-dot menu while Loop a story is off; makes only the story on screen play again from the start when it ends (#610)
+Loop this story	Repetir este story
+Stop looping this story	Parar de repetir este story
+# context: toasts after tapping Loop this story or Stop looping this story (#610)
+Looping this story	Repetindo este story
+This story plays once	Este story não se repete
+# context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
+To loop one story, tap Loop this story in its menu.	Para repetir só um story, toque em Repetir este story no menu dele.

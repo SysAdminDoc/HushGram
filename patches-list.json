@@ -4040,7 +4040,7 @@
     },
     {
       "name": "Loop a story",
-      "description": "Plays a story again from the start when it ends, instead of moving on to the next one. Tap or swipe to move on. Starts off. Turn it on in HushGram settings > Stories.",
+      "description": "Plays a story again from the start when it ends, instead of moving on to the next one. Tap or swipe to move on. With it off, Loop this story in a story's menu loops just that one. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Stories",
       "use": true,
       "dependencies": [

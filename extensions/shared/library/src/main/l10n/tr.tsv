@@ -1992,3 +1992,11 @@ This video plays once	Bu video bir kez oynatılır
 Loop didn't change	Tekrar değişmedi
 # context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
 To loop one video anyway, tap Loop this video in its menu.	Yine de tek bir videoyu tekrarlamak için menüsünde Bu videoyu tekrarla'ya dokun.
+# context: row in a story's three-dot menu while Loop a story is off; makes only the story on screen play again from the start when it ends (#610)
+Loop this story	Bu hikayeyi tekrarla
+Stop looping this story	Bu hikayeyi tekrarlamayı durdur
+# context: toasts after tapping Loop this story or Stop looping this story (#610)
+Looping this story	Bu hikaye tekrarlanıyor
+This story plays once	Bu hikaye bir kez oynatılır
+# context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
+To loop one story, tap Loop this story in its menu.	Tek bir hikayeyi tekrarlamak için menüsünde Bu hikayeyi tekrarla'ya dokun.
