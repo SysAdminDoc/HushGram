@@ -123,6 +123,8 @@ final class FeedCategory {
                     L10n.t("Hides the card after the posts from accounts you follow that says you've seen the latest "
                             + "ones, and its Older posts link. When Home has no new posts at all, only that line goes "
                             + "and the link stays. Pull down on Home to refresh after changing it.")));
+            feed.addPreference(toggle(context, Settings.HIDE_CHANNEL_JOIN_BAR, L10n.t("Hide the Join bar on channel posts"),
+                    L10n.t("Hides the bar under a post that asks you to join the account's channel. The post stays.")));
             if (PatchFamily.feedTypesInBuild()) {
                 feed.addPreference(toggle(context, Settings.HIDE_FEED_VIDEOS, L10n.t("Hide videos"),
                         L10n.t("Removes every single-video post and reel from Home, even from accounts you follow. "

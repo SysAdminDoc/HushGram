@@ -1108,6 +1108,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_CAUGHT_UP_CARD =
             new BooleanSetting("hushgram_hide_caught_up_card", FALSE);
 
+    /**
+     * The bar under a post asking you to join its account's broadcast channel
+     * ({@link app.hushgram.extension.instagram.feed.ChannelJoinBar}, #625). The post stays. Off to start.
+     */
+    public static final BooleanSetting HIDE_CHANNEL_JOIN_BAR =
+            new BooleanSetting("hushgram_hide_channel_join_bar", FALSE);
+
     /** Posts in Home that are one video, reels among them. Off until enabled. */
     public static final BooleanSetting HIDE_FEED_VIDEOS =
             new BooleanSetting("hushgram_hide_feed_videos", FALSE);
