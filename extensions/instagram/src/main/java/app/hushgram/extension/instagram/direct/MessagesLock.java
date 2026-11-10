@@ -106,11 +106,12 @@ public final class MessagesLock {
     static final String SAVED = "saved";
     /**
      * Saved's pages as Instagram names them: its grid of posts and collections, a collection, the
-     * posts of one kind, and its search box and results. Any of them on screen means Saved is.
+     * posts of one kind, its search box and results, and the collection tiles 454 opens Saved on
+     * (the profile's bookmark goes straight there). Any of them on screen means Saved is.
      */
     static final String[] SAVED_PAGES = {
             "saved_view_pager", "save_collection_viewpager", "saved_scoped_posts_grid",
-            "saved_search_input", "saved_search_results",
+            "saved_search_input", "saved_search_results", "saved_collection_thumbnail",
     };
     /** Marks the cover this class puts in a window. */
     static final String COVER_TAG = "hushgram_messages_lock";
@@ -1143,6 +1144,7 @@ public final class MessagesLock {
             HookStatus.counted(FamilyNames.MESSAGES_LOCK, NO_PHONE_LOCK);
             Utils.showToastLong(wholeApp()
                     ? L10n.t("Set a phone screen lock so HushGram can lock Instagram.")
+                    : askingForSaved() ? L10n.t("Set a phone screen lock so HushGram can lock Saved.")
                     : L10n.t("Set a phone screen lock so HushGram can lock messages."));
             confirmed.run();
             return;
@@ -1299,9 +1301,13 @@ public final class MessagesLock {
 
     static String askTitle() {
         if (wholeApp()) return L10n.t("Unlock Instagram");
-        // Saved on screen, or asked from the settings with Lock Saved the only switch on.
-        if (savedCovered || !messagesOn() && savedOn() && !ChatLocks.currentListed()) return L10n.t("Unlock Saved");
+        if (askingForSaved()) return L10n.t("Unlock Saved");
         return messagesOn() ? L10n.t("Unlock your messages") : L10n.t("Unlock this chat");
+    }
+
+    /** Saved on screen, or asked from the settings with Lock Saved the only switch on. */
+    private static boolean askingForSaved() {
+        return savedCovered || !messagesOn() && savedOn() && !ChatLocks.currentListed();
     }
 
     /** Draws the activity again, so the covers come off at once. */

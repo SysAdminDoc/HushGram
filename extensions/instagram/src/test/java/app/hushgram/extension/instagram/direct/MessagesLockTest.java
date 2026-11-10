@@ -79,7 +79,7 @@ public class MessagesLockTest {
     private static final int LIST = 0x7f0b0002;
     private static final int CHAT = 0x7f0b0003;
     /** Saved's pages, in {@link MessagesLock#SAVED_PAGES}' order. */
-    private static final int[] SAVED_PAGES = {0x7f0b0010, 0x7f0b0011, 0x7f0b0012, 0x7f0b0013, 0x7f0b0014};
+    private static final int[] SAVED_PAGES = {0x7f0b0010, 0x7f0b0011, 0x7f0b0012, 0x7f0b0013, 0x7f0b0014, 0x7f0b0015};
 
     /** Each ask's two answers, oldest first. */
     private final List<Runnable[]> asks = new ArrayList<>();
@@ -402,8 +402,27 @@ public class MessagesLockTest {
         assertFalse(MessagesLock.locked());
     }
 
+    /** On a phone with no screen lock, Lock Saved on its own says it's Saved that can't be locked (#597). */
+    @Test
+    public void lockSavedWithNoPhoneLockNamesSaved() {
+        Map<String, Integer> ids = MessagesLock.idsForTests;
+        MessagesLock.resetForTests();
+        MessagesLock.idsForTests = ids;
+        ChatAccounts.signInForTests(ME);
+        Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
+        Settings.LOCK_MESSAGES.save(false);
+        Settings.LOCK_SAVED.save(true);
+        Activity activity = saved(SAVED_PAGES[0]).get();
+
+        MessagesLock.check(activity);
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("Set a phone screen lock so HushGram can lock Saved.", ShadowToast.getTextOfLatestToast());
+    }
+
     /**
-     * Every page of Saved gets the cover: a collection, the posts of one kind, and its search. A page
+     * Every page of Saved gets the cover: a collection, the posts of one kind, its search, and the
+     * collection tiles 454 opens Saved on from the profile's bookmark (#492). A page
      * that isn't on screen (one left behind in the back stack) doesn't, and turning the switch off
      * takes the cover away.
      */
