@@ -2000,3 +2000,8 @@ Looping this story	Diese Story wird wiederholt
 This story plays once	Diese Story läuft einmal
 # context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
 To loop one story, tap Loop this story in its menu.	Um eine einzelne Story zu wiederholen, tippe in ihrem Menü auf Diese Story wiederholen.
+# context: switch in HushGram settings > Feed; removes posts whose author is a business or creator (professional) Instagram account from Home (#579)
+Hide posts from business and creator accounts	Beiträge von Unternehmens- und Creator-Konten ausblenden
+Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	Entfernt Beiträge von Unternehmens- und Creator-Konten von der Startseite und aus „Gefolgt“, auch von Freunden, die so ein Konto nutzen. Ziehe die Startseite nach dem Ändern nach unten, um sie zu aktualisieren.
+# context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
+Favorites still shows them.	„Favoriten“ zeigt sie weiterhin.

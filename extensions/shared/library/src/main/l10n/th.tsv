@@ -1997,3 +1997,8 @@ Looping this story	กำลังเล่นสตอรี่นี้ซ้�
 This story plays once	สตอรี่นี้จะเล่นครั้งเดียว
 # context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
 To loop one story, tap Loop this story in its menu.	หากต้องการเล่นสตอรี่เดียวซ้ำ ให้แตะ เล่นสตอรี่นี้ซ้ำ ในเมนูของสตอรี่นั้น
+# context: switch in HushGram settings > Feed; removes posts whose author is a business or creator (professional) Instagram account from Home (#579)
+Hide posts from business and creator accounts	ซ่อนโพสต์จากบัญชีธุรกิจและบัญชีครีเอเตอร์
+Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	ลบโพสต์จากบัญชีธุรกิจและบัญชีครีเอเตอร์ออกจากหน้าหลักและ "กำลังติดตาม" รวมถึงเพื่อนที่ใช้บัญชีประเภทนี้ ให้ดึงหน้าหลักลงเพื่อรีเฟรชหลังจากเปลี่ยนการตั้งค่านี้
+# context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
+Favorites still shows them.	"รายการโปรด" ยังคงแสดงโพสต์เหล่านี้

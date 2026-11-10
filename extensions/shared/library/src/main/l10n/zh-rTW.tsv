@@ -2003,3 +2003,8 @@ Looping this story	正在重複播放這則限時動態
 This story plays once	這則限時動態只播放一次
 # context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
 To loop one story, tap Loop this story in its menu.	若要重複播放某一則限時動態，請在它的選單中點選「重複播放這則限時動態」。
+# context: switch in HushGram settings > Feed; removes posts whose author is a business or creator (professional) Instagram account from Home (#579)
+Hide posts from business and creator accounts	隱藏商業和創作者帳號的貼文
+Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	從首頁與追蹤中移除商業和創作者帳號的貼文，包括使用這類帳號的朋友。變更後請下拉重新整理首頁。
+# context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
+Favorites still shows them.	「最愛」仍會顯示這些貼文。

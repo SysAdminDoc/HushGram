@@ -1999,3 +1999,8 @@ Looping this story	이 스토리를 반복합니다
 This story plays once	이 스토리는 한 번만 재생됩니다
 # context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
 To loop one story, tap Loop this story in its menu.	스토리 하나만 반복하려면 메뉴에서 이 스토리 반복을 누르세요.
+# context: switch in HushGram settings > Feed; removes posts whose author is a business or creator (professional) Instagram account from Home (#579)
+Hide posts from business and creator accounts	비즈니스 및 크리에이터 계정 게시물 숨기기
+Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	비즈니스 및 크리에이터 계정의 게시물을 홈과 팔로잉에서 없앱니다. 이런 계정을 쓰는 친구도 포함됩니다. 바꾼 뒤에는 홈을 아래로 당겨 새로고침하세요.
+# context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
+Favorites still shows them.	즐겨찾기에는 계속 표시됩니다.

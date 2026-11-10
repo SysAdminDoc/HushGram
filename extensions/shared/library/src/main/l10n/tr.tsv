@@ -2000,3 +2000,8 @@ Looping this story	Bu hikaye tekrarlanıyor
 This story plays once	Bu hikaye bir kez oynatılır
 # context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
 To loop one story, tap Loop this story in its menu.	Tek bir hikayeyi tekrarlamak için menüsünde Bu hikayeyi tekrarla'ya dokun.
+# context: switch in HushGram settings > Feed; removes posts whose author is a business or creator (professional) Instagram account from Home (#579)
+Hide posts from business and creator accounts	İşletme ve içerik üreticisi hesaplarının gönderilerini gizle
+Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	İşletme ve içerik üreticisi hesaplarının gönderilerini, bu hesaplardan birini kullanan arkadaşların dahil, Ana Sayfa'dan ve Takip Edilenler'den kaldırır. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
+# context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
+Favorites still shows them.	Favoriler onları göstermeye devam eder.

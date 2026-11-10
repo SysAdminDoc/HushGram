@@ -1124,6 +1124,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_FEED_LIKED =
             new BooleanSetting("hushgram_hide_feed_liked", FALSE);
 
+    /** Posts in Home from business and creator accounts, by the author's account type (#579). Off until enabled. */
+    public static final BooleanSetting HIDE_FEED_PROFESSIONAL =
+            new BooleanSetting("hushgram_hide_feed_professional", FALSE);
+
     /**
      * The accounts whose posts Home leaves out ({@link app.hushgram.extension.instagram.feed.HiddenAccounts}),
      * a line for each: the id of the signed-in account it was hidden for, a tab, and the username.

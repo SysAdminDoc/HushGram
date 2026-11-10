@@ -72,7 +72,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
         "from Home. It also takes shop tiles out of Explore and the shopping bag off posts with tagged products. " +
         "Posts from accounts you follow stay. Extra switches can also hide the 'Are you interested in this post?' " +
         "question on Home and Reels, the caught up card, rows of stories about to expire, all videos, photos, carousels, posts " +
-        "you've liked or posts from accounts you pick. A post's menu has Hide posts from this account to add one " +
+        "you've liked, posts from business and creator accounts or posts from accounts you pick. A post's menu has Hide posts from this account to add one " +
         "to that list, and those posts leave Home on the next refresh. On by default. Turn it off in HushGram " +
         "settings > Feed.",
 ) {
@@ -124,7 +124,10 @@ val hideSuggestedPostsPatch = bytecodePatch(
             val menuRow = hideAccountRowOrWarn()
             // Keep hidden accounts in Favorites reads which feed each request for a page of Home is for (#601).
             val requestSource = homeRequestSourceOrWarn()
+            // Hide posts from business and creator accounts (#579) reads the author's account type.
+            val professional = homeProfessionalOrWarn()
             it.write()
+            professional?.write()
             // Hidden accounts tells signed-in accounts apart when Home's cache source is found too.
             // Without it, one list counts for every account.
             homeAccountOrWarn()?.write()
@@ -132,6 +135,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
             requestSource?.write()
             enableStatus(FEED_TYPES_STATUS)
             if (requestSource != null) enableStatus(FAVORITES_SOURCE_STATUS)
+            if (professional != null) enableStatus(FEED_PROFESSIONAL_STATUS)
         }
         enableStatus("feedSuggestions")
     }
@@ -139,6 +143,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
 
 internal const val FEED_TYPES_STATUS = "feedTypes"
 internal const val FAVORITES_SOURCE_STATUS = "favoritesSource"
+internal const val FEED_PROFESSIONAL_STATUS = "feedProfessional"
 internal const val FEED_SUGGESTIONS = "$EXTENSION_PACKAGE/feed/FeedSuggestions;"
 internal const val HOME_TYPES_FILTER = "$FEED_SUGGESTIONS->homeItem(Ljava/lang/Object;)Ljava/lang/Object;"
 
@@ -241,6 +246,72 @@ internal class HomeFeedTypes(
         )
     }
 
+}
+
+/**
+ * Hide posts from business and creator accounts (#579), found: the post's user getter, the user's
+ * is_professional_account and account_type getters, and the extension's stubs reading them. Kept
+ * apart from [HomeFeedTypes], so a build where an account's type moved keeps the other type switches.
+ */
+internal class HomeProfessional(
+    private val professionalStub: MutableMethod,
+    private val accountTypeStub: MutableMethod,
+    private val owner: Method,
+    private val professional: Method,
+    private val accountType: Method,
+) {
+    fun write() {
+        // FeedSuggestions.professional answers 2 for a professional account and 1 for a personal one.
+        fillUserStub(professionalStub, professional, "Ljava/lang/Boolean;->booleanValue()Z", "add-int/lit8 p0, p0, 0x1")
+        fillUserStub(accountTypeStub, accountType, "Ljava/lang/Integer;->intValue()I", "")
+    }
+
+    /**
+     * Fills [target], a static (Object)I stub taking a post, to read the post's user and answer
+     * [getter]'s boxed value through [unbox] and [then], or 0 when the post or its user doesn't say.
+     * Each way out returns on its own, so p0 never merges an object and an int at one return.
+     */
+    private fun fillUserStub(target: MutableMethod, getter: Method, unbox: String, then: String) {
+        target.addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, $MEDIA
+                invoke-virtual { p0 }, $MEDIA->${owner.name}()${owner.returnType}
+                move-result-object p0
+                if-nez p0, :user
+                const/4 p0, 0x0
+                return p0
+                :user
+                invoke-virtual { p0 }, $USER->${getter.name}()${getter.returnType}
+                move-result-object p0
+                if-nez p0, :boxed
+                const/4 p0, 0x0
+                return p0
+                :boxed
+                invoke-virtual { p0 }, $unbox
+                move-result p0
+                $then
+                return p0
+            """,
+        )
+    }
+}
+
+/**
+ * Finds what Hide posts from business and creator accounts needs, or answers null after the patch
+ * log says why, and Hide suggested posts goes in without that switch.
+ */
+internal fun BytecodePatchContext.homeProfessionalOrWarn(): HomeProfessional? = try {
+    HomeProfessional(
+        staticStub(FEED_SUGGESTIONS, "professional", "I"),
+        staticStub(FEED_SUGGESTIONS, "accountType", "I"),
+        publicGetter(MEDIA, "user", USER),
+        publicGetter(USER, "is_professional_account", "Ljava/lang/Boolean;"),
+        publicGetter(USER, "account_type", "Ljava/lang/Integer;"),
+    )
+} catch (moved: PatchException) {
+    patchLog.warning("${moved.message}. Hide suggested posts goes in without Hide posts from business and creator accounts.")
+    null
 }
 
 /**

@@ -26,7 +26,7 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Hide videos, Hide photos, Hide carousels and Hide posts you've liked: in Feed with Hide suggested posts, off to start, and off while paused. */
+/** Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hide posts from business and creator accounts: in Feed with Hide suggested posts, off to start, and off while paused. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -35,9 +35,10 @@ public class FeedTypeSettingsTest {
     /** A method, not a static field, so the settings load once the rule has given them a context. */
     private static BooleanSetting[] switches() {
         return new BooleanSetting[] {Settings.HIDE_FEED_VIDEOS, Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS,
-                Settings.HIDE_FEED_LIKED};
+                Settings.HIDE_FEED_LIKED, Settings.HIDE_FEED_PROFESSIONAL};
     }
-    private static final String[] TITLES = {"Hide videos", "Hide photos", "Hide carousels", "Hide posts you've liked"};
+    private static final String[] TITLES = {"Hide videos", "Hide photos", "Hide carousels", "Hide posts you've liked",
+            "Hide posts from business and creator accounts"};
     private ActivityController<Activity> controller;
     private HushgramPreferenceFragment page;
 
@@ -54,6 +55,7 @@ public class FeedTypeSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         PatchFamily.feedTypesForTests = null;
+        PatchFamily.professionalForTests = null;
         for (BooleanSetting setting : switches()) setting.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -99,8 +101,17 @@ public class FeedTypeSettingsTest {
         for (BooleanSetting setting : switches()) assertNull(setting.key, page.getPreferenceScreen().findPreference(setting.key));
         List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.FEED_SUGGESTIONS), false);
         assertTrue(report.toString(), report.contains(
-                "  Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts: "
-                        + "not in this build (Home's feed or a post's details didn't match)"));
+                "  Hide videos, Hide photos, Hide carousels, Hide posts you've liked, Hide posts from business and "
+                        + "creator accounts and Hidden accounts: not in this build (Home's feed or a post's details didn't match)"));
+    }
+    @Test public void aBuildWhoseAccountTypeMovedKeepsTheOtherTypeSwitches() throws Exception {
+        PatchFamily.professionalForTests = false;
+        open(true);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_FEED_PROFESSIONAL.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_FEED_LIKED.key));
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.FEED_SUGGESTIONS), false);
+        assertTrue(report.toString(), report.contains(
+                "  Hide posts from business and creator accounts: not in this build (an account's type didn't match)"));
     }
     @Test public void aBuildFilteringByTypeReportsNothingMissing() throws Exception {
         open(true);

@@ -95,6 +95,11 @@ public final class HiddenAccounts {
         return Utils.settingsReady() && Settings.HIDDEN_IN_FAVORITES.get() && FAVORITES.equals(lastSource);
     }
 
+    /** Whether the page of Home being read is Favorites', as the last request for one said. */
+    static boolean onFavorites() {
+        return FAVORITES.equals(lastSource);
+    }
+
     /**
      * Injected where Instagram has built the parameters of a request for a page of Home, For you,
      * Following and Favorites alike, just before it copies them into the request. Notes the paging

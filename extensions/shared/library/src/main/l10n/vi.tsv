@@ -1917,3 +1917,8 @@ Looping this story	Đang lặp lại tin này
 This story plays once	Tin này chỉ phát một lần
 # context: last sentence of the Loop a story summary in HushGram settings > Stories; names the menu row Loop this story (#610)
 To loop one story, tap Loop this story in its menu.	Để lặp lại riêng một tin, nhấn Lặp lại tin này trong menu của tin đó.
+# context: switch in HushGram settings > Feed; removes posts whose author is a business or creator (professional) Instagram account from Home (#579)
+Hide posts from business and creator accounts	Ẩn bài viết từ tài khoản doanh nghiệp và nhà sáng tạo
+Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.	Gỡ bài viết của tài khoản doanh nghiệp và nhà sáng tạo khỏi trang chủ và Đang theo dõi, kể cả bạn bè dùng loại tài khoản này. Hãy kéo xuống trên trang chủ để làm mới sau khi thay đổi.
+# context: added after the summary of Hide posts from business and creator accounts; Favorites is the feed of accounts you picked at the top of Home (#579)
+Favorites still shows them.	Yêu thích vẫn hiển thị chúng.

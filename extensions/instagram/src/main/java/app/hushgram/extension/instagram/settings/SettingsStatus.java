@@ -177,6 +177,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by Hide suggested posts when an account's type was found too. */
+    public static boolean feedProfessional() {
+        return false;
+    }
+
     public static boolean metaAi() {
         return false;
     }

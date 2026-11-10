@@ -131,7 +131,8 @@ public enum PatchFamily {
     FEED_SUGGESTIONS(FamilyNames.FEED_SUGGESTIONS, "feedSuggestions", null, Settings.HIDE_SUGGESTED_ACCOUNTS,
             Settings.HIDE_SUGGESTED_POSTS, Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS,
             Settings.HIDE_FEED_STORY_ROWS, Settings.HIDE_FEED_SHOPPING, Settings.HIDE_FEED_INTEREST, Settings.HIDE_CAUGHT_UP_CARD, Settings.HIDE_FEED_VIDEOS,
-            Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED, Settings.HIDDEN_IN_FAVORITES),
+            Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED, Settings.HIDE_FEED_PROFESSIONAL,
+            Settings.HIDDEN_IN_FAVORITES),
     HOME_FEED(FamilyNames.HOME_FEED, "homeFeed", null, Settings.HIDE_HOME_FEED),
     FOLLOWING_FEED(FamilyNames.FOLLOWING_FEED, "followingFeed", null, Settings.START_ON_FOLLOWING,
             Settings.ONLY_FOLLOWING, Settings.LOGO_ON_FOLLOWING, Settings.FOLLOWING_FALLBACK, Settings.FOLLOWING_MIX),
@@ -440,6 +441,23 @@ public enum PatchFamily {
         return feedTypesInBuild() && SettingsStatus.favoritesSource();
     }
 
+    /** Whether a test says this build reads an account's type, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean professionalForTests;
+
+    /**
+     * Whether this build reads whether a post's author is a business or creator account, which Hide
+     * posts from business and creator accounts needs. Hide suggested posts goes in without it when
+     * an account's type has moved, so that switch isn't offered then.
+     */
+    public static boolean professionalInBuild() {
+        Boolean forced = professionalForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(FEED_SUGGESTIONS);
+        return feedTypesInBuild() && SettingsStatus.feedProfessional();
+    }
+
     /** Whether a test says this build mixes Following into For you, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean followingMixForTests;
@@ -498,10 +516,15 @@ public enum PatchFamily {
             if (inBuild.contains(family)) {
                 lines.add(family.reportLine(paused));
                 if (family == FEED_SUGGESTIONS && !feedTypesInBuild()) {
-                    lines.add("  Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts: "
-                            + "not in this build (Home's feed or a post's details didn't match)");
-                } else if (family == FEED_SUGGESTIONS && !favoritesSourceInBuild()) {
-                    lines.add("  Keep hidden accounts in Favorites: not in this build (Home's requests didn't match)");
+                    lines.add("  Hide videos, Hide photos, Hide carousels, Hide posts you've liked, Hide posts from business "
+                            + "and creator accounts and Hidden accounts: not in this build (Home's feed or a post's details didn't match)");
+                } else if (family == FEED_SUGGESTIONS) {
+                    if (!favoritesSourceInBuild()) {
+                        lines.add("  Keep hidden accounts in Favorites: not in this build (Home's requests didn't match)");
+                    }
+                    if (!professionalInBuild()) {
+                        lines.add("  Hide posts from business and creator accounts: not in this build (an account's type didn't match)");
+                    }
                 }
                 if (family == COMMENT_COPY && !commentAuthorInBuild()) {
                     lines.add("  Copy the commenter's username: not in this build (the comment menu's label or the comment's author didn't match)");

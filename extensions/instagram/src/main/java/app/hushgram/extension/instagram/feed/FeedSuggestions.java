@@ -119,6 +119,15 @@ public final class FeedSuggestions {
     /** The report's count of posts Hide posts you've liked took out of Home. */
     static final String LIKED_REMOVED = "liked posts removed";
 
+    /** Why a post from a business or creator account was taken out, on {@link #TYPES_ROUTE}. */
+    static final String PROFESSIONAL = "business or creator";
+
+    /** The report's count of posts Hide posts from business and creator accounts took out of Home. */
+    static final String PROFESSIONAL_REMOVED = "business and creator posts removed";
+
+    /** What {@link #itemProfessional} answers: the author doesn't say, a personal account, a business or creator one. */
+    static final int UNSAID = 0, PERSONAL = 1, PROFESSIONAL_ACCOUNT = 2;
+
     /** The kind counted for a post Hide reels by caption words' Also on Home took out of Home. */
     static final String CAPTION_WORD = "caption word";
 
@@ -323,7 +332,7 @@ public final class FeedSuggestions {
     private static boolean postSwitchOn() {
         return Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
                 || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get()
-                || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty()
+                || Settings.HIDE_FEED_PROFESSIONAL.get() || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty()
                 || CaptionLanguage.homeRuleWhenOn() != null;
     }
 
@@ -605,7 +614,8 @@ public final class FeedSuggestions {
      * Injected right after Home keeps each item it reads, from its feed response and from its store
      * of the last run, beside Hide the home feed's filter when both are in. Answers null for a post
      * of one video, one photo or a carousel while that type's switch is on, a post you've liked
-     * while Hide posts you've liked is on, a post by an account on {@link HiddenAccounts}, or a post
+     * while Hide posts you've liked is on, a post by an account on {@link HiddenAccounts}, a post by
+     * a business or creator account while Hide posts from business and creator accounts is on, or a post
      * whose caption holds one of Hide reels by caption words' words while its Also on Home is on, and
      * [item] itself otherwise, or when anything goes wrong. An item with no post, a row of suggested
      * accounts for one, stays. Inside a page of Home's feed response it also counts the item toward
@@ -632,6 +642,12 @@ public final class FeedSuggestions {
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
             Function<Object, String> authorOf, Function<Object, String> captionOf) {
+        return homeItem(item, typeOf, likedOf, authorOf, captionOf, FeedSuggestions::itemProfessional);
+    }
+
+    static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
+            Function<Object, String> authorOf, Function<Object, String> captionOf,
+            ToIntFunction<Object> professionalOf) {
         boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
         JUST_TOOK_OUT.remove();
         int[] page = PAGE.get();
@@ -652,7 +668,8 @@ public final class FeedSuggestions {
         }
         Object kept = byType(item, typeOf) == null ? null
                 : byLiked(item, likedOf) == null ? null
-                : byAuthor(item, authorOf) == null ? null : byCaption(item, captionOf);
+                : byAuthor(item, authorOf) == null ? null
+                : byProfessional(item, professionalOf) == null ? null : byCaption(item, captionOf);
         if (kept == null && page != null) page[1]++;
         if (kept != null && page != null && "MEDIA".equals(kind)) {
             try {
@@ -775,6 +792,48 @@ public final class FeedSuggestions {
     }
 
     /**
+     * [item], or null while Hide posts from business and creator accounts is on and its post's author is
+     * one (#579). Favorites keeps them, since it only holds accounts you picked. A post whose author
+     * doesn't say, or an item with no post, stays.
+     */
+    private static Object byProfessional(Object item, ToIntFunction<Object> professionalOf) {
+        try {
+            if (!Utils.settingsReady() || !Settings.HIDE_FEED_PROFESSIONAL.get()) return item;
+            if (HiddenAccounts.onFavorites()) return item;
+            int said = professionalOf.applyAsInt(item);
+            FeedFilterCounters.sawKind(TYPES_ROUTE, said == PROFESSIONAL_ACCOUNT ? PROFESSIONAL
+                    : said == PERSONAL ? "personal" : "account unsaid");
+            if (said != PROFESSIONAL_ACCOUNT) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, PROFESSIONAL);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, PROFESSIONAL_REMOVED);
+            typesTookOut = true;
+            Logger.printDebug(() -> "Feed suggestions: took a post from a business or creator account out of Home");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, PROFESSIONAL, failure);
+            return item;
+        }
+    }
+
+    /**
+     * Whether the author of the post {@link #homePost} finds in [item] is a business or creator
+     * account: {@link #PROFESSIONAL_ACCOUNT}, {@link #PERSONAL}, or {@link #UNSAID} without a post or
+     * when the author says neither. Read from the author's is_professional_account, else from its
+     * account_type, where 2 is a business and 3 a creator.
+     */
+    static int itemProfessional(Object item) {
+        return postProfessional(homePost(item), FeedSuggestions::professional, FeedSuggestions::accountType);
+    }
+
+    static int postProfessional(Object post, ToIntFunction<Object> professionalOf, ToIntFunction<Object> accountTypeOf) {
+        if (post == null) return UNSAID;
+        int said = professionalOf.applyAsInt(post);
+        if (said == PERSONAL || said == PROFESSIONAL_ACCOUNT) return said;
+        int type = accountTypeOf.applyAsInt(post);
+        return type == 2 || type == 3 ? PROFESSIONAL_ACCOUNT : type == 1 ? PERSONAL : UNSAID;
+    }
+
+    /**
      * The post a feed item carries: its own post field (a post from an account you follow, or an
      * ad), else the post of the suggested post unit it holds ("explore_story", its "media_or_ad" and
      * then its "media"), which is where Instagram 451 puts every suggested post on Home. Null when it
@@ -867,6 +926,24 @@ public final class FeedSuggestions {
      * say. The patch writes the body, which reads the post's has_liked. 0 as built.
      */
     public static int liked(Object post) {
+        return 0;
+    }
+
+    /**
+     * Whether a post's author is a business or creator account: 2 when its is_professional_account
+     * says so, 1 when it says not, and 0 when the post has no author or the author doesn't say. The
+     * patch writes the body, which reads the post's user and that flag. 0 as built.
+     */
+    public static int professional(Object post) {
+        return 0;
+    }
+
+    /**
+     * The account_type of a post's author, 1 for a personal account, 2 for a business and 3 for a
+     * creator, and 0 when the post has no author or the author doesn't say. The patch writes the
+     * body, which reads the post's user and that field. 0 as built.
+     */
+    public static int accountType(Object post) {
         return 0;
     }
 

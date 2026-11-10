@@ -136,6 +136,13 @@ final class FeedCategory {
                 feed.addPreference(toggle(context, Settings.HIDE_FEED_LIKED, L10n.t("Hide posts you've liked"),
                         L10n.t("Removes posts you've already liked from Home and Following. A post you like now "
                                 + "stays until you pull down on Home to refresh.")));
+                if (PatchFamily.professionalInBuild()) {
+                    String professional = L10n.t("Removes posts by business and creator accounts from Home and Following, "
+                            + "friends who use one included. Pull down on Home to refresh after changing it.");
+                    if (PatchFamily.favoritesSourceInBuild()) professional += " " + L10n.t("Favorites still shows them.");
+                    feed.addPreference(toggle(context, Settings.HIDE_FEED_PROFESSIONAL,
+                            L10n.t("Hide posts from business and creator accounts"), professional));
+                }
                 feed.addPreference(page.hiddenAccountsRow(context));
                 if (PatchFamily.favoritesSourceInBuild()) {
                     feed.addPreference(toggle(context, Settings.HIDDEN_IN_FAVORITES,
