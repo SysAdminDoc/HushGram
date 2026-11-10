@@ -43,7 +43,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Nothing is asked of Instagram for it. Each time Instagram builds the rows of a follow list from
  * the accounts it has loaded so far, the patch hands that list here ({@link FollowingList#ordered}).
  * It's only taken when it's your own Followers list, Instagram has no more of it to load, and it holds
- * exactly as many distinct accounts as your profile's follower count says ({@link #full}). A list cut short,
+ * as many distinct accounts as your profile's follower count says, give or take the few it never lists ({@link #full}). A list cut short,
  * still loading, filtered by a search or stopped by a failed page, is never taken, so it can't make
  * anyone look like they left. A list taken is compared with the last one taken for your account:
  * anyone missing from the new one is kept as a recent unfollower, with when it was first seen
@@ -274,13 +274,18 @@ public final class Unfollowers {
     }
 
     /**
-     * Whether [loaded] accounts are your whole Followers list by your profile's [count] of them. It
-     * may lag or count accounts Instagram doesn't list. In either case, wait for the counts to agree
-     * rather than treating the discrepancy as departures. No followers is a whole list of none.
+     * Whether [loaded] accounts are your whole Followers list by your profile's [count] of them. The
+     * count also counts accounts Instagram never lists, like deactivated ones, so a list may stay a few
+     * short for good (#624, 548 of 550). Up to one in {@link #UNLISTED_PER} may be missing. Below that
+     * many followers the counts must agree, so a search or a page cut short is never taken for the
+     * whole list. More than the count means it lags, so wait for it. No followers is a whole list of none.
      */
     static boolean full(int loaded, int count) {
-        return count >= 0 && loaded == count;
+        return count >= 0 && loaded <= count && count - loaded <= count / UNLISTED_PER;
     }
+
+    /** How many followers it takes for one to be missing from a whole list. */
+    static final int UNLISTED_PER = 200;
 
     /** Whether [followers] isn't the list last taken for [viewer] in this run, and marks it taken. */
     private static long firstTake(String viewer, Map<String, String> followers) throws Exception {

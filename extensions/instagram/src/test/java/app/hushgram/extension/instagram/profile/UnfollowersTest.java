@@ -189,6 +189,7 @@ public class UnfollowersTest {
         assertFalse(Unfollowers.full(0, 2));
         assertFalse(Unfollowers.full(12, 10));
         assertFalse(Unfollowers.full(-1, 10));
+        assertFalse(Unfollowers.full(-1, 0));
         assertFalse(Unfollowers.full(3, -1));
     }
 
@@ -211,12 +212,44 @@ public class UnfollowersTest {
     }
 
     @Test
-    public void aTerminalPageMustMatchTheNativeCountExactly() {
+    public void aTerminalPageMayMissOneFollowerInTwoHundred() {
         assertFalse(Unfollowers.full(95, 100));
+        assertFalse(Unfollowers.full(99, 100));
         assertFalse(Unfollowers.full(19, 20));
         assertFalse(Unfollowers.full(12, 10));
+        assertFalse(Unfollowers.full(551, 550));
         assertTrue(Unfollowers.full(100, 100));
         assertTrue(Unfollowers.full(0, 0));
+        assertTrue(Unfollowers.full(199, 200));
+        assertFalse(Unfollowers.full(198, 200));
+        assertTrue(Unfollowers.full(548, 550));
+        assertTrue(Unfollowers.full(550, 550));
+        assertFalse(Unfollowers.full(547, 550));
+        assertTrue(Unfollowers.full(1_152, 1_157));
+        assertFalse(Unfollowers.full(1_151, 1_157));
+    }
+
+    /**
+     * #624: Instagram counted 550 followers but only ever listed 548, so no list was ever kept. The
+     * two it never lists never show up as left, and someone who really leaves still does.
+     */
+    @Test
+    public void aListThatNeverReachesTheCountIsStillKept() {
+        List<User> all = new ArrayList<>();
+        for (int i = 0; i < 548; i++) all.add(new User("id" + i, "user" + i));
+        FakeList list = new FakeList();
+        list.count = 550;
+        Unfollowers.Keeper save = (viewer, followers, when, generation) -> Unfollowers.take(context, viewer, followers, when);
+
+        assertTrue(Unfollowers.seen(all, list, list, ON, save, 100));
+        assertEquals(548, Unfollowers.shown(context).followers.size());
+        assertEquals(100, Unfollowers.shown(context).checked);
+        assertTrue(Unfollowers.shown(context).left.isEmpty());
+
+        list.count = 549;
+        assertTrue(Unfollowers.seen(all.subList(1, 548), list, list, ON, save, 200));
+        assertEquals(1, Unfollowers.shown(context).left.size());
+        assertEquals("id0", Unfollowers.shown(context).left.get(0).id);
     }
 
     @Test
