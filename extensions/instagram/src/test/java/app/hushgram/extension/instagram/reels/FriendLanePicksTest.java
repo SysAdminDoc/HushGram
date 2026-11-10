@@ -38,6 +38,7 @@ import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -325,6 +326,29 @@ public class FriendLanePicksTest {
         dialog.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
         ShadowLooper.idleMainLooper();
         assertEquals("Applies to the next reels loaded.", ShadowToast.getTextOfLatestToast());
+    }
+
+    /** #616: 454 builds the tab on the app's context, so the list opens on the screen in front. */
+    @Test
+    public void aTabBuiltOnTheAppsContextOpensTheListOnTheScreenInFront() {
+        Activity showing = Utils.getActivity();
+        try {
+            View tab = new View(new ContextWrapper(controller.get().getApplication()));
+            FriendLanePicks.watch(tab);
+            Utils.setActivity(controller.get());
+            assertTrue(tab.performLongClick());
+            ShadowLooper.idleMainLooper();
+            AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+            assertTrue("the list is showing", dialog != null && dialog.isShowing());
+            dialog.dismiss();
+
+            ShadowAlertDialog.reset();
+            Utils.setActivity(null);
+            assertFalse("no screen to show it on, the hold stays Instagram's", FriendLanePicks.held(tab));
+            assertNull(ShadowAlertDialog.getLatestAlertDialog());
+        } finally {
+            Utils.setActivity(showing);
+        }
     }
 
     @Test

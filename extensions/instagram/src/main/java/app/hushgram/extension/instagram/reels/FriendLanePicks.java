@@ -235,6 +235,8 @@ public final class FriendLanePicks {
         try {
             if (tab == null || !on()) return false;
             Activity activity = SearchHeaderButton.activityOf(tab.getContext());
+            // 454 builds the top bar's tabs on the app's context, so the list goes on the screen in front (#616).
+            if (activity == null) activity = Utils.getActivity();
             if (activity == null) return false;
             List<String> roster = roster();
             if (roster.isEmpty()) {
