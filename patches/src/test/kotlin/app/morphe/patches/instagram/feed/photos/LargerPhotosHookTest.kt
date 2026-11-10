@@ -11,7 +11,9 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.download.IMAGE_URL
 import app.morphe.patches.instagram.misc.extension.INSTAGRAM_APPLICATION
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -22,12 +24,16 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableExceptionHandler
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import com.android.tools.smali.dexlib2.immutable.ImmutableTryBlock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -45,7 +51,7 @@ class LargerPhotosHookTest {
         val declared = ExtensionDex.classDef(LARGER_PHOTOS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(WANTED, SCREEN, AT_START)) {
+        for (hook in listOf(WANTED, SCREEN, AT_START, SAMPLE_SIZE)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -131,7 +137,72 @@ class LargerPhotosHookTest {
         }
     }
 
-    /** In each declared build both lookups find their one method and each hook lands once, where it should. */
+    /**
+     * The image view hands the extension the view, the picture and the size it may decode at right
+     * after reading the size, keeping the answer as the size: through a spare low register for a
+     * picture past v15, and straight from the parameter otherwise. The getter is left alone.
+     */
+    @Test
+    fun theImageViewAsksTheExtensionHowSmallToDecode() {
+        val context = PatchContexts.of(listOf(imageView(getter(), reader(), quickReader())))
+
+        decodeToFit(context.findDecodes())
+
+        val methods = context.mutableClassDefBy(IG_IMAGE_VIEW).methods
+        val reader = methods.single { it.name == "A03" }
+        assertDecodeHooked("stand-in A03", reader)
+        assertDecodeHooked("stand-in A04", methods.single { it.name == "A04" })
+        assertTrue("the getter changed", methods.single { it.name.startsWith(MAX_SAMPLE_SIZE_GETTER) }.code().none { it.referenceText() == SAMPLE_SIZE })
+        val code = reader.code()
+        assertEquals(
+            "stand-in A03",
+            listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.IGET, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.CONST_4),
+            code.take(6).map { it.opcode },
+        )
+        assertEquals("the spare and the picture", listOf(1, 21), (code[2] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("A03 grew by more than the hook", 9, code.size)
+        assertEquals("A04 grew by more than the hook", 7, methods.single { it.name == "A04" }.code().size)
+    }
+
+    /** A register a try's handler reads after the size is read isn't borrowed for the picture. */
+    @Test
+    fun aRegisterAHandlerReadsIsLeftAlone() {
+        val context = PatchContexts.of(listOf(imageView(getter(), reader(handled = true))))
+
+        decodeToFit(context.findDecodes())
+
+        val reader = context.mutableClassDefBy(IG_IMAGE_VIEW).methods.single { it.name == "A03" }
+        assertDecodeHooked("stand-in A03 in a try", reader)
+        assertEquals("the spare", 2, (reader.code()[2] as TwoRegisterInstruction).registerA)
+    }
+
+    /** An image view the patch can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun anImageViewThePatchCantReadFailsBeforeAnythingChanges() {
+        val where = "$IG_IMAGE_VIEW->A03"
+        val cases = listOf(
+            emptyList<ClassDef>() to "$IG_IMAGE_VIEW isn't there",
+            listOf(imageView(reader(), quickReader())) to "to keep one getter of its largest sample size, found 0",
+            listOf(imageView(getter(), getter("getMaxSampleSize\$other"), reader())) to "to keep one getter of its largest sample size, found 2",
+            listOf(imageView(getter())) to "nothing in $IG_IMAGE_VIEW handed a picture reads its largest sample size",
+            listOf(imageView(getter(), quickReader(), reader(reads = 2))) to "expected $where to read the largest sample size once, found 2",
+            listOf(imageView(getter(), quickReader(), reader(overView = true))) to "$where reads the largest sample size over the view's own register v13",
+            listOf(imageView(getter(), quickReader(), reader(jumpIn = true))) to "something in $where jumps in right after it reads the largest sample size",
+            listOf(imageView(getter(), quickReader(), reader(overPicture = true))) to "$where writes over the picture it's handed in v21",
+            listOf(imageView(getter(), quickReader(), reader(starved = true))) to
+                "$where has 0 local register(s) up to v15 that nothing reads after instruction 2, needs 1",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { decodeToFit(context.findDecodes()) }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = classes.flatMap { context.mutableClassDefBy(it.type).methods }
+                .filter { method -> method.code().any { it.referenceText() == SAMPLE_SIZE } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /** In each declared build every lookup finds its method and each hook lands once, where it should. */
     @Test
     fun eachDeclaredBuildAsksForTheLargerSize() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -155,7 +226,7 @@ class LargerPhotosHookTest {
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                val holds = classDef.methods.any { method ->
+                val holds = classDef.type == IG_IMAGE_VIEW || classDef.methods.any { method ->
                     method.code().any { it.string() == SCREEN_FORMAT } ||
                         (method.returnType == EXTENDED_IMAGE_URL && method.parameterTypes.map(CharSequence::toString) == pickerParameters)
                 }
@@ -165,13 +236,51 @@ class LargerPhotosHookTest {
         val context = PatchContexts.of(holders)
 
         val sites = context.findLargerSizes()
+        val decodes = context.findDecodes()
         askForLarger(sites)
+        decodeToFit(decodes)
 
         assertPickerHooked(label, sites.picker)
         assertReportHooked(label, sites.report)
         val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
         assertEquals("$label: methods asking", 1, written.count { m -> m.code().any { it.referenceText() == WANTED } })
         assertEquals("$label: methods reporting", 1, written.count { m -> m.code().any { it.referenceText() == SCREEN } })
+        val decoding = written.filter { m -> m.code().any { it.referenceText() == SAMPLE_SIZE } }
+        assertEquals("$label: methods decoding to fit", decodes.size, decoding.size)
+        assertTrue("$label: setUrlInternal doesn't decode to fit", decoding.any { m -> m.code().any { it.string() == "IgImageView.setUrlInternal" } })
+        for (method in decoding) assertDecodeHooked("$label ${method.name}", method)
+    }
+
+    /**
+     * The hook comes right after the view reads its largest sample size, with only moves to low
+     * registers between, handed the view the size was read from, the picture parameter and the
+     * size, and its answer is kept as the size. Nothing jumps in between the read and the answer.
+     */
+    private fun assertDecodeHooked(what: String, method: MutableMethod) {
+        val code = method.code()
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == SAMPLE_SIZE })
+        val hook = code.indexOfFirst { it.referenceText() == SAMPLE_SIZE }
+        val read = code.subList(0, hook).indexOfLast { it.opcode == Opcode.IGET && (it.reference() as? FieldReference)?.definingClass == IG_IMAGE_VIEW }
+        assertTrue("$what: no read of the size before the hook", read >= 0)
+        val size = code[read] as TwoRegisterInstruction
+        val moves = code.subList(read + 1, hook).map { it as TwoRegisterInstruction }
+        assertTrue("$what: more than moves between the read and the hook", moves.all { it.opcode == Opcode.MOVE_OBJECT_FROM16 || it.opcode == Opcode.MOVE_FROM16 })
+        fun from(register: Int) = moves.lastOrNull { it.registerA == register }?.registerB ?: register
+        val call = code[hook] as FiveRegisterInstruction
+        assertEquals("$what: arguments", 3, call.registerCount)
+        assertEquals("$what: the view", size.registerB, from(call.registerC))
+        assertEquals("$what: the picture", pictureRegister(method), from(call.registerD))
+        assertEquals("$what: the size", size.registerA, from(call.registerE))
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[hook + 1].opcode)
+        assertEquals("$what: kept as the size", size.registerA, (code[hook + 1] as OneRegisterInstruction).registerA)
+        val jumpedOnto = method.jumpTargets().filter { it in read + 1..hook + 1 }
+        assertTrue("$what: something jumps in at $jumpedOnto", jumpedOnto.isEmpty())
+    }
+
+    private fun pictureRegister(method: Method): Int {
+        val widths = method.parameterTypes.map { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
+        val at = method.parameterTypes.indexOfFirst { it.toString() == IMAGE_URL }
+        return method.implementation!!.registerCount - widths.sum() + widths.take(at).sum()
     }
 
     private fun assertPickerHooked(what: String, method: MutableMethod) {
@@ -277,6 +386,90 @@ class LargerPhotosHookTest {
 
     private fun classDef(type: String, methods: List<Method>): ClassDef =
         ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, null, methods)
+
+    private val sizeField = "$IG_IMAGE_VIEW->A03:I"
+
+    private fun imageView(vararg methods: Method): ClassDef =
+        ImmutableClassDef(IG_IMAGE_VIEW, AccessFlags.PUBLIC.value, "Landroid/widget/ImageView;", null, null, null, null, methods.toList())
+
+    /** The kept getter of the largest sample size, shaped like 454's. */
+    private fun getter(name: String = "getMaxSampleSize\$fbandroid_fixture"): Method = instance(
+        name, emptyList(), "I", locals = 1,
+        """
+            iget v0, p0, $sizeField
+            return v0
+        """,
+    )
+
+    /**
+     * A picture setter shaped like 454's A03: the view copied to v13, the size read from it into
+     * v0, then v2 written. The picture arrives in v21, past what a plain invoke names. [reads],
+     * [overView], [jumpIn] and [overPicture] each break one thing the patch needs, [starved]
+     * leaves no low register unread after the size, and [handled] puts the read in a try whose
+     * handler reads v1.
+     */
+    private fun reader(
+        reads: Int = 1,
+        overView: Boolean = false,
+        jumpIn: Boolean = false,
+        overPicture: Boolean = false,
+        starved: Boolean = false,
+        handled: Boolean = false,
+    ): Method {
+        val body = buildString {
+            appendLine("move-object/from16 v13, p0")
+            if (jumpIn) appendLine("if-eqz v13, :after")
+            appendLine(if (overView) "iget v13, v13, $sizeField" else "iget v0, v13, $sizeField")
+            if (starved) appendLine("filled-new-array/range { v0 .. v15 }, [I")
+            if (jumpIn) appendLine(":after")
+            appendLine("const/4 v2, 0x0")
+            if (reads == 2) appendLine("iget v3, v13, $sizeField")
+            if (overPicture) appendLine("move-object/from16 v21, v13")
+            appendLine("invoke-static { v0 }, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;")
+            appendLine("move-result-object v1")
+            appendLine("return-void")
+            if (handled) {
+                appendLine("invoke-static { v1 }, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;")
+                appendLine("return-void")
+            }
+        }
+        return instance("A03", listOf(IMAGE_URL, "Z"), "V", locals = 20, body, tried = if (handled) 1 to 6 else null)
+    }
+
+    /** A picture setter shaped like 454's A04, with every register it needs low: the view in v3, the picture in v4. */
+    private fun quickReader(): Method = instance(
+        "A04", listOf(IMAGE_URL), "V", locals = 3,
+        """
+            iget v0, p0, $sizeField
+            const/4 v1, 0x1
+            invoke-static { v0 }, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
+            move-result-object v2
+            return-void
+        """,
+    )
+
+    /** A private instance method of the image view, with the instruction at [tried]'s first in a try handled at its second. */
+    private fun instance(name: String, parameters: List<String>, returns: String, locals: Int, body: String, tried: Pair<Int, Int>? = null): Method {
+        val flags = AccessFlags.PRIVATE.value or AccessFlags.FINAL.value
+        val registers = locals + 1 + parameters.size
+        val mutable = MutableMethod(
+            ImmutableMethod(
+                IG_IMAGE_VIEW, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, flags, null, null,
+                ImmutableMethodImplementation(registers, emptyList(), null, null),
+            ),
+        )
+        mutable.addInstructionsWithLabels(0, body.trimIndent())
+        val built = ImmutableMethod.of(mutable)
+        if (tried == null) return built
+        val code = built.code()
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        val (covered, handler) = tried
+        val block = ImmutableTryBlock(addresses[covered], code[covered].codeUnits, listOf(ImmutableExceptionHandler(null, addresses[handler])))
+        return ImmutableMethod(
+            IG_IMAGE_VIEW, name, built.parameters, returns, flags, null, null,
+            ImmutableMethodImplementation(registers, code, listOf(block), null),
+        )
+    }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

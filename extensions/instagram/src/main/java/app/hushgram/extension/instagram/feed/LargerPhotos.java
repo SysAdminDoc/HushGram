@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.feed;
 import android.content.Context;
 import android.content.res.Resources;
 import android.util.DisplayMetrics;
+import android.view.View;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.media.DataSaver;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -49,6 +51,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * cover sizes until the cache was cleared (#214). {@link #atStart} drops those replies at the first
  * start that reports another screen. The hooks fail open: with the switch off, HushGram paused, the
  * settings not read yet or anything thrown, Instagram reports and asks for what it would have.
+ *
+ * <p>Instagram decodes every picture at full size whatever the view showing it, so under Full size
+ * covers each of Explore's grid pictures, sent at 1440 pixels for a tile a quarter that wide, was
+ * decoded whole, and Explore stuttered and held half again as much memory (#595). {@link #sampleSize} lets a
+ * picture several times its view's size decode at a fraction of it, never smaller than the view.
  */
 public final class LargerPhotos {
     /** The shorter side of the screen reported and the width asked for, in pixels. */
@@ -71,11 +78,17 @@ public final class LargerPhotos {
     /** The step a failure in {@link #atStart} is reported under. */
     static final String START = "kept replies";
 
+    /** The step a failure in {@link #sampleSize} is reported under. */
+    static final String DECODE = "decode size";
+
     /** What {@link #wanted} counts each time it asks for a larger size. */
     static final String ASKED = "asked for a larger size";
 
     /** What {@link #atStart} counts each start that drops the kept replies for a new screen. */
     static final String FORGOT = "kept replies dropped for a new screen";
+
+    /** What {@link #sampleSize} counts each time a picture decodes smaller to fit its view. */
+    static final String SAMPLED = "pictures decoded smaller for their view";
 
     /**
      * The folder in Instagram's cache folder that keeps the server's media replies, sized for the
@@ -101,6 +114,7 @@ public final class LargerPhotos {
 
     private static volatile boolean loggedScreen;
     private static volatile boolean loggedAsk;
+    private static volatile boolean loggedSample;
 
     private LargerPhotos() {
     }
@@ -192,6 +206,57 @@ public final class LargerPhotos {
     }
 
     /**
+     * Injected right after Instagram's image view reads the largest sample size a picture it's
+     * showing may be decoded at, with the view, the picture's size as Instagram knows it and that
+     * sample size, answering the one Instagram uses. Instagram asks for 1, every pixel. While Full
+     * size covers is on and the view is laid out, answers the largest power of two that still
+     * decodes the picture at least as wide and as tall as the view. Instagram's memory cache serves
+     * a smaller decode only to a request that allows one, so the same picture opened full screen
+     * comes whole, and Download cover saves it by its address. Never throws.
+     */
+    public static int sampleSize(View view, Object url, int asked) {
+        try {
+            HookStatus.invoked(FamilyNames.FULL_RESOLUTION);
+            if (view == null || url == null || !coversOn()) return asked;
+            return sampleSize(view.getWidth(), view.getHeight(),
+                    InstagramMedia.candidateWidth(url), InstagramMedia.candidateHeight(url), asked);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_RESOLUTION, DECODE, failure);
+            return asked;
+        }
+    }
+
+    /**
+     * The sample size for a [pictureWidth] by [pictureHeight] picture in a [viewWidth] by
+     * [viewHeight] view where Instagram asked for [asked]: what {@link #fitting} answers when that's
+     * larger, counted, and [asked] otherwise.
+     */
+    static int sampleSize(int viewWidth, int viewHeight, int pictureWidth, int pictureHeight, int asked) {
+        int fits = fitting(pictureWidth, pictureHeight, viewWidth, viewHeight);
+        if (fits <= asked) return asked;
+        HookStatus.counted(FamilyNames.FULL_RESOLUTION, SAMPLED);
+        if (!loggedSample) {
+            loggedSample = true;
+            Logger.printDebug(() -> "Larger photos: decoded a " + pictureWidth + "x" + pictureHeight + " picture at 1/"
+                    + fits + " for a " + viewWidth + "x" + viewHeight + " view");
+        }
+        return fits;
+    }
+
+    /**
+     * The largest power of two a [pictureWidth] by [pictureHeight] picture can be divided by and
+     * still be at least [viewWidth] by [viewHeight], or 1 when a side of either isn't known.
+     */
+    static int fitting(int pictureWidth, int pictureHeight, int viewWidth, int viewHeight) {
+        if (pictureWidth <= 0 || pictureHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) return 1;
+        int sample = 1;
+        while (pictureWidth / (sample * 2) >= viewWidth && pictureHeight / (sample * 2) >= viewHeight) {
+            sample *= 2;
+        }
+        return sample;
+    }
+
+    /**
      * Injected right after HushGram gets its context in Instagram's application, before Instagram's
      * own startup opens its cache. In Instagram's own process, drops the kept media replies when this
      * run reports another screen than the one they were sized for, so the next reel is asked for at
@@ -273,6 +338,7 @@ public final class LargerPhotos {
     static void forgetForTests() {
         loggedScreen = false;
         loggedAsk = false;
+        loggedSample = false;
     }
 
     private static boolean switchedOn() {

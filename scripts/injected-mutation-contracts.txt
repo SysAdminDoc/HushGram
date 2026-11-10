@@ -1295,6 +1295,13 @@ once-call Lapp/hushgram/extension/instagram/feed/SwipeToCreate;->enabled()I in i
 start-call Lapp/hushgram/extension/instagram/feed/LargerPhotos;->wanted(I)I in static (Ljava/lang/Integer;Ljava/util/List;I)Lcom/instagram/model/mediasize/ExtendedImageUrl; holding LX/*;->A0C:Ljava/lang/Integer;
 once-call Lapp/hushgram/extension/instagram/feed/LargerPhotos;->wanted(I)I in static (Ljava/lang/Integer;Ljava/util/List;I)Lcom/instagram/model/mediasize/ExtendedImageUrl; holding LX/*;->A0C:Ljava/lang/Integer;
 once-call Lapp/hushgram/extension/instagram/feed/LargerPhotos;->screen([Ljava/lang/Object;)V in static (Landroid/content/Context;)Ljava/lang/String; holding %sdpi;\s%sx%s
+# Its Full size covers switch gets grid pictures at full size, and a grid tile then decoded all of a
+# picture several times its size, which made Explore stutter (#595). IgImageView hands
+# LargerPhotos.sampleSize() the view, the picture and the largest sample size it may decode at, right
+# after reading that size, in both of its picture setters: the one holding its setUrlInternal line
+# and the one holding the two Vito lines. Left out, the stutter is back.
+once-call Lapp/hushgram/extension/instagram/feed/LargerPhotos;->sampleSize(Landroid/view/View;Ljava/lang/Object;I)I in instance (LX/*;LX/*;LX/*;Lcom/instagram/common/typedurl/ImageUrl;LX/*;ZZZ)V holding IgImageView.setUrlInternal
+once-call Lapp/hushgram/extension/instagram/feed/LargerPhotos;->sampleSize(Landroid/view/View;Ljava/lang/Object;I)I in instance (LX/*;LX/*;LX/*;Lcom/instagram/common/typedurl/ImageUrl;LX/*;ZZZZ)V holding Vito\ssame\simage\sloaded Vito\smanually\strigger\slistener
 once-call Lapp/hushgram/extension/instagram/feed/FullResolution;->photo(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;)L*; holding instagram.features.feed.ui.rows.image.FeedImageUseCase#getImageSource()\sCould\snot\sgenerate\simageUrl\sfor\smediaId=\s
 #
 # Hide suggested stories asks hideTray() first thing in Home's story tray row build, the one method

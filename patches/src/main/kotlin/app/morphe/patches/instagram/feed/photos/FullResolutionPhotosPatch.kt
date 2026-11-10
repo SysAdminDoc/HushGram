@@ -61,7 +61,10 @@ internal const val NO_IMAGE_URL_SHORT =
  * second switch, also off to start, asks for a larger size on a phone narrower than 1440 pixels
  * (see LargerPhotos.kt), and a third, Full size covers, reports a screen big enough for full size
  * reel covers (#214). Instagram keeps the server's media replies across restarts, sized for the
- * screen it reported then, so the extension drops them at the first start reporting another.
+ * screen it reported then, so the extension drops them at the first start reporting another. With
+ * full size covers on, a grid tile gets a picture several times its size and Instagram decoded all
+ * of it, which made Explore stutter (#595), so the image view hands the extension the size it may
+ * decode at and gets back the one that still covers the view.
  */
 @Suppress("unused")
 val fullResolutionPhotosPatch = bytecodePatch(
@@ -81,11 +84,13 @@ val fullResolutionPhotosPatch = bytecodePatch(
         val pickerSizes = findPickerSizes(site)
         val larger = findLargerSizes()
         val start = findStart()
+        val decodes = findDecodes()
         val writeBridges = imageBridges(PATCH)
         val writePickerBridge = pickerSizesBridge(PATCH, pickerSizes)
         loadFullResolution(site)
         askForLarger(larger)
         forgetAtStart(start)
+        decodeToFit(decodes)
         writeBridges()
         writePickerBridge()
         enableStatus("fullResolution")

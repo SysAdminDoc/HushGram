@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.view.View;
 
 import org.junit.After;
 import org.junit.Before;
@@ -145,6 +146,61 @@ public class LargerPhotosTest {
         } finally {
             Settings.FULL_SIZE_COVERS.resetToDefault();
         }
+    }
+
+    /**
+     * Under Full size covers Explore's grid pictures come at 1440 for tiles about 360 wide, and a
+     * full size decode of each made Explore stutter (#595). A picture several times its view decodes
+     * at a power of two that keeps it at least the view's size on both sides.
+     */
+    @Test
+    public void aPictureSeveralTimesItsViewDecodesSmallerButNeverUnderIt() {
+        assertEquals("a grid picture in its tile", 4, LargerPhotos.fitting(1440, 1440, 360, 360));
+        assertEquals("a tall cover in a tall tile", 2, LargerPhotos.fitting(1440, 2560, 360, 720));
+        assertEquals("a wide picture cropped into a square tile keeps its height", 2, LargerPhotos.fitting(1440, 810, 360, 360));
+        assertEquals("a photo across the screen", 1, LargerPhotos.fitting(1440, 1800, 1080, 1350));
+        assertEquals("just under twice the view", 1, LargerPhotos.fitting(719, 1440, 360, 360));
+        assertEquals("exactly twice the view", 2, LargerPhotos.fitting(720, 720, 360, 360));
+        assertEquals("an unknown height", 1, LargerPhotos.fitting(1440, 0, 360, 360));
+        assertEquals("a view not laid out", 1, LargerPhotos.fitting(1440, 1440, 0, 0));
+        for (int picture : new int[] {1, 359, 360, 1080, 1440, 4320, Integer.MAX_VALUE}) {
+            for (int view : new int[] {1, 120, 360, 1080}) {
+                int sample = LargerPhotos.fitting(picture, picture, view, view);
+                assertTrue(picture + " in " + view, sample == 1 || picture / sample >= view);
+                assertTrue(picture + " in " + view + " could go further", picture / (sample * 2) < view);
+                assertEquals(picture + " in " + view, 0, sample & (sample - 1));
+            }
+        }
+    }
+
+    @Test
+    public void onlyASmallerDecodeThanInstagramsIsCounted() {
+        assertEquals(4, LargerPhotos.sampleSize(360, 360, 1440, 1440, 1));
+        assertEquals("Instagram's own larger sample stands", 8, LargerPhotos.sampleSize(360, 360, 1440, 1440, 8));
+        assertEquals(1, LargerPhotos.sampleSize(1080, 1350, 1440, 1800, 1));
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(LargerPhotos.SAMPLED + " 1"));
+    }
+
+    /** The view's hook reads Full size covers each time and keeps Instagram's sample with it off, a view not laid out, or nothing to read. */
+    @Test
+    public void theDecodeHookFollowsFullSizeCovers() {
+        View tile = new View(RuntimeEnvironment.getApplication());
+        tile.layout(0, 0, 360, 360);
+        Object picture = new Object();
+        assertEquals("covers off", 1, LargerPhotos.sampleSize(tile, picture, 1));
+        Settings.FULL_SIZE_COVERS.save(true);
+        try {
+            // The bridges to the picture's size are written by the patch, so here it's unknown.
+            assertEquals("a size the bridges don't know", 1, LargerPhotos.sampleSize(tile, picture, 1));
+            assertEquals("no view", 2, LargerPhotos.sampleSize(null, picture, 2));
+            assertEquals("no picture", 1, LargerPhotos.sampleSize(tile, null, 1));
+            assertEquals("not laid out", 1, LargerPhotos.sampleSize(new View(RuntimeEnvironment.getApplication()), picture, 1));
+        } finally {
+            Settings.FULL_SIZE_COVERS.resetToDefault();
+        }
+        String missing = HookStatus.missing(FamilyNames.FULL_RESOLUTION).toString();
+        assertTrue(missing, HookStatus.missing(FamilyNames.FULL_RESOLUTION).isEmpty());
     }
 
     @Test
