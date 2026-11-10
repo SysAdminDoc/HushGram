@@ -12,6 +12,10 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.download.IMAGE_INFO
+import app.morphe.patches.instagram.download.PANDO_IMAGE_INFO
+import app.morphe.patches.instagram.download.pandoGetter
+import app.morphe.patches.instagram.download.throughInterface
 import app.morphe.patches.instagram.feed.tabswipe.stopTabSwipingPatch
 import app.morphe.patches.instagram.feed.zoom.GESTURE_DETECTOR
 import app.morphe.patches.instagram.feed.zoom.MEDIA_FRAME
@@ -24,6 +28,7 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -58,6 +63,10 @@ private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 private const val MAP = "Ljava/util/Map;"
 internal const val FEED_MEDIA = "Lcom/instagram/feed/media/Media;"
 internal const val SPRITESHEET_INFO = "Lcom/instagram/api/schemas/SpritesheetInfo;"
+
+/** A post's picture sizes keep a reel's strip under these, read through the tree-backed class. */
+internal const val SPRITE_CANDIDATES = "Lcom/instagram/api/schemas/SpriteSheetInfoCandidates;"
+internal const val PANDO_SPRITE_CANDIDATES = "Lcom/instagram/api/schemas/ImmutablePandoSpriteSheetInfoCandidates;"
 
 /** The name of the sprite images among the ones Instagram's JSON gives a video's picture strip, held by the method turning it into a map. */
 internal const val SPRITE_URLS = "sprite_urls"
@@ -295,8 +304,12 @@ internal fun BytecodePatchContext.findFeedSeek(): FeedSeekSites {
     return FeedSeekSites(player.type, callback.name, item, holder, view, controller, seek, pause, play)
 }
 
-/** Where a feed video's post is kept, and how its picture strip is got and turned into a map. */
-internal class SeekSheetSites(val media: FieldReference, val getter: Method, val builder: Method)
+/**
+ * Where a feed video's post is kept, and how its picture strip is got and turned into a map.
+ * [scrubber] is the chain of calls reading the strip kept with the post's picture sizes, or null
+ * when this build's can't be told.
+ */
+internal class SeekSheetSites(val media: FieldReference, val getter: Method, val builder: Method, val scrubber: List<String>?)
 
 /**
  * Finds what the preview needs to read a video's picture strip (#567), before anything changes:
@@ -306,6 +319,10 @@ internal class SeekSheetSites(val media: FieldReference, val getter: Method, val
  * - the one public static method holding [SPRITE_URLS] that turns a [SPRITESHEET_INFO] into a map under the names in
  *   the JSON Instagram sends, the way the app writes it out to its own cache;
  * - all of it public, so the extension's stubs may reach it, and the stubs themselves.
+ *
+ * Reels leave that getter's strip null and keep theirs with the post's picture sizes instead, under
+ * `image_versions2.scrubber_spritesheet_info_candidates.default` (#567). Only the preview reads it, so
+ * a build where that chain can't be told logs why and goes in with the post's own strip alone.
  */
 internal fun BytecodePatchContext.findFeedSeekSheet(found: FeedSeekSites): SeekSheetSites {
     val player = classDefByOrNull(found.player) ?: refuse("this build has no ${found.player}")
@@ -336,11 +353,27 @@ internal fun BytecodePatchContext.findFeedSeekSheet(found: FeedSeekSites): SeekS
         reader.methods.singleOrNull { it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.shape() == shape }
             ?: refuse("$FEED_SEEK_READER has no static $name$shape")
     }
-    return SeekSheetSites(media, getter, builder)
+    return SeekSheetSites(media, getter, builder, findScrubberSheet())
+}
+
+/** The calls from a post to the strip kept with its picture sizes, each on the one before's answer, or null after the log says why. */
+private fun BytecodePatchContext.findScrubberSheet(): List<String>? = try {
+    listOf(IMAGE_INFO, PANDO_IMAGE_INFO, SPRITE_CANDIDATES, PANDO_SPRITE_CANDIDATES).firstOrNull { classDefByOrNull(it) == null }
+        ?.let { throw PatchException("$PATCH: this build has no $it") }
+    val images = pandoGetter(PATCH, FEED_MEDIA, "image_versions2", IMAGE_INFO)
+    if (!AccessFlags.PUBLIC.isSet(images.accessFlags)) throw PatchException("$PATCH: $FEED_MEDIA->${images.name} isn't public")
+    listOf(
+        "invoke-virtual {p0}, $FEED_MEDIA->${images.name}()$IMAGE_INFO",
+        throughInterface(PATCH, IMAGE_INFO, PANDO_IMAGE_INFO, "scrubber_spritesheet_info_candidates", SPRITE_CANDIDATES),
+        throughInterface(PATCH, SPRITE_CANDIDATES, PANDO_SPRITE_CANDIDATES, "default", SPRITESHEET_INFO),
+    )
+} catch (unknown: PatchException) {
+    patchLog.warning("${unknown.message}. $PATCH goes in reading a video's pictures from the post alone.")
+    null
 }
 
 /** The extension's stubs the picture strip takes, by name and shape. */
-private val SHEET_STUBS = listOf("media" to "($OBJECT)$OBJECT", "sheet" to "($OBJECT)$MAP")
+private val SHEET_STUBS = listOf("media" to "($OBJECT)$OBJECT", "sheet" to "($OBJECT)$MAP", "scrubberSheet" to "($OBJECT)$MAP")
 
 /** Fills the stubs that read a video's picture strip. Each stub's own registers are its parameters, so the code uses those. */
 internal fun BytecodePatchContext.hookFeedSeekSheet(found: FeedSeekSites, sites: SeekSheetSites) {
@@ -368,6 +401,20 @@ internal fun BytecodePatchContext.hookFeedSeekSheet(found: FeedSeekSites, sites:
             invoke-virtual { p0 }, $FEED_MEDIA->${sites.getter.name}()$SPRITESHEET_INFO
             move-result-object p0
             if-eqz p0, :none
+            invoke-static { p0 }, ${sites.builder.definingClass}->${sites.builder.name}($SPRITESHEET_INFO)$MAP
+            move-result-object p0
+            return-object p0
+            :none
+            const/4 p0, 0x0
+            return-object p0
+        """,
+    )
+    val scrubber = sites.scrubber ?: return
+    stub("scrubberSheet").addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, $FEED_MEDIA
+            ${scrubber.joinToString("\n") { "$it\nmove-result-object p0\nif-eqz p0, :none" }}
             invoke-static { p0 }, ${sites.builder.definingClass}->${sites.builder.name}($SPRITESHEET_INFO)$MAP
             move-result-object p0
             return-object p0

@@ -68,4 +68,13 @@ final class FeedSeekReader {
     static Map<?, ?> sheet(Object media) {
         return null;
     }
+
+    /**
+     * Filled in by the patch, when the build has it: the picture strip kept with [media]'s cover
+     * pictures, by the names in Instagram's JSON, or null when it has none. Reels carry theirs there.
+     */
+    @Nullable
+    static Map<?, ?> scrubberSheet(Object media) {
+        return null;
+    }
 }

@@ -50,6 +50,11 @@ internal const val MIN_SECONDS = "$REEL_SEEK_BAR->minSeconds(J)J"
 internal const val LAZY = "$REEL_SEEK_BAR->lazy(I)Z"
 internal const val PROGRESS = "$REEL_SEEK_BAR->progress(Landroid/widget/SeekBar;I)V"
 internal const val BIND = "$REEL_SEEK_BAR->bind(Ljava/lang/Object;I)V"
+internal const val BIND_REEL = "$REEL_SEEK_BAR->bindReel(Ljava/lang/Object;Ljava/lang/Object;)V"
+
+/** The extension's stub the patch fills with the reel item's getId, apart from ReelSeekBar. */
+internal const val REEL_ITEM_READER = "$EXTENSION_PACKAGE/reels/ReelItemReader;"
+internal const val REEL_ITEM_ID = "$REEL_ITEM_READER->id(Ljava/lang/Object;)Ljava/lang/String;"
 internal const val LISTEN = "$EXTENSION_PACKAGE/reels/ReelSeekTouch;->listen(Landroid/view/View;Landroid/view/View\$OnTouchListener;)V"
 
 /**
@@ -200,13 +205,14 @@ internal class TouchSite(
 
 /**
  * Where the binder reads whether its reel is an ad: [readAt] is the `iget-boolean` of that field into
- * [flag], and [view] is the register holding the container all through the method.
+ * [flag], from the reel item in [item], and [view] is the register holding the container all through the method.
  */
 internal class BindSite(
     val method: Method,
     val readAt: Int,
     val flag: Int,
     val view: Int,
+    val item: Int,
 )
 
 /**
@@ -247,6 +253,8 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
     if (lengths.none { it.signature() in row.calledSignatures() }) {
         refuse("${row.signature()} ($SCRUBBER_ROW_STATE) asks no method reading the shortest reel with a seek bar")
     }
+    classDefByOrNull(REEL_ITEM_READER)?.methods?.singleOrNull { it.signature() == REEL_ITEM_ID && AccessFlags.STATIC.isSet(it.accessFlags) }
+        ?: refuse("the extension has no static $REEL_ITEM_ID")
     return ReelSeekBarSites(
         lengths, lazy, findProgressChanged(), findBindSite(row, lazy), findTouchSite(marked.getValue(TOUCH_STRIP)),
         findPhotoSites(calculate, attached, row, marked.getValue(PLAYER_PROGRESS)),
@@ -267,6 +275,9 @@ private fun BytecodePatchContext.findPhotoSites(calculate: Method, attached: Met
     val media = mediaFields.singleOrNull() ?: refuse("expected $itemType to hold one $MEDIA, found ${mediaFields.size}")
     val getId = itemClass.methods.singleOrNull { it.name == "getId" && it.parameterTypes.isEmpty() && it.returnType == STRING }
         ?: refuse("$itemType has no getId")
+    if (!AccessFlags.PUBLIC.isSet(itemClass.accessFlags) || !AccessFlags.PUBLIC.isSet(getId.accessFlags)) {
+        refuse("$itemType or its getId isn't public, so the extension can't ask a reel its id")
+    }
     val kinds = classesLoadingString(KIND_OF_REPORT).flatMap { it.methods }.filter { method ->
         AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.map(CharSequence::toString) == listOf(MEDIA) &&
             method.returnType.startsWith("L") && loadsString(method, KIND_OF_REPORT)
@@ -413,13 +424,16 @@ internal fun BytecodePatchContext.findBindSite(row: Method, lazy: FlagLoad): Bin
     val reads = (start until end).filter { code[it].opcode == Opcode.IGET_BOOLEAN && code[it].fieldReference()?.text() == field }
     val readAt = reads.singleOrNull() ?: refuse("expected $where to read $field once, found ${reads.size}")
     val flag = (code[readAt] as OneRegisterInstruction).registerA
+    val item = (code[readAt] as TwoRegisterInstruction).registerB
     val overwrites = (start until end).filter { code[it].writes(view) && code[it].opcode != Opcode.CHECK_CAST }
     if (overwrites.isNotEmpty()) refuse("$where writes over the view it tags at instruction(s) ${overwrites.joinToString()}")
     if (readAt == code.lastIndex || readAt + 1 in binder.jumpTargets()) {
         refuse("$where jumps to just after its read of $field, where the call would go")
     }
-    if (flag > 15 || view > 15) refuse("$where keeps the view or the ad answer in a register past v15")
-    return BindSite(binder, readAt, flag, view)
+    // 454 tags the container only on some screens, so the reel's id is handed over from the item the read reads, just before it.
+    if (readAt in binder.jumpTargets()) refuse("$where jumps to its read of $field, where the reel's id is handed over")
+    if (flag > 15 || view > 15 || item > 15) refuse("$where keeps the view, the reel item or the ad answer in a register past v15")
+    return BindSite(binder, readAt, flag, view, item)
 }
 
 /**
@@ -518,7 +532,8 @@ internal fun BytecodePatchContext.findProgressChanged(): Method {
  * Answers each read of the minimum through [MIN_SECONDS] and the read of the hidden kind through
  * [LAZY], then puts the call to [PROGRESS] first in the seek bar's [PROGRESS_CHANGED], handing it
  * the bar (`this`) and the position, and the call to [BIND] right after the binder's read of
- * whether its reel is an ad, handing it the container and that answer. Last, the strip's
+ * whether its reel is an ad, handing it the container and that answer, with [BIND_REEL] just before
+ * the read, handing it the container and the reel item [REEL_ITEM_ID] asks the id of. Last, the strip's
  * [SET_ON_TOUCH] becomes a call to [LISTEN] with the same strip and listener, which sets the
  * listener itself behind its gate.
  */
@@ -532,7 +547,21 @@ internal fun BytecodePatchContext.applyReelSeekBar(sites: ReelSeekBarSites) {
     mutableClassDefBy(bind.method.definingClass).methods.single {
         it.name == bind.method.name && it.returnType == bind.method.returnType &&
             it.parameterTypes.map(CharSequence::toString) == bind.method.parameterTypes.map(CharSequence::toString)
-    }.addInstructions(bind.readAt + 1, "invoke-static { v${bind.view}, v${bind.flag} }, $BIND")
+    }.apply {
+        addInstructions(bind.readAt + 1, "invoke-static { v${bind.view}, v${bind.flag} }, $BIND")
+        addInstructions(bind.readAt, "invoke-static { v${bind.view}, v${bind.item} }, $BIND_REEL")
+    }
+    // The stub's own registers are its parameter, so the code uses that.
+    val itemType = sites.photo.id.substringBefore("->")
+    mutableClassDefBy(REEL_ITEM_READER).methods.single { it.name == "id" && it.parameterTypes.size == 1 }.addInstructions(
+        0,
+        """
+            check-cast p0, $itemType
+            invoke-virtual { p0 }, ${sites.photo.id}
+            move-result-object p0
+            return-object p0
+        """,
+    )
     val touch = sites.touch
     mutableClassDefBy(touch.method.definingClass).methods.single {
         it.name == touch.method.name && it.returnType == touch.method.returnType &&

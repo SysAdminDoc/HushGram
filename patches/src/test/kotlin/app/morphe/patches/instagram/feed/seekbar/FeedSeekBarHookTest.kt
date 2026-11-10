@@ -9,6 +9,8 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.download.IMAGE_INFO
+import app.morphe.patches.instagram.download.PANDO_IMAGE_INFO
 import app.morphe.patches.instagram.feed.tabswipe.stopTabSwipingPatch
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -131,6 +133,22 @@ class FeedSeekBarHookTest {
         }
     }
 
+    /** A build whose reel strip can't be told still goes in, with the post's own strip and the reel strip's stub left as shipped. */
+    @Test
+    fun aBuildWithoutTheReelStripGoesInWithThePostsOwn() {
+        val bundle = Fixtures.files { it.extension == "apks" }.first()
+        val classes = classes(bundle).filter { it.type != PANDO_SPRITE_CANDIDATES }
+        val context = PatchContexts.of(classes)
+        val sites = context.findFeedSeek()
+        val sheet = context.findFeedSeekSheet(sites)
+        assertEquals("no chain without the tree-backed candidates", null, sheet.scrubber)
+        context.hookFeedSeekSheet(sites, sheet)
+        val reader = context.mutableClassDefBy(FEED_SEEK_READER)
+        fun first(name: String) = reader.methods.single { it.name == name }.code().first().opcode
+        assertEquals("the post's own strip is still read", Opcode.CHECK_CAST, first("sheet"))
+        assertEquals("the reel strip's stub answers null as shipped", Opcode.CONST_4, first("scrubberSheet"))
+    }
+
     private fun builds(bundle: File, label: String): FeedSeekSites {
         val classes = classes(bundle)
         val context = PatchContexts.of(classes)
@@ -177,6 +195,17 @@ class FeedSeekBarHookTest {
             ),
             stub("sheet").mapNotNull { it.method()?.toString() },
         )
+        val scrubber = stub("scrubberSheet").mapNotNull { it.method() }
+        assertEquals("$label: the reel strip stub starts at the post", Opcode.CHECK_CAST, stub("scrubberSheet").first().opcode)
+        assertEquals(
+            "$label: the reel strip stub goes post, picture sizes, strip candidates, strip, then the strip's map",
+            listOf(FEED_MEDIA to IMAGE_INFO, IMAGE_INFO to SPRITE_CANDIDATES, SPRITE_CANDIDATES to SPRITESHEET_INFO, sheet.builder.definingClass to "Ljava/util/Map;"),
+            scrubber.map { it.definingClass to it.returnType },
+        )
+        assertEquals("$label: the map is the same builder's", sheet.builder.name, scrubber.last().name)
+        if (label.contains("386014758")) {
+            assertEquals("$label: the reel strip's getters", listOf("A3N", "DT4", "EA6"), scrubber.dropLast(1).map { it.name })
+        }
         return sites
     }
 
@@ -202,7 +231,7 @@ class FeedSeekBarHookTest {
                 if (callback != null || SEEK_LISTENER in classDef.interfaces) found += ImmutableClassDef.of(classDef)
             }
         }
-        named += FEED_MEDIA
+        named += listOf(FEED_MEDIA, IMAGE_INFO, PANDO_IMAGE_INFO, SPRITE_CANDIDATES, PANDO_SPRITE_CANDIDATES)
         val taken = found.map { it.type }.toSet()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) if (classDef.type in named && classDef.type !in taken) found += ImmutableClassDef.of(classDef)

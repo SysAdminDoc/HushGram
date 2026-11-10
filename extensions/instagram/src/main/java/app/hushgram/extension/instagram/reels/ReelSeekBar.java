@@ -137,6 +137,18 @@ public final class ReelSeekBar {
     }
 
     /**
+     * Injected in the same binder just before that read, with the container and the reel item it
+     * reads. Names the container's reel by the item's id, which Instagram 454 doesn't always tag it with.
+     */
+    public static void bindReel(Object container, @Nullable Object item) {
+        try {
+            ReelTimeLabel.bindReel(container, item == null ? null : ReelItemReader.id(item));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "seek bar reel id", failure);
+        }
+    }
+
+    /**
      * Whether every reel keeps its bar and time label: Keep a seek bar, or a restyled bar (bigger, or
      * like DM videos), which needs the bar shown.
      */

@@ -376,7 +376,7 @@ public final class StorySeekBar {
 
         @Override
         public void onProgressChanged(SeekBar seek, int progress, boolean fromUser) {
-            if (fromUser && dragging) SeekPreview.dragged(seek, progress, null, FamilyNames.STORY_SEEK_BAR);
+            if (fromUser && dragging) SeekPreview.dragged(seek, progress, null, StorySpeed.current(), FamilyNames.STORY_SEEK_BAR);
         }
 
         @Override

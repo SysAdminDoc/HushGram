@@ -37,7 +37,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -74,6 +76,11 @@ public class FeedSeekBarTest {
         int reads;
         boolean viewThrows;
         boolean pauses = true;
+        SeekSheet sheet;
+
+        @Override public SeekSheet sheet(Object of) {
+            return sheet;
+        }
 
         @Override public View view(Object of) {
             reads++;
@@ -614,6 +621,56 @@ public class FeedSeekBarTest {
         listener.onProgressChanged(bar, 5000, true);
         assertNotNull(SeekPreview.cardForTests());
         assertEquals("0:05 / 0:15", SeekPreview.timeForTests());
+    }
+
+    /** #567: most feed posts have no picture strip, so the paused video itself follows the drag, a move at a time. */
+    @Test
+    public void aPostWithNoStripShowsTheMomentInTheVideo() {
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.SEEK_PREVIEW.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        SeekBar bar = bar();
+        SeekBar.OnSeekBarChangeListener listener = shadowOf(bar).getOnSeekBarChangeListener();
+        bar.setPressed(true);
+        new Listener(bar).start();
+        listener.onProgressChanged(bar, 5000, true);
+        listener.onProgressChanged(bar, 6000, true);
+        listener.onProgressChanged(bar, 7000, true);
+        assertEquals("the first move at once, the others wait", Arrays.asList("pause", "seek 5000"), stand.calls);
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FeedSeekBar.FOLLOW_MS));
+        assertEquals("then where the finger is by then", Arrays.asList("pause", "seek 5000", "seek 7000"), stand.calls);
+
+        listener.onProgressChanged(bar, 8000, true);
+        bar.setProgress(8000);
+        new Listener(bar).stop();
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FeedSeekBar.FOLLOW_MS));
+        assertEquals("letting go seeks and plays, and a move still waiting doesn't come after",
+                Arrays.asList("pause", "seek 5000", "seek 7000", "seek 8000", "play"), stand.calls);
+    }
+
+    /** A post with a strip shows its picture on the card instead, and the video stays where it was paused. */
+    @Test
+    public void aPostWithAStripLeavesTheVideoStill() {
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.SEEK_PREVIEW.save(true);
+        Map<String, Object> info = new HashMap<>();
+        info.put("sprite_urls", Collections.singletonList("https://example.invalid/sprite.jpg"));
+        info.put("thumbnail_width", 100);
+        info.put("thumbnail_height", 124);
+        info.put("thumbnails_per_row", 15);
+        info.put("max_thumbnails_per_sprite", 105);
+        info.put("thumbnail_duration", 1.1d);
+        stand.sheet = SeekSheet.of(info);
+        assertNotNull(stand.sheet);
+        FeedSeekBar.progress(player, 3000, 15000);
+        SeekBar bar = bar();
+        SeekBar.OnSeekBarChangeListener listener = shadowOf(bar).getOnSeekBarChangeListener();
+        bar.setPressed(true);
+        new Listener(bar).start();
+        listener.onProgressChanged(bar, 5000, true);
+        listener.onProgressChanged(bar, 9000, true);
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FeedSeekBar.FOLLOW_MS));
+        assertEquals(Collections.singletonList("pause"), stand.calls);
     }
 
     /** The bar's own drag callbacks, as a finger on it gives them. */

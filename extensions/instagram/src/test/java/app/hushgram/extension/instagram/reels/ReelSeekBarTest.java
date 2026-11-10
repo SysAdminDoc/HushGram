@@ -907,6 +907,40 @@ public class ReelSeekBarTest {
     }
 
     /**
+     * Instagram 454 tags the container clips_scrubber_ only on some screens, so the drag preview found
+     * no reel and showed no picture. The binder now hands over the reel item's id itself: with no tag,
+     * the bar's reel is that id, a new id starts the bar over, and a photo's song length finds its bar by it.
+     */
+    @Test
+    public void aReelBoundByIdWithNoTagIsKnown() {
+        FrameLayout host = host();
+        FrameLayout container = scrubber(host, 55_000, false);
+        SeekBar bar = barIn(container);
+        assertNull("no tag and no id", ReelTimeLabel.reelOf(bar));
+
+        ReelTimeLabel.bindReel(container, "1");
+        ReelSeekBar.bind(container, 0);
+        assertEquals(ReelTimeLabel.REEL_TAG_PREFIX + "1", ReelTimeLabel.reelOf(bar));
+        bar.setProgress(20_000);
+        ReelSeekBar.progress(bar, 20_000);
+
+        ReelTimeLabel.bindReel(container, "2");
+        ReelSeekBar.bind(container, 0);
+        assertEquals("another reel starts at 0", 0, bar.getProgress());
+        ReelTimeLabel.sizeBars(ReelTimeLabel.REEL_TAG_PREFIX + "2", 30_000);
+        assertEquals("a photo's song length finds its bar by the id", 30_000, bar.getMax());
+
+        // Tagged too: the binder's id answers, since it's there on every screen.
+        container.setTag(ReelTimeLabel.REEL_TAG_PREFIX + "3");
+        assertEquals(ReelTimeLabel.REEL_TAG_PREFIX + "2", ReelTimeLabel.reelOf(bar));
+
+        // The stub unfilled, as on a build the patch couldn't fill it in: the id is let go and the tag answers.
+        ReelSeekBar.bindReel(container, new Object());
+        assertEquals(ReelTimeLabel.REEL_TAG_PREFIX + "3", ReelTimeLabel.reelOf(bar));
+        assertNothingFailed();
+    }
+
+    /**
      * Two bars in one container share the view their labels go in, which holds one label. When the
      * shown label moves from the container's children to the same container's overlay and back, it
      * keeps its hold, and the other bar's label still waits.

@@ -23,6 +23,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import java.lang.ref.WeakReference;
+import java.text.NumberFormat;
 import java.util.Locale;
 
 import app.hushgram.extension.instagram.download.SeekSprites;
@@ -32,8 +33,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
  * The card that floats above your finger while you drag a seek bar (#567, #592): the time you'd land
- * on and the video's length, with a small picture of that moment when the video has a
- * {@link SeekSheet}. It sits in the window's top view, so nothing in the post can cut it off, takes no
+ * on and the video's length, its speed when that isn't normal, and a small picture of that moment when
+ * the video has a {@link SeekSheet}. It sits in the window's top view, so nothing in the post can cut it off, takes no
  * touches, and goes away by itself once the bar it belongs to is let go. Anything thrown leaves the
  * drag as it was. Main thread only.
  */
@@ -42,6 +43,13 @@ public final class SeekPreview {
     static final long CHECK_MS = 120;
     /** The longer side of the picture, the gap above the bar and the margin from the screen's edges, in dp. */
     static final int PICTURE_DP = 128, GAP_DP = 12, MARGIN_DP = 8;
+    /**
+     * The card's fill. Solid, since near either end of a reel's bar the card covers the times Instagram
+     * shows there during a drag, and a see-through fill let them show through its own (#567).
+     */
+    static final int FILL = 0xFF1C1C1E;
+    /** The middle dot between the time and a speed. */
+    static final char DOT = 0xB7;
 
     @Nullable private static Card card;
 
@@ -55,6 +63,11 @@ public final class SeekPreview {
 
     /** A drag moved [bar] to [position] milliseconds. [sheet] is the video's pictures, null when it has none. */
     public static void dragged(SeekBar bar, int position, @Nullable SeekSheet sheet, String family) {
+        dragged(bar, position, sheet, 1f, family);
+    }
+
+    /** The same, on a video playing at [speed], which the card shows beside the time when it isn't normal (#592). */
+    public static void dragged(SeekBar bar, int position, @Nullable SeekSheet sheet, float speed, String family) {
         try {
             if (!on() || bar.getMax() <= 0 || !(bar.getRootView() instanceof ViewGroup)) return;
             Card now = card;
@@ -63,7 +76,7 @@ public final class SeekPreview {
                 now = new Card(bar);
                 card = now;
             }
-            now.show(position, sheet);
+            now.show(position, sheet, speed);
         } catch (Throwable failure) {
             HookStatus.threw(family, "seek preview", failure);
         }
@@ -72,6 +85,16 @@ public final class SeekPreview {
     /** "1:05 / 3:20", in the phone's digits. */
     static String text(int position, int length) {
         return time(Math.max(0, Math.min(position, length))) + " / " + time(length);
+    }
+
+    /** "1:05 / 3:20 · 1.5x", the speed left off when it's normal or unknown. */
+    static String text(int position, int length, float speed) {
+        String time = text(position, length);
+        if (!(speed > 0f) || Math.abs(speed - 1f) < 0.01f) return time;
+        NumberFormat format = NumberFormat.getNumberInstance(Locale.getDefault());
+        format.setMinimumFractionDigits(0);
+        format.setMaximumFractionDigits(2);
+        return time + " " + DOT + " " + format.format(speed) + "x";
     }
 
     private static String time(long milliseconds) {
@@ -133,7 +156,7 @@ public final class SeekPreview {
 
             GradientDrawable glass = new GradientDrawable();
             glass.setCornerRadius(corner);
-            glass.setColor(0xCC1C1C1E);
+            glass.setColor(FILL);
             glass.setStroke(Math.max(1, Math.round(density / 2f)), 0x40FFFFFF);
 
             view = new LinearLayout(context);
@@ -171,12 +194,12 @@ public final class SeekPreview {
             return view.getParent() != null;
         }
 
-        void show(int at, @Nullable SeekSheet from) {
+        void show(int at, @Nullable SeekSheet from, float speed) {
             SeekBar seek = bar.get();
             if (seek == null) return;
             position = at;
             sheet = from;
-            time.setText(text(at, seek.getMax()));
+            time.setText(text(at, seek.getMax(), speed));
             showPicture(seek);
             place(seek);
         }

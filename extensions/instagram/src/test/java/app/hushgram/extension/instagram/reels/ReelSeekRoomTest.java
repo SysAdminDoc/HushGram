@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.reels;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.view.View;
@@ -92,6 +93,36 @@ public class ReelSeekRoomTest {
         assertEquals(-STRIP, holder.getTranslationY(), 0f);
         look(WINDOW - STRIP);
         assertEquals(-STRIP, holder.getTranslationY(), 0f);
+    }
+
+    /** Instagram's drag times sit beside the holder in this row, so the row has to go up with the bar (#567). */
+    @Test
+    public void aShortRowGoesUpInsteadOfTheHolder() {
+        FrameLayout row = new FrameLayout(RuntimeEnvironment.getApplication());
+        row.addView(holder);
+        row.layout(0, 0, 1080, WINDOW / ReelSeekRoom.ROW_SHARE);
+
+        assertSame(row, ReelSeekRoom.lifted(holder, WINDOW));
+    }
+
+    /** Moving a parent this tall would carry the rest of the page up with the bar. */
+    @Test
+    public void aParentAsTallAsThePageStaysPut() {
+        FrameLayout page = new FrameLayout(RuntimeEnvironment.getApplication());
+        page.addView(holder);
+        page.layout(0, 0, 1080, WINDOW / ReelSeekRoom.ROW_SHARE + 1);
+
+        assertSame(holder, ReelSeekRoom.lifted(holder, WINDOW));
+    }
+
+    /** With no size yet there's nothing to say it's a row. */
+    @Test
+    public void aParentNotLaidOutOrMissingLeavesTheHolder() {
+        assertSame(holder, ReelSeekRoom.lifted(holder, WINDOW));
+
+        FrameLayout unmeasured = new FrameLayout(RuntimeEnvironment.getApplication());
+        unmeasured.addView(holder);
+        assertSame(holder, ReelSeekRoom.lifted(holder, WINDOW));
     }
 
     @Test

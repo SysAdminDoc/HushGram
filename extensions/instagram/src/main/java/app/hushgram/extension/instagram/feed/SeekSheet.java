@@ -68,7 +68,9 @@ public final class SeekSheet {
         if (lastMedia.get() == media) return last;
         SeekSheet found = null;
         try {
-            found = of(FeedSeekReader.sheet(media));
+            // Reels keep their strip with the cover pictures; feed videos may have it on the post itself.
+            found = of(FeedSeekReader.scrubberSheet(media));
+            if (found == null) found = of(FeedSeekReader.sheet(media));
         } catch (Throwable failure) {
             Logger.printException(() -> "Seek preview: could not read the video's picture strip", failure);
         }

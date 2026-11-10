@@ -13,6 +13,8 @@ import static org.junit.Assert.assertSame;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
@@ -98,6 +100,34 @@ public class SeekPreviewTest {
         assertSame("nothing in the post can cut it off", bar.getRootView(), card.getParent());
         assertEquals("1:05 / 3:20", SeekPreview.timeForTests());
         assertEquals("not read out over the seek bar", View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS, card.getImportantForAccessibility());
+    }
+
+    /** Near a bar's ends the card sits on Instagram's own drag times, so nothing under it may show through. */
+    @Test
+    public void theCardHidesWhatsUnderIt() {
+        Settings.SEEK_PREVIEW.save(true);
+        drag(5_000);
+        GradientDrawable fill = (GradientDrawable) SeekPreview.cardForTests().getBackground();
+        assertEquals(0xFF, Color.alpha(fill.getColor().getDefaultColor()));
+    }
+
+    /** #592: a reel or story played faster or slower says so beside the time. */
+    @Test
+    public void aSpeedThatIsntNormalShowsBesideTheTime() {
+        Settings.SEEK_PREVIEW.save(true);
+        bar.setPressed(true);
+        SeekPreview.dragged(bar, 65_000, null, 1.5f, "test");
+        assertEquals("1:05 / 3:20 " + SeekPreview.DOT + " 1.5x", SeekPreview.timeForTests());
+        SeekPreview.dragged(bar, 65_000, null, 1.25f, "test");
+        assertEquals("1:05 / 3:20 " + SeekPreview.DOT + " 1.25x", SeekPreview.timeForTests());
+        SeekPreview.dragged(bar, 65_000, null, 1f, "test");
+        assertEquals("1:05 / 3:20", SeekPreview.timeForTests());
+        Locale.setDefault(Locale.GERMANY);
+        try {
+            assertEquals("in the phone's decimal mark", "1:05 / 3:20 " + SeekPreview.DOT + " 0,5x", SeekPreview.text(65_000, 200_000, 0.5f));
+        } finally {
+            Locale.setDefault(Locale.US);
+        }
     }
 
     @Test

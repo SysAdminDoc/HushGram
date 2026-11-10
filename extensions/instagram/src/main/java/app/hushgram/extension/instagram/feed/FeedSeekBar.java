@@ -43,7 +43,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * hidden while the video plays, so only its frame counts. A paused video keeps its bar. A drag goes
  * the way Instagram's own feed scrubber goes: the video pauses while a finger is on the bar, and
  * letting go moves it to that point and plays it on from there (#472). Seeking alone, as the bar
- * once did, could leave the video stuck on the frame it was moved to.
+ * once did, could leave the video stuck on the frame it was moved to. Most feed posts come without
+ * the picture strip a reel has, so with the preview on, the paused video itself follows the drag
+ * there and shows the moment the finger is on (#567).
  *
  * <p>With the switch off, HushGram paused or the settings not read, the bar hides and a drag does
  * nothing. A bar hidden for {@link #GONE_MS} goes away and stops ticking until the player plays
@@ -55,6 +57,9 @@ public final class FeedSeekBar {
 
     /** How long a hidden bar waits for its video to come back before it goes away. */
     static final long GONE_MS = 2000;
+
+    /** The least time between two moves of a paused video following a drag. */
+    static final long FOLLOW_MS = 150;
 
     /** The bar's height, along the bottom of the video. */
     static final int HEIGHT_DP = 32;
@@ -186,6 +191,11 @@ public final class FeedSeekBar {
         /** Whether the drag under way paused the video, which letting go then plays on. */
         boolean held;
         boolean removed;
+        /** Where a drag over a post with no picture strip moves the video next, where it last did, and when. */
+        int follow = -1;
+        int followed = -1;
+        long followedAt = -1;
+        boolean followWaits;
 
         Overlay(Object player) {
             this.player = new WeakReference<>(player);
@@ -372,6 +382,8 @@ public final class FeedSeekBar {
         public void onStartTrackingTouch(SeekBar seek) {
             dragging = !removed && wanted();
             held = false;
+            follow = followed = -1;
+            followedAt = -1;
             Object owner = player.get();
             if (!dragging || owner == null) return;
             try {
@@ -386,7 +398,39 @@ public final class FeedSeekBar {
             if (!fromUser || !dragging || !SeekPreview.on()) return;
             try {
                 Object owner = player.get();
-                SeekPreview.dragged(seek, progress, owner != null ? feed.sheet(owner) : null, FamilyNames.FEED_SEEK_BAR);
+                SeekSheet sheet = owner != null ? feed.sheet(owner) : null;
+                SeekPreview.dragged(seek, progress, sheet, FamilyNames.FEED_SEEK_BAR);
+                if (owner != null && sheet == null) follow(progress);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FEED_SEEK_BAR, HOOK, failure);
+            }
+        }
+
+        /**
+         * Moves the paused video to [to], so a post with no picture strip shows the moment in the video
+         * itself: at once when the last move was {@link #FOLLOW_MS} ago, otherwise once that time is up,
+         * to wherever the drag is by then.
+         */
+        private void follow(int to) {
+            follow = to;
+            long wait = followedAt < 0 ? 0 : followedAt + FOLLOW_MS - SystemClock.uptimeMillis();
+            if (wait <= 0) {
+                followNow();
+            } else if (!followWaits) {
+                followWaits = true;
+                Utils.runOnMainThreadDelayed(() -> {
+                    followWaits = false;
+                    followNow();
+                }, wait);
+            }
+        }
+
+        private void followNow() {
+            Object owner = player.get();
+            if (!dragging || removed || owner == null || follow < 0 || follow == followed) return;
+            try {
+                followedAt = SystemClock.uptimeMillis();
+                if (feed.seekTo(owner, follow)) followed = follow;
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FEED_SEEK_BAR, HOOK, failure);
             }

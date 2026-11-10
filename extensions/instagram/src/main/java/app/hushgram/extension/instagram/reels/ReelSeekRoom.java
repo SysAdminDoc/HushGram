@@ -26,11 +26,16 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * as anything already raised is, gets nothing, and one that stops needing it goes back.
  *
  * <p>The holder is moved rather than the bar, so the bar's time label, which follows what the views around the
- * bar do, comes along. Off when HushGram is paused or the settings aren't ready, when anything lifted is put back.
+ * bar do, comes along. Where the holder sits in a short row, the row goes instead: Instagram draws the times it
+ * shows during a drag beside the holder, and left behind they'd end up under the raised bar (#567). Off when
+ * HushGram is paused or the settings aren't ready, when anything lifted is put back.
  */
 final class ReelSeekRoom {
     /** How often, at most, a playing bar is measured. */
     static final long LOOK_MS = 300;
+
+    /** A parent over this share of the window is the page around the bar, not a row of its controls. */
+    static final int ROW_SHARE = 4;
 
     /** The step a failure is reported under. */
     static final String STEP = "seek bar room";
@@ -61,7 +66,7 @@ final class ReelSeekRoom {
     static void keep(View bar) {
         try {
             if (bar == null || !(bar.getParent() instanceof View)) return;
-            View holder = (View) bar.getParent();
+            View holder = lifted((View) bar.getParent(), bar.getRootView().getHeight());
             if (!due(holder, SystemClock.uptimeMillis())) return;
             boolean ready = Utils.settingsReady() && bar.isShown();
             int bottom = 0, window = 0, strip = 0;
@@ -75,6 +80,14 @@ final class ReelSeekRoom {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_SEEK_BAR, STEP, failure);
         }
+    }
+
+    /** The view to move for a bar in [holder] on a window [window] tall: the short row it sits in, or else itself. */
+    static View lifted(View holder, int window) {
+        if (!(holder.getParent() instanceof View)) return holder;
+        View row = (View) holder.getParent();
+        int height = row.getHeight();
+        return height > 0 && height * ROW_SHARE <= window ? row : holder;
     }
 
     /** Whether it's time to measure this holder's bar again, and notes that it's being done now if so. */
