@@ -189,6 +189,7 @@ public final class AmbientLight {
     private static final Map<Class<?>, Boolean> frames = new WeakHashMap<>();
     private static final Runnable TICK = AmbientLight::tick;
     private static final Rect scratch = new Rect(), aim = new Rect();
+    private static final RectF mapped = new RectF();
     private static final int[] where = new int[2];
     private static boolean ticking;
     private static volatile boolean registered;
@@ -589,6 +590,27 @@ public final class AmbientLight {
             if (parent == ancestor) return true;
         }
         return false;
+    }
+
+    /**
+     * Moves [rect] from [view]'s coordinates onto [ancestor]'s, through the scale and translation
+     * of each view on the way. offsetDescendantRectToMyCoords leaves those out, so a carousel page
+     * that Peek at the next carousel page shrinks lit as if it still filled its row, and the glow
+     * left the whole row dark around it (#585).
+     */
+    static void onto(View view, ViewGroup ancestor, Rect rect) {
+        mapped.set(rect);
+        View at = view;
+        while (at != ancestor) {
+            Matrix matrix = at.getMatrix();
+            if (!matrix.isIdentity()) matrix.mapRect(mapped);
+            mapped.offset(at.getLeft(), at.getTop());
+            ViewParent parent = at.getParent();
+            if (!(parent instanceof View)) break;
+            at = (View) parent;
+            mapped.offset(-at.getScrollX(), -at.getScrollY());
+        }
+        mapped.round(rect);
     }
 
     /**
@@ -1034,8 +1056,8 @@ public final class AmbientLight {
                 } else {
                     at.set(0, 0, media.getWidth(), media.getHeight());
                 }
-                stage.offsetDescendantRectToMyCoords(media, at);
-                fills = at.width() >= stage.getWidth() * FILLS && at.height() >= stage.getHeight() * FILLS;
+                onto(media, stage, at);
+                fills =at.width() >= stage.getWidth() * FILLS && at.height() >= stage.getHeight() * FILLS;
             } else {
                 // The search above may have left the part that shows.
                 at.setEmpty();
@@ -1045,9 +1067,9 @@ public final class AmbientLight {
             ViewGroup band = host();
             if (band != null && !at.isEmpty() && band.isAttachedToWindow() && under(stage, band)) {
                 stageOnHost.set(0, 0, stage.getWidth(), stage.getHeight());
-                band.offsetDescendantRectToMyCoords(stage, stageOnHost);
+                onto(stage, band, stageOnHost);
                 onHost.set(at);
-                onHost.offset(stageOnHost.left, stageOnHost.top);
+                onto(stage, band, onHost);
             }
             if (fills) at.setEmpty();
             int reach = Math.round(Settings.AMBIENT_LIGHT_SPREAD.get().dp * stage.getResources().getDisplayMetrics().density);

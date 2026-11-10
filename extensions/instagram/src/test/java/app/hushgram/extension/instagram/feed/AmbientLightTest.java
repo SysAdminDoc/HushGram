@@ -536,6 +536,28 @@ public class AmbientLightTest {
     }
 
     @Test
+    public void aPageThatPeekShrinksGlowsAroundWhereItShows() {
+        // Peek at the next carousel page scales and shifts the page, and its row stays as big (#585).
+        row.setPivotX(WIDTH / 2f);
+        row.setPivotY(MEDIA / 2f);
+        row.setScaleX(0.8f);
+        row.setScaleY(0.8f);
+        row.setTranslationX(-6);
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+
+        assertEquals("lit where the page shows, not across the whole row",
+                new Rect(24, 3 + HEADER + 20, 264, 3 + HEADER + 180), AmbientLight.litRectForTests(media));
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        Bitmap drawn = drawn(list);
+        int above = drawn.getPixel(WIDTH / 2, 3 + HEADER + 16);
+        assertTrue("the row above the page glows: " + hex(above), Color.blue(above) > 80 && Color.red(above) < 20);
+        int inside = drawn.getPixel(WIDTH / 2, 3 + HEADER + MEDIA / 2);
+        assertTrue("nothing is drawn over the page: " + hex(inside), Color.red(inside) < 10 && Color.blue(inside) < 10);
+    }
+
+    @Test
     public void withoutTheReelFramesIdPostsStillGlowAndTheIdIsReported() {
         AmbientLight.resetForTests();
         AmbientLight.samplerForTests((owner, source, inWindow, into, done) -> done.accept(true));
