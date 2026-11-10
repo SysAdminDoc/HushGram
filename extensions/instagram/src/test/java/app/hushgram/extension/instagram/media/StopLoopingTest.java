@@ -4,7 +4,9 @@
  */
 package app.hushgram.extension.instagram.media;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
@@ -14,16 +16,25 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+
+import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Stop videos looping: the loop flag Instagram's video player hands its engine (#248, #175). */
+/** Stop videos looping: the loop flag Instagram's video player hands its engine (#248, #175), and Loop this video (#610). */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class StopLoopingTest {
@@ -45,6 +56,8 @@ public class StopLoopingTest {
     public void restore() {
         StopLooping.autoScrollsForTests = null;
         StopLooping.reelsForTests = null;
+        StopLooping.forget();
+        Built.stopLooping = true;
         Settings.STOP_VIDEO_LOOPING.resetToDefault();
         Settings.REEL_AUTO_ADVANCE.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -117,5 +130,127 @@ public class StopLoopingTest {
         assertFalse(StopLooping.autoScrolls());
         assertFalse(StopLooping.reels(player));
         assertFalse(StopLooping.loop(player, 1));
+    }
+
+    /**
+     * Loop this video (#610): a video looped from its menu loops in each player playing it, even
+     * where Instagram wouldn't loop it, and the players playing it are handed their flag again at
+     * once. Stop looping this video takes it off the same way. Other videos still play once.
+     */
+    @Test
+    @Config(shadows = {Built.class, Posts.class})
+    public void aVideoLoopedFromItsMenuLoops() {
+        Players players = new Players();
+        StopLooping.access = players;
+        Object looped = new Object();
+        Object other = new Object();
+        Object later = new Object();
+        players.playing.put(looped, "3711_99");
+        players.playing.put(other, "4802");
+        players.playing.put(later, "3711");
+        assertFalse(StopLooping.loop(looped, 1));
+        assertFalse(StopLooping.loop(other, 1));
+
+        assertFalse(StopLooping.looping("3711_42"));
+        assertEquals(Boolean.TRUE, StopLooping.toggle("3711_42"));
+        assertTrue(StopLooping.looping("3711_42"));
+        assertEquals("only the player playing it is handed its flag again", List.of(looped), players.relooped);
+        assertTrue(StopLooping.loop(looped, 1));
+        assertTrue("whatever Instagram's flag says", StopLooping.loop(looped, 0));
+        assertTrue("a player that starts it later loops it too", StopLooping.loop(later, 0));
+        assertFalse("another video still plays once", StopLooping.loop(other, 1));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(StopLooping.LOOPED));
+
+        players.relooped.clear();
+        assertEquals(Boolean.FALSE, StopLooping.toggle("3711_42"));
+        assertFalse(StopLooping.looping("3711_42"));
+        assertEquals(List.of(looped, later), sorted(players.relooped, looped, later));
+        assertFalse(StopLooping.loop(looped, 1));
+        assertTrue(String.join("\n", HookStatus.report()).contains(StopLooping.UNLOOPED));
+    }
+
+    /** With the switch off, paused, or for media without an ID, the row changes nothing. */
+    @Test
+    @Config(shadows = {Built.class, Posts.class})
+    public void aLoopNeedsTheSwitchAndAnId() {
+        Players players = new Players();
+        StopLooping.access = players;
+        assertNull(StopLooping.toggle(new Object()));
+        assertNull(StopLooping.toggle(" _5"));
+
+        Settings.STOP_VIDEO_LOOPING.save(false);
+        assertNull(StopLooping.toggle("3711_42"));
+        assertFalse(StopLooping.offersRow(false));
+
+        Settings.STOP_VIDEO_LOOPING.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertNull(StopLooping.toggle("3711_42"));
+        assertTrue(players.relooped.isEmpty());
+    }
+
+    /**
+     * The row is offered with the patch in the build and its switch on. A reel's menu leaves it out
+     * while auto scroll keeps Reels looping anyway, and a feed menu keeps it.
+     */
+    @Test
+    @Config(shadows = Built.class)
+    public void theRowNeedsThePatchAndItsSwitch() {
+        assertTrue(StopLooping.offersRow(false));
+        assertTrue(StopLooping.offersRow(true));
+        StopLooping.autoScrollsForTests = true;
+        assertFalse(StopLooping.offersRow(true));
+        assertTrue(StopLooping.offersRow(false));
+        Built.stopLooping = false;
+        assertFalse(StopLooping.offersRow(false));
+    }
+
+    /** A media ID or a video source's ID, joined to its owner's or not, comes down to the media's own number. */
+    @Test
+    public void theNumberIsTheIdBeforeTheOwner() {
+        assertEquals("3711", StopLooping.number("3711_42"));
+        assertEquals("3711", StopLooping.number("3711"));
+        assertEquals("3711", StopLooping.number(" 3711 _42"));
+        assertNull(StopLooping.number(null));
+        assertNull(StopLooping.number(""));
+        assertNull(StopLooping.number("_42"));
+    }
+
+    /** [seen] in the order of [order], since players are kept in no order. */
+    private static List<Object> sorted(List<Object> seen, Object... order) {
+        List<Object> sorted = new ArrayList<>();
+        for (Object one : order) if (seen.contains(one)) sorted.add(one);
+        assertEquals("handed more than once, or one not asked for: " + seen, seen.size(), sorted.size());
+        return sorted;
+    }
+
+    /** Players and the media ID each plays, standing in for the patch's readers. */
+    private static final class Players implements StopLooping.Player {
+        final Map<Object, String> playing = new IdentityHashMap<>();
+        final List<Object> relooped = new ArrayList<>();
+
+        @Override
+        public String videoId(Object player) {
+            return playing.get(player);
+        }
+
+        @Override
+        public void reloop(Object player) {
+            relooped.add(player);
+        }
+    }
+
+    /** This build has Stop videos looping, as the patch writes its status method. */
+    @Implements(value = SettingsStatus.class, isInAndroidSdk = false)
+    public static class Built {
+        static boolean stopLooping = true;
+
+        @Implementation protected static boolean stopLooping() { return stopLooping; }
+    }
+
+    /** A post here is its media ID, as a String. */
+    @Implements(value = InstagramMedia.class, isInAndroidSdk = false)
+    public static class Posts {
+        @Implementation protected static String mediaId(Object media) { return media instanceof String ? (String) media : null; }
     }
 }

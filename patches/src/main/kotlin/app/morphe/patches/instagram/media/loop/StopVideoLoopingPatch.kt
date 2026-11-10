@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.media.resume.findPlayerVideoId
 import app.morphe.patches.instagram.media.taptoplay.ReelsLogger
 import app.morphe.patches.instagram.media.taptoplay.findPlayInternal
 import app.morphe.patches.instagram.media.taptoplay.findReelsLogger
@@ -32,6 +33,8 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Stop videos looping"
@@ -47,14 +50,16 @@ internal const val SET_LOOPING = "setLooping: %s"
 /**
  * Feed videos and reels stop on their last frame instead of playing again, through
  * [stopVideoLooping]. A reel in the Reels viewer still loops while auto scroll is moving Reels on,
- * since the scroller moves on when a reel loops. Stories play through another player. In the
- * default selection with its switch off (#248, #175).
+ * since the scroller moves on when a reel loops. A video looped from its menu's Loop this video
+ * row loops anyway (#610). Stories play through another player. In the default selection with its
+ * switch off (#248, #175).
  */
 @Suppress("unused")
 val stopVideoLoopingPatch = bytecodePatch(
     name = "Stop videos looping",
     description = "Feed videos and reels stop at their last frame instead of playing again. Reels still loop " +
-        "while auto scroll is on, so it can move on. Starts off. Turn it on in HushGram settings > Playback.",
+        "while auto scroll is on, so it can move on. Loop this video in a video's menu loops that one anyway. " +
+        "Starts off. Turn it on in HushGram settings > Playback.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -133,9 +138,11 @@ internal fun BytecodePatchContext.findLoopSites(): LoopSites {
 
 /**
  * Hands each loop flag the player gives its engine to [LOOP] first, with the player, and lets the
- * engine take the answer in the flag's own register. Writes the body of StopLooping.reels, which
- * tells a player made for the Reels viewer by its video logger. Answers why it couldn't, having
- * changed nothing, or null.
+ * engine take the answer in the flag's own register. Writes the bodies of StopLooping.reels, which
+ * tells a player made for the Reels viewer by its video logger, StopLooping.videoId, which reads
+ * the media ID of what a player plays, and StopLooping.reloop, which hands a player's own flag back
+ * to its setter so a loop chosen from a menu takes at once. Answers why it couldn't, having changed
+ * nothing, or null.
  */
 internal fun BytecodePatchContext.stopVideoLooping(): String? {
     val loop = try {
@@ -143,6 +150,12 @@ internal fun BytecodePatchContext.stopVideoLooping(): String? {
     } catch (failure: PatchException) {
         return failure.message?.removePrefix("$PATCH: ")
     }
+    val videoId = try {
+        findPlayerVideoId(classDefBy(loop.player))
+    } catch (failure: PatchException) {
+        return "can't read the media ID of what the player plays (${failure.message})"
+    }
+    val (setter, flag) = loopSetter(loop) ?: return "no public (boolean)void of ${loop.player} keeps its flag in a public field and calls ${loop.setLooping}"
     for ((target, indices) in loop.sites) {
         val self = target.localRegisterCount()
         // Last call first, so an earlier one keeps its index.
@@ -169,7 +182,59 @@ internal fun BytecodePatchContext.stopVideoLooping(): String? {
             return v0
         """,
     )
+    fillStub(
+        STOP_LOOPING, "videoId", "Ljava/lang/String;", 2,
+        """
+            instance-of v0, p0, ${loop.player}
+            if-eqz v0, :none
+            check-cast p0, ${loop.player}
+            iget-object v0, p0, ${videoId.holder}
+            if-eqz v0, :none
+            iget-object v0, v0, ${videoId.source}
+            if-eqz v0, :none
+            iget-object v0, v0, ${videoId.mediaId}
+            return-object v0
+            :none
+            const/4 v0, 0x0
+            return-object v0
+        """,
+    )
+    fillStub(
+        STOP_LOOPING, "reloop", "V", 2,
+        """
+            instance-of v0, p0, ${loop.player}
+            if-eqz v0, :done
+            check-cast p0, ${loop.player}
+            iget-boolean v0, p0, $flag
+            invoke-virtual { p0, v0 }, ${setter.key()}
+            :done
+            return-void
+        """,
+    )
     return null
+}
+
+/**
+ * The player's own loop setter, a public (boolean)void site that stores its flag in a public
+ * boolean field of the player before handing it on, and that field. StopLooping.reloop calls it
+ * with the flag it already holds, so a video looped from its menu changes at once. Null when there
+ * isn't exactly one.
+ */
+private fun BytecodePatchContext.loopSetter(loop: LoopSites): Pair<Method, FieldReference>? {
+    val fields = classDefBy(loop.player).fields
+    return loop.sites.mapNotNull { (method, _) ->
+        if (!method.takesOneBoolean() || AccessFlags.STATIC.isSet(method.accessFlags) || !AccessFlags.PUBLIC.isSet(method.accessFlags)) {
+            return@mapNotNull null
+        }
+        val parameter = (method.implementation?.registerCount ?: return@mapNotNull null) - 1
+        val stored = method.code().filter { it.opcode == Opcode.IPUT_BOOLEAN && (it as TwoRegisterInstruction).registerA == parameter }
+            .mapNotNull { (it as ReferenceInstruction).reference as? FieldReference }
+            .filter { it.definingClass == loop.player && it.type == "Z" }
+            .distinctBy { it.toString() }.singleOrNull() ?: return@mapNotNull null
+        val declared = fields.singleOrNull { it.name == stored.name && it.type == "Z" }
+        if (declared == null || !AccessFlags.PUBLIC.isSet(declared.accessFlags) || AccessFlags.STATIC.isSet(declared.accessFlags)) null
+        else method to stored
+    }.singleOrNull()
 }
 
 /**

@@ -6124,7 +6124,7 @@
     },
     {
       "name": "Stop videos looping",
-      "description": "Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on. Starts off. Turn it on in HushGram settings > Playback.",
+      "description": "Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on. Loop this video in a video's menu loops that one anyway. Starts off. Turn it on in HushGram settings > Playback.",
       "category": "Playback",
       "use": true,
       "dependencies": [

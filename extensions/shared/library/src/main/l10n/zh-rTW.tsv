@@ -1986,3 +1986,12 @@ Lock Saved	鎖定「已儲存」
 Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	「已儲存」及其中的所有內容都會被遮住，直到透過指紋、臉部或螢幕鎖定驗證身分。
 Saved is locked	「已儲存」已鎖定
 Unlock Saved	解鎖「已儲存」
+# context: three-dot menu row on a reel or feed video with Stop videos looping on; makes only the video on screen play again and again (#610)
+Loop this video	重複播放這部影片
+Stop looping this video	停止重複播放這部影片
+# context: toasts after tapping Loop this video or Stop looping this video (#610)
+Looping this video	正在重複播放這部影片
+This video plays once	這部影片只播放一次
+Loop didn't change	重複播放未變更
+# context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
+To loop one video anyway, tap Loop this video in its menu.	若仍想重複播放某一部影片，請在它的選單中點選「重複播放這部影片」。

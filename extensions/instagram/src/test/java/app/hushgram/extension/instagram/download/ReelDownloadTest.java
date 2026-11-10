@@ -67,6 +67,11 @@ public class ReelDownloadTest {
         Settings.SPEED_IN_REEL_MENU.resetToDefault();
         ReelSpeedButton.resetForTests();
         Built.keepSpeed = true;
+        Built.stopLooping = true;
+        Built.autoScroll = false;
+        Item.id = null;
+        Settings.STOP_VIDEO_LOOPING.resetToDefault();
+        Settings.REEL_AUTO_ADVANCE.resetToDefault();
     }
 
     /** With the switch on, every reel gets the row, whatever Instagram and its flag say. */
@@ -216,7 +221,7 @@ public class ReelDownloadTest {
     /** The two options a photo with music gets, by the names the extension gives them. */
     private enum Ours {
         HUSHGRAM_DOWNLOAD_AS_VIDEO, HUSHGRAM_DOWNLOAD_AS_PHOTO, HUSHGRAM_DOWNLOAD_REEL, HUSHGRAM_DOWNLOAD_COVER, HUSHGRAM_DOWNLOAD_AUDIO,
-        HUSHGRAM_REEL_DETAILS, HUSHGRAM_REEL_SPEED
+        HUSHGRAM_REEL_DETAILS, HUSHGRAM_REEL_SPEED, HUSHGRAM_VIDEO_LOOP
     }
 
     /** A photo the Reels viewer shows with music that has a track to fetch. */
@@ -586,6 +591,10 @@ public class ReelDownloadTest {
         @Implementation protected static Integer musicLengthMs(Object part) { return lengthMs; }
         @Implementation protected static Object reelOption(String name) { return Ours.valueOf(name); }
 
+        static String id;
+
+        @Implementation protected static String mediaId(Object media) { return id; }
+
         @Implementation
         protected static boolean addReelRow(Object menu, Object context, Object option, Object sheet, Object rowState, String label) {
             rows.add(option + "=" + label);
@@ -642,8 +651,73 @@ public class ReelDownloadTest {
     @Implements(value = SettingsStatus.class, isInAndroidSdk = false)
     public static class Built {
         static boolean keepSpeed = true;
+        static boolean stopLooping = true;
+        static boolean autoScroll;
 
         @Implementation protected static boolean keepReelSpeed() { return keepSpeed; }
+
+        @Implementation protected static boolean stopLooping() { return stopLooping; }
+
+        @Implementation protected static boolean reelAutoScroll() { return autoScroll; }
+    }
+
+    /**
+     * With Stop videos looping on, a video reel gets Loop this video last of ours (#610), and a tap
+     * loops it, says so and turns the label to Stop looping this video. A second tap takes the loop
+     * off. A photo gets none, and neither does a reel while auto scroll keeps Reels looping anyway.
+     * Download on reels off, the row still lets Instagram's Download row in, the way Playback speed does.
+     */
+    @Test
+    @Config(shadows = {Item.class, Built.class})
+    public void aVideoReelGetsLoopThisVideo() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Item.videos = List.of(new MediaSave.Rendition(META + "720.mp4", 720, 1280, 0));
+        Item.id = "3711_42";
+        Object reel = new Object();
+        assertFalse("Stop videos looping starts off, so Instagram's Download row stays", ReelDownload.rows(null, reel, null, null, null));
+        assertTrue(Item.rows.isEmpty());
+
+        Settings.STOP_VIDEO_LOOPING.save(true);
+        Item.rows.clear();
+        assertTrue(ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_VIDEO_LOOP=Loop this video"), Item.rows);
+
+        assertTrue("the tap is ours", ReelDownload.save(Ours.HUSHGRAM_VIDEO_LOOP, reel, activity));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Looping this video", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        Item.rows.clear();
+        assertTrue(ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_VIDEO_LOOP=Stop looping this video"), Item.rows);
+        assertTrue(ReelDownload.save(Ours.HUSHGRAM_VIDEO_LOOP, reel, activity));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("This video plays once", String.valueOf(ShadowToast.getTextOfLatestToast()));
+
+        Settings.DOWNLOAD_REELS.save(false);
+        Item.rows.clear();
+        assertTrue(ReelDownload.offerRow(0, reel));
+        assertTrue(ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(List.of("HUSHGRAM_VIDEO_LOOP=Loop this video"), Item.rows);
+        List<Object> reduced = options(Option.PLAYBACK_CONTROLS, Option.REPORT);
+        ReelDownload.addTo(reduced, Option.DOWNLOAD);
+        assertEquals(options(Option.DOWNLOAD, Option.PLAYBACK_CONTROLS, Option.REPORT), reduced);
+
+        Built.autoScroll = true;
+        Settings.REEL_AUTO_ADVANCE.save(true);
+        Item.rows.clear();
+        assertFalse("auto scroll keeps Reels looping anyway", ReelDownload.offerRow(0, reel));
+        assertFalse(ReelDownload.rows(null, reel, null, null, null));
+        assertTrue(Item.rows.isEmpty());
+        Settings.REEL_AUTO_ADVANCE.resetToDefault();
+
+        Item.videos = null;
+        Item.rows.clear();
+        assertFalse("a photo has nothing to loop", ReelDownload.rows(null, reel, null, null, null));
+        assertTrue(Item.rows.isEmpty());
+
+        Item.videos = List.of(new MediaSave.Rendition(META + "720.mp4", 720, 1280, 0));
+        Built.stopLooping = false;
+        assertFalse("a build without the patch", ReelDownload.rows(null, reel, null, null, null));
+        assertTrue(Item.rows.isEmpty());
     }
 
     /**

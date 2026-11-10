@@ -1980,3 +1980,12 @@ Lock Saved	ล็อก "บันทึกแล้ว"
 Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	"บันทึกแล้ว" และทุกอย่างในนั้นจะถูกปิดกั้นไว้จนกว่าลายนิ้วมือ ใบหน้า หรือการล็อกหน้าจอจะยืนยันตัวตนของคุณ
 Saved is locked	"บันทึกแล้ว" ถูกล็อกอยู่
 Unlock Saved	ปลดล็อก "บันทึกแล้ว"
+# context: three-dot menu row on a reel or feed video with Stop videos looping on; makes only the video on screen play again and again (#610)
+Loop this video	เล่นวิดีโอนี้ซ้ำ
+Stop looping this video	หยุดเล่นวิดีโอนี้ซ้ำ
+# context: toasts after tapping Loop this video or Stop looping this video (#610)
+Looping this video	กำลังเล่นวิดีโอนี้ซ้ำ
+This video plays once	วิดีโอนี้จะเล่นครั้งเดียว
+Loop didn't change	ไม่ได้เปลี่ยนการเล่นซ้ำ
+# context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
+To loop one video anyway, tap Loop this video in its menu.	หากต้องการเล่นวิดีโอเดียวซ้ำ ให้แตะ เล่นวิดีโอนี้ซ้ำ ในเมนูของวิดีโอนั้น

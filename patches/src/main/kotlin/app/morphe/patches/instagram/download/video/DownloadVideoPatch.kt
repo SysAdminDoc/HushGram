@@ -81,6 +81,9 @@ internal const val COVER_OPTION = "$VIDEO_DOWNLOAD->coverOption()Ljava/lang/Obje
 internal const val SAVE_COVER = "$VIDEO_DOWNLOAD->saveCover(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
 internal const val CHOOSE_OPTION = "$VIDEO_DOWNLOAD->chooseOption()Ljava/lang/Object;"
 internal const val CHOOSE_PAGES = "$VIDEO_DOWNLOAD->choosePages(Ljava/lang/Object;Landroid/app/Activity;)V"
+internal const val OFFER_LOOP = "$VIDEO_DOWNLOAD->offerLoop(Ljava/lang/Object;Ljava/util/ArrayList;)V"
+internal const val LOOP_OPTION = "$VIDEO_DOWNLOAD->loopOption()Ljava/lang/Object;"
+internal const val TOGGLE_LOOP = "$VIDEO_DOWNLOAD->loop(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
 
 private const val POST_INFO = "$EXTENSION_PACKAGE/download/PostInfo;"
 internal const val OFFER_DETAILS = "$POST_INFO->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V"
@@ -390,6 +393,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
             invoke-static { v${others.state}, v${others.rows} }, $OFFER_COVER
             invoke-static { v${others.state}, v${others.rows} }, $OFFER_PLAYER
             invoke-static { v${others.state}, v${others.rows} }, $OFFER_DETAILS
+            invoke-static { v${others.state}, v${others.rows} }, $OFFER_LOOP
         """,
     )
 
@@ -434,6 +438,18 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
             :cover
             invoke-static {}, $COVER_OPTION
             move-result-object v1
+            if-eqz v1, :loop
+            if-ne v0, v1, :loop
+            move-object/from16 v0, p0
+            invoke-static { v0 }, $type->${media.name}($type)$MEDIA
+            move-result-object v1
+            iget-object v2, v0, $type->${activity.name}:$FRAGMENT_ACTIVITY
+            iget-object v0, v0, ${page.menuState}
+            invoke-static { v1, v0, v2 }, $SAVE_COVER
+            return-void
+            :loop
+            invoke-static {}, $LOOP_OPTION
+            move-result-object v1
             if-eqz v1, :current
             if-ne v0, v1, :current
             move-object/from16 v0, p0
@@ -441,7 +457,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
             move-result-object v1
             iget-object v2, v0, $type->${activity.name}:$FRAGMENT_ACTIVITY
             iget-object v0, v0, ${page.menuState}
-            invoke-static { v1, v0, v2 }, $SAVE_COVER
+            invoke-static { v1, v0, v2 }, $TOGGLE_LOOP
             return-void
             :current
             move-object/from16 v0, p1

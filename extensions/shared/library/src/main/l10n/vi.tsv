@@ -1900,3 +1900,12 @@ Lock Saved	Khóa mục Đã lưu
 Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	Mục Đã lưu và mọi thứ trong đó vẫn bị che cho đến khi vân tay, khuôn mặt hoặc khóa màn hình xác nhận là bạn.
 Saved is locked	Mục Đã lưu đã khóa
 Unlock Saved	Mở khóa mục Đã lưu
+# context: three-dot menu row on a reel or feed video with Stop videos looping on; makes only the video on screen play again and again (#610)
+Loop this video	Lặp lại video này
+Stop looping this video	Dừng lặp lại video này
+# context: toasts after tapping Loop this video or Stop looping this video (#610)
+Looping this video	Đang lặp lại video này
+This video plays once	Video này chỉ phát một lần
+Loop didn't change	Không đổi được chế độ lặp
+# context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
+To loop one video anyway, tap Loop this video in its menu.	Để vẫn lặp lại riêng một video, nhấn Lặp lại video này trong menu của video đó.

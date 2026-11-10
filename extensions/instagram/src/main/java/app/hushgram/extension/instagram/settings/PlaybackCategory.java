@@ -60,7 +60,8 @@ final class PlaybackCategory {
             if (build.contains(PatchFamily.STOP_LOOPING)) {
                 playback.addPreference(toggle(context, Settings.STOP_VIDEO_LOOPING, L10n.t("Stop videos looping"),
                         L10n.t("Feed videos and reels stop at their last frame instead of playing again. Reels still "
-                                + "loop while auto scroll is on, so it can move on.")));
+                                + "loop while auto scroll is on, so it can move on.") + " "
+                                + L10n.t("To loop one video anyway, tap Loop this video in its menu.")));
             }
             if (build.contains(PatchFamily.BACKGROUND_PLAY)) {
                 playback.addPreference(toggle(context, Settings.KEEP_PLAYING_IN_BACKGROUND,

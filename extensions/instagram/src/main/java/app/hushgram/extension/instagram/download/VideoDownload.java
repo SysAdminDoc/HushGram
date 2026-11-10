@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import app.hushgram.extension.instagram.media.StopLooping;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
@@ -76,6 +77,9 @@ public final class VideoDownload {
 
     /** Download cover's option, made once, as Save all's is. */
     private static Object coverOption;
+
+    /** Loop this video's option, made once, as Save all's is. */
+    private static Object loopOption;
 
     /** Choose pages' option name, and the option itself, made once, as Save all's is. */
     static final String CHOOSE_OPTION = "HUSHGRAM_CHOOSE_PAGES";
@@ -179,6 +183,47 @@ public final class VideoDownload {
             ExternalPlayer.open(context, shown(media, itemState), FamilyNames.VIDEO_DOWNLOAD);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed player tap", failure);
+        }
+    }
+
+    public static synchronized Object loopOption() {
+        try {
+            if (loopOption == null) loopOption = InstagramMedia.feedOption(ReelDownload.LOOP_OPTION);
+            return loopOption;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed loop option", failure);
+            return null;
+        }
+    }
+
+    /**
+     * Adds Loop this video, or Stop looping this video once it loops, to [rows], the list the feed
+     * menu's builder [menu] fills, when Stop videos looping is on and the post, or the carousel page
+     * on screen, has a video (#610). Called after Details, so your own posts get it too. Never throws.
+     */
+    public static void offerLoop(Object menu, ArrayList<?> rows) {
+        try {
+            if (menu == null || rows == null || !StopLooping.offersRow(false)) return;
+            HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
+            Object shown = shown(InstagramMedia.feedMenuMedia(menu), InstagramMedia.feedMenuItemState(menu));
+            if (!hasVideo(shown)) return;
+            Object option = loopOption();
+            if (option != null) InstagramMedia.addSaveAllRow(menu, rows, option, ReelDownload.loopLabel(shown));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed loop row", failure);
+        }
+    }
+
+    /**
+     * Loops the video of [media], or of the carousel page on screen that [itemState] names, or takes
+     * its loop off, when its Loop this video row is tapped. [activity] is the one the menu belongs to.
+     * Never throws.
+     */
+    public static void loop(Object media, Object itemState, Activity activity) {
+        try {
+            ReelDownload.toggleLoop(activity, shown(media, itemState));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed loop tap", failure);
         }
     }
 
@@ -381,9 +426,9 @@ public final class VideoDownload {
      * on this list and orders the rows by it, so without this the row {@link #offer} added never
      * shows there. Save all follows Download, keeping native options in their existing order, then
      * Download cover with its switch on. With their own switches on, Open in another player follows
-     * them, then Details ({@link PostInfo}). With Choose carousel pages on, Choose pages goes right
-     * after Save all, as the long menu has it. A list with every action or the switches off comes
-     * back as it came. Never throws.
+     * them, then Details ({@link PostInfo}), then with Stop videos looping on, Loop this video. With
+     * Choose carousel pages on, Choose pages goes right after Save all, as the long menu has it. A
+     * list with every action or the switches off comes back as it came. Never throws.
      */
     public static List<?> allow(List<?> options, Object download) {
         try {
@@ -393,6 +438,7 @@ public final class VideoDownload {
             if (covers()) allowed = withCover(allowed, download);
             if (ExternalPlayer.on()) allowed = withPlayer(allowed, download);
             if (PostInfo.on()) allowed = PostInfo.withDetails(allowed, download, batchOption, coverOption, playerOption);
+            if (StopLooping.offersRow(false)) allowed = withLoop(allowed, download);
             return download != null && chooses() ? withChoose(allowed, download) : allowed;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "short feed menu", t);
@@ -433,6 +479,23 @@ public final class VideoDownload {
         if (player == null || options.contains(player)) return options;
         List<Object> allowed = new ArrayList<>(options);
         allowed.add(after(allowed, coverOption, batchOption, download) + 1, player);
+        return allowed;
+    }
+
+    /**
+     * [options] with Loop this video after the last of Download, Save all, Download cover, Open in
+     * another player and Details it has, or in front when it has none. A list that has it already
+     * comes back as it came.
+     */
+    static synchronized List<?> withLoop(List<?> options, Object download) {
+        Object loop = loopOption();
+        if (loop == null || options.contains(loop)) return options;
+        List<Object> allowed = new ArrayList<>(options);
+        int after = -1;
+        for (Object row : new Object[] {download, batchOption, coverOption, playerOption, PostInfo.option()}) {
+            if (row != null) after = Math.max(after, allowed.indexOf(row));
+        }
+        allowed.add(after + 1, loop);
         return allowed;
     }
 

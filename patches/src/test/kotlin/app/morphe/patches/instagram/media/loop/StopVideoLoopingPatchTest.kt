@@ -11,6 +11,9 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.media.resume.IS_SPONSORED
+import app.morphe.patches.instagram.media.resume.MEDIA_ID
+import app.morphe.patches.instagram.media.resume.PRODUCT_TYPE_LABEL
 import app.morphe.patches.instagram.media.taptoplay.CLIPS_VIEWER_CONFIG
 import app.morphe.patches.instagram.media.taptoplay.PLAY_INTERNAL
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -24,6 +27,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -45,6 +49,9 @@ class StopVideoLoopingPatchTest {
     private val objectType = "Ljava/lang/Object;"
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val setLooping = "$groot->A0d(Z)V"
+    private val holder = "Lfixture/VideoSettings;"
+    private val source = "Lfixture/VideoSource;"
+    private val dump = "Lfixture/VideoSourceDump;"
 
     /**
      * playInternal and the player's setter each hand the engine's setLooping the loop flag through
@@ -90,6 +97,48 @@ class StopVideoLoopingPatchTest {
         assertEquals(Opcode.RETURN, reels.last().opcode)
     }
 
+    /**
+     * StopLooping.videoId reads the media ID of what a player plays the way the player's own reader
+     * does, through its settings and their IgVideoSource, answering null for anything else (#610).
+     */
+    @Test
+    fun videoIdReadsThePlayersMediaId() {
+        val context = PatchContexts.of(classes())
+        assertNull(context.stopVideoLooping())
+        val videoId = context.method(STOP_LOOPING, "videoId").code()
+        assertEquals(
+            "a player, cast, its settings, their source, the media ID",
+            listOf(player, player, "$player->settings:$holder", "$holder->source:$source", "$source->mediaId:$string"),
+            videoId.mapNotNull { it.referenceText() },
+        )
+        assertEquals("each null step answers null", 3, videoId.count { it.opcode == Opcode.IF_EQZ })
+        val none = videoId.indexOfLast { it.opcode == Opcode.CONST_4 }
+        for (branch in videoId.indices.filter { videoId[it].opcode == Opcode.IF_EQZ }) {
+            assertEquals("the branch at $branch", none, videoId.target(branch))
+        }
+        assertEquals(listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT), videoId.takeLast(2).map { it.opcode })
+    }
+
+    /**
+     * StopLooping.reloop hands a player the flag its setter already keeps, so the hook answers
+     * again for the video playing and a loop chosen from a menu takes at once (#610).
+     */
+    @Test
+    fun reloopHandsTheSetterItsOwnFlag() {
+        val context = PatchContexts.of(classes())
+        assertNull(context.stopVideoLooping())
+        val reloop = context.method(STOP_LOOPING, "reloop").code()
+        assertEquals(
+            "a player, cast, its kept flag, its setter",
+            listOf(player, player, "$player->looping:Z", "$player->A0i(Z)V"),
+            reloop.mapNotNull { it.referenceText() },
+        )
+        val flag = reloop.single { it.opcode == Opcode.IGET_BOOLEAN } as OneRegisterInstruction
+        val call = reloop.single { it.opcode == Opcode.INVOKE_VIRTUAL }
+        assertEquals("the setter gets the flag it kept", flag.registerA, call.registers()[1])
+        assertEquals("anything else isn't touched", reloop.size - 1, reloop.target(reloop.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
+    }
+
     /** Each shape the patch can't place the hook in safely leaves every class as it was and says why. */
     @Test
     fun refusesAndChangesNothing() {
@@ -101,6 +150,8 @@ class StopVideoLoopingPatchTest {
             Variant(playerOverwritten = true) to "writes over parameter 0",
             Variant(hiddenLogger = true) to "not public",
             Variant(rangeCall = true) to "expected a plain invoke",
+            Variant(noMediaIdReader = true) to "media ID",
+            Variant(hiddenFlag = true) to "keeps its flag in a public field",
         )) {
             val context = PatchContexts.of(classes(variant))
             val reason = context.stopVideoLooping()
@@ -109,6 +160,8 @@ class StopVideoLoopingPatchTest {
                 assertTrue("$variant: ${method.name} changed", method.code().none { it.referenceText() == LOOP })
             }
             assertEquals("$variant: the stub was filled", 2, context.method(STOP_LOOPING, "reels").code().size)
+            assertEquals("$variant: videoId was filled", 2, context.method(STOP_LOOPING, "videoId").code().size)
+            assertEquals("$variant: reloop was filled", 1, context.method(STOP_LOOPING, "reloop").code().size)
         }
     }
 
@@ -151,7 +204,13 @@ class StopVideoLoopingPatchTest {
         }
         // classesLoading carries the pools Redex moved the string into.
         val cores = FixtureDex.classesLoading(bundle, SET_LOOPING)
-        val classes = (players + engines + madeWithConfig + cores + ExtensionDex.classDef(STOP_LOOPING))
+        // IgVideoSource's dump, the source, and the classes of the player's fields, for videoId.
+        val dumps = FixtureDex.classesHolding(bundle, IS_SPONSORED)
+        val sources = dumps.flatMap { it.methods }.filter { method ->
+            method.code().any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == MEDIA_ID }
+        }.mapNotNull { it.parameterTypes.firstOrNull()?.toString() }
+        val extra = FixtureDex.classes(bundle, (sources + players.flatMap { it.fields }.map { it.type }).toSet()).values
+        val classes = (players + engines + madeWithConfig + cores + dumps + extra + ExtensionDex.classDef(STOP_LOOPING))
             .distinctBy { it.type }
         val context = PatchContexts.of(classes)
         val sites = context.findLoopSites()
@@ -175,6 +234,15 @@ class StopVideoLoopingPatchTest {
             }
         }
         assertEquals("$label: hooks", 2, hooks)
+
+        val videoId = context.method(STOP_LOOPING, "videoId").code().mapNotNull { it.referenceText() }
+        assertEquals("$label: videoId reads three fields from the player on", 5, videoId.size)
+        assertTrue("$label: from the player's own field, $videoId", videoId[2].startsWith("${sites.player}->"))
+        assertTrue("$label: ending on a String, $videoId", videoId[4].endsWith(":Ljava/lang/String;"))
+        val reloop = context.method(STOP_LOOPING, "reloop").code().mapNotNull { it.referenceText() }
+        val setter = sites.sites.single { !AccessFlags.STATIC.isSet(it.first.accessFlags) }.first
+        assertEquals("$label: reloop calls the setter", "${sites.player}->${setter.name}(Z)V", reloop.last())
+        assertTrue("$label: with the player's own flag, $reloop", reloop[2].startsWith("${sites.player}->") && reloop[2].endsWith(":Z"))
     }
 
     private data class Variant(
@@ -185,6 +253,8 @@ class StopVideoLoopingPatchTest {
         val playerOverwritten: Boolean = false,
         val hiddenLogger: Boolean = false,
         val rangeCall: Boolean = false,
+        val noMediaIdReader: Boolean = false,
+        val hiddenFlag: Boolean = false,
     )
 
     private fun classes(v: Variant = Variant()): List<ClassDef> {
@@ -219,14 +289,33 @@ class StopVideoLoopingPatchTest {
             invoke-virtual { v0, p1 }, $groot->A0b(Z)V
             return-void
         """)
+        // The player's media ID reader: its settings, their IgVideoSource, the ID.
+        val reader = method(player, "A0K", emptyList(), string, 2, static = false, body = """
+            iget-object v0, p0, $player->settings:$holder
+            iget-object v0, v0, $holder->source:$source
+            iget-object v0, v0, $source->mediaId:$string
+            return-object v0
+        """)
         val loggerFlags = if (v.hiddenLogger) AccessFlags.FINAL.value else AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val videoPlayer = classDef(
-            player, listOf(internal, setter, other),
+            player, listOfNotNull(internal, setter, other, reader.takeUnless { v.noMediaIdReader }),
             listOf(
                 ImmutableField(player, "engine", groot, AccessFlags.PUBLIC.value, null, null, null),
-                ImmutableField(player, "looping", "Z", AccessFlags.PUBLIC.value, null, null, null),
+                ImmutableField(player, "looping", "Z", if (v.hiddenFlag) 0 else AccessFlags.PUBLIC.value, null, null, null),
                 ImmutableField(player, "logger", logger, loggerFlags, null, null, null),
+                ImmutableField(player, "settings", holder, AccessFlags.PUBLIC.value, null, null, null),
             ),
+        )
+        val videoSource = listOf(
+            classDef(holder, emptyList(), listOf(ImmutableField(holder, "source", source, AccessFlags.PUBLIC.value, null, null, null))),
+            classDef(source, emptyList(), listOf(ImmutableField(source, "mediaId", string, AccessFlags.PUBLIC.value, null, null, null))),
+            classDef(dump, listOf(method(dump, "A00", listOf(source), "V", 2, static = true, body = """
+                iget-object v0, p0, $source->mediaId:$string
+                const-string v0, "$MEDIA_ID"
+                const-string v0, "$PRODUCT_TYPE_LABEL"
+                const-string v0, "$IS_SPONSORED"
+                return-void
+            """))),
         )
         val engine = classDef(
             groot,
@@ -265,7 +354,7 @@ class StopVideoLoopingPatchTest {
                 superclass = logger,
             ),
         )
-        return listOf(videoPlayer, engine, heaviside) + loggers + ExtensionDex.classDef(STOP_LOOPING)
+        return listOf(videoPlayer, engine, heaviside) + loggers + videoSource + ExtensionDex.classDef(STOP_LOOPING)
     }
 
     private fun BytecodePatchContext.method(type: String, name: String): Method = classDefBy(type).methods.first { it.name == name }

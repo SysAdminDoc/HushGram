@@ -1983,3 +1983,12 @@ Lock Saved	Bloquear Guardado
 Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	Guardado y todo lo que contiene quedan cubiertos hasta que tu huella, tu cara o el bloqueo de pantalla confirmen que eres tú.
 Saved is locked	Guardado está bloqueado
 Unlock Saved	Desbloquear Guardado
+# context: three-dot menu row on a reel or feed video with Stop videos looping on; makes only the video on screen play again and again (#610)
+Loop this video	Repetir este video
+Stop looping this video	Dejar de repetir este video
+# context: toasts after tapping Loop this video or Stop looping this video (#610)
+Looping this video	Repitiendo este video
+This video plays once	Este video ya no se repite
+Loop didn't change	La repetición no cambió
+# context: second sentence of the Stop videos looping summary in HushGram settings > Playback; names the menu row Loop this video (#610)
+To loop one video anyway, tap Loop this video in its menu.	Para repetir un solo video de todos modos, toca Repetir este video en su menú.
