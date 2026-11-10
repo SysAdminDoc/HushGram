@@ -2872,6 +2872,13 @@ once-call Lapp/hushgram/extension/instagram/download/HoldDownload;->feedMade(Lja
 # RoundedCorners.made last thing before it returns, once, next to Hold to download's own call there. Left out, no post
 # frame is rounded; twice or elsewhere, it isn't the call the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/RoundedCorners;->made(Ljava/lang/Object;)V in instance (Landroid/content/Context;Lcom/instagram/feed/media/Media;L*;Lcom/instagram/ui/widget/framelayout/MediaFrameLayout;L*;L*;IJZZZZ)V holding LX/*;->*:Landroid/view/GestureDetector;
+# Peek at the next carousel page (#361): the carousel pager's buffer setter, the instance (Boolean, int, boolean)
+# method sizing the pager's page slot arrays through Math.max and laying them out through the pager's static
+# (pager, boolean, boolean) call, hands the pager and the buffer to CarouselPeek.buffer first thing, once. Left out,
+# Instagram's bind shrinks a peeking carousel's slot arrays under the page count it holds and the app crashes; twice
+# or elsewhere, it isn't the call the patch wrote.
+start-call Lapp/hushgram/extension/instagram/feed/CarouselPeek;->buffer(Ljava/lang/Object;I)I in instance (Ljava/lang/Boolean;IZ)V calling static Lcom/instagram/common/ui/widget/reboundviewpager/ReboundViewPager;->*(Lcom/instagram/common/ui/widget/reboundviewpager/ReboundViewPager;ZZ)V holding Ljava/lang/Math;->max(II)I
+once-call Lapp/hushgram/extension/instagram/feed/CarouselPeek;->buffer(Ljava/lang/Object;I)I in instance (Ljava/lang/Boolean;IZ)V calling static Lcom/instagram/common/ui/widget/reboundviewpager/ReboundViewPager;->*(Lcom/instagram/common/ui/widget/reboundviewpager/ReboundViewPager;ZZ)V holding Ljava/lang/Math;->max(II)I
 # A reel's gesture detector hands itself, the view and every touch to HoldDownload.reelTouch first, in
 # its one instance (View, MotionEvent) boolean method holding the detector's touch marker. Left out,
 # a hold on a reel never saves; twice or elsewhere, it isn't the call the patch wrote.

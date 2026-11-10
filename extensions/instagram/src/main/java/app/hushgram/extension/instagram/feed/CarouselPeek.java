@@ -18,6 +18,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -47,8 +48,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Nothing of Instagram's code changes: like {@link ReelCorners}, a resumed activity joins the shared
  * view watcher while the switch is on, and each layout looks through the window once. A page added
  * as the carousel is swiped is laid out, so it's scaled before it shows. With the switch off,
- * HushGram paused or the settings not read, every pager and page touched gets what it had back.
- * Anything thrown leaves the screen as Instagram drew it.
+ * HushGram paused or the settings not read, every pager and page touched gets what it had back,
+ * all but a buffer Peek raised (see {@link #buffer}). Anything thrown leaves the screen as Instagram
+ * drew it.
  */
 public final class CarouselPeek {
     /** The frame each photo page of a feed carousel sits in, a few levels under the pager. */
@@ -65,6 +67,7 @@ public final class CarouselPeek {
 
     static final String HOOK = "carousel peek";
     static final String COUNT_PEEKED = "carousels peeking";
+    static final String COUNT_BUFFER_KEPT = "carousel buffers kept";
 
     private static final ResourceIdCache ids = new ResourceIdCache();
     private static final WeakHashMap<Activity, Session> sessions = new WeakHashMap<>();
@@ -72,6 +75,8 @@ public final class CarouselPeek {
     private static final Map<View, Before> pagers = new WeakHashMap<>();
     /** Each page scaled. */
     private static final Map<View, Boolean> pages = new WeakHashMap<>();
+    /** Each pager whose buffer Peek raised, kept for as long as it lives. Asked by {@link #buffer} from any thread. */
+    private static final Map<Object, Boolean> widened = Collections.synchronizedMap(new WeakHashMap<>());
     /** The pager methods of each view class asked about, or null for a class that isn't a pager. */
     private static final Map<Class<?>, Pager> kinds = new WeakHashMap<>();
     private static volatile boolean registered;
@@ -275,6 +280,7 @@ public final class CarouselPeek {
             before.width = width;
             methods.size.invoke(pager, page);
             methods.bias.invoke(pager, methods.nextOnly);
+            if (before.buffer < 1) widened.put(pager, Boolean.TRUE);
             methods.buffer(pager, Math.max(1, before.buffer));
             // The spacing setter lays the pages out again at the new size.
             methods.spacing.invoke(pager, gap);
@@ -300,7 +306,29 @@ public final class CarouselPeek {
         return changed;
     }
 
-    /** Gives every pager and page changed what it had back, and forgets them. */
+    /**
+     * Injected first thing in the pager's buffer setter, which keeps [pages] and sizes from it the two
+     * arrays its layout counts pages into. Answers at least 1 for a pager Peek gave a buffer of one
+     * page, and [pages] for any other. Never throws.
+     *
+     * <p>The pager keeps the count of pages it last laid out, and a layout that reuses the count reads
+     * that many slots of the arrays. Instagram sets the buffer back to 0 as it binds a post to a pager
+     * it recycles and lays out at once, so arrays sized for 0 under a count made with 1 crashed the app
+     * (ArrayIndexOutOfBoundsException in the pager's layout, seen on 454). So the buffer never drops
+     * again, the switch turned off included: one more page stays attached until the pager is gone.
+     */
+    public static int buffer(Object pager, int pages) {
+        try {
+            if (pages >= 1 || pager == null || !widened.containsKey(pager)) return pages;
+            HookStatus.counted(FamilyNames.ROUNDED_POST_CORNERS, COUNT_BUFFER_KEPT);
+            return 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ROUNDED_POST_CORNERS, HOOK + " buffer", failure);
+            return pages;
+        }
+    }
+
+    /** Gives every pager and page changed what it had back, all but a raised buffer ({@link #buffer}), and forgets them. */
     static void putBack() {
         for (Map.Entry<View, Before> entry : new ArrayList<>(pagers.entrySet())) {
             View pager = entry.getKey();
@@ -310,7 +338,6 @@ public final class CarouselPeek {
                 // -1 is the pager's own "no override": its pages take its width again.
                 methods.size.invoke(pager, -1);
                 methods.bias.invoke(pager, entry.getValue().bias);
-                methods.buffer(pager, entry.getValue().buffer);
                 methods.spacing.invoke(pager, entry.getValue().spacing);
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.ROUNDED_POST_CORNERS, HOOK, failure);
@@ -354,6 +381,7 @@ public final class CarouselPeek {
         }
         pagers.clear();
         pages.clear();
+        widened.clear();
         kinds.clear();
         logged = false;
     }

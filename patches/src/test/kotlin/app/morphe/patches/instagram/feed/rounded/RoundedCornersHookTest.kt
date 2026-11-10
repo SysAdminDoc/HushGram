@@ -14,6 +14,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.instagram.download.MEDIA
+import app.morphe.patches.instagram.feed.carousel.REBOUND_VIEW_PAGER
 import app.morphe.patches.instagram.feed.zoom.MEDIA_FRAME
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -22,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -52,6 +54,90 @@ class RoundedCornersHookTest {
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$ROUNDED_MADE is not in the extension", ROUNDED_MADE.substringAfter("->") in declared(ROUNDED_CORNERS))
         assertTrue("frame is not in $ROUNDED_TARGETS", "frame(Ljava/lang/Object;)Ljava/lang/Object;" in declared(ROUNDED_TARGETS))
+        assertTrue("$PEEK_BUFFER is not in the extension", PEEK_BUFFER.substringAfter("->") in declared(PEEK_BUFFER.substringBefore("->")))
+    }
+
+    /**
+     * The buffer call goes first in the pager's buffer setter, with the pager and the buffer, and its
+     * answer becomes the buffer. The spacing setter shaped the same but tripling isn't the setter, and
+     * nothing else of the pager changes.
+     */
+    @Test
+    fun theBufferSetterTakesTheBufferCallFirst() {
+        val context = PatchContexts.of(pagerClasses())
+        val key = "extra(Ljava/lang/Boolean;IZ)V"
+        val before = context.pagerCode()
+        val site = context.findPagerBuffer()
+        assertEquals("extra", site.set.name)
+        assertEquals("the buffer is p2", 2, site.pages)
+        context.apply { applyPagerBuffer(site) }
+
+        val code = context.method(REBOUND_VIEW_PAGER, "extra").code()
+        assertEquals(PEEK_BUFFER, code[0].referenceText())
+        assertEquals("the pager (v2) and the buffer (v4)", listOf(2, 4), code[0].arguments())
+        assertEquals(Opcode.MOVE_RESULT, code[1].opcode)
+        assertEquals("its answer is the buffer kept", 4, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals(before.getValue(key), code.drop(2).map { it.describe() })
+        assertEquals("the rest of the pager", before - key, context.pagerCode() - key)
+    }
+
+    @Test
+    fun aBufferSetterThatDiffersFailsBeforeAnythingChanges() {
+        val cases = listOf(
+            Pager.NONE to "no $REBOUND_VIEW_PAGER",
+            Pager.NO_SETTER to "found 0",
+            Pager.TWO_SETTERS to "found 2",
+            Pager.JUMPS_TO_START to "jumps to its start",
+        )
+        for ((shape, message) in cases) {
+            val context = PatchContexts.of(pagerClasses(shape))
+            val failure = assertThrows(shape.name, PatchException::class.java) { context.findPagerBuffer() }
+            assertTrue("$shape: ${failure.message}", failure.message!!.contains(message))
+            val touched = context.classDefByOrNull(REBOUND_VIEW_PAGER)?.let { context.mutableClassDefBy(it.type).methods }.orEmpty()
+            assertTrue("$shape: something was written", touched.none { m -> m.code().any { it.referenceText() == PEEK_BUFFER } })
+        }
+    }
+
+    /**
+     * In each of the version's seven builds the pager has one buffer setter, taking (Boolean, int,
+     * boolean) with the buffer in p2, and the call goes first in it with every stock instruction kept
+     * after it. Read as the patcher reads an APK, and copied.
+     */
+    @Test
+    fun eachDeclaredBuildTakesTheBufferCall() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        assertEquals("every build of the version", Fixtures.BUILDS, bundles.size)
+        for (apk in bundles) {
+            val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
+            for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
+                val what = "$name ($read)"
+                val found = classesOf(apk, setOf(REBOUND_VIEW_PAGER))
+                assertEquals("$what: the pager", setOf(REBOUND_VIEW_PAGER), found.keys)
+                val context = PatchContexts.of(found.values)
+                val before = context.pagerCode()
+                val site = context.findPagerBuffer()
+                assertEquals("$what: the setter's parameters", listOf("Ljava/lang/Boolean;", "I", "Z"), site.set.parameterTypes.map(Any::toString))
+                assertEquals("$what: the buffer", 2, site.pages)
+                val set = context.mutableClassDefBy(REBOUND_VIEW_PAGER).methods.single {
+                    it.name == site.set.name && it.parameterTypes.map(Any::toString) == site.set.parameterTypes.map(Any::toString)
+                }
+                val original = NeutralNativePath(set)
+                val key = "${set.name}(${set.parameterTypes.joinToString("")})${set.returnType}"
+                context.apply { applyPagerBuffer(site) }
+
+                val code = set.code()
+                val self = set.implementation!!.registerCount - 1 - 3
+                assertEquals("$what: the call first", PEEK_BUFFER, code[0].referenceText())
+                assertEquals("$what: the pager and the buffer", listOf(self, self + 2), code[0].arguments())
+                assertEquals("$what: its answer is the buffer kept", self + 2, (code[1] as OneRegisterInstruction).registerA)
+                original.assertPreserved("$what $key", set, setOf(0, 1))
+                assertEquals("$what: the rest of the pager", before - key, context.pagerCode() - key)
+                val calls = context.pagerCode().values.sumOf { body -> body.count { it.endsWith(PEEK_BUFFER) } }
+                assertEquals("$what: one call in the pager", 1, calls)
+            }
+        }
     }
 
     /** The call is right before the constructor's return, with the holder itself, nothing else changes, and the read checks the holder's type. */
@@ -222,6 +308,46 @@ class RoundedCornersHookTest {
         if (shape == Shape.TWO_HOLDERS) found += holderClass("Lfixture/OtherTouch;")
         return found
     }
+
+    private enum class Pager { PLAIN, NONE, NO_SETTER, TWO_SETTERS, JUMPS_TO_START }
+
+    /**
+     * A pager shaped like 454's: the buffer setter keeping the buffer and making its two slot arrays
+     * max(1, 2 * buffer) + 1 long, and a spacing setter shaped the same but tripling.
+     */
+    private fun pagerClasses(shape: Pager = Pager.PLAIN): List<ClassDef> {
+        fun sizer(name: String, times: Int, jump: Boolean = false): Method =
+            method(REBOUND_VIEW_PAGER, name, listOf("Ljava/lang/Boolean;", "I", "Z"), "V", 2, body = """
+                ${if (jump) ":start" else ""}
+                iput p2, p0, $REBOUND_VIEW_PAGER->$name:I
+                mul-int/lit8 v1, p2, 0x$times
+                const/4 v0, 0x1
+                invoke-static { v0, v1 }, Ljava/lang/Math;->max(II)I
+                move-result v0
+                add-int/lit8 v1, v0, 0x1
+                new-array v0, v1, [I
+                iput-object v0, p0, $REBOUND_VIEW_PAGER->${name}Slots:[I
+                new-array v0, v1, [I
+                iput-object v0, p0, $REBOUND_VIEW_PAGER->${name}Offsets:[I
+                ${if (jump) "if-eqz p1, :start" else ""}
+                return-void
+            """)
+        val methods = mutableListOf(
+            sizer("extra", if (shape == Pager.NO_SETTER) 3 else 2, jump = shape == Pager.JUMPS_TO_START),
+            sizer("spacing", 3),
+        )
+        if (shape == Pager.TWO_SETTERS) methods += sizer("extraToo", 2)
+        val found = mutableListOf(ExtensionDex.classDef(ROUNDED_TARGETS))
+        if (shape != Pager.NONE) {
+            found += ImmutableClassDef(REBOUND_VIEW_PAGER, AccessFlags.PUBLIC.value, "Landroid/view/ViewGroup;", null, null, null, null, methods)
+        }
+        return found
+    }
+
+    private fun BytecodePatchContext.pagerCode(): Map<String, List<String>> =
+        mutableClassDefBy(REBOUND_VIEW_PAGER).methods.associate { m ->
+            "${m.name}(${m.parameterTypes.joinToString("")})${m.returnType}" to m.code().map { it.describe() }
+        }
 
     private fun method(
         owner: String,

@@ -25,6 +25,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
+import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -78,8 +79,13 @@ public class CarouselPeekTest {
         /** Kotlin's bridge for a setter with two default arguments; [mask] 6 means both are defaults. */
         public static void setExtraBufferSize$default(FakePager pager, int size, boolean now, Boolean bias, int mask, Object unused) {
             assertEquals(6, mask);
-            pager.buffer = size;
-            pager.bufferCalls++;
+            pager.setExtraBuffer(size);
+        }
+
+        /** The setter the bridge and Instagram's binds call, with the patch's call first, as on 454. */
+        void setExtraBuffer(int size) {
+            buffer = CarouselPeek.buffer(this, size);
+            bufferCalls++;
         }
     }
 
@@ -227,12 +233,53 @@ public class CarouselPeekTest {
         assertFalse(CarouselPeek.listeningForTests(activity));
         assertEquals(-1, pager.pageSize);
         assertEquals(3f, pager.spacing, 0f);
-        assertEquals(0, pager.buffer);
+        assertEquals("the buffer never drops back under the pager's page count", 1, pager.buffer);
         assertEquals(FakeBias.BIAS_FORWARD, pager.A0K);
         assertEquals(1f, first.getScaleX(), 0f);
         assertEquals(1f, second.getScaleY(), 0f);
         assertFalse("each page scales from its own middle again", first.isPivotSet() || second.isPivotSet());
         assertEquals(0, CarouselPeek.peekingForTests());
+    }
+
+    /**
+     * Seen on 454: Instagram binds a post to a recycled pager, sets its buffer back to 0 and lays out
+     * at once, reading slots the smaller arrays don't have. The pager keeps its one page, peeking and
+     * after the switch goes off, and a pager Peek never touched gets what Instagram asks for.
+     */
+    @Test
+    public void instagramSettingTheBufferBackTo0KeepsOnePage() {
+        Settings.PEEK_CAROUSEL_PAGES.save(true);
+        CarouselPeek.watch(activity);
+        frame();
+
+        pager.setExtraBuffer(0);
+        assertEquals("while peeking", 1, pager.buffer);
+
+        Settings.PEEK_CAROUSEL_PAGES.save(false);
+        frame();
+        pager.setExtraBuffer(0);
+        assertEquals("after the switch goes off", 1, pager.buffer);
+        pager.setExtraBuffer(3);
+        assertEquals("a bigger one is Instagram's to set", 3, pager.buffer);
+
+        FakePager other = new FakePager(activity);
+        other.setExtraBuffer(0);
+        assertEquals("a pager Peek never touched", 0, other.buffer);
+        assertEquals(0, CarouselPeek.buffer(null, 0));
+        String missed = HookStatus.missing(FamilyNames.ROUNDED_POST_CORNERS).toString();
+        assertFalse(missed, missed.contains("threw"));
+    }
+
+    @Test
+    public void aBiggerBufferIsNeverHeldUp() {
+        pager.buffer = 2;
+        Settings.PEEK_CAROUSEL_PAGES.save(true);
+        CarouselPeek.watch(activity);
+        frame();
+
+        pager.setExtraBuffer(0);
+
+        assertEquals("Peek never raised it, so Instagram's 0 stands", 0, pager.buffer);
     }
 
     @Test
