@@ -127,6 +127,11 @@ once-call Lapp/hushgram/extension/instagram/reels/TabBarLayout;->newTabBar(I)Z i
 # back stack's name the step loads, which Redex pools on 386014757 and 386014759. Left out, the press stops at Explore on the
 # classic bar.
 once-call Lapp/hushgram/extension/instagram/reels/TabBarLayout;->quickSearchPages(I)I in (*)Ljava/lang/Object; pooled holding LX/*;->*:Landroidx/viewpager2/widget/ViewPager2; LX/*;->getItemCount()I composite_search_back_stack
+# It also asks TabBarLayout.reloadEmptyTab() first thing in the tab wrapper's onResume (#535,
+# IgTabHostFragment, 03ja on 386014758), when the wrapper is marked loaded and its page finder finds
+# no page. Left out, Home and Messages stay blank after Android ends the app in the background with
+# a picked bar.
+once-call Lapp/hushgram/extension/instagram/reels/TabBarLayout;->reloadEmptyTab()Z in instance ()V pooled holding IgTabHostFragment.onResume
 # Read messages without the seen receipt (#13) hands ThreadSeen.hold(Object, Object) the receipt and
 # the account the handler keeps first in the mutation queue's handler for an ordinary chat's seen
 # receipt (05cs.Gsm on 450), the one method holding both names of the GraphQL mutation that carries

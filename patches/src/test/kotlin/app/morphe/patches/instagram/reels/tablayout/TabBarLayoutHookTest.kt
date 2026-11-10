@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -33,7 +34,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Tab bar layout: every return of Instagram's newer tab bar gate hands its answer to the extension first (#356), and so does the classic bar's quick search wait (#383). */
+/** Tab bar layout: every return of Instagram's newer tab bar gate hands its answer to the extension first (#356), and so does the classic bar's quick search wait (#383) and a tab that comes back empty (#535). */
 class TabBarLayoutHookTest {
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val configs = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;"
@@ -49,7 +50,99 @@ class TabBarLayoutHookTest {
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$NEW_TAB_BAR is not in the extension: $declared", NEW_TAB_BAR.substringAfter("->") in declared)
         assertTrue("$QUICK_SEARCH_PAGES is not in the extension: $declared", QUICK_SEARCH_PAGES.substringAfter("->") in declared)
+        assertTrue("$RELOAD_EMPTY_TAB is not in the extension: $declared", RELOAD_EMPTY_TAB.substringAfter("->") in declared)
     }
+
+    /** A wrapper marked loaded or attached with no page asks the extension first thing in onResume, and on yes runs its own loader; the rest stays (#535). */
+    @Test
+    fun anEmptyLoadedTabBuildsItsPageAgain() {
+        val context = PatchContexts.of(wrapperClasses())
+        val stock = wrapperClasses().single { it.type == wrapperType }.methods.single { it.name == "onResume" }.code().map { text(it) }
+        val tab = context.findTabLoader()
+        assertEquals("the state", "$wrapperType->A02:$stateType", tab.state.toString())
+        assertEquals("loaded", "$stateType->A04:$stateType", tab.loaded.toString())
+        assertEquals("attached", "$stateType->A02:$stateType", tab.attached.toString())
+        assertEquals("the page finder", "$wrapperType->A03()$fragment", tab.page.toString())
+        context.hookEmptyTabReload()
+        val resume = context.mutableClassDefBy(wrapperType).methods.single { it.name == "onResume" }
+        assertReloads("stand-in", resume, tab, "invoke-direct")
+        assertEquals("the rest stays", stock, resume.code().drop(CHECK).map { text(it) })
+    }
+
+    /** A build whose wrapper the patch can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aTabWrapperThePatchCantReadFails() {
+        val cases = listOf(
+            wrapperClasses(mark = false) to "found 0",
+            wrapperClasses(twoWrappers = true) to "found 2",
+            wrapperClasses(marksLoaded = false) to "marks no loading state",
+            wrapperClasses(asksPage = false) to "asks no page finder",
+            wrapperClasses(marksAttached = false) to "marks no attached state",
+            wrapperClasses(resumes = false) to "found 0",
+        )
+        for ((classes, message) in cases) {
+            val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes).hookEmptyTabReload() }
+            assertTrue("${failure.message}", failure.message!!.contains("Tab bar layout: ") && failure.message!!.contains(message))
+        }
+    }
+
+    /**
+     * On every 454 build: one loader, its state is what the wrapper saves with the app, attached
+     * is a different value from loaded, and its onResume asks the extension first, with
+     * Instagram's own code left after the check.
+     */
+    @Test
+    fun eachBuildReloadsAnEmptyTab() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
+        assertEquals("every 454 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        for (bundle in bundles) {
+            val label = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
+            val context = PatchContexts.of(FixtureDex.classesLoading(bundle, TAB_LOAD_MARK))
+            val tab = context.findTabLoader()
+            val wrapper = context.mutableClassDefBy(tab.loader.definingClass)
+            val save = wrapper.methods.single { it.name == "onSaveInstanceState" }
+            assertTrue("$label: ${wrapper.type} saves no ${tab.state}", save.code().any { it.opcode == Opcode.IGET_OBJECT && it.referenceText() == tab.state.toString() })
+            assertTrue("$label: attached ${tab.attached} is loaded ${tab.loaded}", tab.attached.toString() != tab.loaded.toString())
+            val stock = wrapper.methods.single { it.name == "onResume" }.code().filter { it.opcode != Opcode.NOP }.map { text(it) }
+            context.hookEmptyTabReload()
+            val resume = context.mutableClassDefBy(tab.loader.definingClass).methods.single { it.name == "onResume" }
+            val call = if (AccessFlags.PRIVATE.isSet(tab.loader.accessFlags)) "invoke-direct" else "invoke-virtual"
+            assertReloads(label, resume, tab, call)
+            assertEquals("$label: the rest stays", stock, resume.code().drop(CHECK).filter { it.opcode != Opcode.NOP }.map { text(it) })
+        }
+    }
+
+    /**
+     * The twelve instructions of the check at the top of onResume: loaded goes on to the page
+     * finder, anything but loaded or attached goes on to Instagram's own first instruction, and so
+     * does a page found or a no.
+     */
+    private fun assertReloads(what: String, method: Method, tab: TabLoader, call: String) {
+        val code = method.code()
+        val self = method.implementation!!.registerCount - 1
+        assertEquals("$what: the state read", Opcode.IGET_OBJECT, code[0].opcode)
+        assertEquals("$what: of the wrapper", self, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the state", tab.state.toString(), code[0].referenceText())
+        assertEquals("$what: loaded", tab.loaded.toString(), code[1].referenceText())
+        assertEquals("$what: loaded asks for the page", Opcode.IF_EQ, code[2].opcode)
+        assertEquals("$what: attached", tab.attached.toString(), code[3].referenceText())
+        assertEquals("$what: neither", Opcode.IF_NE, code[4].opcode)
+        assertEquals("$what: the page finder", tab.page.toString(), code[5].referenceText())
+        assertEquals("$what: the page", Opcode.MOVE_RESULT_OBJECT, code[6].opcode)
+        assertEquals("$what: no page", Opcode.IF_NEZ, code[7].opcode)
+        assertEquals("$what: the hook", RELOAD_EMPTY_TAB, code[8].referenceText())
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[9].opcode)
+        assertEquals("$what: yes", Opcode.IF_EQZ, code[10].opcode)
+        assertEquals("$what: the loader", "${tab.loader.definingClass}->${tab.loader.name}()V", code[11].referenceText())
+        assertEquals("$what: how the loader is called", if (call == "invoke-direct") Opcode.INVOKE_DIRECT else Opcode.INVOKE_VIRTUAL, code[11].opcode)
+        assertEquals("$what: loaded goes to the page finder", 5, code.branchTarget(2))
+        for (at in listOf(4, 7, 10)) {
+            assertEquals("$what: the branch at $at goes on to Instagram's code", CHECK, code.branchTarget(at))
+        }
+    }
+
+    private fun List<Instruction>.branchTarget(at: Int): Int = indexAtUnits(unitsBefore(at) + (this[at] as OffsetInstruction).codeOffset)
 
     /** Only the tab list's count goes through the call, the pager's own count stays, and nothing else changes (#383). */
     @Test
@@ -304,6 +397,98 @@ class TabBarLayoutHookTest {
         )
         mutable.addInstructionsWithLabels(0, body.lines().filter { it.isNotBlank() }.joinToString("\n") { it.trim() })
         return ImmutableMethod.of(mutable)
+    }
+
+    private val wrapperType = "Lfixture/TabHost;"
+    private val stateType = "Lfixture/LoadingState;"
+    private val fragment = "Landroidx/fragment/app/Fragment;"
+
+    /** How many instructions the empty tab check puts at the top of onResume. */
+    private val CHECK = 12
+
+    /**
+     * Shaped like 454's IgTabHostFragment (03ja on 386014758): a private loader that traces
+     * [TAB_LOAD_MARK], marks the wrapper loaded and builds the page when its finder finds none, the
+     * finder, an onAttachFragment that marks it attached, and an onResume that loads a wrapper held
+     * back until then.
+     */
+    private fun wrapperClasses(
+        mark: Boolean = true,
+        twoWrappers: Boolean = false,
+        marksLoaded: Boolean = true,
+        asksPage: Boolean = true,
+        marksAttached: Boolean = true,
+        resumes: Boolean = true,
+    ): List<ClassDef> {
+        val loader = """
+            ${if (mark) "const-string v0, \"$TAB_LOAD_MARK\"" else "const-string v0, \"IgTabHostFragment.other\""}
+            invoke-static {v0}, Lfixture/Trace;->begin(Ljava/lang/String;)V
+            sget-object v0, $stateType->A04:$stateType
+            ${if (marksLoaded) "iput-object v0, v2, $wrapperType->A02:$stateType" else "invoke-static {v0}, Lfixture/Trace;->state(Ljava/lang/Object;)V"}
+            ${if (asksPage) "invoke-virtual {v2}, $wrapperType->A03()$fragment" else "invoke-virtual {v2}, $wrapperType->A04()Ljava/lang/Object;"}
+            move-result-object v0
+            if-nez v0, :done
+            invoke-static {v2}, Lfixture/Loader;->load(Ljava/lang/Object;)V
+            :done
+            return-void
+        """.trimIndent()
+        val page = """
+            const/4 v0, 0x0
+            return-object v0
+        """.trimIndent()
+        val attach = """
+            sget-object v0, $stateType->A02:$stateType
+            ${if (marksAttached) "iput-object v0, v1, $wrapperType->A02:$stateType" else "invoke-static {v0}, Lfixture/Trace;->state(Ljava/lang/Object;)V"}
+            return-void
+        """.trimIndent()
+        val resume = """
+            invoke-super {v3}, Lfixture/Base;->onResume()V
+            iget-object v1, v3, $wrapperType->A02:$stateType
+            sget-object v0, $stateType->A03:$stateType
+            if-ne v1, v0, :ready
+            sget-object v0, $stateType->A06:$stateType
+            iput-object v0, v3, $wrapperType->A02:$stateType
+            :ready
+            return-void
+        """.trimIndent()
+        return listOfNotNull(wrapperType, if (twoWrappers) "Lfixture/OtherTabHost;" else null).map { type ->
+            val methods = listOfNotNull(
+                instanceMethod(type, "A01", "V", 2, loader.replace(wrapperType, type), private = true),
+                instanceMethod(type, "A03", fragment, 1, page),
+                instanceMethod(type, "onAttachFragment", "V", 1, attach.replace(wrapperType, type), parameters = listOf(fragment)),
+                if (resumes) instanceMethod(type, "onResume", "V", 3, resume.replace(wrapperType, type)) else null,
+            )
+            ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Lfixture/Base;", null, null, null, null, methods)
+        }
+    }
+
+    private fun instanceMethod(
+        owner: String,
+        name: String,
+        returns: String,
+        registers: Int,
+        body: String,
+        private: Boolean = false,
+        parameters: List<String> = emptyList(),
+    ): Method {
+        val flags = (if (private) AccessFlags.PRIVATE.value else AccessFlags.PUBLIC.value) or AccessFlags.FINAL.value
+        val mutable = MutableMethod(
+            ImmutableMethod(
+                owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, flags, null, null,
+                ImmutableMethodImplementation(registers + 1 + parameters.size, emptyList(), null, null),
+            ),
+        )
+        mutable.addInstructionsWithLabels(0, body.lines().filter { it.isNotBlank() }.joinToString("\n") { it.trim() })
+        return ImmutableMethod.of(mutable)
+    }
+
+    /** An instruction's opcode and what it names, with every goto read as one. */
+    private fun text(instruction: Instruction): String {
+        val opcode = when (instruction.opcode) {
+            Opcode.GOTO_16, Opcode.GOTO_32 -> Opcode.GOTO
+            else -> instruction.opcode
+        }
+        return "$opcode ${instruction.referenceText().orEmpty()}"
     }
 
     private fun Method.loadsFlag(): Boolean = code().any {

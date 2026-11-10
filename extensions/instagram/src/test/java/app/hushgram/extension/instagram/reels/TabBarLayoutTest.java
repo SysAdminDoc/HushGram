@@ -26,7 +26,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** What the tab bar gate answers for each choice, the classic bar's quick search wait, and that paused and not ready are Instagram's own (#356, #383). */
+/** What the tab bar gate answers for each choice, the classic bar's quick search wait, empty tabs, and that paused and not ready are Instagram's own (#356, #383, #535). */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class TabBarLayoutTest {
@@ -117,6 +117,24 @@ public class TabBarLayoutTest {
         SettingsContextRule.withoutContext(() -> assertEquals(5, TabBarLayout.quickSearchPages(5)));
         report = report();
         assertTrue(report, report.contains(TabBarLayout.QUICK_SEARCH + " 1"));
+    }
+
+    /** A tab that comes back empty is built again only while a bar is picked; Instagram's choice, paused or not ready leave it (#535). */
+    @Test
+    public void anEmptyTabIsBuiltAgainOnlyWhileABarIsPicked() {
+        assertFalse(TabBarLayout.reloadEmptyTab());
+        Settings.TAB_BAR_LAYOUT.save(TabBarLayoutChoice.CLASSIC);
+        assertTrue(TabBarLayout.reloadEmptyTab());
+        Settings.TAB_BAR_LAYOUT.save(TabBarLayoutChoice.SWIPE);
+        assertTrue(TabBarLayout.reloadEmptyTab());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(TabBarLayout.reloadEmptyTab());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse(TabBarLayout.reloadEmptyTab()));
+        String report = report();
+        assertTrue(report, report.contains(TabBarLayout.RELOADED + " 2"));
     }
 
     /** Before the settings are ready the hook can't read the choice and keeps Instagram's answer. */

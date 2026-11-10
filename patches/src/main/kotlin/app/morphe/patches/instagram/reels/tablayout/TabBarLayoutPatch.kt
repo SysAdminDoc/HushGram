@@ -6,14 +6,20 @@ package app.morphe.patches.instagram.reels.tablayout
 
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.fieldAccess
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoading
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -35,6 +41,11 @@ private const val PATCH = "Tab bar layout"
 internal const val TAB_BAR_LAYOUT = "$EXTENSION_PACKAGE/reels/TabBarLayout;"
 internal const val NEW_TAB_BAR = "$TAB_BAR_LAYOUT->newTabBar(I)Z"
 internal const val QUICK_SEARCH_PAGES = "$TAB_BAR_LAYOUT->quickSearchPages(I)I"
+internal const val RELOAD_EMPTY_TAB = "$TAB_BAR_LAYOUT->reloadEmptyTab()Z"
+
+/** What Instagram's tab wrapper (IgTabHostFragment) traces while it builds its tab's page. */
+internal const val TAB_LOAD_MARK = "IgTabHostFragment.loadFragment"
+private const val FRAGMENT = "Landroidx/fragment/app/Fragment;"
 
 private const val SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val CONFIGS = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;"
@@ -66,6 +77,9 @@ internal const val NEW_TAB_BAR_FLAG = 0x208107cd00102a43L
  *
  * The classic bar also gets back the long press on Search that opens search (#383), which 453
  * only finishes on the swipe bar. See [hookQuickSearchWait].
+ *
+ * A picked bar also gets its tabs back after Android ends the app in the background (#535). See
+ * [hookEmptyTabReload].
  */
 @Suppress("unused")
 val tabBarLayoutPatch = bytecodePatch(
@@ -83,6 +97,7 @@ val tabBarLayoutPatch = bytecodePatch(
         requireStatusMethod("tabBarLayout")
         hookTabBarGate()
         hookQuickSearchWait()
+        hookEmptyTabReload()
         enableStatus("tabBarLayout")
     }
 }
@@ -192,6 +207,111 @@ private fun Method.tabCountReads(): List<QuickSearchWait> {
             (code[index + 1] as FiveRegisterInstruction).registerC == (code[index] as TwoRegisterInstruction).registerA &&
             code.getOrNull(index + 2)?.opcode == Opcode.MOVE_RESULT
     }.map { QuickSearchWait(this, it + 2, (code[it + 2] as OneRegisterInstruction).registerA) }
+}
+
+/**
+ * The parts of Instagram's tab wrapper the reload needs: its [loader], which marks the wrapper
+ * loaded by putting [loaded] in [state] and then builds the page when [page] finds none, the
+ * opcode the loader asks [page] with, and [attached], what the wrapper puts in [state] once its
+ * page attaches.
+ */
+internal class TabLoader(
+    val loader: Method,
+    val state: FieldReference,
+    val loaded: FieldReference,
+    val attached: FieldReference,
+    val page: MethodReference,
+    val pageCall: Opcode,
+)
+
+/**
+ * Builds a tab's page again when the tab comes on screen marked as loaded with no page in it, and
+ * [RELOAD_EMPTY_TAB] says to. On 454 each tab sits in a wrapper (IgTabHostFragment, 03ja on
+ * 386014758) whose onCreate builds the page only for a wrapper not loaded yet, and whose onResume
+ * only for one held back until then. It saves its loading state with the app, and its page in its
+ * own fragments. With the classic bar picked on an account Instagram gives the swipe bar, Android
+ * ending the app in the background brings Home and Messages back marked attached with no page,
+ * and the tab stays blank. First thing in onResume, a wrapper marked loaded or attached whose page
+ * finder finds nothing asks the extension and, on yes, runs its own loader, which marks it loaded
+ * and builds the page.
+ */
+internal fun BytecodePatchContext.hookEmptyTabReload() {
+    val tab = findTabLoader()
+    val owner = tab.loader.definingClass
+    val resume = mutableClassDefBy(owner).methods.filter {
+        it.name == "onResume" && it.parameterTypes.isEmpty() && it.returnType == "V" && it.implementation != null
+    }
+    if (resume.size != 1) refuse("expected one onResume()V on the tab wrapper $owner, found ${resume.size}")
+    val method = resume.single()
+    // Two locals, and the wrapper itself in a register the four-bit forms below can name.
+    if (method.localRegisterCount() < 2 || method.implementation!!.registerCount > 16) {
+        refuse("$owner->onResume has ${method.implementation!!.registerCount} registers, the reload needs two locals below v16")
+    }
+    val call = if (AccessFlags.PRIVATE.isSet(tab.loader.accessFlags)) "invoke-direct" else "invoke-virtual"
+    val pageCall = if (tab.pageCall == Opcode.INVOKE_DIRECT) "invoke-direct" else "invoke-virtual"
+    method.addInstructionsWithLabels(
+        0,
+        """
+            iget-object v0, p0, ${tab.state}
+            sget-object v1, ${tab.loaded}
+            if-eq v0, v1, :marked
+            sget-object v1, ${tab.attached}
+            if-ne v0, v1, :resume
+            :marked
+            $pageCall { p0 }, ${tab.page}
+            move-result-object v0
+            if-nez v0, :resume
+            invoke-static { }, $RELOAD_EMPTY_TAB
+            move-result v0
+            if-eqz v0, :resume
+            $call { p0 }, $owner->${tab.loader.name}()V
+        """,
+        ExternalLabel("resume", method.getInstruction(0)),
+    )
+}
+
+/**
+ * The one instance `()V` method loading [TAB_LOAD_MARK]: the tab wrapper's loader. Its first
+ * write of a static value of a field's own type into the wrapper is the loaded state, and the
+ * first `()Fragment` of the wrapper it asks after that is the page finder. The state the
+ * wrapper's onAttachFragment writes into the same field is the attached one. Fails before
+ * anything changes when there isn't exactly one loader or any part is missing.
+ */
+internal fun BytecodePatchContext.findTabLoader(): TabLoader {
+    val wrappers = classesLoadingString(TAB_LOAD_MARK)
+    val loaders = wrappers.flatMap { it.methods }.filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == "V" && loadsString(it, TAB_LOAD_MARK)
+    }
+    if (loaders.size != 1) refuse("expected one ()V method loading \"$TAB_LOAD_MARK\", found ${loaders.size}")
+    val loader = loaders.single()
+    val code = loader.implementation!!.instructions.toList()
+    val mark = code.stateWrite(loader.definingClass) { true }
+        ?: refuse("${loader.definingClass}->${loader.name} marks no loading state")
+    val state = code[mark + 1].field()!!
+    val loaded = code[mark].field()!!
+    val ask = code.drop(mark + 2).firstOrNull { instruction ->
+        val called = instruction.called()
+        (instruction.opcode == Opcode.INVOKE_VIRTUAL || instruction.opcode == Opcode.INVOKE_DIRECT) && called != null &&
+            called.definingClass == loader.definingClass && called.parameterTypes.isEmpty() && called.returnType == FRAGMENT
+    } ?: refuse("${loader.definingClass}->${loader.name} asks no page finder after marking itself loaded")
+    val attach = wrappers.single { it.type == loader.definingClass }.methods.singleOrNull {
+        it.name == "onAttachFragment" && it.parameterTypes.map { type -> type.toString() } == listOf(FRAGMENT) && it.returnType == "V"
+    }?.implementation?.instructions?.toList().orEmpty()
+    val attachedAt = attach.stateWrite(loader.definingClass) { it.toString() == state.toString() }
+        ?: refuse("${loader.definingClass}->onAttachFragment marks no attached state")
+    return TabLoader(loader, state, loaded, attach[attachedAt].field()!!, ask.called()!!, ask.opcode)
+}
+
+/**
+ * The index of the first static value of a field's own type that's put straight into a field of
+ * [owner] holding that type and passing [into], or null.
+ */
+private fun List<Instruction>.stateWrite(owner: String, into: (FieldReference) -> Boolean): Int? = indices.firstOrNull { at ->
+    val value = this[at].field()
+    val target = getOrNull(at + 1)?.field()
+    this[at].opcode == Opcode.SGET_OBJECT && this[at + 1].opcode == Opcode.IPUT_OBJECT && value != null && target != null &&
+        value.definingClass == value.type && target.definingClass == owner && target.type == value.type && into(target) &&
+        (this[at] as OneRegisterInstruction).registerA == (this[at + 1] as TwoRegisterInstruction).registerA
 }
 
 private fun Instruction.field(): FieldReference? = (this as? ReferenceInstruction)?.reference as? FieldReference
