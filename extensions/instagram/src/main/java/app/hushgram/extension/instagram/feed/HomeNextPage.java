@@ -236,8 +236,9 @@ public final class HomeNextPage {
      * Called by {@link FeedSuggestions#homePageParsed} for each page of Home's response that held
      * items: [read] of them, [lost] to the switches. A page that keeps {@link #SHORT_PAGE} or more
      * ends the chain. A shorter one the switches took items out of becomes the page the next build
-     * decides about, and starts a new chain unless it answers a request made here, and
-     * {@link #settle} checks on it later. A short page the switches took nothing out of is
+     * decides about, and starts a new chain when it doesn't answer a request made here and Home's
+     * paging was {@link #quiet} before it, and {@link #settle} checks on it later. A short page the
+     * switches took nothing out of is
      * Instagram's own and is left to it. A page that keeps anything lets the next empty Home hold
      * its end again ({@link #holdsEnd}). Never throws.
      */
@@ -258,7 +259,7 @@ public final class HomeNextPage {
                 shortPage = 0;
                 return;
             }
-            if (!ours) {
+            if (!ours && quiet()) {
                 chain = 0;
                 capCounted = false;
             }
@@ -272,9 +273,20 @@ public final class HomeNextPage {
     }
 
     /**
+     * Whether Home's paging was quiet for {@link #WINDOW_NANOS} before now: no request made here and
+     * no short page parsed. On the S22, Instagram asked for a page of its own as each of ours landed,
+     * and that page came in a few seconds behind ours. Starting a new chain on it kept the chain at
+     * one, so the caps never stopped the asking and Home paged on and on (#579).
+     */
+    private static boolean quiet() {
+        long age = clock.getAsLong() - Math.max(requestAt, shortPageAt);
+        return age < 0 || age > WINDOW_NANOS;
+    }
+
+    /**
      * Called by {@link FeedSuggestions#homePageParsed} for a page of Home's response with no items.
-     * It still answers a request made here, so the next short page starts a chain of its own instead
-     * of continuing this one. Never throws.
+     * It still answers a request made here, so the next short page isn't taken for its answer. Never
+     * throws.
      */
     static void emptyPageParsed() {
         waitingForOurs = false;
