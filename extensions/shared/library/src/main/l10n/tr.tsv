@@ -1518,7 +1518,7 @@ Only accounts that aren't verified	Yalnızca doğrulanmamış hesaplar
 Pinch to zoom	İki parmakla yakınlaştır
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	Oynayan bir reel'i bir fotoğraf gibi iki parmakla yakınlaştırırsın. Parmaklarını kaldırınca eski haline döner. Değişikliği görmek için Instagram'ı yeniden başlat.
 Double tap to skip	Atlamak için çift dokun
-A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	Bir reel'in sol tarafına çift dokunmak 10 saniye geri, sağ tarafına çift dokunmak 10 saniye ileri gider. Ortaya çift dokunmak yine beğenir. 10 saniyeden kısa reel'ler atlamaz.
+A double tap on the left side of a reel goes back, and on the right side it goes ahead, as far as Skip length says. A double tap in the middle still likes it. Reels no longer than that don't skip.	Bir reel'in sol tarafına çift dokunmak Atlama süresi kadar geri, sağ tarafına çift dokunmak o kadar ileri gider. Ortaya çift dokunmak yine beğenir. Bundan uzun olmayan reel'ler atlamaz.
 Hide the 2x popup	2x açılır yazısını gizle
 Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.	Daha hızlı oynatmak için bir reel'i basılı tutarken 2x etiketini kaldırır. Hızlandırma çalışmaya devam eder.
 Mute notification types	Bildirim türlerini sessize al
@@ -1786,7 +1786,9 @@ Pill look	Hap görünümü
 Seek bar look	Arama çubuğu görünümü
 # context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
 Double tap to skip on feed videos	Akış videolarında atlamak için iki kez dokun
-Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	Akışta oynayan videonun sol tarafına iki kez dokunarak 10 saniye geri, sağ tarafına iki kez dokunarak 10 saniye ileri git. Ortaya iki kez dokunmak eskisi gibi çalışır.
+Double tap the left side of the video playing in a feed to go back, or the right side to go ahead, as far as Skip length says. A double tap in the middle works as before.	Akışta oynayan videonun sol tarafına iki kez dokunarak Atlama süresi kadar geri, sağ tarafına iki kez dokunarak o kadar ileri git. Ortaya iki kez dokunmak eskisi gibi çalışır.
+Skip length	Atlama süresi
+%1$d seconds	%1$d saniye
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	Opak
 # context: a look for the page-dots pill and the seek bars: partly transparent

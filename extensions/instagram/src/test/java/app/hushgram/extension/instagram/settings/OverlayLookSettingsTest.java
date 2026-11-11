@@ -8,6 +8,10 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
+import android.preference.SwitchPreference;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.SeekBar;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -26,15 +30,19 @@ import org.robolectric.shadows.ShadowLooper;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.EnumSetting;
+import app.hushgram.extension.shared.settings.IntegerSetting;
 import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 import app.hushgram.extension.instagram.feed.OverlayLook;
 import app.hushgram.extension.instagram.feed.SeekShape;
 
 /**
  * Pill look and the two Seek bar looks (#471): each sits right under the switch it styles, starts solid,
  * offers see-through and frosted glass, asks for its switch while that's off and travels with an
- * exported configuration.
+ * exported configuration. The two double tap skips' Skip length sliders (#645) sit under their switches the
+ * same way.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -72,6 +80,66 @@ public class OverlayLookSettingsTest {
         Settings.STORY_SEEK_BAR.resetToDefault();
         Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
         Settings.SEEK_BAR_SHAPE.resetToDefault();
+        Settings.FEED_DOUBLE_TAP_SKIP.resetToDefault();
+        Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.resetToDefault();
+        Settings.DOUBLE_TAP_SKIP_REELS.resetToDefault();
+        Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.resetToDefault();
+    }
+
+    /**
+     * #645: each double tap skip gets a Skip length slider right under its switch, 5 to 30 seconds in 5 second
+     * notches, starting at the 10 seconds it always was, asking for its switch while that's off, saving at once
+     * and travelling with an export.
+     */
+    @Test public void skipLengthSitsUnderEachDoubleTapSwitch() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_SEEK_BAR, PatchFamily.REEL_DOUBLE_TAP_SKIP));
+        assertSkipLength(Settings.FEED_DOUBLE_TAP_SKIP, Settings.FEED_DOUBLE_TAP_SKIP_SECONDS, "Double tap to skip on feed videos");
+        assertSkipLength(Settings.DOUBLE_TAP_SKIP_REELS, Settings.DOUBLE_TAP_SKIP_REELS_SECONDS, "Double tap to skip");
+    }
+
+    @Test public void withoutThePatchesThereIsNoSkipLength() throws Exception {
+        open(EnumSet.noneOf(PatchFamily.class));
+        for (String key : Arrays.asList(Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key, Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key)) {
+            assertNull(key, page.getPreferenceScreen().findPreference(key));
+            assertFalse(key, ConfigurationBackup.eligible().containsKey(key));
+        }
+    }
+
+    private void assertSkipLength(BooleanSetting toggle, IntegerSetting seconds, String toggleTitle) {
+        Preference found = page.getPreferenceScreen().findPreference(seconds.key);
+        assertTrue(seconds.key, found instanceof HushgramPreferenceFragment.SliderRow);
+        HushgramPreferenceFragment.SliderRow row = (HushgramPreferenceFragment.SliderRow) found;
+        PreferenceGroup group = (PreferenceGroup) row.getParent();
+        int toggleAt = -1;
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            if (toggle.key.equals(group.getPreference(i).getKey())) toggleAt = i;
+        }
+        assertTrue("its switch is in the same section", toggleAt >= 0);
+        assertEquals("right under its switch", row, group.getPreference(toggleAt + 1));
+        assertEquals("Skip length", String.valueOf(row.getTitle()));
+        assertEquals("Turn on " + toggleTitle + " to use this slider.", String.valueOf(row.getSummary()));
+
+        SwitchPreference parent = (SwitchPreference) page.getPreferenceScreen().findPreference(toggle.key);
+        parent.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertEquals("10 seconds (standard)", String.valueOf(row.getSummary()));
+        SeekBar slider = sliderOf(row);
+        assertEquals("5 to 30 seconds in 5 second notches", 5, slider.getMax());
+        assertEquals(1, slider.getProgress());
+        row.choose(25);
+        ShadowLooper.idleMainLooper();
+        assertEquals(25, (int) seconds.savedValue());
+        assertEquals("25 seconds", String.valueOf(row.getSummary()));
+        assertFalse("shows on the next double tap", seconds.rebootApp);
+        assertFalse(AbstractPreferenceFragment.restartPending.contains(seconds.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(seconds.key));
+    }
+
+    private SeekBar sliderOf(Preference row) {
+        View view = row.getView(null, (ViewGroup) controller.get().findViewById(android.R.id.content));
+        View slider = view.findViewWithTag("hushgram_slider");
+        assertTrue("the row carries its slider", slider instanceof SeekBar);
+        return (SeekBar) slider;
     }
 
     /** #586: the shape sits right under the feed's look, covers every seek bar and travels with an export. */

@@ -17,6 +17,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.likeAnimationRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelCapBreakRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelCapCountRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelSkipLengthRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.scrollBreakLengthRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.scrollBreakRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
@@ -269,8 +270,10 @@ final class ReelsCategory {
         }
         if (build.contains(PatchFamily.REEL_DOUBLE_TAP_SKIP)) {
             reels.add(toggle(context, Settings.DOUBLE_TAP_SKIP_REELS, L10n.t("Double tap to skip"),
-                    L10n.t("A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes "
-                            + "ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.")));
+                    L10n.t("A double tap on the left side of a reel goes back, and on the right side it goes ahead, as far "
+                            + "as Skip length says. A double tap in the middle still likes it. Reels no longer than that "
+                            + "don't skip.")));
+            reels.add(reelSkipLengthRow(context));
         }
         if (build.contains(PatchFamily.HIDE_REEL_2X_POPUP)) {
             reels.add(toggle(context, Settings.HIDE_REEL_2X_POPUP, L10n.t("Hide the 2x popup"),

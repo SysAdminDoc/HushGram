@@ -34,7 +34,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * tap to {@link #doubleTap} first, with that frame and the tap. The feed's video player tells
  * {@link #fed}, through {@link FeedSeekBar#progress}, which player moved on last and where its video
  * was. A double tap inside that video's frame, on its left third, moves the video back
- * {@link #SKIP_MS}, and on its right third ahead, with the same pause, seek and play Instagram's own
+ * {@link #skipMs()}, and on its right third ahead, with the same pause, seek and play Instagram's own
  * feed scrubber makes, and a pair of arrows flashes on that side. The answer true returns from the
  * listener before Instagram likes the post.
  *
@@ -43,9 +43,6 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * and Instagram's double tap goes on as it always did.
  */
 public final class FeedDoubleTapSkip {
-    /** How far a double tap moves the video. */
-    static final int SKIP_MS = 10_000;
-
     /** How long the player's last position, plus the time since, still says where the video is. */
     static final long FRESH_MS = 1000;
 
@@ -72,6 +69,11 @@ public final class FeedDoubleTapSkip {
     /** Whether a double tap skips: the switch on, HushGram not paused, the settings read. */
     static boolean wanted() {
         return Utils.settingsReady() && Settings.FEED_DOUBLE_TAP_SKIP.get();
+    }
+
+    /** How far a double tap moves the video, in milliseconds: Skip length's seconds (#645, 10 to start). */
+    static int skipMs() {
+        return Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.get() * 1000;
     }
 
     /** The player's progress, on the main thread: where its video is and how long it is, in milliseconds. */
@@ -107,7 +109,8 @@ public final class FeedDoubleTapSkip {
             long now = SystemClock.uptimeMillis();
             long since = now - fedAt;
             int from = position + (since >= 0 && since < FRESH_MS ? (int) since : 0);
-            int to = target(from, side, duration);
+            int skip = skipMs();
+            int to = target(from, side, duration, skip);
             HookStatus.invoked(FamilyNames.FEED_SEEK_BAR);
             boolean held = false;
             try {
@@ -120,7 +123,7 @@ public final class FeedDoubleTapSkip {
             } finally {
                 if (held) feed.play(player);
             }
-            flash(video, side);
+            flash(video, side, skip / 1000);
             if (!logged) {
                 logged = true;
                 Logger.printDebug(() -> "Double tap to skip on feed videos: moved a feed video " + (side < 0 ? "back" : "ahead"));
@@ -132,9 +135,9 @@ public final class FeedDoubleTapSkip {
         }
     }
 
-    /** Where a skip from [from] lands: {@link #SKIP_MS} back for a negative [side], ahead otherwise, inside the video. */
-    static int target(int from, int side, int length) {
-        long to = (long) from + (side < 0 ? -SKIP_MS : SKIP_MS);
+    /** Where a skip of [skip] milliseconds from [from] lands: back for a negative [side], ahead otherwise, inside the video. */
+    static int target(int from, int side, int length, int skip) {
+        long to = (long) from + (side < 0 ? -skip : skip);
         return (int) Math.max(0, Math.min(Math.max(0, length - 1), to));
     }
 
@@ -157,11 +160,14 @@ public final class FeedDoubleTapSkip {
         return x >= at[0] && x < at[0] + view.getWidth() && y >= at[1] && y < at[1] + view.getHeight();
     }
 
-    /** Shows the arrows on [side] of [video], over what came before them, and takes them away after {@link #FLASH_MS}. */
-    private static void flash(FrameLayout video, int side) {
+    /**
+     * Shows the arrows on [side] of [video] with the [seconds] moved under them, over what came before
+     * them, and takes them away after {@link #FLASH_MS}.
+     */
+    private static void flash(FrameLayout video, int side, int seconds) {
         Flash old = shown == null ? null : shown.get();
         if (old != null) old.remove();
-        Flash arrows = new Flash(video.getContext(), side);
+        Flash arrows = new Flash(video.getContext(), side, seconds);
         int size = dp(video, FLASH_DP);
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size,
                 Gravity.CENTER_VERTICAL | (side < 0 ? Gravity.LEFT : Gravity.RIGHT));
@@ -195,11 +201,13 @@ public final class FeedDoubleTapSkip {
     /** Two arrows on a dark circle, pointing the way the video moved, with the seconds under them. */
     static final class Flash extends View {
         final int side;
+        final int seconds;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        Flash(Context context, int side) {
+        Flash(Context context, int side, int seconds) {
             super(context);
             this.side = side;
+            this.seconds = seconds;
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
         }
 
@@ -236,7 +244,7 @@ public final class FeedDoubleTapSkip {
             paint.setStyle(Paint.Style.FILL);
             paint.setTextAlign(Paint.Align.CENTER);
             paint.setTextSize(13 * unit);
-            canvas.drawText(String.valueOf(SKIP_MS / 1000), width / 2, height * 0.78f, paint);
+            canvas.drawText(String.valueOf(seconds), width / 2, height * 0.78f, paint);
         }
     }
 

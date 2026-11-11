@@ -22,9 +22,6 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * double version of each number for the builds that read them as doubles.
  */
 public final class ReelSkip {
-    /** How far a double tap goes, in seconds. #554 asked for 10. */
-    static final float SECONDS = 10f;
-
     /**
      * How wide each strip is when Instagram's own number isn't one it could use: a third of the
      * reel, leaving the middle third for the like.
@@ -51,11 +48,14 @@ public final class ReelSkip {
         }
     }
 
-    /** How many seconds a double tap skips: {@link #SECONDS} while the switch is on, otherwise Instagram's. Never throws. */
+    /**
+     * How many seconds a double tap skips: Skip length's (#645, 10 to start, #554 asked for 10) while the
+     * switch is on, otherwise Instagram's. Never throws.
+     */
     public static float seconds(float answer) {
         try {
             HookStatus.invoked(FamilyNames.REEL_DOUBLE_TAP_SKIP);
-            return on() ? SECONDS : answer;
+            return on() ? chosen() : answer;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DOUBLE_TAP_SKIP, HOOK, failure);
             return answer;
@@ -66,7 +66,7 @@ public final class ReelSkip {
     public static double secondsDouble(double answer) {
         try {
             HookStatus.invoked(FamilyNames.REEL_DOUBLE_TAP_SKIP);
-            return on() ? SECONDS : answer;
+            return on() ? chosen() : answer;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DOUBLE_TAP_SKIP, HOOK, failure);
             return answer;
@@ -104,5 +104,9 @@ public final class ReelSkip {
 
     private static boolean on() {
         return Utils.settingsReady() && Settings.DOUBLE_TAP_SKIP_REELS.get();
+    }
+
+    private static float chosen() {
+        return Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.get();
     }
 }

@@ -45,7 +45,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Double tap to skip on feed videos (#562): with its switch on, a double tap on the left third of the
- * video playing in a feed moves it back 10 seconds and on the right third ahead 10, with the pause,
+ * video playing in a feed moves it back Skip length (10 seconds to start, #645) and on the right third
+ * ahead as far, with the pause,
  * seek and play Instagram's scrubber makes, and the answer true keeps Instagram from liking the post.
  * The middle third, another post, the switch off, a pause or a failure leave the double tap to
  * Instagram.
@@ -114,6 +115,7 @@ public class FeedDoubleTapSkipTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.FEED_DOUBLE_TAP_SKIP.resetToDefault();
+        Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.resetToDefault();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
         HookStatus.clear();
@@ -124,6 +126,7 @@ public class FeedDoubleTapSkipTest {
         FeedDoubleTapSkip.resetForTests();
         FeedSeekBar.resetForTests();
         Settings.FEED_DOUBLE_TAP_SKIP.resetToDefault();
+        Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.resetToDefault();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -173,6 +176,7 @@ public class FeedDoubleTapSkipTest {
         FeedDoubleTapSkip.Flash flash = FeedDoubleTapSkip.flashForTests();
         assertNotNull("the arrows show", flash);
         assertEquals("on the right", 1, flash.side);
+        assertEquals("with the seconds under them", 10, flash.seconds);
         assertTrue("over the video", flash.getParent() == video);
         assertFalse("the skip was counted", HookStatus.snapshot().isEmpty());
 
@@ -283,12 +287,33 @@ public class FeedDoubleTapSkipTest {
         assertFalse("and nothing else breaks", FeedDoubleTapSkip.doubleTap(null, null));
     }
 
+    /** #645: Skip length sets how far each double tap goes and the number under the arrows, with no restart. */
+    @Test
+    public void skipLengthSetsHowFarItGoes() {
+        assertEquals(10, (int) Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.defaultValue);
+        assertFalse(Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.rebootApp);
+        Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.save(25);
+        playing(3000, 60000);
+        assertTrue(FeedDoubleTapSkip.doubleTap(post, tapAt(video, 0.9f)));
+        assertEquals(Arrays.asList("pause", "seek 28000", "play"), stand.calls);
+        assertEquals(25, FeedDoubleTapSkip.flashForTests().seconds);
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FeedDoubleTapSkip.FLASH_MS));
+        stand.calls.clear();
+        Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.save(5);
+        playing(40000, 60000);
+        assertTrue(FeedDoubleTapSkip.doubleTap(post, tapAt(video, 0.1f)));
+        assertEquals(Arrays.asList("pause", "seek 35000", "play"), stand.calls);
+        assertEquals(5, FeedDoubleTapSkip.flashForTests().seconds);
+    }
+
     @Test
     public void whereASkipLands() {
-        assertEquals(13000, FeedDoubleTapSkip.target(3000, 1, 60000));
-        assertEquals(0, FeedDoubleTapSkip.target(3000, -1, 60000));
-        assertEquals(59999, FeedDoubleTapSkip.target(55000, 1, 60000));
-        assertEquals(0, FeedDoubleTapSkip.target(Integer.MIN_VALUE, -1, 60000));
-        assertEquals(59999, FeedDoubleTapSkip.target(Integer.MAX_VALUE, 1, 60000));
+        assertEquals(13000, FeedDoubleTapSkip.target(3000, 1, 60000, 10000));
+        assertEquals(0, FeedDoubleTapSkip.target(3000, -1, 60000, 10000));
+        assertEquals(33000, FeedDoubleTapSkip.target(3000, 1, 60000, 30000));
+        assertEquals(59999, FeedDoubleTapSkip.target(55000, 1, 60000, 10000));
+        assertEquals(0, FeedDoubleTapSkip.target(Integer.MIN_VALUE, -1, 60000, 30000));
+        assertEquals(59999, FeedDoubleTapSkip.target(Integer.MAX_VALUE, 1, 60000, 30000));
     }
 }

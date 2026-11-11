@@ -1460,7 +1460,7 @@ Only accounts that aren't verified	Chỉ tài khoản chưa xác minh
 Pinch to zoom	Chụm để thu phóng
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	Hai ngón tay phóng to reel đang phát, như cách ảnh phóng to. Nhấc ra thì trở lại. Hãy khởi động lại Instagram để thấy thay đổi.
 Double tap to skip	Nhấn đúp để tua
-A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	Nhấn đúp vào bên trái reel để lùi 10 giây, và bên phải để tới 10 giây. Nhấn đúp ở giữa vẫn thích reel. Reel dưới 10 giây không tua.
+A double tap on the left side of a reel goes back, and on the right side it goes ahead, as far as Skip length says. A double tap in the middle still likes it. Reels no longer than that don't skip.	Nhấn đúp vào bên trái reel để lùi, và bên phải để tới, theo Độ dài tua. Nhấn đúp ở giữa vẫn thích reel. Reel không dài hơn mức đó thì không tua.
 Hide the 2x popup	Ẩn thông báo 2x
 Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.	Bỏ nhãn 2x khỏi reel khi bạn giữ để phát nhanh hơn. Tính năng tăng tốc vẫn hoạt động.
 Mute notification types	Tắt tiếng loại thông báo
@@ -1701,7 +1701,9 @@ Pill look	Kiểu viên thuốc
 Seek bar look	Kiểu thanh tua
 # context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
 Double tap to skip on feed videos	Nhấn đúp để tua video bảng feed
-Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	Nhấn đúp vào bên trái video đang phát trong bảng feed để lùi 10 giây, hoặc bên phải để tua tới 10 giây. Nhấn đúp ở giữa vẫn hoạt động như trước.
+Double tap the left side of the video playing in a feed to go back, or the right side to go ahead, as far as Skip length says. A double tap in the middle works as before.	Nhấn đúp vào bên trái video đang phát trong bảng feed để lùi, hoặc bên phải để tua tới, theo Độ dài tua. Nhấn đúp ở giữa vẫn hoạt động như trước.
+Skip length	Độ dài tua
+%1$d seconds	%1$d giây
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	Đặc
 # context: a look for the page-dots pill and the seek bars: partly transparent

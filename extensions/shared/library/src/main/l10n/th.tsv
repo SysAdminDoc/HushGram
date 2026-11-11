@@ -1508,7 +1508,7 @@ Only accounts that aren't verified	เฉพาะบัญชีที่ยั
 Pinch to zoom	จีบนิ้วเพื่อซูม
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	ใช้สองนิ้วเพื่อซูมรีลส์ที่กำลังเล่น เช่นเดียวกับการซูมรูปภาพ ยกนิ้วขึ้นแล้วหน้าจอจะกลับเป็นปกติ รีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
 Double tap to skip	แตะสองครั้งเพื่อข้าม
-A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	การแตะสองครั้งที่ด้านซ้ายของรีลส์จะย้อนกลับ 10 วินาที และแตะสองครั้งที่ด้านขวาจะเดินหน้าไป 10 วินาที การแตะสองครั้งตรงกลางจะยังคงเป็นการกดถูกใจ รีลส์ที่สั้นกว่า 10 วินาทีจะไม่ข้าม
+A double tap on the left side of a reel goes back, and on the right side it goes ahead, as far as Skip length says. A double tap in the middle still likes it. Reels no longer than that don't skip.	การแตะสองครั้งที่ด้านซ้ายของรีลส์จะย้อนกลับ และแตะสองครั้งที่ด้านขวาจะเดินหน้า ตามระยะการข้าม การแตะสองครั้งตรงกลางจะยังคงเป็นการกดถูกใจ รีลส์ที่ไม่ยาวกว่านั้นจะไม่ข้าม
 Hide the 2x popup	ซ่อนป๊อปอัป 2x
 Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.	นำป้ายกำกับ 2x ออกจากรีลส์ในขณะที่คุณกดค้างไว้เพื่อให้เล่นเร็วขึ้น โดยการเร่งความเร็วยังคงทำงานได้ตามปกติ
 Mute notification types	ปิดเสียงเตือนตามประเภทการแจ้งเตือน
@@ -1773,7 +1773,9 @@ Pill look	รูปแบบแถบแคปซูล
 Seek bar look	รูปแบบแถบเลื่อนเวลา
 # context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
 Double tap to skip on feed videos	แตะสองครั้งเพื่อข้ามในวิดีโอฟีด
-Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	แตะสองครั้งที่ด้านซ้ายของวิดีโอที่กำลังเล่นในฟีดเพื่อย้อนกลับ 10 วินาที หรือแตะด้านขวาเพื่อเดินหน้า 10 วินาที การแตะสองครั้งตรงกลางจะทำงานเหมือนเดิม
+Double tap the left side of the video playing in a feed to go back, or the right side to go ahead, as far as Skip length says. A double tap in the middle works as before.	แตะสองครั้งที่ด้านซ้ายของวิดีโอที่กำลังเล่นในฟีดเพื่อย้อนกลับ หรือแตะด้านขวาเพื่อเดินหน้า ตามระยะการข้าม การแตะสองครั้งตรงกลางจะทำงานเหมือนเดิม
+Skip length	ระยะการข้าม
+%1$d seconds	%1$d วินาที
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	ทึบแสง
 # context: a look for the page-dots pill and the seek bars: partly transparent

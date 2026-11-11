@@ -508,11 +508,19 @@ public class Settings extends BaseSettings {
 
     /**
      * A double tap on the left or right third of the video playing in a feed moves it back or ahead
-     * {@link app.hushgram.extension.instagram.feed.FeedDoubleTapSkip#SKIP_MS} instead of liking the
-     * post (#562, {@link app.hushgram.extension.instagram.feed.FeedDoubleTapSkip}). Off to start.
+     * {@link #FEED_DOUBLE_TAP_SKIP_SECONDS} instead of liking the post (#562,
+     * {@link app.hushgram.extension.instagram.feed.FeedDoubleTapSkip}). Off to start.
      */
     public static final BooleanSetting FEED_DOUBLE_TAP_SKIP =
             new BooleanSetting("hushgram_feed_double_tap_skip", FALSE);
+
+    /**
+     * Under {@link #FEED_DOUBLE_TAP_SKIP}: how many seconds a double tap moves a feed video, from a slider
+     * (#645). Read at each double tap, so a change shows without a restart.
+     */
+    public static final IntegerSetting FEED_DOUBLE_TAP_SKIP_SECONDS =
+            new IntegerSetting("hushgram_feed_double_tap_skip_seconds", 10, false, parent(FEED_DOUBLE_TAP_SKIP))
+                    .withRange(5, 30);
 
     /**
      * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
@@ -3745,13 +3753,21 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_pinch_zoom_reels", FALSE, true);
 
     /**
-     * A double tap along the left edge of a reel goes back 10 seconds and one along the right edge
-     * goes ahead 10 seconds, through Instagram's own double tap to skip and its server flags
-     * ({@link app.hushgram.extension.instagram.reels.ReelSkip}). A double tap in the middle stays
+     * A double tap along the left edge of a reel goes back {@link #DOUBLE_TAP_SKIP_REELS_SECONDS} and one
+     * along the right edge goes ahead as far, through Instagram's own double tap to skip and its server
+     * flags ({@link app.hushgram.extension.instagram.reels.ReelSkip}). A double tap in the middle stays
      * Instagram's like. Off to start (#554).
      */
     public static final BooleanSetting DOUBLE_TAP_SKIP_REELS =
             new BooleanSetting("hushgram_double_tap_skip_reels", FALSE);
+
+    /**
+     * Under {@link #DOUBLE_TAP_SKIP_REELS}: how many seconds a double tap moves a reel, from a slider (#645).
+     * Instagram skips no reel that isn't longer than this.
+     */
+    public static final IntegerSetting DOUBLE_TAP_SKIP_REELS_SECONDS =
+            new IntegerSetting("hushgram_double_tap_skip_reels_seconds", 10, false, parent(DOUBLE_TAP_SKIP_REELS))
+                    .withRange(5, 30);
 
     /**
      * Keeps the "2x" label off a reel while a held finger plays it faster

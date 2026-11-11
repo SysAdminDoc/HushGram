@@ -1518,7 +1518,7 @@ Only accounts that aren't verified	Nur nicht verifizierte Konten
 Pinch to zoom	Mit zwei Fingern zoomen
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	Mit zwei Fingern zoomst du in ein laufendes Reel, so wie bei einem Foto. Nimmst du sie weg, springt es zurück. Starte Instagram neu, um die Änderung zu sehen.
 Double tap to skip	Doppeltippen zum Springen
-A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	Doppeltippen auf die linke Seite eines Reels springt 10 Sekunden zurück, auf die rechte Seite 10 Sekunden vor. Doppeltippen in der Mitte gibt weiterhin ein Like. Reels unter 10 Sekunden springen nicht.
+A double tap on the left side of a reel goes back, and on the right side it goes ahead, as far as Skip length says. A double tap in the middle still likes it. Reels no longer than that don't skip.	Doppeltippen auf die linke Seite eines Reels springt zurück, auf die rechte Seite vor, so weit wie Sprungweite sagt. Doppeltippen in der Mitte gibt weiterhin ein Like. Reels, die nicht länger als die Sprungweite sind, springen nicht.
 Hide the 2x popup	2x-Hinweis ausblenden
 Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.	Entfernt das 2x-Label von einem Reel, während du es gedrückt hältst, damit es schneller läuft. Das Beschleunigen funktioniert weiter.
 Mute notification types	Benachrichtigungsarten stummschalten
@@ -1786,7 +1786,9 @@ Pill look	Aussehen der Kapsel
 Seek bar look	Aussehen der Suchleiste
 # context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
 Double tap to skip on feed videos	Doppeltippen zum Springen in Feed-Videos
-Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	Tippe doppelt auf die linke Seite des Videos, das im Feed läuft, um 10 Sekunden zurückzuspringen, oder auf die rechte Seite, um 10 vorzuspringen. Ein Doppeltippen in der Mitte funktioniert wie bisher.
+Double tap the left side of the video playing in a feed to go back, or the right side to go ahead, as far as Skip length says. A double tap in the middle works as before.	Tippe doppelt auf die linke Seite des Videos, das im Feed läuft, um zurückzuspringen, oder auf die rechte Seite, um vorzuspringen, so weit wie Sprungweite sagt. Ein Doppeltippen in der Mitte funktioniert wie bisher.
+Skip length	Sprungweite
+%1$d seconds	%1$d Sekunden
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	Deckend
 # context: a look for the page-dots pill and the seek bars: partly transparent

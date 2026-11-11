@@ -750,7 +750,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_MENTIONS && Settings.STORY_MENTIONS_LOOK.key.equals(key);
                     belongs |= family == PatchFamily.CAROUSEL_ARROWS && Settings.CAROUSEL_PILL_LOOK.key.equals(key);
                     belongs |= family == PatchFamily.FEED_SEEK_BAR && (Settings.FEED_SEEK_BAR_LOOK.key.equals(key)
-                            || Settings.SEEK_BAR_SHAPE.key.equals(key));
+                            || Settings.SEEK_BAR_SHAPE.key.equals(key)
+                            || Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key.equals(key));
+                    belongs |= family == PatchFamily.REEL_DOUBLE_TAP_SKIP
+                            && Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key.equals(key);
                     belongs |= family == PatchFamily.STORY_SEEK_BAR && (Settings.STORY_SEEK_BAR_LOOK.key.equals(key)
                             || Settings.STORY_SEEK_BAR_POSITION.key.equals(key));
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
@@ -5086,6 +5089,22 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME, 10, L10n.t("%1$d%%"));
         row.setTitle(L10n.t("Tap sound volume"));
         row.setText(String.valueOf(Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.savedValue()));
+        return row;
+    }
+
+    /** How far a double tap moves a feed video, from a slider in seconds under Double tap to skip on feed videos (#645). */
+    static SliderRow feedSkipLengthRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.FEED_DOUBLE_TAP_SKIP_SECONDS, 5, L10n.t("%1$d seconds"));
+        row.setTitle(L10n.t("Skip length"));
+        row.setText(String.valueOf(Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.savedValue()));
+        return row;
+    }
+
+    /** How far a double tap moves a reel, from a slider in seconds under Double tap to skip (#645). */
+    static SliderRow reelSkipLengthRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.DOUBLE_TAP_SKIP_REELS_SECONDS, 5, L10n.t("%1$d seconds"));
+        row.setTitle(L10n.t("Skip length"));
+        row.setText(String.valueOf(Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.savedValue()));
         return row;
     }
 

@@ -1518,7 +1518,7 @@ Only accounts that aren't verified	Só contas não verificadas
 Pinch to zoom	Pinçar para dar zoom
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	Com dois dedos você dá zoom em um reel que está tocando, como numa foto. Solte e ele volta ao normal. Reinicie o Instagram para ver a mudança.
 Double tap to skip	Toque duplo para pular
-A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	Um toque duplo no lado esquerdo de um reel volta 10 segundos, e no lado direito avança 10 segundos. Um toque duplo no meio ainda curte. Reels com menos de 10 segundos não pulam.
+A double tap on the left side of a reel goes back, and on the right side it goes ahead, as far as Skip length says. A double tap in the middle still likes it. Reels no longer than that don't skip.	Um toque duplo no lado esquerdo de um reel volta, e no lado direito avança, o quanto Tamanho do salto disser. Um toque duplo no meio ainda curte. Reels que não são mais longos que isso não pulam.
 Hide the 2x popup	Ocultar o aviso de 2x
 Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.	Tira a etiqueta 2x de um reel enquanto você o segura para reproduzir mais rápido. A aceleração continua funcionando.
 Mute notification types	Silenciar tipos de notificação
@@ -1786,7 +1786,9 @@ Pill look	Visual da pílula
 Seek bar look	Visual da barra de busca
 # context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
 Double tap to skip on feed videos	Tocar duas vezes para pular nos vídeos do feed
-Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	Toque duas vezes no lado esquerdo do vídeo que está tocando no feed para voltar 10 segundos, ou no lado direito para avançar 10. Tocar duas vezes no meio funciona como antes.
+Double tap the left side of the video playing in a feed to go back, or the right side to go ahead, as far as Skip length says. A double tap in the middle works as before.	Toque duas vezes no lado esquerdo do vídeo que está tocando no feed para voltar, ou no lado direito para avançar, o quanto Tamanho do salto disser. Tocar duas vezes no meio funciona como antes.
+Skip length	Tamanho do salto
+%1$d seconds	%1$d segundos
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	Sólido
 # context: a look for the page-dots pill and the seek bars: partly transparent

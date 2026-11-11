@@ -1517,7 +1517,7 @@ Only accounts that aren't verified	인증되지 않은 계정만
 Pinch to zoom	두 손가락으로 확대
 Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	재생 중인 릴스를 사진처럼 두 손가락으로 확대합니다. 손가락을 떼면 원래대로 돌아갑니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Double tap to skip	두 번 탭하여 건너뛰기
-A double tap on the left side of a reel goes back 10 seconds, and on the right side it goes ahead 10 seconds. A double tap in the middle still likes it. Reels under 10 seconds don't skip.	릴스 왼쪽을 두 번 탭하면 10초 뒤로, 오른쪽을 두 번 탭하면 10초 앞으로 이동합니다. 가운데를 두 번 탭하면 그대로 좋아요가 눌립니다. 10초 미만의 릴스는 건너뛰지 않습니다.
+A double tap on the left side of a reel goes back, and on the right side it goes ahead, as far as Skip length says. A double tap in the middle still likes it. Reels no longer than that don't skip.	릴스 왼쪽을 두 번 탭하면 뒤로, 오른쪽을 두 번 탭하면 앞으로 건너뛰기 길이만큼 이동합니다. 가운데를 두 번 탭하면 그대로 좋아요가 눌립니다. 그보다 길지 않은 릴스는 건너뛰지 않습니다.
 Hide the 2x popup	2배속 팝업 숨기기
 Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.	릴스를 길게 눌러 빠르게 재생하는 동안 2x 표시를 없앱니다. 빠른 재생은 그대로 작동합니다.
 Mute notification types	알림 유형 무음
@@ -1785,7 +1785,9 @@ Pill look	알약 스타일
 Seek bar look	탐색 막대 스타일
 # context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
 Double tap to skip on feed videos	피드 동영상 두 번 탭하여 건너뛰기
-Double tap the left side of the video playing in a feed to go back 10 seconds, or the right side to go ahead 10. A double tap in the middle works as before.	피드에서 재생 중인 동영상의 왼쪽을 두 번 탭하면 10초 뒤로, 오른쪽을 두 번 탭하면 10초 앞으로 이동합니다. 가운데를 두 번 탭하면 전과 같이 작동합니다.
+Double tap the left side of the video playing in a feed to go back, or the right side to go ahead, as far as Skip length says. A double tap in the middle works as before.	피드에서 재생 중인 동영상의 왼쪽을 두 번 탭하면 뒤로, 오른쪽을 두 번 탭하면 앞으로 건너뛰기 길이만큼 이동합니다. 가운데를 두 번 탭하면 전과 같이 작동합니다.
+Skip length	건너뛰기 길이
+%1$d seconds	%1$d초
 # context: a look for the page-dots pill and the seek bars: opaque, as before
 Solid	불투명
 # context: a look for the page-dots pill and the seek bars: partly transparent

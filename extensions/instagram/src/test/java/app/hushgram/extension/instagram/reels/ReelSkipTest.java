@@ -39,6 +39,7 @@ public class ReelSkipTest {
     @After
     public void restore() {
         Settings.DOUBLE_TAP_SKIP_REELS.resetToDefault();
+        Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -62,6 +63,23 @@ public class ReelSkipTest {
         assertEquals(10d, ReelSkip.secondsDouble(15d), 0d);
         assertTrue(HookStatus.missing(FamilyNames.REEL_DOUBLE_TAP_SKIP).toString(),
                 HookStatus.missing(FamilyNames.REEL_DOUBLE_TAP_SKIP).isEmpty());
+    }
+
+    /** #645: Skip length's seconds are what every reel skips, read at each answer, and kept to 5 through 30. */
+    @Test
+    public void skipLengthSetsTheSeconds() {
+        assertEquals(10, (int) Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.defaultValue);
+        assertFalse(Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.rebootApp);
+        Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.save(25);
+        assertEquals(25f, ReelSkip.seconds(5f), 0f);
+        assertEquals(25d, ReelSkip.secondsDouble(15d), 0d);
+        Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.save(5);
+        assertEquals("no restart", 5f, ReelSkip.seconds(10f), 0f);
+        Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.save(90);
+        assertEquals("a value from an old export is kept in range", 30f, ReelSkip.seconds(10f), 0f);
+
+        Settings.DOUBLE_TAP_SKIP_REELS.save(false);
+        assertEquals("off, Instagram's own", 7f, ReelSkip.seconds(7f), 0f);
     }
 
     /** On, Instagram's strip stays when it leaves a middle for the like, and a third of the reel replaces it otherwise. */
