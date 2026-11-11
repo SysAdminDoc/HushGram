@@ -12,12 +12,15 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.preference.Preference;
 import android.preference.SwitchPreference;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -36,6 +39,7 @@ import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
+import org.robolectric.shadows.ShadowDialog;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
@@ -211,9 +215,10 @@ public class SavedProfilesSettingsTest {
 
             android.view.Menu menu = new android.widget.PopupMenu(context, new View(context)).getMenu();
             SavedProfilesPage.fill(menu);
-            assertEquals(2, menu.size());
+            assertEquals(3, menu.size());
             assertEquals("Copy username", String.valueOf(menu.getItem(0).getTitle()));
-            assertEquals("Remove from saved", String.valueOf(menu.getItem(1).getTitle()));
+            assertEquals("Move to folder", String.valueOf(menu.getItem(1).getTitle()));
+            assertEquals("Remove from saved", String.valueOf(menu.getItem(2).getTitle()));
 
             SavedProfiles.Profile amy = (SavedProfiles.Profile) page.list.getAdapter().getItem(1);
             assertTrue(page.pick(SavedProfilesPage.COPY_USERNAME, amy));
@@ -233,6 +238,123 @@ public class SavedProfilesSettingsTest {
         SavedProfilesRows.forget();
         assertEquals("and the file has it too", 1, SavedProfiles.all(context).size());
         assertEquals("kim", SavedProfiles.all(context).get(0).username);
+    }
+
+    /**
+     * Folders (#629): Move to folder on a long press, a chip for each folder under the search box that
+     * shows just its accounts, and a chip's own menu that renames the folder or takes it away.
+     */
+    @Test public void foldersSortThePageAndAChipRenamesOrRemovesOne() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        SavedProfilesRows.save(context, "1", "amy", "", "", 1_000L);
+        SavedProfilesRows.save(context, "2", "zed", "", "", 2_000L);
+        SavedProfilesRows.save(context, "3", "kim", "", "", 3_000L);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PROFILE_PICTURE);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment settings = DownloadSettingsTest.pageIn(controller);
+            idle();
+            Preference row = settings.findPreference(HushgramPreferenceFragment.SAVED_PROFILES_ROW);
+            SavedProfilesPage page = SavedProfilesPage.open(controller.get(), row);
+            idle();
+            assertEquals("no folders, no chips", View.GONE, page.chips.getVisibility());
+
+            SavedProfiles.Profile amy = (SavedProfiles.Profile) page.list.getAdapter().getItem(2);
+            assertTrue(page.pick(SavedProfilesPage.MOVE, amy));
+            ShadowLooper.idleMainLooper();
+            AlertDialog choose = (AlertDialog) ShadowDialog.getLatestDialog();
+            assertEquals(Arrays.asList("No folder", "New folder"), items(choose));
+            assertEquals("where amy is now is marked", 0, choose.getListView().getCheckedItemPosition());
+            choose.getListView().performItemClick(null, 1, 1);
+            ShadowLooper.idleMainLooper();
+            AlertDialog name = (AlertDialog) ShadowDialog.getLatestDialog();
+            assertEquals(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
+                    name.getWindow().getAttributes().softInputMode & android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
+            SavedProfilesRows.field(name.getWindow().getDecorView()).setText("  Close   friends ");
+            name.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+            ShadowLooper.idleMainLooper();
+            assertEquals("Moved @amy to Close friends", ShadowToast.getTextOfLatestToast());
+            assertEquals(View.VISIBLE, page.chips.getVisibility());
+            assertEquals(Arrays.asList("All", "Close friends"), chips(page));
+            assertTrue("All is shown", page.chipRow.getChildAt(0).isSelected());
+
+            page.move((SavedProfiles.Profile) page.list.getAdapter().getItem(1), "close FRIENDS");
+            ShadowLooper.idleMainLooper();
+            assertEquals("a name in another case is that folder", "Moved @zed to Close friends",
+                    ShadowToast.getTextOfLatestToast());
+            page.chipRow.getChildAt(1).performClick();
+            assertTrue(page.chipRow.getChildAt(1).isSelected());
+            assertFalse(page.chipRow.getChildAt(0).isSelected());
+            assertEquals("the folder's accounts, newest first", Arrays.asList("zed", "amy"), shown(page));
+            page.search.setText("amy");
+            assertEquals("a search stays in the folder", Arrays.asList("amy"), shown(page));
+            page.search.setText("kim");
+            assertTrue(shown(page).isEmpty());
+            page.search.setText("");
+
+            android.view.Menu menu = new android.widget.PopupMenu(context, new View(context)).getMenu();
+            SavedProfilesPage.fillFolder(menu);
+            assertEquals(2, menu.size());
+            assertEquals("Rename folder", String.valueOf(menu.getItem(0).getTitle()));
+            assertEquals("Remove folder", String.valueOf(menu.getItem(1).getTitle()));
+            assertTrue(page.pickForFolder(SavedProfilesPage.RENAME_FOLDER, "Close friends"));
+            ShadowLooper.idleMainLooper();
+            AlertDialog rename = (AlertDialog) ShadowDialog.getLatestDialog();
+            EditText field = SavedProfilesRows.field(rename.getWindow().getDecorView());
+            assertEquals("Close friends", String.valueOf(field.getText()));
+            field.setText("Besties");
+            rename.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+            ShadowLooper.idleMainLooper();
+            assertEquals("Renamed the folder to Besties", ShadowToast.getTextOfLatestToast());
+            assertEquals(Arrays.asList("All", "Besties"), chips(page));
+            assertTrue("the renamed folder is still the one shown", page.chipRow.getChildAt(1).isSelected());
+            assertEquals(Arrays.asList("zed", "amy"), shown(page));
+
+            amy = (SavedProfiles.Profile) page.list.getAdapter().getItem(1);
+            page.pick(SavedProfilesPage.MOVE, amy);
+            ShadowLooper.idleMainLooper();
+            choose = (AlertDialog) ShadowDialog.getLatestDialog();
+            assertEquals(Arrays.asList("No folder", "Besties", "New folder"), items(choose));
+            assertEquals(1, choose.getListView().getCheckedItemPosition());
+            choose.getListView().performItemClick(null, 0, 0);
+            ShadowLooper.idleMainLooper();
+            assertEquals("Moved @amy out of its folder", ShadowToast.getTextOfLatestToast());
+            assertEquals(Arrays.asList("zed"), shown(page));
+
+            assertTrue(page.pickForFolder(SavedProfilesPage.REMOVE_FOLDER, "Besties"));
+            ShadowLooper.idleMainLooper();
+            assertEquals("Removed the folder Besties", ShadowToast.getTextOfLatestToast());
+            assertEquals("no folders left, no chips", View.GONE, page.chips.getVisibility());
+            assertEquals("and every account shows again", Arrays.asList("kim", "zed", "amy"), shown(page));
+        }
+        Utils.awaitBackgroundTasksForTests();
+        SavedProfilesRows.forget();
+        assertEquals("the folder went, its accounts stayed", Arrays.asList("kim", "zed", "amy"),
+                usernames(SavedProfiles.all(context)));
+        assertTrue(SavedProfiles.folders(SavedProfiles.all(context)).isEmpty());
+    }
+
+    private static List<String> items(AlertDialog dialog) {
+        List<String> items = new ArrayList<>();
+        for (int at = 0; at < dialog.getListView().getAdapter().getCount(); at++) {
+            items.add(String.valueOf(dialog.getListView().getAdapter().getItem(at)));
+        }
+        return items;
+    }
+
+    private static List<String> chips(SavedProfilesPage page) {
+        List<String> labels = new ArrayList<>();
+        for (int at = 0; at < page.chipRow.getChildCount(); at++) {
+            labels.add(String.valueOf(((TextView) page.chipRow.getChildAt(at)).getText()));
+        }
+        return labels;
+    }
+
+    private static List<String> shown(SavedProfilesPage page) {
+        List<String> usernames = new ArrayList<>();
+        for (int at = 0; at < page.list.getAdapter().getCount(); at++) {
+            usernames.add(((SavedProfiles.Profile) page.list.getAdapter().getItem(at)).username);
+        }
+        return usernames;
     }
 
     /** Opened from the menu on a profile, the page has no settings row, and the cross still takes one off. */

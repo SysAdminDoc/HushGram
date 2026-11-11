@@ -1781,7 +1781,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return allowMutation(row, false);
     }
 
-    /** Whether the Saved profiles page may take an account off its list now. The settings lock holds it too. */
+    /** Whether the Saved profiles page may change its list now, an account or a folder. The settings lock holds it too. */
     static boolean savedProfilesChangeAllowed(Preference row) {
         return allowMutation(row, false);
     }

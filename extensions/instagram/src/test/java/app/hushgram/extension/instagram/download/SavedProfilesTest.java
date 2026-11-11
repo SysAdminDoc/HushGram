@@ -11,10 +11,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -369,6 +376,144 @@ public class SavedProfilesTest {
         assertEquals("bo_photos", SavedProfiles.matching(all, " photos ").get(0).username);
         assertEquals("by the name too", "ann.lee", SavedProfiles.matching(all, "ann lee").get(0).username);
         assertTrue(SavedProfiles.matching(all, "nobody").isEmpty());
+    }
+
+    /** A folder's name is cleaned as typed: one space between words, no control characters, at most 30 (#629). */
+    @Test public void aFolderNameIsCleanedAsTyped() {
+        assertEquals("Close friends", SavedProfiles.folderName("  Close \n\t friends  "));
+        assertEquals("ab", SavedProfiles.folderName("a" + (char) 7 + "b"));
+        assertEquals("", SavedProfiles.folderName("   "));
+        assertEquals("", SavedProfiles.folderName(null));
+        StringBuilder long_ = new StringBuilder();
+        for (int at = 0; at < 40; at++) long_.append('x');
+        assertEquals(SavedProfiles.MAX_FOLDER, SavedProfiles.folderName(long_).length());
+        String face = new String(Character.toChars(0x1F600));
+        String nearlyFull = long_.substring(0, SavedProfiles.MAX_FOLDER - 1);
+        assertEquals("a character that doesn't fit whole is left off, not split",
+                nearlyFull, SavedProfiles.folderName(nearlyFull + face));
+    }
+
+    @Test public void foldersAreListedOnceWhateverTheirCase() {
+        List<SavedProfiles.Profile> all = Arrays.asList(
+                new SavedProfiles.Profile("1", "ann", "", "", "Work", 0),
+                new SavedProfiles.Profile("2", "bo", "", "", "friends", 0),
+                profile("3", "cy", ""),
+                new SavedProfiles.Profile("4", "dee", "", "", "Friends", 0));
+        assertEquals(Arrays.asList("friends", "Work"), SavedProfiles.folders(all));
+        assertEquals(all, SavedProfiles.inFolder(all, null));
+        List<String> friends = new ArrayList<>();
+        for (SavedProfiles.Profile profile : SavedProfiles.inFolder(all, "FRIENDS")) friends.add(profile.username);
+        assertEquals(Arrays.asList("bo", "dee"), friends);
+        assertTrue(SavedProfiles.inFolder(all, "Gym").isEmpty());
+    }
+
+    /** Moving, renaming and taking a folder away keep every account saved, and the file has it all. */
+    @Test public void foldersMoveRenameAndGoAwayWithTheAccountsKept() throws Exception {
+        SavedProfiles.save(context, profile("1", "ann", ""), 1_000L);
+        SavedProfiles.save(context, profile("2", "bo", ""), 2_000L);
+        SavedProfiles.save(context, profile("3", "cy", ""), 3_000L);
+        assertEquals("Close friends", SavedProfiles.move(context, "1", "ann", "  Close   friends ").folder);
+        assertEquals("a name in another case is that folder",
+                "Close friends", SavedProfiles.move(context, "2", "bo", "close FRIENDS").folder);
+        assertNull("not saved, nothing moves", SavedProfiles.move(context, "9", "nobody", "Work"));
+        Utils.awaitBackgroundTasksForTests();
+        restart();
+        assertEquals(Arrays.asList("Close friends"), SavedProfiles.folders(SavedProfiles.all(context)));
+        assertEquals("", SavedProfiles.all(context).get(0).folder);
+
+        assertEquals("Besties", SavedProfiles.renameFolder(context, "close friends", "Besties"));
+        assertEquals("a rename in another case only", "besties", SavedProfiles.renameFolder(context, "Besties", "besties"));
+        SavedProfiles.move(context, "3", "cy", "Work");
+        assertEquals("renamed onto another folder, the two are one", "Work", SavedProfiles.renameFolder(context, "besties", "work"));
+        assertEquals(Arrays.asList("Work"), SavedProfiles.folders(SavedProfiles.all(context)));
+        assertEquals(3, SavedProfiles.inFolder(SavedProfiles.all(context), "Work").size());
+
+        assertEquals("", SavedProfiles.renameFolder(context, "Work", ""));
+        Utils.awaitBackgroundTasksForTests();
+        restart();
+        assertTrue(SavedProfiles.folders(SavedProfiles.all(context)).isEmpty());
+        assertEquals("the folder went, its accounts stayed", Arrays.asList("cy", "bo", "ann"), usernames());
+    }
+
+    /** A settings file carries each account's folder, and an import spells a folder as this phone does. */
+    @Test public void aBackupCarriesTheFolderAndAnImportJoinsTheOneHere() throws Exception {
+        SavedProfiles.save(context, new SavedProfiles.Profile("1", "ann", "", "", "Friends", 0), 1_000L);
+        SavedProfiles.save(context, profile("2", "bo", ""), 2_000L);
+        JSONArray backup = SavedProfiles.backup(context, false);
+        assertFalse("no folder, no field", backup.getJSONObject(0).has("folder"));
+        assertEquals("Friends", backup.getJSONObject(1).getString("folder"));
+        assertEquals("Friends", SavedProfiles.fromBackup(backup.getJSONObject(1)).folder);
+
+        SavedProfiles.Profile cy = SavedProfiles.fromBackup(
+                new JSONObject().put("id", "3").put("username", "cy").put("folder", "  friends\n").put("time", 3_000L));
+        assertEquals("friends", cy.folder);
+        SavedProfiles.Profile dee = SavedProfiles.fromBackup(
+                new JSONObject().put("id", "4").put("username", "dee").put("folder", 7).put("time", 4_000L));
+        assertNotNull("a folder that isn't text is dropped, the account kept", dee);
+        assertEquals("", dee.folder);
+
+        SavedProfiles.Profile annElsewhere = new SavedProfiles.Profile("1", "ann", "", "", "Work", 500L);
+        List<SavedProfiles.Profile> added = SavedProfiles.merge(context, Arrays.asList(cy, dee, annElsewhere));
+        assertEquals(2, added.size());
+        Map<String, String> folders = new LinkedHashMap<>();
+        for (SavedProfiles.Profile profile : SavedProfiles.all(context)) folders.put(profile.username, profile.folder);
+        assertEquals("Friends", folders.get("cy"));
+        assertEquals("", folders.get("dee"));
+        assertEquals("an account already here keeps its own folder", "Friends", folders.get("ann"));
+        assertEquals(Arrays.asList("Friends"), SavedProfiles.folders(SavedProfiles.all(context)));
+    }
+
+    /** Once there's a folder, Save profile asks which one, New folder included, and says where it went (#629). */
+    @Test public void withAFolderSaveAsksWhichOne() throws Exception {
+        Settings.SAVED_PROFILES.save(true);
+        SavedProfiles.save(context, new SavedProfiles.Profile("1", "ann", "", "", "Friends", 0), 1_000L);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            show("2", "bo", "", "");
+            menu(controller.get(), "bo").get("Save profile").onClick(null);
+            ShadowLooper.idleMainLooper();
+            AlertDialog choose = (AlertDialog) ShadowDialog.getLatestDialog();
+            ListAdapter items = choose.getListView().getAdapter();
+            assertEquals(3, items.getCount());
+            assertEquals("No folder", String.valueOf(items.getItem(0)));
+            assertEquals("Friends", String.valueOf(items.getItem(1)));
+            assertEquals("New folder", String.valueOf(items.getItem(2)));
+            assertEquals("a new account has none marked", ListView.INVALID_POSITION, choose.getListView().getCheckedItemPosition());
+            choose.getListView().performItemClick(null, 1, 1);
+            assertEquals("Saved @bo to Friends", toast());
+            assertFalse(choose.isShowing());
+
+            show("3", "cy", "", "");
+            menu(controller.get(), "cy").get("Save profile").onClick(null);
+            ShadowLooper.idleMainLooper();
+            ((AlertDialog) ShadowDialog.getLatestDialog()).getListView().performItemClick(null, 2, 2);
+            ShadowLooper.idleMainLooper();
+            AlertDialog name = (AlertDialog) ShadowDialog.getLatestDialog();
+            assertEquals("the keyboard pushes the dialog up rather than covering its buttons",
+                    WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
+                    name.getWindow().getAttributes().softInputMode & WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
+            EditText field = SavedProfilesRows.field(name.getWindow().getDecorView());
+            Button create = name.getButton(DialogInterface.BUTTON_POSITIVE);
+            assertEquals("Create", String.valueOf(create.getText()));
+            assertFalse("nothing typed, nothing to create", create.isEnabled());
+            field.setText("   ");
+            assertFalse(create.isEnabled());
+            field.setText(" Gym ");
+            assertTrue(create.isEnabled());
+            create.performClick();
+            assertEquals("Saved @cy to Gym", toast());
+
+            show("4", "dee", "", "");
+            menu(controller.get(), "dee").get("Save profile").onClick(null);
+            ShadowLooper.idleMainLooper();
+            ((AlertDialog) ShadowDialog.getLatestDialog()).getListView().performItemClick(null, 3, 3);
+            ShadowLooper.idleMainLooper();
+            AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+            SavedProfilesRows.field(again.getWindow().getDecorView()).setText("FRIENDS");
+            again.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+            assertEquals("a new name in another case joins the folder", "Saved @dee to Friends", toast());
+        }
+        assertEquals(Arrays.asList("Friends", "Gym"), SavedProfiles.folders(SavedProfiles.all(context)));
+        assertEquals(Arrays.asList("dee", "cy", "bo", "ann"), usernames());
     }
 
     /** An account with a username and nothing else, as the menu reads it. */

@@ -2082,6 +2082,28 @@ Save profile	儲存個人檔案
 Saved @%s	已儲存 @%s
 # context: toast after Remove from saved takes an account off the Saved profiles list; %s is its username (#629)
 Removed @%s from saved	已將 @%s 從已儲存移除
+# context: row in the long press menu on an account on the Saved profiles page, and title of the folder list it opens (#629)
+Move to folder	移至資料夾
+# context: title of the folder list Save profile opens on a profile's menu once the user has made a folder (#629)
+Save to folder	儲存至資料夾
+# context: first choice in that folder list; the saved account sits in no folder (#629)
+No folder	不放入資料夾
+# context: last choice in that folder list, and title of the dialog asking the new folder's name (#629)
+New folder	新增資料夾
+# context: row in the long press menu on a folder's chip on the Saved profiles page, and title of the dialog for its new name (#629)
+Rename folder	重新命名資料夾
+# context: row in the long press menu on a folder's chip; the folder goes away and its accounts stay saved (#629)
+Remove folder	移除資料夾
+# context: toast after Save profile puts an account in a folder; %1$s is its username, %2$s the folder's name (#629)
+Saved @%1$s to %2$s	已將 @%1$s 儲存至 %2$s
+# context: toast after Move to folder; %1$s is the account's username, %2$s the folder's name (#629)
+Moved @%1$s to %2$s	已將 @%1$s 移至 %2$s
+# context: toast after Move to folder > No folder; %s is the account's username, which stays saved (#629)
+Moved @%s out of its folder	已將 @%s 移出資料夾
+# context: toast after Remove folder; %s is the folder's name, and its accounts stay saved (#629)
+Removed the folder %s	已移除資料夾 %s
+# context: toast after Rename folder; %s is the folder's new name (#629)
+Renamed the folder to %s	已將資料夾重新命名為 %s
 # context: toast when the Saved profiles list already holds 2,000 accounts (#629)
 Saved profiles is full.	已儲存的個人檔案已達上限。
 # context: Profiles > title of the switch that adds Save profile to the menu on profiles, and title of the page listing the saved accounts (#629)

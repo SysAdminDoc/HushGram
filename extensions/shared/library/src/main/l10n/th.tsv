@@ -2076,6 +2076,28 @@ Save profile	บันทึกโปรไฟล์
 Saved @%s	บันทึก @%s แล้ว
 # context: toast after Remove from saved takes an account off the Saved profiles list; %s is its username (#629)
 Removed @%s from saved	ลบ @%s ออกจากรายการที่บันทึกไว้แล้ว
+# context: row in the long press menu on an account on the Saved profiles page, and title of the folder list it opens (#629)
+Move to folder	ย้ายไปยังโฟลเดอร์
+# context: title of the folder list Save profile opens on a profile's menu once the user has made a folder (#629)
+Save to folder	บันทึกลงโฟลเดอร์
+# context: first choice in that folder list; the saved account sits in no folder (#629)
+No folder	ไม่มีโฟลเดอร์
+# context: last choice in that folder list, and title of the dialog asking the new folder's name (#629)
+New folder	โฟลเดอร์ใหม่
+# context: row in the long press menu on a folder's chip on the Saved profiles page, and title of the dialog for its new name (#629)
+Rename folder	เปลี่ยนชื่อโฟลเดอร์
+# context: row in the long press menu on a folder's chip; the folder goes away and its accounts stay saved (#629)
+Remove folder	ลบโฟลเดอร์
+# context: toast after Save profile puts an account in a folder; %1$s is its username, %2$s the folder's name (#629)
+Saved @%1$s to %2$s	บันทึก @%1$s ลงใน %2$s แล้ว
+# context: toast after Move to folder; %1$s is the account's username, %2$s the folder's name (#629)
+Moved @%1$s to %2$s	ย้าย @%1$s ไปยัง %2$s แล้ว
+# context: toast after Move to folder > No folder; %s is the account's username, which stays saved (#629)
+Moved @%s out of its folder	นำ @%s ออกจากโฟลเดอร์แล้ว
+# context: toast after Remove folder; %s is the folder's name, and its accounts stay saved (#629)
+Removed the folder %s	ลบโฟลเดอร์ %s แล้ว
+# context: toast after Rename folder; %s is the folder's new name (#629)
+Renamed the folder to %s	เปลี่ยนชื่อโฟลเดอร์เป็น %s แล้ว
 # context: toast when the Saved profiles list already holds 2,000 accounts (#629)
 Saved profiles is full.	รายการโปรไฟล์ที่บันทึกไว้เต็มแล้ว
 # context: Profiles > title of the switch that adds Save profile to the menu on profiles, and title of the page listing the saved accounts (#629)

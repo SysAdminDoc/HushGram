@@ -2079,6 +2079,28 @@ Save profile	Guardar perfil
 Saved @%s	Se guardó @%s
 # context: toast after Remove from saved takes an account off the Saved profiles list; %s is its username (#629)
 Removed @%s from saved	Se quitó @%s de guardados
+# context: row in the long press menu on an account on the Saved profiles page, and title of the folder list it opens (#629)
+Move to folder	Mover a carpeta
+# context: title of the folder list Save profile opens on a profile's menu once the user has made a folder (#629)
+Save to folder	Guardar en carpeta
+# context: first choice in that folder list; the saved account sits in no folder (#629)
+No folder	Sin carpeta
+# context: last choice in that folder list, and title of the dialog asking the new folder's name (#629)
+New folder	Nueva carpeta
+# context: row in the long press menu on a folder's chip on the Saved profiles page, and title of the dialog for its new name (#629)
+Rename folder	Cambiar nombre de carpeta
+# context: row in the long press menu on a folder's chip; the folder goes away and its accounts stay saved (#629)
+Remove folder	Quitar carpeta
+# context: toast after Save profile puts an account in a folder; %1$s is its username, %2$s the folder's name (#629)
+Saved @%1$s to %2$s	Se guardó @%1$s en %2$s
+# context: toast after Move to folder; %1$s is the account's username, %2$s the folder's name (#629)
+Moved @%1$s to %2$s	Se movió @%1$s a %2$s
+# context: toast after Move to folder > No folder; %s is the account's username, which stays saved (#629)
+Moved @%s out of its folder	Se sacó @%s de su carpeta
+# context: toast after Remove folder; %s is the folder's name, and its accounts stay saved (#629)
+Removed the folder %s	Se quitó la carpeta %s
+# context: toast after Rename folder; %s is the folder's new name (#629)
+Renamed the folder to %s	Se cambió el nombre de la carpeta a %s
 # context: toast when the Saved profiles list already holds 2,000 accounts (#629)
 Saved profiles is full.	La lista de perfiles guardados está llena.
 # context: Profiles > title of the switch that adds Save profile to the menu on profiles, and title of the page listing the saved accounts (#629)

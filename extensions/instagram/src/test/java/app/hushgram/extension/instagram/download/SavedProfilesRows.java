@@ -6,6 +6,9 @@ package app.hushgram.extension.instagram.download;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
 
 /** Saves profiles for tests in other packages, where the menu row can't reach them. */
 public final class SavedProfilesRows {
@@ -31,5 +34,16 @@ public final class SavedProfilesRows {
     /** Deletes the list's file and pictures. */
     public static void clear(Context context) {
         SavedProfiles.clearForTests(context);
+    }
+
+    /** The text field somewhere under [view], such as a folder name dialog's, or null. */
+    public static EditText field(View view) {
+        if (view instanceof EditText) return (EditText) view;
+        if (!(view instanceof ViewGroup)) return null;
+        for (int at = 0; at < ((ViewGroup) view).getChildCount(); at++) {
+            EditText found = field(((ViewGroup) view).getChildAt(at));
+            if (found != null) return found;
+        }
+        return null;
     }
 }
