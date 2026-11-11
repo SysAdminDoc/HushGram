@@ -2006,6 +2006,10 @@ Your saved profiles	Trang cá nhân bạn đã lưu
 Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	Chưa lưu gì cả. Khi bật Trang cá nhân đã lưu, hãy chạm Lưu trang cá nhân trong menu trên trang cá nhân của ai đó và trang đó sẽ hiện ở đây.
 # context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
 Remove @%s from saved	Gỡ @%s khỏi mục đã lưu
+# context: sentence an import of a settings file adds to its receipt; %d is how many saved profiles it put on the list (#629)
+Saved profiles added: %d.	Đã thêm %d trang cá nhân đã lưu.
+# context: summary under Export HushGram settings in a build with Saved profiles; the file holds the settings and the saved list, never the Instagram sign-in or any history (#629)
+Choose a file for your installed patches' settings and saved profiles. Your login and history stay on this device.	Chọn một tệp cho cài đặt của các bản vá đã cài và các trang cá nhân đã lưu. Thông tin đăng nhập và lịch sử vẫn ở trên thiết bị này.
 # context: Profiles > title of the switch that asks before a Follow or Follow back button follows someone (#631)
 Ask before a follow	Hỏi trước khi theo dõi
 # context: Profiles > summary of Ask before a follow; Follow, Follow back, Followers and Following are Instagram's own button and list names (#631)

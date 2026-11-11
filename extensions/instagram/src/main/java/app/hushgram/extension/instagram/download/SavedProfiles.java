@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.download;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.view.View;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.SavedProfilesPage;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -42,8 +44,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * username, name and picture address its profile showed. Opening a saved profile again brings those
  * up to date, so a renamed account keeps its place. Its picture is copied once, {@link #PICTURE_PX}
  * across, from Instagram's image servers, the way profile history copies one. The list holds at most
- * {@link #MAX_PROFILES} accounts in one small file in the app's own storage, newest first, and it's
- * left out of the settings backup and the diagnostic report.
+ * {@link #MAX_PROFILES} accounts in one small file in the app's own storage, newest first. A settings
+ * file carries it and an import adds it back ({@link #backup}, {@link #merge}), as its reporter asked;
+ * the diagnostic report never holds it.
  */
 public final class SavedProfiles {
     /** One saved account. */
@@ -112,14 +115,19 @@ public final class SavedProfiles {
 
     static Fetch fetch = PictureFetch::fetch;
 
-    static final int MAX_PROFILES = 2000;
+    public static final int MAX_PROFILES = 2000;
     static final int PICTURE_PX = 160;
+    /** The longest name and picture address a settings file may give an account. */
+    static final int MAX_NAME = 256;
+    static final int MAX_URL = 2048;
 
     private static final String DIRECTORY = "hushgram-saved";
     private static final String FILE = "profiles.json";
     private static final String FAMILY = FamilyNames.PROFILE_PICTURE;
     static final String NOT_REFRESHED = "saved profile not refreshed, no worker free";
     static final String NOT_ADDED = "save profile row not added";
+    static final String OPEN_NOT_ADDED = "saved profiles row not added";
+    static final String NO_SCREEN = "saved profiles not opened, no screen";
 
     private static final Object LOCK = new Object();
     /** Newest first. */
@@ -193,6 +201,46 @@ public final class SavedProfiles {
                 }
             } catch (Throwable failure) {
                 HookStatus.threw(FAMILY, saved ? "remove saved profile" : "save profile", failure);
+            }
+        }
+    }
+
+    /**
+     * The row under Save profile that opens Your saved profiles over Instagram, so the list is a tap
+     * away from any profile (#629). Null while the switch is off or nothing is saved. Never throws.
+     */
+    @Nullable
+    static OpenRow openRow(Context context) {
+        try {
+            if (context == null || !on() || !any(context)) return null;
+            return new OpenRow(context);
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "saved profiles open row", failure);
+            return null;
+        }
+    }
+
+    /** The menu row that opens the Saved profiles page over the screen the menu was opened on. */
+    static final class OpenRow implements View.OnClickListener {
+        final Context context;
+
+        OpenRow(Context context) {
+            this.context = context;
+        }
+
+        /** Instagram may tap it with no view, from a sheet drawn without one. */
+        @Override public void onClick(View view) {
+            try {
+                if (!on()) return;
+                Activity activity = ProfilePictureViewer.activityOf(context);
+                if (activity == null) activity = Utils.getActivity();
+                if (activity == null || activity.isFinishing()) {
+                    HookStatus.counted(FAMILY, NO_SCREEN);
+                    return;
+                }
+                SavedProfilesPage.openOver(activity);
+            } catch (Throwable failure) {
+                HookStatus.threw(FAMILY, "open saved profiles", failure);
             }
         }
     }
@@ -291,6 +339,15 @@ public final class SavedProfiles {
         }
     }
 
+    /** Whether anything is saved. */
+    static boolean any(Context context) {
+        Context application = application(context);
+        synchronized (LOCK) {
+            load(application);
+            return !PROFILES.isEmpty();
+        }
+    }
+
     /** The saved account that is [id] or [username], or null. */
     @Nullable
     static Profile find(Context context, String id, String username) {
@@ -315,6 +372,103 @@ public final class SavedProfiles {
             }
         }
         return kept;
+    }
+
+    /**
+     * The list for a settings file (#629), newest first: each account's id, username, name and when
+     * it was saved, and with [pictures] its picture's address, which Instagram's servers keep
+     * answering for a few days. Empty when nothing is saved.
+     */
+    public static JSONArray backup(Context context, boolean pictures) throws JSONException {
+        JSONArray profiles = new JSONArray();
+        for (Profile profile : all(context)) {
+            JSONObject entry = new JSONObject().put("id", profile.id).put("username", profile.username)
+                    .put("name", profile.name).put("time", profile.time);
+            if (pictures && !profile.url.isEmpty()) entry.put("url", profile.url);
+            profiles.put(entry);
+        }
+        return profiles;
+    }
+
+    /**
+     * The account [entry] of a settings file describes, or null when the list couldn't have saved it:
+     * a username Instagram wouldn't give, an id or a time of another shape, or a name over
+     * {@link #MAX_NAME} characters or with control characters in it. A picture address that isn't
+     * Meta's media servers is dropped and the account kept. Fields this build doesn't know are left
+     * alone, so a file from a newer HushGram still brings its accounts.
+     */
+    @Nullable
+    public static Profile fromBackup(JSONObject entry) {
+        Object username = entry.opt("username");
+        if (!(username instanceof String) || !((String) username).matches("[A-Za-z0-9._]{1,30}")) return null;
+        String id = text(entry, "id");
+        String name = text(entry, "name");
+        String url = text(entry, "url");
+        if (id == null || !id.matches("[A-Za-z0-9_]{0,64}") || name == null || name.length() > MAX_NAME
+                || url == null) return null;
+        for (int at = 0; at < name.length(); at++) {
+            if (Character.isISOControl(name.charAt(at))) return null;
+        }
+        Object time = entry.opt("time");
+        if (time != null && !(time instanceof Integer) && !(time instanceof Long)) return null;
+        long saved = time == null ? 0 : ((Number) time).longValue();
+        if (saved < 0) return null;
+        if (url.length() > MAX_URL || MediaUrlPolicy.shapeRefusal(url) != null) url = "";
+        return new Profile(id, (String) username, name, url, saved);
+    }
+
+    /** [entry]'s text under [key], empty when it has none, or null when it's something else. */
+    @Nullable
+    private static String text(JSONObject entry, String key) {
+        if (!entry.has(key)) return "";
+        Object value = entry.opt(key);
+        return value instanceof String ? (String) value : null;
+    }
+
+    /**
+     * Puts the accounts of [profiles], read from a settings file, on the list where they aren't on it
+     * already, while there's room, each with the time it was first saved, and keeps the list newest
+     * first. Their pictures are fetched when the list shows them. Answers the ones added, which Undo
+     * takes back ({@link #takeBack}).
+     */
+    public static List<Profile> merge(Context context, List<Profile> profiles) {
+        Context application = application(context);
+        List<Profile> added = new ArrayList<>();
+        synchronized (LOCK) {
+            load(application);
+            for (Profile profile : profiles) {
+                if (PROFILES.size() >= MAX_PROFILES) break;
+                if (indexOf(profile.id, profile.username) >= 0) continue;
+                PROFILES.add(profile);
+                added.add(profile);
+            }
+            if (added.isEmpty()) return added;
+            // A stable sort, so accounts saved at the same moment keep their order.
+            Collections.sort(PROFILES, (one, other) -> Long.compare(other.time, one.time));
+        }
+        persist(application, () -> { });
+        return added;
+    }
+
+    /**
+     * Takes [added] back off the list, each one only while it's still there as {@link #merge} put it:
+     * Undo after an import. Answers how many went.
+     */
+    public static int takeBack(Context context, List<Profile> added) {
+        Context application = application(context);
+        List<Profile> gone = new ArrayList<>();
+        synchronized (LOCK) {
+            load(application);
+            for (Profile profile : added) {
+                int at = indexOf(profile.id, profile.username);
+                if (at >= 0 && PROFILES.get(at).time == profile.time) gone.add(PROFILES.remove(at));
+            }
+        }
+        if (gone.isEmpty()) return 0;
+        persist(application, () -> {
+            for (Profile profile : gone) forgetPicture(application, profile);
+        });
+        return gone.size();
     }
 
     /** Must hold LOCK. */

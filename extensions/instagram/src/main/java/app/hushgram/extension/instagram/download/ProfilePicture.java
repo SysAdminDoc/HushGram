@@ -193,6 +193,10 @@ public final class ProfilePicture {
             if (keep != null && !reads.addRow(sheet, context, keep, keep.label())) {
                 HookStatus.counted(FamilyNames.PROFILE_PICTURE, SavedProfiles.NOT_ADDED);
             }
+            SavedProfiles.OpenRow list = keep != null ? SavedProfiles.openRow(context) : null;
+            if (list != null && !reads.addRow(sheet, context, list, L10n.t(context, "Your saved profiles"))) {
+                HookStatus.counted(FamilyNames.PROFILE_PICTURE, SavedProfiles.OPEN_NOT_ADDED);
+            }
             if (!copying && !selecting) return;
             if (copying && owner != null && !owner.isEmpty() && !reads.addRow(sheet, context, new CopyRow(context, owner, false),
                     L10n.t(context, "Copy username"))) {

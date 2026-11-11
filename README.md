@@ -281,7 +281,7 @@ A few rows to know about:
 - **Ghost mode**, at the top of Ads and privacy, turns the seven switches that keep what you do to yourself on or off together. Each keeps its own switch too. Pressing and holding New message at the top of your inbox does the same.
 - **Downloads** go to Movies and Pictures, each in an Instagram folder unless you name another, and voice messages to Recordings (Music before Android 12). **Skip what's already saved** remembers your newest 15,000 saves so the same post isn't saved twice.
 - **Download file name** accepts `{shortcode}` for the post's code from its link. Including it applies the template to photos too. Stories and saves without a known post leave that token out.
-- **Settings backup** exports your choices to a JSON file and brings them back later, on this install or another. Accounts, signing keys and playback history aren't included.
+- **Settings backup** exports your choices to a JSON file and brings them back later, on this install or another. Saved profiles come along, and an import adds back any that are missing. Your Instagram login, signing keys and playback history aren't included.
 - **Descriptions behind an info button**, under Settings entry, keeps each switch to its name. Tap the small i beside a name to read what it does. It starts off, and a screen reader always gets the full text.
 - **Black settings page**, also under Settings entry, makes the cards and dialogs black, puts HushGram's name and version at the top and cuts each category to one line. It starts on, and turning it off brings back the old charcoal page.
 - **Date in backup file names**, under Settings backup, adds the current date and time to the suggested export name. It starts off.

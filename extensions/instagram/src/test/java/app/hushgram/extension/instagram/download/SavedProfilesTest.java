@@ -10,6 +10,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.view.View;
@@ -21,10 +23,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
+import org.robolectric.shadows.ShadowDialog;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
@@ -127,6 +132,10 @@ public class SavedProfilesTest {
 
     /** The rows the profile's menu gets, by label, for an account whose username is [username]. */
     private Map<String, View.OnClickListener> menu(String username) {
+        return menu(context, username);
+    }
+
+    private static Map<String, View.OnClickListener> menu(Context context, String username) {
         Map<String, View.OnClickListener> rows = new LinkedHashMap<>();
         for (ProfilePicture.Entry entry : ProfilePicture.entries(new Object(), context, new Account(username),
                 (at, sizes, details) -> true, (at, sizes, owner, save) -> true)) {
@@ -183,6 +192,30 @@ public class SavedProfilesTest {
         assertEquals("Removed @ann from saved", toast());
         assertTrue(SavedProfiles.all(context).isEmpty());
         assertTrue(menu("ann").containsKey("Save profile"));
+    }
+
+    /** Under Remove from saved, once something is saved, a row opens the list over the profile (#629). */
+    @Test public void theMenuOpensTheListOnceSomethingIsSaved() throws Exception {
+        Settings.SAVED_PROFILES.save(true);
+        show("17", "ann", "", "");
+        assertFalse("nothing saved, nothing to open", menu("ann").containsKey("Your saved profiles"));
+        menu("ann").get("Save profile").onClick(null);
+        List<String> labels = new ArrayList<>(menu("ann").keySet());
+        assertEquals(labels.toString(), labels.indexOf("Remove from saved") + 1, labels.indexOf("Your saved profiles"));
+        show("18", "bo", "", "");
+        assertTrue("any profile's menu has it", menu("bo").containsKey("Your saved profiles"));
+
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            menu(controller.get(), "bo").get("Your saved profiles").onClick(null);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            Dialog page = ShadowDialog.getLatestDialog();
+            assertNotNull(page);
+            assertTrue(page.isShowing());
+            page.dismiss();
+        }
+        Settings.SAVED_PROFILES.save(false);
+        assertFalse(menu("bo").containsKey("Your saved profiles"));
     }
 
     /** A menu left open while the account was saved elsewhere still does what its label said. */

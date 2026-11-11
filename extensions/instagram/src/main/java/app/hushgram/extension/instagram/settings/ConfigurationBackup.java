@@ -15,12 +15,15 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -28,6 +31,7 @@ import androidx.annotation.Nullable;
 
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.SaveFolder;
+import app.hushgram.extension.instagram.download.SavedProfiles;
 import app.hushgram.extension.instagram.direct.MessageBox;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.misc.GlassBlur;
@@ -48,10 +52,16 @@ import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.SettingsJson;
 import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 
-/** A portable, typed settings file. It never reads the host's preferences or private ledgers. */
+/**
+ * A portable, typed settings file. It never reads the host's preferences or private ledgers. Of
+ * HushGram's own lists it carries only Saved profiles, under {@link #PROFILES} and only when
+ * something is saved, so a file without them still opens in a build from before (#629).
+ */
 public final class ConfigurationBackup {
-    public static final int MAX_BYTES = 256 * 1024;
+    /** Room for a full Saved profiles list beside the settings. */
+    public static final int MAX_BYTES = 1024 * 1024;
     public static final int MAX_ENTRIES = 512;
+    static final String PROFILES = "profiles";
     public static final long UNDO_WINDOW_MS = 10_000;
     /** The ordinary text bound. Selection and blocked-word lists have the larger bound below. */
     static final int MAX_TEXT = 256;
@@ -60,8 +70,12 @@ public final class ConfigurationBackup {
      * selections. The current native row ids join to 2,953 characters.
      */
     static final int MAX_WORDS_TEXT = 4096;
-    private static final SettingsJson.Limits LIMITS =
-            new SettingsJson.Limits(4, 2048, MAX_WORDS_TEXT, MAX_ENTRIES, MAX_BYTES);
+    /**
+     * The settings' own 2,048 values, and room for every saved profile's fields, a few more than
+     * this build writes. The only array is the profiles.
+     */
+    private static final SettingsJson.Limits LIMITS = new SettingsJson.Limits(4,
+            2048 + 8 * SavedProfiles.MAX_PROFILES, MAX_WORDS_TEXT, SavedProfiles.MAX_PROFILES, MAX_BYTES);
     /**
      * Guards the Undo state below. It's a lock of its own, never the class's: an import holds the class
      * lock from its validation through its disk commit, and the page reads whether Undo is on offer, and
@@ -71,6 +85,7 @@ public final class ConfigurationBackup {
     private static Map<Setting<?>, Object> undoValues;
     private static Map<Setting<?>, Object> importedValues;
     private static Map<Setting<?>, Long> importedRevisions;
+    private static List<SavedProfiles.Profile> undoProfiles;
     private static long undoUntil;
     private static long undoId;
 
@@ -102,13 +117,16 @@ public final class ConfigurationBackup {
          * now for the ones that wait on a restart, as it does when their own rows are flipped.
          */
         public final Map<Setting<?>, Object> before;
+        /** Saved profiles an import added to the list, or an Undo took back off it. */
+        public final int profiles;
 
-        Result(int applied, int skipped, int held, boolean restart, Map<Setting<?>, Object> before) {
+        Result(int applied, int skipped, int held, boolean restart, Map<Setting<?>, Object> before, int profiles) {
             this.applied = applied;
             this.skipped = skipped;
             this.held = held;
             this.restart = restart;
             this.before = Collections.unmodifiableMap(before);
+            this.profiles = profiles;
         }
     }
 
@@ -307,18 +325,29 @@ public final class ConfigurationBackup {
         return settings;
     }
 
-    /** Export saved choices even during Pause, never the neutral answers the hooks see. */
+    /**
+     * Export saved choices even during Pause, never the neutral answers the hooks see, and the
+     * saved profiles while Saved profiles is in the build.
+     */
     public static synchronized byte[] export() throws IOException {
         synchronized (Setting.class) {
             try {
+                Map<String, Setting<?>> allowed = eligible();
                 JSONObject values = new JSONObject();
-                for (Setting<?> setting : eligible().values()) {
+                for (Setting<?> setting : allowed.values()) {
                     Object value = setting.savedValue();
                     values.put(setting.key, new JSONObject().put("type", type(value))
                             .put("value", value instanceof Enum ? ((Enum<?>) value).name() : value));
                 }
-                byte[] bytes = new JSONObject().put("project", "HushGram").put("schema", 1)
-                        .put("settings", values).toString(2).getBytes(StandardCharsets.UTF_8);
+                JSONObject root = new JSONObject().put("project", "HushGram").put("schema", 1).put("settings", values);
+                Context context = allowed.containsKey(Settings.SAVED_PROFILES.key) ? Utils.getContext() : null;
+                JSONArray profiles = context == null ? new JSONArray() : SavedProfiles.backup(context, true);
+                if (profiles.length() > 0) root.put(PROFILES, profiles);
+                byte[] bytes = root.toString(2).getBytes(StandardCharsets.UTF_8);
+                // Picture addresses are most of a long list, and Instagram stops answering them within days anyway.
+                if (bytes.length > MAX_BYTES && profiles.length() > 0) {
+                    bytes = root.put(PROFILES, SavedProfiles.backup(context, false)).toString(2).getBytes(StandardCharsets.UTF_8);
+                }
                 if (bytes.length > MAX_BYTES || values.length() > MAX_ENTRIES) throw invalid();
                 return bytes;
             } catch (JSONException failure) {
@@ -356,13 +385,16 @@ public final class ConfigurationBackup {
     public static synchronized Result restore(byte[] bytes, java.util.function.BooleanSupplier mayCommit) throws IOException {
         final Map<Setting<?>, Object> updates = new LinkedHashMap<>();
         final Map<String, Setting<?>> allowed = eligible();
+        final List<SavedProfiles.Profile> profiles = new ArrayList<>();
         int skipped = 0;
         int held = 0;
         try {
             JSONObject root = SettingsJson.parseObject(bytes, LIMITS);
-            if (root.length() != 3 || !"HushGram".equals(root.get("project"))
+            boolean listed = root.has(PROFILES);
+            if (root.length() != (listed ? 4 : 3) || !"HushGram".equals(root.get("project"))
                     || !(root.get("schema") instanceof Integer) || root.getInt("schema") != 1
-                    || !(root.get("settings") instanceof JSONObject)) throw invalid();
+                    || !(root.get("settings") instanceof JSONObject)
+                    || listed && !(root.get(PROFILES) instanceof JSONArray)) throw invalid();
             JSONObject values = root.getJSONObject("settings");
             if (values.length() > MAX_ENTRIES) throw invalid();
             for (java.util.Iterator<String> keys = values.keys(); keys.hasNext();) {
@@ -396,9 +428,21 @@ public final class ConfigurationBackup {
                 }
                 updates.put(setting, value);
             }
+            if (listed) {
+                // An entry that isn't an account is a file of the wrong shape. One the list couldn't
+                // have saved is left out, and so is the whole list without Saved profiles in the build.
+                JSONArray entries = root.getJSONArray(PROFILES);
+                boolean taken = allowed.containsKey(Settings.SAVED_PROFILES.key);
+                for (int at = 0; at < entries.length(); at++) {
+                    if (!(entries.get(at) instanceof JSONObject)) throw invalid();
+                    SavedProfiles.Profile profile = taken ? SavedProfiles.fromBackup(entries.getJSONObject(at)) : null;
+                    if (profile != null) profiles.add(profile);
+                }
+            }
         } catch (JSONException | IllegalArgumentException failure) {
             throw invalid();
         }
+        Context context = Utils.getContext();
         synchronized (Setting.class) {
             requirePermission(mayCommit);
             // Authentication can change while a file is being validated. Hold lock switches at
@@ -424,13 +468,16 @@ public final class ConfigurationBackup {
                 for (var changed : before.entrySet()) AbstractPreferenceFragment.noteRunningValue(changed.getKey(), changed.getValue());
                 try {
                     Setting.saveAll(updates);
-                    offerUndo(before);
                 } catch (Setting.BatchFailed failure) {
-                    if (!failure.restored) offerUndo(before);
+                    if (!failure.restored) offerUndo(before, Collections.emptyList());
                     throw failure;
                 }
             }
-            return new Result(updates.size(), skipped, held, restart, before);
+            // The accounts go on the list once the settings are saved, so a save that fails adds none.
+            List<SavedProfiles.Profile> added = profiles.isEmpty() || context == null
+                    ? Collections.emptyList() : SavedProfiles.merge(context, profiles);
+            if (!before.isEmpty() || !added.isEmpty()) offerUndo(before, added);
+            return new Result(updates.size(), skipped, held, restart, before, added.size());
         }
     }
 
@@ -595,12 +642,14 @@ public final class ConfigurationBackup {
             Map<Setting<?>, Object> values;
             Map<Setting<?>, Object> expected;
             Map<Setting<?>, Long> revisions;
+            List<SavedProfiles.Profile> profiles;
             synchronized (UNDO) {
                 // The deadline can pass while the page's permission is checked.
                 if (undoDeadline(token) == 0) return null;
                 values = undoValues;
                 expected = importedValues;
                 revisions = importedRevisions;
+                profiles = undoProfiles;
                 forgetUndo();
             }
             Map<Setting<?>, Object> before = new LinkedHashMap<>();
@@ -624,11 +673,13 @@ public final class ConfigurationBackup {
             }
             for (var changed : before.entrySet()) AbstractPreferenceFragment.noteRunningValue(changed.getKey(), changed.getValue());
             Setting.saveAll(values);
-            return new Result(values.size(), skipped, held, restart, before);
+            Context context = Utils.getContext();
+            int gone = profiles.isEmpty() || context == null ? 0 : SavedProfiles.takeBack(context, profiles);
+            return new Result(values.size(), skipped, held, restart, before, gone);
         }
     }
 
-    private static void offerUndo(Map<Setting<?>, Object> values) {
+    private static void offerUndo(Map<Setting<?>, Object> values, List<SavedProfiles.Profile> profiles) {
         Map<Setting<?>, Object> imported = new LinkedHashMap<>();
         Map<Setting<?>, Long> revisions = new LinkedHashMap<>();
         for (Setting<?> setting : values.keySet()) {
@@ -646,6 +697,7 @@ public final class ConfigurationBackup {
             undoValues = values;
             importedValues = imported;
             importedRevisions = revisions;
+            undoProfiles = profiles;
             undoId++;
             undoUntil = SystemClock.elapsedRealtime() + timeout;
         }
@@ -657,6 +709,7 @@ public final class ConfigurationBackup {
             undoValues = null;
             importedValues = null;
             importedRevisions = null;
+            undoProfiles = null;
             undoUntil = 0;
         }
     }

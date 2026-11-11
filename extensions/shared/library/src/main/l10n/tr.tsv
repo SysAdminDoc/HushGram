@@ -2091,6 +2091,10 @@ Your saved profiles	Kaydettiğin profiller
 Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	Henüz kaydedilen bir şey yok. Kaydedilen profiller açıkken birinin profilindeki menüde Profili kaydet'e dokun, burada görünür.
 # context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
 Remove @%s from saved	@%s hesabını kaydedilenlerden kaldır
+# context: sentence an import of a settings file adds to its receipt; %d is how many saved profiles it put on the list (#629)
+Saved profiles added: %d.	Kaydedilen profiller eklendi: %d.
+# context: summary under Export HushGram settings in a build with Saved profiles; the file holds the settings and the saved list, never the Instagram sign-in or any history (#629)
+Choose a file for your installed patches' settings and saved profiles. Your login and history stay on this device.	Yüklü yamaların ayarları ve kaydedilen profiller için bir dosya seçin. Oturum bilgileriniz ve geçmiş bu cihazda kalır.
 # context: Profiles > title of the switch that asks before a Follow or Follow back button follows someone (#631)
 Ask before a follow	Takip etmeden önce sor
 # context: Profiles > summary of Ask before a follow; Follow, Follow back, Followers and Following are Instagram's own button and list names (#631)

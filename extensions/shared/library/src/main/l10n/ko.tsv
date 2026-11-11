@@ -2090,6 +2090,10 @@ Your saved profiles	내가 저장한 프로필
 Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	아직 저장한 프로필이 없습니다. ‘저장한 프로필’을 켜고 다른 사람 프로필의 메뉴에서 ‘프로필 저장’을 누르면 여기에 표시됩니다.
 # context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
 Remove @%s from saved	저장됨에서 @%s 님 삭제
+# context: sentence an import of a settings file adds to its receipt; %d is how many saved profiles it put on the list (#629)
+Saved profiles added: %d.	저장한 프로필 %d개를 추가했습니다.
+# context: summary under Export HushGram settings in a build with Saved profiles; the file holds the settings and the saved list, never the Instagram sign-in or any history (#629)
+Choose a file for your installed patches' settings and saved profiles. Your login and history stay on this device.	설치된 패치의 설정과 저장한 프로필이 들어 있는 파일을 선택하세요. 로그인 정보와 기록은 이 기기에 그대로 유지됩니다.
 # context: Profiles > title of the switch that asks before a Follow or Follow back button follows someone (#631)
 Ask before a follow	팔로우 전에 묻기
 # context: Profiles > summary of Ask before a follow; Follow, Follow back, Followers and Following are Instagram's own button and list names (#631)

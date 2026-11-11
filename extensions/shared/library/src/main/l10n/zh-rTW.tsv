@@ -2094,6 +2094,10 @@ Your saved profiles	你儲存的個人檔案
 Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	尚未儲存任何內容。開啟「已儲存的個人檔案」後，在他人個人檔案的選單中點按「儲存個人檔案」，該檔案就會顯示在這裡。
 # context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
 Remove @%s from saved	將 @%s 從已儲存移除
+# context: sentence an import of a settings file adds to its receipt; %d is how many saved profiles it put on the list (#629)
+Saved profiles added: %d.	已新增 %d 個儲存的個人檔案。
+# context: summary under Export HushGram settings in a build with Saved profiles; the file holds the settings and the saved list, never the Instagram sign-in or any history (#629)
+Choose a file for your installed patches' settings and saved profiles. Your login and history stay on this device.	選擇檔案以儲存已安裝修補程式的設定與儲存的個人檔案。登入資訊與記錄仍留在此裝置上。
 # context: Profiles > title of the switch that asks before a Follow or Follow back button follows someone (#631)
 Ask before a follow	追蹤前詢問
 # context: Profiles > summary of Ask before a follow; Follow, Follow back, Followers and Following are Instagram's own button and list names (#631)

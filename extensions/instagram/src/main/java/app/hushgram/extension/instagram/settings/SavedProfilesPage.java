@@ -57,22 +57,24 @@ import app.hushgram.extension.shared.ui.Dim;
 /**
  * The Saved profiles page (#629): a search box and every account saved from a profile's menu, the
  * newest first, each with its picture, username and name. Tapping a row opens that profile, and the
- * cross at its end, or Remove from saved on a long press, takes it off the list at once.
+ * cross at its end, or Remove from saved on a long press, takes it off the list at once. It opens
+ * from its settings row, or over Instagram from Your saved profiles in a profile's menu.
  */
 @SuppressWarnings("deprecation") // Preference is what the settings page builds on.
-final class SavedProfilesPage {
+public final class SavedProfilesPage {
     final Dialog dialog;
     final EditText search;
     final ListView list;
     final TextView empty;
-    private final Preference origin;
+    /** The settings row it was opened from, or null when a profile's menu opened it. */
+    @Nullable private final Preference origin;
     private final ScreenColors palette = ScreenColors.current();
     private final Rows rows;
     private final Drawable nothingYet;
     private final Drawable nothingMatches;
     private List<SavedProfiles.Profile> all = Collections.emptyList();
 
-    private SavedProfilesPage(Context context, Preference row) {
+    private SavedProfilesPage(Context context, @Nullable Preference row) {
         origin = row;
         dialog = new Dialog(context, android.R.style.Theme_Material_NoActionBar);
         LinearLayout root = new LinearLayout(context);
@@ -160,13 +162,18 @@ final class SavedProfilesPage {
         }
     }
 
-    /** Opens the page over the settings, from the Saved profiles row. */
-    static SavedProfilesPage open(Context context, Preference row) {
+    /** Opens the page over the settings, from the Saved profiles row, or over Instagram with no [row]. */
+    static SavedProfilesPage open(Context context, @Nullable Preference row) {
         SavedProfilesPage page = new SavedProfilesPage(context, row);
         page.show();
         page.read();
         page.dialog.show();
         return page;
+    }
+
+    /** Opens the page over [activity], from Your saved profiles in the menu on someone's profile. */
+    public static void openOver(Activity activity) {
+        open(activity, null);
     }
 
     /** Reads the list off the main thread, since the first read comes from a file. */
@@ -232,17 +239,18 @@ final class SavedProfilesPage {
 
     /**
      * Takes [profile] off the list and the page at once, says so, and brings the settings row up to
-     * date. The file catches up off the main thread. The settings lock holds it.
+     * date. The file catches up off the main thread. Opened from the settings, the settings lock
+     * holds it. Opened from a profile's menu it doesn't, as that menu's own Remove from saved doesn't.
      */
     void remove(SavedProfiles.Profile profile) {
-        if (!HushgramPreferenceFragment.savedProfilesChangeAllowed(origin)) return;
+        if (origin != null && !HushgramPreferenceFragment.savedProfilesChangeAllowed(origin)) return;
         SavedProfiles.remove(dialog.getContext(), profile.id, profile.username);
         PICTURES.remove(key(profile));
         List<SavedProfiles.Profile> left = new ArrayList<>(all);
         left.remove(profile);
         all = left;
         show();
-        origin.setSummary(HushgramPreferenceFragment.savedProfilesSummary(all));
+        if (origin != null) origin.setSummary(HushgramPreferenceFragment.savedProfilesSummary(all));
         Utils.showToastShort(L10n.f("Removed @%s from saved", profile.username));
     }
 
