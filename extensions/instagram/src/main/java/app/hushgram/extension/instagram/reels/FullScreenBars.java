@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.misc.BottomSpace;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -411,6 +412,27 @@ public final class FullScreenBars {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "hidden navigation bar height", failure);
             return 0;
         }
+    }
+
+    /**
+     * How tall the navigation bar is taken to be where the phone reports none at the window's foot, as a
+     * Samsung does with its gesture hint hidden, though a swipe up from there still leaves the app (#633):
+     * the system's standard height Instagram looked up in its place ({@link BottomSpace#guessedHeight}),
+     * or the one it last offered while HushGram hides the bar. 0 on a phone with no navigation bar.
+     */
+    public static int unreportedNavHeight() {
+        return Math.max(BottomSpace.guessedHeight(), hiddenNavHeight(0));
+    }
+
+    /**
+     * Where the strip at the foot of [view]'s window starts, on the screen: a drag from below there is the
+     * system's (#633). The strip is as {@link ReelSeekRoom} measures it, and none makes this the window's foot.
+     */
+    public static int systemStripTop(View view) {
+        View root = view.getRootView();
+        int[] at = new int[2];
+        root.getLocationOnScreen(at);
+        return at[1] + root.getHeight() - ReelSeekRoom.strip(view);
     }
 
     /**

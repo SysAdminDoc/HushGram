@@ -29,6 +29,19 @@ public class BottomSpaceTest {
     @After
     public void restore() {
         Settings.REMOVE_BOTTOM_SPACE.resetToDefault();
+        BottomSpace.forgetGuess();
+    }
+
+    /** A reel's seek bar still needs the height the switch leaves out (#633). */
+    @Test
+    public void theGuessIsKeptEvenWhenDropped() {
+        assertEquals(0, BottomSpace.guessedHeight());
+
+        BottomSpace.navigationBarHeight(135);
+        assertEquals(135, BottomSpace.guessedHeight());
+
+        BottomSpace.navigationBarHeight(0);
+        assertEquals(135, BottomSpace.guessedHeight());
     }
 
     /** With the switch on, the guess leaves no room. */

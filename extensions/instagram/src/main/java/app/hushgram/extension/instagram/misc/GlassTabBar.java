@@ -123,7 +123,7 @@ public final class GlassTabBar {
     /** The root of the Reels viewer, in the Reels tab and wherever a reel opens over another tab. */
     static final String REELS_ROOT = "root_clips_layout";
     /** The strip Instagram lays over a reel's seek bar to widen it for touches, and the seek bar. */
-    static final String TOUCH_STRIP = "clips_expanded_touch_view";
+    public static final String TOUCH_STRIP = "clips_expanded_touch_view";
     static final String SCRUBBER = "scrubber";
     /** A reel's author, caption and the buttons beside them, which share a layer over the video with the seek bar. */
     static final String REEL_INFO = "clips_media_info_component";
@@ -387,7 +387,7 @@ public final class GlassTabBar {
      * How far [band]'s content can scroll up before a shown child of it is cut off at the band's top: the
      * top of the highest one, or 0 with none.
      */
-    static int roomAbove(ViewGroup band) {
+    public static int roomAbove(ViewGroup band) {
         int room = Integer.MAX_VALUE;
         for (int i = 0; i < band.getChildCount(); i++) {
             View child = band.getChildAt(i);
@@ -427,13 +427,14 @@ public final class GlassTabBar {
      * the top of the tab bar, so a drag that starts just under the line still seeks (#526). Read off 454
      * with HushGram paused: 28 px on a 2.8 density phone, as tall as the seek bar itself.
      */
-    static final int STRIP_BELOW_DP = 10;
+    public static final int STRIP_BELOW_DP = 10;
 
     /**
      * Moves [strip], the strip Instagram lays over a reel's seek bar ({@link #TOUCH_STRIP}), so its bottom
      * edge is [below] pixels past the bottom edge of the seek bar ([scrubber]) showing in the one of
      * [viewers] it lies across, or of that viewer when no seek bar shows. That's where Instagram puts it
-     * over its own bar. Returns whether it moved.
+     * over its own bar. It never runs on past [floor], where the strip at the window's foot starts and a
+     * drag is the system's (#633). Returns whether it moved.
      *
      * <p>Instagram places the strip by how far the reel stops above the bottom of the screens, measured
      * as it lays them out. Back from another screen (HushGram's settings, say) it measures while its own
@@ -442,7 +443,8 @@ public final class GlassTabBar {
      * their taps. Measured before a viewer was kept above the pill, it sits over the pill's top instead.
      * A strip anchored from the top, or not laid out yet, is left alone.
      */
-    static boolean stripOnTheReel(View strip, Iterable<View> viewers, int scrubber, int below, Rect scratch) {
+    public static boolean stripOnTheReel(View strip, Iterable<View> viewers, int scrubber, int below, int floor,
+                                         Rect scratch) {
         if (strip == null || !strip.isShown() || !strip.isLaidOut() || strip.isLayoutRequested()) return false;
         if (!(strip.getLayoutParams() instanceof FrameLayout.LayoutParams)) return false;
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) strip.getLayoutParams();
@@ -465,7 +467,8 @@ public final class GlassTabBar {
         View seekBar = scrubber == 0 ? null : shownWithId(viewer, scrubber, scratch, 0);
         View anchor = seekBar != null ? seekBar : viewer;
         anchor.getLocationOnScreen(at);
-        int off = bottom - (at[1] + anchor.getHeight() + Math.max(0, below));
+        int anchorBottom = at[1] + anchor.getHeight();
+        int off = bottom - Math.max(anchorBottom, Math.min(anchorBottom + Math.max(0, below), floor));
         if (off == 0 || params.bottomMargin + off < 0) return false;
         params.bottomMargin += off;
         strip.setLayoutParams(params);
@@ -2237,7 +2240,9 @@ public final class GlassTabBar {
          * The bar counts at its full height whether it shows or Full screen Reels hides it, since a swipe up
          * from that strip still leaves the app. Measured on the viewer, since what Instagram was last told
          * about the bar says nothing once Full screen Reels hides it as the reel opens (#450). Without the
-         * window's insets, the height Instagram was answered 0 for ({@link #navUnpadded}).
+         * window's insets, the height Instagram was answered 0 for ({@link #navUnpadded}), and where the phone
+         * reports no bar, as a Samsung with its gesture hint hidden does, the height it's taken to have
+         * ({@link FullScreenBars#unreportedNavHeight}, #633).
          */
         private int navUnder(View viewer) {
             WindowInsets insets = viewer.getRootWindowInsets();
@@ -2246,6 +2251,7 @@ public final class GlassTabBar {
             int nav = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
                     ? insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars()).bottom
                     : insets.getStableInsetBottom();
+            if (nav <= 0) nav = FullScreenBars.unreportedNavHeight();
             viewer.getLocationInWindow(viewerAt);
             return intoTheNavigationBar(viewerAt[1] + viewer.getHeight(), root.getHeight(), nav);
         }
@@ -2401,7 +2407,8 @@ public final class GlassTabBar {
                 stripRef = strip == null ? null : new WeakReference<>(strip);
             }
             if (strip != null) watchTheStrip();
-            if (strip != null && stripOnTheReel(strip, viewers, id(holder.getContext(), SCRUBBER), dp(STRIP_BELOW_DP), reelsRect)) {
+            if (strip != null && stripOnTheReel(strip, viewers, id(holder.getContext(), SCRUBBER), dp(STRIP_BELOW_DP),
+                    FullScreenBars.systemStripTop(holder), reelsRect)) {
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_STRIP_KEPT);
             }
         }

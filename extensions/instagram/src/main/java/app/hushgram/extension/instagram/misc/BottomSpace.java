@@ -22,8 +22,24 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  */
 public final class BottomSpace {
     private static volatile boolean logged;
+    private static volatile int guessed;
 
     private BottomSpace() {
+    }
+
+    /**
+     * The navigation bar height Instagram last looked up for a phone that reported none, whether or not
+     * the switch dropped it, or 0 before any. A Samsung with its gesture hint hidden reports none, yet a
+     * swipe up from the screen's foot still leaves the app, so a reel's seek bar keeps clear of this
+     * much there (#633).
+     */
+    public static int guessedHeight() {
+        return guessed;
+    }
+
+    /** Forgets the last guess. */
+    static void forgetGuess() {
+        guessed = 0;
     }
 
     /**
@@ -35,6 +51,7 @@ public final class BottomSpace {
     public static int navigationBarHeight(int height) {
         try {
             HookStatus.invoked(FamilyNames.BOTTOM_SPACE);
+            if (height > 0) guessed = height;
             if (height <= 0 || !Utils.settingsReady() || !Settings.REMOVE_BOTTOM_SPACE.get()) return height;
             if (!logged) {
                 logged = true;
