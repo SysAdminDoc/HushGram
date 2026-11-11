@@ -2774,6 +2774,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reels_create_button", FALSE);
 
     /**
+     * The Create (+) button in the top bar of reels opened from Saved, the Reels grid and any
+     * collection (#620), leaving it on the Reels tab and everywhere else
+     * ({@link app.hushgram.extension.instagram.reels.ReelsTopBar}). Off to start.
+     */
+    public static final BooleanSetting HIDE_SAVED_REELS_CREATE_BUTTON =
+            new BooleanSetting("hushgram_hide_saved_reels_create_button", FALSE);
+
+    /**
      * The Your algorithm button in the top bar of the Reels tab (#217). The rest of the bar stays
      * ({@link app.hushgram.extension.instagram.reels.ReelsTopBar}). Off to start.
      */

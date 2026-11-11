@@ -126,6 +126,9 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_REELS_CREATE_BUTTON, L10n.t("Hide the Create button on reels"),
                     L10n.t("Takes the plus button that opens the camera off the top of reels, on the Reels tab and "
                             + "everywhere else, and closes up the gap. The rest of the bar stays.")));
+            reels.add(toggle(context, Settings.HIDE_SAVED_REELS_CREATE_BUTTON, L10n.t("Hide the Create button on saved reels"),
+                    L10n.t("Takes the plus button off the top of reels you open from Saved or a collection and "
+                            + "closes up the gap. The Reels tab and other reels keep theirs.")));
             reels.add(toggle(context, Settings.HIDE_REELS_YOUR_ALGORITHM, L10n.t("Hide Your algorithm on reels"),
                     L10n.t("Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The "
                             + "rest of the bar stays.")));

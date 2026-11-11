@@ -2131,3 +2131,7 @@ A reel link opens on the reel it points to. Instagram doesn't play another reel 
 Speed in the story menu	ความเร็วในเมนูสตอรี่
 # context: Summary of Speed in the story menu; Playback speed is the row's own label (#621)
 Adds Playback speed to the menu a video story's three dots open, with the same 1x, 1.5x and 2x, and keeps the speed button off the story. Later video stories keep the speed you pick until you change it or restart Instagram.	เพิ่ม "ความเร็วในการเล่น" ลงในเมนูที่เปิดจากจุดสามจุดของสตอรี่วิดีโอ โดยมี 1x, 1.5x และ 2x เหมือนเดิม และนำปุ่มความเร็วออกจากสตอรี่ สตอรี่วิดีโอถัดไปจะคงความเร็วที่คุณเลือกไว้จนกว่าคุณจะเปลี่ยนหรือรีสตาร์ท Instagram
+# context: Reels settings: hides the Create (+) button only on reels opened from Saved or a saved collection (#620)
+Hide the Create button on saved reels	ซ่อนปุ่มสร้างในรีลส์ที่บันทึกไว้
+# context: Summary of Hide the Create button on saved reels; Saved is Instagram's own Saved page (#620)
+Takes the plus button off the top of reels you open from Saved or a collection and closes up the gap. The Reels tab and other reels keep theirs.	นำปุ่มเครื่องหมายบวกออกจากด้านบนของรีลส์ที่คุณเปิดจากรายการที่บันทึกไว้หรือคอลเลกชัน พร้อมทั้งปิดช่องว่าง แท็บรีลส์และรีลส์อื่นๆ ยังคงมีปุ่มนี้อยู่

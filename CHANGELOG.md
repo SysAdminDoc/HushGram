@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Hide the Create button on saved reels` sits under `Hide the Create button on reels` in Reels. It takes the plus button off the top of reels you open from Saved or a collection and leaves it on the Reels tab and everywhere else. Starts off. Asked for in #620.
 * `Speed in the story menu` sits under `Speed button on stories` in Stories. It puts Playback speed in the menu a video story's three dots open, with the same 1x, 1.5x and 2x, and takes the speed button off the story. The story waits while you pick. It needs `Download any story` in your build. Starts off. Asked for in #621.
 * `Keep photo locations from Instagram` under Ads and privacy stops Instagram reading where the photos and videos in your gallery were taken. Starts off. Asked for in #628.
 * `Keep profile history` under Profiles remembers each profile's username, bio and picture, on your phone only. A toast says when one changed, and `Profile changes` lists every old one with a search box. Asked for in #590 and #611.

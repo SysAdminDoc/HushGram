@@ -77,6 +77,7 @@ public class ReelsTopBarTest {
         PauseForTests.resume();
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
         Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
@@ -107,6 +108,7 @@ public class ReelsTopBarTest {
         controller.pause().stop().destroy();
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
         Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
@@ -536,6 +538,72 @@ public class ReelsTopBarTest {
         assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_CREATE_HID, 2));
     }
 
+    /** #620: the saved reels switch takes Create only off reels opened from Saved or a collection. */
+    @Test public void savedCreateGoesOnlyFromReelsOpenedFromSaved() {
+        assertFalse("starts off", Settings.HIDE_SAVED_REELS_CREATE_BUTTON.get());
+        Row grid = showRow(ClipsViewerSource.CLIPS_SAVED_TAB);
+        Row collection = showRow(ClipsViewerSource.SAVE_COLLECTION);
+        Row prime = showRow(ClipsViewerSource.PRIME_SAVED_COLLECTION);
+        Row tab = showRow(ClipsViewerSource.CLIPS_TAB);
+        Row profile = showRow(ClipsViewerSource.PROFILE_CLIPS);
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(true);
+        ReelsTopBar.Session session = track();
+        layout();
+        for (Row row : new Row[] {grid, collection, prime}) {
+            assertEquals("gone, not just invisible", View.GONE, row.create.getVisibility());
+            assertEquals("the bar stays", View.VISIBLE, row.bar.getVisibility());
+            assertTrue("Your algorithm stays", row.algorithm.isShown());
+            assertTrue("Search stays", row.search.isShown());
+            assertEquals("the gap closes", 0, row.algorithm.getLeft());
+        }
+        for (Row row : new Row[] {tab, profile}) {
+            assertTrue("the Reels tab and other reels keep Create", row.create.isShown());
+            assertEquals(2 * CAMERA_SIZE, row.search.getLeft());
+        }
+        assertEquals(3, session.hiddenCount());
+        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_SAVED_CREATE_HID, 3));
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelsTopBar.COUNT_CREATE_HID));
+
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(false);
+        focusBack();
+        for (Row row : new Row[] {grid, collection, prime}) {
+            assertEquals("Create is back", View.VISIBLE, row.create.getVisibility());
+        }
+        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_BUTTON_PUT_BACK, 3));
+    }
+
+    @Test public void aSavedBarNotBoundYetKeepsCreateUntilItIs() {
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(true);
+        Row saved = showRow(null);
+        ReelsTopBar.Session session = track();
+        assertTrue("its viewer isn't known yet, so Create stays", saved.create.isShown());
+        saved.bar.bind(ClipsViewerSource.CLIPS_SAVED_TAB);
+        idle(ReelsTopBar.LOOK_MS * 2);
+        frame();
+        idle(ReelsTopBar.LOOK_MS * 2);
+        assertEquals("bound with no layout, it's still found", View.GONE, saved.create.getVisibility());
+        assertEquals(1, session.hiddenCount());
+    }
+
+    @Test public void withBothCreateSwitchesASavedReelKeepsItsHiddenUntilBothAreOff() {
+        Row saved = showRow(ClipsViewerSource.SAVE_COLLECTION);
+        Row tab = showRow(ClipsViewerSource.CLIPS_TAB);
+        Settings.HIDE_REELS_CREATE_BUTTON.save(true);
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(true);
+        track();
+        assertEquals(View.GONE, saved.create.getVisibility());
+        assertEquals(View.GONE, tab.create.getVisibility());
+
+        Settings.HIDE_REELS_CREATE_BUTTON.save(false);
+        focusBack();
+        assertEquals("the Reels tab's Create is back", View.VISIBLE, tab.create.getVisibility());
+        assertEquals("the saved reel's stays gone", View.GONE, saved.create.getVisibility());
+
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(false);
+        focusBack();
+        assertEquals(View.VISIBLE, saved.create.getVisibility());
+    }
+
     @Test public void yourAlgorithmGoesAloneAndTheRestStays() {
         Row tab = showRow(ClipsViewerSource.CLIPS_TAB);
         Settings.HIDE_REELS_YOUR_ALGORITHM.save(true);
@@ -701,9 +769,11 @@ public class ReelsTopBarTest {
 
     @Test public void theButtonSwitchesStartOffAndAreInTheCleanUpReelsFamily() {
         assertFalse(Settings.HIDE_REELS_CREATE_BUTTON.defaultValue);
+        assertFalse(Settings.HIDE_SAVED_REELS_CREATE_BUTTON.defaultValue);
         assertFalse(Settings.HIDE_REELS_YOUR_ALGORITHM.defaultValue);
         assertFalse(Settings.HIDE_REELS_FRIENDS_TAB.defaultValue);
         assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_REELS_CREATE_BUTTON));
+        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_SAVED_REELS_CREATE_BUTTON));
         assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_REELS_YOUR_ALGORITHM));
         assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_REELS_FRIENDS_TAB));
     }
