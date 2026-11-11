@@ -33,6 +33,7 @@ public class VideoSurfaceTest {
                 Settings.TURN_OFF_HDR_BOOSTS,
                 Settings.GLASS_TAB_BAR,
                 Settings.GLASS_CHAT,
+                Settings.GLASS_STORY_REPLY_BOX,
                 Settings.SEE_THROUGH_HOME_TOP_BAR,
                 Settings.BLUR_REEL_BARS,
                 Settings.AMBIENT_LIGHT,
@@ -78,6 +79,7 @@ public class VideoSurfaceTest {
         assertKeptFor(Settings.GLASS_TAB_BAR, FamilyNames.GLASS_TAB_BAR);
         assertKeptFor(Settings.SEE_THROUGH_HOME_TOP_BAR, FamilyNames.HOME_TOP_BAR);
         assertKeptFor(Settings.GLASS_CHAT, FamilyNames.GLASS_CHAT);
+        assertKeptFor(Settings.GLASS_STORY_REPLY_BOX, FamilyNames.GLASS_CHAT);
     }
 
     /** The reel bars' blur and ambient light copy pixels from a TextureView and find none on a SurfaceView. */

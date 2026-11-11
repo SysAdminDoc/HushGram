@@ -56,7 +56,7 @@ public final class VideoSurface {
     private static String asking() {
         if (Settings.TURN_OFF_HDR_BOOSTS.get()) return FamilyNames.HDR_BOOST;
         if (Settings.GLASS_TAB_BAR.get()) return FamilyNames.GLASS_TAB_BAR;
-        if (Settings.GLASS_CHAT.get()) return FamilyNames.GLASS_CHAT;
+        if (Settings.GLASS_CHAT.get() || Settings.GLASS_STORY_REPLY_BOX.get()) return FamilyNames.GLASS_CHAT;
         if (Settings.SEE_THROUGH_HOME_TOP_BAR.get()) return FamilyNames.HOME_TOP_BAR;
         if (Settings.BLUR_REEL_BARS.get()) return FamilyNames.REEL_BLUR_BARS;
         if (Settings.AMBIENT_LIGHT.get() || Settings.AMBIENT_LIGHT_STORIES.get()) return FamilyNames.AMBIENT_LIGHT;

@@ -28,7 +28,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Glass in chats (#449): a switch under Messages, off to start. */
+/** Glass in chats (#449): a switch under Messages, and the stories' reply box one under Stories (#391), off to start. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -60,7 +60,7 @@ public class GlassChatSettingsTest {
         Utils.awaitBackgroundTasksForTests();
     }
     private static BooleanSetting[] all() {
-        return new BooleanSetting[]{Settings.GLASS_CHAT};
+        return new BooleanSetting[]{Settings.GLASS_CHAT, Settings.GLASS_STORY_REPLY_BOX};
     }
     private static void resetAll() {
         for (BooleanSetting each : all()) each.resetToDefault();
@@ -69,9 +69,10 @@ public class GlassChatSettingsTest {
         open(false);
         for (BooleanSetting each : all()) assertNull(page.getPreferenceScreen().findPreference(each.key));
     }
-    @Test public void theSwitchesSitUnderMessagesAndStartOff() throws Exception {
+    @Test public void theSwitchesSitUnderMessagesAndStoriesAndStartOff() throws Exception {
         open(true);
-        String[] titles = {"Glass in chats"};
+        String[] titles = {"Glass in chats", "Glass reply box on stories"};
+        String[] sections = {"Messages", "Stories"};
         BooleanSetting[] switches = all();
         for (int i = 0; i < switches.length; i++) {
             SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(switches[i].key);
@@ -79,7 +80,7 @@ public class GlassChatSettingsTest {
             assertEquals(titles[i], row.getTitle().toString());
             PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
             assertNotNull(section);
-            assertEquals("Messages", section.getTitle().toString());
+            assertEquals(sections[i], section.getTitle().toString());
             assertFalse(row.isChecked());
             assertFalse(switches[i].get());
             assertTrue(ConfigurationBackup.eligible().containsKey(switches[i].key));

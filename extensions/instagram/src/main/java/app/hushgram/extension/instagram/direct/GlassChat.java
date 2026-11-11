@@ -53,11 +53,17 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * header shows its tint over the chat's own colour. Each button gets a disc behind it, over whatever
  * background it had, which the disc keeps and gives back.
  *
+ * <p>The chat's message bar takes the glass too, as a pill over Instagram's own (#391), blurring the messages
+ * that scroll under it. With Glass reply box on stories, the Send message box on each story page the viewer
+ * holds takes it as well, blurring the story behind it. Both are found by name the same way, and the boxes
+ * are looked for again every {@link #SEARCH_EVERY_MS}, since the viewer adds a page for each person.
+ *
  * <p>Off, paused or anything thrown: the glass comes off the header by its own check, the discs come
  * off here and Instagram's header is as it was.
  */
 public final class GlassChat {
     static final String HOOK = "chat header glass";
+    static final String STORY_HOOK = "story reply box glass";
     static final String COUNT_HEADERS = "chat headers found";
     static final String COUNT_DISCS = "chat buttons given a disc";
 
@@ -65,6 +71,15 @@ public final class GlassChat {
     static final String BACK = "header_left_button";
     static final String BUTTONS = "header_right_buttons";
     static final String CHAT = "thread_view_root";
+    /** The message bar's pill, and the view drawing the messages before the bar. */
+    static final String MESSAGE_BOX = "blurred_text_area_background";
+    static final String MESSAGES = "direct_thread_content_below_action_bar";
+    /** The story viewer, one person's page in it, which draws the story first, and the page's reply box. */
+    static final String STORY_VIEWER = "reel_viewer_root";
+    static final String STORY_PAGE = "reel_view_group";
+    static final String STORY_BOX = "message_composer_container";
+    /** How deep into the story viewer its reply boxes are looked for. */
+    static final int STORY_DEPTH = 24;
 
     /**
      * How many parents up from the chat's root the header's buttons are looked for. Instagram 453 puts the
@@ -100,8 +115,11 @@ public final class GlassChat {
     private static WeakReference<Activity> watched = new WeakReference<>(null);
     private static ViewTreeObserver.OnPreDrawListener drawListener;
     private static WeakReference<View> header = new WeakReference<>(null);
+    private static WeakReference<View> messageBox = new WeakReference<>(null);
     private static final List<WeakReference<View>> discs = new ArrayList<>();
     private static long searchedAt = -SEARCH_EVERY_MS;
+    private static long boxSearchedAt = -SEARCH_EVERY_MS;
+    private static long storiesSearchedAt = -SEARCH_EVERY_MS;
     private static boolean counted;
 
     /** Ids by name, misses included: they don't change while the process runs. */
@@ -128,6 +146,11 @@ public final class GlassChat {
         return Utils.settingsReady() && Settings.GLASS_CHAT.get();
     }
 
+    /** Whether the glass on the stories' reply box is wanted now. */
+    static boolean storiesOn() {
+        return Utils.settingsReady() && Settings.GLASS_STORY_REPLY_BOX.get();
+    }
+
     private static int id(Context context, String name) {
         Map<String, Integer> forTests = idsForTests;
         if (forTests != null) {
@@ -142,8 +165,20 @@ public final class GlassChat {
         return known;
     }
 
-    /** Looks at the activity's chat header before a frame: gives it the glass, or takes it away. Never throws. */
+    /**
+     * Looks at the activity's chat header before a frame: gives it the glass, or takes it away. Then the reply
+     * boxes on stories. Never throws.
+     */
     static void check(Activity activity) {
+        checkChat(activity);
+        try {
+            if (storiesOn()) glazeStories(activity);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_CHAT, STORY_HOOK, failure);
+        }
+    }
+
+    private static void checkChat(Activity activity) {
         try {
             if (!on()) {
                 restore();
@@ -160,6 +195,8 @@ public final class GlassChat {
             View found = find(activity);
             if (found == null) {
                 restore();
+                // Not again before the next search is due, so a screen with no chat isn't searched every frame.
+                searchedAt = now;
                 return;
             }
             header = new WeakReference<>(found);
@@ -220,8 +257,51 @@ public final class GlassChat {
         return false;
     }
 
+    /**
+     * Gives the reply box on each story page the viewer holds the glass (#391), looking again every
+     * {@link #SEARCH_EVERY_MS} for the pages it adds.
+     */
+    static void glazeStories(Activity activity) {
+        long now = SystemClock.uptimeMillis();
+        if (now - storiesSearchedAt < SEARCH_EVERY_MS) return;
+        storiesSearchedAt = now;
+        int viewer = id(activity, STORY_VIEWER);
+        int page = id(activity, STORY_PAGE);
+        int box = id(activity, STORY_BOX);
+        if (viewer == 0 || page == 0 || box == 0) return;
+        View root = activity.findViewById(viewer);
+        if (root == null || !root.isShown()) return;
+        List<View> boxes = new ArrayList<>();
+        collect(root, box, boxes, 0);
+        if (boxes.isEmpty()) return;
+        HookStatus.invoked(FamilyNames.GLASS_CHAT);
+        for (View found : boxes) GlassTopBar.glazeBox(found, page, true, GlassChat::storiesOn, FamilyNames.GLASS_CHAT);
+    }
+
+    private static void collect(View at, int id, List<View> into, int depth) {
+        if (at.getId() == id) into.add(at);
+        if (!(at instanceof ViewGroup) || depth >= STORY_DEPTH) return;
+        ViewGroup group = (ViewGroup) at;
+        for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), id, into, depth + 1);
+    }
+
+    /** The chat's message bar pill, looked for every {@link #SEARCH_EVERY_MS} while there's none. */
+    @Nullable
+    private static View messageBox(Activity activity) {
+        View known = messageBox.get();
+        if (known != null && known.isAttachedToWindow()) return known;
+        long now = SystemClock.uptimeMillis();
+        if (now - boxSearchedAt < SEARCH_EVERY_MS) return null;
+        boxSearchedAt = now;
+        int id = id(activity, MESSAGE_BOX);
+        View found = id == 0 ? null : activity.findViewById(id);
+        messageBox = new WeakReference<>(found);
+        return found;
+    }
+
     private static void dress(View container, Activity activity) {
         GlassTopBar.glazeChat(container, GlassChat::on);
+        GlassTopBar.glazeBox(messageBox(activity), id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT);
         boolean night = (container.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
         float density = container.getResources().getDisplayMetrics().density;
@@ -260,7 +340,9 @@ public final class GlassChat {
         }
         discs.clear();
         header = new WeakReference<>(null);
+        messageBox = new WeakReference<>(null);
         searchedAt = -SEARCH_EVERY_MS;
+        boxSearchedAt = -SEARCH_EVERY_MS;
     }
 
     /**
@@ -386,6 +468,7 @@ public final class GlassChat {
         ViewTreeObserver.OnPreDrawListener listener = drawListener;
         drawListener = null;
         watched = new WeakReference<>(null);
+        storiesSearchedAt = -SEARCH_EVERY_MS;
         try {
             restore();
             if (activity == null || listener == null) return;

@@ -225,8 +225,8 @@ final class MessagesCategory {
             }
             if (build.contains(PatchFamily.GLASS_CHAT)) {
                 messages.addPreference(toggle(context, Settings.GLASS_CHAT, L10n.t("Glass in chats"),
-                        L10n.t("Gives a chat's top bar frosted glass and puts the back, call and video buttons on round "
-                                + "glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.")));
+                        L10n.t("Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons "
+                                + "on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.")));
             }
             if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
                 messages.addPreference(toggle(context, Settings.FULL_SCREEN_MESSAGES, L10n.t("Full screen Messages"),

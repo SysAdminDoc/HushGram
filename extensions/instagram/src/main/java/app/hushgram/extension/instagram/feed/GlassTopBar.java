@@ -12,6 +12,7 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -64,10 +65,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>On Home the feed is also taken behind the status bar and the glass reaches up over it (#462), see
  * {@link GlassReach}. While the glass tab bar is on, Home's header takes the pill's sheen too, and its rim
  * bend along the bottom edge while the pill's bends (#513).
+ *
+ * <p>A message box, a chat's message bar or the reply box on a story, takes the same glass as a pill (#391),
+ * see {@link #glazeBox}.
  */
 public final class GlassTopBar {
     static final String HOOK = "top bar glass";
     static final String COUNT_GLAZED = "top bar glazed";
+    static final String COUNT_BOXES = "message boxes glazed";
     /** The backdrop is recorded at this fraction of its size and blurred there, like the glass tab bar's. */
     static final int DOWNSAMPLE = 4;
     /** The hairline along the bottom of a dark bar, and of a light one. */
@@ -77,6 +82,8 @@ public final class GlassTopBar {
     private static final int CLEAR_DEPTH = 3;
     /** How many parents up from the header the one drawing the feed before it is looked for. */
     static final int HOST_DEPTH = 6;
+    /** How many parents up from a message box the view drawing what's under it is looked for. */
+    static final int BOX_DEPTH = 8;
     /** How deep into the header a view drawing inside it is looked for, before it's taken that one does. */
     private static final int SHOWN_DEPTH = 6;
 
@@ -115,12 +122,51 @@ public final class GlassTopBar {
         }
     }
 
+    /**
+     * Gives a message box, [box], the glass as a pill while [on] says so (#391): a chat's message bar or the
+     * reply box on a story. The glass records what the view with the id [source] draws before the view holding
+     * the box, the messages or the story, and [dark] keeps it dark whatever the theme, as the story viewer is.
+     * A box with views in it takes the glass behind them, under the background it had, so an outline it draws
+     * stays. A box with none, a picture of the pill, takes the glass over that picture. Never throws. Done once
+     * per box.
+     */
+    public static void glazeBox(@Nullable View box, int source, boolean dark, BooleanSupplier on, String family) {
+        try {
+            if (box == null || source == 0 || !on.getAsBoolean() || under(box, source) == null || !GLAZED.add(box)) return;
+            listen(new Glass(box, on, family, source, dark));
+            HookStatus.counted(family, COUNT_BOXES);
+        } catch (Throwable failure) {
+            HookStatus.threw(family, HOOK, failure);
+        }
+    }
+
     private static void attach(View header, BooleanSupplier on, String family) {
         if (!GLAZED.add(header)) return;
-        Glass glass = new Glass(header, on, family);
-        header.addOnAttachStateChangeListener(glass);
-        if (header.isAttachedToWindow()) glass.onViewAttachedToWindow(header);
+        listen(new Glass(header, on, family, 0, false));
         HookStatus.counted(family, COUNT_GLAZED);
+    }
+
+    private static void listen(Glass glass) {
+        glass.header.addOnAttachStateChangeListener(glass);
+        if (glass.header.isAttachedToWindow()) glass.onViewAttachedToWindow(glass.header);
+    }
+
+    /** Whether the message box [box] has the glass showing now. */
+    public static boolean boxShowing(View box) {
+        return box.getBackground() instanceof Frost || box.getForeground() instanceof Frost;
+    }
+
+    /** The view holding [box] whose parent has the id [source], at most {@link #BOX_DEPTH} up, or null. */
+    @Nullable
+    static View under(View box, int source) {
+        View at = box;
+        for (int depth = 0; depth < BOX_DEPTH; depth++) {
+            ViewParent up = at.getParent();
+            if (!(up instanceof ViewGroup)) return null;
+            if (((ViewGroup) up).getId() == source) return at;
+            at = (View) up;
+        }
+        return null;
     }
 
     static boolean switchedOn() {
@@ -266,6 +312,12 @@ public final class GlassTopBar {
         final boolean lined;
         /** Whether this is Home's header, which takes the glass tab bar's sheen and rim bend (#513). */
         final boolean followsTabBar;
+        /** For a message box, the id of the view drawing what's under it (#391). 0 for a header. */
+        final int sourceId;
+        /** Whether a message box's glass stays dark whatever the theme. */
+        private final boolean dark;
+        /** Whether a message box takes the glass over itself, as a foreground, and not as its background. */
+        final boolean over;
         @Nullable private GlassLens rim;
         private final RectF rimBox = new RectF();
         /** How many times the rim bend was asked for. Read by tests. */
@@ -292,14 +344,30 @@ public final class GlassTopBar {
         private int lastWidth;
         private int lastHeight;
 
-        Glass(View header, BooleanSupplier enabled, String family) {
+        Glass(View header, BooleanSupplier enabled, String family, int sourceId, boolean dark) {
             this.header = header;
             this.enabled = enabled;
             this.family = family;
-            this.lined = !FamilyNames.GLASS_CHAT.equals(family);
-            this.followsTabBar = FamilyNames.HOME_TOP_BAR.equals(family);
+            this.sourceId = sourceId;
+            this.dark = dark;
+            this.over = sourceId != 0 && !(header instanceof ViewGroup);
+            boolean home = sourceId == 0 && FamilyNames.HOME_TOP_BAR.equals(family);
+            this.lined = sourceId == 0 && !FamilyNames.GLASS_CHAT.equals(family);
+            this.followsTabBar = home;
             this.frost = new Frost(this, header.getResources().getDisplayMetrics().density);
-            this.reach = FamilyNames.HOME_TOP_BAR.equals(family) ? new GlassReach() : null;
+            this.reach = home ? new GlassReach() : null;
+        }
+
+        /** The view whose parent draws what's under the glass, under that parent: see {@link #host} and {@link #under}. */
+        @Nullable
+        View host() {
+            return sourceId == 0 ? GlassTopBar.host(header) : under(header, sourceId);
+        }
+
+        /** The background a message box had, drawn over its glass, or null when there's none to keep. */
+        @Nullable
+        Drawable kept() {
+            return sourceId == 0 || over ? null : original;
         }
 
         @Override
@@ -347,13 +415,21 @@ public final class GlassTopBar {
         }
 
         private void putOn() {
-            Drawable now = header.getBackground();
+            boolean night = (header.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+                    == Configuration.UI_MODE_NIGHT_YES;
+            Drawable now = over ? header.getForeground() : header.getBackground();
             if (now != frost) {
                 original = now;
-                header.setBackground(frost);
+                if (over) header.setForeground(frost);
+                else header.setBackground(frost);
             }
             on = true;
-            View host = host(header);
+            if (sourceId != 0) {
+                // A message box keeps what's round it as it is: the glass is only the pill.
+                base = dark || night ? Color.BLACK : Color.WHITE;
+                return;
+            }
+            View host = host();
             int wide = header.getWidth();
             // The views wrapped round the header, then the header's own, down to CLEAR_DEPTH.
             for (View at = header; host != null && at != host; ) {
@@ -361,8 +437,6 @@ public final class GlassTopBar {
                 clear(at, wide);
             }
             if (header instanceof ViewGroup) clearIn((ViewGroup) header, wide, 1);
-            boolean night = (header.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
-                    == Configuration.UI_MODE_NIGHT_YES;
             base = base(original, cleared.values(), night);
             int wasAbove = above;
             int wasBelow = below;
@@ -419,7 +493,11 @@ public final class GlassTopBar {
         private void takeOff() {
             if (!on) return;
             on = false;
-            if (header.getBackground() == frost) header.setBackground(original);
+            if (over) {
+                if (header.getForeground() == frost) header.setForeground(original);
+            } else if (header.getBackground() == frost) {
+                header.setBackground(original);
+            }
             for (Map.Entry<View, Drawable> entry : cleared.entrySet()) {
                 if (entry.getKey().getBackground() == null) entry.getKey().setBackground(entry.getValue());
             }
@@ -448,7 +526,7 @@ public final class GlassTopBar {
          */
         @RequiresApi(Build.VERSION_CODES.S)
         private void record(long now) {
-            View host = host(header);
+            View host = host();
             if (host == null) {
                 recorded = false;
                 return;
@@ -592,6 +670,10 @@ public final class GlassTopBar {
         private final Paint sheen = new Paint();
         private final Rect area = new Rect();
         private final int hairline;
+        /** A message box's pill, and the hairline rim round it (#391). */
+        private final Path pill = new Path();
+        private final RectF pillBox = new RectF();
+        private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
         private int sheenTop = Integer.MIN_VALUE;
         private int sheenBottom;
         private boolean sheenDark;
@@ -601,12 +683,18 @@ public final class GlassTopBar {
         Frost(Glass glass, float density) {
             this.glass = glass;
             this.hairline = Math.max(1, Math.round(density / 2f));
+            rim.setStyle(Paint.Style.STROKE);
+            rim.setStrokeWidth(Math.max(1f, density / 2f));
         }
 
         @Override
         public void draw(Canvas canvas) {
             Rect bounds = getBounds();
             if (bounds.isEmpty()) return;
+            if (glass.sourceId != 0) {
+                drawPill(canvas, bounds);
+                return;
+            }
             int base = glass.base;
             // Past the header's edges over the status bar: nothing clips a background's own node there.
             if (glass.hollow) area.set(bounds.left, bounds.top + glass.stripTop, bounds.right, bounds.top + glass.stripBottom);
@@ -627,6 +715,34 @@ public final class GlassTopBar {
             if (!glass.lined) return;
             paint.setColor(hairline(base));
             canvas.drawRect(area.left, area.bottom - hairline, area.right, area.bottom, paint);
+        }
+
+        /**
+         * A message box's glass (#391): the blur and tint inside a pill with fully round ends, a hairline rim round
+         * it, then the box's own background over it, so an outline Instagram draws on it stays.
+         */
+        private void drawPill(Canvas canvas, Rect bounds) {
+            float radius = bounds.height() / 2f;
+            pillBox.set(bounds);
+            pill.rewind();
+            pill.addRoundRect(pillBox, radius, radius, Path.Direction.CW);
+            int saved = canvas.save();
+            try {
+                canvas.clipPath(pill);
+                boolean blurred = glass.drawBackdrop(canvas, bounds);
+                paint.setColor(GlassTabBar.tint(glass.base, blurred, GlassTabBar.opacityScale()));
+                canvas.drawRect(bounds, paint);
+            } finally {
+                canvas.restoreToCount(saved);
+            }
+            float inset = rim.getStrokeWidth() / 2f;
+            pillBox.inset(inset, inset);
+            rim.setColor(hairline(glass.base));
+            canvas.drawRoundRect(pillBox, radius - inset, radius - inset, rim);
+            Drawable kept = glass.kept();
+            if (kept == null) return;
+            kept.setBounds(bounds);
+            kept.draw(canvas);
         }
 
         /** Makes the sheen's gradient again when the glass's top, bottom or shade changed. */

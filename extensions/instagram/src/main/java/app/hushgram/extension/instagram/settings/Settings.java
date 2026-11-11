@@ -980,6 +980,8 @@ public class Settings extends BaseSettings {
      * ({@link app.hushgram.extension.instagram.direct.GlassChat}, #449). Off to start.
      */
     public static final BooleanSetting GLASS_CHAT = new BooleanSetting("hushgram_glass_chat", FALSE);
+    /** The Send message box on other people's stories takes the same glass, as a pill (#391). Off to start. */
+    public static final BooleanSetting GLASS_STORY_REPLY_BOX = new BooleanSetting("hushgram_glass_story_reply_box", FALSE);
 
     /** The message bar's gallery and microphone buttons move into the plus menu. Off to start. */
     public static final BooleanSetting MOVE_TO_PLUS_MENU = new BooleanSetting("hushgram_move_to_plus_menu", FALSE);

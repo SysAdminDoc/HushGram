@@ -1054,6 +1054,9 @@ A swipe up on someone's story no longer opens the reply box and its reactions. T
 # context: Stories switch; Send message is Instagram's reply field at the bottom of someone else's story, beside its heart (like) and share buttons. Use Instagram's own label for it.
 Hide the reply box on stories	Ocultar a caixa de resposta nos stories
 Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are.	Tira a caixa Enviar mensagem da parte de baixo dos stories de outras pessoas. Os botões de curtir e compartilhar ao lado continuam no mesmo lugar.
+# context: Stories switch (#391); Send message is Instagram's reply field at the bottom of someone else's story. Use Instagram's own label for it.
+Glass reply box on stories	Vidro na caixa de resposta dos stories
+Gives the Send message box on other people's stories frosted glass, so it's easy to read over any story. Needs Android 12 or newer for the blur.	Dá à caixa Enviar mensagem nos stories de outras pessoas um vidro fosco, para ficar fácil de ler sobre qualquer story. O desfoque exige Android 12 ou mais recente.
 # context: Stories switches; Like (the heart), Comment (the speech bubble) and Share (the paper plane) are Instagram's buttons at the bottom of someone else's story, beside the Send message box. Use Instagram's own labels for them.
 Hide the Like button on stories	Ocultar o botão Curtir nos stories
 Takes the heart off the bottom of other people's stories, so nothing gets liked by mistake. No empty space is left behind.	Tira o coração da parte de baixo dos stories de outras pessoas, para nada ser curtido sem querer. Não fica nenhum espaço vazio.
@@ -1692,7 +1695,7 @@ Add to home screen	Adicionar à tela inicial
 Couldn't read that picture.	Não foi possível ler a imagem.
 This launcher can't add it.	Este launcher não pode adicioná-lo.
 Glass in chats	Vidro nos chats
-Gives a chat's top bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	Dá à barra superior de um chat um vidro fosco e coloca os botões de voltar, ligação e vídeo em círculos de vidro. Aparece na próxima vez que você abrir um chat. O desfoque exige Android 12 ou mais recente.
+Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	Dá à barra superior e à barra de mensagem de um chat um vidro fosco e coloca os botões de voltar, ligação e vídeo em círculos de vidro. Aparece na próxima vez que você abrir um chat. O desfoque exige Android 12 ou mais recente.
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	Ocultar reels com poucas visualizações
 Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	Deixa de fora, na aba Reels, os reels com menos visualizações ou curtidas que os números abaixo. Reels de contas que você segue, reels enviados a você e reels sem contagem continuam aparecendo.

@@ -174,6 +174,11 @@ final class StoriesCategory {
                     L10n.t("Takes the paper plane off the bottom of other people's stories. No empty space is "
                             + "left behind.")));
         }
+        if (build.contains(PatchFamily.GLASS_CHAT)) {
+            stories.add(toggle(context, Settings.GLASS_STORY_REPLY_BOX, L10n.t("Glass reply box on stories"),
+                    L10n.t("Gives the Send message box on other people's stories frosted glass, so it's easy to read "
+                            + "over any story. Needs Android 12 or newer for the blur.")));
+        }
         if (build.contains(PatchFamily.STORY_BUTTONS_ROOM)) {
             stories.add(toggle(context, Settings.KEEP_STORY_BUTTONS_BELOW, L10n.t("Keep story buttons below the story"),
                     L10n.t("With a large font or display size, the reply box and buttons at the bottom of a story "

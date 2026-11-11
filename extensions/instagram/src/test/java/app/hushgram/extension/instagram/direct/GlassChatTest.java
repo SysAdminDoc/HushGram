@@ -17,6 +17,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -45,16 +47,26 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Glass in chats (#449): the chat's header gets the glass and its buttons discs, and it all comes off again. */
+/**
+ * Glass in chats (#449): the chat's header gets the glass and its buttons discs, the message bar and the stories'
+ * reply boxes a pill of it (#391), and it all comes off again.
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class GlassChatTest {
     private static final int WIDE = 1080;
     private static final int TALL = 2000;
     private static final int HEADER = 150;
+    private static final int BAR = 140;
     private static final int ROOT_ID = 0x7f000001;
     private static final int BACK_ID = 0x7f000002;
     private static final int BUTTONS_ID = 0x7f000003;
+    private static final int MESSAGES_ID = 0x7f000004;
+    private static final int PILL_ID = 0x7f000005;
+    private static final int VIEWER_ID = 0x7f000006;
+    private static final int PAGE_ID = 0x7f000007;
+    private static final int STORY_BOX_ID = 0x7f000008;
+    private static final int MATCH = ViewGroup.LayoutParams.MATCH_PARENT;
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
@@ -96,19 +108,26 @@ public class GlassChatTest {
         ids.put(GlassChat.CHAT, ROOT_ID);
         ids.put(GlassChat.BACK, BACK_ID);
         ids.put(GlassChat.BUTTONS, BUTTONS_ID);
+        ids.put(GlassChat.MESSAGES, MESSAGES_ID);
+        ids.put(GlassChat.MESSAGE_BOX, PILL_ID);
+        ids.put(GlassChat.STORY_VIEWER, VIEWER_ID);
+        ids.put(GlassChat.STORY_PAGE, PAGE_ID);
+        ids.put(GlassChat.STORY_BOX, STORY_BOX_ID);
         GlassChat.idsForTests = ids;
-        GlassChat.restore();
+        // Takes the discs off and forgets when the stories were last searched.
+        GlassChat.unfollow();
     }
 
     @After
     public void restore() {
-        GlassChat.restore();
+        GlassChat.unfollow();
         GlassChat.idsForTests = null;
         resetAll();
     }
 
     private static void resetAll() {
         Settings.GLASS_CHAT.resetToDefault();
+        Settings.GLASS_STORY_REPLY_BOX.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -130,9 +149,162 @@ public class GlassChatTest {
         return button.getBackground() instanceof GlassChat.Rim;
     }
 
+    /**
+     * Instagram 454's message bar: the messages, then the bar holding the picture of its grey pill, in the view
+     * drawing the messages before the bar.
+     */
+    private ImageView messageBar() {
+        FrameLayout below = new FrameLayout(activity);
+        below.setId(MESSAGES_ID);
+        FrameLayout bar = new FrameLayout(activity);
+        ImageView pill = new ImageView(activity);
+        pill.setId(PILL_ID);
+        pill.setBackgroundColor(Color.GRAY);
+        bar.addView(pill, new FrameLayout.LayoutParams(MATCH, BAR));
+        below.addView(new View(activity), new FrameLayout.LayoutParams(MATCH, MATCH));
+        below.addView(bar, new FrameLayout.LayoutParams(MATCH, BAR, Gravity.BOTTOM));
+        root.addView(below, 1, new FrameLayout.LayoutParams(MATCH, MATCH));
+        layout();
+        return pill;
+    }
+
+    private FrameLayout storyViewer() {
+        FrameLayout viewer = new FrameLayout(activity);
+        viewer.setId(VIEWER_ID);
+        root.addView(viewer, new FrameLayout.LayoutParams(MATCH, MATCH));
+        return viewer;
+    }
+
+    /** One person's page in Instagram 454's story viewer: the story, then a footer with the reply box and its text. */
+    private FrameLayout storyBox(FrameLayout viewer) {
+        FrameLayout page = new FrameLayout(activity);
+        page.setId(PAGE_ID);
+        FrameLayout footer = new FrameLayout(activity);
+        FrameLayout box = new FrameLayout(activity);
+        box.setId(STORY_BOX_ID);
+        box.setBackground(outline());
+        box.addView(new View(activity), new FrameLayout.LayoutParams(600, BAR));
+        footer.addView(box, new FrameLayout.LayoutParams(800, BAR));
+        page.addView(new View(activity), new FrameLayout.LayoutParams(MATCH, MATCH));
+        page.addView(footer, new FrameLayout.LayoutParams(MATCH, 170, Gravity.BOTTOM));
+        viewer.addView(page, new FrameLayout.LayoutParams(MATCH, MATCH));
+        return box;
+    }
+
+    /** The reply box's own look: a thin light outline round a clear pill. */
+    private static GradientDrawable outline() {
+        GradientDrawable outline = new GradientDrawable();
+        outline.setColor(Color.TRANSPARENT);
+        outline.setCornerRadius(500f);
+        outline.setStroke(4, 0x99ffffff);
+        return outline;
+    }
+
     @Test
-    public void theSwitchStartsOff() {
+    public void theSwitchesStartOff() {
         assertEquals(Boolean.FALSE, Settings.GLASS_CHAT.defaultValue);
+        assertEquals(Boolean.FALSE, Settings.GLASS_STORY_REPLY_BOX.defaultValue);
+    }
+
+    /** #391: the message bar takes the glass over Instagram's grey pill, which is a picture with nothing in it. */
+    @Test
+    public void onGivesTheMessageBarGlassOverInstagramsPill() {
+        Settings.GLASS_CHAT.save(true);
+        ImageView pill = messageBar();
+        frame();
+
+        assertTrue(GlassTopBar.boxShowing(pill));
+        assertNotNull("the glass is over the pill", pill.getForeground());
+        assertEquals("the pill itself is untouched", Color.GRAY, ((ColorDrawable) pill.getBackground()).getColor());
+    }
+
+    @Test
+    public void turningItOffTakesTheGlassOffTheMessageBar() {
+        Settings.GLASS_CHAT.save(true);
+        ImageView pill = messageBar();
+        frame();
+
+        Settings.GLASS_CHAT.save(false);
+        frame();
+
+        assertFalse(GlassTopBar.boxShowing(pill));
+        assertNull(pill.getForeground());
+        assertEquals(Color.GRAY, ((ColorDrawable) pill.getBackground()).getColor());
+    }
+
+    /** A view by the pill's name that isn't in the chat's messages isn't the message bar, and is left alone. */
+    @Test
+    public void aPillOutsideTheMessagesIsLeftAlone() {
+        Settings.GLASS_CHAT.save(true);
+        ImageView pill = new ImageView(activity);
+        pill.setId(PILL_ID);
+        root.addView(pill, new FrameLayout.LayoutParams(MATCH, BAR));
+        layout();
+        frame();
+
+        assertTrue(GlassTopBar.showing(header));
+        assertFalse(GlassTopBar.boxShowing(pill));
+    }
+
+    /**
+     * #391: with Glass reply box on stories, every page's reply box takes the glass behind it, under its own
+     * outline, and gives the outline back when it's turned off.
+     */
+    @Test
+    public void theStorySwitchGivesEveryPagesReplyBoxGlass() {
+        Settings.GLASS_STORY_REPLY_BOX.save(true);
+        FrameLayout viewer = storyViewer();
+        FrameLayout first = storyBox(viewer);
+        FrameLayout second = storyBox(viewer);
+        Drawable outline = first.getBackground();
+        layout();
+        frame();
+
+        assertTrue(GlassTopBar.boxShowing(first));
+        assertTrue(GlassTopBar.boxShowing(second));
+        assertNull("the glass is behind the box's text, not over it", first.getForeground());
+
+        Settings.GLASS_STORY_REPLY_BOX.save(false);
+        frame();
+
+        assertFalse(GlassTopBar.boxShowing(first));
+        assertFalse(GlassTopBar.boxShowing(second));
+        assertSame(outline, first.getBackground());
+    }
+
+    @Test
+    public void theChatSwitchAloneLeavesStoriesAlone() {
+        Settings.GLASS_CHAT.save(true);
+        FrameLayout box = storyBox(storyViewer());
+        layout();
+        frame();
+
+        assertTrue(GlassTopBar.showing(header));
+        assertFalse(GlassTopBar.boxShowing(box));
+    }
+
+    /** The reply box's glass is a pill with round ends, nothing past them, and the box's outline drawn over it. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void aStorysReplyBoxIsAPillUnderItsOwnOutline() {
+        Settings.GLASS_STORY_REPLY_BOX.save(true);
+        FrameLayout box = storyBox(storyViewer());
+        layout();
+        frame();
+        assertTrue(GlassTopBar.boxShowing(box));
+
+        Bitmap bitmap = Bitmap.createBitmap(300, 100, Bitmap.Config.ARGB_8888);
+        Drawable frost = box.getBackground();
+        frost.setBounds(0, 0, 300, 100);
+        frost.draw(new Canvas(bitmap));
+
+        assertEquals("nothing past the pill's round end", 0, Color.alpha(bitmap.getPixel(3, 3)));
+        int middle = bitmap.getPixel(150, 50);
+        assertTrue("the glass inside it", Color.alpha(middle) > 0);
+        int edge = bitmap.getPixel(150, 1);
+        assertTrue("the outline over the glass: " + Integer.toHexString(edge) + " against " + Integer.toHexString(middle),
+                Color.red(edge) > Color.red(middle) + 60);
     }
 
     @Test
