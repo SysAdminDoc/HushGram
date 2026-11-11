@@ -3171,7 +3171,7 @@
     },
     {
       "name": "Hide the reply box on stories",
-      "description": "Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are. Starts off. Turn it on in HushGram settings > Stories.",
+      "description": "Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are. Switches of their own take the Like, Comment and Share buttons off too, with no empty space left behind. All start off. Turn them on in HushGram settings > Stories.",
       "category": "Stories",
       "use": true,
       "dependencies": [

@@ -155,6 +155,15 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.HIDE_STORY_REPLY_BOX, L10n.t("Hide the reply box on stories"),
                     L10n.t("Takes the Send message box off the bottom of other people's stories. The like and "
                             + "share buttons next to it stay where they are.")));
+            stories.add(toggle(context, Settings.HIDE_STORY_LIKE_BUTTON, L10n.t("Hide the Like button on stories"),
+                    L10n.t("Takes the heart off the bottom of other people's stories, so nothing gets liked by "
+                            + "mistake. No empty space is left behind.")));
+            stories.add(toggle(context, Settings.HIDE_STORY_COMMENT_BUTTON, L10n.t("Hide the Comment button on stories"),
+                    L10n.t("Takes the Comment button off the bottom of other people's stories that have one. "
+                            + "No empty space is left behind.")));
+            stories.add(toggle(context, Settings.HIDE_STORY_SHARE_BUTTON, L10n.t("Hide the Share button on stories"),
+                    L10n.t("Takes the paper plane off the bottom of other people's stories. No empty space is "
+                            + "left behind.")));
         }
         if (build.contains(PatchFamily.STORY_BUTTONS_ROOM)) {
             stories.add(toggle(context, Settings.KEEP_STORY_BUTTONS_BELOW, L10n.t("Keep story buttons below the story"),

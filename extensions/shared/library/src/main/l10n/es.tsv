@@ -1051,6 +1051,13 @@ A swipe up on someone's story no longer opens the reply box and its reactions. T
 # context: Stories switch; Send message is Instagram's reply field at the bottom of someone else's story, beside its heart (like) and share buttons. Use Instagram's own label for it.
 Hide the reply box on stories	Ocultar el cuadro de respuesta en las historias
 Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are.	Quita el cuadro Enviar mensaje de la parte inferior de las historias de otras personas. Los botones de me gusta y compartir que tiene al lado se quedan donde están.
+# context: Stories switches; Like (the heart), Comment (the speech bubble) and Share (the paper plane) are Instagram's buttons at the bottom of someone else's story, beside the Send message box. Use Instagram's own labels for them.
+Hide the Like button on stories	Ocultar el botón Me gusta en las historias
+Takes the heart off the bottom of other people's stories, so nothing gets liked by mistake. No empty space is left behind.	Quita el corazón de la parte inferior de las historias de otras personas, para que no des me gusta a nada por error. No queda ningún hueco.
+Hide the Comment button on stories	Ocultar el botón Comentar en las historias
+Takes the Comment button off the bottom of other people's stories that have one. No empty space is left behind.	Quita el botón Comentar de la parte inferior de las historias de otras personas que lo tienen. No queda ningún hueco.
+Hide the Share button on stories	Ocultar el botón Compartir en las historias
+Takes the paper plane off the bottom of other people's stories. No empty space is left behind.	Quita el avión de papel de la parte inferior de las historias de otras personas. No queda ningún hueco.
 # context: toast when Download all is tapped while another post is still saving; it waits its turn
 Queued. It starts once the post before it is saved.	En cola. Empieza en cuanto se guarde la publicación anterior.
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting

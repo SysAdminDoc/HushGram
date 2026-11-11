@@ -358,6 +358,30 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_story_reply_box", FALSE);
 
     /**
+     * The Like button, the heart, stays off the bottom of other people's stories, and the buttons
+     * beside it close up ({@link app.hushgram.extension.instagram.stories.StoryReplyBox}). Nothing is
+     * liked or unliked. Read before each frame. Off to start.
+     */
+    public static final BooleanSetting HIDE_STORY_LIKE_BUTTON =
+            new BooleanSetting("hushgram_hide_story_like_button", FALSE);
+
+    /**
+     * The Comment button stays off the bottom of other people's stories that show one
+     * ({@link app.hushgram.extension.instagram.stories.StoryReplyBox}). Read before each frame. Off
+     * to start.
+     */
+    public static final BooleanSetting HIDE_STORY_COMMENT_BUTTON =
+            new BooleanSetting("hushgram_hide_story_comment_button", FALSE);
+
+    /**
+     * The Share button, the paper plane, stays off the bottom of other people's stories
+     * ({@link app.hushgram.extension.instagram.stories.StoryReplyBox}). Read before each frame. Off
+     * to start.
+     */
+    public static final BooleanSetting HIDE_STORY_SHARE_BUTTON =
+            new BooleanSetting("hushgram_hide_story_share_button", FALSE);
+
+    /**
      * The row along a story's bottom moves down off the story when a large font or display size makes
      * it cover the story ({@link app.hushgram.extension.instagram.stories.StoryButtonsRoom}). Read before
      * each frame, and the row goes back the frame after it turns off. On to start.
