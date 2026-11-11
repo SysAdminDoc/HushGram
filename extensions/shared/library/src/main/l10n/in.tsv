@@ -1707,6 +1707,15 @@ Minimum likes	Suka minimum
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Reel dengan suka lebih sedikit dari ini disembunyikan. Ketik bilangan bulat, atau 0 agar suka tidak dihitung.
 Fewer than %1$s likes	Kurang dari %1$s suka
 Likes aren't looked at	Suka tidak dihitung
+# context: rows in a story's three-dot menu; put the story's account on the Stories priority list, or take it off it (#641)
+Add to Stories priority	Tambahkan ke Prioritas cerita
+Remove from Stories priority	Hapus dari Prioritas cerita
+# context: toasts after tapping Add to Stories priority or Remove from Stories priority; the last one when the list couldn't change (#641)
+Added to Stories priority	Ditambahkan ke Prioritas cerita
+Removed from Stories priority	Dihapus dari Prioritas cerita
+Stories priority didn't change	Prioritas cerita tidak berubah
+# context: last sentence of the Stories priority summary in HushGram settings > Stories; names the menu row Add to Stories priority (#641)
+To add someone, tap Add to Stories priority in their story's menu.	Untuk menambahkan seseorang, ketuk Tambahkan ke Prioritas cerita di menu ceritanya.
 # context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
 Stories priority	Prioritas cerita
 Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	Menaruh akun di daftarmu paling depan di baris cerita di bagian atas Beranda selama mereka punya cerita yang belum kamu tonton, sesuai urutan daftar. Setelah kamu menontonnya, penempatan bawaan Instagram berlaku lagi. Ceritamu sendiri tetap di depan.

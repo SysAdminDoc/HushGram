@@ -101,7 +101,8 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.STORY_PRIORITY, L10n.t("Stories priority"),
                     L10n.t("Puts the accounts on your list first in the stories row at the top of Home while they "
                             + "have a story you haven't watched, in the order of the list. Once you've watched it, "
-                            + "Instagram's own placement applies again. Your own story stays first.")));
+                            + "Instagram's own placement applies again. Your own story stays first.")
+                            + " " + L10n.t("To add someone, tap Add to Stories priority in their story's menu.")));
             stories.add(priorityAccountsRow(context));
         }
         if (build.contains(PatchFamily.STORY_PROGRESS_BAR)) {

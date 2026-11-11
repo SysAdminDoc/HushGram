@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* A story's three dot menu has `Add to Stories priority`, which puts that account at the end of your `Priority accounts` list and turns `Stories priority` on if it was off. Once someone's on the list, the same row reads `Remove from Stories priority`. Asked for in #641.
 * Both double tap skips now have a `Skip length` slider right under their switch, `Double tap to skip` in Reels and `Double tap to skip on feed videos` in Feed. Pick anywhere from 5 to 30 seconds in 5 second steps. It starts at 10, so nothing changes until you move it, and the number on the feed's arrows follows it. Asked for in #645.
 * `Haptic strength` sits under `Haptic style` in Tab bar and makes the glass tab bar's tick lighter or stronger, from 25% to 200%. Past 100%, a phone whose motor only runs at one strength gets a longer tick so it's easier to feel. `Tap sound on the tab bar` plays a click each time the highlight moves to another tab, even with the phone's touch sounds off, and `Tap sound volume` sets how loud. Silent and vibrate mode keep it quiet. Starts off. Asked for in #640.
 * `Glass in chats` now frosts the message bar at the bottom of a chat too, so messages blur as they scroll under it. A new switch, `Glass reply box on stories` under Stories, gives the Send message box on other people's stories the same glass so it's easy to read over any story. Starts off. Asked for in #391.

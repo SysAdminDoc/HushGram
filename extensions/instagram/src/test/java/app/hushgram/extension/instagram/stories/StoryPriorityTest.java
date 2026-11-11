@@ -149,6 +149,18 @@ public class StoryPriorityTest {
         assertEquals(Collections.emptyList(), StoryPriority.accounts(null));
     }
 
+    /** #641: a story menu's row puts a name on a line of its own at the end, or takes just that one off. */
+    @Test
+    public void theStoryMenuAddsOrRemovesOneName() {
+        assertEquals("zed\nann\nbob\ncarl", StoryPriority.with("zed\nann\nbob\n", "carl"));
+        assertEquals("carl", StoryPriority.with(" \n", "carl"));
+        assertEquals("carl", StoryPriority.with(null, "carl"));
+        assertEquals("on the list already", "zed\n@Ann", StoryPriority.with("zed\n@Ann", "ann"));
+        assertEquals("@Zed\nbob", StoryPriority.without("@Zed\r\n@@ANN, bob\nann", "Ann"));
+        assertEquals("", StoryPriority.without("ann", "@ann"));
+        assertEquals("", StoryPriority.without(null, "ann"));
+    }
+
     @Test
     public void offPausedAnEmptyListAndUnreadySettingsLeaveTheRowAlone() {
         Reel x = reel("x", 0);

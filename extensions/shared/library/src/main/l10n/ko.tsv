@@ -1706,6 +1706,15 @@ Minimum likes	최소 좋아요 수
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	이보다 좋아요가 적은 릴스는 숨겨집니다. 정수를 입력하거나, 좋아요를 보지 않으려면 0을 입력하세요.
 Fewer than %1$s likes	좋아요 %1$s개 미만
 Likes aren't looked at	좋아요 수를 보지 않음
+# context: rows in a story's three-dot menu; put the story's account on the Stories priority list, or take it off it (#641)
+Add to Stories priority	스토리 우선 표시에 추가
+Remove from Stories priority	스토리 우선 표시에서 삭제
+# context: toasts after tapping Add to Stories priority or Remove from Stories priority; the last one when the list couldn't change (#641)
+Added to Stories priority	스토리 우선 표시에 추가했습니다
+Removed from Stories priority	스토리 우선 표시에서 삭제했습니다
+Stories priority didn't change	스토리 우선 표시가 바뀌지 않았습니다
+# context: last sentence of the Stories priority summary in HushGram settings > Stories; names the menu row Add to Stories priority (#641)
+To add someone, tap Add to Stories priority in their story's menu.	누군가를 추가하려면 그 사람 스토리의 메뉴에서 스토리 우선 표시에 추가를 탭하세요.
 # context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
 Stories priority	스토리 우선 표시
 Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	목록에 있는 계정에 아직 보지 않은 스토리가 있으면 홈 상단 스토리 줄 맨 앞에 목록 순서대로 놓습니다. 스토리를 보고 나면 인스타그램의 기본 위치로 돌아갑니다. 내 스토리는 계속 맨 앞에 있습니다.

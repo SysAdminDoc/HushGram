@@ -4,17 +4,25 @@
  */
 package app.hushgram.extension.instagram.stories;
 
+import android.content.Context;
+
+import androidx.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Supplier;
 
+import app.hushgram.extension.instagram.settings.ConfigurationBackup;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Helper for the "Stories priority" patch (#451).
@@ -29,12 +37,19 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The patch hands the lists the reel store gives out for the tray to {@link #order}, the same
  * lists {@link StoryTrayOrder} sorts, after it. Off, paused, an empty list, settings that aren't
  * ready or anything that throws give the list back as it came.
+ *
+ * <p>A story's menu also gets Add to Stories priority, through
+ * {@link app.hushgram.extension.instagram.download.StoryDownload}, which puts the story's account at
+ * the end of the list and turns the switch on, or Remove from Stories priority once it's there (#641).
  */
 public final class StoryPriority {
     /** The count of stories put ahead of the rest, in the diagnostics report. */
     static final String MOVED = "stories put first";
 
     private static final String HOOK = "story priority";
+
+    /** The step a failure of the story menu's row is reported under. */
+    private static final String ROW = "story priority row";
 
     /** What {@link StoryTrayOrder} calls a reel that stays where it is. */
     private static final int PINNED = StoryTrayOrder.PINNED;
@@ -153,6 +168,96 @@ public final class StoryPriority {
         String trimmed = name.trim();
         while (trimmed.startsWith("@")) trimmed = trimmed.substring(1).trim();
         return trimmed.isEmpty() ? null : trimmed.toLowerCase(Locale.ROOT);
+    }
+
+    // ------------------------------------------------------------------ the row in a story's menu (#641)
+
+    /**
+     * Whether a story's menu gets Add to Stories priority: the patch is in this build, the settings
+     * are ready and HushGram isn't paused. The switch can be off, since adding someone turns it on.
+     * Never throws.
+     */
+    public static boolean offersRow() {
+        try {
+            return SettingsStatus.storyPriority() && Utils.settingsReady() && !HushgramPause.isPaused();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_PRIORITY, ROW, failure);
+            return false;
+        }
+    }
+
+    /**
+     * The row for the menu of a story by [username]: Remove from Stories priority while the switch is
+     * on and the account is on the list, Add to Stories priority otherwise, or null when the menu
+     * doesn't get the row or the story's account can't be read.
+     */
+    @Nullable
+    public static String menuLabel(@Nullable String username) {
+        if (normalize(username) == null || !offersRow()) return null;
+        Context context = Utils.getContext();
+        return listed(username) ? L10n.t(context, "Remove from Stories priority") : L10n.t(context, "Add to Stories priority");
+    }
+
+    /** Whether [label], a tapped row, is Add to Stories priority or Remove from Stories priority. */
+    public static boolean isMenuLabel(@Nullable CharSequence label) {
+        if (label == null) return false;
+        Context context = Utils.getContext();
+        return L10n.t(context, "Add to Stories priority").contentEquals(label)
+                || L10n.t(context, "Remove from Stories priority").contentEquals(label);
+    }
+
+    /**
+     * Takes [username] off the list when {@link #menuLabel} offered Remove, or else puts it on the
+     * end of the list and turns the switch on. Answers whether the account is on the list now, or
+     * null when nothing changed: the row isn't offered, the name can't be read, the list would grow
+     * past what its row holds, or the save failed. Never throws.
+     */
+    @Nullable
+    public static Boolean toggle(@Nullable String username) {
+        try {
+            String name = normalize(username);
+            if (name == null || !offersRow()) return null;
+            String stored = Settings.STORY_PRIORITY_ACCOUNTS.savedValue();
+            if (listed(name)) {
+                return Settings.STORY_PRIORITY_ACCOUNTS.save(without(stored, name)) ? Boolean.FALSE : null;
+            }
+            String more = with(stored, name);
+            if (more.length() > ConfigurationBackup.MAX_WORDS_TEXT) return null;
+            if (!Settings.STORY_PRIORITY_ACCOUNTS.save(more)) return null;
+            if (!Settings.STORY_PRIORITY.savedValue() && !Settings.STORY_PRIORITY.save(true)) return null;
+            Logger.printDebug(() -> "Story priority: added an account from a story's menu");
+            return Boolean.TRUE;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_PRIORITY, ROW, failure);
+            return null;
+        }
+    }
+
+    /** Whether the switch is on with [username] on its list. */
+    private static boolean listed(String username) {
+        return Settings.STORY_PRIORITY.savedValue()
+                && accounts(Settings.STORY_PRIORITY_ACCOUNTS.savedValue()).contains(normalize(username));
+    }
+
+    /** [stored] with [name] on a line of its own at the end, or as it was when the name is on it already. */
+    static String with(String stored, String name) {
+        if (accounts(stored).contains(normalize(name))) return stored;
+        String kept = stored == null ? "" : stored.trim();
+        return kept.isEmpty() ? name : kept + "\n" + name;
+    }
+
+    /** [stored] without [name], the other entries one to a line, as they were typed. */
+    static String without(String stored, String name) {
+        if (stored == null) return "";
+        String gone = normalize(name);
+        StringBuilder kept = new StringBuilder();
+        for (String piece : stored.split("[,\\n\\r]")) {
+            String entry = normalize(piece);
+            if (entry == null || entry.equals(gone)) continue;
+            if (kept.length() > 0) kept.append('\n');
+            kept.append(piece.trim());
+        }
+        return kept.toString();
     }
 
     // ------------------------------------------------------------------ what the patch fills in

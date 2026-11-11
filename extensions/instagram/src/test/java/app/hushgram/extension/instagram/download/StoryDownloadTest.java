@@ -43,6 +43,7 @@ import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /** What the story menu's hooks answer, and what a tap on Download does with them. */
@@ -58,15 +59,19 @@ public class StoryDownloadTest {
         Story.flagged = null;
         Story.posted = null;
         Story.id = null;
+        Story.account = null;
         Built.storyLoop = false;
         Built.storySpeed = false;
         Built.storyDownload = false;
+        Built.storyPriority = false;
         StoryLoop.forget();
         StoryDownload.building(null);
         HookStatus.clear();
         Settings.DOWNLOAD_STORIES.save(true);
         Settings.LOOP_STORIES.resetToDefault();
         Settings.STORY_SPEED_IN_MENU.resetToDefault();
+        Settings.STORY_PRIORITY.resetToDefault();
+        Settings.STORY_PRIORITY_ACCOUNTS.resetToDefault();
         Utils.setActivity(null);
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -278,18 +283,96 @@ public class StoryDownloadTest {
         static String id;
 
         @Implementation protected static String mediaId(Object media) { return media == null ? null : id; }
+
+        /** The username of whoever posted the story, or null for one whose account can't be read. */
+        static String account;
+
+        @Implementation protected static Object owner(Object media) { return media == null || account == null ? null : "user"; }
+        @Implementation protected static String username(Object user) { return user == null ? null : account; }
     }
 
-    /** Whether this build has Loop a story, the story speed button and Download any story, as the patches write their status methods. */
+    /** Whether this build has Loop a story, the story speed button, Download any story and Stories priority, as the patches write their status methods. */
     @Implements(value = SettingsStatus.class, isInAndroidSdk = false)
     public static class Built {
         static boolean storyLoop;
         static boolean storySpeed;
         static boolean storyDownload;
+        static boolean storyPriority;
 
         @Implementation protected static boolean storyLoop() { return storyLoop; }
         @Implementation protected static boolean storySpeed() { return storySpeed; }
         @Implementation protected static boolean storyDownload() { return storyDownload; }
+        @Implementation protected static boolean storyPriority() { return storyPriority; }
+    }
+
+    /**
+     * #641: with Stories priority in the build, a story's menu gets Add to Stories priority last,
+     * with its switch and Download off. A tap puts the story's account at the end of the list, turns
+     * the switch on, says so and turns the row to Remove from Stories priority, and a second tap
+     * takes just that account off. A list too long for its row stays as it was and says so. Your
+     * own highlights' menu, a story whose account can't be read, a paused HushGram and a build
+     * without the patch get no row, and the label is Instagram's again.
+     */
+    @Test
+    @Config(shadows = {Story.class, Built.class})
+    public void aStoryGetsAddToStoriesPriority() {
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Built.storyPriority = true;
+        Settings.DOWNLOAD_STORIES.save(false);
+        Settings.STORY_PRIORITY.save(false);
+        Settings.STORY_PRIORITY_ACCOUNTS.save("@Zed");
+        Object menu = new Object();
+        StoryDownload.building(menu);
+        Story.media = new Object();
+        Story.account = "nasa";
+
+        assertArrayEquals(new CharSequence[] {"Report", "Add to Stories priority"},
+                StoryDownload.labels(new CharSequence[] {"Report"}));
+        CharSequence[] already = {"Report", new SpannableString("Add to Stories priority")};
+        assertSame("added twice", already, StoryDownload.labels(already));
+
+        ShadowToast.reset();
+        assertTrue(StoryDownload.save(new SpannableString("Add to Stories priority"), menu));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Added to Stories priority", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        assertEquals("@Zed\nnasa", Settings.STORY_PRIORITY_ACCOUNTS.savedValue());
+        assertTrue("adding someone turns the switch on", Settings.STORY_PRIORITY.savedValue());
+        assertArrayEquals(new CharSequence[] {"Report", "Remove from Stories priority"},
+                StoryDownload.labels(new CharSequence[] {"Report"}));
+
+        List<Object> list = new ArrayList<>(Arrays.asList("Edit highlight"));
+        StoryDownload.labelList(list);
+        assertEquals("your own highlights' menu", Arrays.asList("Edit highlight"), list);
+
+        assertTrue(StoryDownload.save("Remove from Stories priority", menu));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Removed from Stories priority", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        assertEquals("@Zed", Settings.STORY_PRIORITY_ACCOUNTS.savedValue());
+        assertTrue(Settings.STORY_PRIORITY.savedValue());
+
+        StringBuilder full = new StringBuilder();
+        while (full.length() < 4094) full.append("someone\n");
+        Settings.STORY_PRIORITY_ACCOUNTS.save(full.toString());
+        assertTrue(StoryDownload.save("Add to Stories priority", menu));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Stories priority didn't change", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        assertEquals(full.toString(), Settings.STORY_PRIORITY_ACCOUNTS.savedValue());
+
+        Story.account = null;
+        CharSequence[] noAccount = {"Report"};
+        assertSame("a story whose account can't be read", noAccount, StoryDownload.labels(noAccount));
+
+        Story.account = "nasa";
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        CharSequence[] paused = {"Report"};
+        assertSame("paused", paused, StoryDownload.labels(paused));
+        assertFalse("the label is Instagram's again", StoryDownload.save("Add to Stories priority", menu));
+        PauseForTests.resume();
+
+        Built.storyPriority = false;
+        CharSequence[] unpatched = {"Report"};
+        assertSame("without the patch", unpatched, StoryDownload.labels(unpatched));
     }
 
     /**

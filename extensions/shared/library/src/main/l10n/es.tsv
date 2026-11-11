@@ -1707,6 +1707,15 @@ Minimum likes	Mínimo de Me gusta
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Se omiten los reels con menos Me gusta que esto. Escribe un número entero, o 0 para no tener en cuenta los Me gusta.
 Fewer than %1$s likes	Menos de %1$s Me gusta
 Likes aren't looked at	No se tienen en cuenta los Me gusta
+# context: rows in a story's three-dot menu; put the story's account on the Stories priority list, or take it off it (#641)
+Add to Stories priority	Añadir a Prioridad de historias
+Remove from Stories priority	Quitar de Prioridad de historias
+# context: toasts after tapping Add to Stories priority or Remove from Stories priority; the last one when the list couldn't change (#641)
+Added to Stories priority	Añadido a Prioridad de historias
+Removed from Stories priority	Quitado de Prioridad de historias
+Stories priority didn't change	Prioridad de historias no cambió
+# context: last sentence of the Stories priority summary in HushGram settings > Stories; names the menu row Add to Stories priority (#641)
+To add someone, tap Add to Stories priority in their story's menu.	Para añadir a alguien, toca Añadir a Prioridad de historias en el menú de su historia.
 # context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
 Stories priority	Prioridad de historias
 Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	Pone primero las cuentas de tu lista en la fila de historias de arriba en Inicio mientras tengan una historia que no has visto, en el orden de la lista. Cuando la ves, vuelve a valer la posición de Instagram. Tu propia historia sigue primero.

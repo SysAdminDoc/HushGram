@@ -20,6 +20,7 @@ import java.util.Set;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.stories.StoryLoop;
+import app.hushgram.extension.instagram.stories.StoryPriority;
 import app.hushgram.extension.instagram.stories.StorySpeed;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -54,6 +55,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>With Speed in the story menu on, a video story's menu also gets Playback speed after that,
  * whatever the Download switch says, and a tap on it opens the speeds through {@link StorySpeed}
  * (#621). The story stays paused until that list closes.
+ *
+ * <p>With Stories priority in the build, the menu of a story whose account it can read gets Add to
+ * Stories priority last, whatever the switches say, and a tap on it puts that account on the list
+ * through {@link StoryPriority} and turns the switch on (#641). The row reads Remove from Stories
+ * priority once the account is there. Your own highlights' menu doesn't get it.
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with the switch
  * off, or when something throws, the menu is Instagram's own.
@@ -127,15 +133,15 @@ public final class StoryDownload {
      * The labels [labels] of a story's menu, with HushGram's rows at the end when the switch is on:
      * Download, Download as video and Download as photo for a photo story with music, or Download
      * and Download as photo for a filmed video. Loop this story goes after them when the story gets
-     * it ({@link #loopLabel}), and Playback speed last ({@link #speedLabel}). A menu that has the
-     * rows already is left alone. Never throws.
+     * it ({@link #loopLabel}), then Playback speed ({@link #speedLabel}), and Add to Stories priority
+     * last ({@link #priorityLabel}). A menu that has the rows already is left alone. Never throws.
      */
     public static CharSequence[] labels(CharSequence[] labels) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
             if (labels == null) return labels;
             Object menu = building.get();
-            return withSpeed(withLoop(on() ? labels(labels, rows(menu)) : labels, menu), menu);
+            return withPriority(withSpeed(withLoop(on() ? labels(labels, rows(menu)) : labels, menu), menu), menu);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return labels;
@@ -154,6 +160,13 @@ public final class StoryDownload {
         String speed = speedLabel(menu);
         if (speed == null || hasSpeed(Arrays.asList(labels))) return labels;
         return plus(labels, speed);
+    }
+
+    /** [labels] with Add to Stories priority at the end when the story [menu] is open on gets it. */
+    private static CharSequence[] withPriority(CharSequence[] labels, Object menu) {
+        String priority = priorityLabel(menu);
+        if (priority == null || hasPriority(Arrays.asList(labels))) return labels;
+        return plus(labels, priority);
     }
 
     private static CharSequence[] plus(CharSequence[] labels, String row) {
@@ -251,6 +264,43 @@ public final class StoryDownload {
         return false;
     }
 
+    /**
+     * Add to Stories priority, or Remove from Stories priority once the account is on the list, for
+     * the story [menu] is open on, or null when its menu doesn't get the row: Stories priority isn't
+     * in the build, or the story's account can't be read.
+     */
+    @Nullable
+    static String priorityLabel(Object menu) {
+        if (menu == null || !StoryPriority.offersRow()) return null;
+        return StoryPriority.menuLabel(author(menu));
+    }
+
+    /** The username of whoever posted the story [menu] is open on, or null. */
+    @Nullable
+    private static String author(Object menu) {
+        Object media = InstagramMedia.storyMedia(menu);
+        if (media == null) return null;
+        Object user = InstagramMedia.owner(media);
+        return user == null ? null : InstagramMedia.username(user);
+    }
+
+    /** Whether [labels] has Add to Stories priority or Remove from Stories priority already. */
+    private static boolean hasPriority(List<?> labels) {
+        for (Object label : labels) {
+            if (label instanceof CharSequence && StoryPriority.isMenuLabel((CharSequence) label)) return true;
+        }
+        return false;
+    }
+
+    /** Puts the account of the story [menu] is open on first in the stories row, or takes it off, and says which. */
+    private static void togglePriority(Object menu) {
+        Context context = Utils.getContext().getApplicationContext();
+        Boolean listed = StoryPriority.toggle(author(menu));
+        String said = listed == null ? L10n.t(context, "Stories priority didn't change")
+                : listed ? L10n.t(context, "Added to Stories priority") : L10n.t(context, "Removed from Stories priority");
+        Feedback.show(context, said, false);
+    }
+
     /** Loops the story [menu] is open on, or takes its loop off, and says which. */
     private static void toggleLoop(Object menu) {
         Context context = Utils.getContext().getApplicationContext();
@@ -305,6 +355,10 @@ public final class StoryDownload {
             }
             if (StorySpeed.offersRow() && StorySpeed.isMenuLabel(label)) {
                 StorySpeed.fromMenu();
+                return true;
+            }
+            if (StoryPriority.offersRow() && StoryPriority.isMenuLabel(label)) {
+                togglePriority(menu);
                 return true;
             }
             if (!on()) return false;

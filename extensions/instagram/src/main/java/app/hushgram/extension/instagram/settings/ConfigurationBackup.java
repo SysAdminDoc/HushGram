@@ -69,7 +69,7 @@ public final class ConfigurationBackup {
      * The bounded reader's longest string, also used by blocked words and native settings-row
      * selections. The current native row ids join to 2,953 characters.
      */
-    static final int MAX_WORDS_TEXT = 4096;
+    public static final int MAX_WORDS_TEXT = 4096;
     /**
      * The settings' own 2,048 values, and room for every saved profile's fields, a few more than
      * this build writes. The only array is the profiles.

@@ -1710,6 +1710,15 @@ Minimum likes	最低按讚數
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	按讚數低於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不看按讚數。
 Fewer than %1$s likes	按讚數低於 %1$s
 Likes aren't looked at	不看按讚數
+# context: rows in a story's three-dot menu; put the story's account on the Stories priority list, or take it off it (#641)
+Add to Stories priority	加入限時動態優先順序
+Remove from Stories priority	從限時動態優先順序移除
+# context: toasts after tapping Add to Stories priority or Remove from Stories priority; the last one when the list couldn't change (#641)
+Added to Stories priority	已加入限時動態優先順序
+Removed from Stories priority	已從限時動態優先順序移除
+Stories priority didn't change	限時動態優先順序沒有變更
+# context: last sentence of the Stories priority summary in HushGram settings > Stories; names the menu row Add to Stories priority (#641)
+To add someone, tap Add to Stories priority in their story's menu.	若要加入某人，請在對方限時動態的選單中點選「加入限時動態優先順序」。
 # context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
 Stories priority	限時動態優先順序
 Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	清單中的帳號只要有你還沒看的限時動態，就會依清單順序排在首頁上方限時動態列的最前面。看過之後，會回到 Instagram 原本的排列。你自己的限時動態仍在最前面。

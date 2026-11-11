@@ -1707,6 +1707,15 @@ Minimum likes	Mindest-Likes
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Reels mit weniger Likes werden weggelassen. Gib eine ganze Zahl ein, oder 0, damit Likes nicht zählen.
 Fewer than %1$s likes	Weniger als %1$s Likes
 Likes aren't looked at	Likes zählen nicht
+# context: rows in a story's three-dot menu; put the story's account on the Stories priority list, or take it off it (#641)
+Add to Stories priority	Zur Story-Priorität hinzufügen
+Remove from Stories priority	Aus Story-Priorität entfernen
+# context: toasts after tapping Add to Stories priority or Remove from Stories priority; the last one when the list couldn't change (#641)
+Added to Stories priority	Zur Story-Priorität hinzugefügt
+Removed from Stories priority	Aus Story-Priorität entfernt
+Stories priority didn't change	Story-Priorität nicht geändert
+# context: last sentence of the Stories priority summary in HushGram settings > Stories; names the menu row Add to Stories priority (#641)
+To add someone, tap Add to Stories priority in their story's menu.	Um jemanden hinzuzufügen, tippe im Menü seiner Story auf Zur Story-Priorität hinzufügen.
 # context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
 Stories priority	Story-Priorität
 Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	Stellt die Konten deiner Liste ganz oben in die Story-Leiste auf der Startseite, solange sie eine Story haben, die du noch nicht gesehen hast, in der Reihenfolge der Liste. Hast du sie gesehen, gilt wieder die Platzierung von Instagram. Deine eigene Story bleibt vorn.
