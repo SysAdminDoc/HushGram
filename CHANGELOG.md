@@ -89,6 +89,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* A reel link opened from outside Instagram, like one shared in another app, now plays the reel it points to first. Instagram used to start a reel it had saved on your phone, or one it had fetched ahead when it was already open, while the linked one loaded, so you had to swipe to find it. The new `Open reel links on that reel` switch is on to start and sits under Reels in HushGram settings. Reported in #606.
 * `Recent unfollowers` now keeps your Followers list when Instagram lists a few fewer accounts than your follower count, like 547 of 550. The count includes accounts the list never shows and can lag behind someone leaving, so nothing was saved. A list may now be short by one in every 50 followers. Reported in #624.
 * With `Stories fill the screen` on, a reel shared to a story fills the screen right away, without the rounded card and reply bar showing first, and its sides no longer get cut off. Reported in #618.
 * With `Tab bar layout` set to a bar Instagram didn't pick, a tab like Home no longer opens blank after Android closes Instagram in the background. HushGram builds the missing page again. Reported in #535.

@@ -47,6 +47,7 @@ public class ReelPostTimeSettingsTest {
         Settings.SHOW_REEL_POST_TIME.resetToDefault();
         Settings.REEL_POST_TIME_SECONDS.resetToDefault();
         Settings.REEL_POST_TIME_AGO.resetToDefault();
+        Settings.OPEN_REEL_LINKS_FIRST.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -77,6 +78,27 @@ public class ReelPostTimeSettingsTest {
         assertNotNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_SPEED.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.SHOW_REEL_POST_TIME.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_POST_TIME_SECONDS.key));
+    }
+    /** Open reel links on that reel (#606) sits on Reels right after the speed, on to start, and only in a build with it. */
+    @Test public void reelLinksSwitchStartsOnUnderReelsAfterTheSpeed() throws Exception {
+        open(EnumSet.of(PatchFamily.KEEP_REEL_SPEED, PatchFamily.REEL_LINKS));
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.OPEN_REEL_LINKS_FIRST.key);
+        assertNotNull(row);
+        assertEquals("Open reel links on that reel", row.getTitle().toString());
+        assertTrue(row.isChecked());
+        PreferenceGroup reels = row.getParent();
+        assertEquals("Reels", reels.getTitle().toString());
+        String[] keys = new String[reels.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = reels.getPreference(i).getKey();
+        int speed = Arrays.asList(keys).indexOf(Settings.KEEP_REEL_SPEED.key);
+        assertTrue(Arrays.toString(keys), speed >= 0);
+        assertEquals("right after Keep the reel speed", Settings.OPEN_REEL_LINKS_FIRST.key, keys[speed + 1]);
+        assertEquals(Collections.singletonList(Settings.OPEN_REEL_LINKS_FIRST), PatchFamily.REEL_LINKS.switches);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.OPEN_REEL_LINKS_FIRST.key));
+        controller.close();
+        open(EnumSet.of(PatchFamily.KEEP_REEL_SPEED));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.OPEN_REEL_LINKS_FIRST.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.OPEN_REEL_LINKS_FIRST.key));
     }
     /** Without the other Reels patches, Reels still opens for these two rows alone. */
     @Test public void reelTimeAloneStillGetsReels() throws Exception {

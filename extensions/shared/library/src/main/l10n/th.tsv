@@ -2098,3 +2098,6 @@ Follow @%1$s?	ติดตาม @%1$s หรือไม่
 Follow this account?	ติดตามบัญชีนี้หรือไม่
 # context: The question's confirm button; Instagram's own Follow button label (#631)
 Follow	ติดตาม
+# context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
+Open reel links on that reel	เปิดลิงก์รีลส์ที่รีลส์นั้น
+A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	ลิงก์รีลส์จะเปิดรีลส์ที่ลิงก์ชี้ไป Instagram จะไม่เล่นรีลส์อื่นที่เก็บไว้ในโทรศัพท์ของคุณระหว่างที่รีลส์นั้นกำลังโหลด

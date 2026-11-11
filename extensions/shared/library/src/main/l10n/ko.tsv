@@ -2100,3 +2100,6 @@ Follow @%1$s?	@%1$s님을 팔로우할까요?
 Follow this account?	이 계정을 팔로우할까요?
 # context: The question's confirm button; Instagram's own Follow button label (#631)
 Follow	팔로우
+# context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
+Open reel links on that reel	릴스 링크를 해당 릴스로 열기
+A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	릴스 링크를 열면 링크가 가리키는 릴스가 열립니다. 그 릴스를 불러오는 동안 Instagram이 휴대폰에 저장해 둔 다른 릴스를 재생하지 않습니다.

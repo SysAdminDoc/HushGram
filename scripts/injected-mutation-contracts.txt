@@ -1882,6 +1882,21 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->resetSpeed(F)F in 
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->item(Ljava/lang/Object;)V in instance (*)V holding android_purge_26_q3_ClipsVideoPlayerController_maybeResumePlayer
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->resuming(Ljava/lang/Object;)V in instance (*)V holding android_purge_26_q3_ClipsVideoPlayerController_maybeResumePlayer
 #
+# Open reel links on that reel (#606) asks the extension with the viewer's source right before the
+# config's check that skips the Reels viewer's kept-reels controller, in the one method building it,
+# which holds the controller's flag name and the sync flow's. Left out, a reel link opens on a reel
+# Instagram kept; twice or elsewhere, it isn't the hook the patch wrote. OpenReelLinksHookTest checks
+# where it lands on every declared build.
+once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->skipsCachedReels(Ljava/lang/Object;)I in instance (*)V pooled holding android_purge_26_q3_ClipsFlashMediaUseCase_getUiState android_purge_26_q2_ClipsFlashCacheExperimentUtil_shouldDisableFlashCacheCompletelyForSyncFlow
+#
+# The same patch asks the extension whether to hold each chunk of reels from the network right before
+# the viewer adds it, in the one static method logging the chunk and its add to the UI, and tells the
+# extension when the viewer inserts reels at a position, at the start of the one adapter method named
+# for that insert. Left out, a warm reel link plays a prefetched reel ahead of the linked one; twice or
+# elsewhere, it isn't the hook the patch wrote. OpenReelLinksHookTest checks both on every declared build.
+once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->holdsReels(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;IIIII)I in static (LX/*;LX/*;)V pooled holding Network\sChunk\sReceived Add\sto\sUI
+once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->linkedReelIn(Ljava/lang/Object;)V in instance (Ljava/util/List;I)V pooled holding android_purge_26_q2_ClipsViewerAdapter_insertClipsItemsAtPosition
+#
 # Open links in external browser asks the extension right after the in-app browser's own super
 # call, in onCreate and in onNewIntent. Both call the one redirect, so each rule is shared-call:
 # once in its method and in no other method holding its strings. On 449 only the browser's

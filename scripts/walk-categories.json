@@ -314,7 +314,8 @@
           "Stop Reels scrolling",
           "Swipe left to open the profile",
           "Keep the tab bar on a reel's profile",
-          "Find the reel you came from"
+          "Find the reel you came from",
+          "Open reel links on that reel"
         ]
       },
       "anchors": [

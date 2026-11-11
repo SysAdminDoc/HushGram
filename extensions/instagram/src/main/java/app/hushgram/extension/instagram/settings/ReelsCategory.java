@@ -228,6 +228,11 @@ final class ReelsCategory {
                     L10n.t("Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. "
                             + "Slide the lock off, or hold the edge and let go, to go back to normal speed.")));
         }
+        if (build.contains(PatchFamily.REEL_LINKS)) {
+            reels.add(toggle(context, Settings.OPEN_REEL_LINKS_FIRST, L10n.t("Open reel links on that reel"),
+                    L10n.t("A reel link opens on the reel it points to. Instagram doesn't play another reel "
+                            + "it kept on your phone while that one loads.")));
+        }
         if (build.contains(PatchFamily.REEL_POST_TIME)) {
             reels.add(toggle(context, Settings.SHOW_REEL_POST_TIME, L10n.t("Show a reel's exact time"),
                     L10n.t("Shows the date and time a reel was posted under the author's name, like Oct 2, 3:45 PM. "

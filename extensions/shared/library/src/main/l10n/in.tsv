@@ -2101,3 +2101,6 @@ Follow @%1$s?	Ikuti @%1$s?
 Follow this account?	Ikuti akun ini?
 # context: The question's confirm button; Instagram's own Follow button label (#631)
 Follow	Ikuti
+# context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
+Open reel links on that reel	Buka tautan reel di reel itu
+A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	Tautan reel membuka reel yang dituju. Instagram tidak memutar reel lain yang disimpan di ponselmu selama reel itu dimuat.

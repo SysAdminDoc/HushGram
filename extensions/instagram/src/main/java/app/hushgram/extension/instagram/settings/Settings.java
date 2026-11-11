@@ -3198,6 +3198,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_reel_speed", TRUE);
 
     /**
+     * A Reels viewer opened from a link skips the reels Instagram kept on the phone, so the linked
+     * reel is the first one it shows (#606, {@link app.hushgram.extension.instagram.reels.ReelLinks}).
+     * Read as each viewer sets up. Starts on.
+     */
+    public static final BooleanSetting OPEN_REEL_LINKS_FIRST =
+            new BooleanSetting("hushgram_open_reel_links_first", TRUE);
+
+    /**
      * Instagram's seek bar stays under every ordinary reel, short ones too, with the time played
      * and the reel's length above it
      * ({@link app.hushgram.extension.instagram.reels.ReelSeekBar}). The bar is decided as each reel

@@ -570,6 +570,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Open reel links on that reel patch. */
+    public static boolean reelLinks() {
+        return false;
+    }
+
     public static boolean reelSeekBar() {
         return false;
     }

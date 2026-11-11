@@ -125,6 +125,7 @@ import app.morphe.patches.instagram.reels.scrolling.stopReelsScrollingPatch
 import app.morphe.patches.instagram.reels.profiletabbar.reelProfileTabBarPatch
 import app.morphe.patches.instagram.reels.swipeprofile.swipeToProfilePatch
 import app.morphe.patches.instagram.reels.seekbar.reelSeekBarPatch
+import app.morphe.patches.instagram.reels.links.openReelLinksPatch
 import app.morphe.patches.instagram.reels.speed.keepReelSpeedPatch
 import app.morphe.patches.instagram.reels.suggested.hideReelsSuggestionsPatch
 import app.morphe.patches.instagram.reels.tab.hideReelsTabPatch
@@ -359,6 +360,7 @@ class DefaultCatalogTest {
         hideSuggestedStoriesPatch,
         keepReelSpeedPatch,
         openLinksExternallyPatch,
+        openReelLinksPatch,
         removeAdIdPatch,
         removeBuildExpiredPopupPatch,
         restoreTrustPatch,
@@ -376,7 +378,7 @@ class DefaultCatalogTest {
     )
 
     @Test fun existingDefaultsRetainTheirSelections() {
-        assertEquals(17, prior.size)
+        assertEquals(18, prior.size)
         prior.forEach { assertEquals(it.name, true, it.default) }
     }
 
@@ -393,7 +395,7 @@ class DefaultCatalogTest {
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 174, all.size)
+        assertEquals("every named patch needs one reviewed decision", 175, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

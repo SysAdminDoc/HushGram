@@ -2101,3 +2101,6 @@ Follow @%1$s?	¿Seguir a @%1$s?
 Follow this account?	¿Seguir esta cuenta?
 # context: The question's confirm button; Instagram's own Follow button label (#631)
 Follow	Seguir
+# context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
+Open reel links on that reel	Abrir los enlaces de reels en ese reel
+A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	Un enlace a un reel abre el reel al que apunta. Instagram no reproduce otro reel guardado en tu teléfono mientras ese carga.
