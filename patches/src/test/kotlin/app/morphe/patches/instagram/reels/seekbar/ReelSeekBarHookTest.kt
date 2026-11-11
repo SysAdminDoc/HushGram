@@ -49,7 +49,7 @@ class ReelSeekBarHookTest {
     /** The hooks the patch writes are in the ReelSeekBar and ReelSeekTouch the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, BIND_REEL, LISTEN, PHOTO_BAR_ON, PHOTO_REEL, PHOTO_ROW, PHOTO_PROGRESS, SEEK_PREVIEW_ON, REMEMBER_REEL)) {
+        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, BIND_REEL, LISTEN, PHOTO_BAR_ON, PHOTO_REEL, PHOTO_ROW, PHOTO_PROGRESS, PHOTO_TOUCH_ONLY, SEEK_PREVIEW_ON, REMEMBER_REEL)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -124,6 +124,11 @@ class ReelSeekBarHookTest {
             standIns().map { if (it.type == ITEM_TYPE) itemType(access = AccessFlags.FINAL.value) else it } to "or its getId isn't public",
             standIns().filter { it.type != REEL_ITEM_READER } to "the extension has no static $REEL_ITEM_ID",
             standIns().map { if (it.type == ITEM) item(tail = "const/4 v0, 0x1\nreturn v0") else it } to "doesn't return what",
+            standIns().map { if (it.type == STRIP) strip(touchTail = "const/4 v0, 0x1\nreturn v0") else it } to "to return one call's answer, found 0",
+            standIns().map { if (it.type == STRIP) strip(current = "") else it } to "to ask its controller for one $ITEM_TYPE, found 0",
+            standIns().map { if (it.type == STRIP) strip(touchHead = "if-eqz p0, :answer", touchTail = "move-result v0\n:answer\nreturn v0") else it } to
+                "jumps to its return of the answer",
+            standIns().map { if (it.type == STRIP) strip(touchHead = "move-object p0, v1") else it } to "writes over its controller",
         )) {
             val context = PatchContexts.of(classes)
             val failure = assertThrows(PatchException::class.java) { context.findReelSeekBarSites() }
@@ -521,6 +526,7 @@ class ReelSeekBarHookTest {
             Triple(context.method(photo.answer), photo.answerAt, PHOTO_REEL),
             Triple(context.method(photo.row), photoRowAt, PHOTO_ROW),
             Triple(context.method(photo.player), 0, PHOTO_PROGRESS),
+            Triple(context.method(photo.touchOnly.method), photo.touchOnly.at, PHOTO_TOUCH_ONLY),
         )) {
             val name = "$what ${method.definingClass}->${method.name}"
             val flow = ControlFlow.of(method)
@@ -538,6 +544,17 @@ class ReelSeekBarHookTest {
         assertEquals("$what: the hook's answer", photo.answerRegister, (answer[hookAt + 1] as OneRegisterInstruction).registerA)
         assertEquals("$what: the answer goes back", Opcode.RETURN, answer[hookAt + 2].opcode)
         assertEquals("$what: Instagram's answer goes in", photo.answerRegister, answer[hookAt].arguments().first())
+
+        // The touch-only check asks the controller again for the reel on screen, and answers back where Instagram returned.
+        val onTouch = photo.touchOnly
+        val touch = context.method(onTouch.method).implementation!!.instructions.toList()
+        val touchAt = touch.indexOfFirst { it.calls(PHOTO_TOUCH_ONLY) }
+        val asked = touch.indices.filter { it in onTouch.at until touchAt && touch[it].calls(onTouch.current) }
+        assertEquals("$what: the reel on screen asked once in the hook", 1, asked.size)
+        assertEquals("$what: of the controller", listOf(onTouch.controller), touch[asked.single()].arguments())
+        assertEquals("$what: the touch hook's answer", onTouch.answer, (touch[touchAt + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the touch answer goes back", Opcode.RETURN, touch[touchAt + 2].opcode)
+        assertEquals("$what: Instagram's touch answer goes in", onTouch.answer, touch[touchAt].arguments().first())
     }
 
     private fun Method.holdsMarkerOf(name: String): Boolean = implementation?.instructions?.any { instruction ->
@@ -552,7 +569,7 @@ class ReelSeekBarHookTest {
     private fun Method.holdsMarker(): Boolean = implementation?.instructions?.any { instruction ->
         val string = ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string
         string != null && string.startsWith("android_purge_") &&
-            listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP, PLAYER_PROGRESS).any { string.endsWith("_$it") }
+            listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP, PLAYER_PROGRESS, TOUCH_ONLY).any { string.endsWith("_$it") }
     } == true
 
     private fun Method.holdsString(text: String): Boolean = implementation?.instructions?.any {
@@ -823,7 +840,13 @@ class ReelSeekBarHookTest {
          * Shaped like 453's prepareExpandedTouchView (57.79's LX/04FC->A0L) under its marker: it takes
          * the strip it keeps and sets a scrubbing lambda as its touch listener.
          */
-        fun strip(type: String = STRIP, set: String = SET_ON_TOUCH_CALL): ClassDef = classOf(
+        fun strip(
+            type: String = STRIP,
+            set: String = SET_ON_TOUCH_CALL,
+            touchHead: String = "",
+            current: String = "invoke-static {p0}, $type->A07($type)$ITEM_TYPE",
+            touchTail: String = "move-result v0\nreturn v0",
+        ): ClassDef = classOf(
             type,
             method(
                 type, "A0L", emptyList(), "V", 4,
@@ -839,6 +862,35 @@ class ReelSeekBarHookTest {
                     return-void
                 """,
                 static = false,
+            ),
+            // Shaped like 454's LX/06OS->A07, the reel on screen, or null.
+            method(
+                type, "A07", listOf(type), ITEM_TYPE, 2,
+                """
+                    iget-object v0, p0, $type->A0B:$ITEM_TYPE
+                    return-object v0
+                """,
+            ),
+            // Shaped like 454's LX/06OS->A0R under its marker: whether the reel's bar shows only while touched, from its length.
+            method(
+                type, "A0R", listOf(type), "Z", 5,
+                """
+                    const-string v0, "android_purge_26_q2_$TOUCH_ONLY"
+                    invoke-static {v0}, $CONFIGS->trace(Ljava/lang/String;)V
+                    $touchHead
+                    $current
+                    move-result-object v0
+                    if-nez v0, :item
+                    const/4 v0, 0x0
+                    return v0
+                    :item
+                    invoke-static {p0}, $type->A03($type)J
+                    move-result-wide v2
+                    iget-object v1, p0, $type->A0c:Ljava/lang/Object;
+                    iget-boolean v0, v0, $AD_FIELD
+                    invoke-static {v1, v2, v3, v0}, $UTIL->A0N(Ljava/lang/Object;JZ)Z
+                    $touchTail
+                """,
             ),
         )
 

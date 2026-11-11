@@ -238,6 +238,23 @@ public final class ReelSeekBar {
     }
 
     /**
+     * Injected where Instagram's Reels progress controller answers whether a reel's bar shows only while
+     * you touch the reel, with that answer as an int (non-zero is yes), the reel's kind and its id, while
+     * {@link #photoBarOn}. It says yes to a reel shorter than the minimum, and a photo's length is 0, so it
+     * hid a photo's bar each time the reel came on screen. Answers no for a photo with a song and
+     * Instagram's answer otherwise.
+     */
+    public static boolean photoTouchOnly(int hidden, Object kind, String id) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_SEEK_BAR);
+            return !note(kind, id) && hidden != 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "photo seek bar shown", failure);
+            return hidden != 0;
+        }
+    }
+
+    /**
      * Injected first thing where Instagram works out a reel's seek bar row, with the reel's kind and
      * id, while {@link #photoBarOn}. Tells {@link #lazy}, a few lines later in that method on the
      * same thread, which reel it's answering for: with no length, a photo counts as a short reel, and

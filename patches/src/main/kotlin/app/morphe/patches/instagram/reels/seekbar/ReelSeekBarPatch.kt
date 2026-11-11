@@ -113,6 +113,14 @@ internal const val REMEMBER_REEL = "$REEL_SEEK_BAR->rememberReel(Ljava/lang/Obje
 /** The marker of the Reels player's position callback (on 454 LX/04Kf->A1M), which every reel's player goes through. */
 internal const val PLAYER_PROGRESS = "ClipsVideoPlayerController_onProgressUpdate"
 
+/**
+ * The marker of the Reels progress controller's check of whether a reel's bar shows only while you touch
+ * the reel (on 454 LX/06OS->A0R). It says yes to a reel shorter than the minimum, and a photo's length is 0,
+ * so the controller hid a photo's bar each time the reel came on screen (#10).
+ */
+internal const val TOUCH_ONLY = "ClipsProgressController_shouldShowScrubberOnInteraction"
+internal const val PHOTO_TOUCH_ONLY = "$REEL_SEEK_BAR->photoTouchOnly(ILjava/lang/Object;Ljava/lang/String;)Z"
+
 /** What Instagram reports from the method that works out a post's kind of reel (on 454 LX/087h->A00), photo with music among them. */
 internal const val KIND_OF_REPORT = "MixedMediaTypeExt.toMixedMediaType unsupported carousel type"
 private const val MEDIA = "Lcom/instagram/feed/media/Media;"
@@ -140,7 +148,9 @@ private const val STRING = "Ljava/lang/String;"
  * A reel that's a photo with a song plays through the same player, but its post states no length, so
  * Instagram gives it no bar (#10). On a switch of its own, the check of whether a reel gets the bar and
  * the row's state tell the extension the reel's kind and id, and it says yes to that kind alone, and the
- * player's position callback hands it the song's length for that reel's bar.
+ * player's position callback hands it the song's length for that reel's bar. The progress controller's
+ * check of whether the bar shows only while you touch the reel asks the extension too, since a photo,
+ * with no length, is shorter than any minimum and had its bar hidden each time it came on screen.
  *
  * Every read is found by its server id and counted, each is checked against Instagram's own markers
  * for the seek bar, and the bar's class and method, the binder and the strip's listener call are
@@ -180,7 +190,8 @@ internal class ReelSeekBarSites(
  * What the photo reel's hooks need: the reel item's fields as `type->name:type` or `type->name(...)ret`
  * ([media], [id]), the method working out a post's kind ([kindOf]), the check of whether a reel gets
  * the bar ([answer], with [answerAt] its last return, of [answerRegister], and [item] the item's register
- * there and [scratch] two registers free there), the row's state ([row]) and the player's callback ([player]).
+ * there and [scratch] two registers free there), the row's state ([row]), the player's callback ([player])
+ * and the controller's check of whether the bar shows only while touched ([touchOnly]).
  */
 internal class PhotoSites(
     val media: String,
@@ -193,6 +204,21 @@ internal class PhotoSites(
     val scratch: Pair<Int, Int>,
     val row: Method,
     val player: Method,
+    val touchOnly: TouchOnlySite,
+)
+
+/**
+ * Where the [TOUCH_ONLY] check answers: [at] is its return of [answer], which a call put there, [current]
+ * the static getter of the reel on screen it asks with the controller in [controller], and [scratch] three
+ * registers free at that return.
+ */
+internal class TouchOnlySite(
+    val method: Method,
+    val at: Int,
+    val answer: Int,
+    val current: String,
+    val controller: Int,
+    val scratch: List<Int>,
 )
 
 /** Where [method] calls [SET_ON_TOUCH] on the strip: instruction [at], with the strip in [view] and the listener in [listener]. */
@@ -237,7 +263,7 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
     }
     val lazy = lazies.single()
 
-    val marked = markedMethods(listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP, PLAYER_PROGRESS))
+    val marked = markedMethods(listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP, PLAYER_PROGRESS, TOUCH_ONLY))
     val attached = marked.getValue(SHOULD_SHOW_ATTACHED)
     if (lengths.none { it.signature() == attached.signature() }) {
         refuse("${attached.signature()} ($SHOULD_SHOW_ATTACHED) doesn't read the shortest reel with a seek bar")
@@ -257,7 +283,7 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
         ?: refuse("the extension has no static $REEL_ITEM_ID")
     return ReelSeekBarSites(
         lengths, lazy, findProgressChanged(), findBindSite(row, lazy), findTouchSite(marked.getValue(TOUCH_STRIP)),
-        findPhotoSites(calculate, attached, row, marked.getValue(PLAYER_PROGRESS)),
+        findPhotoSites(calculate, attached, row, marked.getValue(PLAYER_PROGRESS), marked.getValue(TOUCH_ONLY)),
     )
 }
 
@@ -266,9 +292,9 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
  * to hold one [MEDIA], which [KIND_OF_REPORT]'s method takes to answer the kind, and a getId, which is
  * how the binder tags the bar's container. [calculate] has to end in the answer of [attached], returned
  * as it is, with the item in a register nothing writes over, and [player] has to take the item, then
- * the position and the length.
+ * the position and the length. [touchOnly] is checked by [findTouchOnlySite].
  */
-private fun BytecodePatchContext.findPhotoSites(calculate: Method, attached: Method, row: Method, player: Method): PhotoSites {
+private fun BytecodePatchContext.findPhotoSites(calculate: Method, attached: Method, row: Method, player: Method, touchOnly: Method): PhotoSites {
     val itemType = row.parameterTypes.getOrNull(1)?.toString() ?: refuse("${row.signature()} takes no reel item")
     val itemClass = classDefByOrNull(itemType) ?: refuse("this Instagram build has no $itemType")
     val mediaFields = itemClass.fields.filter { it.type == MEDIA }
@@ -325,7 +351,44 @@ private fun BytecodePatchContext.findPhotoSites(calculate: Method, attached: Met
         scratch = free[0] to free[1],
         row = row,
         player = player,
+        touchOnly = findTouchOnlySite(touchOnly, itemType),
     )
+}
+
+/**
+ * The [TOUCH_ONLY] check, [method]: static, taking its controller and answering a boolean, it asks one
+ * static getter of the controller for the reel on screen, an [itemType], and returns one call's answer as
+ * it is, at a return nothing jumps to. The controller stays in its register, and three registers are free
+ * there, so the hook can ask for the reel again.
+ */
+private fun findTouchOnlySite(method: Method, itemType: String): TouchOnlySite {
+    val where = method.signature()
+    val controller = method.definingClass
+    if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.parameterTypes.map(CharSequence::toString) != listOf(controller) ||
+        method.returnType != "Z"
+    ) {
+        refuse("$where ($TOUCH_ONLY) isn't a static check of its controller")
+    }
+    val code = method.implementation?.instructions?.toList() ?: refuse("$where has no body")
+    val getters = code.filter { it.opcode == Opcode.INVOKE_STATIC }.mapNotNull { (it as ReferenceInstruction).reference as? MethodReference }
+        .filter { it.definingClass == controller && it.returnType == itemType && it.parameterTypes.map(CharSequence::toString) == listOf(controller) }
+        .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        .distinct()
+    val current = getters.singleOrNull() ?: refuse("expected $where to ask its controller for one $itemType, found ${getters.size}")
+    val answers = code.indices.filter { at ->
+        val moved = code.getOrNull(at - 1)
+        code[at].opcode == Opcode.RETURN && moved?.opcode == Opcode.MOVE_RESULT &&
+            (moved as OneRegisterInstruction).registerA == (code[at] as OneRegisterInstruction).registerA
+    }
+    val at = answers.singleOrNull() ?: refuse("expected $where to return one call's answer, found ${answers.size}")
+    if (at in method.jumpTargets()) refuse("$where jumps to its return of the answer, where the hook goes")
+    val answer = (code[at] as OneRegisterInstruction).registerA
+    val self = method.parameterRegisterNumber(0)
+    if (self > 15 || answer > 15) refuse("$where keeps its controller or the answer in a register past v15")
+    if (code.any { it.writes(self) }) refuse("$where writes over its controller")
+    val free = (0 until minOf(method.localRegisterCount(), 16)).filter { it != answer }
+    if (free.size < 3) refuse("$where has no three registers free at its return")
+    return TouchOnlySite(method, at, answer, current, self, free.take(3))
 }
 
 /**
@@ -605,6 +668,25 @@ private fun BytecodePatchContext.applyPhotoHooks(sites: PhotoSites) {
             move-result v${sites.answerRegister}
         """,
         ExternalLabel("instagram", answer.getInstruction(sites.answerAt)),
+    )
+
+    // The controller's check of whether the bar shows only while touched, which it asks each time a reel comes on screen.
+    val onTouch = sites.touchOnly
+    val touchOnly = mutable(onTouch.method)
+    val (flag, onScreen, touchId) = onTouch.scratch
+    touchOnly.addInstructionsWithLabels(
+        onTouch.at,
+        """
+            invoke-static {}, $PHOTO_BAR_ON
+            move-result v$flag
+            if-eqz v$flag, :instagram
+            invoke-static { v${onTouch.controller} }, ${onTouch.current}
+            move-result-object v$onScreen
+            ${kindAndId(onScreen, flag, touchId)}
+            invoke-static { v${onTouch.answer}, v$flag, v$touchId }, $PHOTO_TOUCH_ONLY
+            move-result v${onTouch.answer}
+        """,
+        ExternalLabel("instagram", touchOnly.getInstruction(onTouch.at)),
     )
 
     // The start of a method: every local register is free there. Each of these keeps the parameter in a register of its own.

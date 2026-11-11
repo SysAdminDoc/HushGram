@@ -86,6 +86,22 @@ public class ReelPhotoSeekBarTest {
         assertFalse(ReelSeekBar.photoShown(null));
     }
 
+    /**
+     * Instagram's progress controller hides a reel's bar until you touch the reel when the reel is shorter
+     * than its minimum, and a photo's length is 0, so a photo with a song had its bar drawn, then hidden.
+     * That photo's bar stays in sight, and every other reel keeps Instagram's answer.
+     */
+    @Test public void aPhotosBarIsNeverHiddenUntilTouched() {
+        assertFalse(ReelSeekBar.photoTouchOnly(1, Kind.PHOTO_WITH_MUSIC, "touch"));
+        assertTrue("noted for its length and time", ReelSeekBar.photoShown("clips_scrubber_touch"));
+        assertFalse(ReelSeekBar.photoTouchOnly(0, Kind.PHOTO_WITH_MUSIC, "touch"));
+        assertTrue("a short video reel", ReelSeekBar.photoTouchOnly(1, Kind.CLIPS, "short"));
+        assertFalse(ReelSeekBar.photoTouchOnly(0, Kind.CLIPS, "long"));
+        assertTrue(ReelSeekBar.photoTouchOnly(1, Kind.PHOTO_WITHOUT_MUSIC, "silent"));
+        assertTrue("no kind", ReelSeekBar.photoTouchOnly(1, null, null));
+        assertTrue("not a kind at all", ReelSeekBar.photoTouchOnly(1, "PHOTO_WITH_MUSIC", "text"));
+    }
+
     /** With no length, a photo counts as a short reel; other short reels keep Instagram's hidden kind on this switch alone. */
     @Test public void aPhotosRowIsNeverTheHiddenKindAndOtherReelsKeepTheirs() {
         ReelSeekBar.photoRow(Kind.PHOTO_WITH_MUSIC, "row");

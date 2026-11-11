@@ -2428,6 +2428,18 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroi
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/Object;I)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_scrubber_ LX/*;->A0F:Landroid/graphics/drawable/Drawable;
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bindReel(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_scrubber_ LX/*;->A0F:Landroid/graphics/drawable/Drawable;
 first-call Lapp/hushgram/extension/instagram/reels/ReelItemReader;->id(Ljava/lang/Object;)Ljava/lang/String; outside Lapp/hushgram/extension/
+# Seek bar on photos with music (#10), on its own switch, hands ReelSeekBar the reel's kind and id where
+# Instagram decides whether a reel gets the bar (05KP.A00 on 454, photoReel at its return of the answer),
+# where it works out the bar's row (05DT.A00, photoRow, after the seek preview's block), and the reel's
+# id, position and length first thing in the player's progress callback (04Kf.A1M, photoProgress). The
+# progress controller's check of whether the bar shows only while touched (06OS.A0R) says yes to any reel
+# shorter than the minimum, and a photo's length is 0, so it hid the photo's bar each time the reel came
+# on screen: photoTouchOnly goes at its return of the answer. Left out, the photo's bar is never drawn,
+# sized or kept in sight; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->photoReel(ILjava/lang/Object;Ljava/lang/String;)Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;L*;L*;Ljava/lang/Integer;IZ)Z holding android_purge_26_q2_ClipsItemUseCase_calculateShouldShowAttachedScrubber
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->photoRow(Ljava/lang/Object;Ljava/lang/String;)V in static (Lcom/instagram/clips/intf/ClipsViewerConfig;L*;L*;Lcom/instagram/common/session/UserSession;Z)L*; holding android_purge_26_q3_ClipsScrubberRowUseCase_getUiState
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->photoProgress(Ljava/lang/String;II)V in instance (L*;IIIZ)V holding android_purge_26_q3_ClipsVideoPlayerController_onProgressUpdate
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->photoTouchOnly(ILjava/lang/Object;Ljava/lang/String;)Z in static (L*;)Z holding android_purge_26_q2_ClipsProgressController_shouldShowScrubberOnInteraction
 # The same patch swaps the one setOnTouchListener call in the Reels progress controller's
 # prepareExpandedTouchView, which gives the invisible strip over the bottom of Reels its scrubbing
 # listener, for ReelSeekTouch.listen with the same strip and listener (#452). Left out, the strip
