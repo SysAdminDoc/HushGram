@@ -24,6 +24,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.instagram.stories.UploadPhotoQuality;
 
 /** Upload stories at full quality: the last Stories row, after Download on stories, that starts off, is kept in a backup and answers off while paused. */
 @RunWith(RobolectricTestRunner.class)
@@ -37,6 +38,7 @@ public class StoryUploadQualitySettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.UPLOAD_STORIES_AT_FULL_QUALITY.resetToDefault();
+        Settings.UPLOAD_PHOTO_QUALITY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -47,6 +49,7 @@ public class StoryUploadQualitySettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.UPLOAD_STORIES_AT_FULL_QUALITY.resetToDefault();
+        Settings.UPLOAD_PHOTO_QUALITY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -92,6 +95,18 @@ public class StoryUploadQualitySettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_FRAME_RATE.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_PHOTO_QUALITY.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_PHOTO_SIZE.key));
+    }
+    /** A saved percent still opens the page and reads as itself, then follows a new pick. */
+    @Test public void aSavedPhotoQualityPercentStillOpensThePage() throws Exception {
+        Settings.UPLOAD_PHOTO_QUALITY.save(UploadPhotoQuality.Q100);
+        open(EnumSet.of(PatchFamily.STORY_UPLOAD_QUALITY));
+        assertNotNull("the page built its rows", page.getPreferenceScreen());
+        android.preference.ListPreference row =
+                (android.preference.ListPreference) page.getPreferenceScreen().findPreference(Settings.UPLOAD_PHOTO_QUALITY.key);
+        assertNotNull(row);
+        assertEquals("100%", row.getSummary().toString());
+        row.setValue(UploadPhotoQuality.Q90.name());
+        assertEquals("90%", row.getSummary().toString());
     }
     private String entries(String key, String title) {
         android.preference.ListPreference row = (android.preference.ListPreference) page.getPreferenceScreen().findPreference(key);

@@ -293,6 +293,71 @@ public class StoryUploadQualityTest {
         assertEquals("reel, everything", 60, StoryUploadQuality.frameRate(ShareType.CLIPS, 30));
     }
 
+    /** The server's transcode size is raised to the chosen width for a covered upload, on whichever side it names. */
+    @Test
+    public void uploadSizeRaisesTheServersSize() {
+        StoryUploadQuality.encoderForTests(StoryUploadQualityTest::fourK);
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P2160);
+        assertEquals("switch off", 1080, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        assertEquals(2160, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+        assertEquals("the long side", 3840, StoryUploadQuality.uploadSize(ShareType.STORY, 1920, 0));
+        assertTrue(counts(), counts().contains(StoryUploadQuality.RAISED_UPLOAD_SIZE + " 2"));
+
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P1440);
+        assertEquals("1440p", 1440, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P1080);
+        assertEquals("the server's already", 1080, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+        assertEquals("the server's bigger", 1440, StoryUploadQuality.uploadSize(ShareType.STORY, 1440, 1));
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.INSTAGRAM);
+        assertEquals("Instagram's own", 1080, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P2160);
+        assertEquals("no size", 0, StoryUploadQuality.uploadSize(ShareType.STORY, 0, 1));
+        assertEquals("unset", -1, StoryUploadQuality.uploadSize(ShareType.STORY, -1, 1));
+        assertEquals("post, stories only", 1080, StoryUploadQuality.uploadSize(ShareType.FEED, 1080, 1));
+        assertEquals("no share type", 1080, StoryUploadQuality.uploadSize(null, 1080, 1));
+        assertEquals("not an enum", 1080, StoryUploadQuality.uploadSize("STORY", 1080, 1));
+        Settings.UPLOAD_QUALITY_APPLIES_TO.save(UploadScope.ALL);
+        assertEquals("post, everything", 2160, StoryUploadQuality.uploadSize(ShareType.FEED, 1080, 1));
+        assertTrue(HookStatus.missing(FamilyNames.STORY_UPLOAD_QUALITY).toString(),
+                HookStatus.missing(FamilyNames.STORY_UPLOAD_QUALITY).isEmpty());
+    }
+
+    /** A size the phone's encoder can't take steps down to the widest of 1440 and 1080 above the server's, or keeps the server's. */
+    @Test
+    public void uploadSizeStepsDownToWhatTheEncoderTakes() {
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P2160);
+        StoryUploadQuality.encoderForTests((width, height, fps) -> width <= 1440);
+        assertEquals(1440, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+        assertEquals("the long side", 2560, StoryUploadQuality.uploadSize(ShareType.STORY, 1920, 0));
+        assertTrue(counts(), counts().contains(StoryUploadQuality.STEPPED_DOWN + " 2"));
+
+        StoryUploadQuality.encoderForTests(StoryUploadQualityTest::emulator);
+        assertEquals("the emulator", 1080, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+        assertEquals("the emulator, a smaller server size", 1080, StoryUploadQuality.uploadSize(ShareType.STORY, 720, 1));
+        StoryUploadQuality.encoderForTests((width, height, fps) -> false);
+        assertEquals("an encoder taking none of them", 1080, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+        StoryUploadQuality.encoderForTests(null);
+        assertEquals("no encoder", 1080, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+    }
+
+    /** A frame rate past 60 is checked at the size the server's encode got, raised or not. */
+    @Test
+    public void frameRateIsCheckedAtTheUploadSize() {
+        StoryUploadQuality.encoderForTests((width, height, fps) -> fps <= 60 || width <= 1080);
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P2160);
+        Settings.UPLOAD_FRAME_RATE.save(UploadFrameRate.FPS_120);
+        assertEquals(2160, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+        assertEquals("too wide for 120", 60, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P1080);
+        assertEquals(1080, StoryUploadQuality.uploadSize(ShareType.STORY, 1080, 1));
+        assertEquals("the server's size", 120, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+    }
+
     /** A chosen photo quality is a floor with the switch on, for every photo, and never touches an unset one. */
     @Test
     public void photoQualityRaisesWithTheSwitchOn() {

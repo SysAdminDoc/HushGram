@@ -4778,10 +4778,21 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** A plain choice row for the upload quality settings. Its summary is the chosen entry, set by the base class. */
+    /** A plain choice row for the upload quality settings. Its summary is the chosen entry. */
     static final class UploadChoiceRow extends ListPreference {
         UploadChoiceRow(Context context) {
             super(context);
+        }
+
+        /**
+         * The chosen entry as written. ListPreference's own summary runs through String.format, and
+         * a Photo quality entry such as "100%" ends in a bare %, which threw and kept the whole page
+         * from opening once a percent was picked.
+         */
+        @Override
+        public CharSequence getSummary() {
+            CharSequence entry = getEntry();
+            return entry != null ? entry : getValue();
         }
 
         @Override

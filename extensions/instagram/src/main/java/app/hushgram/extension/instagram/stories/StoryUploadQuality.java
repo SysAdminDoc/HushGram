@@ -48,6 +48,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * raises the width to the choice, no wider than the clip. Either is asked only where the phone's first
  * H.264 encoder takes the size or rate, and a width it can't take steps down to 1440, then 1080.
  *
+ * <p>The width step only sizes Instagram's check before upload, though. The video that goes up is
+ * encoded from the server's upload settings, 1080 on the short side for a story at the 30 fps default
+ * (traced on 454, 2026-11-11). {@link #uploadSize} and {@link #frameRate} answer there too, right
+ * before that encode is built, so the choices reach what's sent.
+ *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or anything
  * thrown, Instagram asks its own setting as before.
  */
@@ -69,6 +74,9 @@ public final class StoryUploadQuality {
 
     /** What's counted for each upload given a higher frame rate. */
     static final String RAISED_FRAME_RATE = "uploads given a higher frame rate";
+
+    /** What's counted for each upload encoded bigger than the server's upload settings ask. */
+    static final String RAISED_UPLOAD_SIZE = "uploads encoded bigger than the server asks";
 
     /** What's counted for each photo given a higher JPEG quality. */
     static final String RAISED_PHOTO = "photos given a higher quality";
@@ -193,8 +201,43 @@ public final class StoryUploadQuality {
     }
 
     /**
-     * Injected where Instagram's video encoder settings are final, with the upload's share type and
-     * the frame rate it worked out (0 when it didn't). Returns the Video frame rate choice when it's
+     * Injected right before Instagram builds the encode from the server's upload settings, with the
+     * upload's share type (null when it has none), the size the server asked for and whether that
+     * size is the short side (non-zero) or the long one. For an upload the switch covers, answers the
+     * Video resolution choice when it's bigger, as that side of a 9:16 frame, where the phone's H.264
+     * encoder takes it, else the widest of 1440 and 1080 above the server's it does. Any other upload,
+     * or a phone whose encoder can't be read, keeps the server's size. Never throws, and never waits
+     * for the settings.
+     */
+    public static int uploadSize(Object shareType, int server, int shortSide) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_UPLOAD_QUALITY);
+            if (server <= 0 || !covered(shareType)) return server;
+            int serverWidth = shortSide != 0 ? server : server * 9 / 16;
+            lastWidth = serverWidth;
+            UploadResolution choice = Settings.UPLOAD_VIDEO_RESOLUTION.get();
+            if (choice == null || choice.width <= serverWidth) return server;
+            Encoder phone = encoder();
+            if (phone == null) return server;
+            int[] widths = { choice.width, UploadResolution.STEP_TOP, UploadResolution.P1080.width };
+            for (int width : widths) {
+                if (width > choice.width || width <= serverWidth || !phone.takes(width, portraitHeight(width), 0)) continue;
+                if (width < choice.width) HookStatus.counted(FamilyNames.STORY_UPLOAD_QUALITY, STEPPED_DOWN);
+                HookStatus.counted(FamilyNames.STORY_UPLOAD_QUALITY, RAISED_UPLOAD_SIZE);
+                lastWidth = width;
+                return shortSide != 0 ? width : portraitHeight(width);
+            }
+            return server;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_UPLOAD_QUALITY, "story upload size", failure);
+            return server;
+        }
+    }
+
+    /**
+     * Injected where Instagram's video encoder settings are final, and right before it builds the
+     * encode from the server's upload settings, with the upload's share type and the frame rate it
+     * worked out (0 when it didn't). Returns the Video frame rate choice when it's
      * higher, for an upload the switch covers, and Instagram's own otherwise. A choice past 60 is
      * asked only when the phone's H.264 encoder takes it at the last width answered, and 60 is asked
      * in its place otherwise. Never throws, and never waits for the settings.

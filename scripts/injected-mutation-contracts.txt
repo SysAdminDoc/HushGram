@@ -3067,7 +3067,15 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQua
 once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->bitrate(Ljava/lang/Object;I)I in instance (LX/*;)V calling instance LX/*;->*()Z sites 3 pooled holding const:0x895440 ig_media_transcode_param null\stranscode\sparam
 # Its Video frame rate choice (#37) sits beside the bitrate call at each of those returns, reading and
 # writing the frame rate the setter falls back to 30 on. Fewer calls leave a path at Instagram's rate.
-once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->frameRate(Ljava/lang/Object;I)I in instance (LX/*;)V calling instance LX/*;->*()Z sites 3 pooled holding const:0x895440 ig_media_transcode_param null\stranscode\sparam
+# The server's upload settings call it too (below), so it's shared.
+shared-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->frameRate(Ljava/lang/Object;I)I in instance (LX/*;)V calling instance LX/*;->*()Z sites 3 pooled holding const:0x895440 ig_media_transcode_param null\stranscode\sparam
+# The encode that goes up is built from the server's upload settings (0K64.A01 on 454, the instance
+# method reading transcode_dimension from the reply), 1080 on the short side at 30 fps (#37, traced
+# 2026-11-11). Right before its one call to the transcoder (0WeX.A00), StoryUploadQuality.uploadSize
+# takes the size and frameRate the frame rate. Left out, Video resolution and Video frame rate never
+# reach a story that goes up. Some 454 builds' method takes no int (0XNP.A02 on 386014704), hence the "*".
+once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->uploadSize(Ljava/lang/Object;II)I in instance (Ljava/lang/String;*Ljava/util/Map;)V pooled holding transcode_dimension should_expand_to_transcode_dimension
+shared-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->frameRate(Ljava/lang/Object;I)I in instance (Ljava/lang/String;*Ljava/util/Map;)V pooled holding transcode_dimension should_expand_to_transcode_dimension
 # Its Video resolution choice (#37) hands StoryUploadQuality.resolution the width Instagram's width step
 # (0Wot.A00 on 454) was asked for, 1080, 1440 or 0, with the upload's share type, read just before it.
 # Left out, Video resolution does nothing.

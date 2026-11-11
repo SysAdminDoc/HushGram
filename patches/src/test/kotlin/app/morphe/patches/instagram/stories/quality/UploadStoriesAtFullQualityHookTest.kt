@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -49,6 +50,12 @@ class UploadStoriesAtFullQualityHookTest {
     private val encoder = "Lfixture/PhotoEncoder;"
     private val renderer = "Lfixture/PhotoRenderer;"
     private val sizer = "Lfixture/PhotoSizer;"
+    private val reply = "Lfixture/UploadSettingsReply;"
+    private val transcoder = "Lfixture/Transcoder;"
+    private val transcodeUpload = "Lfixture/TranscodeUpload;"
+    private val mediaSource = "Lfixture/MediaSource;"
+    private val sharedSource = "Lfixture/SharedSource;"
+    private val uploadNetwork = "Lfixture/UploadNetwork;"
     private val reader = "$prefs->A00($store)Z"
 
     /** The hook the patch writes is in the StoryUploadQuality the bundle ships, public and static. */
@@ -58,7 +65,7 @@ class UploadStoriesAtFullQualityHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$FULL_QUALITY is not in the extension: $declared", FULL_QUALITY.substringAfter("->") in declared)
-        for (hook in listOf(BITRATE_HOOK, RESOLUTION_HOOK, RENDER_WIDTH_HOOK, FRAME_RATE_HOOK, PHOTO_QUALITY_HOOK, PHOTO_TIER_HOOK)) {
+        for (hook in listOf(BITRATE_HOOK, RESOLUTION_HOOK, RENDER_WIDTH_HOOK, FRAME_RATE_HOOK, PHOTO_QUALITY_HOOK, PHOTO_TIER_HOOK, UPLOAD_SIZE_HOOK)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -331,6 +338,136 @@ class UploadStoriesAtFullQualityHookTest {
             assertPhotoHooked(bundle.name, context.mutableClassDefBy(setup.definingClass).methods.single { it.name == setup.name && it.parameterTypes.size == 4 })
         }
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    /** The server's upload settings hand the transcoder a size and frame rate the hooks answer first, and nothing else changes. */
+    @Test
+    fun theServersUploadSettingsAskTheHooks() {
+        val classes = uploadSettingsClasses()
+        val context = PatchContexts.of(classes)
+        val before = classes.associate { c -> c.type to c.methods.associate { it.name to it.code().size } }
+
+        val settings = context.findUploadSettings()
+        assertEquals("the method", reply to "A01", settings.method.definingClass to settings.method.name)
+        assertEquals(
+            "upload, size, frame rate, scale-up and short side",
+            listOf(5, 7, 9, 10, 11),
+            listOf(settings.upload, settings.size, settings.frameRate, settings.expand, settings.shortSide),
+        )
+        assertEquals(
+            "the route to the share type, past the source only a subclass of holds one",
+            listOf("$transcodeUpload->A0L", "$uploadNetwork->A02"),
+            listOf("${settings.holder.definingClass}->${settings.holder.name}", "${settings.shareType.definingClass}->${settings.shareType.name}"),
+        )
+        assertEquals("the free locals", 0 to 1, settings.scratch to settings.answer)
+
+        context.raiseUploadSize(settings)
+        assertUploadSizeHooked("stand-in", context.mutableClassDefBy(reply).methods.single { it.name == "A01" }, settings)
+        for (c in classes) {
+            for (method in context.mutableClassDefBy(c.type).methods) {
+                val added = if (c.type == reply && method.name == "A01") UPLOAD_SIZE_HOOK_SIZE else 0
+                assertEquals("${c.type}->${method.name}", before.getValue(c.type).getValue(method.name) + added, method.code().size)
+            }
+        }
+    }
+
+    /** Upload settings the patch can't read fail at patch time, saying what it found, before anything is written. */
+    @Test
+    fun uploadSettingsThePatchCantReadFail() {
+        val where = "$reply->A01"
+        val cases = listOf(
+            uploadSettingsClasses(key = "transcode_size") to "expected one method reading \"$TRANSCODE_DIMENSION\" from the server's upload settings, found 0",
+            uploadSettingsClasses(calls = 2) to "expected one transcode builder call in $where, found 2",
+            uploadSettingsClasses(sizeFromReply = false) to "the size $where hands the transcode builder in v7 isn't read from the server's reply",
+            uploadSettingsClasses(jumpsToCall = true) to "something jumps to the transcode builder call in $where",
+            uploadSettingsClasses(holders = 0) to "$transcodeUpload holds 0 fields of a class holding a share type, expected one",
+            uploadSettingsClasses(holders = 2) to "$transcodeUpload holds 2 fields of a class holding a share type, expected one",
+            uploadSettingsClasses(busy = true) to "has 0 local register(s) up to v15 that nothing reads",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.raiseUploadSize(context.findUploadSettings()) }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = context.mutableClassDefBy(reply).methods.filter { m -> m.code().any { it.referenceText() == UPLOAD_SIZE_HOOK } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /**
+     * Every declared build reads the server's transcode size in one method and hands it to one
+     * transcoder call, whose upload holds one class carrying a share type, and both hooks go in right
+     * before that call, once. Builds reach the upload differently (a field of `this` on 386014758, a
+     * field of `this` cast to a merged class on 386014704) and 386014757's transcoder tests no source.
+     */
+    @Test
+    fun eachBuildAsksTheHooksBeforeTheServersEncode() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
+        assertEquals("every build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        for (bundle in bundles) {
+            val readers = FixtureDex.classesLoading(bundle, TRANSCODE_DIMENSION)
+            val calls = readers.flatMap { it.methods }.flatMap { it.code() }
+                .filter { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE }
+                .mapNotNull { (it as ReferenceInstruction).reference as? MethodReference }
+                .filter { it.parameterTypes.size == 9 }
+            val uploads = calls.map { it.parameterTypes[2].toString() }.toSet()
+            val linked = FixtureDex.classes(bundle, calls.map { it.definingClass }.toSet() + uploads).values
+            val held = linked.filter { it.type in uploads }.flatMap { it.fields }.map { it.type }.filter { it.startsWith("L") }.toSet()
+            val holders = FixtureDex.classes(bundle, held).values
+            val classes = FixtureDex.withStringPools(bundle, (readers + linked + holders).distinctBy { it.type })
+            val context = PatchContexts.of(classes)
+
+            val settings = context.findUploadSettings()
+            context.raiseUploadSize(settings)
+            val everything = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+            assertEquals("${bundle.name}: size hooks", 1, everything.sumOf { m -> m.code().count { it.referenceText() == UPLOAD_SIZE_HOOK } })
+            val parameters = settings.method.parameterTypes.map(CharSequence::toString)
+            val hooked = context.mutableClassDefBy(settings.method.definingClass).methods
+                .single { it.name == settings.method.name && it.parameterTypes.map(CharSequence::toString) == parameters }
+            assertUploadSizeHooked(bundle.name, hooked, settings)
+        }
+    }
+
+    /**
+     * Right before the transcoder call: the upload it's handed, its network settings, and their share
+     * type, or null when it has none; the size hook with that, the size and the short side flag, its
+     * answer replacing the size and turning the scale-up off only when it differs; then the frame rate
+     * hook's answer replacing the frame rate.
+     */
+    private fun assertUploadSizeHooked(what: String, method: Method, settings: UploadSettings) {
+        val code = method.code()
+        val at = code.indexOfFirst { it.referenceText() == UPLOAD_SIZE_HOOK }
+        val start = at - 4
+        assertTrue("$what: hooked", start >= 0)
+        fun field(index: Int) = ((code[index] as ReferenceInstruction).reference as FieldReference).let { "${it.definingClass}->${it.name}" }
+        val address = code.runningFold(0) { here, instruction -> here + instruction.codeUnits }
+        fun landing(index: Int) = address.indexOf(address[index] + (code[index] as OffsetInstruction).codeOffset)
+
+        assertEquals("$what: the upload", Opcode.MOVE_OBJECT_FROM16, code[start].opcode)
+        assertEquals(
+            "$what: copied from the call's upload into the scratch register",
+            settings.upload to settings.scratch,
+            (code[start] as TwoRegisterInstruction).let { it.registerB to it.registerA },
+        )
+        assertEquals("$what: the call hands that register as the upload", settings.upload, (code[at + 7] as RegisterRangeInstruction).startRegister + 3)
+        assertEquals(
+            "$what: the route to the share type",
+            listOf("${settings.holder.definingClass}->${settings.holder.name}", "${settings.shareType.definingClass}->${settings.shareType.name}"),
+            listOf(field(start + 1), field(start + 3)),
+        )
+        assertEquals("$what: no network settings hands the hook null", at, landing(start + 2))
+
+        val ask = code[at] as Instruction35c
+        assertEquals("$what: the size hook's arguments", listOf(settings.scratch, settings.size, settings.shortSide), listOf(ask.registerC, ask.registerD, ask.registerE))
+        assertEquals("$what: the same size changes nothing", at + 5, landing(at + 2))
+        assertEquals("$what: the answer replaces the size", settings.size to settings.answer, (code[at + 3] as TwoRegisterInstruction).let { it.registerA to it.registerB })
+        assertEquals("$what: and turns the scale-up off", settings.expand, (code[at + 4] as OneRegisterInstruction).registerA)
+        val rate = code[at + 5] as Instruction35c
+        assertEquals("$what: the frame rate hook", FRAME_RATE_HOOK, rate.referenceText())
+        assertEquals("$what: its arguments", listOf(settings.scratch, settings.frameRate), listOf(rate.registerC, rate.registerD))
+        assertEquals("$what: its answer replaces the frame rate", settings.frameRate, (code[at + 6] as OneRegisterInstruction).registerA)
+        assertEquals("$what: then the transcoder call", Opcode.INVOKE_VIRTUAL_RANGE, code[at + 7].opcode)
+        assertEquals("$what: handed the size", settings.size, (code[at + 7] as RegisterRangeInstruction).startRegister + 5)
     }
 
     /**
@@ -711,6 +848,83 @@ class UploadStoriesAtFullQualityHookTest {
         return listOf(classDef(sizer, listOf(test, step)))
     }
 
+    /**
+     * Shaped like 454's `0K64.A01`: twelve locals and `this` past them, the server's transcode size read
+     * with optInt into the register its range call to the transcoder hands the size in, and the upload
+     * from a field of `this`. The upload holds its network settings (`0Wua` on 454), whose class
+     * declares the share type, and a media source only one subclass of declares one, which the
+     * transcoder tests for and the patch passes over.
+     */
+    private fun uploadSettingsClasses(
+        key: String = TRANSCODE_DIMENSION,
+        calls: Int = 1,
+        sizeFromReply: Boolean = true,
+        holders: Int = 1,
+        jumpsToCall: Boolean = false,
+        busy: Boolean = false,
+    ): List<ClassDef> {
+        val instance = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val picked = "Lfixture/PickedSource;"
+        val otherNetwork = "Lfixture/OtherNetwork;"
+        val parameters = listOf("Lfixture/Composer;", "Landroid/media/MediaFormat;", transcodeUpload, "F", "I", "I", "I", "Z", "Z")
+        val call = "invoke-virtual/range {v2 .. v11}, $transcoder->A00(${parameters.joinToString("")})Ljava/util/ArrayList;"
+        val optInt = "invoke-virtual {v1, v0}, Lorg/json/JSONObject;->optInt(Ljava/lang/String;)I"
+        val settings = method(
+            reply, "A01", listOf("Lorg/json/JSONObject;"), "V", 12, instance,
+            """
+                const-string v0, "$key"
+                move-object/from16 v1, p1
+                $optInt
+                move-result v7
+                ${if (sizeFromReply) "" else "const/16 v7, 0x438"}
+                move-object/from16 v2, p0
+                iget-object v2, v2, $reply->A00:$transcoder
+                const/4 v3, 0x0
+                const/4 v4, 0x0
+                move-object/from16 v5, p0
+                iget-object v5, v5, $reply->A03:$transcodeUpload
+                const/4 v6, 0x0
+                const v8, 0x7a1200
+                const/16 v9, 0x1e
+                const/4 v10, 0x1
+                ${if (jumpsToCall) "if-eqz v10, :call" else ""}
+                const/4 v11, 0x1
+                ${if (jumpsToCall) ":call" else ""}
+                ${List(calls) { call }.joinToString("\n")}
+                ${if (busy) optInt else ""}
+                return-void
+            """,
+        )
+        val builder = method(
+            transcoder, "A00", parameters, "Ljava/util/ArrayList;", 2, instance,
+            """
+                iget-object v0, p3, $transcodeUpload->A02:$mediaSource
+                instance-of v1, v0, $picked
+                instance-of v1, v0, $sharedSource
+                const/4 v0, 0x0
+                return-object v0
+            """,
+        )
+        fun field(owner: String, name: String, type: String) = ImmutableField(owner, name, type, instance, null, null, null)
+        fun source(type: String, fields: List<ImmutableField>) =
+            ImmutableClassDef(type, instance, mediaSource, null, null, null, fields, emptyList())
+        val networks = listOf("A0L" to uploadNetwork, "A0M" to otherNetwork).take(holders)
+        return listOf(
+            classDef(reply, listOf(settings), listOf(field(reply, "A00", transcoder), field(reply, "A03", transcodeUpload))),
+            classDef(transcoder, listOf(builder)),
+            classDef(
+                transcodeUpload, emptyList(),
+                listOf(field(transcodeUpload, "A00", "Ljava/lang/String;"), field(transcodeUpload, "A02", mediaSource)) +
+                    networks.map { (name, type) -> field(transcodeUpload, name, type) },
+            ),
+            ImmutableClassDef(mediaSource, AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, "Ljava/lang/Object;", null, null, null, emptyList(), emptyList()),
+            source(picked, listOf(field(picked, "A00", "Ljava/lang/String;"))),
+            source(sharedSource, listOf(field(sharedSource, "A00", "Ljava/lang/String;"), field(sharedSource, "A02", SHARE_TYPE))),
+            classDef(uploadNetwork, emptyList(), listOf(field(uploadNetwork, "A01", "Ljava/lang/String;"), field(uploadNetwork, "A02", SHARE_TYPE))),
+            classDef(otherNetwork, emptyList(), listOf(field(otherNetwork, "A00", SHARE_TYPE))),
+        )
+    }
+
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, flags: Int, body: String): Method {
         val total = registers + parameters.size + if (AccessFlags.STATIC.isSet(flags)) 0 else 1
         val mutable = MutableMethod(
@@ -744,5 +958,8 @@ class UploadStoriesAtFullQualityHookTest {
 
         /** What the bitrate and frame rate hooks add before one return: their sixteen instructions, Instagram's return staying after them. */
         const val BITRATE_HOOK_SIZE = 16
+
+        /** What the size and frame rate hooks add before the transcoder call: the share type's four, then the two calls and the five around them. */
+        const val UPLOAD_SIZE_HOOK_SIZE = 11
     }
 }

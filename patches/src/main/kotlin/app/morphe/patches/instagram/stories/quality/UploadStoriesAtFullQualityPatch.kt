@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireLocals
@@ -28,9 +29,11 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -43,6 +46,12 @@ internal const val RENDER_WIDTH_HOOK = "$STORY_UPLOAD_QUALITY->renderWidth(II)I"
 internal const val FRAME_RATE_HOOK = "$STORY_UPLOAD_QUALITY->frameRate(Ljava/lang/Object;I)I"
 internal const val PHOTO_QUALITY_HOOK = "$STORY_UPLOAD_QUALITY->photoQuality(I)I"
 internal const val PHOTO_TIER_HOOK = "$STORY_UPLOAD_QUALITY->photoTier(II)I"
+internal const val UPLOAD_SIZE_HOOK = "$STORY_UPLOAD_QUALITY->uploadSize(Ljava/lang/Object;II)I"
+
+/** The key the server's upload settings reply gives the encode's size under, read where Instagram builds that encode. */
+internal const val TRANSCODE_DIMENSION = "transcode_dimension"
+
+private const val JSON_OBJECT = "Lorg/json/JSONObject;"
 
 /** The error Instagram's photo size step builds when the size it worked out has the wrong shape. */
 internal const val PHOTO_SIZE_ERROR = "Output aspect ratio error: "
@@ -106,6 +115,11 @@ private const val GET_INT = "getInt"
  * to 8192 on the longest side, each keeping a photo at least nine tenths that big at its own size up
  * to it. The photo renderer passes them all off. Photo size turns on the 3072, 4096 and 8192 ones up
  * to its choice, through [PHOTO_TIER_HOOK] at the start of the step.
+ *
+ * Traced on 454 (2026-11-11, #37): the video that goes up is encoded from the server's upload settings
+ * reply (`0K64.A01`), at its [TRANSCODE_DIMENSION] on the short side (1080) and the 30 fps default, not
+ * from the width step's answer. Video resolution and Video frame rate reach that encode through
+ * [UPLOAD_SIZE_HOOK] and [FRAME_RATE_HOOK] right before it's built.
  */
 @Suppress("unused")
 val uploadStoriesAtFullQualityPatch = bytecodePatch(
@@ -128,11 +142,13 @@ val uploadStoriesAtFullQualityPatch = bytecodePatch(
         val width = findWidthStep()
         val photo = findPhotoSetup()
         val size = findPhotoSizeStep()
+        val settings = findUploadSettings()
         raiseStoryUploadQuality(check)
         raiseBitrate(check, bitrate)
         raiseWidth(width)
         raisePhotoQuality(photo)
         raisePhotoSize(size)
+        raiseUploadSize(settings)
         enableStatus("storyUploadQuality")
     }
 }
@@ -530,6 +546,132 @@ internal fun BytecodePatchContext.raisePhotoSize(step: PhotoSizeStep) {
                 move/from16 v$flag, v0
             """
         },
+    )
+}
+
+/**
+ * Where Instagram builds the encode from the server's upload settings (`0K64.A01` on 454): the method,
+ * the index of its call to the transcode builder, the registers that call hands the upload, size,
+ * frame rate, expand flag and short side flag in, the fields from the upload to its share type (the
+ * upload's network settings, `0Wqj.A0L:0Wua` on 454, and their share type), and two registers free at
+ * the call.
+ */
+internal class UploadSettings(
+    val method: MethodReference,
+    val at: Int,
+    val upload: Int,
+    val size: Int,
+    val frameRate: Int,
+    val expand: Int,
+    val shortSide: Int,
+    val holder: FieldReference,
+    val shareType: FieldReference,
+    val scratch: Int,
+    val answer: Int,
+)
+
+/**
+ * The one instance method loading [TRANSCODE_DIMENSION] and reading the server's reply with
+ * JSONObject.optInt, its one call to a transcode builder ([isTranscodeBuilderShape]) handed a size read
+ * from that reply, and the route from the upload that call is handed to its share type: the upload's
+ * one field of a class declaring a share type field, and that field. Builds differ in how the method
+ * reaches the upload (a field of `this` on most, a field of `this` cast to a merged class on some) and
+ * in whether the builder tests its media source for a share type at all, so the route starts at the
+ * call. Fails before anything changes when any of it isn't so.
+ */
+internal fun BytecodePatchContext.findUploadSettings(): UploadSettings {
+    val readers = classesLoadingString(TRANSCODE_DIMENSION).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && loadsString(method, TRANSCODE_DIMENSION) &&
+                method.calls { it.definingClass == JSON_OBJECT && it.name == "optInt" }
+        }
+    }
+    val method = readers.singleOrNull()
+        ?: refuse("expected one method reading \"$TRANSCODE_DIMENSION\" from the server's upload settings, found ${readers.size}")
+    val where = "${method.definingClass}->${method.name}"
+    val code = method.implementation!!.instructions.toList()
+    val calls = code.indices.filter { at ->
+        code[at].opcode == Opcode.INVOKE_VIRTUAL_RANGE && ((code[at] as ReferenceInstruction).reference as MethodReference).isTranscodeBuilderShape()
+    }
+    val at = calls.singleOrNull() ?: refuse("expected one transcode builder call in $where, found ${calls.size}")
+    val call = (code[at] as ReferenceInstruction).reference as MethodReference
+    // The builder's own register comes first, then one for each argument.
+    val first = (code[at] as RegisterRangeInstruction).startRegister + 1
+    val upload = first + 2
+    val size = first + 4
+    val frameRate = first + 6
+    val expand = first + 7
+    val shortSide = first + 8
+    if (shortSide > 15) refuse("the transcode builder call in $where passes its size and frame rate in v$size to v$shortSide, past what a call can name")
+    if (!code.readsOptIntInto(at, size)) refuse("the size $where hands the transcode builder in v$size isn't read from the server's reply")
+    if (at in method.jumpTargets()) refuse("something jumps to the transcode builder call in $where")
+
+    val uploadType = call.parameterTypes[2].toString()
+    val uploadClass = classDefByOrNull(uploadType) ?: refuse("the upload $uploadType isn't in this build")
+    val routes = uploadClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.mapNotNull { holder ->
+        val shareTypes = classDefByOrNull(holder.type)?.fields?.filter { it.type == SHARE_TYPE && !AccessFlags.STATIC.isSet(it.accessFlags) }
+        shareTypes?.singleOrNull()?.let { holder to it }
+    }
+    val (holder, shareType) = routes.singleOrNull()
+        ?: refuse("$uploadType holds ${routes.size} fields of a class holding a share type, expected one")
+
+    val (scratch, answer) = method.freeLocalsAt("the transcode builder call in $where", at, 2)
+    return UploadSettings(method, at, upload, size, frameRate, expand, shortSide, holder, shareType, scratch, answer)
+}
+
+/**
+ * The transcode builder's shape (`0WeX.A00` on 454): three objects, the GOP length as a float, the
+ * size, the bitrate and the frame rate, whether to scale a smaller clip up to the size, and whether the
+ * size caps the short side, answering the list of encodes.
+ */
+private fun MethodReference.isTranscodeBuilderShape(): Boolean {
+    val types = parameterTypes.map(CharSequence::toString)
+    return types.size == 9 && types.take(3).all { it.startsWith("L") } && types[3] == "F" &&
+        types.subList(4, 7).all { it == "I" } && types.subList(7, 9).all { it == "Z" } && returnType.startsWith("L")
+}
+
+/** Whether the last write of [register] before instruction [at] takes the answer of a JSONObject.optInt call, with nothing writing it after. */
+private fun List<Instruction>.readsOptIntInto(at: Int, register: Int): Boolean {
+    val write = (at - 1 downTo 0).firstOrNull { this[it].writes(register) } ?: return false
+    if (this[write].opcode != Opcode.MOVE_RESULT || write == 0) return false
+    val read = (this[write - 1] as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    return read.definingClass == JSON_OBJECT && read.name == "optInt"
+}
+
+private fun Instruction.writes(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return written == register || (opcode.setsWideRegister() && written + 1 == register)
+}
+
+/**
+ * Right before the transcode builder call, reads the upload's share type (null when the upload has no
+ * network settings) and hands [UPLOAD_SIZE_HOOK] that, the size and the short side flag. A different
+ * answer replaces the size and turns the scale-up off, so a smaller clip keeps its own size. Then hands
+ * [FRAME_RATE_HOOK] the share type and the frame rate and takes its answer. Nothing else of the method
+ * changes.
+ */
+internal fun BytecodePatchContext.raiseUploadSize(settings: UploadSettings) {
+    val method = mutableClassDefBy(settings.method.definingClass).methods.single { it.sameAs(settings.method) }
+    val share = settings.scratch
+    val answer = settings.answer
+    method.addInstructionsWithLabels(
+        settings.at,
+        """
+            move-object/from16 v$share, v${settings.upload}
+            iget-object v$share, v$share, ${settings.holder.definingClass}->${settings.holder.name}:${settings.holder.type}
+            if-eqz v$share, :ask
+            iget-object v$share, v$share, ${settings.shareType.definingClass}->${settings.shareType.name}:$SHARE_TYPE
+            :ask
+            invoke-static { v$share, v${settings.size}, v${settings.shortSide} }, $UPLOAD_SIZE_HOOK
+            move-result v$answer
+            if-eq v$answer, v${settings.size}, :rate
+            move v${settings.size}, v$answer
+            const/4 v${settings.expand}, 0x0
+            :rate
+            invoke-static { v$share, v${settings.frameRate} }, $FRAME_RATE_HOOK
+            move-result v${settings.frameRate}
+        """,
     )
 }
 
