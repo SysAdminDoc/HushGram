@@ -265,7 +265,7 @@ public final class FollowingFeed {
         try {
             Activity activity = front.get();
             int tab = activity == null ? 0
-                    : activity.getResources().getIdentifier(HOME_TAB, "id", activity.getPackageName());
+                    : activity.getResources().getIdentifier(HOME_TAB, "id", Utils.resourcePackage(activity));
             boolean tapped = tapHome(activity, tab);
             HookStatus.counted(FamilyNames.FOLLOWING_FEED, tapped ? HOME_LINK_TOP : HOME_LINK_NO_TAB);
         } catch (Throwable failure) {

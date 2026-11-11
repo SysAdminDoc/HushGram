@@ -204,7 +204,7 @@ public final class StorySeenButton {
     }
 
     static void putIdForTests(Context context, String name, int id) {
-        IDS.putForTests(context.getPackageName(), name, id);
+        IDS.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     /** The header's row of buttons under [root], reporting a build without it while the button is wanted. */
@@ -221,7 +221,7 @@ public final class StorySeenButton {
     }
 
     private static int id(View view, String name) {
-        return IDS.resolve(view.getResources(), view.getContext().getPackageName(), name, false);
+        return IDS.resolve(view.getResources(), Utils.resourcePackage(view.getContext()), name, false);
     }
 
     @Nullable

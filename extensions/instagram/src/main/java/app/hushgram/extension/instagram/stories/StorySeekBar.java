@@ -153,17 +153,17 @@ public final class StorySeekBar {
 
     @VisibleForTesting
     static void composerIdForTests(android.content.Context context, int id) {
-        ids.putForTests(context.getPackageName(), COMPOSER, id);
+        ids.putForTests(Utils.resourcePackage(context), COMPOSER, id);
     }
 
     @VisibleForTesting
     static void footerIdForTests(android.content.Context context, int id) {
-        ids.putForTests(context.getPackageName(), FOOTER, id);
+        ids.putForTests(Utils.resourcePackage(context), FOOTER, id);
     }
 
     @VisibleForTesting
     static void idForTests(android.content.Context context, String name, int id) {
-        ids.putForTests(context.getPackageName(), name, id);
+        ids.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     @VisibleForTesting
@@ -329,7 +329,7 @@ public final class StorySeekBar {
                 anchors[i] = null;
                 if (view == null) view = player.view(owner);
                 if (view == null) return;
-                wanted[i] = ids.resolve(view.getResources(), view.getContext().getPackageName(), ANCHORS[i], false);
+                wanted[i] = ids.resolve(view.getResources(), Utils.resourcePackage(view.getContext()), ANCHORS[i], false);
                 any |= wanted[i] != 0;
             }
             if (!any) return;

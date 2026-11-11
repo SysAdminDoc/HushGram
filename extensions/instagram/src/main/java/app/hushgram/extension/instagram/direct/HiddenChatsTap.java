@@ -164,7 +164,7 @@ public final class HiddenChatsTap {
     }
 
     private static boolean on(Activity activity, String name, float x, float y) {
-        int id = activity.getResources().getIdentifier(name, "id", activity.getPackageName());
+        int id = activity.getResources().getIdentifier(name, "id", Utils.resourcePackage(activity));
         if (id == 0) return false;
         View button = activity.findViewById(id);
         if (button == null || !button.isShown()) return false;

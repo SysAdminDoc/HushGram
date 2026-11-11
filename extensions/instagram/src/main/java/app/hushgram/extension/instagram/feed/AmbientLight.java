@@ -477,7 +477,7 @@ public final class AmbientLight {
         View root = owner.getWindow().getDecorView();
         View bar = barRef == null ? null : barRef.get();
         if (bar == null || !bar.isAttachedToWindow() || bar.getRootView() != root) {
-            int id = ids.resolve(owner.getResources(), owner.getPackageName(), TAB_BAR, false);
+            int id = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), TAB_BAR, false);
             bar = id == 0 ? null : root.findViewById(id);
             barRef = bar == null ? null : new WeakReference<>(bar);
         }
@@ -491,7 +491,7 @@ public final class AmbientLight {
     @Nullable
     static View footerOn(Activity owner, @Nullable ViewGroup host) {
         if (host == null) return null;
-        int id = ids.resolve(owner.getResources(), owner.getPackageName(), REEL_FOOTER, false);
+        int id = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), REEL_FOOTER, false);
         View footer = id == 0 ? null : host.findViewById(id);
         return footer != null && footer.isShown() && footer.getHeight() > 0 ? footer : null;
     }
@@ -808,23 +808,23 @@ public final class AmbientLight {
 
     /** Tests give the reel frame an id of their own, since a test app has none of Instagram's. */
     static void idForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), REEL_FRAME, id);
+        ids.putForTests(Utils.resourcePackage(context), REEL_FRAME, id);
     }
 
     static void storyIdForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), STORY_FRAME, id);
+        ids.putForTests(Utils.resourcePackage(context), STORY_FRAME, id);
     }
 
     static void barIdForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), TAB_BAR, id);
+        ids.putForTests(Utils.resourcePackage(context), TAB_BAR, id);
     }
 
     static void footerIdForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), REEL_FOOTER, id);
+        ids.putForTests(Utils.resourcePackage(context), REEL_FOOTER, id);
     }
 
     static void chatIdForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), CHAT, id);
+        ids.putForTests(Utils.resourcePackage(context), CHAT, id);
     }
 
     /** What Blend post edges lays over [media], or null with nothing there. */
@@ -1535,7 +1535,7 @@ public final class AmbientLight {
                     boolean feed = feedWanted(), stories = storiesWanted();
                     int frame = 0, storyFrame = 0;
                     if (feed) {
-                        frame = ids.resolve(owner.getResources(), owner.getPackageName(), REEL_FRAME, false);
+                        frame = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), REEL_FRAME, false);
                         // Without the reel frame posts still glow.
                         if (frame == 0) {
                             HookStatus.missingViewId(FamilyNames.AMBIENT_LIGHT, REEL_FRAME);
@@ -1544,7 +1544,7 @@ public final class AmbientLight {
                         }
                     }
                     if (stories) {
-                        storyFrame = ids.resolve(owner.getResources(), owner.getPackageName(), STORY_FRAME, false);
+                        storyFrame = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), STORY_FRAME, false);
                         if (storyFrame == 0) {
                             HookStatus.missingViewId(FamilyNames.AMBIENT_LIGHT, STORY_FRAME);
                         } else {
@@ -1552,7 +1552,7 @@ public final class AmbientLight {
                         }
                     }
                     posts = feed;
-                    chat = feed ? ids.resolve(owner.getResources(), owner.getPackageName(), CHAT, false) : 0;
+                    chat = feed ? ids.resolve(owner.getResources(), Utils.resourcePackage(owner), CHAT, false) : 0;
                     walk(owner, owner.getWindow().getDecorView(), frame, storyFrame, feed && !reelsBlurred(),
                             new int[] {ReelCorners.MAX_VIEWS});
                 }

@@ -211,7 +211,7 @@ public final class StoryFollowButton {
     }
 
     static void putIdForTests(Context context, String name, int id) {
-        IDS.putForTests(context.getPackageName(), name, id);
+        IDS.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     static boolean keptForTests() {
@@ -236,7 +236,7 @@ public final class StoryFollowButton {
     }
 
     private static int id(View view, String name) {
-        return IDS.resolve(view.getResources(), view.getContext().getPackageName(), name, false);
+        return IDS.resolve(view.getResources(), Utils.resourcePackage(view.getContext()), name, false);
     }
 
     // ------------------------------------------------------------------ what the patch fills in

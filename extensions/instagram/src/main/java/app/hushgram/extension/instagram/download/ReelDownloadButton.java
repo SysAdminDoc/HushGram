@@ -398,7 +398,7 @@ public final class ReelDownloadButton {
         Resources resources = context.getResources();
         int known = glyph;
         if (known == 0) {
-            known = glyphId(resources, context.getPackageName());
+            known = glyphId(resources, Utils.resourcePackage(context));
             glyph = known;
         }
         Drawable drawable = null;

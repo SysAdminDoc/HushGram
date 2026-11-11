@@ -33,6 +33,7 @@ import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -222,7 +223,7 @@ public final class PureBlackNav {
         synchronized (IDS) {
             Integer found = IDS.get(name);
             if (found == null) {
-                found = context.getResources().getIdentifier(name, "id", context.getPackageName());
+                found = context.getResources().getIdentifier(name, "id", Utils.resourcePackage(context));
                 IDS.put(name, found);
             }
             return found;

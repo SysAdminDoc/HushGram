@@ -234,12 +234,12 @@ public final class ReelMuteButton {
         Resources resources = context.getResources();
         int on = glyphOn;
         if (on == 0) {
-            on = ReelNotInterestedButton.glyphId(resources, context.getPackageName(), SOUND_ON_NAMES);
+            on = ReelNotInterestedButton.glyphId(resources, Utils.resourcePackage(context), SOUND_ON_NAMES);
             glyphOn = on;
         }
         int off = glyphOff;
         if (off == 0) {
-            off = ReelNotInterestedButton.glyphId(resources, context.getPackageName(), SOUND_OFF_NAMES);
+            off = ReelNotInterestedButton.glyphId(resources, Utils.resourcePackage(context), SOUND_OFF_NAMES);
             glyphOff = off;
         }
         if (on <= 0 || off <= 0) return null;

@@ -549,7 +549,7 @@ public final class FollowingList {
         for (int at = 0; at < PICTURES.length; at++) {
             int id = pictureIds[at];
             if (id == -1) {
-                pictureIds[at] = id = row.getResources().getIdentifier(PICTURES[at], "id", row.getContext().getPackageName());
+                pictureIds[at] = id = row.getResources().getIdentifier(PICTURES[at], "id", Utils.resourcePackage(row.getContext()));
             }
             View found = id == 0 ? null : row.findViewById(id);
             if (found != null) return found;

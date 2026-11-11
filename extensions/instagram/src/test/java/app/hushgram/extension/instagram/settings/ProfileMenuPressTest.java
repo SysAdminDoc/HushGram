@@ -9,6 +9,7 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.Context;
 import android.content.ContextWrapper;
 import android.os.Looper;
 import android.view.View;
@@ -29,8 +30,10 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.util.ReflectionHelpers;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import app.hushgram.extension.shared.RenamedCopyForTests;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -282,6 +285,22 @@ public class ProfileMenuPressTest {
         assertTrue("the gone chevron hid yours", ProfileMenuPress.carries(menu));
         assertTrue(menu.performLongClick());
         assertEquals(1, shown());
+    }
+
+    /**
+     * Install next to Instagram renames the copy but keeps its resources named under Instagram's
+     * package, so the bar looked up under the new name was never found there (#431).
+     */
+    @Test public void aCopyInstalledNextToInstagramFindsTheBar() {
+        ProfileMenuPress.forgetForTests();
+        Utils.forgetResourcePackageForTests();
+        try {
+            Context copy = RenamedCopyForTests.context(
+                    Collections.singletonMap("id/" + ProfileMenuPress.RIGHT_BUTTONS, 0x7f0b0002));
+            assertEquals(0x7f0b0002, ProfileMenuPress.id(copy, ProfileMenuPress.RIGHT_BUTTONS));
+        } finally {
+            Utils.forgetResourcePackageForTests();
+        }
     }
 
     @Test public void aBarWithoutTheMenuGetsNothing() {

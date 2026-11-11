@@ -27,6 +27,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.List;
 
 /** The context every hook reads is the application's, whatever the start hook hands in. */
@@ -111,6 +112,31 @@ public class UtilsContextTest {
             Utils.context = languaged;
             ResourceUtils.getIdentifier(ResourceType.STRING, "hushgram_settings_title");
             assertTrue(asked[0] > 0);
+        }
+    }
+
+    /** A copy Install next to Instagram renamed looks its resources up under Instagram's name (#431). */
+    @Test
+    public void aRenamedCopyLooksItsResourcesUpUnderInstagramsName() {
+        Utils.forgetResourcePackageForTests();
+        try {
+            Context copy = RenamedCopyForTests.context(Collections.singletonMap("id/right_action_bar_buttons", 0x7f0b0002));
+            assertEquals(RenamedCopyForTests.INSTAGRAM, Utils.resourcePackage(copy));
+            assertEquals(0x7f0b0002, ResourceUtils.getIdentifier(copy, ResourceType.ID, "right_action_bar_buttons"));
+        } finally {
+            Utils.forgetResourcePackageForTests();
+        }
+    }
+
+    /** The app under its own name, with no resource of its own to read a name off, keeps looking there. */
+    @Test
+    public void theAppUnderItsOwnNameKeepsLookingThere() {
+        Utils.forgetResourcePackageForTests();
+        try {
+            Context app = RuntimeEnvironment.getApplication();
+            assertEquals(app.getPackageName(), Utils.resourcePackage(app));
+        } finally {
+            Utils.forgetResourcePackageForTests();
         }
     }
 }

@@ -384,15 +384,15 @@ public final class CarouselArrows {
 
     /** Tests give the page frame an id of their own, since a test app has none of Instagram's. */
     static void idForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), PAGE, id);
+        ids.putForTests(Utils.resourcePackage(context), PAGE, id);
     }
 
     static void videoIdForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), VIDEO_PAGE, id);
+        ids.putForTests(Utils.resourcePackage(context), VIDEO_PAGE, id);
     }
 
     static void dotsIdForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), DOTS, id);
+        ids.putForTests(Utils.resourcePackage(context), DOTS, id);
     }
 
     @Nullable
@@ -811,19 +811,19 @@ public final class CarouselArrows {
                     return false;
                 }
                 if (laidOut) {
-                    int id = ids.resolve(owner.getResources(), owner.getPackageName(), PAGE, false);
+                    int id = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), PAGE, false);
                     if (id == 0) {
                         HookStatus.missingViewId(FamilyNames.CAROUSEL_ARROWS, PAGE);
                         return false;
                     }
                     HookStatus.recoveredViewId(FamilyNames.CAROUSEL_ARROWS, PAGE);
-                    int video = ids.resolve(owner.getResources(), owner.getPackageName(), VIDEO_PAGE, false);
+                    int video = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), VIDEO_PAGE, false);
                     dots.clear();
                     boolean dotted = Settings.CAROUSEL_DOTS_PILL.get();
                     int dotsId = 0;
                     if (dotted) {
                         // Without it Instagram's dots are still known by their class.
-                        dotsId = ids.resolve(owner.getResources(), owner.getPackageName(), DOTS, false);
+                        dotsId = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), DOTS, false);
                         if (dotsId == 0) HookStatus.missingViewId(FamilyNames.CAROUSEL_ARROWS, DOTS);
                         else HookStatus.recoveredViewId(FamilyNames.CAROUSEL_ARROWS, DOTS);
                     }

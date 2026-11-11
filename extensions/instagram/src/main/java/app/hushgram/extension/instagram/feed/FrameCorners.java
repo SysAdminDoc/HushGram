@@ -136,7 +136,7 @@ final class FrameCorners {
 
     /** Tests give the frame an id of their own, since a test app has none of Instagram's. */
     void idForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), frame, id);
+        ids.putForTests(Utils.resourcePackage(context), frame, id);
     }
 
     int roundedForTests() {
@@ -199,7 +199,7 @@ final class FrameCorners {
                     return false;
                 }
                 if (laidOut) {
-                    int id = ids.resolve(owner.getResources(), owner.getPackageName(), frame, false);
+                    int id = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), frame, false);
                     if (id == 0) {
                         HookStatus.missingViewId(FamilyNames.ROUNDED_POST_CORNERS, frame);
                         return false;

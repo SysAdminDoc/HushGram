@@ -69,7 +69,7 @@ public class ResourceUtils {
         try {
             return context.getResources().getIdentifier(name,
                     type == null ? null : type.type,
-                    context.getPackageName());
+                    Utils.resourcePackage(context));
         } catch (Exception ex) {
             handleException(type, name);
         }

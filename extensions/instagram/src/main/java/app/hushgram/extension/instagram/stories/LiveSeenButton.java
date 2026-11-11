@@ -103,13 +103,13 @@ public final class LiveSeenButton {
     }
 
     static void putIdForTests(Context context, String name, int id) {
-        IDS.putForTests(context.getPackageName(), name, id);
+        IDS.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     /** The header's three-dot menu under [root], in a row of buttons, reporting a build without it while the button is wanted. */
     @Nullable
     private static View menu(View root, boolean wanted) {
-        int id = IDS.resolve(root.getResources(), root.getContext().getPackageName(), MENU, false);
+        int id = IDS.resolve(root.getResources(), Utils.resourcePackage(root.getContext()), MENU, false);
         View found = id == 0 ? null : root.findViewById(id);
         ViewParent parent = found == null ? null : found.getParent();
         if (!(parent instanceof LinearLayout)) {

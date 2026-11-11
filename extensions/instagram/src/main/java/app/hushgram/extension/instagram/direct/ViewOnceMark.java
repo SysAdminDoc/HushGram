@@ -83,7 +83,7 @@ public final class ViewOnceMark {
     private static Drawable glyph(Context context) {
         try {
             Resources resources = context.getResources();
-            int id = resources.getIdentifier(GLYPH, "drawable", context.getPackageName());
+            int id = resources.getIdentifier(GLYPH, "drawable", Utils.resourcePackage(context));
             if (id == 0) return null;
             Drawable icon = context.getDrawable(id);
             return icon == null ? null : icon.mutate();

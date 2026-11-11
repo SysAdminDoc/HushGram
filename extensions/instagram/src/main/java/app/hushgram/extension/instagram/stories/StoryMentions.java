@@ -945,21 +945,21 @@ public final class StoryMentions {
     /** The header's id, looked up once: a name lookup on every story frame adds up. */
     private static int headerId(Context context) {
         if (headerIdForTests != 0) return headerIdForTests;
-        if (headerId == -1) headerId = context.getResources().getIdentifier(HEADER, "id", context.getPackageName());
+        if (headerId == -1) headerId = context.getResources().getIdentifier(HEADER, "id", Utils.resourcePackage(context));
         return headerId;
     }
 
     /** The name's id, looked up once like the header's. */
     private static int titleId(Context context) {
         if (titleIdForTests != 0) return titleIdForTests;
-        if (titleId == -1) titleId = context.getResources().getIdentifier(TITLE, "id", context.getPackageName());
+        if (titleId == -1) titleId = context.getResources().getIdentifier(TITLE, "id", Utils.resourcePackage(context));
         return titleId;
     }
 
     /** The top bar row's id, looked up once like the header's. */
     private static int topBarId(Context context) {
         if (topBarIdForTests != 0) return topBarIdForTests;
-        if (topBarId == -1) topBarId = context.getResources().getIdentifier(TOP_BAR, "id", context.getPackageName());
+        if (topBarId == -1) topBarId = context.getResources().getIdentifier(TOP_BAR, "id", Utils.resourcePackage(context));
         return topBarId;
     }
 

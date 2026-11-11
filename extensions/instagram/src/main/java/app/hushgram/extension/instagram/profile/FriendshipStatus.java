@@ -146,7 +146,7 @@ public final class FriendshipStatus {
 
     private static int fullNameId(Context context) {
         if (fullNameIdForTests != 0) return fullNameIdForTests;
-        if (fullNameId == -1) fullNameId = context.getResources().getIdentifier(FULL_NAME, "id", context.getPackageName());
+        if (fullNameId == -1) fullNameId = context.getResources().getIdentifier(FULL_NAME, "id", Utils.resourcePackage(context));
         return fullNameId;
     }
 

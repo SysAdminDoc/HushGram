@@ -138,7 +138,7 @@ final class ViewHider {
 
     /** Tests give a view an id of their own, since a test app has none of Instagram's. */
     void idForTests(Context context, String name, int id) {
-        ids.putForTests(context.getPackageName(), name, id);
+        ids.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     void resetForTests() {
@@ -163,7 +163,7 @@ final class ViewHider {
     }
 
     private int id(Activity activity, String name) {
-        return ids.resolve(activity.getResources(), activity.getPackageName(), name, false);
+        return ids.resolve(activity.getResources(), Utils.resourcePackage(activity), name, false);
     }
 
     /** One activity's place in the shared frame watcher, and the views hidden in its window. */

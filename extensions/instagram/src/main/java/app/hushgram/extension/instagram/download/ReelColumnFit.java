@@ -229,12 +229,12 @@ public final class ReelColumnFit {
     }
 
     private static int id(Activity activity, String name) {
-        return ids.resolve(activity.getResources(), activity.getPackageName(), name, false);
+        return ids.resolve(activity.getResources(), Utils.resourcePackage(activity), name, false);
     }
 
     /** Tests give a view an id of their own, since a test app has none of Instagram's. */
     static void idForTests(Context context, String name, int id) {
-        ids.putForTests(context.getPackageName(), name, id);
+        ids.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     static boolean listeningForTests(Activity activity) {

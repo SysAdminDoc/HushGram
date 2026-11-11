@@ -88,7 +88,7 @@ public final class CaughtUpCard {
     /** Hides [row]'s check mark and text, or puts them back when this hid them. */
     private static void hideBar(View row, boolean hide) {
         int id = barId;
-        if (id == -1) barId = id = row.getResources().getIdentifier(BAR, "id", row.getContext().getPackageName());
+        if (id == -1) barId = id = row.getResources().getIdentifier(BAR, "id", Utils.resourcePackage(row.getContext()));
         View bar = id == 0 ? null : row.findViewById(id);
         if (bar == null) return;
         if (hide) {

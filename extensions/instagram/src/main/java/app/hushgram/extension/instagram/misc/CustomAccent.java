@@ -26,6 +26,7 @@ import java.util.WeakHashMap;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -235,7 +236,7 @@ public final class CustomAccent {
             Resources resources = context.getResources();
             AssetManager assets = resources.getAssets();
             if (LOADED_ASSETS.containsKey(assets)) return true;
-            String app = context.getPackageName();
+            String app = Utils.resourcePackage(context);
             List<Integer> ids = new ArrayList<>();
             List<Integer> colors = new ArrayList<>();
             for (String name : names.split(" ")) {

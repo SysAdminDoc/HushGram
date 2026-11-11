@@ -99,7 +99,7 @@ public final class HeaderText {
     static ImageView logoIn(View view) {
         if (view instanceof ImageView) return (ImageView) view;
         Context context = view.getContext();
-        int id = context.getResources().getIdentifier(TITLE_LOGO, "id", context.getPackageName());
+        int id = context.getResources().getIdentifier(TITLE_LOGO, "id", Utils.resourcePackage(context));
         if (id == 0) return null;
         View logo = view.findViewById(id);
         return logo instanceof ImageView ? (ImageView) logo : null;

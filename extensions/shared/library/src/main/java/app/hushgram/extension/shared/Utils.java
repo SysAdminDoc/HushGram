@@ -18,6 +18,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -80,6 +81,8 @@ public class Utils {
     private static String versionName;
     private static volatile long versionCode = -1;
     private static volatile String processName;
+    /** The package the app's resources are named under, once read off one of them. */
+    private static volatile String resourcePackage;
 
     @ColorInt
     private static int darkColor = Color.BLACK;
@@ -388,6 +391,37 @@ public class Utils {
             Logger.printException(() -> "Context is not set by extension hook, returning null");
         }
         return context;
+    }
+
+    /**
+     * The package to look the app's resources up under by name, for
+     * {@link Resources#getIdentifier}. That's the app's package name, except on a copy Install next
+     * to Instagram renamed: its package name moved, but its resources are still named under
+     * Instagram's, so a lookup under the new name finds nothing (#431). Read once off the app's own
+     * theme, icon or label, whichever it has. Never throws.
+     */
+    public static String resourcePackage(Context context) {
+        String known = resourcePackage;
+        if (known != null) return known;
+        String own = context.getPackageName();
+        try {
+            ApplicationInfo info = context.getApplicationInfo();
+            for (int id : new int[]{info.theme, info.icon, info.labelRes}) {
+                if ((id >>> 24) != 0x7f) continue;
+                String named = context.getResources().getResourcePackageName(id);
+                if (named == null || named.isEmpty()) continue;
+                resourcePackage = named;
+                return named;
+            }
+        } catch (Throwable unnamed) {
+            Logger.printDebug(() -> "Resource package not read, using " + own);
+        }
+        return own;
+    }
+
+    /** A test's app names its resources under its own package again. */
+    public static void forgetResourcePackageForTests() {
+        resourcePackage = null;
     }
 
     /**

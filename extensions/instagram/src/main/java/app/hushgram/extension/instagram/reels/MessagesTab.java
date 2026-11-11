@@ -134,6 +134,6 @@ public final class MessagesTab {
     }
 
     private static int id(Activity activity, String name) {
-        return activity.getResources().getIdentifier(name, "id", activity.getPackageName());
+        return activity.getResources().getIdentifier(name, "id", Utils.resourcePackage(activity));
     }
 }

@@ -355,11 +355,11 @@ public final class CarouselPeek {
 
     /** Tests give the page frame an id of their own, since a test app has none of Instagram's. */
     static void idForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), PAGE, id);
+        ids.putForTests(Utils.resourcePackage(context), PAGE, id);
     }
 
     static void videoIdForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), VIDEO_PAGE, id);
+        ids.putForTests(Utils.resourcePackage(context), VIDEO_PAGE, id);
     }
 
     static int peekingForTests() {
@@ -426,13 +426,13 @@ public final class CarouselPeek {
                     return false;
                 }
                 if (laidOut) {
-                    int id = ids.resolve(owner.getResources(), owner.getPackageName(), PAGE, false);
+                    int id = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), PAGE, false);
                     if (id == 0) {
                         HookStatus.missingViewId(FamilyNames.ROUNDED_POST_CORNERS, PAGE);
                         return false;
                     }
                     HookStatus.recoveredViewId(FamilyNames.ROUNDED_POST_CORNERS, PAGE);
-                    int video = ids.resolve(owner.getResources(), owner.getPackageName(), VIDEO_PAGE, false);
+                    int video = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), VIDEO_PAGE, false);
                     float density = owner.getResources().getDisplayMetrics().density;
                     changed = walk(owner.getWindow().getDecorView(), id, video, density, new int[] {ReelCorners.MAX_VIEWS});
                 }

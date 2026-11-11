@@ -149,7 +149,7 @@ public final class FullScreenBars {
         synchronized (IDS) {
             Integer found = IDS.get(name);
             if (found == null) {
-                found = context.getResources().getIdentifier(name, "id", context.getPackageName());
+                found = context.getResources().getIdentifier(name, "id", Utils.resourcePackage(context));
                 IDS.put(name, found);
             }
             return found;

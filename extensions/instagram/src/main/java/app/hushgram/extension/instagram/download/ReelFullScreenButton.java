@@ -131,7 +131,7 @@ public final class ReelFullScreenButton {
         Resources resources = context.getResources();
         int known = glyph;
         if (known == 0) {
-            known = ReelNotInterestedButton.glyphId(resources, context.getPackageName(), ICON_NAMES);
+            known = ReelNotInterestedButton.glyphId(resources, Utils.resourcePackage(context), ICON_NAMES);
             glyph = known;
         }
         if (known <= 0) return null;

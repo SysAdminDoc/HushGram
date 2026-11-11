@@ -21,6 +21,7 @@ import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -157,7 +158,7 @@ public final class CommentsSheet {
     /** The nearest ancestor whose id is named bottom_sheet_container. */
     private static View findSheet(View root) {
         int id = sheetId;
-        if (id == -1) sheetId = id = root.getResources().getIdentifier(SHEET_ID_NAME, "id", root.getContext().getPackageName());
+        if (id == -1) sheetId = id = root.getResources().getIdentifier(SHEET_ID_NAME, "id", Utils.resourcePackage(root.getContext()));
         return id == 0 ? null : findSheet(root, id);
     }
 

@@ -136,7 +136,7 @@ public final class GlassChat {
         }
         Integer known = IDS.get(name);
         if (known == null) {
-            known = context.getResources().getIdentifier(name, "id", context.getPackageName());
+            known = context.getResources().getIdentifier(name, "id", Utils.resourcePackage(context));
             IDS.put(name, known);
         }
         return known;

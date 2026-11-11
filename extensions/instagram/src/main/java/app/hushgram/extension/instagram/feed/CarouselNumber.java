@@ -16,6 +16,7 @@ import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.ResourceIdCache;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -52,7 +53,7 @@ final class CarouselNumber {
         int[] resolved = new int[NAMES.length];
         boolean any = false;
         for (int i = 0; i < NAMES.length; i++) {
-            resolved[i] = ids.resolve(owner.getResources(), owner.getPackageName(), NAMES[i], false);
+            resolved[i] = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), NAMES[i], false);
             any |= resolved[i] != 0;
         }
         if (!any) {
@@ -142,7 +143,7 @@ final class CarouselNumber {
 
     /** Tests give the number an id of their own, since a test app has none of Instagram's. */
     static void idForTests(Context context, String name, int id) {
-        ids.putForTests(context.getPackageName(), name, id);
+        ids.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     static void resetForTests() {

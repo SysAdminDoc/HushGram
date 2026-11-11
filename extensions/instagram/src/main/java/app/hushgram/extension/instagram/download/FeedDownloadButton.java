@@ -230,7 +230,7 @@ public final class FeedDownloadButton {
             Resources resources = context.getResources();
             int found = 0;
             for (String name : ICON_NAMES) {
-                found = resources.getIdentifier(name, "drawable", context.getPackageName());
+                found = resources.getIdentifier(name, "drawable", Utils.resourcePackage(context));
                 if (found != 0) break;
             }
             glyph = found != 0 ? found : -1;
@@ -722,7 +722,7 @@ public final class FeedDownloadButton {
     /** Instagram's primary icon color for [context]'s theme, then the theme's own text color, then black or white by mode. */
     public static int iconColor(Context context) {
         Resources resources = context.getResources();
-        int attr = resources.getIdentifier(ICON_COLOR_ATTR, "attr", context.getPackageName());
+        int attr = resources.getIdentifier(ICON_COLOR_ATTR, "attr", Utils.resourcePackage(context));
         Integer found = attr == 0 ? null : themeColor(context, attr);
         if (found == null) found = themeColor(context, android.R.attr.textColorPrimary);
         if (found != null) return found;

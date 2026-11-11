@@ -23,6 +23,7 @@ import java.util.Map;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -195,7 +196,7 @@ public final class AccentTheme {
             HookStatus.invoked(FamilyNames.ACCENT_COLOR);
             Resources resources = context.getResources();
             Resources.Theme theme = context.getTheme();
-            String app = context.getPackageName();
+            String app = Utils.resourcePackage(context);
             int palette = id(resources, paletteStyle(hue), "style", app);
             if (palette == 0 || listed == null || listed.isEmpty()) {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, MISSING);
@@ -422,7 +423,7 @@ public final class AccentTheme {
     @Nullable
     private static Integer iconColor(@Nullable Context context) {
         if (context == null || AccentColor.picked() == null || !Settings.ACCENT_ICONS.get()) return null;
-        int attr = id(context.getResources(), ICON_ATTRIBUTE, "attr", context.getPackageName());
+        int attr = id(context.getResources(), ICON_ATTRIBUTE, "attr", Utils.resourcePackage(context));
         TypedValue value = new TypedValue();
         if (attr == 0 || !context.getTheme().resolveAttribute(attr, value, true)
                 || value.type < TypedValue.TYPE_FIRST_COLOR_INT || value.type > TypedValue.TYPE_LAST_COLOR_INT) {

@@ -217,7 +217,7 @@ public final class MessagesHeaderButton {
                 found = 0;
             }
         }
-        if (found == 0) found = resources.getIdentifier(ICON, "drawable", context.getPackageName());
+        if (found == 0) found = resources.getIdentifier(ICON, "drawable", Utils.resourcePackage(context));
         if (found == 0) return null;
         Drawable icon = context.getDrawable(found);
         return icon != null ? icon.mutate() : null;

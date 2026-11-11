@@ -319,7 +319,7 @@ public final class StoryButtonsRoom {
     }
 
     private static int id(View view, String name) {
-        return IDS.resolve(view.getResources(), view.getContext().getPackageName(), name, false);
+        return IDS.resolve(view.getResources(), Utils.resourcePackage(view.getContext()), name, false);
     }
 
     /** Lets go of the keeper without putting anything back, and forgets the ids and the reader. */
@@ -341,7 +341,7 @@ public final class StoryButtonsRoom {
     }
 
     static void putIdForTests(Context context, String name, int id) {
-        IDS.putForTests(context.getPackageName(), name, id);
+        IDS.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     static boolean keptForTests() {

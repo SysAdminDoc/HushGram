@@ -530,7 +530,7 @@ public final class ChatPager {
             if (forTests != null) {
                 found = forTests.get(name);
             } else {
-                int id = context.getResources().getIdentifier(name, "drawable", context.getPackageName());
+                int id = context.getResources().getIdentifier(name, "drawable", Utils.resourcePackage(context));
                 if (id != 0) found = context.getDrawable(id);
             }
             if (found != null) return found.mutate();

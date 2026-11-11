@@ -147,7 +147,7 @@ public final class StoryProgressBar {
 
     /** Tests give the bar an id of their own, since a test app has none of Instagram's. */
     static void idForTests(Context context, int id) {
-        ids.putForTests(context.getPackageName(), BAR, id);
+        ids.putForTests(Utils.resourcePackage(context), BAR, id);
     }
 
     static int stretchedForTests() {
@@ -210,7 +210,7 @@ public final class StoryProgressBar {
                     return false;
                 }
                 if (laidOut) {
-                    int id = ids.resolve(owner.getResources(), owner.getPackageName(), BAR, false);
+                    int id = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), BAR, false);
                     if (id == 0) {
                         HookStatus.missingViewId(FamilyNames.STORY_PROGRESS_BAR, BAR);
                         return false;

@@ -421,7 +421,7 @@ public final class ReelBlurBars {
     private static int tabBarId(Context context) {
         int id = tabBarId;
         if (id == -1) {
-            id = context.getResources().getIdentifier(TAB_BAR, "id", context.getPackageName());
+            id = context.getResources().getIdentifier(TAB_BAR, "id", Utils.resourcePackage(context));
             tabBarId = id;
         }
         return id;

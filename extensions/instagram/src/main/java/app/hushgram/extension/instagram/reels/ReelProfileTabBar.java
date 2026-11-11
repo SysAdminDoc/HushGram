@@ -11,6 +11,7 @@ import java.util.List;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -47,7 +48,7 @@ public final class ReelProfileTabBar {
     public static boolean open(Object activity, Object factory, Object session, Object config) {
         if (!(activity instanceof Activity)) return false;
         Activity screen = (Activity) activity;
-        int bar = screen.getResources().getIdentifier(TAB_BAR, "id", screen.getPackageName());
+        int bar = screen.getResources().getIdentifier(TAB_BAR, "id", Utils.resourcePackage(screen));
         return open(screen, bar, factory, session, config, ReelProfileTabBarTargets::push);
     }
 

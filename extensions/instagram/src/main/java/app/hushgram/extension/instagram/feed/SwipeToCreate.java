@@ -171,7 +171,7 @@ public final class SwipeToCreate {
     }
 
     private static int id(Activity activity, String name) {
-        return activity.getResources().getIdentifier(name, "id", activity.getPackageName());
+        return activity.getResources().getIdentifier(name, "id", Utils.resourcePackage(activity));
     }
 
     /** Starts the next step on a new swipe. Tests only. */

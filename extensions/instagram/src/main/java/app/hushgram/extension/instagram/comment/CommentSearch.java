@@ -388,7 +388,7 @@ public final class CommentSearch {
 
     @Nullable
     static View byName(ViewGroup root, String name) {
-        int id = root.getResources().getIdentifier(name, "id", root.getContext().getPackageName());
+        int id = root.getResources().getIdentifier(name, "id", Utils.resourcePackage(root.getContext()));
         return id == 0 ? null : root.findViewById(id);
     }
 

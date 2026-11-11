@@ -153,7 +153,7 @@ public final class MuseCard {
 
     private static int bloksId(Context context) {
         if (bloksId == 0) {
-            bloksId = context.getResources().getIdentifier(BLOKS, "id", context.getPackageName());
+            bloksId = context.getResources().getIdentifier(BLOKS, "id", Utils.resourcePackage(context));
         }
         return bloksId;
     }

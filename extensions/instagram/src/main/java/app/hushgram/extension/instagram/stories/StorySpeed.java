@@ -299,7 +299,7 @@ public final class StorySpeed {
      */
     @Nullable
     static LinearLayout row(View media, boolean wanted) {
-        int id = IDS.resolve(media.getResources(), media.getContext().getPackageName(), CONTAINER, false);
+        int id = IDS.resolve(media.getResources(), Utils.resourcePackage(media.getContext()), CONTAINER, false);
         View at = id == 0 ? null : media;
         for (int depth = 0; depth < MAX_DEPTH && at != null; depth++) {
             View found = at.findViewById(id);
@@ -381,7 +381,7 @@ public final class StorySpeed {
 
     @VisibleForTesting
     static void putIdForTests(Context context, String name, int id) {
-        IDS.putForTests(context.getPackageName(), name, id);
+        IDS.putForTests(Utils.resourcePackage(context), name, id);
     }
 
     /** Forgets the kept speed, the speed last set, the ids looked up and that a button was added. */
