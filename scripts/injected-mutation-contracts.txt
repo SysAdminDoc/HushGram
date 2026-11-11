@@ -3089,10 +3089,10 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->story()Z in static (Landroid/content/Context;L*;II)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
 # Stories lay out as they bind (#618): the story item binder (0DfT.A03 on 454, the static method
 # opening the trace section below that takes a ReelItem; the catch-up binder opening it takes none)
-# asks ReelFill.storyBound first thing with the holder and Instagram's own shared-reel answer, and on
-# a yes lays the whole screen out there and then. Left out, a story under the newer viewer shows its
-# card and reply bar for about a second first; twice or elsewhere, it isn't the check the patch wrote.
-start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->storyBound(Ljava/lang/Object;I)I in static (L*;Lcom/instagram/common/session/UserSession;Lcom/instagram/model/reels/ReelItem;*)V pooled holding ReelViewerItemBinder.bindMedia
+# asks ReelFill.storyBound at the top with the holder and Instagram's own shared-reel answer, which
+# the patch reads off the item just before (so it isn't a start-call), and on a yes lays the whole
+# screen out there and then. Left out, a story under the newer viewer shows its card and reply bar
+# for about a second first; twice or elsewhere, it isn't the check the patch wrote.
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->storyBound(Ljava/lang/Object;I)I in static (L*;Lcom/instagram/common/session/UserSession;Lcom/instagram/model/reels/ReelItem;*)V pooled holding ReelViewerItemBinder.bindMedia
 # The whole-screen story layout (0Bw2.A0B on 454, the class's static (holder)V that squares the
 # card's corners, told from its sibling A0A by that setCornerRadius call) hands ReelFill.storyFrame
