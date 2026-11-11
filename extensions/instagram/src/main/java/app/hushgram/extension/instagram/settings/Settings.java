@@ -1987,6 +1987,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_launch_screen", FALSE, true);
 
     /**
+     * That screen filled with the accent color, or Instagram's blue while Accent color is off (#528).
+     * A typed color shows as the nearest fixed one, since Android draws the screen from the theme
+     * alone. Shows from the next start. Off to start.
+     */
+    public static final BooleanSetting LAUNCH_SCREEN_ACCENT =
+            new BooleanSetting("hushgram_launch_screen_accent", FALSE, true, parent(LAUNCH_SCREEN));
+
+    /**
      * Words of your own at the top of Home in place of Instagram's logo, with the Home header text
      * patch in the build ({@link app.hushgram.extension.instagram.misc.HeaderText}, #454). Blank
      * keeps the logo, and so does a paused Instagram. The header reads it before each draw, so a

@@ -18,6 +18,7 @@ import androidx.annotation.Nullable;
 import java.lang.ref.WeakReference;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.Utils;
@@ -41,12 +42,16 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * it, or its logo pulsing inside Android's screen. Either would put Instagram's logo right after
  * HushGram's, so {@link #instagramLogo} skips it while HushGram's screen is on.
  *
+ * <p>The patch also adds a version of {@link #THEME} filled with each accent color (#528), which the
+ * child switch picks by {@link #fill()}. Android draws the screen from the theme alone, in its own
+ * process, so a typed color can't reach it and shows as the nearest of those.
+ *
  * <p>This only tells Android which theme to use when the answer changes, on a background thread, once
  * an activity has resumed or is pausing, and the next start shows it. The answer is what the next start
- * will do: the switch as saved, unless that start runs paused (the Pause switch, safe mode or the marker
- * file). What Android was last told is kept in {@link #STORE}, so a start with nothing to change asks
- * Android for nothing. With the switch on, each process tells Android once anyway, in case it lost the
- * answer. Android ignores the call for an activity that's already gone, so an answer counts as given
+ * will do: the switches as saved, unless that start runs paused (the Pause switch, safe mode or the
+ * marker file). What Android was last told is kept in {@link #STORE}, so a start with nothing to change
+ * asks Android for nothing. With the switch on, each process tells Android once anyway, in case it lost
+ * the answer. Android ignores the call for an activity that's already gone, so an answer counts as given
  * only when the activity outlived the call. A build without the theme, Android 12 and older, or
  * anything thrown leaves Instagram's own screen.
  */
@@ -54,9 +59,14 @@ public final class LaunchScreen {
     /** The theme the patch adds next to Instagram's launch theme. */
     static final String THEME = "HushGramLaunchScreen";
 
-    /** Where what Android was last told is kept, and the key it's under: true for HushGram's theme. */
+    /** Where what Android was last told is kept, and the key it's under: the theme's name, "" for Instagram's. */
     static final String STORE = "hushgram_launch_screen";
+    static final String HANDED = "theme";
+    /** The key builds before #528 kept it under, true meaning {@link #THEME}. Read once, then dropped. */
     static final String APPLIED = "applied";
+
+    /** Instagram's blue, which {@link AccentHue#BLUE} fills the launch screen with. */
+    static final int INSTAGRAM_BLUE = 0x0095f6;
 
     /** What's counted each time Android is told which launch screen to show. */
     static final String SET = "HushGram's launch screen handed to Android";
@@ -66,8 +76,8 @@ public final class LaunchScreen {
 
     /** Android's side, which a test replaces. */
     interface Splash {
-        /** The number of {@link #THEME} in [activity]'s app, or 0 when this build has none. */
-        int theme(Activity activity);
+        /** The number of the theme called [name] in [activity]'s app, or 0 when this build has none. */
+        int theme(Activity activity, String name);
 
         /** Has Android show [theme] from the next start on; 0 gives Instagram's own back. */
         void use(Activity activity, int theme);
@@ -78,10 +88,14 @@ public final class LaunchScreen {
     private static final Object LOCK = new Object();
     private static volatile boolean registered;
     /** What Android was last told, as kept in {@link #STORE}: null before it's read, or when it never was. */
-    @Nullable private static Boolean applied;
-    private static boolean appliedRead;
+    @Nullable private static String handed;
+    private static boolean handedRead;
     /** Whether this process has told Android anything yet. */
     private static boolean toldThisProcess;
+
+    /** Whether a test says Accent color is in this build, instead of asking {@link PatchFamily}. */
+    @Nullable
+    static volatile Boolean accentInBuildForTests;
 
     private LaunchScreen() {
     }
@@ -119,34 +133,34 @@ public final class LaunchScreen {
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !Utils.settingsReady()) return false;
             HookStatus.invoked(FamilyNames.LAUNCH_SCREEN);
-            boolean wanted = wanted(activity);
+            String wanted = wanted(activity);
             synchronized (LOCK) {
                 SharedPreferences store = activity.getSharedPreferences(STORE, Context.MODE_PRIVATE);
-                if (!appliedRead) {
-                    applied = store.contains(APPLIED) ? store.getBoolean(APPLIED, false) : null;
-                    appliedRead = true;
+                if (!handedRead) {
+                    handed = handed(store);
+                    handedRead = true;
                 }
                 int theme = 0;
-                if (wanted) {
-                    theme = splash.theme(activity);
+                if (!wanted.isEmpty()) {
+                    theme = splash.theme(activity, wanted);
                     if (theme == 0) {
-                        HookStatus.missingMember(FamilyNames.LAUNCH_SCREEN, "style", "resources", THEME);
-                        wanted = false;
+                        HookStatus.missingMember(FamilyNames.LAUNCH_SCREEN, "style", "resources", wanted);
+                        wanted = "";
                     }
                 }
                 // HushGram's theme is handed over once in every process, in case Android lost it.
                 // Instagram's own is handed back only when Android may still hold HushGram's.
-                boolean unchanged = applied != null && applied == wanted && (!wanted || toldThisProcess);
+                boolean unchanged = wanted.equals(handed) && (wanted.isEmpty() || toldThisProcess);
                 if (unchanged || activity.isDestroyed()) return false;
                 splash.use(activity, theme);
                 // Android drops the call without a word once the activity is gone, and marks it
                 // destroyed before it lets go of it, so the answer is kept only when the activity
                 // was still there after the call. Otherwise the next resume tells Android again.
                 if (activity.isDestroyed()) return false;
-                applied = wanted;
+                handed = wanted;
                 toldThisProcess = true;
-                store.edit().putBoolean(APPLIED, wanted).apply();
-                HookStatus.counted(FamilyNames.LAUNCH_SCREEN, wanted ? SET : CLEARED);
+                store.edit().putString(HANDED, wanted).remove(APPLIED).apply();
+                HookStatus.counted(FamilyNames.LAUNCH_SCREEN, wanted.isEmpty() ? CLEARED : SET);
                 return true;
             }
         } catch (Throwable failure) {
@@ -186,19 +200,74 @@ public final class LaunchScreen {
     }
 
     /**
-     * Whether the next start shows HushGram's logo: the switch as saved, unless that start runs
-     * paused by the Pause switch, safe mode or the marker file. It's the next start's answer, not
-     * this one's, because that's the start Android draws the screen for.
+     * The theme the next start shows: "" for Instagram's own while the switch is off or that start
+     * runs paused by the Pause switch, safe mode or the marker file, otherwise {@link #THEME}, or its
+     * version filled with {@link #fill()} while the child switch is on. It's the next start's answer,
+     * not this one's, because that's the start Android draws the screen for.
      */
-    static boolean wanted(Context context) {
-        return Settings.LAUNCH_SCREEN.savedValue() && !HushgramPause.pausesNextStart(context);
+    static String wanted(Context context) {
+        if (!Settings.LAUNCH_SCREEN.savedValue() || HushgramPause.pausesNextStart(context)) return "";
+        return Settings.LAUNCH_SCREEN_ACCENT.savedValue() ? THEME + "_" + fill().name() : THEME;
+    }
+
+    /**
+     * The color the launch screen is filled with: the accent color as saved, Instagram's blue while
+     * that's off or this build has no Accent color, and for a typed color the nearest one the patch
+     * has a theme for. Instagram's blue too when no color has been typed, as Accent color does.
+     */
+    static AccentHue fill() {
+        if (!Settings.ACCENT_COLOR.savedValue() || !accentInBuild()) return AccentHue.BLUE;
+        AccentHue hue = Settings.ACCENT_HUE.savedValue();
+        if (hue != AccentHue.CUSTOM) return hue;
+        String typed = CustomAccent.normalize(Settings.ACCENT_CUSTOM.savedValue());
+        return typed == null ? AccentHue.BLUE : nearest(Integer.parseInt(typed.substring(1), 16));
+    }
+
+    /**
+     * The color with a theme of its own that's closest to [rgb], by the distance between their red,
+     * green and blue: Instagram's blue or one of the fixed colors.
+     */
+    static AccentHue nearest(int rgb) {
+        AccentHue best = AccentHue.BLUE;
+        int bestDistance = Integer.MAX_VALUE;
+        for (AccentHue hue : AccentHue.values()) {
+            int fill = hue == AccentHue.BLUE ? INSTAGRAM_BLUE : hue.fill;
+            if (fill == 0) continue;
+            int distance = square(((rgb >> 16) & 0xff) - ((fill >> 16) & 0xff))
+                    + square(((rgb >> 8) & 0xff) - ((fill >> 8) & 0xff)) + square((rgb & 0xff) - (fill & 0xff));
+            if (distance < bestDistance) {
+                best = hue;
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    private static int square(int value) {
+        return value * value;
+    }
+
+    private static boolean accentInBuild() {
+        Boolean forced = accentInBuildForTests;
+        return forced != null ? forced : PatchFamily.ACCENT_COLOR.inBuild();
+    }
+
+    /**
+     * What {@link #STORE} says Android was last told, or null when it was never told. Builds before
+     * #528 kept a boolean under {@link #APPLIED}, which means {@link #THEME} or Instagram's own.
+     */
+    @Nullable
+    private static String handed(SharedPreferences store) {
+        if (store.contains(HANDED)) return store.getString(HANDED, "");
+        if (store.contains(APPLIED)) return store.getBoolean(APPLIED, false) ? THEME : "";
+        return null;
     }
 
     /** Forgets what this process knows, as a new process would. */
     static void forgetForTests() {
         synchronized (LOCK) {
-            applied = null;
-            appliedRead = false;
+            handed = null;
+            handedRead = false;
             toldThisProcess = false;
         }
     }
@@ -225,12 +294,12 @@ public final class LaunchScreen {
      * which is still Instagram's when Install next to Instagram renamed the app.
      */
     static final class AndroidSplash implements Splash {
-        @Override public int theme(Activity activity) {
+        @Override public int theme(Activity activity, String name) {
             Resources resources = activity.getResources();
-            int theme = resources.getIdentifier(THEME, "style", activity.getPackageName());
+            int theme = resources.getIdentifier(name, "style", activity.getPackageName());
             int own = activity.getApplicationInfo().theme;
             if (theme == 0 && own != 0) {
-                theme = resources.getIdentifier(THEME, "style", resources.getResourcePackageName(own));
+                theme = resources.getIdentifier(name, "style", resources.getResourcePackageName(own));
             }
             return theme;
         }

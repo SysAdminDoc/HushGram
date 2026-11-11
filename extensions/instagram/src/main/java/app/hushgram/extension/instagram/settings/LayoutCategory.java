@@ -97,6 +97,9 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN, L10n.t("HushGram launch screen"),
                         L10n.t("Shows HushGram's logo instead of Instagram's on the screen you see while Instagram "
                                 + "starts, on Android 13 and newer. It shows from the next start.")));
+                layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN_ACCENT, L10n.t("Launch screen in the accent color"),
+                        L10n.t("Fills that screen with the accent color, or Instagram's blue while Accent color is "
+                                + "off. A custom color shows as the closest one in the list. It shows from the next start.")));
             }
             if (build.contains(PatchFamily.HEADER_TEXT)) {
                 layout.addPreference(mark(headerTextRow(context), SettingsIcons.WRITING));

@@ -87,7 +87,8 @@ public class AppIconSettingsTest {
         assertEquals("Custom app icon", layout.getPreference(layout.getPreferenceCount() - 1).getTitle().toString());
         assertEquals("after the launch screen", Settings.APP_ICON.key,
                 layout.getPreference(layout.getPreferenceCount() - 2).getKey());
-        assertEquals(Settings.LAUNCH_SCREEN.key, layout.getPreference(layout.getPreferenceCount() - 3).getKey());
+        assertEquals(Settings.LAUNCH_SCREEN_ACCENT.key, layout.getPreference(layout.getPreferenceCount() - 3).getKey());
+        assertEquals(Settings.LAUNCH_SCREEN.key, layout.getPreference(layout.getPreferenceCount() - 4).getKey());
 
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : row.getEntries()) entries.add(entry.toString());

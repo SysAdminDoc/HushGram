@@ -40,8 +40,11 @@ class LaunchScreenPatchTest {
         addLaunchTheme(styles)
 
         val themes = styles.elements("style")
-        assertEquals(listOf("Theme.Instagram", INSTAGRAM_LAUNCH_THEME, LAUNCH_THEME), themes.map { it.getAttribute("name") })
-        val added = themes.last()
+        assertEquals(
+            listOf("Theme.Instagram", INSTAGRAM_LAUNCH_THEME, LAUNCH_THEME) + LAUNCH_FILLS.keys.map(::launchTheme),
+            themes.map { it.getAttribute("name") },
+        )
+        val added = themes.single { it.getAttribute("name") == LAUNCH_THEME }
         assertEquals("@style/$INSTAGRAM_LAUNCH_THEME", added.getAttribute("parent"))
         assertEquals(
             listOf(SPLASH_ICON to "@drawable/$LAUNCH_MARK", SPLASH_BRANDING to "@null"),
@@ -51,6 +54,29 @@ class LaunchScreenPatchTest {
             listOf("android:windowBackground" to "@drawable/instagram_splash_screen"),
             themes[1].elements("item").map { it.getAttribute("name") to it.textContent },
         )
+    }
+
+    /**
+     * #528: one filled theme for each hue the extension can name, over HushGram's, holding only the
+     * fill: Instagram's blue, each palette's fill, and the wallpaper's accent from Android itself.
+     */
+    @Test
+    fun eachHueGetsAThemeHoldingOnlyItsFill() {
+        assertEquals(
+            listOf("BLUE", "PURPLE", "PINK", "RED", "ORANGE", "GREEN", "TEAL", "DUSK", "PINE", "SLATE", WALLPAPER),
+            LAUNCH_FILLS.keys.toList(),
+        )
+        val styles = parse("<resources>$launcher</resources>")
+        addLaunchTheme(styles)
+        val themes = styles.elements("style").associateBy { it.getAttribute("name") }
+        for ((hue, fill) in LAUNCH_FILLS) {
+            val theme = themes.getValue(launchTheme(hue))
+            assertEquals(hue, "@style/$LAUNCH_THEME", theme.getAttribute("parent"))
+            assertEquals(hue, listOf(SPLASH_BACKGROUND to fill), theme.elements("item").map { it.getAttribute("name") to it.textContent })
+        }
+        assertEquals("#ff0095f6", LAUNCH_FILLS["BLUE"])
+        assertEquals("#ff2a6f68", LAUNCH_FILLS["PINE"])
+        assertEquals("@android:color/system_accent1_500", LAUNCH_FILLS[WALLPAPER])
     }
 
     @Test
@@ -137,7 +163,7 @@ class LaunchScreenPatchTest {
                     val after = ids(res)
                     assertEquals(
                         "$code: added",
-                        setOf("style/$LAUNCH_THEME", "drawable/$LAUNCH_MARK"),
+                        setOf("style/$LAUNCH_THEME", "drawable/$LAUNCH_MARK") + LAUNCH_FILLS.keys.map { "style/${launchTheme(it)}" },
                         (after.keys - before.keys).map { after.getValue(it) }.toSet(),
                     )
                     val lost = before.keys - after.keys
@@ -147,14 +173,23 @@ class LaunchScreenPatchTest {
                     val renamed = before.filter { (id, name) -> after.getValue(id) != name }
                     assertTrue("$code: renamed, ${renamed.entries.take(5).map { "${it.value} to ${after[it.key]}" }}", renamed.isEmpty())
 
-                    val theme = parse(File(res, "values/styles.xml").readText()).elements("style")
-                        .single { it.getAttribute("name") == LAUNCH_THEME }
+                    val styles = parse(File(res, "values/styles.xml").readText()).elements("style")
+                    val theme = styles.single { it.getAttribute("name") == LAUNCH_THEME }
                     assertEquals("$code: parent", "@style/$INSTAGRAM_LAUNCH_THEME", theme.getAttribute("parent"))
                     assertEquals(
                         "$code: items",
                         listOf(SPLASH_ICON to "@drawable/$LAUNCH_MARK", SPLASH_BRANDING to "@null"),
                         theme.elements("item").map { it.getAttribute("name") to it.textContent.trim() },
                     )
+                    for ((hue, fill) in LAUNCH_FILLS) {
+                        val filled = styles.single { it.getAttribute("name") == launchTheme(hue) }
+                        assertEquals("$code: $hue's parent", "@style/$LAUNCH_THEME", filled.getAttribute("parent"))
+                        assertEquals(
+                            "$code: $hue's fill",
+                            listOf(SPLASH_BACKGROUND to fill.lowercase()),
+                            filled.elements("item").map { it.getAttribute("name") to it.textContent.trim().lowercase() },
+                        )
+                    }
                     val mark = parse(File(res, "drawable/$LAUNCH_MARK.xml").readText()).documentElement
                     assertEquals("$code: the mark", "layer-list", mark.tagName)
                     assertEquals("$code: the mark's H", 3, mark.elements("path").size)

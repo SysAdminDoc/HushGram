@@ -46,6 +46,20 @@ internal const val LAUNCH_MARK = "hushgram_launch_mark"
 
 internal const val SPLASH_ICON = "android:windowSplashScreenAnimatedIcon"
 internal const val SPLASH_BRANDING = "android:windowSplashScreenBrandingImage"
+internal const val SPLASH_BACKGROUND = "android:windowSplashScreenBackground"
+
+/** The version of [LAUNCH_THEME] filled with one AccentHue's color, as LaunchScreen names it. */
+internal fun launchTheme(hue: String): String = "${LAUNCH_THEME}_$hue"
+
+/**
+ * The colors the launch screen can be filled with (#528), by the AccentHue each stands for: Instagram's
+ * blue, every fixed color and Material You's wallpaper tone. Android draws that screen from the theme
+ * alone, before HushGram can change any color, so a typed color has no theme of its own and the
+ * extension picks the nearest of these.
+ */
+internal val LAUNCH_FILLS: Map<String, String> = linkedMapOf("BLUE" to "#ff0095f6") +
+    ACCENT_PALETTES.filter { it.name != CUSTOM }.associate { it.name to "#ff%06x".format(it.shades.getValue(AccentRole.FILL)) } +
+    (WALLPAPER to systemColor(AccentRole.FILL))
 
 internal const val LAUNCH_SCREEN = "$EXTENSION_PACKAGE/misc/LaunchScreen;"
 internal const val INSTAGRAM_LOGO = "$LAUNCH_SCREEN->instagramLogo(I)I"
@@ -107,23 +121,30 @@ private fun Element.items(): List<Element> {
 /**
  * Adds [LAUNCH_THEME] to one decoded styles.xml: [INSTAGRAM_LAUNCH_THEME] with [LAUNCH_MARK] as the
  * launch screen's icon and no branding image, so "from Meta" goes too. Everything else, the
- * background color and its dark version among it, comes from Instagram's theme. Refuses unless that
- * theme is there and this one isn't.
+ * background color and its dark version among it, comes from Instagram's theme. Then one version of it
+ * for each of [LAUNCH_FILLS], named by [launchTheme], with that color as the background in both
+ * themes. Refuses unless Instagram's theme is there and none of these are.
  */
 internal fun addLaunchTheme(styles: Document) {
     val names = styles.styles().map { it.getAttribute("name") }
     if (INSTAGRAM_LAUNCH_THEME !in names) refuse("res/values/styles.xml has no $INSTAGRAM_LAUNCH_THEME")
-    if (LAUNCH_THEME in names) refuse("res/values/styles.xml already has a $LAUNCH_THEME")
-    val style = styles.createElement("style")
-    style.setAttribute("name", LAUNCH_THEME)
-    style.setAttribute("parent", "@style/$INSTAGRAM_LAUNCH_THEME")
-    for ((name, value) in listOf(SPLASH_ICON to "@drawable/$LAUNCH_MARK", SPLASH_BRANDING to "@null")) {
-        val item = styles.createElement("item")
-        item.setAttribute("name", name)
-        item.textContent = value
-        style.appendChild(item)
+    (listOf(LAUNCH_THEME) + LAUNCH_FILLS.keys.map(::launchTheme)).firstOrNull { it in names }?.let {
+        refuse("res/values/styles.xml already has a $it")
     }
-    styles.documentElement.appendChild(style)
+    fun add(name: String, parent: String, items: List<Pair<String, String>>) {
+        val style = styles.createElement("style")
+        style.setAttribute("name", name)
+        style.setAttribute("parent", parent)
+        for ((item, value) in items) {
+            style.appendChild(styles.createElement("item").apply {
+                setAttribute("name", item)
+                textContent = value
+            })
+        }
+        styles.documentElement.appendChild(style)
+    }
+    add(LAUNCH_THEME, "@style/$INSTAGRAM_LAUNCH_THEME", listOf(SPLASH_ICON to "@drawable/$LAUNCH_MARK", SPLASH_BRANDING to "@null"))
+    for ((hue, color) in LAUNCH_FILLS) add(launchTheme(hue), "@style/$LAUNCH_THEME", listOf(SPLASH_BACKGROUND to color))
 }
 
 /**
@@ -136,7 +157,7 @@ internal fun namesSplashIcon(styles: Document): Boolean =
     }
 
 /**
- * Adds [LAUNCH_THEME] and [LAUNCH_MARK]. Refuses unless Instagram's launch theme names the launch
+ * Adds [LAUNCH_THEME], its filled versions and [LAUNCH_MARK]. Refuses unless Instagram's launch theme names the launch
  * screen's icon in its Android 12 version, so a build that drew its launch screen some other way
  * isn't patched blind. Those versions are only read: document() writes its file back, and the
  * patcher re-encodes every file written.
@@ -283,7 +304,8 @@ private fun Method.where(): String = "$definingClass->$name"
  * Android 13 and newer, tells Android to use it for later starts while the switch is on
  * (Activity.getSplashScreen().setSplashScreenTheme). Android keeps the answer itself, so the switch
  * costs a start nothing. Android 12 and older only ever use the manifest's theme, so they keep
- * Instagram's screen.
+ * Instagram's screen. With its child switch on, the extension hands Android the version of the theme
+ * filled with the accent color instead (#528).
  *
  * 451's main screen can follow Android's screen with Instagram's own logo animation, which put
  * Instagram's logo and "from Meta" on a gray screen right after HushGram's (#5). The patch passes
@@ -294,7 +316,8 @@ private fun Method.where(): String = "$definingClass->$name"
 val launchScreenPatch = bytecodePatch(
     name = "HushGram launch screen",
     description = "Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on " +
-        "Android 13 and newer. Starts off. Turn it on in HushGram settings > Layout.",
+        "Android 13 and newer, and can fill that screen with your accent color. Starts off. Turn it on in " +
+        "HushGram settings > Layout.",
     default = true,
 ) {
     category("Interface")

@@ -2149,3 +2149,6 @@ Below the Send message box	Debajo del cuadro Enviar mensaje
 The bar sits just above the Send message box at the bottom of a story.	La barra queda justo encima del cuadro Enviar mensaje, en la parte inferior de una historia.
 # context: Summary of the Below choice of Seek bar position; when there's too little space under the box, the bar stays above it (#636)
 The bar sits in the space under the Send message box. Where there's no room under it, the bar stays above it.	La barra queda en el espacio bajo el cuadro Enviar mensaje. Donde no hay sitio debajo, se queda encima.
+# context: Layout switch right under HushGram launch screen; it fills the screen Android shows while Instagram starts with the accent color. Accent color is that Layout switch's own label, Custom the accent list's choice for a typed color (#528)
+Launch screen in the accent color	Pantalla de inicio en el color de acento
+Fills that screen with the accent color, or Instagram's blue while Accent color is off. A custom color shows as the closest one in the list. It shows from the next start.	Llena esa pantalla con el color de acento, o con el azul de Instagram mientras Color de acento está desactivado. Un color personalizado se muestra como el más parecido de la lista. Se verá a partir del próximo inicio.

@@ -2149,3 +2149,6 @@ Below the Send message box	Di bawah kotak Kirim pesan
 The bar sits just above the Send message box at the bottom of a story.	Bilah berada tepat di atas kotak Kirim pesan di bagian bawah cerita.
 # context: Summary of the Below choice of Seek bar position; when there's too little space under the box, the bar stays above it (#636)
 The bar sits in the space under the Send message box. Where there's no room under it, the bar stays above it.	Bilah berada di ruang di bawah kotak Kirim pesan. Jika tidak ada ruang di bawahnya, bilah tetap di atasnya.
+# context: Layout switch right under HushGram launch screen; it fills the screen Android shows while Instagram starts with the accent color. Accent color is that Layout switch's own label, Custom the accent list's choice for a typed color (#528)
+Launch screen in the accent color	Layar pembuka dengan warna aksen
+Fills that screen with the accent color, or Instagram's blue while Accent color is off. A custom color shows as the closest one in the list. It shows from the next start.	Mengisi layar itu dengan warna aksen, atau biru Instagram selama Warna aksen nonaktif. Warna kustom ditampilkan sebagai warna terdekat di daftar. Muncul mulai dari pembukaan berikutnya.

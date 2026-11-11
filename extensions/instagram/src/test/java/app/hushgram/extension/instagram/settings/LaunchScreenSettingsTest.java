@@ -24,9 +24,9 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -46,6 +46,7 @@ public class LaunchScreenSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.LAUNCH_SCREEN.resetToDefault();
+        Settings.LAUNCH_SCREEN_ACCENT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -57,6 +58,7 @@ public class LaunchScreenSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.LAUNCH_SCREEN.resetToDefault();
+        Settings.LAUNCH_SCREEN_ACCENT.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
 
@@ -94,13 +96,33 @@ public class LaunchScreenSettingsTest {
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.NOTO_EMOJI.key, Settings.EMOJI_FONT.key, Settings.ACCENT_COLOR.key, Settings.ACCENT_HUE.key, Settings.ACCENT_CUSTOM.key, Settings.ACCENT_BADGES.key,
                 Settings.ACCENT_ICONS.key, Settings.ACCENT_RINGS.key, Settings.ACCENT_RINGS_SOLID.key, Settings.ACCENT_BACKGROUNDS.key,
-                LayoutCategory.PURE_BLACK_HINT_ROW, Settings.LAUNCH_SCREEN.key), Arrays.asList(keys));
+                LayoutCategory.PURE_BLACK_HINT_ROW, Settings.LAUNCH_SCREEN.key, Settings.LAUNCH_SCREEN_ACCENT.key), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.LAUNCH_SCREEN.get());
-        assertEquals(Collections.singletonList(Settings.LAUNCH_SCREEN), PatchFamily.LAUNCH_SCREEN.switches);
+        assertEquals(Arrays.asList(Settings.LAUNCH_SCREEN, Settings.LAUNCH_SCREEN_ACCENT), PatchFamily.LAUNCH_SCREEN.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LAUNCH_SCREEN.key));
 
         row.setChecked(true);
         assertTrue(Settings.LAUNCH_SCREEN.savedValue());
+    }
+
+    /** #528: the accent fill sits under the launch screen switch and waits for it. */
+    @Test public void accentFillWaitsForTheLaunchScreen() throws Exception {
+        open(EnumSet.of(PatchFamily.ACCENT_COLOR, PatchFamily.LAUNCH_SCREEN));
+        SwitchPreference launch = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.LAUNCH_SCREEN.key);
+        SwitchPreference fill = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.LAUNCH_SCREEN_ACCENT.key);
+        assertNotNull(fill);
+        assertEquals("Launch screen in the accent color", fill.getTitle().toString());
+        assertEquals("Fills that screen with the accent color, or Instagram's blue while Accent color is off. "
+                + "A custom color shows as the closest one in the list. It shows from the next start.", fill.getSummary().toString());
+        assertFalse(fill.isChecked());
+        assertFalse(fill.isEnabled());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LAUNCH_SCREEN_ACCENT.key));
+
+        launch.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(fill.isEnabled());
+        fill.setChecked(true);
+        assertTrue(Settings.LAUNCH_SCREEN_ACCENT.get());
     }
 }

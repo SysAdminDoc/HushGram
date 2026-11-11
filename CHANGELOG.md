@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Launch screen in the accent color` sits under `HushGram launch screen` in Layout. It fills the screen you see while Instagram starts with your accent color, or Instagram's blue while `Accent color` is off. A color you typed shows as the closest one in the list, since Android draws that screen before HushGram can. Starts off. Asked for in #528.
 * `Seek bar position` sits under the look choice of `Seek bar on stories`. Picking `Below the Send message box` moves the bar into the space under the reply box at the bottom of a story, and it stays above the box where there's no room under it. Asked for in #636.
 * With `Glass tab bar` on, Home's `See-through top bar` takes on the same look. The header gets the pill's soft shine, and with `Bend light at the edges` on, its bottom edge bends what's under it the way the pill's rim does. Asked for in #513.
 * `Hide Subscribe on posts` sits under `Hide Follow on posts` in Feed. It takes just the Subscribe button off the top of posts in your feed, so Follow stays where it is. Starts off. Asked for in #622.

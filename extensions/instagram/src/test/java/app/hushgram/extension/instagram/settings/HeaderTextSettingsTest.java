@@ -115,11 +115,12 @@ public class HeaderTextSettingsTest {
         assertEquals("Layout", layout.getTitle().toString());
         int launch = indexIn(layout, find(Settings.LAUNCH_SCREEN.key));
         assertTrue(launch >= 0);
-        assertEquals("right after the launch screen", launch + 1, indexIn(layout, text));
+        assertEquals("its accent fill sits under it", launch + 1, indexIn(layout, find(Settings.LAUNCH_SCREEN_ACCENT.key)));
+        assertEquals("right after the launch screen rows", launch + 2, indexIn(layout, text));
         Preference picture = find(HushgramPreferenceFragment.HEADER_PICTURE_KEY);
         Preference remove = find(HushgramPreferenceFragment.REMOVE_HEADER_PICTURE_KEY);
-        assertEquals(launch + 2, indexIn(layout, picture));
-        assertEquals(launch + 3, indexIn(layout, remove));
+        assertEquals(launch + 3, indexIn(layout, picture));
+        assertEquals(launch + 4, indexIn(layout, remove));
 
         assertEquals("Home header text", text.getTitle().toString());
         assertEquals("Instagram's logo stays at the top of Home.", text.getSummary().toString());

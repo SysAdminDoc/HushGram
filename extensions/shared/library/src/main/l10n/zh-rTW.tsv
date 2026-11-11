@@ -2152,3 +2152,6 @@ Below the Send message box	「傳送訊息」框下方
 The bar sits just above the Send message box at the bottom of a story.	拖曳列會位於限時動態底部「傳送訊息」框的正上方。
 # context: Summary of the Below choice of Seek bar position; when there's too little space under the box, the bar stays above it (#636)
 The bar sits in the space under the Send message box. Where there's no room under it, the bar stays above it.	拖曳列會位於「傳送訊息」框下方的空間。下方沒有空間時，會留在框的上方。
+# context: Layout switch right under HushGram launch screen; it fills the screen Android shows while Instagram starts with the accent color. Accent color is that Layout switch's own label, Custom the accent list's choice for a typed color (#528)
+Launch screen in the accent color	啟動畫面使用強調色
+Fills that screen with the accent color, or Instagram's blue while Accent color is off. A custom color shows as the closest one in the list. It shows from the next start.	以強調色填滿該畫面，關閉強調色時則使用 Instagram 的藍色。自訂顏色會以清單中最接近的顏色顯示。下次啟動時顯示。

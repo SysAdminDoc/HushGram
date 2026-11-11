@@ -3411,7 +3411,7 @@
     },
     {
       "name": "HushGram launch screen",
-      "description": "Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. Starts off. Turn it on in HushGram settings > Layout.",
+      "description": "Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer, and can fill that screen with your accent color. Starts off. Turn it on in HushGram settings > Layout.",
       "category": "Interface",
       "use": true,
       "dependencies": [

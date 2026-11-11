@@ -52,8 +52,11 @@ public class LaunchScreenTest {
         /** Runs while Android is being told, as the activity going away at that moment would. */
         Runnable whileTelling;
         final List<Integer> told = new ArrayList<>();
+        /** Every theme looked up by name. */
+        final List<String> asked = new ArrayList<>();
 
-        @Override public int theme(Activity activity) {
+        @Override public int theme(Activity activity, String name) {
+            asked.add(name);
             return theme;
         }
 
@@ -86,6 +89,11 @@ public class LaunchScreenTest {
 
     private void reset() {
         Settings.LAUNCH_SCREEN.resetToDefault();
+        Settings.LAUNCH_SCREEN_ACCENT.resetToDefault();
+        Settings.ACCENT_COLOR.resetToDefault();
+        Settings.ACCENT_HUE.resetToDefault();
+        Settings.ACCENT_CUSTOM.resetToDefault();
+        LaunchScreen.accentInBuildForTests = null;
         BaseSettings.PAUSED.save(false);
         BaseSettings.SAFE_MODE.save(false);
         PauseForTests.resume();
@@ -100,12 +108,116 @@ public class LaunchScreenTest {
         return FamilyNames.LAUNCH_SCREEN + ": invoked 1, 0 found, 0 missing. Counted: " + what + " 1";
     }
 
-    /** Off to start, the way a patched Instagram first opens. */
+    private static android.content.SharedPreferences store() {
+        return Utils.getContext().getSharedPreferences(LaunchScreen.STORE, Context.MODE_PRIVATE);
+    }
+
+    private String lastAsked() {
+        return splash.asked.get(splash.asked.size() - 1);
+    }
+
+    /** Off to start, the way a patched Instagram first opens, and so is its accent color child. */
     @Test
     public void offToStart() {
         assertEquals(Boolean.FALSE, Settings.LAUNCH_SCREEN.defaultValue);
         assertTrue("Android shows the change at the next start", Settings.LAUNCH_SCREEN.rebootApp);
-        assertFalse(LaunchScreen.wanted(activity));
+        assertEquals("", LaunchScreen.wanted(activity));
+        assertEquals(Boolean.FALSE, Settings.LAUNCH_SCREEN_ACCENT.defaultValue);
+        assertTrue(Settings.LAUNCH_SCREEN_ACCENT.rebootApp);
+    }
+
+    /**
+     * With the child switch on, the theme filled with the accent color is handed over instead (#528),
+     * a new color hands its own over, and switching the child off brings the plain theme back.
+     */
+    @Test
+    public void theAccentSwitchHandsTheFilledThemeOver() {
+        LaunchScreen.accentInBuildForTests = true;
+        Settings.LAUNCH_SCREEN.save(true);
+        Settings.LAUNCH_SCREEN_ACCENT.save(true);
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.PINE);
+
+        assertEquals(LaunchScreen.THEME + "_PINE", LaunchScreen.wanted(activity));
+        assertTrue(LaunchScreen.follow(activity));
+        assertEquals(LaunchScreen.THEME + "_PINE", lastAsked());
+        assertEquals(LaunchScreen.THEME + "_PINE", store().getString(LaunchScreen.HANDED, null));
+        assertEquals(Collections.singletonList(counted(LaunchScreen.SET)), HookStatus.report());
+        assertFalse(LaunchScreen.follow(activity));
+
+        Settings.ACCENT_HUE.save(AccentHue.ORANGE);
+        assertTrue("a new color is handed over", LaunchScreen.follow(activity));
+        assertEquals(LaunchScreen.THEME + "_ORANGE", lastAsked());
+
+        Settings.LAUNCH_SCREEN_ACCENT.save(false);
+        assertTrue(LaunchScreen.follow(activity));
+        assertEquals(LaunchScreen.THEME, lastAsked());
+        assertEquals(LaunchScreen.THEME, store().getString(LaunchScreen.HANDED, null));
+        assertEquals(List.of(THEME, THEME, THEME), splash.told);
+
+        Settings.LAUNCH_SCREEN_ACCENT.save(true);
+        Settings.LAUNCH_SCREEN.save(false);
+        assertEquals("the child alone shows nothing", "", LaunchScreen.wanted(activity));
+    }
+
+    /**
+     * Instagram's blue fills the screen while Accent color is off, blue is picked, no color has
+     * been typed, or the build has no Accent color. Material You keeps its own theme.
+     */
+    @Test
+    public void theFillIsInstagramsBlueWithoutAnAccent() {
+        LaunchScreen.accentInBuildForTests = true;
+        Settings.ACCENT_HUE.save(AccentHue.PINK);
+        assertSame("Accent color off", AccentHue.BLUE, LaunchScreen.fill());
+        Settings.ACCENT_COLOR.save(true);
+        assertSame(AccentHue.PINK, LaunchScreen.fill());
+        Settings.ACCENT_HUE.save(AccentHue.BLUE);
+        assertSame(AccentHue.BLUE, LaunchScreen.fill());
+        Settings.ACCENT_HUE.save(AccentHue.CUSTOM);
+        assertSame("no color typed", AccentHue.BLUE, LaunchScreen.fill());
+        Settings.ACCENT_HUE.save(AccentHue.WALLPAPER);
+        assertSame(AccentHue.WALLPAPER, LaunchScreen.fill());
+        LaunchScreen.accentInBuildForTests = false;
+        assertSame("no Accent color in this build", AccentHue.BLUE, LaunchScreen.fill());
+    }
+
+    /** A typed color takes the nearest color with a theme of its own, Instagram's blue among them. */
+    @Test
+    public void aTypedColorTakesTheNearestColor() {
+        LaunchScreen.accentInBuildForTests = true;
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.CUSTOM);
+        Settings.ACCENT_CUSTOM.save("#ff1010");
+        assertSame(AccentHue.RED, LaunchScreen.fill());
+        Settings.ACCENT_CUSTOM.save("2a6f69");
+        assertSame(AccentHue.PINE, LaunchScreen.fill());
+        Settings.ACCENT_CUSTOM.save("#0a90f0");
+        assertSame(AccentHue.BLUE, LaunchScreen.fill());
+        Settings.ACCENT_CUSTOM.save("not a color");
+        assertSame(AccentHue.BLUE, LaunchScreen.fill());
+
+        for (AccentHue hue : AccentHue.values()) {
+            if (hue.fill != 0) assertSame(hue, LaunchScreen.nearest(hue.fill));
+        }
+        assertSame(AccentHue.BLUE, LaunchScreen.nearest(LaunchScreen.INSTAGRAM_BLUE));
+    }
+
+    /**
+     * A build before #528 kept true or false under its old key, which counts as the plain theme or
+     * Instagram's own, and goes once the answer is written again.
+     */
+    @Test
+    public void anOldAnswerCarriesOver() {
+        store().edit().putBoolean(LaunchScreen.APPLIED, false).commit();
+        assertFalse("Instagram's own was already handed back", LaunchScreen.follow(activity));
+        assertTrue(splash.told.isEmpty());
+
+        LaunchScreen.forgetForTests();
+        store().edit().putBoolean(LaunchScreen.APPLIED, true).commit();
+        assertTrue("HushGram's was handed over, so Instagram's goes back", LaunchScreen.follow(activity));
+        assertEquals(Collections.singletonList(0), splash.told);
+        assertEquals("", store().getString(LaunchScreen.HANDED, null));
+        assertFalse("the old key goes", store().contains(LaunchScreen.APPLIED));
     }
 
     /**
@@ -119,8 +231,8 @@ public class LaunchScreenTest {
         assertTrue(LaunchScreen.follow(activity));
         assertEquals(Collections.singletonList(THEME), splash.told);
         assertEquals(Collections.singletonList(counted(LaunchScreen.SET)), HookStatus.report());
-        assertTrue(Utils.getContext().getSharedPreferences(LaunchScreen.STORE, Context.MODE_PRIVATE)
-                .getBoolean(LaunchScreen.APPLIED, false));
+        assertEquals(LaunchScreen.THEME, lastAsked());
+        assertEquals(LaunchScreen.THEME, store().getString(LaunchScreen.HANDED, null));
 
         assertFalse(LaunchScreen.follow(activity));
         assertFalse(LaunchScreen.follow(activity));
@@ -178,20 +290,20 @@ public class LaunchScreenTest {
         assertTrue(LaunchScreen.follow(activity));
 
         BaseSettings.PAUSED.save(true);
-        assertFalse(LaunchScreen.wanted(activity));
+        assertEquals("", LaunchScreen.wanted(activity));
         assertTrue(LaunchScreen.follow(activity));
         assertEquals(List.of(THEME, 0), splash.told);
         BaseSettings.PAUSED.save(false);
         assertTrue(LaunchScreen.follow(activity));
 
         BaseSettings.SAFE_MODE.save(true);
-        assertFalse(LaunchScreen.wanted(activity));
+        assertEquals("", LaunchScreen.wanted(activity));
         BaseSettings.SAFE_MODE.save(false);
 
         File marker = HushgramPause.markerFile(activity);
         assertTrue(marker.getParentFile().isDirectory() || marker.getParentFile().mkdirs());
         assertTrue(marker.createNewFile());
-        assertFalse(LaunchScreen.wanted(activity));
+        assertEquals("", LaunchScreen.wanted(activity));
         assertTrue(LaunchScreen.follow(activity));
         assertEquals(List.of(THEME, 0, THEME, 0), splash.told);
         assertTrue("the switch itself stays on", Settings.LAUNCH_SCREEN.savedValue());
@@ -213,7 +325,7 @@ public class LaunchScreenTest {
     /** The test app has no such theme, so Android's own lookup answers 0 rather than another theme. */
     @Test
     public void androidsLookupFindsNoThemeInABuildWithout() {
-        assertEquals(0, new LaunchScreen.AndroidSplash().theme(activity));
+        assertEquals(0, new LaunchScreen.AndroidSplash().theme(activity, LaunchScreen.THEME));
     }
 
     /** Android refusing is recorded and nothing is kept, so a later resume tries again. */
@@ -224,8 +336,7 @@ public class LaunchScreenTest {
 
         assertFalse(LaunchScreen.follow(activity));
         assertEquals(1, HookStatus.missing(FamilyNames.LAUNCH_SCREEN).size());
-        assertFalse(Utils.getContext().getSharedPreferences(LaunchScreen.STORE, Context.MODE_PRIVATE)
-                .contains(LaunchScreen.APPLIED));
+        assertFalse(store().contains(LaunchScreen.HANDED));
 
         splash.failure = null;
         assertTrue(LaunchScreen.follow(activity));
@@ -244,8 +355,7 @@ public class LaunchScreenTest {
 
         assertFalse(LaunchScreen.follow(activity));
         assertEquals(Collections.singletonList(THEME), splash.told);
-        assertFalse(Utils.getContext().getSharedPreferences(LaunchScreen.STORE, Context.MODE_PRIVATE)
-                .contains(LaunchScreen.APPLIED));
+        assertFalse(store().contains(LaunchScreen.HANDED));
         assertFalse(HookStatus.report().toString().contains(LaunchScreen.SET));
 
         splash.whileTelling = null;
