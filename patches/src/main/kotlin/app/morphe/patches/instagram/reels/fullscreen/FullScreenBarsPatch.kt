@@ -98,8 +98,9 @@ internal val barHeightsPatch = bytecodePatch {
  * height in a static field its screens pad by, and keeps the old height while the bar is hidden, so
  * the screens left an empty strip where each bar was. Both stores of those heights ask the extension
  * first ([barHeightsPatch]), which answers 0 while it has the bars hidden. In the default selection with
- * both switches off. The story viewer's layout asks too ([fillStoryScreen], #436), and so does the reel
- * item layout on a screen wider than 9:16 ([fillWideReelScreen], #491).
+ * both switches off. The story viewer's layout asks too ([fillStoryScreen], #436), and so do its item
+ * binder and whole-screen layout ([layStoriesOutAsTheyBind], #618), and the reel item layout on a
+ * screen wider than 9:16 ([fillWideReelScreen], #491).
  */
 @Suppress("unused")
 val fullScreenBarsPatch = bytecodePatch(
@@ -120,6 +121,7 @@ val fullScreenBarsPatch = bytecodePatch(
         fillWideReelScreen()
         fitReelScreen()
         fillStoryScreen()
+        layStoriesOutAsTheyBind()
         enableStatus("fullScreenBars")
     }
 }

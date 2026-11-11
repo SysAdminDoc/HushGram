@@ -4,8 +4,16 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import android.util.DisplayMetrics;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.FrameLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,6 +21,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 
 import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -62,6 +72,131 @@ public class ReelFillTest {
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         Settings.GLASS_TAB_BAR_REELS_BEHIND.resetToDefault();
+        ReelFill.SHARED_REELS.clear();
+        ReelFill.SHARED_FRAMES.clear();
+    }
+
+    /** #618: a 1080x2340 phone, taller than 9:16, where a reel 1080 wide is 1920 tall. */
+    private static final int PHONE_WIDTH = 1080;
+    private static final int PHONE_HEIGHT = 2340;
+
+    /** The story viewer's room with its whole-screen story frame in it, laid out on that phone. */
+    private static FrameLayout storyRoom() {
+        FrameLayout room = new FrameLayout(RuntimeEnvironment.getApplication());
+        room.addView(new FrameLayout(room.getContext()), new FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT));
+        layOut(room);
+        return room;
+    }
+
+    private static void layOut(View room) {
+        room.measure(View.MeasureSpec.makeMeasureSpec(PHONE_WIDTH, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(PHONE_HEIGHT, View.MeasureSpec.EXACTLY));
+        room.layout(0, 0, PHONE_WIDTH, PHONE_HEIGHT);
+    }
+
+    /** What Instagram's whole-screen story layout does to the frame before it asks. */
+    private static void instagramFillsTheScreen(View frame) {
+        frame.setLayoutParams(new FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT));
+    }
+
+    /** #618: the binder lays a story out as it binds only with Stories fill the screen on. */
+    @Test
+    public void theStoryBinderLaysOutTheWholeScreenOnTheStorySwitch() {
+        Object holder = new Object();
+        assertEquals("off to start", 0, ReelFill.storyBound(holder, 1));
+        Settings.FILL_STORY_SCREEN.save(true);
+        assertEquals(1, ReelFill.storyBound(holder, 0));
+        assertEquals(1, ReelFill.storyBound(holder, 1));
+        Settings.FULL_SCREEN_REELS.save(false);
+        Settings.FILL_REEL_SCREEN.save(false);
+        assertEquals("doesn't need Full screen Reels", 1, ReelFill.storyBound(holder, 1));
+        assertEquals(0, ReelFill.storyBound(null, 1));
+    }
+
+    /**
+     * #618: a reel shared to a story had its sides cut on a tall phone. Its frame goes back to 9:16 as
+     * wide as the screen and centered, and a later layout from a holder the binder never saw, like the
+     * newer story viewer's, keeps it so. A story on that holder that shares no reel gets the whole screen.
+     */
+    @Test
+    public void aReelSharedToAStoryKeepsItsWholeFrame() {
+        Settings.FILL_STORY_SCREEN.save(true);
+        FrameLayout room = storyRoom();
+        View frame = room.getChildAt(0);
+        Object holder = new Object();
+        assertEquals(1, ReelFill.storyBound(holder, 1));
+        instagramFillsTheScreen(frame);
+        ReelFill.storyFrame(holder, frame);
+        layOut(room);
+        assertEquals(Gravity.CENTER, ((FrameLayout.LayoutParams) frame.getLayoutParams()).gravity);
+        assertEquals(PHONE_WIDTH, frame.getWidth());
+        assertEquals(1920, frame.getHeight());
+        assertEquals("a band above and below", 210, frame.getTop());
+
+        instagramFillsTheScreen(frame);
+        ReelFill.storyFrame(new Object(), frame);
+        layOut(room);
+        assertEquals("the newer viewer's own layout", 1920, frame.getHeight());
+
+        assertEquals(1, ReelFill.storyBound(holder, 0));
+        instagramFillsTheScreen(frame);
+        ReelFill.storyFrame(holder, frame);
+        layOut(room);
+        assertEquals("the next story shares no reel", PHONE_HEIGHT, frame.getHeight());
+        ReelFill.storyFrame(new Object(), frame);
+        layOut(room);
+        assertEquals(PHONE_HEIGHT, frame.getHeight());
+    }
+
+    /** #618: ordinary stories, the switch off and anything that isn't a view keep Instagram's frame. */
+    @Test
+    public void otherStoriesKeepTheWholeScreen() {
+        FrameLayout room = storyRoom();
+        View frame = room.getChildAt(0);
+        Object holder = new Object();
+        assertEquals("off", 0, ReelFill.storyBound(holder, 1));
+        ReelFill.storyFrame(holder, frame);
+        layOut(room);
+        assertEquals(PHONE_HEIGHT, frame.getHeight());
+
+        Settings.FILL_STORY_SCREEN.save(true);
+        Object ordinary = new Object();
+        ReelFill.storyBound(ordinary, 0);
+        ReelFill.storyFrame(ordinary, frame);
+        ReelFill.storyFrame(null, frame);
+        ReelFill.storyFrame(holder, "not a view");
+        ReelFill.storyFrame(holder, null);
+        layOut(room);
+        assertEquals(PHONE_HEIGHT, frame.getHeight());
+        assertEquals(PHONE_WIDTH, frame.getWidth());
+    }
+
+    /** #618: on its first bind the viewer isn't laid out yet, and the screen's size stands in for it. */
+    @Test
+    @Config(qualifiers = "w360dp-h780dp-xxhdpi")
+    public void aFrameBoundBeforeLayoutGoesByTheScreen() {
+        DisplayMetrics screen = RuntimeEnvironment.getApplication().getResources().getDisplayMetrics();
+        assertEquals(PHONE_WIDTH, screen.widthPixels);
+        assertEquals(PHONE_HEIGHT, screen.heightPixels);
+        Settings.FILL_STORY_SCREEN.save(true);
+        FrameLayout room = new FrameLayout(RuntimeEnvironment.getApplication());
+        View frame = new FrameLayout(room.getContext());
+        room.addView(frame, new FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT));
+        Object holder = new Object();
+        ReelFill.storyBound(holder, 1);
+        ReelFill.storyFrame(holder, frame);
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) frame.getLayoutParams();
+        assertEquals(MATCH_PARENT, params.width);
+        assertEquals(1920, params.height);
+        assertEquals(Gravity.CENTER, params.gravity);
+    }
+
+    /** #618: a 9:16 frame takes a tall room's width and a wide room's height. */
+    @Test
+    public void theWholeFrameFitsTheRoom() {
+        assertArrayEquals(new int[] {MATCH_PARENT, 1920}, ReelFill.wholeFrame(PHONE_WIDTH, PHONE_HEIGHT));
+        assertArrayEquals("already 9:16", new int[] {MATCH_PARENT, 1920}, ReelFill.wholeFrame(1080, 1920));
+        assertArrayEquals("a 1248x1972 cover screen", new int[] {1109, MATCH_PARENT}, ReelFill.wholeFrame(1248, 1972));
     }
 
     /**

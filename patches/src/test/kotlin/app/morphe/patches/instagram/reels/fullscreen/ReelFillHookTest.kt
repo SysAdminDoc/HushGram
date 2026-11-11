@@ -38,7 +38,7 @@ import java.io.File
 class ReelFillHookTest {
     @Test
     fun theHookIsInTheExtension() {
-        for (hook in listOf(FILL_HOOK, FIT_HOOK, STORY_HOOK, WIDE_HOOK)) {
+        for (hook in listOf(FILL_HOOK, FIT_HOOK, STORY_HOOK, WIDE_HOOK, STORY_BOUND_HOOK, STORY_FRAME_HOOK)) {
             val method = ExtensionDex.classDef(hook.substringBefore("->")).methods.single {
                 "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook.substringAfter("->")
             }
@@ -158,6 +158,115 @@ class ReelFillHookTest {
         })
         assertEquals("$label card layout: and returns", Opcode.RETURN_VOID, cardCode[4].opcode)
     }
+
+    /**
+     * #618: the story binder asks first, with its holder and Instagram's own check of whether the story
+     * shares a reel, and a yes lays out the whole screen before anything else runs. The whole-screen
+     * layout hands the holder and its frame over in front of its one return, and every branch that
+     * went to the return reaches the hand-over first. Every other build of the declared versions too.
+     */
+    @Test
+    fun eachBuildLaysStoriesOutAsTheyBind() {
+        eachDeclaredBundle(::laysStoriesOutAsTheyBind)
+        for (base in Fixtures.otherBuilds()) laysStoriesOutAsTheyBind(base, base.parentFile.name)
+    }
+
+    private fun laysStoriesOutAsTheyBind(bundle: File, label: String) {
+        val loading = FixtureDex.classesLoading(bundle, STORY_ASPECT_RATIO) + FixtureDex.classesLoading(bundle, STORY_BIND_MEDIA)
+        val models = FixtureDex.classes(bundle, setOf(STORY_REEL_ITEM, REEL_PRODUCT_TYPE)).values
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, (loading + models).distinctBy { it.type }))
+        val layout = context.findStoryLayout()
+        val found = context.findStoryBinder(layout)
+        val shared = context.findSharedReelCheck()
+        assertEquals("$label: the shared-reel check is the story's own", STORY_REEL_ITEM, shared.definingClass)
+        assertEquals("$label: and answers yes or no", "Z", shared.returnType)
+        fun MethodReference.same(method: Method) = method.name == name &&
+            method.parameterTypes.map(CharSequence::toString) == parameterTypes.map(CharSequence::toString)
+        val binder = context.mutableClassDefBy(found.method.definingClass).methods.single { found.method.toReference().same(it) }
+        val full = context.mutableClassDefBy(layout.full.definingClass).methods.single {
+            layout.full.same(it) && AccessFlags.STATIC.isSet(it.accessFlags)
+        }
+        assertEquals("$label: the binder binds a story", STORY_REEL_ITEM, binder.parameterTypes[found.item].toString())
+        val item = binder.parameterRegisterNumber(found.item)
+        val holder = binder.parameterRegisterNumber(found.holder)
+        val fullHolder = full.parameterRegisterNumber(0)
+        val getter = findStoryFrameGetter(full)
+        assertTrue("$label: the frame is the story's rounded frame",
+            getter.getter.returnType.endsWith("/RoundedCornerFrameLayout;"))
+        val bindBefore = binder.code()
+        val fullBefore = full.code()
+        val returnAt = fullBefore.indexOfFirst { it.opcode == Opcode.RETURN_VOID }
+        val stockFlow = ControlFlow.of(full)
+        val branches = fullBefore.indices.filter { fullBefore[it] is OffsetInstruction && stockFlow.normal[it].first() == returnAt }
+        assertTrue("$label: something branches to the layout's return", branches.isNotEmpty())
+        val bindNative = NeutralNativePath(binder)
+        val fullNative = NeutralNativePath(full)
+
+        context.layStoriesOutAsTheyBind()
+
+        val code = binder.code()
+        val bind = "$label binder"
+        assertEquals("$bind: nine instructions added", bindBefore.count { it.opcode != Opcode.NOP } + 9, code.count { it.opcode != Opcode.NOP })
+        assertEquals("$bind: the holder first", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+        assertEquals("$bind: into the first local", 0, (code[0] as TwoRegisterInstruction).registerA)
+        assertEquals("$bind: out of its parameter", holder, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$bind: no until asked", Opcode.CONST_4, code[1].opcode)
+        assertEquals("$bind: in the second local", 1, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: no", 0, (code[1] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$bind: no story isn't asked about", Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("$bind: on the story", item, (code[2] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: an invoke-virtual/range", Opcode.INVOKE_VIRTUAL_RANGE, code[3].opcode)
+        assertEquals("$bind: of the shared-reel check", shared.toString(), code[3].referenceText())
+        assertEquals("$bind: on the story", item to 1, (code[3] as RegisterRangeInstruction).let { it.startRegister to it.registerCount })
+        assertEquals("$bind: its answer", Opcode.MOVE_RESULT, code[4].opcode)
+        assertEquals("$bind: in the second local", 1, (code[4] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: one ask", 1, code.count { it.referenceText() == STORY_BOUND_HOOK })
+        assertEquals("$bind: then the ask", STORY_BOUND_HOOK, code[5].referenceText())
+        assertEquals("$bind: an invoke-static", Opcode.INVOKE_STATIC, code[5].opcode)
+        assertEquals("$bind: on the holder and the answer", listOf(0, 1), (code[5] as FiveRegisterInstruction).let {
+            listOf(it.registerC, it.registerD).take(it.registerCount)
+        })
+        assertEquals("$bind: the ask's answer", Opcode.MOVE_RESULT, code[6].opcode)
+        assertEquals("$bind: in the second local", 1, (code[6] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: a no goes on", Opcode.IF_EQZ, code[7].opcode)
+        assertEquals("$bind: on the ask's answer", 1, (code[7] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: a yes lays out the whole screen", layout.full.toString(), code[8].referenceText())
+        assertEquals("$bind: with an invoke-static", Opcode.INVOKE_STATIC, code[8].opcode)
+        assertEquals("$bind: on the holder", listOf(0), (code[8] as FiveRegisterInstruction).let { listOf(it.registerC).take(it.registerCount) })
+        assertEquals("$bind: then Instagram's first instruction", bindBefore[0].opcode, code[9].opcode)
+        val bindFlow = ControlFlow.of(binder)
+        assertEquals("$bind: no story goes straight to the ask", 5, bindFlow.normal[2].first())
+        assertEquals("$bind: a no skips the layout", 9, bindFlow.normal[7].first())
+        bindNative.assertPreserved(bind, binder, (0 until 9).toSet())
+
+        val after = full.code()
+        val lay = "$label whole-screen layout"
+        assertEquals("$lay: three instructions added", fullBefore.count { it.opcode != Opcode.NOP } + 3, after.count { it.opcode != Opcode.NOP })
+        assertEquals("$lay: one hand-over", 1, after.count { it.referenceText() == STORY_FRAME_HOOK })
+        assertEquals("$lay: the frame fetched where the return was", getter.getter.toString(), after[returnAt].referenceText())
+        assertEquals("$lay: as the layout fetches it", getter.call, if (after[returnAt].opcode == Opcode.INVOKE_INTERFACE) "invoke-interface" else "invoke-virtual")
+        assertTrue("$lay: an invoke", after[returnAt].opcode == Opcode.INVOKE_INTERFACE || after[returnAt].opcode == Opcode.INVOKE_VIRTUAL)
+        assertEquals("$lay: from the holder", listOf(fullHolder), (after[returnAt] as FiveRegisterInstruction).let {
+            listOf(it.registerC).take(it.registerCount)
+        })
+        assertEquals("$lay: into a local", Opcode.MOVE_RESULT_OBJECT, after[returnAt + 1].opcode)
+        val frame = (after[returnAt + 1] as OneRegisterInstruction).registerA
+        assertTrue("$lay: a local", frame < full.implementation!!.registerCount - full.parameters.size)
+        assertEquals("$lay: then the hand-over", STORY_FRAME_HOOK, after[returnAt + 2].referenceText())
+        assertEquals("$lay: an invoke-static", Opcode.INVOKE_STATIC, after[returnAt + 2].opcode)
+        assertEquals("$lay: of the holder and the frame", listOf(fullHolder, frame), (after[returnAt + 2] as FiveRegisterInstruction).let {
+            listOf(it.registerC, it.registerD).take(it.registerCount)
+        })
+        assertEquals("$lay: then the return", Opcode.RETURN_VOID, after[returnAt + 3].opcode)
+        val flow = ControlFlow.of(full)
+        for (branch in branches) {
+            assertEquals("$lay: instruction $branch reaches the hand-over", returnAt, flow.normal[branch].first())
+        }
+        fullNative.assertPreserved(lay, full, (returnAt until returnAt + 3).toSet())
+    }
+
+    private fun Method.toReference(): MethodReference =
+        com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference(definingClass, name, parameterTypes, returnType)
 
     private fun eachDeclaredBundle(check: (File, String) -> Unit) {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()

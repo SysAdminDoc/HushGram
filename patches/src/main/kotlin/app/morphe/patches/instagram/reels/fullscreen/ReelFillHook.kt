@@ -24,19 +24,35 @@ import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import app.morphe.util.ControlFlow
+import app.morphe.util.addInstructionsAtControlFlowLabel
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 
 internal const val FILL_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fill(Ljava/lang/Object;F)Z"
 internal const val FIT_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fit()Z"
 internal const val STORY_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->story()Z"
 internal const val WIDE_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->wide(F)Z"
+internal const val STORY_BOUND_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->storyBound(Ljava/lang/Object;I)I"
+internal const val STORY_FRAME_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->storyFrame(Ljava/lang/Object;Ljava/lang/Object;)V"
+
+/** The trace section Instagram's story item binder opens while it binds a story's picture or video. */
+internal const val STORY_BIND_MEDIA = "ReelViewerItemBinder.bindMedia"
+
+internal const val STORY_REEL_ITEM = "Lcom/instagram/model/reels/ReelItem;"
+internal const val REEL_PRODUCT_TYPE = "Lcom/instagram/model/mediatype/ProductType;"
+
+/** The name ProductType gives a reel, which a sticker sharing one carries. */
+private const val CLIPS = "CLIPS"
 
 /** The purge flag Instagram's reel item layout, which keeps a reel 9:16 on a wider screen, names first. */
 internal const val REEL_INSETS = "android_purge_26_q2_ClipsItemInsetsComponent_render"
@@ -306,5 +322,172 @@ internal fun BytecodePatchContext.fillStoryScreen() {
         ExternalLabel("instagram", card.getInstruction(0)),
     )
 }
+
+/** The story binder, with the declared parameter indexes of the story and of the item holder it binds to. */
+internal data class StoryBinder(val method: Method, val item: Int, val holder: Int)
+
+/**
+ * Finds Instagram's story item binder (#618), 0DfT.A03 on 454: the static method opening
+ * [STORY_BIND_MEDIA] that takes a [STORY_REEL_ITEM] and calls the story layout. The immersive catch-up
+ * binder opens the same section but takes no story. The holder is the parameter whose class the
+ * binder stores the story on.
+ */
+internal fun BytecodePatchContext.findStoryBinder(layout: StoryLayout): StoryBinder {
+    val owner = layout.full.definingClass
+    val binders = classesLoadingString(STORY_BIND_MEDIA).flatMap { it.methods }.filter { method ->
+        val code = method.implementation?.instructions?.toList().orEmpty()
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+            method.parameterTypes.count { it.toString() == STORY_REEL_ITEM } == 1 &&
+            loadsString(method, STORY_BIND_MEDIA) &&
+            code.any { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass == owner }
+    }
+    val binder = binders.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: expected one story binder opening \"$STORY_BIND_MEDIA\", found ${binders.size}")
+    val types = binder.parameterTypes.map(CharSequence::toString)
+    val stores = binder.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
+        if (instruction.opcode != Opcode.IPUT_OBJECT) return@mapNotNull null
+        ((instruction as ReferenceInstruction).reference as FieldReference).takeIf { it.type == STORY_REEL_ITEM }?.definingClass
+    }.toSet()
+    val holders = types.indices.filter { types[it] in stores }
+    val holder = holders.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story binder stores its story on ${holders.size} of its parameters, not one")
+    return StoryBinder(binder, types.indexOf(STORY_REEL_ITEM), holder)
+}
+
+/**
+ * Instagram's own check of whether a story shares a reel (#618), ReelItem.A0w on 454: the story's
+ * one no-argument boolean that reads the ProductType a reel has, which it compares a media sticker's
+ * product type with. That constant is the field ProductType's static initializer stores right after
+ * naming [CLIPS].
+ */
+internal fun BytecodePatchContext.findSharedReelCheck(): MethodReference {
+    val productType = classDefByOrNull(REEL_PRODUCT_TYPE)
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: $REEL_PRODUCT_TYPE isn't in this Instagram")
+    val setup = productType.methods.singleOrNull { it.name == "<clinit>" }?.implementation?.instructions?.toList().orEmpty()
+    val named = setup.indices.filter { ((setup[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == CLIPS }
+    val clips = named.singleOrNull()?.let { at ->
+        (at + 1 until setup.size).firstNotNullOfOrNull { next ->
+            val field = (setup[next] as? ReferenceInstruction)?.reference as? FieldReference
+            field?.takeIf { setup[next].opcode == Opcode.SPUT_OBJECT && it.definingClass == REEL_PRODUCT_TYPE && it.type == REEL_PRODUCT_TYPE }
+        }
+    }?.toString() ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: ProductType names $CLIPS ${named.size} times, or keeps it nowhere")
+    val item = classDefByOrNull(STORY_REEL_ITEM) ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: $STORY_REEL_ITEM isn't in this Instagram")
+    val checks = item.methods.filter { method ->
+        method.returnType == "Z" && method.parameterTypes.isEmpty() &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) && !AccessFlags.PRIVATE.isSet(method.accessFlags) &&
+            method.implementation?.instructions?.any {
+                it.opcode == Opcode.SGET_OBJECT && (it as ReferenceInstruction).reference.toString() == clips
+            } == true
+    }
+    val check = checks.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: $STORY_REEL_ITEM has ${checks.size} checks for a shared reel, not one")
+    return ImmutableMethodReference(check.definingClass, check.name, check.parameterTypes, check.returnType)
+}
+
+/**
+ * Stories lay out as they bind, and a shared reel stays whole (#618).
+ *
+ * Instagram's newer story viewer (its own server flag) skips the binder's layout and lays a story
+ * out once the story's state has loaded, which for a reel shared to a story came about a second
+ * later: the card and its reply bar showed first, then the whole screen. So the binder's first
+ * instruction asks [STORY_BOUND_HOOK] with the holder and the answer of Instagram's own shared-reel
+ * check ([findSharedReelCheck]), or no when there's no story, and a yes lays out the whole screen
+ * there and then. Nothing jumps back to that first instruction, and its first two locals hold
+ * nothing yet.
+ *
+ * Filling the screen cut a 9:16 reel's sides off on a taller phone. The whole-screen layout's one
+ * return now hands [STORY_FRAME_HOOK] the holder and the frame it sized, the view whose layout
+ * params it sets, so the extension can size a shared reel's frame back to 9:16. Every branch that
+ * reached the return reaches the hook first.
+ */
+internal fun BytecodePatchContext.layStoriesOutAsTheyBind() {
+    val layout = findStoryLayout()
+    val found = findStoryBinder(layout)
+    val shared = findSharedReelCheck()
+    val binder = mutableClassDefBy(found.method.definingClass).methods.single {
+        it.name == found.method.name && it.parameterTypes.map(CharSequence::toString) == found.method.parameterTypes.map(CharSequence::toString)
+    }
+    binder.requireLocals(FULL_SCREEN_BARS_PATCH, 2)
+    if (0 in binder.jumpTargets()) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: something jumps back to the story binder's first instruction")
+    }
+    val item = binder.parameterRegisterNumber(found.item)
+    val holder = binder.parameterRegisterNumber(found.holder)
+
+    val full = mutableClassDefBy(layout.full.definingClass).methods.single {
+        it.name == layout.full.name && it.parameterTypes.map(CharSequence::toString) == layout.full.parameterTypes.map(CharSequence::toString) &&
+            AccessFlags.STATIC.isSet(it.accessFlags)
+    }
+    val frame = findStoryFrameGetter(full)
+    val code = full.implementation?.instructions?.toList().orEmpty()
+    val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
+    val end = returns.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story's whole-screen layout returns ${returns.size} times, not once")
+    val fullHolder = full.parameterRegisterNumber(0)
+    if (fullHolder > 15) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the story's whole-screen layout keeps its holder in v$fullHolder, past what an invoke names")
+    }
+    full.requireParameterIntact(FULL_SCREEN_BARS_PATCH, 0, listOf(end))
+    val local = full.freeLocalsAt(FULL_SCREEN_BARS_PATCH, end, 1).first()
+
+    binder.addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, v$holder
+            const/4 v1, 0x0
+            if-eqz v$item, :ask
+            invoke-virtual/range { v$item .. v$item }, $shared
+            move-result v1
+            :ask
+            invoke-static { v0, v1 }, $STORY_BOUND_HOOK
+            move-result v1
+            if-eqz v1, :instagram
+            invoke-static { v0 }, ${layout.full}
+        """,
+        ExternalLabel("instagram", binder.getInstruction(0)),
+    )
+    full.addInstructionsAtControlFlowLabel(
+        end,
+        """
+            ${frame.call} { v$fullHolder }, ${frame.getter}
+            move-result-object v$local
+            invoke-static { v$fullHolder, v$local }, $STORY_FRAME_HOOK
+        """,
+    )
+}
+
+/** How the whole-screen layout gets the story frame from its holder: the invoke's mnemonic and the getter. */
+internal data class StoryFrameGetter(val call: String, val getter: MethodReference)
+
+/**
+ * The getter the story's whole-screen layout reads the frame it sizes with, Co4 on 454: the
+ * no-argument call on the holder whose answer the layout's one setLayoutParams is called on.
+ */
+internal fun findStoryFrameGetter(full: Method): StoryFrameGetter {
+    val code = full.implementation?.instructions?.toList().orEmpty()
+    val holder = full.parameterRegisterNumber(0)
+    val sizes = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == SET_LAYOUT_PARAMS }
+    val size = sizes.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story's whole-screen layout sets layout params ${sizes.size} times, not once")
+    val frame = (code[size] as FiveRegisterInstruction).registerC
+    val fetched = (size - 1 downTo 1).firstOrNull {
+        code[it].opcode == Opcode.MOVE_RESULT_OBJECT && (code[it] as OneRegisterInstruction).registerA == frame
+    } ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story's whole-screen layout sizes a frame it didn't fetch")
+    val call = code[fetched - 1]
+    val getter = (call as? ReferenceInstruction)?.reference as? MethodReference
+    val mnemonic = when (call.opcode) {
+        Opcode.INVOKE_INTERFACE -> "invoke-interface"
+        Opcode.INVOKE_VIRTUAL -> "invoke-virtual"
+        else -> null
+    }
+    if (mnemonic == null || getter == null || getter.parameterTypes.isNotEmpty() || !getter.returnType.startsWith("L") ||
+        (call as FiveRegisterInstruction).registerCount != 1 || call.registerC != holder
+    ) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the story's whole-screen layout doesn't get its frame from the holder")
+    }
+    return StoryFrameGetter(mnemonic, ImmutableMethodReference(getter.definingClass, getter.name, getter.parameterTypes, getter.returnType))
+}
+
+private const val SET_LAYOUT_PARAMS = "Landroid/view/View;->setLayoutParams(Landroid/view/ViewGroup\$LayoutParams;)V"
 
 private const val CONTEXT = "Landroid/content/Context;"

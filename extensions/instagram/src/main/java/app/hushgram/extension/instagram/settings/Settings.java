@@ -1615,8 +1615,9 @@ public class Settings extends BaseSettings {
 
     /**
      * Stories over the whole screen (#436): on a screen taller than 9:16 a story shows behind the
-     * reply bar, the way it does on a shorter phone, instead of as a rounded card above it. Off to
-     * start.
+     * reply bar, the way it does on a shorter phone, instead of as a rounded card above it. It's laid
+     * out that way as the story opens, and a reel shared to a story keeps its whole 9:16 frame across
+     * the screen's width (#618). Off to start.
      */
     public static final BooleanSetting FILL_STORY_SCREEN =
             new BooleanSetting("hushgram_fill_story_screen", FALSE);
