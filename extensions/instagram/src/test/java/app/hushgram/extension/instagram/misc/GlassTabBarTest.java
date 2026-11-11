@@ -616,6 +616,69 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #632: on Android 17 the floating pill stayed over an open chat's reply box. While a chat shows on
+     * top in the bar's window the floating pill steps aside, as over a story, and shows again once the
+     * chat goes. A docked bar keeps its place, since Instagram lays the chat's box out above it.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aChatOnTopHidesTheFloatingPillOnly() {
+        int chatId = 0x7f0b0124;
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        Integer previous;
+        synchronized (ids) { previous = ids.put(GlassTabBar.CHAT_ROOT, chatId); }
+        try {
+            for (boolean floating : new boolean[] {true, false}) {
+                GlassTabBar.resetForTests();
+                HookStatus.clear();
+                try (GlassHost host = new GlassHost(Color.BLACK, floating, GlassHeight.STANDARD, false, false)) {
+                    int nav = host.dp(24);
+                    int full = ViewGroup.LayoutParams.MATCH_PARENT;
+                    host.controller.pause().resume();
+                    host.frame();
+
+                    // The Messages tab's screen under the bar, with a chat opened in it.
+                    FrameLayout content = new FrameLayout(host.activity);
+                    host.root.addView(content, 0, new FrameLayout.LayoutParams(full, full));
+                    FrameLayout chat = new FrameLayout(host.activity);
+                    chat.setId(chatId);
+                    content.addView(chat, new FrameLayout.LayoutParams(full, full));
+                    for (int i = 0; i < 4; i++) host.frame();
+                    if (!floating) {
+                        assertEquals("a docked bar stays under a chat", View.VISIBLE, host.bar.getVisibility());
+                        continue;
+                    }
+                    assertEquals("hidden over the chat", View.INVISIBLE, host.bar.getVisibility());
+                    assertEquals("the chat's reply box stops above the navigation bar", nav, GlassTabBar.navBarHeight(nav));
+
+                    // A profile opened from the chat goes after it in the container, and has the bar.
+                    View profile = new View(host.activity);
+                    content.addView(profile, new FrameLayout.LayoutParams(full, full));
+                    host.frame();
+                    assertEquals("a screen over the chat", View.VISIBLE, host.bar.getVisibility());
+                    content.removeView(profile);
+                    host.frame();
+                    assertEquals("back on the chat", View.INVISIBLE, host.bar.getVisibility());
+
+                    content.removeView(chat);
+                    host.frame();
+                    assertEquals("the chat went", View.VISIBLE, host.bar.getVisibility());
+                    assertEquals(0, GlassTabBar.navBarHeight(nav));
+
+                    String report = String.join("\n", HookStatus.report());
+                    assertTrue(report, report.contains(GlassTabBar.COUNT_CHAT_ASIDE));
+                    assertFalse(report, report.contains(GlassTabBar.COUNT_STORY_ASIDE));
+                }
+            }
+        } finally {
+            synchronized (ids) {
+                if (previous == null) ids.remove(GlassTabBar.CHAT_ROOT);
+                else ids.put(GlassTabBar.CHAT_ROOT, previous);
+            }
+        }
+    }
+
+    /**
      * #450: the pill stayed over a story at random until Instagram restarted. A story viewer Instagram
      * keeps in the tree, hidden, isn't the one to watch once a new viewer shows, wherever the new one sits.
      */
