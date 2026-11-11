@@ -14,6 +14,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingColorRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storySeekBarLookRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storySeekBarPositionRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyTimeModeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadBitrateRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadFrameRateRow;
@@ -113,6 +114,7 @@ final class StoriesCategory {
                     L10n.t("Shows a bar near the bottom of a video story. Drag it to jump to any point in the "
                             + "video. Photos don't get one.")));
             stories.add(storySeekBarLookRow(context));
+            stories.add(storySeekBarPositionRow(context));
         }
         if (build.contains(PatchFamily.STORY_SPEED)) {
             stories.add(toggle(context, Settings.STORY_SPEED_BUTTON, L10n.t("Speed button on stories"),

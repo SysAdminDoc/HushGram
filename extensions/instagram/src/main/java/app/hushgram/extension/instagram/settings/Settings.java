@@ -23,6 +23,7 @@ import app.hushgram.extension.instagram.media.TapToPlayScope;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.stories.StoryBarThickness;
 import app.hushgram.extension.instagram.stories.StoryMentionsLook;
+import app.hushgram.extension.instagram.stories.StorySeekBarPosition;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
@@ -1329,6 +1330,13 @@ public class Settings extends BaseSettings {
      */
     public static final EnumSetting<OverlayLook> STORY_SEEK_BAR_LOOK =
             new EnumSetting<>("hushgram_story_seek_bar_look", OverlayLook.SOLID, parent(STORY_SEEK_BAR));
+
+    /**
+     * Where {@link #STORY_SEEK_BAR}'s bar sits (#636): just above the Send message box, as it always did,
+     * or in the space under it, where there's room. Starts above. Read as the bar updates.
+     */
+    public static final EnumSetting<StorySeekBarPosition> STORY_SEEK_BAR_POSITION =
+            new EnumSetting<>("hushgram_story_seek_bar_position", StorySeekBarPosition.ABOVE, parent(STORY_SEEK_BAR));
 
     /**
      * A speed button in a video story's header that plays it at 1x, 1.5x or 2x, kept for the next

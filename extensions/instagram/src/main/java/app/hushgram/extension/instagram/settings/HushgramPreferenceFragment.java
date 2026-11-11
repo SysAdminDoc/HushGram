@@ -121,6 +121,7 @@ import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.ShareSheetActions;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryBarThickness;
+import app.hushgram.extension.instagram.stories.StorySeekBarPosition;
 import app.hushgram.extension.instagram.stories.StoryPriority;
 import app.hushgram.extension.instagram.stories.StoryEmoji;
 import app.hushgram.extension.instagram.stories.StoryFonts;
@@ -750,7 +751,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.CAROUSEL_ARROWS && Settings.CAROUSEL_PILL_LOOK.key.equals(key);
                     belongs |= family == PatchFamily.FEED_SEEK_BAR && (Settings.FEED_SEEK_BAR_LOOK.key.equals(key)
                             || Settings.SEEK_BAR_SHAPE.key.equals(key));
-                    belongs |= family == PatchFamily.STORY_SEEK_BAR && Settings.STORY_SEEK_BAR_LOOK.key.equals(key);
+                    belongs |= family == PatchFamily.STORY_SEEK_BAR && (Settings.STORY_SEEK_BAR_LOOK.key.equals(key)
+                            || Settings.STORY_SEEK_BAR_POSITION.key.equals(key));
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
@@ -6268,6 +6270,21 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static OverlayLookRow storySeekBarLookRow(Context context) {
         return overlayLookRow(context, Settings.STORY_SEEK_BAR_LOOK, L10n.t("Seek bar look"), seekBarLookSummaries(),
                 L10n.t("Turn on Seek bar on stories to use this choice."));
+    }
+
+    /** Where the seek bar on stories sits (#636). Its values are the positions' own names. */
+    static ChoiceRow<StorySeekBarPosition> storySeekBarPositionRow(Context context) {
+        ChoiceRow<StorySeekBarPosition> row = new ChoiceRow<>(context, Settings.STORY_SEEK_BAR_POSITION,
+                StorySeekBarPosition.values(), new String[] {
+                        L10n.t("The bar sits just above the Send message box at the bottom of a story."),
+                        L10n.t("The bar sits in the space under the Send message box. Where there's no room "
+                                + "under it, the bar stays above it."),
+                }, L10n.t("Turn on Seek bar on stories to use this choice."));
+        fill(row, Settings.STORY_SEEK_BAR_POSITION, StorySeekBarPosition.values(), new String[] {
+                L10n.t("Above the Send message box"),
+                L10n.t("Below the Send message box"),
+        }, L10n.t("Seek bar position"));
+        return row;
     }
 
     /** What a seek bar looks like with each {@link OverlayLook}, in their order. */

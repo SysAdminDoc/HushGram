@@ -141,6 +141,17 @@ public class ChildControlAvailabilityTest {
         }
     }
 
+    @Test public void storySeekBarPositionKeepsItsSavedChoiceAcrossParentChanges() {
+        Settings.STORY_SEEK_BAR_POSITION.save(app.hushgram.extension.instagram.stories.StorySeekBarPosition.BELOW);
+        try {
+            checkParent(Settings.STORY_SEEK_BAR, Settings.STORY_SEEK_BAR_POSITION, PatchFamily.STORY_SEEK_BAR,
+                    "Turn on Seek bar on stories to use this choice.", "BELOW");
+        } finally {
+            Settings.STORY_SEEK_BAR.resetToDefault();
+            Settings.STORY_SEEK_BAR_POSITION.resetToDefault();
+        }
+    }
+
     @Test public void playbackKeepsItsSavedChoiceAcrossParentChanges() {
         Settings.PLAYBACK_QUALITY.save(PlaybackQuality.HIGHEST);
         checkParent(Settings.DEFAULT_PLAYBACK_QUALITY, Settings.PLAYBACK_QUALITY, PatchFamily.PLAYBACK_QUALITY,

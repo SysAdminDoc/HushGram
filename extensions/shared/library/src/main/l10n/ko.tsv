@@ -2139,3 +2139,12 @@ Adds Playback speed to the menu a video story's three dots open, with the same 1
 Hide the Create button on saved reels	저장한 릴스의 만들기 버튼 숨기기
 # context: Summary of Hide the Create button on saved reels; Saved is Instagram's own Saved page (#620)
 Takes the plus button off the top of reels you open from Saved or a collection and closes up the gap. The Reels tab and other reels keep theirs.	저장됨이나 컬렉션에서 연 릴스 맨 위의 더하기 버튼을 숨기고 빈자리를 없앱니다. 릴스 탭과 다른 릴스는 그대로 둡니다.
+# context: Stories settings: picks where the story seek bar sits, above or below Instagram's Send message box at the bottom of a story (#636)
+Seek bar position	탐색 막대 위치
+# context: Choice of Seek bar position; Send message is Instagram's reply field at the bottom of someone else's story. Use Instagram's own label for it (#636)
+Above the Send message box	메시지 보내기 상자 위
+Below the Send message box	메시지 보내기 상자 아래
+# context: Summary of the Above choice of Seek bar position (#636)
+The bar sits just above the Send message box at the bottom of a story.	막대가 스토리 아래쪽의 메시지 보내기 상자 바로 위에 있습니다.
+# context: Summary of the Below choice of Seek bar position; when there's too little space under the box, the bar stays above it (#636)
+The bar sits in the space under the Send message box. Where there's no room under it, the bar stays above it.	막대가 메시지 보내기 상자 아래 공간에 있습니다. 아래에 공간이 없으면 상자 위에 그대로 있습니다.

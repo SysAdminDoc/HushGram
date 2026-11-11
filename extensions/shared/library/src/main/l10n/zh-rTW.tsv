@@ -2143,3 +2143,12 @@ Adds Playback speed to the menu a video story's three dots open, with the same 1
 Hide the Create button on saved reels	隱藏已儲存 Reels 上的建立按鈕
 # context: Summary of Hide the Create button on saved reels; Saved is Instagram's own Saved page (#620)
 Takes the plus button off the top of reels you open from Saved or a collection and closes up the gap. The Reels tab and other reels keep theirs.	移除從「已儲存」或收藏集開啟的 Reels 頂端的加號按鈕並收起空白。Reels 分頁與其他 Reels 仍會保留。
+# context: Stories settings: picks where the story seek bar sits, above or below Instagram's Send message box at the bottom of a story (#636)
+Seek bar position	拖曳列位置
+# context: Choice of Seek bar position; Send message is Instagram's reply field at the bottom of someone else's story. Use Instagram's own label for it (#636)
+Above the Send message box	「傳送訊息」框上方
+Below the Send message box	「傳送訊息」框下方
+# context: Summary of the Above choice of Seek bar position (#636)
+The bar sits just above the Send message box at the bottom of a story.	拖曳列會位於限時動態底部「傳送訊息」框的正上方。
+# context: Summary of the Below choice of Seek bar position; when there's too little space under the box, the bar stays above it (#636)
+The bar sits in the space under the Send message box. Where there's no room under it, the bar stays above it.	拖曳列會位於「傳送訊息」框下方的空間。下方沒有空間時，會留在框的上方。

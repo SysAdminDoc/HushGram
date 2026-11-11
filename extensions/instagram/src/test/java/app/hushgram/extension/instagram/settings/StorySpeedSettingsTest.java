@@ -80,8 +80,9 @@ public class StorySpeedSettingsTest {
         String[] keys = new String[stories.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = stories.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.STORY_SPEED_BUTTON.key);
-        assertEquals(Arrays.toString(keys), Settings.STORY_SEEK_BAR_LOOK.key, keys[at - 1]);
-        assertEquals(Arrays.toString(keys), Settings.STORY_SEEK_BAR.key, keys[at - 2]);
+        assertEquals(Arrays.toString(keys), Settings.STORY_SEEK_BAR_POSITION.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.STORY_SEEK_BAR_LOOK.key, keys[at - 2]);
+        assertEquals(Arrays.toString(keys), Settings.STORY_SEEK_BAR.key, keys[at - 3]);
         assertEquals(Arrays.toString(keys), Settings.BLOCK_STORY_AUTO_ADVANCE.key, keys[at + 1]);
 
         ((SwitchPreference) row).setChecked(true);

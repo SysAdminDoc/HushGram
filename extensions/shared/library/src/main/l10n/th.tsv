@@ -2137,3 +2137,12 @@ Adds Playback speed to the menu a video story's three dots open, with the same 1
 Hide the Create button on saved reels	ซ่อนปุ่มสร้างในรีลส์ที่บันทึกไว้
 # context: Summary of Hide the Create button on saved reels; Saved is Instagram's own Saved page (#620)
 Takes the plus button off the top of reels you open from Saved or a collection and closes up the gap. The Reels tab and other reels keep theirs.	นำปุ่มเครื่องหมายบวกออกจากด้านบนของรีลส์ที่คุณเปิดจากรายการที่บันทึกไว้หรือคอลเลกชัน พร้อมทั้งปิดช่องว่าง แท็บรีลส์และรีลส์อื่นๆ ยังคงมีปุ่มนี้อยู่
+# context: Stories settings: picks where the story seek bar sits, above or below Instagram's Send message box at the bottom of a story (#636)
+Seek bar position	ตำแหน่งแถบเลื่อนเวลา
+# context: Choice of Seek bar position; Send message is Instagram's reply field at the bottom of someone else's story. Use Instagram's own label for it (#636)
+Above the Send message box	เหนือกล่อง "ส่งข้อความ"
+Below the Send message box	ใต้กล่อง "ส่งข้อความ"
+# context: Summary of the Above choice of Seek bar position (#636)
+The bar sits just above the Send message box at the bottom of a story.	แถบจะอยู่เหนือกล่อง "ส่งข้อความ" ที่ด้านล่างของสตอรี่พอดี
+# context: Summary of the Below choice of Seek bar position; when there's too little space under the box, the bar stays above it (#636)
+The bar sits in the space under the Send message box. Where there's no room under it, the bar stays above it.	แถบจะอยู่ในพื้นที่ใต้กล่อง "ส่งข้อความ" หากด้านล่างไม่มีที่ว่าง แถบจะยังคงอยู่เหนือกล่อง

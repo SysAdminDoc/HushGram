@@ -71,8 +71,8 @@ private const val VIEW = "Landroid/view/View;"
 val storySeekBarPatch = bytecodePatch(
     name = "Seek bar on stories",
     description = "Shows a bar near the bottom of a video story that you can drag to jump to any point in the " +
-        "video. Photos don't get one. A choice under it makes the bar see-through or puts it on frosted glass. " +
-        "Starts off. Turn it on in HushGram settings > Stories.",
+        "video. Photos don't get one. A choice under it makes the bar see-through or puts it on frosted glass, and " +
+        "another moves it into the space under the Send message box. Starts off. Turn it on in HushGram settings > Stories.",
 ) {
     category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)

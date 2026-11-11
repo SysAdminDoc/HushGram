@@ -2140,3 +2140,12 @@ Adds Playback speed to the menu a video story's three dots open, with the same 1
 Hide the Create button on saved reels	Ocultar o botão Criar nos reels salvos
 # context: Summary of Hide the Create button on saved reels; Saved is Instagram's own Saved page (#620)
 Takes the plus button off the top of reels you open from Saved or a collection and closes up the gap. The Reels tab and other reels keep theirs.	Tira o botão de mais do topo dos reels que você abre em Salvos ou numa coleção e fecha o espaço. A aba Reels e os outros reels mantêm o deles.
+# context: Stories settings: picks where the story seek bar sits, above or below Instagram's Send message box at the bottom of a story (#636)
+Seek bar position	Posição da barra de busca
+# context: Choice of Seek bar position; Send message is Instagram's reply field at the bottom of someone else's story. Use Instagram's own label for it (#636)
+Above the Send message box	Acima da caixa Enviar mensagem
+Below the Send message box	Abaixo da caixa Enviar mensagem
+# context: Summary of the Above choice of Seek bar position (#636)
+The bar sits just above the Send message box at the bottom of a story.	A barra fica logo acima da caixa Enviar mensagem, na parte de baixo de um story.
+# context: Summary of the Below choice of Seek bar position; when there's too little space under the box, the bar stays above it (#636)
+The bar sits in the space under the Send message box. Where there's no room under it, the bar stays above it.	A barra fica no espaço abaixo da caixa Enviar mensagem. Onde não há espaço abaixo dela, a barra fica acima.

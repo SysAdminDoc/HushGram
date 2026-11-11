@@ -2055,3 +2055,12 @@ Adds Playback speed to the menu a video story's three dots open, with the same 1
 Hide the Create button on saved reels	Ẩn nút Tạo trên reel đã lưu
 # context: Summary of Hide the Create button on saved reels; Saved is Instagram's own Saved page (#620)
 Takes the plus button off the top of reels you open from Saved or a collection and closes up the gap. The Reels tab and other reels keep theirs.	Gỡ nút dấu cộng khỏi đầu các reel bạn mở từ mục Đã lưu hoặc một bộ sưu tập, và thu hẹp khoảng trống. Tab Reels và các reel khác vẫn giữ nút này.
+# context: Stories settings: picks where the story seek bar sits, above or below Instagram's Send message box at the bottom of a story (#636)
+Seek bar position	Vị trí thanh tua
+# context: Choice of Seek bar position; Send message is Instagram's reply field at the bottom of someone else's story. Use Instagram's own label for it (#636)
+Above the Send message box	Phía trên ô Gửi tin nhắn
+Below the Send message box	Phía dưới ô Gửi tin nhắn
+# context: Summary of the Above choice of Seek bar position (#636)
+The bar sits just above the Send message box at the bottom of a story.	Thanh nằm ngay phía trên ô Gửi tin nhắn ở cuối tin.
+# context: Summary of the Below choice of Seek bar position; when there's too little space under the box, the bar stays above it (#636)
+The bar sits in the space under the Send message box. Where there's no room under it, the bar stays above it.	Thanh nằm trong khoảng trống bên dưới ô Gửi tin nhắn. Nếu bên dưới không đủ chỗ, thanh vẫn ở phía trên ô.
