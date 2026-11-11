@@ -101,6 +101,10 @@ internal const val SEEK_PLAY_REASON = "start"
  * each feed post's media frame keeps (the one Long press to zoom finds) hands every double tap to
  * FeedDoubleTapSkip first, with the frame and the tap, and returns true on a yes, before Instagram
  * likes the post. See [findFeedDoubleTap].
+ *
+ * The seek bar shape also draws a story's progress segments and the seek bar of a video opened from
+ * a chat (#630). See [findStoryBarShape] and [findChatVideoShape]; a build without either goes in
+ * with that one left as Instagram draws it.
  */
 @Suppress("unused")
 val feedSeekBarPatch = bytecodePatch(
@@ -110,8 +114,8 @@ val feedSeekBarPatch = bytecodePatch(
         "on the video that shows or hides the bar, and a choice under it makes the bar see-through or puts it on " +
         "frosted glass. Another puts the bar right on the video's bottom edge, where a scroll is less likely to catch " +
         "it. One more lets a double tap on the left or right side of the video go back or ahead 10 seconds, " +
-        "while the middle still likes the post. Two more choose a shape for the seek bars on feed videos, stories " +
-        "and reels, and show a preview above your finger while you drag one.",
+        "while the middle still likes the post. Two more choose a shape for every seek bar, story progress segments " +
+        "and videos in chats included, and show a preview above your finger while you drag one.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, stopTabSwipingPatch)
@@ -122,9 +126,13 @@ val feedSeekBarPatch = bytecodePatch(
         val seek = findFeedSeek()
         val tap = findFeedDoubleTap()
         val sheet = findFeedSeekSheet(seek)
+        val storyBar = findStoryBarShape()
+        val chatVideo = findChatVideoShape()
         hookFeedSeek(seek)
         hookFeedSeekSheet(seek, sheet)
         hookFeedDoubleTap(tap)
+        storyBar?.let { hookStoryBarShape(it) }
+        chatVideo?.let { hookChatVideoShape(it) }
         enableStatus("feedSeekBar")
     }
 }

@@ -11,6 +11,10 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.os.Looper;
 
 import org.junit.Test;
@@ -129,5 +133,57 @@ public class SeekShapeDrawableTest {
 
     private static void settle() {
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(600));
+    }
+
+    /** A story segment where Instagram draws one 160 by 2 pixels around y 32 (#630), at density 2. */
+    private static Bitmap segment(SeekShape shape, Paint paint) {
+        Bitmap bitmap = Bitmap.createBitmap(200, 64, Bitmap.Config.ARGB_8888);
+        RectF rect = new RectF(20, 31, 180, 33);
+        SeekShapeDrawable.segment(new Canvas(bitmap), rect, paint, shape, 2f, new RectF(), new Path());
+        assertEquals("Instagram's rectangle is left as it was", new RectF(20, 31, 180, 33), rect);
+        return bitmap;
+    }
+
+    private static Paint paint(int color) {
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(color);
+        return paint;
+    }
+
+    /** #630: a story segment keeps its length and takes the shape's thickness around its middle, square ended for the line. */
+    @Test
+    public void aStorySegmentTakesTheShapesThickness() {
+        Bitmap line = segment(SeekShape.LINE, paint(PLAYED));
+        assertEquals("2 dp thick", PLAYED, line.getPixel(100, 30));
+        assertEquals(PLAYED, line.getPixel(100, 33));
+        assertEquals(NOTHING, line.getPixel(100, 28));
+        assertEquals("a square end", PLAYED, line.getPixel(20, 30));
+        assertEquals("as long as Instagram's", NOTHING, line.getPixel(18, 32));
+        assertEquals(NOTHING, line.getPixel(181, 32));
+
+        Bitmap rounded = segment(SeekShape.ROUNDED, paint(PLAYED));
+        assertEquals("6 dp thick", PLAYED, rounded.getPixel(100, 27));
+        assertEquals(PLAYED, rounded.getPixel(100, 36));
+        assertEquals(NOTHING, rounded.getPixel(100, 24));
+        assertEquals("a round end", NOTHING, rounded.getPixel(20, 26));
+    }
+
+    /** #630: the wave draws the played segment wavy, its waves counted from the screen's edge, and the rest flat. */
+    @Test
+    public void theWaveWavesThePlayedSegmentAndLaysTheRestFlat() {
+        Paint played = paint(PLAYED);
+        Bitmap wavy = segment(SeekShape.WAVE, played);
+        assertEquals("a crest below the middle at x 108", PLAYED, wavy.getPixel(108, 38));
+        assertEquals(NOTHING, wavy.getPixel(108, 27));
+        assertEquals("a trough above it at x 84", PLAYED, wavy.getPixel(84, 26));
+        assertEquals(NOTHING, wavy.getPixel(84, 37));
+        assertEquals("the paint is handed back as it came", Paint.Style.FILL, played.getStyle());
+        assertEquals(Paint.Cap.BUTT, played.getStrokeCap());
+        assertEquals(0f, played.getStrokeWidth(), 0f);
+
+        Bitmap flat = segment(SeekShape.WAVE, paint(0x80FFFFFF));
+        assertEquals("the rest is a flat 3 dp bar", 0x80, Color.alpha(flat.getPixel(108, 32)));
+        assertEquals(0x80, Color.alpha(flat.getPixel(84, 32)));
+        assertEquals(NOTHING, flat.getPixel(108, 38));
     }
 }

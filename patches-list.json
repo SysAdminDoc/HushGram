@@ -5203,7 +5203,7 @@
     },
     {
       "name": "Seek bar on feed videos",
-      "description": "Shows a bar along the bottom of the video playing in your feed that you can drag to jump to any point in it. Starts off. Turn it on in HushGram settings > Feed. Another switch there adds a small button on the video that shows or hides the bar, and a choice under it makes the bar see-through or puts it on frosted glass. Another puts the bar right on the video's bottom edge, where a scroll is less likely to catch it. One more lets a double tap on the left or right side of the video go back or ahead 10 seconds, while the middle still likes the post. Two more choose a shape for the seek bars on feed videos, stories and reels, and show a preview above your finger while you drag one.",
+      "description": "Shows a bar along the bottom of the video playing in your feed that you can drag to jump to any point in it. Starts off. Turn it on in HushGram settings > Feed. Another switch there adds a small button on the video that shows or hides the bar, and a choice under it makes the bar see-through or puts it on frosted glass. Another puts the bar right on the video's bottom edge, where a scroll is less likely to catch it. One more lets a double tap on the left or right side of the video go back or ahead 10 seconds, while the middle still likes the post. Two more choose a shape for every seek bar, story progress segments and videos in chats included, and show a preview above your finger while you drag one.",
       "category": "Playback",
       "use": true,
       "dependencies": [

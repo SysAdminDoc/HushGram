@@ -194,6 +194,69 @@ final class SeekShapeDrawable extends Drawable {
         canvas.drawRoundRect(box, radius, radius, paint);
     }
 
+    /** A story segment at least this opaque is the part played, which the wave draws wavy. */
+    static final int PLAYED_ALPHA = 0xC0;
+
+    /**
+     * One segment of a story's progress bar in [shape] (#630), where Instagram would draw [rect]: as
+     * long as [rect] and as thick as the shape's track at rest, around [rect]'s middle, in [paint].
+     * A thin line has square ends, the others round ones. The wave draws an opaque segment, the part
+     * played, as a wavy line whose waves follow on from one segment to the next, and the others flat.
+     * Segments have no handle, so the expressive shape draws its rounded track. [box] and [wave] are
+     * the caller's to reuse; [rect] and [paint] are left as they were.
+     */
+    static void segment(Canvas canvas, RectF rect, Paint paint, SeekShape shape, float density, RectF box, Path wave) {
+        if (!(rect.right > rect.left)) return;
+        float thick;
+        switch (shape) {
+            case ROUNDED:
+                thick = ROUNDED_DP;
+                break;
+            case EXPRESSIVE:
+                thick = EXPRESSIVE_DP;
+                break;
+            case WAVE:
+                thick = WAVE_DP;
+                break;
+            default:
+                thick = LINE_DP;
+        }
+        thick *= density;
+        float middle = rect.centerY();
+        if (shape != SeekShape.WAVE || paint.getAlpha() < PLAYED_ALPHA) {
+            float radius = shape == SeekShape.LINE ? 0f : Math.min(thick, rect.width()) / 2f;
+            box.set(rect.left, middle - thick / 2f, rect.right, middle + thick / 2f);
+            canvas.drawRoundRect(box, radius, radius, paint);
+            return;
+        }
+        float swing = WAVE_SWING_DP * density;
+        float length = WAVE_LENGTH_DP * density;
+        float start = rect.left + thick / 2f;
+        float stop = Math.max(start, rect.right - thick / 2f);
+        wave.rewind();
+        wave.moveTo(start, middle + waveAt(start, length, swing));
+        for (float x = start + 2f; x < stop; x += 2f) wave.lineTo(x, middle + waveAt(x, length, swing));
+        wave.lineTo(stop, middle + waveAt(stop, length, swing));
+        Paint.Style style = paint.getStyle();
+        Paint.Cap cap = paint.getStrokeCap();
+        float width = paint.getStrokeWidth();
+        try {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setStrokeWidth(thick);
+            canvas.drawPath(wave, paint);
+        } finally {
+            paint.setStyle(style);
+            paint.setStrokeCap(cap);
+            paint.setStrokeWidth(width);
+        }
+    }
+
+    /** How far the wave is from its middle at [x], counted from the left edge so segments' waves join up. */
+    private static float waveAt(float x, float length, float swing) {
+        return (float) Math.sin(x / length * 2.0 * Math.PI) * swing;
+    }
+
     @Override
     protected boolean onLevelChange(int level) {
         invalidateSelf();

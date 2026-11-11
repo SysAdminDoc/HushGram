@@ -3202,6 +3202,26 @@ first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->view(Ljava/la
 first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->sheet(Ljava/lang/Object;)Ljava/util/Map; outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->scrubberSheet(Ljava/lang/Object;)Ljava/util/Map; outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->seekTo(Ljava/lang/Object;IZ)Z outside Lapp/hushgram/extension/
+# The seek bar shape on story progress segments (#630): the story bar's onDraw, the one (Canvas)
+# void method of SegmentedProgressBar that calls another of its (Canvas) methods, asks
+# SeekShapes.storyBar first thing, and each of the bar's ten Canvas.drawRoundRect calls on 454 is
+# SeekShapes.storySegment on the same registers: four in onDraw, three in A0A (the (Canvas) one
+# calling none), two in A0B and one in A00. Its class is told by the call to its own
+# getEllipsisWidth, which Redex leaves named. Left out, the segments keep Instagram's look whatever
+# the shape; twice or elsewhere, it isn't the call the patch wrote. SeekShapeSitesTest checks every
+# call and its registers on every build.
+start-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storyBar(Landroid/view/View;)V in instance (Landroid/graphics/Canvas;)V calling instance Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->*(Landroid/graphics/Canvas;)V class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
+once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storyBar(Landroid/view/View;)V in instance (Landroid/graphics/Canvas;)V calling instance Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->*(Landroid/graphics/Canvas;)V class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
+once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storySegment(Landroid/graphics/Canvas;Landroid/graphics/RectF;FFLandroid/graphics/Paint;)V in instance (Landroid/graphics/Canvas;)V calling instance Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->*(Landroid/graphics/Canvas;)V sites 4 class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
+once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storySegment(Landroid/graphics/Canvas;Landroid/graphics/RectF;FFLandroid/graphics/Paint;)V in instance (Landroid/graphics/Canvas;)V lacking instance Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->*(Landroid/graphics/Canvas;)V sites 3 class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
+once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storySegment(Landroid/graphics/Canvas;Landroid/graphics/RectF;FFLandroid/graphics/Paint;)V in instance (Landroid/graphics/Canvas;F)V sites 2 class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
+once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storySegment(Landroid/graphics/Canvas;Landroid/graphics/RectF;FFLandroid/graphics/Paint;)V in instance (Landroid/graphics/Canvas;FFZ)F class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
+# The seek bar shape on a video opened from a chat (#630) hands the seek bar the chat media
+# viewer's onCreateView builds to SeekShapes.chatVideo right after it keeps it in a field, the one
+# onCreateView loading the viewer's reply thread key (0GOB on 454's 386014758, keeping it in
+# 0NHs.A0C). Left out, that seek bar keeps Instagram's look whatever the shape; twice or elsewhere,
+# it isn't the call the patch wrote. SeekShapeSitesTest checks the call and its register.
+once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->chatVideo(Landroid/widget/SeekBar;)V in instance (Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View; pooled holding sparse_media_viewer_reply_thread_key
 # Double tap to skip on feed videos (#562) asks FeedDoubleTapSkip.doubleTap first thing in the
 # onDoubleTap of the media frame's gesture listener, the one Long press to zoom finds, with the
 # holder's MediaFrameLayout and the event. Left out, a double tap only likes the post; twice or in

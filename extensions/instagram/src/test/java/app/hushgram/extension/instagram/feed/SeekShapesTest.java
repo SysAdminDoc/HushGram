@@ -4,13 +4,23 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.SeekBar;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -45,6 +55,7 @@ public class SeekShapesTest {
     public void restore() {
         PauseForTests.resume();
         Settings.SEEK_BAR_SHAPE.resetToDefault();
+        SeekShapes.resetForTests();
     }
 
     @Test
@@ -111,6 +122,81 @@ public class SeekShapesTest {
         SeekShapes.restore(bar);
         assertSame(track, bar.getProgressDrawable());
         assertEquals(16, bar.getPaddingLeft());
+    }
+
+    /** A canvas that notes each rounded rectangle drawn on it: left, top, right, bottom and both radii. */
+    private static final class Recording extends Canvas {
+        final List<float[]> rects = new ArrayList<>();
+        final List<Paint> paints = new ArrayList<>();
+
+        @Override
+        public void drawRoundRect(RectF rect, float rx, float ry, Paint paint) {
+            rects.add(new float[] {rect.left, rect.top, rect.right, rect.bottom, rx, ry});
+            paints.add(paint);
+        }
+    }
+
+    /** #630: on standard each story segment is the very call Instagram made, and its header keeps clipping. */
+    @Test
+    public void storySegmentsStayInstagramsOnStandard() {
+        FrameLayout header = new FrameLayout(RuntimeEnvironment.getApplication());
+        View progress = new View(RuntimeEnvironment.getApplication());
+        header.addView(progress);
+        SeekShapes.storyBar(progress);
+        assertTrue(header.getClipChildren());
+
+        Recording canvas = new Recording();
+        Paint paint = new Paint();
+        SeekShapes.storySegment(canvas, new RectF(10, 20, 110, 24), 2f, 3f, paint);
+        assertEquals(1, canvas.rects.size());
+        assertArrayEquals(new float[] {10, 20, 110, 24, 2, 3}, canvas.rects.get(0), 0f);
+        assertSame(paint, canvas.paints.get(0));
+    }
+
+    /** #630: a shape draws each segment at its own thickness around Instagram's middle, past the bar's height, and standard clips again. */
+    @Test
+    public void aShapeTakesOverStorySegmentsAndGivesTheHeaderBack() {
+        FrameLayout header = new FrameLayout(RuntimeEnvironment.getApplication());
+        View progress = new View(RuntimeEnvironment.getApplication());
+        header.addView(progress);
+        float density = progress.getResources().getDisplayMetrics().density;
+        RectF rect = new RectF(10, 20, 110, 24);
+        Paint paint = new Paint();
+
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.ROUNDED);
+        SeekShapes.storyBar(progress);
+        assertFalse("the bar may draw past its few pixels", header.getClipChildren());
+        Recording canvas = new Recording();
+        SeekShapes.storySegment(canvas, rect, 2f, 3f, paint);
+        float thick = SeekShapeDrawable.ROUNDED_DP * density;
+        assertArrayEquals(new float[] {10, 22 - thick / 2f, 110, 22 + thick / 2f, thick / 2f, thick / 2f}, canvas.rects.get(0), 0.001f);
+        assertSame(paint, canvas.paints.get(0));
+        assertEquals("Instagram's rectangle is left as it was", new RectF(10, 20, 110, 24), rect);
+
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.LINE);
+        SeekShapes.storyBar(progress);
+        SeekShapes.storySegment(canvas, rect, 2f, 3f, paint);
+        thick = SeekShapeDrawable.LINE_DP * density;
+        assertArrayEquals("a thin line has square ends", new float[] {10, 22 - thick / 2f, 110, 22 + thick / 2f, 0f, 0f}, canvas.rects.get(1), 0.001f);
+
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.STANDARD);
+        SeekShapes.storyBar(progress);
+        assertTrue("the header clips again", header.getClipChildren());
+        SeekShapes.storySegment(canvas, rect, 2f, 3f, paint);
+        assertArrayEquals(new float[] {10, 20, 110, 24, 2, 3}, canvas.rects.get(2), 0f);
+    }
+
+    /** #630: the seek bar of a video opened from a chat takes the shape once Instagram has built it, and standard leaves it alone. */
+    @Test
+    public void aChatVideosSeekBarTakesTheShape() {
+        Drawable track = bar.getProgressDrawable();
+        SeekShapes.chatVideo(bar);
+        assertSame(track, bar.getProgressDrawable());
+
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.WAVE);
+        SeekShapes.chatVideo(bar);
+        assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.WAVE, false));
+        assertEquals("not moved to the edge", 16, bar.getPaddingLeft());
     }
 
     @Test

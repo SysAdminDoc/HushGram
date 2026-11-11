@@ -6293,7 +6293,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** The shape every seek bar takes (#586, #592). Its values are the shapes' own names. */
+    /**
+     * The shape every seek bar takes (#586, #592), story progress segments and a chat video's bar
+     * included (#630), so it's there with no seek bar switch on. Its values are the shapes' own names.
+     */
     static ChoiceRow<SeekShape> seekShapeRow(Context context) {
         String title = L10n.t("Seek bar shape");
         ChoiceRow<SeekShape> row = new ChoiceRow<>(context, Settings.SEEK_BAR_SHAPE, SeekShape.values(), new String[] {
@@ -6302,7 +6305,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 L10n.t("A thicker rounded bar with no handle."),
                 L10n.t("A rounded bar split by a tall handle."),
                 L10n.t("A wavy line for the part played, with a tall handle."),
-        }, L10n.t("Turn on a seek bar on feed videos, stories or reels to use this choice."));
+        }, null);
         fill(row, Settings.SEEK_BAR_SHAPE, SeekShape.values(), new String[] {
                 L10n.t("Standard"),
                 L10n.t("Thin line"),

@@ -15,6 +15,8 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Outline;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -23,6 +25,7 @@ import android.view.Gravity;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -101,6 +104,8 @@ public class AmbientStoryLightTest {
         Settings.AMBIENT_LIGHT_STORIES.resetToDefault();
         Settings.AMBIENT_LIGHT_SPREAD.resetToDefault();
         Settings.AMBIENT_LIGHT_SPEED.resetToDefault();
+        Settings.ROUNDED_STORY_CORNERS.resetToDefault();
+        Settings.ROUNDED_CORNER_SIZE.resetToDefault();
     }
 
     @After
@@ -146,6 +151,26 @@ public class AmbientStoryLightTest {
         assertTrue(String.valueOf(background), background instanceof AmbientLight.Glow);
         background.draw(new Canvas(drawn));
         return drawn;
+    }
+
+    /** [view] drawn whole, children and overlay included, the size of [view]. */
+    private static Bitmap shown(View view) {
+        Bitmap drawn = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        view.draw(new Canvas(drawn));
+        return drawn;
+    }
+
+    /**
+     * A grey picture [width] by [height] with its corners cut round to [radius] and clear past them, as
+     * Rounded corners on stories leaves a story's frame. The frame's own cut is an outline clip, which
+     * a drawing on a bitmap leaves out.
+     */
+    private Drawable roundedPicture(int width, int height, int radius) {
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(Color.GRAY);
+        new Canvas(bitmap).drawRoundRect(0, 0, width, height, radius, radius, paint);
+        return new BitmapDrawable(activity.getResources(), bitmap);
     }
 
     /** [view]'s glow drawn alone, the size of [view]. */
@@ -292,6 +317,116 @@ public class AmbientStoryLightTest {
         assertEquals(1, AmbientLight.litForTests());
         assertTrue(AmbientLight.hostLitForTests(photo).isEmpty());
         assertNull(root.getBackground());
+    }
+
+    /**
+     * #630: Instagram's media layout round a story's frame paints black, and Rounded corners on stories
+     * cut the frame's corners through to that black, so the card's corners stood out dark against the
+     * glow round it. The layout draws the glow over its black in those corners, and only there.
+     */
+    @Test
+    public void aRoundedStoryCardsCornersShowTheGlowRoundIt() {
+        Settings.ROUNDED_STORY_CORNERS.save(true);
+        Settings.ROUNDED_CORNER_SIZE.save(CornerSize.LARGE);
+        int radius = Math.round(CornerSize.LARGE.dp * activity.getResources().getDisplayMetrics().density);
+        int card = 300;
+        root.removeView(frame);
+        frame.removeView(photo);
+        frame.addView(photo, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        FrameLayout layout = new FrameLayout(activity);
+        layout.setBackgroundColor(Color.BLACK);
+        layout.addView(frame, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        FrameLayout stage = new FrameLayout(activity);
+        stage.addView(layout, new FrameLayout.LayoutParams(WIDTH, card));
+        root.addView(stage, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        // Rounded corners on stories cuts the frame round by its outline. Drawing to a bitmap leaves
+        // outlines out, so the picture is cut the same way.
+        frame.setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radius);
+            }
+        });
+        frame.setClipToOutline(true);
+        photo.setImageDrawable(roundedPicture(WIDTH, card, radius));
+        laidOut();
+
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+
+        assertEquals(new Rect(0, 0, WIDTH, card), AmbientLight.litRectForTests(photo));
+        Bitmap drawn = shown(stage);
+        int bottomCorner = drawn.getPixel(1, card - 2);
+        assertTrue("the card's bottom corner shows the glow below it, the picture's bottom: " + hex(bottomCorner),
+                Color.red(bottomCorner) > 60 && Color.blue(bottomCorner) < 30);
+        int topCorner = drawn.getPixel(WIDTH - 2, 1);
+        assertTrue("its top corner, the picture's top: " + hex(topCorner), Color.blue(topCorner) > 60 && Color.red(topCorner) < 30);
+        assertEquals("the card itself is left alone", Color.GRAY, drawn.getPixel(radius + 2, card - 2));
+        assertEquals(Color.GRAY, drawn.getPixel(WIDTH / 2, card / 2));
+
+        frame.setClipToOutline(false);
+        frame();
+        assertEquals("a frame whose corners aren't cut covers them itself", Color.BLACK, shown(stage).getPixel(1, card - 2));
+        frame.setClipToOutline(true);
+        frame();
+        assertTrue("cut again, they glow again", Color.red(shown(stage).getPixel(1, card - 2)) > 60);
+
+        Settings.AMBIENT_LIGHT_STORIES.save(false);
+        AmbientLight.switchChanged(activity);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("off, the layout's own black again", Color.BLACK, shown(stage).getPixel(1, card - 2));
+    }
+
+    /**
+     * #630: the layout round Instagram's story viewer holds it below the status bar and paints the strip
+     * above it black itself, over the glow the view spanning the window draws there. The layout now
+     * draws the glow in that strip, over its own black and nowhere over the story, so the story's
+     * progress bar and header stay on top.
+     */
+    @Test
+    public void theStripAboveAStoryThatItsLayoutPaintsGlowsToo() {
+        if (activity.getActionBar() != null) activity.getActionBar().hide();
+        laidOut();
+        View window = activity.getWindow().getDecorView();
+        int width = window.getWidth(), height = window.getHeight();
+        assertEquals(height, root.getHeight());
+        int statusBar = height / 25, gestureBar = height / 20;
+        int stage = height - statusBar - gestureBar;
+        root.removeView(frame);
+        frame.removeView(photo);
+        frame.addView(photo, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        View progress = new View(activity);
+        progress.setBackgroundColor(Color.WHITE);
+        FrameLayout.LayoutParams across = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 4);
+        across.topMargin = 2;
+        frame.addView(progress, across);
+        FrameLayout main = new FrameLayout(activity);
+        main.addView(frame, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        FrameLayout layout = new FrameLayout(activity);
+        layout.setBackgroundColor(Color.BLACK);
+        FrameLayout.LayoutParams below = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+        below.topMargin = statusBar;
+        layout.addView(main, below);
+        root.addView(layout, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, height - gestureBar));
+        photo.setImageDrawable(picture(width, stage));
+        laidOut();
+
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+
+        assertEquals(new Rect(0, statusBar, width, statusBar + stage), AmbientLight.hostLitForTests(photo));
+        Bitmap drawn = shown(root);
+        int strip = drawn.getPixel(width / 2, statusBar - 3);
+        assertTrue("the strip above the story, the picture's top: " + hex(strip), Color.blue(strip) > 60 && Color.red(strip) < 30);
+        assertEquals("the progress bar stays on top", Color.WHITE, drawn.getPixel(width / 2, statusBar + 4));
+        int gestureBand = drawn.getPixel(width / 2, height - gestureBar / 2);
+        assertTrue("under the gesture bar, its bottom: " + hex(gestureBand),
+                Color.alpha(gestureBand) > 20 && Color.red(gestureBand) > 60 && Color.blue(gestureBand) < 30);
+
+        Settings.AMBIENT_LIGHT_STORIES.save(false);
+        AmbientLight.switchChanged(activity);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("off, the layout's own black again", Color.BLACK, shown(root).getPixel(width / 2, statusBar - 3));
     }
 
     @Test

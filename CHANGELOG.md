@@ -70,6 +70,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Seek bar shape` now also shapes the progress segments on stories and the seek bar on a video opened from a chat, and it works without a seek bar switch on. With `Ambient light in stories` and `Rounded corners on stories` both on, the corners of a story card show the glow instead of a black edge. The strip above a story glows too, and the progress bar and header stay on top. Requested in #630.
 * `Save comment photo` now saves a comment's GIF sticker too. Press and hold the comment and pick Save. A sticker that's only on Giphy still has no Save row. Asked for in #623.
 * The diagnostic report has a `[SCREEN]` part now. It names the screen you were on, which tabs show, and the views covering most of it, so a report sent right after a blank screen shows what was in front. Asked for in #535.
 * Dusk blue, Pine and Slate are now full color sets. Story rings and Instagram's other gradients run through three colors, likes and badges get the set's own color, and backgrounds start from its screen color.

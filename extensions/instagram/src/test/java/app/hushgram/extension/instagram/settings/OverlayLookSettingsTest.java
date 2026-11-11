@@ -100,10 +100,13 @@ public class OverlayLookSettingsTest {
         assertEquals(SeekShape.WAVE, Settings.SEEK_BAR_SHAPE.savedValue());
         assertEquals("A wavy line for the part played, with a tall handle.", String.valueOf(row.getSummary()));
 
+        // #630: the shape also takes Instagram's own story progress segments and a chat video's bar,
+        // which are always there, so it stays a live choice with every seek bar switch off.
         Settings.STORY_SEEK_BAR.save(false);
         ShadowLooper.idleMainLooper();
         row.showSummary();
-        assertEquals("Turn on a seek bar on feed videos, stories or reels to use this choice.", String.valueOf(row.getSummary()));
+        assertTrue(Settings.SEEK_BAR_SHAPE.isAvailable());
+        assertEquals("A wavy line for the part played, with a tall handle.", String.valueOf(row.getSummary()));
         assertEquals("the choice is kept", SeekShape.WAVE, Settings.SEEK_BAR_SHAPE.savedValue());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SEEK_BAR_SHAPE.key));
     }
