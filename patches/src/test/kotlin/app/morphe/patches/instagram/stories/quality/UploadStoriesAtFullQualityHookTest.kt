@@ -48,6 +48,7 @@ class UploadStoriesAtFullQualityHookTest {
     private val upload = "Lfixture/Upload;"
     private val encoder = "Lfixture/PhotoEncoder;"
     private val renderer = "Lfixture/PhotoRenderer;"
+    private val sizer = "Lfixture/PhotoSizer;"
     private val reader = "$prefs->A00($store)Z"
 
     /** The hook the patch writes is in the StoryUploadQuality the bundle ships, public and static. */
@@ -57,7 +58,7 @@ class UploadStoriesAtFullQualityHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$FULL_QUALITY is not in the extension: $declared", FULL_QUALITY.substringAfter("->") in declared)
-        for (hook in listOf(BITRATE_HOOK, RESOLUTION_HOOK, RENDER_WIDTH_HOOK, FRAME_RATE_HOOK, PHOTO_QUALITY_HOOK)) {
+        for (hook in listOf(BITRATE_HOOK, RESOLUTION_HOOK, RENDER_WIDTH_HOOK, FRAME_RATE_HOOK, PHOTO_QUALITY_HOOK, PHOTO_TIER_HOOK)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -251,6 +252,36 @@ class UploadStoriesAtFullQualityHookTest {
         assertTrue(failure.message, failure.message!!.contains("expected one photo setup"))
     }
 
+    /** The photo size step hands the hook each of its 3072, 4096 and 8192 flags first, and takes the answers. */
+    @Test
+    fun thePhotoSizeStepAsksTheHookForEachSize() {
+        val context = PatchContexts.of(photoSizeClasses())
+        val step = context.findPhotoSizeStep()
+        assertEquals("the step", sizer to "A01", step.method.definingClass to step.method.name)
+        // p9, p10 and p11 past eight locals and `this`, as on 454.
+        assertEquals("the flags", mapOf(3072 to 17, 4096 to 18, 8192 to 19), step.tiers)
+        context.raisePhotoSize(step)
+        assertPhotoSizeHooked("stand-in", context.mutableClassDefBy(sizer).methods.single { it.name == "A01" })
+    }
+
+    /** A photo size step the patch can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aPhotoSizeStepThePatchCantReadFails() {
+        val cases = listOf(
+            photoSizeClasses(error = "Output size error: ") to "expected one photo size step loading \"$PHOTO_SIZE_ERROR\", found 0",
+            photoSizeClasses(sizes = listOf(8192, 3072, 2048)) to "$sizer->A01 tests the 4096 px size on 0 boolean parameters, expected one",
+            photoSizeClasses(sharedFlag = true) to "$sizer->A01 tests two of its sizes on one parameter",
+            photoSizeClasses(loopsToStart = true) to "something jumps back to the first instruction of $sizer->A01",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.raisePhotoSize(context.findPhotoSizeStep()) }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = context.mutableClassDefBy(sizer).methods.filter { m -> m.code().any { it.referenceText() == PHOTO_TIER_HOOK } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
     /** Every declared build has the one width step and the one photo setup, and each is hooked once, first. */
     @Test
     fun eachBuildAsksForTheWidthAndThePhotoQuality() {
@@ -259,7 +290,7 @@ class UploadStoriesAtFullQualityHookTest {
         assertEquals("every build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         val failures = mutableListOf<String>()
         for (bundle in bundles) {
-            val wanted = FixtureDex.classesLoading(bundle, "image/webp").toMutableList()
+            val wanted = (FixtureDex.classesLoading(bundle, "image/webp") + FixtureDex.classesLoading(bundle, PHOTO_SIZE_ERROR)).toMutableList()
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
                     val relevant = classDef.type == VIDEO_INGESTION_STEP || classDef.methods.any { method ->
@@ -280,10 +311,17 @@ class UploadStoriesAtFullQualityHookTest {
                 failures += "${bundle.name}: ${it.message}"
                 continue
             }
+            val size = runCatching { context.findPhotoSizeStep() }.getOrElse {
+                failures += "${bundle.name}: ${it.message}"
+                continue
+            }
             context.raiseWidth(step)
             context.raisePhotoQuality(setup)
+            context.raisePhotoSize(size)
 
             val everything = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+            assertEquals("${bundle.name}: photo size hooks", listOf(PHOTO_TIERS.size), everything.map { m -> m.code().count { it.referenceText() == PHOTO_TIER_HOOK } }.filter { it > 0 })
+            assertPhotoSizeHooked(bundle.name, context.mutableClassDefBy(size.method.definingClass).methods.single { it.name == size.method.name && it.returnType == size.method.returnType })
             assertEquals("${bundle.name}: width hooks", 1, everything.count { m -> m.code().any { it.referenceText() == RESOLUTION_HOOK } })
             assertEquals("${bundle.name}: width cap hooks", 1, everything.count { m -> m.code().any { it.referenceText() == RENDER_WIDTH_HOOK } })
             assertEquals("${bundle.name}: photo hooks", 1, everything.count { m -> m.code().any { it.referenceText() == PHOTO_QUALITY_HOOK } })
@@ -340,6 +378,32 @@ class UploadStoriesAtFullQualityHookTest {
         assertEquals("$what: the quality's register", quality, (code[0] as TwoRegisterInstruction).registerB)
         assertEquals("$what: the hook", PHOTO_QUALITY_HOOK, code[1].referenceText())
         assertEquals("$what: written back", quality, (code[3] as TwoRegisterInstruction).registerA)
+    }
+
+    /**
+     * For each of [PHOTO_TIERS] in turn: the size, its flag read, the call with both, and the answer written
+     * back to the flag, where the flag is the parameter Instagram's own code branches on right before
+     * loading that size.
+     */
+    private fun assertPhotoSizeHooked(what: String, method: Method) {
+        val code = method.code()
+        val stock = code.drop(PHOTO_TIERS.size * 5)
+        assertTrue("$what: nothing else calls the hook", stock.none { it.referenceText() == PHOTO_TIER_HOOK })
+        for ((i, tier) in PHOTO_TIERS.withIndex()) {
+            val at = i * 5
+            val load = stock.indexOfFirst { (it as? NarrowLiteralInstruction)?.narrowLiteral == tier && it.opcode == Opcode.CONST_16 }
+            assertTrue("$what: Instagram loads $tier", load > 0)
+            assertEquals("$what: Instagram branches on a flag before $tier", Opcode.IF_EQZ, stock[load - 1].opcode)
+            val flag = (stock[load - 1] as OneRegisterInstruction).registerA
+            assertEquals("$what: the size", tier, (code[at] as NarrowLiteralInstruction).narrowLiteral)
+            assertEquals("$what: into v0", 0, (code[at] as OneRegisterInstruction).registerA)
+            assertEquals("$what: the $tier flag read", flag, (code[at + 1] as TwoRegisterInstruction).registerB)
+            val call = code[at + 2] as Instruction35c
+            assertEquals("$what: the hook", PHOTO_TIER_HOOK, call.referenceText())
+            assertEquals("$what: the hook's arguments", listOf(0, 1), listOf(call.registerC, call.registerD))
+            assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[at + 3].opcode)
+            assertEquals("$what: written back to the $tier flag", flag, (code[at + 4] as TwoRegisterInstruction).registerA)
+        }
     }
 
     /**
@@ -605,6 +669,46 @@ class UploadStoriesAtFullQualityHookTest {
             """,
         )
         return listOf(classDef(encoder, listOf(setup, compressing)), classDef(renderer, listOf(render)))
+    }
+
+    /**
+     * Shaped like 454's `0D3B.A01`: an instance method taking a point, the session, two ints and seven
+     * booleans, eight locals so its flags sit past v15, loading the aspect error, and testing each size
+     * after branching past it on its own flag, the largest first.
+     */
+    private fun photoSizeClasses(
+        error: String = PHOTO_SIZE_ERROR,
+        sizes: List<Int> = listOf(8192, 4096, 3072, 2048),
+        sharedFlag: Boolean = false,
+        loopsToStart: Boolean = false,
+    ): List<ClassDef> {
+        val point = "Landroid/graphics/Point;"
+        val parameters = listOf(point, "Lcom/instagram/common/session/UserSession;", "I", "I") + List(7) { "Z" }
+        val flags = mapOf(8192 to "p11", 4096 to "p10", 3072 to if (sharedFlag) "p10" else "p9", 2048 to "p8")
+        val tests = sizes.joinToString("\n") { size ->
+            """
+                if-eqz ${flags.getValue(size)}, :past$size
+                const/16 v1, $size
+                invoke-static {v2, v3, v1}, $sizer->A00(III)Z
+                move-result v4
+                :past$size
+            """
+        }
+        val step = method(
+            sizer, "A01", parameters, point, 8, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value,
+            """
+                ${if (loopsToStart) ":start" else ""}
+                const-string v0, "$error"
+                move/from16 v2, p3
+                move/from16 v3, p4
+                $tests
+                ${if (loopsToStart) "if-nez v4, :start" else ""}
+                const/4 v0, 0x0
+                return-object v0
+            """,
+        )
+        val test = method(sizer, "A00", listOf("I", "I", "I"), "Z", 1, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, "const/4 v0, 0x0\n return v0")
+        return listOf(classDef(sizer, listOf(test, step)))
     }
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, flags: Int, body: String): Method {

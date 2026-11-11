@@ -42,6 +42,16 @@ internal const val RESOLUTION_HOOK = "$STORY_UPLOAD_QUALITY->resolution(Ljava/la
 internal const val RENDER_WIDTH_HOOK = "$STORY_UPLOAD_QUALITY->renderWidth(II)I"
 internal const val FRAME_RATE_HOOK = "$STORY_UPLOAD_QUALITY->frameRate(Ljava/lang/Object;I)I"
 internal const val PHOTO_QUALITY_HOOK = "$STORY_UPLOAD_QUALITY->photoQuality(I)I"
+internal const val PHOTO_TIER_HOOK = "$STORY_UPLOAD_QUALITY->photoTier(II)I"
+
+/** The error Instagram's photo size step builds when the size it worked out has the wrong shape. */
+internal const val PHOTO_SIZE_ERROR = "Output aspect ratio error: "
+
+/**
+ * The photo size step's larger sizes the patch can turn on, longest side in pixels. Its 2048 is left
+ * alone, as it's shorter than the 2560 a story photo already goes up at.
+ */
+internal val PHOTO_TIERS = listOf(3072, 4096, 8192)
 
 /** The key of Instagram's own "Upload at highest quality" setting in its per-user preferences. */
 internal const val HIGH_QUALITY_PREF = "high_quality_media_upload"
@@ -62,6 +72,7 @@ internal const val WIDTH_1440 = 1440
 /** The frame rate Instagram's bitrate setter falls back on when a video's isn't set. */
 internal const val DEFAULT_FRAME_RATE = 30
 
+private const val POINT = "Landroid/graphics/Point;"
 private const val BITMAP = "Landroid/graphics/Bitmap;"
 private const val COMPRESS_FORMAT = "Landroid/graphics/Bitmap\$CompressFormat;"
 private const val CONTEXT = "Landroid/content/Context;"
@@ -90,6 +101,11 @@ private const val GET_INT = "getInt"
  * 9.2 Mbps (7.1 Mbps off on a 1080 wide screen), but the server keeps one 720x1280 rendition near
  * 1.2 Mbps either way, as it does for @instagram's own stories, while reels get a ladder to 1080p.
  * Story photos already go up at 1440x2560 (quality 84) and are served at 1080x1920.
+ *
+ * The photo size step (`0D3B.A01` on 454's 386014758) has larger sizes the server can turn on, 2048
+ * to 8192 on the longest side, each keeping a photo at least nine tenths that big at its own size up
+ * to it. The photo renderer passes them all off. Photo size turns on the 3072, 4096 and 8192 ones up
+ * to its choice, through [PHOTO_TIER_HOOK] at the start of the step.
  */
 @Suppress("unused")
 val uploadStoriesAtFullQualityPatch = bytecodePatch(
@@ -97,7 +113,7 @@ val uploadStoriesAtFullQualityPatch = bytecodePatch(
     description = "Sends the video stories you post at 1080p and a higher bitrate, as Instagram does with its own " +
         "Upload at highest quality setting on. Choices under it can cover posts and reels too and ask for a " +
         "bitrate up to 50 Mbps, up to 2160p and 120 fps where your phone's video encoder can take them, or a higher photo " +
-        "quality. Instagram still shrinks story videos to 720p on its servers, so " +
+        "quality and size. Instagram still shrinks story videos to 720p on its servers, so " +
         "viewers see a small difference. Starts off. Turn it on in HushGram settings > Stories.",
     default = true,
 ) {
@@ -111,10 +127,12 @@ val uploadStoriesAtFullQualityPatch = bytecodePatch(
         val bitrate = findBitrateSetter(check)
         val width = findWidthStep()
         val photo = findPhotoSetup()
+        val size = findPhotoSizeStep()
         raiseStoryUploadQuality(check)
         raiseBitrate(check, bitrate)
         raiseWidth(width)
         raisePhotoQuality(photo)
+        raisePhotoSize(size)
         enableStatus("storyUploadQuality")
     }
 }
@@ -447,6 +465,71 @@ internal fun BytecodePatchContext.raisePhotoQuality(setup: MethodReference) {
             move-result v0
             move/from16 p2, v0
         """,
+    )
+}
+
+/** The photo size step, and the register of the flag for each of [PHOTO_TIERS]. */
+internal class PhotoSizeStep(val method: MethodReference, val tiers: Map<Int, Int>)
+
+/**
+ * The photo size step: the one method that loads [PHOTO_SIZE_ERROR] and takes a point, the session,
+ * two ints and booleans, answering a point. For each of [PHOTO_TIERS] it branches past the size on a
+ * boolean parameter of its own, loads the size and hands it with two other ints to a static `(III)Z`
+ * size test. Those parameters are the flags [raisePhotoSize] sets.
+ */
+internal fun BytecodePatchContext.findPhotoSizeStep(): PhotoSizeStep {
+    val steps = classesLoadingString(PHOTO_SIZE_ERROR).flatMap { classDef ->
+        classDef.methods.filter { it.isPhotoSizeStepShape() && loadsString(it, PHOTO_SIZE_ERROR) }
+    }
+    val method = steps.singleOrNull() ?: refuse("expected one photo size step loading \"$PHOTO_SIZE_ERROR\", found ${steps.size}")
+    val where = "${method.definingClass}->${method.name}"
+    val types = method.parameterTypes.map(CharSequence::toString)
+    // Every parameter of the shape takes one register, so the first one's is this far past `this`.
+    val self = if (AccessFlags.STATIC.isSet(method.accessFlags)) 0 else 1
+    val first = method.implementation!!.registerCount - types.size - self
+    val code = method.implementation!!.instructions.toList()
+    val tiers = PHOTO_TIERS.associateWith { tier ->
+        val flags = code.indices.mapNotNull { at ->
+            val load = code[at] as? NarrowLiteralInstruction ?: return@mapNotNull null
+            val branch = code.getOrNull(at - 1) ?: return@mapNotNull null
+            val call = code.getOrNull(at + 1) ?: return@mapNotNull null
+            val test = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return@mapNotNull null
+            if (load.narrowLiteral != tier || branch.opcode != Opcode.IF_EQZ || call.opcode != Opcode.INVOKE_STATIC) return@mapNotNull null
+            if (test.returnType != "Z" || test.parameterTypes.map(CharSequence::toString) != listOf("I", "I", "I")) return@mapNotNull null
+            val flag = (branch as OneRegisterInstruction).registerA
+            flag.takeIf { it - first - self in types.indices && types[it - first - self] == "Z" }
+        }
+        flags.singleOrNull() ?: refuse("$where tests the $tier px size on ${flags.size} boolean parameters, expected one")
+    }
+    if (tiers.values.distinct().size != tiers.size) refuse("$where tests two of its sizes on one parameter")
+    return PhotoSizeStep(method, tiers)
+}
+
+private fun Method.isPhotoSizeStepShape(): Boolean {
+    val types = parameterTypes.map(CharSequence::toString)
+    return returnType == POINT && types.size > 4 && types[0] == POINT && types[1] == USER_SESSION &&
+        types[2] == "I" && types[3] == "I" && types.drop(4).all { it == "Z" }
+}
+
+/**
+ * First thing in the photo size step, hands [PHOTO_TIER_HOOK] each of [PHOTO_TIERS] with its flag and
+ * puts the answer in the flag. Nothing else of the step changes.
+ */
+internal fun BytecodePatchContext.raisePhotoSize(step: PhotoSizeStep) {
+    val method = mutableClassDefBy(step.method.definingClass).methods.single { it.sameAs(step.method) }
+    if (0 in method.jumpTargets()) refuse("something jumps back to the first instruction of ${step.method.definingClass}->${step.method.name}")
+    method.requireLocals(PATCH, 2)
+    method.addInstructions(
+        0,
+        step.tiers.entries.joinToString("\n") { (tier, flag) ->
+            """
+                const/16 v0, $tier
+                move/from16 v1, v$flag
+                invoke-static { v0, v1 }, $PHOTO_TIER_HOOK
+                move-result v0
+                move/from16 v$flag, v0
+            """
+        },
     )
 }
 

@@ -146,6 +146,7 @@ public final class ConfigurationBackup {
             settings.put(Settings.UPLOAD_VIDEO_RESOLUTION.key, Settings.UPLOAD_VIDEO_RESOLUTION);
             settings.put(Settings.UPLOAD_FRAME_RATE.key, Settings.UPLOAD_FRAME_RATE);
             settings.put(Settings.UPLOAD_PHOTO_QUALITY.key, Settings.UPLOAD_PHOTO_QUALITY);
+            settings.put(Settings.UPLOAD_PHOTO_SIZE.key, Settings.UPLOAD_PHOTO_SIZE);
         }
         if (PatchFamily.ROUNDED_POST_CORNERS.inBuild()) settings.put(Settings.ROUNDED_CORNER_SIZE.key, Settings.ROUNDED_CORNER_SIZE);
         if (PatchFamily.AMBIENT_LIGHT.inBuild()) {

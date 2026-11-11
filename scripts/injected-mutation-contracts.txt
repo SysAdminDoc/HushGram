@@ -3079,6 +3079,11 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->renderW
 # factory (0BWX.A02 on 454) of the class that calls Bitmap.compress with it. Left out, Photo quality does nothing.
 start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in static (Landroid/graphics/Bitmap;LX/*;II)LX/*; class-holding Landroid/graphics/Bitmap;->compress(Landroid/graphics/Bitmap$CompressFormat;ILjava/io/OutputStream;)Z
 once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in static (Landroid/graphics/Bitmap;LX/*;II)LX/*; class-holding Landroid/graphics/Bitmap;->compress(Landroid/graphics/Bitmap$CompressFormat;ILjava/io/OutputStream;)Z
+# Its Photo size choice (#37) hands StoryUploadQuality.photoTier each of the 3072, 4096 and 8192 flags
+# first in Instagram's photo size step (0D3B.A01 on 454), the instance method loading the aspect ratio
+# error, so three calls. Fewer calls leave a size Photo size can't turn on.
+start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoTier(II)I in instance (Landroid/graphics/Point;Lcom/instagram/common/session/UserSession;IIZZZZZZZ)Landroid/graphics/Point; pooled holding Output\saspect\sratio\serror:\s
+once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoTier(II)I in instance (Landroid/graphics/Point;Lcom/instagram/common/session/UserSession;IIZZZZZZZ)Landroid/graphics/Point; sites 3 pooled holding Output\saspect\sratio\serror:\s
 
 # Full screen Reels and Home (#147) and Glass tab bar (#144) share one routing of both bar heights
 # Instagram's window insets listener keeps (00oX.F1L on 450, the decor's insets listener of

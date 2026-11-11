@@ -19,6 +19,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadBitrateRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadFrameRateRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadPhotoQualityRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadPhotoSizeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadResolutionRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadScopeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
@@ -242,6 +243,7 @@ final class StoriesCategory {
             stories.add(uploadResolutionRow(context));
             stories.add(uploadFrameRateRow(context));
             stories.add(uploadPhotoQualityRow(context));
+            stories.add(uploadPhotoSizeRow(context));
         }
         if (build.contains(PatchFamily.STORY_FONTS)) {
             stories.add(toggle(context, Settings.STORY_FONTS, L10n.t("Your fonts in story text"),

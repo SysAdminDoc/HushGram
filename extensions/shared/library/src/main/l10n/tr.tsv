@@ -235,6 +235,7 @@ Video bitrate	Video bit hızı
 Video resolution	Video çözünürlüğü
 Video frame rate	Video kare hızı
 Photo quality	Fotoğraf kalitesi
+Photo size	Fotoğraf boyutu
 %1$s Mbps	%1$s Mbps
 Download feed videos	Akıştaki videoları indir
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	Akışındaki videolu bir gönderinin menüsüne İndir ekler. Aşağıdaki kaliteyi kullanır. Kapalıyken veya duraklatıldığında Instagram'ın kendi menüsü geri gelir.

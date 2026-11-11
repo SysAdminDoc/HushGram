@@ -77,7 +77,8 @@ public class StoryUploadQualitySettingsTest {
         assertEquals(Arrays.toString(keys), Settings.UPLOAD_VIDEO_RESOLUTION.key, keys[at + 3]);
         assertEquals(Arrays.toString(keys), Settings.UPLOAD_FRAME_RATE.key, keys[at + 4]);
         assertEquals(Arrays.toString(keys), Settings.UPLOAD_PHOTO_QUALITY.key, keys[at + 5]);
-        assertEquals(Arrays.toString(keys), keys.length - 6, at);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_PHOTO_SIZE.key, keys[at + 6]);
+        assertEquals(Arrays.toString(keys), keys.length - 7, at);
         assertEquals("Upload stories at full quality", PatchFamily.STORY_UPLOAD_QUALITY.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_STORIES_AT_FULL_QUALITY.key));
     }
@@ -86,9 +87,11 @@ public class StoryUploadQualitySettingsTest {
         assertEquals("[Instagram's own, 1080p, 1440p, 2160p]", entries(Settings.UPLOAD_VIDEO_RESOLUTION.key, "Video resolution"));
         assertEquals("[Instagram's own, 60 fps, 120 fps]", entries(Settings.UPLOAD_FRAME_RATE.key, "Video frame rate"));
         assertEquals("[Instagram's own, 90%, 95%, 100%]", entries(Settings.UPLOAD_PHOTO_QUALITY.key, "Photo quality"));
+        assertEquals("[Instagram's own, 3072 px, 4096 px, 8192 px]", entries(Settings.UPLOAD_PHOTO_SIZE.key, "Photo size"));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_VIDEO_RESOLUTION.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_FRAME_RATE.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_PHOTO_QUALITY.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_PHOTO_SIZE.key));
     }
     private String entries(String key, String title) {
         android.preference.ListPreference row = (android.preference.ListPreference) page.getPreferenceScreen().findPreference(key);

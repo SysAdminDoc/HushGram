@@ -446,6 +446,11 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_upload_photo_quality", app.hushgram.extension.instagram.stories.UploadPhotoQuality.INSTAGRAM,
                     parent(UPLOAD_STORIES_AT_FULL_QUALITY));
 
+    /** Under {@link #UPLOAD_STORIES_AT_FULL_QUALITY}: the longest side a photo being prepared may keep (#37). */
+    public static final EnumSetting<app.hushgram.extension.instagram.stories.UploadPhotoSize> UPLOAD_PHOTO_SIZE =
+            new EnumSetting<>("hushgram_upload_photo_size", app.hushgram.extension.instagram.stories.UploadPhotoSize.INSTAGRAM,
+                    parent(UPLOAD_STORIES_AT_FULL_QUALITY));
+
     /**
      * The first feed video of a Home session starts with its sound on, through the video's own sound
      * flag, when the phone's ringer is on and its volume is up

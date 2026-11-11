@@ -805,7 +805,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             && (Settings.MIN_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES.key.equals(key));
                     belongs |= family == PatchFamily.STORY_UPLOAD_QUALITY && (Settings.UPLOAD_QUALITY_APPLIES_TO.key.equals(key)
                             || Settings.UPLOAD_VIDEO_BITRATE.key.equals(key) || Settings.UPLOAD_VIDEO_RESOLUTION.key.equals(key)
-                            || Settings.UPLOAD_FRAME_RATE.key.equals(key) || Settings.UPLOAD_PHOTO_QUALITY.key.equals(key));
+                            || Settings.UPLOAD_FRAME_RATE.key.equals(key) || Settings.UPLOAD_PHOTO_QUALITY.key.equals(key)
+                            || Settings.UPLOAD_PHOTO_SIZE.key.equals(key));
                     belongs |= family == PatchFamily.STORY_PRIORITY && Settings.STORY_PRIORITY_ACCOUNTS.key.equals(key);
                     belongs |= family == PatchFamily.CALL_BLOCKER
                             && (Settings.CALL_BLOCK_MODE.key.equals(key) || Settings.CALL_BLOCK_ACCOUNTS.key.equals(key));
@@ -4749,6 +4750,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         return uploadChoiceRow(context, Settings.UPLOAD_PHOTO_QUALITY.key, L10n.t("Photo quality"), entries, values,
                 Settings.UPLOAD_PHOTO_QUALITY.savedValue().name());
+    }
+
+    /** The longest side a photo being prepared may keep (#37). */
+    static UploadChoiceRow uploadPhotoSizeRow(Context context) {
+        app.hushgram.extension.instagram.stories.UploadPhotoSize[] sizes = app.hushgram.extension.instagram.stories.UploadPhotoSize.values();
+        CharSequence[] entries = new CharSequence[sizes.length];
+        CharSequence[] values = new CharSequence[sizes.length];
+        for (int i = 0; i < sizes.length; i++) {
+            entries[i] = sizes[i].edge == 0 ? L10n.t("Instagram's own") : sizes[i].edge + " px";
+            values[i] = sizes[i].name();
+        }
+        return uploadChoiceRow(context, Settings.UPLOAD_PHOTO_SIZE.key, L10n.t("Photo size"), entries, values,
+                Settings.UPLOAD_PHOTO_SIZE.savedValue().name());
     }
 
     private static UploadChoiceRow uploadChoiceRow(Context context, String key, String title, CharSequence[] entries, CharSequence[] values, String value) {

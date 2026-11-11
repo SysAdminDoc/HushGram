@@ -41,6 +41,7 @@ public class StoryUploadQualityTest {
         Settings.UPLOAD_VIDEO_RESOLUTION.resetToDefault();
         Settings.UPLOAD_FRAME_RATE.resetToDefault();
         Settings.UPLOAD_PHOTO_QUALITY.resetToDefault();
+        Settings.UPLOAD_PHOTO_SIZE.resetToDefault();
         StoryUploadQuality.resetForTests();
         HookStatus.clear();
     }
@@ -53,6 +54,7 @@ public class StoryUploadQualityTest {
         Settings.UPLOAD_VIDEO_RESOLUTION.resetToDefault();
         Settings.UPLOAD_FRAME_RATE.resetToDefault();
         Settings.UPLOAD_PHOTO_QUALITY.resetToDefault();
+        Settings.UPLOAD_PHOTO_SIZE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         StoryUploadQuality.resetForTests();
@@ -301,6 +303,33 @@ public class StoryUploadQualityTest {
         assertEquals("nothing to raise", 0, StoryUploadQuality.photoQuality(0));
         Settings.UPLOAD_PHOTO_QUALITY.save(UploadPhotoQuality.Q90);
         assertEquals("already higher", 95, StoryUploadQuality.photoQuality(95));
+    }
+
+    /** Photo size turns on Instagram's sizes up to the one chosen, with the switch on, and leaves the rest as Instagram set them. */
+    @Test
+    public void photoSizeTurnsOnTheSizesUpToTheChoice() {
+        assertEquals(UploadPhotoSize.INSTAGRAM, Settings.UPLOAD_PHOTO_SIZE.get());
+        Settings.UPLOAD_PHOTO_SIZE.save(UploadPhotoSize.E4096);
+        assertEquals("switch off", 0, StoryUploadQuality.photoTier(3072, 0));
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        assertEquals("3072", 1, StoryUploadQuality.photoTier(3072, 0));
+        assertEquals("4096", 1, StoryUploadQuality.photoTier(4096, 0));
+        assertEquals("8192, past the choice", 0, StoryUploadQuality.photoTier(8192, 0));
+        assertEquals("already on", 1, StoryUploadQuality.photoTier(8192, 1));
+        assertTrue(counts(), counts().contains(StoryUploadQuality.RAISED_PHOTO_SIZE + " 1"));
+
+        Settings.UPLOAD_PHOTO_SIZE.save(UploadPhotoSize.INSTAGRAM);
+        assertEquals("Instagram's own", 0, StoryUploadQuality.photoTier(3072, 0));
+        Settings.UPLOAD_PHOTO_SIZE.save(UploadPhotoSize.E8192);
+        assertEquals("8192", 1, StoryUploadQuality.photoTier(8192, 0));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 0, StoryUploadQuality.photoTier(3072, 0));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals("no context", 0, StoryUploadQuality.photoTier(3072, 0)));
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertEquals("pause undecided", 0, StoryUploadQuality.photoTier(3072, 0)));
     }
 
     /** Paused, or before the settings are read, the three new choices are Instagram's. */

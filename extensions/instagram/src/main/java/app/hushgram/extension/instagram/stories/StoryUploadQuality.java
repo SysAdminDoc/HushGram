@@ -37,6 +37,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * quality of a photo being prepared, which has no share type where it's chosen and so covers every
  * photo while the switch is on.
  *
+ * <p>Photo size ({@link #photoTier}) works the same way on a photo's size. Instagram's photo size step
+ * sends a story photo at 1440x2560 unless the server turns on one of its larger sizes, 2048 to 8192
+ * on the longest side, which keep a photo that big at its own size up to that one. The choice turns on
+ * Instagram's 3072, 4096 and 8192 sizes up to the one chosen. The server still serves story photos at
+ * 1080x1920, so a bigger photo improves the source it scales from.
+ *
  * <p>2160p and 120 fps go past what Instagram's own steps know. Its width step tops out at 1440, so
  * {@link #resolution} asks it for 1440 and {@link #renderWidth}, right after the step's width cap,
  * raises the width to the choice, no wider than the clip. Either is asked only where the phone's first
@@ -66,6 +72,9 @@ public final class StoryUploadQuality {
 
     /** What's counted for each photo given a higher JPEG quality. */
     static final String RAISED_PHOTO = "photos given a higher quality";
+
+    /** What's counted for each photo let past Instagram's own longest side. */
+    static final String RAISED_PHOTO_SIZE = "photos allowed a longer side";
 
     /** The share type Instagram gives a story posted to your story, as its enum names it. */
     static final String STORY = "STORY";
@@ -226,6 +235,27 @@ public final class StoryUploadQuality {
             return choice.percent;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_UPLOAD_QUALITY, "photo upload quality", failure);
+            return instagram;
+        }
+    }
+
+    /**
+     * Injected first in Instagram's photo size step, once for each of its 3072, 4096 and 8192 sizes,
+     * with that size and whether Instagram turned it on (non-zero is yes). Answers yes for every size
+     * up to the Photo size choice while the switch is on, so the step lets a photo that big keep its
+     * own longest side up to that size, and Instagram's own answer otherwise. Never throws, and never
+     * waits for the settings.
+     */
+    public static int photoTier(int edge, int instagram) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_UPLOAD_QUALITY);
+            if (instagram != 0 || !Utils.settingsReady() || !Settings.UPLOAD_STORIES_AT_FULL_QUALITY.get()) return instagram;
+            UploadPhotoSize choice = Settings.UPLOAD_PHOTO_SIZE.get();
+            if (choice == null || choice.edge < edge) return instagram;
+            if (choice.edge == edge) HookStatus.counted(FamilyNames.STORY_UPLOAD_QUALITY, RAISED_PHOTO_SIZE);
+            return 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_UPLOAD_QUALITY, "photo upload size", failure);
             return instagram;
         }
     }
