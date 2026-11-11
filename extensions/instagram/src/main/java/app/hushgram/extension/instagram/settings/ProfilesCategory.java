@@ -40,7 +40,8 @@ final class ProfilesCategory {
                 || build.contains(PatchFamily.PROFILE_PICTURE)
                 || build.contains(PatchFamily.PROFILE_TABS)
                 || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)
-                || build.contains(PatchFamily.PROFILE_GRID_JUMP)) {
+                || build.contains(PatchFamily.PROFILE_GRID_JUMP)
+                || build.contains(PatchFamily.ASK_BEFORE_FOLLOW)) {
             PreferenceCategory profiles = category(screen, L10n.t("Profiles"), SettingsIcons.PERSON,
                     L10n.t("See who follows you back, and clear extras off profiles."));
             if (build.contains(PatchFamily.PROFILE_PICTURE)) {
@@ -112,6 +113,11 @@ final class ProfilesCategory {
                     });
                     profiles.addPreference(mark(clearUnfollowers, SettingsIcons.DELETE));
                 }
+            }
+            if (build.contains(PatchFamily.ASK_BEFORE_FOLLOW)) {
+                profiles.addPreference(toggle(context, Settings.ASK_BEFORE_FOLLOW, L10n.t("Ask before a follow"),
+                        L10n.t("Asks before a Follow or Follow back button follows someone or sends them a request, so a "
+                                + "stray tap on a profile or in a Followers or Following list doesn't do it for you.")));
             }
             if (build.contains(PatchFamily.PROFILE_SUGGESTIONS)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_PROFILE_SUGGESTIONS, L10n.t("Hide suggested people"),

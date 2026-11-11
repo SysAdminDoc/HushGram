@@ -518,7 +518,8 @@
           "Hide profile tabs",
           "Saved on your profile",
           "Profile posts as a list",
-          "Jump a profile's posts to a date"
+          "Jump a profile's posts to a date",
+          "Ask before a follow"
         ]
       },
       "anchors": [

@@ -2696,6 +2696,15 @@ once-call Lapp/hushgram/extension/instagram/feed/RefreshConfirm;->listener(Landr
 # inbox pull with this layout, so left out, a pull there never asks. AskBeforeRefreshHookTest checks
 # where it lands on each declared build.
 once-call Lapp/hushgram/extension/instagram/feed/RefreshConfirm;->pull(Landroid/view/View;Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)V holding Lcom/instagram/ui/widget/refresh/RefreshableNestedScrollingParent;->A0P:Z LX/*;->A00:D
+# Ask before a follow (#631) hands FollowConfirm.hold the Follow button's tap action's own arguments
+# first thing in it (04gP.A08 on 454, the helper FollowButtonBase.getHelper() answers), the one
+# instance (object, session, post, object, search context, object, user, Double, String) method,
+# which checks the button is on screen before it follows. A profile's Follow button and each
+# Followers or Following row's Follow or Follow back button tap through it. Left out, a Follow tap
+# never asks; twice or elsewhere, it isn't the guard the patch wrote. AskBeforeFollowHookTest checks
+# where it lands on each declared build.
+start-call Lapp/hushgram/extension/instagram/profile/FollowConfirm;->hold(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)Z in instance (LX/*;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;LX/*;Lcom/instagram/search/common/analytics/SearchContext;LX/*;LX/*;Ljava/lang/Double;Ljava/lang/String;)V holding Landroid/view/View;->isAttachedToWindow()Z
+once-call Lapp/hushgram/extension/instagram/profile/FollowConfirm;->hold(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)Z in instance (LX/*;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;LX/*;Lcom/instagram/search/common/analytics/SearchContext;LX/*;LX/*;Ljava/lang/Double;Ljava/lang/String;)V holding Landroid/view/View;->isAttachedToWindow()Z
 # Skip the collections tray (piko #2210) asks SaveTray.skip first thing in the check that decides
 # whether a save opens the collections tray (0BWA.A04 on 453, the one instance (UserSession) boolean
 # method loading the collab collection nux count), and answers false on a yes. 453's 385914510 asks

@@ -1033,6 +1033,12 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting ASK_BEFORE_REFRESH = new BooleanSetting("hushgram_ask_before_refresh", FALSE);
 
     /**
+     * A Follow or Follow back button asks before it follows someone or sends them a request
+     * ({@link app.hushgram.extension.instagram.profile.FollowConfirm}). Off to start (#631).
+     */
+    public static final BooleanSetting ASK_BEFORE_FOLLOW = new BooleanSetting("hushgram_ask_before_follow", FALSE);
+
+    /**
      * Saving a post or reel shows the Saved message instead of the tray that asks you to start a
      * collection, which Instagram shows some accounts on every save (piko #2210,
      * {@link app.hushgram.extension.instagram.feed.SaveTray}). Off to start.

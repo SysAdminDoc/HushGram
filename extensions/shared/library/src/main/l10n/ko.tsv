@@ -2086,3 +2086,13 @@ Your saved profiles	내가 저장한 프로필
 Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	아직 저장한 프로필이 없습니다. ‘저장한 프로필’을 켜고 다른 사람 프로필의 메뉴에서 ‘프로필 저장’을 누르면 여기에 표시됩니다.
 # context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
 Remove @%s from saved	저장됨에서 @%s 님 삭제
+# context: Profiles > title of the switch that asks before a Follow or Follow back button follows someone (#631)
+Ask before a follow	팔로우 전에 묻기
+# context: Profiles > summary of Ask before a follow; Follow, Follow back, Followers and Following are Instagram's own button and list names (#631)
+Asks before a Follow or Follow back button follows someone or sends them a request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you.	팔로우 또는 맞팔로우 버튼이 누군가를 팔로우하거나 요청을 보내기 전에 먼저 묻습니다. 프로필이나 팔로워 또는 팔로잉 목록에서 실수로 탭해도 팔로우되지 않습니다.
+# context: Title of the question Ask before a follow puts up; %1$s is the account's username (#631)
+Follow @%1$s?	@%1$s님을 팔로우할까요?
+# context: Title of the question Ask before a follow puts up when the username can't be read (#631)
+Follow this account?	이 계정을 팔로우할까요?
+# context: The question's confirm button; Instagram's own Follow button label (#631)
+Follow	팔로우

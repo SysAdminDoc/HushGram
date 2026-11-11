@@ -187,6 +187,7 @@ public final class FamilyNames {
     public static final String GLASS_CHAT = "Glass in chats";
     public static final String ASK_BEFORE_LIKE = "Ask before a like";
     public static final String ASK_BEFORE_REFRESH = "Ask before a refresh";
+    public static final String ASK_BEFORE_FOLLOW = "Ask before a follow";
     public static final String SAVE_TRAY = "Skip the collections tray";
     public static final String LIVE_SEEN = "View live anonymously";
 }

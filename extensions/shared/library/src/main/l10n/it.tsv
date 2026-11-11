@@ -2087,3 +2087,13 @@ Your saved profiles	I tuoi profili salvati
 Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	Ancora niente di salvato. Con Profili salvati attivo, tocca Salva profilo nel menu sul profilo di qualcuno e comparirà qui.
 # context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
 Remove @%s from saved	Rimuovi @%s dai salvati
+# context: Profiles > title of the switch that asks before a Follow or Follow back button follows someone (#631)
+Ask before a follow	Chiedi prima di seguire
+# context: Profiles > summary of Ask before a follow; Follow, Follow back, Followers and Following are Instagram's own button and list names (#631)
+Asks before a Follow or Follow back button follows someone or sends them a request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you.	Chiede prima che un pulsante Segui o Segui anche tu segua qualcuno o gli invii una richiesta, così un tocco accidentale su un profilo o nella lista Follower o Seguiti non lo fa al posto tuo.
+# context: Title of the question Ask before a follow puts up; %1$s is the account's username (#631)
+Follow @%1$s?	Seguire @%1$s?
+# context: Title of the question Ask before a follow puts up when the username can't be read (#631)
+Follow this account?	Seguire questo account?
+# context: The question's confirm button; Instagram's own Follow button label (#631)
+Follow	Segui

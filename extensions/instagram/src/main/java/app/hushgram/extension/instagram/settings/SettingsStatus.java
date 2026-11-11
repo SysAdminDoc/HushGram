@@ -708,6 +708,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean askBeforeFollow() {
+        return false;
+    }
+
     /** Rewritten by the Skip the collections tray patch. */
     public static boolean saveTray() {
         return false;

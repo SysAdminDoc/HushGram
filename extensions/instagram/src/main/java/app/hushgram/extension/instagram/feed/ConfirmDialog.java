@@ -18,8 +18,11 @@ import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 
-/** The question Ask before a like and Ask before a refresh put up, over the screen they act on. */
-final class ConfirmDialog {
+/**
+ * The question Ask before a like, Ask before a refresh and Ask before a follow put up, over the
+ * screen they act on.
+ */
+public final class ConfirmDialog {
     private ConfirmDialog() {
     }
 
@@ -31,7 +34,7 @@ final class ConfirmDialog {
      * activity to show it over ({@link #activityOf}) or it's going away.
      */
     @Nullable
-    static AlertDialog ask(@Nullable Context context, String question, String yes, Runnable onYes, @Nullable Runnable onNo,
+    public static AlertDialog ask(@Nullable Context context, String question, String yes, Runnable onYes, @Nullable Runnable onNo,
             Consumer<AlertDialog> onGone) {
         Activity activity = activityOf(context);
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return null;
@@ -62,7 +65,7 @@ final class ConfirmDialog {
      * says it's showing, and so does one left behind a screen opened over its own, a notification's
      * for one. Neither must hold a tap, since nothing is on screen to answer.
      */
-    static boolean up(@Nullable Dialog question, @Nullable Context from) {
+    public static boolean up(@Nullable Dialog question, @Nullable Context from) {
         if (question == null || !question.isShowing()) return false;
         Activity activity = activityOf(question.getContext());
         return activity != null && activity == activityOf(from) && !activity.isFinishing() && !activity.isDestroyed();
@@ -72,7 +75,7 @@ final class ConfirmDialog {
      * Takes [question] down when it still says it's showing, so a tap on another screen gets a
      * question of its own. One whose activity went has no window left to take down.
      */
-    static void drop(@Nullable Dialog question) {
+    public static void drop(@Nullable Dialog question) {
         if (question == null || !question.isShowing()) return;
         try {
             question.dismiss();
