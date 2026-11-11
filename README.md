@@ -252,7 +252,7 @@ In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages,
 
 The patches with a switch keep it in `HushGram settings`, so Morphe Manager includes that patch whenever any of them is picked. Seven work as soon as they're patched in, with no switch: HushGram settings, Restore trust on re-signed builds, Remove the advertising ID, Start on x86 devices, Change version code, Install next to Instagram and Pure black dark mode. **Set when you patched**, near the bottom of HushGram settings, lists the ones your build has.
 
-Recent unfollowers only updates after your own Followers list loads completely and matches the account's follower count. Instagram counts a few accounts it never lists, like deactivated ones, so a list of 200 or more may be short by one in every 200. The list also has to stay the same for a few seconds before it's kept. If the counts disagree by more, your previous saved list stays. It doesn't make extra requests to fill the gap.
+Recent unfollowers only updates after your own Followers list loads completely and matches the account's follower count. Instagram's count includes a few accounts it never lists, and it can stay put for a while after someone leaves, so a list of 50 or more may be short by one in every 50. The list also has to stay the same for a few seconds before it's kept. If the counts disagree by more, your previous saved list stays. It doesn't make extra requests to fill the gap.
 
 Watched-story sorting leaves your own story and Instagram's special tray entries in place. It moves ordinary watched story rings behind unseen ones when View stories anonymously and Gray out stories you've watched are both on.
 

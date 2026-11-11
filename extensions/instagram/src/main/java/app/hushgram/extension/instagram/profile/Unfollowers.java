@@ -275,17 +275,20 @@ public final class Unfollowers {
 
     /**
      * Whether [loaded] accounts are your whole Followers list by your profile's [count] of them. The
-     * count also counts accounts Instagram never lists, like deactivated ones, so a list may stay a few
-     * short for good (#624, 548 of 550). Up to one in {@link #UNLISTED_PER} may be missing. Below that
-     * many followers the counts must agree, so a search or a page cut short is never taken for the
-     * whole list. More than the count means it lags, so wait for it. No followers is a whole list of none.
+     * count also counts accounts Instagram never lists, and it can stay put after someone leaves, so a
+     * list may stay a few short for good, by a gap that moves (#624: 548 of 550, then 547 of 550). Up
+     * to one in {@link #UNLISTED_PER} may be missing. Below that many followers the counts must agree,
+     * so a search is never taken for the whole list. A list Instagram calls finished a moment before
+     * its last page is in (#624: 525, then 547 3 ms later) is replaced by the whole one while it
+     * settles ({@link #SETTLE_MS}). More than the count means it lags, so wait for it. No followers is
+     * a whole list of none.
      */
     static boolean full(int loaded, int count) {
         return count >= 0 && loaded <= count && count - loaded <= count / UNLISTED_PER;
     }
 
     /** How many followers it takes for one to be missing from a whole list. */
-    static final int UNLISTED_PER = 200;
+    static final int UNLISTED_PER = 50;
 
     /** Whether [followers] isn't the list last taken for [viewer] in this run, and marks it taken. */
     private static long firstTake(String viewer, Map<String, String> followers) throws Exception {

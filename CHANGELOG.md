@@ -85,7 +85,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
-* `Recent unfollowers` now keeps your Followers list when Instagram lists a few fewer accounts than your follower count, like 548 of 550. The count includes deactivated accounts it never shows, so nothing was saved. Reported in #624.
+* `Recent unfollowers` now keeps your Followers list when Instagram lists a few fewer accounts than your follower count, like 547 of 550. The count includes accounts the list never shows and can lag behind someone leaving, so nothing was saved. A list may now be short by one in every 50 followers. Reported in #624.
 * With `Tab bar layout` set to a bar Instagram didn't pick, a tab like Home no longer opens blank after Android closes Instagram in the background. HushGram builds the missing page again. Reported in #535.
 * Picking `Download` or `Loop this story` in a story's menu plays the story on once the menu closes. It used to stay paused until you tapped it. Reported in #610.
 * Home stops asking for more pages after a few short ones again, with `Hide suggested posts` or another Feed switch taking most of each page out. Instagram's own page loads kept starting the count over. Reported in #579.

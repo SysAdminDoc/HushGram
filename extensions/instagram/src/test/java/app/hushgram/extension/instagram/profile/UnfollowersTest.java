@@ -193,45 +193,71 @@ public class UnfollowersTest {
         assertFalse(Unfollowers.full(3, -1));
     }
 
+    /**
+     * A list Instagram calls finished a moment before its last page is in, between two whole ones or
+     * ahead of one (#624: 525, then 547 3 ms later), is replaced while it settles, so nobody in that
+     * page shows up as left.
+     */
     @Test
-    public void aTransientTerminalPageDoesNotCreateFalseUnfollowers() {
+    public void aTransientTerminalPageDoesNotCreateFalseUnfollowers() throws Exception {
+        Settings.TRACK_UNFOLLOWERS.save(true);
         List<User> all = new ArrayList<>();
         for (int i = 0; i < 1_157; i++) all.add(new User("id" + i, "user" + i));
+        Map<String, String> whole = new LinkedHashMap<>();
+        for (User user : all) whole.put(user.id, user.username);
+        Unfollowers.take(context, ME, whole, 1);
+        List<Runnable> waiting = new ArrayList<>();
+        Unfollowers.later = (task, delay) -> waiting.add(task);
         FakeList list = new FakeList();
         list.count = all.size();
-        Unfollowers.Keeper save = (viewer, followers, when, generation) -> Unfollowers.take(context, viewer, followers, when);
-        assertTrue(Unfollowers.seen(all, list, list, ON, save, 100));
-        assertFalse(Unfollowers.seen(all.subList(0, 1_150), list, list, ON, save, 200));
-        assertFalse(Unfollowers.seen(all, list, list, ON, save, 300));
+
+        assertTrue(Unfollowers.seen(all, list, list, ON, Unfollowers.STORED, 100));
+        assertTrue(Unfollowers.seen(all.subList(0, 1_150), list, list, ON, Unfollowers.STORED, 200));
+        assertTrue(Unfollowers.seen(all, list, list, ON, Unfollowers.STORED, 300));
+        for (Runnable task : waiting) task.run();
+        Utils.awaitBackgroundTasksForTests();
+        assertEquals(300, Unfollowers.shown(context).checked);
         assertTrue(Unfollowers.shown(context).left.isEmpty());
 
-        list.count = 1_156;
-        assertTrue(Unfollowers.seen(all.subList(0, 1_156), list, list, ON, save, 400));
+        waiting.clear();
+        assertTrue(Unfollowers.seen(all.subList(0, 1_150), list, list, ON, Unfollowers.STORED, 400));
+        assertTrue(Unfollowers.seen(all.subList(0, 1_156), list, list, ON, Unfollowers.STORED, 400));
+        for (Runnable task : waiting) task.run();
+        Utils.awaitBackgroundTasksForTests();
+        assertEquals(400, Unfollowers.shown(context).checked);
         assertEquals(1, Unfollowers.shown(context).left.size());
         assertEquals("id1156", Unfollowers.shown(context).left.get(0).id);
     }
 
     @Test
-    public void aTerminalPageMayMissOneFollowerInTwoHundred() {
+    public void aTerminalPageMayMissOneFollowerInFifty() {
         assertFalse(Unfollowers.full(95, 100));
-        assertFalse(Unfollowers.full(99, 100));
+        assertFalse(Unfollowers.full(97, 100));
+        assertTrue(Unfollowers.full(98, 100));
         assertFalse(Unfollowers.full(19, 20));
+        assertFalse(Unfollowers.full(48, 49));
+        assertTrue(Unfollowers.full(49, 49));
+        assertTrue(Unfollowers.full(49, 50));
+        assertFalse(Unfollowers.full(48, 50));
         assertFalse(Unfollowers.full(12, 10));
         assertFalse(Unfollowers.full(551, 550));
         assertTrue(Unfollowers.full(100, 100));
         assertTrue(Unfollowers.full(0, 0));
-        assertTrue(Unfollowers.full(199, 200));
-        assertFalse(Unfollowers.full(198, 200));
-        assertTrue(Unfollowers.full(548, 550));
         assertTrue(Unfollowers.full(550, 550));
-        assertFalse(Unfollowers.full(547, 550));
-        assertTrue(Unfollowers.full(1_152, 1_157));
-        assertFalse(Unfollowers.full(1_151, 1_157));
+        assertTrue(Unfollowers.full(548, 550));
+        assertTrue(Unfollowers.full(547, 550));
+        assertTrue(Unfollowers.full(539, 550));
+        assertFalse(Unfollowers.full(538, 550));
+        assertFalse("a page of 25 short", Unfollowers.full(525, 550));
+        assertTrue(Unfollowers.full(1_134, 1_157));
+        assertFalse(Unfollowers.full(1_133, 1_157));
+        assertFalse("a page of 25 short", Unfollowers.full(1_132, 1_157));
     }
 
     /**
-     * #624: Instagram counted 550 followers but only ever listed 548, so no list was ever kept. The
-     * two it never lists never show up as left, and someone who really leaves still does.
+     * #624: Instagram counted 550 followers but listed 548, and 547 once someone left with the count
+     * still at 550, so no list was ever kept. The ones it never lists never show up as left, and
+     * someone who really leaves still does.
      */
     @Test
     public void aListThatNeverReachesTheCountIsStillKept() {
@@ -246,7 +272,6 @@ public class UnfollowersTest {
         assertEquals(100, Unfollowers.shown(context).checked);
         assertTrue(Unfollowers.shown(context).left.isEmpty());
 
-        list.count = 549;
         assertTrue(Unfollowers.seen(all.subList(1, 548), list, list, ON, save, 200));
         assertEquals(1, Unfollowers.shown(context).left.size());
         assertEquals("id0", Unfollowers.shown(context).left.get(0).id);
