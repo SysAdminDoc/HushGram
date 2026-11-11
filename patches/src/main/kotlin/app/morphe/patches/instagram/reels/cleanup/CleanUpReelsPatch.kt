@@ -55,11 +55,15 @@ private const val PATCH = "Clean up Reels"
  * floating bubbles and the Liked by or Followed by line with its faces. See ReelParts.kt for each
  * part.
  *
- * The top bar and its two buttons change no Instagram code: the extension's ReelsTopBar, started by
+ * The Reels viewer's own top bar and its two buttons change no Instagram code: the extension's ReelsTopBar, started by
  * the application hook the settings patch writes once this patch switches its status method on,
  * finds the bar by the class and id names Instagram keeps and hides it at runtime when its viewer
  * is the Reels tab's. It finds the Create button by the kind Instagram tags it with and Your
  * algorithm by its class, in the bar of any reel viewer, and sets just that button gone.
+ *
+ * A reel opened from Saved, a profile or a post gets the screen's own top bar instead, so the one
+ * place Instagram adds Create to that bar asks ReelsTopBar first, with the viewer's source, and
+ * leaves the button out when it's hidden (#620). See CameraButton.kt.
  *
  * The Friends tab has no name, id or tag to find it by, so the one place Instagram builds it, where
  * the tab gets its facepile icon, hands the tab's view to ReelsTopBar, which hides it the same way.
@@ -96,7 +100,9 @@ val cleanUpReelsPatch = bytecodePatch(
         val friendsRow = findFriendsRow()
         val friendPicks = findFriendPicks()
         val reelsPage = findReelsPage(PATCH)
+        val cameraButton = findCameraButton()
         hideReelParts()
+        hideCameraButton(cameraButton)
         markFriendsTab(friendsTab)
         keepFriendsRow(friendsRow)
         pickFriends(reelsPage, friendPicks)

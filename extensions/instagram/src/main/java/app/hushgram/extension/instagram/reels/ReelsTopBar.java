@@ -69,6 +69,12 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * collection (#620), by the viewer's source, one of {@link #SAVED}. A bar not bound to its viewer
  * yet keeps Create until its source is known.
  *
+ * <p>A reel opened from Saved, a profile or a post on 454 has no bar of that class: its top bar is
+ * the screen's own, and Instagram adds Create to it as the viewer sets the bar up. The Clean up
+ * Reels patch asks {@link #keepsCameraButton} there with the viewer's source, so both Create
+ * switches leave it out before it's built. A switch flipped while such a reel is open takes effect
+ * the next time its bar is set up.
+ *
  * <p>A fourth takes the Friends tab off the Reels tab's top bar (#300), the lane of reels the people
  * you follow shared. Its title comes from a string pack and its tab has no id or tag, so the Clean up
  * Reels patch hands each Friends tab's view to {@link #friendsTab} as Instagram builds it, where the
@@ -222,6 +228,30 @@ public final class ReelsTopBar {
     /** Whether [view] is a Friends tab Instagram built, as the patch handed it over. */
     static boolean isFriendsTab(View view) {
         return FRIENDS_TABS.contains(view);
+    }
+
+    /**
+     * Called by the patch as Instagram adds Create (+) to the screen's own top bar over a reel, with
+     * the viewer's source. False leaves the button out: Hide the Create button on reels is on, or the
+     * reel was opened from Saved or a collection and that switch is on. HushGram paused, the settings
+     * not read yet and anything thrown keep it.
+     */
+    public static boolean keepsCameraButton(Object source) {
+        try {
+            if (!Utils.settingsReady() || HushgramPause.isPaused()) return true;
+            boolean saved = source instanceof Enum && SAVED.contains(((Enum<?>) source).name())
+                    && Settings.HIDE_SAVED_REELS_CREATE_BUTTON.get();
+            if (saved) {
+                HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_SAVED_CREATE_HID);
+                return false;
+            }
+            if (!Settings.HIDE_REELS_CREATE_BUTTON.get()) return true;
+            HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_CREATE_HID);
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "Create button", failure);
+            return true;
+        }
     }
 
     /** Called as the application starts. Does nothing in a build without Clean up Reels. */

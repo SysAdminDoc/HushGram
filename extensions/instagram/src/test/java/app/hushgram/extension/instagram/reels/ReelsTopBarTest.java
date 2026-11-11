@@ -767,6 +767,33 @@ public class ReelsTopBarTest {
         assertFalse("paused", ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
     }
 
+    /** #620: the screen's own bar over a reel from Saved or a profile asks before Instagram adds Create. */
+    @Test public void keepsCameraButtonAnswersBothCreateSwitchesBySource() {
+        for (Object source : new Object[] {ClipsViewerSource.CLIPS_SAVED_TAB, ClipsViewerSource.PROFILE_CLIPS, null}) {
+            assertTrue("both off", ReelsTopBar.keepsCameraButton(source));
+        }
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(true);
+        assertFalse(ReelsTopBar.keepsCameraButton(ClipsViewerSource.CLIPS_SAVED_TAB));
+        assertFalse(ReelsTopBar.keepsCameraButton(ClipsViewerSource.SAVE_COLLECTION));
+        assertFalse(ReelsTopBar.keepsCameraButton(ClipsViewerSource.PRIME_SAVED_COLLECTION));
+        assertTrue("a profile's reels keep it", ReelsTopBar.keepsCameraButton(ClipsViewerSource.PROFILE_CLIPS));
+        assertTrue("the Reels tab keeps it", ReelsTopBar.keepsCameraButton(ClipsViewerSource.CLIPS_TAB));
+        assertTrue("no source", ReelsTopBar.keepsCameraButton(null));
+        assertTrue("not an enum", ReelsTopBar.keepsCameraButton("CLIPS_SAVED_TAB"));
+        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_SAVED_CREATE_HID, 3));
+
+        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(false);
+        Settings.HIDE_REELS_CREATE_BUTTON.save(true);
+        for (Object source : new Object[] {ClipsViewerSource.CLIPS_SAVED_TAB, ClipsViewerSource.PROFILE_CLIPS,
+                ClipsViewerSource.FEED_TIMELINE, null}) {
+            assertFalse("every reel loses it", ReelsTopBar.keepsCameraButton(source));
+        }
+        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_CREATE_HID, 4));
+
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("paused", ReelsTopBar.keepsCameraButton(ClipsViewerSource.PROFILE_CLIPS));
+    }
+
     @Test public void theButtonSwitchesStartOffAndAreInTheCleanUpReelsFamily() {
         assertFalse(Settings.HIDE_REELS_CREATE_BUTTON.defaultValue);
         assertFalse(Settings.HIDE_SAVED_REELS_CREATE_BUTTON.defaultValue);
