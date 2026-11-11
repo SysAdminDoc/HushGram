@@ -14,9 +14,11 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassOpacityRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassReelsHideRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassRefractRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.hapticStrengthRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.hapticStyleRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.startTabRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tabBarLayoutRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tapSoundVolumeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tabIconSizeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.slowsOlderPhones;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
@@ -157,6 +159,11 @@ final class TabBarCategory {
                         L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
                                 + "or swipe between screens.")));
                 glass.addPreference(hapticStyleRow(context));
+                glass.addPreference(hapticStrengthRow(context));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_TAP_SOUND, L10n.t("Tap sound on the tab bar"),
+                        L10n.t("A click each time the highlight moves to another tab, even with the phone's touch sounds "
+                                + "off. Silent and vibrate mode keep it quiet.")));
+                glass.addPreference(tapSoundVolumeRow(context));
                 glass.addPreference(glassHeightRow(context));
                 glass.addPreference(glassCornersRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, L10n.t("Hide the tab bar as you scroll"),

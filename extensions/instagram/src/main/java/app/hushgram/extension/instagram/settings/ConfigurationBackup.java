@@ -242,6 +242,8 @@ public final class ConfigurationBackup {
         }
         if (PatchFamily.GLASS_TAB_BAR.inBuild()) {
             settings.put(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE);
+            settings.put(Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key, Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH);
+            settings.put(Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key, Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME);
             settings.put(Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS);
             settings.put(Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_OPACITY);
             settings.put(Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.key, Settings.GLASS_TAB_BAR_REFRACT_STRENGTH);

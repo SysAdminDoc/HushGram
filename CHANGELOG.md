@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Haptic strength` sits under `Haptic style` in Tab bar and makes the glass tab bar's tick lighter or stronger, from 25% to 200%. Past 100%, a phone whose motor only runs at one strength gets a longer tick so it's easier to feel. `Tap sound on the tab bar` plays a click each time the highlight moves to another tab, even with the phone's touch sounds off, and `Tap sound volume` sets how loud. Silent and vibrate mode keep it quiet. Starts off. Asked for in #640.
 * `Glass in chats` now frosts the message bar at the bottom of a chat too, so messages blur as they scroll under it. A new switch, `Glass reply box on stories` under Stories, gives the Send message box on other people's stories the same glass so it's easy to read over any story. Starts off. Asked for in #391.
 * `Launch screen in the accent color` sits under `HushGram launch screen` in Layout. It fills the screen you see while Instagram starts with your accent color, or Instagram's blue while `Accent color` is off. A color you typed shows as the closest one in the list, since Android draws that screen before HushGram can. Starts off. Asked for in #528.
 * `Seek bar position` sits under the look choice of `Seek bar on stories`. Picking `Below the Send message box` moves the bar into the space under the reply box at the bottom of a story, and it stays above the box where there's no room under it. Asked for in #636.

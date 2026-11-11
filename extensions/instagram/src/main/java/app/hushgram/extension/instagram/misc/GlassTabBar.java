@@ -2893,7 +2893,10 @@ public final class GlassTabBar {
                 capsule.inset(-half, -half);
             }
 
-            /** A light tick each time the capsule's middle moves over a different tab, wherever the tab was moved to. */
+            /**
+             * A light tick, and the click when Tap sound on the tab bar is on (#640), each time the capsule's middle
+             * moves over a different tab, wherever the tab was moved to.
+             */
             private void tick(float middle) {
                 int over = -1;
                 for (int i = 0; i < bar.getChildCount(); i++) {
@@ -2908,10 +2911,12 @@ public final class GlassTabBar {
                 if (over < 0 || over == tickedTab) return;
                 boolean first = tickedTab < 0;
                 tickedTab = over;
-                if (!first && haptics && !tickedThisSlide) {
-                    tickedThisSlide = true;
-                    Haptics.tick(bar, hapticStyle);
-                }
+                if (first || tickedThisSlide) return;
+                boolean sound = Settings.GLASS_TAB_BAR_TAP_SOUND.get();
+                if (!haptics && !sound) return;
+                tickedThisSlide = true;
+                if (haptics) Haptics.tick(bar, hapticStyle, Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.get());
+                if (sound) TapSound.click(bar, Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.get());
             }
 
             /** Draws the backdrop node recorded for this frame into the pill, and says whether it did. */
@@ -3334,6 +3339,11 @@ public final class GlassTabBar {
      * the phone's touch feedback setting and never hold up a frame; a call to the system on the UI thread can take
      * a few milliseconds. Older Android uses the view's own haptics for the light and full ticks. Ticks closer
      * together than {@link #MIN_TICK_GAP_MS} are dropped.
+     *
+     * <p>Haptic strength (#640) moves each style off its own tick, as {@link #plan} works out: lighter is the
+     * built-in tick, a weaker pulse or a smaller primitive, and stronger is the built-in heavy click, a harder
+     * and then longer pulse, or the click primitive. A motor that runs at only one strength can only be made
+     * stronger by running it longer, so above 100% it plays a pulse of {@link #PULSE_MS} times the strength.
      */
     static final class Haptics {
         /** How much of the phone's tick primitive the light tick plays. */
@@ -3341,7 +3351,11 @@ public final class GlassTabBar {
         /** The short pulse: how long, and how hard of 255. */
         static final int SHORT_MS = 4;
         static final int SHORT_AMPLITUDE = 170;
+        /** At 100% strength, how long the pulse is on a motor that runs at only one strength. */
+        static final int PULSE_MS = 15;
         static final long MIN_TICK_GAP_MS = 35;
+        private static final int TICK_PRIMITIVE = 1;
+        private static final int CLICK_PRIMITIVE = 2;
 
         private static Handler handler;
         private static long lastTick;
@@ -3355,7 +3369,89 @@ public final class GlassTabBar {
             return now - last >= MIN_TICK_GAP_MS;
         }
 
-        static void tick(View view, HapticStyle style) {
+        /**
+         * What one tick plays: a built-in effect, a pulse, or a primitive at a scale. Worked out apart from the
+         * vibrator, so a test can read it.
+         */
+        static final class Plan {
+            /** A built-in effect, or -1. */
+            final int effect;
+            /** A pulse's length and strength, read when there's no effect or primitive. */
+            final int ms;
+            final int amplitude;
+            /** A primitive and its scale, or -1. */
+            final int primitive;
+            final float scale;
+
+            private Plan(int effect, int ms, int amplitude, int primitive, float scale) {
+                this.effect = effect;
+                this.ms = ms;
+                this.amplitude = amplitude;
+                this.primitive = primitive;
+                this.scale = scale;
+            }
+
+            static Plan effect(int id) {
+                return new Plan(id, 0, 0, -1, 0f);
+            }
+
+            static Plan pulse(int ms, int amplitude) {
+                return new Plan(-1, ms, amplitude, -1, 0f);
+            }
+
+            static Plan primitive(int id, float scale) {
+                return new Plan(-1, 0, 0, id, scale);
+            }
+
+            android.os.VibrationEffect build() {
+                if (primitive >= 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    return android.os.VibrationEffect.startComposition().addPrimitive(primitive, scale).compose();
+                }
+                if (effect >= 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    return android.os.VibrationEffect.createPredefined(effect);
+                }
+                return android.os.VibrationEffect.createOneShot(ms, amplitude);
+            }
+        }
+
+        /**
+         * The tick [style] plays at [percent] strength on Android [sdk], on a motor with or without
+         * [amplitudeControl] that can or can't play the tick and click primitives. At 100% each style plays
+         * the tick it always has.
+         */
+        static Plan plan(HapticStyle style, int percent, int sdk, boolean amplitudeControl,
+                         boolean tickPrimitive, boolean clickPrimitive) {
+            float strength = percent / 100f;
+            if (!amplitudeControl && percent > 100) {
+                return Plan.pulse(Math.round(PULSE_MS * strength), android.os.VibrationEffect.DEFAULT_AMPLITUDE);
+            }
+            if (style == HapticStyle.SYSTEM && sdk >= Build.VERSION_CODES.Q) {
+                return Plan.effect(percent < 100 ? android.os.VibrationEffect.EFFECT_TICK
+                        : percent > 100 ? android.os.VibrationEffect.EFFECT_HEAVY_CLICK
+                        : android.os.VibrationEffect.EFFECT_CLICK);
+            }
+            if (style == HapticStyle.SHORT && amplitudeControl) {
+                // Past the motor's top strength, the rest goes into the length.
+                float wanted = SHORT_AMPLITUDE * strength;
+                return Plan.pulse(Math.max(SHORT_MS, Math.round(SHORT_MS * wanted / 255f)),
+                        Math.max(1, Math.min(255, Math.round(wanted))));
+            }
+            if (sdk >= Build.VERSION_CODES.R && tickPrimitive) {
+                float scale = (style == HapticStyle.FULL ? 1f : SOFT_SCALE) * strength;
+                if (scale > 1f && clickPrimitive) {
+                    return Plan.primitive(android.os.VibrationEffect.Composition.PRIMITIVE_CLICK, Math.min(1f, scale / 2f));
+                }
+                return Plan.primitive(android.os.VibrationEffect.Composition.PRIMITIVE_TICK, Math.min(1f, scale));
+            }
+            // Android 9 has no predefined effects, so a motor without amplitude control gets the short pulse.
+            if (sdk >= Build.VERSION_CODES.Q) {
+                return Plan.effect(percent > 100 ? android.os.VibrationEffect.EFFECT_HEAVY_CLICK
+                        : android.os.VibrationEffect.EFFECT_TICK);
+            }
+            return Plan.pulse(SHORT_MS, android.os.VibrationEffect.DEFAULT_AMPLITUDE);
+        }
+
+        static void tick(View view, HapticStyle style, int percent) {
             try {
                 long now = android.os.SystemClock.uptimeMillis();
                 if (!farEnough(now, lastTick)) return;
@@ -3371,41 +3467,29 @@ public final class GlassTabBar {
                             : HapticFeedbackConstants.TEXT_HANDLE_MOVE);
                     return;
                 }
-                handler().post(() -> play(context, style));
+                handler().post(() -> play(context, style, percent));
             } catch (Throwable failure) {
                 diagnose("haptic failed", failure);
             }
         }
 
-        private static void play(Context context, HapticStyle style) {
+        private static void play(Context context, HapticStyle style, int percent) {
             try {
                 android.os.Vibrator vibrator = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
                         ? context.getSystemService(android.os.VibratorManager.class).getDefaultVibrator()
                         : (android.os.Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
                 if (vibrator == null || !vibrator.hasVibrator()) return;
-                android.os.VibrationEffect effect = null;
+                if (primitives < 0) {
+                    primitives = Build.VERSION.SDK_INT < Build.VERSION_CODES.R ? 0
+                            : (vibrator.areAllPrimitivesSupported(android.os.VibrationEffect.Composition.PRIMITIVE_TICK)
+                                    ? TICK_PRIMITIVE : 0)
+                            | (vibrator.areAllPrimitivesSupported(android.os.VibrationEffect.Composition.PRIMITIVE_CLICK)
+                                    ? CLICK_PRIMITIVE : 0);
+                }
                 // Before Android 10 the system tick never gets here: tick() plays it through the view.
-                if (style == HapticStyle.SYSTEM && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_CLICK);
-                } else if (style == HapticStyle.SHORT && vibrator.hasAmplitudeControl()) {
-                    effect = android.os.VibrationEffect.createOneShot(SHORT_MS, SHORT_AMPLITUDE);
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    if (primitives < 0) {
-                        primitives = vibrator.areAllPrimitivesSupported(
-                                android.os.VibrationEffect.Composition.PRIMITIVE_TICK) ? 1 : 0;
-                    }
-                    if (primitives == 1) {
-                        effect = android.os.VibrationEffect.startComposition().addPrimitive(
-                                android.os.VibrationEffect.Composition.PRIMITIVE_TICK,
-                                style == HapticStyle.FULL ? 1f : SOFT_SCALE).compose();
-                    }
-                }
-                // Android 9 has no predefined effects, so a motor without amplitude control gets the short pulse.
-                if (effect == null) {
-                    effect = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-                            ? android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_TICK)
-                            : android.os.VibrationEffect.createOneShot(SHORT_MS, android.os.VibrationEffect.DEFAULT_AMPLITUDE);
-                }
+                android.os.VibrationEffect effect = plan(style, percent, Build.VERSION.SDK_INT,
+                        vibrator.hasAmplitudeControl(), (primitives & TICK_PRIMITIVE) != 0,
+                        (primitives & CLICK_PRIMITIVE) != 0).build();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     vibrator.vibrate(effect, android.os.VibrationAttributes.createForUsage(
                             android.os.VibrationAttributes.USAGE_TOUCH));
@@ -3424,6 +3508,51 @@ public final class GlassTabBar {
                 handler = new Handler(thread.getLooper());
             }
             return handler;
+        }
+    }
+
+    /**
+     * The click when the capsule moves to another tab (#640): the phone's own key click at a volume of our
+     * own, which plays whether the phone's touch sounds are on or not. It goes out on the system stream, so
+     * the phone's system volume still applies and silent and vibrate mode keep it quiet. It plays on the
+     * haptics thread, and clicks closer together than {@link Haptics#MIN_TICK_GAP_MS} are dropped.
+     */
+    static final class TapSound {
+        private static long lastClick;
+
+        private TapSound() {
+        }
+
+        /**
+         * The click's volume at [percent] of the slider. The system takes a raw scalar, and an ear hears
+         * loudness on a curve, so the slider's share is squared: 70% is about the phone's own click.
+         */
+        static float volumeOf(int percent) {
+            float share = Math.max(0f, Math.min(1f, percent / 100f));
+            return share * share;
+        }
+
+        static void click(View view, int percent) {
+            try {
+                long now = android.os.SystemClock.uptimeMillis();
+                if (!Haptics.farEnough(now, lastClick)) return;
+                lastClick = now;
+                Context context = view.getContext().getApplicationContext();
+                float volume = volumeOf(percent);
+                Haptics.handler().post(() -> play(context, volume));
+            } catch (Throwable failure) {
+                diagnose("tap sound failed", failure);
+            }
+        }
+
+        private static void play(Context context, float volume) {
+            try {
+                android.media.AudioManager audio =
+                        (android.media.AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                if (audio != null) audio.playSoundEffect(android.media.AudioManager.FX_KEY_CLICK, volume);
+            } catch (Throwable failure) {
+                diagnose("tap sound failed", failure);
+            }
         }
     }
 }

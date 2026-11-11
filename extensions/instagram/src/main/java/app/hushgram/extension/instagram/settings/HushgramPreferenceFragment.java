@@ -757,7 +757,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
                     belongs |= family == PatchFamily.FULL_SCREEN_BARS && Settings.FULL_SCREEN_HIDES.key.equals(key);
-                    belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
+                    belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key)
+                            || Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key.equals(key)
+                            || Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key.equals(key));
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key) || Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.key.equals(key)
                             || Settings.GLASS_TAB_BAR_BLUR_RADIUS.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
@@ -5068,6 +5070,22 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setEntries(entries);
         row.setEntryValues(values);
         row.setValue(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.savedValue().name());
+        return row;
+    }
+
+    /** How hard the glass tab bar's tick is, from a slider in percent of its style's own tick (#640). */
+    static SliderRow hapticStrengthRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH, 25, L10n.t("%1$d%%"));
+        row.setTitle(L10n.t("Haptic strength"));
+        row.setText(String.valueOf(Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.savedValue()));
+        return row;
+    }
+
+    /** How loud the glass tab bar's click is, from a slider in percent (#640). */
+    static SliderRow tapSoundVolumeRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME, 10, L10n.t("%1$d%%"));
+        row.setTitle(L10n.t("Tap sound volume"));
+        row.setText(String.valueOf(Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.savedValue()));
         return row;
     }
 

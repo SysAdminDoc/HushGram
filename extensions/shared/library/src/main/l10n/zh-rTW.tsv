@@ -2159,3 +2159,7 @@ The bar sits in the space under the Send message box. Where there's no room unde
 # context: Layout switch right under HushGram launch screen; it fills the screen Android shows while Instagram starts with the accent color. Accent color is that Layout switch's own label, Custom the accent list's choice for a typed color (#528)
 Launch screen in the accent color	啟動畫面使用強調色
 Fills that screen with the accent color, or Instagram's blue while Accent color is off. A custom color shows as the closest one in the list. It shows from the next start.	以強調色填滿該畫面，關閉強調色時則使用 Instagram 的藍色。自訂顏色會以清單中最接近的顏色顯示。下次啟動時顯示。
+Haptic strength	觸覺回饋強度
+Tap sound on the tab bar	分頁列觸控音效
+A click each time the highlight moves to another tab, even with the phone's touch sounds off. Silent and vibrate mode keep it quiet.	每當標示移到另一個分頁時發出點擊聲，即使手機的觸控音效已關閉也會播放。靜音和震動模式下不會發出聲音。
+Tap sound volume	觸控音效音量

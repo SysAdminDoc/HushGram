@@ -1766,6 +1766,28 @@ public class Settings extends BaseSettings {
                     app.hushgram.extension.instagram.misc.HapticStyle.SYSTEM, parent(GLASS_TAB_BAR_HAPTICS));
 
     /**
+     * Under {@link #GLASS_TAB_BAR_HAPTICS}: how hard the tick is, in percent of the tick its style has always
+     * played, from a slider (#640). A motor that runs at only one strength gets a longer tick above 100%
+     * instead. Read at each tick, so a change shows without a restart.
+     */
+    public static final IntegerSetting GLASS_TAB_BAR_HAPTIC_STRENGTH =
+            new IntegerSetting("hushgram_glass_tab_bar_haptic_strength_percent", 100, false, parent(GLASS_TAB_BAR_HAPTICS))
+                    .withRange(25, 200);
+
+    /**
+     * Under {@link #GLASS_TAB_BAR}: the phone's key click each time the highlight moves to another tab (#640),
+     * whether the phone's own touch sounds are on or not. Silent and vibrate mode keep it quiet. Read at each
+     * tab change, so a change shows without a restart. Off to start.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_TAP_SOUND =
+            new BooleanSetting("hushgram_glass_tab_bar_tap_sound", FALSE, false, parent(GLASS_TAB_BAR));
+
+    /** Under {@link #GLASS_TAB_BAR_TAP_SOUND}: how loud the click is, in percent, from a slider (#640). */
+    public static final IntegerSetting GLASS_TAB_BAR_TAP_SOUND_VOLUME =
+            new IntegerSetting("hushgram_glass_tab_bar_tap_sound_volume_percent", 70, false, parent(GLASS_TAB_BAR_TAP_SOUND))
+                    .withRange(10, 100);
+
+    /**
      * Under {@link #GLASS_TAB_BAR}: how strong the pill's tint is, in percent of the look the bar has always
      * had, from a slider (#391). Lower is clearer, higher more frosted. Read as the pill draws, so a change
      * shows on the bar without a restart.

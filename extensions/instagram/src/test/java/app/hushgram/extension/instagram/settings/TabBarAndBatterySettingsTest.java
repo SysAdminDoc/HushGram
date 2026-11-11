@@ -87,6 +87,9 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
+        Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.resetToDefault();
+        Settings.GLASS_TAB_BAR_TAP_SOUND.resetToDefault();
+        Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
@@ -119,7 +122,8 @@ public class TabBarAndBatterySettingsTest {
         open();
         for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
                 Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key,
-                Settings.STOP_UPLOAD_ALARM.key, Settings.STOP_BACKGROUND_FETCH.key)) {
+                Settings.STOP_UPLOAD_ALARM.key, Settings.STOP_BACKGROUND_FETCH.key, Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key,
+                Settings.GLASS_TAB_BAR_TAP_SOUND.key, Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key)) {
             assertNull(key, row(key));
         }
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key));
@@ -135,7 +139,7 @@ public class TabBarAndBatterySettingsTest {
         assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR, Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT,
                 Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE,
                 Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE, Settings.GLASS_TAB_BAR_REFRACT,
-                Settings.GLASS_TAB_BAR_REELS_BEHIND),
+                Settings.GLASS_TAB_BAR_REELS_BEHIND, Settings.GLASS_TAB_BAR_TAP_SOUND),
                 PatchFamily.GLASS_TAB_BAR.switches);
         for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key,
                 Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key, Settings.GLASS_TAB_BAR_SLIDE.key, Settings.GLASS_TAB_BAR_LIQUID.key,
@@ -156,6 +160,57 @@ public class TabBarAndBatterySettingsTest {
         assertEquals(HapticStyle.SOFT, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.savedValue());
         assertEquals("Soft tick", String.valueOf(tick.getSummary()));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key));
+    }
+
+    /**
+     * #640: right after the tick choice come Haptic strength (25% to 200% in 25% notches), the tap sound switch
+     * and its volume (10% to 100%), each starting where the bar has always been, changing it at once, backed up,
+     * and the sliders naming the switch they wait on.
+     */
+    @Test public void hapticStrengthAndTheTapSoundFollowTheTickChoice() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), row(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key));
+        List<String> keys = new ArrayList<>();
+        for (int i = 0; i < section.getPreferenceCount(); i++) keys.add(section.getPreference(i).getKey());
+        int style = keys.indexOf(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key);
+        assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key, Settings.GLASS_TAB_BAR_TAP_SOUND.key,
+                Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key), keys.subList(style + 1, style + 4));
+
+        HushgramPreferenceFragment.SliderRow strength = (HushgramPreferenceFragment.SliderRow) row(Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key);
+        HushgramPreferenceFragment.SliderRow volume = (HushgramPreferenceFragment.SliderRow) row(Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key);
+        SwitchPreference sound = (SwitchPreference) row(Settings.GLASS_TAB_BAR_TAP_SOUND.key);
+        assertEquals("Haptic strength", String.valueOf(strength.getTitle()));
+        assertEquals("Tap sound volume", String.valueOf(volume.getTitle()));
+        assertEquals("Tap sound on the tab bar", String.valueOf(sound.getTitle()));
+        assertFalse(sound.isChecked());
+        assertEquals("Turn on Glass tab bar to use this slider.", String.valueOf(strength.getSummary()));
+
+        ((SwitchPreference) row(Settings.GLASS_TAB_BAR.key)).setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertEquals("100% (standard)", String.valueOf(strength.getSummary()));
+        assertEquals("Turn on Tap sound on the tab bar to use this slider.", String.valueOf(volume.getSummary()));
+        assertEquals("25% to 200% in 25% notches", 7, sliderOf(strength).getMax());
+        assertEquals(3, sliderOf(strength).getProgress());
+        strength.choose(200);
+        ShadowLooper.idleMainLooper();
+        assertEquals(200, (int) Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.savedValue());
+        assertEquals("200%", String.valueOf(strength.getSummary()));
+
+        sound.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(Settings.GLASS_TAB_BAR_TAP_SOUND.savedValue());
+        assertEquals("70% (standard)", String.valueOf(volume.getSummary()));
+        assertEquals("10% to 100% in 10% notches", 9, sliderOf(volume).getMax());
+        volume.choose(40);
+        ShadowLooper.idleMainLooper();
+        assertEquals(40, (int) Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.savedValue());
+
+        for (Setting<?> live : List.of(Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH, Settings.GLASS_TAB_BAR_TAP_SOUND,
+                Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME)) {
+            assertFalse(live.key + " shows on the bar's next tick", live.rebootApp);
+            assertFalse(live.key, AbstractPreferenceFragment.restartPending.contains(live.key));
+            assertTrue(live.key, ConfigurationBackup.eligible().containsKey(live.key));
+        }
     }
 
     /** Tint intensity (#391) is a slider in steps of 5%, from see-through to past solid, starting on today's tint. */

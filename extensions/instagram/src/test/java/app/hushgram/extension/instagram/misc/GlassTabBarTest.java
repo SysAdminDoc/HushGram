@@ -86,11 +86,15 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
+        Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.resetToDefault();
+        Settings.GLASS_TAB_BAR_TAP_SOUND.resetToDefault();
+        Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.resetToDefault();
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
+        GlassTabBar.animationsOnForTests = null;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         GlassTabBar.resetForTests();
@@ -2099,6 +2103,118 @@ public class GlassTabBarTest {
         // The short pulse is short and clearly felt, not a long weak buzz.
         assertTrue(GlassTabBar.Haptics.SHORT_MS >= 3 && GlassTabBar.Haptics.SHORT_MS <= 10);
         assertTrue(GlassTabBar.Haptics.SHORT_AMPLITUDE > 100 && GlassTabBar.Haptics.SHORT_AMPLITUDE <= 255);
+    }
+
+    /**
+     * #640: at 100% every style plays the tick it always has. Lighter and stronger move it to the built-in
+     * tick or heavy click, a weaker or harder and longer pulse, or a smaller primitive or the click primitive,
+     * and a motor that runs at one strength only gets a longer pulse above 100%.
+     */
+    @Test
+    public void hapticStrengthMovesEachStyleOffItsOwnTick() {
+        int q = android.os.Build.VERSION_CODES.Q;
+        int t = android.os.Build.VERSION_CODES.TIRAMISU;
+        int tick = android.os.VibrationEffect.Composition.PRIMITIVE_TICK;
+        int click = android.os.VibrationEffect.Composition.PRIMITIVE_CLICK;
+        assertEquals(100, (int) Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.defaultValue);
+
+        GlassTabBar.Haptics.Plan plan = GlassTabBar.Haptics.plan(HapticStyle.SYSTEM, 100, t, true, true, true);
+        assertEquals(android.os.VibrationEffect.EFFECT_CLICK, plan.effect);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SYSTEM, 50, t, true, true, true);
+        assertEquals(android.os.VibrationEffect.EFFECT_TICK, plan.effect);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SYSTEM, 150, t, true, true, true);
+        assertEquals(android.os.VibrationEffect.EFFECT_HEAVY_CLICK, plan.effect);
+
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SHORT, 100, t, true, true, true);
+        assertEquals(-1, plan.effect);
+        assertEquals(-1, plan.primitive);
+        assertEquals(GlassTabBar.Haptics.SHORT_MS, plan.ms);
+        assertEquals(GlassTabBar.Haptics.SHORT_AMPLITUDE, plan.amplitude);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SHORT, 50, t, true, true, true);
+        assertEquals(GlassTabBar.Haptics.SHORT_MS, plan.ms);
+        assertEquals(85, plan.amplitude);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SHORT, 200, t, true, true, true);
+        assertEquals("past the motor's top, the rest goes into the length", 255, plan.amplitude);
+        assertTrue(plan.ms > GlassTabBar.Haptics.SHORT_MS);
+
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SOFT, 100, t, true, true, true);
+        assertEquals(tick, plan.primitive);
+        assertEquals(GlassTabBar.Haptics.SOFT_SCALE, plan.scale, 0.001f);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SOFT, 50, t, true, true, true);
+        assertEquals(GlassTabBar.Haptics.SOFT_SCALE / 2f, plan.scale, 0.001f);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.FULL, 100, t, true, true, true);
+        assertEquals(tick, plan.primitive);
+        assertEquals(1f, plan.scale, 0.001f);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.FULL, 200, t, true, true, true);
+        assertEquals("a full tick made stronger is the click primitive", click, plan.primitive);
+        assertEquals(1f, plan.scale, 0.001f);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.FULL, 200, t, true, true, false);
+        assertEquals("without the click primitive the tick stays at its top", tick, plan.primitive);
+        assertEquals(1f, plan.scale, 0.001f);
+
+        // A motor that runs at one strength only (#640's phone may be one): the built-in effects as before
+        // up to 100%, and a pulse that grows with the slider above it.
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SYSTEM, 100, t, false, false, false);
+        assertEquals(android.os.VibrationEffect.EFFECT_CLICK, plan.effect);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SHORT, 100, t, false, false, false);
+        assertEquals(android.os.VibrationEffect.EFFECT_TICK, plan.effect);
+        for (HapticStyle style : HapticStyle.values()) {
+            GlassTabBar.Haptics.Plan stronger = GlassTabBar.Haptics.plan(style, 150, t, false, true, true);
+            GlassTabBar.Haptics.Plan strongest = GlassTabBar.Haptics.plan(style, 200, t, false, true, true);
+            assertEquals(style.name(), -1, stronger.effect);
+            assertEquals(style.name(), -1, stronger.primitive);
+            assertEquals(style.name(), android.os.VibrationEffect.DEFAULT_AMPLITUDE, stronger.amplitude);
+            assertEquals(style.name(), Math.round(GlassTabBar.Haptics.PULSE_MS * 1.5f), stronger.ms);
+            assertEquals(style.name(), GlassTabBar.Haptics.PULSE_MS * 2, strongest.ms);
+        }
+        assertTrue("long enough for a coin motor to spin up", GlassTabBar.Haptics.PULSE_MS * 2 >= 25);
+
+        // Android 10, before primitives, still plays the built-in tick, heavier when stronger.
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SOFT, 100, q, true, false, false);
+        assertEquals(android.os.VibrationEffect.EFFECT_TICK, plan.effect);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.SOFT, 150, q, true, false, false);
+        assertEquals(android.os.VibrationEffect.EFFECT_HEAVY_CLICK, plan.effect);
+    }
+
+    /** #640: the click's volume follows the slider on a curve, 70% close to the phone's own click and 100% full. */
+    @Test
+    public void theTapSoundVolumeFollowsTheSliderOnACurve() {
+        assertEquals(70, (int) Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.defaultValue);
+        assertFalse("off to start", Settings.GLASS_TAB_BAR_TAP_SOUND.defaultValue);
+        assertEquals(1f, GlassTabBar.TapSound.volumeOf(100), 0.001f);
+        assertEquals(0.49f, GlassTabBar.TapSound.volumeOf(70), 0.001f);
+        assertEquals(0.01f, GlassTabBar.TapSound.volumeOf(10), 0.001f);
+        assertTrue(GlassTabBar.TapSound.volumeOf(40) < GlassTabBar.TapSound.volumeOf(50));
+        assertEquals(1f, GlassTabBar.TapSound.volumeOf(150), 0.001f);
+    }
+
+    /**
+     * #640: with the haptics off, the highlight moving to another tab clicks once Tap sound on the tab bar is
+     * on, read as it moves so no restart is needed, and stays quiet while it's off.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 34, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void theTapSoundClicksWhenTheHighlightMovesToAnotherTab() throws Exception {
+        GlassTabBar.animationsOnForTests = false;
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            GlassTabBar.apply(host.activity);
+            host.layout();
+            ReflectionHelpers.setStaticField(GlassTabBar.TapSound.class, "lastClick", 0L);
+            assertTrue(host.bar.getChildAt(0).performClick());
+            host.background().close();
+            assertTrue(host.bar.getChildAt(3).performClick());
+            host.background().close();
+            assertEquals("off, nothing plays", 0L, (long) ReflectionHelpers.getStaticField(GlassTabBar.TapSound.class, "lastClick"));
+
+            Settings.GLASS_TAB_BAR_TAP_SOUND.save(true);
+            assertTrue(host.bar.getChildAt(1).performClick());
+            host.background().close();
+            assertTrue("on, the move to another tab clicks",
+                    (long) ReflectionHelpers.getStaticField(GlassTabBar.TapSound.class, "lastClick") > 0L);
+        } finally {
+            ReflectionHelpers.setStaticField(GlassTabBar.TapSound.class, "lastClick", 0L);
+        }
     }
 
     /**
