@@ -371,7 +371,7 @@ private val pureBlackStylesPatch = resourcePatch {
 val pureBlackPatch = bytecodePatch(
     name = "Pure black dark mode",
     description = "Makes Instagram's dark mode pure black instead of dark gray, on the menus that slide up from " +
-        "the bottom, the one you get by holding a message or a chat, and the notes above your chats too. It looks deeper and can save battery on an " +
+        "the bottom, the one you get by holding a message or a chat, the one the + in a chat opens, and the notes above your chats too. It looks deeper and can save battery on an " +
         "OLED screen. Buttons keep their grays so they " +
         "stay easy to see. Works as soon as you patch it in, with no switch.",
     default = false,
