@@ -2130,3 +2130,7 @@ Follow	Takip Et
 # context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
 Open reel links on that reel	Reel bağlantılarını o reel'de aç
 A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	Bir reel bağlantısı, gösterdiği reel'i açar. O reel yüklenirken Instagram telefonunda sakladığı başka bir reel'i oynatmaz.
+# context: Stories settings: moves the story speed button into a video story's three-dot menu as a Playback speed row (#621)
+Speed in the story menu	Hikaye menüsünde hız
+# context: Summary of Speed in the story menu; Playback speed is the row's own label (#621)
+Adds Playback speed to the menu a video story's three dots open, with the same 1x, 1.5x and 2x, and keeps the speed button off the story. Later video stories keep the speed you pick until you change it or restart Instagram.	Bir video hikayesinin üç noktasının açtığı menüye aynı 1x, 1,5x ve 2x ile Oynatma hızı ekler ve hız düğmesini hikayeden kaldırır. Sonraki video hikayeleri, sen değiştirene veya Instagram'ı yeniden başlatana kadar seçtiğin hızı korur.

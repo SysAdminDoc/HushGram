@@ -1340,6 +1340,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_story_speed_button", FALSE);
 
     /**
+     * Playback speed in a video story's three-dot menu instead of the speed button (#621): the same
+     * 1x, 1.5x and 2x, picked from a list and kept for the next video stories like the button's
+     * ({@link app.hushgram.extension.instagram.stories.StorySpeed}). On, the button stays hidden. The
+     * row rides on Download any story's menu hooks. Off to start.
+     */
+    public static final BooleanSetting STORY_SPEED_IN_MENU =
+            new BooleanSetting("hushgram_story_speed_in_menu", FALSE);
+
+    /**
      * Home opening on the Following feed, with Instagram's For you and Following picker at its top,
      * while you haven't picked a feed there. Instagram remembers a pick from then on. Off to start.
      */

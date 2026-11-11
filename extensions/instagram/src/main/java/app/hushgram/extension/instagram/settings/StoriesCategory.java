@@ -119,6 +119,13 @@ final class StoriesCategory {
                     L10n.t("Puts a speed button at the top of a video story, beside the three dots. Tap it for "
                             + "1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you "
                             + "change it or restart Instagram. Ads play at normal speed.")));
+            // The menu row rides on Download any story's menu hooks (#621).
+            if (build.contains(PatchFamily.STORY_DOWNLOAD)) {
+                stories.add(toggle(context, Settings.STORY_SPEED_IN_MENU, L10n.t("Speed in the story menu"),
+                        L10n.t("Adds Playback speed to the menu a video story's three dots open, with the same 1x, "
+                                + "1.5x and 2x, and keeps the speed button off the story. Later video stories keep "
+                                + "the speed you pick until you change it or restart Instagram.")));
+            }
         }
         if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
             stories.add(toggle(context, Settings.FILL_STORY_SCREEN, L10n.t("Stories fill the screen"),

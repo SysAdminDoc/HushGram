@@ -20,6 +20,7 @@ import java.util.Set;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.stories.StoryLoop;
+import app.hushgram.extension.instagram.stories.StorySpeed;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -49,6 +50,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>With Loop a story in the build and its switch off, the menu also gets Loop this story last,
  * whatever the Download switch says, and a tap on it loops that story through {@link StoryLoop}
  * (#610). The row reads Stop looping this story once it loops.
+ *
+ * <p>With Speed in the story menu on, a video story's menu also gets Playback speed after that,
+ * whatever the Download switch says, and a tap on it opens the speeds through {@link StorySpeed}
+ * (#621). The story stays paused until that list closes.
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with the switch
  * off, or when something throws, the menu is Instagram's own.
@@ -121,15 +126,16 @@ public final class StoryDownload {
     /**
      * The labels [labels] of a story's menu, with HushGram's rows at the end when the switch is on:
      * Download, Download as video and Download as photo for a photo story with music, or Download
-     * and Download as photo for a filmed video. Loop this story goes last when the story gets it
-     * ({@link #loopLabel}). A menu that has the rows already is left alone. Never throws.
+     * and Download as photo for a filmed video. Loop this story goes after them when the story gets
+     * it ({@link #loopLabel}), and Playback speed last ({@link #speedLabel}). A menu that has the
+     * rows already is left alone. Never throws.
      */
     public static CharSequence[] labels(CharSequence[] labels) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
             if (labels == null) return labels;
             Object menu = building.get();
-            return withLoop(on() ? labels(labels, rows(menu)) : labels, menu);
+            return withSpeed(withLoop(on() ? labels(labels, rows(menu)) : labels, menu), menu);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return labels;
@@ -140,8 +146,19 @@ public final class StoryDownload {
     private static CharSequence[] withLoop(CharSequence[] labels, Object menu) {
         String loop = loopLabel(menu);
         if (loop == null || hasLoop(Arrays.asList(labels))) return labels;
+        return plus(labels, loop);
+    }
+
+    /** [labels] with Playback speed at the end when the story [menu] is open on gets it. */
+    private static CharSequence[] withSpeed(CharSequence[] labels, Object menu) {
+        String speed = speedLabel(menu);
+        if (speed == null || hasSpeed(Arrays.asList(labels))) return labels;
+        return plus(labels, speed);
+    }
+
+    private static CharSequence[] plus(CharSequence[] labels, String row) {
         CharSequence[] more = Arrays.copyOf(labels, labels.length + 1);
-        more[labels.length] = loop;
+        more[labels.length] = row;
         return more;
     }
 
@@ -169,6 +186,8 @@ public final class StoryDownload {
             if (on()) addRows(labels, labels(new CharSequence[0], rows(menu)));
             String loop = loopLabel(menu);
             if (loop != null && !hasLoop(labels)) labels.add(loop);
+            String speed = speedLabel(menu);
+            if (speed != null && !hasSpeed(labels)) labels.add(speed);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
         }
@@ -209,6 +228,27 @@ public final class StoryDownload {
         Context context = Utils.getContext();
         return L10n.t(context, "Loop this story").contentEquals(label)
                 || L10n.t(context, "Stop looping this story").contentEquals(label);
+    }
+
+    /**
+     * Playback speed for the story [menu] is open on, or null when its menu doesn't get the row:
+     * Speed in the story menu is off or not in the build, or the story has no video to speed up.
+     */
+    @Nullable
+    static String speedLabel(Object menu) {
+        if (menu == null || !StorySpeed.offersRow()) return null;
+        Object media = InstagramMedia.storyMedia(menu);
+        if (media == null) return null;
+        if (ReelDownload.renditions(media).isEmpty() && InstagramMedia.dashManifest(media) == null) return null;
+        return StorySpeed.menuLabel();
+    }
+
+    /** Whether [labels] has Playback speed already. */
+    private static boolean hasSpeed(List<?> labels) {
+        for (Object label : labels) {
+            if (label instanceof CharSequence && StorySpeed.isMenuLabel((CharSequence) label)) return true;
+        }
+        return false;
     }
 
     /** Loops the story [menu] is open on, or takes its loop off, and says which. */
@@ -253,14 +293,18 @@ public final class StoryDownload {
     /**
      * Saves the story [menu] is open on when [label], the tapped one, is one of HushGram's rows and
      * the switch is on, and answers whether it did, in which case Instagram's handler is skipped. A
-     * save that can't start says so. Loop this story loops the story instead, or takes its loop off.
-     * Never throws.
+     * save that can't start says so. Loop this story loops the story instead, or takes its loop off,
+     * and Playback speed opens the speeds. Never throws.
      */
     public static boolean save(CharSequence label, Object menu) {
         try {
             if (label == null) return false;
             if (StoryLoop.offersRow() && isLoop(label)) {
                 toggleLoop(menu);
+                return true;
+            }
+            if (StorySpeed.offersRow() && StorySpeed.isMenuLabel(label)) {
+                StorySpeed.fromMenu();
                 return true;
             }
             if (!on()) return false;
@@ -280,13 +324,24 @@ public final class StoryDownload {
      * Runs [listener], the dismiss listener the story menu's handler was given, after {@link #save}
      * handled the tap. Instagram hands it on to what its own row opens, which plays the story again
      * when it's done, and the sheet doesn't run it after a row tap, so the story stayed paused once
-     * one of HushGram's rows closed the menu (#610). Never throws.
+     * one of HushGram's rows closed the menu (#610). With Playback speed's list open it runs once the
+     * list closes, so the story waits for the pick (#621). Never throws.
      */
     public static void menuClosed(Object listener) {
         try {
-            if (listener instanceof DialogInterface.OnDismissListener) {
-                ((DialogInterface.OnDismissListener) listener).onDismiss(null);
-            }
+            if (!(listener instanceof DialogInterface.OnDismissListener)) return;
+            DialogInterface.OnDismissListener dismiss = (DialogInterface.OnDismissListener) listener;
+            if (StorySpeed.afterList(() -> dismissed(dismiss))) return;
+            dismiss.onDismiss(null);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu closed", t);
+        }
+    }
+
+    /** Runs [dismiss] after the speed list closed. Never throws. */
+    private static void dismissed(DialogInterface.OnDismissListener dismiss) {
+        try {
+            dismiss.onDismiss(null);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu closed", t);
         }

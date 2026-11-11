@@ -2045,3 +2045,7 @@ Follow	Theo dõi
 # context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
 Open reel links on that reel	Mở liên kết reel đúng reel đó
 A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	Liên kết reel mở đúng reel mà nó trỏ đến. Instagram không phát một reel khác đã lưu trên điện thoại của bạn trong lúc reel đó tải.
+# context: Stories settings: moves the story speed button into a video story's three-dot menu as a Playback speed row (#621)
+Speed in the story menu	Tốc độ trong menu tin
+# context: Summary of Speed in the story menu; Playback speed is the row's own label (#621)
+Adds Playback speed to the menu a video story's three dots open, with the same 1x, 1.5x and 2x, and keeps the speed button off the story. Later video stories keep the speed you pick until you change it or restart Instagram.	Thêm Tốc độ phát vào menu mở ra từ ba dấu chấm của tin video, với cùng các mức 1x, 1,5x và 2x, và bỏ nút tốc độ khỏi tin. Các tin video tiếp theo giữ tốc độ bạn chọn cho đến khi bạn đổi hoặc khởi động lại Instagram.

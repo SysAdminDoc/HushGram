@@ -34,6 +34,7 @@ import org.robolectric.android.controller.ActivityController;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -122,6 +123,7 @@ public class StorySpeedTest {
         StoryDownloadButton.putIdForTests(activity, StoryDownloadButton.MENU, menuId);
         StorySpeed.access = new Fake();
         Settings.STORY_SPEED_BUTTON.resetToDefault();
+        Settings.STORY_SPEED_IN_MENU.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -133,6 +135,8 @@ public class StorySpeedTest {
         StorySpeed.resetForTests();
         StoryDownloadButton.resetForTests();
         Settings.STORY_SPEED_BUTTON.resetToDefault();
+        Settings.STORY_SPEED_IN_MENU.resetToDefault();
+        Utils.setActivity(null);
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -400,5 +404,171 @@ public class StorySpeedTest {
         assertNotNull(page.button());
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, report.contains("'" + StorySpeed.HOOK + "' hook") && report.contains("IllegalStateException"));
+    }
+
+    // ------------------------------------------------------------------ Speed in the story menu (#621)
+
+    /** The list a story menu's Playback speed opens, held instead of shown. */
+    private static final class HeldList implements StorySpeed.Lists {
+        Activity over;
+        float checked;
+        StorySpeed.Chosen chosen;
+        Runnable closed;
+        int shown;
+
+        @Override
+        public void show(Activity activity, float kept, StorySpeed.Chosen chosen, Runnable closed) {
+            over = activity;
+            checked = kept;
+            this.chosen = chosen;
+            this.closed = closed;
+            shown++;
+        }
+    }
+
+    /** Speed in the story menu on, in a build with the menu's hooks, the list held. */
+    private HeldList menuOn() {
+        StorySpeed.menuInBuildForTests = true;
+        Settings.STORY_SPEED_IN_MENU.save(true);
+        Utils.setActivity(activity);
+        HeldList list = new HeldList();
+        StorySpeed.lists = list;
+        return list;
+    }
+
+    @Test
+    public void theMenuSwitchStartsOffAndNeedsTheMenusHooks() {
+        assertEquals(Boolean.FALSE, Settings.STORY_SPEED_IN_MENU.defaultValue);
+        assertFalse(StorySpeed.offersRow());
+        Settings.STORY_SPEED_IN_MENU.save(true);
+        StorySpeed.menuInBuildForTests = false;
+        assertFalse("without Download any story's menu hooks there's no row", StorySpeed.offersRow());
+        assertFalse(StorySpeed.wanted());
+        StorySpeed.menuInBuildForTests = true;
+        assertTrue(StorySpeed.offersRow());
+        assertTrue(StorySpeed.wanted());
+        assertTrue(StorySpeed.isMenuLabel("Playback speed"));
+        assertFalse(StorySpeed.isMenuLabel("Report"));
+        assertFalse(StorySpeed.isMenuLabel(null));
+    }
+
+    @Test
+    public void inTheMenuTheButtonComesOffTheStory() {
+        on();
+        Page page = new Page();
+        StorySpeed.playing(viewer, new Object(), page);
+        assertEquals(View.VISIBLE, page.button().getVisibility());
+
+        menuOn();
+        StorySpeed.playing(viewer, new Object(), page);
+        assertEquals(View.GONE, page.button().getVisibility());
+        Page next = new Page();
+        StorySpeed.playing(viewer, new Object(), next);
+        assertNull("no button goes on another story", next.button());
+        page.button().performClick();
+        assertTrue("a hidden button sets nothing", set.isEmpty());
+    }
+
+    @Test
+    public void aPickFromTheMenuGoesOnTheStoryPlayingAndTheNextOnes() {
+        Locale.setDefault(Locale.US);
+        HeldList list = menuOn();
+        Page page = new Page();
+        StorySpeed.playing(viewer, new Object(), page);
+        assertNull("the button's switch is off", page.button());
+        assertTrue(set.isEmpty());
+
+        assertTrue(StorySpeed.fromMenu());
+        assertEquals(1, list.shown);
+        assertSame(activity, list.over);
+        assertEquals(1f, list.checked, 0f);
+        list.chosen.chose(1.5f);
+        assertEquals(Arrays.asList(1.5f), set);
+        assertEquals(1.5f, StorySpeed.current(), 0f);
+        assertTrue(statusLine(), statusLine().contains(StorySpeed.PICKED + " 1"));
+
+        Page second = new Page();
+        StorySpeed.playing(viewer, new Object(), second);
+        assertEquals(Arrays.asList(1.5f, 1.5f), set);
+        assertNull(second.button());
+        list.closed.run();
+        assertTrue(StorySpeed.fromMenu());
+        assertEquals("the list opens on the kept speed", 1.5f, list.checked, 0f);
+    }
+
+    @Test
+    public void aPickWhileAnAdPlaysWaitsForTheNextStory() {
+        HeldList list = menuOn();
+        Page page = new Page();
+        StorySpeed.playing(viewer, new Ad(), page);
+        assertTrue(StorySpeed.fromMenu());
+        list.chosen.chose(2f);
+        assertTrue("an ad keeps normal speed", set.isEmpty());
+        assertEquals(2f, StorySpeed.current(), 0f);
+        StorySpeed.playing(viewer, new Object(), page);
+        assertEquals(Arrays.asList(2f), set);
+    }
+
+    @Test
+    public void theMenusCloseWaitsForTheList() {
+        HeldList list = menuOn();
+        int[] ran = {0};
+        assertFalse("no list open, the close runs now", StorySpeed.afterList(() -> ran[0]++));
+        assertTrue(StorySpeed.fromMenu());
+        assertTrue(StorySpeed.afterList(() -> ran[0]++));
+        assertEquals(0, ran[0]);
+        list.closed.run();
+        assertEquals(1, ran[0]);
+        list.closed.run();
+        assertEquals("it runs once", 1, ran[0]);
+        assertFalse(StorySpeed.afterList(() -> ran[0]++));
+    }
+
+    @Test
+    public void aListGoneWithItsActivityHoldsNothing() {
+        menuOn();
+        ActivityController<Activity> other = Robolectric.buildActivity(Activity.class).setup();
+        Utils.setActivity(other.get());
+        assertTrue(StorySpeed.fromMenu());
+        other.pause().stop().destroy();
+        assertFalse(StorySpeed.afterList(() -> { }));
+        Utils.setActivity(activity);
+        assertTrue(StorySpeed.fromMenu());
+        assertTrue(StorySpeed.afterList(() -> { }));
+    }
+
+    @Test
+    public void withoutAnActivityOrTheSwitchTheRowOpensNothing() {
+        HeldList list = menuOn();
+        Utils.setActivity(null);
+        assertFalse(StorySpeed.fromMenu());
+        Utils.setActivity(activity);
+        Settings.STORY_SPEED_IN_MENU.save(false);
+        assertFalse(StorySpeed.fromMenu());
+        assertEquals(0, list.shown);
+        StorySpeed.picked(2f);
+        assertEquals("a pick after the switch went off keeps nothing", 1f, StorySpeed.current(), 0f);
+        assertTrue(set.isEmpty());
+    }
+
+    @Test
+    public void pausedOffersNoRow() {
+        menuOn();
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(StorySpeed.offersRow());
+        assertFalse(StorySpeed.fromMenu());
+    }
+
+    @Test
+    public void aListThatThrowsIsReportedAndHoldsNothing() {
+        menuOn();
+        StorySpeed.lists = (over, kept, chosen, closed) -> {
+            throw new IllegalStateException("boom");
+        };
+        assertFalse(StorySpeed.fromMenu());
+        assertFalse(StorySpeed.afterList(() -> { }));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains("'" + StorySpeed.MENU + "' hook") && report.contains("IllegalStateException"));
     }
 }

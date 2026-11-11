@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.stories;
 
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -23,7 +25,9 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.ResourceIdCache;
@@ -48,6 +52,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * is forgotten, a video this class sped up goes back to normal speed when the next one starts, and
  * every button hides. A switch that was never on costs one check per story. Nothing here throws into
  * Instagram.
+ *
+ * <p>With Speed in the story menu on (#621) the button stays hidden and a video story's three-dot
+ * menu gets Playback speed instead, through Download any story's menu hooks
+ * ({@link app.hushgram.extension.instagram.download.StoryDownload}). A tap there opens the same
+ * speeds as a list, {@link #fromMenu}, and a pick is kept and set on the video playing as a tap on
+ * the button is. The story stays paused until the list closes ({@link #afterList}).
  */
 public final class StorySpeed {
     static final float NORMAL = 1f;
@@ -68,6 +78,12 @@ public final class StorySpeed {
 
     /** Counted under the patch's name for each tap on the button. */
     static final String TAPPED = "speed changed";
+
+    /** Counted under the patch's name for each speed picked from a story's menu. */
+    static final String PICKED = "speed picked in the story menu";
+
+    /** The step a failure in the menu's row or list is reported under. */
+    static final String MENU = "story menu speed";
 
     private static final String FAMILY = FamilyNames.STORY_SPEED;
     private static final ResourceIdCache IDS = new ResourceIdCache();
@@ -123,6 +139,58 @@ public final class StorySpeed {
     /** Whether a button was ever added, so a switch that was never on costs nothing per story. */
     private static volatile boolean added;
 
+    /** The viewer the last video story started in, for a speed picked from the menu. */
+    private static volatile WeakReference<Object> lastViewer = new WeakReference<>(null);
+
+    /** Whether the last video story that started was an ad, which a pick from the menu leaves alone. */
+    private static volatile boolean playingAd;
+
+    /** Whether the speed list a story's menu opened is showing. Main thread only. */
+    private static boolean listOpen;
+
+    /** What runs once that list closes, the menu's own close. Main thread only. */
+    @Nullable
+    private static Runnable afterList;
+
+    /** The activity that list shows over. One destroyed under it never reports the list closed. */
+    private static WeakReference<Activity> listOver = new WeakReference<>(null);
+
+    /** Whether a test says the menu's hooks are in the build, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean menuInBuildForTests;
+
+    /** Shows the speeds as a list over [activity], [kept] checked, hands a pick to [chosen] and runs [closed] once it goes. */
+    interface Lists {
+        void show(Activity activity, float kept, Chosen chosen, Runnable closed);
+    }
+
+    interface Chosen {
+        void chose(float speed);
+    }
+
+    static final Lists LISTS = (activity, kept, chosen, closed) -> {
+        float[] all = speeds();
+        CharSequence[] labels = new CharSequence[all.length];
+        int checked = -1;
+        for (int i = 0; i < all.length; i++) {
+            labels[i] = text(all[i]);
+            if (checked < 0 && same(all[i], kept)) checked = i;
+        }
+        AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle(L10n.t(activity, "Playback speed"))
+                .setSingleChoiceItems(labels, checked, (shown, which) -> {
+                    shown.dismiss();
+                    if (which >= 0 && which < all.length) chosen.chose(all[which]);
+                })
+                .setNegativeButton(L10n.t(activity, "Cancel"), null)
+                .create();
+        dialog.setOnDismissListener(gone -> closed.run());
+        dialog.show();
+        ScreenColors.dialog(dialog);
+    };
+
+    static volatile Lists lists = LISTS;
+
     private StorySpeed() {
     }
 
@@ -155,6 +223,10 @@ public final class StorySpeed {
             Access reader = access;
             boolean on = wanted();
             boolean ad = on && item != null && reader.ad(item);
+            if (on) {
+                if (lastViewer.get() != viewer) lastViewer = new WeakReference<>(viewer);
+                playingAd = ad;
+            }
             float speed;
             float before;
             synchronized (LOCK) {
@@ -177,8 +249,9 @@ public final class StorySpeed {
                     }
                 }
             }
-            if (!on && !added) return;
-            boolean show = on && !ad && item != null;
+            // With Speed in the story menu on, the speed is kept but the button stays hidden.
+            boolean show = on && !ad && item != null && buttonWanted();
+            if (!show && !added) return;
             Utils.runOnMainThreadNowOrLater(() -> header(reader, viewer, item, holder, show));
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, HOOK, failure);
@@ -200,7 +273,7 @@ public final class StorySpeed {
             LinearLayout row = row(media, false);
             if (row == null) return;
             SpeedButton button = find(row);
-            if (button != null && (button.story.get() != item || !wanted())) hide(button);
+            if (button != null && (button.story.get() != item || !buttonWanted())) hide(button);
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, HOOK, failure);
         }
@@ -242,8 +315,9 @@ public final class StorySpeed {
      */
     static void tapped(SpeedButton button) {
         try {
-            if (!wanted()) {
-                drop();
+            if (!buttonWanted()) {
+                // Moved to the menu, the speed stays kept. Off, it's forgotten.
+                if (!wanted()) drop();
                 hide(button);
                 return;
             }
@@ -352,11 +426,130 @@ public final class StorySpeed {
         button.viewer = new WeakReference<>(null);
     }
 
+    // ------------------------------------------------------------------ the story menu
+
+    /**
+     * Whether a video story's menu gets Playback speed: Speed in the story menu on, with Download any
+     * story's menu hooks in the build. Paused answers no. Never throws.
+     */
+    public static boolean offersRow() {
+        try {
+            return inMenu();
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, MENU, failure);
+            return false;
+        }
+    }
+
+    /** The menu's row, Playback speed, in the app's language. */
+    public static String menuLabel() {
+        return L10n.t(Utils.getContext(), "Playback speed");
+    }
+
+    /** Whether [label], a tapped row, is Playback speed, however the menu styled it. */
+    public static boolean isMenuLabel(@Nullable CharSequence label) {
+        return label != null && menuLabel().contentEquals(label);
+    }
+
+    /**
+     * A tap on Playback speed in a story's menu: the speeds as a list over the screen, the kept one
+     * checked. A pick is kept for the next video stories and set on the video playing. Answers
+     * whether the list showed. Never throws.
+     */
+    public static boolean fromMenu() {
+        try {
+            if (!inMenu()) return false;
+            Activity activity = Utils.getActivity();
+            if (activity == null || activity.isFinishing()) return false;
+            HookStatus.invoked(FAMILY);
+            listOpen = true;
+            afterList = null;
+            listOver = new WeakReference<>(activity);
+            try {
+                lists.show(activity, current(), StorySpeed::picked, StorySpeed::listClosed);
+            } catch (Throwable failure) {
+                listOpen = false;
+                throw failure;
+            }
+            Logger.printDebug(() -> "Story speed: the story menu's speed list opened at " + current() + "x");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, MENU, failure);
+            return false;
+        }
+    }
+
+    /**
+     * Holds [then], the story menu's own close, which plays the story again, until the speed list
+     * closes, and answers true. False when no list is open, so the caller runs it now.
+     */
+    public static boolean afterList(Runnable then) {
+        if (!listOpen) return false;
+        Activity over = listOver.get();
+        if (over == null || over.isFinishing() || over.isDestroyed()) {
+            // Gone with its activity, the list never says it closed.
+            listOpen = false;
+            afterList = null;
+            return false;
+        }
+        afterList = then;
+        return true;
+    }
+
+    /** The speed list closed, picked or not: what waited for it runs. */
+    private static void listClosed() {
+        listOpen = false;
+        Runnable then = afterList;
+        afterList = null;
+        if (then != null) then.run();
+    }
+
+    /** [speed], picked from the menu's list: kept, and set on the video playing unless it's an ad. Never throws. */
+    static void picked(float speed) {
+        try {
+            if (!inMenu()) return;
+            synchronized (LOCK) {
+                kept = speed;
+            }
+            Object viewer = lastViewer.get();
+            boolean set = viewer != null && !playingAd && access.setSpeed(viewer, speed);
+            if (set) {
+                synchronized (LOCK) {
+                    applied = speed;
+                }
+            }
+            HookStatus.counted(FAMILY, PICKED);
+            Logger.printDebug(() -> "Story speed: picked " + speed + "x in the story menu, "
+                    + (set ? "set on the story playing" : "kept for the next video story"));
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, MENU, failure);
+        }
+    }
+
     // ------------------------------------------------------------------ the rule
 
-    /** Whether the button shows and the speed is kept: the switch on, HushGram not paused, the settings read. */
+    /**
+     * Whether the speed is kept: the button's switch or Speed in the story menu on, HushGram not
+     * paused, the settings read.
+     */
     static boolean wanted() {
-        return Utils.settingsReady() && Settings.STORY_SPEED_BUTTON.get();
+        return Utils.settingsReady() && (Settings.STORY_SPEED_BUTTON.get() || inMenu());
+    }
+
+    /** Whether the button shows: its switch on and the speed not moved to the story menu. */
+    static boolean buttonWanted() {
+        return Utils.settingsReady() && Settings.STORY_SPEED_BUTTON.get() && !inMenu();
+    }
+
+    /** Whether the speed is in the story menu: its switch on, with the menu's hooks in the build. */
+    static boolean inMenu() {
+        return Utils.settingsReady() && Settings.STORY_SPEED_IN_MENU.get() && menuInBuild();
+    }
+
+    /** Whether Download any story's menu hooks, which carry the row, are in the build along with this patch. */
+    static boolean menuInBuild() {
+        Boolean forced = menuInBuildForTests;
+        return forced != null ? forced : SettingsStatus.storySpeed() && SettingsStatus.storyDownload();
     }
 
     private static boolean same(float a, float b) {
@@ -384,7 +577,10 @@ public final class StorySpeed {
         IDS.putForTests(Utils.resourcePackage(context), name, id);
     }
 
-    /** Forgets the kept speed, the speed last set, the ids looked up and that a button was added. */
+    /**
+     * Forgets the kept speed, the speed last set, the ids looked up, that a button was added, the
+     * last viewer and an open list.
+     */
     @VisibleForTesting
     static void resetForTests() {
         synchronized (LOCK) {
@@ -394,5 +590,12 @@ public final class StorySpeed {
         added = false;
         IDS.clear();
         access = PATCHED;
+        lastViewer = new WeakReference<>(null);
+        playingAd = false;
+        listOpen = false;
+        afterList = null;
+        listOver = new WeakReference<>(null);
+        lists = LISTS;
+        menuInBuildForTests = null;
     }
 }

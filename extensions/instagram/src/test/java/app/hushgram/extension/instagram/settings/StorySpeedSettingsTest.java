@@ -42,6 +42,7 @@ public class StorySpeedSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.STORY_SPEED_BUTTON.resetToDefault();
+        Settings.STORY_SPEED_IN_MENU.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -52,6 +53,7 @@ public class StorySpeedSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.STORY_SPEED_BUTTON.resetToDefault();
+        Settings.STORY_SPEED_IN_MENU.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -99,5 +101,35 @@ public class StorySpeedSettingsTest {
         open(EnumSet.of(PatchFamily.STORY_SEEK_BAR));
         assertNull(page.getPreferenceScreen().findPreference(Settings.STORY_SPEED_BUTTON.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.STORY_SPEED_BUTTON.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.STORY_SPEED_IN_MENU.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.STORY_SPEED_IN_MENU.key));
+    }
+    /** #621: Speed in the story menu sits right after the speed button, starts off, and needs Download any story's menu. */
+    @Test public void speedInTheStoryMenuFollowsTheButtonAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.STORY_SPEED, PatchFamily.STORY_DOWNLOAD, PatchFamily.STORY_AUTO_ADVANCE));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.STORY_SPEED_IN_MENU.key);
+        assertNotNull(row);
+        assertEquals("Speed in the story menu", row.getTitle().toString());
+        assertEquals("Adds Playback speed to the menu a video story's three dots open, with the same 1x, 1.5x "
+                + "and 2x, and keeps the speed button off the story. Later video stories keep the speed you pick "
+                + "until you change it or restart Instagram.", row.getSummary().toString());
+        assertEquals("Stories", ((PreferenceGroup) row.getParent()).getTitle().toString());
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertEquals(Boolean.FALSE, Settings.STORY_SPEED_IN_MENU.defaultValue);
+        PreferenceGroup stories = row.getParent();
+        String[] keys = new String[stories.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = stories.getPreference(i).getKey();
+        int at = Arrays.asList(keys).indexOf(Settings.STORY_SPEED_IN_MENU.key);
+        assertEquals(Arrays.toString(keys), Settings.STORY_SPEED_BUTTON.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.BLOCK_STORY_AUTO_ADVANCE.key, keys[at + 1]);
+
+        ((SwitchPreference) row).setChecked(true);
+        assertTrue(Settings.STORY_SPEED_IN_MENU.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_SPEED_IN_MENU.key));
+    }
+    @Test public void withoutDownloadAnyStoryThereIsNoMenuRow() throws Exception {
+        open(EnumSet.of(PatchFamily.STORY_SPEED));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.STORY_SPEED_BUTTON.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.STORY_SPEED_IN_MENU.key));
     }
 }
