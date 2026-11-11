@@ -35,8 +35,9 @@ internal const val COMMENT_COUNT_LABEL = ", shouldShowCommentCountInUfi="
 /**
  * Takes the Comment button and the comment count off the action row of posts in Feed and, with a
  * switch of its own, Reply off each comment in a comment sheet (#619). In simple mode with both
- * switches off, so nothing changes until one is turned on. When the comment line doesn't match,
- * the patch goes in without the Reply part and settings leave its switch out.
+ * switches off, so nothing changes until one is turned on. Reply comes off both comment lines the
+ * app has, the composable one and the component row a post's comments sheet draws on 454. When
+ * neither matches, the patch goes in without the Reply part and settings leave its switch out.
  */
 @Suppress("unused")
 val hideCommentsPatch = bytecodePatch(
@@ -54,11 +55,11 @@ val hideCommentsPatch = bytecodePatch(
         requireStatusMethod(COMMENT_REPLY_STATUS)
         val state = findFeedCommentState()
         val reply = findCommentReplyOrWarn()
+        val rowReply = findCommentRowReplyOrWarn()
         prepareFeedComments(state)()
-        if (reply != null) {
-            hideCommentReply(reply)
-            enableStatus(COMMENT_REPLY_STATUS)
-        }
+        reply?.let { hideCommentReply(it) }
+        rowReply?.let { hideCommentRowReply(it) }
+        if (reply != null || rowReply != null) enableStatus(COMMENT_REPLY_STATUS)
         enableStatus("hideComments")
     }
 }

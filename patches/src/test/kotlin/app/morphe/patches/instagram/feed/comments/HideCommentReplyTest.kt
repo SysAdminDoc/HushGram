@@ -29,7 +29,9 @@ import org.junit.Test
 /**
  * Hide Reply on comments (#619): in every build the composable drawing the line under a comment
  * asks CommentReply.hidden right before it draws the Reply text button and right before it calls
- * the reply icon's composable, goes on past the call on a yes, and keeps the rest of its code.
+ * the reply icon's composable, goes on past the call on a yes, and keeps the rest of its code. In
+ * every declared build the comment row a comments sheet builds as components asks it right before
+ * the one add both kinds of Reply reach, and skips the add on a yes.
  */
 class HideCommentReplyTest {
     @Test
@@ -77,6 +79,72 @@ class HideCommentReplyTest {
         assertTrue(failure!!.message!!, failure.message!!.startsWith("Hide comments: ") && failure.message!!.contains("found 0"))
         assertNull(PatchContexts.of(without).findCommentReplyOrWarn())
     }
+
+    @Test
+    fun eachDeclaredBuildTakesReplyOffTheRow() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                takesReplyOffTheRow(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** Without the comment row nothing else has its shape: the find stops, and the warning route answers null. */
+    @Test
+    fun withoutTheRowTheFindStops() {
+        val version = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.first()
+        val bundle = Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }.first()
+        val classes = lineClasses(bundle)
+        val row = PatchContexts.of(classes).findCommentRowReply().type
+        val without = classes.filter { it.type != row }
+        val failure = runCatching { PatchContexts.of(without).findCommentRowReply() }.exceptionOrNull()
+        assertTrue("the find went on: $failure", failure is PatchException)
+        assertTrue(failure!!.message!!, failure.message!!.startsWith("Hide comments: ") && failure.message!!.contains("found 0"))
+        assertNull(PatchContexts.of(without).findCommentRowReplyOrWarn())
+    }
+
+    /**
+     * In front of the row's one Reply add: the no-argument hook, its answer in a register the add
+     * doesn't read, and an if-nez on it landing right after the add. The hook takes the add's label,
+     * so the goto bringing the text button's component lands on the hook and nothing jumps past it.
+     * Nothing else changes.
+     */
+    private fun takesReplyOffTheRow(bundle: File, label: String) {
+        val context = PatchContexts.of(lineClasses(bundle))
+        val plan = context.findCommentRowReply()
+        val row = context.mutableClassDefBy(plan.type).methods.single {
+            it.name == plan.name && it.parameterTypes.map(CharSequence::toString) == plan.parameters
+        }
+        val stock = row.code()
+        assertEquals("$label: the add", plan.add, stock[plan.addAt].referenceText())
+        val add = stock[plan.addAt].reference() as MethodReference
+        assertEquals("$label: the add answers nothing and takes one component", "V" to 1, add.returnType to add.parameterTypes.size)
+        val jumpsIn = stock.jumpsInto(plan.addAt)
+        assertTrue("$label: the text button's goto lands on the add", jumpsIn > 0)
+
+        context.hideCommentRowReply(plan)
+
+        val code = row.code()
+        val hooks = code.indices.filter { code[it].referenceText() == COMMENT_REPLY_HIDDEN }
+        assertEquals("$label: one hook, on the add's label", listOf(plan.addAt), hooks)
+        val at = hooks.single()
+        assertEquals("$label: the hook", Opcode.INVOKE_STATIC to 0, code[at].opcode to (code[at] as FiveRegisterInstruction).registerCount)
+        assertEquals("$label: its answer", Opcode.MOVE_RESULT, code[at + 1].opcode)
+        val answer = (code[at + 1] as OneRegisterInstruction).registerA
+        assertEquals("$label: the branch reads the answer", Opcode.IF_NEZ to answer, code[at + 2].opcode to (code[at + 2] as OneRegisterInstruction).registerA)
+        assertEquals("$label: a yes goes on past the add", at + 4, (code[at + 2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$label: the add follows", plan.add, code[at + 3].referenceText())
+        assertTrue("$label: the add doesn't read v$answer", answer !in code[at + 3].arguments())
+        assertEquals("$label: what jumped to the add lands on the hook", jumpsIn to 0, code.jumpsInto(at) to code.jumpsInto(at + 3))
+        val kept = code.filterIndexed { index, _ -> index !in at..at + 2 }
+        assertEquals("$label: the row's own code is kept", stock.shape(), kept.shape())
+    }
+
+    private fun List<Instruction>.jumpsInto(at: Int) = count { (it as? BuilderOffsetInstruction)?.target?.location?.index == at }
 
     /** The classes loading either reply tag, the pools they ask included. */
     private fun lineClasses(bundle: File): List<ClassDef> =

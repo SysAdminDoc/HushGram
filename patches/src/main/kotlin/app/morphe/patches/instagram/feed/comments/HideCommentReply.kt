@@ -24,6 +24,8 @@ import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
+import app.morphe.util.ControlFlow
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -138,12 +140,104 @@ internal fun BytecodePatchContext.findCommentReply(): CommentReplyPlan = discove
     )
 }
 
-/** [findCommentReply], or null with a warning, so Hide comments goes in leaving Reply alone. */
+/** [findCommentReply], or null with a warning, so Hide comments goes in leaving that line's Reply alone. */
 internal fun BytecodePatchContext.findCommentReplyOrWarn(): CommentReplyPlan? = try {
     findCommentReply()
 } catch (refusal: PatchException) {
-    patchLog.warning("${refusal.message}. $REPLY_PATCH goes in leaving Reply on comments alone.")
+    patchLog.warning("${refusal.message}. $REPLY_PATCH goes in leaving Reply on the composable comment line alone.")
     null
+}
+
+private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+
+/**
+ * The comment row built as a component tree, the one a post's comments sheet draws on 454, and the
+ * one call in it that adds Reply to the row, with a register its hook may borrow. Plain text and
+ * numbers only, like [CommentReplyPlan].
+ */
+internal class CommentRowReplyPlan(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val returnType: String,
+    val addAt: Int,
+    val add: String,
+    val free: Int,
+)
+
+/**
+ * Where [method] adds Reply to the row, or null when it doesn't. After [COMMENT_REPLY_TAG] a static
+ * call answers the text button's component, its move-result goes into a goto, and the goto lands on
+ * a void instance call taking that component alone. The newer reply icon reaches the same call:
+ * the first call to that method after [COMMENT_THREADS_REPLY_TAG] is that very instruction.
+ */
+private fun BytecodePatchContext.replyAddAt(method: Method): Int? {
+    val code = method.code()
+    fun tagAt(tag: String) = code.indices.singleOrNull { stringLoadedAt(code, it) == tag }
+    val text = tagAt(COMMENT_REPLY_TAG) ?: return null
+    val icon = tagAt(COMMENT_THREADS_REPLY_TAG) ?: return null
+    val flow = ControlFlow.of(method)
+    fun addFrom(goto: Int): Int? {
+        if (code[goto].opcode !in GOTOS || goto < 2) return null
+        val result = code[goto - 1].takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } as? OneRegisterInstruction ?: return null
+        if (code[goto - 2].staticCall()?.returnType?.startsWith("L") != true) return null
+        val addAt = flow.normal[goto].singleOrNull() ?: return null
+        val add = code[addAt].call()?.takeIf { code[addAt].opcode == Opcode.INVOKE_VIRTUAL } ?: return null
+        val types = add.parameters()
+        if (add.returnType != "V" || types.size != 1 || !types.single().startsWith("L")) return null
+        if (code[addAt].arguments().getOrNull(1) != result.registerA) return null
+        val iconAdd = (icon + 1 until code.size).firstOrNull { code[it].call()?.text() == add.text() }
+        return addAt.takeIf { iconAdd == it }
+    }
+    return (text + 1 until code.size).firstNotNullOfOrNull { addFrom(it) }
+}
+
+/**
+ * Finds the method that builds the comment row as a component tree, by the one method in the app
+ * loading both reply tags whose Reply text button and reply icon go into one add, and a register
+ * a check in front of that add may borrow. Every refusal happens here, before anything changes.
+ */
+internal fun BytecodePatchContext.findCommentRowReply(): CommentRowReplyPlan = discovering(REPLY_PATCH) {
+    val (row, addAt) = classesLoadingString(COMMENT_REPLY_TAG).flatMap { it.methods }
+        .filter { loadsString(it, COMMENT_REPLY_TAG) && loadsString(it, COMMENT_THREADS_REPLY_TAG) }
+        .mapNotNull { method -> replyAddAt(method)?.let { method to it } }
+        .one("comment row adding the Reply tagged \"$COMMENT_REPLY_TAG\" and \"$COMMENT_THREADS_REPLY_TAG\" in one call")
+    val code = row.code()
+    if (addAt + 1 >= code.size) refuse("${row.text()} ends at its Reply add")
+    val free = row.freeLocalsAt("$REPLY_PATCH: Reply add in ${row.text()}", addAt, 1, listOf(addAt + 1), 255, code[addAt].arguments()).single()
+    CommentRowReplyPlan(
+        row.definingClass, row.name, row.parameterTypes.map(Any::toString), row.returnType,
+        addAt, code[addAt].call()!!.text(), free,
+    )
+}
+
+/** [findCommentRowReply], or null with a warning, so Hide comments goes in leaving the row's Reply alone. */
+internal fun BytecodePatchContext.findCommentRowReplyOrWarn(): CommentRowReplyPlan? = try {
+    findCommentRowReply()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $REPLY_PATCH goes in leaving Reply on the comment row alone.")
+    null
+}
+
+/**
+ * Puts a [COMMENT_REPLY_HIDDEN] check in front of the row's Reply add, on the add's own label so the
+ * text button's goto lands on the check too: on a yes the row goes on without Reply, and its share
+ * button, like count and the rest are added as before.
+ */
+internal fun BytecodePatchContext.hideCommentRowReply(plan: CommentRowReplyPlan) = discovering(REPLY_PATCH) {
+    val method = mutableClassDefBy(plan.type).methods.single {
+        it.name == plan.name && it.returnType == plan.returnType && it.parameterTypes.map(Any::toString) == plan.parameters
+    }
+    if (method.getInstruction(plan.addAt).call()?.text() != plan.add) refuse("${method.text()} changed before Reply could be hooked")
+    method.addInstructionsAtControlFlowLabel(
+        plan.addAt,
+        """
+            invoke-static { }, $COMMENT_REPLY_HIDDEN
+            move-result v${plan.free}
+            if-nez v${plan.free}, :skip
+        """,
+        ExternalLabel("skip", method.getInstruction(plan.addAt + 1)),
+    )
 }
 
 /**
