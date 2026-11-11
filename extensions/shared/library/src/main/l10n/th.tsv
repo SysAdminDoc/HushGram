@@ -724,6 +724,9 @@ Comments open with the keyboard down. A tap in the comment box, or on Reply, sti
 # context: Feed: the switch that hides the Follow and Subscribe buttons beside the author's name on a post (#248). Follow and Subscribe are the labels Instagram uses on those buttons.
 Hide Follow on posts	ซ่อนปุ่มติดตามบนโพสต์
 Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.	นำปุ่ม "ติดตาม" และ "ติดตามการเป็นสมาชิก" ออกจากด้านบนของโพสต์ในฟีดของคุณ ทั้งนี้ชื่อ เวลา และเมนูจะยังคงอยู่
+# context: Feed: the switch that hides only the Subscribe button beside the author's name on a post, leaving Follow where it is (#622). Subscribe and Follow are the labels Instagram uses on those buttons.
+Hide Subscribe on posts	ซ่อนปุ่มติดตามการเป็นสมาชิกบนโพสต์
+Takes only the Subscribe button off the top of posts in your feed. Follow stays.	นำเฉพาะปุ่ม "ติดตามการเป็นสมาชิก" ออกจากด้านบนของโพสต์ในฟีดของคุณ ส่วนปุ่ม "ติดตาม" ยังคงอยู่
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	นำความทรงจำ สรุปผลย้อนหลัง วันครบรอบการติดตาม และการ์ดวันเกิดที่ Instagram สร้างขึ้นออกจากแถวสตอรี่ที่ด้านบนของหน้าหลัก ทั้งนี้สตอรี่ที่ผู้คนโพสต์จะยังคงอยู่
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	ซ่อนการ์ดย้อนความหลังที่นำไฮไลท์เก่าย้อนกลับมา ออกจากแถวสตอรี่ที่ด้านบนของหน้าหลัก
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	การแตะสองครั้งที่ความคิดเห็นจะไม่เป็นการกดถูกใจ เริ่มต้นปิดใช้งานอยู่ ดังนั้นความคิดเห็นจะยังคงแตะสองครั้งเพื่อกดถูกใจได้จนกว่าคุณจะเปิดใช้ตัวเลือกนี้

@@ -316,6 +316,9 @@ final class FeedCategory {
             feed.addPreference(onFlip(toggle(context, Settings.HIDE_FEED_FOLLOW, L10n.t("Hide Follow on posts"),
                     L10n.t("Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.")),
                     FeedFollowButton::switchChanged));
+            feed.addPreference(onFlip(toggle(context, Settings.HIDE_FEED_SUBSCRIBE, L10n.t("Hide Subscribe on posts"),
+                    L10n.t("Takes only the Subscribe button off the top of posts in your feed. Follow stays.")),
+                    FeedFollowButton::switchChanged));
         }
         if (editsLabel) {
             feed.addPreference(toggle(context, Settings.HIDE_EDITS_LABEL, L10n.t("Hide Made with Edits"),

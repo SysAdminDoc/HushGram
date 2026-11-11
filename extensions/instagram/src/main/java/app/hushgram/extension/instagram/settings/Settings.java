@@ -2626,6 +2626,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_follow", FALSE);
 
     /**
+     * Only the Subscribe button beside the author's name on a feed post, so Follow stays (#622,
+     * {@link app.hushgram.extension.instagram.feed.FeedFollowButton}). Read before each frame of a
+     * resumed screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_SUBSCRIBE =
+            new BooleanSetting("hushgram_hide_feed_subscribe", FALSE);
+
+    /**
      * "Made with Edits" in the line under a feed post's author (#570,
      * {@link app.hushgram.extension.instagram.feed.EditsLabel}). Read as each post's header is built,
      * so it needs no restart. Off to start.

@@ -97,7 +97,7 @@ public class HideCaptionsSettingsTest {
                 row.getSummary().toString());
         PreferenceGroup comments = row.getParent();
         assertEquals("Feed", comments.getTitle().toString());
-        assertEquals("right after Hide Follow on posts", Settings.HIDE_FEED_FOLLOW.key,
+        assertEquals("right after Hide Subscribe on posts", Settings.HIDE_FEED_SUBSCRIBE.key,
                 comments.getPreference(indexOf(comments, row) - 1).getKey());
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_CAPTIONS.get());

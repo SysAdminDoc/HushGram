@@ -730,6 +730,9 @@ Comments open with the keyboard down. A tap in the comment box, or on Reply, sti
 # context: Feed: the switch that hides the Follow and Subscribe buttons beside the author's name on a post (#248). Follow and Subscribe are the labels Instagram uses on those buttons.
 Hide Follow on posts	Folgen bei Beiträgen ausblenden
 Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.	Entfernt die Buttons „Folgen“ und „Abonnieren“ oben an Beiträgen in deinem Feed. Name, Uhrzeit und Menü bleiben.
+# context: Feed: the switch that hides only the Subscribe button beside the author's name on a post, leaving Follow where it is (#622). Subscribe and Follow are the labels Instagram uses on those buttons.
+Hide Subscribe on posts	Abonnieren bei Beiträgen ausblenden
+Takes only the Subscribe button off the top of posts in your feed. Follow stays.	Entfernt nur den Button „Abonnieren“ oben an Beiträgen in deinem Feed. „Folgen“ bleibt.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Entfernt Erinnerungen, Rückblicke, Follow-Jahrestage und Geburtstagskarten, die Instagram erstellt, aus der Stories-Leiste oben auf der Startseite. Stories, die Leute posten, bleiben.
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	Blendet die Rückblick-Karten, die alte Highlights zurückbringen, in der Story-Leiste oben auf der Startseite aus.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Ein Doppeltippen auf einen Kommentar liket ihn nicht. Startet ausgeschaltet, Kommentare behalten also Doppeltippen zum Liken, bis du das einschaltest.

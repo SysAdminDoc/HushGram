@@ -8,7 +8,7 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -39,6 +39,7 @@ public class FeedFollowSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_FEED_FOLLOW.resetToDefault();
+        Settings.HIDE_FEED_SUBSCRIBE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -49,6 +50,7 @@ public class FeedFollowSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_FEED_FOLLOW.resetToDefault();
+        Settings.HIDE_FEED_SUBSCRIBE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -101,9 +103,34 @@ public class FeedFollowSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_FEED_FOLLOW.get());
         assertFalse("each frame reads the switch, so no restart prompt", Settings.HIDE_FEED_FOLLOW.rebootApp);
-        assertEquals(Collections.singletonList(Settings.HIDE_FEED_FOLLOW), PatchFamily.FEED_FOLLOW.switches);
+        assertEquals(Arrays.asList(Settings.HIDE_FEED_FOLLOW, Settings.HIDE_FEED_SUBSCRIBE), PatchFamily.FEED_FOLLOW.switches);
         assertEquals("Hide Follow on feed posts", PatchFamily.FEED_FOLLOW.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FEED_FOLLOW.key));
+    }
+    /** Subscribe alone (#622): right under Hide Follow, off to start, reaching the screen under settings at once. */
+    @Test public void subscribeAloneSitsUnderFollowAndReachesTheScreen() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_FOLLOW));
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_FEED_SUBSCRIBE.key);
+        assertNotNull(row);
+        assertEquals("Hide Subscribe on posts", row.getTitle().toString());
+        assertEquals("Takes only the Subscribe button off the top of posts in your feed. Follow stays.",
+                row.getSummary().toString());
+        PreferenceGroup feed = row.getParent();
+        assertEquals("Feed", feed.getTitle().toString());
+        assertEquals("right after Hide Follow on posts", Settings.HIDE_FEED_FOLLOW.key,
+                feed.getPreference(indexOf(feed, row) - 1).getKey());
+        assertFalse(row.isChecked());
+        assertFalse("each frame reads the switch, so no restart prompt", Settings.HIDE_FEED_SUBSCRIBE.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FEED_SUBSCRIBE.key));
+        try {
+            assertFalse(FeedFollowButton.listeningForTests(controller.get()));
+            assertTrue(row.getOnPreferenceChangeListener().onPreferenceChange(row, true));
+            Settings.HIDE_FEED_SUBSCRIBE.save(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(FeedFollowButton.listeningForTests(controller.get()));
+        } finally {
+            FeedFollowButton.resetForTests();
+        }
     }
     private static int indexOf(PreferenceGroup group, SwitchPreference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) if (group.getPreference(i) == row) return i;

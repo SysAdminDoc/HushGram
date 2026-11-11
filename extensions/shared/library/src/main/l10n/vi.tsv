@@ -725,6 +725,9 @@ Open comments without the keyboard	Mở bình luận mà không bật bàn phím
 Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.	Bình luận mở với bàn phím thu xuống. Nhấn vào ô bình luận hoặc Trả lời vẫn gọi bàn phím lên.
 Hide Follow on posts	Ẩn Theo dõi trên bài viết
 Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.	Gỡ các nút Theo dõi và Đăng ký khỏi đầu bài viết trong bảng feed. Tên, thời gian và menu vẫn giữ.
+# context: Feed: the switch that hides only the Subscribe button beside the author's name on a post, leaving Follow where it is (#622). Subscribe and Follow are the labels Instagram uses on those buttons.
+Hide Subscribe on posts	Ẩn Đăng ký trên bài viết
+Takes only the Subscribe button off the top of posts in your feed. Follow stays.	Chỉ gỡ nút Đăng ký khỏi đầu bài viết trong bảng feed. Theo dõi vẫn giữ.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Gỡ các thẻ kỷ niệm, tổng kết, kỷ niệm theo dõi và sinh nhật mà Instagram tạo trong hàng tin ở đầu trang chủ. Tin mọi người đăng vẫn giữ.
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	Ẩn các thẻ xem lại, vốn đưa tin nổi bật cũ trở lại, khỏi hàng tin ở đầu trang chủ.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Nhấn đúp vào bình luận không thích bình luận. Mặc định tắt, nên bình luận vẫn nhấn đúp để thích cho đến khi bạn bật mục này.

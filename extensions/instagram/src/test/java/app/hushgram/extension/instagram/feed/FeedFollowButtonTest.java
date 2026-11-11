@@ -73,6 +73,13 @@ public class FeedFollowButtonTest {
         int shortcutStubId = View.generateViewId();
         FeedFollowButton.hider().idForTests(activity, FeedFollowButton.SUBSCRIBE_SHORTCUT, shortcutId);
         FeedFollowButton.hider().idForTests(activity, FeedFollowButton.SUBSCRIBE_SHORTCUT_STUB, shortcutStubId);
+        FeedFollowButton.subscribeHider().resetForTests();
+        FeedFollowButton.subscribeHider().idForTests(activity, FeedFollowButton.HEADER, headerId);
+        FeedFollowButton.subscribeHider().idForTests(activity, FeedFollowButton.INLINE_FOLLOW, inlineId);
+        FeedFollowButton.subscribeHider().idForTests(activity, FeedFollowButton.HEADER_FOLLOW, inHeaderId);
+        FeedFollowButton.subscribeHider().idForTests(activity, FeedFollowButton.SUBSCRIBE, subscribeId);
+        FeedFollowButton.subscribeHider().idForTests(activity, FeedFollowButton.SUBSCRIBE_SHORTCUT, shortcutId);
+        FeedFollowButton.subscribeHider().idForTests(activity, FeedFollowButton.SUBSCRIBE_SHORTCUT_STUB, shortcutStubId);
 
         screen = new LinearLayout(activity);
         screen.setOrientation(LinearLayout.VERTICAL);
@@ -118,13 +125,16 @@ public class FeedFollowButtonTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.HIDE_FEED_FOLLOW.resetToDefault();
+        Settings.HIDE_FEED_SUBSCRIBE.resetToDefault();
         HookStatus.clear();
     }
 
     @After
     public void restore() {
         FeedFollowButton.hider().resetForTests();
+        FeedFollowButton.subscribeHider().resetForTests();
         Settings.HIDE_FEED_FOLLOW.resetToDefault();
+        Settings.HIDE_FEED_SUBSCRIBE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -221,6 +231,54 @@ public class FeedFollowButtonTest {
         assertFalse(FeedFollowButton.showSubscribe(0));
         Settings.HIDE_FEED_FOLLOW.save(false);
         assertTrue("turning it off restores native eligibility", FeedFollowButton.showSubscribe(1));
+    }
+
+    /** #622: Subscribe goes, in the header and as the shortcut, while Follow beside the name stays. */
+    @Test
+    public void subscribeAloneKeepsFollow() {
+        Settings.HIDE_FEED_SUBSCRIBE.save(true);
+
+        FeedFollowButton.hider().watch(activity);
+        FeedFollowButton.subscribeHider().watch(activity);
+
+        assertFalse("Hide Follow is still off", FeedFollowButton.hider().listeningForTests(activity));
+        assertTrue(frame());
+        assertEquals(View.GONE, subscribe.getVisibility());
+        assertEquals(View.GONE, shortcut.getVisibility());
+        assertEquals(View.GONE, shortcutByStubId.getVisibility());
+        assertEquals("Follow beside the name stays", View.VISIBLE, inline.getVisibility());
+        assertEquals("Follow in the header stays", View.VISIBLE, inHeader.getVisibility());
+        assertEquals(View.VISIBLE, name.getVisibility());
+        assertEquals("the stub is not touched", screen, shortcutStub.getParent());
+        assertTrue(HookStatus.missing(FamilyNames.FEED_FOLLOW).toString(),
+                HookStatus.missing(FamilyNames.FEED_FOLLOW).isEmpty());
+    }
+
+    /** With Hide Follow on too, it already takes Subscribe, so the window is searched once. */
+    @Test
+    public void subscribeAloneStandsDownUnderHideFollow() {
+        Settings.HIDE_FEED_SUBSCRIBE.save(true);
+        Settings.HIDE_FEED_FOLLOW.save(true);
+
+        FeedFollowButton.subscribeHider().watch(activity);
+        FeedFollowButton.hider().watch(activity);
+
+        assertFalse(FeedFollowButton.subscribeHider().listeningForTests(activity));
+        assertTrue(frame());
+        assertEquals(View.GONE, subscribe.getVisibility());
+        assertEquals(View.GONE, inline.getVisibility());
+    }
+
+    @Test
+    public void nativeSubscribeFollowsEitherSwitch() {
+        Settings.HIDE_FEED_SUBSCRIBE.save(true);
+        assertFalse("Subscribe alone omits the native child", FeedFollowButton.showSubscribe(1));
+        assertFalse(FeedFollowButton.showSubscribe(0));
+        Settings.HIDE_FEED_FOLLOW.save(true);
+        assertFalse("both on still omit it", FeedFollowButton.showSubscribe(1));
+        Settings.HIDE_FEED_SUBSCRIBE.save(false);
+        Settings.HIDE_FEED_FOLLOW.save(false);
+        assertTrue("both off restore native eligibility", FeedFollowButton.showSubscribe(1));
     }
 
     @Test

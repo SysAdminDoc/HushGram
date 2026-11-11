@@ -49,22 +49,32 @@ public final class FeedFollowButton {
             () -> Settings.HIDE_FEED_FOLLOW.get(), HEADER, INLINE_FOLLOW, HEADER_FOLLOW, SUBSCRIBE)
             .anywhere(SUBSCRIBE_SHORTCUT, SUBSCRIBE_SHORTCUT_STUB);
 
+    /**
+     * Hide Subscribe on posts (#622): Subscribe alone, so Follow stays. With Hide Follow on too the
+     * first one already has it, so this one stands down rather than search the window a second time.
+     */
+    private static final ViewHider SUBSCRIBE_HIDER = new ViewHider(FamilyNames.FEED_FOLLOW, HOOK, COUNT_HIDDEN,
+            () -> Settings.HIDE_FEED_SUBSCRIBE.get() && !Settings.HIDE_FEED_FOLLOW.get(), HEADER, SUBSCRIBE)
+            .anywhere(SUBSCRIBE_SHORTCUT, SUBSCRIBE_SHORTCUT_STUB);
+
     private FeedFollowButton() {
     }
 
     /** Called as the application starts. Does nothing in a build without the patch. */
     public static void install(Context context) {
         HIDER.install(context, SettingsStatus.feedFollow());
+        SUBSCRIBE_HIDER.install(context, SettingsStatus.feedFollow());
     }
 
-    /** The switch was flipped in HushGram settings, a dialog over [activity]: the screen under it decides now. */
+    /** A switch was flipped in HushGram settings, a dialog over [activity]: the screen under it decides now. */
     public static void switchChanged(@Nullable Activity activity) {
         HIDER.switchChanged(activity);
+        SUBSCRIBE_HIDER.switchChanged(activity);
     }
 
-    /** Keeps native ineligibility and suppresses only the feed header's Subscribe while wanted. */
+    /** Keeps native ineligibility and suppresses only the feed header's Subscribe while either switch wants it. */
     public static boolean showSubscribe(int eligible) {
-        return showSubscribe(eligible, HIDER::wanted);
+        return showSubscribe(eligible, () -> HIDER.wanted() || SUBSCRIBE_HIDER.wanted());
     }
 
     static boolean showSubscribe(int eligible, BooleanSupplier on) {
@@ -84,11 +94,16 @@ public final class FeedFollowButton {
         return HIDER;
     }
 
+    static ViewHider subscribeHider() {
+        return SUBSCRIBE_HIDER;
+    }
+
     public static boolean listeningForTests(Activity activity) {
-        return HIDER.listeningForTests(activity);
+        return HIDER.listeningForTests(activity) || SUBSCRIBE_HIDER.listeningForTests(activity);
     }
 
     public static void resetForTests() {
         HIDER.resetForTests();
+        SUBSCRIBE_HIDER.resetForTests();
     }
 }
