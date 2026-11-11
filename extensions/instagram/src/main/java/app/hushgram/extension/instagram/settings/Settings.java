@@ -2520,6 +2520,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_comments", FALSE);
 
     /**
+     * A comment in a post's or reel's comments leaves Reply out of the line under its text, while
+     * View more replies stays (#619, {@link app.hushgram.extension.instagram.feed.CommentReply}).
+     * Read as each comment is drawn, so comments already on screen change the next time they're
+     * drawn. Off to start.
+     */
+    public static final BooleanSetting HIDE_COMMENT_REPLY =
+            new BooleanSetting("hushgram_hide_comment_reply", FALSE);
+
+    /**
      * The comment sheet leaves out the row of quick emoji above the comment box
      * ({@link app.hushgram.extension.instagram.feed.CommentEmojiRow}). Read before each frame of a
      * resumed screen, so it needs no restart. Off to start.

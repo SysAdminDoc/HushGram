@@ -10,6 +10,7 @@ Every HushGram release, newest first.
 * HushGram's settings are now in Thai, thanks to MangaThatsFine in #593.
 * `Hide the Join bar on channel posts` under Feed takes away the bar under a post that asks you to join the account's channel. The post stays. Starts off. Asked for in #625.
 * New switches under Profiles take the Threads badge, Facebook and WhatsApp links, the profile song, interests, channel invites and the other banners from under the bio on other people's profiles. Yours keeps them. Each starts off. Asked for in #627.
+* `Hide Reply on comments` sits under `Hide comments` in Comments. It takes Reply off each comment on posts and reels, and View more replies still opens a thread. Starts off. Asked for in #619.
 * `Keep hidden accounts in Favorites` sits under `Hidden accounts` in Feed. Turn it on and posts from accounts you've hidden still show when Home is on Favorites, while For you and Following leave them out. Starts off. Asked for in #601.
 * `Hide posts from business and creator accounts` under Feed takes their posts out of Home and Following, friends who use one included, and collabs with one of them too. Favorites still shows them. Starts off. Asked for in #579.
 * `Lock Saved` sits with the message locks in Messages. Saved, your collections and the search inside Saved stay covered until your fingerprint, face or screen lock says it's you, and your messages stay as they were. Starts off. Asked for in #597.

@@ -449,6 +449,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by Hide comments when the Reply on a comment's line was found too. */
+    public static boolean commentReply() {
+        return false;
+    }
+
     public static boolean commentEmojiRow() {
         return false;
     }

@@ -709,6 +709,9 @@ No other way into HushGram is on, so the row stays in Instagram's menu.	HushGram
 Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Buraya gelen başka bir yol HushGram'ı açtığı sürece Instagram'ın Ayarlar ve hareketler ekranında HushGram satırı gösterilmez. Diğer bütün yollar kapalıyken satır geri gelir.
 Stop loading stories and highlights	Hikayeleri ve öne çıkanları yükleme
 Takes the Comment button and the comment count off the posts in your feed.	Akışındaki gönderilerden Yorum yap düğmesini ve yorum sayısını kaldırır.
+# context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
+Hide Reply on comments	Yorumlarda Yanıtla'yı gizle
+Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	Bir gönderinin ya da reels videosunun yorumlarında her yorumdan Yanıtla'yı kaldırır. Diğer yanıtları gör yerinde kalır, yani yanıtları yine açabilirsin.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Emoji satırını gizle
 Takes the row of quick emoji off above the comment box. The box itself stays.	Yorum kutusunun üstündeki hızlı emoji satırını kaldırır. Kutunun kendisi kalır.

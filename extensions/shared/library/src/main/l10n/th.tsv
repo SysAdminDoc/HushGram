@@ -703,6 +703,9 @@ No other way into HushGram is on, so the row stays in Instagram's menu.	ไม�
 Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	หน้าจอ "การตั้งค่าและกิจกรรม" ของ Instagram จะไม่แสดงแถว HushGram ในขณะที่มีช่องทางอื่นเปิดใช้งานอยู่ หากปิดช่องทางอื่นทั้งหมด แถวนี้จะกลับมาแสดงตามเดิม
 Stop loading stories and highlights	หยุดโหลดสตอรี่และไฮไลท์
 Takes the Comment button and the comment count off the posts in your feed.	นำปุ่มความคิดเห็นและจำนวนความคิดเห็นออกจากโพสต์ในฟีดของคุณ
+# context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
+Hide Reply on comments	ซ่อน "ตอบกลับ" ในความคิดเห็น
+Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	นำ "ตอบกลับ" ออกจากทุกความคิดเห็นในโพสต์หรือรีลส์ ส่วน "ดูการตอบกลับเพิ่มเติม" ยังอยู่ คุณจึงยังเปิดดูการตอบกลับได้
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	ซ่อนแถวอิโมจิ
 Takes the row of quick emoji off above the comment box. The box itself stays.	นำแถวอิโมจิด่วนด้านบนช่องแสดงความคิดเห็นออก ทั้งนี้ช่องแสดงความคิดเห็นจะยังคงอยู่

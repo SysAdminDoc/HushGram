@@ -58,6 +58,10 @@ final class CommentsCategory {
             if (build.contains(PatchFamily.HIDE_COMMENTS)) {
                 comments.addPreference(toggle(context, Settings.HIDE_COMMENTS, L10n.t("Hide comments"),
                         L10n.t("Takes the Comment button and the comment count off the posts in your feed.")));
+                if (PatchFamily.commentReplyInBuild()) {
+                    comments.addPreference(toggle(context, Settings.HIDE_COMMENT_REPLY, L10n.t("Hide Reply on comments"),
+                            L10n.t("Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.")));
+                }
             }
             if (build.contains(PatchFamily.COMMENT_EMOJI_ROW)) {
                 comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_EMOJI_ROW, L10n.t("Hide the emoji row"),

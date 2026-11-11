@@ -706,6 +706,9 @@ No other way into HushGram is on, so the row stays in Instagram's menu.	Không c
 Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Màn hình Cài đặt và hoạt động của Instagram bỏ hàng HushGram khi có lối khác mở HushGram. Khi mọi lối khác đều tắt, hàng này quay lại.
 Stop loading stories and highlights	Ngừng tải tin và tin nổi bật
 Takes the Comment button and the comment count off the posts in your feed.	Gỡ nút Bình luận và số bình luận khỏi các bài viết trong bảng feed.
+# context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
+Hide Reply on comments	Ẩn Trả lời trên bình luận
+Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	Gỡ Trả lời khỏi từng bình luận của bài viết hoặc reel. Xem thêm câu trả lời vẫn còn, nên bạn vẫn mở được các câu trả lời.
 Hide the emoji row	Ẩn hàng biểu tượng cảm xúc
 Takes the row of quick emoji off above the comment box. The box itself stays.	Gỡ hàng biểu tượng cảm xúc nhanh phía trên ô bình luận. Bản thân ô vẫn giữ.
 # context: Comments: the switch that takes GIFs and stickers out of a post's comments (#511). A comment that has words keeps its words and loses only the picture. A comment that's only a GIF disappears, and its replies with it. Comment box is the field where you type a comment.

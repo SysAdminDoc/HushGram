@@ -709,6 +709,9 @@ No other way into HushGram is on, so the row stays in Instagram's menu.	Tidak ad
 Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Selama cara lain ke sini membuka HushGram, layar Pengaturan dan aktivitas Instagram tidak menampilkan baris HushGram. Jika semua cara lain dimatikan, barisnya kembali.
 Stop loading stories and highlights	Berhenti memuat cerita dan sorotan
 Takes the Comment button and the comment count off the posts in your feed.	Menghapus tombol Komentar dan jumlah komentar dari postingan di feed Anda.
+# context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
+Hide Reply on comments	Sembunyikan Balas di komentar
+Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	Menghapus Balas dari setiap komentar di postingan atau reel. Lihat balasan lainnya tetap ada, jadi Anda masih bisa membukanya.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Sembunyikan baris emoji
 Takes the row of quick emoji off above the comment box. The box itself stays.	Menghapus baris emoji cepat di atas kotak komentar. Kotaknya tetap ada.

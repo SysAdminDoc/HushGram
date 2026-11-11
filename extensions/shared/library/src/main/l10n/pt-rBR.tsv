@@ -709,6 +709,9 @@ No other way into HushGram is on, so the row stays in Instagram's menu.	Nenhuma 
 Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Enquanto outra forma de chegar aqui abrir o HushGram, a tela Configurações e atividade do Instagram não mostra a linha do HushGram. Com todas as outras formas desligadas, a linha volta.
 Stop loading stories and highlights	Não carregar stories e destaques
 Takes the Comment button and the comment count off the posts in your feed.	Tira o botão Comentar e a contagem de comentários dos posts do seu feed.
+# context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
+Hide Reply on comments	Ocultar Responder nos comentários
+Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	Tira o Responder de cada comentário de um post ou reel. Ver mais respostas continua, então você ainda pode abrir as respostas.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Ocultar a linha de emojis
 Takes the row of quick emoji off above the comment box. The box itself stays.	Tira a linha de emojis rápidos acima da caixa de comentários. A caixa continua lá.

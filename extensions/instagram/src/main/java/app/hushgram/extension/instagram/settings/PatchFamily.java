@@ -213,7 +213,7 @@ public enum PatchFamily {
             Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT, Settings.PROFILE_EXTRAS_BUTTON,
             Settings.ABOUT_ACCOUNT_BUTTON, Settings.PROFILE_HISTORY),
     VOICE_MESSAGE(FamilyNames.VOICE_MESSAGE, "voiceMessage", null, Settings.DOWNLOAD_VOICE_MESSAGES),
-    HIDE_COMMENTS(FamilyNames.HIDE_COMMENTS, "hideComments", null, Settings.HIDE_COMMENTS),
+    HIDE_COMMENTS(FamilyNames.HIDE_COMMENTS, "hideComments", null, Settings.HIDE_COMMENTS, Settings.HIDE_COMMENT_REPLY),
     COMMENT_EMOJI_ROW(FamilyNames.COMMENT_EMOJI_ROW, "commentEmojiRow", null, Settings.HIDE_COMMENT_EMOJI_ROW),
     COMMENT_KEYBOARD(FamilyNames.COMMENT_KEYBOARD, "commentKeyboard", null, Settings.COMMENT_KEYBOARD_DOWN),
     COMMENT_GIFS(FamilyNames.COMMENT_GIFS, "commentGifs", null, Settings.HIDE_COMMENT_GIFS),
@@ -410,6 +410,22 @@ public enum PatchFamily {
         return COMMENT_PHOTO.inBuild() && SettingsStatus.commentGifName() && commentAuthorInBuild();
     }
 
+    /** Whether a test says this build takes Reply off comments, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean commentReplyForTests;
+
+    /**
+     * Whether this build takes Reply off each comment in a post's or reel's comments. Hide comments
+     * goes in without it when the line under a comment has moved, so that switch isn't offered then.
+     */
+    public static boolean commentReplyInBuild() {
+        Boolean forced = commentReplyForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(HIDE_COMMENTS);
+        return HIDE_COMMENTS.inBuild() && SettingsStatus.commentReply();
+    }
+
     /** Whether a test says this build filters Home by a post's type, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean feedTypesForTests;
@@ -531,6 +547,9 @@ public enum PatchFamily {
                 }
                 if (family == COMMENT_COPY && !commentAuthorInBuild()) {
                     lines.add("  Copy the commenter's username: not in this build (the comment menu's label or the comment's author didn't match)");
+                }
+                if (family == HIDE_COMMENTS && !commentReplyInBuild()) {
+                    lines.add("  Hide Reply on comments: not in this build (the line under a comment didn't match)");
                 }
                 if (family == FOLLOWING_FEED && !followingMixInBuild()) {
                     lines.add("  Mix in Following: not in this build (Home's paging didn't match)");

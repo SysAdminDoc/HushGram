@@ -120,7 +120,7 @@ In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages,
 | `Hide ads` | Hides sponsored posts, reels, stories and the ad in comments, and leaves no gap where an ad would have been. On by default. Turn it off in HushGram settings > Ads and privacy. | Included |
 | `Hide AI-labeled reels` | Leaves out reels that carry Instagram's own AI label. A reel without that label stays. Starts off. Turn it on in HushGram settings > Reels. | Included |
 | `Hide captions` | Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it. Starts off. Turn it on in HushGram settings > Feed. | Included |
-| `Hide comments` | Takes the Comment button and the comment count off posts in your feed. Starts off. Turn it on in HushGram settings > Comments. | Included |
+| `Hide comments` | Takes the Comment button and the comment count off posts in your feed. A second switch takes Reply off each comment and keeps View more replies. Starts off. Turn it on in HushGram settings > Comments. | Included |
 | `Hide Follow on feed posts` | Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay. Starts off. Turn it on in HushGram settings > Feed. | Included |
 | `Hide Follow on stories` | Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay. Starts off. Turn it on in HushGram settings > Stories. | Included |
 | `Hide GIFs in comments` | Takes GIFs and stickers out of comments, and the GIF button off the comment box. A comment with words keeps them. One that's only a GIF goes, along with its replies. Starts off. Turn it on in HushGram settings > Comments. | Included |

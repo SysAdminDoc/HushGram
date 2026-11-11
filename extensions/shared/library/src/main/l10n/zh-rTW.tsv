@@ -713,6 +713,9 @@ No other way into HushGram is on, so the row stays in Instagram's menu.	目前�
 Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	啟用其他 HushGram 入口時，Instagram 的「設定和動態」畫面會隱藏 HushGram 項目。關閉所有其他入口後，此項目會重新出現。
 Stop loading stories and highlights	停止載入限時動態與精選
 Takes the Comment button and the comment count off the posts in your feed.	移除動態首頁貼文的留言按鈕與留言數。
+# context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
+Hide Reply on comments	隱藏留言的「回覆」
+Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	移除貼文或 Reels 留言中每則留言的「回覆」。「查看更多回覆」仍會保留，你還是可以展開回覆。
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	隱藏表情符號列
 Takes the row of quick emoji off above the comment box. The box itself stays.	移除留言輸入框上方的快速表情符號列，輸入框本身仍會保留。

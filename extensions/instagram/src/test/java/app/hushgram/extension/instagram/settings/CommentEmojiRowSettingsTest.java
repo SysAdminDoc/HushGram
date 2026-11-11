@@ -96,7 +96,7 @@ public class CommentEmojiRowSettingsTest {
                 row.getSummary().toString());
         PreferenceGroup comments = row.getParent();
         assertEquals("Comments", comments.getTitle().toString());
-        assertEquals("right after Hide comments", Settings.HIDE_COMMENTS.key,
+        assertEquals("right after Hide comments and its Reply switch", Settings.HIDE_COMMENT_REPLY.key,
                 comments.getPreference(indexOf(comments, row) - 1).getKey());
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_COMMENT_EMOJI_ROW.get());
