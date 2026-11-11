@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.feed;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -15,17 +16,20 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewOutlineProvider;
+import android.view.WindowInsets;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
@@ -533,5 +537,65 @@ public class AmbientStoryLightTest {
         laidOut();
         storiesOn();
         assertFalse(AmbientLight.litRectForTests(post) != null);
+    }
+
+    /**
+     * Instagram's frame round a story is a kind of its post frame. With Ambient light on too, the post
+     * search took it and lit it as a post, with nothing under the status bar and nothing over the
+     * frame's corners, and Ambient light alone lit stories it should leave dark (#630).
+     */
+    @Test
+    public void aStoryFrameThatIsAlsoAPostFrameGlowsOnlyAsAStory() {
+        MediaFrameLayout storyFrame = new MediaFrameLayout(activity);
+        storyFrame.setId(storyFrameId);
+        root.removeView(frame);
+        frame.removeView(photo);
+        storyFrame.addView(photo, new FrameLayout.LayoutParams(WIDTH, HEIGHT, Gravity.CENTER));
+        root.addView(storyFrame, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        photo.setImageDrawable(picture(90, 160));
+        laidOut();
+        Settings.AMBIENT_LIGHT.save(true);
+        AmbientLight.watch(activity);
+        frame();
+        laidOut();
+        assertEquals("posts and reels only", 0, AmbientLight.litForTests());
+
+        storiesOn();
+
+        assertNull("not lit as a post", AmbientLight.litRectForTests(storyFrame));
+        assertNotNull("lit as a story", AmbientLight.litRectForTests(photo));
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AmbientLight.COUNT_STORIES + " 1"));
+    }
+
+    /**
+     * A tall status bar left Instagram's story viewer under nine tenths of the window, so the stage
+     * went to a view round the bars, with no host for the bands and no back for the corners (#630).
+     * The viewer spans what the bars leave, so it takes the stage.
+     */
+    @Test
+    public void theViewerBetweenTallBarsStillTakesTheStage() throws Exception {
+        WindowInsets bars = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                ? new WindowInsets.Builder().setInsets(WindowInsets.Type.systemBars(), Insets.of(0, 128, 0, 48)).build()
+                : WindowInsets.class.getConstructor(Rect.class).newInstance(new Rect(0, 128, 0, 48));
+        FrameLayout window = new FrameLayout(activity) {
+            @Override
+            public WindowInsets getRootWindowInsets() {
+                return bars;
+            }
+        };
+        FrameLayout viewer = new FrameLayout(activity);
+        FrameLayout card = new FrameLayout(activity);
+        View media = new View(activity);
+        card.addView(media, new FrameLayout.LayoutParams(720, 1280));
+        viewer.addView(card, new FrameLayout.LayoutParams(720, 1280));
+        FrameLayout.LayoutParams below = new FrameLayout.LayoutParams(720, 1424);
+        below.topMargin = 128;
+        window.addView(viewer, below);
+        window.measure(View.MeasureSpec.makeMeasureSpec(720, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1600, View.MeasureSpec.EXACTLY));
+        window.layout(0, 0, 720, 1600);
+
+        assertSame(viewer, AmbientLight.storyStageOf(media, window));
     }
 }

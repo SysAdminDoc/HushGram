@@ -35,6 +35,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.WindowInsets;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
@@ -345,14 +346,22 @@ public final class AmbientLight {
 
     /**
      * A story's stage: the nearest parent of [media] that spans at least nine tenths of the window both
-     * ways, so the glow can fill the bands the picture leaves above, below and beside it.
+     * ways, or the width and nearly all the height between the system bars, so the glow can fill the
+     * bands the picture leaves above, below and beside it. A tall status bar leaves Instagram's viewer
+     * under nine tenths of the window, and a stage above it had no bands host or corners to light (#630).
      */
     @Nullable
     static ViewGroup storyStageOf(View media, View window) {
+        WindowInsets insets = window.getRootWindowInsets();
+        int bars = insets == null ? 0 : insets.getSystemWindowInsetTop() + insets.getSystemWindowInsetBottom();
+        float between = (window.getHeight() - bars) * FILLS;
         ViewParent parent = media.getParent();
         for (int i = 0; i < STAGE_DEPTH && parent instanceof ViewGroup; i++, parent = parent.getParent()) {
             ViewGroup group = (ViewGroup) parent;
-            if (group.getWidth() >= window.getWidth() * 0.9f && group.getHeight() >= window.getHeight() * 0.9f) return group;
+            if (group.getWidth() >= window.getWidth() * 0.9f
+                    && (group.getHeight() >= window.getHeight() * 0.9f || bars > 0 && group.getHeight() >= between)) {
+                return group;
+            }
         }
         return null;
     }
@@ -1793,6 +1802,8 @@ public final class AmbientLight {
         private final WeakReference<Activity> activity;
         /** Whether posts glow, as of the last search. */
         private boolean posts;
+        /** Whether stories glow, as of the last search. */
+        private boolean stories;
         /** A chat's root, as of the last search: what's under it stays dark. */
         private int chat;
 
@@ -1843,8 +1854,10 @@ public final class AmbientLight {
                             HookStatus.recoveredViewId(FamilyNames.AMBIENT_LIGHT, REEL_FRAME);
                         }
                     }
+                    // Read with either switch: Instagram's story frame is a kind of its post frame, and
+                    // posts leave it to the story switch.
+                    storyFrame = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), STORY_FRAME, false);
                     if (stories) {
-                        storyFrame = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), STORY_FRAME, false);
                         if (storyFrame == 0) {
                             HookStatus.missingViewId(FamilyNames.AMBIENT_LIGHT, STORY_FRAME);
                         } else {
@@ -1852,6 +1865,7 @@ public final class AmbientLight {
                         }
                     }
                     posts = feed;
+                    this.stories = stories;
                     chat = feed ? ids.resolve(owner.getResources(), Utils.resourcePackage(owner), CHAT, false) : 0;
                     walk(owner, owner.getWindow().getDecorView(), frame, storyFrame, feed && !reelsBlurred(),
                             new int[] {ReelCorners.MAX_VIEWS});
@@ -1867,6 +1881,11 @@ public final class AmbientLight {
         private void walk(Activity owner, View view, int frame, int storyFrame, boolean reels, int[] budget) {
             if (budget[0]-- <= 0 || view.getVisibility() != View.VISIBLE) return;
             if (chat != 0 && view.getId() == chat) return;
+            // Before the post frame: a story's frame is one too, and lit as a post it lost its bands and corners (#630).
+            if (storyFrame != 0 && view.getId() == storyFrame) {
+                if (stories) lightStory(owner, view, budget);
+                return;
+            }
             if (posts && mediaFrame(view)) {
                 light(owner, view, Kind.POST, null, stageOf(view));
                 return;
@@ -1876,10 +1895,6 @@ public final class AmbientLight {
                     TextureView video = videoIn(view, budget);
                     if (video != null) light(owner, video, Kind.REEL, null, reelStageOf(video, view));
                 }
-                return;
-            }
-            if (storyFrame != 0 && view.getId() == storyFrame) {
-                lightStory(owner, view, budget);
                 return;
             }
             if (view instanceof ViewGroup) {
