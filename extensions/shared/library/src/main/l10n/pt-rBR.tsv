@@ -1931,7 +1931,7 @@ Save in the post menu	Salvar no menu do post
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Adiciona Salvar ao menu dos três pontos de um post, ou Remover dos salvos quando você já salvou.
 Hide the Save button	Ocultar o botão Salvar
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Tira o botão Salvar da parte de baixo dos posts do seu feed, para um toque sem querer não salvar nada.
-# context: the row in a feed post's three-dot menu for a post you already saved
+# context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Remover dos salvos
 # context: a switch on the Reels page
 Hide lives in Reels	Ocultar lives nos Reels
@@ -2069,3 +2069,21 @@ Takes the invite to someone's broadcast channel from under their bio. Yours keep
 Hide the other profile banners	Ocultar os outros banners do perfil
 # context: Profiles > summary of Hide the other profile banners (#627)
 Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	Tira o resto dos banners de baixo da bio nos perfis de outras pessoas, como eventos, arrecadações, escolas e horário de funcionamento. O seu continua com eles.
+# context: the row HushGram adds to the menu on someone's profile; it puts the account on the Saved profiles list (#629)
+Save profile	Salvar perfil
+# context: toast after Save profile; %s is the account's username (#629)
+Saved @%s	@%s salvo
+# context: toast after Remove from saved takes an account off the Saved profiles list; %s is its username (#629)
+Removed @%s from saved	@%s removido dos salvos
+# context: toast when the Saved profiles list already holds 2,000 accounts (#629)
+Saved profiles is full.	A lista de perfis salvos está cheia.
+# context: Profiles > title of the switch that adds Save profile to the menu on profiles, and title of the page listing the saved accounts (#629)
+Saved profiles	Perfis salvos
+# context: Profiles > summary of Saved profiles; Favorites and Following are Instagram's own lists of accounts (#629)
+Adds Save profile to the menu on someone's profile, even one you don't follow. The list stays on this phone, apart from Instagram's Favorites and Following.	Adiciona Salvar perfil ao menu no perfil de outra pessoa, mesmo que você não siga a conta. A lista fica neste celular, separada de Favoritos e Seguindo do Instagram.
+# context: row in HushGram settings > Profiles that opens the page of saved accounts (#629)
+Your saved profiles	Seus perfis salvos
+# context: summary of Your saved profiles, and the Saved profiles page's text, when nothing is saved (#629)
+Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	Nada salvo ainda. Com Perfis salvos ativado, toque em Salvar perfil no menu do perfil de alguém e ele aparece aqui.
+# context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
+Remove @%s from saved	Remover @%s dos salvos

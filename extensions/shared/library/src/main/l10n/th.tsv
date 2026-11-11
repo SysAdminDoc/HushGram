@@ -1919,7 +1919,7 @@ Save in the post menu	บันทึกในเมนูโพสต์
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	เพิ่ม "บันทึก" ลงในเมนูใต้จุดสามจุดของโพสต์ หรือ "ลบออกจากรายการที่บันทึกไว้" เมื่อคุณได้บันทึกไว้แล้ว
 Hide the Save button	ซ่อนปุ่มบันทึก
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	นำปุ่มบันทึกออกจากด้านล่างของโพสต์ในฟีดของคุณ เพื่อป้องกันการแตะโดนโดยไม่ตั้งใจจนบันทึกโพสต์
-# context: the row in a feed post's three-dot menu for a post you already saved
+# context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	ลบออกจากรายการที่บันทึกไว้
 # context: a switch on the Reels page
 Hide lives in Reels	ซ่อนไลฟ์ในรีลส์
@@ -2066,3 +2066,21 @@ Takes the invite to someone's broadcast channel from under their bio. Yours keep
 Hide the other profile banners	ซ่อนแบนเนอร์อื่นๆ ในโปรไฟล์
 # context: Profiles > summary of Hide the other profile banners (#627)
 Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	นำแบนเนอร์อื่นๆ ใต้ประวัติย่อออกจากโปรไฟล์ของคนอื่น เช่น กิจกรรม การระดมทุน โรงเรียน และเวลาทำการ โปรไฟล์ของคุณยังคงมีอยู่
+# context: the row HushGram adds to the menu on someone's profile; it puts the account on the Saved profiles list (#629)
+Save profile	บันทึกโปรไฟล์
+# context: toast after Save profile; %s is the account's username (#629)
+Saved @%s	บันทึก @%s แล้ว
+# context: toast after Remove from saved takes an account off the Saved profiles list; %s is its username (#629)
+Removed @%s from saved	ลบ @%s ออกจากรายการที่บันทึกไว้แล้ว
+# context: toast when the Saved profiles list already holds 2,000 accounts (#629)
+Saved profiles is full.	รายการโปรไฟล์ที่บันทึกไว้เต็มแล้ว
+# context: Profiles > title of the switch that adds Save profile to the menu on profiles, and title of the page listing the saved accounts (#629)
+Saved profiles	โปรไฟล์ที่บันทึกไว้
+# context: Profiles > summary of Saved profiles; Favorites and Following are Instagram's own lists of accounts (#629)
+Adds Save profile to the menu on someone's profile, even one you don't follow. The list stays on this phone, apart from Instagram's Favorites and Following.	เพิ่ม "บันทึกโปรไฟล์" ในเมนูบนโปรไฟล์ของผู้อื่น แม้เป็นบัญชีที่คุณไม่ได้ติดตาม รายการจะอยู่ในโทรศัพท์เครื่องนี้เท่านั้น แยกจาก "รายการโปรด" และ "กำลังติดตาม" ของ Instagram
+# context: row in HushGram settings > Profiles that opens the page of saved accounts (#629)
+Your saved profiles	โปรไฟล์ที่คุณบันทึกไว้
+# context: summary of Your saved profiles, and the Saved profiles page's text, when nothing is saved (#629)
+Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	ยังไม่ได้บันทึกอะไร เมื่อเปิด "โปรไฟล์ที่บันทึกไว้" ให้แตะ "บันทึกโปรไฟล์" ในเมนูบนโปรไฟล์ของผู้อื่น แล้วโปรไฟล์นั้นจะแสดงที่นี่
+# context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
+Remove @%s from saved	ลบ @%s ออกจากรายการที่บันทึกไว้

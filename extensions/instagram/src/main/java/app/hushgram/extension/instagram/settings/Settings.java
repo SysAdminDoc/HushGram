@@ -2513,13 +2513,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_copy_profile_text", FALSE);
 
     /**
+     * The menu on someone's profile gets Save profile, or Remove from saved once it's saved, and
+     * the Saved profiles page lists those accounts to open again (#629). The list stays on this
+     * phone, apart from Instagram's Favorites and Following, and out of settings backups and the
+     * diagnostic report ({@link app.hushgram.extension.instagram.download.SavedProfiles}). Starts off.
+     */
+    public static final BooleanSetting SAVED_PROFILES =
+            new BooleanSetting("hushgram_saved_profiles", FALSE);
+
+    /**
      * A button next to the three dots on a profile opens a menu of the profile actions switched on
      * above ({@link app.hushgram.extension.instagram.download.ProfileExtras}). The three-dot menu
      * keeps its rows. Off until enabled, and greyed until one of those actions is on.
      */
     public static final BooleanSetting PROFILE_EXTRAS_BUTTON =
             new BooleanSetting("hushgram_profile_extras_button", FALSE,
-                    parentsAny(SAVE_PROFILE_PICTURES, VIEW_PROFILE_PICTURES, COPY_PROFILE_TEXT));
+                    parentsAny(SAVE_PROFILE_PICTURES, VIEW_PROFILE_PICTURES, COPY_PROFILE_TEXT, SAVED_PROFILES));
 
     /**
      * An (i) on a profile, next to the three dots, opens Instagram's About this account for that

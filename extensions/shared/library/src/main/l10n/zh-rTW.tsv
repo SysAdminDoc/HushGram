@@ -1934,7 +1934,7 @@ Save in the post menu	貼文選單中的儲存
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	在貼文三個點開啟的選單中加入「儲存」，已儲存的貼文則顯示「從已儲存移除」。
 Hide the Save button	隱藏儲存按鈕
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	移除動態中貼文底部的儲存按鈕，避免誤觸而儲存貼文。
-# context: the row in a feed post's three-dot menu for a post you already saved
+# context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	從已儲存移除
 # context: a switch on the Reels page
 Hide lives in Reels	隱藏 Reels 中的直播
@@ -2072,3 +2072,21 @@ Takes the invite to someone's broadcast channel from under their bio. Yours keep
 Hide the other profile banners	隱藏其他個人檔案橫幅
 # context: Profiles > summary of Hide the other profile banners (#627)
 Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	移除他人個人檔案中個人簡介下方的其餘橫幅，例如活動、募款、學校與營業時間。你自己的個人檔案仍會保留。
+# context: the row HushGram adds to the menu on someone's profile; it puts the account on the Saved profiles list (#629)
+Save profile	儲存個人檔案
+# context: toast after Save profile; %s is the account's username (#629)
+Saved @%s	已儲存 @%s
+# context: toast after Remove from saved takes an account off the Saved profiles list; %s is its username (#629)
+Removed @%s from saved	已將 @%s 從已儲存移除
+# context: toast when the Saved profiles list already holds 2,000 accounts (#629)
+Saved profiles is full.	已儲存的個人檔案已達上限。
+# context: Profiles > title of the switch that adds Save profile to the menu on profiles, and title of the page listing the saved accounts (#629)
+Saved profiles	已儲存的個人檔案
+# context: Profiles > summary of Saved profiles; Favorites and Following are Instagram's own lists of accounts (#629)
+Adds Save profile to the menu on someone's profile, even one you don't follow. The list stays on this phone, apart from Instagram's Favorites and Following.	在他人個人檔案的選單中加入「儲存個人檔案」，即使是你沒有追蹤的帳號也可以。清單只保留在這支手機上，與 Instagram 的「最愛」和「追蹤中」分開。
+# context: row in HushGram settings > Profiles that opens the page of saved accounts (#629)
+Your saved profiles	你儲存的個人檔案
+# context: summary of Your saved profiles, and the Saved profiles page's text, when nothing is saved (#629)
+Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	尚未儲存任何內容。開啟「已儲存的個人檔案」後，在他人個人檔案的選單中點按「儲存個人檔案」，該檔案就會顯示在這裡。
+# context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
+Remove @%s from saved	將 @%s 從已儲存移除

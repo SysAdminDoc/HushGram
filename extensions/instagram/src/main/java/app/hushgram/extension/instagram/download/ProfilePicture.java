@@ -92,9 +92,9 @@ public final class ProfilePicture {
 
     /**
      * Adds Save profile picture and View profile picture to [sheet], the menu on [user]'s profile,
-     * each when its switch is on and the account has a picture, then Copy username and Copy bio
-     * when their switch is on, each when the account has one. [context] is the menu's. Never
-     * throws.
+     * each when its switch is on and the account has a picture, then Save profile or Remove from
+     * saved when Saved profiles is on ({@link SavedProfiles}), then Copy username and Copy bio when
+     * their switch is on, each when the account has one. [context] is the menu's. Never throws.
      */
     public static void offer(Object sheet, Object user, Context context) {
         offer(sheet, user, context, NATIVE, SAVE, VIEWER);
@@ -176,8 +176,9 @@ public final class ProfilePicture {
         try {
             HookStatus.invoked(FamilyNames.PROFILE_PICTURE);
             if (sheet == null || user == null || context == null) return;
-            boolean saving = on(), viewing = viewing(), copying = copying(), selecting = SelectText.on();
-            if (!saving && !viewing && !copying && !selecting) return;
+            boolean saving = on(), viewing = viewing(), copying = copying(), selecting = SelectText.on(),
+                    keeping = SavedProfiles.on();
+            if (!saving && !viewing && !copying && !selecting && !keeping) return;
             String owner = reads.username(user);
             List<MediaSave.Rendition> sizes = saving || viewing ? sizes(user, reads) : Collections.emptyList();
             if (saving && !sizes.isEmpty() && !reads.addRow(sheet, context, new Row(context, sizes, owner, save),
@@ -187,6 +188,10 @@ public final class ProfilePicture {
             if (viewing && !sizes.isEmpty() && !reads.addRow(sheet, context, new ViewRow(context, sizes, owner, save, viewer),
                     L10n.t(context, "View profile picture"))) {
                 HookStatus.counted(FamilyNames.PROFILE_PICTURE, VIEW_NOT_ADDED);
+            }
+            SavedProfiles.Row keep = keeping ? SavedProfiles.row(context, user, owner) : null;
+            if (keep != null && !reads.addRow(sheet, context, keep, keep.label())) {
+                HookStatus.counted(FamilyNames.PROFILE_PICTURE, SavedProfiles.NOT_ADDED);
             }
             if (!copying && !selecting) return;
             if (copying && owner != null && !owner.isEmpty() && !reads.addRow(sheet, context, new CopyRow(context, owner, false),

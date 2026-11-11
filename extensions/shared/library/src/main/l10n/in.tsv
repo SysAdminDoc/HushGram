@@ -1931,7 +1931,7 @@ Save in the post menu	Simpan di menu postingan
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Menambahkan Simpan ke menu di balik tiga titik postingan, atau Hapus dari tersimpan jika kamu sudah menyimpannya.
 Hide the Save button	Sembunyikan tombol Simpan
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Menghapus tombol Simpan dari bagian bawah postingan di feed kamu, agar ketukan tak sengaja tidak menyimpannya.
-# context: the row in a feed post's three-dot menu for a post you already saved
+# context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Hapus dari tersimpan
 # context: a switch on the Reels page
 Hide lives in Reels	Sembunyikan siaran langsung di Reels
@@ -2069,3 +2069,21 @@ Takes the invite to someone's broadcast channel from under their bio. Yours keep
 Hide the other profile banners	Sembunyikan banner profil lainnya
 # context: Profiles > summary of Hide the other profile banners (#627)
 Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	Menghapus banner lain di bawah bio dari profil orang lain, seperti acara, penggalangan dana, sekolah, dan jam buka. Profilmu tetap memilikinya.
+# context: the row HushGram adds to the menu on someone's profile; it puts the account on the Saved profiles list (#629)
+Save profile	Simpan profil
+# context: toast after Save profile; %s is the account's username (#629)
+Saved @%s	@%s disimpan
+# context: toast after Remove from saved takes an account off the Saved profiles list; %s is its username (#629)
+Removed @%s from saved	@%s dihapus dari tersimpan
+# context: toast when the Saved profiles list already holds 2,000 accounts (#629)
+Saved profiles is full.	Daftar profil tersimpan sudah penuh.
+# context: Profiles > title of the switch that adds Save profile to the menu on profiles, and title of the page listing the saved accounts (#629)
+Saved profiles	Profil tersimpan
+# context: Profiles > summary of Saved profiles; Favorites and Following are Instagram's own lists of accounts (#629)
+Adds Save profile to the menu on someone's profile, even one you don't follow. The list stays on this phone, apart from Instagram's Favorites and Following.	Menambahkan Simpan profil ke menu di profil orang lain, bahkan akun yang tidak kamu ikuti. Daftarnya tetap di ponsel ini, terpisah dari Favorit dan Mengikuti di Instagram.
+# context: row in HushGram settings > Profiles that opens the page of saved accounts (#629)
+Your saved profiles	Profil tersimpanmu
+# context: summary of Your saved profiles, and the Saved profiles page's text, when nothing is saved (#629)
+Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.	Belum ada yang disimpan. Dengan Profil tersimpan aktif, ketuk Simpan profil di menu pada profil seseorang dan profil itu muncul di sini.
+# context: spoken label of the cross at the end of a row on the Saved profiles page; %s is the account's username (#629)
+Remove @%s from saved	Hapus @%s dari tersimpan

@@ -15,6 +15,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.followLabelPlaceRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.profileHistoryRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.savedProfilesRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.unfollowersRow;
 
@@ -64,6 +65,10 @@ final class ProfilesCategory {
                     return true;
                 });
                 profiles.addPreference(mark(clearProfileHistory, SettingsIcons.DELETE));
+                profiles.addPreference(toggle(context, Settings.SAVED_PROFILES, L10n.t("Saved profiles"),
+                        L10n.t("Adds Save profile to the menu on someone's profile, even one you don't follow. "
+                                + "The list stays on this phone, apart from Instagram's Favorites and Following.")));
+                profiles.addPreference(savedProfilesRow(context));
             }
             if (build.contains(PatchFamily.FRIENDSHIP_STATUS)) {
                 profiles.addPreference(toggle(context, Settings.SHOW_FRIENDSHIP_STATUS, L10n.t("Show if a profile follows you"),

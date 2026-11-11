@@ -156,7 +156,8 @@ internal fun BytecodePatchContext.coverBridges(patch: String): (() -> Unit)? = t
  * getters keep their names. The account's username names the save, and it and the account's bio
  * are what Copy username and Copy bio copy. Only Copy bio reads the bio, so a build where its
  * getter can't be told leaves that bridge answering null, after the patch log says why, and the
- * patch goes in without Copy bio.
+ * patch goes in without Copy bio. The account's name is only shown under its username on the
+ * Saved profiles page, so a build where its getter can't be told goes in with the name left off.
  */
 internal fun BytecodePatchContext.profilePictureBridges(patch: String): () -> Unit {
     val shown = pandoGetter(patch, USER, "profile_pic_url", IMAGE_URL)
@@ -168,11 +169,18 @@ internal fun BytecodePatchContext.profilePictureBridges(patch: String): () -> Un
         patchLog.warning("${unknown.message}. $patch goes in without Copy bio.")
         null
     }
+    val fullName = try {
+        pandoGetter(patch, USER, "full_name", "Ljava/lang/String;")
+    } catch (unknown: PatchException) {
+        patchLog.warning("${unknown.message}. $patch goes in without names on the Saved profiles page.")
+        null
+    }
     return bridgeWriter(patch, listOfNotNull(
         Bridge("profilePicture", USER, virtual(shown)),
         Bridge("fullSizeProfilePicture", USER, virtual(full)),
         Bridge("username", USER, virtual(username)),
         biography?.let { Bridge("biography", USER, virtual(it)) },
+        fullName?.let { Bridge("fullName", USER, virtual(it)) },
         Bridge("profilePictureUrl", PROFILE_PICTURE_INFO, kept(patch, PROFILE_PICTURE_INFO, "getUrl", "Ljava/lang/String;")),
         Bridge("profilePictureWidth", PROFILE_PICTURE_INFO, kept(patch, PROFILE_PICTURE_INFO, "getWidth", "I"), primitive = true),
         Bridge("profilePictureHeight", PROFILE_PICTURE_INFO, kept(patch, PROFILE_PICTURE_INFO, "getHeight", "I"), primitive = true),

@@ -230,6 +230,12 @@ class SaveProfilePictureHookTest {
                 for (bridge in PICTURE_BRIDGES) {
                     assertEquals("${bundle.name}: $bridge", Opcode.CHECK_CAST, context.method(INSTAGRAM_MEDIA, bridge).instructions().first().opcode)
                 }
+                // Saved profiles shows the name under the username, so the name's bridge has a getter of its own.
+                val getters = listOf("username", "biography", "fullName").associateWith { bridge ->
+                    context.method(INSTAGRAM_MEDIA, bridge).instructions().single { it.opcode == Opcode.INVOKE_VIRTUAL }.referenceText()
+                }
+                assertEquals("${bundle.name}: one getter each, $getters", 3, getters.values.toSet().size)
+                assertTrue("${bundle.name}: the name is read off the account, $getters", getters.getValue("fullName")!!.startsWith("$USER->"))
                 val (item, fields) = layout(context).split("|")
                 val itemClass = context.classDefBy("L${item.replace('.', '/')};")
                 val arguments = itemClass.methods.single { it.name == "<init>" }.parameterTypes.map(Any::toString)
@@ -246,13 +252,19 @@ class SaveProfilePictureHookTest {
 
     /** With the bio's getter gone, every other bridge goes in and the bio's keeps answering null, so only Copy bio is left out. */
     @Test
-    fun aBioThatCantBeToldLeavesOnlyCopyBioOut() {
+    fun aBioThatCantBeToldLeavesOnlyCopyBioOut() = aGetterThatCantBeToldLeavesOnlyItsBridgeOut("biography", "biography")
+
+    /** The same for the name Saved profiles shows: the page goes without it and the rest goes in. */
+    @Test
+    fun aNameThatCantBeToldLeavesOnlyTheNameOut() = aGetterThatCantBeToldLeavesOnlyItsBridgeOut("full_name", "fullName")
+
+    private fun aGetterThatCantBeToldLeavesOnlyItsBridgeOut(field: String, bridgeName: String) {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 val models = FixtureDex.classes(bundle, setOf(USER, PROFILE_PICTURE_INFO, IMAGE_URL))
-                val key = "biography".hashCode()
+                val key = field.hashCode()
                 val user = models.getValue(USER).let { user ->
                     ImmutableClassDef(
                         user.type, user.accessFlags, user.superclass, user.interfaces, user.sourceFile, user.annotations, user.fields,
@@ -263,14 +275,14 @@ class SaveProfilePictureHookTest {
                     )
                 }
                 val context = PatchContexts.of(models.values.filter { it.type != USER } + user + ExtensionDex.classDef(INSTAGRAM_MEDIA))
-                val stubBefore = context.method(INSTAGRAM_MEDIA, "biography").instructions().map { it.opcode }
+                val stubBefore = context.method(INSTAGRAM_MEDIA, bridgeName).instructions().map { it.opcode }
 
                 context.profilePictureBridges(PROFILE_PICTURE_PATCH)()
 
-                for (bridge in PICTURE_BRIDGES - "biography") {
+                for (bridge in PICTURE_BRIDGES - bridgeName) {
                     assertEquals("${bundle.name}: $bridge", Opcode.CHECK_CAST, context.method(INSTAGRAM_MEDIA, bridge).instructions().first().opcode)
                 }
-                assertEquals("${bundle.name}: the bio's stub", stubBefore, context.method(INSTAGRAM_MEDIA, "biography").instructions().map { it.opcode })
+                assertEquals("${bundle.name}: the $bridgeName stub", stubBefore, context.method(INSTAGRAM_MEDIA, bridgeName).instructions().map { it.opcode })
                 checked++
             }
         }
@@ -328,7 +340,7 @@ class SaveProfilePictureHookTest {
         const val ITEM = "Lfixture/PopupItem;"
         const val CALLBACK = "Lfixture/Click;"
         val PICTURE_BRIDGES = listOf(
-            "profilePicture", "fullSizeProfilePicture", "username", "biography", "profilePictureUrl", "profilePictureWidth",
+            "profilePicture", "fullSizeProfilePicture", "username", "biography", "fullName", "profilePictureUrl", "profilePictureWidth",
             "profilePictureHeight", "candidateUrl", "candidateWidth", "candidateHeight",
         )
         const val PUBLIC_FINAL = 0x0011

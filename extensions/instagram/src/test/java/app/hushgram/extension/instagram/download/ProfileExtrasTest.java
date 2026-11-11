@@ -103,6 +103,7 @@ public class ProfileExtrasTest {
         Settings.SAVE_PROFILE_PICTURES.resetToDefault();
         Settings.VIEW_PROFILE_PICTURES.resetToDefault();
         Settings.COPY_PROFILE_TEXT.resetToDefault();
+        Settings.SAVED_PROFILES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -213,6 +214,16 @@ public class ProfileExtrasTest {
         Settings.VIEW_PROFILE_PICTURES.save(false);
         Settings.COPY_PROFILE_TEXT.save(true);
         assertTrue("Copy username and bio alone is enough", Settings.PROFILE_EXTRAS_BUTTON.isAvailable());
+        Settings.COPY_PROFILE_TEXT.save(false);
+        Settings.SAVED_PROFILES.save(true);
+        assertTrue("Saved profiles alone is enough", Settings.PROFILE_EXTRAS_BUTTON.isAvailable());
+    }
+
+    @Test public void savedProfilesAloneGivesTheButton() {
+        Settings.SAVE_PROFILE_PICTURES.save(false);
+        Settings.SAVED_PROFILES.save(true);
+        bind();
+        assertNotNull("Save profile is something to list", button());
     }
 
     @Test public void withoutAnAccountThereIsNoButton() {

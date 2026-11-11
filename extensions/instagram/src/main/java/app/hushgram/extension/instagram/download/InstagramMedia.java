@@ -67,6 +67,11 @@ public final class InstagramMedia {
         return null;
     }
 
+    /** A User's {@code full_name}, the name its profile shows over the bio. */
+    public static String fullName(Object user) {
+        return null;
+    }
+
     /** A video version's {@code url}. */
     public static String versionUrl(Object version) {
         return null;

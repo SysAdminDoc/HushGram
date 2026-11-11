@@ -40,7 +40,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 /**
  * Profile extras button: a small button first in the row on the right of a profile's top bar, where
  * the three dots are, that lists HushGram's profile actions (Save profile picture, View profile
- * picture, Copy username and Copy bio, whichever are switched on) in a small menu. The rows in the
+ * picture, Save profile, Copy username and Copy bio, whichever are switched on) in a small menu. The rows in the
  * three-dot menu stay as they are ({@link ProfilePicture}); this is a second way to reach them (#234).
  *
  * <p>The patch calls {@link #bound} first thing as the bar fills its rows, and {@link #screen} right
@@ -222,6 +222,7 @@ public final class ProfileExtras {
             user(bar, shown);
             ViewingHistory.profile(shown);
             ProfileHistory.seen(shown);
+            SavedProfiles.seen(shown);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras account", failure);
         }
@@ -266,7 +267,7 @@ public final class ProfileExtras {
     static boolean wanted() {
         try {
             return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.PROFILE_EXTRAS_BUTTON.get()
-                    && (ProfilePicture.on() || ProfilePicture.viewing() || ProfilePicture.copying());
+                    && (ProfilePicture.on() || ProfilePicture.viewing() || ProfilePicture.copying() || SavedProfiles.on());
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras switch", failure);
             return false;
