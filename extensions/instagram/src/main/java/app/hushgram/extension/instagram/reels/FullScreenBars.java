@@ -851,6 +851,8 @@ public final class FullScreenBars {
         private boolean keys;
         /** The reels top bars lowered below the camera cutout while the status bar is hidden (#525). */
         private final ReelsBarCutout cutout = new ReelsBarCutout();
+        /** Sheet content Instagram sized past the window's foot, padded back up while bars are hidden (#626). */
+        private final SheetsOnScreen sheets = new SheetsOnScreen();
 
         Session(Activity activity) {
             this.activity = new WeakReference<>(activity);
@@ -956,14 +958,30 @@ public final class FullScreenBars {
                     giveBackShownHeights();
                 }
                 cutout.follow(decor, hides(true), cutoutTop >= 0 ? cutoutTop : ReelsBarCutout.safeTop(decor));
+                sheets.follow(decor, hidden, keyboardShows());
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "check", failure);
+            }
+        }
+
+        /** Whether the keyboard shows, or true when that can't be told, so a sheet is left as it is. */
+        private boolean keyboardShows() {
+            try {
+                return keyboard.shown();
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "keyboard", failure);
+                return true;
             }
         }
 
         /** How many reels top bars are lowered below the camera cutout now, for tests. */
         int barsLowered() {
             return cutout.loweredCount();
+        }
+
+        /** How many sheet contents are padded up to the window's foot now, for tests. */
+        int sheetsLifted() {
+            return sheets.liftedCount();
         }
 
         @SuppressWarnings("deprecation")
@@ -996,6 +1014,7 @@ public final class FullScreenBars {
         @SuppressWarnings("deprecation")
         void show() {
             cutout.putBack();
+            sheets.putBack();
             if (!hidden && !saved) return;
             hidden = false;
             saved = false;

@@ -47,7 +47,7 @@ public class FullScreenBarsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private static final int VIEWER = 7101, BAR = 7102, REELS_TAB = 7103, HOME_TAB = 7104, OTHER_TAB = 7105,
-            INBOX = 7106, CHAT = 7107, TOP_BAR = 7108;
+            INBOX = 7106, CHAT = 7107, TOP_BAR = 7108, SHEET_HOLDER = 7109, SHEET_CONTENT = 7110;
 
     /** The window's own size: a view is only on screen as far as the window goes. */
     private int W, H;
@@ -213,6 +213,184 @@ public class FullScreenBarsTest {
         assertEquals("the status bar back, the bar has its own padding", 0, top.getPaddingTop());
         assertEquals(20, top.getLayoutParams().height);
         assertEquals(0, session.barsLowered());
+    }
+
+    /**
+     * #626: on a Galaxy S21 with the bars hidden, Instagram sized the comments sheet's content past the
+     * window's foot, so the comment box sat under the screen. The content is padded up by as much while
+     * the bars stay hidden, kept as it is while the keyboard shows, and gets its own padding back when it
+     * fits again or the bars come back. Padding Instagram gives it meanwhile is the content's own.
+     */
+    @Test public void aSheetsContentSizedPastTheWindowsFootIsPaddedBackOnScreen() {
+        FullScreenBars.idForTests(SheetsOnScreen.HOLDER, SHEET_HOLDER);
+        FullScreenBars.idForTests(SheetsOnScreen.CONTENT, SHEET_CONTENT);
+        boolean[] up = {false};
+        FullScreenBars.keyboardForTests(() -> up[0]);
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        int top = windowTop(root);
+        int shown = H / 2;
+        // Instagram's holder fills the window, and the sheet in it is slid up by a translation.
+        FrameLayout holder = new FrameLayout(activity);
+        holder.setId(SHEET_HOLDER);
+        root.addView(holder, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        FrameLayout sheet = new FrameLayout(activity);
+        sheet.setTranslationY(H - top - shown);
+        holder.addView(sheet, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        FrameLayout content = new FrameLayout(activity);
+        content.setId(SHEET_CONTENT);
+        sheet.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        LinearLayout comments = new LinearLayout(activity);
+        comments.setOrientation(LinearLayout.VERTICAL);
+        comments.addView(new View(activity), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        View box = new View(activity);
+        comments.addView(box, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 30));
+        // The part showing worked out 40 pixels taller than the window has.
+        content.addView(comments, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, shown + 40));
+        relayout();
+        assertEquals("the box starts out under the window's foot", H + 40, windowTop(box) + box.getHeight());
+
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertEquals(40, comments.getPaddingBottom());
+        assertEquals(shown + 40, comments.getHeight());
+        assertEquals(1, session.sheetsLifted());
+        relayout();
+        assertEquals("the comment box ends at the window's foot", H, windowTop(box) + box.getHeight());
+        session.evaluate();
+        assertEquals("padded once, not again at each look", 40, comments.getPaddingBottom());
+
+        // Instagram shortens the content for the keys, past where the window's foot would have it.
+        up[0] = true;
+        resize(comments, shown / 2);
+        relayout();
+        session.evaluate();
+        assertEquals("kept as it is while the keyboard shows", 40, comments.getPaddingBottom());
+
+        up[0] = false;
+        resize(comments, shown);
+        relayout();
+        session.evaluate();
+        assertEquals("content that fits gets its own padding back", 0, comments.getPaddingBottom());
+        assertEquals(0, session.sheetsLifted());
+
+        comments.setPadding(0, 0, 0, 12);
+        resize(comments, shown + 40);
+        relayout();
+        session.evaluate();
+        assertEquals("on top of Instagram's own padding", 52, comments.getPaddingBottom());
+
+        Settings.FULL_SCREEN_REELS.save(false);
+        session.evaluate();
+        assertFalse(session.isHidden());
+        assertEquals("the bars back, the content has its own padding", 12, comments.getPaddingBottom());
+        assertEquals(0, session.sheetsLifted());
+    }
+
+    /**
+     * #626, the way Instagram 454 keeps a comments sheet to what shows: content as tall as its holder,
+     * its bottom padded by the part below the window's foot. Padding that comes up short is made up, and
+     * padding Instagram sets itself after that, as at each frame of a drag, takes over.
+     */
+    @Test public void aSheetsContentPaddedShortOfTheWindowsFootIsPaddedTheRestOfTheWay() {
+        FullScreenBars.idForTests(SheetsOnScreen.HOLDER, SHEET_HOLDER);
+        FullScreenBars.idForTests(SheetsOnScreen.CONTENT, SHEET_CONTENT);
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        int top = windowTop(root);
+        int shown = H / 2;
+        int below = H - top - shown;
+        FrameLayout holder = new FrameLayout(activity);
+        holder.setId(SHEET_HOLDER);
+        root.addView(holder, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        FrameLayout sheet = new FrameLayout(activity);
+        sheet.setTranslationY(below);
+        holder.addView(sheet, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        FrameLayout content = new FrameLayout(activity);
+        content.setId(SHEET_CONTENT);
+        sheet.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        LinearLayout comments = new LinearLayout(activity);
+        comments.setOrientation(LinearLayout.VERTICAL);
+        comments.addView(new View(activity), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+        View box = new View(activity);
+        comments.addView(box, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 30));
+        content.addView(comments, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        // Instagram's padding 40 pixels short of the part below the foot.
+        comments.setPadding(0, 0, 0, below - 40);
+        relayout();
+        assertEquals("as tall as its holder", content.getHeight(), comments.getHeight());
+        assertEquals("the box starts out under the window's foot", H + 40, windowTop(box) + box.getHeight());
+
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertEquals(below, comments.getPaddingBottom());
+        assertEquals(1, session.sheetsLifted());
+        relayout();
+        assertEquals("the comment box ends at the window's foot", H, windowTop(box) + box.getHeight());
+        session.evaluate();
+        assertEquals("padded once, not again at each look", below, comments.getPaddingBottom());
+
+        // Padding Instagram sets that equals HushGram's can't be told apart from it, and shows the same.
+        comments.setPadding(0, 0, 0, below + 20);
+        relayout();
+        session.evaluate();
+        assertEquals("Instagram's own padding, past the foot this time, is left as it is", below + 20, comments.getPaddingBottom());
+        assertEquals(0, session.sheetsLifted());
+
+        comments.setPadding(0, 0, 0, below - 40);
+        relayout();
+        session.evaluate();
+        assertEquals(below, comments.getPaddingBottom());
+        Settings.FULL_SCREEN_REELS.save(false);
+        session.evaluate();
+        assertFalse(session.isHidden());
+        assertEquals("the bars back, the content has Instagram's padding back", below - 40, comments.getPaddingBottom());
+        assertEquals(0, session.sheetsLifted());
+    }
+
+    /**
+     * A sheet's content as tall as its holder with no padding of its own, or far past the foot while it
+     * slides, is left as Instagram has it (#626).
+     */
+    @Test public void aSheetsContentNotSizedToWhatShowsIsLeftAlone() {
+        FullScreenBars.idForTests(SheetsOnScreen.HOLDER, SHEET_HOLDER);
+        FullScreenBars.idForTests(SheetsOnScreen.CONTENT, SHEET_CONTENT);
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        FrameLayout holder = new FrameLayout(activity);
+        holder.setId(SHEET_HOLDER);
+        root.addView(holder, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        FrameLayout content = new FrameLayout(activity);
+        content.setId(SHEET_CONTENT);
+        content.setTranslationY(20);
+        holder.addView(content, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        View full = new View(activity);
+        content.addView(full, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        View sliding = new View(activity);
+        // Still a whole window below where it comes to rest.
+        sliding.setTranslationY(H);
+        content.addView(sliding, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, H / 2));
+        relayout();
+        assertTrue("both run past the window's foot", windowTop(full) + full.getHeight() > H && windowTop(sliding) + sliding.getHeight() > H);
+
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        assertEquals(0, full.getPaddingBottom());
+        assertEquals(0, sliding.getPaddingBottom());
+        assertEquals(0, session.sheetsLifted());
+    }
+
+    /** Gives [view] a new height the way Instagram does, asking for a layout. */
+    private static void resize(View view, int height) {
+        ViewGroup.LayoutParams params = view.getLayoutParams();
+        params.height = height;
+        view.setLayoutParams(params);
+    }
+
+    private static int windowTop(View view) {
+        int[] at = new int[2];
+        view.getLocationInWindow(at);
+        return at[1];
     }
 
     /** With the status bar kept and only the navigation bar hidden, the top bar stays where Instagram puts it (#525). */
