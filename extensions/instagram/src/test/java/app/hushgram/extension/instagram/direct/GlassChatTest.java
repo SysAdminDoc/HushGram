@@ -78,6 +78,8 @@ public class GlassChatTest {
     private LinearLayout buttons;
     private ImageView call;
     private ImageView video;
+    private LinearLayout textArea;
+    private View sendButton;
 
     @Before
     public void prepare() {
@@ -150,8 +152,9 @@ public class GlassChatTest {
     }
 
     /**
-     * Instagram 454's message bar: the messages, then the bar holding the picture of its grey pill, in the view
-     * drawing the messages before the bar.
+     * Instagram 454's message bar: the messages, then the bar holding the picture of its grey pill and, over the
+     * whole picture, a row with no fill holding the text area, which has a grey fill of its own and a smaller
+     * button, in the view drawing the messages before the bar.
      */
     private ImageView messageBar() {
         FrameLayout below = new FrameLayout(activity);
@@ -160,12 +163,28 @@ public class GlassChatTest {
         ImageView pill = new ImageView(activity);
         pill.setId(PILL_ID);
         pill.setBackgroundColor(Color.GRAY);
+        LinearLayout row = new LinearLayout(activity);
+        textArea = new LinearLayout(activity);
+        textArea.setBackground(greyFill());
+        sendButton = new View(activity);
+        sendButton.setBackgroundColor(Color.BLUE);
+        textArea.addView(sendButton, new LinearLayout.LayoutParams(100, 100));
+        row.addView(textArea, new LinearLayout.LayoutParams(MATCH, BAR));
         bar.addView(pill, new FrameLayout.LayoutParams(MATCH, BAR));
+        bar.addView(row, new FrameLayout.LayoutParams(MATCH, BAR));
         below.addView(new View(activity), new FrameLayout.LayoutParams(MATCH, MATCH));
         below.addView(bar, new FrameLayout.LayoutParams(MATCH, BAR, Gravity.BOTTOM));
         root.addView(below, 1, new FrameLayout.LayoutParams(MATCH, MATCH));
         layout();
         return pill;
+    }
+
+    /** The text area's own look: a grey pill with round ends, which isn't opaque over its corners. */
+    private static GradientDrawable greyFill() {
+        GradientDrawable fill = new GradientDrawable();
+        fill.setColor(0xff262626);
+        fill.setCornerRadius(500f);
+        return fill;
     }
 
     private FrameLayout storyViewer() {
@@ -206,7 +225,10 @@ public class GlassChatTest {
         assertEquals(Boolean.FALSE, Settings.GLASS_STORY_REPLY_BOX.defaultValue);
     }
 
-    /** #391: the message bar takes the glass over Instagram's grey pill, which is a picture with nothing in it. */
+    /**
+     * #391: the message bar takes the glass over Instagram's grey pill, which is a picture with nothing in it, and
+     * the text area in the row laid over the whole pill loses its grey fill, which hid the glass on a Galaxy S25.
+     */
     @Test
     public void onGivesTheMessageBarGlassOverInstagramsPill() {
         Settings.GLASS_CHAT.save(true);
@@ -216,12 +238,16 @@ public class GlassChatTest {
         assertTrue(GlassTopBar.boxShowing(pill));
         assertNotNull("the glass is over the pill", pill.getForeground());
         assertEquals("the pill itself is untouched", Color.GRAY, ((ColorDrawable) pill.getBackground()).getColor());
+        assertNull("the text area's fill is off the glass", textArea.getBackground());
+        assertEquals("a button over part of it keeps its own", Color.BLUE,
+                ((ColorDrawable) sendButton.getBackground()).getColor());
     }
 
     @Test
     public void turningItOffTakesTheGlassOffTheMessageBar() {
         Settings.GLASS_CHAT.save(true);
         ImageView pill = messageBar();
+        Drawable fill = textArea.getBackground();
         frame();
 
         Settings.GLASS_CHAT.save(false);
@@ -230,6 +256,7 @@ public class GlassChatTest {
         assertFalse(GlassTopBar.boxShowing(pill));
         assertNull(pill.getForeground());
         assertEquals(Color.GRAY, ((ColorDrawable) pill.getBackground()).getColor());
+        assertSame("the text area has its fill back", fill, textArea.getBackground());
     }
 
     /** A view by the pill's name that isn't in the chat's messages isn't the message bar, and is left alone. */

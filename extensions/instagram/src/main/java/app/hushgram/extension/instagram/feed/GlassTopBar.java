@@ -127,8 +127,8 @@ public final class GlassTopBar {
      * reply box on a story. The glass records what the view with the id [source] draws before the view holding
      * the box, the messages or the story, and [dark] keeps it dark whatever the theme, as the story viewer is.
      * A box with views in it takes the glass behind them, under the background it had, so an outline it draws
-     * stays. A box with none, a picture of the pill, takes the glass over that picture. Never throws. Done once
-     * per box.
+     * stays. A box with none, a picture of the pill, takes the glass over that picture, and the views laid over the
+     * whole picture lose their fill while it's on. Never throws. Done once per box.
      */
     public static void glazeBox(@Nullable View box, int source, boolean dark, BooleanSupplier on, String family) {
         try {
@@ -167,6 +167,30 @@ public final class GlassTopBar {
             at = (View) up;
         }
         return null;
+    }
+
+    /**
+     * Whether [view], beside [box] in one parent or inside a view that is, is laid out over the whole of it, to
+     * a pixel.
+     */
+    static boolean covers(View view, View box) {
+        ViewParent parent = box.getParent();
+        int left = 0;
+        int top = 0;
+        View at = view;
+        while (at.getParent() != parent) {
+            left += at.getLeft();
+            top += at.getTop();
+            ViewParent up = at.getParent();
+            if (!(up instanceof View)) return false;
+            at = (View) up;
+            left -= at.getScrollX();
+            top -= at.getScrollY();
+        }
+        left += at.getLeft();
+        top += at.getTop();
+        return view.getWidth() > 0 && left <= box.getLeft() + 1 && top <= box.getTop() + 1
+                && left + view.getWidth() >= box.getRight() - 1 && top + view.getHeight() >= box.getBottom() - 1;
     }
 
     static boolean switchedOn() {
@@ -331,6 +355,7 @@ public final class GlassTopBar {
         int stripTop;
         int stripBottom;
         private boolean describedHollow;
+        private int describedCovers = -1;
 
         @Nullable private RenderNode node;
         private int nodeBlurDp = -1;
@@ -427,6 +452,7 @@ public final class GlassTopBar {
             if (sourceId != 0) {
                 // A message box keeps what's round it as it is: the glass is only the pill.
                 base = dark || night ? Color.BLACK : Color.WHITE;
+                if (over) uncover();
                 return;
             }
             View host = host();
@@ -473,6 +499,45 @@ public final class GlassTopBar {
                 describedHollow = true;
                 Logger.printDebug(() -> "Top bar glass: the header shows nothing, at " + top + ", holding " + children(header));
             }
+        }
+
+        /**
+         * Takes the fill off the views drawn after a pill picture that cover the whole of it, and off the views in
+         * them that do, down to {@link #CLEAR_DEPTH}: Instagram 454's text area sits in a row over its message
+         * bar's pill, and the glass on the picture under them would never show (#391).
+         */
+        private void uncover() {
+            ViewParent up = header.getParent();
+            if (!(up instanceof ViewGroup) || header.getWidth() <= 0) return;
+            ViewGroup parent = (ViewGroup) up;
+            int at = parent.indexOfChild(header);
+            if (at < 0) return;
+            for (int i = at + 1, n = parent.getChildCount(); i < n; i++) uncover(parent.getChildAt(i), 1);
+            if (cleared.size() == describedCovers) return;
+            describedCovers = cleared.size();
+            Logger.printDebug(() -> "Message box glass: on " + header.getClass().getSimpleName() + " alpha "
+                    + header.getAlpha() + ", fills taken off " + takenOff());
+        }
+
+        private void uncover(View view, int depth) {
+            if (!covers(view, header)) return;
+            Drawable background = view.getBackground();
+            if (background != null && !(background instanceof Frost)) {
+                cleared.put(view, background);
+                view.setBackground(null);
+            }
+            if (depth >= CLEAR_DEPTH || !(view instanceof ViewGroup)) return;
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0, n = group.getChildCount(); i < n; i++) uncover(group.getChildAt(i), depth + 1);
+        }
+
+        private String takenOff() {
+            StringBuilder found = new StringBuilder();
+            for (Map.Entry<View, Drawable> entry : cleared.entrySet()) {
+                found.append(entry.getKey().getClass().getSimpleName()).append(' ')
+                        .append(entry.getValue().getClass().getSimpleName()).append(", ");
+            }
+            return found.length() == 0 ? "none" : found.toString();
         }
 
         private void clearIn(ViewGroup group, int wide, int depth) {
