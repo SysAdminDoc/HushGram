@@ -11,6 +11,7 @@ Every HushGram release, newest first.
 * `Hide the Join bar on channel posts` under Feed takes away the bar under a post that asks you to join the account's channel. The post stays. Starts off. Asked for in #625.
 * New switches under Profiles take the Threads badge, Facebook and WhatsApp links, the profile song, interests, channel invites and the other banners from under the bio on other people's profiles. Yours keeps them. Each starts off. Asked for in #627.
 * `Hide Reply on comments` sits under `Hide comments` in Comments. It takes Reply off each comment on posts and reels, and View more replies still opens a thread. Starts off. Asked for in #619.
+* `Hide the Like button on stories`, `Hide the Comment button on stories` and `Hide the Share button on stories` under Stories take those buttons off other people's stories, leaving no gap. Each starts off. Asked for in #618.
 * `Keep hidden accounts in Favorites` sits under `Hidden accounts` in Feed. Turn it on and posts from accounts you've hidden still show when Home is on Favorites, while For you and Following leave them out. Starts off. Asked for in #601.
 * `Hide posts from business and creator accounts` under Feed takes their posts out of Home and Following, friends who use one included, and collabs with one of them too. Favorites still shows them. Starts off. Asked for in #579.
 * `Lock Saved` sits with the message locks in Messages. Saved, your collections and the search inside Saved stay covered until your fingerprint, face or screen lock says it's you, and your messages stay as they were. Starts off. Asked for in #597.
@@ -86,6 +87,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * `Recent unfollowers` now keeps your Followers list when Instagram lists a few fewer accounts than your follower count, like 547 of 550. The count includes accounts the list never shows and can lag behind someone leaving, so nothing was saved. A list may now be short by one in every 50 followers. Reported in #624.
+* With `Stories fill the screen` on, a reel shared to a story fills the screen right away, without the rounded card and reply bar showing first, and its sides no longer get cut off. Reported in #618.
 * With `Tab bar layout` set to a bar Instagram didn't pick, a tab like Home no longer opens blank after Android closes Instagram in the background. HushGram builds the missing page again. Reported in #535.
 * Picking `Download` or `Loop this story` in a story's menu plays the story on once the menu closes. It used to stay paused until you tapped it. Reported in #610.
 * Home stops asking for more pages after a few short ones again, with `Hide suggested posts` or another Feed switch taking most of each page out. Instagram's own page loads kept starting the count over. Reported in #579.
