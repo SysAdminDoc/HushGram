@@ -143,6 +143,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Keep photo locations from Instagram patch. */
+    public static boolean photoLocations() {
+        return false;
+    }
+
     public static boolean threadSeen() {
         return false;
     }

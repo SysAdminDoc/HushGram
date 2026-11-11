@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Keep photo locations from Instagram` under Ads and privacy stops Instagram reading where the photos and videos in your gallery were taken. Starts off. Asked for in #628.
 * `Keep profile history` under Profiles remembers each profile's username, bio and picture, on your phone only. A toast says when one changed, and `Profile changes` lists every old one with a search box. Asked for in #590 and #611.
 * HushGram's settings are now in Thai, thanks to MangaThatsFine in #593.
 * `Hide the Join bar on channel posts` under Feed takes away the bar under a post that asks you to join the account's channel. The post stays. Starts off. Asked for in #625.

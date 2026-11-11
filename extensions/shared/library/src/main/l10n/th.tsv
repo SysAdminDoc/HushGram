@@ -1624,6 +1624,10 @@ The screens asking you to sync your contacts and turn on location services stop 
 Skip the ad data reminder	ข้ามการแจ้งเตือนเรื่องข้อมูลโฆษณา
 # context: summary under that switch
 Instagram's reminder to review whether it can process your data for ads stops opening by itself. Your ad choice doesn't change, and nothing is answered for you.	การแจ้งเตือนของ Instagram ให้ตรวจสอบว่าสามารถประมวลผลข้อมูลของคุณสำหรับโฆษณาได้หรือไม่จะไม่เปิดขึ้นมาเอง ตัวเลือกโฆษณาของคุณจะไม่เปลี่ยนแปลง และจะไม่มีการตอบแทนคุณแต่อย่างใด
+# context: Ads and privacy settings: switch that stops Instagram reading where the photos and videos in your gallery were taken, from the files and their EXIF (#628)
+Keep photo locations from Instagram	ซ่อนตำแหน่งของรูปภาพจาก Instagram
+# context: summary under that switch
+Instagram can't read where the photos and videos in your gallery were taken.	Instagram จะอ่านไม่ได้ว่ารูปภาพและวิดีโอในแกลเลอรีของคุณถ่ายที่ไหน
 # context: Playback settings: switch that stops feed videos and reels from playing again from the start when they end (#248, #175)
 Stop videos looping	หยุดเล่นวิดีโอวนซ้ำ
 # context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on

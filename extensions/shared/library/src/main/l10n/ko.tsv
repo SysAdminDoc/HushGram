@@ -1635,6 +1635,10 @@ The screens asking you to sync your contacts and turn on location services stop 
 Skip the ad data reminder	광고 데이터 알림 건너뛰기
 # context: summary under that switch
 Instagram's reminder to review whether it can process your data for ads stops opening by itself. Your ad choice doesn't change, and nothing is answered for you.	광고에 내 데이터를 처리해도 되는지 검토하라는 Instagram의 알림이 저절로 열리지 않습니다. 광고 선택은 바뀌지 않으며, 대신 답변되는 내용도 없습니다.
+# context: Ads and privacy settings: switch that stops Instagram reading where the photos and videos in your gallery were taken, from the files and their EXIF (#628)
+Keep photo locations from Instagram	Instagram에서 사진 위치 숨기기
+# context: summary under that switch
+Instagram can't read where the photos and videos in your gallery were taken.	Instagram이 갤러리에 있는 사진과 동영상의 촬영 위치를 읽을 수 없습니다.
 # context: Playback settings: switch that stops feed videos and reels from playing again from the start when they end (#248, #175)
 Stop videos looping	동영상 반복 재생 중지
 # context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on

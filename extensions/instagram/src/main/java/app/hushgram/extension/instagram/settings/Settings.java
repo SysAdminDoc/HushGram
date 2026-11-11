@@ -683,6 +683,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_skip_ad_data_reminder", FALSE);
 
     /**
+     * Instagram can't read where the photos and videos in your gallery were taken: its image loader
+     * gets them with the location taken out, and a gallery item or a file's EXIF answers no place
+     * (#628, {@link app.hushgram.extension.instagram.misc.PhotoLocations}). Read each time. Off to start.
+     */
+    public static final BooleanSetting KEEP_PHOTO_LOCATIONS =
+            new BooleanSetting("hushgram_keep_photo_locations", FALSE);
+
+    /**
      * The seen receipt a chat sends when you open it, the one that puts Seen under the other
      * person's message ({@link app.hushgram.extension.instagram.direct.ThreadSeen}). Read each time
      * Instagram goes to send one, so a change applies to the next receipt. Off to start.

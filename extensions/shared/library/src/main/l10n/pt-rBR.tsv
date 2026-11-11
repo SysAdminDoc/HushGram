@@ -1636,6 +1636,10 @@ The screens asking you to sync your contacts and turn on location services stop 
 Skip the ad data reminder	Pular o lembrete de dados para anúncios
 # context: summary under that switch
 Instagram's reminder to review whether it can process your data for ads stops opening by itself. Your ad choice doesn't change, and nothing is answered for you.	O lembrete do Instagram para revisar se ele pode processar seus dados para anúncios para de abrir sozinho. Sua escolha sobre anúncios não muda, e nada é respondido por você.
+# context: Ads and privacy settings: switch that stops Instagram reading where the photos and videos in your gallery were taken, from the files and their EXIF (#628)
+Keep photo locations from Instagram	Esconder do Instagram a localização das fotos
+# context: summary under that switch
+Instagram can't read where the photos and videos in your gallery were taken.	O Instagram não consegue ler onde as fotos e os vídeos da sua galeria foram feitos.
 # context: Playback settings: switch that stops feed videos and reels from playing again from the start when they end (#248, #175)
 Stop videos looping	Não repetir os vídeos
 # context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on

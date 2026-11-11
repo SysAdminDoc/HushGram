@@ -3758,6 +3758,46 @@
       "options": []
     },
     {
+      "name": "Keep photo locations from Instagram",
+      "description": "Stops Instagram from reading where the photos and videos in your gallery were taken. Starts off. Turn it on in HushGram settings > Ads and privacy.",
+      "category": "Privacy",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Keep playing in the background",
       "description": "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off, with a notification to pause or stop it. A second switch plays reels in a small window when you leave instead. Starts off. Turn it on in HushGram settings > Playback.",
       "category": "Playback",

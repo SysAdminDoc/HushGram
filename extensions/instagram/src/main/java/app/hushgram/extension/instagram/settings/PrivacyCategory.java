@@ -84,6 +84,10 @@ final class PrivacyCategory {
                     L10n.t("Instagram's reminder to review whether it can process your data for ads stops opening "
                             + "by itself. Your ad choice doesn't change, and nothing is answered for you.")));
         }
+        if (build.contains(PatchFamily.PHOTO_LOCATIONS)) {
+            privacy.add(toggle(context, Settings.KEEP_PHOTO_LOCATIONS, L10n.t("Keep photo locations from Instagram"),
+                    L10n.t("Instagram can't read where the photos and videos in your gallery were taken.")));
+        }
         if (!privacy.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Ads and privacy"), SettingsIcons.PRIVACY,
                     L10n.t("Hide ads and share less with Instagram."));

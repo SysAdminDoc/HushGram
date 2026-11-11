@@ -643,6 +643,17 @@ start-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/la
 once-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/lang/String;)Z in instance (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;)V pooled class-holding ACVOrganicWinbackEligibilityCheckWrapperQuery ACVAdvertiserProfileClickEligibilityCheckQuery
 start-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/lang/String;)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Ljava/lang/String;L*;)Ljava/lang/Object; pooled holding IGACVUCFLaunchForTriggerQuery
 once-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/lang/String;)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Ljava/lang/String;L*;)Ljava/lang/Object; pooled holding IGACVUCFLaunchForTriggerQuery
+# Keep photo locations from Instagram (#628) hands PhotoLocations.original the image loader's yes or
+# no just before the gallery file fetcher tests it to ask MediaStore for the original (0cf8.Em0 on
+# 454, the one caller of setRequireOriginal), and asks galleryItem and exifTags first thing in the two
+# readers of a place, Medium's from the content resolver and the static one from a file's EXIF tags
+# (0E1h.A04 on 454), which answer null on a yes. Left out, Instagram reads where a gallery photo or
+# video was taken with the switch on.
+once-call Lapp/hushgram/extension/instagram/misc/PhotoLocations;->original(I)Z in instance (L*;L*;)V calling static Landroid/provider/MediaStore;->setRequireOriginal(Landroid/net/Uri;)Landroid/net/Uri; pooled holding Failed\sto\sbuild\sfetcher\sfor:\s
+start-call Lapp/hushgram/extension/instagram/misc/PhotoLocations;->galleryItem()Z in instance (Landroid/content/ContentResolver;)[D pooled holding Could\snot\sextract\smedia\slocation.
+once-call Lapp/hushgram/extension/instagram/misc/PhotoLocations;->galleryItem()Z in instance (Landroid/content/ContentResolver;)[D pooled holding Could\snot\sextract\smedia\slocation.
+start-call Lapp/hushgram/extension/instagram/misc/PhotoLocations;->exifTags()Z in static (L*;)[D pooled holding GPSLatitude
+once-call Lapp/hushgram/extension/instagram/misc/PhotoLocations;->exifTags()Z in static (L*;)[D pooled holding GPSLatitude
 # Don't save recent searches asks RecentSearches.keep first in the call that tells Instagram's
 # servers about a search result you opened, and in the recent searches cache's add, picked from its
 # remove by the add at the top of its list. Each is skipped on a false. Left out, what you open

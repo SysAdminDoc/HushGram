@@ -92,6 +92,7 @@ public enum PatchFamily {
     APP_PROXY(FamilyNames.APP_PROXY, "appProxy", null, Settings.APP_PROXY),
     SETUP_POPUPS(FamilyNames.SETUP_POPUPS, "setupPopups", null, Settings.SKIP_SETUP_POPUPS),
     AD_DATA_REMINDER(FamilyNames.AD_DATA_REMINDER, "adDataReminder", null, Settings.SKIP_AD_DATA_REMINDER),
+    PHOTO_LOCATIONS(FamilyNames.PHOTO_LOCATIONS, "photoLocations", null, Settings.KEEP_PHOTO_LOCATIONS),
     THREAD_SEEN(FamilyNames.THREAD_SEEN, "threadSeen", null, Settings.READ_WITHOUT_SEEN_RECEIPT,
             Settings.KEEP_CHATS_UNREAD, Settings.MARK_SEEN_ON_REPLY, Settings.MARK_READ_IN_CHAT, Settings.SEEN_PER_CHAT),
     TYPING(FamilyNames.TYPING, "typing", null, Settings.HIDE_TYPING),
