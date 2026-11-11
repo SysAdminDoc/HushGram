@@ -21,8 +21,10 @@ import app.hushgram.extension.instagram.settings.Settings;
  * It is the backdrop the pill already blurs, run through a small shader into a render node of its own, so
  * nothing is read back and no view is touched. Before Android 13 there is no shader to run and the bubble
  * has its rim and gradient alone. A failure turns the lens off for this bar and the bubble carries on.
+ *
+ * <p>Home's see-through top bar borrows the rim for its bottom edge while the tab bar's bends (#513).
  */
-final class GlassLens {
+public final class GlassLens {
     /** How much the centre of the bubble magnifies, and how much more its rim bends the backdrop. */
     static final float CENTRE_MAGNIFY = 0.10f;
     static final float RIM_BEND = 0.14f;
@@ -115,7 +117,7 @@ final class GlassLens {
     }
 
     /** The bubble's lens, or with [rim] the pill's rim. */
-    GlassLens(boolean rim) {
+    public GlassLens(boolean rim) {
         this.rim = rim;
     }
 
@@ -136,6 +138,16 @@ final class GlassLens {
      */
     boolean paint(Canvas canvas, @Nullable RenderNode backdrop, float nodeLeft, float nodeTop, float downsample,
             int width, int height, RectF box, float radius) {
+        return paint(canvas, backdrop, nodeLeft, nodeTop, downsample, width, height, box, radius,
+                Math.min(box.width(), box.height()));
+    }
+
+    /**
+     * {@link #paint(Canvas, RenderNode, float, float, float, int, int, RectF, float)} with the rim's band a share
+     * of half of [across] rather than of the box's shorter side, for a box that runs on past the glass.
+     */
+    public boolean paint(Canvas canvas, @Nullable RenderNode backdrop, float nodeLeft, float nodeTop, float downsample,
+            int width, int height, RectF box, float radius, float across) {
         asked++;
         if (broken || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || backdrop == null || width <= 0 || height <= 0 || !canvas.isHardwareAccelerated()) {
             return false;
@@ -154,7 +166,7 @@ final class GlassLens {
             lens.setFloatUniform("box", box.left, box.top, box.right, box.bottom);
             lens.setFloatUniform("radius", Math.max(0f, radius));
             if (rim) {
-                lens.setFloatUniform("band", bandShare(percent()) * Math.min(box.width(), box.height()) / 2f);
+                lens.setFloatUniform("band", bandShare(percent()) * across / 2f);
             } else {
                 float bend = scale(percent());
                 lens.setFloatUniform("centre", CENTRE_MAGNIFY * bend);
@@ -181,7 +193,7 @@ final class GlassLens {
     }
 
     /** Lets go of the lens's render node. */
-    void discard() {
+    public void discard() {
         RenderNode layer = node;
         node = null;
         shader = null;

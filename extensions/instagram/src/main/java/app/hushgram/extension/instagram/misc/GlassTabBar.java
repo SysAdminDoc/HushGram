@@ -1324,6 +1324,21 @@ public final class GlassTabBar {
         return isDark(base) ? 0x33ffffff : 0x1f000000;
     }
 
+    /** The sheen's colour at the pill's top edge, fading to clear at its bottom one: brighter over light glass. */
+    public static int sheenTop(boolean dark) {
+        return dark ? 0x22ffffff : 0x40ffffff;
+    }
+
+    /** Whether the glass tab bar is switched on and HushGram isn't paused. Home's see-through top bar takes its sheen then (#513). */
+    public static boolean onNow() {
+        return Utils.settingsReady() && Settings.GLASS_TAB_BAR.get() && !HushgramPause.isPaused();
+    }
+
+    /** Whether the glass tab bar's rim bends what's behind it now (#369, #391). Home's see-through top bar bends with it (#513). */
+    public static boolean bendsNow() {
+        return onNow() && Settings.GLASS_TAB_BAR_REFRACT.isAvailable() && Settings.GLASS_TAB_BAR_REFRACT.get();
+    }
+
     /**
      * Splits [pill] for the liquid look (#65): Search's circle, as wide as the pill is tall, at the pill's left
      * end when [onLeft] (a right-to-left bar) or at its right end, and the rest, less [gap], for the other tabs.
@@ -2727,7 +2742,7 @@ public final class GlassTabBar {
                     sheenBottom = rect.bottom;
                     sheenDark = dark;
                     sheen.setShader(new LinearGradient(0, rect.top, 0, rect.bottom,
-                            dark ? 0x22ffffff : 0x40ffffff, 0x00ffffff, Shader.TileMode.CLAMP));
+                            sheenTop(dark), 0x00ffffff, Shader.TileMode.CLAMP));
                 }
             }
 

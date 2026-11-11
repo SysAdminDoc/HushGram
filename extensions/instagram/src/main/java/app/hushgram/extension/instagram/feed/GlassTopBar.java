@@ -10,9 +10,11 @@ import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.RenderEffect;
 import android.graphics.RenderNode;
 import android.graphics.Shader;
@@ -37,6 +39,7 @@ import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.misc.GlassBlur;
+import app.hushgram.extension.instagram.misc.GlassLens;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -59,7 +62,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * is paused or the header leaves the window. It fails open: anything thrown puts Instagram's header back.
  *
  * <p>On Home the feed is also taken behind the status bar and the glass reaches up over it (#462), see
- * {@link GlassReach}.
+ * {@link GlassReach}. While the glass tab bar is on, Home's header takes the pill's sheen too, and its rim
+ * bend along the bottom edge while the pill's bends (#513).
  */
 public final class GlassTopBar {
     static final String HOOK = "top bar glass";
@@ -185,6 +189,18 @@ public final class GlassTopBar {
         return background instanceof Frost && ((Frost) background).glass.recorded;
     }
 
+    /** How many times [header]'s glass asked for the tab bar's rim bend along its bottom edge (#513). */
+    static int bends(View header) {
+        Drawable background = header.getBackground();
+        return background instanceof Frost ? ((Frost) background).glass.bends : 0;
+    }
+
+    /** Whether [header]'s glass drew the tab bar's sheen the last time it drew (#513). */
+    static boolean sheened(View header) {
+        Drawable background = header.getBackground();
+        return background instanceof Frost && ((Frost) background).sheened;
+    }
+
     /**
      * The view under [header]'s parent, [header] or one of the views wrapped round it, whose parent
      * draws the feed before it: the first parent more than twice as tall as [header]. Null when there's
@@ -248,6 +264,12 @@ public final class GlassTopBar {
         @Nullable private final GlassReach reach;
         /** Whether the hairline runs along the bottom: Home's header has it, a chat's runs on into the messages (#537). */
         final boolean lined;
+        /** Whether this is Home's header, which takes the glass tab bar's sheen and rim bend (#513). */
+        final boolean followsTabBar;
+        @Nullable private GlassLens rim;
+        private final RectF rimBox = new RectF();
+        /** How many times the rim bend was asked for. Read by tests. */
+        int bends;
         private boolean described;
         /** How far the glass reaches past the header's top and bottom edges, to cover the status bar. */
         int above;
@@ -275,6 +297,7 @@ public final class GlassTopBar {
             this.enabled = enabled;
             this.family = family;
             this.lined = !FamilyNames.GLASS_CHAT.equals(family);
+            this.followsTabBar = FamilyNames.HOME_TOP_BAR.equals(family);
             this.frost = new Frost(this, header.getResources().getDisplayMetrics().density);
             this.reach = FamilyNames.HOME_TOP_BAR.equals(family) ? new GlassReach() : null;
         }
@@ -412,6 +435,9 @@ public final class GlassTopBar {
             recorded = false;
             lastX = Float.NaN;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && node != null) node.discardDisplayList();
+            GlassLens lens = rim;
+            rim = null;
+            if (lens != null) lens.discard();
         }
 
         /**
@@ -528,14 +554,49 @@ public final class GlassTopBar {
             }
             return true;
         }
+
+        /**
+         * Bends the blurred backdrop along [area]'s bottom edge as the glass tab bar's rim does (#513), in a band
+         * the rim's share of half [across] deep, and says whether it drew. The lens's box runs [across] past the
+         * other three edges, off the glass, so only the bottom one bends: the top is the screen's edge and the
+         * sides run off it.
+         */
+        boolean bend(Canvas canvas, Rect area, float across) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !recorded || node == null) return false;
+            bends++;
+            GlassLens lens = rim;
+            if (lens == null) {
+                lens = new GlassLens(true);
+                rim = lens;
+            }
+            int saved = canvas.save();
+            try {
+                canvas.clipRect(area);
+                canvas.translate(area.left, area.top);
+                rimBox.set(-across, -across, area.width() + across, area.height());
+                return lens.paint(canvas, node, -nodePad - area.left, -nodePad - nodeAbove - area.top, DOWNSAMPLE,
+                        area.width(), area.height(), rimBox, 0f, across);
+            } finally {
+                canvas.restoreToCount(saved);
+            }
+        }
     }
 
-    /** The header's background while the glass is on: the blur, the tint over it and, on Home, the hairline. */
+    /**
+     * The header's background while the glass is on: the blur, the tint over it and, on Home, the hairline, with
+     * the glass tab bar's rim bend and sheen while that's on (#513).
+     */
     static final class Frost extends Drawable {
         final Glass glass;
         private final Paint paint = new Paint();
+        private final Paint sheen = new Paint();
         private final Rect area = new Rect();
         private final int hairline;
+        private int sheenTop = Integer.MIN_VALUE;
+        private int sheenBottom;
+        private boolean sheenDark;
+        /** Whether the last draw put the sheen on. Read by tests. */
+        boolean sheened;
 
         Frost(Glass glass, float density) {
             this.glass = glass;
@@ -551,11 +612,31 @@ public final class GlassTopBar {
             if (glass.hollow) area.set(bounds.left, bounds.top + glass.stripTop, bounds.right, bounds.top + glass.stripBottom);
             else area.set(bounds.left, bounds.top - glass.above, bounds.right, bounds.bottom + glass.below);
             boolean blurred = glass.drawBackdrop(canvas, area);
+            // Home's header follows the glass tab bar's pill: its rim bend, measured on the header, and its sheen.
+            boolean likeTabBar = glass.followsTabBar && GlassTabBar.onNow();
+            if (blurred && likeTabBar && GlassTabBar.bendsNow()) {
+                glass.bend(canvas, area, Math.min(area.height(), bounds.height()));
+            }
             paint.setColor(GlassTabBar.tint(base, blurred, GlassTabBar.opacityScale()));
             canvas.drawRect(area, paint);
+            sheened = likeTabBar;
+            if (likeTabBar) {
+                keepSheen(GlassTabBar.isDark(base));
+                canvas.drawRect(area, sheen);
+            }
             if (!glass.lined) return;
             paint.setColor(hairline(base));
             canvas.drawRect(area.left, area.bottom - hairline, area.right, area.bottom, paint);
+        }
+
+        /** Makes the sheen's gradient again when the glass's top, bottom or shade changed. */
+        private void keepSheen(boolean dark) {
+            if (sheenTop == area.top && sheenBottom == area.bottom && sheenDark == dark) return;
+            sheenTop = area.top;
+            sheenBottom = area.bottom;
+            sheenDark = dark;
+            sheen.setShader(new LinearGradient(0, area.top, 0, area.bottom,
+                    GlassTabBar.sheenTop(dark), 0x00ffffff, Shader.TileMode.CLAMP));
         }
 
         @Override public void setAlpha(int alpha) { }

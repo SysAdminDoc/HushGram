@@ -2698,7 +2698,8 @@ public class Settings extends BaseSettings {
     /**
      * Home's header showing the feed blurred under it, like frosted glass (#418,
      * {@link app.hushgram.extension.instagram.feed.GlassTopBar}). It takes the header as Home hands
-     * it over, so the restart card comes up. Off to start.
+     * it over, so the restart card comes up. With {@link #GLASS_TAB_BAR} on it takes the pill's sheen and
+     * rim too (#513). Off to start.
      */
     public static final BooleanSetting SEE_THROUGH_HOME_TOP_BAR =
             new BooleanSetting("hushgram_see_through_home_top_bar", FALSE, true);

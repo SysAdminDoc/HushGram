@@ -92,6 +92,9 @@ public class GlassTopBarTest {
     private static void resetSwitches() {
         Settings.SEE_THROUGH_HOME_TOP_BAR.resetToDefault();
         Settings.KEEP_HOME_TOP_BAR.resetToDefault();
+        Settings.GLASS_TAB_BAR.resetToDefault();
+        Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
+        Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -333,5 +336,95 @@ public class GlassTopBarTest {
         assertEquals(Color.alpha(tint), Color.alpha(middle), 1);
         assertEquals(Color.red(tint), Color.red(middle), 2);
         assertNotEquals("the hairline", middle, bitmap.getPixel(50, 49));
+    }
+
+    /** With the glass tab bar on, Home's header takes the pill's sheen, light at the top fading out (#513). */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void withTheGlassTabBarOnTheHeaderTakesItsSheen() {
+        Settings.SEE_THROUGH_HOME_TOP_BAR.save(true);
+        HomeTopBar.slidingViews(views);
+        frame();
+        Bitmap plain = drawn(header.getBackground());
+        assertFalse(GlassTopBar.sheened(header));
+
+        Settings.GLASS_TAB_BAR.save(true);
+        Bitmap shiny = drawn(header.getBackground());
+        assertTrue(GlassTopBar.sheened(header));
+        assertTrue("lighter at the top", Color.red(shiny.getPixel(50, 2)) > Color.red(plain.getPixel(50, 2)) + 4);
+        assertEquals("faded out by the bottom", Color.red(plain.getPixel(50, 47)), Color.red(shiny.getPixel(50, 47)), 3);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        drawn(header.getBackground());
+        assertFalse("paused, the tab bar's look rests", GlassTopBar.sheened(header));
+    }
+
+    /** A chat's header keeps its own glass whatever the tab bar does (#449, #537). */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void aChatsHeaderDoesNotTakeTheTabBarsLook() {
+        Settings.GLASS_TAB_BAR.save(true);
+        Settings.GLASS_TAB_BAR_REFRACT.save(true);
+        GlassTopBar.glazeChat(header, () -> true);
+        frame();
+        assertTrue(GlassTopBar.showing(header));
+
+        drawn(header.getBackground());
+        drawnOnTheGpu(header.getBackground());
+        assertFalse(GlassTopBar.sheened(header));
+        assertEquals(0, GlassTopBar.bends(header));
+    }
+
+    /** On a phone's canvas, the header bends along its bottom edge only while the tab bar's rim bends (#513). */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void theHeaderBendsOnlyWhileTheTabBarsRimDoes() {
+        Settings.SEE_THROUGH_HOME_TOP_BAR.save(true);
+        HomeTopBar.slidingViews(views);
+        frame();
+        assertTrue(GlassTopBar.recorded(header));
+
+        drawnOnTheGpu(header.getBackground());
+        assertEquals("no glass tab bar, no bend", 0, GlassTopBar.bends(header));
+
+        Settings.GLASS_TAB_BAR.save(true);
+        drawnOnTheGpu(header.getBackground());
+        assertEquals("the tab bar's bend is off", 0, GlassTopBar.bends(header));
+
+        Settings.GLASS_TAB_BAR_REFRACT.save(true);
+        drawnOnTheGpu(header.getBackground());
+        assertEquals(1, GlassTopBar.bends(header));
+        String report = HookStatus.report().toString();
+        assertFalse(report, report.contains(GlassTopBar.HOOK));
+
+        Settings.GLASS_TAB_BAR_BLUR.save(false);
+        drawnOnTheGpu(header.getBackground());
+        assertEquals("no blur on the tab bar, nothing of its to bend", 1, GlassTopBar.bends(header));
+
+        drawn(header.getBackground());
+        assertEquals("off the GPU there's no blur to bend", 1, GlassTopBar.bends(header));
+    }
+
+    private static Bitmap drawn(Drawable frost) {
+        Bitmap bitmap = Bitmap.createBitmap(100, 50, Bitmap.Config.ARGB_8888);
+        frost.setBounds(0, 0, 100, 50);
+        frost.draw(new Canvas(bitmap));
+        return bitmap;
+    }
+
+    private void drawnOnTheGpu(Drawable frost) {
+        RenderNode target = new RenderNode("target");
+        target.setPosition(0, 0, header.getWidth(), header.getHeight());
+        Canvas recording = target.beginRecording(header.getWidth(), header.getHeight());
+        try {
+            frost.setBounds(0, 0, header.getWidth(), header.getHeight());
+            frost.draw(recording);
+        } finally {
+            target.endRecording();
+        }
     }
 }
