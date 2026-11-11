@@ -3138,6 +3138,11 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->storyBound(Ljava/la
 # Left out, a shared reel loses its sides on a tall phone; twice or elsewhere, it isn't the call the
 # patch wrote.
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->storyFrame(Ljava/lang/Object;Ljava/lang/Object;)V in static (L*;)V calling instance Lcom/instagram/ui/widget/roundedcornerlayout/RoundedCornerFrameLayout;->setCornerRadius(I)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
+# Ambient light tells AmbientLight.cornerRadius the layout and the radius first in that rounded
+# layout's own setCornerRadius, since the story card's layout paints its corners solid black at it
+# and the glow covers them (#630). Left out, a lit story keeps black corner wedges; twice or
+# elsewhere, it isn't the call the patch wrote. AmbientLightHookTest checks where it lands.
+single-call Lapp/hushgram/extension/instagram/feed/AmbientLight;->cornerRadius(Landroid/view/View;I)V in setCornerRadius
 # Fill the screen on a screen wider than 9:16 (#491): the reel item layout (05DP.A0o on 453, the one
 # method opening the purge flag below) asks ReelFill.wide with the item's shape in front of its
 # compare with a bit over 9:16, and on a yes lays the reel out over the whole item as on a phone. Left

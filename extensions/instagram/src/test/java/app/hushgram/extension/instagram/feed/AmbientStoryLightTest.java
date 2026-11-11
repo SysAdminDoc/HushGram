@@ -13,12 +13,14 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Outline;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -382,6 +384,81 @@ public class AmbientStoryLightTest {
     }
 
     /**
+     * #630: Instagram's rounded layout round a story's frame paints its corners solid black over the
+     * story, with Rounded corners on stories off too. Its setCornerRadius tells AmbientLight the radius,
+     * and the glow covers those corners, until it says 0.
+     */
+    @Test
+    public void theCornersAStoryCardsLayoutPaintsShowTheGlowRoundIt() {
+        int radius = 15, card = 300;
+        root.removeView(frame);
+        frame.removeView(photo);
+        frame.addView(photo, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        CuttingLayout layout = new CuttingLayout(activity);
+        layout.addView(frame, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        FrameLayout stage = new FrameLayout(activity);
+        stage.addView(layout, new FrameLayout.LayoutParams(WIDTH, card));
+        root.addView(stage, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        photo.setImageDrawable(picture(WIDTH, card));
+        layout.setCornerRadius(radius);
+        laidOut();
+
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+
+        assertFalse(Settings.ROUNDED_STORY_CORNERS.get());
+        Bitmap drawn = shown(stage);
+        int bottomCorner = drawn.getPixel(1, card - 2);
+        assertTrue("the card's bottom corner shows the glow below it, the picture's bottom: " + hex(bottomCorner),
+                Color.red(bottomCorner) > 60 && Color.blue(bottomCorner) < 30);
+        int topCorner = drawn.getPixel(WIDTH - 2, 1);
+        assertTrue("its top corner, the picture's top: " + hex(topCorner), Color.blue(topCorner) > 60 && Color.red(topCorner) < 30);
+        assertEquals("the card itself is left alone", Color.GRAY, drawn.getPixel(radius + 2, card - 2));
+        assertEquals(Color.GRAY, drawn.getPixel(WIDTH / 2, card / 2));
+
+        AmbientLight.cornerRadius(layout, 0);
+        frame();
+        assertEquals("a layout whose radius isn't known keeps its own corners", Color.BLACK, shown(stage).getPixel(1, card - 2));
+        layout.setCornerRadius(radius);
+        frame();
+        assertTrue("told again, they glow again", Color.red(shown(stage).getPixel(1, card - 2)) > 60);
+    }
+
+    /**
+     * Instagram's RoundedCornerFrameLayout as 454 has it: it paints its corners solid black over what it
+     * holds, and its setCornerRadius tells AmbientLight the radius first, as the patch makes it do.
+     */
+    private static final class CuttingLayout extends FrameLayout {
+        private final Paint black = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private int radius;
+
+        CuttingLayout(Context context) {
+            super(context);
+            black.setColor(Color.BLACK);
+            // On a phone the layout's overlay is drawn over its children with or without a background.
+            // Drawn to a bitmap, a layout that skips drawing itself leaves its overlay out.
+            setWillNotDraw(false);
+        }
+
+        void setCornerRadius(int radius) {
+            AmbientLight.cornerRadius(this, radius);
+            this.radius = radius;
+            invalidate();
+        }
+
+        @Override
+        protected void dispatchDraw(Canvas canvas) {
+            super.dispatchDraw(canvas);
+            if (radius <= 0) return;
+            Path corners = new Path();
+            corners.setFillType(Path.FillType.EVEN_ODD);
+            corners.addRect(0, 0, getWidth(), getHeight(), Path.Direction.CW);
+            corners.addRoundRect(0, 0, getWidth(), getHeight(), radius, radius, Path.Direction.CW);
+            canvas.drawPath(corners, black);
+        }
+    }
+
+    /**
      * #630: the layout round Instagram's story viewer holds it below the status bar and paints the strip
      * above it black itself, over the glow the view spanning the window draws there. The layout now
      * draws the glow in that strip, over its own black and nowhere over the story, so the story's
@@ -389,6 +466,55 @@ public class AmbientStoryLightTest {
      */
     @Test
     public void theStripAboveAStoryThatItsLayoutPaintsGlowsToo() {
+        stripAboveTheStory(false);
+    }
+
+    /**
+     * #630: Instagram also puts a bare one pixel view at the top of a layout round the viewer. Counted as
+     * the layout's highest child it left no strip, and the black behind showed as a line above the story.
+     */
+    @Test
+    public void aBareLineAtTheTopOfTheLayoutLeavesTheStripLit() {
+        stripAboveTheStory(true);
+    }
+
+    /** The highest child that shows something ends the strip, and a bare view showing nothing doesn't. */
+    @Test
+    public void onlyAChildThatShowsSomethingEndsTheStrip() {
+        FrameLayout group = new FrameLayout(activity);
+        View line = new View(activity);
+        group.addView(line, new FrameLayout.LayoutParams(WIDTH, 1));
+        View story = new View(activity);
+        story.setBackgroundColor(Color.GRAY);
+        FrameLayout.LayoutParams below = new FrameLayout.LayoutParams(WIDTH, 100);
+        below.topMargin = 40;
+        group.addView(story, below);
+        sized(group);
+        assertEquals("under a bare line", 40, AmbientLight.stripUnder(group));
+
+        line.setBackgroundColor(Color.WHITE);
+        assertEquals("under a line with a color", 0, AmbientLight.stripUnder(group));
+
+        group.removeView(line);
+        View drawing = new View(activity) {
+            @Override
+            protected void onDraw(Canvas canvas) {
+                canvas.drawColor(Color.WHITE);
+            }
+        };
+        group.addView(drawing, 0, new FrameLayout.LayoutParams(WIDTH, 1));
+        sized(group);
+        assertEquals("under a line that draws itself", 0, AmbientLight.stripUnder(group));
+    }
+
+    private static void sized(View view) {
+        view.measure(View.MeasureSpec.makeMeasureSpec(WIDTH, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(200, View.MeasureSpec.EXACTLY));
+        view.layout(0, 0, WIDTH, 200);
+    }
+
+    /** The story below the status bar in a layout painting the strip above it black, with a bare line at the layout's top or not. */
+    private void stripAboveTheStory(boolean bareLine) {
         if (activity.getActionBar() != null) activity.getActionBar().hide();
         laidOut();
         View window = activity.getWindow().getDecorView();
@@ -410,6 +536,7 @@ public class AmbientStoryLightTest {
         layout.setBackgroundColor(Color.BLACK);
         FrameLayout.LayoutParams below = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
         below.topMargin = statusBar;
+        if (bareLine) layout.addView(new View(activity), new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 1));
         layout.addView(main, below);
         root.addView(layout, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, height - gestureBar));
         photo.setImageDrawable(picture(width, stage));

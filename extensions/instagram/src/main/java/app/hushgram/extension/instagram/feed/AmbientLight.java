@@ -43,6 +43,7 @@ import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -122,6 +123,8 @@ public final class AmbientLight {
 
     /** How many parents of a picture are asked whether they're its stage. */
     static final int STAGE_DEPTH = 16;
+    /** The methods taking a Canvas that a view draws itself in. */
+    private static final List<String> DRAWS = Arrays.asList("draw", "onDraw", "dispatchDraw", "onDrawForeground");
 
     /** A parent no more than this many pixels bigger than a picture is rounding, with no room for a glow (#580). */
     static final int ROUNDING = 2;
@@ -192,6 +195,10 @@ public final class AmbientLight {
     private static final Map<View, Glow> pills = new WeakHashMap<>();
     /** Each view drawing a story's glow over its own colour, with the glow in its overlay (#630). Main thread only. */
     private static final Map<View, Glow> fronts = new WeakHashMap<>();
+    /** Each of Instagram's rounded layouts cutting its corners, with the radius it last set, in pixels (#630). Main thread only. */
+    private static final Map<View, Integer> cutCorners = new WeakHashMap<>();
+    /** Whether each leaf view class asked about draws something of its own. */
+    private static final Map<Class<?>, Boolean> drawing = new WeakHashMap<>();
     /** The tab bar last found, so each layout needn't search the window for it. */
     @Nullable private static WeakReference<View> barRef;
     /** Whether a tab bar wears the glass, and whether its pill floats. Swapped in tests. */
@@ -422,19 +429,49 @@ public final class AmbientLight {
 
     /**
      * How deep the strip at the top of [group] is that none of its children shows in, in its own
-     * pixels: where the highest child is drawn, moved and scaled. 0 with no child showing.
+     * pixels: where the highest child is drawn, moved and scaled. 0 with no child showing. A child that
+     * draws nothing doesn't count: Instagram puts a bare one pixel view above the story viewer, and the
+     * strip that left there showed the black behind it as a line above the story (#630).
      */
     static int stripUnder(ViewGroup group) {
         float highest = Float.MAX_VALUE;
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
-            if (child.getVisibility() != View.VISIBLE || child.getWidth() <= 0 || child.getHeight() <= 0) continue;
+            if (child.getVisibility() != View.VISIBLE || child.getWidth() <= 0 || child.getHeight() <= 0 || drawsNothing(child)) continue;
             float scale = child.getScaleY();
             float top = child.getTop() + child.getTranslationY() + child.getPivotY() * (1 - scale);
             highest = Math.min(highest, Math.min(top, top + child.getHeight() * scale));
         }
         if (highest == Float.MAX_VALUE) return 0;
         return Math.max(0, Math.min(group.getHeight(), (int) Math.floor(highest) - group.getScrollY()));
+    }
+
+    /** Whether [view] shows nothing: no children, background or foreground, and a class that draws nothing itself. */
+    static boolean drawsNothing(View view) {
+        if (view instanceof ViewGroup || view.getBackground() != null || view.getForeground() != null) return false;
+        Class<?> type = view.getClass();
+        Boolean draws = drawing.get(type);
+        if (draws == null) {
+            draws = drawsItself(type);
+            drawing.put(type, draws);
+        }
+        return !draws;
+    }
+
+    /** Whether [type], or a class between it and View, draws on the canvas itself. */
+    private static boolean drawsItself(Class<?> type) {
+        try {
+            for (Class<?> at = type; at != null && at != View.class; at = at.getSuperclass()) {
+                for (java.lang.reflect.Method method : at.getDeclaredMethods()) {
+                    Class<?>[] parameters = method.getParameterTypes();
+                    if (parameters.length == 1 && parameters[0] == Canvas.class && DRAWS.contains(method.getName())) return true;
+                }
+            }
+            return false;
+        } catch (Throwable unreadable) {
+            // A class whose methods the runtime can't list may draw.
+            return true;
+        }
     }
 
     /**
@@ -699,6 +736,26 @@ public final class AmbientLight {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.AMBIENT_LIGHT, HOOK + " under the pill", failure);
         }
+    }
+
+    /**
+     * Called first in Instagram's RoundedCornerFrameLayout.setCornerRadius with the layout and the radius
+     * it now cuts its corners at. The layout paints those corners solid over its children, black on the
+     * story viewer, so a story's glow covers them as it does a frame's cut ones (#630). Never throws.
+     */
+    public static void cornerRadius(View layout, int radius) {
+        try {
+            if (radius > 0) cutCorners.put(layout, radius);
+            else cutCorners.remove(layout);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.AMBIENT_LIGHT, HOOK + " corner radius", failure);
+        }
+    }
+
+    /** The radius [view] paints its own corners at as one of Instagram's rounded layouts, or 0. */
+    static int paintedCorner(View view) {
+        Integer radius = cutCorners.get(view);
+        return radius == null ? 0 : radius;
     }
 
     /** Puts out [media]'s light, and gives its stage, host and tab bar their own backgrounds back when it was the last. */
@@ -1033,6 +1090,8 @@ public final class AmbientLight {
         }
         putBack();
         frames.clear();
+        cutCorners.clear();
+        drawing.clear();
         sampler = SCREEN;
         logged = false;
         blurInBuildForTests = null;
@@ -1294,13 +1353,22 @@ public final class AmbientLight {
             }
             int rounded = roundedIn(stage);
             boolean moved = false;
-            // The frame's corners show the view it sits in only while they're cut, as Rounded corners on stories does.
+            // The frame's corners show the view it sits in while they're cut, as Rounded corners on stories does,
+            // and where that view paints its own.
             fresh.setEmpty();
             ViewGroup behind = back();
             View frame = anchor.get();
-            if (behind != null && frame != null && media.isShown() && frame.getClipToOutline() && under(frame, behind)) {
-                fresh.set(0, 0, frame.getWidth(), frame.getHeight());
-                onto(frame, behind, fresh);
+            if (behind != null && frame != null && media.isShown() && under(frame, behind)) {
+                if (frame.getClipToOutline()) {
+                    fresh.set(0, 0, frame.getWidth(), frame.getHeight());
+                    onto(frame, behind, fresh);
+                }
+                // Instagram's media layout paints its own corners solid over the frame, cut round or not (#630).
+                int painted = paintedCorner(behind);
+                if (painted > 0) {
+                    if (fresh.isEmpty()) fresh.set(0, 0, behind.getWidth(), behind.getHeight());
+                    rounded = Math.max(rounded, painted);
+                }
             }
             if (!fresh.equals(frameOnBack)) {
                 frameOnBack.set(fresh);
