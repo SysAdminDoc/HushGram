@@ -131,7 +131,7 @@ Every HushGram release, newest first.
 * `Start feed videos with sound` now turns the sound on for every video on Home, the same as tapping a speaker. Mute one and the rest stay muted. On silent or vibrate they start muted. Reported in #504.
 * `Keep playing in the background` keeps going after you open a video from your feed, Reels or stories. Those used to stop a few seconds after you left Instagram. Reported in #497.
 * `See who a story mentions` opens its list again after you watch the story of a profile you went to from it. That story used to end the list, so coming back left it closed. Reported in #403.
-* Explore no longer leaves two blank spots in every fourth row when `Full size covers` is on. Covers still come in full, and `Ask for larger photos` got the same fix. Reported in #433.
+* Explore no longer leaves two blank spots in every fourth row when `Full size covers` is on. Covers still come in full, and `Ask for larger photos` got the same fix. Both switches made Instagram take the phone for a tablet, which also hid Meta's AI translations on reels (`Translated with AI`). Those show again now. Reported in #433 and #556.
 * `Keep a viewing history` now records the reels you watch. It only heard about them while `Download button on reels` was on, so with that icon off the Reels list stayed empty. Reported in #228.
 * With `Rounded corners on Reels` on, opening the comments on a wide reel no longer cuts its video down to a thin strip. The rounded edge now moves up with the video. Reported in #522.
 * `Phone layout on big screens` now takes the rail down the side away too. It only changed Home's header on 454, since Instagram's main screen asks a second copy of the width check. Reported in #515.
