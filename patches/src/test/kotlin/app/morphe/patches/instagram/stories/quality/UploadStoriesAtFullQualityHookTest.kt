@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -56,7 +57,7 @@ class UploadStoriesAtFullQualityHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$FULL_QUALITY is not in the extension: $declared", FULL_QUALITY.substringAfter("->") in declared)
-        for (hook in listOf(BITRATE_HOOK, RESOLUTION_HOOK, FRAME_RATE_HOOK, PHOTO_QUALITY_HOOK)) {
+        for (hook in listOf(BITRATE_HOOK, RESOLUTION_HOOK, RENDER_WIDTH_HOOK, FRAME_RATE_HOOK, PHOTO_QUALITY_HOOK)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -192,7 +193,8 @@ class UploadStoriesAtFullQualityHookTest {
         assertEquals("the getter", "DXk", step.shareType.name)
         val method = context.mutableClassDefBy(widths).methods.single { it.name == "A00" }
         assertWidthHooked("stand-in", method, step)
-        assertEquals("the call", Opcode.INVOKE_VIRTUAL, method.code()[2].opcode)
+        assertEquals("the call", Opcode.INVOKE_VIRTUAL, method.code()[3].opcode)
+        assertCapHooked("stand-in", method)
     }
 
     /** An upload that's an interface gets its share type through invoke-interface. */
@@ -202,7 +204,7 @@ class UploadStoriesAtFullQualityHookTest {
         val step = context.findWidthStep()
         context.raiseWidth(step)
         val method = context.mutableClassDefBy(widths).methods.single { it.name == "A00" }
-        assertEquals("the call", Opcode.INVOKE_INTERFACE, method.code()[2].opcode)
+        assertEquals("the call", Opcode.INVOKE_INTERFACE, method.code()[3].opcode)
     }
 
     /** A width step the patch can't read fails at patch time, saying what it found. */
@@ -212,6 +214,9 @@ class UploadStoriesAtFullQualityHookTest {
             widthClasses(second = 1280) to "doesn't load both $WIDTH_1080 and $WIDTH_1440",
             widthClasses(getter = false) to "has 0 share type getters, expected one",
             widthClasses(calls = false) to "expected one width step called from $VIDEO_INGESTION_STEP, found 0",
+            widthClasses(cap = WidthCapShape.NONE) to "expected a width cap after the $WIDTH_1440 step in $widths->A00",
+            widthClasses(cap = WidthCapShape.DROPPED) to "doesn't keep its width cap's answer",
+            widthClasses(cap = WidthCapShape.OVER_SOURCE) to "answers over the clip's width",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -280,27 +285,51 @@ class UploadStoriesAtFullQualityHookTest {
 
             val everything = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
             assertEquals("${bundle.name}: width hooks", 1, everything.count { m -> m.code().any { it.referenceText() == RESOLUTION_HOOK } })
+            assertEquals("${bundle.name}: width cap hooks", 1, everything.count { m -> m.code().any { it.referenceText() == RENDER_WIDTH_HOOK } })
             assertEquals("${bundle.name}: photo hooks", 1, everything.count { m -> m.code().any { it.referenceText() == PHOTO_QUALITY_HOOK } })
-            assertWidthHooked(bundle.name, context.mutableClassDefBy(step.method.definingClass).methods.single { it.name == step.method.name && it.parameterTypes.size == 8 }, step)
+            val widthStep = context.mutableClassDefBy(step.method.definingClass).methods.single { it.name == step.method.name && it.parameterTypes.size == 8 }
+            assertWidthHooked(bundle.name, widthStep, step)
+            assertCapHooked(bundle.name, widthStep)
             assertPhotoHooked(bundle.name, context.mutableClassDefBy(setup.definingClass).methods.single { it.name == setup.name && it.parameterTypes.size == 4 })
         }
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
-    /** The upload read, skipped when null, its share type, the width read, the call, and the answer written back to the width. */
+    /**
+     * A null share type, the upload read, its getter skipped when it's null, the width read, the call
+     * with whichever share type, and the answer written back to the width.
+     */
     private fun assertWidthHooked(what: String, method: Method, step: WidthStep) {
         val code = method.code()
         val first = method.implementation!!.registerCount - method.parameterTypes.size
         assertEquals("$what: hooks", 1, code.count { it.referenceText() == RESOLUTION_HOOK })
-        assertEquals("$what: the upload", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
-        assertEquals("$what: the upload's register", first + 2, (code[0] as TwoRegisterInstruction).registerB)
-        assertEquals("$what: a null upload skips it", Opcode.IF_EQZ, code[1].opcode)
-        assertEquals("$what: the getter", "${step.shareType.definingClass}->${step.shareType.name}()$SHARE_TYPE", code[2].referenceText())
-        assertEquals("$what: the width's register", first + 3, (code[4] as TwoRegisterInstruction).registerB)
-        assertEquals("$what: the hook", RESOLUTION_HOOK, code[5].referenceText())
-        assertEquals("$what: written back", first + 3, (code[7] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: no share type yet", Opcode.CONST_4, code[0].opcode)
+        assertEquals("$what: the upload", Opcode.MOVE_OBJECT_FROM16, code[1].opcode)
+        assertEquals("$what: the upload's register", first + 2, (code[1] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: a null upload skips the getter", Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("$what: the getter", "${step.shareType.definingClass}->${step.shareType.name}()$SHARE_TYPE", code[3].referenceText())
+        assertEquals("$what: the width's register", first + 3, (code[5] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the hook", RESOLUTION_HOOK, code[6].referenceText())
+        assertEquals("$what: written back", first + 3, (code[8] as TwoRegisterInstruction).registerA)
         val address = code.runningFold(0) { at, instruction -> at + instruction.codeUnits }
-        assertEquals("$what: null lands on Instagram's first instruction", 8, address.indexOf(address[1] + (code[1] as OffsetInstruction).codeOffset))
+        assertEquals("$what: a null upload still asks the hook", 5, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
+    }
+
+    /** Right after the width cap's answer is moved: the call with that answer and the clip's width it was handed, and the answer taken. */
+    private fun assertCapHooked(what: String, method: Method) {
+        val code = method.code()
+        assertEquals("$what: cap hooks", 1, code.count { it.referenceText() == RENDER_WIDTH_HOOK })
+        val at = code.indexOfFirst { it.referenceText() == RENDER_WIDTH_HOOK }
+        val cap = code[at - 2] as Instruction35c
+        val width = (code[at - 1] as OneRegisterInstruction).registerA
+        val step = code.indexOfFirst { (it as? NarrowLiteralInstruction)?.narrowLiteral == WIDTH_1440 }
+        assertTrue("$what: the cap after the $WIDTH_1440 step, not the landscape one", step in 0 until at - 2)
+        assertEquals("$what: the cap", listOf("Landroid/content/Context;", "I", "Z", "Z", "Z"), (cap.reference as MethodReference).parameterTypes.map(CharSequence::toString))
+        assertEquals("$what: the cap's answer", Opcode.MOVE_RESULT, code[at - 1].opcode)
+        val hook = code[at] as Instruction35c
+        assertEquals("$what: the hook's arguments", listOf(width, cap.registerD), listOf(hook.registerC, hook.registerD))
+        assertEquals("$what: the answer taken", Opcode.MOVE_RESULT, code[at + 1].opcode)
+        assertEquals("$what: into the width", width, (code[at + 1] as OneRegisterInstruction).registerA)
     }
 
     /** The quality read, the call, and the answer written back to the quality. */
@@ -474,18 +503,43 @@ class UploadStoriesAtFullQualityHookTest {
         )
     }
 
-    /** Shaped like 454's: the ingestion step calling the width step, which knows 1080 and 1440, with an upload that has a share type getter. */
-    private fun widthClasses(second: Int = WIDTH_1440, getter: Boolean = true, calls: Boolean = true, interfaceUpload: Boolean = false): List<ClassDef> {
+    private enum class WidthCapShape { CALLED, NONE, DROPPED, OVER_SOURCE }
+
+    /**
+     * Shaped like 454's: the ingestion step calling the width step, which caps a landscape width first,
+     * then knows 1080 and 1440 and caps the width it settles on, with an upload that has a share type getter.
+     */
+    private fun widthClasses(
+        second: Int = WIDTH_1440,
+        getter: Boolean = true,
+        calls: Boolean = true,
+        interfaceUpload: Boolean = false,
+        cap: WidthCapShape = WidthCapShape.CALLED,
+    ): List<ClassDef> {
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
         val parameters = listOf("Landroid/content/Context;", "Lcom/instagram/common/session/UserSession;", upload, "I", "Z", "Z", "Z", "Z")
+        val capCall = "invoke-static {p0, v1, v2, v2, v2}, $widths->A01(Landroid/content/Context;IZZZ)I"
+        val capped = when (cap) {
+            WidthCapShape.CALLED -> "$capCall\n move-result v0"
+            WidthCapShape.NONE -> ""
+            WidthCapShape.DROPPED -> capCall
+            WidthCapShape.OVER_SOURCE -> "$capCall\n move-result v1"
+        }
         val widthStep = method(
             widths, "A00", parameters, "Ljava/lang/Object;", 3, static,
             """
+                const/4 v1, 0x0
+                const/4 v2, 0x0
+                $capCall
+                move-result v0
+                mul-int/lit8 v0, v0, 0x10
                 const/16 v0, $WIDTH_1080
                 move/from16 v1, p3
                 if-eq v1, v0, :done
                 const/16 v0, $second
                 :done
+                const/4 v2, 0x0
+                $capped
                 const/4 v2, 0x0
                 return-object v2
             """,

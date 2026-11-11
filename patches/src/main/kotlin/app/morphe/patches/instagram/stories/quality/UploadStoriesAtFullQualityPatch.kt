@@ -27,7 +27,9 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -37,6 +39,7 @@ internal const val STORY_UPLOAD_QUALITY = "$EXTENSION_PACKAGE/stories/StoryUploa
 internal const val FULL_QUALITY = "$STORY_UPLOAD_QUALITY->fullQuality(Ljava/lang/Object;)Z"
 internal const val BITRATE_HOOK = "$STORY_UPLOAD_QUALITY->bitrate(Ljava/lang/Object;I)I"
 internal const val RESOLUTION_HOOK = "$STORY_UPLOAD_QUALITY->resolution(Ljava/lang/Object;I)I"
+internal const val RENDER_WIDTH_HOOK = "$STORY_UPLOAD_QUALITY->renderWidth(II)I"
 internal const val FRAME_RATE_HOOK = "$STORY_UPLOAD_QUALITY->frameRate(Ljava/lang/Object;I)I"
 internal const val PHOTO_QUALITY_HOOK = "$STORY_UPLOAD_QUALITY->photoQuality(I)I"
 
@@ -93,7 +96,8 @@ val uploadStoriesAtFullQualityPatch = bytecodePatch(
     name = "Upload stories at full quality",
     description = "Sends the video stories you post at 1080p and a higher bitrate, as Instagram does with its own " +
         "Upload at highest quality setting on. Choices under it can cover posts and reels too and ask for a " +
-        "bitrate up to 50 Mbps, 1440p, 60 fps or a higher photo quality. Instagram still shrinks story videos to 720p on its servers, so " +
+        "bitrate up to 50 Mbps, up to 2160p and 120 fps where the phone's encoder can take them, or a higher photo " +
+        "quality. Instagram still shrinks story videos to 720p on its servers, so " +
         "viewers see a small difference. Starts off. Turn it on in HushGram settings > Stories.",
     default = true,
 ) {
@@ -295,9 +299,15 @@ internal fun BytecodePatchContext.raiseBitrate(check: QualityCheck, setter: Bitr
 internal class WidthStep(val method: MethodReference, val shareType: MethodReference, val onInterface: Boolean)
 
 /**
+ * Instagram's width cap in the width step (`0MiN.A00` on 454): the call's index, the register its
+ * answer lands in, and the register holding the clip's width it was handed.
+ */
+internal class WidthCap(val at: Int, val width: Int, val source: Int)
+
+/**
  * The width step: the one static method [VIDEO_INGESTION_STEP] calls that takes the context, the session,
- * an upload, an int and four booleans, loads both widths it knows ([WIDTH_1080] and [WIDTH_1440]), and
- * whose upload class has one instance getter for its [SHARE_TYPE].
+ * an upload, an int and four booleans, loads both widths it knows ([WIDTH_1080] and [WIDTH_1440]), caps
+ * the width after that ([widthCap]), and whose upload class has one instance getter for its [SHARE_TYPE].
  */
 internal fun BytecodePatchContext.findWidthStep(): WidthStep {
     val step = classDefByOrNull(VIDEO_INGESTION_STEP) ?: refuse("$VIDEO_INGESTION_STEP isn't in this build")
@@ -311,6 +321,7 @@ internal fun BytecodePatchContext.findWidthStep(): WidthStep {
     val method = classDefBy(call.definingClass).methods.single { it.sameAs(call) }
     val literals = method.implementation?.instructions?.toList().orEmpty().mapNotNull { (it as? NarrowLiteralInstruction)?.narrowLiteral }
     if (WIDTH_1080 !in literals || WIDTH_1440 !in literals) refuse("$where doesn't load both $WIDTH_1080 and $WIDTH_1440")
+    method.widthCap(where)
     val upload = call.parameterTypes[2].toString()
     val uploadClass = classDefByOrNull(upload) ?: refuse("$upload isn't in this build")
     val getters = uploadClass.methods
@@ -325,26 +336,65 @@ private fun MethodReference.isWidthStepShape(): Boolean {
         types.drop(4).all { it == "Z" } && returnType.startsWith("L")
 }
 
-/** First thing in the width step, swaps the width it was asked for with [RESOLUTION_HOOK]'s answer. A null upload skips it. */
+/**
+ * The width cap: the first static `(Context, I, Z, Z, Z)I` call after the width step loads [WIDTH_1440]
+ * (454's landscape branch caps too, before that, and never reads the width asked for), its answer moved
+ * straight into a register no wider than v15 that isn't the clip's width it was handed, with nothing
+ * jumping to just after that move.
+ */
+private fun Method.widthCap(where: String): WidthCap {
+    val code = implementation?.instructions?.toList().orEmpty()
+    val step = code.indexOfFirst { (it as? NarrowLiteralInstruction)?.narrowLiteral == WIDTH_1440 }
+    val at = code.indices.firstOrNull { at ->
+        step >= 0 && at > step && code[at].opcode == Opcode.INVOKE_STATIC &&
+            ((code[at] as ReferenceInstruction).reference as MethodReference).isWidthCapShape()
+    } ?: refuse("expected a width cap after the $WIDTH_1440 step in $where")
+    val result = code.getOrNull(at + 1)
+    if (result?.opcode != Opcode.MOVE_RESULT) refuse("$where doesn't keep its width cap's answer")
+    if (at + 2 >= code.size || (at + 2) in jumpTargets()) refuse("something jumps to just after the width cap in $where")
+    val width = (result as OneRegisterInstruction).registerA
+    val source = (code[at] as FiveRegisterInstruction).registerD
+    if (width > 15 || source > 15) refuse("the width cap in $where works in v$width and v$source, past what a call can name")
+    if (width == source) refuse("the width cap in $where answers over the clip's width")
+    return WidthCap(at, width, source)
+}
+
+private fun MethodReference.isWidthCapShape() =
+    returnType == "I" && parameterTypes.map(CharSequence::toString) == listOf(CONTEXT, "I", "Z", "Z", "Z")
+
+/**
+ * First thing in the width step, swaps the width it was asked for with [RESOLUTION_HOOK]'s answer, a
+ * null upload asking with a null share type, so every width step starts the hook afresh. Right after
+ * the width cap, hands [RENDER_WIDTH_HOOK] the cap's answer and the clip's width and takes its answer.
+ */
 internal fun BytecodePatchContext.raiseWidth(step: WidthStep) {
     val method = mutableClassDefBy(step.method.definingClass).methods.single { it.sameAs(step.method) }
     val where = "${step.method.definingClass}->${step.method.name}"
     if (0 in method.jumpTargets()) refuse("something jumps back to the first instruction of $where")
     method.requireLocals(PATCH, 2)
+    val cap = method.widthCap(where)
+    method.addInstructions(
+        cap.at + 2,
+        """
+            invoke-static { v${cap.width}, v${cap.source} }, $RENDER_WIDTH_HOOK
+            move-result v${cap.width}
+        """,
+    )
     val invoke = if (step.onInterface) "invoke-interface" else "invoke-virtual"
     method.addInstructionsWithLabels(
         0,
         """
-            move-object/from16 v0, p2
-            if-eqz v0, :instagram
-            $invoke { v0 }, ${step.shareType.definingClass}->${step.shareType.name}()$SHARE_TYPE
+            const/4 v0, 0x0
+            move-object/from16 v1, p2
+            if-eqz v1, :ask
+            $invoke { v1 }, ${step.shareType.definingClass}->${step.shareType.name}()$SHARE_TYPE
             move-result-object v0
+            :ask
             move/from16 v1, p3
             invoke-static { v0, v1 }, $RESOLUTION_HOOK
             move-result v0
             move/from16 p3, v0
         """,
-        ExternalLabel("instagram", method.getInstruction(0)),
     )
 }
 

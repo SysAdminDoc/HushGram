@@ -41,6 +41,7 @@ public class StoryUploadQualityTest {
         Settings.UPLOAD_VIDEO_RESOLUTION.resetToDefault();
         Settings.UPLOAD_FRAME_RATE.resetToDefault();
         Settings.UPLOAD_PHOTO_QUALITY.resetToDefault();
+        StoryUploadQuality.resetForTests();
         HookStatus.clear();
     }
 
@@ -54,7 +55,24 @@ public class StoryUploadQualityTest {
         Settings.UPLOAD_PHOTO_QUALITY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
+        StoryUploadQuality.resetForTests();
         HookStatus.clear();
+    }
+
+    /** A phone whose encoder takes 2160x3840 at up to 120 fps. */
+    private static boolean fourK(int width, int height, int fps) {
+        return width <= 2160 && height <= 3840 && fps <= 120;
+    }
+
+    /** Like the emulator's software H.264 encoder: no side past 2048, and 245760 macroblocks a second. */
+    private static boolean emulator(int width, int height, int fps) {
+        if (width > 2048 || height > 2048) return false;
+        long blocks = (long) ((width + 15) / 16) * ((height + 15) / 16);
+        return fps <= 0 || blocks * fps <= 245_760;
+    }
+
+    private static String counts() {
+        return String.join(" ", HookStatus.report());
     }
 
     /** The switch starts off, and then Instagram's own check runs for every upload. */
@@ -175,6 +193,89 @@ public class StoryUploadQualityTest {
         assertEquals("no share type", 0, StoryUploadQuality.resolution(null, 0));
         assertTrue(HookStatus.missing(FamilyNames.STORY_UPLOAD_QUALITY).toString(),
                 HookStatus.missing(FamilyNames.STORY_UPLOAD_QUALITY).isEmpty());
+    }
+
+    /** 2160p asks Instagram's width step for the 1440 it knows, and after its cap the width goes to 2160, no wider than the clip. */
+    @Test
+    public void a2160WidthIsRaisedPastInstagramsCap() {
+        StoryUploadQuality.encoderForTests(StoryUploadQualityTest::fourK);
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P2160);
+        assertEquals("asks the step", 1440, StoryUploadQuality.resolution(ShareType.STORY, 1080));
+        assertEquals("after the cap", 2160, StoryUploadQuality.renderWidth(1440, 2160));
+        assertTrue(counts(), counts().contains(StoryUploadQuality.RAISED_PAST_STEP + " 1"));
+
+        StoryUploadQuality.resolution(ShareType.STORY, 1080);
+        assertEquals("a narrower clip", 1800, StoryUploadQuality.renderWidth(1440, 1800));
+        StoryUploadQuality.resolution(ShareType.STORY, 1080);
+        assertEquals("a clip the cap already fits", 1080, StoryUploadQuality.renderWidth(1080, 1080));
+        StoryUploadQuality.resolution(ShareType.STORY, 1080);
+        assertEquals("an odd width is made even", 1798, StoryUploadQuality.renderWidth(1440, 1799));
+    }
+
+    /** A width the phone's encoder can't take steps down to the widest of 1440 and 1080 it can, 1440p included. */
+    @Test
+    public void aWidthTheEncoderCantTakeStepsDown() {
+        StoryUploadQuality.encoderForTests(StoryUploadQualityTest::emulator);
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P2160);
+        StoryUploadQuality.resolution(ShareType.STORY, 1080);
+        assertEquals("2160p", 1080, StoryUploadQuality.renderWidth(1440, 2160));
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P1440);
+        assertEquals(1440, StoryUploadQuality.resolution(ShareType.STORY, 1080));
+        assertEquals("1440p", 1080, StoryUploadQuality.renderWidth(1440, 1440));
+        assertTrue(counts(), counts().contains(StoryUploadQuality.STEPPED_DOWN + " 2"));
+
+        StoryUploadQuality.encoderForTests((width, height, fps) -> false);
+        StoryUploadQuality.resolution(ShareType.STORY, 1080);
+        assertEquals("an encoder taking none of them", 1440, StoryUploadQuality.renderWidth(1440, 1440));
+    }
+
+    /** Only a width step the hook raised changes after the cap, once, and a phone with no H.264 encoder keeps the cap's width. */
+    @Test
+    public void onlyARaisedUploadChangesAfterTheCap() {
+        StoryUploadQuality.encoderForTests(StoryUploadQualityTest::fourK);
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P2160);
+        assertEquals("never asked", 720, StoryUploadQuality.renderWidth(720, 2160));
+        assertEquals("a post, stories only", 0, StoryUploadQuality.resolution(ShareType.FEED, 0));
+        assertEquals("a post, stories only", 720, StoryUploadQuality.renderWidth(720, 2160));
+
+        StoryUploadQuality.resolution(ShareType.STORY, 1080);
+        assertEquals("no share type", 0, StoryUploadQuality.resolution(null, 0));
+        assertEquals("a later null upload", 720, StoryUploadQuality.renderWidth(720, 2160));
+
+        StoryUploadQuality.resolution(ShareType.STORY, 1080);
+        assertEquals(2160, StoryUploadQuality.renderWidth(1440, 2160));
+        assertEquals("asked once", 1440, StoryUploadQuality.renderWidth(1440, 2160));
+
+        StoryUploadQuality.encoderForTests(null);
+        StoryUploadQuality.resolution(ShareType.STORY, 1080);
+        assertEquals("no encoder", 1440, StoryUploadQuality.renderWidth(1440, 2160));
+        assertTrue(HookStatus.missing(FamilyNames.STORY_UPLOAD_QUALITY).toString(),
+                HookStatus.missing(FamilyNames.STORY_UPLOAD_QUALITY).isEmpty());
+    }
+
+    /** 120 fps is asked where the encoder takes it at the width the upload got, and 60 otherwise. */
+    @Test
+    public void frameRatePast60NeedsTheEncoder() {
+        StoryUploadQuality.encoderForTests(StoryUploadQualityTest::fourK);
+        Settings.UPLOAD_STORIES_AT_FULL_QUALITY.save(true);
+        Settings.UPLOAD_FRAME_RATE.save(UploadFrameRate.FPS_120);
+        assertEquals(120, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+        assertEquals("already higher", 240, StoryUploadQuality.frameRate(ShareType.STORY, 240));
+
+        StoryUploadQuality.encoderForTests((width, height, fps) -> fps <= 60 || width <= 1080);
+        Settings.UPLOAD_VIDEO_RESOLUTION.save(UploadResolution.P2160);
+        StoryUploadQuality.resolution(ShareType.STORY, 1080);
+        assertEquals(2160, StoryUploadQuality.renderWidth(1440, 2160));
+        assertEquals("too wide for 120", 60, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+        assertEquals("Instagram's 60 kept", 60, StoryUploadQuality.frameRate(ShareType.STORY, 60));
+
+        StoryUploadQuality.encoderForTests(StoryUploadQualityTest::emulator);
+        assertEquals("the emulator", 60, StoryUploadQuality.frameRate(ShareType.STORY, 30));
+        StoryUploadQuality.encoderForTests(null);
+        assertEquals("no encoder", 60, StoryUploadQuality.frameRate(ShareType.STORY, 30));
     }
 
     /** A chosen frame rate is a floor for a covered upload, and fills in one Instagram didn't set. */

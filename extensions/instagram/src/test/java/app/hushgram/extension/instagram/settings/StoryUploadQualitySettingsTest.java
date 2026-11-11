@@ -83,8 +83,8 @@ public class StoryUploadQualitySettingsTest {
     }
     @Test public void theNewChoicesListWhatTheyOffer() throws Exception {
         open(EnumSet.of(PatchFamily.STORY_UPLOAD_QUALITY));
-        assertEquals("[Instagram's own, 1080p, 1440p]", entries(Settings.UPLOAD_VIDEO_RESOLUTION.key, "Video resolution"));
-        assertEquals("[Instagram's own, 60 fps]", entries(Settings.UPLOAD_FRAME_RATE.key, "Video frame rate"));
+        assertEquals("[Instagram's own, 1080p, 1440p, 2160p]", entries(Settings.UPLOAD_VIDEO_RESOLUTION.key, "Video resolution"));
+        assertEquals("[Instagram's own, 60 fps, 120 fps]", entries(Settings.UPLOAD_FRAME_RATE.key, "Video frame rate"));
         assertEquals("[Instagram's own, 90%, 95%, 100%]", entries(Settings.UPLOAD_PHOTO_QUALITY.key, "Photo quality"));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_VIDEO_RESOLUTION.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_FRAME_RATE.key));

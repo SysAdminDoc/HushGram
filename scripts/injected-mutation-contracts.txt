@@ -3072,6 +3072,9 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->frameRa
 # (0Wot.A00 on 454) was asked for, 1080, 1440 or 0, with the upload's share type, read just before it.
 # Left out, Video resolution does nothing.
 once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->resolution(Ljava/lang/Object;I)I in static (Landroid/content/Context;Lcom/instagram/common/session/UserSession;LX/*;IZZZZ)LX/*; calling instance LX/*;->*()Lcom/instagram/pendingmedia/model/constants/ShareType; holding const:0x438 const:0x5a0
+# 2160p (#37) goes past the 1440 that step knows, so StoryUploadQuality.renderWidth takes the width its
+# cap (0MiN.A00 on 454) answered, with the clip's width, right after the cap. Left out, 2160p uploads at 1440.
+once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->renderWidth(II)I in static (Landroid/content/Context;Lcom/instagram/common/session/UserSession;LX/*;IZZZZ)LX/*; calling static LX/*;->*(Landroid/content/Context;IZZZ)I holding const:0x438 const:0x5a0
 # Its Photo quality choice (#37) hands StoryUploadQuality.photoQuality the JPEG quality first in the static
 # factory (0BWX.A02 on 454) of the class that calls Bitmap.compress with it. Left out, Photo quality does nothing.
 start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in static (Landroid/graphics/Bitmap;LX/*;II)LX/*; class-holding Landroid/graphics/Bitmap;->compress(Landroid/graphics/Bitmap$CompressFormat;ILjava/io/OutputStream;)Z
