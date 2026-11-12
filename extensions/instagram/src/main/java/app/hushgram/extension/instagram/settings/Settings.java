@@ -1789,6 +1789,23 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_keep_size", FALSE, true, parent(GLASS_TAB_BAR_LIQUID));
 
     /**
+     * With {@link #GLASS_TAB_BAR_LIQUID} off: scrolling a list down makes the standard pill smaller, and
+     * scrolling up or changing tab brings it back to full size (#638). Hide the tab bar as you scroll takes
+     * over when it's on, and the choice rests while the liquid look is on. Read as the bar is built, so a
+     * change asks for a restart. Off to start.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_SHRINK_ON_SCROLL =
+            new BooleanSetting("hushgram_glass_tab_bar_shrink_on_scroll", FALSE, true, new Setting.Availability() {
+                @Override public boolean isAvailable() {
+                    return GLASS_TAB_BAR.savedValue() && !GLASS_TAB_BAR_LIQUID.savedValue();
+                }
+
+                @Override public List<Setting<?>> getParentSettings() {
+                    return Collections.singletonList(GLASS_TAB_BAR);
+                }
+            });
+
+    /**
      * Under {@link #GLASS_TAB_BAR_BLUR}: the pill's rim bends what's behind it the way the edge of real glass
      * does, so what passes under the edge shows mirrored and upside down (#369). The liquid pill and the
      * standard one both bend (#391), and only where the pill is blurred. Android 13 and newer, where the bar

@@ -1374,6 +1374,9 @@ Takes the arrow off the end of a profile's row of buttons, along with the menu i
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	Hapı tam boyutta tut
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Bir listeyi aşağı kaydırınca sıvı cam hap olduğu gibi kalır, her sekme yerinde durur. Değiştirdikten sonra Instagram'ı yeniden başlat.
+# context: a switch under Glass tab bar that makes the standard pill (the one without the liquid look) smaller while a list scrolls down, and its description. Liquid glass look and Hide the tab bar as you scroll are the names of two other switches on the same page (#638)
+Shrink the pill as you scroll	Kaydırırken hapı küçült
+With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up or changing tab brings it back to full size. Hide the tab bar as you scroll takes over when it's on. Restart Instagram after changing it.	Sıvı cam görünümü kapalıyken bir listeyi aşağı kaydırınca hap küçülür, yukarı kaydırınca ya da sekme değiştirince tam boyutuna döner. Kaydırırken sekme çubuğunu gizle açıksa o geçerli olur. Değiştirdikten sonra Instagram'ı yeniden başlat.
 # context: Layout: Glass tab bar's switch that makes the liquid pill's rim bend and mirror what's behind it like glass (#369)
 Bend light at the edges	Kenarlarda ışığı kır
 The pill's rim bends what's behind it like real glass, so what passes under the edge shows upside down. Android 13 and newer. Restart Instagram after changing it.	Hapın kenarı arkasındakini gerçek cam gibi kırar, kenarın altından geçen her şey ters görünür. Android 13 ve sonrası. Değiştirdikten sonra Instagram'ı yeniden başlat.

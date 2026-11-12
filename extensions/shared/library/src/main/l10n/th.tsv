@@ -1365,6 +1365,9 @@ Takes the arrow off the end of a profile's row of buttons, along with the menu i
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	คงขนาดเต็มของแถบแคปซูล
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	การเลื่อนรายการลงจะคงขนาดแถบแคปซูลแบบแก้วเหลวไว้ตามเดิม โดยทุกแท็บจะยังคงอยู่ที่เดิม รีสตาร์ท Instagram หลังจากเปลี่ยนแปลงการตั้งค่า
+# context: a switch under Glass tab bar that makes the standard pill (the one without the liquid look) smaller while a list scrolls down, and its description. Liquid glass look and Hide the tab bar as you scroll are the names of two other switches on the same page (#638)
+Shrink the pill as you scroll	ย่อแถบแคปซูลขณะเลื่อนหน้าจอ
+With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up or changing tab brings it back to full size. Hide the tab bar as you scroll takes over when it's on. Restart Instagram after changing it.	เมื่อปิดรูปลักษณ์กระจกเหลว การเลื่อนรายการลงจะทำให้แถบแคปซูลเล็กลง และการเลื่อนขึ้นหรือเปลี่ยนแท็บจะทำให้กลับเป็นขนาดเต็ม หากเปิดซ่อนแถบแท็บขณะเลื่อนหน้าจออยู่ จะใช้การตั้งค่านั้นแทน รีสตาร์ท Instagram หลังจากเปลี่ยนแปลงการตั้งค่า
 # context: Layout: Glass tab bar's switch that makes the liquid pill's rim bend and mirror what's behind it like glass (#369)
 Bend light at the edges	หักเหแสงที่ขอบ
 # context: Ghost mode: the row and dialog picking which switches Ghost mode turns (#251). %1$s is a list of switch names

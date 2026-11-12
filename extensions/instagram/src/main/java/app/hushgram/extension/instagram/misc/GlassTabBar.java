@@ -917,6 +917,8 @@ public final class GlassTabBar {
     static final int SEARCH_GAP_DP = 8;
     /** How long the liquid bar takes to shrink to its compact row, and to grow back. */
     static final long COMPACT_MS = 260;
+    /** How small the standard pill gets as a list scrolls down (#638), against its full size. */
+    static final float SHRUNK_SCALE = 0.8f;
 
     /**
      * The activity in front, from its resume to its pause: the window whose screens Instagram pads by
@@ -1642,6 +1644,11 @@ public final class GlassTabBar {
         /** How far the liquid bar has shrunk to its compact row: 0 is the whole bar, 1 the tab you're on and Search. */
         private float compact;
         @Nullable private ValueAnimator compacting;
+        /** Whether the standard pill shrinks as a list scrolls down (#638): the look off and the switch on as the bar was built. */
+        private final boolean scales;
+        /** The standard pill's shrink as a list scrolls down (#638), on its way to {@link #SHRUNK_SCALE} or back. */
+        @Nullable private ValueAnimator scaling;
+        private final RectF scaleArea = new RectF();
         /** The translation and alpha the liquid look gave each tab, and the tabs it put out of a touch's reach, so only what it did is undone. */
         /** The badge backgrounds whose ring this bar has made clear. */
         private final java.util.Set<Drawable> rings = java.util.Collections.newSetFromMap(new WeakHashMap<>());
@@ -1670,8 +1677,10 @@ public final class GlassTabBar {
             this.refract = Settings.GLASS_TAB_BAR_REFRACT.get();
             boolean hideOnScroll = Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get();
             // The liquid look shrinks the bar as a list scrolls down, unless a scroll is to take it away altogether
-            // or the pill is to keep its full size (#256).
-            boolean shrinkOnScroll = liquid && !hideOnScroll && !Settings.GLASS_TAB_BAR_KEEP_SIZE.get();
+            // or the pill is to keep its full size (#256). Without the look, the pill only shrinks when asked to (#638).
+            boolean shrinkOnScroll = !hideOnScroll && (liquid
+                    ? !Settings.GLASS_TAB_BAR_KEEP_SIZE.get() : Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.get());
+            this.scales = !liquid && shrinkOnScroll;
             GlassReelsHide hideOnReels = Settings.GLASS_TAB_BAR_REELS_HIDE.get();
             long reelsMillis = hideOnReels == null ? 0L : hideOnReels.millis;
             this.scrollHide = hideOnScroll || shrinkOnScroll || reelsMillis > 0
@@ -1745,7 +1754,8 @@ public final class GlassTabBar {
 
         @Override public boolean onPill(float x, float y) {
             // The compact row has no tabs to slide across, and a drag on a reel's seek bar strip is the seek bar's.
-            return compact <= 0f && pill.pillBounds(touchArea) && touchArea.contains(x, y) && stripAt(x, y) == null;
+            // A shrunk standard pill's tabs aren't where the unscaled bounds say until it's full size again.
+            return compact <= 0f && scaling == null && bar.getScaleX() == 1f && pill.pillBounds(touchArea) && touchArea.contains(x, y) && stripAt(x, y) == null;
         }
 
         @Nullable
@@ -1756,10 +1766,12 @@ public final class GlassTabBar {
 
         /**
          * Shrinks the liquid bar to its compact row as a list scrolls down, or grows it back (#65), sliding over
-         * {@link #COMPACT_MS} unless [now] or the phone's animations are off. It won't shrink without the look,
-         * while paused, with no tab marked selected or with Search selected, which has no tab to shrink to.
+         * {@link #COMPACT_MS} unless [now] or the phone's animations are off. It won't shrink while paused, with no
+         * tab marked selected or with Search selected, which has no tab to shrink to. Without the look it scales the
+         * standard pill instead, and only when that was asked for (#638).
          */
         @Override public boolean shrink(boolean on, boolean now) {
+            if (!liquid) return scale(on, now);
             if (on) {
                 if (!liquidNow()) return false;
                 View selected = selectedTab();
@@ -1784,6 +1796,47 @@ public final class GlassTabBar {
             compacting = animator;
             animator.start();
             return true;
+        }
+
+        /**
+         * The standard pill's shrink (#638): the whole bar scales down to {@link #SHRUNK_SCALE} toward the pill's
+         * bottom edge as a list scrolls down, or back to full size, over {@link #COMPACT_MS} unless [now] or the
+         * phone's animations are off. Every tab stays, smaller. It won't shrink with the switch off or while paused.
+         */
+        private boolean scale(boolean on, boolean now) {
+            if (on && (!scales || HushgramPause.isPaused())) return false;
+            float target = on ? SHRUNK_SCALE : 1f;
+            ValueAnimator running = scaling;
+            scaling = null;
+            if (running != null) running.cancel();
+            if (pill.pillBounds(scaleArea)) {
+                bar.setPivotX(scaleArea.centerX());
+                bar.setPivotY(scaleArea.bottom);
+            } else {
+                bar.setPivotX(bar.getWidth() / 2f);
+                bar.setPivotY(bar.getHeight());
+            }
+            if (now || !animationsOn() || bar.getScaleX() == target) {
+                scaleTo(target);
+                return true;
+            }
+            ValueAnimator animator = ValueAnimator.ofFloat(bar.getScaleX(), target);
+            animator.setDuration(COMPACT_MS);
+            animator.setInterpolator(new DecelerateInterpolator());
+            animator.addUpdateListener(step -> scaleTo((float) step.getAnimatedValue()));
+            animator.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(android.animation.Animator done) {
+                    if (scaling == done) scaling = null;
+                }
+            });
+            scaling = animator;
+            animator.start();
+            return true;
+        }
+
+        private void scaleTo(float scale) {
+            bar.setScaleX(scale);
+            bar.setScaleY(scale);
         }
 
         /** Whether the liquid look shows right now: switched on, and HushGram not paused. */
@@ -2579,6 +2632,10 @@ public final class GlassTabBar {
             ValueAnimator running = compacting;
             compacting = null;
             if (running != null) running.cancel();
+            ValueAnimator shrinking = scaling;
+            scaling = null;
+            if (shrinking != null) shrinking.cancel();
+            if (!liquid) scaleTo(1f);
             pill.discard();
         }
 

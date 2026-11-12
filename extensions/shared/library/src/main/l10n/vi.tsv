@@ -1320,6 +1320,9 @@ Hide the arrow at the end of the buttons	Ẩn mũi tên ở cuối hàng nút
 Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, and the other buttons stretch to fill the space.	Gỡ mũi tên ở cuối hàng nút của trang cá nhân, cùng menu mà nó mở, và các nút khác giãn ra lấp chỗ trống.
 Keep the pill full size	Giữ viên thanh đủ cỡ
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Cuộn danh sách xuống để viên kính lỏng nguyên vẹn, mọi tab vẫn ở chỗ cũ. Hãy khởi động lại Instagram sau khi thay đổi.
+# context: a switch under Glass tab bar that makes the standard pill (the one without the liquid look) smaller while a list scrolls down, and its description. Liquid glass look and Hide the tab bar as you scroll are the names of two other switches on the same page (#638)
+Shrink the pill as you scroll	Thu nhỏ viên thanh khi cuộn
+With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up or changing tab brings it back to full size. Hide the tab bar as you scroll takes over when it's on. Restart Instagram after changing it.	Khi tắt Kiểu kính lỏng, cuộn danh sách xuống sẽ làm viên thanh nhỏ lại, còn cuộn lên hoặc đổi tab sẽ đưa nó về đủ cỡ. Nếu Ẩn thanh tab khi cuộn đang bật thì cài đặt đó được ưu tiên. Hãy khởi động lại Instagram sau khi thay đổi.
 Bend light at the edges	Bẻ cong ánh sáng ở mép
 The pill's rim bends what's behind it like real glass, so what passes under the edge shows upside down. Android 13 and newer. Restart Instagram after changing it.	Viền của viên kính bẻ cong những gì phía sau như kính thật, nên cái đi qua dưới mép hiện lộn ngược. Android 13 trở lên. Hãy khởi động lại Instagram sau khi thay đổi.
 All of them. Tap to leave some out, and Ghost mode leaves those as you set them.	Tất cả. Nhấn để bỏ một số, và Chế độ ẩn để chúng như bạn đã đặt.

@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Shrink the pill as you scroll` sits under `Glass tab bar` in Tab bar. With `Liquid glass look` off, scrolling a list down makes the whole pill smaller, every tab still in it, and scrolling up or changing tab brings it back to full size. `Hide the tab bar as you scroll` wins when both are on. Restart Instagram after changing it. Starts off. Asked for in #638.
 * `Burn-in guard` fades the Add comment bar under a reel too, along with the other buttons, and tapping it brings them all back. Asked for in #648.
 * `Open Saved profiles with a tab long press` sits under `Your saved profiles` in Profiles. Pick a tab, Profile included, and holding it opens your saved list right away while a normal tap does what it always did. Needs `Saved profiles` on. Starts off. Asked for in #629.
 * `Fast scroll in Saved` sits under `Saved tab on your profile` in Profiles. Scroll Saved or one of your collections and a handle shows at the right edge. Drag it to jump anywhere in a long list, and it fades once you stop. It takes no restart. Starts off. Asked for in #644.

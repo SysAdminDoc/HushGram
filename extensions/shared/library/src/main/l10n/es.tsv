@@ -1374,6 +1374,9 @@ Takes the arrow off the end of a profile's row of buttons, along with the menu i
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	Mantener la píldora a tamaño completo
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Al desplazarte hacia abajo en una lista, la píldora de cristal líquido se queda como está, con cada pestaña en su sitio. Reinicia Instagram tras cambiarlo.
+# context: a switch under Glass tab bar that makes the standard pill (the one without the liquid look) smaller while a list scrolls down, and its description. Liquid glass look and Hide the tab bar as you scroll are the names of two other switches on the same page (#638)
+Shrink the pill as you scroll	Encoger la píldora al desplazarte
+With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up or changing tab brings it back to full size. Hide the tab bar as you scroll takes over when it's on. Restart Instagram after changing it.	Con Aspecto de cristal líquido desactivado, al desplazarte hacia abajo en una lista la píldora se hace más pequeña, y al subir o cambiar de pestaña vuelve a su tamaño completo. Si Ocultar la barra de pestañas al desplazarte está activado, manda ese. Reinicia Instagram tras cambiarlo.
 # context: Layout: Glass tab bar's switch that makes the liquid pill's rim bend and mirror what's behind it like glass (#369)
 Bend light at the edges	Curvar la luz en los bordes
 The pill's rim bends what's behind it like real glass, so what passes under the edge shows upside down. Android 13 and newer. Restart Instagram after changing it.	El borde de la píldora curva lo que hay detrás como un cristal de verdad, así que lo que pasa bajo el borde se ve al revés. Android 13 o posterior. Reinicia Instagram tras cambiarlo.

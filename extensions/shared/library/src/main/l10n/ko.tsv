@@ -1373,6 +1373,9 @@ Takes the arrow off the end of a profile's row of buttons, along with the menu i
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	알약 크기 그대로 유지
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	목록을 아래로 스크롤해도 리퀴드 글래스 알약이 그대로 유지되고 모든 탭이 제자리에 있습니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
+# context: a switch under Glass tab bar that makes the standard pill (the one without the liquid look) smaller while a list scrolls down, and its description. Liquid glass look and Hide the tab bar as you scroll are the names of two other switches on the same page (#638)
+Shrink the pill as you scroll	스크롤할 때 알약 줄이기
+With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up or changing tab brings it back to full size. Hide the tab bar as you scroll takes over when it's on. Restart Instagram after changing it.	리퀴드 글래스 스타일이 꺼져 있을 때 목록을 아래로 스크롤하면 알약이 작아지고, 위로 스크롤하거나 탭을 바꾸면 원래 크기로 돌아옵니다. 스크롤할 때 탭 바 숨기기가 켜져 있으면 그 설정이 우선합니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
 # context: Layout: Glass tab bar's switch that makes the liquid pill's rim bend and mirror what's behind it like glass (#369)
 Bend light at the edges	가장자리에서 빛 굴절
 The pill's rim bends what's behind it like real glass, so what passes under the edge shows upside down. Android 13 and newer. Restart Instagram after changing it.	알약의 가장자리가 실제 유리처럼 뒤에 있는 것을 굴절시켜, 가장자리 아래로 지나가는 것이 거꾸로 보입니다. Android 13 이상. 변경한 뒤에는 Instagram을 다시 시작하세요.

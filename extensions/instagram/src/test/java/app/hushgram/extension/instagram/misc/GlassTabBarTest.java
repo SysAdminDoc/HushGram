@@ -93,6 +93,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
+        Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         GlassTabBar.animationsOnForTests = null;
         BaseSettings.PAUSED.save(false);
@@ -1374,6 +1375,58 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * Shrink the pill as you scroll (#638): without the liquid look, the switch has a scroll down make the whole
+     * standard pill smaller toward its bottom edge and a scroll up bring it back, every tab kept. Off, or paused,
+     * nothing shrinks, and Hide the tab bar as you scroll takes over.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void shrinkThePillAsYouScrollScalesTheStandardPill() {
+        GlassTabBar.animationsOnForTests = false;
+        for (boolean wanted : new boolean[]{false, true}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+                Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.save(wanted);
+                GlassTabBar.apply(host.activity);
+                host.frame();
+                GlassScrollHide hide = ReflectionHelpers.getField(host.glass(), "scrollHide");
+                if (!wanted) {
+                    assertNull("off, no scroll watcher", hide);
+                    continue;
+                }
+                assertNotNull("on, the scroll shrinks the pill", hide);
+                GlassScrollHide.Shrinker shrinker = ReflectionHelpers.getField(hide, "shrinker");
+                assertSame(host.glass(), shrinker);
+                int tabs = host.bar.getChildCount();
+                assertTrue(shrinker.shrink(true, true));
+                assertEquals(GlassTabBar.SHRUNK_SCALE, host.bar.getScaleX(), 0f);
+                assertEquals(GlassTabBar.SHRUNK_SCALE, host.bar.getScaleY(), 0f);
+                assertTrue("toward the bottom", host.bar.getPivotY() > host.bar.getHeight() / 2f);
+                assertEquals("every tab stays", tabs, host.bar.getChildCount());
+                for (int i = 0; i < tabs; i++) assertEquals(View.VISIBLE, host.bar.getChildAt(i).getVisibility());
+                assertTrue(shrinker.shrink(false, true));
+                assertEquals(1f, host.bar.getScaleX(), 0f);
+                assertEquals(1f, host.bar.getScaleY(), 0f);
+
+                BaseSettings.PAUSED.save(true);
+                PauseForTests.pause(HushgramPause.Reason.SWITCH);
+                assertFalse("paused, nothing shrinks", shrinker.shrink(true, true));
+                assertEquals(1f, host.bar.getScaleX(), 0f);
+                BaseSettings.PAUSED.save(false);
+                PauseForTests.resume();
+            }
+        }
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.save(true);
+            Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.save(true);
+            GlassTabBar.apply(host.activity);
+            host.frame();
+            GlassScrollHide hide = ReflectionHelpers.getField(host.glass(), "scrollHide");
+            assertNotNull(hide);
+            assertNull("the slide-away takes over", ReflectionHelpers.getField(hide, "shrinker"));
+        }
+    }
+
     private static void send(Window.Callback callback, long down, long time, int action, float x, float y) {
         MotionEvent event = MotionEvent.obtain(down, time, action, x, y, 0);
         try {
@@ -1425,6 +1478,7 @@ public class GlassTabBarTest {
             Settings.GLASS_TAB_BAR_SLIDE.save(false);
             Settings.GLASS_TAB_BAR_LIQUID.save(false);
             Settings.GLASS_TAB_BAR_KEEP_SIZE.save(false);
+            Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.save(false);
             Settings.GLASS_TAB_BAR_REFRACT.save(false);
             controller = Robolectric.buildActivity(Activity.class).setup();
             activity = controller.get();
