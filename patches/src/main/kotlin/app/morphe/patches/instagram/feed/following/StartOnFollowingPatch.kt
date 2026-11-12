@@ -87,8 +87,9 @@ val startOnFollowingPatch = bytecodePatch(
         "you from Home, and a third keeps Instagram's logo at the top of Home in place of the feed's name. A " +
         "fourth, Fall back to Following, opens Home on Following for an account whose For you brings only " +
         "suggested posts, unless you picked a feed. A fifth, Mix in Following, shows a page of posts from " +
-        "accounts you follow after each page of For you. Restart Instagram to see the change. Starts off. Turn " +
-        "it on in HushGram settings > Feed.",
+        "accounts you follow after each page of For you. Restart Instagram to see the change. Keep the tab bar on " +
+        "Favorites leaves Search and Messages a tap away there, and a tab you choose can open Favorites with a long " +
+        "press. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -97,6 +98,7 @@ val startOnFollowingPatch = bytecodePatch(
     execute {
         requireStatusMethod("followingFeed")
         requireStatusMethod("followingMix")
+        requireStatusMethod("favoritesFeed")
         val reads = findFlagReads(PATCH, FEED_PICKER_FLAGS)
         val saved = findSavedFeedReturn()
         val title = findTitleLabel()
@@ -111,6 +113,8 @@ val startOnFollowingPatch = bytecodePatch(
         // Hooked at their starts once the reads in them are answered, so the reads' indexes held.
         keepFeedLinksInPlace(switches)
         enableStatus("followingFeed")
+        // Hooks the feed switch's constructor and the tab hosts, which nothing above touches.
+        if (favoritesOrWarn(switches)) enableStatus("favoritesFeed")
         // Last, so nothing above moves the indexes it finds; a build without Home's paging as it
         // knows it keeps every other switch.
         if (mixInFollowingOrWarn()) enableStatus("followingMix")

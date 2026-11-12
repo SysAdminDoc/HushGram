@@ -214,9 +214,9 @@ internal fun BytecodePatchContext.keepProfileAsTabRoot(host: TabHost) {
     )
 }
 
-/** Writes the stub the extension lists a host's screens through. */
-internal fun BytecodePatchContext.writeFragmentList(manager: MethodReference, check: TabRootCheck) {
-    val stub = mutableClassDefBy(REEL_PROFILE_TARGETS).methods.single { it.name == "fragments" }
+/** Writes the stub the extension lists a host's screens through, the `fragments` of [targets]. */
+internal fun BytecodePatchContext.writeFragmentList(manager: MethodReference, check: TabRootCheck, targets: String = REEL_PROFILE_TARGETS) {
+    val stub = mutableClassDefBy(targets).methods.single { it.name == "fragments" }
     stub.addInstructions(
         0,
         """

@@ -217,7 +217,7 @@ public class SettingsCardsTest {
         open(false, EnumSet.of(PatchFamily.FOLLOWING_FEED));
         Preference first = page.findPreference(Settings.START_ON_FOLLOWING.key);
         Preference middle = page.findPreference(Settings.ONLY_FOLLOWING.key);
-        Preference last = page.findPreference(Settings.FOLLOWING_MIX.key);
+        Preference last = page.findPreference(Settings.FAVORITES_TAB_TARGET.key);
         assertSame("one section holds them all", first.getParent(), last.getParent());
         assertTrue(ScreenColors.opensCard(first));
         assertFalse(ScreenColors.closesCard(first));

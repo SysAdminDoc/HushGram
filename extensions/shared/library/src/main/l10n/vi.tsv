@@ -1333,6 +1333,13 @@ Long press %1$s to turn Ghost mode on or off instead of that tab's usual action,
 Open Saved profiles with a tab long press	Mở Trang cá nhân đã lưu bằng cách nhấn giữ tab
 Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.	Nhấn giữ tab vẫn dùng thao tác riêng của Instagram. Hãy chọn một tab để mở Trang cá nhân đã lưu.
 Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.	Nhấn giữ %1$s để mở Trang cá nhân bạn đã lưu thay cho thao tác thường của tab đó. Nhấn bình thường và các tab khác không đổi. Cần bật Trang cá nhân đã lưu. Nếu cùng tab mở HushGram, chọn chất lượng phát hoặc bật tắt Chế độ ẩn thì mục đó được ưu tiên.
+# context: Feed > switch and its summary under Start Home on Following; Favorites is Instagram's Home feed choice of that name, Search and Messages are Instagram's tabs (#643)
+Keep the tab bar on Favorites	Giữ thanh tab trong Yêu thích
+Instagram hides the tab bar when Favorites opens from the top of Home. This keeps it, so Search and Messages stay a tap away.	Instagram ẩn thanh tab khi mở Yêu thích từ đầu trang chủ. Tùy chọn này giữ lại thanh tab, nên Tìm kiếm và Tin nhắn vẫn chỉ cách một lần nhấn.
+# context: Feed: opening Instagram's Favorites feed with a long press on a tab (#643). %1$s is a tab's name; Saved profiles is HushGram's switch of that name
+Open Favorites with a tab long press	Mở Yêu thích bằng cách nhấn giữ tab
+Tab long presses keep Instagram's own action. Choose one to open Favorites instead.	Nhấn giữ tab vẫn dùng thao tác riêng của Instagram. Hãy chọn một tab để mở Yêu thích.
+Long press %1$s to open Favorites instead of that tab's usual action. Normal taps and other tabs stay the same. If the same tab opens HushGram, picks the playback quality, turns Ghost mode or opens Saved profiles, that comes first.	Nhấn giữ %1$s để mở Yêu thích thay cho thao tác thường của tab đó. Nhấn bình thường và các tab khác không đổi. Nếu cùng tab mở HushGram, chọn chất lượng phát, bật tắt Chế độ ẩn hoặc mở Trang cá nhân đã lưu thì mục đó được ưu tiên.
 Buttons on the share sheet	Nút trên bảng chia sẻ
 Every button under the people on the share sheet shows. Untick the ones you don't use.	Mọi nút bên dưới danh sách người trên bảng chia sẻ đều hiện. Bỏ tích những nút bạn không dùng.
 Left off the share sheet: %1$s.	Đã bỏ khỏi bảng chia sẻ: %1$s.

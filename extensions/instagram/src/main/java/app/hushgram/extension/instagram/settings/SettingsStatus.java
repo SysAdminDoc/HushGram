@@ -521,6 +521,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean favoritesFeed() {
+        return false;
+    }
+
     public static boolean storiesTray() {
         return false;
     }

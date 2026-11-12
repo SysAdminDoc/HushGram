@@ -1389,6 +1389,13 @@ Long press %1$s to turn Ghost mode on or off instead of that tab's usual action,
 Open Saved profiles with a tab long press	탭을 길게 탭하여 저장한 프로필 열기
 Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.	탭을 길게 탭하면 Instagram의 기본 동작이 실행됩니다. 저장한 프로필을 대신 열 탭을 하나 고르세요.
 Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.	%1$s 탭을 길게 탭하면 해당 탭의 기본 동작 대신 내가 저장한 프로필이 열립니다. 일반 탭과 다른 탭은 그대로입니다. 저장한 프로필이 켜져 있어야 합니다. 같은 탭이 HushGram을 열거나 재생 화질을 선택하거나 고스트 모드를 전환하는 경우 그쪽이 우선합니다.
+# context: Feed > switch and its summary under Start Home on Following; Favorites is Instagram's Home feed choice of that name, Search and Messages are Instagram's tabs (#643)
+Keep the tab bar on Favorites	즐겨찾기에서 탭 바 유지
+Instagram hides the tab bar when Favorites opens from the top of Home. This keeps it, so Search and Messages stay a tap away.	홈 상단에서 즐겨찾기를 열면 Instagram이 탭 바를 숨깁니다. 이 설정은 탭 바를 그대로 두어 검색과 메시지를 한 번에 열 수 있게 합니다.
+# context: Feed: opening Instagram's Favorites feed with a long press on a tab (#643). %1$s is a tab's name; Saved profiles is HushGram's switch of that name
+Open Favorites with a tab long press	탭을 길게 탭하여 즐겨찾기 열기
+Tab long presses keep Instagram's own action. Choose one to open Favorites instead.	탭을 길게 탭하면 Instagram의 기본 동작이 실행됩니다. 즐겨찾기를 대신 열 탭을 하나 고르세요.
+Long press %1$s to open Favorites instead of that tab's usual action. Normal taps and other tabs stay the same. If the same tab opens HushGram, picks the playback quality, turns Ghost mode or opens Saved profiles, that comes first.	%1$s 탭을 길게 탭하면 해당 탭의 기본 동작 대신 즐겨찾기가 열립니다. 일반 탭과 다른 탭은 그대로입니다. 같은 탭이 HushGram을 열거나 재생 화질을 선택하거나 고스트 모드를 전환하거나 저장한 프로필을 여는 경우 그쪽이 우선합니다.
 Buttons on the share sheet	공유 시트의 버튼
 Every button under the people on the share sheet shows. Untick the ones you don't use.	공유 시트에서 사람 목록 아래의 버튼이 모두 표시됩니다. 쓰지 않는 버튼은 체크를 해제하세요.
 Left off the share sheet: %1$s.	공유 시트에서 숨김: %1$s.

@@ -17,6 +17,7 @@ import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.download.SavedProfiles;
 import app.hushgram.extension.instagram.download.TextGrab;
+import app.hushgram.extension.instagram.feed.FavoritesFeed;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 
@@ -182,13 +183,14 @@ public final class NavigationSettings {
     }
 
     /**
-     * Whether any long press choice, opening HushGram, the quality picker, Ghost mode or Saved
-     * profiles, names [tab].
+     * Whether any long press choice, opening HushGram, the quality picker, Ghost mode, Saved
+     * profiles or Favorites, names [tab].
      */
     private static boolean selected(Object tab) {
         return Utils.settingsReady()
                 && (Settings.NAVIGATION_SETTINGS_TARGET.get().matches(tab) || Settings.QUALITY_TAB_TARGET.get().matches(tab)
-                || Settings.GHOST_TAB_TARGET.get().matches(tab) || Settings.SAVED_PROFILES_TAB_TARGET.get().matches(tab));
+                || Settings.GHOST_TAB_TARGET.get().matches(tab) || Settings.SAVED_PROFILES_TAB_TARGET.get().matches(tab)
+                || Settings.FAVORITES_TAB_TARGET.get().matches(tab));
     }
 
     /** Whether a long press on [tab] opens Your saved profiles: chosen for it, with the list switched on. */
@@ -196,6 +198,12 @@ public final class NavigationSettings {
         NavigationTarget savedTab = Settings.SAVED_PROFILES_TAB_TARGET.get();
         return savedTab != NavigationTarget.OFF && savedTab.name().equals(tab)
                 && PatchFamily.PROFILE_PICTURE.inBuild() && SavedProfiles.on();
+    }
+
+    /** Whether a long press on [tab] opens Favorites: chosen for it, in a build that hooked Home's feed switch. */
+    private static boolean opensFavorites(String tab) {
+        NavigationTarget favoritesTab = Settings.FAVORITES_TAB_TARGET.get();
+        return favoritesTab != NavigationTarget.OFF && favoritesTab.name().equals(tab) && PatchFamily.favoritesFeedInBuild();
     }
 
     private static final class Press implements View.OnLongClickListener {
@@ -229,6 +237,7 @@ public final class NavigationSettings {
                     SavedProfilesPage.openOver(owner);
                     return true;
                 }
+                if (opensFavorites(binding.tab) && FavoritesFeed.open(owner)) return true;
             }
             return original != null && original.onLongClick(view);
         }
@@ -249,8 +258,9 @@ public final class NavigationSettings {
     /**
      * Whether a long press on [tab] is HushGram's right now, as onLongClick decides it: it opens
      * HushGram, shows the quality picker while the picker offers itself, turns Ghost mode while
-     * there's a ghost switch to turn, or opens Saved profiles while that switch is on. Paused, with
-     * those switches off or without the patches, none does, and the press is Instagram's.
+     * there's a ghost switch to turn, opens Saved profiles while that switch is on, or opens
+     * Favorites. Paused, with those switches off or without the patches, none does, and the press is
+     * Instagram's.
      */
     private static boolean takes(String tab) {
         try {
@@ -261,7 +271,7 @@ public final class NavigationSettings {
             if (qualityTab != NavigationTarget.OFF && qualityTab.name().equals(tab) && QualityPicker.offered()) return true;
             NavigationTarget ghostTab = Settings.GHOST_TAB_TARGET.get();
             if (ghostTab != NavigationTarget.OFF && ghostTab.name().equals(tab) && GhostModeEntry.offeredNow()) return true;
-            return opensSavedProfiles(tab);
+            return opensSavedProfiles(tab) || opensFavorites(tab);
         } catch (Throwable t) {
             Logger.printException(() -> "Navigation settings: could not check a tab's long press", t);
             return false;

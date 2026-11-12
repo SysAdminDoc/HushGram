@@ -1390,6 +1390,13 @@ Long press %1$s to turn Ghost mode on or off instead of that tab's usual action,
 Open Saved profiles with a tab long press	Apri Profili salvati con una pressione lunga su una scheda
 Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.	Le pressioni lunghe sulle schede mantengono l'azione di Instagram. Scegline una per aprire invece Profili salvati.
 Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.	Tieni premuto %1$s per aprire I tuoi profili salvati al posto dell'azione abituale di quella scheda. I tocchi normali e le altre schede restano uguali. Serve Profili salvati attivo. Se la stessa scheda apre HushGram, sceglie la qualità di riproduzione o cambia la modalità Ghost, quello ha la precedenza.
+# context: Feed > switch and its summary under Start Home on Following; Favorites is Instagram's Home feed choice of that name, Search and Messages are Instagram's tabs (#643)
+Keep the tab bar on Favorites	Mantieni la barra delle schede nei Preferiti
+Instagram hides the tab bar when Favorites opens from the top of Home. This keeps it, so Search and Messages stay a tap away.	Instagram nasconde la barra delle schede quando Preferiti si apre dall'alto della Home. Questa opzione la mantiene, così Cerca e Messaggi restano a un tocco.
+# context: Feed: opening Instagram's Favorites feed with a long press on a tab (#643). %1$s is a tab's name; Saved profiles is HushGram's switch of that name
+Open Favorites with a tab long press	Apri Preferiti con una pressione lunga su una scheda
+Tab long presses keep Instagram's own action. Choose one to open Favorites instead.	Le pressioni lunghe sulle schede mantengono l'azione di Instagram. Scegline una per aprire invece Preferiti.
+Long press %1$s to open Favorites instead of that tab's usual action. Normal taps and other tabs stay the same. If the same tab opens HushGram, picks the playback quality, turns Ghost mode or opens Saved profiles, that comes first.	Tieni premuto %1$s per aprire Preferiti al posto dell'azione abituale di quella scheda. I tocchi normali e le altre schede restano uguali. Se la stessa scheda apre HushGram, sceglie la qualità di riproduzione, cambia la modalità Ghost o apre Profili salvati, quello ha la precedenza.
 Buttons on the share sheet	Pulsanti nel foglio di condivisione
 Every button under the people on the share sheet shows. Untick the ones you don't use.	Tutti i pulsanti sotto le persone nel foglio di condivisione sono visibili. Togli la spunta a quelli che non usi.
 Left off the share sheet: %1$s.	Tolti dal foglio di condivisione: %1$s.

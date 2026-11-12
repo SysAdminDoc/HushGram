@@ -839,6 +839,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.PROFILE_PICTURE
                             && (PROFILE_HISTORY_ROW.equals(key) || CLEAR_PROFILE_HISTORY.equals(key)
                             || SAVED_PROFILES_ROW.equals(key) || Settings.SAVED_PROFILES_TAB_TARGET.key.equals(key));
+                    belongs |= family == PatchFamily.FOLLOWING_FEED && Settings.FAVORITES_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.RESTORE_TRUST && L10n.t("Instagram accepts this build").equals(row.getTitle());
                     belongs |= family == PatchFamily.REMOVE_AD_ID && L10n.t("Advertising ID removed").equals(row.getTitle());
                     belongs |= family == PatchFamily.PURE_BLACK && L10n.t("Pure black dark mode").equals(row.getTitle());
@@ -4152,16 +4153,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return tabRow(context, NavigationRow.Use.SAVED_PROFILES);
     }
 
+    /** The row choosing the tab whose long press opens Favorites (#643). */
+    static NavigationRow favoritesTabRow(Context context) {
+        return tabRow(context, NavigationRow.Use.FAVORITES);
+    }
+
     private static NavigationRow tabRow(Context context, NavigationRow.Use use) {
         EnumSetting<NavigationTarget> setting = use == NavigationRow.Use.QUALITY ? Settings.QUALITY_TAB_TARGET
                 : use == NavigationRow.Use.GHOST ? Settings.GHOST_TAB_TARGET
                 : use == NavigationRow.Use.SAVED_PROFILES ? Settings.SAVED_PROFILES_TAB_TARGET
+                : use == NavigationRow.Use.FAVORITES ? Settings.FAVORITES_TAB_TARGET
                 : Settings.NAVIGATION_SETTINGS_TARGET;
         NavigationRow row = new NavigationRow(context, use);
         row.setKey(setting.key);
         row.setTitle(use == NavigationRow.Use.QUALITY ? L10n.t("Pick the playback quality with a tab long press")
                 : use == NavigationRow.Use.GHOST ? L10n.t("Turn Ghost mode on or off with a tab long press")
                 : use == NavigationRow.Use.SAVED_PROFILES ? L10n.t("Open Saved profiles with a tab long press")
+                : use == NavigationRow.Use.FAVORITES ? L10n.t("Open Favorites with a tab long press")
                 : L10n.t("Open settings with a tab long press"));
         row.setDialogTitle(L10n.t("Choose a tab"));
         row.setNegativeButtonText(L10n.t("Cancel"));
@@ -8228,9 +8236,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final class NavigationRow extends ListPreference {
         /**
          * What the chosen tab's long press does: open HushGram, the quality picker (#93), Ghost mode
-         * (#255) or Saved profiles (#629).
+         * (#255), Saved profiles (#629) or Favorites (#643).
          */
-        enum Use { SETTINGS, QUALITY, GHOST, SAVED_PROFILES }
+        enum Use { SETTINGS, QUALITY, GHOST, SAVED_PROFILES, FAVORITES }
         private String summary;
         private final Use use;
         NavigationRow(Context context) { this(context, Use.SETTINGS); }
@@ -8265,6 +8273,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                                 + "Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab "
                                 + "opens HushGram, picks the playback quality or turns Ghost mode, that comes first.",
                                 navigationLabel(target));
+                setSummary(summary);
+                return;
+            }
+            if (use == Use.FAVORITES) {
+                summary = target == NavigationTarget.OFF
+                        ? L10n.t("Tab long presses keep Instagram's own action. Choose one to open Favorites instead.")
+                        : L10n.f("Long press %1$s to open Favorites instead of that tab's usual action. Normal taps and "
+                                + "other tabs stay the same. If the same tab opens HushGram, picks the playback quality, "
+                                + "turns Ghost mode or opens Saved profiles, that comes first.", navigationLabel(target));
                 setSummary(summary);
                 return;
             }

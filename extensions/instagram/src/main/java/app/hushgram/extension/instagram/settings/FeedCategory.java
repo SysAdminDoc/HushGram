@@ -11,6 +11,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.carouselPillLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.cornerSizeRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.favoritesTabRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSeekBarLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSkipLengthRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.homeSwipeRow;
@@ -97,6 +98,12 @@ final class FeedCategory {
                         L10n.t("For you shows a page of posts from accounts you follow after each page of its own, "
                                 + "until you've seen them all. Pull down on Home to start both over. Restart Instagram "
                                 + "to see the change.")));
+            }
+            if (PatchFamily.favoritesFeedInBuild()) {
+                feed.addPreference(toggle(context, Settings.FAVORITES_TAB_BAR, L10n.t("Keep the tab bar on Favorites"),
+                        L10n.t("Instagram hides the tab bar when Favorites opens from the top of Home. This keeps it, "
+                                + "so Search and Messages stay a tap away.")));
+                feed.addPreference(favoritesTabRow(context));
             }
         }
         if (suggestions) {

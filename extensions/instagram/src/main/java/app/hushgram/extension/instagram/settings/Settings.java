@@ -83,6 +83,15 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_saved_profiles_tab_target", NavigationTarget.OFF, false);
 
     /**
+     * The tab whose long press opens Favorites (#643), through Home's own feed switch
+     * ({@link app.hushgram.extension.instagram.feed.FavoritesFeed}). It rides the same tab hooks as
+     * {@link #NAVIGATION_SETTINGS_TARGET}; when another choice names the same tab, those come first.
+     * Off to start.
+     */
+    public static final EnumSetting<NavigationTarget> FAVORITES_TAB_TARGET =
+            new EnumSetting<>("hushgram_favorites_tab_target", NavigationTarget.OFF, false);
+
+    /**
      * Leaves the HushGram row out of Instagram's own settings menu while another way in works
      * ({@link SettingsEntry#menuRowLeftOut}): the launcher shortcut or the logo's long press with its
      * switch on, the chosen tab on a button Instagram built ({@link NavigationSettings#opensFromATab}),
@@ -1417,6 +1426,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting FOLLOWING_MIX =
             new BooleanSetting("hushgram_following_mix", FALSE, true);
+
+    /**
+     * The tab bar stays under Favorites (#643, {@link app.hushgram.extension.instagram.feed.FavoritesFeed}),
+     * so Search and Messages are a tap away there. Instagram hides it for any page pushed on a tab.
+     * Asked each time the tab bar is decided, so no restart. Off to start.
+     */
+    public static final BooleanSetting FAVORITES_TAB_BAR =
+            new BooleanSetting("hushgram_favorites_tab_bar", FALSE);
 
     /**
      * The ids of the accounts {@link #FOLLOWING_FALLBACK} moved to Following, a line each. Not a

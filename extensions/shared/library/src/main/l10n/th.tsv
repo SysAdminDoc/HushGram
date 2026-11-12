@@ -1380,6 +1380,13 @@ Long press %1$s to turn Ghost mode on or off instead of that tab's usual action,
 Open Saved profiles with a tab long press	เปิดโปรไฟล์ที่บันทึกไว้ด้วยการกดค้างที่แท็บ
 Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.	การกดค้างที่แท็บจะยังคงใช้การดำเนินการเดิมของ Instagram เลือกแท็บหนึ่งเพื่อใช้เปิดโปรไฟล์ที่บันทึกไว้แทน
 Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.	กดค้างที่ %1$s เพื่อเปิดโปรไฟล์ที่คุณบันทึกไว้แทนการดำเนินการตามปกติของแท็บนั้น การแตะตามปกติและแท็บอื่นๆ จะยังคงเหมือนเดิม ต้องเปิดโปรไฟล์ที่บันทึกไว้ก่อน หากแท็บเดียวกันเปิด HushGram เลือกคุณภาพการเล่น หรือสลับโหมด Ghost การดำเนินการเหล่านั้นจะมีความสำคัญก่อน
+# context: Feed > switch and its summary under Start Home on Following; Favorites is Instagram's Home feed choice of that name, Search and Messages are Instagram's tabs (#643)
+Keep the tab bar on Favorites	คงแถบแท็บไว้ใน "รายการโปรด"
+Instagram hides the tab bar when Favorites opens from the top of Home. This keeps it, so Search and Messages stay a tap away.	Instagram จะซ่อนแถบแท็บเมื่อเปิด "รายการโปรด" จากด้านบนของหน้าหลัก ตัวเลือกนี้จะคงแถบไว้ ค้นหาและข้อความจึงอยู่ห่างแค่แตะเดียว
+# context: Feed: opening Instagram's Favorites feed with a long press on a tab (#643). %1$s is a tab's name; Saved profiles is HushGram's switch of that name
+Open Favorites with a tab long press	เปิด "รายการโปรด" ด้วยการกดค้างที่แท็บ
+Tab long presses keep Instagram's own action. Choose one to open Favorites instead.	การกดค้างที่แท็บจะยังคงใช้การดำเนินการเดิมของ Instagram เลือกแท็บหนึ่งเพื่อใช้เปิด "รายการโปรด" แทน
+Long press %1$s to open Favorites instead of that tab's usual action. Normal taps and other tabs stay the same. If the same tab opens HushGram, picks the playback quality, turns Ghost mode or opens Saved profiles, that comes first.	กดค้างที่ %1$s เพื่อเปิด "รายการโปรด" แทนการดำเนินการตามปกติของแท็บนั้น การแตะตามปกติและแท็บอื่นๆ จะยังคงเหมือนเดิม หากแท็บเดียวกันเปิด HushGram เลือกคุณภาพการเล่น สลับโหมด Ghost หรือเปิดโปรไฟล์ที่บันทึกไว้ การดำเนินการเหล่านั้นจะมีความสำคัญก่อน
 Buttons on the share sheet	ปุ่มในแผ่นเมนูการแชร์
 Every button under the people on the share sheet shows. Untick the ones you don't use.	ปุ่มทั้งหมดที่อยู่ใต้รายชื่อบุคคลในแผ่นเมนูการแชร์จะแสดงขึ้น ยกเลิกการเลือกปุ่มที่คุณไม่ได้ใช้งาน
 Left off the share sheet: %1$s.	นำออกจากแผ่นเมนูการแชร์: %1$s

@@ -1378,6 +1378,13 @@ Long press %1$s to turn Ghost mode on or off instead of that tab's usual action,
 Open Saved profiles with a tab long press	長按分頁開啟已儲存的個人檔案
 Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.	長按分頁會保留 Instagram 原本的操作。選擇一個分頁，改為開啟已儲存的個人檔案。
 Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.	長按 %1$s 會開啟你儲存的個人檔案，取代該分頁原本的操作。一般點擊與其他分頁不受影響。需開啟「已儲存的個人檔案」。若同一分頁也用來開啟 HushGram、選擇播放畫質或切換幽靈模式，會優先執行那些操作。
+# context: Feed > switch and its summary under Start Home on Following; Favorites is Instagram's Home feed choice of that name, Search and Messages are Instagram's tabs (#643)
+Keep the tab bar on Favorites	在「最愛」保留分頁列
+Instagram hides the tab bar when Favorites opens from the top of Home. This keeps it, so Search and Messages stay a tap away.	從首頁頂端開啟「最愛」時，Instagram 會隱藏分頁列。這個選項會保留分頁列，讓「搜尋」和「私訊」隨時一點就到。
+# context: Feed: opening Instagram's Favorites feed with a long press on a tab (#643). %1$s is a tab's name; Saved profiles is HushGram's switch of that name
+Open Favorites with a tab long press	長按分頁開啟「最愛」
+Tab long presses keep Instagram's own action. Choose one to open Favorites instead.	長按分頁會保留 Instagram 原本的操作。選擇一個分頁，改為開啟「最愛」。
+Long press %1$s to open Favorites instead of that tab's usual action. Normal taps and other tabs stay the same. If the same tab opens HushGram, picks the playback quality, turns Ghost mode or opens Saved profiles, that comes first.	長按 %1$s 會開啟「最愛」，取代該分頁原本的操作。一般點擊與其他分頁不受影響。若同一分頁也用來開啟 HushGram、選擇播放畫質、切換幽靈模式或開啟已儲存的個人檔案，會優先執行那些操作。
 Buttons on the share sheet	分享表單按鈕
 Every button under the people on the share sheet shows. Untick the ones you don't use.	分享表單中聯絡人下方的所有按鈕皆會顯示。取消勾選用不到的按鈕。
 Left off the share sheet: %1$s.	分享表單中已隱藏：%1$s。

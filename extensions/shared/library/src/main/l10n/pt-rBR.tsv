@@ -1390,6 +1390,13 @@ Long press %1$s to turn Ghost mode on or off instead of that tab's usual action,
 Open Saved profiles with a tab long press	Abrir Perfis salvos ao manter uma aba pressionada
 Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.	Manter uma aba pressionada continua usando a ação do Instagram. Escolha uma para abrir Perfis salvos no lugar dela.
 Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.	Mantenha %1$s pressionado para abrir Seus perfis salvos no lugar da ação normal dessa aba. Os toques normais e as outras abas ficam como estão. Precisa de Perfis salvos ativado. Se a mesma aba abrir o HushGram, escolher a qualidade de reprodução ou alternar o modo fantasma, isso vem primeiro.
+# context: Feed > switch and its summary under Start Home on Following; Favorites is Instagram's Home feed choice of that name, Search and Messages are Instagram's tabs (#643)
+Keep the tab bar on Favorites	Manter a barra de abas em Favoritos
+Instagram hides the tab bar when Favorites opens from the top of Home. This keeps it, so Search and Messages stay a tap away.	O Instagram esconde a barra de abas quando Favoritos abre pelo topo do Início. Isto a mantém, então Pesquisar e Mensagens ficam a um toque.
+# context: Feed: opening Instagram's Favorites feed with a long press on a tab (#643). %1$s is a tab's name; Saved profiles is HushGram's switch of that name
+Open Favorites with a tab long press	Abrir Favoritos ao manter uma aba pressionada
+Tab long presses keep Instagram's own action. Choose one to open Favorites instead.	Manter uma aba pressionada continua usando a ação do Instagram. Escolha uma para abrir Favoritos no lugar dela.
+Long press %1$s to open Favorites instead of that tab's usual action. Normal taps and other tabs stay the same. If the same tab opens HushGram, picks the playback quality, turns Ghost mode or opens Saved profiles, that comes first.	Mantenha %1$s pressionado para abrir Favoritos no lugar da ação normal dessa aba. Os toques normais e as outras abas ficam como estão. Se a mesma aba abrir o HushGram, escolher a qualidade de reprodução, alternar o modo fantasma ou abrir Perfis salvos, isso vem primeiro.
 Buttons on the share sheet	Botões da folha de compartilhamento
 Every button under the people on the share sheet shows. Untick the ones you don't use.	Todos os botões abaixo das pessoas na folha de compartilhamento aparecem. Desmarque os que você não usa.
 Left off the share sheet: %1$s.	Fora da folha de compartilhamento: %1$s.
