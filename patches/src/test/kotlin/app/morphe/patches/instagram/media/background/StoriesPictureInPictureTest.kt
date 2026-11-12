@@ -26,6 +26,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21t
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -46,7 +47,11 @@ class StoriesPictureInPictureTest {
         val declared = ExtensionDex.classDef(STORIES_PIP).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$STORIES_PIP->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(STORY_PAUSING, STORY_RESUMED, "$STORIES_PIP->pause(Ljava/lang/Object;Ljava/lang/String;)V")) {
+        val hooks = listOf(
+            STORY_PAUSING, STORY_RESUMED, STORY_STARTS_VIDEO,
+            "$STORIES_PIP->pause(Ljava/lang/Object;Ljava/lang/String;)V", "$STORIES_PIP->isResumed(Ljava/lang/Object;)Z",
+        )
+        for (hook in hooks) {
             assertTrue("StoriesPip declares no $hook: $declared", hook in declared)
         }
     }
@@ -57,13 +62,25 @@ class StoriesPictureInPictureTest {
         for (bundle in bundles() + Fixtures.otherBuilds()) {
             val classes = viewerClasses(bundle)
             val context = PatchContexts.of(FixtureDex.withStringPools(bundle, classes) + ExtensionDex.classDef(STORIES_PIP))
-            val playback = context.findStoriesPip("test")
+            val sites = context.findStoriesPip("test")
+            val playback = sites.playback
             val stockPause = playback.pause.code()
             val stockResume = playback.resume.code()
+            val stockStart = sites.videoStart.implementation!!.instructions.toList()
+            val stockCheck = stockStart[sites.resumedCheck]
+            val viewer = (stockCheck as? RegisterRangeInstruction)?.startRegister ?: (stockCheck as FiveRegisterInstruction).registerC
 
-            context.keepStoriesInPip("test", playback)
+            context.keepStoriesInPip("test", sites)
 
             val label = bundle.name
+            val start = context.raw(sites.videoStart)
+            val asks = start[sites.resumedCheck]
+            assertEquals("$label: the video start asks the extension", STORY_STARTS_VIDEO, reference(asks))
+            assertEquals("$label: in place of isResumed()", Opcode.INVOKE_STATIC_RANGE, asks.opcode)
+            assertEquals("$label: about the same viewer", viewer, (asks as RegisterRangeInstruction).startRegister)
+            assertEquals("$label: alone", 1, asks.registerCount)
+            assertEquals("$label: and reads the answer as before", Opcode.MOVE_RESULT, start[sites.resumedCheck + 1].opcode)
+            assertEquals("$label: the rest of the start is stock", stockStart.without(stockCheck), start.without(asks))
             val pause = context.code(playback.pause)
             assertEquals("$label: the pause asks first", STORY_PAUSING, reference(pause[0]))
             assertEquals("$label: with the viewer and the reason", parameterStart(context, playback.pause),
@@ -82,6 +99,10 @@ class StoriesPictureInPictureTest {
             val stub = context.mutableClassDefBy(STORIES_PIP).methods.single { it.name == "pause" }.code()
             assertEquals("$label: the stub casts the viewer", Opcode.CHECK_CAST, stub[0].opcode)
             assertEquals("$label: and calls the viewer's pause", playback.pause.key(), reference(stub[1]))
+
+            val resumed = context.mutableClassDefBy(STORIES_PIP).methods.single { it.name == "isResumed" }.code()
+            assertEquals("$label: the isResumed stub casts the viewer", Opcode.CHECK_CAST, resumed[0].opcode)
+            assertEquals("$label: and makes the start's own call", reference(stockCheck), reference(resumed[1]))
             checked++
         }
         assertEquals("every build is read", Fixtures.BUILDS, checked)
@@ -96,13 +117,14 @@ class StoriesPictureInPictureTest {
             val context = PatchContexts.of(
                 FixtureDex.withStringPools(bundle, classes) + ExtensionDex.classDef(STORIES_PIP) + ExtensionDex.classDef(STORY_MENTIONS),
             )
-            val playback = context.findStoriesPip("test")
+            val sites = context.findStoriesPip("test")
+            val playback = sites.playback
             val zoom = context.findStoryZoomPause()
             val hold = context.findStoryHold()
-            if (oursFirst) context.keepStoriesInPip("test", playback)
+            if (oursFirst) context.keepStoriesInPip("test", sites)
             context.keepPlayingOnZoom(zoom)
             context.hookStoryHold(hold, context.storyHoldStubs())
-            if (!oursFirst) context.keepStoriesInPip("test", playback)
+            if (!oursFirst) context.keepStoriesInPip("test", sites)
 
             val pause = context.raw(playback.pause)
             assertEquals("$label: one zoom report", 1, pause.count { reference(it) == ZOOM_PAUSED })
@@ -129,7 +151,11 @@ class StoriesPictureInPictureTest {
     }
 
     private fun viewerClasses(bundle: File) =
-        listOf(PAUSE_MARK, RESUME_MARK).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
+        listOf(PAUSE_MARK, RESUME_MARK, VIDEO_START_MARK).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
+
+    /** The code's opcodes without [left] out and the alignment nops, which can move as a body is rewritten. */
+    private fun List<Instruction>.without(left: Instruction): List<Opcode> =
+        filter { it !== left && it.opcode != Opcode.NOP }.map { it.kind() }
 
     /** The first parameter register: the viewer, `this` in an instance method. */
     private fun parameterStart(context: BytecodePatchContext, method: Method): Int {

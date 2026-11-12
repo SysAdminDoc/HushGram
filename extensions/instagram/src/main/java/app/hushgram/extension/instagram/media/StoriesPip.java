@@ -33,12 +33,14 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * background looks for a video, and asks for the window when that screen is the one being left. A
  * screen in picture in picture is paused, and the viewer pauses its story as its fragment pauses
  * ("fragment_paused"): that one pause is held, and nothing else in the fragment's pause stops the
- * story. Expanding the window back ends the session with the story still playing. Closing the window
- * stops the screen, and the session ends by pausing the story through the viewer's own pause
- * ({@link #pause}), since the fragment won't pause it again as it stops.
+ * story. The viewer starts each video story only while its screen is resumed, so {@link #startsVideo}
+ * answers that check and lets the viewer in the window start the next one too. Expanding the window
+ * back ends the session with the story still playing. Closing the window stops the screen, and the
+ * session ends by pausing the story through the viewer's own pause ({@link #pause}), since the
+ * fragment won't pause it again as it stops.
  *
- * <p>The patch writes the body of {@link #pause}. Every hook runs on the main thread, and none of
- * them ever throws into Instagram.
+ * <p>The patch writes the bodies of {@link #pause} and {@link #isResumed}. Every hook runs on the
+ * main thread, and none of them ever throws into Instagram.
  */
 public final class StoriesPip {
     /** How long after asking for the window the screen has to be in it before the session is dropped. */
@@ -53,13 +55,15 @@ public final class StoriesPip {
     private static final String HOOK = "stories picture in picture";
     private static final String KEPT = "story pauses kept playing";
 
-    /** What the window and the pause stub do, for tests that have no Instagram screen. */
+    /** What the window and the stubs do, for tests that have no Instagram screen. */
     interface Window {
         boolean enter(Activity screen);
 
         boolean showing(Activity screen);
 
         void pause(Object viewer);
+
+        boolean resumed(Object viewer);
     }
 
     @Nullable
@@ -88,6 +92,11 @@ public final class StoriesPip {
 
     /** Pauses [viewer], a story viewer, through its own pause with Instagram's [reason]. The patch writes the body. */
     public static void pause(Object viewer, String reason) {
+    }
+
+    /** Whether [viewer], a story viewer, is resumed, from its own isResumed(). The patch writes the body. */
+    public static boolean isResumed(Object viewer) {
+        return false;
     }
 
     // ---- Hooks ----
@@ -158,6 +167,27 @@ public final class StoriesPip {
             }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "story resume", t);
+        }
+    }
+
+    /**
+     * In place of the isResumed() check in the story viewer's video start, which returns before the
+     * player binds while the screen isn't resumed. A screen in the window is paused, so without this
+     * the next video story would sit on its first frame there. Yes when [viewer] is resumed, or is
+     * the one playing in the window.
+     */
+    public static boolean startsVideo(Object viewer) {
+        if (resumedThrough(viewer)) return true;
+        try {
+            HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
+            synchronized (LOCK) {
+                if (viewer == null || heldViewer == null || heldViewer.get() != viewer) return false;
+            }
+            HookStatus.counted(FamilyNames.BACKGROUND_PLAY, "story videos started in the window");
+            return true;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "story video start", t);
+            return false;
         }
     }
 
@@ -236,6 +266,12 @@ public final class StoriesPip {
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "story pause", t);
         }
+    }
+
+    /** The viewer's own answer. Called outside every catch, so a throw stays Instagram's, as it would be unpatched. */
+    private static boolean resumedThrough(Object viewer) {
+        Window window = windowForTests;
+        return window != null ? window.resumed(viewer) : isResumed(viewer);
     }
 
     private static boolean enter(Activity screen) {

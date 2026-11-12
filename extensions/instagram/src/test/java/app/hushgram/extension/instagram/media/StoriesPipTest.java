@@ -198,6 +198,24 @@ public class StoriesPipTest {
         assertTrue(window.paused.isEmpty());
     }
 
+    /** The next video story starts in the window, though its screen is paused there; elsewhere the viewer's own answer stands. */
+    @Test
+    public void aVideoStoryStartsInTheWindow() {
+        assertFalse("no window, a paused screen starts nothing", StoriesPip.startsVideo(viewer));
+        window.resumedViewers.add(viewer);
+        assertTrue("a resumed one does", StoriesPip.startsVideo(viewer));
+        window.resumedViewers.clear();
+
+        open();
+
+        assertTrue(StoriesPip.startsVideo(viewer));
+        assertFalse("another viewer doesn't", StoriesPip.startsVideo(other));
+
+        StoriesPip.screenStopped(screen);
+
+        assertFalse("not once the window closed", StoriesPip.startsVideo(viewer));
+    }
+
     /** Keep playing in the background's leave hint asks first, and a story in the window keeps nothing else. */
     @Test
     public void theLeaveHintAsksFirst() {
@@ -233,6 +251,7 @@ public class StoriesPipTest {
     public void nullsAreHarmless() {
         assertFalse(StoriesPip.leaving(null));
         assertFalse(StoriesPip.pausing(null, null));
+        assertFalse(StoriesPip.startsVideo(null));
         StoriesPip.resumed(null);
         assertFalse(StoriesPip.active());
     }
@@ -250,13 +269,14 @@ public class StoriesPipTest {
     public static final class Screen extends Activity {
     }
 
-    /** The window Android would make, and the viewer's pause the patch writes. */
+    /** The window Android would make, and the viewer's pause and isResumed() the patch writes. */
     private static final class FakeWindow implements StoriesPip.Window {
         boolean allow = true;
         boolean showOnEnter = true;
         boolean showing;
         final List<Activity> entered = new ArrayList<>();
         final List<Object> paused = new ArrayList<>();
+        final List<Object> resumedViewers = new ArrayList<>();
 
         @Override
         public boolean enter(Activity screen) {
@@ -273,6 +293,11 @@ public class StoriesPipTest {
         @Override
         public void pause(Object viewer) {
             paused.add(viewer);
+        }
+
+        @Override
+        public boolean resumed(Object viewer) {
+            return resumedViewers.contains(viewer);
         }
     }
 }
