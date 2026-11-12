@@ -3799,7 +3799,7 @@
     },
     {
       "name": "Keep playing in the background",
-      "description": "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off, with a notification to pause or stop it. A second switch plays reels in a small window when you leave instead. Starts off. Turn it on in HushGram settings > Playback.",
+      "description": "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off, with a notification to pause or stop it. Two more switches play reels or stories in a small window when you leave instead. Starts off. Turn it on in HushGram settings > Playback.",
       "category": "Playback",
       "use": true,
       "dependencies": [

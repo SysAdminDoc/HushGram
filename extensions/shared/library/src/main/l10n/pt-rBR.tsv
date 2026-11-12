@@ -1979,6 +1979,9 @@ When a reel in your feed ends, Watch again plays it over right there instead of 
 # context: a switch on the Playback page under Keep playing in the background; Android's own name for picture in picture
 Picture in picture for reels	Picture-in-picture para reels
 Leaving Instagram while a reel plays shrinks it into a small window over your other apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.	Ao sair do Instagram enquanto um reel toca, ele vira uma janela pequena sobre seus outros apps. Funciona no Reels e em reels abertos pelo feed, no Android 15 ou mais recente.
+# context: a switch on the Playback page under Picture in picture for reels; Android's own name for picture in picture, and it keeps moving on to the next stories inside the small window
+Picture in picture for stories	Picture-in-picture para stories
+Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	Ao sair do Instagram enquanto um story toca, ele vira uma janela pequena sobre seus outros apps, onde continua passando pelos stories.
 # context: a switch on the Profiles page under Mark who doesn't follow you back; it means the mark goes on each profile picture of your own Following list
 Show it on the profile picture	Mostrar na foto do perfil
 Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.	Coloca um visto verde na foto de cada conta que segue você de volta e um X vermelho em cada uma que não segue, no lugar do texto.

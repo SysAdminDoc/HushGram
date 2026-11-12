@@ -39,6 +39,7 @@ Every HushGram release, newest first.
 * `Keep the tab bar on a reel's profile` keeps the tab bar on a profile you open from a reel, and Back goes back to the reel. It starts off, in the Reels section of HushGram settings.
 * `Swipe right on Home opens` picks what that swipe does: the camera, as it is now, or Search, Reels, Messages or Profile. Asked for in #589.
 * `Picture in picture for reels` under Playback, below `Keep playing in the background`, shrinks a playing reel into a small window over other apps when you leave Instagram. Needs Android 15 or newer. Starts off. Asked for in #572.
+* `Picture in picture for stories` under Playback does the same for stories. Leave Instagram while one plays and it shrinks into a small window that keeps going through the stories. Starts off. Asked for in #572.
 * `Show it on the profile picture` under `Mark who doesn't follow you back` swaps the words for a badge on each profile picture in your Following list. Green check means they follow back, red cross means they don't. Starts off. Asked for in #572.
 * New patch, `Search comments`. Its switch under Comments puts a search box above a post's comments. Type a word or name to jump to the next match, loading more as needed. Arrows step between matches. Unopened replies aren't searched. Asked for in #560.
 * New patch, `Split the notes row`. Its switch under Messages splits the notes row at the top of your messages into three stacks (Instants, Notes and Stories), the layout Instagram is testing on some accounts. Takes a restart. Asked for in #558.

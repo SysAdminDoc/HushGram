@@ -1978,6 +1978,9 @@ When a reel in your feed ends, Watch again plays it over right there instead of 
 # context: a switch on the Playback page under Keep playing in the background; Android's own name for picture in picture
 Picture in picture for reels	릴스 PIP 모드
 Leaving Instagram while a reel plays shrinks it into a small window over your other apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.	릴스가 재생되는 중에 Instagram을 나가면 다른 앱 위의 작은 창으로 줄어듭니다. 릴스 탭과 피드에서 연 릴스에서 작동하며, Android 15 이상이 필요합니다.
+# context: a switch on the Playback page under Picture in picture for reels; Android's own name for picture in picture, and it keeps moving on to the next stories inside the small window
+Picture in picture for stories	스토리 PIP 모드
+Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	스토리가 재생되는 중에 Instagram을 나가면 다른 앱 위의 작은 창으로 줄어들고, 그 창에서 스토리가 계속 넘어갑니다.
 # context: a switch on the Profiles page under Mark who doesn't follow you back; it means the mark goes on each profile picture of your own Following list
 Show it on the profile picture	프로필 사진에 표시
 Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.	나를 맞팔로우하는 계정의 사진에는 초록색 체크를, 그렇지 않은 계정의 사진에는 빨간색 X를 문구 대신 표시합니다.

@@ -171,10 +171,14 @@ public final class BackgroundPlay {
         }
     }
 
-    /** At the top of IgFragmentActivity's onUserLeaveHint: home, recents, or a screen of another app opening. */
+    /**
+     * At the top of IgFragmentActivity's onUserLeaveHint: home, recents, or a screen of another app
+     * opening. A story that goes to picture in picture ({@link StoriesPip}) keeps nothing else.
+     */
     public static void leaving(Activity activity) {
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
+            if (StoriesPip.leaving(activity)) return;
             arm(activity, "you left Instagram");
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "leave hint", t);
@@ -742,6 +746,7 @@ public final class BackgroundPlay {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) screenOff(activity);
             try {
                 paused(activity);
+                StoriesPip.screenPaused(activity);
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "activity pause", t);
             }
@@ -762,6 +767,11 @@ public final class BackgroundPlay {
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "activity stop", t);
             }
+            try {
+                StoriesPip.screenStopped(activity);
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "story screen stop", t);
+            }
         }
 
         @Override
@@ -771,6 +781,11 @@ public final class BackgroundPlay {
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "activity resume", t);
             }
+            try {
+                StoriesPip.screenResumed(activity);
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "story screen resume", t);
+            }
         }
 
         @Override
@@ -779,6 +794,11 @@ public final class BackgroundPlay {
                 destroyed(activity);
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "activity close", t);
+            }
+            try {
+                StoriesPip.screenDestroyed(activity);
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "story screen close", t);
             }
         }
 

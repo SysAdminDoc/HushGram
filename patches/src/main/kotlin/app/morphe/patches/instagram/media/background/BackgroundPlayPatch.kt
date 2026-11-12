@@ -105,14 +105,15 @@ internal val backgroundPlayServicePatch = resourcePatch {
  * Its second switch, Picture in picture for reels (#572), turns on the small window Instagram
  * already has for reels and keeps behind a server flag: see [allowReelsPip]. Leaving the Reels
  * viewer then shrinks the reel into a window that keeps playing, and the hold above steps aside
- * while Instagram is in that window.
+ * while Instagram is in that window. The third, Picture in picture for stories, makes a window
+ * Instagram has none of for stories: see [keepStoriesInPip].
  */
 @Suppress("unused")
 val backgroundPlayPatch = bytecodePatch(
     name = "Keep playing in the background",
     description = "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off, " +
-        "with a notification to pause or stop it. A second switch plays reels in a small window when you leave " +
-        "instead. Starts off. Turn it on in HushGram settings > Playback.",
+        "with a notification to pause or stop it. Two more switches play reels or stories in a small window when " +
+        "you leave instead. Starts off. Turn it on in HushGram settings > Playback.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, backgroundPlayServicePatch)
@@ -122,8 +123,10 @@ val backgroundPlayPatch = bytecodePatch(
         requireStatusMethod("backgroundPlay")
         val sites = findBackgroundPlaySites()
         val pip = findReelsPipChecks(PATCH)
+        val stories = findStoriesPip(PATCH)
         keepPlayingInBackground(sites)
         allowReelsPip(PATCH, pip)
+        keepStoriesInPip(PATCH, stories)
         enableStatus("backgroundPlay")
     }
 }
@@ -500,7 +503,7 @@ internal fun addBackgroundPlayService(manifest: Document) {
 private fun Element.elements(tag: String): List<Element> =
     (0 until childNodes.length).map { childNodes.item(it) }.filterIsInstance<Element>().filter { it.tagName == tag }
 
-private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
+internal fun BytecodePatchContext.mutable(method: Method): MutableMethod =
     mutableClassDefBy(method.definingClass).methods.single { it.key() == method.key() }
 
 /** What a hook another patch put first may load its arguments with before its call. */
@@ -552,7 +555,7 @@ private fun MutableMethod.afterLeadingHooks(): Int {
  * method's own code, and a jump an earlier guard made past itself onto that code lands on [smali]
  * instead, so its path still runs the hook.
  */
-private fun MutableMethod.addAfterLeadingHooks(smali: String, guard: Boolean = false) {
+internal fun MutableMethod.addAfterLeadingHooks(smali: String, guard: Boolean = false) {
     val at = afterLeadingHooks()
     val code = implementation!!
     val before = code.instructions.size
@@ -584,6 +587,6 @@ private fun Instruction.fieldKey() = fieldReference()?.key()
 
 private fun FieldReference.key() = "$definingClass->$name:$type"
 
-private fun Method.key() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+internal fun Method.key() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
 private fun MethodReference.key() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"

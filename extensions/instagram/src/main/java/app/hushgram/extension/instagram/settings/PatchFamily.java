@@ -188,7 +188,7 @@ public enum PatchFamily {
     HDR_BOOST(FamilyNames.HDR_BOOST, "hdrBoost", null, Settings.TURN_OFF_HDR_BOOSTS),
     STOP_LOOPING(FamilyNames.STOP_LOOPING, "stopLooping", null, Settings.STOP_VIDEO_LOOPING),
     BACKGROUND_PLAY(FamilyNames.BACKGROUND_PLAY, "backgroundPlay", null, Settings.KEEP_PLAYING_IN_BACKGROUND,
-            Settings.REELS_PICTURE_IN_PICTURE),
+            Settings.REELS_PICTURE_IN_PICTURE, Settings.STORIES_PICTURE_IN_PICTURE),
     MEDIA_CACHE(FamilyNames.MEDIA_CACHE, "mediaCache", null, Settings.CLEAR_MEDIA_CACHE),
     FRIENDSHIP_STATUS(FamilyNames.FRIENDSHIP_STATUS, "friendshipStatus", null, Settings.SHOW_FRIENDSHIP_STATUS,
             Settings.MARK_FOLLOWING_LIST, Settings.FOLLOW_MARK_ON_PICTURE, Settings.FRIENDSHIP_STATUS_CHIP,

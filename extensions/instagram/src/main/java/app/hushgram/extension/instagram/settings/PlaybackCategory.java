@@ -72,6 +72,10 @@ final class PlaybackCategory {
                         L10n.t("Picture in picture for reels"),
                         L10n.t("Leaving Instagram while a reel plays shrinks it into a small window over your other "
                                 + "apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.")));
+                playback.addPreference(toggle(context, Settings.STORIES_PICTURE_IN_PICTURE,
+                        L10n.t("Picture in picture for stories"),
+                        L10n.t("Leaving Instagram while a story plays shrinks it into a small window over your other "
+                                + "apps, where it keeps going through the stories.")));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),

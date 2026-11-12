@@ -3854,6 +3854,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reels_picture_in_picture", FALSE);
 
     /**
+     * Leaving Instagram while a story plays shrinks it into a picture in picture window that keeps
+     * going through the stories (#572, {@link app.hushgram.extension.instagram.media.StoriesPip}).
+     * Read as you leave. Off to start.
+     */
+    public static final BooleanSetting STORIES_PICTURE_IN_PICTURE =
+            new BooleanSetting("hushgram_stories_picture_in_picture", FALSE);
+
+    /**
      * Videos, reels and video stories start at the quality in {@link #PLAYBACK_QUALITY}, through
      * the custom-quality setter of Instagram's DASH format evaluator
      * ({@link app.hushgram.extension.instagram.media.QualityChoice}). The switch starts on, and the

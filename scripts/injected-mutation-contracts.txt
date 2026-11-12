@@ -1725,6 +1725,15 @@ start-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (L
 once-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z pooled holding android_purge_26_q2_ClipsViewerExperimentUtil_isPictureInPictureEnabledPersistentVersion
 start-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z pooled holding android_purge_26_q2_ClipsViewerPipUtil_isClipsPipEnabled
 once-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z pooled holding android_purge_26_q2_ClipsViewerPipUtil_isClipsPipEnabled
+# Its Picture in picture for stories switch (#572) asks StoriesPip.pausing in the story viewer's
+# pause (ReelViewerFragment.A1B on 454, the static (viewer, String) method loading pause_story),
+# after Keep stories playing while zooming's report, and tells StoriesPip.resumed in its resume
+# (the instance (String, boolean) method loading resume_story_request_skipped), after that patch's
+# report and See who a story mentions' hold. Left out, a story in the window pauses as the screen
+# pauses, or never goes to the window; twice or elsewhere, it isn't the hook the patch wrote. The
+# pause stub the patch fills is the extension's own, so it gets no rule.
+once-call Lapp/hushgram/extension/instagram/media/StoriesPip;->pausing(Ljava/lang/Object;Ljava/lang/String;)Z in static (Linstagram/features/stories/fragment/ReelViewerFragment;Ljava/lang/String;)V pooled holding pause_story
+once-call Lapp/hushgram/extension/instagram/media/StoriesPip;->resumed(Ljava/lang/Object;)V in instance (Ljava/lang/String;Z)V pooled holding resume_story_request_skipped
 #
 # Default playback quality tells firstChoice() about the DASH format evaluator right after its
 # choice of a track first keeps its tracks, so the call isn't first. The choice is the one method
