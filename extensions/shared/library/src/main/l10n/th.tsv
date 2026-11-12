@@ -943,6 +943,10 @@ Tab bar	แถบแท็บ
 Saved	บันทึกแล้ว
 Saved tab on your profile	แท็บบันทึกแล้วบนโปรไฟล์ของคุณ
 Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.	เพิ่มที่คั่นหน้าลงในแท็บบนโปรไฟล์ของคุณเองเพื่อเปิด "บันทึกแล้ว" โปรดรีสตาร์ท Instagram หลังจากเปลี่ยนการตั้งค่านี้
+# context: Profiles > title of the switch that shows a drag handle at the right edge of Saved and saved collections while they scroll; Saved is Instagram's own Saved page (#644)
+Fast scroll in Saved	เลื่อนเร็วใน "บันทึกแล้ว"
+# context: Profiles > summary of Fast scroll in Saved; collections are Instagram's saved collections (#644)
+Shows a handle at the right edge of Saved and your collections while they scroll. Drag it to jump through them.	แสดงที่จับที่ขอบขวาของ "บันทึกแล้ว" และคอลเลกชันของคุณขณะเลื่อน ลากเพื่อข้ามไปอย่างรวดเร็ว
 Battery	แบตเตอรี่
 Stop the background heartbeat	หยุดสัญญาณชีพในเบื้องหลัง
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram ปลุกโทรศัพท์ของคุณทุกหนึ่งถึงสองนาที แม้กระทั่งในขณะปิดหน้าจอ เพียงเพื่อบันทึกว่าแอปยังคงทำงานอยู่ การตั้งค่านี้จะหยุดการทำงานดังกล่าว โดยข้อความ การแจ้งเตือน และทุกสิ่งที่คุณเห็นจะไม่ได้รับผลกระทบ

@@ -950,6 +950,10 @@ Tab bar	Barra de abas
 Saved	Salvos
 Saved tab on your profile	Aba Salvos no seu perfil
 Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.	Adiciona às abas do seu próprio perfil um marcador que abre Salvos. Reinicie o Instagram depois de alterar.
+# context: Profiles > title of the switch that shows a drag handle at the right edge of Saved and saved collections while they scroll; Saved is Instagram's own Saved page (#644)
+Fast scroll in Saved	Rolagem rápida em Salvos
+# context: Profiles > summary of Fast scroll in Saved; collections are Instagram's saved collections (#644)
+Shows a handle at the right edge of Saved and your collections while they scroll. Drag it to jump through them.	Mostra uma alça na borda direita de Salvos e das suas coleções enquanto rolam. Arraste para pular por elas.
 Battery	Bateria
 Stop the background heartbeat	Parar o batimento em segundo plano
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	O Instagram acorda seu telefone a cada minuto ou dois, inclusive com a tela apagada, só para anotar que ainda está em execução. Isso para essa atividade. Mensagens, notificações e tudo o que você vê não mudam.

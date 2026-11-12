@@ -147,6 +147,9 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.SAVED_ON_PROFILE, L10n.t("Saved tab on your profile"),
                         L10n.t("Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram "
                                 + "after changing it.")));
+                profiles.addPreference(toggle(context, Settings.SAVED_FAST_SCROLL, L10n.t("Fast scroll in Saved"),
+                        L10n.t("Shows a handle at the right edge of Saved and your collections while they scroll. "
+                                + "Drag it to jump through them.")));
             }
             if (build.contains(PatchFamily.THREADS_BUTTON)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_THREADS_BUTTON, L10n.t("Hide the Threads button"),

@@ -99,6 +99,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_REELS_HIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         Settings.SAVED_ON_PROFILE.resetToDefault();
+        Settings.SAVED_FAST_SCROLL.resetToDefault();
         Settings.STOP_HEARTBEAT.resetToDefault();
         Settings.STOP_UPLOAD_ALARM.resetToDefault();
         Settings.STOP_BACKGROUND_FETCH.resetToDefault();
@@ -121,7 +122,7 @@ public class TabBarAndBatterySettingsTest {
     @Test public void withoutThePatchesNoneOfTheirRowsShow() throws Exception {
         open();
         for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
-                Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key,
+                Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.SAVED_FAST_SCROLL.key, Settings.STOP_HEARTBEAT.key,
                 Settings.STOP_UPLOAD_ALARM.key, Settings.STOP_BACKGROUND_FETCH.key, Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key,
                 Settings.GLASS_TAB_BAR_TAP_SOUND.key, Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key)) {
             assertNull(key, row(key));
@@ -714,6 +715,19 @@ public class TabBarAndBatterySettingsTest {
         assertEquals("Profiles", String.valueOf(sectionOf(page.getPreferenceScreen(), saved).getTitle()));
         assertFalse(saved.isChecked());
         assertTrue(Settings.SAVED_ON_PROFILE.rebootApp);
+    }
+
+    /** The fast scroll sits right under the bookmark, starts off, and works without a restart (#644). */
+    @Test public void fastScrollInSavedStartsOffUnderTheBookmark() throws Exception {
+        open(PatchFamily.SAVED_ON_PROFILE);
+        SwitchPreference saved = (SwitchPreference) row(Settings.SAVED_ON_PROFILE.key);
+        SwitchPreference fast = (SwitchPreference) row(Settings.SAVED_FAST_SCROLL.key);
+        assertNotNull(fast);
+        assertEquals("Fast scroll in Saved", String.valueOf(fast.getTitle()));
+        assertSame(sectionOf(page.getPreferenceScreen(), saved), sectionOf(page.getPreferenceScreen(), fast));
+        assertEquals(saved.getOrder() + 1, fast.getOrder());
+        assertFalse(fast.isChecked());
+        assertFalse(Settings.SAVED_FAST_SCROLL.rebootApp);
     }
 
     @Test public void batteryHoldsAllThreeWakeUpSwitchesAndAllStartOff() throws Exception {

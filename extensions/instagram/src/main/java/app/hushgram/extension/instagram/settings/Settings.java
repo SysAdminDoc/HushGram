@@ -1899,6 +1899,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_saved_on_profile", FALSE, true);
 
     /**
+     * A handle at the right edge of Saved and its collections while they scroll, to drag through them
+     * ({@link app.hushgram.extension.instagram.misc.SavedFastScroll}, #644). Read on every scroll, so it
+     * takes no restart. Off to start.
+     */
+    public static final BooleanSetting SAVED_FAST_SCROLL = new BooleanSetting("hushgram_saved_fast_scroll", FALSE);
+
+    /**
      * Instagram stops waking itself with an alarm every minute or two to note that it is still running
      * ({@link app.hushgram.extension.instagram.misc.Heartbeat}). Read each time the next alarm would be set.
      * Off to start.

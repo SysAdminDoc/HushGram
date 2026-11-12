@@ -109,12 +109,12 @@ public final class MessagesLock {
      * posts of one kind, its search box and results, and the collection tiles 454 opens Saved on
      * (the profile's bookmark goes straight there). Any of them on screen means Saved is.
      */
-    static final String[] SAVED_PAGES = {
+    public static final String[] SAVED_PAGES = {
             "saved_view_pager", "save_collection_viewpager", "saved_scoped_posts_grid",
             "saved_search_input", "saved_search_results", "saved_collection_thumbnail",
     };
-    /** Marks the cover this class puts in a window. */
-    static final String COVER_TAG = "hushgram_messages_lock";
+    /** Marks the cover this class puts in a window. Fast scroll in Saved shows no handle while one is up. */
+    public static final String COVER_TAG = "hushgram_messages_lock";
 
     /** Steps a failure is reported under. */
     static final String SWITCH = "switch read";

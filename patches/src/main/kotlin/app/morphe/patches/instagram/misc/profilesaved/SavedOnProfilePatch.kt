@@ -13,6 +13,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 
 /**
  * Adds a bookmark to the tabs on your own profile that opens Saved. See ProfileSaved in the extension.
+ * Its second switch, Fast scroll in Saved, is SavedFastScroll in the extension (#644).
  *
  * It changes no Instagram code. The extension finds the profile's tabs by the ids Instagram's own code
  * looks them up by, and the application-start hook the settings patch already writes is what starts the
@@ -23,7 +24,8 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 val savedOnProfilePatch = bytecodePatch(
     name = "Saved on your profile",
     description = "Adds a bookmark to the tabs on your own profile, beside posts, reels and tagged, that opens " +
-        "Saved. Starts off. Turn it on in HushGram settings > Profiles, then restart Instagram.",
+        "Saved, and a handle to drag through Saved and your collections. Both start off. Turn them on in " +
+        "HushGram settings > Profiles. The bookmark needs an Instagram restart.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)

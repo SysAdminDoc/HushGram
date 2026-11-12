@@ -935,6 +935,10 @@ Tab bar	Thanh tab
 Saved	Đã lưu
 Saved tab on your profile	Tab Đã lưu trên trang cá nhân
 Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.	Thêm dấu trang vào các tab trên trang cá nhân của bạn để mở Đã lưu. Hãy khởi động lại Instagram sau khi thay đổi.
+# context: Profiles > title of the switch that shows a drag handle at the right edge of Saved and saved collections while they scroll; Saved is Instagram's own Saved page (#644)
+Fast scroll in Saved	Cuộn nhanh trong Đã lưu
+# context: Profiles > summary of Fast scroll in Saved; collections are Instagram's saved collections (#644)
+Shows a handle at the right edge of Saved and your collections while they scroll. Drag it to jump through them.	Hiện tay nắm ở cạnh phải của Đã lưu và bộ sưu tập của bạn khi cuộn. Kéo tay nắm để nhảy nhanh qua danh sách.
 Battery	Pin
 Stop the background heartbeat	Ngừng nhịp nền
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram đánh thức điện thoại mỗi một hai phút, kể cả khi tắt màn hình, chỉ để ghi nhận là nó vẫn đang chạy. Mục này ngăn điều đó. Tin nhắn, thông báo và mọi thứ bạn thấy không bị ảnh hưởng.

@@ -65,6 +65,7 @@ import app.hushgram.extension.instagram.reels.ReelsTopBar;
 import app.hushgram.extension.instagram.reels.ScrollBreak;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
+import app.hushgram.extension.instagram.misc.SavedFastScroll;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
 import app.hushgram.extension.instagram.misc.HeaderText;
 import app.hushgram.extension.instagram.misc.AppIcon;
@@ -168,6 +169,7 @@ public final class SettingsEntry {
         ScrollBreak.install(context);
         TabStart.install(context);
         ProfileSaved.install(context);
+        SavedFastScroll.install(context);
         CommentEmojiRow.install(context);
         CommentGifs.install(context);
         FeedFollowButton.install(context);
