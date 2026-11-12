@@ -75,6 +75,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_ghost_tab_target", NavigationTarget.OFF, false);
 
     /**
+     * The tab whose long press opens Your saved profiles (#629) while {@link #SAVED_PROFILES} is on.
+     * It rides the same tab hooks as {@link #NAVIGATION_SETTINGS_TARGET}; when another choice names
+     * the same tab, opening HushGram, the quality picker and Ghost mode come first. Off to start.
+     */
+    public static final EnumSetting<NavigationTarget> SAVED_PROFILES_TAB_TARGET =
+            new EnumSetting<>("hushgram_saved_profiles_tab_target", NavigationTarget.OFF, false);
+
+    /**
      * Leaves the HushGram row out of Instagram's own settings menu while another way in works
      * ({@link SettingsEntry#menuRowLeftOut}): the launcher shortcut or the logo's long press with its
      * switch on, the chosen tab on a button Instagram built ({@link NavigationSettings#opensFromATab}),

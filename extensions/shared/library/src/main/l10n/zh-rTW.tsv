@@ -1374,6 +1374,10 @@ Ghost mode needs at least one switch to turn.	幽靈模式至少需要控制一�
 Turn Ghost mode on or off with a tab long press	長按分頁切換幽靈模式
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	長按分頁會保留 Instagram 原本的操作。選擇一個分頁，改為開啟或關閉幽靈模式。
 Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.	長按 %1$s 會開啟或關閉幽靈模式，取代該分頁原本的操作，並以短暫提示顯示切換結果。一般點擊與其他分頁不受影響。若同一分頁也用來開啟 HushGram 或選擇播放畫質，會優先執行那些操作。
+# context: Profiles: opening Your saved profiles with a long press on a tab (#629). %1$s is a tab's name; Saved profiles is HushGram's switch of that name
+Open Saved profiles with a tab long press	長按分頁開啟已儲存的個人檔案
+Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.	長按分頁會保留 Instagram 原本的操作。選擇一個分頁，改為開啟已儲存的個人檔案。
+Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.	長按 %1$s 會開啟你儲存的個人檔案，取代該分頁原本的操作。一般點擊與其他分頁不受影響。需開啟「已儲存的個人檔案」。若同一分頁也用來開啟 HushGram、選擇播放畫質或切換幽靈模式，會優先執行那些操作。
 Buttons on the share sheet	分享表單按鈕
 Every button under the people on the share sheet shows. Untick the ones you don't use.	分享表單中聯絡人下方的所有按鈕皆會顯示。取消勾選用不到的按鈕。
 Left off the share sheet: %1$s.	分享表單中已隱藏：%1$s。

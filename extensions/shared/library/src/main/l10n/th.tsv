@@ -1376,6 +1376,10 @@ Ghost mode needs at least one switch to turn.	โหมด Ghost ต้องม
 Turn Ghost mode on or off with a tab long press	เปิดหรือปิดโหมด Ghost ด้วยการกดค้างที่แท็บ
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	การกดค้างที่แท็บจะยังคงใช้การดำเนินการเดิมของ Instagram เลือกแท็บหนึ่งเพื่อใช้เปิดหรือปิดโหมด Ghost แทน
 Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.	กดค้างที่ %1$s เพื่อเปิดหรือปิดโหมด Ghost แทนการดำเนินการตามปกติของแท็บนั้น และจะมีข้อความแจ้งเตือนบอกสถานะ การแตะตามปกติและแท็บอื่นๆ จะยังคงเหมือนเดิม หากแท็บเดียวกันเปิด HushGram หรือเลือกคุณภาพการเล่น การดำเนินการเหล่านั้นจะมีความสำคัญก่อน
+# context: Profiles: opening Your saved profiles with a long press on a tab (#629). %1$s is a tab's name; Saved profiles is HushGram's switch of that name
+Open Saved profiles with a tab long press	เปิดโปรไฟล์ที่บันทึกไว้ด้วยการกดค้างที่แท็บ
+Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.	การกดค้างที่แท็บจะยังคงใช้การดำเนินการเดิมของ Instagram เลือกแท็บหนึ่งเพื่อใช้เปิดโปรไฟล์ที่บันทึกไว้แทน
+Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.	กดค้างที่ %1$s เพื่อเปิดโปรไฟล์ที่คุณบันทึกไว้แทนการดำเนินการตามปกติของแท็บนั้น การแตะตามปกติและแท็บอื่นๆ จะยังคงเหมือนเดิม ต้องเปิดโปรไฟล์ที่บันทึกไว้ก่อน หากแท็บเดียวกันเปิด HushGram เลือกคุณภาพการเล่น หรือสลับโหมด Ghost การดำเนินการเหล่านั้นจะมีความสำคัญก่อน
 Buttons on the share sheet	ปุ่มในแผ่นเมนูการแชร์
 Every button under the people on the share sheet shows. Untick the ones you don't use.	ปุ่มทั้งหมดที่อยู่ใต้รายชื่อบุคคลในแผ่นเมนูการแชร์จะแสดงขึ้น ยกเลิกการเลือกปุ่มที่คุณไม่ได้ใช้งาน
 Left off the share sheet: %1$s.	นำออกจากแผ่นเมนูการแชร์: %1$s

@@ -1329,6 +1329,10 @@ Ghost mode needs at least one switch to turn.	Chế độ ẩn cần ít nhất 
 Turn Ghost mode on or off with a tab long press	Bật hoặc tắt Chế độ ẩn bằng cách nhấn giữ tab
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Nhấn giữ tab vẫn dùng thao tác riêng của Instagram. Hãy chọn một tab để bật hoặc tắt Chế độ ẩn.
 Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.	Nhấn giữ %1$s để bật hoặc tắt Chế độ ẩn thay cho thao tác thường của tab đó, và một thông báo cho biết đã chuyển sang bên nào. Nhấn bình thường và các tab khác không đổi. Nếu cùng tab mở HushGram hoặc chọn chất lượng phát thì mục đó được ưu tiên.
+# context: Profiles: opening Your saved profiles with a long press on a tab (#629). %1$s is a tab's name; Saved profiles is HushGram's switch of that name
+Open Saved profiles with a tab long press	Mở Trang cá nhân đã lưu bằng cách nhấn giữ tab
+Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.	Nhấn giữ tab vẫn dùng thao tác riêng của Instagram. Hãy chọn một tab để mở Trang cá nhân đã lưu.
+Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.	Nhấn giữ %1$s để mở Trang cá nhân bạn đã lưu thay cho thao tác thường của tab đó. Nhấn bình thường và các tab khác không đổi. Cần bật Trang cá nhân đã lưu. Nếu cùng tab mở HushGram, chọn chất lượng phát hoặc bật tắt Chế độ ẩn thì mục đó được ưu tiên.
 Buttons on the share sheet	Nút trên bảng chia sẻ
 Every button under the people on the share sheet shows. Untick the ones you don't use.	Mọi nút bên dưới danh sách người trên bảng chia sẻ đều hiện. Bỏ tích những nút bạn không dùng.
 Left off the share sheet: %1$s.	Đã bỏ khỏi bảng chia sẻ: %1$s.

@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Open Saved profiles with a tab long press` sits under `Your saved profiles` in Profiles. Pick a tab, Profile included, and holding it opens your saved list right away while a normal tap does what it always did. Needs `Saved profiles` on. Starts off. Asked for in #629.
 * `Fast scroll in Saved` sits under `Saved tab on your profile` in Profiles. Scroll Saved or one of your collections and a handle shows at the right edge. Drag it to jump anywhere in a long list, and it fades once you stop. It takes no restart. Starts off. Asked for in #644.
 * A story's three dot menu has `Add to Stories priority`, which puts that account at the end of your `Priority accounts` list and turns `Stories priority` on if it was off. Once someone's on the list, the same row reads `Remove from Stories priority`. Asked for in #641.
 * Both double tap skips now have a `Skip length` slider right under their switch, `Double tap to skip` in Reels and `Double tap to skip on feed videos` in Feed. Pick anywhere from 5 to 30 seconds in 5 second steps. It starts at 10, so nothing changes until you move it, and the number on the feed's arrows follows it. Asked for in #645.

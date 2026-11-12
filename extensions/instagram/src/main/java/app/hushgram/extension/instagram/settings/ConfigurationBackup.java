@@ -215,6 +215,9 @@ public final class ConfigurationBackup {
             settings.put(Settings.GHOST_MODE_PICKS.key, Settings.GHOST_MODE_PICKS);
             settings.put(Settings.GHOST_TAB_TARGET.key, Settings.GHOST_TAB_TARGET);
         }
+        if (PatchFamily.PROFILE_PICTURE.inBuild()) {
+            settings.put(Settings.SAVED_PROFILES_TAB_TARGET.key, Settings.SAVED_PROFILES_TAB_TARGET);
+        }
         if (PatchFamily.MESSAGE_BOX.inBuild()) settings.put(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.key, Settings.HIDDEN_MESSAGE_BOX_BUTTONS);
         if (PatchFamily.PROFILE_TABS.inBuild()) {
             settings.put(Settings.HIDDEN_OWN_PROFILE_TABS.key, Settings.HIDDEN_OWN_PROFILE_TABS);
