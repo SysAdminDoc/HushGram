@@ -25,10 +25,10 @@ function Reset-Producer {
     $script:state=@{ calls=[Collections.Generic.List[string]]::new(); captures=0; leases=0; releases=0; reads=0; bindings=0
         current='home'; refuseAt=0; wrongBefore=$false; wrongAfter=$false; artifactDrift=$false; rejectProof=$false; wrongPackage=$false }
     $script:state.settingsMode='none'
-    $script:state.expanded=$false; $script:state.expandBroken=$false; $script:state.foldBroken=$false; $script:state.headingTaps=0
-    $script:state.headingTop=300; $script:state.footStuck=$false; $script:state.headingTapYs=[Collections.Generic.List[int]]::new()
+    $script:state.sectionOpen=$false; $script:state.sectionOpenBroken=$false; $script:state.currentSection=''; $script:state.sectionTaps=0
+    $script:state.firstRowTop=300; $script:state.footStuck=$false; $script:state.sectionTapYs=[Collections.Generic.List[int]]::new()
     $script:state.animateFor=0; $script:state.animating=0; $script:state.tapCaptures=0
-    $script:state.headingAbsent=$false; $script:state.searchScrolledAway=$false
+    $script:state.sectionRowAbsent=$false; $script:state.searchScrolledAway=$false
     $script:state.listDepth=0; $script:state.listOffset=0
 }
 # Strict APK/report/PNG validation has its own real-byte fixtures. These tests cover the
@@ -50,7 +50,7 @@ function Get-WalkRequiredDestinations {
     if ($state.settingsMode -cne 'none') {
         [pscustomobject]@{ id='settings-root'; title='HushGram settings'; kind='settings-root'; page=$false; anchors=@() }
         [pscustomobject]@{ id='settings-fixture'; title='Fixture category'; kind='settings'; page=$true; anchors=@('Known row') }
-        [pscustomobject]@{ id='settings-pause'; title='Pause and diagnostics'; kind='settings'; page=$false; anchors=@('Pause HushGram') }
+        [pscustomobject]@{ id='settings-pause'; title='Pause and diagnostics'; kind='settings'; page=$true; anchors=@('Pause HushGram') }
     }
 }
 function New-WalkCaptureApk { 'capture-fixture.apk' }
@@ -77,14 +77,22 @@ function Invoke-HushgramAdbCommand {
         $output=@('Status: ok')
         if ($command -like '*OPEN_SETTINGS true') { $state.current='settings-root' }
     }
-    # Categories expand in place on the overview; Back from it closes settings.
-    elseif ($command -ceq 'shell input keyevent KEYCODE_BACK') { $state.current='home' }
+    # A section is a page within the settings dialog. Back returns to the overview first;
+    # a second Back would dismiss the dialog.
+    elseif ($command -ceq 'shell input keyevent KEYCODE_BACK') {
+        if ($state.current -ceq 'settings-root' -and $state.sectionOpen) {
+            $state.sectionOpen=$false; $state.currentSection=''; $state.animating=0; $state.listOffset=0
+        } elseif ($state.current -ceq 'settings-root') { $state.current='home' }
+        else { $state.current='home' }
+    }
     elseif ($command -like 'shell input tap *') {
         if ($state.current -ceq 'settings-root') {
-            $state.headingTaps++
-            $state.headingTapYs.Add([int]$Arguments[6])
-            if (-not $state.expandBroken -and -not ($state.foldBroken -and $state.expanded)) {
-                $state.expanded=-not $state.expanded; $state.animating=$state.animateFor
+            $state.sectionTaps++
+            $tapY=[int]$Arguments[6]
+            $state.sectionTapYs.Add($tapY)
+            if (-not $state.sectionOpenBroken) {
+                $state.currentSection=if($tapY -lt ($state.firstRowTop + 115)) { 'Fixture category' } else { 'Pause and diagnostics' }
+                $state.sectionOpen=$true; $state.animating=$state.animateFor
             }
         }
         else {
@@ -92,48 +100,63 @@ function Invoke-HushgramAdbCommand {
             $state.current=@('home','explore','reels','inbox','profile')[$index]
         }
     }
-    # The long list scrolls by the stroke, and a stroke quicker than a second flings it as far again.
+    # The overview scrolls by each stroke. Fast strokes fling it farther than the row under test.
     elseif ($command -like 'shell input swipe *' -and $state.current -ceq 'settings-root' -and $state.listDepth -gt 0) {
         $travel=[int]$Arguments[6]-[int]$Arguments[8]
         if ([int]$Arguments[9] -lt 1000) { $travel*=2 }
         $state.listOffset=[Math]::Max(0,[Math]::Min($state.listDepth+1500,$state.listOffset+$travel))
     }
-    # A slow lift from the list's 80% line brings a heading at its foot up into the list.
+    # A slow lift from the list's 80% line brings a section row at its foot into the safe tap area.
     elseif ($command -like 'shell input swipe *' -and $state.current -ceq 'settings-root' -and [int]$Arguments[6] -le 800 -and -not $state.footStuck) {
-        $state.headingTop=[Math]::Min($state.headingTop, 300)
+        $state.firstRowTop=[Math]::Min($state.firstRowTop, 300)
     }
     [pscustomobject]@{ ExitCode=0; Stdout=$output; Output=$output }
 }
 function New-ProducerUi([switch]$Animating) {
     $children=''
-    if ($state.current -like 'settings-*') {
-        $modeLabel=if($state.settingsMode -ceq 'flat') { 'Show settings by category' } else { 'Show all settings as a list' }
-        # A section sliding open or shut reports its heading and rows at zero bounds until the animation lands.
-        $headingBounds=if($Animating) { '[0,0][0,0]' } else { "[0,$($state.headingTop)][700,$($state.headingTop+100)]" }
-        $rowBounds=if($Animating) { '[0,0][0,0]' } else { "[0,$($state.headingTop+100)][700,$($state.headingTop+200)]" }
-        # With the search row scrolled away, settings are known by the fixed root bar's title instead.
-        $children=$(if ($state.searchScrolledAway) { "<node package='com.instagram.android' class='android.widget.TextView' text='HushGram' enabled='true' visible-to-user='true' bounds='[0,100][700,150]' />" }
-            else { "<node package='com.instagram.android' class='android.widget.EditText' hint='Search settings' enabled='true' visible-to-user='true' bounds='[0,100][700,150]' />" })+
-            "<node package='com.instagram.android' class='android.widget.TextView' text='$modeLabel' enabled='true' visible-to-user='true' bounds='[0,160][700,200]' />"+
-            "<node package='com.instagram.android' class='android.widget.ListView' resource-id='android:id/list' scrollable='true' enabled='true' visible-to-user='true' bounds='[0,200][700,950]'>"+
-            $(if (-not $state.headingAbsent) { "<node package='com.instagram.android' class='android.widget.TextView' text='Fixture category' clickable='true' enabled='true' visible-to-user='true' bounds='$headingBounds' />" })+
-            $(if ($state.expanded) { "<node package='com.instagram.android' class='android.widget.TextView' text='Known row' enabled='true' visible-to-user='true' bounds='$rowBounds' />" })+
-            $(if ($state.listDepth -gt 0) { "<node package='com.instagram.android' class='android.widget.TextView' text='Row at $($state.listOffset)' enabled='true' visible-to-user='true' bounds='[0,900][700,950]' />" })+
-            '</node>'
-        return [xml]"<hierarchy><node package='com.instagram.android' enabled='true' visible-to-user='true' bounds='[0,0][720,1000]'>$children</node></hierarchy>"
+    if ($state.current -ceq 'settings-root') {
+        $toolbar="<node package='com.instagram.android' class='android.widget.LinearLayout' resource-id='com.instagram.android:id/action_bar' enabled='true' visible-to-user='true' bounds='[0,0][700,80]'><node package='com.instagram.android' class='android.widget.Button' content-desc='Back' clickable='true' enabled='true' visible-to-user='true' bounds='[0,0][64,80]' /><node package='com.instagram.android' class='android.widget.TextView' text='HushGram' enabled='true' visible-to-user='true' bounds='[72,0][350,80]' /></node>"
+        $children += $toolbar
+        if (-not $state.sectionOpen -and -not $state.searchScrolledAway) {
+            $children += "<node package='com.instagram.android' class='android.widget.EditText' hint='Search settings' enabled='true' visible-to-user='true' bounds='[0,100][700,150]' />"
+        }
+        $listChildren=''
+        if (-not $state.sectionOpen) {
+            $fixtureTop=$state.firstRowTop + $state.listDepth - $state.listOffset
+            $pauseTop=$fixtureTop + 130
+            if (-not $state.sectionRowAbsent) {
+                $bounds=if($Animating) { '[0,0][0,0]' } else { "[0,$fixtureTop][700,$($fixtureTop+80)]" }
+                $listChildren += "<node package='com.instagram.android' class='android.widget.TextView' text='Fixture category' clickable='true' enabled='true' visible-to-user='true' bounds='$bounds' />"
+            }
+            $pauseBounds=if($Animating) { '[0,0][0,0]' } else { "[0,$pauseTop][700,$($pauseTop+80)]" }
+            $listChildren += "<node package='com.instagram.android' class='android.widget.TextView' text='Pause and diagnostics' clickable='true' enabled='true' visible-to-user='true' bounds='$pauseBounds' />"
+        } else {
+            $title=$state.currentSection
+            $headingBounds=if($Animating) { '[0,0][0,0]' } else { '[0,220][700,300]' }
+            $listChildren += "<node package='com.instagram.android' class='android.widget.TextView' text='$title' enabled='true' visible-to-user='true' bounds='$headingBounds' />"
+            if ($state.currentSection -ceq 'Fixture category') {
+                $rowBounds=if($Animating) { '[0,0][0,0]' } else { '[0,310][700,390]' }
+                $listChildren += "<node package='com.instagram.android' class='android.widget.TextView' text='Known row' enabled='true' visible-to-user='true' bounds='$rowBounds' />"
+            } elseif ($state.currentSection -ceq 'Pause and diagnostics') {
+                $rowBounds=if($Animating) { '[0,0][0,0]' } else { '[0,310][700,390]' }
+                $listChildren += "<node package='com.instagram.android' class='android.widget.TextView' text='Pause HushGram' enabled='true' visible-to-user='true' bounds='$rowBounds' />"
+            }
+        }
+        $children += "<node package='com.instagram.android' class='android.widget.ListView' resource-id='android:id/list' scrollable='true' enabled='true' visible-to-user='true' bounds='[0,180][700,950]'>$listChildren</node>"
+        return [xml]"<hierarchy><node package='com.instagram.android' class='android.widget.FrameLayout' enabled='true' visible-to-user='true' bounds='[0,0][720,1000]'>$children</node></hierarchy>"
     }
     $tabs=@('feed_tab','search_tab','clips_tab','direct_tab','profile_tab')
     for($index=0;$index -lt $tabs.Count;$index++) {
         $left=$index*100; $right=$left+90
         $children+="<node package='com.instagram.android' class='android.widget.FrameLayout' resource-id='com.instagram.android:id/$($tabs[$index])' clickable='true' enabled='true' visible-to-user='true' bounds='[$left,900][$right,999]' />"
     }
-    [xml]"<hierarchy><node package='com.instagram.android' enabled='true' visible-to-user='true' bounds='[0,0][720,1000]'>$children</node></hierarchy>"
+    [xml]"<hierarchy><node package='com.instagram.android' class='android.widget.FrameLayout' enabled='true' visible-to-user='true' bounds='[0,0][720,1000]'>$children</node></hierarchy>"
 }
 function Invoke-WalkCapture {
     param($CaptureId,$RunId)
     $state.captures++
     if ($state.refuseAt -eq $state.captures) { throw 'The active window is a system ANR dialog.' }
-    if ($state.headingTaps -gt 0) { $state.tapCaptures++ }
+    if ($state.sectionTaps -gt 0) { $state.tapCaptures++ }
     $animating=$state.current -ceq 'settings-root' -and $state.animating -gt 0
     if ($animating) { $state.animating-- }
     $ui=New-ProducerUi -Animating:$animating
@@ -144,13 +167,19 @@ function Invoke-WalkCapture {
 }
 function Test-WalkDestinationContent {
     param($Destination, $Document)
-    # Rows still sliding open sit at zero bounds, which the real check doesn't count as visible.
+    # Zero bounds mean Android is still laying out the new section page.
     $landed=$null -eq $Document -or -not $Document.OuterXml.Contains('[0,0][0,0]')
-    $valid=$Destination.id -ceq $state.current -or
-        ($Destination.id -ceq 'settings-pause' -and $state.current -ceq 'settings-root') -or
-        ($Destination.id -ceq 'settings-fixture' -and $state.current -ceq 'settings-root' -and ($state.settingsMode -ceq 'flat' -or ($state.expanded -and $landed)) -and
-            # In the long list the heading and its row, 200 px under it, must both sit in the 750 px window.
-            ($state.listDepth -eq 0 -or ($state.listDepth -ge $state.listOffset -and $state.listDepth+200 -le $state.listOffset+750)))
+    $valid=$false
+    if ($Destination.id -ceq 'settings-root') {
+        $valid=$state.current -ceq 'settings-root' -and -not $state.sectionOpen
+    } elseif ($Destination.id -ceq 'settings-fixture') {
+        $valid=$state.current -ceq 'settings-root' -and $state.sectionOpen -and
+            $state.currentSection -ceq 'Fixture category' -and $landed
+    } elseif ($Destination.id -ceq 'settings-pause') {
+        $valid=$state.current -ceq 'settings-root' -and $state.sectionOpen -and
+            $state.currentSection -ceq 'Pause and diagnostics' -and $landed
+    }
+    if ($Destination.kind -ceq 'native') { $valid=$Destination.id -ceq $state.current }
     [pscustomobject]@{ Valid=$valid; Reason='The requested destination is not active.' }
 }
 function Test-WalkReceipt { [pscustomobject]@{ Valid=(-not $state.rejectProof); Reason='The complete proof was refused.' } }
@@ -207,78 +236,71 @@ try {
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
     Assert-Producer ($receipt.result -ceq 'FAIL' -and -not $receipt.full -and $receipt.problems -contains 'The complete proof was refused.') 'Final validation refusal was discarded.'
 
-    foreach ($mode in @('pages','flat')) {
-        Reset-Producer; $state.settingsMode=$mode
-        $path=Invoke-WalkApp @arguments
-        $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-        Assert-Producer ($receipt.result -ceq 'PASS' -and $receipt.screens -eq 8 -and
-            $receipt.observations.id -ccontains 'settings-root' -and $receipt.observations.id -ccontains 'settings-pause') "Settings coverage in $mode mode was incomplete."
-        # Category mode taps the heading open and closed again; Back would close settings.
-        $expectedTaps=if($mode -ceq 'pages') { 7 } else { 5 }
-        Assert-Producer (@($state.calls | Where-Object { $_ -like '*input tap*' }).Count -eq $expectedTaps -and
-            @($state.calls | Where-Object { $_ -like '*input tap*180*' }).Count -eq 0) 'The producer changed list mode, tapped Pause or opened a flat section.'
-        Assert-Producer (-not $state.expanded -and @($state.calls | Where-Object { $_ -like '*KEYCODE_BACK*' }).Count -eq 0) "Settings in $mode mode were left expanded or closed with Back."
-    }
-    Reset-Producer; $state.settingsMode='pages'; $state.expandBroken=$true
+    Reset-Producer; $state.settingsMode='pages'
     $path=Invoke-WalkApp @arguments
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 1 -and
-        @($receipt.problems | Where-Object { $_ -like '*expanded without a verified row*' }).Count -eq 1) 'A heading that showed no rows earned PASS or was tapped again.'
-    # A section left open could lend its rows to the next one, so a fold that doesn't take fails the walk.
-    Reset-Producer; $state.settingsMode='pages'; $state.foldBroken=$true
+    Assert-Producer ($receipt.result -ceq 'PASS' -and $receipt.screens -eq 8 -and
+        $receipt.observations.id -ccontains 'settings-root' -and $receipt.observations.id -ccontains 'settings-pause') 'Settings overview and section-page coverage was incomplete.'
+    Assert-Producer (@($state.calls | Where-Object { $_ -like '*input tap*' }).Count -eq 7 -and
+        @($state.calls | Where-Object { $_ -like '*KEYCODE_BACK*' }).Count -eq 2 -and
+        -not $state.sectionOpen -and $state.current -ceq 'settings-root') 'A section was not opened once and closed with Back to the overview.'
+    Assert-Producer (@($state.calls | Where-Object { $_ -like '*Show all settings as a list*' -or $_ -like '*Show settings by category*' }).Count -eq 0) 'The walkthrough used a removed layout toggle.'
+
+    Reset-Producer; $state.settingsMode='pages'; $state.sectionOpenBroken=$true
     $path=Invoke-WalkApp @arguments
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 2 -and
-        @($receipt.problems | Where-Object { $_ -like '*still showed its rows after the fold tap*' }).Count -eq 1) 'A section that stayed open after its fold tap earned PASS.'
-    # A heading at the list's foot sits in the bottom gesture area on a gesture-navigation phone, where
-    # a tap or a swipe from it opens Recents (0.0.17's walk lost Instagram that way at Settings entry).
-    Reset-Producer; $state.settingsMode='pages'; $state.headingTop=850
+    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.sectionTaps -eq 1 -and
+        @($receipt.problems | Where-Object { $_ -like '*did not show its expected content after one tap*' }).Count -eq 1) 'A section that failed to open earned PASS or was tapped repeatedly.'
+
+    # A category near the bottom of the list must be lifted above the gesture zone before a tap.
+    Reset-Producer; $state.settingsMode='pages'; $state.firstRowTop=850
     $path=Invoke-WalkApp @arguments
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-    Assert-Producer ($receipt.result -ceq 'PASS' -and $state.headingTaps -eq 2 -and @($state.headingTapYs | Where-Object { $_ -gt 800 }).Count -eq 0 -and
-        @($state.calls | Where-Object { $_ -like 'shell input swipe *' }).Count -eq 1 -and
-        @($state.calls | Where-Object { $_ -like 'shell input swipe *' -and [int]($_ -split ' ')[4] -gt 800 }).Count -eq 0) 'A heading at the foot of the list was tapped or swiped from the gesture area.'
-    Reset-Producer; $state.settingsMode='pages'; $state.headingTop=850; $state.footStuck=$true
+    Assert-Producer ($receipt.result -ceq 'PASS' -and $state.sectionTaps -eq 2 -and
+        @($state.sectionTapYs | Where-Object { $_ -gt 800 }).Count -eq 0 -and
+        @($state.calls | Where-Object { $_ -like 'shell input swipe *' }).Count -ge 1) 'A section row at the foot of the list was tapped from the system gesture zone.'
+
+    Reset-Producer; $state.settingsMode='pages'; $state.firstRowTop=850; $state.footStuck=$true
     $path=Invoke-WalkApp @arguments
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 0 -and
-        @($receipt.problems | Where-Object { $_ -like '*stayed at the foot of the list*' }).Count -eq 1) 'A heading that would not lift out of the gesture area was tapped or earned PASS.'
-    # A heading caught mid-animation at zero bounds is looked at once more after a settle, not counted as missing.
+    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.sectionTaps -eq 0 -and
+        @($receipt.problems | Where-Object { $_ -like '*stayed at the foot of the list*' }).Count -eq 1) 'A section row that could not be lifted was tapped or earned PASS.'
+
+    # A row that settles after the first capture is accepted after one extra look, not a second tap.
     Reset-Producer; $state.settingsMode='pages'; $state.animateFor=1
     $path=Invoke-WalkApp @arguments
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-    Assert-Producer ($receipt.result -ceq 'PASS' -and $state.headingTaps -eq 2 -and -not $state.expanded) "A heading read at zero bounds while its section animated was counted as missing: $($receipt.problems -join '; ')"
+    Assert-Producer ($receipt.result -ceq 'PASS' -and $state.sectionTaps -eq 2 -and -not $state.sectionOpen) "A section page that settled after the tap was not verified: $($receipt.problems -join '; ')"
+
     Reset-Producer; $state.settingsMode='pages'; $state.animateFor=99
     $path=Invoke-WalkApp @arguments
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-    # Stuck: the rows get one more look after the tap, and so does the heading, then the section is reported.
-    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 1 -and $state.tapCaptures -eq 3 -and
-        @($receipt.problems | Where-Object { $_ -like '*expanded without a verified row*' }).Count -eq 1) 'A heading stuck at zero bounds was re-read more than once, tapped or earned PASS.'
-    # A section that finishes opening during the settle is observed as it is, not tapped shut.
-    Reset-Producer; $state.settingsMode='pages'; $state.expanded=$true; $state.animating=2
+    Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.sectionTaps -eq 1 -and
+        @($receipt.problems | Where-Object { $_ -like '*did not show its expected content after one tap*' }).Count -eq 1) 'A section that never settled earned PASS or was tapped a second time.'
+
+    # Reopening a restored section must return to the overview before the walkthrough starts.
+    Reset-Producer; $state.settingsMode='pages'; $state.sectionOpen=$true; $state.currentSection='Fixture category'
     $path=Invoke-WalkApp @arguments
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-    Assert-Producer ($receipt.result -ceq 'PASS' -and $state.headingTaps -eq 0 -and $state.expanded) "A section that settled open during the re-read was tapped: $($receipt.problems -join '; ')"
-    # A missing heading is reported once the list stops moving, not after 24 swipes each way.
+    Assert-Producer ($receipt.result -ceq 'PASS' -and $state.sectionTaps -eq 2 -and
+        @($state.calls | Where-Object { $_ -like '*KEYCODE_BACK*' }).Count -eq 3 -and -not $state.sectionOpen) 'A restored section was not returned to the overview before checking other sections.'
+
     foreach ($scrolledAway in @($false,$true)) {
-        Reset-Producer; $state.settingsMode='pages'; $state.headingAbsent=$true; $state.searchScrolledAway=$scrolledAway
+        Reset-Producer; $state.settingsMode='pages'; $state.sectionRowAbsent=$true; $state.searchScrolledAway=$scrolledAway
         $path=Invoke-WalkApp @arguments
         $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-        # With the search row in view the upward search stops before swiping; without it, after one swipe that moved nothing.
-        $expectedSwipes=if($scrolledAway) { 2 } else { 1 }
-        Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.headingTaps -eq 0 -and
-            @($state.calls | Where-Object { $_ -like 'shell input swipe *' }).Count -eq $expectedSwipes -and
-            @($receipt.problems | Where-Object { $_ -like '*was unavailable*' }).Count -eq 1) "An absent heading kept the search swiping (search scrolled away: $scrolledAway)."
+        Assert-Producer ($receipt.result -ceq 'FAIL' -and $state.sectionTaps -eq 0 -and
+            @($receipt.problems | Where-Object { $_ -like '*was unavailable*' }).Count -eq 1) "A missing section row was tapped or the walkthrough reported success (search scrolled away: $scrolledAway)."
     }
 
-    # The saved long list runs many screens below the search row. 0.0.18's first walk flung past a heading with
-    # quick strokes and gave up after 24, so a section deep in it is found going down, slowly, past that count.
-    Reset-Producer; $state.settingsMode='flat'; $state.listDepth=9700
+    # The overview can scroll across multiple screens of section rows. A deep row is found with
+    # slow strokes, and the scroll resets to the overview after Back.
+    Reset-Producer; $state.settingsMode='pages'; $state.listDepth=2400
     $path=Invoke-WalkApp @arguments
     $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
     $swipes=@($state.calls | Where-Object { $_ -like 'shell input swipe *' } | ForEach-Object { ,@($_ -split ' ') })
-    Assert-Producer ($receipt.result -ceq 'PASS' -and $swipes.Count -gt 24 -and [int]$swipes[0][4] -gt [int]$swipes[0][6] -and
-        @($swipes | Where-Object { [int]$_[7] -lt 1000 -or [Math]::Abs([int]$_[4]-[int]$_[6]) -gt 375 }).Count -eq 0) "A section deep in the long list was flung past or given up on: $($receipt.problems -join '; ')"
+    Assert-Producer ($receipt.result -ceq 'PASS' -and $swipes.Count -gt 3 -and
+        @($swipes | Where-Object { [int]$_[7] -lt 1000 -or [Math]::Abs([int]$_[4]-[int]$_[6]) -gt 375 }).Count -eq 0) "A section deep in the overview was flung past or missed: $($receipt.problems -join '; ')"
 
     # Coordinates come from one visible, enabled native target and all ancestor clipping.
     Reset-Producer

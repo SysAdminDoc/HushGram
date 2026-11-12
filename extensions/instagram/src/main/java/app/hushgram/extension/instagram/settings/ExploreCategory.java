@@ -24,8 +24,7 @@ final class ExploreCategory {
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.EXPLORE_GRID) || build.contains(PatchFamily.RECENT_SEARCHES)
                 || build.contains(PatchFamily.ALL_RECENT_SEARCHES) || build.contains(PatchFamily.EXPLORE_MENU)) {
-            PreferenceCategory explore = category(screen, L10n.t("Explore"), SettingsIcons.EXPLORE,
-                    L10n.t("Search, suggestions and the Explore grid."));
+            PreferenceCategory explore = category(screen, L10n.t("Explore"), SettingsIcons.EXPLORE);
             if (build.contains(PatchFamily.EXPLORE_GRID)) {
                 explore.addPreference(toggle(context, Settings.HIDE_EXPLORE_GRID, L10n.t("Hide the Explore grid"),
                         L10n.t("Hides the grid of posts and reels under the Search tab's bar. Search, recent "

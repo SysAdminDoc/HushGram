@@ -10,7 +10,6 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
@@ -20,17 +19,14 @@ import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
-import android.os.Build;
 import android.preference.Preference;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.format.DateUtils;
-import android.util.LruCache;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -41,10 +37,8 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -80,13 +74,10 @@ final class ViewingHistoryPage {
     private final Rows rows;
     private final Drawable nothingYet;
     private final Drawable nothingMatches;
-    /** The settings row the page opened from, which the settings lock goes by. */
-    private final Preference origin;
     private List<ViewingHistory.Row> all = Collections.emptyList();
     private Kind kind;
 
     private ViewingHistoryPage(Context context, Preference row) {
-        origin = row;
         dialog = new Dialog(context, android.R.style.Theme_Material_NoActionBar);
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -115,8 +106,7 @@ final class ViewingHistoryPage {
         search.setSingleLine(true);
         search.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-        // The settings' own field, outlined on its surface and blue while it has focus, in place of
-        // the bare underline it had.
+        // Match the settings search field, including its outlined surface.
         ScreenColors.styleField(search);
         // A magnifier at its start, as the settings search has. A compound drawable isn't read, and
         // the hint already names the field.
@@ -126,9 +116,9 @@ final class ViewingHistoryPage {
         search.setCompoundDrawablePadding(Dim.dp(12));
         LinearLayout.LayoutParams searchSpace = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        // The settings search's 18dp side inset, so both fields sit in the same place.
-        searchSpace.setMarginStart(Dim.dp(18));
-        searchSpace.setMarginEnd(Dim.dp(18));
+        // The settings search's 20dp side inset, so both fields sit in the same place.
+        searchSpace.setMarginStart(Dim.dp(20));
+        searchSpace.setMarginEnd(Dim.dp(20));
         searchSpace.topMargin = Dim.dp(4);
         searchSpace.bottomMargin = Dim.dp(4);
         root.addView(search, searchSpace);
@@ -162,10 +152,6 @@ final class ViewingHistoryPage {
         rows = new Rows(context, palette);
         list.setAdapter(rows);
         list.setOnItemClickListener((parent, view, position, id) -> open(context, rows.get(position)));
-        list.setOnItemLongClickListener((parent, view, position, id) -> {
-            options(view, rows.get(position));
-            return true;
-        });
         body.addView(list, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         empty = new TextView(context);
@@ -198,9 +184,7 @@ final class ViewingHistoryPage {
         dialog.setContentView(root);
         Window window = dialog.getWindow();
         if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(palette.background));
-            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.setNavigationBarContrastEnforced(false);
+            SettingsDialog.styleEdgeToEdgeWindow(window, palette.background);
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
                     | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         }
@@ -212,6 +196,9 @@ final class ViewingHistoryPage {
         page.pick(null);
         page.read();
         page.dialog.show();
+        // Repeat after attachment: the first call can run before Android exposes the insets controller.
+        Window window = page.dialog.getWindow();
+        if (window != null) SettingsDialog.styleEdgeToEdgeWindow(window, page.palette.background);
         return page;
     }
 
@@ -278,64 +265,8 @@ final class ViewingHistoryPage {
         return name.isEmpty() ? null : Uri.parse("https://www.instagram.com/" + Uri.encode(name) + "/");
     }
 
-    /** Where the person who posted [row] is, for a post or a reel. Null for a profile or a story, whose tap already goes there. */
-    @Nullable
-    static Uri profileLink(ViewingHistory.Row row) {
-        if (row.kind == Kind.PROFILE || row.kind == Kind.STORY || row.owner.isEmpty()) return null;
-        return Uri.parse("https://www.instagram.com/" + Uri.encode(row.owner) + "/");
-    }
-
-    static final int COPY_LINK = 1;
-    static final int OPEN_PROFILE = 2;
-    static final int REMOVE = 3;
-
-    /** What a long press on [row] offers: copying its link, its poster's profile, and taking it off the list. */
-    static void fill(Menu menu, ViewingHistory.Row row) {
-        if (link(row) != null) menu.add(Menu.NONE, COPY_LINK, Menu.NONE, L10n.t("Copy link"));
-        if (profileLink(row) != null) menu.add(Menu.NONE, OPEN_PROFILE, Menu.NONE, L10n.t("Open profile"));
-        menu.add(Menu.NONE, REMOVE, Menu.NONE, L10n.t("Remove from history"));
-    }
-
-    private void options(View anchor, ViewingHistory.Row row) {
-        PopupMenu menu = new PopupMenu(anchor.getContext(), anchor);
-        fill(menu.getMenu(), row);
-        menu.setOnMenuItemClickListener(item -> pick(item.getItemId(), row));
-        menu.show();
-    }
-
-    /** Does what the long press menu's [id] says for [row]. */
-    boolean pick(int id, ViewingHistory.Row row) {
-        Context context = dialog.getContext();
-        switch (id) {
-            case COPY_LINK:
-                Uri link = link(row);
-                if (link == null) return true;
-                Utils.setClipboard(context, "Instagram", link.toString());
-                Utils.showToastShort(L10n.t("Copied"));
-                return true;
-            case OPEN_PROFILE:
-                go(context, profileLink(row));
-                return true;
-            case REMOVE:
-                if (!HushgramPreferenceFragment.viewingHistoryChangeAllowed(origin)) return true;
-                ViewingHistory.remove(context, row.kind, row.id);
-                PICTURES.remove(key(row));
-                // Off the page at once. The file catches up off the main thread.
-                List<ViewingHistory.Row> left = new ArrayList<>(all);
-                left.remove(row);
-                all = left;
-                show();
-                return true;
-            default:
-                return false;
-        }
-    }
-
     private void open(Context context, ViewingHistory.Row row) {
-        go(context, link(row));
-    }
-
-    private void go(Context context, @Nullable Uri link) {
+        Uri link = link(row);
         try {
             if (link == null) throw new ActivityNotFoundException();
             // This app's own package, so a copy installed next to Instagram opens itself.
@@ -365,7 +296,7 @@ final class ViewingHistoryPage {
     }
 
     /**
-     * A tab's press ripple over a 2dp line in the heading blue under its words, drawn only while
+     * A tab's press ripple over a 2dp line in the heading color under its words, drawn only while
      * the tab is picked, so the picked tab shows by more than its colour.
      */
     static RippleDrawable tabSurface(ScreenColors palette) {
@@ -393,40 +324,15 @@ final class ViewingHistoryPage {
         drawable.setBounds(0, 0, Dim.dp(24), Dim.dp(24));
         button.setImageDrawable(drawable);
         button.setPadding(Dim.dp(12), Dim.dp(12), Dim.dp(12), Dim.dp(12));
+        button.setBackgroundTintList(null);
         button.setBackground(ripple(palette));
         button.setContentDescription(label);
         button.setOnClickListener(tap);
         return button;
     }
 
-    /** The row pictures shown lately, by row, up to about 8 MB. */
-    private static final LruCache<String, Bitmap> PICTURES = new LruCache<String, Bitmap>(8 * 1024 * 1024) {
-        @Override protected int sizeOf(String key, Bitmap value) {
-            return value.getByteCount();
-        }
-    };
-
-    private static String key(ViewingHistory.Row row) {
-        return row.kind.name() + "\t" + row.id;
-    }
-
-    /** Forgets the pictures shown, for Clear viewing history. */
-    static void forgetPictures() {
-        PICTURES.evictAll();
-    }
-
-    /** The icon a row shows until its picture comes, or when it has none. */
-    static String kindIcon(Kind kind) {
-        switch (kind) {
-            case POST: return SettingsIcons.FEED;
-            case REEL: return SettingsIcons.REELS;
-            case STORY: return SettingsIcons.STORIES;
-            default: return SettingsIcons.PERSON;
-        }
-    }
-
-    /** The list's rows: a picture, then who, then what it was and when. */
-    static final class Rows extends BaseAdapter {
+    /** The list's rows: who, then what it was and when. */
+    private static final class Rows extends BaseAdapter {
         private final Context context;
         private final ScreenColors palette;
         private List<ViewingHistory.Row> shown = Collections.emptyList();
@@ -463,80 +369,18 @@ final class ViewingHistoryPage {
             String label = HushgramPreferenceFragment.viewingKindLabel(seen.kind);
             String ago = DateUtils.getRelativeTimeSpanString(seen.time, System.currentTimeMillis(),
                     DateUtils.MINUTE_IN_MILLIS).toString();
-            LinearLayout words = texts(row);
-            ((TextView) words.getChildAt(0)).setText(seen.owner.isEmpty() ? label : "@" + seen.owner);
-            ((TextView) words.getChildAt(1)).setText(seen.owner.isEmpty() ? ago : label + ", " + ago);
-            show(picture(row), seen);
+            ((TextView) row.getChildAt(0)).setText(seen.owner.isEmpty() ? label : "@" + seen.owner);
+            ((TextView) row.getChildAt(1)).setText(seen.owner.isEmpty() ? ago : label + ", " + ago);
             return row;
-        }
-
-        /** A row's picture. */
-        static ImageView picture(LinearLayout row) {
-            return (ImageView) row.getChildAt(0);
-        }
-
-        /** A row's two lines of words. */
-        static LinearLayout texts(LinearLayout row) {
-            return (LinearLayout) row.getChildAt(1);
-        }
-
-        /**
-         * Shows [row]'s picture in [view]: at once when it was shown lately, else its kind's icon
-         * while the picture is read or fetched off the main thread. A recycled view that has moved
-         * on to another row by then keeps that row's.
-         */
-        private void show(ImageView view, ViewingHistory.Row row) {
-            String key = key(row);
-            view.setTag(key);
-            Bitmap cached = PICTURES.get(key);
-            if (cached != null) {
-                fill(view, cached);
-                return;
-            }
-            view.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            view.setPadding(Dim.dp(12), Dim.dp(12), Dim.dp(12), Dim.dp(12));
-            view.setImageDrawable(SettingsIcons.icon(context, kindIcon(row.kind), palette.summary));
-            Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
-            int size = Dim.dp(PICTURE_DP);
-            Utils.runOnBackgroundThread(() -> {
-                Bitmap bitmap = ViewingHistory.picture(application, row, size);
-                if (bitmap == null) return;
-                PICTURES.put(key, bitmap);
-                Utils.runOnMainThread(() -> {
-                    if (key.equals(view.getTag())) fill(view, bitmap);
-                });
-            });
-        }
-
-        private static void fill(ImageView view, Bitmap bitmap) {
-            view.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            view.setPadding(0, 0, 0, 0);
-            view.setImageBitmap(bitmap);
         }
 
         private LinearLayout make() {
             LinearLayout row = new LinearLayout(context);
-            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setOrientation(LinearLayout.VERTICAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setMinimumHeight(Dim.dp(64));
+            row.setMinimumHeight(Dim.dp(56));
             row.setPaddingRelative(Dim.dp(16), Dim.dp(8), Dim.dp(16), Dim.dp(8));
             row.setBackground(ripple(palette));
-
-            ImageView picture = new ImageView(context);
-            // The words beside it say what the row is.
-            picture.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            GradientDrawable well = new GradientDrawable();
-            well.setColor(palette.card);
-            well.setCornerRadius(Dim.dp(8));
-            picture.setBackground(well);
-            // Rounded like the well under it.
-            picture.setClipToOutline(true);
-            LinearLayout.LayoutParams pictureSpace = new LinearLayout.LayoutParams(Dim.dp(PICTURE_DP), Dim.dp(PICTURE_DP));
-            pictureSpace.setMarginEnd(Dim.dp(12));
-            row.addView(picture, pictureSpace);
-
-            LinearLayout words = new LinearLayout(context);
-            words.setOrientation(LinearLayout.VERTICAL);
             TextView who = new TextView(context);
             who.setTextColor(palette.title);
             who.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
@@ -544,18 +388,14 @@ final class ViewingHistoryPage {
             // A long name or a long "Reel, 3 hours ago" in a wordy language ends in an ellipsis
             // instead of being cut off mid-letter at the row's edge.
             who.setEllipsize(TextUtils.TruncateAt.END);
-            words.addView(who);
+            row.addView(who);
             TextView what = new TextView(context);
             what.setTextColor(palette.summary);
             what.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
             what.setSingleLine(true);
             what.setEllipsize(TextUtils.TruncateAt.END);
-            words.addView(what);
-            row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            row.addView(what);
             return row;
         }
     }
-
-    /** How big a row's picture is. */
-    static final int PICTURE_DP = 48;
 }

@@ -184,7 +184,6 @@ public class CarouselArrowsTest {
         Settings.CAROUSEL_ARROWS.resetToDefault();
         Settings.CAROUSEL_DOTS_PILL.resetToDefault();
         Settings.CAROUSEL_PILL_LOOK.resetToDefault();
-        Settings.CAROUSEL_HIDE_NUMBER.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -712,35 +711,6 @@ public class CarouselArrowsTest {
         assertEquals(1f, instagramDots.getAlpha(), 0f);
     }
 
-    /** #527: the pill's frame closes the band Instagram keeps over a carousel's buttons for its dots, and off opens it. */
-    @Test
-    public void thePillClosesTheGapOverTheButtonsAndOffOpensIt() {
-        LinearLayout feed = (LinearLayout) footer.getParent();
-        feed.removeView(footer);
-        DotsGapTest.RecyclerView list = new DotsGapTest.RecyclerView(activity);
-        list.addView(footer, new FrameLayout.LayoutParams(WIDTH, FOOTER));
-        feed.addView(list, new LinearLayout.LayoutParams(WIDTH, FOOTER));
-        ((FrameLayout.LayoutParams) instagramDots.getLayoutParams()).gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-        View like = new View(activity);
-        FrameLayout.LayoutParams under = new FrameLayout.LayoutParams(40, FOOTER - 8);
-        under.topMargin = 8;
-        footer.addView(like, under);
-        shadowOf(Looper.getMainLooper()).idle();
-
-        pillOn();
-        settle();
-
-        assertEquals(0f, instagramDots.getAlpha(), 0f);
-        assertEquals("pulled up by the band over the like button", -8, footer.getTop());
-
-        Settings.CAROUSEL_DOTS_PILL.save(false);
-        frame();
-        shadowOf(Looper.getMainLooper()).idle();
-
-        assertEquals(0, footer.getTop());
-        assertEquals(1f, instagramDots.getAlpha(), 0f);
-    }
-
     @Test
     public void offTakesThePillAwayAndBringsInstagramsDotsBack() {
         pillOn();
@@ -865,158 +835,6 @@ public class CarouselArrowsTest {
         assertEquals(1f, instagramDots.getAlpha(), 0f);
         String missing = HookStatus.missing(FAMILY).toString();
         assertTrue(missing, missing.contains(CarouselArrows.DOTS));
-    }
-
-    /** Instagram's page number over the carousel, with an id the test app can resolve. */
-    private View number() {
-        int id = View.generateViewId();
-        CarouselNumber.idForTests(activity, CarouselNumber.NAMES[0], id);
-        View number = new View(activity);
-        number.setId(id);
-        root.addView(number, new FrameLayout.LayoutParams(60, 30, Gravity.TOP | Gravity.END));
-        shadowOf(Looper.getMainLooper()).idle();
-        return number;
-    }
-
-    private void laidOut() {
-        activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnGlobalLayout();
-        frame();
-    }
-
-    private void numberOff() {
-        Settings.CAROUSEL_HIDE_NUMBER.save(true);
-        CarouselArrows.watch(activity);
-        laidOut();
-    }
-
-    @Test
-    public void theNumberGoesWithOnlyItsSwitchOnAndTheCarouselGetsNothingElse() {
-        View number = number();
-
-        numberOff();
-
-        assertEquals(View.GONE, number.getVisibility());
-        assertEquals(0, CarouselArrows.withArrowsForTests());
-    }
-
-    @Test
-    public void theNumberInstagramShowsAgainGoesOnTheNextLayout() {
-        View number = number();
-        numberOff();
-
-        number.setVisibility(View.VISIBLE);
-        laidOut();
-
-        assertEquals(View.GONE, number.getVisibility());
-    }
-
-    @Test
-    public void theNumberStaysWhileItsSwitchIsOff() {
-        View number = number();
-
-        on();
-        laidOut();
-
-        assertEquals(View.VISIBLE, number.getVisibility());
-    }
-
-    @Test
-    public void turningTheSwitchOffBringsTheNumberBackAsItStood() {
-        View number = number();
-        number.setVisibility(View.INVISIBLE);
-        numberOff();
-        assertEquals(View.GONE, number.getVisibility());
-
-        Settings.CAROUSEL_HIDE_NUMBER.save(false);
-        frame();
-
-        assertEquals(View.INVISIBLE, number.getVisibility());
-        assertFalse(CarouselArrows.listeningForTests(activity));
-    }
-
-    @Test
-    public void turningItOffUnderTheArrowsBringsTheNumberBack() {
-        View number = number();
-        Settings.CAROUSEL_HIDE_NUMBER.save(true);
-        on();
-        laidOut();
-        assertEquals(View.GONE, number.getVisibility());
-
-        Settings.CAROUSEL_HIDE_NUMBER.save(false);
-        laidOut();
-
-        assertEquals(View.VISIBLE, number.getVisibility());
-        assertTrue(shows(next()));
-    }
-
-    /** The feed's number: its text alone in a host with no id, which draws the dark pill behind it. */
-    private FrameLayout numberInPill(int width) {
-        int id = View.generateViewId();
-        CarouselNumber.idForTests(activity, CarouselNumber.NAMES[1], id);
-        FrameLayout pill = new FrameLayout(activity);
-        View number = new View(activity);
-        number.setId(id);
-        pill.addView(number, new FrameLayout.LayoutParams(36, 30, Gravity.CENTER));
-        root.addView(pill, new FrameLayout.LayoutParams(width, 56, Gravity.TOP | Gravity.END));
-        settle();
-        return pill;
-    }
-
-    @Test
-    public void theEmptyPillGoesWithItsNumberAndComesBackWithIt() {
-        FrameLayout pill = numberInPill(80);
-
-        numberOff();
-
-        assertEquals(View.GONE, pill.getChildAt(0).getVisibility());
-        assertEquals(View.INVISIBLE, pill.getVisibility());
-
-        Settings.CAROUSEL_HIDE_NUMBER.save(false);
-        frame();
-
-        assertEquals(View.VISIBLE, pill.getVisibility());
-    }
-
-    @Test
-    public void aHostThatLosesItsNumberIsReadyForTheRowThatGetsItNext() {
-        FrameLayout pill = numberInPill(80);
-        numberOff();
-        assertEquals(View.INVISIBLE, pill.getVisibility());
-
-        pill.removeViewAt(0);
-
-        assertEquals(View.VISIBLE, pill.getVisibility());
-    }
-
-    @Test
-    public void aParentHoldingMoreThanTheNumberStays() {
-        FrameLayout pill = numberInPill(80);
-        pill.addView(new View(activity));
-
-        numberOff();
-
-        assertEquals(View.GONE, pill.getChildAt(0).getVisibility());
-        assertEquals(View.VISIBLE, pill.getVisibility());
-    }
-
-    @Test
-    public void aWideWrapperAroundOnlyTheNumberStays() {
-        FrameLayout wrapper = numberInPill(WIDTH);
-
-        numberOff();
-
-        assertEquals(View.GONE, wrapper.getChildAt(0).getVisibility());
-        assertEquals(View.VISIBLE, wrapper.getVisibility());
-    }
-
-    @Test
-    public void aBuildWithoutAnyNumberIdSaysSoAndArrowsStillShow() {
-        Settings.CAROUSEL_HIDE_NUMBER.save(true);
-        on();
-        laidOut();
-
-        assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).toString().contains(CarouselNumber.NAMES[0]));
-        assertTrue(shows(next()));
     }
 
     @Test

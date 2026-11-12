@@ -18,7 +18,6 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -38,9 +37,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -77,11 +74,6 @@ public class FeedSeekBarTest {
         int reads;
         boolean viewThrows;
         boolean pauses = true;
-        SeekSheet sheet;
-
-        @Override public SeekSheet sheet(Object of) {
-            return sheet;
-        }
 
         @Override public View view(Object of) {
             reads++;
@@ -119,8 +111,6 @@ public class FeedSeekBarTest {
     /** The feed's list, noting when a child asks it not to take a touch. */
     private static final class Feed extends LinearLayout {
         boolean keptOut;
-        /** Whether it scrolls the way Instagram's feed list does, so a SeekBar in it waits for a sideways move. */
-        boolean scrolls;
 
         Feed(Context context) {
             super(context);
@@ -130,11 +120,6 @@ public class FeedSeekBarTest {
         public void requestDisallowInterceptTouchEvent(boolean disallow) {
             keptOut = disallow;
             super.requestDisallowInterceptTouchEvent(disallow);
-        }
-
-        @Override
-        public boolean shouldDelayChildPressedState() {
-            return scrolls;
         }
     }
 
@@ -165,23 +150,16 @@ public class FeedSeekBarTest {
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
         Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
-        Settings.FEED_SEEK_BAR_ON_EDGE.resetToDefault();
-        Settings.SEEK_BAR_SHAPE.resetToDefault();
-        Settings.SEEK_PREVIEW.resetToDefault();
         HookStatus.clear();
     }
 
     @After
     public void restore() {
         FeedSeekBar.resetForTests();
-        SeekPreview.resetForTests();
-        Settings.SEEK_BAR_SHAPE.resetToDefault();
-        Settings.SEEK_PREVIEW.resetToDefault();
         TabSwipe.forgetForTests();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
         Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
-        Settings.FEED_SEEK_BAR_ON_EDGE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -285,46 +263,6 @@ public class FeedSeekBarTest {
         assertSame("one bar per player", bar, FeedSeekBar.barForTests());
         assertEquals(3, first.getChildCount());
         assertTrue(stand.calls.isEmpty());
-    }
-
-    /**
-     * #567: on the bottom edge the bar is only as tall as its round handle, so a scroll that starts low
-     * on the video lands on the video, and the button moves down with it. Flipping it back restores both.
-     */
-    @Test
-    public void onTheEdgeTheBarIsOnlyAsTallAsItsHandle() {
-        assertEquals(Boolean.FALSE, Settings.FEED_SEEK_BAR_ON_EDGE.defaultValue);
-        Settings.FEED_SEEK_BAR.save(true);
-        Settings.FEED_SEEK_BUTTON.save(true);
-        FeedSeekBar.progress(player, 3000, 15000);
-        SeekBar bar = bar();
-        float density = bar.getResources().getDisplayMetrics().density;
-        int roomy = Math.round(FeedSeekBar.HEIGHT_DP * density);
-        assertEquals(roomy, bar.getLayoutParams().height);
-        FeedSeekBar.Toggle button = null;
-        for (int at = 0; at < first.getChildCount(); at++) if (first.getChildAt(at) instanceof FeedSeekBar.Toggle) button = (FeedSeekBar.Toggle) first.getChildAt(at);
-        assertNotNull(button);
-        int gap = Math.round(4 * density);
-        assertEquals(roomy + gap, ((FrameLayout.LayoutParams) button.getLayoutParams()).bottomMargin);
-
-        Settings.FEED_SEEK_BAR_ON_EDGE.save(true);
-        FeedSeekBar.progress(player, 4000, 15000);
-        tick();
-        assertSame("the same bar, made thinner", bar, FeedSeekBar.barForTests());
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) bar.getLayoutParams();
-        int handle = bar.getThumb() != null ? bar.getThumb().getIntrinsicHeight() : 0;
-        int edge = Math.max(handle, Math.round(FeedSeekBar.EDGE_MIN_DP * density));
-        assertEquals(edge, params.height);
-        assertTrue("thinner than the roomy bar", params.height < roomy);
-        assertEquals("flush with the bottom", 0, params.bottomMargin);
-        assertEquals(Gravity.BOTTOM, params.gravity);
-        assertEquals(edge + gap, ((FrameLayout.LayoutParams) button.getLayoutParams()).bottomMargin);
-
-        Settings.FEED_SEEK_BAR_ON_EDGE.save(false);
-        FeedSeekBar.progress(player, 5000, 15000);
-        tick();
-        assertEquals(roomy, bar.getLayoutParams().height);
-        assertEquals(roomy + gap, ((FrameLayout.LayoutParams) button.getLayoutParams()).bottomMargin);
     }
 
     /** #472: like Instagram's own scrubber, the video pauses under the finger and plays on from where it lands. */
@@ -437,46 +375,6 @@ public class FeedSeekBarTest {
     }
 
     @Test
-    public void aScrollThatStartsOnTheBarGoesBackToTheFeed() {
-        feed.scrolls = true;
-        Settings.FEED_SEEK_BAR.save(true);
-        View mainList = mainTabs();
-        FeedSeekBar.progress(player, 3000, 15000);
-        SeekBar bar = bar();
-        int progress = bar.getProgress();
-        int slop = ViewConfiguration.get(bar.getContext()).getScaledTouchSlop();
-
-        touch(bar, MotionEvent.ACTION_DOWN, 100, 10);
-        assertTrue(feed.keptOut);
-        touch(bar, MotionEvent.ACTION_MOVE, 102, 10 - slop / 2f);
-        assertTrue("a move inside the slop keeps the bar's claim", feed.keptOut);
-        touch(bar, MotionEvent.ACTION_MOVE, 104, 10 - slop - 4);
-        assertFalse("the feed takes the scroll", feed.keptOut);
-        assertTrue("and so do the main tabs", TabSwipe.input(mainList, 1));
-        touch(bar, MotionEvent.ACTION_CANCEL, 104, 10 - slop - 4);
-        assertEquals("nothing seeked", progress, bar.getProgress());
-    }
-
-    @Test
-    public void aSidewaysDragOnTheBarKeepsItsClaim() {
-        feed.scrolls = true;
-        Settings.FEED_SEEK_BAR.save(true);
-        View mainList = mainTabs();
-        FeedSeekBar.progress(player, 3000, 15000);
-        SeekBar bar = bar();
-        int slop = ViewConfiguration.get(bar.getContext()).getScaledTouchSlop();
-
-        touch(bar, MotionEvent.ACTION_DOWN, 100, 10);
-        touch(bar, MotionEvent.ACTION_MOVE, 100 + slop * 3, 10 + slop / 2f);
-        assertTrue(feed.keptOut);
-        touch(bar, MotionEvent.ACTION_MOVE, 100 + slop * 3, 10 + slop * 4);
-        assertTrue("a drag under way stays the bar's when the finger drifts down", feed.keptOut);
-        assertFalse(TabSwipe.input(mainList, 1));
-        touch(bar, MotionEvent.ACTION_UP, 100 + slop * 3, 10 + slop * 4);
-        assertTrue(TabSwipe.input(mainList, 1));
-    }
-
-    @Test
     public void withTheSwitchOffAFingerOnTheBarLeavesTheMainTabs() {
         Settings.FEED_SEEK_BAR.save(true);
         View mainList = mainTabs();
@@ -497,11 +395,7 @@ public class FeedSeekBarTest {
     }
 
     private static void touch(View view, int action) {
-        touch(view, action, 100, 10);
-    }
-
-    private static void touch(View view, int action, float x, float y) {
-        MotionEvent event = MotionEvent.obtain(0, 0, action, x, y, 0);
+        MotionEvent event = MotionEvent.obtain(0, 0, action, 100, 10, 0);
         view.dispatchTouchEvent(event);
         event.recycle();
     }
@@ -607,122 +501,6 @@ public class FeedSeekBarTest {
         tick();
         drag.stop();
         assertEquals(Arrays.asList("pause", "play"), stand.calls);
-    }
-
-    /** #586: a shape takes over the bar as it follows the video, and Standard hands it back. */
-    @Test
-    public void theBarTakesTheChosenShapeAndGivesItBack() {
-        Settings.FEED_SEEK_BAR.save(true);
-        FeedSeekBar.progress(player, 3000, 15000);
-        SeekBar bar = bar();
-        assertFalse(bar.getProgressDrawable() instanceof SeekShapeDrawable);
-
-        Settings.SEEK_BAR_SHAPE.save(SeekShape.ROUNDED);
-        FeedSeekBar.progress(player, 4000, 15000);
-        tick();
-        assertSame("the same bar, reshaped", bar, FeedSeekBar.barForTests());
-        assertTrue(bar.getProgressDrawable() instanceof SeekShapeDrawable);
-        assertEquals("a shape has no round handle", 0, bar.getThumb().getIntrinsicWidth());
-
-        Settings.SEEK_BAR_SHAPE.save(SeekShape.STANDARD);
-        FeedSeekBar.progress(player, 5000, 15000);
-        tick();
-        assertFalse(bar.getProgressDrawable() instanceof SeekShapeDrawable);
-    }
-
-    /** #567: the thin line lies on the edge with no switch, and a shape with a tall handle gets room for it there. */
-    @Test
-    public void aLineSitsOnTheEdgeAndATallHandleGetsRoom() {
-        Settings.FEED_SEEK_BAR.save(true);
-        Settings.SEEK_BAR_SHAPE.save(SeekShape.LINE);
-        FeedSeekBar.progress(player, 3000, 15000);
-        tick();
-        SeekBar bar = bar();
-        float density = bar.getResources().getDisplayMetrics().density;
-        assertEquals(Math.round(FeedSeekBar.EDGE_MIN_DP * density), bar.getLayoutParams().height);
-        assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.LINE, true));
-
-        Settings.SEEK_BAR_SHAPE.save(SeekShape.WAVE);
-        FeedSeekBar.progress(player, 4000, 15000);
-        tick();
-        assertEquals("off the edge it keeps its room", Math.round(FeedSeekBar.HEIGHT_DP * density), bar.getLayoutParams().height);
-        assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.WAVE, false));
-
-        Settings.FEED_SEEK_BAR_ON_EDGE.save(true);
-        FeedSeekBar.progress(player, 5000, 15000);
-        tick();
-        assertEquals(Math.round(FeedSeekBar.EDGE_TALL_DP * density), bar.getLayoutParams().height);
-        assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.WAVE, true));
-    }
-
-    /** #567: dragging shows the time above the finger; the player moving on its own doesn't. */
-    @Test
-    public void onlyADragShowsThePreview() {
-        Settings.FEED_SEEK_BAR.save(true);
-        Settings.SEEK_PREVIEW.save(true);
-        FeedSeekBar.progress(player, 3000, 15000);
-        SeekBar bar = bar();
-        SeekBar.OnSeekBarChangeListener listener = shadowOf(bar).getOnSeekBarChangeListener();
-        listener.onProgressChanged(bar, 4000, false);
-        assertNull("nothing while it plays", SeekPreview.cardForTests());
-        listener.onProgressChanged(bar, 4000, true);
-        assertNull("nothing before the drag starts", SeekPreview.cardForTests());
-
-        bar.setPressed(true);
-        new Listener(bar).start();
-        listener.onProgressChanged(bar, 5000, true);
-        assertNotNull(SeekPreview.cardForTests());
-        assertEquals("0:05 / 0:15", SeekPreview.timeForTests());
-    }
-
-    /** #567: most feed posts have no picture strip, so the paused video itself follows the drag, a move at a time. */
-    @Test
-    public void aPostWithNoStripShowsTheMomentInTheVideo() {
-        Settings.FEED_SEEK_BAR.save(true);
-        Settings.SEEK_PREVIEW.save(true);
-        FeedSeekBar.progress(player, 3000, 15000);
-        SeekBar bar = bar();
-        SeekBar.OnSeekBarChangeListener listener = shadowOf(bar).getOnSeekBarChangeListener();
-        bar.setPressed(true);
-        new Listener(bar).start();
-        listener.onProgressChanged(bar, 5000, true);
-        listener.onProgressChanged(bar, 6000, true);
-        listener.onProgressChanged(bar, 7000, true);
-        assertEquals("the first move at once, the others wait", Arrays.asList("pause", "seek 5000"), stand.calls);
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FeedSeekBar.FOLLOW_MS));
-        assertEquals("then where the finger is by then", Arrays.asList("pause", "seek 5000", "seek 7000"), stand.calls);
-
-        listener.onProgressChanged(bar, 8000, true);
-        bar.setProgress(8000);
-        new Listener(bar).stop();
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FeedSeekBar.FOLLOW_MS));
-        assertEquals("letting go seeks and plays, and a move still waiting doesn't come after",
-                Arrays.asList("pause", "seek 5000", "seek 7000", "seek 8000", "play"), stand.calls);
-    }
-
-    /** A post with a strip shows its picture on the card instead, and the video stays where it was paused. */
-    @Test
-    public void aPostWithAStripLeavesTheVideoStill() {
-        Settings.FEED_SEEK_BAR.save(true);
-        Settings.SEEK_PREVIEW.save(true);
-        Map<String, Object> info = new HashMap<>();
-        info.put("sprite_urls", Collections.singletonList("https://example.invalid/sprite.jpg"));
-        info.put("thumbnail_width", 100);
-        info.put("thumbnail_height", 124);
-        info.put("thumbnails_per_row", 15);
-        info.put("max_thumbnails_per_sprite", 105);
-        info.put("thumbnail_duration", 1.1d);
-        stand.sheet = SeekSheet.of(info);
-        assertNotNull(stand.sheet);
-        FeedSeekBar.progress(player, 3000, 15000);
-        SeekBar bar = bar();
-        SeekBar.OnSeekBarChangeListener listener = shadowOf(bar).getOnSeekBarChangeListener();
-        bar.setPressed(true);
-        new Listener(bar).start();
-        listener.onProgressChanged(bar, 5000, true);
-        listener.onProgressChanged(bar, 9000, true);
-        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FeedSeekBar.FOLLOW_MS));
-        assertEquals(Collections.singletonList("pause"), stand.calls);
     }
 
     /** The bar's own drag callbacks, as a finger on it gives them. */

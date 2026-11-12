@@ -50,7 +50,6 @@ import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.PatchFamily;
-import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -595,66 +594,6 @@ public class StoryMentionsTest {
     }
 
     /**
-     * On 454 the header's row is as tall as its tallest box while a one-line name ends far above the
-     * row's foot, so the pill under the row sat a pill's height from the name (#510). It goes a little
-     * under what shows above it instead, and moves when the name grows a second line.
-     */
-    @Test
-    public void thePillSitsCloseUnderANameThatEndsHighInATallRow() {
-        root.removeView(header);
-        LinearLayout column = new LinearLayout(activity);
-        column.setOrientation(LinearLayout.VERTICAL);
-        column.addView(new View(activity), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 3));
-        FrameLayout headerRow = new FrameLayout(activity);
-        // The avatar, to the side: as tall as the name isn't, and nothing that shows over the pill.
-        headerRow.addView(new View(activity), new FrameLayout.LayoutParams(60, 90));
-        header.removeAllViews();
-        View composeTitleRow = new View(activity);
-        header.addView(composeTitleRow, new LinearLayout.LayoutParams(280, 34));
-        header.addView(new FrameLayout(activity), new LinearLayout.LayoutParams(34, 0));
-        FrameLayout.LayoutParams besideTheAvatar = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        besideTheAvatar.leftMargin = 88;
-        headerRow.addView(header, besideTheAvatar);
-        column.addView(headerRow, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 130));
-        root.addView(column);
-        layOut(header);
-
-        bind(ANA);
-
-        StoryMentions.Pill pill = pill();
-        assertNotNull(pill);
-        assertSame("the pill isn't under the header", column, pill.getParent());
-        // The 22dp a phone draws it at, as Robolectric's text measures it all but a whole target.
-        pill.getLayoutParams().height = Dim.dp(22);
-        layOut(pill);
-        idle();
-        layOut(pill);
-        int gap = Dim.dp(4);
-        assertEquals("the pill isn't close under the name", headerRow.getTop() + 34 + gap, pill.getTop());
-        assertEquals("the column grew past the row", headerRow.getBottom(), Math.max(headerRow.getBottom(), pill.getBottom()));
-
-        composeTitleRow.getLayoutParams().height = 80;
-        composeTitleRow.requestLayout();
-        layOut(pill);
-        idle();
-        layOut(pill);
-        assertEquals("the pill didn't move for the second line", headerRow.getTop() + 80 + gap, pill.getTop());
-
-        // In the row's empty foot the finger keeps its room around the pill, and the name is still Instagram's.
-        float[] center = layOut(pill);
-        int[] at = new int[2];
-        pill.getLocationInWindow(at);
-        float onName = at[1] - gap - 1;
-        assertFalse("a tap on the name went to the pill",
-                StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], onName)));
-        float between = at[1] - 1;
-        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], between)));
-        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], between)));
-        assertNotNull("the tap didn't open the list", ShadowDialog.getLatestDialog());
-    }
-
-    /**
      * The pill is drawn small, and a finger gets the room around it, up to the 48dp Android asks of
      * a target. A tap on the name just above it is still Instagram's.
      */
@@ -785,50 +724,6 @@ public class StoryMentionsTest {
         assertNotSame(first, again);
         assertTrue("the list is open again", again.isShowing());
         assertNotNull(find(again.getWindow().getDecorView(), view -> "@bo.k".equals(textOf(view))));
-    }
-
-    /**
-     * #403 on the S22: a post opened from the profile took the last touch, and the pill, whose
-     * context doesn't lead to the story's activity, found no activity to open the list in when Back
-     * came to the story. The list opens in the activity it was left from.
-     */
-    @Test
-    public void theListComesBackAfterATapOnTheProfile() {
-        Context plain = new ContextThemeWrapper(activity.getApplicationContext(), android.R.style.Theme_DeviceDefault);
-        root.removeView(header);
-        header = new LinearLayout(plain);
-        header.setOrientation(LinearLayout.VERTICAL);
-        header.setId(StoryMentions.headerIdForTests);
-        TextView name = new TextView(plain);
-        name.setText("someone");
-        header.addView(name);
-        root.addView(header);
-        bind(ANA, BO);
-        float[] center = layOut(pill());
-        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], center[1])));
-        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], center[1])));
-        AlertDialog first = (AlertDialog) ShadowDialog.getLatestDialog();
-        assertNotNull(first);
-        tapAccount(first, "Ana Lima, @ana");
-        controller.pause();
-        idle();
-
-        ActivityController<Activity> profile = Robolectric.buildActivity(Activity.class).setup();
-        try {
-            assertFalse("a tap on a post is Instagram's", StoryMentions.touch(profile.get(), event(MotionEvent.ACTION_DOWN, 1, 1)));
-            assertFalse(StoryMentions.touch(profile.get(), event(MotionEvent.ACTION_UP, 1, 1)));
-            profile.pause();
-            controller.resume();
-            idle();
-        } finally {
-            profile.close();
-        }
-
-        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
-        assertNotSame(first, again);
-        assertTrue("the list is open again", again.isShowing());
-        String report = HookStatus.report().toString();
-        assertFalse(report, report.contains(StoryMentions.LIST_NO_ACTIVITY));
     }
 
     @Test
@@ -1052,34 +947,6 @@ public class StoryMentionsTest {
         assertSame("and the old list is forgotten", first, ShadowDialog.getLatestDialog());
     }
 
-    /**
-     * #403 again: watching the profile's own story, which mentions other accounts, opens it in a
-     * viewer of its own. That story doesn't end the wait, and the list opens again when the first
-     * story comes back.
-     */
-    @Test
-    public void aStoryOpenedFromTheProfileDoesntEndTheComeBack() {
-        Object viewer = new Object();
-        StoryMentions.viewerShown(viewer);
-        bind(ANA, BO);
-        AlertDialog first = openedList();
-        tapAccount(first, "Ana Lima, @ana");
-        pill().setVisibility(View.GONE);
-        idle();
-
-        StoryMentions.viewerShown(new Object());
-        bind(BO);
-        idle();
-        assertSame("the profile's story doesn't open the list", first, ShadowDialog.getLatestDialog());
-
-        StoryMentions.viewerShown(viewer);
-        bind(ANA, BO);
-        idle();
-        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
-        assertNotSame(first, again);
-        assertTrue("the list is open again", again.isShowing());
-    }
-
     /** The look starts under the name, as the pill was before there was a choice (#468). */
     @Test
     public void theLookStartsUnderTheNameAndIsntASwitch() {
@@ -1143,10 +1010,7 @@ public class StoryMentionsTest {
         assertEquals("1 mention", pill().getText().toString());
     }
 
-    /**
-     * From the top bar the list is a sheet floating just above the bottom, with a Close as wide as
-     * it (#468), a small gap to the screen's sides and bottom (#525).
-     */
+    /** From the top bar the list is a sheet along the bottom, with a Close as wide as it (#468). */
     @Test
     public void theTopBarPillsListIsASheetAlongTheBottom() {
         topBar();
@@ -1158,11 +1022,7 @@ public class StoryMentionsTest {
         assertTrue(dialog.isShowing());
         android.view.WindowManager.LayoutParams window = dialog.getWindow().getAttributes();
         assertEquals(android.view.Gravity.BOTTOM, window.gravity & android.view.Gravity.VERTICAL_GRAVITY_MASK);
-        assertEquals(android.view.Gravity.CENTER_HORIZONTAL, window.gravity & android.view.Gravity.HORIZONTAL_GRAVITY_MASK);
-        int screen = dialog.getContext().getResources().getDisplayMetrics().widthPixels;
-        int gap = Dim.dp(StoryMentions.GLASS_GAP_DP);
-        assertEquals("a gap to each side", Math.min(screen - 2 * gap, Dim.dp(StoryMentions.GLASS_WIDEST_DP)), window.width);
-        assertEquals("and to the bottom", gap, window.y);
+        assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, window.width);
         View content = dialog.getWindow().getDecorView();
         assertNotNull("its title", find(content, view -> "Story mentions".equals(textOf(view))));
         assertNotNull("what it lists", find(content, view -> "Accounts mentioned in this story".equals(textOf(view))));
@@ -1173,69 +1033,6 @@ public class StoryMentionsTest {
         assertEquals("as wide as the sheet", ViewGroup.LayoutParams.MATCH_PARENT, close.getLayoutParams().width);
         assertTrue(close.performClick());
         assertFalse("Close closes it", dialog.isShowing());
-    }
-
-    /**
-     * The sheet is a pane of glass (#525): its window's background is the tint, rounded the same at
-     * every corner so the blur behind it is too, see-through where the phone blurs the story and
-     * nearly solid where it can't. The rows show the glass through them; the centered list's don't.
-     */
-    @Test
-    public void theSheetIsGlassOverTheStory() {
-        topBar();
-        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.TOP_BAR);
-        bind(ANA, BO);
-        boolean canBlur = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S;
-        for (boolean blurring : new boolean[] {true, false}) {
-            StoryMentions.blursForTests = blurring;
-            assertTrue(pill().performClick());
-            AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
-            assertTrue(dialog.isShowing());
-            View decor = dialog.getWindow().getDecorView();
-            android.graphics.drawable.GradientDrawable glass = gradientIn(decor.getBackground());
-            assertNotNull("the window's background is the tint", glass);
-            assertEquals("one corner all round", Dim.dp(StoryMentions.GLASS_CORNER_DP), glass.getCornerRadius(), 0.01f);
-            // The blur behind a window takes its corners from this outline, and only from a round rect.
-            android.graphics.Outline outline = new android.graphics.Outline();
-            glass.setBounds(0, 0, Dim.dp(300), Dim.dp(200));
-            glass.getOutline(outline);
-            assertEquals(Dim.dp(StoryMentions.GLASS_CORNER_DP), outline.getRadius(), 0.01f);
-            int tint = glass.getColor().getDefaultColor();
-            assertEquals("the sheet's own colour", ScreenColors.DEFAULT.dialog & 0x00FFFFFF, tint & 0x00FFFFFF);
-            boolean blurred = blurring && canBlur;
-            assertEquals("see-through only over a blur", blurred ? StoryMentions.GLASS_ALPHA : StoryMentions.CLEAR_ALPHA, tint >>> 24);
-            assertEquals(StoryMentions.GLASS_DIM, dialog.getWindow().getAttributes().dimAmount, 0.001f);
-            View row = find(decor, view -> "Ana Lima, @ana".contentEquals(String.valueOf(view.getContentDescription())));
-            android.graphics.drawable.GradientDrawable card = (android.graphics.drawable.GradientDrawable)
-                    ((android.graphics.drawable.RippleDrawable) row.getBackground()).getDrawable(0);
-            assertEquals("a row lets the glass through", StoryMentions.ROW_GLASS_ALPHA, card.getColor().getDefaultColor() >>> 24);
-            dialog.dismiss();
-        }
-
-        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.UNDER_NAME);
-        bind(ANA, BO);
-        assertTrue(pill().performClick());
-        AlertDialog list = (AlertDialog) ShadowDialog.getLatestDialog();
-        View row = find(list.getWindow().getDecorView(), view -> "Ana Lima, @ana".contentEquals(String.valueOf(view.getContentDescription())));
-        android.graphics.drawable.GradientDrawable card = (android.graphics.drawable.GradientDrawable)
-                ((android.graphics.drawable.RippleDrawable) row.getBackground()).getDrawable(0);
-        assertEquals("the centered list's rows stay solid", ScreenColors.DEFAULT.card, card.getColor().getDefaultColor());
-    }
-
-    /** The gradient [drawable] is, or the one a window wrapped it in (an inset, or a layer under a blur), else null. */
-    private static android.graphics.drawable.GradientDrawable gradientIn(android.graphics.drawable.Drawable drawable) {
-        if (drawable instanceof android.graphics.drawable.GradientDrawable) return (android.graphics.drawable.GradientDrawable) drawable;
-        if (drawable instanceof android.graphics.drawable.DrawableWrapper) {
-            return gradientIn(((android.graphics.drawable.DrawableWrapper) drawable).getDrawable());
-        }
-        if (drawable instanceof android.graphics.drawable.LayerDrawable) {
-            android.graphics.drawable.LayerDrawable layers = (android.graphics.drawable.LayerDrawable) drawable;
-            for (int i = 0; i < layers.getNumberOfLayers(); i++) {
-                android.graphics.drawable.GradientDrawable found = gradientIn(layers.getDrawable(i));
-                if (found != null) return found;
-            }
-        }
-        return null;
     }
 
     /** A row in the sheet opens the profile and the sheet comes back with the story, as the list does. */

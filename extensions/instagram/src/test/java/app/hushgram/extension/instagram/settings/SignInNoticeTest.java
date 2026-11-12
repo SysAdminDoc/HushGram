@@ -40,20 +40,18 @@ public class SignInNoticeTest {
 
     @After
     public void restore() {
-        ScreenColors.shown = null;
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
 
-    /** Search and the view switch stay ahead of the notice, which a tap acts on. */
+    /** The search field precedes the overview notice, which a tap acts on. */
     @Test
-    public void aFreshScreenShowsTheNoticeBelowSearchAndTheViewSwitch() {
+    public void aFreshScreenShowsTheNoticeBelowSearch() {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             PreferenceScreen screen = DownloadSettingsTest.pageIn(controller).getPreferenceScreen();
             assertEquals(SettingsHeader.KEY, screen.getPreference(0).getKey());
             assertEquals("hushgram_settings_search", screen.getPreference(1).getKey());
-            assertEquals("hushgram_view_toggle", screen.getPreference(2).getKey());
-            Preference notice = screen.getPreference(3);
+            Preference notice = screen.getPreference(2);
             assertEquals(HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY, notice.getKey());
             assertEquals("Before you sign in", String.valueOf(notice.getTitle()));
             String summary = String.valueOf(notice.getSummary());

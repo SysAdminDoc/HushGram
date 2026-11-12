@@ -23,8 +23,7 @@ final class UpdatesCategory {
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.BUILD_EXPIRED_POPUP)) {
-            PreferenceCategory updates = category(screen, L10n.t("Version warnings"), SettingsIcons.UPDATES,
-                    L10n.t("Stop Instagram from saying this version is too old."));
+            PreferenceCategory updates = category(screen, L10n.t("Version warnings"), SettingsIcons.UPDATES);
             updates.addPreference(toggle(context, Settings.REMOVE_BUILD_EXPIRED_POPUP,
                     L10n.t("Remove build expired popup"),
                     L10n.t("Instagram stops showing the screen that says this version is too old. A patched build "

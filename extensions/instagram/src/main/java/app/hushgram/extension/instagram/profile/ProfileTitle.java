@@ -157,7 +157,7 @@ public final class ProfileTitle {
         synchronized (IDS) {
             Integer found = IDS.get(name);
             if (found == null) {
-                found = context.getResources().getIdentifier(name, "id", Utils.resourcePackage(context));
+                found = context.getResources().getIdentifier(name, "id", context.getPackageName());
                 IDS.put(name, found);
             }
             return found;

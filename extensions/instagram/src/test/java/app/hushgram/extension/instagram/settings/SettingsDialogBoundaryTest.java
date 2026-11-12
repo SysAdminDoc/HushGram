@@ -101,8 +101,8 @@ public class SettingsDialogBoundaryTest {
                 .setInsets(WindowInsets.Type.systemBars(), Insets.of(0, 24, 0, 30))
                 .setInsets(WindowInsets.Type.ime(), Insets.of(0, 0, 0, 500))
                 .setVisible(WindowInsets.Type.ime(), true).build());
-        assertEquals(24, root.getPaddingTop());
-        assertEquals("the keyboard is taller than the buttons", 500, root.getPaddingBottom());
+        assertEquals(24 + dp(12), root.getPaddingTop());
+        assertEquals("the keyboard is taller than the buttons", 500 + dp(12), root.getPaddingBottom());
         root.measure(View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(1280, View.MeasureSpec.EXACTLY));
         root.layout(0, 0, 640, 1280);
@@ -119,7 +119,7 @@ public class SettingsDialogBoundaryTest {
 
         root.dispatchApplyWindowInsets(new WindowInsets.Builder()
                 .setInsets(WindowInsets.Type.systemBars(), Insets.of(0, 24, 0, 30)).build());
-        assertEquals("the keyboard closed", 30, root.getPaddingBottom());
+        assertEquals("the keyboard closed", 30 + dp(12), root.getPaddingBottom());
     }
 
     @Test @Config(sdk = 28, qualifiers = "ar-rEG-ldrtl-w320dp-h640dp-xhdpi")
@@ -197,7 +197,7 @@ public class SettingsDialogBoundaryTest {
         assertTrue("recovery must leave focus in the ordinary page",
                 page.getView().findViewById(android.R.id.list).hasFocus());
         ShadowLooper.idleMainLooper();
-        // The page's own header names it with Black settings page on, and the bar's title steps aside.
+        // The section-page header owns the title while the window title bar steps aside.
         assertTrue("a screen reader must return to the page heading",
                 dialog.getView().findViewWithTag(SettingsHeader.NAME).isAccessibilityFocused());
         assertNull(text(dialog.getView(), "Retry"));
@@ -368,6 +368,78 @@ public class SettingsDialogBoundaryTest {
         }
     }
 
+    private int dp(int value) {
+        return Math.round(value * RuntimeEnvironment.getApplication().getResources().getDisplayMetrics().density);
+    }
+
+    @Test @Config(sdk = 37, qualifiers = "w800dp-h900dp-xhdpi")
+    public void wideSettingsColumnIsCenteredAndCappedAtTheReferenceWidth() {
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = new SettingsDialog();
+        dialog.show(controller.get().getFragmentManager(), "wide_settings");
+        controller.get().getFragmentManager().executePendingTransactions();
+        ViewGroup root = (ViewGroup) dialog.getView();
+        assertNotNull(root);
+        root.dispatchApplyWindowInsets(new WindowInsets.Builder()
+                .setInsets(WindowInsets.Type.systemBars(), Insets.of(0, 0, 0, 0)).build());
+        int width = dp(800);
+        root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(dp(900), View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, width, dp(900));
+        int expectedSide = (width - dp(620)) / 2;
+        assertEquals(expectedSide, root.getPaddingLeft());
+        assertEquals(expectedSide, root.getPaddingRight());
+        assertEquals(dp(620), root.getWidth() - root.getPaddingLeft() - root.getPaddingRight());
+        assertEquals(dp(12), root.getPaddingTop());
+        assertEquals(dp(12), root.getPaddingBottom());
+    }
+
+    @Test @Config(sdk = 37)
+    public void attachedWindowPolicyClearsLightSystemBarIconsRequestedByTheHost() {
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = new SettingsDialog();
+        dialog.show(controller.get().getFragmentManager(), "attached_edge_to_edge_settings");
+        controller.get().getFragmentManager().executePendingTransactions();
+        android.view.Window window = dialog.getDialog().getWindow();
+        assertNotNull(window);
+        android.view.WindowInsetsController insets = window.getInsetsController();
+        assertNotNull("the attached window must expose its controller", insets);
+        int lightIcons = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+        insets.setSystemBarsAppearance(lightIcons, lightIcons);
+
+        SettingsDialog.styleEdgeToEdgeWindow(window, ScreenColors.current().background);
+
+        assertEquals("the settings surface must restore light icons to their dark-window defaults",
+                0, insets.getSystemBarsAppearance() & lightIcons);
+    }
+
+    @Test @Config(sdk = {28, 29, 37})
+    public void settingsWindowUsesDarkEdgeToEdgeSystemBars() {
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = new SettingsDialog();
+        dialog.show(controller.get().getFragmentManager(), "edge_to_edge_settings");
+        controller.get().getFragmentManager().executePendingTransactions();
+        android.view.Window window = dialog.getDialog().getWindow();
+        assertNotNull(window);
+        assertEquals(android.graphics.Color.TRANSPARENT, window.getStatusBarColor());
+        assertEquals(android.graphics.Color.TRANSPARENT, window.getNavigationBarColor());
+        assertEquals(android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES,
+                window.getAttributes().layoutInDisplayCutoutMode);
+        assertTrue((window.getAttributes().flags
+                & android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS) != 0);
+        assertEquals(0f, window.getAttributes().dimAmount, 0.001f);
+        int systemUi = window.getDecorView().getSystemUiVisibility();
+        if (Build.VERSION.SDK_INT < 30) {
+            int lightIcons = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            assertEquals(0, systemUi & lightIcons);
+            int layoutFlags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+            assertEquals("legacy Android must draw edge-to-edge behind transparent bars", layoutFlags,
+                    systemUi & layoutFlags);
+        }
+    }
+
     private void checkInsets(boolean rtl) throws Exception {
         assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
         controller = Robolectric.buildActivity(Activity.class).setup().visible();
@@ -391,9 +463,9 @@ public class SettingsDialogBoundaryTest {
                 View.MeasureSpec.makeMeasureSpec(1280, View.MeasureSpec.EXACTLY));
         root.layout(0, 0, 640, 1280);
         assertEquals(11, root.getPaddingLeft());
-        assertEquals(24, root.getPaddingTop());
+        assertEquals(24 + dp(12), root.getPaddingTop());
         assertEquals(13, root.getPaddingRight());
-        assertEquals(30, root.getPaddingBottom());
+        assertEquals(30 + dp(12), root.getPaddingBottom());
         ViewGroup header = (ViewGroup) root.getChildAt(0);
         View back = header.getChildAt(0);
         TextView title = (TextView) header.getChildAt(1);

@@ -1907,8 +1907,8 @@
         "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
       },
       "contaminatedBy": null,
-      "disposition": "candidate",
-      "reason": "GPL-3.0. FeurStagram's code (the com.feurstagram packages, with FeurStagram's licence commit add4e886 in its history) republished as Oxbow with prebuilt APKs. Not a GitHub fork. v1.2.0 lists 18 Instagram patches on 453.0.0.55.79; next to the ones FeurStagram's entry records it adds Download media, Ghost mode, Clean share links, Hide Meta AI and Comments and endless scroll.",
+      "disposition": "behavior-only",
+      "reason": "Reference for the settings redesign, including the switch geometry, animation timing, and interaction behavior. The exact ExpressiveSwitch reference is https://github.com/aic0d3r/oxbow/blob/d025ce9f0548a20abe17530f2b9ebd29a46f0486/extensions/extension/src/main/java/com/feurstagram/extension/ExpressiveSwitch.java. HushGram maintains its own switch integration: every change goes through the HushGram Preference listener, lock checks and saved state, including rollback when a change is rejected. No Oxbow configuration model, patch implementation, or binaries are imported. Keep the reference pinned for attribution and review.",
       "archived": false,
       "forks": [],
       "contentHashes": [],
@@ -2126,7 +2126,7 @@
       ],
       "branches": [
         {
-          "name": "\u0063laude/instagram-reels-patch-plan-eyz76g",
+          "name": "claude/instagram-reels-patch-plan-eyz76g",
           "commit": "b9bc02e6f089a64cb5ee7d8630cb68a74f6dd303"
         }
       ],
@@ -4738,7 +4738,6 @@
         "Ask before a refresh",
         "Back leaves Home",
         "Blur the bars around Reels",
-        "Call blocker",
         "Change the like animation",
         "Change version code",
         "Clean up Reels",
@@ -4765,9 +4764,7 @@
         "Hide AI-labeled reels",
         "Hide Follow on feed posts",
         "Hide Follow on stories",
-        "Hide GIFs in comments",
         "Hide Instants",
-        "Hide Made with Edits",
         "Hide Meta AI",
         "Hide Notes on profile pictures",
         "Hide Reels in the feed",
@@ -4775,7 +4772,6 @@
         "Hide comments",
         "Hide group buttons on the share sheet",
         "Hide highlights",
-        "Hide lives in Reels",
         "Hide paid partnership Reels",
         "Hide profile tabs",
         "Hide reels by caption words",
@@ -4800,14 +4796,12 @@
         "Keep a seek bar on Reels",
         "Keep in chat",
         "Keep the reel speed",
-        "Keep the tab bar on a reel's profile",
         "Lock your messages",
         "Long press to zoom",
         "Loop a story",
         "Message box buttons",
         "Open comments without the keyboard",
         "Open links in external browser",
-        "Open reel links on that reel",
         "Profile posts as a list",
         "Pure black dark mode",
         "Read messages without the seen receipt",
@@ -4819,7 +4813,6 @@
         "Rounded post corners",
         "Sanitize sharing links",
         "Save comment photo",
-        "Save in the post menu",
         "Save profile picture",
         "Saved on your profile",
         "See who a story mentions",
@@ -4853,8 +4846,7 @@
         "Use the system photo picker",
         "View DM photos and videos anonymously",
         "View live anonymously",
-        "View stories anonymously",
-        "Watch again in the feed"
+        "View stories anonymously"
       ],
       "branches": [
         {

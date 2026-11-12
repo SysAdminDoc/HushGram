@@ -34,8 +34,7 @@ final class PauseCategory {
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         // Named for its rows: the screen's own title already says HushGram. It folds like the others,
         // and opens by itself while paused, locked or showing an interrupted save.
-        PreferenceCategory hushgram = category(screen, L10n.t("Pause and diagnostics"), SettingsIcons.PAUSE,
-                L10n.t("Pause HushGram, lock these settings, or make a report when something breaks."));
+        PreferenceCategory hushgram = category(screen, L10n.t("Pause and diagnostics"), SettingsIcons.PAUSE);
         page.recovery = hushgram;
         hushgram.addPreference(mark(toggle(context, BaseSettings.PAUSED, L10n.t("Pause HushGram"),
                 L10n.t("From the next start, every switch but Debug logging acts as if it were off. "

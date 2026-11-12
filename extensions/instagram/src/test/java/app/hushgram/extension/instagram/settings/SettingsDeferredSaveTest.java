@@ -55,7 +55,6 @@ public class SettingsDeferredSaveTest {
     @After public void restore() {
         resetLocks();
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
     }
 
     @Test public void aSavedPinDoesNotSelectPinUnlockWhenThatChoiceFailsToSave() {

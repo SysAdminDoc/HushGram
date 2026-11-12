@@ -27,7 +27,6 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
-import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -122,30 +121,16 @@ class HomeFeedTypesHookTest {
     /** Media's user getter, as 438 names it. */
     private fun userGetter(flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) = mediaGetter("A3R", "user", USER, flags)
 
-    /**
-     * The user's class with its username getter, as 438 names it, and its is_professional_account and
-     * account_type getters, as 454 names them, unless [accountType] is false.
-     */
-    private fun user(
-        classFlags: Int = AccessFlags.PUBLIC.value,
-        getterFlags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value,
-        accountType: Boolean = true,
-    ) = ImmutableClassDef(
-        USER, classFlags, "Ljava/lang/Object;", null, null, null, null,
-        listOf(getter(USER, "A89", "username", "Ljava/lang/String;", getterFlags)) + if (!accountType) emptyList() else listOf(
-            getter(USER, "A5X", "is_professional_account", "Ljava/lang/Boolean;", getterFlags),
-            getter(USER, "A6G", "account_type", "Ljava/lang/Integer;", getterFlags),
-        ),
-    )
+    /** The user's class with its username getter, as 438 names it. */
+    private fun user(classFlags: Int = AccessFlags.PUBLIC.value, getterFlags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) =
+        ImmutableClassDef(
+            USER, classFlags, "Ljava/lang/Object;", null, null, null, null,
+            listOf(getter(USER, "A89", "username", "Ljava/lang/String;", getterFlags)),
+        )
 
-    /** Media's coauthor_producers getter, as 454 names it. */
-    private fun coauthorsGetter() = mediaGetter("A8y", "coauthor_producers", "Ljava/util/List;")
-
-    /** Media as the stubs read it: like_count beside media_type, has_liked, user and coauthor_producers. */
+    /** Media as the stubs read it: like_count beside media_type, has_liked and user. */
     private fun media(
-        getters: List<Method> = listOf(
-            integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type"), likedGetter(), userGetter(), coauthorsGetter(),
-        ),
+        getters: List<Method> = listOf(integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type"), likedGetter(), userGetter()),
     ) = type(MEDIA, *getters.toTypedArray())
 
     /**
@@ -452,73 +437,6 @@ class HomeFeedTypesHookTest {
         assertTrue("the body uses p0 alone", code.take(9).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
     }
 
-    /**
-     * Hide posts from business and creator accounts' stubs: two take a post and answer its user and
-     * its coauthor_producers, the accounts on a collab post (Instagram 454 sends a collab post's user
-     * as a bare record, the account you follow among the coauthors). Two take a user and answer its
-     * is_professional_account plus one (2 for a business or creator account, 1 for a personal one)
-     * and its account_type, each returning 0 on its own when the user doesn't say (#579).
-     */
-    @Test
-    fun theProfessionalStubsReadThePostsAccountsAndTheirTypes() {
-        val context = PatchContexts.of(classes())
-
-        requireNotNull(context.homeProfessionalOrWarn()).write()
-
-        for ((name, getter) in listOf("postUser" to "A3R()$USER", "coauthors" to "A8y()Ljava/util/List;")) {
-            val code = stub(context, name)
-            assertEquals(
-                name,
-                listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
-                code.take(4).map { it.opcode },
-            )
-            assertEquals(name, MEDIA, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
-            assertEquals(name, "$MEDIA->$getter", ((code[1] as ReferenceInstruction).reference as MethodReference).toString())
-            val p0 = (code[0] as OneRegisterInstruction).registerA
-            assertTrue("$name uses p0 alone", code.take(4).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
-        }
-
-        val reads = listOf(
-            Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN,
-            Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT,
-        )
-        for ((name, getter, unbox) in listOf(
-            Triple("professional", "A5X()Ljava/lang/Boolean;", "Ljava/lang/Boolean;->booleanValue()Z"),
-            Triple("accountType", "A6G()Ljava/lang/Integer;", "Ljava/lang/Integer;->intValue()I"),
-        )) {
-            val code = stub(context, name)
-            val ends = if (name == "professional") listOf(Opcode.ADD_INT_LIT8, Opcode.RETURN) else listOf(Opcode.RETURN)
-            assertEquals(name, reads + ends, code.take(reads.size + ends.size).map { it.opcode })
-            assertEquals(name, USER, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
-            assertEquals(name, "$USER->$getter", ((code[1] as ReferenceInstruction).reference as MethodReference).toString())
-            assertEquals(name, unbox, ((code[6] as ReferenceInstruction).reference as MethodReference).toString())
-            if (name == "professional") assertEquals(1, (code[8] as NarrowLiteralInstruction).narrowLiteral)
-            val p0 = (code[0] as OneRegisterInstruction).registerA
-            assertTrue("$name uses p0 alone", code.take(reads.size + ends.size).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
-        }
-    }
-
-    /**
-     * A user whose account type the extension can't read leaves Hide posts from business and creator
-     * accounts out, its stubs as built, and the other type switches in.
-     */
-    @Test
-    fun aUserWithoutAnAccountTypeKeepsTheOtherTypeSwitches() {
-        val asBuilt = ExtensionDex.classDef(FEED_SUGGESTIONS).methods.single { it.name == "professional" }.instructions().map { it.opcode }
-        val context = PatchContexts.of(classes().map { if (it.type == USER) user(accountType = false) else it })
-
-        assertNull(context.homeProfessionalOrWarn())
-        requireNotNull(context.homeFeedTypesOrWarn()).write()
-
-        assertEquals(asBuilt, stub(context, "professional").map { it.opcode })
-        assertEquals(asBuilt, stub(context, "accountType").map { it.opcode })
-        for (name in listOf("postUser", "coauthors")) {
-            val built = ExtensionDex.classDef(FEED_SUGGESTIONS).methods.single { it.name == name }.instructions().map { it.opcode }
-            assertEquals(name, built, stub(context, name).map { it.opcode })
-        }
-        assertEquals(Opcode.CHECK_CAST, stub(context, "liked").first().opcode)
-    }
-
     /** With Hide the home feed in too, each read goes through both filters once, whichever applied first. */
     @Test
     fun besideHideTheHomeFeedEachReadPassesBothFiltersOnce() {
@@ -644,8 +562,7 @@ class HomeFeedTypesHookTest {
     /**
      * On every build of the declared version, the declared bundle and each other build alike, Media
      * is public and has exactly one public getter answering media_type as an Integer, one answering
-     * has_liked as a Boolean, one answering user as a User and one answering coauthor_producers as a
-     * List, and User is public with one public
+     * has_liked as a Boolean and one answering user as a User, and User is public with one public
      * getter answering username, the getters the stubs call.
      */
     @Test
@@ -664,8 +581,6 @@ class HomeFeedTypesHookTest {
             for ((owner, field, returns) in listOf(
                 Triple(MEDIA, "media_type", "Ljava/lang/Integer;"), Triple(MEDIA, "has_liked", "Ljava/lang/Boolean;"),
                 Triple(MEDIA, "user", USER), Triple(USER, "username", "Ljava/lang/String;"),
-                Triple(USER, "is_professional_account", "Ljava/lang/Boolean;"), Triple(USER, "account_type", "Ljava/lang/Integer;"),
-                Triple(MEDIA, "coauthor_producers", "Ljava/util/List;"),
             )) {
                 val getter = context.pandoGetter("test", owner, field, returns)
                 assertTrue("$where: ${getter.name} for $field is public", AccessFlags.PUBLIC.isSet(getter.accessFlags))

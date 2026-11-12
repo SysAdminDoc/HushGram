@@ -48,7 +48,6 @@ public class ChildControlAvailabilityTest {
 
     @After public void restore() {
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
         PauseForTests.resume();
         Settings.START_ON_FOLLOWING.resetToDefault();
         Settings.ONLY_FOLLOWING.resetToDefault();
@@ -138,17 +137,6 @@ public class ChildControlAvailabilityTest {
         } finally {
             Settings.STORY_SEEK_BAR.resetToDefault();
             Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
-        }
-    }
-
-    @Test public void storySeekBarPositionKeepsItsSavedChoiceAcrossParentChanges() {
-        Settings.STORY_SEEK_BAR_POSITION.save(app.hushgram.extension.instagram.stories.StorySeekBarPosition.BELOW);
-        try {
-            checkParent(Settings.STORY_SEEK_BAR, Settings.STORY_SEEK_BAR_POSITION, PatchFamily.STORY_SEEK_BAR,
-                    "Turn on Seek bar on stories to use this choice.", "BELOW");
-        } finally {
-            Settings.STORY_SEEK_BAR.resetToDefault();
-            Settings.STORY_SEEK_BAR_POSITION.resetToDefault();
         }
     }
 

@@ -111,32 +111,6 @@ public class ReelSeekBarTest {
         assertFalse("the hooks were counted", HookStatus.snapshot().isEmpty());
     }
 
-    /**
-     * Always show seek bar in clear mode (#480) keeps the bar on short reels too, since clear mode
-     * would otherwise leave them without one, but brings no time label with it.
-     */
-    @Test
-    public void alwaysShowingItInClearModeKeepsTheBarButNotTheLabel() {
-        Settings.REEL_SEEK_BAR.save(false);
-        Settings.CLEAR_MODE_SEEK_BAR.save(true);
-        try {
-            assertEquals(1L, ReelSeekBar.minSeconds(30L));
-            assertFalse(ReelSeekBar.lazy(1));
-            FrameLayout container = container();
-            SeekBar bar = bar(container, 55_000);
-            ReelSeekBar.progress(bar, 10_000);
-            layout(container);
-            assertNull("no label of its own", ReelTimeLabel.labelOf(bar));
-
-            BaseSettings.PAUSED.save(true);
-            PauseForTests.pause(HushgramPause.Reason.SWITCH);
-            assertEquals("paused, Instagram's length stands", 30L, ReelSeekBar.minSeconds(30L));
-            assertTrue("paused, Instagram's hidden kind stands", ReelSeekBar.lazy(1));
-        } finally {
-            Settings.CLEAR_MODE_SEEK_BAR.resetToDefault();
-        }
-    }
-
     /** Off, paused or before the settings are read, Instagram's answers stand and the label is hidden. */
     @Test
     public void offPausedAndUnreadyLeaveInstagramsAnswers() {
@@ -903,40 +877,6 @@ public class ReelSeekBarTest {
         assertEquals("off", 3_000, bar.getProgress());
         assertTrue(HookStatus.report().toString(),
                 HookStatus.report().toString().contains(ReelTimeLabel.COUNT_STARTED_OVER + " 1"));
-        assertNothingFailed();
-    }
-
-    /**
-     * Instagram 454 tags the container clips_scrubber_ only on some screens, so the drag preview found
-     * no reel and showed no picture. The binder now hands over the reel item's id itself: with no tag,
-     * the bar's reel is that id, a new id starts the bar over, and a photo's song length finds its bar by it.
-     */
-    @Test
-    public void aReelBoundByIdWithNoTagIsKnown() {
-        FrameLayout host = host();
-        FrameLayout container = scrubber(host, 55_000, false);
-        SeekBar bar = barIn(container);
-        assertNull("no tag and no id", ReelTimeLabel.reelOf(bar));
-
-        ReelTimeLabel.bindReel(container, "1");
-        ReelSeekBar.bind(container, 0);
-        assertEquals(ReelTimeLabel.REEL_TAG_PREFIX + "1", ReelTimeLabel.reelOf(bar));
-        bar.setProgress(20_000);
-        ReelSeekBar.progress(bar, 20_000);
-
-        ReelTimeLabel.bindReel(container, "2");
-        ReelSeekBar.bind(container, 0);
-        assertEquals("another reel starts at 0", 0, bar.getProgress());
-        ReelTimeLabel.sizeBars(ReelTimeLabel.REEL_TAG_PREFIX + "2", 30_000);
-        assertEquals("a photo's song length finds its bar by the id", 30_000, bar.getMax());
-
-        // Tagged too: the binder's id answers, since it's there on every screen.
-        container.setTag(ReelTimeLabel.REEL_TAG_PREFIX + "3");
-        assertEquals(ReelTimeLabel.REEL_TAG_PREFIX + "2", ReelTimeLabel.reelOf(bar));
-
-        // The stub unfilled, as on a build the patch couldn't fill it in: the id is let go and the tag answers.
-        ReelSeekBar.bindReel(container, new Object());
-        assertEquals(ReelTimeLabel.REEL_TAG_PREFIX + "3", ReelTimeLabel.reelOf(bar));
         assertNothingFailed();
     }
 

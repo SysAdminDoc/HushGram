@@ -83,7 +83,7 @@ val skipCollectionsTrayPatch = bytecodePatch(
         "start a collection. Starts off. Turn it on in HushGram settings > Feed.",
     default = true,
 ) {
-    category("Fixes")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

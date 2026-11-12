@@ -6,29 +6,14 @@ package app.morphe.patches.instagram.feed.seekbar
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
-import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
-import app.morphe.patcher.util.smali.ExternalLabel
-import app.morphe.patches.instagram.download.IMAGE_INFO
-import app.morphe.patches.instagram.download.PANDO_IMAGE_INFO
-import app.morphe.patches.instagram.download.pandoGetter
-import app.morphe.patches.instagram.download.throughInterface
 import app.morphe.patches.instagram.feed.tabswipe.stopTabSwipingPatch
-import app.morphe.patches.instagram.feed.zoom.GESTURE_DETECTOR
-import app.morphe.patches.instagram.feed.zoom.MEDIA_FRAME
-import app.morphe.patches.instagram.feed.zoom.listenerOf
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.classesCalling
-import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
-import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.loadsString
-import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -46,8 +31,6 @@ private const val PATCH = "Seek bar on feed videos"
 internal const val FEED_SEEK_BAR = "$EXTENSION_PACKAGE/feed/FeedSeekBar;"
 internal const val FEED_SEEK_READER = "$EXTENSION_PACKAGE/feed/FeedSeekReader;"
 internal const val FEED_PROGRESS = "$FEED_SEEK_BAR->progress(Ljava/lang/Object;II)V"
-internal const val FEED_DOUBLE_TAP_SKIP = "$EXTENSION_PACKAGE/feed/FeedDoubleTapSkip;"
-internal const val FEED_DOUBLE_TAP_HOOK = "$FEED_DOUBLE_TAP_SKIP->doubleTap(Landroid/view/View;Landroid/view/MotionEvent;)Z"
 
 /**
  * The report the feed's video player, IgFeedVideoPlayer, makes when a video's cover stays up while
@@ -59,17 +42,6 @@ internal const val SEEK_LISTENER = "Landroid/widget/SeekBar\$OnSeekBarChangeList
 private const val OBJECT = "Ljava/lang/Object;"
 private const val STRING = "Ljava/lang/String;"
 private const val VIEW = "Landroid/view/View;"
-private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
-private const val MAP = "Ljava/util/Map;"
-internal const val FEED_MEDIA = "Lcom/instagram/feed/media/Media;"
-internal const val SPRITESHEET_INFO = "Lcom/instagram/api/schemas/SpritesheetInfo;"
-
-/** A post's picture sizes keep a reel's strip under these, read through the tree-backed class. */
-internal const val SPRITE_CANDIDATES = "Lcom/instagram/api/schemas/SpriteSheetInfoCandidates;"
-internal const val PANDO_SPRITE_CANDIDATES = "Lcom/instagram/api/schemas/ImmutablePandoSpriteSheetInfoCandidates;"
-
-/** The name of the sprite images among the ones Instagram's JSON gives a video's picture strip, held by the method turning it into a map. */
-internal const val SPRITE_URLS = "sprite_urls"
 
 /** The reasons Instagram's feed scrubber pauses and plays its player with when a drag starts and lets go. */
 internal const val SEEK_PAUSE_REASON = "seek"
@@ -96,15 +68,6 @@ internal const val SEEK_PLAY_REASON = "start"
  * The main tabs' pager takes a sideways drag on the bar whatever the bar asks its parents, so the
  * patch brings [stopTabSwipingPatch]'s hooks, and a finger on the bar holds the tabs through them
  * until it lifts, that patch's switch on or off.
- *
- * Double tap to skip on feed videos (#562) rides on the same player and stubs: the gesture listener
- * each feed post's media frame keeps (the one Long press to zoom finds) hands every double tap to
- * FeedDoubleTapSkip first, with the frame and the tap, and returns true on a yes, before Instagram
- * likes the post. See [findFeedDoubleTap].
- *
- * The seek bar shape also draws a story's progress segments and the seek bar of a video opened from
- * a chat (#630). See [findStoryBarShape] and [findChatVideoShape]; a build without either goes in
- * with that one left as Instagram draws it.
  */
 @Suppress("unused")
 val feedSeekBarPatch = bytecodePatch(
@@ -112,10 +75,7 @@ val feedSeekBarPatch = bytecodePatch(
     description = "Shows a bar along the bottom of the video playing in your feed that you can drag to jump to any " +
         "point in it. Starts off. Turn it on in HushGram settings > Feed. Another switch there adds a small button " +
         "on the video that shows or hides the bar, and a choice under it makes the bar see-through or puts it on " +
-        "frosted glass. Another puts the bar right on the video's bottom edge, where a scroll is less likely to catch " +
-        "it. One more lets a double tap on the left or right side of the video go back or ahead 10 seconds, " +
-        "while the middle still likes the post. Two more choose a shape for every seek bar, story progress segments " +
-        "and videos in chats included, and show a preview above your finger while you drag one.",
+        "frosted glass.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, stopTabSwipingPatch)
@@ -123,78 +83,9 @@ val feedSeekBarPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("feedSeekBar")
-        val seek = findFeedSeek()
-        val tap = findFeedDoubleTap()
-        val sheet = findFeedSeekSheet(seek)
-        val storyBar = findStoryBarShape()
-        val chatVideo = findChatVideoShape()
-        hookFeedSeek(seek)
-        hookFeedSeekSheet(seek, sheet)
-        hookFeedDoubleTap(tap)
-        storyBar?.let { hookStoryBarShape(it) }
-        chatVideo?.let { hookChatVideoShape(it) }
+        hookFeedSeek(findFeedSeek())
         enableStatus("feedSeekBar")
     }
-}
-
-/** The feed post gesture listener's double tap and the two reads the hook makes to reach the post's media frame (#562). */
-internal class FeedDoubleTapSite(val tap: Method, val holderField: FieldReference, val frameField: FieldReference)
-
-/**
- * The feed post's gesture listener is the one Long press to zoom finds: the listener kept by the one
- * class that makes a GestureDetector and also keeps a MediaFrameLayout and a Media. Its
- * onDoubleTap(MotionEvent) reads its holder and the holder's frame itself, once each, which is also
- * what proves the hook may read them. Nothing may jump back to its start, it needs two locals for
- * the hook to borrow before Instagram's code writes them, and it mustn't call the extension yet.
- */
-internal fun BytecodePatchContext.findFeedDoubleTap(): FeedDoubleTapSite {
-    val holders = classesCalling(GESTURE_DETECTOR, "<init>").filter { listenerOf(it) != null }
-    val holder = holders.singleOrNull()
-        ?: refuse("expected one class making a GestureDetector that keeps a media frame, a Media and a gesture listener, found ${holders.size}")
-    val listener = listenerOf(holder)!!
-    val taps = listener.methods.filter {
-        it.name == "onDoubleTap" && !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null && it.shape() == "($MOTION_EVENT)Z"
-    }
-    val tap = taps.singleOrNull() ?: refuse("expected ${listener.type} to hold one onDoubleTap, found ${taps.size}")
-    val where = "${listener.type}->${tap.name}"
-    val code = tap.code()
-    if (code.any { it.method()?.definingClass == FEED_DOUBLE_TAP_SKIP }) refuse("$where already calls $FEED_DOUBLE_TAP_SKIP")
-    if (0 in tap.jumpTargets()) refuse("something in $where jumps back to its start")
-    if (tap.localRegisterCount() < 2) refuse("$where has ${tap.localRegisterCount()} locals, and the hook borrows two")
-    fun read(owner: String, type: String): FieldReference {
-        val reads = code.filter { it.opcode == Opcode.IGET_OBJECT }.mapNotNull { it.field() }
-            .filter { it.definingClass == owner && it.type == type }.distinctBy(Any::toString)
-        return reads.singleOrNull() ?: refuse("expected $where to read one $type field of $owner, found ${reads.size}")
-    }
-    return FeedDoubleTapSite(tap, read(listener.type, holder.type), read(holder.type, MEDIA_FRAME))
-}
-
-/**
- * First thing in the double tap, in two locals nothing has written yet: read the holder and its frame,
- * ask [FEED_DOUBLE_TAP_HOOK] with the frame and the tap, and answer true on a yes. A no, or a listener
- * without its holder, goes on with Instagram's own double tap exactly as it was.
- */
-internal fun BytecodePatchContext.hookFeedDoubleTap(site: FeedDoubleTapSite) {
-    mutableClassDefBy(site.tap.definingClass).methods
-        .single { it.name == site.tap.name && it.shape() == site.tap.shape() && !AccessFlags.STATIC.isSet(it.accessFlags) }
-        .apply {
-            addInstructionsWithLabels(
-                0,
-                """
-                    move-object/from16 v0, p0
-                    iget-object v0, v0, ${site.holderField}
-                    if-eqz v0, :stock
-                    iget-object v0, v0, ${site.frameField}
-                    move-object/from16 v1, p1
-                    invoke-static { v0, v1 }, $FEED_DOUBLE_TAP_HOOK
-                    move-result v0
-                    if-eqz v0, :stock
-                    const/4 v0, 0x1
-                    return v0
-                """,
-                ExternalLabel("stock", getInstruction(0)),
-            )
-        }
 }
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
@@ -310,127 +201,6 @@ internal fun BytecodePatchContext.findFeedSeek(): FeedSeekSites {
             ?: refuse("$FEED_SEEK_READER has no static $name$shape")
     }
     return FeedSeekSites(player.type, callback.name, item, holder, view, controller, seek, pause, play)
-}
-
-/**
- * Where a feed video's post is kept, and how its picture strip is got and turned into a map.
- * [scrubber] is the chain of calls reading the strip kept with the post's picture sizes, or null
- * when this build's can't be told.
- */
-internal class SeekSheetSites(val media: FieldReference, val getter: Method, val builder: Method, val scrubber: List<String>?)
-
-/**
- * Finds what the preview needs to read a video's picture strip (#567), before anything changes:
- *
- * - the one Object field the progress callback reads and at once casts to a Media, the item's post;
- * - Media's one no-argument getter of the [SPRITESHEET_INFO];
- * - the one public static method holding [SPRITE_URLS] that turns a [SPRITESHEET_INFO] into a map under the names in
- *   the JSON Instagram sends, the way the app writes it out to its own cache;
- * - all of it public, so the extension's stubs may reach it, and the stubs themselves.
- *
- * Reels leave that getter's strip null and keep theirs with the post's picture sizes instead, under
- * `image_versions2.scrubber_spritesheet_info_candidates.default` (#567). Only the preview reads it, so
- * a build where that chain can't be told logs why and goes in with the post's own strip alone.
- */
-internal fun BytecodePatchContext.findFeedSeekSheet(found: FeedSeekSites): SeekSheetSites {
-    val player = classDefByOrNull(found.player) ?: refuse("this build has no ${found.player}")
-    val code = player.methods.single { it.name == found.progress && it.shape() == "(IIZ)V" && !AccessFlags.STATIC.isSet(it.accessFlags) }.code()
-    val posts = code.withIndex().filter { (at, instruction) ->
-        instruction.opcode == Opcode.IGET_OBJECT && instruction.field()?.type == OBJECT &&
-            code.getOrNull(at + 1)?.let { it.opcode == Opcode.CHECK_CAST && (it as ReferenceInstruction).reference.toString() == FEED_MEDIA } == true
-    }.mapNotNull { it.value.field() }.distinctBy(Any::toString)
-    val media = posts.singleOrNull() ?: refuse("expected ${found.player}->${found.progress} to read one Object field it casts to a Media, found ${posts.size}")
-    (classDefByOrNull(media.definingClass) ?: refuse("this build has no ${media.definingClass}")).apply {
-        requirePublic()
-        requirePublicField(media)
-    }
-
-    val mediaClass = classDefByOrNull(FEED_MEDIA) ?: refuse("this build has no $FEED_MEDIA")
-    mediaClass.requirePublic()
-    val getters = mediaClass.methods.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.shape() == "()$SPRITESHEET_INFO" }
-    val getter = getters.singleOrNull() ?: refuse("expected $FEED_MEDIA to have one getter of its $SPRITESHEET_INFO, found ${getters.size}")
-    if (!AccessFlags.PUBLIC.isSet(getter.accessFlags)) refuse("$FEED_MEDIA->${getter.name} isn't public")
-
-    val builders = classesLoadingString(SPRITE_URLS).filter { AccessFlags.PUBLIC.isSet(it.accessFlags) }.flatMap { it.methods }.filter {
-        AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) && it.shape() == "($SPRITESHEET_INFO)$MAP" && loadsString(it, SPRITE_URLS)
-    }
-    val builder = builders.singleOrNull() ?: refuse("expected one public static method turning a $SPRITESHEET_INFO into a map, found ${builders.size}")
-
-    val reader = classDefByOrNull(FEED_SEEK_READER) ?: refuse("the extension has no $FEED_SEEK_READER")
-    SHEET_STUBS.forEach { (name, shape) ->
-        reader.methods.singleOrNull { it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.shape() == shape }
-            ?: refuse("$FEED_SEEK_READER has no static $name$shape")
-    }
-    return SeekSheetSites(media, getter, builder, findScrubberSheet())
-}
-
-/** The calls from a post to the strip kept with its picture sizes, each on the one before's answer, or null after the log says why. */
-private fun BytecodePatchContext.findScrubberSheet(): List<String>? = try {
-    listOf(IMAGE_INFO, PANDO_IMAGE_INFO, SPRITE_CANDIDATES, PANDO_SPRITE_CANDIDATES).firstOrNull { classDefByOrNull(it) == null }
-        ?.let { throw PatchException("$PATCH: this build has no $it") }
-    val images = pandoGetter(PATCH, FEED_MEDIA, "image_versions2", IMAGE_INFO)
-    if (!AccessFlags.PUBLIC.isSet(images.accessFlags)) throw PatchException("$PATCH: $FEED_MEDIA->${images.name} isn't public")
-    listOf(
-        "invoke-virtual {p0}, $FEED_MEDIA->${images.name}()$IMAGE_INFO",
-        throughInterface(PATCH, IMAGE_INFO, PANDO_IMAGE_INFO, "scrubber_spritesheet_info_candidates", SPRITE_CANDIDATES),
-        throughInterface(PATCH, SPRITE_CANDIDATES, PANDO_SPRITE_CANDIDATES, "default", SPRITESHEET_INFO),
-    )
-} catch (unknown: PatchException) {
-    patchLog.warning("${unknown.message}. $PATCH goes in reading a video's pictures from the post alone.")
-    null
-}
-
-/** The extension's stubs the picture strip takes, by name and shape. */
-private val SHEET_STUBS = listOf("media" to "($OBJECT)$OBJECT", "sheet" to "($OBJECT)$MAP", "scrubberSheet" to "($OBJECT)$MAP")
-
-/** Fills the stubs that read a video's picture strip. Each stub's own registers are its parameters, so the code uses those. */
-internal fun BytecodePatchContext.hookFeedSeekSheet(found: FeedSeekSites, sites: SeekSheetSites) {
-    val reader = mutableClassDefBy(FEED_SEEK_READER)
-    fun stub(name: String): MutableMethod = reader.methods.single { it.name == name && it.shape() == SHEET_STUBS.toMap().getValue(name) }
-
-    stub("media").addInstructionsWithLabels(
-        0,
-        """
-            check-cast p0, ${found.player}
-            iget-object p0, p0, ${found.item}
-            if-eqz p0, :none
-            check-cast p0, ${sites.media.definingClass}
-            iget-object p0, p0, ${sites.media}
-            return-object p0
-            :none
-            const/4 p0, 0x0
-            return-object p0
-        """,
-    )
-    stub("sheet").addInstructionsWithLabels(
-        0,
-        """
-            check-cast p0, $FEED_MEDIA
-            invoke-virtual { p0 }, $FEED_MEDIA->${sites.getter.name}()$SPRITESHEET_INFO
-            move-result-object p0
-            if-eqz p0, :none
-            invoke-static { p0 }, ${sites.builder.definingClass}->${sites.builder.name}($SPRITESHEET_INFO)$MAP
-            move-result-object p0
-            return-object p0
-            :none
-            const/4 p0, 0x0
-            return-object p0
-        """,
-    )
-    val scrubber = sites.scrubber ?: return
-    stub("scrubberSheet").addInstructionsWithLabels(
-        0,
-        """
-            check-cast p0, $FEED_MEDIA
-            ${scrubber.joinToString("\n") { "$it\nmove-result-object p0\nif-eqz p0, :none" }}
-            invoke-static { p0 }, ${sites.builder.definingClass}->${sites.builder.name}($SPRITESHEET_INFO)$MAP
-            move-result-object p0
-            return-object p0
-            :none
-            const/4 p0, 0x0
-            return-object p0
-        """,
-    )
 }
 
 private val INTERFACE_CALLS = setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)

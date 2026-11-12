@@ -6,8 +6,6 @@
  */
 package app.hushgram.extension.instagram.settings;
 
-import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.callBlockAccountsRow;
-import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.callBlockModeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.changePinRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.lockDelayRow;
@@ -28,8 +26,7 @@ final class MessagesCategory {
     private MessagesCategory() { }
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
-        if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.SPLIT_NOTES_ROW)
-                || build.contains(PatchFamily.INBOX_SEARCH)
+        if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.INBOX_SEARCH)
                 || build.contains(PatchFamily.INBOX_SUGGESTIONS) || build.contains(PatchFamily.INSTANTS)
                 || build.contains(PatchFamily.THREAD_SEEN) || build.contains(PatchFamily.TYPING)
                 || build.contains(PatchFamily.DM_MEDIA_SEEN)
@@ -42,29 +39,20 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
                 || build.contains(PatchFamily.VIEW_ONCE_MARK)
                 || build.contains(PatchFamily.CHAT_REELS)
-                || build.contains(PatchFamily.CHAT_MEDIA_WALK)
                 || build.contains(PatchFamily.CHAT_HISTORY)
                 || build.contains(PatchFamily.PREVIEW_CHATS)
                 || build.contains(PatchFamily.ASK_BEFORE_CALL)
-                || build.contains(PatchFamily.CALL_BLOCKER)
-                || build.contains(PatchFamily.KINDNESS_REMINDER)
                 || build.contains(PatchFamily.MESSAGE_BOX)
                 || build.contains(PatchFamily.PLUS_MENU)
                 || build.contains(PatchFamily.GLASS_CHAT)
                 || build.contains(PatchFamily.FULL_SCREEN_BARS)) {
-            PreferenceCategory messages = category(screen, L10n.t("Messages"), SettingsIcons.CHATS,
-                    L10n.t("Privacy and controls for your chats."));
+            PreferenceCategory messages = category(screen, L10n.t("Messages"), SettingsIcons.CHATS);
             if (build.contains(PatchFamily.NOTES_ROW)) {
                 messages.addPreference(toggle(context, Settings.HIDE_NOTES_ROW, L10n.t("Hide the notes row"),
                         L10n.t("Takes the row of notes off the top of your messages, the Map bubble in it too. "
                                 + "Your chats, search and requests stay.")));
                 messages.addPreference(toggle(context, Settings.HIDE_NOTES_MAP, L10n.t("Hide the Map bubble"),
                         L10n.t("Takes only the Map bubble out of the row of notes. Your notes stay.")));
-            }
-            if (build.contains(PatchFamily.SPLIT_NOTES_ROW)) {
-                messages.addPreference(toggle(context, Settings.SPLIT_NOTES_ROW, L10n.t("Split the notes row"),
-                        L10n.t("Splits the row of notes into three stacks, Instants, Notes and Stories, the layout "
-                                + "Instagram is trying out. Restart Instagram to see the change.")));
             }
             if (build.contains(PatchFamily.INBOX_SEARCH)) {
                 messages.addPreference(toggle(context, Settings.HIDE_INBOX_SEARCH,
@@ -178,11 +166,6 @@ final class MessagesCategory {
                                 + "after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe "
                                 + "through a chat's reels on.")));
             }
-            if (build.contains(PatchFamily.CHAT_MEDIA_WALK)) {
-                messages.addPreference(toggle(context, Settings.SWIPE_CHAT_MEDIA, L10n.t("Swipe through a chat's photos and posts"),
-                        L10n.t("Open a photo or video from a chat and swipe up for the next photo, video or shared post in "
-                                + "that chat, in chat order. Swipe down to go back one. Back takes you to the chat.")));
-            }
             if (build.contains(PatchFamily.CHAT_HISTORY)) {
                 messages.addPreference(toggle(context, Settings.JUMP_IN_CHAT, L10n.t("Jump to the first message or a date"),
                         L10n.t("Open a chat, tap the clock button next to the call buttons at the top, or long press "
@@ -201,14 +184,6 @@ final class MessagesCategory {
                         L10n.t("Takes the voice and video call buttons off the top of a chat. The name keeps its room. "
                                 + "Turn it off and they're back the next time a chat opens.")));
             }
-            if (build.contains(PatchFamily.CALL_BLOCKER)) {
-                messages.addPreference(callBlockModeRow(context));
-                messages.addPreference(callBlockAccountsRow(context));
-            }
-            if (build.contains(PatchFamily.KINDNESS_REMINDER)) {
-                messages.addPreference(toggle(context, Settings.HIDE_KINDNESS_REMINDER, L10n.t("Hide the Community Standards reminder"),
-                        L10n.t("Takes the banner reminding you to be respectful off the bottom of a chat.")));
-            }
             if (build.contains(PatchFamily.MESSAGE_BOX)) {
                 messages.addPreference(page.messageBoxRow(context));
             }
@@ -225,8 +200,8 @@ final class MessagesCategory {
             }
             if (build.contains(PatchFamily.GLASS_CHAT)) {
                 messages.addPreference(toggle(context, Settings.GLASS_CHAT, L10n.t("Glass in chats"),
-                        L10n.t("Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons "
-                                + "on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.")));
+                        L10n.t("Gives a chat's top bar frosted glass and puts the back, call and video buttons on round "
+                                + "glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.")));
             }
             if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
                 messages.addPreference(toggle(context, Settings.FULL_SCREEN_MESSAGES, L10n.t("Full screen Messages"),
@@ -240,9 +215,6 @@ final class MessagesCategory {
                 messages.addPreference(lockToggle(context, Settings.LOCK_APP, L10n.t("Lock all of Instagram"),
                         L10n.t("All of Instagram stays covered until your fingerprint, face or screen lock says it's "
                                 + "you, your messages too.")));
-                messages.addPreference(lockToggle(context, Settings.LOCK_SAVED, L10n.t("Lock Saved"),
-                        L10n.t("Saved and everything in it stay covered until your fingerprint, face or screen lock "
-                                + "says it's you.")));
                 messages.addPreference(lockDelayRow(context));
                 messages.addPreference(unlockWithRow(context));
                 messages.addPreference(changePinRow(context));

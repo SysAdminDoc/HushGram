@@ -21,10 +21,7 @@ import app.hushgram.extension.instagram.misc.AppIconChoice;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 
-/**
- * The top of the page with Black settings page on (#455): HushGram's icon, its name in Instagram's
- * gradient and the version line, centred over the rows. Nothing on it can be tapped.
- */
+/** HushGram's icon, name and version above the overview. The branding is not an action. */
 final class SettingsHeader extends Preference {
     static final String KEY = "hushgram_settings_header";
     /** Tags of its parts, for the tests. */
@@ -46,33 +43,37 @@ final class SettingsHeader extends Preference {
         Context context = getContext();
         float density = context.getResources().getDisplayMetrics().density;
         ScreenColors colors = ScreenColors.current();
-        LinearLayout column = new LinearLayout(context);
-        column.setOrientation(LinearLayout.VERTICAL);
-        column.setGravity(Gravity.CENTER_HORIZONTAL);
-        column.setPadding(Math.round(24 * density), Math.round(28 * density), Math.round(24 * density),
-                Math.round(20 * density));
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(Math.round(8 * density), Math.round(12 * density),
+                Math.round(8 * density), Math.round(12 * density));
 
         ImageView icon = new ImageView(context);
         icon.setTag(ICON);
         icon.setImageDrawable(icon(context, colors));
         icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        // The name under it says the same.
         icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        int size = Math.round(64 * density);
-        column.addView(icon, new LinearLayout.LayoutParams(size, size));
+        int size = Math.round(36 * density);
+        row.addView(icon, new LinearLayout.LayoutParams(size, size));
+
+        LinearLayout labels = new LinearLayout(context);
+        labels.setOrientation(LinearLayout.VERTICAL);
+        labels.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams labelSpace = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        labelSpace.setMarginStart(Math.round(12 * density));
+        row.addView(labels, labelSpace);
 
         TextView name = new TextView(context);
         name.setTag(NAME);
         name.setText("HushGram");
-        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32);
-        name.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        name.setGravity(Gravity.CENTER);
+        name.setTextColor(colors.title);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28);
+        name.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         name.setAccessibilityHeading(true);
-        ShimmerTitle.wear(name);
-        LinearLayout.LayoutParams nameSpace = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        nameSpace.topMargin = Math.round(12 * density);
-        column.addView(name, nameSpace);
+        labels.addView(name, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView version = new TextView(context);
         version.setTag(VERSION);
@@ -80,12 +81,11 @@ final class SettingsHeader extends Preference {
                 L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName())));
         version.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         version.setTextColor(colors.summary);
-        version.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams versionSpace = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        versionSpace.topMargin = Math.round(4 * density);
-        column.addView(version, versionSpace);
-        return column;
+        versionSpace.topMargin = Math.round(2 * density);
+        labels.addView(version, versionSpace);
+        return row;
     }
 
     /**

@@ -56,7 +56,6 @@ public class AmbientLightSettingsTest {
         Settings.AMBIENT_LIGHT_STORIES.resetToDefault();
         Settings.AMBIENT_LIGHT_SPREAD.resetToDefault();
         Settings.AMBIENT_LIGHT_SPEED.resetToDefault();
-        Settings.AMBIENT_LIGHT_BLEND.resetToDefault();
     }
     @After public void close() throws Exception {
         if (controller != null) controller.close();
@@ -81,7 +80,7 @@ public class AmbientLightSettingsTest {
         assertNotNull(row);
         assertEquals("Ambient light", row.getTitle().toString());
         assertEquals("Puts a soft glow in a post's own colors around its photo or video, and in the bands around a "
-                + "reel that doesn't fill the screen. The glow follows a video as it plays. Can slow down older phones.", row.getSummary().toString());
+                + "reel that doesn't fill the screen. The glow follows a video as it plays.", row.getSummary().toString());
         assertEquals("Feed", ((PreferenceGroup) row.getParent()).getTitle().toString());
         assertFalse(((SwitchPreference) row).isChecked());
         assertFalse(Settings.AMBIENT_LIGHT.get());
@@ -89,11 +88,10 @@ public class AmbientLightSettingsTest {
         String[] keys = new String[feed.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.AMBIENT_LIGHT.key);
-        assertEquals(Arrays.toString(keys), Settings.CAROUSEL_HIDE_NUMBER.key, keys[at - 1]);
-        assertEquals(Arrays.toString(keys), Settings.CAROUSEL_PILL_LOOK.key, keys[at - 2]);
+        assertEquals(Arrays.toString(keys), Settings.CAROUSEL_PILL_LOOK.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.CAROUSEL_DOTS_PILL.key, keys[at - 2]);
         assertEquals(Arrays.toString(keys), Settings.AMBIENT_LIGHT_SPREAD.key, keys[at + 1]);
         assertEquals(Arrays.toString(keys), Settings.AMBIENT_LIGHT_SPEED.key, keys[at + 2]);
-        assertEquals(Arrays.toString(keys), Settings.AMBIENT_LIGHT_BLEND.key, keys[at + 3]);
 
         HushgramPreferenceFragment.AmbientSpreadRow spread = (HushgramPreferenceFragment.AmbientSpreadRow) feed.getPreference(at + 1);
         assertEquals("Glow spread", spread.getTitle().toString());
@@ -109,16 +107,10 @@ public class AmbientLightSettingsTest {
         assertEquals("MEDIUM", speed.getValue());
         assertEquals("Medium", speed.getSummary().toString());
 
-        SwitchPreference blend = (SwitchPreference) feed.getPreference(at + 3);
-        assertEquals("Blend post edges", blend.getTitle().toString());
-        assertFalse(blend.isChecked());
-        assertFalse(Settings.AMBIENT_LIGHT_BLEND.defaultValue);
         assertFalse("the lists wait for the switch", spread.isEnabled() || speed.isEnabled());
-        assertFalse(blend.isEnabled());
         ((SwitchPreference) row).setChecked(true);
         ShadowLooper.idleMainLooper();
         assertTrue(spread.isEnabled() && speed.isEnabled());
-        assertTrue(blend.isEnabled());
         spread.setValue("WIDE");
         speed.setValue("FAST");
         ShadowLooper.idleMainLooper();
@@ -130,7 +122,6 @@ public class AmbientLightSettingsTest {
         assertEquals("Ambient light", PatchFamily.AMBIENT_LIGHT.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.AMBIENT_LIGHT.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.AMBIENT_LIGHT_SPREAD.key));
-        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.AMBIENT_LIGHT_BLEND.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.AMBIENT_LIGHT_SPEED.key));
     }
     private static java.util.List<String> labels(CharSequence[] texts) {
@@ -190,8 +181,7 @@ public class AmbientLightSettingsTest {
     }
     @Test public void missingPatchHasNeitherRowsNorBackupKeys() throws Exception {
         open(EnumSet.of(PatchFamily.CAROUSEL_ARROWS));
-        for (String key : Arrays.asList(Settings.AMBIENT_LIGHT.key, Settings.AMBIENT_LIGHT_SPREAD.key, Settings.AMBIENT_LIGHT_SPEED.key,
-                Settings.AMBIENT_LIGHT_BLEND.key)) {
+        for (String key : Arrays.asList(Settings.AMBIENT_LIGHT.key, Settings.AMBIENT_LIGHT_SPREAD.key, Settings.AMBIENT_LIGHT_SPEED.key)) {
             assertNull(key, page.getPreferenceScreen().findPreference(key));
             assertFalse(key, ConfigurationBackup.eligible().containsKey(key));
         }

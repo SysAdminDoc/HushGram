@@ -47,8 +47,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.shared.settings.preference.ReopenSettingsAfterRestart;
 
 /**
- * Restart now expands the last section on the main settings screen once Instagram is up again,
- * and the card it was tapped on is the restart feedback: no toast covers the page.
+ * Restart now restores the selected section page once Instagram is up again, and the card it was
+ * tapped on is the restart feedback: no toast covers the page.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -130,8 +130,10 @@ public class RestartReopensSettingsTest {
         HushgramPreferenceFragment restored = pageOf((SettingsDialog) shown);
         Preference restoredFeed = categoryRow(restored, "Feed");
         assertSame(restoredFeed, restored.findPreference(Settings.START_ON_FOLLOWING.key).getParent());
-        assertNotNull(restored.getPreferenceScreen().findPreference("hushgram_view_toggle"));
-        assertNotNull(categoryRow(restored, "Ads and privacy"));
+        assertNull("the retired list/grid control is not exposed", restored.getPreferenceScreen().findPreference("hushgram_view_toggle"));
+        assertNull("an unrelated setting isn't attached to the restored page",
+                restored.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
+        assertNotNull("the original setting remains registered", restored.findPreference(Settings.HIDE_ADS.key));
     }
 
     private static HushgramPreferenceFragment pageOf(SettingsDialog dialog) {

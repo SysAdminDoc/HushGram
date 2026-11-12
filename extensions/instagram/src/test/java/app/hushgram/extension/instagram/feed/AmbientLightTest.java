@@ -118,9 +118,6 @@ public class AmbientLightTest {
         Settings.AMBIENT_LIGHT.resetToDefault();
         Settings.AMBIENT_LIGHT_SPREAD.resetToDefault();
         Settings.AMBIENT_LIGHT_SPEED.resetToDefault();
-        Settings.AMBIENT_LIGHT_BLEND.resetToDefault();
-        Settings.ROUNDED_POST_CORNERS.resetToDefault();
-        Settings.ROUNDED_CORNER_SIZE.resetToDefault();
         Settings.BLUR_REEL_BARS.resetToDefault();
     }
 
@@ -231,136 +228,6 @@ public class AmbientLightTest {
         Bitmap drawn = drawn(list);
         int above = drawn.getPixel(WIDTH / 2, 3 + HEADER - 4);
         assertTrue("faded to the new top: " + hex(above), Color.green(above) > 80 && Color.blue(above) < 20);
-    }
-
-    /** Reading a picture back is what costs, and a list on the move would only be read again (#510). */
-    @Test
-    public void aPictureOnTheMoveWaitsForItToStopBeforeItsCopied() {
-        on();
-        int first = asked;
-
-        list.offsetTopAndBottom(-20);
-        advance(AmbientSpeed.MEDIUM.sampleMillis);
-        assertEquals("not while it moves", first, asked);
-
-        advance(AmbientSpeed.MEDIUM.sampleMillis);
-        assertEquals("once it stopped", first + 1, asked);
-    }
-
-    /** A photo doesn't change on its own, so it stops being read back at full speed (#510). */
-    @Test
-    public void aStillPhotoRestsBetweenCopiesUntilItChanges() {
-        long sample = AmbientSpeed.MEDIUM.sampleMillis;
-        on();
-        for (int i = 1; i <= AmbientLight.STEADY; i++) {
-            advance(sample);
-            assertEquals("at the usual speed at first", 1 + i, asked);
-        }
-        int rested = asked;
-
-        advance(sample);
-        assertEquals("the first rest is twice as long", rested, asked);
-        advance(sample);
-        assertEquals(rested + 1, asked);
-        advance(sample * 3);
-        assertEquals("the next is twice that", rested + 1, asked);
-        advance(sample);
-        assertEquals(rested + 2, asked);
-
-        top = Color.GREEN;
-        for (long waited = 0; waited < AmbientLight.LONGEST_REST && AmbientLight.copiesTakenForTests(media) == 1; waited += sample) {
-            advance(sample);
-        }
-        assertEquals("a change is still seen, at worst after the longest rest", 2, AmbientLight.copiesTakenForTests(media));
-        int changed = asked;
-        advance(sample);
-        assertEquals("and the speed is back", changed + 1, asked);
-    }
-
-    @Test
-    public void aVideoThatLooksTheSameKeepsItsSpeed() {
-        media.addView(new TextureView(activity), match());
-        shadowOf(Looper.getMainLooper()).idle();
-        on();
-        int first = asked;
-
-        for (int i = 1; i <= AmbientLight.STEADY + 3; i++) {
-            advance(AmbientSpeed.MEDIUM.sampleMillis);
-            assertEquals("no rest for a video", first + i, asked);
-        }
-    }
-
-    /** Photos and stickers in a chat aren't posts, and they glowed like posts (#510). */
-    @Test
-    public void aChatsPhotosAndStickersDontGlow() {
-        int chat = View.generateViewId();
-        list.setId(chat);
-        AmbientLight.chatIdForTests(activity, chat);
-
-        on();
-
-        assertEquals(0, AmbientLight.litForTests());
-        assertSame(black, list.getBackground());
-        assertEquals(0, asked);
-    }
-
-    /** The picture's edge against the glow read as a hard line, and Blend post edges softens it (#510). */
-    @Test
-    public void blendPostEdgesFadesThePicturesEdgesIntoItsGlow() {
-        on();
-        frame();
-        assertNull("off to start", AmbientLight.edgesForTests(media));
-
-        Settings.AMBIENT_LIGHT_BLEND.save(true);
-        frame();
-
-        Drawable edges = AmbientLight.edgesForTests(media);
-        assertNotNull(edges);
-        // A software draw of a group that draws nothing itself skips its overlay, so this draws it alone.
-        Bitmap drawn = Bitmap.createBitmap(WIDTH, MEDIA, Bitmap.Config.ARGB_8888);
-        edges.draw(new Canvas(drawn));
-        int strength = 255 - AmbientLight.STRENGTH;
-        int atTop = drawn.getPixel(WIDTH / 2, 0);
-        assertEquals("at the edge, as strong as the glow lets through: " + hex(atTop), strength, Color.alpha(atTop), 8);
-        assertEquals("in the page's color: " + hex(atTop), 0, Color.red(atTop));
-        int atBottom = drawn.getPixel(WIDTH / 2, MEDIA - 1);
-        assertEquals("and the bottom: " + hex(atBottom), strength, Color.alpha(atBottom), 8);
-        assertEquals("gone by the middle", 0, Color.alpha(drawn.getPixel(WIDTH / 2, MEDIA / 2)));
-        assertEquals("a picture as wide as the list has no glow beside it, so no strip there",
-                0, Color.alpha(drawn.getPixel(0, MEDIA / 2)));
-
-        Settings.AMBIENT_LIGHT_BLEND.save(false);
-        frame();
-        assertNull(AmbientLight.edgesForTests(media));
-    }
-
-    @Test
-    public void aRoundedPicturesCornersShowTheGlowNotThePage() {
-        on();
-        advance(AmbientSpeed.MEDIUM.fadeMillis);
-        // The stand-in draws nothing, so whatever would show through its corners reads here.
-        int topEdge = 3 + HEADER + 1, bottomEdge = 3 + HEADER + MEDIA - 2, deeper = 3 + HEADER + 12;
-        Bitmap square = drawn(list);
-        assertEquals("a square picture has nothing under it", Color.BLACK, square.getPixel(WIDTH / 2, topEdge));
-
-        Settings.ROUNDED_CORNER_SIZE.save(CornerSize.SMALL);
-        Settings.ROUNDED_POST_CORNERS.save(true);
-        frame();
-        Bitmap small = drawn(list);
-        assertTrue("the picture's top color: " + hex(small.getPixel(WIDTH / 2, topEdge)),
-                Color.blue(small.getPixel(WIDTH / 2, topEdge)) > 60 && Color.red(small.getPixel(WIDTH / 2, topEdge)) == 0);
-        assertTrue("and its bottom color: " + hex(small.getPixel(WIDTH / 2, bottomEdge)),
-                Color.red(small.getPixel(WIDTH / 2, bottomEdge)) > 60 && Color.blue(small.getPixel(WIDTH / 2, bottomEdge)) == 0);
-        assertEquals("no deeper than the corner", Color.BLACK, small.getPixel(WIDTH / 2, deeper));
-        assertEquals("nor across the middle", Color.BLACK, small.getPixel(WIDTH / 2, 3 + HEADER + MEDIA / 2));
-
-        Settings.ROUNDED_CORNER_SIZE.save(CornerSize.LARGE);
-        frame();
-        assertTrue("a bigger corner reaches further", Color.blue(drawn(list).getPixel(WIDTH / 2, deeper)) > 60);
-
-        Settings.ROUNDED_POST_CORNERS.save(false);
-        frame();
-        assertEquals("off puts it back", Color.BLACK, drawn(list).getPixel(WIDTH / 2, topEdge));
     }
 
     @Test
@@ -504,22 +371,6 @@ public class AmbientLightTest {
     }
 
     @Test
-    public void aFrameOnePixelTallerThanThePictureIsNotItsStage() {
-        // On 454 the zoom container often rounds up a pixel over the picture, and the glow had no room (#580).
-        row.getLayoutParams().height = MEDIA + 1;
-        list.getLayoutParams().height = 3 + HEADER + MEDIA + 1 + FOOTER + 5;
-        row.requestLayout();
-        list.requestLayout();
-        shadowOf(Looper.getMainLooper()).idle();
-        assertEquals(MEDIA + 1, row.getHeight());
-
-        on();
-
-        assertEquals("the glow goes on the list, around the header and the buttons",
-                new Rect(0, 3 + HEADER, WIDTH, 3 + HEADER + MEDIA), AmbientLight.litRectForTests(media));
-    }
-
-    @Test
     public void aPageMostlyOffScreenGetsNoGlow() {
         MediaFrameLayout next = new MediaFrameLayout(activity);
         row.addView(next, new FrameLayout.LayoutParams(WIDTH, MEDIA));
@@ -533,28 +384,6 @@ public class AmbientLightTest {
         Rect lit = AmbientLight.litRectForTests(next);
         assertNotNull(lit);
         assertTrue("a quarter shows: " + lit, lit.isEmpty());
-    }
-
-    @Test
-    public void aPageThatPeekShrinksGlowsAroundWhereItShows() {
-        // Peek at the next carousel page scales and shifts the page, and its row stays as big (#585).
-        row.setPivotX(WIDTH / 2f);
-        row.setPivotY(MEDIA / 2f);
-        row.setScaleX(0.8f);
-        row.setScaleY(0.8f);
-        row.setTranslationX(-6);
-        shadowOf(Looper.getMainLooper()).idle();
-
-        on();
-
-        assertEquals("lit where the page shows, not across the whole row",
-                new Rect(24, 3 + HEADER + 20, 264, 3 + HEADER + 180), AmbientLight.litRectForTests(media));
-        advance(AmbientSpeed.MEDIUM.fadeMillis);
-        Bitmap drawn = drawn(list);
-        int above = drawn.getPixel(WIDTH / 2, 3 + HEADER + 16);
-        assertTrue("the row above the page glows: " + hex(above), Color.blue(above) > 80 && Color.red(above) < 20);
-        int inside = drawn.getPixel(WIDTH / 2, 3 + HEADER + MEDIA / 2);
-        assertTrue("nothing is drawn over the page: " + hex(inside), Color.red(inside) < 10 && Color.blue(inside) < 10);
     }
 
     @Test
@@ -616,43 +445,6 @@ public class AmbientLightTest {
         AmbientLight.switchChanged(activity);
         shadowOf(Looper.getMainLooper()).idle();
         assertNull(container.getBackground());
-    }
-
-    /**
-     * A reel opened from a link fills the window, in a page the size of its frame. Rounded corners on
-     * Reels clips the frame to the video, so a glow on the frame or inside it never showed (#580).
-     */
-    @Test
-    public void aReelGlowsOutsideTheFrameRoundedCornersClip() {
-        FrameLayout reelRoot = new FrameLayout(activity);
-        FrameLayout page = new FrameLayout(activity);
-        FrameLayout frame = new FrameLayout(activity);
-        frame.setId(frameId);
-        frame.setClipToOutline(true);
-        FrameLayout container = new FrameLayout(activity);
-        TextureView video = new TextureView(activity);
-        container.addView(video, match());
-        frame.addView(container, match());
-        page.addView(frame, match());
-        reelRoot.addView(page, new FrameLayout.LayoutParams(WIDTH, REEL));
-        activity.setContentView(reelRoot);
-        root = reelRoot;
-        shadowOf(Looper.getMainLooper()).idle();
-        Matrix scale = new Matrix();
-        scale.setScale(1f, 0.5f, WIDTH / 2f, REEL / 2f);
-        video.setTransform(scale);
-
-        on();
-
-        assertEquals(1, AmbientLight.litForTests());
-        assertTrue(String.valueOf(page.getBackground()), page.getBackground() instanceof AmbientLight.Glow);
-        assertNull(frame.getBackground());
-        assertNull(container.getBackground());
-        assertEquals(new Rect(0, REEL / 4, WIDTH, REEL * 3 / 4), AmbientLight.litRectForTests(video));
-
-        advance(AmbientSpeed.MEDIUM.fadeMillis);
-        int band = background(page).getPixel(WIDTH / 2, REEL / 4 - 4);
-        assertTrue("the band above shows the reel's top: " + hex(band), Color.alpha(band) > 80);
     }
 
     @Test
@@ -772,61 +564,6 @@ public class AmbientLightTest {
         assertNull("the host has its own background back", host.getBackground());
         assertSame("and the bar", barColor, bar.getBackground());
         assertEquals(0, AmbientLight.litForTests());
-    }
-
-    /**
-     * A reel opened from the feed stops its comment bar over the reel, and the strip under that bar
-     * glowed, so the bar looked cut off from what's below it (#510). The host's glow stops at the bar.
-     */
-    @Test
-    public void nothingGlowsUnderAReelsCommentBar() {
-        FrameLayout host = new FrameLayout(activity);
-        activity.setContentView(host);
-        root = host;
-        if (activity.getActionBar() != null) activity.getActionBar().hide();
-        shadowOf(Looper.getMainLooper()).idle();
-        View window = activity.getWindow().getDecorView();
-        int width = window.getWidth(), height = window.getHeight();
-        int statusBar = height / 25, gestureBar = height / 20, footerHeight = 50;
-        FrameLayout frame = new FrameLayout(activity);
-        frame.setId(frameId);
-        FrameLayout container = new FrameLayout(activity);
-        container.addView(new TextureView(activity), match());
-        frame.addView(container, match());
-        FrameLayout.LayoutParams between = match();
-        between.topMargin = statusBar;
-        between.bottomMargin = gestureBar;
-        host.addView(frame, between);
-        View footer = new View(activity);
-        int footerId = View.generateViewId();
-        footer.setId(footerId);
-        footer.setVisibility(View.GONE);
-        FrameLayout.LayoutParams over = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, footerHeight, Gravity.BOTTOM);
-        over.bottomMargin = gestureBar;
-        host.addView(footer, over);
-        AmbientLight.footerIdForTests(activity, footerId);
-        shadowOf(Looper.getMainLooper()).idle();
-
-        on();
-        advance(AmbientSpeed.MEDIUM.fadeMillis);
-        int strip = height - gestureBar / 2;
-        int without = Color.alpha(background(host).getPixel(width / 2, strip));
-        assertTrue("with no bar shown, the strip glows: " + without, without > 20);
-
-        footer.setVisibility(View.VISIBLE);
-        shadowOf(Looper.getMainLooper()).idle();
-        relayout();
-
-        Bitmap bands = background(host);
-        assertEquals("nothing under the bar", 0, Color.alpha(bands.getPixel(width / 2, strip)));
-        int status = bands.getPixel(width / 2, statusBar / 2);
-        assertTrue("the band above the reel still glows: " + hex(status), Color.alpha(status) > 20);
-
-        footer.setVisibility(View.GONE);
-        shadowOf(Looper.getMainLooper()).idle();
-        relayout();
-        assertTrue("the bar gone, the strip glows again",
-                Color.alpha(background(host).getPixel(width / 2, strip)) > 20);
     }
 
     @Test

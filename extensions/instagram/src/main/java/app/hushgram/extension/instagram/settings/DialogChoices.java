@@ -88,7 +88,7 @@ final class DialogChoices extends BaseAdapter {
                 GradientDrawable press = new GradientDrawable();
                 press.setColor(android.graphics.Color.WHITE);
                 press.setCornerRadius(Math.round(8 * density));
-                choice.setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading),
+                choice.setBackground(new RippleDrawable(ScreenColors.interactionRipple(),
                         new InsetDrawable(background, inset, 0, inset, 0),
                         new InsetDrawable(press, inset, 0, inset, 0)).mutate());
                 // A native choice is a compact full-width row, with room to grow when text wraps.
@@ -104,7 +104,7 @@ final class DialogChoices extends BaseAdapter {
             surface.setColor(colors.choiceFill(colors.card));
             surface.setStroke(Math.round(density), colors.interactionOutline(colors.outline));
             surface.setCornerRadius(Math.round(12 * density));
-            choice.setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading),
+            choice.setBackground(new RippleDrawable(ScreenColors.interactionRipple(),
                     new InsetDrawable(surface, side, gap, side, gap), null).mutate());
             // Rounding both sides up at densities such as 450dpi exceeds the measured 48dp row.
             int verticalPadding = (int) (12 * density) + gap;

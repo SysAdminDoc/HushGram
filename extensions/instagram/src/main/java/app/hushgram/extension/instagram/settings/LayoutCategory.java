@@ -6,7 +6,6 @@
  */
 package app.hushgram.extension.instagram.settings;
 
-import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.accentCustomRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.accentHueRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.appIconRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
@@ -37,8 +36,7 @@ final class LayoutCategory {
                 || build.contains(PatchFamily.ACCENT_COLOR) || build.contains(PatchFamily.LAUNCH_SCREEN)
                 || build.contains(PatchFamily.HEADER_TEXT) || build.contains(PatchFamily.FONT) || build.contains(PatchFamily.APP_ICON)
                 || build.contains(PatchFamily.SETTINGS_ROWS) || build.contains(PatchFamily.REFRESH_RATE)) {
-            PreferenceCategory layout = category(screen, L10n.t("Layout"), SettingsIcons.LAYOUT,
-                    L10n.t("Change how Instagram looks, from its colors to its emoji."));
+            PreferenceCategory layout = category(screen, L10n.t("Layout"), SettingsIcons.LAYOUT);
             if (build.contains(PatchFamily.BOTTOM_SPACE)) {
                 layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE, L10n.t("Remove the empty space at the bottom"),
                         L10n.t("Removes the empty gap under Instagram's tab bar that appears when your phone hides "
@@ -65,23 +63,12 @@ final class LayoutCategory {
                         L10n.t("Turns Instagram's blue, on Follow buttons, links and the like, into the color you "
                                 + "pick below. Restart Instagram to see the change.")));
                 layout.addPreference(accentHueRow(context));
-                layout.addPreference(accentCustomRow(context));
                 layout.addPreference(toggle(context, Settings.ACCENT_BADGES, L10n.t("Badges in the accent color"),
                         L10n.t("The red dots and counts for new messages and notifications take the color you "
                                 + "picked. Restart Instagram to see the change.")));
                 layout.addPreference(toggle(context, Settings.ACCENT_ICONS, L10n.t("Icons in the accent color"),
                         L10n.t("Instagram's icons on the top bar, the tab bar and under posts take the color you "
                                 + "picked. Text stays as it is. Restart Instagram to see the change.")));
-                layout.addPreference(toggle(context, Settings.ACCENT_RINGS, L10n.t("Story rings in the accent color"),
-                        L10n.t("Story rings take the color you picked instead of Instagram's gradient. A few other "
-                                + "gradients share those colors and change with them. Restart Instagram to see the change.")));
-                layout.addPreference(toggle(context, Settings.ACCENT_RINGS_SOLID, L10n.t("Solid story rings"),
-                        L10n.t("Story rings are one solid shade of the color you picked instead of running light to dark. "
-                                + "Restart Instagram to see the change.")));
-                layout.addPreference(toggle(context, Settings.ACCENT_BACKGROUNDS, L10n.t("Backgrounds in the accent color"),
-                        L10n.t("Screens, panels, cards and menus take a dark or light shade of the color you picked. "
-                                + "Story and reel viewers keep their own background. Wins over Pure black dark mode. "
-                                + "Restart Instagram to see the change.")));
             }
             // Pure black is set when you patch and stays out of the default selection, so a build
             // without it says where to get it (#267, #359).
@@ -97,9 +84,6 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN, L10n.t("HushGram launch screen"),
                         L10n.t("Shows HushGram's logo instead of Instagram's on the screen you see while Instagram "
                                 + "starts, on Android 13 and newer. It shows from the next start.")));
-                layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN_ACCENT, L10n.t("Launch screen in the accent color"),
-                        L10n.t("Fills that screen with the accent color, or Instagram's blue while Accent color is "
-                                + "off. A custom color shows as the closest one in the list. It shows from the next start.")));
             }
             if (build.contains(PatchFamily.HEADER_TEXT)) {
                 layout.addPreference(mark(headerTextRow(context), SettingsIcons.WRITING));

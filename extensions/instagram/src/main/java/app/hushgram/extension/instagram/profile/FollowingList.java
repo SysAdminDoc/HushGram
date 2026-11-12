@@ -4,11 +4,7 @@
  */
 package app.hushgram.extension.instagram.profile;
 
-import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
-import android.text.method.SingleLineTransformationMethod;
-import android.text.method.TransformationMethod;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.TextView;
 
@@ -68,21 +64,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * with the same answers the mark goes by, so it covers every page loaded and never just the newest.
  * The answers come after the rows are drawn, so once the server has said no to an account, the
  * list is rebuilt once more, a moment later ({@link #rebuildSoon}).
- *
- * <p>A switch under the mark's own shows it on each row's profile picture instead (#572): a green
- * check when the account follows you back and a red cross when it doesn't ({@link FollowBadge}), by
- * the same answers, and nothing before Instagram has checked. The badge is the picture's foreground,
- * and what the picture had there before goes back when the row is bound again. A row whose picture
- * can't be found gets the words.
  */
 public final class FollowingList {
     static final String REFETCH = "following list refetch";
     static final String ANSWER = "following list answer";
     static final String ORDER = "following list order";
     static final String REBUILD = "following list rebuild";
-
-    /** How many lines a marked name line may take. */
-    static final int MARKED_LINES = 2;
 
     /** How long after the last no from the server the list is rebuilt, so one page's answers rebuild it once. */
     static final long REBUILD_DELAY_MS = 400;
@@ -124,29 +111,7 @@ public final class FollowingList {
      */
     private static final Map<TextView, Mark> marked = new WeakHashMap<>();
 
-    /** The profile pictures this put a badge on, with what each had as its foreground before. Weak, like [marked]. */
-    private static final Map<View, Badged> badged = new WeakHashMap<>();
-
-    /** Instagram's names for a follow list row's profile picture: the follow list's own, then the shared user row's. */
-    static final String[] PICTURES = {"follow_list_user_imageview", "row_user_imageview"};
-
-    /** Their ids, looked up once: -1 until then, 0 when the build has no such id. */
-    static final int[] pictureIds = {-1, -1};
-
     private FollowingList() {
-    }
-
-    /** What a badge replaced on a profile picture, so it can be put back. */
-    private static final class Badged {
-        final FollowBadge badge;
-        @Nullable final Drawable before;
-        final int gravity;
-
-        Badged(FollowBadge badge, @Nullable Drawable before, int gravity) {
-            this.badge = badge;
-            this.before = before;
-            this.gravity = gravity;
-        }
     }
 
     /** What a row's mark replaced, so it can be taken back. */
@@ -154,15 +119,11 @@ public final class FollowingList {
         final CharSequence before;
         final CharSequence wrote;
         final int visibility;
-        @Nullable final TransformationMethod method;
-        final int maxLines;
 
-        Mark(CharSequence before, CharSequence wrote, int visibility, @Nullable TransformationMethod method, int maxLines) {
+        Mark(CharSequence before, CharSequence wrote, int visibility) {
             this.before = before;
             this.wrote = wrote;
             this.visibility = visibility;
-            this.method = method;
-            this.maxLines = maxLines;
         }
     }
 
@@ -191,10 +152,6 @@ public final class FollowingList {
         /** The name line of the row whose view holder is [holder]. */
         @Nullable
         TextView subtitle(Object holder);
-
-        /** The profile picture on [row], or null. */
-        @Nullable
-        View picture(View row);
     }
 
     static final Reader PATCHED = new Reader() {
@@ -227,50 +184,33 @@ public final class FollowingList {
         public TextView subtitle(Object holder) {
             return FollowingList.subtitle(holder);
         }
-
-        @Override
-        public View picture(View row) {
-            return FollowingList.picture(row);
-        }
     };
 
     /**
      * Injected right after a follow list's binder has filled in a row. Adds Doesn't follow you to the
-     * name line when the row is on your own Following list and its account doesn't follow you back,
-     * or with the picture switch on, a check or a cross on its profile picture. Never throws.
+     * name line when the row is on your own Following list and its account doesn't follow you back.
+     * Never throws.
      */
     public static void row(Object binder, int position, View row, Object user) {
-        row(binder, row, user, PATCHED, FollowingList::switchedOn, FollowingList::pictureSwitchedOn);
+        row(binder, row, user, PATCHED, FollowingList::switchedOn);
     }
 
     static void row(Object binder, View row, Object user, Reader reader, BooleanSupplier on) {
-        row(binder, row, user, reader, on, () -> false);
-    }
-
-    static void row(Object binder, View row, Object user, Reader reader, BooleanSupplier on, BooleanSupplier onPicture) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
             boolean marking = on.getAsBoolean();
             if (!marking && nothingMarked()) return;
             Object holder = row == null ? null : row.getTag();
             TextView subtitle = holder == null ? null : reader.subtitle(holder);
-            View picture = row == null ? null : reader.picture(row);
-            if (subtitle != null) unmark(subtitle);
-            if (picture != null) unbadge(picture);
-            if (!marking || (subtitle == null && picture == null)) return;
+            if (subtitle == null) return;
+            unmark(subtitle);
+            if (!marking) return;
             String viewer = reader.viewerId(binder);
             if (!ownFollowingList(reader.listKind(binder), reader.listOwnerId(binder), viewer)) return;
             // Only the server's no to a request that asked counts, and a later yes on the account's
             // own status (its profile, say) overrules it. Before the server has answered, nothing.
-            Boolean said = reader.answer(viewer, user);
-            boolean followsYou = Boolean.TRUE.equals(reader.followedBy(user));
-            boolean notBack = Boolean.FALSE.equals(said) && !followsYou;
-            if (picture != null && onPicture.getAsBoolean()) {
-                if (notBack) badge(picture, false);
-                else if (followsYou || Boolean.TRUE.equals(said)) badge(picture, true);
-                return;
-            }
-            if (notBack && subtitle != null) mark(subtitle, L10n.t("Doesn't follow you"));
+            if (!Boolean.FALSE.equals(reader.answer(viewer, user)) || Boolean.TRUE.equals(reader.followedBy(user))) return;
+            mark(subtitle, L10n.t("Doesn't follow you"));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, ROW, failure);
         }
@@ -430,41 +370,24 @@ public final class FollowingList {
 
     /**
      * Puts [label] before the name, or on the hidden name line of an account with no name, which it
-     * then shows. The row's Message button leaves that line little room, enough to cut the mark itself
-     * short, so a marked line may take a second one (#351). Whatever goes wrong partway puts the line
-     * back as it was.
+     * then shows. Whatever goes wrong partway puts the line back as it was.
      */
     private static void mark(TextView subtitle, String label) {
         CharSequence before = subtitle.getText();
         int visibility = subtitle.getVisibility();
-        TransformationMethod method = subtitle.getTransformationMethod();
-        int maxLines = subtitle.getMaxLines();
         CharSequence wrote = visibility == View.VISIBLE ? ahead(label, before) : label;
         try {
             subtitle.setText(wrote);
             if (visibility != View.VISIBLE) subtitle.setVisibility(View.VISIBLE);
-            // Instagram's line is single-line with no transformation to show for it, and setting the
-            // most lines alone leaves it on one. Any other transformation it had still applies.
-            subtitle.setSingleLine(false);
-            if (method != null && !(method instanceof SingleLineTransformationMethod)) subtitle.setTransformationMethod(method);
-            subtitle.setMaxLines(MARKED_LINES);
         } catch (RuntimeException failure) {
             subtitle.setText(before);
             subtitle.setVisibility(visibility);
-            linesBack(subtitle, method, maxLines);
             throw failure;
         }
         synchronized (marked) {
-            marked.put(subtitle, new Mark(before, wrote, visibility, method, maxLines));
+            marked.put(subtitle, new Mark(before, wrote, visibility));
         }
         Logger.printDebug(() -> "Following list: marked an account that doesn't follow you");
-    }
-
-    /** Gives [subtitle] back the lines it had. Instagram doesn't set them again when it rebinds a row. */
-    private static void linesBack(TextView subtitle, @Nullable TransformationMethod method, int maxLines) {
-        if (maxLines == 1) subtitle.setSingleLine(true);
-        else if (maxLines > 0) subtitle.setMaxLines(maxLines);
-        subtitle.setTransformationMethod(method);
     }
 
     /**
@@ -478,17 +401,14 @@ public final class FollowingList {
 
     /**
      * Takes back the mark on [subtitle], when it still holds it. Once Instagram has filled the line
-     * in again for the row's next account, the mark is gone already and only the lines it took are
-     * given back.
+     * in again for the row's next account, the mark is gone already and the line is left alone.
      */
     private static void unmark(TextView subtitle) {
         Mark mark;
         synchronized (marked) {
             mark = marked.remove(subtitle);
         }
-        if (mark == null) return;
-        linesBack(subtitle, mark.method, mark.maxLines);
-        if (!TextUtils.equals(subtitle.getText(), mark.wrote)) return;
+        if (mark == null || !TextUtils.equals(subtitle.getText(), mark.wrote)) return;
         subtitle.setText(mark.before);
         if (mark.visibility != View.VISIBLE && subtitle.getVisibility() == View.VISIBLE) {
             subtitle.setVisibility(mark.visibility);
@@ -497,80 +417,13 @@ public final class FollowingList {
 
     private static boolean nothingMarked() {
         synchronized (marked) {
-            if (!marked.isEmpty()) return false;
+            return marked.isEmpty();
         }
-        synchronized (badged) {
-            return badged.isEmpty();
-        }
-    }
-
-    /**
-     * Puts a check, or a cross when the account doesn't follow you back, on [picture]'s bottom end
-     * corner as its foreground. Whatever goes wrong partway puts the foreground back as it was.
-     */
-    private static void badge(View picture, boolean followsYou) {
-        Drawable before = picture.getForeground();
-        int gravity = picture.getForegroundGravity();
-        FollowBadge badge = new FollowBadge(picture.getContext(), followsYou);
-        try {
-            picture.setForeground(badge);
-            picture.setForegroundGravity(Gravity.BOTTOM | Gravity.END);
-        } catch (RuntimeException failure) {
-            picture.setForeground(before);
-            picture.setForegroundGravity(gravity);
-            throw failure;
-        }
-        synchronized (badged) {
-            badged.put(picture, new Badged(badge, before, gravity));
-        }
-        Logger.printDebug(() -> "Following list: badged a profile picture, follows you " + followsYou);
-    }
-
-    /**
-     * Takes the badge off [picture] and gives it back the foreground it had, when the badge is still
-     * there. Where Instagram has set one of its own since, only the gravity is put back.
-     */
-    private static void unbadge(View picture) {
-        Badged was;
-        synchronized (badged) {
-            was = badged.remove(picture);
-        }
-        if (was == null) return;
-        if (picture.getForeground() == was.badge) picture.setForeground(was.before);
-        if (picture.getForegroundGravity() == (Gravity.BOTTOM | Gravity.END)) picture.setForegroundGravity(was.gravity);
-    }
-
-    /**
-     * The profile picture on [row]: the follow list's own, else the shared user row's. Each id is
-     * looked up once, and a build without it gives the words instead.
-     */
-    @Nullable
-    static View picture(View row) {
-        for (int at = 0; at < PICTURES.length; at++) {
-            int id = pictureIds[at];
-            if (id == -1) {
-                pictureIds[at] = id = row.getResources().getIdentifier(PICTURES[at], "id", Utils.resourcePackage(row.getContext()));
-            }
-            View found = id == 0 ? null : row.findViewById(id);
-            if (found != null) return found;
-        }
-        return null;
-    }
-
-    /** Sets the profile picture ids as a build of Instagram would have them, or -1 to look them up again. */
-    static void pictureIdsForTests(int followList, int userRow) {
-        pictureIds[0] = followList;
-        pictureIds[1] = userRow;
     }
 
     /** Whether the switch is on: off while paused and before the settings are read. */
     static boolean switchedOn() {
         return Utils.settingsReady() && Settings.MARK_FOLLOWING_LIST.get();
-    }
-
-    /** Whether the mark goes on the profile picture: off while paused and before the settings are read. */
-    static boolean pictureSwitchedOn() {
-        return Utils.settingsReady() && Settings.FOLLOW_MARK_ON_PICTURE.get();
     }
 
     /** Whether the list is asked about every row: for the mark, or for the order, which goes by the same answers. */

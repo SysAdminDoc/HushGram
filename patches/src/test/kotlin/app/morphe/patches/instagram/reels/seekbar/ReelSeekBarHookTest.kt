@@ -34,7 +34,6 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
-import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -49,7 +48,7 @@ class ReelSeekBarHookTest {
     /** The hooks the patch writes are in the ReelSeekBar and ReelSeekTouch the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, BIND_REEL, LISTEN, PHOTO_BAR_ON, PHOTO_REEL, PHOTO_ROW, PHOTO_PROGRESS, PHOTO_TOUCH_ONLY, SEEK_PREVIEW_ON, REMEMBER_REEL)) {
+        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, LISTEN)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -92,49 +91,7 @@ class ReelSeekBarHookTest {
         assertAnsweredOnItsOwn("scrubber row", context.method(ROW, "A00"), ORGANIC_LAZY, AD_LAZY, LAZY)
         assertProgressHookedFirst("stand-in", context.method(SEEK_BAR, PROGRESS_CHANGED))
         assertBindHookedAfterTheAdRead("stand-in", context.method(BINDER, "invoke"), context.method(ROW, "A00"))
-        assertReelIdAsked("stand-in", context, ITEM_TYPE)
         assertTouchHandedOver("stand-in", context.method(STRIP, "A0L"), context().findReelSeekBarSites().touch)
-    }
-
-    /**
-     * A photo with a song (#10): the check of whether a reel gets the bar, the row's state and the
-     * player's callback each ask the extension's switch first, and with it off go on as Instagram's own.
-     */
-    @Test
-    fun theSwitchIsAskedBeforeAPhotosHooks() {
-        val context = context()
-        val sites = context.findReelSeekBarSites()
-        assertEquals(ITEM_TYPE, sites.photo.row.parameterTypes[1].toString())
-        assertEquals("$ITEM_TYPE->A0g:$MEDIA_TYPE", sites.photo.media)
-        assertEquals("$KIND_EXT->A00($MEDIA_TYPE)$KIND_TYPE", sites.photo.kindOf)
-
-        context.applyReelSeekBar(sites)
-
-        assertPhotoHooked("stand-in", context, sites)
-    }
-
-    /** A build without what a photo's hooks need stops the patch before anything changes, naming what it couldn't find. */
-    @Test
-    fun aPhotosMissingPieceFailsBeforeAnythingChanges() {
-        for ((classes, message) in listOf(
-            standIns().filter { it.type != KIND_EXT } to "\"$KIND_OF_REPORT\"",
-            standIns().filter { it.type != PLAYER } to "expected one method marked $PLAYER_PROGRESS, found 0",
-            standIns().filter { it.type != ITEM_TYPE } to "this Instagram build has no $ITEM_TYPE",
-            standIns().map { if (it.type == ITEM_TYPE) itemType(medias = 2) else it } to "to hold one $MEDIA_TYPE, found 2",
-            standIns().map { if (it.type == ITEM_TYPE) itemType(access = AccessFlags.FINAL.value) else it } to "or its getId isn't public",
-            standIns().filter { it.type != REEL_ITEM_READER } to "the extension has no static $REEL_ITEM_ID",
-            standIns().map { if (it.type == ITEM) item(tail = "const/4 v0, 0x1\nreturn v0") else it } to "doesn't return what",
-            standIns().map { if (it.type == STRIP) strip(touchTail = "const/4 v0, 0x1\nreturn v0") else it } to "to return one call's answer, found 0",
-            standIns().map { if (it.type == STRIP) strip(current = "") else it } to "to ask its controller for one $ITEM_TYPE, found 0",
-            standIns().map { if (it.type == STRIP) strip(touchHead = "if-eqz p0, :answer", touchTail = "move-result v0\n:answer\nreturn v0") else it } to
-                "jumps to its return of the answer",
-            standIns().map { if (it.type == STRIP) strip(touchHead = "move-object p0, v1") else it } to "writes over its controller",
-        )) {
-            val context = PatchContexts.of(classes)
-            val failure = assertThrows(PatchException::class.java) { context.findReelSeekBarSites() }
-            assertTrue("$message in: ${failure.message}", failure.message!!.contains(message))
-            assertNothingWritten(message, context)
-        }
     }
 
     /**
@@ -188,11 +145,6 @@ class ReelSeekBarHookTest {
             Triple(
                 "something jumps to just after the binder's read",
                 binderWith(binder(head = "if-nez p1, :after", between = ":after\nnop")), "jumps to just after its read of $AD_FIELD",
-            ),
-            Triple(
-                "something jumps to the binder's read",
-                binderWith(binder(head = "if-nez p1, :read", adRead = ":read\niget-boolean v0, v0, $AD_FIELD")),
-                "jumps to its read of $AD_FIELD",
             ),
             Triple("the binder writes over its container", binderWith(binder(between = "move-object p2, v1")), "writes over the view it tags"),
             Triple("the binder tags a view of its own", binderWith(binder(tagged = "v1")), "tags a view of its own"),
@@ -480,12 +432,7 @@ class ReelSeekBarHookTest {
         }
         // 385914510's binder calls a static method of its own for the tag, so the classes calling one come too.
         holders += tagging.filter { classDef -> classDef.methods.any { method -> method.calls().any { "$it" in builders } } }
-        // The photo's hooks read the reel item's class and the method working out a post's kind.
-        val itemType = holders.flatMap { it.methods }.first { it.holdsMarkerOf(CALCULATE_SHOULD_SHOW) }.parameterTypes[1].toString()
-        holders += FixtureDex.classes(bundle, setOf(itemType)).values
-        holders += FixtureDex.classesLoading(bundle, KIND_OF_REPORT)
-        holders += ExtensionDex.classDef(REEL_ITEM_READER)
-        val context = PatchContexts.of(holders.distinctBy { it.type })
+        val context = PatchContexts.of(holders)
 
         val sites = context.findReelSeekBarSites()
         assertEquals("${label}: reads of the minimum", 3, sites.lengths.size)
@@ -505,62 +452,8 @@ class ReelSeekBarHookTest {
         )
         assertProgressHookedFirst(label, context.method(SEEK_BAR, PROGRESS_CHANGED))
         assertBindHookedAfterTheAdRead(label, context.method(sites.bind.method), context.method(sites.lazy))
-        assertReelIdAsked(label, context, itemType)
         assertTouchHandedOver(label, context.method(sites.touch.method), sites.touch)
-        assertPhotoHooked(label, context, sites)
     }
-
-    /**
-     * Each of a photo's hooks asks [PHOTO_BAR_ON] first, and with the switch off lands on the instruction
-     * right after the hook, which was Instagram's next: the check's return, unchanged, or the start of its method.
-     */
-    private fun assertPhotoHooked(what: String, context: BytecodePatchContext, sites: ReelSeekBarSites) {
-        val photo = sites.photo
-        // The seek preview's own switched block runs first in the row, and lets go straight onto the photo bar's switch (#567).
-        val rowFlow = ControlFlow.of(context.method(photo.row))
-        val photoRowAt = rowFlow.instructions.indexOfFirst { it.calls(PHOTO_BAR_ON) }
-        assertTrue("$what: the preview's switch comes first", rowFlow.instructions[0].calls(SEEK_PREVIEW_ON))
-        assertEquals("$what: the post is remembered once", 1, rowFlow.instructions.count { it.calls(REMEMBER_REEL) })
-        assertTrue("$what: off, the row goes on to the photo bar's switch", photoRowAt in rowFlow.normal[2])
-        for ((method, start, hook) in listOf(
-            Triple(context.method(photo.answer), photo.answerAt, PHOTO_REEL),
-            Triple(context.method(photo.row), photoRowAt, PHOTO_ROW),
-            Triple(context.method(photo.player), 0, PHOTO_PROGRESS),
-            Triple(context.method(photo.touchOnly.method), photo.touchOnly.at, PHOTO_TOUCH_ONLY),
-        )) {
-            val name = "$what ${method.definingClass}->${method.name}"
-            val flow = ControlFlow.of(method)
-            val code = flow.instructions
-            assertTrue("$name: the switch comes first, not ${code[start].opcode}", code[start].calls(PHOTO_BAR_ON))
-            assertEquals("$name: the switch's answer", Opcode.MOVE_RESULT, code[start + 1].opcode)
-            assertEquals("$name: the test", Opcode.IF_EQZ, code[start + 2].opcode)
-            assertEquals("$name: hooks", 1, code.count { it.calls(hook) })
-            var after = code.indexOfFirst { it.calls(hook) } + 1
-            if (code[after].opcode == Opcode.MOVE_RESULT) after++
-            assertTrue("$name: off, Instagram's next instruction", after in flow.normal[start + 2])
-        }
-        val answer = context.method(photo.answer).implementation!!.instructions.toList()
-        val hookAt = answer.indexOfFirst { it.calls(PHOTO_REEL) }
-        assertEquals("$what: the hook's answer", photo.answerRegister, (answer[hookAt + 1] as OneRegisterInstruction).registerA)
-        assertEquals("$what: the answer goes back", Opcode.RETURN, answer[hookAt + 2].opcode)
-        assertEquals("$what: Instagram's answer goes in", photo.answerRegister, answer[hookAt].arguments().first())
-
-        // The touch-only check asks the controller again for the reel on screen, and answers back where Instagram returned.
-        val onTouch = photo.touchOnly
-        val touch = context.method(onTouch.method).implementation!!.instructions.toList()
-        val touchAt = touch.indexOfFirst { it.calls(PHOTO_TOUCH_ONLY) }
-        val asked = touch.indices.filter { it in onTouch.at until touchAt && touch[it].calls(onTouch.current) }
-        assertEquals("$what: the reel on screen asked once in the hook", 1, asked.size)
-        assertEquals("$what: of the controller", listOf(onTouch.controller), touch[asked.single()].arguments())
-        assertEquals("$what: the touch hook's answer", onTouch.answer, (touch[touchAt + 1] as OneRegisterInstruction).registerA)
-        assertEquals("$what: the touch answer goes back", Opcode.RETURN, touch[touchAt + 2].opcode)
-        assertEquals("$what: Instagram's touch answer goes in", onTouch.answer, touch[touchAt].arguments().first())
-    }
-
-    private fun Method.holdsMarkerOf(name: String): Boolean = implementation?.instructions?.any { instruction ->
-        val string = ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string
-        string != null && string.startsWith("android_purge_") && string.endsWith("_$name")
-    } == true
 
     private fun Method.loadsAny(vararg flags: Long): Boolean = implementation?.instructions?.any {
         it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral in flags
@@ -569,7 +462,7 @@ class ReelSeekBarHookTest {
     private fun Method.holdsMarker(): Boolean = implementation?.instructions?.any { instruction ->
         val string = ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string
         string != null && string.startsWith("android_purge_") &&
-            listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP, PLAYER_PROGRESS, TOUCH_ONLY).any { string.endsWith("_$it") }
+            listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP).any { string.endsWith("_$it") }
     } == true
 
     private fun Method.holdsString(text: String): Boolean = implementation?.instructions?.any {
@@ -678,10 +571,6 @@ class ReelSeekBarHookTest {
         val handed = binder.parameterRegisterNumber(1)
         val (container, answer) = code[call].arguments()
         assertEquals("$what: the answer", (read as OneRegisterInstruction).registerA, answer)
-        // The reel's id goes over first, from the item the read reads, since 454 tags the container only on some screens.
-        assertEquals("$what: reel id hooks", 1, code.count { it.calls(BIND_REEL) })
-        assertTrue("$what: the reel id hook right before the read", code[call - 2].calls(BIND_REEL))
-        assertEquals("$what: the container and the item", listOf(container, (read as TwoRegisterInstruction).registerB), code[call - 2].arguments())
         if (container != handed) {
             // 453 copies the handed container into a local before its switch, once, and hooks with the copy.
             val dispatch = code.indexOfFirst { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH }
@@ -691,14 +580,6 @@ class ReelSeekBarHookTest {
             assertTrue("$what: a copy", copy.opcode in setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16))
             assertEquals("$what: of the handed container", handed, (copy as TwoRegisterInstruction).registerB)
         }
-    }
-
-    /** The extension's [REEL_ITEM_ID] stub casts its parameter to the reel item [itemType] and answers its getId. */
-    private fun assertReelIdAsked(what: String, context: BytecodePatchContext, itemType: String) {
-        val code = context.method(REEL_ITEM_READER, "id").implementation!!.instructions.toList()
-        assertEquals("$what: the stub's cast", listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT), code.take(4).map { it.opcode })
-        assertEquals("$what: to the reel item", itemType, code[0].reference().toString())
-        assertEquals("$what: its id", "$itemType->getId()Ljava/lang/String;", code[1].reference().toString())
     }
 
     /** The bar's listener calls [PROGRESS] first, with `this` and the position, and only there. */
@@ -765,10 +646,6 @@ class ReelSeekBarHookTest {
         const val POOL = "Lfixture/StringPool;"
         const val STRIP = "Lfixture/ClipsProgressController;"
         const val STRIP_LISTENER = "Lfixture/StripListener;"
-        const val KIND_EXT = "Lfixture/MixedMediaTypeExt;"
-        const val KIND_TYPE = "Lfixture/MixedMediaType;"
-        const val MEDIA_TYPE = "Lcom/instagram/feed/media/Media;"
-        const val PLAYER = "Lfixture/ClipsVideoPlayerController;"
 
         const val SET_ON_TOUCH_CALL = "invoke-virtual {v2, v0}, Landroid/view/View;->setOnTouchListener(Landroid/view/View\$OnTouchListener;)V"
 
@@ -790,63 +667,14 @@ class ReelSeekBarHookTest {
 
         fun standIns(): List<ClassDef> = listOf(
             util(), progressState(), row(), item(), seekBar(), classOf(APPCOMPAT_SEEK_BAR, superclass = "Landroid/widget/SeekBar;"),
-            binder(), primitive(), strip(), itemType(), kindExt(), player(), ExtensionDex.classDef(REEL_ITEM_READER),
-        )
-
-        /** Shaped like 454's reel item, LX/03f3: it holds its post and answers its id. */
-        fun itemType(medias: Int = 1, access: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value): ClassDef = ImmutableClassDef(
-            ITEM_TYPE, access, "Ljava/lang/Object;", null, null, null,
-            (0 until medias).map { ImmutableField(ITEM_TYPE, "A0g$it".removeSuffix("0"), MEDIA_TYPE, AccessFlags.PUBLIC.value, null, null, null) },
-            listOf(
-                method(
-                    ITEM_TYPE, "getId", emptyList(), "Ljava/lang/String;", 2,
-                    """
-                        const/4 v0, 0x0
-                        return-object v0
-                    """,
-                    static = false,
-                ),
-            ),
-        )
-
-        /** Shaped like 454's LX/087h->A00, which works out a post's kind of reel and reports a carousel it doesn't know. */
-        fun kindExt(): ClassDef = classOf(
-            KIND_EXT,
-            method(
-                KIND_EXT, "A00", listOf(MEDIA_TYPE), KIND_TYPE, 2,
-                """
-                    const-string v0, "$KIND_OF_REPORT"
-                    const/4 v0, 0x0
-                    return-object v0
-                """,
-            ),
-        )
-
-        /** Shaped like 454's LX/04Kf->A1M under its marker: the reel item, the position, the length and two more. */
-        fun player(): ClassDef = classOf(
-            PLAYER,
-            method(
-                PLAYER, "A1M", listOf(ITEM_TYPE, "I", "I", "I", "Z"), "V", 10,
-                """
-                    const-string v0, "android_purge_26_q2_$PLAYER_PROGRESS"
-                    invoke-static {v0}, $CONFIGS->trace(Ljava/lang/String;)V
-                    return-void
-                """,
-                static = false,
-            ),
+            binder(), primitive(), strip(),
         )
 
         /**
          * Shaped like 453's prepareExpandedTouchView (57.79's LX/04FC->A0L) under its marker: it takes
          * the strip it keeps and sets a scrubbing lambda as its touch listener.
          */
-        fun strip(
-            type: String = STRIP,
-            set: String = SET_ON_TOUCH_CALL,
-            touchHead: String = "",
-            current: String = "invoke-static {p0}, $type->A07($type)$ITEM_TYPE",
-            touchTail: String = "move-result v0\nreturn v0",
-        ): ClassDef = classOf(
+        fun strip(type: String = STRIP, set: String = SET_ON_TOUCH_CALL): ClassDef = classOf(
             type,
             method(
                 type, "A0L", emptyList(), "V", 4,
@@ -862,35 +690,6 @@ class ReelSeekBarHookTest {
                     return-void
                 """,
                 static = false,
-            ),
-            // Shaped like 454's LX/06OS->A07, the reel on screen, or null.
-            method(
-                type, "A07", listOf(type), ITEM_TYPE, 2,
-                """
-                    iget-object v0, p0, $type->A0B:$ITEM_TYPE
-                    return-object v0
-                """,
-            ),
-            // Shaped like 454's LX/06OS->A0R under its marker: whether the reel's bar shows only while touched, from its length.
-            method(
-                type, "A0R", listOf(type), "Z", 5,
-                """
-                    const-string v0, "android_purge_26_q2_$TOUCH_ONLY"
-                    invoke-static {v0}, $CONFIGS->trace(Ljava/lang/String;)V
-                    $touchHead
-                    $current
-                    move-result-object v0
-                    if-nez v0, :item
-                    const/4 v0, 0x0
-                    return v0
-                    :item
-                    invoke-static {p0}, $type->A03($type)J
-                    move-result-wide v2
-                    iget-object v1, p0, $type->A0c:Ljava/lang/Object;
-                    iget-boolean v0, v0, $AD_FIELD
-                    invoke-static {v1, v2, v3, v0}, $UTIL->A0N(Ljava/lang/Object;JZ)Z
-                    $touchTail
-                """,
             ),
         )
 
@@ -1101,17 +900,18 @@ class ReelSeekBarHookTest {
             ),
         )
 
-        /** Shaped like 454's calculateShouldShowAttachedScrubber: its marker, and it returns what A0M answers. */
-        fun item(calls: String = "A0M", tail: String = "move-result v0\nreturn v0"): ClassDef = classOf(
+        /** Shaped like 449's calculateShouldShowAttachedScrubber: its marker and a call to A0M. */
+        fun item(calls: String = "A0M"): ClassDef = classOf(
             ITEM,
             method(
-                ITEM, "A00", listOf("Ljava/lang/Object;", ITEM_TYPE, SESSION, "J"), "Z", 9,
+                ITEM, "A00", listOf(SESSION, "J"), "Z", 5,
                 """
                     const-string v0, "android_purge_26_q2_$CALCULATE_SHOULD_SHOW"
                     invoke-static {v0}, $CONFIGS->trace(Ljava/lang/String;)V
                     const/4 v0, 0x1
-                    invoke-static {p2, p3, p4, v0, v0}, $UTIL->$calls(${SESSION}JZZ)Z
-                    $tail
+                    invoke-static {p0, p1, p2, v0, v0}, $UTIL->$calls(${SESSION}JZZ)Z
+                    move-result v0
+                    return v0
                 """,
             ),
         )

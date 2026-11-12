@@ -101,12 +101,20 @@ public class SettingsLockPageTest {
         PauseForTests.resume();
         Settings.CATEGORY_PAGES.resetToDefault();
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
     }
 
     @Test public void theLockSitsRightUnderPause() {
         try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup().visible()) {
-            List<Preference> rows = rowsOf(DownloadSettingsTest.pageIn(host));
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(host);
+            Preference section = null;
+            for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
+                Preference item = page.getPreferenceScreen().getPreference(i);
+                if (item instanceof HushgramPreferenceFragment.Heading
+                        && "Pause and diagnostics".contentEquals(item.getTitle())) section = item;
+            }
+            assertNotNull("the overview has Pause and diagnostics", section);
+            tap(section);
+            List<Preference> rows = rowsOf(page);
             int pause = indexOfKey(rows, BaseSettings.PAUSED.key);
             assertTrue("no Pause row", pause >= 0);
             assertEquals(pause + 1, indexOfKey(rows, HushgramPreferenceFragment.LOCK_ROW_KEY));

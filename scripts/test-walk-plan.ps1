@@ -133,10 +133,9 @@ function Get-NativePlanDocument {
 }
 function Get-SettingsPlanDocument {
     param($Destination, [switch]$Page, [string[]]$Headings, [string[]]$Rows)
-    # SettingsDialog.java:154-199,276-279 and HushgramPreferenceFragment.java:5173-5249.
-    # The preference title and summary have distinct framework IDs in 04-baseline-settings.xml.
-    # -Rows lays out the overview list top to bottom; an entry also in -Headings is drawn as a heading.
-    $title = if ($Page) { $Destination.title } else { 'HushGram' }
+    # SettingsDialog keeps HushGram in the fixed bar. A selected section shows its heading
+    # and controls in the ListView; the overview shows category names but not their controls.
+    $title = 'HushGram'
     $bar = Get-PlanNode -Class 'android.widget.LinearLayout' -Children (
         (Get-PlanNode -Class 'android.widget.Button' -Description 'Back') +
         (Get-PlanNode -Class 'android.widget.TextView' -Text $title))
@@ -145,12 +144,15 @@ function Get-SettingsPlanDocument {
             if ($_ -cin $Headings) { Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $_.ToUpperInvariant() }
             else { Get-PlanNode -Class 'android.widget.LinearLayout' -Children (Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $_) }
         }) -join ''
+    } elseif ($Destination.kind -ceq 'settings') {
+        $rows = Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $Destination.title
+        if ($Page) {
+            $rows += Get-PlanNode -Class 'android.widget.LinearLayout' -Children (
+                Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $Destination.anchors[0])
+        }
     } else {
-        $rows = if ($Destination.kind -ceq 'settings' -and -not $Page) {
-            Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $Destination.title.ToUpperInvariant()
-        } else { '' }
-        $rows += Get-PlanNode -Class 'android.widget.LinearLayout' -Children (
-            Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text $Destination.anchors[0])
+        $rows = Get-PlanNode -Class 'android.widget.LinearLayout' -Children (
+            Get-PlanNode -Id 'android:id/title' -Class 'android.widget.TextView' -Text 'HushGram is on')
     }
     $document = Get-PlanDocument ($bar + (Get-PlanNode -Id 'android:id/list' -Class 'android.widget.ListView' -Children $rows))
     foreach ($uiNode in @($document.DocumentElement.FirstChild.FirstChild.SelectNodes('descendant-or-self::node'))) {
@@ -195,7 +197,7 @@ try {
             Assert-PlanTest ($settingsSource.Contains('L10n.t("' + $title + '"')) "Walk policy text '$title' ($($category.id)) is not a settings title in the source."
         }
     }
-    # The walk expands a heading and wants a verified row within a screen of it; an anchor 14 rows down failed 0.0.17's walk.
+    # Each section page must expose a verified control near its heading, so the walk can confirm entry without scanning a long list.
     foreach ($selection in @(, $all) + @(, $defaults)) {
         foreach ($destination in @($selection | Where-Object { $_.kind -ceq 'settings' -and $_.page })) {
             $builder = ($policy.categories | Where-Object id -CEQ $destination.id).builder
@@ -208,7 +210,7 @@ try {
     Assert-PlanTest (@($defaults | Where-Object kind -CEQ 'settings').Count -eq 23) 'Default patches must require all 23 headings.'
     Assert-PlanTest (@($all | Where-Object { $_.kind -ceq 'settings' -and $_.page }).Count -eq 23) 'Exactly 23 settings pages are expected.'
     $pause = $all | Where-Object id -CEQ 'settings-pause'
-    Assert-PlanTest ($pause.page -is [bool] -and $pause.page -and $pause.title -ceq 'Pause and diagnostics') 'Pause must fold like the other categories.'
+    Assert-PlanTest ($pause.page -is [bool] -and $pause.page -and $pause.title -ceq 'Pause and diagnostics') 'Pause must use a section page like the other categories.'
     Assert-PlanTest (@(Get-WalkRequiredDestinations -CatalogPath $catalogPath -SelectedPatches @()).Count -eq 5) 'A build without settings should require only native destinations.'
     $privacy = $policy.categories | Where-Object id -CEQ 'settings-privacy'
     $ghost = $privacy.when.conditions[1]
@@ -253,7 +255,7 @@ try {
         { param($p) $p.categories[2].title = $p.categories[1].title },
         { param($p) $p.categories[2].id = 'settings-INVALID' },
         { param($p) $p.categories[2].builder = 'Missing' },
-        { param($p) $p.categories[2].page = 'false' },
+        { param($p) $p.categories[2].page = 'false' }, { param($p) $p.categories[2].page = $false },
         { param($p) $p.categories[2].anchors[0].title = ' ' },
         { param($p) $p.categories[2].anchors[1].title = $p.categories[2].anchors[0].title },
         { param($p) $p.categories[2].when = @{op='any';patches=@('Unknown patch')} },
@@ -489,10 +491,21 @@ try {
     $section = $all | Where-Object id -CEQ 'settings-privacy'
     $overview = $all | Where-Object id -CEQ 'settings-root'
     Assert-PlanContent $overview (Get-SettingsPlanDocument $overview) $true 'Settings root with Search scrolled offscreen'
-    Assert-PlanContent $section (Get-SettingsPlanDocument $section) $true 'Long-list settings section'
-    Assert-PlanContent $section (Get-SettingsPlanDocument $section -Page) $true 'Category page toolbar'
-    Assert-PlanContent $pause (Get-SettingsPlanDocument $pause) $true 'Open Pause section on the overview'
-    Assert-PlanContent $pause (Get-SettingsPlanDocument $pause -Page) $true 'Pause category toolbar'
+    # At the top of the actual overview the brand header is visible and the fixed toolbar title is
+    # INVISIBLE to avoid showing HushGram twice. The accessibility proof must accept that layout.
+    $brandHeaderDocument = Get-SettingsPlanDocument $overview
+    $brandHeaderDocument.SelectSingleNode('//node[@class="android.widget.TextView" and @text="HushGram"]').SetAttribute('visible-to-user','false')
+    $listForBrandHeader = $brandHeaderDocument.SelectSingleNode('//node[@resource-id="android:id/list"]')
+    $brandNode = [xml](Get-PlanNode -Class 'android.widget.TextView' -Text 'HushGram' -Bounds '[0,128][720,288]')
+    [void]$listForBrandHeader.InsertBefore($brandHeaderDocument.ImportNode($brandNode.DocumentElement, $true), $listForBrandHeader.FirstChild)
+    # The brand header and status row have separate bounds, so this fixture does not overlap Search or a control.
+    $brandHeaderDocument.SelectSingleNode('//node[@resource-id="android:id/list"]/node[1]').SetAttribute('bounds','[0,128][720,288]')
+    $brandHeaderDocument.SelectSingleNode('//node[@resource-id="android:id/list"]/node[2]').SetAttribute('bounds','[0,288][720,448]')
+    Assert-PlanContent $overview $brandHeaderDocument $true 'Settings root with visible brand and invisible toolbar title'
+    Assert-PlanContent $section (Get-SettingsPlanDocument $section) $false 'Overview does not expose section controls'
+    Assert-PlanContent $section (Get-SettingsPlanDocument $section -Page) $true 'Section page with fixed HushGram toolbar'
+    Assert-PlanContent $pause (Get-SettingsPlanDocument $pause) $false 'Overview does not expose Pause controls'
+    Assert-PlanContent $pause (Get-SettingsPlanDocument $pause -Page) $true 'Pause section with fixed HushGram toolbar'
     foreach($destination in @($section,$overview)) {
         $document=Get-SettingsPlanDocument $destination
         $fragment=$document.CreateDocumentFragment(); $fragment.InnerXml=Get-PlanNode -Text 'Screen unavailable'
@@ -516,15 +529,15 @@ try {
     $anchorNode = @($document.SelectNodes('//node[@resource-id="android:id/title"]'))[-1]
     $anchorNode.SetAttribute('resource-id','android:id/summary')
     Assert-PlanContent $section $document $false 'Summary cannot impersonate a title'
-    # Expanded rows sit under their own heading, up to the next one. Feed and Reels share an anchor.
+    # A section page must prove its own row. Feed and Reels share an anchor, so another page's heading must not claim it.
     $feed = $all | Where-Object id -CEQ 'settings-feed'
     $reels = $all | Where-Object id -CEQ 'settings-reels'
     $shared = 'Hide suggested accounts'
     Assert-PlanTest ($feed.anchors -ccontains $shared -and $reels.anchors -ccontains $shared -and $section.headings -ccontains $feed.title) 'The shared-anchor fixture no longer matches the policy.'
-    Assert-PlanContent $feed (Get-SettingsPlanDocument $feed -Headings $section.headings -Rows @($reels.title,$feed.title,$shared)) $true 'Open section under a folded heading'
-    Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($reels.title,$feed.title,$shared)) $false 'Another section''s row under a later heading'
+    Assert-PlanContent $feed (Get-SettingsPlanDocument $feed -Headings $section.headings -Rows @($reels.title,$feed.title,$shared)) $true 'Requested section owns its anchor'
+    Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($reels.title,$feed.title,$shared)) $false 'Another section''s shared anchor is rejected'
     Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($shared,$reels.title)) $false 'A row above its heading'
-    Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($reels.title,$feed.title)) $false 'A folded heading with no rows'
+    Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($reels.title,$feed.title)) $false 'A section heading with no controls'
     Assert-PlanContent $reels (Get-SettingsPlanDocument $reels -Headings $section.headings -Rows @($feed.title,$shared,$reels.title,$shared)) $true 'Both open, each row under its own heading'
     $headingTitles = [Collections.Generic.HashSet[string]]::new([string[]]@($policy.categories.title), [StringComparer]::OrdinalIgnoreCase)
     foreach ($category in $policy.categories) {

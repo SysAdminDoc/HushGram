@@ -222,8 +222,7 @@ public class NotificationGroupsSettingsTest {
         assertNotNull(section);
         assertEquals("Notifications", section.getTitle().toString());
         assertEquals(4, section.getPreferenceCount());
-        assertEquals("Take suggestions and Featured off the Notifications page.",
-                ((HushgramPreferenceFragment.Heading) section).intro);
+        assertNull("category descriptions are not displayed", section.getSummary());
     }
     /** Turning Group notifications off preserves the children and the summary that must stay with them. */
     @Test public void turningTheSwitchOffKeepsTheChildrenAndTheirSummary() throws Exception {

@@ -12,14 +12,11 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Rect;
-import android.graphics.drawable.ClipDrawable;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.view.Gravity;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
@@ -41,7 +38,6 @@ import org.robolectric.shadows.ShadowSystemClock;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import app.hushgram.extension.instagram.feed.SeekShape;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -91,30 +87,8 @@ public class ReelSeekThumbTest {
         Settings.BIG_REEL_SEEK_BAR.resetToDefault();
         Settings.DM_REEL_SEEK_BAR.resetToDefault();
         Settings.REEL_SEEK_BAR.resetToDefault();
-        Settings.SEEK_BAR_SHAPE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-    }
-
-    /** #586: a shape draws the reel's bar in place of its handle and thicker track, and Standard hands Instagram's back. */
-    @Test public void aShapeTakesOverTheReelBarAndStandardHandsItBack() {
-        Drawable track = bar.getProgressDrawable();
-        Settings.REEL_SEEK_THUMB.save(true);
-        Settings.SEEK_BAR_SHAPE.save(SeekShape.WAVE);
-        refresh();
-        assertTrue(ReelSeekBar.shaped());
-        assertFalse("the shape has its own handle", ReelSeekBar.thumbOn());
-        assertFalse(ReelSeekBar.bigOn());
-        assertEquals("SeekShapeDrawable", bar.getProgressDrawable().getClass().getSimpleName());
-        assertEquals(0, bar.getThumb().getIntrinsicWidth());
-
-        Settings.REEL_SEEK_THUMB.save(false);
-        Settings.SEEK_BAR_SHAPE.save(SeekShape.STANDARD);
-        refresh();
-        assertFalse(ReelSeekBar.shaped());
-        assertSame(track, bar.getProgressDrawable());
-        assertSame(original, bar.getThumb());
-        assertEquals(3, bar.getThumbOffset());
     }
 
     @Test public void defaultOffLeavesTheNativeDrawableAndOffset() {
@@ -454,11 +428,8 @@ public class ReelSeekThumbTest {
         refresh();
         ShadowSystemClock.advanceBy(100, TimeUnit.MILLISECONDS);
         bar.setProgress(60);
-        Drawable own = ((LayerDrawable) bar.getProgressDrawable()).findDrawableByLayerId(android.R.id.progress);
-        assertTrue("Instagram's own track eases too", own instanceof ReelTimeLabel.EasedLine);
-        float plain = ((ReelTimeLabel.Thumb) bar.getThumb()).shift();
-        assertTrue(((ReelTimeLabel.EasedLine) own).behind(SystemClock.uptimeMillis()) < 0f);
-        assertTrue("and the handle stays on its end", rtl ? plain > 1f : plain < -1f);
+        assertEquals("Instagram's own track has no easing to follow", 0f,
+                ((ReelTimeLabel.Thumb) bar.getThumb()).shift(), 0.01f);
     }
 
     /**
@@ -610,71 +581,6 @@ public class ReelSeekThumbTest {
         refresh();
         assertSame("paused, Instagram's track", track, bar.getProgressDrawable());
         assertSame(original, bar.getThumb());
-    }
-
-    /**
-     * #10: "each new reel's bar starts at the old spot for a moment, then moves in small jumps". Instagram's
-     * own track eases between its steps as a restyled one does, drawn by Instagram's own layer in its own
-     * place, and the handle stays on the line's end. A new reel's position goes back, so that's drawn at once.
-     * Off or paused, Instagram's layer is back at the bar's level with its bounds.
-     */
-    @Test public void instagramsOwnTrackEasesBetweenItsSteps() {
-        ClipDrawable played = new ClipDrawable(new ColorDrawable(Color.WHITE), Gravity.START, ClipDrawable.HORIZONTAL);
-        LayerDrawable track = new LayerDrawable(new Drawable[] {new ColorDrawable(Color.GRAY), played});
-        track.setId(0, android.R.id.background);
-        track.setId(1, android.R.id.progress);
-        bar.setProgressDrawable(track);
-        Rect bounds = new Rect(played.getBounds());
-        assertFalse("the bar has given the layer its place", bounds.isEmpty());
-        refresh();
-
-        Drawable line = track.findDrawableByLayerId(android.R.id.progress);
-        assertTrue(line instanceof ReelTimeLabel.EasedLine);
-        assertSame("Instagram's layer draws it", played, ((ReelTimeLabel.EasedLine) line).getDrawable());
-        assertEquals("in its place", bounds, line.getBounds());
-        assertEquals(bounds, played.getBounds());
-        assertEquals("from where the bar is", 2500, line.getLevel());
-        Canvas canvas = new Canvas(Bitmap.createBitmap(400, 28, Bitmap.Config.ARGB_8888));
-
-        ShadowSystemClock.advanceBy(100, TimeUnit.MILLISECONDS);
-        bar.setProgress(50);
-        line.draw(canvas);
-        assertEquals("starts where it was", 2500, played.getLevel());
-        ReelTimeLabel.EasedLine eased = (ReelTimeLabel.EasedLine) line;
-        assertEquals("a quarter of the bar to go", -0.25f, eased.behind(SystemClock.uptimeMillis()), 0.001f);
-        ShadowSystemClock.advanceBy(50, TimeUnit.MILLISECONDS);
-        line.draw(canvas);
-        assertEquals("halfway after half the step", 3750, played.getLevel());
-        ShadowSystemClock.advanceBy(50, TimeUnit.MILLISECONDS);
-        line.draw(canvas);
-        assertEquals("there as the next step comes", 5000, played.getLevel());
-
-        bar.setProgress(0);
-        line.draw(canvas);
-        assertEquals("a new reel starts at 0 at once", 0, played.getLevel());
-
-        // Idling the looper on 37 runs frames that move the clock past a step, so the two steps come after it.
-        Settings.REEL_SEEK_THUMB.save(true);
-        refresh();
-        bar.setProgress(10);
-        ShadowSystemClock.advanceBy(100, TimeUnit.MILLISECONDS);
-        bar.setProgress(20);
-        assertTrue("the handle is drawn back to the line's end", ((ReelTimeLabel.Thumb) bar.getThumb()).shift() < 0f);
-
-        bar.setProgress(40);
-        Settings.REEL_SEEK_THUMB.save(false);
-        Settings.REEL_SEEK_BAR.save(false);
-        refresh();
-        assertSame("off, Instagram's own layer", played, track.findDrawableByLayerId(android.R.id.progress));
-        assertEquals("at the bar's level", 4000, played.getLevel());
-        assertEquals("in its place", bounds, played.getBounds());
-
-        Settings.REEL_SEEK_BAR.save(true);
-        refresh();
-        assertTrue(track.findDrawableByLayerId(android.R.id.progress) instanceof ReelTimeLabel.EasedLine);
-        PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        refresh();
-        assertSame("paused, Instagram's own layer", played, track.findDrawableByLayerId(android.R.id.progress));
     }
 
     private void refresh() {

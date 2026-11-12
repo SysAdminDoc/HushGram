@@ -30,6 +30,7 @@ open HushGram settings, then Licenses.
   morphe-patches              https://github.com/MorpheApp/morphe-patches
   morphe-patches-library      https://github.com/MorpheApp/morphe-patches-library
   ReVanced                    https://gitlab.com/ReVanced/revanced-patches
+  Oxbow                       https://github.com/aic0d3r/oxbow (GPL-3.0; settings visual/interaction reference; ExpressiveSwitch reference at commit d025ce9f0548a20abe17530f2b9ebd29a46f0486; HushGram-owned preference integration and rollback)
 
 Andrew Liang's patches are licensed under the GNU General Public License v3.0.
 Their files here keep a "Forked from" line naming the file and commit they
@@ -44,16 +45,6 @@ The table was imported from commit
 Font placement hints were adjusted here. Privacy descriptions and notification counts are also maintained here.
 https://github.com/SysAdminDoc/HushGram/pull/313
 https://github.com/JhouHank/HushGram
-
-Thai translation
-----------------
-
-MangaThatsFine (Nuttapong Sessee) contributed the Thai translation in PR #593.
-The table was imported from commit
-302a414fca5ff81bb626e67e08ff6261069559c4, under GPL-3.0-only.
-Rows for strings added after that pull request are maintained here.
-https://github.com/SysAdminDoc/HushGram/pull/593
-https://github.com/MangaThatsFine/HushGram
 
 The contributor credits their Piko translations as a terminology reference.
 The table retains that reference, and Piko's notice is reproduced below.

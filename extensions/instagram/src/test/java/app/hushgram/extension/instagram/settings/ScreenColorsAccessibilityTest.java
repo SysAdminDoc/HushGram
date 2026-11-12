@@ -20,7 +20,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.preference.Preference;
-import android.preference.SwitchPreference;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ContextThemeWrapper;
@@ -31,7 +30,6 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import java.io.File;
@@ -95,7 +93,6 @@ public class ScreenColorsAccessibilityTest {
         Settings.TAB_ORDER.resetToDefault();
         Settings.DOWNLOAD_QUALITY.resetToDefault();
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
         RuntimeEnvironment.setFontScale(1f);
         TabOrder.forgetForTests();
     }
@@ -104,20 +101,22 @@ public class ScreenColorsAccessibilityTest {
         readable(ScreenColors.DEFAULT);
     }
 
-    @Test public void pureBlackTurnsCardsAndDialogsBlackAndKeepsTheirOutlines() {
-        ScreenColors black = new ScreenColors(true);
-        assertEquals(Color.BLACK, black.card);
-        assertEquals(Color.BLACK, black.dialog);
-        assertEquals(ScreenColors.DEFAULT.outline, black.outline);
-        contrast("card edge", black.outline, Color.BLACK, 1.3);
-        readable(black);
-        ScreenColors charcoal = new ScreenColors(false);
-        assertNotEquals(Color.BLACK, charcoal.card);
-        assertNotEquals(Color.BLACK, charcoal.dialog);
+    @Test public void usesTheReferencePaletteAndKeepsSurfaceEdgesVisible() {
+        ScreenColors palette = ScreenColors.DEFAULT;
+        assertEquals(0xFF0E0E0E, palette.background);
+        assertEquals(0xFF1B1B1B, palette.card);
+        assertEquals(0xFF1B1B1B, palette.dialog);
+        assertEquals(0xFF262626, palette.iconSurface);
+        assertEquals(0xFFF4F4F4, palette.title);
+        assertEquals(0xFFABABAB, palette.summary);
+        assertEquals(0xFF3A3A3A, palette.outline);
+        assertEquals(0xFF757575, palette.switchOff);
+        contrast("card edge", palette.outline, palette.card, 1.3);
+        readable(palette);
     }
 
     @Test public void anEmptyFieldsPlaceholderStaysReadableAndQuieterThanSavedText() {
-        for (ScreenColors colors : new ScreenColors[]{ScreenColors.DEFAULT, new ScreenColors(true), new ScreenColors(false)}) {
+        for (ScreenColors colors : new ScreenColors[]{ScreenColors.DEFAULT, new ScreenColors()}) {
             for (int surface : new int[]{colors.background, colors.card, colors.dialog}) {
                 contrast("placeholder", colors.hint, surface, 4.5);
             }
@@ -319,41 +318,38 @@ public class ScreenColorsAccessibilityTest {
 
     @Test public void realDisabledRowsKeepTheirStateAndVisiblyDifferentControls() {
         Activity activity = controller.get();
-        SwitchPreference preference = new SwitchPreference(activity);
+        HushgramPreferenceFragment.Toggle preference = new HushgramPreferenceFragment.Toggle(activity);
+        preference.setPersistent(false);
         preference.setTitle("Hide ads");
         preference.setSummary("Hides sponsored posts, reels and stories.");
         preference.setChecked(true);
-        View enabled = preference.getView(null, new FrameLayout(activity));
-        ScreenColors.row(enabled, preference);
+        FrameLayout parent = new FrameLayout(activity);
+        View enabled = preference.getView(null, parent);
         TextView enabledTitle = enabled.findViewById(android.R.id.title);
         TextView enabledSummary = enabled.findViewById(android.R.id.summary);
-        Switch enabledSwitch = enabled.findViewById(android.R.id.switch_widget);
-        assertNotNull(enabledSwitch);
-        assertTrue(enabledSwitch.getThumbDrawable() instanceof GradientDrawable);
-        assertTrue(enabledSwitch.getTrackDrawable() instanceof GradientDrawable);
-        GradientDrawable thumb = (GradientDrawable) enabledSwitch.getThumbDrawable();
-        GradientDrawable track = (GradientDrawable) enabledSwitch.getTrackDrawable();
-        assertEquals("The native switch thumb stays rectangular", GradientDrawable.RECTANGLE, thumb.getShape());
-        assertEquals("The switch track must not become a capsule", GradientDrawable.RECTANGLE, track.getShape());
-        assertEquals(dp(4), thumb.getCornerRadius(), 0.01f);
-        assertEquals(dp(6), track.getCornerRadius(), 0.01f);
-        assertEquals(dp(20), thumb.getIntrinsicWidth());
-        assertEquals(dp(20), thumb.getIntrinsicHeight());
-        assertEquals(dp(40), track.getIntrinsicWidth());
-        assertEquals(dp(24), track.getIntrinsicHeight());
+        ExpressiveSwitch enabledSwitch = enabled.findViewById(android.R.id.switch_widget);
+        assertNotNull("A real HushGram toggle must replace the native widget", enabledSwitch);
+        assertEquals("android.widget.Switch", enabledSwitch.getAccessibilityClassName().toString());
+        assertTrue(enabledSwitch.isEnabled());
+        assertTrue(enabledSwitch.isChecked());
+        int activeTrack = switchTrackPixel(enabledSwitch);
+        assertEquals("The switch keeps a 64dp touch target", dp(64), enabledSwitch.getMeasuredWidth());
+        assertEquals("The switch keeps a 48dp touch target", dp(48), enabledSwitch.getMeasuredHeight());
         contrast("actual enabled title", color(enabledTitle.getTextColors(), true, false), ScreenColors.DEFAULT.card, 4.5);
         contrast("actual enabled summary", color(enabledSummary.getTextColors(), true, false), ScreenColors.DEFAULT.card, 4.5);
-        int activeTrack = color(enabledSwitch.getTrackTintList(), true, true);
+
         preference.setEnabled(false);
-        View disabled = preference.getView(null, new FrameLayout(activity));
-        ScreenColors.row(disabled, preference);
-        Switch disabledSwitch = disabled.findViewById(android.R.id.switch_widget);
+        View disabled = preference.getView(enabled, parent);
+        assertSame("The recycled row should be rebound instead of replaced", enabled, disabled);
+        ExpressiveSwitch disabledSwitch = disabled.findViewById(android.R.id.switch_widget);
         TextView disabledTitle = disabled.findViewById(android.R.id.title);
+        assertSame("Rebinding the row should retain its custom switch", enabledSwitch, disabledSwitch);
         assertFalse(disabled.isEnabled());
         assertFalse(disabledSwitch.isEnabled());
         assertTrue("Disabling a control must preserve its saved choice", disabledSwitch.isChecked());
-        assertNotEquals("An unavailable control must look different", activeTrack,
-                color(disabledSwitch.getTrackTintList(), false, true));
+        int inactiveTrack = switchTrackPixel(disabledSwitch);
+        assertTrue("A disabled switch must paint its track with lower alpha",
+                Color.alpha(inactiveTrack) < Color.alpha(activeTrack));
         assertTrue("Unavailable text must keep the disabled visual state",
                 Color.alpha(color(disabledTitle.getTextColors(), false, false))
                         < Color.alpha(color(enabledTitle.getTextColors(), true, false)));
@@ -361,10 +357,25 @@ public class ScreenColorsAccessibilityTest {
         TextView disabledSummary = disabled.findViewById(android.R.id.summary);
         int reason = color(disabledSummary.getTextColors(), false, false);
         assertTrue("The reason line still looks unavailable", Color.alpha(reason) < 0xFF);
-        for (ScreenColors look : new ScreenColors[]{new ScreenColors(false), new ScreenColors(true)}) {
+        for (ScreenColors look : new ScreenColors[]{ScreenColors.DEFAULT, new ScreenColors()}) {
             contrast("disabled summary on the card", over(reason, look.card), look.card, 4.5);
             contrast("disabled summary on the page", over(reason, look.background), look.background, 4.5);
         }
+    }
+
+    /** Draws the middle of the checked track without the handle covering that pixel. */
+    private int switchTrackPixel(ExpressiveSwitch control) {
+        int width = dp(64);
+        int height = dp(48);
+        control.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+        control.layout(0, 0, width, height);
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        control.draw(canvas);
+        int pixel = bitmap.getPixel(dp(12), dp(24));
+        bitmap.recycle();
+        return pixel;
     }
 
     /** [foreground] drawn over [background], the colour the screen actually shows. */
@@ -442,7 +453,7 @@ public class ScreenColorsAccessibilityTest {
         ScreenColors.dialog(alert);
         android.widget.LinearLayout list = (android.widget.LinearLayout)
                 alert.getWindow().getDecorView().findViewWithTag(TabPicker.HOME).getParent();
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        ScreenColors colors = ScreenColors.current();
         TabPicker.moveUp(list, 3);
         assertEquals(TabPicker.MESSAGES, list.getChildAt(2).getTag());
         alert.getButton(DialogInterface.BUTTON_NEUTRAL).performClick();

@@ -271,12 +271,12 @@ function Invoke-WalkApp {
         }
         function Read-WalkSettingsCapture {
             $current = Read-WalkCapture
-            if (-not (Test-WalkSettingsVisible $current.ParsedXml)) { throw 'The settings search field is not visible. No settings navigation was sent.' }
+            if (-not (Test-WalkSettingsVisible $current.ParsedXml)) { throw 'The HushGram settings surface is not visible. No settings navigation was sent.' }
             return $current
         }
         function Get-WalkSettledArea($Capture, [string]$Title) {
-            # A section still animating open or shut can hold its heading at zero bounds, or move it between the
-            # two snapshots. A heading the hierarchy holds gets one more look after a short settle before it counts as missing.
+            # A section transition can hold its heading at zero bounds, or move it between the two snapshots.
+            # A heading the hierarchy holds gets one more look after a short settle before it counts as missing.
             $area = Get-WalkCaptureActionArea -Capture $Capture -Package $Package -Title $Title
             $held = @(@($Capture.ParsedXml,$Capture.AfterParsedXml) | ForEach-Object { $_.SelectNodes('//node') } | Where-Object {
                 $_.GetAttribute('package') -ceq $Package -and ($_.GetAttribute('text') -ieq $Title -or $_.GetAttribute('content-desc') -ieq $Title) }).Count
@@ -288,33 +288,25 @@ function Invoke-WalkApp {
             [pscustomobject]@{ Capture=$Capture; Area=$area }
         }
         function Find-WalkSettingsSection($Destination) {
-            # Preferences can be reordered. Search both directions using only the verified settings list.
-            # A category heading expands its rows in place under it, so it is tapped once, never Back
-            # (Back closes settings), and the rows are then looked for further down.
-            # The long list holds every row, many screens of them, in walk order, so it is searched
-            # downward first and to its foot. The signature check still ends a search at either end.
-            $directions = if ($Destination.page) { @('up','down') } else { @('down','up') }
-            $swipeLimit = if ($Destination.page) { 24 } else { 400 }
+            # Each category opens a section page. Find its overview row, open it once, and verify
+            # the section's own rows. Never treat a category tap as an expand/collapse toggle.
+            if (-not $Destination.page) { throw "The settings section '$($Destination.title)' is not configured as a page." }
+            $directions = @('down','up')
+            $swipeLimit = 50
             foreach ($direction in $directions) {
                 $signature = $null
                 for ($scrollIndex=0; $scrollIndex -lt $swipeLimit; $scrollIndex++) {
                     $current = Read-WalkSettingsCapture
                     $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
-                    if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$false } }
-                    $section = $null
-                    if ($Destination.page) {
-                        $settled = Get-WalkSettledArea $current $Destination.title
-                        # A section that finished opening during the settle already shows its rows; a tap would fold it.
-                        if (-not [object]::ReferenceEquals($settled.Capture, $current)) {
-                            $current = $settled.Capture
-                            $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
-                            if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$false } }
-                        }
-                        $section = $settled.Area
-                    }
+                    if ($content.Valid) { return [pscustomobject]@{ Capture=$current } }
+
+                    $settled = Get-WalkSettledArea $current $Destination.title
+                    $current = $settled.Capture
+                    $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
+                    if ($content.Valid) { return [pscustomobject]@{ Capture=$current } }
+                    $section = $settled.Area
                     if ($null -ne $section) {
-                        # A heading at the foot of the list can sit in the system's bottom gesture area, where a
-                        # tap or a swipe from it opens Recents or goes home. Lift it into the list first, slowly.
+                        # Keep the tap away from the system gesture area at the foot of the screen.
                         $listBounds = Get-WalkCaptureActionArea -Capture $current -Package $Package -Scroll
                         $safeLine = if ($null -ne $listBounds) { [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.8) }
                         if ($null -ne $safeLine -and $section.Y -gt $safeLine) {
@@ -322,7 +314,8 @@ function Invoke-WalkApp {
                             [void](Invoke-WalkAdb @('shell','input','swipe',[string]$listBounds.X,[string]$safeLine,[string]$listBounds.X,[string]$lifted,'1000'))
                             Start-Sleep -Milliseconds 400
                             $settled = Get-WalkSettledArea (Read-WalkSettingsCapture) $Destination.title
-                            $current = $settled.Capture; $section = $settled.Area
+                            $current = $settled.Capture
+                            $section = $settled.Area
                             if ($null -eq $section -or $section.Y -gt $safeLine) {
                                 throw "The settings section '$($Destination.title)' stayed at the foot of the list, where a tap can reach the system's gestures. It wasn't tapped."
                             }
@@ -331,31 +324,20 @@ function Invoke-WalkApp {
                         $current = Read-WalkSettingsCapture
                         $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
                         if (-not $content.Valid) {
-                            # Rows still sliding open read at zero bounds. Look once more before lifting the heading.
+                            # Let the list finish its transition once. A heading alone is not proof
+                            # that the correct section opened or that its controls are reachable.
                             Start-Sleep -Milliseconds 400
                             $current = Read-WalkSettingsCapture
                             $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
                         }
-                        if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$true } }
-                        # Rows only count under a visible heading, so lift the heading to the top once, slowly enough not to fling.
-                        $settled = Get-WalkSettledArea $current $Destination.title
-                        $current = $settled.Capture; $heading = $settled.Area
-                        $listBounds = Get-WalkCaptureActionArea -Capture $current -Package $Package -Scroll
-                        $target = if ($null -ne $listBounds) { [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.1) }
-                        if ($null -ne $heading -and $null -ne $listBounds -and $heading.Y -gt $target) {
-                            [void](Invoke-WalkAdb @('shell','input','swipe',[string]$listBounds.X,[string]$heading.Y,[string]$listBounds.X,[string]$target,'1000'))
-                            Start-Sleep -Milliseconds 400
-                            $current = Read-WalkSettingsCapture
-                            $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
-                            if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$true } }
-                        }
-                        throw "The settings section '$($Destination.title)' expanded without a verified row within a screen of its heading. It was tapped once."
+                        if ($content.Valid) { return [pscustomobject]@{ Capture=$current } }
+                        throw "The settings section '$($Destination.title)' did not show its expected content after one tap. No further tap was sent."
                     }
-                    # At the list's top or foot the last swipe changed nothing, so another one won't either.
+
+                    # Stop at either list boundary when another swipe produces no visible change.
                     $seen = Get-WalkScreenSignature $current.ParsedXml
                     if ($seen -ceq $signature) { break }
                     $signature = $seen
-                    # No category sits above the search row, so with it in view an upward swipe can't reveal one.
                     if ($direction -ceq 'up' -and (Test-WalkSearchFieldVisible $current.ParsedXml)) { break }
                     if (-not (Send-WalkSettingsSwipe $current $direction)) { break }
                 }
@@ -416,24 +398,30 @@ function Invoke-WalkApp {
                 Start-Sleep -Seconds $SettleSeconds
                 $overview = Read-WalkCapture
                 $rootDestination = @($destinations | Where-Object { $_.kind -ceq 'settings-root' })[0]
+                # A resumed section is valid app state, but this walkthrough needs a known overview
+                # before it can independently visit each category.
+                if (-not (Test-WalkSearchFieldVisible $overview.ParsedXml)) {
+                    if (-not (Test-WalkSettingsVisible $overview.ParsedXml)) { throw 'Settings did not open to a verifiable HushGram screen.' }
+                    [void](Invoke-WalkAdb @('shell','input','keyevent','KEYCODE_BACK'))
+                    Start-Sleep -Seconds $SettleSeconds
+                    $overview = Read-WalkCapture
+                }
+                if (-not (Test-WalkSearchFieldVisible $overview.ParsedXml)) { throw 'Back did not return settings to the overview.' }
                 Add-WalkObservation $rootDestination $overview
-                $pages = @((Get-WalkVisibleNodes $overview.ParsedXml) | Where-Object { $_.GetAttribute('text') -ieq 'Show all settings as a list' }).Count -gt 0
                 foreach ($destination in @($destinations | Where-Object { $_.kind -ceq 'settings' })) {
-                    # In the saved long-list mode, observe headings and rows without changing its mode.
                     $navigationDestination = [pscustomobject]@{ id=$destination.id; title=$destination.title; kind=$destination.kind
-                        page=($pages -and $destination.page); anchors=$destination.anchors; headings=$destination.headings }
+                        page=$true; anchors=$destination.anchors; headings=$destination.headings }
                     $found = Find-WalkSettingsSection $navigationDestination
                     Add-WalkObservation $destination $found.Capture
-                    if ($found.Expanded) {
-                        # Fold it again from a verified heading, so a still-open section can't lend its rows to a later one.
-                        $heading = (Get-WalkSettledArea $found.Capture $destination.title).Area
-                        if ($null -eq $heading) { throw "The settings section '$($destination.title)' could not be folded. Its heading was not steady on screen." }
-                        Send-WalkTap $heading
-                        $folded = Get-WalkSettledArea (Read-WalkSettingsCapture) $destination.title
-                        if ($null -eq $folded.Area -or
-                            (Test-WalkDestinationContent -Destination $navigationDestination -Document $folded.Capture.ParsedXml -Package $Package).Valid) {
-                            throw "The settings section '$($destination.title)' still showed its rows after the fold tap."
-                        }
+
+                    # Android Back must return to the overview, not dismiss the settings window.
+                    [void](Invoke-WalkAdb @('shell','input','keyevent','KEYCODE_BACK'))
+                    Start-Sleep -Seconds $SettleSeconds
+                    $overview = Read-WalkCapture
+                    if (-not (Test-WalkSettingsVisible $overview.ParsedXml) -or
+                        -not (Test-WalkSearchFieldVisible $overview.ParsedXml) -or
+                        -not (Test-WalkDestinationContent -Destination $rootDestination -Document $overview.ParsedXml -Package $Package).Valid) {
+                        throw "Back did not return from '$($destination.title)' to the settings overview."
                     }
                 }
             }

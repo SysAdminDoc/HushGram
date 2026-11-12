@@ -17,6 +17,7 @@ import android.preference.PreferenceScreen;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ListAdapter;
 
 import java.util.EnumSet;
@@ -40,13 +41,8 @@ import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
-import app.hushgram.extension.shared.ui.Dim;
 
-/**
- * The page's side edges, as the S25 showed them (2026-11-03): main-page rows drew a grey hairline
- * down both screen edges, Restart now sat 12dp in while the cards and the search field sit 18dp in,
- * and the viewing history's search sat 16dp in.
- */
+/** Settings cards, the pinned restart action, and the viewing-history search share stable insets. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37}, qualifiers = "w320dp-h640dp-xhdpi")
 @SuppressWarnings("deprecation")
@@ -69,7 +65,6 @@ public class SettingsEdgeInsetsTest {
         Utils.awaitBackgroundTasksForTests();
         ViewingHistory.clear(RuntimeEnvironment.getApplication());
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
         Settings.SETTINGS_BLACK_LOOK.resetToDefault();
         Settings.CATEGORY_PAGES.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -109,7 +104,7 @@ public class SettingsEdgeInsetsTest {
         for (int i = 0; i < adapter.getCount(); i++) {
             if (adapter.getItem(i) != wanted) continue;
             View row = adapter.getView(i, null, new FrameLayout(controller.get()));
-            int width = dp(320);
+            int width = dp(320 - 40);
             row.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
             row.layout(0, 0, width, row.getMeasuredHeight());
@@ -119,32 +114,30 @@ public class SettingsEdgeInsetsTest {
             assertTrue("no inset card behind the row: " + inset, inset instanceof InsetDrawable);
             Drawable surface = ((InsetDrawable) inset).getDrawable();
             assertTrue(surface instanceof GradientDrawable);
-            return new Rect(surface.getBounds());
+            Rect bounds = new Rect(surface.getBounds());
+            bounds.offset(dp(20), 0);
+            return bounds;
         }
         throw new AssertionError("not on the page: " + wanted.getTitle());
     }
 
-    private void mainPageRowsKeepTheirStrokesOffTheScreenEdges(boolean black) throws Exception {
-        open(black, true);
+    private void assertSettingsCardsUseTheReferenceSideInset() throws Exception {
+        open(false, true);
         int width = dp(320);
         Rect overview = surfaceOf(categoryRow("Ads and privacy"));
-        assertTrue("the stroke's left side is off the screen: " + overview, overview.left <= -dp(1));
-        assertTrue("and its right side: " + overview, overview.right >= width + dp(1));
+        assertEquals("the overview card starts after the 20dp inset", dp(20), overview.left);
+        assertEquals("the overview card ends before the 20dp inset", width - dp(20), overview.right);
 
         Preference ads = categoryRow("Ads and privacy");
         assertTrue(ads.getOnPreferenceClickListener().onPreferenceClick(ads));
         ShadowLooper.idleMainLooper();
         Rect card = surfaceOf(page.findPreference(Settings.HIDE_ADS.key));
-        assertEquals("an expanded row keeps its card 18dp in", dp(18), card.left);
-        assertEquals(width - dp(18), card.right);
+        assertEquals("the section card starts after the 20dp inset", dp(20), card.left);
+        assertEquals("the section card ends before the 20dp inset", width - dp(20), card.right);
     }
 
-    @Test public void mainPageRowsKeepTheirStrokesOffTheScreenEdges() throws Exception {
-        mainPageRowsKeepTheirStrokesOffTheScreenEdges(false);
-    }
-
-    @Test public void mainPageRowsKeepTheirStrokesOffTheScreenEdgesOnTheBlackPage() throws Exception {
-        mainPageRowsKeepTheirStrokesOffTheScreenEdges(true);
+    @Test public void settingsCardsUseTheReferenceSideInset() throws Exception {
+        assertSettingsCardsUseTheReferenceSideInset();
     }
 
     @Test public void restartNowLinesUpWithTheCards() {
@@ -156,8 +149,8 @@ public class SettingsEdgeInsetsTest {
         ShadowLooper.idleMainLooper();
         View bar = dialog.getView().findViewById(SettingsDialog.RESTART_ID);
         ViewGroup.MarginLayoutParams space = (ViewGroup.MarginLayoutParams) bar.getLayoutParams();
-        assertEquals("the cards' 18dp, not 12", dp(18), space.leftMargin);
-        assertEquals(dp(18), space.rightMargin);
+        assertEquals("the cards' 20dp, not 12", dp(20), space.leftMargin);
+        assertEquals(dp(20), space.rightMargin);
     }
 
     @Test public void theViewingHistorySearchSitsWhereTheSettingsSearchDoes() throws Exception {
@@ -172,11 +165,28 @@ public class SettingsEdgeInsetsTest {
         ShadowLooper.idleMainLooper();
         try {
             ViewGroup.MarginLayoutParams space = (ViewGroup.MarginLayoutParams) history.search.getLayoutParams();
-            // Dim keeps the density of whichever test loaded it first, so this reads Dim too.
-            assertEquals("the settings search's 18dp", Dim.dp(18), space.getMarginStart());
-            assertEquals(Dim.dp(18), space.getMarginEnd());
+            assertEquals("the settings search's 20dp", dp(20), space.getMarginStart());
+            assertEquals(dp(20), space.getMarginEnd());
+
+            java.util.ArrayList<ImageButton> iconButtons = new java.util.ArrayList<>();
+            collectIconButtons(history.dialog.getWindow().getDecorView(), iconButtons);
+            assertEquals("history has back and clear actions", 2, iconButtons.size());
+            for (ImageButton button : iconButtons) {
+                assertTrue("custom ripple remains installed", button.getBackground() instanceof RippleDrawable);
+                assertNull("the host theme must not tint the custom ripple", button.getBackgroundTintList());
+            }
         } finally {
             history.dialog.dismiss();
+        }
+    }
+
+    private static void collectIconButtons(View view, java.util.List<ImageButton> result) {
+        if (view instanceof ImageButton) result.add((ImageButton) view);
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                collectIconButtons(group.getChildAt(i), result);
+            }
         }
     }
 }

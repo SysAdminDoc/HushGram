@@ -29,9 +29,7 @@ import org.robolectric.annotation.Config;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -72,7 +70,6 @@ public class ProfileSuggestionsTest {
         Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();
         Settings.HIDE_NOTIFICATION_SUGGESTIONS.resetToDefault();
         Settings.HIDE_NOTIFICATION_FEATURED.resetToDefault();
-        Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -524,70 +521,6 @@ public class ProfileSuggestionsTest {
     }
 
     /**
-     * #539: the follow list switch also takes Suggested subscriptions off your own Subscriptions tab,
-     * with no next page asked for, and the Discover people button off your own follow lists. Off,
-     * paused or unready, all three answers stand.
-     */
-    @Test
-    public void suggestedSubscriptionsAndTheDiscoverButtonGoWithTheFollowListSwitch() {
-        List<Object> creators = Arrays.asList(new Object(), new Object());
-        assertSame("the profile switch alone", creators, ProfileSuggestions.suggestedSubscriptions(creators));
-        assertTrue("the profile switch alone", ProfileSuggestions.moreSuggestedSubscriptions(1));
-        assertEquals("the profile switch alone", 1, ProfileSuggestions.friendingButton(1));
-
-        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(true);
-        List<?> hidden = ProfileSuggestions.suggestedSubscriptions(creators);
-        assertTrue(hidden.isEmpty());
-        assertEquals("the reply keeps its creators", 2, creators.size());
-        @SuppressWarnings("unchecked") List<Object> added = (List<Object>) hidden;
-        added.add(new Object());
-        assertEquals("the empty answer can be added to", 1, hidden.size());
-        List<Object> none = Collections.emptyList();
-        assertSame("nothing to hide", none, ProfileSuggestions.suggestedSubscriptions(none));
-        assertNull(ProfileSuggestions.suggestedSubscriptions(null));
-        assertFalse("no next page", ProfileSuggestions.moreSuggestedSubscriptions(1));
-        assertFalse("the last page stays the last", ProfileSuggestions.moreSuggestedSubscriptions(0));
-        assertEquals(0, ProfileSuggestions.friendingButton(1));
-        assertEquals("someone else's lists stay without it", 0, ProfileSuggestions.friendingButton(0));
-        String report = FeedFilterCounters.report().toString();
-        assertTrue(report, report.contains(ProfileSuggestions.SUGGESTED_SUBSCRIPTIONS));
-        assertTrue(report, report.contains(ProfileSuggestions.FRIENDING_BUTTON));
-        Settings.HIDE_PROFILE_SUGGESTIONS.save(false);
-        assertTrue("with the profile switch off", ProfileSuggestions.suggestedSubscriptions(creators).isEmpty());
-        assertEquals("with the profile switch off", 0, ProfileSuggestions.friendingButton(1));
-
-        BaseSettings.PAUSED.save(true);
-        PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertSame("paused", creators, ProfileSuggestions.suggestedSubscriptions(creators));
-        assertTrue("paused", ProfileSuggestions.moreSuggestedSubscriptions(1));
-        assertEquals("paused", 1, ProfileSuggestions.friendingButton(1));
-        BaseSettings.PAUSED.save(false);
-        PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> {
-            assertSame("unready", creators, ProfileSuggestions.suggestedSubscriptions(creators));
-            assertTrue("unready", ProfileSuggestions.moreSuggestedSubscriptions(1));
-            assertEquals("unready", 1, ProfileSuggestions.friendingButton(1));
-        });
-
-        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(false);
-        assertSame("off", creators, ProfileSuggestions.suggestedSubscriptions(creators));
-        assertTrue("off", ProfileSuggestions.moreSuggestedSubscriptions(1));
-        assertEquals("off", 1, ProfileSuggestions.friendingButton(1));
-    }
-
-    /** A follow list switch that throws keeps the creators, the next page and the button, and says which hook threw. */
-    @Test
-    public void aThrowingSwitchKeepsSuggestedSubscriptionsAndTheDiscoverButton() {
-        List<Object> creators = Collections.singletonList(new Object());
-        assertSame(creators, ProfileSuggestions.suggestedSubscriptions(creators, THROWS));
-        assertTrue(ProfileSuggestions.moreSuggestedSubscriptions(1, THROWS));
-        assertEquals(1, ProfileSuggestions.friendingButton(1, THROWS));
-        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
-        assertTrue(missing, missing.contains("'" + ProfileSuggestions.SUGGESTED_SUBSCRIPTIONS + "'"));
-        assertTrue(missing, missing.contains("'" + ProfileSuggestions.FRIENDING_BUTTON + "'"));
-    }
-
-    /**
      * #159: the Complete your profile cards go only with their own switch. A hidden set is counted,
      * with the profile switch on or off; off, paused or unready, Instagram's own check stands.
      */
@@ -939,69 +872,6 @@ public class ProfileSuggestionsTest {
         assertSame("off", nudge, ProfileSuggestions.keepNotification(nudge));
     }
 
-    /**
-     * #259 on 454: Threads rows also come as ig_text_post_app_ ("Suggested thread for you by nasa" is
-     * ig_text_post_app_daily_digest), and those leave with the same switches as the ig_text_app_ ones.
-     */
-    @Test
-    public void textPostAppRowsAreThreadsRowsToo() {
-        assertTrue(ProfileSuggestions.isFeaturedNudge("ig_text_post_app_daily_digest"));
-        assertTrue(ProfileSuggestions.isFeaturedNudge("ig_text_post_app_unconnected_daily_digest"));
-        assertTrue(ProfileSuggestions.isSuggestion("ig_text_post_app_unconnected_daily_digest"));
-        assertFalse("from an account you follow", ProfileSuggestions.isSuggestion("ig_text_post_app_daily_digest"));
-        assertFalse(ProfileSuggestions.isFeaturedNudge("ig_text_post_app_reply"));
-        assertFalse(ProfileSuggestions.isFeaturedNudge("ig_text_post_app_mention"));
-        assertFalse("not Threads", ProfileSuggestions.isFeaturedNudge("ig_text_post_daily_digest"));
-
-        Object digest = new Object();
-        Settings.HIDE_NOTIFICATION_FEATURED.save(true);
-        ProfileSuggestions.notificationParsed(digest, "ig_text_post_app_daily_digest");
-        assertNull(ProfileSuggestions.keepNotification(digest));
-        Settings.HIDE_NOTIFICATION_FEATURED.save(false);
-        ProfileSuggestions.notificationParsed(digest, "ig_text_post_app_daily_digest");
-        assertSame("off", digest, ProfileSuggestions.keepNotification(digest));
-    }
-
-    /**
-     * #259: "cnn invited you to join their channel" (igd_broadcast_chat_creation on 454) and a roundup of
-     * channel invites leave with Hide channel invites in notifications, and only with it. Other rows stay.
-     */
-    @Test
-    public void channelInvitesGoWithTheirOwnSwitch() {
-        assertTrue(ProfileSuggestions.isChannelInvite("igd_broadcast_chat_creation"));
-        assertTrue(ProfileSuggestions.isChannelInvite("igd_broadcast_channel_invites_digest"));
-        assertTrue(ProfileSuggestions.isChannelInvite("ig_channel_invite_reminder"));
-        assertFalse(ProfileSuggestions.isChannelInvite("igd_broadcast_chat_message"));
-        assertFalse(ProfileSuggestions.isChannelInvite("unseen_direct_message_reminder"));
-        assertFalse(ProfileSuggestions.isChannelInvite("user_followed"));
-        assertFalse(ProfileSuggestions.isChannelInvite(null));
-
-        Object invite = new Object();
-        Object follow = new Object();
-        Settings.HIDE_NOTIFICATION_SUGGESTIONS.save(true);
-        Settings.HIDE_NOTIFICATION_FEATURED.save(true);
-        ProfileSuggestions.notificationParsed(invite, "igd_broadcast_chat_creation");
-        assertSame("the other switches", invite, ProfileSuggestions.keepNotification(invite));
-
-        Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.save(true);
-        ProfileSuggestions.notificationParsed(invite, "igd_broadcast_chat_creation");
-        assertNull(ProfileSuggestions.keepNotification(invite));
-        ProfileSuggestions.notificationParsed(follow, "user_followed");
-        assertSame(follow, ProfileSuggestions.keepNotification(follow));
-        String report = FeedFilterCounters.report().toString();
-        assertTrue(report, report.contains(ProfileSuggestions.CHANNEL_INVITES + " 1"));
-
-        BaseSettings.PAUSED.save(true);
-        PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        ProfileSuggestions.notificationParsed(invite, "igd_broadcast_chat_creation");
-        assertSame("paused", invite, ProfileSuggestions.keepNotification(invite));
-        BaseSettings.PAUSED.save(false);
-        PauseForTests.resume();
-        Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.save(false);
-        ProfileSuggestions.notificationParsed(invite, "igd_broadcast_chat_creation");
-        assertSame("off", invite, ProfileSuggestions.keepNotification(invite));
-    }
-
     /** #259: the list builder skips a row tagged priority_stories only while the Featured switch is on. */
     @Test
     public void theBuilderSkipsFeaturedRowsOnlyWithTheFeaturedSwitch() {
@@ -1021,61 +891,29 @@ public class ProfileSuggestionsTest {
     }
 
     /**
-     * #189: the counts with no one's action behind them go only while Keep Featured off the heart's dot
-     * is on and nothing anyone did is counted. Any activity keeps them, as do off, paused, unready and a
-     * switch that throws. Counts the server didn't send stay out of the map, and the rest stay as they came.
+     * #189: the heart's dot count is zeroed only while Keep Featured off the heart's dot is on and no
+     * like, comment, follow or tag is counted. Any activity keeps the dot, as do off, paused, unready
+     * and a switch that throws. A count of 0 stays 0.
      */
     @Test
     public void theHeartsDotGoesOnlyWhenNothingButFeaturedIsBehindIt() {
-        assertEquals("off", 1, afterFeatured("activity_feed_dot_badge", 1).get("activity_feed_dot_badge").intValue());
+        assertEquals("off", 1, ProfileSuggestions.featuredDot(1, 0));
         Settings.HIDE_FEATURED_DOT.save(true);
-        for (String key : Arrays.asList("activity_feed_dot_badge", "new_posts", "promotional", "fundraiser",
-                "shopping_notification", "campaign_notification")) {
-            assertEquals(key, 0, afterFeatured(key, 1).get(key).intValue());
-        }
-        for (String key : Arrays.asList("likes", "comments", "comment_likes", "relationships", "requests", "usertags",
-                "story_mentions", "media_to_approve", "branded_content")) {
-            Map<String, Integer> kept = afterFeatured("activity_feed_dot_badge", 3, key, 7);
-            assertEquals(key + " keeps the dot", 3, kept.get("activity_feed_dot_badge").intValue());
-            assertEquals(key + " keeps its own count", 7, kept.get(key).intValue());
-        }
-        Map<String, Integer> quiet = afterFeatured("activity_feed_dot_badge", 2, "di", 4);
-        assertEquals("no one's action", 0, quiet.get("activity_feed_dot_badge").intValue());
-        assertEquals("a count that isn't the heart's", 4, quiet.get("di").intValue());
-        assertFalse("a count the server didn't send", quiet.containsKey("new_posts"));
-        assertEquals("no dot", 0, afterFeatured("activity_feed_dot_badge", 0, "likes", 0).get("activity_feed_dot_badge").intValue());
+        assertEquals(0, ProfileSuggestions.featuredDot(1, 0));
+        assertEquals("a like", 1, ProfileSuggestions.featuredDot(1, 1));
+        assertEquals("several", 3, ProfileSuggestions.featuredDot(3, 7));
+        assertEquals("no dot", 0, ProfileSuggestions.featuredDot(0, 0));
         String report = FeedFilterCounters.report().toString();
-        assertTrue(report, report.contains(ProfileSuggestions.FEATURED_DOT + " 7"));
+        assertTrue(report, report.contains(ProfileSuggestions.FEATURED_DOT + " 1"));
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertEquals("paused", 1, afterFeatured("activity_feed_dot_badge", 1).get("activity_feed_dot_badge").intValue());
+        assertEquals("paused", 1, ProfileSuggestions.featuredDot(1, 0));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() ->
-                assertEquals("unready", 1, afterFeatured("activity_feed_dot_badge", 1).get("activity_feed_dot_badge").intValue()));
-        Map<String, Integer> kept = new LinkedHashMap<>();
-        kept.put("activity_feed_dot_badge", 1);
-        ProfileSuggestions.featuredCounts(kept, THROWS);
-        assertEquals("a switch that throws", 1, kept.get("activity_feed_dot_badge").intValue());
+        SettingsContextRule.withoutContext(() -> assertEquals("unready", 1, ProfileSuggestions.featuredDot(1, 0)));
+        assertEquals("a switch that throws", 1, ProfileSuggestions.featuredDot(1, 0, THROWS));
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.FEATURED_DOT + "'"));
-    }
-
-    /** A map the hook can't read leaves the app's own map alone and throws nothing: a null, and one that refuses every write. */
-    @Test
-    public void aBadgeMapTheHookCantUseGoesBackAsItCame() {
-        Settings.HIDE_FEATURED_DOT.save(true);
-        ProfileSuggestions.featuredCounts(null);
-        Map<String, Integer> locked = Collections.unmodifiableMap(new LinkedHashMap<>(Collections.singletonMap("new_posts", 1)));
-        ProfileSuggestions.featuredCounts(locked);
-        assertEquals(1, locked.get("new_posts").intValue());
-    }
-
-    private static Map<String, Integer> afterFeatured(Object... namesAndCounts) {
-        Map<String, Integer> counts = new LinkedHashMap<>();
-        for (int at = 0; at < namesAndCounts.length; at += 2) counts.put((String) namesAndCounts[at], (Integer) namesAndCounts[at + 1]);
-        ProfileSuggestions.featuredCounts(counts);
-        return counts;
     }
 }

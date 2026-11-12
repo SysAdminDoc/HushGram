@@ -41,7 +41,6 @@ public class DoubleTapLikeSettingsTest {
     @After
     public void restore() {
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
         Settings.TURN_OFF_DOUBLE_TAP_LIKE.resetToDefault();
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS.resetToDefault();
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.resetToDefault();

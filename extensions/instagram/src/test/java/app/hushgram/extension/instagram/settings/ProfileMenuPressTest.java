@@ -9,7 +9,6 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.app.Application;
-import android.content.Context;
 import android.content.ContextWrapper;
 import android.os.Looper;
 import android.view.View;
@@ -30,10 +29,8 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.util.ReflectionHelpers;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import app.hushgram.extension.shared.RenamedCopyForTests;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -226,81 +223,6 @@ public class ProfileMenuPressTest {
         ProfileMenuPress.look(activity);
         assertFalse(menu.isLongClickable());
         assertFalse(threads.isLongClickable());
-    }
-
-    /**
-     * Hide the Create button leaves the plus out of your profile's bar, as on the S22 (#431). The
-     * chevron after your username still says it's yours, so the menu keeps the long press. Hidden,
-     * the chevron says nothing.
-     */
-    @Test public void withTheCreateButtonHiddenTheAccountChevronStillFindsTheMenu() {
-        int chevronId = View.generateViewId();
-        ProfileMenuPress.idForTests(ProfileMenuPress.SWITCH_ACCOUNTS, chevronId);
-        LinearLayout name = new LinearLayout(activity);
-        ImageView chevron = new ImageView(activity);
-        chevron.setId(chevronId);
-        name.addView(chevron);
-        ((LinearLayout) right.getParent()).addView(name, 1);
-        left.removeView(create);
-        Settings.PROFILE_MENU_LONG_PRESS.save(true);
-
-        chevron.setVisibility(View.GONE);
-        ProfileMenuPress.look(activity);
-        assertFalse("a hidden chevron counted as your profile", menu.isLongClickable());
-
-        chevron.setVisibility(View.VISIBLE);
-        ProfileMenuPress.look(activity);
-        assertTrue(ProfileMenuPress.carries(menu));
-        assertFalse(threads.isLongClickable());
-        assertTrue(menu.performLongClick());
-        assertEquals(1, shown());
-    }
-
-    /**
-     * Instagram's top bar for other screens keeps a gone chevron of its own, ahead of your profile's
-     * in the window (#431, seen on the S22 and an Android 16 emulator). A look before your profile
-     * shows finds only that one, and your profile's chevron still counts once it's there.
-     */
-    @Test public void aGoneChevronInAnotherBarDoesNotHideYourProfilesChevron() {
-        int chevronId = View.generateViewId();
-        ProfileMenuPress.idForTests(ProfileMenuPress.SWITCH_ACCOUNTS, chevronId);
-        LinearLayout shared = new LinearLayout(activity);
-        ImageView hidden = new ImageView(activity);
-        hidden.setId(chevronId);
-        hidden.setVisibility(View.GONE);
-        shared.addView(hidden);
-        ((FrameLayout) right.getParent().getParent()).addView(shared, 0);
-        left.removeView(create);
-        Settings.PROFILE_MENU_LONG_PRESS.save(true);
-
-        ProfileMenuPress.look(activity);
-        assertFalse("no chevron of yours shows yet", ProfileMenuPress.carries(menu));
-
-        LinearLayout name = new LinearLayout(activity);
-        ImageView chevron = new ImageView(activity);
-        chevron.setId(chevronId);
-        name.addView(chevron);
-        ((LinearLayout) right.getParent()).addView(name, 1);
-        ProfileMenuPress.look(activity);
-        assertTrue("the gone chevron hid yours", ProfileMenuPress.carries(menu));
-        assertTrue(menu.performLongClick());
-        assertEquals(1, shown());
-    }
-
-    /**
-     * Install next to Instagram renames the copy but keeps its resources named under Instagram's
-     * package, so the bar looked up under the new name was never found there (#431).
-     */
-    @Test public void aCopyInstalledNextToInstagramFindsTheBar() {
-        ProfileMenuPress.forgetForTests();
-        Utils.forgetResourcePackageForTests();
-        try {
-            Context copy = RenamedCopyForTests.context(
-                    Collections.singletonMap("id/" + ProfileMenuPress.RIGHT_BUTTONS, 0x7f0b0002));
-            assertEquals(0x7f0b0002, ProfileMenuPress.id(copy, ProfileMenuPress.RIGHT_BUTTONS));
-        } finally {
-            Utils.forgetResourcePackageForTests();
-        }
     }
 
     @Test public void aBarWithoutTheMenuGetsNothing() {

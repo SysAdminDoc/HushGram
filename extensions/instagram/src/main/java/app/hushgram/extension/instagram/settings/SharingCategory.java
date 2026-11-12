@@ -24,15 +24,12 @@ final class SharingCategory {
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.SHARE_SHEET) || build.contains(PatchFamily.REPOST_BUTTON)
                 || build.contains(PatchFamily.HIDE_SHARE_BUTTON)) {
-            PreferenceCategory sharing = category(screen, L10n.t("Sharing"), SettingsIcons.NETWORK,
-                    L10n.t("Take buttons you don't use off posts and the share sheet."));
+            PreferenceCategory sharing = category(screen, L10n.t("Sharing"), SettingsIcons.NETWORK);
             if (build.contains(PatchFamily.SHARE_SHEET)) {
                 sharing.addPreference(toggle(context, Settings.HIDE_SHARE_SHEET_GROUP, L10n.t("Hide group buttons"),
                         L10n.t("Leaves New group out of the share sheet, and the button that sends to the people you "
                                 + "picked as a group. Send separately stays, and you can still start a group from your messages.")));
                 sharing.addPreference(page.shareSheetButtonsRow(context));
-                sharing.addPreference(toggle(context, Settings.HIDE_SHARE_SHEET_SEARCH, L10n.t("Hide the search bar"),
-                        L10n.t("Takes the search bar off the top of the share sheet. The people you can send to still show.")));
             }
             if (build.contains(PatchFamily.REPOST_BUTTON)) {
                 sharing.addPreference(toggle(context, Settings.HIDE_REPOST_BUTTON, L10n.t("Hide the Repost button"),

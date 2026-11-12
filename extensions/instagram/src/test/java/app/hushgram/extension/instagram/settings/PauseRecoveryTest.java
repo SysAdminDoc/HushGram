@@ -65,7 +65,6 @@ public class PauseRecoveryTest {
         BaseSettings.SAFE_MODE.resetToDefault();
         AbstractPreferenceFragment.restartPending.clear();
         SettingsEntry.onClosedByUser();
-        ScreenColors.shown = null;
         PatchFamily.inBuildForTests = null;
     }
 
@@ -78,7 +77,7 @@ public class PauseRecoveryTest {
                 page.searchSettings("");
                 Preference status = statusCard(page);
                 page.searchSettings("zzzz no settings");
-                // The black page's header, the search field and the view toggle sit above it.
+                // The overview header and search field sit above the recovery content.
                 assertSame(status, page.getPreferenceScreen().getPreference(3));
                 assertNull(page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY));
                 page.searchSettings("coffee");

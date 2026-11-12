@@ -137,13 +137,8 @@ public class ReelDownloadButtonTest {
         final List<String> calls = new ArrayList<>();
         final Set<Object> empty = new HashSet<>();
         final Set<Object> music = new HashSet<>();
-        final Set<Object> carousels = new HashSet<>();
-        final Set<Object> covers = new HashSet<>();
-        final Set<Object> sounds = new HashSet<>();
         Runnable video;
         Runnable photo;
-        List<String> labels;
-        List<Runnable> runs;
 
         @Override public boolean savable(Object media) {
             return !empty.contains(media);
@@ -167,25 +162,6 @@ public class ReelDownloadButtonTest {
         @Override public void nothing(Context context) {
             calls.add("nothing");
         }
-
-        @Override public boolean carousel(Object media) {
-            return carousels.contains(media);
-        }
-
-        @Override public boolean cover(Object media) {
-            return covers.contains(media);
-        }
-
-        @Override public boolean audio(Object media) {
-            return sounds.contains(media);
-        }
-
-        @Override public void pick(View anchor, List<CharSequence> labels, List<Runnable> runs) {
-            calls.add("pick");
-            this.labels = new ArrayList<>();
-            for (CharSequence label : labels) this.labels.add(String.valueOf(label));
-            this.runs = runs;
-        }
     }
 
     @Before
@@ -203,8 +179,6 @@ public class ReelDownloadButtonTest {
         ReelDownloadButton.actions = originalActions;
         ReelDownloadButton.bridge = originalBridge;
         ReelDownloadButton.resetForTests();
-        Settings.REEL_DOWNLOAD_BUTTON_ASKS.resetToDefault();
-        Settings.FEED_DOWNLOAD_ALL_PAGES.resetToDefault();
         Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
         Settings.DOWNLOAD_REELS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -242,32 +216,6 @@ public class ReelDownloadButtonTest {
         assertNull(ReelDownloadButton.litho(column, null, 120, 30));
         assertEquals("nothing was read while off", 0, bridge.items);
         assertEquals(0, bridge.icons);
-    }
-
-    /** #228: with the icon off, the viewing history still hears of each reel through the column's call. */
-    @Test
-    public void theViewingHistoryHearsOfReelsWithTheIconOff() {
-        java.util.function.Consumer<Object> original = ReelDownloadButton.history;
-        List<Object> seen = new ArrayList<>();
-        ReelDownloadButton.history = seen::add;
-        try {
-            Settings.REEL_DOWNLOAD_BUTTON.save(false);
-            Settings.VIEWING_HISTORY.save(true);
-            assertTrue("the column still calls in for the history", ReelDownloadButton.on());
-            assertFalse("but there's no icon to make room for", ReelDownloadButton.iconOn());
-            assertFalse(ReelColumnFit.anyIconOn());
-
-            assertNull(ReelDownloadButton.litho(new Column(new Item(Kind.ORGANIC, "reel")), null, 120, 30));
-            assertNull(ReelDownloadButton.lithoAboveMore(new Column(new Item(Kind.AD, "ad")), null, 120, 30));
-            assertEquals("the reel is noted, the ad isn't", Collections.singletonList("reel"), seen);
-            assertEquals(0, bridge.icons);
-
-            Settings.VIEWING_HISTORY.save(false);
-            assertFalse(ReelDownloadButton.on());
-        } finally {
-            ReelDownloadButton.history = original;
-            Settings.VIEWING_HISTORY.resetToDefault();
-        }
     }
 
     @Test
@@ -432,123 +380,6 @@ public class ReelDownloadButtonTest {
         recorder.photo.run();
         assertEquals(java.util.Arrays.asList("choose", "save " + ReelDownload.VIDEO_OPTION + " song",
                 "save " + ReelDownload.PHOTO_OPTION + " song"), recorder.calls);
-    }
-
-    /** #190: a carousel with music in the Reels viewer, which Explore and Search open, skips the popup. */
-    @Test
-    public void saveEveryPageTakesACarouselWithMusicWithoutAsking() {
-        Settings.FEED_DOWNLOAD_ALL_PAGES.save(true);
-        recorder.music.add("song");
-        recorder.carousels.add("song");
-        Column column = new Column(new Item(Kind.ORGANIC, "song"));
-        ReelDownloadButton.litho(column, null, 120, 30);
-        bridge.click.invoke(new View(activity));
-        assertEquals(Collections.singletonList("save " + ReelDownload.PHOTO_OPTION + " song"), recorder.calls);
-    }
-
-    /** With the switch off the same carousel still gets the choice. */
-    @Test
-    public void aCarouselWithMusicStillAsksWithSaveEveryPageOff() {
-        recorder.music.add("song");
-        recorder.carousels.add("song");
-        Column column = new Column(new Item(Kind.ORGANIC, "song"));
-        ReelDownloadButton.litho(column, null, 120, 30);
-        bridge.click.invoke(new View(activity));
-        assertEquals(Collections.singletonList("choose"), recorder.calls);
-    }
-
-    /** A single photo with music isn't a carousel, so the switch leaves its choice alone. */
-    @Test
-    public void saveEveryPageLeavesASinglePhotoWithMusicAlone() {
-        Settings.FEED_DOWNLOAD_ALL_PAGES.save(true);
-        recorder.music.add("song");
-        Column column = new Column(new Item(Kind.ORGANIC, "song"));
-        ReelDownloadButton.litho(column, null, 120, 30);
-        bridge.click.invoke(new View(activity));
-        assertEquals(Collections.singletonList("choose"), recorder.calls);
-    }
-
-    /** Ask what to save doesn't stop a carousel either, and it goes the way a plain tap does. */
-    @Test
-    public void saveEveryPageSkipsAskWhatToSaveOnACarousel() {
-        Settings.FEED_DOWNLOAD_ALL_PAGES.save(true);
-        Settings.REEL_DOWNLOAD_BUTTON_ASKS.save(true);
-        recorder.carousels.add("pages");
-        recorder.covers.add("pages");
-        Column column = new Column(new Item(Kind.ORGANIC, "pages"));
-        ReelDownloadButton.litho(column, null, 120, 30);
-        bridge.click.invoke(new View(activity));
-        assertEquals(Collections.singletonList("save null pages"), recorder.calls);
-    }
-
-    /** The switch is reachable with only the icon beside reels on. */
-    @Test
-    public void saveEveryPageWaitsForEitherDownloadIcon() {
-        Settings.REEL_DOWNLOAD_BUTTON.save(false);
-        Settings.FEED_DOWNLOAD_BUTTON.save(false);
-        assertFalse(Settings.FEED_DOWNLOAD_ALL_PAGES.isAvailable());
-        Settings.REEL_DOWNLOAD_BUTTON.save(true);
-        assertTrue(Settings.FEED_DOWNLOAD_ALL_PAGES.isAvailable());
-    }
-
-    @Test
-    public void askWhatToSaveStartsOffUnderTheIconsSwitch() {
-        assertFalse(Settings.REEL_DOWNLOAD_BUTTON_ASKS.defaultValue);
-        assertFalse("no restart needed", Settings.REEL_DOWNLOAD_BUTTON_ASKS.rebootApp);
-        assertEquals(Collections.singletonList(Settings.REEL_DOWNLOAD_BUTTON),
-                Settings.REEL_DOWNLOAD_BUTTON_ASKS.getParentSettings());
-        Settings.REEL_DOWNLOAD_BUTTON.save(false);
-        assertFalse(Settings.REEL_DOWNLOAD_BUTTON_ASKS.isAvailable());
-        Settings.REEL_DOWNLOAD_BUTTON.save(true);
-        assertTrue(Settings.REEL_DOWNLOAD_BUTTON_ASKS.isAvailable());
-
-        // Off, a reel with a cover and a sound still saves at once (#524).
-        recorder.covers.add("reel");
-        recorder.sounds.add("reel");
-        ReelDownloadButton.litho(new Column(new Item(Kind.ORGANIC, "reel")), null, 120, 30);
-        bridge.click.invoke(new View(activity));
-        assertEquals(Collections.singletonList("save null reel"), recorder.calls);
-    }
-
-    @Test
-    public void askWhatToSaveOffersTheReelItsCoverAndItsSound() {
-        Settings.REEL_DOWNLOAD_BUTTON_ASKS.save(true);
-        recorder.covers.add("reel");
-        recorder.sounds.add("reel");
-        ReelDownloadButton.litho(new Column(new Item(Kind.ORGANIC, "reel")), null, 120, 30);
-        bridge.click.invoke(new View(activity));
-        assertEquals(Collections.singletonList("pick"), recorder.calls);
-        assertEquals(java.util.Arrays.asList("Download", "Download cover", "Download audio"), recorder.labels);
-        for (Runnable run : recorder.runs) run.run();
-        assertEquals("each row saves through the menu's own row", java.util.Arrays.asList("pick", "save null reel",
-                "save " + ReelDownload.COVER_OPTION + " reel", "save " + ReelDownload.AUDIO_OPTION + " reel"),
-                recorder.calls);
-    }
-
-    @Test
-    public void askWhatToSaveListsOnlyWhatTheReelHasAndSkipsALoneChoice() {
-        Settings.REEL_DOWNLOAD_BUTTON_ASKS.save(true);
-        recorder.sounds.add("song");
-        Column column = new Column(new Item(Kind.ORGANIC, "song"));
-        ReelDownloadButton.litho(column, null, 120, 30);
-        bridge.click.invoke(new View(activity));
-        assertEquals(java.util.Arrays.asList("Download", "Download audio"), recorder.labels);
-        recorder.runs.get(1).run();
-        assertEquals(java.util.Arrays.asList("pick", "save " + ReelDownload.AUDIO_OPTION + " song"), recorder.calls);
-
-        recorder.calls.clear();
-        column.item = new Item(Kind.ORGANIC, "bare");
-        bridge.click.invoke(new View(activity));
-        assertEquals("nothing but the reel itself saves without asking", Collections.singletonList("save null bare"),
-                recorder.calls);
-
-        recorder.calls.clear();
-        recorder.music.add("photo");
-        recorder.covers.add("photo");
-        column.item = new Item(Kind.ORGANIC, "photo");
-        bridge.click.invoke(new View(activity));
-        assertEquals("a photo with music keeps its video or photo choice", Collections.singletonList("choose"),
-                recorder.calls);
     }
 
     @Test

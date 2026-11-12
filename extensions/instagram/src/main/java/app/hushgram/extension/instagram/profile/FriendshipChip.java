@@ -38,7 +38,6 @@ import java.util.WeakHashMap;
 import app.hushgram.extension.instagram.profile.FriendshipStatus.Relation;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.L10n;
-import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -198,7 +197,7 @@ final class FriendshipChip {
     private static int followersCountId(Context context) {
         if (followersCountIdForTests != 0) return followersCountIdForTests;
         if (followersCountId == -1) {
-            followersCountId = context.getResources().getIdentifier(FOLLOWERS_COUNT, "id", Utils.resourcePackage(context));
+            followersCountId = context.getResources().getIdentifier(FOLLOWERS_COUNT, "id", context.getPackageName());
         }
         return followersCountId;
     }
@@ -252,7 +251,7 @@ final class FriendshipChip {
     private static int pictureFrameId(Context context) {
         if (pictureFrameIdForTests != 0) return pictureFrameIdForTests;
         if (pictureFrameId == -1) {
-            pictureFrameId = context.getResources().getIdentifier(PICTURE_FRAME, "id", Utils.resourcePackage(context));
+            pictureFrameId = context.getResources().getIdentifier(PICTURE_FRAME, "id", context.getPackageName());
         }
         return pictureFrameId;
     }
@@ -667,7 +666,7 @@ final class FriendshipChip {
 
         @Nullable
         private static Drawable icon(Context context, String name) {
-            int id = context.getResources().getIdentifier(name, "drawable", Utils.resourcePackage(context));
+            int id = context.getResources().getIdentifier(name, "drawable", context.getPackageName());
             if (id == 0) return null;
             try {
                 Drawable icon = context.getDrawable(id);

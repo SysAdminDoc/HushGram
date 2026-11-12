@@ -26,16 +26,14 @@ import androidx.annotation.Nullable;
 import app.hushgram.extension.shared.L10n;
 
 /**
- * A switch row's description behind a small "i" at the end of its title (#130), for a shorter
- * page. A tap on the "i" shows the description; the rest of the row still flips the switch. Off,
- * or with a screen reader exploring by touch, the description stays under the title as before.
+ * A setting switch's description behind a small "i" at the end of its title (#130), for a shorter
+ * page. This is on by default. A tap on the "i" shows the description; the rest of the row still
+ * flips the switch. Search and touch exploration keep the description visible for discoverability
+ * and accessibility.
  */
 final class DescriptionInfo {
     /** The title's tag while it carries the "i", so a recycled row can be put back. */
     static final String TAG = "hushgram_description_info";
-    /** Set while a search is on: a row found by a word of its description shows that word. */
-    static volatile boolean searching;
-
     private DescriptionInfo() {
     }
 
@@ -63,18 +61,32 @@ final class DescriptionInfo {
         title.setCompoundDrawablesRelative(null, null, mark, null);
         title.setCompoundDrawablePadding(dp(title, 6));
         title.setTag(TAG);
+        boolean[] trackingInfo = {false};
         title.setOnTouchListener((view, event) -> {
-            if (!onMark((TextView) view, event.getX())) return false;
-            if (event.getActionMasked() == MotionEvent.ACTION_UP) show(view.getContext(), title.getText(), description);
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                trackingInfo[0] = onMark((TextView) view, event.getX());
+                return trackingInfo[0];
+            }
+            if (!trackingInfo[0]) return false;
+            if (action == MotionEvent.ACTION_UP) {
+                boolean activate = onMark((TextView) view, event.getX());
+                trackingInfo[0] = false;
+                if (activate) show(view.getContext(), title.getText(), description);
+            } else if (action == MotionEvent.ACTION_CANCEL) {
+                trackingInfo[0] = false;
+            }
+            // Keep the entire gesture with the info action. It must not fall through and toggle
+            // the switch if the finger moves off the icon before release.
             return true;
         });
     }
 
     /** Whether a row with [description] shows it behind the "i" now. */
     static boolean wanted(Context context, @Nullable CharSequence description) {
-        if (TextUtils.isEmpty(description) || searching || !Settings.DESCRIPTIONS_BEHIND_INFO.savedValue()) return false;
+        if (TextUtils.isEmpty(description) || !Settings.DESCRIPTIONS_BEHIND_INFO.savedValue()) return false;
         AccessibilityManager accessibility = context.getSystemService(AccessibilityManager.class);
-        return accessibility == null || !accessibility.isTouchExplorationEnabled();
+        return accessibility == null || (!accessibility.isEnabled() && !accessibility.isTouchExplorationEnabled());
     }
 
     /** Whether [x] in [title] falls on its "i", with a finger's width of give before it. */

@@ -27,8 +27,7 @@ final class StorageCategory {
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.MEDIA_CACHE)) {
-            PreferenceCategory storage = category(screen, L10n.t("Storage"), SettingsIcons.STORAGE,
-                    L10n.t("Keep Instagram's saved photos and videos from filling your phone."));
+            PreferenceCategory storage = category(screen, L10n.t("Storage"), SettingsIcons.STORAGE);
             storage.addPreference(toggle(context, Settings.CLEAR_MEDIA_CACHE, L10n.t("Clear the media cache"),
                     L10n.t("When Instagram has more than 500 MB of saved photos and videos, deletes the photos as "
                             + "you leave it and the videos the next time it starts. Your sign-in, drafts and "

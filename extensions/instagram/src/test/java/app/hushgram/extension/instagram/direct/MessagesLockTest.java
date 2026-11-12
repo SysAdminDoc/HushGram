@@ -78,8 +78,6 @@ public class MessagesLockTest {
     private static final int FRAME = 0x7f0b0001;
     private static final int LIST = 0x7f0b0002;
     private static final int CHAT = 0x7f0b0003;
-    /** Saved's pages, in {@link MessagesLock#SAVED_PAGES}' order. */
-    private static final int[] SAVED_PAGES = {0x7f0b0010, 0x7f0b0011, 0x7f0b0012, 0x7f0b0013, 0x7f0b0014, 0x7f0b0015};
 
     /** Each ask's two answers, oldest first. */
     private final List<Runnable[]> asks = new ArrayList<>();
@@ -92,7 +90,6 @@ public class MessagesLockTest {
         ids.put(MessagesLock.INBOX_FRAME, FRAME);
         ids.put(MessagesLock.INBOX_LIST, LIST);
         ids.put(MessagesLock.CHAT_ROOT, CHAT);
-        for (int i = 0; i < SAVED_PAGES.length; i++) ids.put(MessagesLock.SAVED_PAGES[i], SAVED_PAGES[i]);
         MessagesLock.idsForTests = ids;
         MessagesLock.asker = (activity, confirmed, notConfirmed) -> asks.add(new Runnable[]{confirmed, notConfirmed});
         BaseSettings.PAUSED.save(false);
@@ -106,7 +103,6 @@ public class MessagesLockTest {
         MessagesLock.resetForTests();
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCK_APP.resetToDefault();
-        Settings.LOCK_SAVED.resetToDefault();
         Settings.LOCK_AGAIN.resetToDefault();
         Settings.LOCKED_CHATS.resetToDefault();
         Settings.UNLOCK_WITH.resetToDefault();
@@ -361,112 +357,6 @@ public class MessagesLockTest {
         MessagesLock.check(activity);
         assertEquals(View.GONE, cover.getVisibility());
         assertEquals(1, covers(activity));
-    }
-
-    /**
-     * Lock Saved on its own covers Saved over the whole screen, since its top bar names the
-     * collection, and asks once. The inbox, message notifications and the banner for a new message
-     * stay as they are (#597).
-     */
-    @Test
-    public void lockSavedCoversSavedAndLeavesTheMessagesAlone() {
-        Settings.LOCK_MESSAGES.save(false);
-        Settings.LOCK_SAVED.save(true);
-        Notification message = message("ig_direct", Notification.CATEGORY_MESSAGE);
-        assertSame("a message's notification lost its text", message, MessagesLock.notification(message));
-        assertFalse("the banner for a message waited", MessagesLock.holdBanner());
-        Activity inbox = inbox().get();
-        MessagesLock.check(inbox);
-        assertNull("the inbox got a cover", cover(inbox));
-        assertEquals("asked over the inbox", 0, asks.size());
-
-        Activity activity = saved(SAVED_PAGES[0]).get();
-        View content = activity.findViewById(android.R.id.content);
-        MessagesLock.check(activity);
-
-        View cover = cover(activity, MessagesLock.SAVED);
-        assertNotNull("no cover over Saved", cover);
-        assertEquals(View.VISIBLE, cover.getVisibility());
-        assertEquals(visible(content).width(), cover.getWidth());
-        assertEquals(visible(content).height(), cover.getHeight());
-        assertTrue(texts(cover).toString(), texts(cover).contains("Saved is locked"));
-        assertEquals(1, covers(activity));
-        assertEquals(1, asks.size());
-        assertEquals("Unlock Saved", MessagesLock.askTitle());
-        assertTrue("the settings aren't locked with it", MessagesLock.locked());
-        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
-
-        asks.get(0)[0].run();
-        MessagesLock.check(activity);
-        assertEquals(View.GONE, cover.getVisibility());
-        assertFalse(MessagesLock.locked());
-    }
-
-    /** On a phone with no screen lock, Lock Saved on its own says it's Saved that can't be locked (#597). */
-    @Test
-    public void lockSavedWithNoPhoneLockNamesSaved() {
-        Map<String, Integer> ids = MessagesLock.idsForTests;
-        MessagesLock.resetForTests();
-        MessagesLock.idsForTests = ids;
-        ChatAccounts.signInForTests(ME);
-        Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
-        Settings.LOCK_MESSAGES.save(false);
-        Settings.LOCK_SAVED.save(true);
-        Activity activity = saved(SAVED_PAGES[0]).get();
-
-        MessagesLock.check(activity);
-        ShadowLooper.idleMainLooper();
-
-        assertEquals("Set a phone screen lock so HushGram can lock Saved.", ShadowToast.getTextOfLatestToast());
-    }
-
-    /**
-     * Every page of Saved gets the cover: a collection, the posts of one kind, its search, and the
-     * collection tiles 454 opens Saved on from the profile's bookmark (#492). A page
-     * that isn't on screen (one left behind in the back stack) doesn't, and turning the switch off
-     * takes the cover away.
-     */
-    @Test
-    public void lockSavedCoversItsCollectionsAndSearchToo() {
-        Settings.LOCK_MESSAGES.save(false);
-        Settings.LOCK_SAVED.save(true);
-        for (int i = 1; i < SAVED_PAGES.length; i++) {
-            Activity activity = saved(SAVED_PAGES[i]).get();
-            MessagesLock.check(activity);
-            View cover = cover(activity, MessagesLock.SAVED);
-            assertNotNull(MessagesLock.SAVED_PAGES[i] + " has no cover", cover);
-            assertEquals(MessagesLock.SAVED_PAGES[i], View.VISIBLE, cover.getVisibility());
-        }
-
-        Activity behind = saved(SAVED_PAGES[0]).get();
-        behind.findViewById(SAVED_PAGES[0]).setVisibility(View.GONE);
-        layout(behind);
-        MessagesLock.check(behind);
-        assertNull("a page off screen got the cover", cover(behind));
-
-        Activity activity = saved(SAVED_PAGES[0]).get();
-        MessagesLock.check(activity);
-        View cover = cover(activity, MessagesLock.SAVED);
-        assertEquals(View.VISIBLE, cover.getVisibility());
-        Settings.LOCK_SAVED.save(false);
-        MessagesLock.check(activity);
-        assertEquals("the cover stayed with the switch off", View.GONE, cover.getVisibility());
-        assertFalse(MessagesLock.locked());
-    }
-
-    /** With Lock all of Instagram on too, Saved has the one cover over everything. */
-    @Test
-    public void lockAllOfInstagramKeepsOneCoverOverSaved() {
-        Settings.LOCK_SAVED.save(true);
-        Settings.LOCK_APP.save(true);
-        Activity activity = saved(SAVED_PAGES[0]).get();
-
-        MessagesLock.check(activity);
-
-        assertNotNull(cover(activity, MessagesLock.APP));
-        assertNull(cover(activity, MessagesLock.SAVED));
-        assertEquals(1, covers(activity));
-        assertEquals("Unlock Instagram", MessagesLock.askTitle());
     }
 
     @Test
@@ -1571,21 +1461,6 @@ public class MessagesLockTest {
         list.setId(LIST);
         frame.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 600));
         root.addView(frame, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 800));
-        activity.setContentView(root);
-        layout(activity);
-        return controller;
-    }
-
-    /** One of Saved's pages under a top bar, as Instagram lays them out. */
-    private static ActivityController<Activity> saved(int page) {
-        ActivityController<Activity> controller = focused();
-        Activity activity = controller.get();
-        FrameLayout root = new FrameLayout(activity);
-        View view = new View(activity);
-        view.setId(page);
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1200);
-        params.topMargin = 150;
-        root.addView(view, params);
         activity.setContentView(root);
         layout(activity);
         return controller;

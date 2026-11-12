@@ -7,7 +7,6 @@
 package app.hushgram.extension.instagram.settings;
 
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -25,7 +24,6 @@ import android.os.Build;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
-import android.preference.PreferenceScreen;
 import android.preference.TwoStatePreference;
 import android.util.TypedValue;
 import android.view.View;
@@ -35,17 +33,29 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
-import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.preference.ImmediateAction;
 
-/** Shared black and charcoal surfaces, in Instagram's own blues, for HushGram's settings and runtime controls. */
+/** Shared monochrome surfaces for HushGram settings and settings-owned dialogs. */
 public final class ScreenColors {
-    public final boolean light;
+    static final int SURFACE = 0xFF0E0E0E;
+    static final int SURFACE_CONTAINER = 0xFF1B1B1B;
+    static final int SURFACE_CONTAINER_HIGH = 0xFF262626;
+    static final int ON_SURFACE = 0xFFF4F4F4;
+    static final int ON_SURFACE_VARIANT = 0xFFABABAB;
+    static final int OUTLINE = 0xFF757575;
+    static final int OUTLINE_VARIANT = 0xFF3A3A3A;
+    static final int PRIMARY = 0xFFFFFFFF;
+    static final int ON_PRIMARY = 0xFF101010;
+    static final int RIPPLE = 0x26FFFFFF;
+    static final int CORNER_XL = 28;
+    static final int CORNER_L = 24;
+    static final int CORNER_JOINT = 4;
+    static final int CORNER_FULL = 200;
+    static final int ROW_GAP_DP = 3;
     /** The page, behind the title bar and every row. */
     public final int background;
     /** A dialog's surface. */
@@ -75,50 +85,27 @@ public final class ScreenColors {
     /** Calm validation feedback on the charcoal dialog surface. */
     public final int error;
 
-    /** The colours the screen on show was built with, or null for the black page. */
-    @Nullable
-    static volatile ScreenColors shown;
-    public static final ScreenColors DEFAULT = new ScreenColors(SettingsStatus.pureBlack());
-    /** Black cards and dialogs, for the black look (#455). */
-    static final ScreenColors BLACK = new ScreenColors(true);
+    public static final ScreenColors DEFAULT = new ScreenColors();
 
-    /**
-     * The colours to paint with now: the screen's own, or the black ones while Black settings page
-     * is on, or {@link #DEFAULT}. Read each time, so a flip of the switch shows on the next bind.
-     */
+    /** Returns the single monochrome palette used by the settings UI. */
     public static ScreenColors current() {
-        ScreenColors colors = shown;
-        if (colors != null) return colors;
-        return Utils.settingsReady() && Settings.SETTINGS_BLACK_LOOK.savedValue() ? BLACK : DEFAULT;
+        return DEFAULT;
     }
 
-    /**
-     * [pureBlack]: the build has Pure black dark mode, so the cards and dialogs go black like
-     * Instagram's own sheets do, and their outlines keep them apart (#374).
-     */
-    ScreenColors(boolean pureBlack) {
-        light = false;
-        background = Color.BLACK;
-        dialog = pureBlack ? Color.BLACK : 0xFF18161D;
-        title = 0xFFF8F5F8;
-        summary = 0xFFAAA5AF;
-        hint = 0xFF8C8792;
-        // Instagram's own blues (AccentColor.role): its link on a dark screen, 7:1 on the charcoal,
-        // and its Prism indigo button fill, which white text reads on at 5:1.
-        heading = 0xFF85A1FF;
-        accent = 0xFF4A5DF9;
-        // At least 3:1 against either charcoal surface, with a white thumb above 5:1.
-        switchOff = 0xFF696370;
-        card = pureBlack ? Color.BLACK : 0xFF151419;
-        outline = 0xFF2D2832;
-        iconSurface = 0xFF211D27;
-        onAccent = Color.WHITE;
-        error = 0xFFFFB4AB;
-    }
-
-    /** A switch's white thumb remains distinct from either track. */
-    int offThumb() {
-        return light ? title : onAccent;
+    ScreenColors() {
+        background = SURFACE;
+        dialog = SURFACE_CONTAINER;
+        title = ON_SURFACE;
+        summary = ON_SURFACE_VARIANT;
+        hint = ON_SURFACE_VARIANT;
+        heading = ON_SURFACE;
+        accent = PRIMARY;
+        switchOff = OUTLINE;
+        card = SURFACE_CONTAINER;
+        outline = OUTLINE_VARIANT;
+        iconSurface = SURFACE_CONTAINER_HIGH;
+        onAccent = ON_PRIMARY;
+        error = PRIMARY;
     }
 
     /**
@@ -155,9 +142,9 @@ public final class ScreenColors {
                         focused, focused, focused, focused, focused, normal});
     }
 
-    static ColorStateList interactionRipple(int color) {
+    static ColorStateList interactionRipple() {
         return new ColorStateList(new int[][]{{-android.R.attr.state_enabled}, {}},
-                new int[]{Color.TRANSPARENT, (color & 0x00FFFFFF) | 0x33000000});
+                new int[]{Color.TRANSPARENT, RIPPLE});
     }
 
     ColorStateList choiceFill(int normal) {
@@ -165,37 +152,24 @@ public final class ScreenColors {
                 new int[]{(accent & 0x00FFFFFF) | 0x22000000, normal});
     }
 
-    /** The lighter blue passes text contrast on charcoal, unlike the filled action's accent. */
+    /** Secondary actions use the primary text color without a filled-button surface. */
     int secondaryActionText() {
         return heading;
     }
 
-    /** The colours for a screen shown in this context. HushGram has one page, black, so always null. */
-    @Nullable
-    static ScreenColors forScreen(Context context) {
-        return null;
-    }
-
-    /** The framework theme rows and dialogs are built with, so what this class doesn't paint still reads. */
-    int theme() {
-        return light ? android.R.style.Theme_Material_Light_NoActionBar : android.R.style.Theme_Material_NoActionBar;
-    }
-
-    /** {@link #theme()} of {@link #forScreen}, or the dark Material theme the black page has always had. */
-    static int themeFor(Context context) {
-        ScreenColors colors = forScreen(context);
-        return colors == null ? android.R.style.Theme_Material_NoActionBar : colors.theme();
+    /** Framework theme used to construct rows before the settings palette paints them. */
+    static int themeFor() {
+        return android.R.style.Theme_Material_NoActionBar;
     }
 
     /** A row's title and summary, its switch if it has one, and its chevron if a tap opens something. */
     void paintRow(View row, Preference preference) {
-        boolean overview = preference.getParent() instanceof PreferenceScreen;
         TextView title = row.findViewById(android.R.id.title);
         if (title != null) {
             title.setTextColor(dimmedWhenDisabled(this.title));
             title.setTextSize(TypedValue.COMPLEX_UNIT_SP,
-                    "hushgram_status".equals(preference.getKey()) ? 14 : overview ? 15 : 16);
-            title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+                    "hushgram_status".equals(preference.getKey()) ? 14 : 16);
+            title.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
             if (title.getParent() instanceof View) {
                 View text = (View) title.getParent();
                 text.setPadding(0, 0, 0, 0);
@@ -205,29 +179,8 @@ public final class ScreenColors {
         TextView summary = row.findViewById(android.R.id.summary);
         if (summary != null) {
             summary.setTextColor(readableWhenDisabled(this.summary));
-            summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, overview ? 12 : 13);
-            summary.setLineSpacing(0, 1);
-        }
-        View widget = row.findViewById(android.R.id.switch_widget);
-        if (widget instanceof Switch) {
-            int[][] states = {{-android.R.attr.state_enabled, android.R.attr.state_checked},
-                    {-android.R.attr.state_enabled}, {android.R.attr.state_checked}, {}};
-            Switch toggle = (Switch) widget;
-            GradientDrawable thumb = new GradientDrawable();
-            thumb.setShape(GradientDrawable.RECTANGLE);
-            thumb.setCornerRadius(dp(row, 4));
-            thumb.setSize(dp(row, 20), dp(row, 20));
-            thumb.setColor(Color.WHITE);
-            GradientDrawable track = new GradientDrawable();
-            track.setCornerRadius(dp(row, 6));
-            track.setSize(dp(row, 40), dp(row, 24));
-            track.setColor(Color.WHITE);
-            toggle.setThumbDrawable(thumb);
-            toggle.setTrackDrawable(track);
-            toggle.setSwitchMinWidth(dp(row, 40));
-            toggle.setSplitTrack(false);
-            toggle.setThumbTintList(new ColorStateList(states, new int[]{half(onAccent), half(offThumb()), onAccent, offThumb()}));
-            toggle.setTrackTintList(new ColorStateList(states, new int[]{half(accent), half(switchOff), accent, switchOff}));
+            summary.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            summary.setLineSpacing(0, 1.15f);
         }
         paintChevron(row, preference);
         ImageView icon = row.findViewById(android.R.id.icon);
@@ -306,45 +259,45 @@ public final class ScreenColors {
      * height is the row's: its text wraps at any font size and the row grows to fit.
      */
     void paintSurface(View row, Preference preference, boolean first, boolean last) {
-        boolean overview = preference.getParent() instanceof PreferenceScreen;
-        float radius = overview ? 0 : dp(row, 10);
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(card);
-        surface.setStroke(dp(row, 1), preference.isSelectable() ? interactionOutline(outline)
-                : ColorStateList.valueOf(outline));
-        surface.setCornerRadii(new float[]{
-                first ? radius : 0, first ? radius : 0,
-                first ? radius : 0, first ? radius : 0,
-                last ? radius : 0, last ? radius : 0,
-                last ? radius : 0, last ? radius : 0});
-        // Full-bleed rows push their side strokes off the screen as they do the top one, so the
-        // main page has no hairline down either edge.
-        int side = overview ? -dp(row, 1) : dp(row, 18);
-        Drawable inset = new InsetDrawable(surface, side, overview ? -dp(row, 1) : first ? dp(row, 4) : -dp(row, 1),
-                side, !overview && last ? dp(row, 4) : 0);
+        float top = dp(row, first ? CORNER_L : CORNER_JOINT);
+        float bottom = dp(row, last ? CORNER_L : CORNER_JOINT);
+        surface.setCornerRadii(new float[]{top, top, top, top, bottom, bottom, bottom, bottom});
+        // The page-colored gap between separate row surfaces replaces divider lines. Split odd
+        // pixel values between top and bottom so adjacent rows keep the full configured gap.
+        int gap = dp(row, ROW_GAP_DP);
+        Drawable inset = new InsetDrawable(surface, 0, gap / 2, 0, gap - gap / 2);
         row.setBackground(preference.isSelectable()
-                ? new RippleDrawable(interactionRipple(heading), inset, null).mutate() : inset);
-        // Explicit padding after the inset background prevents its padding from moving the text.
-        int horizontal = overview ? 20 : 30;
-        int vertical = overview ? 6 : 10;
-        row.setPaddingRelative(dp(row, horizontal), dp(row, vertical + (!overview && first ? 4 : 0)),
-                dp(row, horizontal), dp(row, vertical + (!overview && last ? 4 : 0)));
-        row.setMinimumHeight(dp(row, "hushgram_view_toggle".equals(preference.getKey())
-                || "hushgram_grid_toggle".equals(preference.getKey()) ? 48
-                : "hushgram_status".equals(preference.getKey()) ? 56 : overview ? 52 : 64));
+                ? new RippleDrawable(ColorStateList.valueOf(RIPPLE), inset, null).mutate() : inset);
+        row.setPaddingRelative(dp(row, 20), dp(row, 16), dp(row, 20), dp(row, 16));
+        row.setMinimumHeight(dp(row, "hushgram_status".equals(preference.getKey()) ? 56 : 64));
     }
 
-    /** A section title. */
+    /** A section title in the overview or search results. */
     void paintHeading(View row) {
         TextView title = row.findViewById(android.R.id.title);
         if (title != null) {
-            title.setTextColor(heading);
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            title.setTextColor(summary);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
             title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-            title.setLetterSpacing(0.055f);
-            title.setAllCaps(true);
+            title.setLetterSpacing(0.01f);
+            title.setAllCaps(false);
         }
-        row.setPaddingRelative(dp(row, 22), dp(row, 20), dp(row, 22), dp(row, 8));
+        row.setPaddingRelative(dp(row, 20), dp(row, 12), dp(row, 20), dp(row, 8));
+    }
+
+    /** A category page headline, using Oxbow's large-title hierarchy without a description. */
+    void paintPageHeading(View row) {
+        TextView title = row.findViewById(android.R.id.title);
+        if (title != null) {
+            title.setTextColor(ON_SURFACE);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
+            title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            title.setLetterSpacing(-0.02f);
+            title.setAllCaps(false);
+        }
+        row.setPaddingRelative(dp(row, 20), dp(row, 16), dp(row, 20), dp(row, 8));
     }
 
     /** Marks the chevron a row was given, so a recycled row's can be found and taken off. */
@@ -519,19 +472,17 @@ public final class ScreenColors {
             title.setLayoutParams(size);
         }
         GradientDrawable surface = new GradientDrawable();
-        surface.setColor(primary ? dimmedWhenDisabled(accent) : ColorStateList.valueOf(Color.TRANSPARENT));
-        surface.setCornerRadius(dp(row, 12));
-        surface.setStroke(dp(row, 2), interactionOutline(primary ? accent : outline,
-                primary ? onAccent : heading));
-        row.setBackground(new RippleDrawable(interactionRipple(primary ? onAccent : heading),
+        surface.setColor(primary ? dimmedWhenDisabled(accent) : ColorStateList.valueOf(iconSurface));
+        surface.setCornerRadius(dp(row, CORNER_FULL));
+        if (!primary) surface.setStroke(dp(row, 1), outline);
+        row.setBackground(new RippleDrawable(interactionRipple(),
                 new InsetDrawable(surface, dp(row, 18), dp(row, 4), dp(row, 18), dp(row, 4)), null).mutate());
         row.setMinimumHeight(dp(row, 56));
         row.setPadding(dp(row, 32), dp(row, 8), dp(row, 32), dp(row, 8));
     }
 
     static void recoveryMessage(View row) {
-        ScreenColors palette = forScreen(row.getContext());
-        if (palette == null) palette = DEFAULT;
+        ScreenColors palette = DEFAULT;
         HushgramPreferenceFragment.showAllText(row);
         TextView title = row.findViewById(android.R.id.title);
         TextView summary = row.findViewById(android.R.id.summary);
@@ -542,8 +493,8 @@ public final class ScreenColors {
             // Centred by gravity, which a start alignment from showAllText would override.
             title.setTextAlignment(View.TEXT_ALIGNMENT_GRAVITY);
             title.setTextSize(22);
-            ShimmerTitle.wear(title);
-            title.setTypeface(Typeface.create("sans-serif-medium", 0));
+            title.setTextColor(palette.title);
+            title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             Drawable icon = SettingsIcons.icon(row.getContext(), SettingsIcons.ABOUT, palette.heading);
             icon.setBounds(0, 0, dp(row, 56), dp(row, 56));
             title.setCompoundDrawablesRelative(null, icon, null, null);
@@ -574,8 +525,8 @@ public final class ScreenColors {
         if (window != null) {
             GradientDrawable panel = new GradientDrawable();
             panel.setColor(this.dialog);
-            panel.setCornerRadius(dp(window.getDecorView(), 12));
-            panel.setStroke(dp(window.getDecorView(), 1), outline);
+            panel.setCornerRadius(dp(window.getDecorView(), CORNER_XL));
+            panel.setStroke(dp(window.getDecorView(), 1), OUTLINE_VARIANT);
             window.setBackgroundDrawable(panel);
             int width = Math.min(dialog.getContext().getResources().getDisplayMetrics().widthPixels
                     - dp(window.getDecorView(), 32), dp(window.getDecorView(), 560));
@@ -585,9 +536,8 @@ public final class ScreenColors {
         int titleId = dialog.getContext().getResources().getIdentifier("alertTitle", "id", "android");
         TextView title = titleId == 0 ? null : dialog.findViewById(titleId);
         if (title != null) {
-            // In the gradient, as every HushGram title is.
-            ShimmerTitle.wear(title);
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            title.setTextColor(this.title);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
             title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             title.setSingleLine(false);
             title.setMaxLines(Integer.MAX_VALUE);
@@ -642,7 +592,7 @@ public final class ScreenColors {
         field.setHintTextColor(dimmedWhenDisabled(hint));
         GradientDrawable outline = new GradientDrawable();
         outline.setColor(dialog);
-        outline.setCornerRadius(dp(field, 12));
+        outline.setCornerRadius(dp(field, 16));
         outline.setStroke(dp(field, 2), interactionOutline(switchOff));
         field.setBackgroundTintList(null);
         field.setBackground(outline);
@@ -692,25 +642,29 @@ public final class ScreenColors {
         }
     }
 
-    /** Paints a row with the colours on show, if there are any. */
+    /** Paints a row with the settings palette. */
     static void row(View row, Preference preference) {
         ScreenColors used = current();
         used.paintRow(row, preference);
         NewRowDots.paint(row, preference, used.accent);
     }
 
-    /** Paints a section title with the colours on show, if there are any. */
+    /** Paints a section title with the settings palette. */
     static void heading(View row) {
         current().paintHeading(row);
     }
 
-    /** Paints both recovery actions even if the ordinary settings page failed to initialize. */
-    static void recoveryAction(View row, boolean primary) {
-        ScreenColors colors = forScreen(row.getContext());
-        (colors == null ? DEFAULT : colors).paintRecoveryAction(row, primary);
+    /** Styles the page-level category headline without changing its persisted Preference object. */
+    static void pageHeading(View row) {
+        current().paintPageHeading(row);
     }
 
-    /** Paints a dialog with the colours on show, if there are any. */
+    /** Paints both recovery actions even if the ordinary settings page failed to initialize. */
+    static void recoveryAction(View row, boolean primary) {
+        DEFAULT.paintRecoveryAction(row, primary);
+    }
+
+    /** Paints a dialog with the settings palette. */
     public static void dialog(@Nullable AlertDialog dialog) {
         current().paint(dialog);
     }
@@ -727,30 +681,31 @@ public final class ScreenColors {
 
     private void paintAction(TextView action, boolean primary) {
         GradientDrawable surface = new GradientDrawable();
-        surface.setColor(dimmedWhenDisabled(primary ? accent : card));
-        surface.setCornerRadius(dp(action, 12));
-        surface.setStroke(dp(action, 2), interactionOutline(primary ? accent : outline,
-                primary ? onAccent : heading));
+        surface.setColor(dimmedWhenDisabled(primary ? accent : iconSurface));
+        surface.setCornerRadius(dp(action, CORNER_FULL));
+        if (!primary) surface.setStroke(dp(action, 1), interactionOutline(outline));
         action.setBackgroundTintList(null);
         // View's tint pass mutates the background after setting its state. Mutate first so
         // that pass cannot replace enabled children with fresh, empty-state copies.
         action.setBackground(new RippleDrawable(
-                interactionRipple(primary ? onAccent : heading), surface, null).mutate());
-        action.setTextColor(dimmedWhenDisabled(primary ? onAccent : secondaryActionText()));
+                interactionRipple(), surface, null).mutate());
+        action.setTextColor(dimmedWhenDisabled(primary ? onAccent : title));
         action.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        action.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        action.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         action.setAllCaps(false);
+        action.setLetterSpacing(0f);
+        action.setStateListAnimator(null);
         action.setSingleLine(false);
         action.setMaxLines(Integer.MAX_VALUE);
         action.setEllipsize(null);
         action.setHorizontallyScrolling(false);
         action.setGravity(android.view.Gravity.CENTER);
         action.setTextAlignment(View.TEXT_ALIGNMENT_GRAVITY);
-        action.setMinHeight(dp(action, 48));
-        action.setMinimumHeight(dp(action, 48));
+        action.setMinHeight(dp(action, 52));
+        action.setMinimumHeight(dp(action, 52));
         action.setMinWidth(dp(action, 64));
         action.setMinimumWidth(dp(action, 64));
-        action.setPaddingRelative(dp(action, 16), dp(action, 12), dp(action, 16), dp(action, 12));
+        action.setPaddingRelative(dp(action, 20), 0, dp(action, 20), 0);
     }
 
     /** Compact actions retain the shared interaction states without becoming filled buttons. */
@@ -758,10 +713,10 @@ public final class ScreenColors {
         ScreenColors colors = current();
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(Color.TRANSPARENT);
-        surface.setCornerRadius(dp(action, 8));
-        surface.setStroke(dp(action, 2), colors.interactionOutline(Color.TRANSPARENT));
+        surface.setCornerRadius(dp(action, CORNER_FULL));
+        surface.setStroke(dp(action, 1), colors.interactionOutline(OUTLINE_VARIANT));
         action.setBackgroundTintList(null);
-        action.setBackground(new RippleDrawable(interactionRipple(colors.heading), surface, null).mutate());
+        action.setBackground(new RippleDrawable(interactionRipple(), surface, null).mutate());
     }
 
     private static int dp(View view, int value) {

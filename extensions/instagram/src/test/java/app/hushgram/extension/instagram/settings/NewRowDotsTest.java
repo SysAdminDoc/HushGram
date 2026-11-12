@@ -69,7 +69,7 @@ public class NewRowDotsTest {
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
         Settings.CATEGORY_PAGES.save(true);
-        // The one setting's page and title, read once from the long list.
+        // Keep a legacy layout value set while checking that the setting remains in its section.
         Settings.CATEGORY_PAGES.save(false);
         open();
         Preference row = page.findPreference(key());
@@ -89,7 +89,6 @@ public class NewRowDotsTest {
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
         BaseSettings.PAUSED.resetToDefault();
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
     }
 
     /** Opens the settings on a fresh screen, as after the app was closed. */
@@ -208,12 +207,15 @@ public class NewRowDotsTest {
         assertFalse(store().getStringSet(NewRowDots.SEEN, null).contains(key()));
     }
 
-    @Test public void withTheCategoriesOffTheListShowsTheRowAndClosingClearsIt() {
+    @Test public void theLegacyListPreferenceCannotExposeInlineRows() {
         Settings.CATEGORY_PAGES.save(false);
         forget(key());
-        assertEquals(Collections.singletonList(rowTitle), dottedTitles());
-        open();
-        assertEquals(new ArrayList<String>(), dottedTitles());
+        assertEquals("only the overview opener is dotted", Collections.singletonList(categoryTitle), dottedTitles());
+        enter();
+        assertEquals("the new row is dotted on its section page", Collections.singletonList(rowTitle), dottedTitles());
+        assertTrue(page.closeCategory());
+        ShadowLooper.idleMainLooper();
+        assertEquals("the section was visited", new ArrayList<String>(), dottedTitles());
     }
 
     @Test public void searchResultsShowNoDots() {

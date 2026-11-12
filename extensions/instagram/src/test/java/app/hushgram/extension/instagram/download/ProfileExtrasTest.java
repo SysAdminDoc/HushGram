@@ -36,7 +36,6 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
-import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowPopupMenu;
 import org.robolectric.shadows.ShadowToast;
@@ -103,7 +102,6 @@ public class ProfileExtrasTest {
         Settings.SAVE_PROFILE_PICTURES.resetToDefault();
         Settings.VIEW_PROFILE_PICTURES.resetToDefault();
         Settings.COPY_PROFILE_TEXT.resetToDefault();
-        Settings.SAVED_PROFILES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -214,16 +212,6 @@ public class ProfileExtrasTest {
         Settings.VIEW_PROFILE_PICTURES.save(false);
         Settings.COPY_PROFILE_TEXT.save(true);
         assertTrue("Copy username and bio alone is enough", Settings.PROFILE_EXTRAS_BUTTON.isAvailable());
-        Settings.COPY_PROFILE_TEXT.save(false);
-        Settings.SAVED_PROFILES.save(true);
-        assertTrue("Saved profiles alone is enough", Settings.PROFILE_EXTRAS_BUTTON.isAvailable());
-    }
-
-    @Test public void savedProfilesAloneGivesTheButton() {
-        Settings.SAVE_PROFILE_PICTURES.save(false);
-        Settings.SAVED_PROFILES.save(true);
-        bind();
-        assertNotNull("Save profile is something to list", button());
     }
 
     @Test public void withoutAnAccountThereIsNoButton() {
@@ -337,35 +325,14 @@ public class ProfileExtrasTest {
         Settings.ABOUT_ACCOUNT_BUTTON.save(true);
         ProfileExtras.available = () -> true;
         ProfileExtras.ids = held -> held == user ? "1234" : null;
-        ProfileExtras.opener = (at, held, id, referer) -> ran.add("about " + id + (held == session ? " session" : "") + " from " + referer);
+        ProfileExtras.opener = (at, held, id) -> ran.add("about " + id + (held == session ? " session" : ""));
     }
 
     private void aboutOff() {
         Settings.ABOUT_ACCOUNT_BUTTON.resetToDefault();
         ProfileExtras.available = ProfileExtras::aboutAvailable;
         ProfileExtras.ids = ProfileExtras::userId;
-        ProfileExtras.opener = (at, held, id, referer) -> { };
-    }
-
-    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) public void theTwoButtonsBesideEachOtherDontLookTheSame() {
-        aboutOn();
-        try {
-            bind();
-            android.graphics.Bitmap extras = pictureOf(button());
-            android.graphics.Bitmap about = pictureOf(about());
-            assertFalse("it draws at all", extras.sameAs(android.graphics.Bitmap.createBitmap(72, 72, android.graphics.Bitmap.Config.ARGB_8888)));
-            assertFalse(extras.sameAs(about));
-        } finally {
-            aboutOff();
-        }
-    }
-
-    private static android.graphics.Bitmap pictureOf(ImageView button) {
-        android.graphics.Bitmap picture = android.graphics.Bitmap.createBitmap(72, 72, android.graphics.Bitmap.Config.ARGB_8888);
-        android.graphics.drawable.Drawable drawable = button.getDrawable();
-        drawable.setBounds(0, 0, 72, 72);
-        drawable.draw(new android.graphics.Canvas(picture));
-        return picture;
+        ProfileExtras.opener = (at, held, id) -> { };
     }
 
     @Test public void theAboutButtonStartsOff() {
@@ -391,8 +358,7 @@ public class ProfileExtrasTest {
             assertSame(dots, right.getChildAt(2));
             assertEquals(1, countOf(ProfileExtras.AboutButton.class));
             about().performClick();
-            assertEquals("the profile menu's own referer, since the call's default is its feed ads one and that fails on a Page",
-                Collections.singletonList("about 1234 session from ProfileMore"), ran);
+            assertEquals(Collections.singletonList("about 1234 session"), ran);
         } finally {
             aboutOff();
         }

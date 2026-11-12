@@ -15,7 +15,6 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.media.taptoplay.findPlayInternal
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.loadsString
@@ -33,8 +32,6 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
-import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
-import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.w3c.dom.Document
 import org.w3c.dom.Element
@@ -45,9 +42,7 @@ internal const val BACKGROUND_PLAY = "$EXTENSION_PACKAGE/media/BackgroundPlay;"
 
 /** Asked with the player and the reason before each pause and stop; yes keeps the video playing. */
 internal const val HOLD = "$BACKGROUND_PLAY->hold(Ljava/lang/Object;Ljava/lang/String;)Z"
-
-/** Asked with the player and the reason before each release; yes keeps the player until the session ends. */
-internal const val RELEASING = "$BACKGROUND_PLAY->releasing(Ljava/lang/Object;Ljava/lang/String;)Z"
+internal const val RELEASED = "$BACKGROUND_PLAY->released(Ljava/lang/Object;)V"
 internal const val STARTED_PLAYING = "$BACKGROUND_PLAY->started(Ljava/lang/Object;)V"
 internal const val VOLUME = "$BACKGROUND_PLAY->volume(Ljava/lang/Object;F)V"
 internal const val LEAVING = "$BACKGROUND_PLAY->leaving(Landroid/app/Activity;)V"
@@ -64,10 +59,6 @@ internal const val FRAGMENT_PAUSED = "fragment_paused"
 internal const val SINGLE_TAP_PAUSED = "single_tap_paused"
 internal const val UI_THREAD = "This operation must be run on UI thread."
 internal const val RESUME = "resume"
-
-/** The reason the story viewer hands its player as it resumes, which only a few classes load. */
-internal const val FRAGMENT_RESUMED = "fragment_resumed"
-private const val AUDIO_FOCUS_LISTENER = "Landroid/media/AudioManager\$OnAudioFocusChangeListener;"
 
 private const val STRING = "Ljava/lang/String;"
 private const val OBJECT = "Ljava/lang/Object;"
@@ -88,32 +79,21 @@ internal val backgroundPlayServicePatch = resourcePatch {
  * screen off, with a notification to pause or stop it (#497).
  *
  * Instagram stops its players as each screen pauses: the fragment hands IgVideoPlayerImpl's pause
- * or stop "fragment_paused", and the Reels viewer releases its player as its fragment stops. Stories
- * may play on the story viewer's own player instead ([StoryPlayerSites]), which Instagram's server
- * settings pick per account, and which its fragment pauses the same way. The extension keeps a
- * list of the players that started lately (playInternal or the story player's start tells it) and
- * the volume each was set to, and when you leave Instagram (the activity's leave hint, or the
- * screen going off) it picks the one still playing with sound. Until that activity stops, and
- * while the extension's media service runs after it, the pauses and the stop ask the extension
- * first and return without doing anything when it says to hold. The release asks too, and a held
- * one goes through when the session ends, which coming back to Instagram does before its screens
- * start again. Audio focus, a mute, coming back or the notification's Stop all end the session.
- * The notification's Pause and Play reach either player through stubs this patch fills. The
- * manifest gets the service, and the foreground service permissions when Instagram doesn't ask
- * for them already.
- *
- * Its second switch, Picture in picture for reels (#572), turns on the small window Instagram
- * already has for reels and keeps behind a server flag: see [allowReelsPip]. Leaving the Reels
- * viewer then shrinks the reel into a window that keeps playing, and the hold above steps aside
- * while Instagram is in that window. The third, Picture in picture for stories, makes a window
- * Instagram has none of for stories: see [keepStoriesInPip].
+ * or stop "fragment_paused", and a few other screens release the player outright. The extension
+ * keeps a list of the players that started lately (playInternal tells it) and the volume each was
+ * set to, and when you leave Instagram (the activity's leave hint, or the screen going off) it
+ * picks the one still playing with sound. Until that activity stops, and while the extension's
+ * media service runs after it, the pause and the stop ask the extension first and return without
+ * doing anything when it says to hold. Audio focus, a mute, a release, coming back to Instagram or
+ * the notification's Stop all end that, and a release always goes through. The notification's
+ * Pause and Play reach the player through stubs this patch fills. The manifest gets the service,
+ * and the foreground service permissions when Instagram doesn't ask for them already.
  */
 @Suppress("unused")
 val backgroundPlayPatch = bytecodePatch(
     name = "Keep playing in the background",
     description = "A video or reel playing with sound keeps going when you leave Instagram or turn the screen off, " +
-        "with a notification to pause or stop it. Two more switches play reels or stories in a small window when " +
-        "you leave instead. Starts off. Turn it on in HushGram settings > Playback.",
+        "with a notification to pause or stop it. Starts off. Turn it on in HushGram settings > Playback.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, backgroundPlayServicePatch)
@@ -121,12 +101,7 @@ val backgroundPlayPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("backgroundPlay")
-        val sites = findBackgroundPlaySites()
-        val pip = findReelsPipChecks(PATCH)
-        val stories = findStoriesPip(PATCH)
-        keepPlayingInBackground(sites)
-        allowReelsPip(PATCH, pip)
-        keepStoriesInPip(PATCH, stories)
+        keepPlayingInBackground(findBackgroundPlaySites())
         enableStatus("backgroundPlay")
     }
 }
@@ -134,8 +109,7 @@ val backgroundPlayPatch = bytecodePatch(
 /**
  * The methods this patch changes or calls, all IgVideoPlayerImpl's, [player], but [leaveHint]:
  * [playInternal], [pause] (String), [stop] (String, boolean), [release] (String), [play] (String,
- * boolean), [isPlaying] and [setVolume] (float, int), and [engine], its IgGrootPlayer field, plus
- * the [story] player's.
+ * boolean), [isPlaying] and [setVolume] (float, int), and [engine], its IgGrootPlayer field.
  */
 internal class BackgroundPlaySites(
     val player: String,
@@ -148,24 +122,6 @@ internal class BackgroundPlaySites(
     val setVolume: Method,
     val engine: String,
     val leaveHint: Method,
-    val story: StoryPlayerSites,
-)
-
-/**
- * The story viewer's own player ([type]), which drives the same engine as IgVideoPlayerImpl but
- * none of its methods: [pause] (String) and [resume] (String, boolean), [start], its static
- * (player, String, boolean, boolean) start, the volume setter [setVolume] (float, int), [engine],
- * its engine field, and [playing], the two engine fields and the no-argument boolean its pause
- * reads to know whether the video plays.
- */
-internal class StoryPlayerSites(
-    val type: String,
-    val pause: Method,
-    val resume: Method,
-    val start: Method,
-    val setVolume: Method,
-    val engine: String,
-    val playing: List<String>,
 )
 
 /**
@@ -246,119 +202,28 @@ internal fun BytecodePatchContext.findBackgroundPlaySites(): BackgroundPlaySites
 
     return BackgroundPlaySites(
         player, playInternal, pause, stop, release, play, isPlaying, setVolume,
-        "$player->${engineField.name}:$engineType", leaveHint, findStoryPlayer(player, engineType),
+        "$player->${engineField.name}:$engineType", leaveHint,
     )
-}
-
-/**
- * Finds [StoryPlayerSites]. The story player is the one class other than [player] that loads
- * [FRAGMENT_RESUMED], listens for audio focus and holds one [engineType] field. Its pause is the one
- * instance (String) method loading [FRAGMENT_PAUSED] and handing a reason to an engine (String)
- * method, its resume the one (String, boolean) loading [FRAGMENT_RESUMED], its start the one static
- * (player, String, boolean, boolean) loading [RESUME] and calling an engine (String, boolean)
- * method, and its volume setter the one (float, int) calling an engine (float) method. Whether it
- * plays is the engine field, two fields and a no-argument boolean its pause reads in a row.
- */
-internal fun BytecodePatchContext.findStoryPlayer(player: String, engineType: String): StoryPlayerSites {
-    val candidates = classesLoadingString(FRAGMENT_RESUMED).filter { story ->
-        story.type != player && AUDIO_FOCUS_LISTENER in story.interfaces &&
-            story.fields.count { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == engineType } == 1
-    }
-    val story = candidates.singleOrNull() ?: throw PatchException(
-        "$PATCH: expected one story player loading \"$FRAGMENT_RESUMED\" that listens for audio focus and holds a " +
-            "$engineType, found ${candidates.size}: ${candidates.map { it.type }}",
-    )
-    val type = story.type
-    val engineField = story.fields.single { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == engineType }
-    val engine = "$type->${engineField.name}:$engineType"
-    val (statics, instance) = story.methods.filter { it.implementation != null }.partition { AccessFlags.STATIC.isSet(it.accessFlags) }
-    fun Method.callsEngine(vararg parameters: String) = code().any { instruction ->
-        val call = instruction.methodReference()
-        call != null && call.definingClass == engineType && call.returnType == "V" && call.parameterTypes.map(Any::toString) == parameters.toList()
-    }
-
-    val pause = instance.single("a story pause (String) loading \"$FRAGMENT_PAUSED\" that pauses the engine", type) {
-        it.takes(STRING) && it.returnType == "V" && loadsString(it, FRAGMENT_PAUSED) && it.callsEngine(STRING)
-    }
-    val resume = instance.single("a story resume (String, boolean) loading \"$FRAGMENT_RESUMED\"", type) {
-        it.takes(STRING, "Z") && it.returnType == "V" && loadsString(it, FRAGMENT_RESUMED)
-    }
-    val start = statics.single("a story start (player, String, boolean, boolean) loading \"$RESUME\" that starts the engine", type) {
-        it.takes(type, STRING, "Z", "Z") && it.returnType == "V" && loadsString(it, RESUME) && it.callsEngine(STRING, "Z")
-    }
-    val setVolume = instance.single("a story volume setter (float, int) setting the engine's", type) {
-        it.takes("F", "I") && it.returnType == "V" && it.callsEngine("F")
-    }
-    val playing = storyPlaying(pause, engine, engineType)
-
-    val hidden = mutableListOf<String>()
-    if (!AccessFlags.PUBLIC.isSet(story.accessFlags)) hidden += type
-    for (method in listOf(pause, resume)) if (!AccessFlags.PUBLIC.isSet(method.accessFlags)) hidden += method.key()
-    if (!AccessFlags.PUBLIC.isSet(engineField.accessFlags)) hidden += engine
-    // The engine's own classes, where this build carries them.
-    for (member in playing) {
-        val owner = classDefByOrNull(member.substringBefore("->")) ?: continue
-        if (!AccessFlags.PUBLIC.isSet(owner.accessFlags)) hidden += owner.type
-        val flags = if (':' in member) {
-            owner.fields.firstOrNull { "${it.definingClass}->${it.name}:${it.type}" == member }?.accessFlags
-        } else {
-            owner.methods.firstOrNull { it.key() == member }?.accessFlags
-        }
-        if (flags == null || !AccessFlags.PUBLIC.isSet(flags)) hidden += member
-    }
-    if (hidden.isNotEmpty()) throw PatchException("$PATCH: the extension can't reach ${hidden.distinct().joinToString()}, not public")
-
-    return StoryPlayerSites(type, pause, resume, start, setVolume, engine, playing)
-}
-
-/**
- * The fields and the call the story player's [pause] reads in a row to know whether the video
- * plays: [engine], a field of [engineType], a field of that field's type, and a no-argument
- * boolean of the last one's type, each on what the one before read. Every such read must agree.
- */
-private fun storyPlaying(pause: Method, engine: String, engineType: String): List<String> {
-    val code = pause.code().filter { it.opcode != Opcode.IF_EQZ && it.opcode != Opcode.IF_NEZ }
-    val chains = code.indices.mapNotNull { at ->
-        val read = code[at] as? TwoRegisterInstruction ?: return@mapNotNull null
-        if (code[at].opcode != Opcode.IGET_OBJECT || code[at].fieldKey() != engine) return@mapNotNull null
-        val first = code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.IGET_OBJECT } as? TwoRegisterInstruction ?: return@mapNotNull null
-        val second = code.getOrNull(at + 2)?.takeIf { it.opcode == Opcode.IGET_OBJECT } as? TwoRegisterInstruction ?: return@mapNotNull null
-        val ask = code.getOrNull(at + 3)?.takeIf { it.opcode == Opcode.INVOKE_VIRTUAL } as? FiveRegisterInstruction ?: return@mapNotNull null
-        val outer = first.fieldReference() ?: return@mapNotNull null
-        val inner = second.fieldReference() ?: return@mapNotNull null
-        val call = ask.methodReference() ?: return@mapNotNull null
-        val linked = first.registerB == read.registerA && second.registerB == first.registerA && ask.registerC == second.registerA
-        if (!linked || outer.definingClass != engineType || inner.definingClass != outer.type || call.definingClass != inner.type ||
-            call.parameterTypes.isNotEmpty() || call.returnType != "Z"
-        ) {
-            return@mapNotNull null
-        }
-        listOf(outer.key(), inner.key(), call.key())
-    }.distinct()
-    return chains.singleOrNull()
-        ?: throw PatchException("$PATCH: expected the story pause ${pause.key()} to ask its engine one way whether it plays, found ${chains.size}: $chains")
 }
 
 /**
  * Puts the hooks in, each first in its method after the hooks other patches put first there: the
- * pauses and the stop return at once when [HOLD] says to, the release when [RELEASING] does,
- * playInternal and the story start tell [STARTED_PLAYING], the volume setters tell [VOLUME] what
- * they were asked for, and the activity's leave hint tells [LEAVING]. Then fills the extension's
- * stubs, which ask whether a player plays, pause, play and release it, and read its engine.
+ * pause and the stop return at once when [HOLD] says to, the release tells [RELEASED], playInternal
+ * tells [STARTED_PLAYING], the volume setter tells [VOLUME] what it was asked for, and the
+ * activity's leave hint tells [LEAVING]. Then fills the extension's stubs, which ask whether a
+ * player plays, pause and play it, and read its engine.
  *
  * Resume long videos puts its stopped hook first in the pause and the stop, and Tap to play its
  * start guard first in playInternal, and their contracts want them first. Going in after them
  * leaves the same code whichever patch runs first.
  */
 internal fun BytecodePatchContext.keepPlayingInBackground(sites: BackgroundPlaySites) {
-    val story = sites.story
-    for (method in listOf(sites.pause, sites.stop, sites.release, story.pause)) {
-        val hook = if (method === sites.release) RELEASING else HOLD
+    for (method in listOf(sites.pause, sites.stop)) {
         mutable(method).apply {
             requireLocals(PATCH, 1)
             addAfterLeadingHooks(
                 """
-                    invoke-static/range { p0 .. p1 }, $hook
+                    invoke-static/range { p0 .. p1 }, $HOLD
                     move-result v0
                     if-eqz v0, :start
                     return-void
@@ -367,38 +232,20 @@ internal fun BytecodePatchContext.keepPlayingInBackground(sites: BackgroundPlayS
             )
         }
     }
+    mutable(sites.release).addAfterLeadingHooks("invoke-static/range { p0 .. p0 }, $RELEASED")
     mutable(sites.playInternal).addAfterLeadingHooks("invoke-static/range { p0 .. p0 }, $STARTED_PLAYING")
-    mutable(story.start).addAfterLeadingHooks("invoke-static/range { p0 .. p0 }, $STARTED_PLAYING")
     mutable(sites.setVolume).addAfterLeadingHooks("invoke-static/range { p0 .. p1 }, $VOLUME")
-    mutable(story.setVolume).addAfterLeadingHooks("invoke-static/range { p0 .. p1 }, $VOLUME")
     mutable(sites.leaveHint).addAfterLeadingHooks("invoke-static/range { p0 .. p0 }, $LEAVING")
 
     val player = sites.player
-    val (outer, inner, asked) = story.playing
     fillStub(
         BACKGROUND_PLAY, "playing", "Z", 2,
         """
             instance-of v0, p0, $player
-            if-eqz v0, :story
+            if-eqz v0, :answer
             check-cast p0, $player
             invoke-virtual { p0 }, ${sites.isPlaying.key()}
             move-result v0
-            return v0
-            :story
-            instance-of v0, p0, ${story.type}
-            if-eqz v0, :answer
-            check-cast p0, ${story.type}
-            iget-object p0, p0, ${story.engine}
-            if-eqz p0, :no
-            iget-object p0, p0, $outer
-            if-eqz p0, :no
-            iget-object p0, p0, $inner
-            if-eqz p0, :no
-            invoke-virtual { p0 }, $asked
-            move-result v0
-            return v0
-            :no
-            const/4 v0, 0x0
             :answer
             return v0
         """,
@@ -407,17 +254,10 @@ internal fun BytecodePatchContext.keepPlayingInBackground(sites: BackgroundPlayS
         BACKGROUND_PLAY, "pause", "V", 2,
         """
             instance-of v0, p0, $player
-            if-eqz v0, :story
+            if-eqz v0, :done
             check-cast p0, $player
             const-string v0, "$FRAGMENT_PAUSED"
             invoke-virtual { p0, v0 }, ${sites.pause.key()}
-            return-void
-            :story
-            instance-of v0, p0, ${story.type}
-            if-eqz v0, :done
-            check-cast p0, ${story.type}
-            const-string v0, "$FRAGMENT_PAUSED"
-            invoke-virtual { p0, v0 }, ${story.pause.key()}
             :done
             return-void
         """,
@@ -426,51 +266,25 @@ internal fun BytecodePatchContext.keepPlayingInBackground(sites: BackgroundPlayS
         BACKGROUND_PLAY, "play", "V", 3,
         """
             instance-of v0, p0, $player
-            if-eqz v0, :story
+            if-eqz v0, :done
             check-cast p0, $player
             const-string v0, "$RESUME"
             const/4 v1, 0x0
             invoke-virtual { p0, v0, v1 }, ${sites.play.key()}
-            return-void
-            :story
-            instance-of v0, p0, ${story.type}
-            if-eqz v0, :done
-            check-cast p0, ${story.type}
-            const-string v0, "$FRAGMENT_RESUMED"
-            const/4 v1, 0x0
-            invoke-virtual { p0, v0, v1 }, ${story.resume.key()}
             :done
             return-void
         """,
-    )
-    fillStub(
-        BACKGROUND_PLAY, "release", "V", 3,
-        """
-            instance-of v0, p0, $player
-            if-eqz v0, :done
-            check-cast p0, $player
-            invoke-virtual { p0, p1 }, ${sites.release.key()}
-            :done
-            return-void
-        """,
-        parameters = listOf(OBJECT, STRING),
     )
     fillStub(
         BACKGROUND_PLAY, "engine", OBJECT, 2,
         """
             instance-of v0, p0, $player
-            if-eqz v0, :story
-            check-cast p0, $player
-            iget-object v0, p0, ${sites.engine}
-            return-object v0
-            :story
-            instance-of v0, p0, ${story.type}
-            if-nez v0, :engine
+            if-nez v0, :player
             const/4 v0, 0x0
             return-object v0
-            :engine
-            check-cast p0, ${story.type}
-            iget-object v0, p0, ${story.engine}
+            :player
+            check-cast p0, $player
+            iget-object v0, p0, ${sites.engine}
             return-object v0
         """,
     )
@@ -503,7 +317,7 @@ internal fun addBackgroundPlayService(manifest: Document) {
 private fun Element.elements(tag: String): List<Element> =
     (0 until childNodes.length).map { childNodes.item(it) }.filterIsInstance<Element>().filter { it.tagName == tag }
 
-internal fun BytecodePatchContext.mutable(method: Method): MutableMethod =
+private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
     mutableClassDefBy(method.definingClass).methods.single { it.key() == method.key() }
 
 /** What a hook another patch put first may load its arguments with before its call. */
@@ -555,7 +369,7 @@ private fun MutableMethod.afterLeadingHooks(): Int {
  * method's own code, and a jump an earlier guard made past itself onto that code lands on [smali]
  * instead, so its path still runs the hook.
  */
-internal fun MutableMethod.addAfterLeadingHooks(smali: String, guard: Boolean = false) {
+private fun MutableMethod.addAfterLeadingHooks(smali: String, guard: Boolean = false) {
     val at = afterLeadingHooks()
     val code = implementation!!
     val before = code.instructions.size
@@ -581,12 +395,6 @@ private fun Method.code(): List<Instruction> = implementation?.instructions?.toL
 
 private fun Instruction.methodReference() = (this as? ReferenceInstruction)?.reference as? MethodReference
 
-private fun Instruction.fieldReference() = (this as? ReferenceInstruction)?.reference as? FieldReference
-
-private fun Instruction.fieldKey() = fieldReference()?.key()
-
-private fun FieldReference.key() = "$definingClass->$name:$type"
-
-internal fun Method.key() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+private fun Method.key() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
 private fun MethodReference.key() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"

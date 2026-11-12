@@ -138,7 +138,7 @@ public class AccentColorTest {
     public void aSwappedColorComesBackAsItIs() {
         Settings.ACCENT_COLOR.save(true);
         for (AccentHue hue : AccentHue.values()) {
-            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) continue;
+            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER) continue;
             Settings.ACCENT_HUE.save(hue);
             for (int shade : new int[] {hue.fill, hue.pressed, hue.dim, hue.linkOnLight, hue.linkOnDark, hue.pale}) {
                 int color = 0xff000000 | shade;
@@ -228,7 +228,7 @@ public class AccentColorTest {
     public void eachColorPickedAndInstagramBlue() {
         Settings.ACCENT_COLOR.save(true);
         for (AccentHue hue : AccentHue.values()) {
-            if (hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) continue;
+            if (hue == AccentHue.WALLPAPER) continue;
             Settings.ACCENT_HUE.save(hue);
             int swapped = AccentColor.color(INDIGO);
             if (hue == AccentHue.BLUE) {
@@ -316,7 +316,7 @@ public class AccentColorTest {
         double stock = contrast(WHITE, BLUE);
         for (AccentHue hue : AccentHue.values()) {
             // Material You's tones are the phone's, read as Instagram runs.
-            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) continue;
+            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER) continue;
             assertTrue(hue + ": white on its fill",contrast(WHITE, 0xff000000 | hue.fill) >= 3.9);
             assertTrue(hue + ": white on its fill against stock", contrast(WHITE, 0xff000000 | hue.fill) > stock);
             assertTrue(hue + ": white on it held down", contrast(WHITE, 0xff000000 | hue.pressed) >= 3.9);
@@ -372,29 +372,6 @@ public class AccentColorTest {
         };
         assertSame(subclass, AccentColor.list(subclass));
         assertSame(null, AccentColor.list(null));
-    }
-
-    /** A view built in blue takes the color through its constructor, and anything else keeps its own list (#187). */
-    @Test
-    public void aTextViewBuiltInBlueTakesTheColor() {
-        Settings.ACCENT_COLOR.save(true);
-        android.widget.TextView view = new android.widget.TextView(RuntimeEnvironment.getApplication());
-        view.setTextColor(button());
-        AccentColor.text(view);
-        assertEquals(0xff7638fa, view.getTextColors().getColorForState(ENABLED, 0));
-
-        ColorStateList gray = new ColorStateList(new int[][] {DISABLED, {}}, new int[] {0x4d737373, 0xff737373});
-        view.setTextColor(gray);
-        AccentColor.text(view);
-        assertSame(gray, view.getTextColors());
-
-        Settings.ACCENT_COLOR.save(false);
-        ColorStateList blue = button();
-        view.setTextColor(blue);
-        AccentColor.text(view);
-        assertSame("the switch off leaves Instagram's blue", blue, view.getTextColors());
-
-        AccentColor.text(null);
     }
 
     /** Paused, not ready yet or Instagram blue picked: the stock blue, in a color and in a list. */

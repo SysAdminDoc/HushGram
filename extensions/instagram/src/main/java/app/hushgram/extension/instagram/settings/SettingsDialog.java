@@ -37,7 +37,7 @@ import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 
 /**
- * The HushGram screen: a full screen, black dialog with a title bar and the preference list. It is
+ * The HushGram settings screen: a full-screen dark dialog with a title bar and the preference list. It is
  * a framework dialog fragment, so it needs no activity of its own and Back closes it.
  */
 @SuppressWarnings("deprecation") // Framework fragments are what the shared preference code builds on.
@@ -51,7 +51,7 @@ public final class SettingsDialog extends DialogFragment {
     /** The bar under the page that restarts Instagram while a change waits on it. */
     static final int RESTART_ID = 0x48474302;
     private static final String PAGE_FAILED = "hushgram.page_failed";
-    /** The argument naming the inline section to expand after Restart now. */
+    /** The argument naming the section to reopen after Restart now. */
     static final String START_PAGE = "hushgram_start_page";
     private boolean failed;
     private boolean loading;
@@ -66,8 +66,8 @@ public final class SettingsDialog extends DialogFragment {
     private ViewTreeObserver.OnWindowFocusChangeListener lockFocus;
 
     /**
-     * The screen, expanding the section whose row has the key [page]. Null or a key no row
-     * has opens the first page, as the screen always does.
+     * The screen, opening the section whose row has the key [page]. Null or an unknown key opens
+     * the overview.
      */
     static SettingsDialog onPage(@androidx.annotation.Nullable String page) {
         SettingsDialog dialog = new SettingsDialog();
@@ -115,12 +115,7 @@ public final class SettingsDialog extends DialogFragment {
         };
         Window window = dialog.getWindow();
         if (window != null) {
-            window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(ScreenColors.current().background));
-            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-            // With three-button navigation Android lays a grey scrim under the buttons; the
-            // screen is black edge to edge, so the scrim only shows as a grey band. Android 9 has
-            // no scrim to turn off.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.setNavigationBarContrastEnforced(false);
+            styleEdgeToEdgeWindow(window, ScreenColors.current().background);
             window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
         return dialog;
@@ -164,8 +159,9 @@ public final class SettingsDialog extends DialogFragment {
         arrow.setLayoutDirection(rightToLeft() ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
         back.setImageDrawable(arrow);
         back.setPadding(dp(12), dp(12), dp(12), dp(12));
+        back.setBackgroundTintList(null);
         back.setBackground(new android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(ScreenColors.half(palette.heading)), null,
+                android.content.res.ColorStateList.valueOf(ScreenColors.RIPPLE), null,
                 new android.graphics.drawable.ColorDrawable(Color.WHITE)));
         back.setMinimumWidth(dp(48));
         back.setMinimumHeight(dp(48));
@@ -188,9 +184,9 @@ public final class SettingsDialog extends DialogFragment {
         TextView title = new TextView(getContext());
         heading = title;
         title.setText("HushGram");
-        ShimmerTitle.wear(title);
-        title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+        title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        title.setTextColor(palette.title);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
         title.setPaddingRelative(dp(8), 0, 0, 0);
         // Next to the back arrow in a right-to-left layout too, not at the bar's far end.
         title.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
@@ -211,23 +207,91 @@ public final class SettingsDialog extends DialogFragment {
     }
 
     /**
-     * Instagram targets a recent API, so its windows are edge to edge: keeps the bars off [root]'s
-     * content. The keyboard too, since nothing resizes an edge-to-edge window for it: the search
-     * field, the matches under it and Restart now sat behind the keys (S25, 2026-10-13).
+     * Use the same edge-to-edge window setup for settings and its full-screen secondary pages.
+     * Instagram's activity can request dark system-bar icons; clear that request because these
+     * surfaces stay dark. Keep the layout in the cutout area and let each root apply safe insets.
+     */
+    static void styleEdgeToEdgeWindow(Window window, int background) {
+        window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(background));
+        window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        window.setDimAmount(0f);
+        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                | android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) window.setDecorFitsSystemWindows(false);
+        android.view.WindowManager.LayoutParams attributes = window.getAttributes();
+        attributes.layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams
+                .LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        window.setAttributes(attributes);
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.setNavigationBarColor(Color.TRANSPARENT);
+        // Android 10 adds a contrast scrim that otherwise appears as a grey band under three-button navigation.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.setNavigationBarContrastEnforced(false);
+        View decor = window.getDecorView();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            android.view.WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) {
+                controller.setSystemBarsAppearance(0,
+                        android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                                | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+            }
+        } else {
+            // Before Android 11, these flags are what makes transparent bars edge-to-edge.
+            // Clearing only the light-icon flags leaves the content inset by the host window.
+            int flags = decor.getSystemUiVisibility()
+                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+            flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            decor.setSystemUiVisibility(flags);
+        }
+    }
+
+    private static final int CONTENT_MAX_WIDTH_DP = 620;
+    private static final int PAGE_VERTICAL_INSET_DP = 12;
+
+    /**
+     * Keep page content clear of system bars, display cutouts and the keyboard. Recalculate the
+     * centred max-width column on layout as well as inset changes: rotation, a foldable opening,
+     * or the first layout can change width without a new insets event.
      */
     static void keepOffTheBars(View root) {
-        root.setOnApplyWindowInsetsListener((view, insets) -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                android.graphics.Insets bars = insets.getInsets(
-                        WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
-                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-            } else {
-                // Android 9 and 10 report the bars through the calls Android 11 replaced.
-                view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
-                        insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+        int[] insets = new int[4];
+        Runnable apply = () -> {
+            int usableWidth = Math.max(0, root.getWidth() - insets[0] - insets[2]);
+            int extra = Math.max(0, usableWidth - dp(root, CONTENT_MAX_WIDTH_DP)) / 2;
+            int left = insets[0] + extra;
+            int top = insets[1] + dp(root, PAGE_VERTICAL_INSET_DP);
+            int right = insets[2] + extra;
+            int bottom = insets[3] + dp(root, PAGE_VERTICAL_INSET_DP);
+            if (root.getPaddingLeft() != left || root.getPaddingTop() != top
+                    || root.getPaddingRight() != right || root.getPaddingBottom() != bottom) {
+                root.setPadding(left, top, right, bottom);
             }
-            return insets;
+        };
+        root.setOnApplyWindowInsetsListener((view, windowInsets) -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.graphics.Insets bars = windowInsets.getInsets(
+                        WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                int keyboard = windowInsets.isVisible(WindowInsets.Type.ime())
+                        ? windowInsets.getInsets(WindowInsets.Type.ime()).bottom : 0;
+                insets[0] = bars.left;
+                insets[1] = bars.top;
+                insets[2] = bars.right;
+                insets[3] = Math.max(bars.bottom, keyboard);
+            } else {
+                // API 28 and 29 report safe areas and an IME resize through system window insets.
+                insets[0] = windowInsets.getSystemWindowInsetLeft();
+                insets[1] = windowInsets.getSystemWindowInsetTop();
+                insets[2] = windowInsets.getSystemWindowInsetRight();
+                insets[3] = windowInsets.getSystemWindowInsetBottom();
+            }
+            apply.run();
+            return windowInsets;
         });
+        root.getViewTreeObserver().addOnGlobalLayoutListener(apply::run);
+        root.requestApplyInsets();
     }
 
     /**
@@ -246,17 +310,20 @@ public final class SettingsDialog extends DialogFragment {
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setMinHeight(dp(56));
         bar.setPaddingRelative(dp(16), dp(12), dp(20), dp(12));
-        // A restart arrow and the heading blue's edge mark it as something to tap, not a notice.
-        android.graphics.drawable.Drawable arrow = SettingsIcons.icon(getContext(), SettingsIcons.TOOLS, palette.heading);
+        // A restart arrow and the outlined surface identify this as an action without a second accent color.
+        android.graphics.drawable.Drawable arrow = SettingsIcons.icon(getContext(), SettingsIcons.TOOLS, palette.summary);
         arrow.setBounds(0, 0, dp(24), dp(24));
         bar.setCompoundDrawablesRelative(arrow, null, null, null);
         bar.setCompoundDrawablePadding(dp(14));
         android.graphics.drawable.GradientDrawable surface = new android.graphics.drawable.GradientDrawable();
         surface.setColor(palette.card);
-        surface.setCornerRadius(dp(12));
-        surface.setStroke(dp(1), palette.heading);
+        surface.setCornerRadius(dp(ScreenColors.CORNER_L));
+        surface.setStroke(dp(1), palette.outline);
+        android.graphics.drawable.GradientDrawable rippleMask = new android.graphics.drawable.GradientDrawable();
+        rippleMask.setColor(Color.WHITE);
+        rippleMask.setCornerRadius(dp(ScreenColors.CORNER_L));
         bar.setBackground(new android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(ScreenColors.half(palette.heading)), surface, surface));
+                android.content.res.ColorStateList.valueOf(ScreenColors.RIPPLE), surface, rippleMask));
         bar.setFocusable(true);
         bar.setClickable(true);
         bar.setAccessibilityDelegate(new View.AccessibilityDelegate() {
@@ -277,8 +344,8 @@ public final class SettingsDialog extends DialogFragment {
     private LinearLayout.LayoutParams restartBarSpace() {
         LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        // The cards' and the search field's 18dp side inset, so the bar lines up with them.
-        space.setMargins(dp(18), dp(8), dp(18), dp(8));
+        // Align with the 20dp outer inset used by Oxbow's connected row groups.
+        space.setMargins(dp(20), dp(8), dp(20), dp(8));
         return space;
     }
 
@@ -304,7 +371,7 @@ public final class SettingsDialog extends DialogFragment {
         if (bar.getVisibility() != shown) bar.setVisibility(shown);
     }
 
-    /** Clears a search before Back closes the dialog. Expanding a section adds no Back level. */
+    /** Ends a search or returns from the selected section before Back closes the dialog. */
     private boolean closeCategory() {
         Fragment page = getChildFragmentManager().findFragmentById(CONTAINER_ID);
         return page instanceof HushgramPreferenceFragment && ((HushgramPreferenceFragment) page).closeCategory();
@@ -315,12 +382,6 @@ public final class SettingsDialog extends DialogFragment {
         // Back key or a tap outside: the person closed it.
         SettingsEntry.onClosedByUser();
         super.onCancel(dialog);
-    }
-
-    @Override
-    public void onDismiss(android.content.DialogInterface dialog) {
-        super.onDismiss(dialog);
-        GhostHeaderButton.settingsClosed();
     }
 
     @Override
@@ -350,8 +411,13 @@ public final class SettingsDialog extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
+        // onCreateDialog can run before an insets controller exists. Reapply the system-bar policy
+        // after the dialog window is attached, so Android 11+ also clears host-requested light icons.
+        Dialog dialog = getDialog();
+        Window window = dialog == null ? null : dialog.getWindow();
+        if (window != null) styleEdgeToEdgeWindow(window, ScreenColors.current().background);
         watchLock();
-        ShortcutCover.offOnceDrawn(getDialog());
+        ShortcutCover.offOnceDrawn(dialog);
     }
 
     @Override
@@ -539,7 +605,7 @@ public final class SettingsDialog extends DialogFragment {
         content.addView(icon, iconSize);
         TextView title = new TextView(getContext());
         title.setText(L10n.t(getContext(), "Settings couldn't open"));
-        ShimmerTitle.wear(title);
+        title.setTextColor(palette.title);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         title.setGravity(Gravity.CENTER);
@@ -584,6 +650,11 @@ public final class SettingsDialog extends DialogFragment {
     private int dp(int value) {
         return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
                 getResources().getDisplayMetrics()));
+    }
+
+    private static int dp(View view, int value) {
+        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
+                view.getResources().getDisplayMetrics()));
     }
 
     /** Whether the phone's language reads right to left, so the way back points right. */

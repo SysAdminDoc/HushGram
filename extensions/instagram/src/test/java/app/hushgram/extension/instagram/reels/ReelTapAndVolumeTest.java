@@ -48,7 +48,6 @@ public class ReelTapAndVolumeTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
-        ReelTapAndVolume.forget();
     }
 
     private static String report() {
@@ -109,36 +108,6 @@ public class ReelTapAndVolumeTest {
     public void beforeTheSettingsAreReadyItIsInstagramsOwnTap() {
         Settings.REEL_TAP_CHOICE.save(ReelTapChoice.MUTE);
         SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.muteInsteadOfPause()));
-        Settings.REEL_TAP_CHOICE.save(ReelTapChoice.KEEP_PLAYING);
-        SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.keepPlaying()));
-    }
-
-    /** Keep playing (#554): mute says no, keep playing says yes, so the tap neither mutes nor pauses, and it's counted. */
-    @Test
-    public void keepPlayingLeavesThePlayingReelAloneAndCountsIt() {
-        Settings.REEL_TAP_CHOICE.save(ReelTapChoice.KEEP_PLAYING);
-        assertFalse("it doesn't mute", ReelTapAndVolume.muteInsteadOfPause());
-        assertTrue("it keeps playing", ReelTapAndVolume.keepPlaying());
-        String report = report();
-        assertTrue(report, report.contains(ReelTapAndVolume.TAP_KEPT_PLAYING + " 1"));
-        assertFalse(report, report.contains(ReelTapAndVolume.TAP_PAUSED));
-        assertFalse(report, report.contains(ReelTapAndVolume.TAP_MUTED));
-    }
-
-    /** Every other choice says no to keep playing, so Mute's toggle and the pause still happen. */
-    @Test
-    public void onlyKeepPlayingKeepsItPlaying() {
-        for (ReelTapChoice choice : new ReelTapChoice[] {ReelTapChoice.DEFAULT, ReelTapChoice.PAUSE, ReelTapChoice.MUTE}) {
-            Settings.REEL_TAP_CHOICE.save(choice);
-            assertFalse(choice.name(), ReelTapAndVolume.keepPlaying());
-        }
-        Settings.REEL_TAP_CHOICE.save(ReelTapChoice.KEEP_PLAYING);
-        BaseSettings.PAUSED.save(true);
-        PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse("paused, Instagram's own tap", ReelTapAndVolume.keepPlaying());
-        BaseSettings.PAUSED.save(false);
-        PauseForTests.resume();
-        assertTrue("back on", ReelTapAndVolume.keepPlaying());
     }
 
     /** The volume key starts at Instagram's own: no unmute is skipped, and nothing is counted. */
@@ -197,39 +166,5 @@ public class ReelTapAndVolumeTest {
     public void beforeTheSettingsAreReadyTheUnmuteHappens() {
         Settings.KEEP_REELS_MUTED.save(true);
         SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.keepMuted(1, 0)));
-    }
-
-    /**
-     * The speaker icon (#608) toggles the reel the last started controller plays: before any reel has
-     * started there's nothing to toggle and no sound to read, and a null handed over keeps the one held.
-     */
-    @Test
-    public void theSpeakerIconTogglesTheReelLastStarted() {
-        ReelTapAndVolume.forget();
-        assertFalse("no reel has started", ReelTapAndVolume.toggle());
-        assertEquals(-1, ReelTapAndVolume.soundOn());
-        assertFalse(report(), report().contains(ReelTapAndVolume.ICON_TOGGLED));
-
-        Object controller = new Object();
-        ReelTapAndVolume.resuming(controller);
-        assertTrue(ReelTapAndVolume.toggle());
-        ReelTapAndVolume.resuming(null);
-        assertTrue("a null keeps the controller held", ReelTapAndVolume.toggle());
-        assertTrue(report(), report().contains(ReelTapAndVolume.ICON_TOGGLED + " 2"));
-        // Unpatched, the read answers it can't tell, and the icon shows sound on.
-        assertEquals(-1, ReelTapAndVolume.soundOn());
-    }
-
-    /** Paused or before the settings are ready, the speaker icon toggles nothing. */
-    @Test
-    public void pausedTheSpeakerIconTogglesNothing() {
-        ReelTapAndVolume.resuming(new Object());
-        BaseSettings.PAUSED.save(true);
-        PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse(ReelTapAndVolume.toggle());
-        BaseSettings.PAUSED.save(false);
-        PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.toggle()));
-        assertFalse(report(), report().contains(ReelTapAndVolume.ICON_TOGGLED));
     }
 }

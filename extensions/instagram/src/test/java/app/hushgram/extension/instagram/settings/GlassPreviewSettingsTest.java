@@ -98,8 +98,8 @@ public class GlassPreviewSettingsTest {
         assertFalse(slider.isEnabled());
         assertEquals("Turn on Glass tab bar to use this slider.", String.valueOf(slider.getSummary()));
         check(Settings.GLASS_TAB_BAR.key);
-        // The standard pill bends too, so the liquid look isn't in the way (#391); the blur starts on.
-        assertFalse(Settings.GLASS_TAB_BAR_LIQUID.savedValue());
+        assertEquals("Turn on Liquid glass look to use this slider.", String.valueOf(slider.getSummary()));
+        check(Settings.GLASS_TAB_BAR_LIQUID.key);
         assertEquals("Turn on Bend light at the edges to use this slider.", String.valueOf(slider.getSummary()));
         check(Settings.GLASS_TAB_BAR_REFRACT.key);
         assertTrue(slider.isEnabled());
@@ -245,7 +245,7 @@ public class GlassPreviewSettingsTest {
         int[] corners = new int[3];
         int[] tints = {100, 40, 0};
         for (int draw = 0; draw < tints.length; draw++) {
-            // The black settings page under the row, as on the phone.
+            // The monochrome settings surface under the row, as on the phone.
             bitmap.eraseColor(Color.BLACK);
             view.live(GlassPreview.TINT, tints[draw]);
             view.draw(new Canvas(bitmap));

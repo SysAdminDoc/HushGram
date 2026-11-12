@@ -143,8 +143,7 @@ public class HomeNextPageTest {
     /** Every switch FeedSuggestions.filter takes items out for. Settings load only once the test's context is in place. */
     private static BooleanSetting[] suggestionSwitches() {
         return new BooleanSetting[] {Settings.HIDE_SUGGESTED_POSTS, Settings.HIDE_SUGGESTED_ACCOUNTS,
-                Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS, Settings.HIDE_FEED_STORY_ROWS,
-                Settings.HIDE_FEED_SHOPPING};
+                Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS, Settings.HIDE_FEED_SHOPPING};
     }
 
     private static void clear() {
@@ -266,41 +265,19 @@ public class HomeNextPageTest {
         assertFalse("and its cap isn't counted yet", HomeNextPage.capCounted);
     }
 
-    /** A short page Instagram asked for itself after a quiet spell, the scroll's, starts a chain of its own after one hit the cap. */
+    /** A short page Instagram asked for itself, the scroll's, starts a chain of its own after one hit the cap. */
     @Test
-    public void aPageInstagramAskedForAfterAQuietSpellStartsANewChain() {
+    public void aPageInstagramAskedForStartsANewChain() {
         for (int page = 0; page <= HomeNextPage.CHAIN_CAP; page++) {
             shortPage();
             build();
         }
         assertEquals(HomeNextPage.CHAIN_CAP, asks.size());
 
-        now[0] += HomeNextPage.WINDOW_NANOS + 1;
         shortPage();
         build();
         assertEquals(HomeNextPage.CHAIN_CAP + 1, asks.size());
         assertEquals(1, HomeNextPage.chain);
-    }
-
-    /**
-     * #579 on the S22: Instagram asked for a page of its own as each of ours landed, a few seconds
-     * behind it. Each of those pages started a new chain, so the chain never passed one and Home paged
-     * on and on. They count toward the chain now, and the cap stops it.
-     */
-    @Test
-    public void aPageInstagramAskedForRightBehindOursKeepsTheChain() {
-        shortPage();
-        build();
-        for (int round = 1; round <= HomeNextPage.CHAIN_CAP + 2; round++) {
-            now[0] += 2_000_000_000L;
-            shortPage();
-            now[0] += 4_000_000_000L;
-            shortPage();
-            build();
-        }
-        assertEquals("no more past the cap", HomeNextPage.CHAIN_CAP, asks.size());
-        assertEquals(1, counted(HomeNextPage.CAPPED));
-        assertTrue("the cap holds", HomeNextPage.capCounted);
     }
 
     @Test
@@ -473,11 +450,9 @@ public class HomeNextPageTest {
         runPosted();
         assertEquals(3, asks.size());
 
-        // A page that keeps something lets the next empty page hold again. That one comes after a
-        // quiet spell, so it starts a chain of its own instead of finding this one at its cap.
+        // A page that keeps something lets the next empty page hold again.
         homePage(FeedSuggestionsTest.Kind.MEDIA, FeedSuggestionsTest.Kind.EXPLORE_STORY);
         assertEquals(0, HomeNextPage.holdSince);
-        now[0] += HomeNextPage.WINDOW_NANOS + 1;
         homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY);
         HomeNextPage.buildStarts(adapter);
         FeedSuggestions.homeFeedRead(feed);
@@ -915,10 +890,7 @@ public class HomeNextPageTest {
         assertTrue(posted.isEmpty());
     }
 
-    /**
-     * An empty page answers a request made here, so the next short page isn't taken for its answer.
-     * Right behind it, that page continues the chain (#579). After a quiet spell, the scroll's starts its own.
-     */
+    /** An empty page that answers a request made here ends that chain: the next short page, the scroll's, starts its own. */
     @Test
     public void anEmptyAnswerEndsTheChainItAnswered() {
         FeedSuggestions.homeReadsForTests = true;
@@ -933,13 +905,6 @@ public class HomeNextPageTest {
         shortPage();
         build();
         assertEquals(2, asks.size());
-        assertEquals("right behind it, the same chain", 2, HomeNextPage.chain);
-
-        homePage();
-        now[0] += HomeNextPage.WINDOW_NANOS + 1;
-        shortPage();
-        build();
-        assertEquals(3, asks.size());
         assertEquals("a chain of its own", 1, HomeNextPage.chain);
     }
 

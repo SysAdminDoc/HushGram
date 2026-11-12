@@ -63,8 +63,7 @@ public class VersionWarningsSettingsTest {
         assertNotNull(row);
         assertEquals("Remove build expired popup", row.getTitle().toString());
         assertEquals("Version warnings", String.valueOf(row.getParent().getTitle()));
-        assertEquals("Stop Instagram from saying this version is too old.",
-                ((HushgramPreferenceFragment.Heading) row.getParent()).intro);
+        assertNull("category descriptions are not displayed", row.getParent().getSummary());
         assertEquals("hushgram_remove_build_expired_popup", Settings.REMOVE_BUILD_EXPIRED_POPUP.key);
         assertTrue(row.isChecked());
         for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {

@@ -80,7 +80,6 @@ public class SettingsRowAccessibilityTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
         Settings.CATEGORY_PAGES.resetToDefault();
@@ -125,13 +124,21 @@ public class SettingsRowAccessibilityTest {
     }
 
     private View row(Preference preference) {
+        assertNotNull("preference isn't installed in this patch build", preference);
         ListView list = page.getView().findViewById(android.R.id.list);
         layout();
-        int position = -1;
-        for (int i = 0; i < list.getCount(); i++) {
-            if (list.getItemAtPosition(i) == preference) position = i;
+        int position = positionOf(list, preference);
+        if (position < 0) {
+            // The overview intentionally keeps category children off the visible list. Search is
+            // the supported direct path to a setting without changing its category or its handler.
+            CharSequence title = preference.getTitle();
+            String query = title == null ? preference.getKey() : title.toString();
+            assertNotNull("hidden preference has neither a title nor a key", query);
+            page.searchSettings(query);
+            layout();
+            position = positionOf(list, preference);
         }
-        assertTrue("preference is missing from the actual list", position >= 0);
+        assertTrue("preference is missing from the actual list after search", position >= 0);
         View attached = list.getChildAt(position - list.getFirstVisiblePosition());
         if (attached != null) return attached;
         // Selection is keyboard focus, not a touch scroll. The search input can retain focus
@@ -147,6 +154,13 @@ public class SettingsRowAccessibilityTest {
                 + list.getFirstVisiblePosition() + ", children " + list.getChildCount(), view);
         assertSame(preference, list.getItemAtPosition(list.getPositionForView(view)));
         return view;
+    }
+
+    private static int positionOf(ListView list, Preference preference) {
+        for (int i = 0; i < list.getCount(); i++) {
+            if (list.getItemAtPosition(i) == preference) return i;
+        }
+        return -1;
     }
 
     private View row(String key) { return row(page.findPreference(key)); }
@@ -466,6 +480,83 @@ public class SettingsRowAccessibilityTest {
         assertFalse(clickable(view.createAccessibilityNodeInfo()));
         assertFalse(view.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null));
         assertNull(ShadowAlertDialog.getLatestAlertDialog());
+    }
+
+    @Test public void tappingTheSwitchWidgetRunsTheHushGramChangeChainOnce() throws Exception {
+        open(PatchFamily.HIDE_ADS);
+        SwitchPreference preference = (SwitchPreference) page.findPreference(Settings.HIDE_ADS.key);
+        assertNotNull(preference);
+        assertFalse(preference.isChecked());
+        AtomicInteger changes = new AtomicInteger();
+        Preference.OnPreferenceChangeListener previous = preference.getOnPreferenceChangeListener();
+        preference.setOnPreferenceChangeListener((changed, value) -> {
+            changes.incrementAndGet();
+            return previous == null || previous.onPreferenceChange(changed, value);
+        });
+
+        View row = preference.getView(null, new FrameLayout(controller.get()));
+        ExpressiveSwitch control = row.findViewById(android.R.id.switch_widget);
+        assertNotNull("the custom switch widget wasn't installed", control);
+        assertTrue(control.performClick());
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("one physical switch tap must dispatch one change", 1, changes.get());
+        assertTrue(preference.isChecked());
+        assertTrue(Settings.HIDE_ADS.savedValue());
+        assertTrue(control.isChecked());
+    }
+
+    @Test public void aRejectedTapOnTheSwitchWidgetRestoresTheSavedState() throws Exception {
+        open(PatchFamily.HIDE_ADS);
+        SwitchPreference preference = (SwitchPreference) page.findPreference(Settings.HIDE_ADS.key);
+        assertNotNull(preference);
+        assertFalse(preference.isChecked());
+        AtomicInteger changes = new AtomicInteger();
+        preference.setOnPreferenceChangeListener((changed, value) -> {
+            changes.incrementAndGet();
+            return false;
+        });
+        View row = preference.getView(null, new FrameLayout(controller.get()));
+        ExpressiveSwitch control = row.findViewById(android.R.id.switch_widget);
+        assertNotNull(control);
+
+        assertTrue(control.performClick());
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("the rejected tap must notify the listener once", 1, changes.get());
+        assertFalse(preference.isChecked());
+        assertFalse(Settings.HIDE_ADS.savedValue());
+        assertFalse(control.isChecked());
+        java.lang.reflect.Field fraction = ExpressiveSwitch.class.getDeclaredField("checkedFraction");
+        fraction.setAccessible(true);
+        assertEquals("a rejected tap must not leave the drawn switch in its attempted state",
+                0f, fraction.getFloat(control), 0f);
+    }
+
+    @Test public void aRecycledSwitchCannotWriteThePreferenceItWasBoundToBefore() throws Exception {
+        open(PatchFamily.HIDE_ADS, PatchFamily.FOLLOWING_FEED);
+        Settings.HIDE_ADS.save(false);
+        Settings.START_ON_FOLLOWING.save(false);
+        ShadowLooper.idleMainLooper();
+        Preference previous = page.findPreference(Settings.HIDE_ADS.key);
+        Preference next = page.findPreference(Settings.START_ON_FOLLOWING.key);
+        assertNotNull(previous);
+        assertNotNull(next);
+        FrameLayout parent = new FrameLayout(controller.get());
+        View reused = previous.getView(null, parent);
+        View rebound = next.getView(reused, parent);
+        assertSame("the test must exercise a recycled row", reused, rebound);
+        ExpressiveSwitch control = rebound.findViewById(android.R.id.switch_widget);
+        assertNotNull(control);
+        assertFalse(control.isChecked());
+
+        assertTrue(control.performClick());
+        ShadowLooper.idleMainLooper();
+
+        assertTrue("the new preference must receive the tap", Settings.START_ON_FOLLOWING.savedValue());
+        assertFalse("the stale preference must not receive the tap", Settings.HIDE_ADS.savedValue());
+        assertTrue(next instanceof SwitchPreference && ((SwitchPreference) next).isChecked());
+        assertFalse(((SwitchPreference) previous).isChecked());
     }
 
     @Test public void aRefusedSwitchChangeRunsItsListenerOnceAndKeepsTheOffState() throws Exception {

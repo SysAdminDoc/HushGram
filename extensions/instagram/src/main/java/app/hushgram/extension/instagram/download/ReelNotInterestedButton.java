@@ -251,7 +251,7 @@ public final class ReelNotInterestedButton {
         Resources resources = context.getResources();
         int known = glyph;
         if (known == 0) {
-            known = glyphId(resources, Utils.resourcePackage(context));
+            known = glyphId(resources, context.getPackageName());
             glyph = known;
         }
         if (known <= 0) return null;

@@ -15,7 +15,6 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.holdTimeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.qualityRow;
-import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelDownloadAsksRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelDownloadButtonRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
@@ -37,8 +36,7 @@ final class DownloadsCategory {
         if (build.contains(PatchFamily.REEL_DOWNLOAD) || build.contains(PatchFamily.STORY_DOWNLOAD)
                 || build.contains(PatchFamily.VIDEO_DOWNLOAD) || build.contains(PatchFamily.PROFILE_PICTURE)
                 || build.contains(PatchFamily.VOICE_MESSAGE)) {
-            PreferenceCategory downloads = category(screen, L10n.t("Downloads"), SettingsIcons.DOWNLOADS,
-                    L10n.t("Save photos, videos and more, and choose where they go."));
+            PreferenceCategory downloads = category(screen, L10n.t("Downloads"), SettingsIcons.DOWNLOADS);
             page.downloads = downloads;
             if (build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
                 downloads.addPreference(toggle(context, Settings.DOWNLOAD_VIDEOS, L10n.t("Download feed videos"),
@@ -59,14 +57,10 @@ final class DownloadsCategory {
                                 + "Tick the pages you want and only those save, in order.")));
                 downloads.addPreference(toggle(context, Settings.FEED_DOWNLOAD_BUTTON, L10n.t("Download button on feed posts"),
                         L10n.t("Puts a download icon in the row under a post, left of Save, so one tap saves it without "
-                                + "opening the menu. On a carousel it asks for this page or all of them. "
-                                + "Needs Download feed videos or photos.")));
+                                + "opening the menu. On a carousel it asks for this page or all of them.")));
                 downloads.addPreference(toggle(context, Settings.FEED_DOWNLOAD_ALL_PAGES, L10n.t("Save every page without asking"),
                         L10n.t("On a carousel, the download icon saves all of its pages at once instead of asking.")));
-                if (build.contains(PatchFamily.REEL_DOWNLOAD)) {
-                    downloads.addPreference(reelDownloadButtonRow(context));
-                    downloads.addPreference(reelDownloadAsksRow(context));
-                }
+                if (build.contains(PatchFamily.REEL_DOWNLOAD)) downloads.addPreference(reelDownloadButtonRow(context));
                 downloads.addPreference(toggle(context, Settings.HOLD_TO_DOWNLOAD, L10n.t("Hold to download"),
                         L10n.t("Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's "
                                 + "under them, the same as Download in the menu. Fingers below can make it three. "
@@ -77,7 +71,6 @@ final class DownloadsCategory {
             }
             if (build.contains(PatchFamily.REEL_DOWNLOAD) && !build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
                 downloads.addPreference(reelDownloadButtonRow(context));
-                downloads.addPreference(reelDownloadAsksRow(context));
             }
             if (build.contains(PatchFamily.PROFILE_PICTURE)) {
                 downloads.addPreference(toggle(context, Settings.SAVE_PROFILE_PICTURES, L10n.t("Save profile picture"),
@@ -123,9 +116,6 @@ final class DownloadsCategory {
             downloads.addPreference(toggle(context, Settings.DOWNLOAD_NO_HDR, L10n.t("Never save HDR video"),
                     L10n.t("For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram "
                             + "has at full size only in HDR is saved at its largest standard size instead.")));
-            downloads.addPreference(toggle(context, Settings.SAVE_VIDEOS_AS_MKV, L10n.t("Save videos as MKV"),
-                    L10n.t("Saves videos as .mkv files instead of .mp4, for galleries that show no thumbnail for VP9 "
-                            + "or AV1 videos. Nothing is re-encoded. A video Instagram sends as one file stays .mp4.")));
             downloads.addPreference(qualityRow(context));
             downloads.addPreference(folderRow(context));
             downloads.addPreference(fileNameRow(context));

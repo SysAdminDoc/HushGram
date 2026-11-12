@@ -67,11 +67,6 @@ public final class InstagramMedia {
         return null;
     }
 
-    /** A User's {@code full_name}, the name its profile shows over the bio. */
-    public static String fullName(Object user) {
-        return null;
-    }
-
     /** A video version's {@code url}. */
     public static String versionUrl(Object version) {
         return null;
@@ -311,14 +306,6 @@ public final class InstagramMedia {
 
     /** The Media a story's menu is open on, read off the menu's helper, or null for a story with none. */
     public static Object storyMedia(Object menu) {
-        return null;
-    }
-
-    /**
-     * The Media of [item], a story item as the story viewer holds it, read through the field the
-     * story menu reads ({@link #storyMedia}), or null for an item with none.
-     */
-    public static Object storyItemMedia(Object item) {
         return null;
     }
 

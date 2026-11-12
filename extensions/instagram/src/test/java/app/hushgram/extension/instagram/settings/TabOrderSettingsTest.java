@@ -358,7 +358,7 @@ public class TabOrderSettingsTest {
     @Test public void aTabsNameReadsInThePagesTitleColour() throws Exception {
         open(PatchFamily.REELS_TAB);
         LinearLayout list = list(openList());
-        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        ScreenColors colors = ScreenColors.current();
         for (int at = 0; at < list.getChildCount(); at++) {
             CheckBox name = TabPicker.box(list.getChildAt(at));
             assertEquals(String.valueOf(name.getText()), name.isEnabled() ? colors.title : colors.summary,

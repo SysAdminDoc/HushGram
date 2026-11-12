@@ -5,17 +5,19 @@
 package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.*;
+
 import android.app.Activity;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Rect;
 import android.preference.Preference;
-import android.preference.SwitchPreference;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+
 import java.util.EnumSet;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -27,15 +29,13 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
+
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/**
- * The main page shows HushGram's name once: the header's while Black settings page has it on the
- * screen, and the bar's otherwise. A search names itself in the bar either way.
- */
+/** The brand header, section title and search title use one stable monochrome settings chrome. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37}, qualifiers = "w320dp-h480dp-mdpi")
 @SuppressWarnings("deprecation")
@@ -90,37 +90,35 @@ public class SettingsTitleBarTest {
         ShadowLooper.idleMainLooper();
     }
 
-    /** In a right-to-left layout the name sits by the back arrow on the right, not at the bar's far end. */
-    @Test @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h480dp-mdpi")
-    public void rightToLeftTheNameSitsByTheBackArrow() throws Exception {
-        RuntimeEnvironment.getApplication().getApplicationInfo().flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
-        openDialog();
-        TextView title = barTitle();
-        View back = bar().getChildAt(0);
-        assertEquals(View.LAYOUT_DIRECTION_RTL, title.getLayoutDirection());
-        assertTrue("the back arrow is on the right", back.getLeft() > title.getLeft());
-        assertEquals(View.TEXT_ALIGNMENT_VIEW_START, title.getTextAlignment());
-        android.text.Layout layout = title.getLayout();
-        assertNotNull("the name was laid out", layout);
-        assertEquals("the name ends by the arrow", layout.getWidth(), layout.getLineLeft(0) + layout.getLineMax(0), 1f);
-    }
-
     private LinearLayout bar() {
         return (LinearLayout) ((LinearLayout) dialog.getView()).getChildAt(0);
     }
 
-    private TextView barTitle() {
-        return (TextView) bar().getChildAt(1);
+    private TextView barTitle() { return (TextView) bar().getChildAt(1); }
+
+    private ListView list() { return page.getView().findViewById(android.R.id.list); }
+
+    private HushgramPreferenceFragment.Heading category(String title) {
+        for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
+            Preference row = page.getPreferenceScreen().getPreference(i);
+            if (row instanceof HushgramPreferenceFragment.Heading && title.contentEquals(row.getTitle())) {
+                return (HushgramPreferenceFragment.Heading) row;
+            }
+        }
+        throw new AssertionError("no category row titled " + title);
     }
 
-    private ListView list() {
-        return page.getView().findViewById(android.R.id.list);
+    private static int shown(View view, String wanted) {
+        if (!view.isShown() || !view.getLocalVisibleRect(new Rect())) return 0;
+        if (view instanceof TextView && wanted.contentEquals(((TextView) view).getText())) return 1;
+        int count = 0;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) count += shown(group.getChildAt(i), wanted);
+        }
+        return count;
     }
 
-    /**
-     * Scrolls the page by [pixels], down for more than zero, the way a finger does. A selection
-     * would skip the header, which isn't selectable, and land on the first row that is.
-     */
     private void scrollBy(int pixels) {
         list().scrollListBy(pixels);
         layoutPage();
@@ -135,91 +133,105 @@ public class SettingsTitleBarTest {
         assertEquals("at the top", 0, list.getFirstVisiblePosition());
     }
 
-    /** How many views a person sees reading [wanted]: shown, and not scrolled or clipped away. */
-    private static int shown(View view, String wanted) {
-        if (!view.isShown() || !view.getLocalVisibleRect(new Rect())) return 0;
-        if (view instanceof TextView && wanted.contentEquals(((TextView) view).getText())) return 1;
-        int count = 0;
-        if (view instanceof ViewGroup) {
-            ViewGroup group = (ViewGroup) view;
-            for (int i = 0; i < group.getChildCount(); i++) count += shown(group.getChildAt(i), wanted);
-        }
-        return count;
-    }
-
-    /** What a tap on the Black settings page switch does: its change listener, then the new state. */
-    private void flip(boolean on) {
-        Preference row = page.findPreference(Settings.SETTINGS_BLACK_LOOK.key);
-        assertTrue("no Black settings page switch", row instanceof SwitchPreference);
-        assertTrue(row.getOnPreferenceChangeListener().onPreferenceChange(row, on));
-        ((SwitchPreference) row).setChecked(on);
+    private void tap(Preference row) {
+        assertNotNull(row.getOnPreferenceClickListener());
+        assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
+        ShadowLooper.idleMainLooper();
         layoutPage();
     }
 
-    @Test public void theBlackPageShowsTheNameOnceInItsHeader() throws Exception {
+    @Test @Config(qualifiers = "ar-rEG-ldrtl-w320dp-h480dp-mdpi")
+    public void rtlKeepsTheBackControlAndTitleInTheMirroredToolbar() throws Exception {
+        RuntimeEnvironment.getApplication().getApplicationInfo().flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
         openDialog();
-        assertTrue("Black settings page is on by default", Settings.SETTINGS_BLACK_LOOK.savedValue());
-        assertEquals(SettingsHeader.KEY, page.getPreferenceScreen().getPreference(0).getKey());
-        TextView name = page.getView().findViewWithTag(SettingsHeader.NAME);
-        assertNotNull("the header's name is on the page", name);
-        assertTrue(name.isShown());
-        assertEquals("the bar leaves the name to the header", View.INVISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
-        assertTrue("Back stays in the bar", bar().getChildAt(0).isShown());
+        TextView title = barTitle();
+        View back = bar().getChildAt(0);
+        assertEquals(View.LAYOUT_DIRECTION_RTL, title.getLayoutDirection());
+        assertEquals(View.TEXT_ALIGNMENT_VIEW_START, title.getTextAlignment());
+        assertTrue("the back control stays at the start edge", back.getLeft() > title.getLeft());
+        assertNotNull("the title remains measured when hidden behind the in-page headline", title.getLayout());
+        assertEquals("the settings window has no redundant Done button", 3,
+                ((android.view.ViewGroup) dialog.getView()).getChildCount());
     }
 
-    @Test public void aSearchNamesItselfInTheBarAndClearingItHandsTheNameBack() throws Exception {
+    @Test public void overviewShowsTheExistingBrandAndVersionWithoutShimmer() throws Exception {
+        openDialog();
+        assertEquals(SettingsHeader.KEY, page.getPreferenceScreen().getPreference(0).getKey());
+        TextView name = page.getView().findViewWithTag(SettingsHeader.NAME);
+        TextView version = page.getView().findViewWithTag(SettingsHeader.VERSION);
+        View icon = page.getView().findViewWithTag(SettingsHeader.ICON);
+        assertNotNull(name);
+        assertNotNull(version);
+        assertNotNull(icon);
+        assertEquals("HushGram", name.getText().toString());
+        assertEquals("the brand heading uses the compact scale", 28f,
+                name.getTextSize() / name.getResources().getDisplayMetrics().scaledDensity, 0.1f);
+        assertEquals("the brand mark has a compact inset", 8,
+                Math.round(page.getView().findViewWithTag(SettingsHeader.ICON).getLeft()
+                        / page.getResources().getDisplayMetrics().density));
+        assertFalse("the old shimmer treatment is no longer used", ShimmerTitle.wears(name));
+        assertTrue(name.isAccessibilityHeading());
+        assertTrue(version.getText().toString().startsWith("Version "));
+        assertNotNull(((android.widget.ImageView) icon).getDrawable());
+        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, icon.getImportantForAccessibility());
+        assertEquals("the brand is shown once", 1, shown(dialog.getView(), "HushGram"));
+        assertEquals("the toolbar leaves the visible brand to the header", View.INVISIBLE, barTitle().getVisibility());
+    }
+
+    @Test public void searchNamesItselfInTheToolbarAndTheBrandReturnsWhenCleared() throws Exception {
         openDialog();
         int height = bar().getHeight();
         page.searchSettings("feed");
         layoutPage();
         assertEquals(View.VISIBLE, barTitle().getVisibility());
         assertEquals("Search settings", barTitle().getText().toString());
-        assertEquals("the rows don't move when the title shows", height, bar().getHeight());
+        assertEquals(height, bar().getHeight());
         page.searchSettings("");
         layoutPage();
-        // The search scrolled its field to the top and the header away, so the bar names the page.
-        assertEquals("the page is named once after a search", 1, shown(dialog.getView(), "HushGram"));
         scrollToTop();
-        assertEquals("back at the top the header has the name", View.INVISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertEquals(View.INVISIBLE, barTitle().getVisibility());
+        assertEquals("the brand remains visible once", 1, shown(dialog.getView(), "HushGram"));
         assertEquals(height, bar().getHeight());
     }
 
-    @Test public void scrollingTheHeaderAwayPutsTheNameBackInTheBar() throws Exception {
+    @Test public void scrollingTheBrandAwayRestoresTheToolbarTitle() throws Exception {
         openDialog();
         assertEquals(View.INVISIBLE, barTitle().getVisibility());
         scrollBy(list().getHeight());
-        assertTrue("the header row has scrolled off", list().getFirstVisiblePosition() > 0);
+        assertTrue(list().getFirstVisiblePosition() > 0);
         assertEquals(View.VISIBLE, barTitle().getVisibility());
         assertEquals("HushGram", barTitle().getText().toString());
         assertEquals(1, shown(dialog.getView(), "HushGram"));
         scrollToTop();
         assertEquals(View.INVISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
     }
 
-    @Test public void theClassicPageKeepsTheNameInTheBar() throws Exception {
-        Settings.SETTINGS_BLACK_LOOK.save(false);
+    @Test public void sectionPagesShowAHeadlineAndReturnToTheOverview() throws Exception {
         openDialog();
-        assertNull("no header", page.getPreferenceScreen().findPreference(SettingsHeader.KEY));
+        tap(category("Feed"));
+        HushgramPreferenceFragment.Heading section = category("Feed");
+        assertTrue(section.pageHeader);
+        assertFalse(section.collapsible);
+        assertEquals("Feed", section.getTitle().toString());
         assertEquals(View.VISIBLE, barTitle().getVisibility());
         assertEquals("HushGram", barTitle().getText().toString());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        assertTrue(section.getPreferenceCount() > 0);
+        assertTrue(page.closeCategory());
+        layoutPage();
+        assertFalse(category("Feed").pageHeader);
+        assertTrue(category("Feed").collapsible);
+        assertEquals(View.INVISIBLE, barTitle().getVisibility());
     }
 
-    @Test public void flippingBlackSettingsPageMovesTheName() throws Exception {
-        Settings.SETTINGS_BLACK_LOOK.save(false);
+    @Test public void legacyPaletteSettingCannotChangeTheReferencePalette() throws Exception {
         openDialog();
-        flip(true);
-        assertEquals(SettingsHeader.KEY, page.getPreferenceScreen().getPreference(0).getKey());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
-        scrollToTop();
-        assertEquals(View.INVISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
-        flip(false);
-        assertNull(page.getPreferenceScreen().findPreference(SettingsHeader.KEY));
-        assertEquals(View.VISIBLE, barTitle().getVisibility());
-        assertEquals(1, shown(dialog.getView(), "HushGram"));
+        int surface = ScreenColors.current().card;
+        int dialogSurface = ScreenColors.current().dialog;
+        Settings.SETTINGS_BLACK_LOOK.save(false);
+        assertEquals(ScreenColors.SURFACE_CONTAINER, surface);
+        assertEquals(surface, ScreenColors.current().card);
+        assertEquals(dialogSurface, ScreenColors.current().dialog);
+        assertNotNull(page.getPreferenceScreen().findPreference(SettingsHeader.KEY));
+        assertNull("the obsolete appearance toggle is not offered", page.getPreferenceScreen().findPreference(Settings.SETTINGS_BLACK_LOOK.key));
     }
 }

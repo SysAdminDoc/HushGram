@@ -10,11 +10,9 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
-import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
@@ -53,17 +51,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * header shows its tint over the chat's own colour. Each button gets a disc behind it, over whatever
  * background it had, which the disc keeps and gives back.
  *
- * <p>The chat's message bar takes the glass too, as a pill over Instagram's own (#391), blurring the messages
- * that scroll under it. With Glass reply box on stories, the Send message box on each story page the viewer
- * holds takes it as well, blurring the story behind it. Both are found by name the same way, and the boxes
- * are looked for again every {@link #SEARCH_EVERY_MS}, since the viewer adds a page for each person.
- *
  * <p>Off, paused or anything thrown: the glass comes off the header by its own check, the discs come
  * off here and Instagram's header is as it was.
  */
 public final class GlassChat {
     static final String HOOK = "chat header glass";
-    static final String STORY_HOOK = "story reply box glass";
     static final String COUNT_HEADERS = "chat headers found";
     static final String COUNT_DISCS = "chat buttons given a disc";
 
@@ -71,15 +63,6 @@ public final class GlassChat {
     static final String BACK = "header_left_button";
     static final String BUTTONS = "header_right_buttons";
     static final String CHAT = "thread_view_root";
-    /** The message bar's pill, and the view drawing the messages before the bar. */
-    static final String MESSAGE_BOX = "blurred_text_area_background";
-    static final String MESSAGES = "direct_thread_content_below_action_bar";
-    /** The story viewer, one person's page in it, which draws the story first, and the page's reply box. */
-    static final String STORY_VIEWER = "reel_viewer_root";
-    static final String STORY_PAGE = "reel_view_group";
-    static final String STORY_BOX = "message_composer_container";
-    /** How deep into the story viewer its reply boxes are looked for. */
-    static final int STORY_DEPTH = 24;
 
     /**
      * How many parents up from the chat's root the header's buttons are looked for. Instagram 453 puts the
@@ -90,40 +73,18 @@ public final class GlassChat {
     static final long SEARCH_EVERY_MS = 400L;
     /** The disc's diameter, in dp, at most: a button's touch area can be larger than the circle drawn on it. */
     static final int DISC_DP = 44;
-    /**
-     * The disc's glass on a dark screen and on a light one (#537, #542), the liquid tab bar's look: a light fill
-     * over the header's blur, frosted white on a light screen, and a sheen down from its top.
-     */
-    static final int FILL_DARK = 0x1fffffff;
-    static final int FILL_LIGHT = 0x8cffffff;
-    static final int SHEEN_DARK = 0x2effffff;
-    static final int SHEEN_LIGHT = 0x73ffffff;
-    /**
-     * The rim, lit where the light falls at the top left, faint across the sides and lit again, less, at the
-     * bottom right, the way the light runs round the edge of a glass bead.
-     */
-    static final int RIM_LIT_DARK = 0xb3ffffff;
-    static final int RIM_FAINT_DARK = 0x14ffffff;
-    static final int RIM_BACK_DARK = 0x59ffffff;
-    static final int RIM_LIT_LIGHT = 0xffffffff;
-    static final int RIM_FAINT_LIGHT = 0x1a000000;
-    static final int RIM_BACK_LIGHT = 0x29000000;
-    /** The soft shadow under light glass, which has little to stand out against, as the tab bar's has. */
-    static final int SHADE_LIGHT = 0x1f000000;
+    /** The disc's fill and its ring on a dark screen and on a light one. */
+    static final int FILL_DARK = 0x26ffffff;
+    static final int RING_DARK = 0x33ffffff;
+    static final int FILL_LIGHT = 0x14000000;
+    static final int RING_LIGHT = 0x24000000;
 
     private static boolean registered;
     private static WeakReference<Activity> watched = new WeakReference<>(null);
     private static ViewTreeObserver.OnPreDrawListener drawListener;
     private static WeakReference<View> header = new WeakReference<>(null);
-    private static WeakReference<View> messageBox = new WeakReference<>(null);
     private static final List<WeakReference<View>> discs = new ArrayList<>();
     private static long searchedAt = -SEARCH_EVERY_MS;
-    private static long boxSearchedAt = -SEARCH_EVERY_MS;
-    private static long storiesSearchedAt = -SEARCH_EVERY_MS;
-    /** Whether a frame skipped a search that wasn't due yet. */
-    private static boolean putOff;
-    /** The look again a skipped search waits for, while it's waiting. */
-    @Nullable private static Runnable lookAgain;
     private static boolean counted;
 
     /** Ids by name, misses included: they don't change while the process runs. */
@@ -150,11 +111,6 @@ public final class GlassChat {
         return Utils.settingsReady() && Settings.GLASS_CHAT.get();
     }
 
-    /** Whether the glass on the stories' reply box is wanted now. */
-    static boolean storiesOn() {
-        return Utils.settingsReady() && Settings.GLASS_STORY_REPLY_BOX.get();
-    }
-
     private static int id(Context context, String name) {
         Map<String, Integer> forTests = idsForTests;
         if (forTests != null) {
@@ -163,26 +119,14 @@ public final class GlassChat {
         }
         Integer known = IDS.get(name);
         if (known == null) {
-            known = context.getResources().getIdentifier(name, "id", Utils.resourcePackage(context));
+            known = context.getResources().getIdentifier(name, "id", context.getPackageName());
             IDS.put(name, known);
         }
         return known;
     }
 
-    /**
-     * Looks at the activity's chat header before a frame: gives it the glass, or takes it away. Then the reply
-     * boxes on stories. Never throws.
-     */
+    /** Looks at the activity's chat header before a frame: gives it the glass, or takes it away. Never throws. */
     static void check(Activity activity) {
-        checkChat(activity);
-        try {
-            if (storiesOn()) glazeStories(activity);
-        } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.GLASS_CHAT, STORY_HOOK, failure);
-        }
-    }
-
-    private static void checkChat(Activity activity) {
         try {
             if (!on()) {
                 restore();
@@ -194,16 +138,11 @@ public final class GlassChat {
                 return;
             }
             long now = SystemClock.uptimeMillis();
-            if (now - searchedAt < SEARCH_EVERY_MS) {
-                putOff = true;
-                return;
-            }
+            if (now - searchedAt < SEARCH_EVERY_MS) return;
             searchedAt = now;
             View found = find(activity);
             if (found == null) {
                 restore();
-                // Not again before the next search is due, so a screen with no chat isn't searched every frame.
-                searchedAt = now;
                 return;
             }
             header = new WeakReference<>(found);
@@ -264,57 +203,8 @@ public final class GlassChat {
         return false;
     }
 
-    /**
-     * Gives the reply box on each story page the viewer holds the glass (#391), looking again every
-     * {@link #SEARCH_EVERY_MS} for the pages it adds.
-     */
-    static void glazeStories(Activity activity) {
-        long now = SystemClock.uptimeMillis();
-        if (now - storiesSearchedAt < SEARCH_EVERY_MS) {
-            putOff = true;
-            return;
-        }
-        storiesSearchedAt = now;
-        int viewer = id(activity, STORY_VIEWER);
-        int page = id(activity, STORY_PAGE);
-        int box = id(activity, STORY_BOX);
-        if (viewer == 0 || page == 0 || box == 0) return;
-        View root = activity.findViewById(viewer);
-        if (root == null || !root.isShown()) return;
-        List<View> boxes = new ArrayList<>();
-        collect(root, box, boxes, 0);
-        if (boxes.isEmpty()) return;
-        HookStatus.invoked(FamilyNames.GLASS_CHAT);
-        for (View found : boxes) GlassTopBar.glazeBox(found, page, true, GlassChat::storiesOn, FamilyNames.GLASS_CHAT);
-    }
-
-    private static void collect(View at, int id, List<View> into, int depth) {
-        if (at.getId() == id) into.add(at);
-        if (!(at instanceof ViewGroup) || depth >= STORY_DEPTH) return;
-        ViewGroup group = (ViewGroup) at;
-        for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), id, into, depth + 1);
-    }
-
-    /** The chat's message bar pill, looked for every {@link #SEARCH_EVERY_MS} while there's none. */
-    @Nullable
-    private static View messageBox(Activity activity) {
-        View known = messageBox.get();
-        if (known != null && known.isAttachedToWindow()) return known;
-        long now = SystemClock.uptimeMillis();
-        if (now - boxSearchedAt < SEARCH_EVERY_MS) {
-            putOff = true;
-            return null;
-        }
-        boxSearchedAt = now;
-        int id = id(activity, MESSAGE_BOX);
-        View found = id == 0 ? null : activity.findViewById(id);
-        messageBox = new WeakReference<>(found);
-        return found;
-    }
-
     private static void dress(View container, Activity activity) {
         GlassTopBar.glazeChat(container, GlassChat::on);
-        GlassTopBar.glazeBox(messageBox(activity), id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT);
         boolean night = (container.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
         float density = container.getResources().getDisplayMetrics().density;
@@ -353,38 +243,24 @@ public final class GlassChat {
         }
         discs.clear();
         header = new WeakReference<>(null);
-        messageBox = new WeakReference<>(null);
         searchedAt = -SEARCH_EVERY_MS;
-        boxSearchedAt = -SEARCH_EVERY_MS;
     }
 
-    /**
-     * The disc: a round piece of glass as wide as the button up to {@link #DISC_DP}, over the header's blur. A
-     * light fill, a sheen down from the top and a rim lit at the top left and the bottom right, with a soft
-     * shadow under it on a light screen.
-     */
+    /** The disc: a round, faintly lit fill with a ring, as wide as the button up to {@link #DISC_DP}. */
     static final class Disc extends Drawable {
         boolean night;
         private final float density;
         private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint sheen = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint rim = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint shade = new Paint(Paint.ANTI_ALIAS_FLAG);
-        /** Where the gradients were last made for, so a still disc doesn't make them every frame. */
-        private float shapedX = Float.NaN;
-        private float shapedY = Float.NaN;
-        private float shapedRadius = Float.NaN;
-        private boolean shapedNight;
+        private final Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         Disc(boolean night, float density) {
             this.night = night;
             this.density = density;
-            rim.setStyle(Paint.Style.STROKE);
-            rim.setStrokeWidth(Math.max(1f, density));
-            shade.setColor(SHADE_LIGHT);
+            ring.setStyle(Paint.Style.STROKE);
+            ring.setStrokeWidth(Math.max(1f, density / 2f));
         }
 
-        /** The diameter drawn in [bounds], its shadow included. */
+        /** The diameter drawn in [bounds]. */
         float diameter(Rect bounds) {
             return Math.min(Math.min(bounds.width(), bounds.height()), DISC_DP * density);
         }
@@ -393,37 +269,11 @@ public final class GlassChat {
         public void draw(Canvas canvas) {
             Rect bounds = getBounds();
             if (bounds.isEmpty()) return;
-            float x = bounds.exactCenterX();
-            float y = bounds.exactCenterY();
             float radius = diameter(bounds) / 2f;
-            if (!night) {
-                // The shadow sits a little low and the glass a little in from it, so both stay in the button.
-                canvas.drawCircle(x, y + density / 2f, radius - density / 2f, shade);
-                radius -= density;
-            }
-            if (radius <= 0f) return;
-            shape(x, y, radius);
             fill.setColor(night ? FILL_DARK : FILL_LIGHT);
-            canvas.drawCircle(x, y, radius, fill);
-            canvas.drawCircle(x, y, radius, sheen);
-            canvas.drawCircle(x, y, radius - rim.getStrokeWidth() / 2f, rim);
-        }
-
-        /** Makes the sheen's and the rim's gradients again when the disc moved, changed size or changed shade. */
-        private void shape(float x, float y, float radius) {
-            if (x == shapedX && y == shapedY && radius == shapedRadius && night == shapedNight) return;
-            shapedX = x;
-            shapedY = y;
-            shapedRadius = radius;
-            shapedNight = night;
-            sheen.setShader(new LinearGradient(0f, y - radius, 0f, y + radius * 0.2f,
-                    night ? SHEEN_DARK : SHEEN_LIGHT, 0x00ffffff, Shader.TileMode.CLAMP));
-            float corner = radius * 0.7071f;
-            int[] colors = night
-                    ? new int[] {RIM_LIT_DARK, RIM_FAINT_DARK, RIM_FAINT_DARK, RIM_BACK_DARK}
-                    : new int[] {RIM_LIT_LIGHT, RIM_FAINT_LIGHT, RIM_FAINT_LIGHT, RIM_BACK_LIGHT};
-            rim.setShader(new LinearGradient(x - corner, y - corner, x + corner, y + corner,
-                    colors, new float[] {0f, 0.4f, 0.6f, 1f}, Shader.TileMode.CLAMP));
+            ring.setColor(night ? RING_DARK : RING_LIGHT);
+            canvas.drawCircle(bounds.exactCenterX(), bounds.exactCenterY(), radius, fill);
+            canvas.drawCircle(bounds.exactCenterX(), bounds.exactCenterY(), radius - ring.getStrokeWidth() / 2f, ring);
         }
 
         @Override public void setAlpha(int alpha) { }
@@ -467,7 +317,6 @@ public final class GlassChat {
             watched = new WeakReference<>(activity);
             ViewTreeObserver.OnPreDrawListener listener = () -> {
                 check(activity);
-                lookAgainLater(activity);
                 return true;
             };
             activity.getWindow().getDecorView().getViewTreeObserver().addOnPreDrawListener(listener);
@@ -477,47 +326,15 @@ public final class GlassChat {
         }
     }
 
-    /**
-     * Looks again once a search a frame skipped is due. A chat that opens on a frame too soon after the last
-     * search and then sits still draws nothing more, so its header and message bar stayed Instagram's own until
-     * something moved (#513). Never throws.
-     */
-    private static void lookAgainLater(Activity activity) {
-        boolean skipped = putOff;
-        putOff = false;
-        if (!skipped || lookAgain != null) return;
-        try {
-            Runnable later = () -> {
-                lookAgain = null;
-                putOff = false;
-                if (watched.get() != activity) return;
-                check(activity);
-                lookAgainLater(activity);
-            };
-            lookAgain = later;
-            activity.getWindow().getDecorView().postDelayed(later, SEARCH_EVERY_MS);
-        } catch (Throwable failure) {
-            lookAgain = null;
-            HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);
-        }
-    }
-
     static void unfollow() {
         Activity activity = watched.get();
         ViewTreeObserver.OnPreDrawListener listener = drawListener;
-        Runnable later = lookAgain;
         drawListener = null;
-        lookAgain = null;
-        putOff = false;
         watched = new WeakReference<>(null);
-        storiesSearchedAt = -SEARCH_EVERY_MS;
         try {
             restore();
-            if (activity == null) return;
-            View decor = activity.getWindow().getDecorView();
-            if (later != null) decor.removeCallbacks(later);
-            if (listener == null) return;
-            ViewTreeObserver observer = decor.getViewTreeObserver();
+            if (activity == null || listener == null) return;
+            ViewTreeObserver observer = activity.getWindow().getDecorView().getViewTreeObserver();
             if (observer.isAlive()) observer.removeOnPreDrawListener(listener);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);

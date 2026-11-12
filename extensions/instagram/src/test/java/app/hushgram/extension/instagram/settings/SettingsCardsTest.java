@@ -46,9 +46,8 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * Categories expand directly under their buttons, without repeating their title or introduction.
- * Rows share rounded cards under the section buttons, every row leads with a decorative icon, and
- * only a row that opens something ends in a chevron. Text still wraps at twice the size.
+ * The overview and dedicated category pages use the same monochrome component system. Rows retain
+ * their original icons, bindings and accessibility semantics, and text wraps at larger font sizes.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37}, qualifiers = "w320dp-h640dp-xhdpi")
@@ -64,7 +63,7 @@ public class SettingsCardsTest {
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
-        // The classic charcoal cards and category lines; BlackSettingsPageTest covers the black ones.
+        // Keep the retired appearance key non-default to verify it no longer changes the palette.
         Settings.SETTINGS_BLACK_LOOK.save(false);
     }
 
@@ -72,7 +71,6 @@ public class SettingsCardsTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
         Settings.SETTINGS_BLACK_LOOK.resetToDefault();
         Settings.CATEGORY_PAGES.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -170,54 +168,66 @@ public class SettingsCardsTest {
                 && ((View) chevron.getParent()).getVisibility() == View.VISIBLE;
     }
 
-    @Test public void everyCategoryExpandsItsControlsBelowTheSameButton() throws Exception {
+    @Test public void everyCategoryOpensASeparatePageAndBackReturnsToTheOverview() throws Exception {
         open(true, EnumSet.allOf(PatchFamily.class));
         List<Preference> categories = categoryRows();
-        assertEquals("every category, Pause and diagnostics included", 24, categories.size());
+        assertEquals("every HushGram category remains available", 23, categories.size());
         for (Preference row : categories) {
-            HushgramPreferenceFragment.Heading group = (HushgramPreferenceFragment.Heading) row;
-            assertEquals(0, group.getPreferenceCount());
-            tap(group);
-            assertSame(group, categoryRow(group.getTitle().toString()));
-            assertTrue(group.getTitle() + " has controls", group.getPreferenceCount() > 0);
-            assertEquals(group.intro, group.getSummary());
-            assertTrue(group.getSummary().length() <= 90);
-            ListAdapter adapter = page.getPreferenceScreen().getRootAdapter();
-            int at = -1;
-            for (int i = 0; i < adapter.getCount(); i++) if (adapter.getItem(i) == group) at = i;
-            assertTrue(at >= 0);
-            assertSame("no duplicate heading or intro separates the controls", group.getPreference(0), adapter.getItem(at + 1));
-            assertEquals(categories, categoryRows());
-            tap(group);
-            assertEquals(0, group.getPreferenceCount());
+            HushgramPreferenceFragment.Heading section = (HushgramPreferenceFragment.Heading) row;
+            assertEquals(0, section.getPreferenceCount());
+            tap(section);
+            PreferenceScreen screen = page.getPreferenceScreen();
+            assertSame(section, screen.findPreference(section.getKey()));
+            assertTrue(section.pageHeader);
+            assertFalse(section.collapsible);
+            assertNull("category descriptions are not displayed", section.getSummary());
+            if (!"About".equals(section.getTitle().toString())) {
+                assertTrue(section.getTitle() + " has its original controls", section.getPreferenceCount() > 0);
+                assertSame("the section heading precedes its original rows", section.getPreference(0),
+                        screen.getRootAdapter().getItem(1));
+            }
+            assertNull("overview search is not shown on a section page", screen.findPreference("hushgram_settings_search"));
+            assertEquals(List.of(section.getTitle().toString()), visibleHeadings());
+            assertTrue("Back returns to the overview", page.closeCategory());
+            assertEquals(23, categoryRows().size());
         }
     }
 
-    @Test public void searchAndTheLongListUsePlainHeadingsThenRestoreTheExpandedButton() throws Exception {
+    private List<String> visibleHeadings() {
+        List<String> titles = new ArrayList<>();
+        for (Preference item : onScreen()) {
+            if (item instanceof HushgramPreferenceFragment.Heading) titles.add(String.valueOf(item.getTitle()));
+        }
+        return titles;
+    }
+
+    @Test public void searchKeepsFeatureRowsAndClearingItReturnsToTheOverviewModel() throws Exception {
         open(true, EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.FOLLOWING_FEED));
-        HushgramPreferenceFragment.Heading feed = (HushgramPreferenceFragment.Heading) categoryRow("Feed");
-        tap(feed);
-        assertTrue(feed.isSelectable());
+        String feedKey = categoryRow("Feed").getKey();
         page.searchSettings("Hide ads");
-        assertFalse(feed.isSelectable());
-        assertNull(feed.getSummary());
+        Preference ads = page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key);
+        assertNotNull("search finds the original switch", ads);
+        assertNotNull(ads.getParent());
+        assertNull("an unrelated section is omitted from matching results",
+                page.getPreferenceScreen().findPreference(feedKey));
         page.searchSettings("");
-        assertTrue(feed.isSelectable());
-        assertTrue(feed.expanded);
-        assertEquals(feed.intro, feed.getSummary());
-        Settings.CATEGORY_PAGES.save(false);
-        page.searchSettings("");
-        assertFalse(feed.isSelectable());
-        assertNull(feed.getSummary());
-        ShadowLooper.idleMainLooper();
-        assertFalse(hasChevron(render(feed)));
+        HushgramPreferenceFragment.Heading feed = (HushgramPreferenceFragment.Heading) categoryRow("Feed");
+        assertTrue(feed.collapsible);
+        assertFalse(feed.pageHeader);
+        assertNull("category descriptions are not displayed", feed.getSummary());
+        tap(feed);
+        assertTrue(feed.pageHeader);
+        assertFalse(feed.collapsible);
+        assertTrue(page.getPreferenceScreen().findPreference(Settings.START_ON_FOLLOWING.key) != null);
+        assertTrue(page.closeCategory());
     }
 
     @Test public void aSectionsRowsShareOneRoundedCard() throws Exception {
         open(false, EnumSet.of(PatchFamily.FOLLOWING_FEED));
+        tap(categoryRow("Feed"));
         Preference first = page.findPreference(Settings.START_ON_FOLLOWING.key);
         Preference middle = page.findPreference(Settings.ONLY_FOLLOWING.key);
-        Preference last = page.findPreference(Settings.FAVORITES_TAB_TARGET.key);
+        Preference last = page.findPreference(Settings.FOLLOWING_MIX.key);
         assertSame("one section holds them all", first.getParent(), last.getParent());
         assertTrue(ScreenColors.opensCard(first));
         assertFalse(ScreenColors.closesCard(first));
@@ -236,84 +246,82 @@ public class SettingsCardsTest {
         assertFalse(roundedTop(bottom));
         assertTrue(roundedBottom(bottom));
         assertEquals("the card takes the page's colours", ScreenColors.DEFAULT.card, top.getColor().getDefaultColor());
+        assertTrue(page.closeCategory());
     }
 
-    @Test public void theOverviewUsesFlatConnectedRows() throws Exception {
+    @Test public void theOverviewUsesMonochromeConnectedCategoryRows() throws Exception {
         open(true, EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.FOLLOWING_FEED, PatchFamily.NOTIFICATION_GROUPS));
         List<Preference> rows = categoryRows();
+        assertEquals(23, rows.size());
+        Preference first = categoryRow("Ads and privacy");
         Preference entry = categoryRow("Settings entry");
         Preference backup = categoryRow("Settings backup");
         Preference about = categoryRow("About");
-        Preference first = categoryRow("Ads and privacy");
-        assertSame("the list starts with the everyday controls", first, rows.get(0));
+        assertSame("the everyday feature sections appear first", first, rows.get(0));
         assertTrue(ScreenColors.opensCard(first));
         assertFalse(ScreenColors.closesCard(first));
-        assertTrue("Settings entry comes after the everyday controls, before backup: " + rows,
-                rows.indexOf(entry) > rows.indexOf(categoryRow("Feed")) && rows.indexOf(entry) < rows.indexOf(backup));
-        assertFalse("Settings entry sits inside the card", ScreenColors.opensCard(entry) || ScreenColors.closesCard(entry));
-        Preference pause = categoryRow("Pause and diagnostics");
-        assertEquals("Pause and diagnostics folds between backup and About: " + rows,
-                List.of(backup, pause, about), rows.subList(rows.indexOf(backup), rows.size()));
+        assertTrue("settings entry remains before backup", rows.indexOf(entry) < rows.indexOf(backup));
+        assertTrue("About remains at the end of the category list", rows.get(rows.size() - 1) == about);
         for (Preference row : rows.subList(1, rows.size())) {
-            assertFalse(row.getTitle() + " sits inside the card", ScreenColors.opensCard(row) || ScreenColors.closesCard(row));
+            assertFalse(row.getTitle() + " is not the first connected row", ScreenColors.opensCard(row));
+            assertFalse(row.getTitle() + " is joined to the next row", ScreenColors.closesCard(row));
         }
+        assertNull("the obsolete list/grid option is not rendered", page.getPreferenceScreen().findPreference("hushgram_view_toggle"));
+        assertNull(page.getPreferenceScreen().findPreference("hushgram_grid_toggle"));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.CATEGORY_PAGES.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.SETTINGS_BLACK_LOOK.key));
         Preference report = page.findPreference(HushgramPreferenceFragment.REPORT_ROW_KEY);
+        Preference support = page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY);
         assertFalse(ScreenColors.opensCard(report));
         assertFalse(ScreenColors.closesCard(report));
-        Preference support = page.findPreference(HushgramPreferenceFragment.SUPPORT_ROW_KEY);
         assertFalse(ScreenColors.opensCard(support));
         assertTrue(ScreenColors.closesCard(support));
-        assertNull("the active status strip is absent", page.getPreferenceScreen().findPreference("hushgram_status"));
-        assertEquals("hushgram_settings_search", onScreen().get(0).getKey());
-        assertEquals("hushgram_view_toggle", onScreen().get(1).getKey());
-        assertFalse(roundedTop(card(render(entry))));
-        assertFalse(roundedBottom(card(render(entry))));
-        assertFalse(roundedTop(card(render(rows.get(1)))));
-        assertFalse(roundedBottom(card(render(backup))));
         View drawn = render(entry);
         ImageView icon = drawn.findViewById(android.R.id.icon);
         assertNull("the line icon has no decorative tile", icon.getBackground());
         assertTrue("rows keep a touch target", drawn.getHeight() >= 48 * drawn.getResources().getDisplayMetrics().density);
     }
 
-    @Test public void onlyARowThatOpensSomethingEndsInAChevron() throws Exception {
-        open(true, EnumSet.of(PatchFamily.HIDE_ADS));
+    @Test public void navigationRowsAndActionRowsUseChevronsConsistently() throws Exception {
+        open(true, EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.FOLLOWING_FEED));
         Preference ads = categoryRow("Ads and privacy");
-        assertTrue("a category button expands its controls", hasChevron(render(ads)));
+        assertTrue("a category row opens a section", hasChevron(render(ads)));
         assertEquals(1, ((ScreenColors.Chevron) ((ImageView) render(ads).findViewWithTag(ScreenColors.CHEVRON)).getDrawable()).direction);
         tap(ads);
-        assertEquals(-1, ((ScreenColors.Chevron) ((ImageView) render(ads).findViewWithTag(ScreenColors.CHEVRON)).getDrawable()).direction);
-        assertNull("an active status card does not take space", page.getPreferenceScreen().findPreference("hushgram_status"));
+        HushgramPreferenceFragment.Heading section = (HushgramPreferenceFragment.Heading)
+                page.getPreferenceScreen().findPreference(ads.getKey());
+        assertTrue(section.pageHeader);
+        assertFalse("the large section headline is not a second navigation control",
+                hasChevron(render(section)));
+        assertNull("the obsolete presentation option is hidden", page.getPreferenceScreen().findPreference(Settings.CATEGORY_PAGES.key));
+        assertTrue(page.closeCategory());
         tap(categoryRow("Settings entry"));
-        assertTrue("a list row opens its choices",
+        assertTrue("a choice row opens its native editor",
                 hasChevron(render(page.findPreference(Settings.NAVIGATION_SETTINGS_TARGET.key))));
-        assertFalse("a switch says what it does with its switch",
-                hasChevron(render(page.findPreference(Settings.CATEGORY_PAGES.key))));
-        tap(categoryRow("Settings entry"));
+        assertTrue(page.closeCategory());
         tap(categoryRow("About"));
         assertFalse("Version only reports", hasChevron(render(titled("Version"))));
         assertTrue("Licenses opens a dialog", hasChevron(render(titled("Licenses"))));
+        assertTrue(page.closeCategory());
     }
 
-    @Test public void everyRowLeadsWithAnIconAScreenReaderSkips() throws Exception {
+    @Test public void everyFeatureRowKeepsItsIconAndItsOriginalAccessibleSwitchState() throws Exception {
         open(false, EnumSet.allOf(PatchFamily.class));
+        List<Preference> categories = new ArrayList<>(categoryRows());
         int rows = 0;
-        for (Preference item : onScreen()) {
-            // The search field draws its magnifier inside the field, not as a row's icon.
-            if ("hushgram_settings_search".equals(item.getKey())) continue;
-            if (!(item instanceof PreferenceCategory)) {
-                assertNotNull(item.getTitle() + " has no icon", item.getIcon());
-                continue;
-            }
-            PreferenceCategory group = (PreferenceCategory) item;
+        for (Preference item : categories) {
+            tap(item);
+            HushgramPreferenceFragment.Heading group = (HushgramPreferenceFragment.Heading)
+                    page.getPreferenceScreen().findPreference(item.getKey());
             for (int i = 0; i < group.getPreferenceCount(); i++, rows++) {
                 Preference row = group.getPreference(i);
-                assertNotNull(group.getTitle() + " > " + row.getTitle() + " has no icon", row.getIcon());
+                assertNotNull(group.getTitle() + " > " + row.getTitle() + " has an icon", row.getIcon());
             }
+            page.closeCategory();
         }
-        assertTrue("too few rows to mean anything: " + rows, rows > 100);
-
-        Preference toggle = page.findPreference(Settings.HIDE_ADS.key);
+        assertTrue("the feature inventory covers many settings", rows > 100);
+        tap(categoryRow("Ads and privacy"));
+        Preference toggle = page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key);
         View row = render(toggle);
         ImageView icon = row.findViewById(android.R.id.icon);
         assertNotNull(icon);
@@ -321,9 +329,10 @@ public class SettingsCardsTest {
         assertEquals("the icon is decoration", View.IMPORTANT_FOR_ACCESSIBILITY_NO, icon.getImportantForAccessibility());
         assertNull(icon.getContentDescription());
         AccessibilityNodeInfo node = row.createAccessibilityNodeInfo();
-        assertEquals("the switch still reads its name and explanation, and nothing else",
-                toggle.getTitle() + "\n" + toggle.getSummary(), String.valueOf(node.getContentDescription()));
+        assertEquals("the switch reads its name and explanation", toggle.getTitle() + "\n" + toggle.getSummary(),
+                String.valueOf(node.getContentDescription()));
         node.recycle();
+        page.closeCategory();
     }
 
     @Test public void aCategoryButtonReadsItsLabelAndSkipsTheDecorativeIcon() throws Exception {
@@ -361,15 +370,15 @@ public class SettingsCardsTest {
     }
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    public void textWrapsAndTheCardsGrowAtTwiceTheSize() throws Exception {
+    public void categoryDescriptionsAreOmittedAndRowsScaleAtTwiceTheSize() throws Exception {
         RuntimeEnvironment.setFontScale(2f);
         open(true, EnumSet.of(PatchFamily.HIDE_ADS));
         Preference adsRow = categoryRow("Ads and privacy");
+        assertNull("overview categories have no descriptions", adsRow.getSummary());
         assertWhole(render(adsRow));
         tap(adsRow);
         View header = render(adsRow);
-        TextView summary = header.findViewById(android.R.id.summary);
-        assertTrue("the category description wraps", summary.getLayout().getLineCount() > 1);
+        assertNull("section headings have no descriptions", adsRow.getSummary());
         assertTrue(header.isAccessibilityHeading());
         assertWhole(header);
         assertWhole(render(page.findPreference(Settings.HIDE_ADS.key)));

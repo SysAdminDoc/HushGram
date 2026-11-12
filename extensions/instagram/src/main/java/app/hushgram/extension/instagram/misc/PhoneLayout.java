@@ -20,9 +20,7 @@ import java.util.function.BooleanSupplier;
  * foldable it also checks for a hinge sensor and treats the phone as a foldable from then on. The
  * patch hands the width to {@link #width} first thing in the sorting, and the hinge check's answer
  * to {@link #foldable}, so while the switch is on every window sorts as compact and the phone as no
- * foldable, and Instagram keeps its phone layout across the whole screen. Most builds have two copies
- * of the sorting, the width class factory and the big screen helper's own "isn't this compact" check,
- * and {@link #width} is first thing in both: the main activity and the rail ask the second (#515).
+ * foldable, and Instagram keeps its phone layout across the whole screen.
  *
  * <p>Both hooks fail open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer stands.
@@ -89,11 +87,7 @@ public final class PhoneLayout {
         }
     }
 
-    /**
-     * The switch, or the Glass tab bar: the glass is drawn on the tab bar along the bottom, and the big
-     * screen layout has only the rail down the side, so with the rail the glass never showed on a tablet (#582).
-     */
     private static boolean switchedOn() {
-        return Utils.settingsReady() && (Settings.PHONE_LAYOUT.get() || Settings.GLASS_TAB_BAR.get());
+        return Utils.settingsReady() && Settings.PHONE_LAYOUT.get();
     }
 }

@@ -30,11 +30,7 @@ final class NotificationsCategory {
         boolean groups = build.contains(PatchFamily.NOTIFICATION_GROUPS);
         boolean suggestions = build.contains(PatchFamily.PROFILE_SUGGESTIONS);
         if (!groups && !suggestions) return;
-        PreferenceCategory notifications = category(screen, L10n.t("Notifications"), SettingsIcons.NOTIFICATIONS,
-                groups && suggestions
-                        ? L10n.t("Group or mute Instagram's notifications, and take suggestions off the Notifications page.")
-                        : groups ? L10n.t("Group or mute Instagram's notifications so they don't pile up.")
-                        : L10n.t("Take suggestions and Featured off the Notifications page."));
+        PreferenceCategory notifications = category(screen, L10n.t("Notifications"), SettingsIcons.NOTIFICATIONS);
         if (groups) {
             SwitchPreference grouping = toggle(context, Settings.GROUP_NOTIFICATIONS, L10n.t("Group notifications"),
                     L10n.t("Puts every notification from Instagram in one group that shows how many it holds, so they "
@@ -62,9 +58,6 @@ final class NotificationsCategory {
                     L10n.t("Takes rows that only suggest something off your notifications, like a thread from an "
                             + "account you don't follow or someone you might know. Likes, comments, mentions and "
                             + "new followers stay.")));
-            notifications.addPreference(toggle(context, Settings.HIDE_NOTIFICATION_CHANNEL_INVITES,
-                    L10n.t("Hide channel invites in notifications"),
-                    L10n.t("Takes invites to join someone's channel off your notifications. Everything else stays.")));
             notifications.addPreference(toggle(context, Settings.HIDE_NOTIFICATION_FEATURED,
                     L10n.t("Hide Featured in notifications"),
                     L10n.t("Takes the Featured section off the top of your notifications, the posts and threads "

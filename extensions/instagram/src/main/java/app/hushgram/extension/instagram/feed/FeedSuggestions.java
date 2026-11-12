@@ -39,9 +39,9 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * account you don't follow, labeled "Suggested for you" or "Suggested Reel", is an
  * {@link #SUGGESTED_POST}, which carries its post inside it. A post from an account you follow is a
  * MEDIA item and stays. Threads' units ({@link #THREADS_UNITS}) bring in posts, communities and
- * accounts from Threads, a survey ({@link #SURVEY_UNITS}) asks you to rate what you saw, a row of
- * stories ({@link #STORY_UNITS}) shows the ones about to run out, and the {@link #SHOPPING_UNITS}
- * offer products. Each comes back as null while its switch is on, and every caller of that
+ * accounts from Threads, a survey ({@link #SURVEY_UNITS}) asks you to rate what you saw, and the
+ * {@link #SHOPPING_UNITS} offer products. Each comes back as null while its switch is on, and every
+ * caller of that
  * helper skips a null item, the home feed's page loads and its cache of recommended posts alike.
  *
  * <p>Explore's grid doesn't go through that helper (S22, Instagram 449), so it keeps its posts.
@@ -78,12 +78,6 @@ public final class FeedSuggestions {
     /** The survey between posts ("in_feed_survey" in the feed's JSON). */
     static final Set<String> SURVEY_UNITS = Collections.singleton("FEED_SURVEY");
 
-    /**
-     * A row of story cards between posts, like Expiring Stories ("stories_netego" in the feed's
-     * JSON, #557).
-     */
-    static final Set<String> STORY_UNITS = Collections.singleton("STORIES_NETEGO");
-
     /** Products to shop, product picks from a post, and live shopping. */
     static final Set<String> SHOPPING_UNITS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "SHOPPING_RECOMMENDATION_UNIT", "PRODUCT_PIVOTS", "LIVE_SHOPPING_NETEGO")));
@@ -96,7 +90,6 @@ public final class FeedSuggestions {
         kinds.add(SUGGESTED_POST);
         kinds.addAll(THREADS_UNITS);
         kinds.addAll(SURVEY_UNITS);
-        kinds.addAll(STORY_UNITS);
         kinds.addAll(SHOPPING_UNITS);
         KINDS = Collections.unmodifiableSet(kinds);
     }
@@ -118,15 +111,6 @@ public final class FeedSuggestions {
 
     /** The report's count of posts Hide posts you've liked took out of Home. */
     static final String LIKED_REMOVED = "liked posts removed";
-
-    /** Why a post from a business or creator account was taken out, on {@link #TYPES_ROUTE}. */
-    static final String PROFESSIONAL = "business or creator";
-
-    /** The report's count of posts Hide posts from business and creator accounts took out of Home. */
-    static final String PROFESSIONAL_REMOVED = "business and creator posts removed";
-
-    /** What {@link #itemProfessional} answers: the author doesn't say, a personal account, a business or creator one. */
-    static final int UNSAID = 0, PERSONAL = 1, PROFESSIONAL_ACCOUNT = 2;
 
     /** The kind counted for a post Hide reels by caption words' Also on Home took out of Home. */
     static final String CAPTION_WORD = "caption word";
@@ -332,7 +316,7 @@ public final class FeedSuggestions {
     private static boolean postSwitchOn() {
         return Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
                 || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get()
-                || Settings.HIDE_FEED_PROFESSIONAL.get() || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty()
+                || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty()
                 || CaptionLanguage.homeRuleWhenOn() != null;
     }
 
@@ -340,7 +324,7 @@ public final class FeedSuggestions {
     private static boolean suggestionSwitchOn() {
         return Settings.HIDE_SUGGESTED_POSTS.get() || Settings.HIDE_SUGGESTED_ACCOUNTS.get()
                 || Settings.HIDE_THREADS_POSTS.get() || Settings.HIDE_FEED_SURVEYS.get()
-                || Settings.HIDE_FEED_STORY_ROWS.get() || Settings.HIDE_FEED_SHOPPING.get();
+                || Settings.HIDE_FEED_SHOPPING.get();
     }
 
     /**
@@ -614,8 +598,7 @@ public final class FeedSuggestions {
      * Injected right after Home keeps each item it reads, from its feed response and from its store
      * of the last run, beside Hide the home feed's filter when both are in. Answers null for a post
      * of one video, one photo or a carousel while that type's switch is on, a post you've liked
-     * while Hide posts you've liked is on, a post by an account on {@link HiddenAccounts}, a post by
-     * a business or creator account while Hide posts from business and creator accounts is on, or a post
+     * while Hide posts you've liked is on, a post by an account on {@link HiddenAccounts}, or a post
      * whose caption holds one of Hide reels by caption words' words while its Also on Home is on, and
      * [item] itself otherwise, or when anything goes wrong. An item with no post, a row of suggested
      * accounts for one, stays. Inside a page of Home's feed response it also counts the item toward
@@ -642,12 +625,6 @@ public final class FeedSuggestions {
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
             Function<Object, String> authorOf, Function<Object, String> captionOf) {
-        return homeItem(item, typeOf, likedOf, authorOf, captionOf, FeedSuggestions::itemProfessional);
-    }
-
-    static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
-            Function<Object, String> authorOf, Function<Object, String> captionOf,
-            ToIntFunction<Object> professionalOf) {
         boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
         JUST_TOOK_OUT.remove();
         int[] page = PAGE.get();
@@ -668,8 +645,7 @@ public final class FeedSuggestions {
         }
         Object kept = byType(item, typeOf) == null ? null
                 : byLiked(item, likedOf) == null ? null
-                : byAuthor(item, authorOf) == null ? null
-                : byProfessional(item, professionalOf) == null ? null : byCaption(item, captionOf);
+                : byAuthor(item, authorOf) == null ? null : byCaption(item, captionOf);
         if (kept == null && page != null) page[1]++;
         if (kept != null && page != null && "MEDIA".equals(kind)) {
             try {
@@ -767,19 +743,13 @@ public final class FeedSuggestions {
     }
 
     /**
-     * [item], or null when its post's author is on {@link HiddenAccounts} for the signed-in account,
-     * unless the page is Favorites' and Keep hidden accounts in Favorites is on. The author isn't
-     * read while the list is empty. A post whose author can't be read stays.
+     * [item], or null when its post's author is on {@link HiddenAccounts} for the signed-in account.
+     * The author isn't read while the list is empty. A post whose author can't be read stays.
      */
     private static Object byAuthor(Object item, Function<Object, String> authorOf) {
         try {
             if (HiddenAccounts.hidden().isEmpty()) return item;
             if (!HiddenAccounts.hides(authorOf.apply(item))) return item;
-            if (HiddenAccounts.keptInFavorites()) {
-                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, HiddenAccounts.KEPT_IN_FAVORITES);
-                Logger.printDebug(() -> "Feed suggestions: kept a post from a hidden account in Favorites");
-                return item;
-            }
             FeedFilterCounters.removed(TYPES_ROUTE, 1, HiddenAccounts.HIDDEN);
             HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, HiddenAccounts.REMOVED);
             typesTookOut = true;
@@ -789,79 +759,6 @@ public final class FeedSuggestions {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, HiddenAccounts.HIDDEN, failure);
             return item;
         }
-    }
-
-    /**
-     * [item], or null while Hide posts from business and creator accounts is on and its post's author is
-     * one, or its author doesn't say and a coauthor is (#579). Favorites keeps them, since it only
-     * holds accounts you picked. A post whose authors don't say, or an item with no post, stays.
-     */
-    private static Object byProfessional(Object item, ToIntFunction<Object> professionalOf) {
-        try {
-            if (!Utils.settingsReady() || !Settings.HIDE_FEED_PROFESSIONAL.get()) return item;
-            if (HiddenAccounts.onFavorites()) return item;
-            int said = professionalOf.applyAsInt(item);
-            FeedFilterCounters.sawKind(TYPES_ROUTE, said == PROFESSIONAL_ACCOUNT ? PROFESSIONAL
-                    : said == PERSONAL ? "personal" : "account unsaid");
-            if (said == UNSAID) {
-                boolean post = homePost(item) != null;
-                String kind = item == null ? "nothing" : item.getClass().getName();
-                Logger.printDebug(() -> "Feed suggestions: kept a Home item (" + kind + (post ? ", a post" : ", no post")
-                        + ") whose authors don't say whether they're business or creator accounts");
-            }
-            if (said != PROFESSIONAL_ACCOUNT) return item;
-            FeedFilterCounters.removed(TYPES_ROUTE, 1, PROFESSIONAL);
-            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, PROFESSIONAL_REMOVED);
-            typesTookOut = true;
-            Logger.printDebug(() -> "Feed suggestions: took a post from a business or creator account out of Home");
-            return null;
-        } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, PROFESSIONAL, failure);
-            return item;
-        }
-    }
-
-    /**
-     * Whether the post {@link #homePost} finds in [item] is from a business or creator account:
-     * {@link #PROFESSIONAL_ACCOUNT}, {@link #PERSONAL}, or {@link #UNSAID} without a post or when no
-     * author says. See {@link #postProfessional}.
-     */
-    static int itemProfessional(Object item) {
-        return postProfessional(homePost(item), FeedSuggestions::postUser, FeedSuggestions::coauthors,
-                FeedSuggestions::professional, FeedSuggestions::accountType);
-    }
-
-    /**
-     * The post's user answers when it says. Instagram often sends a collab post's user as a bare
-     * record, the account you follow among its coauthors with the whole one ("bbcnews and 2 others"
-     * under a regional page), so when the user doesn't say, a business or creator coauthor makes it
-     * one, and a personal coauthor makes it personal.
-     */
-    static int postProfessional(Object post, Function<Object, Object> userOf, Function<Object, List<?>> coauthorsOf,
-            ToIntFunction<Object> professionalOf, ToIntFunction<Object> accountTypeOf) {
-        if (post == null) return UNSAID;
-        int said = userProfessional(userOf.apply(post), professionalOf, accountTypeOf);
-        if (said != UNSAID) return said;
-        List<?> coauthors = coauthorsOf.apply(post);
-        if (coauthors == null) return UNSAID;
-        for (Object coauthor : coauthors) {
-            int coauthorSaid = userProfessional(coauthor, professionalOf, accountTypeOf);
-            if (coauthorSaid == PROFESSIONAL_ACCOUNT) return PROFESSIONAL_ACCOUNT;
-            if (coauthorSaid == PERSONAL) said = PERSONAL;
-        }
-        return said;
-    }
-
-    /**
-     * Whether [user] is a business or creator account, read from its is_professional_account, else
-     * from its account_type, where 2 is a business and 3 a creator.
-     */
-    static int userProfessional(Object user, ToIntFunction<Object> professionalOf, ToIntFunction<Object> accountTypeOf) {
-        if (user == null) return UNSAID;
-        int said = professionalOf.applyAsInt(user);
-        if (said == PERSONAL || said == PROFESSIONAL_ACCOUNT) return said;
-        int type = accountTypeOf.applyAsInt(user);
-        return type == 2 || type == 3 ? PROFESSIONAL_ACCOUNT : type == 1 ? PERSONAL : UNSAID;
     }
 
     /**
@@ -957,36 +854,6 @@ public final class FeedSuggestions {
      * say. The patch writes the body, which reads the post's has_liked. 0 as built.
      */
     public static int liked(Object post) {
-        return 0;
-    }
-
-    /** A post's user, or null. The patch writes the body, which reads it. Null as built. */
-    public static Object postUser(Object post) {
-        return null;
-    }
-
-    /**
-     * A post's coauthors (coauthor_producers, the other accounts on a collab post), or null. The
-     * patch writes the body, which reads them. Null as built.
-     */
-    public static List<?> coauthors(Object post) {
-        return null;
-    }
-
-    /**
-     * Whether a user is a business or creator account: 2 when its is_professional_account says so,
-     * 1 when it says not, and 0 when it doesn't say. The patch writes the body, which reads that
-     * flag. 0 as built.
-     */
-    public static int professional(Object user) {
-        return 0;
-    }
-
-    /**
-     * A user's account_type, 1 for a personal account, 2 for a business and 3 for a creator, and 0
-     * when it doesn't say. The patch writes the body, which reads that field. 0 as built.
-     */
-    public static int accountType(Object user) {
         return 0;
     }
 
@@ -1129,7 +996,6 @@ public final class FeedSuggestions {
         if (SUGGESTED_POST.equals(kind)) return Settings.HIDE_SUGGESTED_POSTS;
         if (THREADS_UNITS.contains(kind)) return Settings.HIDE_THREADS_POSTS;
         if (SURVEY_UNITS.contains(kind)) return Settings.HIDE_FEED_SURVEYS;
-        if (STORY_UNITS.contains(kind)) return Settings.HIDE_FEED_STORY_ROWS;
         if (SHOPPING_UNITS.contains(kind)) return Settings.HIDE_FEED_SHOPPING;
         return Settings.HIDE_SUGGESTED_ACCOUNTS;
     }

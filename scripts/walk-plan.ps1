@@ -85,7 +85,7 @@ function Get-WalkRequiredDestinations {
         if ($category.id -isnot [string] -or $category.id -cnotmatch '^settings-[a-z]+$' -or
             $category.title -isnot [string] -or [string]::IsNullOrWhiteSpace($category.title) -or
             $category.builder -isnot [string] -or $category.builder -cnotmatch '^[A-Z][A-Za-z]*Category$' -or
-            $category.page -isnot [bool] -or -not $categoryIds.Add($category.id) -or -not $categoryTitles.Add($category.title)) {
+            $category.page -isnot [bool] -or -not $category.page -or -not $categoryIds.Add($category.id) -or -not $categoryTitles.Add($category.title)) {
             throw 'Invalid or duplicate walkthrough category identity.'
         }
         [void](Test-WalkPatchCondition -Condition $category.when -Selected $selected -Known $known)
@@ -114,7 +114,7 @@ function Get-WalkRequiredDestinations {
     if ($selected.Contains($policy.prerequisite)) {
         $overview = [pscustomobject]@{ id='settings-root'; title='HushGram settings'; kind='settings-root'; page=$false; anchors=@() }
         $destinations.Add($overview)
-        # Every heading title, so a row is only credited to the section it sits under.
+        # All category titles are boundaries. Only a section page may prove a setting row under its heading.
         $headingTitles = @($policy.categories | ForEach-Object { $_.title })
         foreach ($category in @($policy.categories)) {
             if (-not (Test-WalkPatchCondition -Condition $category.when -Selected $selected -Known $known)) { continue }
@@ -124,8 +124,8 @@ function Get-WalkRequiredDestinations {
             $destinations.Add([pscustomobject]@{ id=$category.id; title=$category.title; kind='settings'; page=$category.page
                 anchors=$anchors; headings=$headingTitles; builder=$category.builder })
         }
-        $overview.anchors = @('HushGram is on','HushGram is paused','Show all settings as a list','Show settings by category') +
-            @($destinations | Where-Object { $_.kind -ceq 'settings' } | ForEach-Object { $_.anchors } | Select-Object -Unique)
+        $overview.anchors = @('HushGram is on','HushGram is paused') +
+            @($destinations | Where-Object { $_.kind -ceq 'settings' } | ForEach-Object { $_.title } | Select-Object -Unique)
     }
     if (@($destinations.id | Select-Object -Unique).Count -ne $destinations.Count) { throw 'Duplicate walkthrough destinations.' }
     $destinations.ToArray()
@@ -168,16 +168,6 @@ function Test-WalkNodeUncovered {
         $Geometry[$Candidate] = [pscustomobject]@{ Left=$left; Top=$top; Right=$right; Bottom=$bottom; Order=$order; KnownOrder=$knownOrder }
         return $Geometry[$Candidate]
     }
-    function Get-WalkTooltipBubble([Xml.XmlNode]$Candidate) {
-        # The activity tooltip's holder fills the window and draws only the small bubble it holds
-        # (walk c8d54514 capture-0001). The bubble covers what's under it, and the holder nothing.
-        if ($Candidate.GetAttribute('class') -cne 'android.widget.FrameLayout' -or $Candidate.GetAttribute('resource-id') -or
-            $Candidate.ChildNodes.Count -ne 1) { return $null }
-        $bubbleFrame = $Candidate.FirstChild
-        if ($bubbleFrame.ChildNodes.Count -ne 1 -or $bubbleFrame.GetAttribute('resource-id') -or
-            $bubbleFrame.FirstChild.GetAttribute('resource-id') -cne ($Candidate.GetAttribute('package') + ':id/activity_feed_tooltip')) { return $null }
-        return $bubbleFrame
-    }
     function Test-WalkEmptyScaffold([Xml.XmlNode]$Candidate) {
         # These exact empty structures coexist with visible pixels in audit-2026-10-25
         # 16-baseline-home-dark,25-final-inbox,02-baseline-profile.{png,xml}.
@@ -194,18 +184,6 @@ function Test-WalkNodeUncovered {
                 $Inert.GetAttribute('scrollable') -ceq 'false' -and $Inert.GetAttribute('selected') -ceq 'false' -and
                 -not $Inert.GetAttribute('resource-id') -and
                 [string]::IsNullOrWhiteSpace($Inert.GetAttribute('text') + $Inert.GetAttribute('content-desc') + $Inert.GetAttribute('hint'))
-        }
-        # A long reel's scrubber sits in a tall contentless ViewGroup drawn after the reel's info
-        # column (walk 6bae0505 capture-0006). Only the thin bar at its bottom edge shows.
-        if ($Candidate.GetAttribute('class') -ceq 'android.view.ViewGroup') {
-            $barFrames = @($Candidate.SelectNodes('./node'))
-            if ($Candidate.ChildNodes.Count -ne 1 -or $barFrames.Count -ne 1 -or $barFrames[0].ChildNodes.Count -ne 1) { return $false }
-            $bar = $barFrames[0].FirstChild
-            return $bar.ChildNodes.Count -eq 0 -and $bar.GetAttribute('class') -ceq 'android.widget.SeekBar' -and
-                $bar.GetAttribute('resource-id') -ceq ($prefix + 'scrubber') -and
-                $barFrames[0].GetAttribute('class') -ceq 'android.widget.FrameLayout' -and
-                (Test-WalkInertNode $Candidate) -and (Test-WalkInertNode $barFrames[0]) -and
-                $Candidate.SelectNodes("ancestor::node[@resource-id='${prefix}clips_viewer_view_pager']").Count -eq 1
         }
         # Loaded Explore (cold-control walk 8a838eb8 capture-0004.{png,xml} and -after.xml)
         # draws an anonymous ComposeView above refreshable_container, holding exactly one
@@ -285,8 +263,6 @@ function Test-WalkNodeUncovered {
             # UIAutomator record getDrawingOrder(); zero/missing/equal orders are unknown.
             if ($branchBox.KnownOrder -and $siblingBox.KnownOrder -and $siblingBox.Order -lt $branchBox.Order) { continue }
             if (Test-WalkEmptyScaffold $sibling) { continue }
-            $bubble = Get-WalkTooltipBubble $sibling
-            if ($null -ne $bubble) { $siblingBox = Get-WalkNodeGeometry $bubble }
             if ($siblingBox.Left -le $target.Left -and $siblingBox.Top -le $target.Top -and
                 $siblingBox.Right -ge $target.Right -and $siblingBox.Bottom -ge $target.Bottom -and
                 $siblingBox.Right -gt $siblingBox.Left -and $siblingBox.Bottom -gt $siblingBox.Top) { return $false }
@@ -431,6 +407,11 @@ function Test-WalkDestinationContent {
     # ListView. HushgramPreferenceFragment Heading/Row/Toggle bind android.R.id.title.
     # Requiring that context prevents a feed caption or preference summary imitating a row.
     $preferenceLists = @(Get-WalkIdNode 'android:id/list' | Where-Object { $_.GetAttribute('class') -ceq 'android.widget.ListView' })
+    $barBackButtons = @($nodes | Where-Object {
+        $_.GetAttribute('class') -ceq 'android.widget.Button' -and
+        $_.GetAttribute('content-desc') -ceq 'Back' -and
+        $_.SelectNodes('ancestor::node[@resource-id="android:id/list"]').Count -eq 0
+    })
     $barTitles = @($nodes | Where-Object {
         $_.GetAttribute('class') -ceq 'android.widget.TextView' -and -not $_.GetAttribute('resource-id') -and
         (Test-WalkNodeLabel $_) -and
@@ -440,23 +421,9 @@ function Test-WalkDestinationContent {
             $_.GetAttribute('content-desc') -ceq 'Back'
         }).Count -gt 0
     })
-    # SettingsDialog.showTitle leaves the name off the bar while the overview's own header shows it, and
-    # a snapshot has no invisible view. That name sits right above its version line, inside the list.
-    $headerNames = @($nodes | Where-Object {
-        $_.GetAttribute('class') -ceq 'android.widget.TextView' -and -not $_.GetAttribute('resource-id') -and
-        $_.GetAttribute('text') -ceq 'HushGram' -and
-        $_.SelectNodes('ancestor::node[@resource-id="android:id/list"]').Count -eq 1 -and
-        @($_.ParentNode.SelectNodes('./node') | Where-Object {
-            $visibleSet.Contains($_) -and $_.GetAttribute('class') -ceq 'android.widget.TextView' -and
-            $_.GetAttribute('text') -cmatch '^Version\b.*\bfor Instagram\b'
-        }).Count -eq 1
-    })
-    $backButtons = @($nodes | Where-Object {
-        $_.GetAttribute('class') -ceq 'android.widget.Button' -and $_.GetAttribute('content-desc') -ceq 'Back' -and
-        $_.SelectNodes('ancestor::node[@resource-id="android:id/list"]').Count -eq 0
-    })
-    $isHeaderBar = $barTitles.Count -eq 0 -and $backButtons.Count -eq 1 -and $headerNames.Count -eq 1
-    $isSettingsSurface = $preferenceLists.Count -eq 1 -and ($barTitles.Count -eq 1 -or $isHeaderBar)
+    # The toolbar title is deliberately INVISIBLE while the overview's HushGram brand header is
+    # on screen. Identify the fixed settings bar by its Back button, not by a visible title.
+    $isSettingsSurface = $preferenceLists.Count -eq 1 -and $barBackButtons.Count -eq 1
     function Test-WalkPreferenceTitle([string]$Title, [switch]$RequireEnabled) {
         foreach ($titleNode in @(Get-WalkIdNode 'android:id/title')) {
             if ($titleNode.GetAttribute('class') -cne 'android.widget.TextView' -or $titleNode.GetAttribute('text') -ine $Title) { continue }
@@ -473,9 +440,14 @@ function Test-WalkDestinationContent {
     }
     if ($Destination.kind -cin @('settings-root','settings')) {
         if (-not $isSettingsSurface) { return Get-WalkContentFailure 'The HushGram settings surface is not visible.' }
-        $barTitle = if ($isHeaderBar) { 'HushGram' } else { $barTitles[0].GetAttribute('text') }
+        $barTitle = if ($barTitles.Count -eq 1) { $barTitles[0].GetAttribute('text') } else { '' }
         $isRootBar = $barTitle -ceq 'HushGram'
-        if ($Destination.kind -ceq 'settings-root' -and -not $isRootBar) {
+        $isRootHeader = @($nodes | Where-Object {
+            $_.GetAttribute('class') -ceq 'android.widget.TextView' -and
+            $_.GetAttribute('text') -ceq 'HushGram' -and
+            $_.SelectNodes('ancestor::node[@resource-id="android:id/list"]').Count -gt 0
+        }).Count -gt 0
+        if ($Destination.kind -ceq 'settings-root' -and -not ($isRootBar -or $isRootHeader)) {
             return Get-WalkContentFailure 'The settings overview is not visible.'
         }
         if ($Destination.kind -ceq 'settings' -and
@@ -484,8 +456,8 @@ function Test-WalkDestinationContent {
             return Get-WalkContentFailure 'The required settings section is not visible.'
         }
         if ($Destination.kind -ceq 'settings' -and $isRootBar) {
-            # On the overview a row belongs to the heading above it, up to the next heading, so an
-            # anchor shared by two categories (or a section left open) can't stand in for another.
+            # The bar stays HushGram while a section is open. A visible control must belong to
+            # the requested heading, so another category's shared anchor cannot prove this page.
             $listTitles = @($preferenceLists[0].SelectNodes('.//node[@resource-id="android:id/title"]') | Where-Object {
                 $visibleSet.Contains($_) -and $_.GetAttribute('class') -ceq 'android.widget.TextView'
             })
@@ -539,8 +511,8 @@ function Test-WalkDestinationContent {
         # The native explicit empty state is legitimate, including a profile with zero posts.
         # IDs/title/body are present in audit-2026-10-25/02-baseline-profile.xml. Home on an
         # account that follows nobody draws the IGDS headline form instead (Welcome to
-        # Instagram, release walk 2026-10-31), under empty_state_headline_component on 454. Scope it
-        # to the selected destination, and reject loading/error states before accepting it.
+        # Instagram, release walk 2026-10-31). Scope it to the selected destination, and reject
+        # loading/error states before accepting it.
         $emptyScope = switch -CaseSensitive ($Destination.id) {
             'home' { 'android:id/list' }; 'explore' { 'recycler_view' }; 'reels' { 'clips_viewer_view_pager' }
             'inbox' { 'inbox_refreshable_thread_list_recyclerview' }; 'profile' { 'user_detail_fragment' }
@@ -548,7 +520,7 @@ function Test-WalkDestinationContent {
         $hasEmptyState = $false
         if ($emptyScope) {
             foreach ($scope in @(Get-WalkIdNode $emptyScope)) {
-                foreach ($empty in @(Get-WalkDescendant $scope | Where-Object { $_.GetAttribute('resource-id') -cin @("${Package}:id/empty_state_view_root", "${Package}:id/empty_state_headline_component") })) {
+                foreach ($empty in @(Get-WalkDescendant $scope | Where-Object { $_.GetAttribute('resource-id') -ceq "${Package}:id/empty_state_view_root" })) {
                     $emptyChildren = @(Get-WalkDescendant $empty)
                     $hasTitle = @($emptyChildren | Where-Object { $_.GetAttribute('resource-id') -cin @("${Package}:id/igds_empty_state_title", "${Package}:id/igds_headline_emphasized_headline") -and
                         $_.GetAttribute('class') -ceq 'android.widget.TextView' -and -not [string]::IsNullOrWhiteSpace($_.GetAttribute('text')) }).Count -gt 0

@@ -25,8 +25,7 @@ final class PatchTimeCategory {
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.RESTORE_TRUST) || build.contains(PatchFamily.REMOVE_AD_ID)
                 || build.contains(PatchFamily.PURE_BLACK) || build.contains(PatchFamily.VERSION_CODE)) {
-            PreferenceCategory patched = category(screen, L10n.t("Set when you patched"), SettingsIcons.BUILD,
-                    L10n.t("Chosen when you patched, so Pause leaves them on. Patch again to change them."));
+            PreferenceCategory patched = category(screen, L10n.t("Set when you patched"), SettingsIcons.BUILD);
             if (build.contains(PatchFamily.RESTORE_TRUST)) {
                 patched.addPreference(mark(info(context, L10n.t("Instagram accepts this build"),
                         L10n.t("Instagram's own checks of who signed the app keep passing on this patched build.")), SettingsIcons.BUILD));

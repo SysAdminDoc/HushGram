@@ -81,7 +81,7 @@ public class ReelBlurBarsSettingsTest {
         assertEquals("A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead "
                 + "of black bars, and the strip under the tab bar and the band behind the clock show the reel blurred too. "
                 + "The copy shows only where a reel leaves room, as with Show the whole reel on. "
-                + "Open Reels again after a change. Can slow down older phones.",
+                + "Open Reels again after a change.",
                 row.getSummary().toString());
         PreferenceGroup reels = row.getParent();
         assertEquals("Reels", reels.getTitle().toString());
@@ -90,8 +90,7 @@ public class ReelBlurBarsSettingsTest {
         int bigger = Arrays.asList(keys).indexOf(Settings.BIG_REEL_SEEK_BAR.key);
         assertTrue(Arrays.toString(keys), bigger >= 0);
         assertEquals("Seek bar like DM videos right after Bigger seek bar on reels", Settings.DM_REEL_SEEK_BAR.key, keys[bigger + 1]);
-        assertEquals("Seek bar on photos with music next", Settings.PHOTO_REEL_SEEK_BAR.key, keys[bigger + 2]);
-        assertEquals("right after the seek bar's rows", Settings.BLUR_REEL_BARS.key, keys[bigger + 3]);
+        assertEquals("right after the seek bar's rows", Settings.BLUR_REEL_BARS.key, keys[bigger + 2]);
         assertFalse(row.isChecked());
         assertFalse(Settings.BLUR_REEL_BARS.get());
         assertFalse("the viewer reads the switch as pages settle, so no restart prompt", Settings.BLUR_REEL_BARS.rebootApp);

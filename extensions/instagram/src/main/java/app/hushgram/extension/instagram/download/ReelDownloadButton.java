@@ -14,9 +14,6 @@ import android.widget.PopupMenu;
 
 import androidx.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import kotlin.jvm.functions.Function1;
 
 import app.hushgram.extension.instagram.feed.FeedItemKinds;
@@ -139,25 +136,6 @@ public final class ReelDownloadButton {
         void choose(View anchor, Runnable video, Runnable photo);
 
         void nothing(Context context);
-
-        /** Whether [media] is a carousel of two or more pages. */
-        default boolean carousel(Object media) {
-            return false;
-        }
-
-        /** Whether [media] lists a cover picture to save on its own. */
-        default boolean cover(Object media) {
-            return false;
-        }
-
-        /** Whether [media] has a sound track to save on its own. */
-        default boolean audio(Object media) {
-            return false;
-        }
-
-        /** Shows [labels] by [anchor] and runs the one tapped, from [runs] at the same place. */
-        default void pick(View anchor, List<CharSequence> labels, List<Runnable> runs) {
-        }
     }
 
     static Actions actions = new Actions() {
@@ -186,30 +164,6 @@ public final class ReelDownloadButton {
 
         @Override public void nothing(Context context) {
             Feedback.show(context.getApplicationContext(), L10n.t(context, "Nothing to download on this post"), false);
-        }
-
-        @Override public boolean carousel(Object media) {
-            List<?> pages = InstagramMedia.carouselMedia(media);
-            return pages != null && pages.size() >= 2;
-        }
-
-        @Override public boolean cover(Object media) {
-            return !StoryDownload.cover(media).sizes.isEmpty();
-        }
-
-        @Override public boolean audio(Object media) {
-            String manifest = InstagramMedia.dashManifest(media);
-            return manifest != null && DashManifest.bestAudio(DashManifest.parse(manifest)) != null;
-        }
-
-        @Override public void pick(View anchor, List<CharSequence> labels, List<Runnable> runs) {
-            PopupMenu menu = new PopupMenu(anchor.getContext(), anchor);
-            for (int i = 0; i < labels.size(); i++) menu.getMenu().add(0, i, i, labels.get(i));
-            menu.setOnMenuItemClickListener(item -> {
-                runs.get(item.getItemId()).run();
-                return true;
-            });
-            menu.show();
         }
     };
 
@@ -240,17 +194,8 @@ public final class ReelDownloadButton {
         return null;
     }
 
-    /**
-     * Whether the patched column calls {@link #litho} at all: the icon's switch with Download on
-     * reels, or the viewing history, which hears of each reel from that call (#228). Paused answers
-     * no. Never throws.
-     */
+    /** Whether the column gets the icon at all: the switch and Download on reels. Paused answers no. Never throws. */
     public static boolean on() {
-        return iconOn() || ViewingHistory.on();
-    }
-
-    /** Whether the column gets the icon: the switch and Download on reels. Paused answers no. Never throws. */
-    static boolean iconOn() {
         try {
             return enabled();
         } catch (Throwable failure) {
@@ -258,9 +203,6 @@ public final class ReelDownloadButton {
             return false;
         }
     }
-
-    /** Where a reel the column shows goes while the viewing history is on. Tests swap it. */
-    static java.util.function.Consumer<Object> history = ViewingHistory::reel;
 
     /**
      * Called as the column beside a reel is composed, right after Save and its count join it, where
@@ -285,7 +227,7 @@ public final class ReelDownloadButton {
             if (column == null || !ViewingHistory.on()) return;
             Object item = bridge.item(column);
             if (item == null || !ORGANIC.equals(bridge.kind(item))) return;
-            history.accept(bridge.media(item));
+            ViewingHistory.reel(bridge.media(item));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "viewing history reel", failure);
         }
@@ -398,7 +340,7 @@ public final class ReelDownloadButton {
         Resources resources = context.getResources();
         int known = glyph;
         if (known == 0) {
-            known = glyphId(resources, Utils.resourcePackage(context));
+            known = glyphId(resources, context.getPackageName());
             glyph = known;
         }
         Drawable drawable = null;
@@ -462,9 +404,7 @@ public final class ReelDownloadButton {
 
     /**
      * What a tap does with the reel [column] shows now: the menu's Download, or for a photo with
-     * music a choice of video or photo first, or with Ask what to save on a choice of the reel, its
-     * cover and its sound ({@link #ask}). With Save every page without asking on, a carousel skips
-     * both and saves all its pages, as the feed's icon does (#190). A reel with nothing to save, or one tapped after
+     * music a choice of video or photo first. A reel with nothing to save, or one tapped after
      * Download on reels went off, gets a short note. Off or paused, nothing. Never throws.
      */
     static void tap(View anchor, Object column, @Nullable Activity activity) {
@@ -475,51 +415,15 @@ public final class ReelDownloadButton {
                 if (switchedOn()) actions.nothing(contextOf(anchor, activity));
                 return;
             }
-            boolean everyPage = actions.carousel(media) && Settings.FEED_DOWNLOAD_ALL_PAGES.get();
             if (actions.music(media)) {
-                if (everyPage) {
-                    save(anchor, ReelDownload.PHOTO_OPTION, media, activity);
-                    return;
-                }
                 actions.choose(anchor, () -> save(anchor, ReelDownload.VIDEO_OPTION, media, activity),
                         () -> save(anchor, ReelDownload.PHOTO_OPTION, media, activity));
                 return;
             }
-            if (!everyPage && asks() && ask(anchor, media, activity)) return;
             save(anchor, null, media, activity);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel download button tap", failure);
         }
-    }
-
-    /**
-     * With Ask what to save on (#524), offers the reel itself, its cover and its sound, whichever
-     * [media] has, the way Download, Download cover and Download audio sit in its menu, and answers
-     * whether it asked. A reel with only itself to save isn't asked about. Each row saves through the
-     * menu's own row, so the toasts and the file names are the menu's.
-     */
-    private static boolean ask(View anchor, Object media, @Nullable Activity activity) {
-        Context context = contextOf(anchor, activity);
-        List<CharSequence> labels = new ArrayList<>(3);
-        List<Runnable> runs = new ArrayList<>(3);
-        labels.add(StoryDownload.label(StoryDownload.Choice.STORY));
-        runs.add(() -> save(anchor, null, media, activity));
-        if (actions.cover(media)) {
-            labels.add(L10n.t(context, "Download cover"));
-            runs.add(() -> save(anchor, ReelDownload.COVER_OPTION, media, activity));
-        }
-        if (actions.audio(media)) {
-            labels.add(L10n.t(context, "Download audio"));
-            runs.add(() -> save(anchor, ReelDownload.AUDIO_OPTION, media, activity));
-        }
-        if (labels.size() < 2) return false;
-        actions.pick(anchor, labels, runs);
-        return true;
-    }
-
-    /** Whether a tap asks what to save first. Paused answers no. */
-    static boolean asks() {
-        return Utils.settingsReady() && Settings.REEL_DOWNLOAD_BUTTON_ASKS.get();
     }
 
     private static void save(View anchor, @Nullable String row, Object media, @Nullable Activity activity) {

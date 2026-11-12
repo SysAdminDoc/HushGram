@@ -66,10 +66,9 @@ public class ActiveSavesTest {
         SavesForTests.resetInterruption();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
         PauseForTests.resume();
-        // With the sign-in notice and the view button both above the list, Downloads sits under
-        // the fold of this small screen. The notice has nothing to do with saves.
+        // The redesigned settings always uses the overview plus dedicated section pages.
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
-        Settings.CATEGORY_PAGES.save(false);
+        Settings.CATEGORY_PAGES.save(true);
     }
 
     private void show() {
@@ -77,6 +76,22 @@ public class ActiveSavesTest {
         controller = Robolectric.buildActivity(Activity.class).setup().visible();
         page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page, PAGE_TAG).commitNow();
+        layout();
+    }
+
+    private void openDownloadsPage() {
+        Preference downloads = null;
+        for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
+            Preference item = page.getPreferenceScreen().getPreference(i);
+            if (item instanceof HushgramPreferenceFragment.Heading
+                    && "Downloads".contentEquals(item.getTitle())) {
+                downloads = item;
+                break;
+            }
+        }
+        assertNotNull("the overview has a Downloads section", downloads);
+        assertNotNull("Downloads opens its section page", downloads.getOnPreferenceClickListener());
+        assertTrue(downloads.getOnPreferenceClickListener().onPreferenceClick(downloads));
         layout();
     }
 
@@ -170,6 +185,7 @@ public class ActiveSavesTest {
         int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), true);
         SavesForTests.transferred(id, (long) (4.2 * MIB), 100 * MIB);
         show();
+        openDownloadsPage();
 
         assertEquals("a notification went up with notifications off", 0,
                 Shadows.shadowOf(notifications()).getAllNotifications().size());
@@ -203,6 +219,7 @@ public class ActiveSavesTest {
                 NotificationManager.IMPORTANCE_NONE));
         int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), false);
         show();
+        openDownloadsPage();
 
         assertEquals(0, Shadows.shadowOf(notifications()).getAllNotifications().size());
         View row = row(id);
@@ -253,6 +270,7 @@ public class ActiveSavesTest {
     @Test public void aSavesPhaseChangesOnItsRowInPlaceAndTheRowGoesWhenItEnds() {
         int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), true);
         show();
+        openDownloadsPage();
         View row = row(id);
         Button cancel = cancelOf(row);
 
@@ -276,6 +294,7 @@ public class ActiveSavesTest {
     @Test public void aFilteredSavesPhaseChangesKeepTheSameCancelButton() {
         int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), true);
         show();
+        openDownloadsPage();
         page.searchSettings("zzzz-no-match");
         layout();
         Button cancel = cancelOf(row(id));
@@ -294,6 +313,7 @@ public class ActiveSavesTest {
     /** A save that starts while the page is open is listed, and one that starts after it closed isn't followed. */
     @Test public void aSaveStartedWhileThePageIsOpenIsListedAndAClosedPageStopsFollowing() {
         show();
+        openDownloadsPage();
         assertEquals(0, savesListed());
         int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), true);
         layout();
@@ -313,6 +333,7 @@ public class ActiveSavesTest {
         int first = SavesForTests.begin(RuntimeEnvironment.getApplication(), true);
         int second = SavesForTests.begin(RuntimeEnvironment.getApplication(), false);
         show();
+        openDownloadsPage();
         assertEquals(2, savesListed());
 
         controller.recreate();
@@ -332,6 +353,7 @@ public class ActiveSavesTest {
     /** Nothing of a save is written anywhere: no address, no name and no record once it's over. */
     @Test public void aSaveLeavesNothingStored() {
         show();
+        openDownloadsPage();
         File prefs = new File(RuntimeEnvironment.getApplication().getApplicationInfo().dataDir, "shared_prefs");
         TreeSet<String> before = new TreeSet<>(Arrays.asList(prefs.list() == null ? new String[0] : prefs.list()));
         int id = SavesForTests.begin(RuntimeEnvironment.getApplication(), true);

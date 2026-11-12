@@ -12,8 +12,6 @@ import androidx.annotation.Nullable;
 
 import java.util.ArrayDeque;
 
-import app.hushgram.extension.shared.Utils;
-
 /**
  * The play button of the feed video under a tap.
  *
@@ -43,7 +41,7 @@ final class PlayButtonFinder {
     static View find(View window, float x, float y) {
         int id = containerId;
         if (id == 0) {
-            id = window.getResources().getIdentifier("video_container", "id", Utils.resourcePackage(window.getContext()));
+            id = window.getResources().getIdentifier("video_container", "id", window.getContext().getPackageName());
             containerId = id;
         }
         return find(window, x, y, id);

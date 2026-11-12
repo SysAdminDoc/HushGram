@@ -32,8 +32,7 @@ final class PlaybackCategory {
                 || build.contains(PatchFamily.REEL_SOUND)
                 || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.DATA_SAVER)
                 || build.contains(PatchFamily.STOP_LOOPING) || build.contains(PatchFamily.BACKGROUND_PLAY)) {
-            PreferenceCategory playback = category(screen, L10n.t("Playback"), SettingsIcons.PLAYBACK,
-                    L10n.t("Media quality, auto-play and controls."));
+            PreferenceCategory playback = category(screen, L10n.t("Playback"), SettingsIcons.PLAYBACK);
             if (build.contains(PatchFamily.TAP_TO_PLAY)) {
                 playback.addPreference(toggle(context, Settings.TAP_TO_PLAY, L10n.t("Tap to play"),
                         L10n.t("Videos wait for your tap where the choice below says. Feed videos show a play button, "
@@ -51,8 +50,8 @@ final class PlaybackCategory {
             }
             if (build.contains(PatchFamily.REEL_SOUND)) {
                 playback.addPreference(toggle(context, Settings.START_REELS_WITH_SOUND, L10n.t("Start reels with sound"),
-                        L10n.t("A reel you open from the Reels tab or a post on Home plays with sound, and Home is muted "
-                                + "again when you go back. Your phone's ringer and volume still count.")));
+                        L10n.t("A reel you tap open from a post on Home plays with sound, and Home is muted again when "
+                                + "you go back. Your phone's ringer and volume still count.")));
                 playback.addPreference(toggle(context, Settings.START_REELS_MUTED, L10n.t("Start reels muted"),
                         L10n.t("Every reel starts silent, wherever you open it from. The volume keys or the speaker "
                                 + "icon unmute it. Wins over Start reels with sound.")));
@@ -60,22 +59,13 @@ final class PlaybackCategory {
             if (build.contains(PatchFamily.STOP_LOOPING)) {
                 playback.addPreference(toggle(context, Settings.STOP_VIDEO_LOOPING, L10n.t("Stop videos looping"),
                         L10n.t("Feed videos and reels stop at their last frame instead of playing again. Reels still "
-                                + "loop while auto scroll is on, so it can move on.") + " "
-                                + L10n.t("To loop one video anyway, tap Loop this video in its menu.")));
+                                + "loop while auto scroll is on, so it can move on.")));
             }
             if (build.contains(PatchFamily.BACKGROUND_PLAY)) {
                 playback.addPreference(toggle(context, Settings.KEEP_PLAYING_IN_BACKGROUND,
                         L10n.t("Keep playing in the background"),
                         L10n.t("A video or reel playing with sound keeps going when you leave Instagram or turn the "
                                 + "screen off. A notification lets you pause or stop it.")));
-                playback.addPreference(toggle(context, Settings.REELS_PICTURE_IN_PICTURE,
-                        L10n.t("Picture in picture for reels"),
-                        L10n.t("Leaving Instagram while a reel plays shrinks it into a small window over your other "
-                                + "apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.")));
-                playback.addPreference(toggle(context, Settings.STORIES_PICTURE_IN_PICTURE,
-                        L10n.t("Picture in picture for stories"),
-                        L10n.t("Leaving Instagram while a story plays shrinks it into a small window over your other "
-                                + "apps, where it keeps going through the stories.")));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),

@@ -24,17 +24,12 @@ final class BackupCategory {
     private BackupCategory() { }
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
-        PreferenceCategory backup = category(screen, L10n.t("Settings backup"), SettingsIcons.TOOLS,
-                L10n.t("Save your HushGram choices to a file, or bring them back."));
+        PreferenceCategory backup = category(screen, L10n.t("Settings backup"), SettingsIcons.TOOLS);
         page.exportConfiguration = new Row(context);
         page.exportConfiguration.setKey("hushgram_export_configuration");
         page.exportConfiguration.setPersistent(false);
         page.exportConfiguration.setTitle(L10n.t("Export HushGram settings"));
-        // With the profile picture patch in, the file carries the saved profiles too.
-        page.exportConfiguration.setSummary(build.contains(PatchFamily.PROFILE_PICTURE)
-                ? L10n.t("Choose a file for your installed patches' settings and saved profiles. Your login and history "
-                        + "stay on this device.")
-                : L10n.t("Choose a file for your installed patches' settings. Accounts and history stay on this device."));
+        page.exportConfiguration.setSummary(L10n.t("Choose a file for your installed patches' settings. Accounts and history stay on this device."));
         page.exportConfiguration.setOnPreferenceClickListener(p -> { page.pickConfiguration(false); return true; });
         backup.addPreference(mark(page.exportConfiguration, SettingsIcons.EXPORT));
         backup.addPreference(toggle(context, Settings.DATE_SETTINGS_EXPORT, L10n.t("Date in backup file names"),

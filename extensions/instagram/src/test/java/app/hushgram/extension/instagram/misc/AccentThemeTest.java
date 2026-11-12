@@ -55,9 +55,6 @@ public class AccentThemeTest {
         Settings.ACCENT_HUE.resetToDefault();
         Settings.ACCENT_BADGES.resetToDefault();
         Settings.ACCENT_ICONS.resetToDefault();
-        Settings.ACCENT_RINGS.resetToDefault();
-        Settings.ACCENT_RINGS_SOLID.resetToDefault();
-        Settings.ACCENT_BACKGROUNDS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -244,110 +241,6 @@ public class AccentThemeTest {
                 + AccentTheme.ICONS_MISSING + " 1"), HookStatus.report());
     }
 
-    /** The ring style goes on with its switch, and a build without one says so (#187). */
-    @Test
-    public void theRingStyleGoesOnWithItsSwitch() {
-        Settings.ACCENT_COLOR.save(true);
-        Settings.ACCENT_HUE.save(AccentHue.TEAL);
-        assertEquals("HushGramAccentRings_TEAL", AccentTheme.ringStyle(AccentHue.TEAL));
-        assertEquals("HushGramAccentRings_WALLPAPER", AccentTheme.ringStyle(AccentHue.WALLPAPER));
-        List<String> asked = new ArrayList<>();
-        Ids ids = (name, type) -> {
-            if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
-            if (type.equals("style") && (name.startsWith("HushGramAccentRings_") || name.startsWith("HushGramAccentRingsSolid_"))) {
-                asked.add(name);
-                return android.R.style.TextAppearance_Small;
-            }
-            return type.equals("attr") ? 0x7f990005 : 0;
-        };
-        Context context = new ContextThemeWrapper(themed(THEMED + ".rings", ids), android.R.style.Theme_Material_Light);
-        AccentTheme.apply(context, "igds_color_link");
-        assertEquals("off", List.of(), asked);
-
-        Settings.ACCENT_RINGS.save(true);
-        HookStatus.clear();
-        AccentTheme.apply(context, "igds_color_link");
-        assertEquals(List.of("HushGramAccentRings_TEAL"), asked);
-        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
-                + AccentTheme.RINGS + " 1"), HookStatus.report());
-
-        // Solid story rings swaps in the style with every stop at the fill (#519).
-        assertEquals("HushGramAccentRingsSolid_TEAL", AccentTheme.solidRingStyle(AccentHue.TEAL));
-        Settings.ACCENT_RINGS_SOLID.save(true);
-        asked.clear();
-        AccentTheme.apply(context, "igds_color_link");
-        assertEquals(List.of("HushGramAccentRingsSolid_TEAL"), asked);
-        Settings.ACCENT_RINGS.save(false);
-        asked.clear();
-        AccentTheme.apply(context, "igds_color_link");
-        assertEquals("solid alone does nothing with the rings off", List.of(), asked);
-        Settings.ACCENT_RINGS.save(true);
-        Settings.ACCENT_RINGS_SOLID.save(false);
-
-        HookStatus.clear();
-        Context bare = themed(THEMED + ".norings", (name, type) -> type.equals("style")
-                && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL)) ? android.R.style.TextAppearance : 0);
-        AccentTheme.apply(bare, "igds_color_link");
-        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
-                + AccentTheme.RINGS_MISSING + " 1"), HookStatus.report());
-    }
-
-    /**
-     * The background style goes on with its switch in the theme's own shade, a theme whose background
-     * isn't a solid color of its own keeps it, and a build without the style says so (#187).
-     */
-    @Test
-    public void theBackgroundStyleGoesOnWithItsSwitchInTheThemesShade() {
-        Settings.ACCENT_COLOR.save(true);
-        Settings.ACCENT_HUE.save(AccentHue.TEAL);
-        assertEquals("HushGramAccentBackgrounds_TEAL_light", AccentTheme.backgroundStyle(AccentHue.TEAL, false));
-        assertEquals("HushGramAccentBackgrounds_TEAL_dark", AccentTheme.backgroundStyle(AccentHue.TEAL, true));
-        List<String> asked = new ArrayList<>();
-        Ids ids = (name, type) -> {
-            if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
-            if (type.equals("style") && name.startsWith("HushGramAccentBackgrounds_")) {
-                asked.add(name);
-                return android.R.style.TextAppearance_Small;
-            }
-            if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
-            if (type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE)) return android.R.attr.colorBackground;
-            return type.equals("attr") ? 0x7f990005 : 0;
-        };
-        Context light = new ContextThemeWrapper(themed(THEMED + ".backgrounds.light", ids), android.R.style.Theme_Material_Light);
-        assertTrue("the light theme's background reads as its own", AccentTheme.paintsItsOwnBackground(light.getTheme(), android.R.attr.colorBackground));
-        AccentTheme.apply(light, "igds_color_link");
-        assertEquals("off", List.of(), asked);
-
-        Settings.ACCENT_BACKGROUNDS.save(true);
-        HookStatus.clear();
-        AccentTheme.apply(light, "igds_color_link");
-        assertEquals(List.of(AccentTheme.backgroundStyle(AccentHue.TEAL, false)), asked);
-        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
-                + AccentTheme.BACKGROUNDS + " 1"), HookStatus.report());
-
-        Context dark = new ContextThemeWrapper(themed(THEMED + ".backgrounds.dark", ids), android.R.style.Theme_Material);
-        AccentTheme.apply(dark, "igds_color_link");
-        assertEquals(List.of(AccentTheme.backgroundStyle(AccentHue.TEAL, false), AccentTheme.backgroundStyle(AccentHue.TEAL, true)), asked);
-
-        HookStatus.clear();
-        Context bare = themed(THEMED + ".nobackgrounds", (name, type) -> type.equals("style")
-                && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL)) ? android.R.style.TextAppearance : 0);
-        AccentTheme.apply(bare, "igds_color_link");
-        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
-                + AccentTheme.BACKGROUNDS_MISSING + " 1"), HookStatus.report());
-    }
-
-    /** An attribute the theme doesn't hold, one holding a size or one that isn't opaque isn't a background of its own (#187). */
-    @Test
-    public void onlyASolidColorIsABackgroundOfItsOwn() {
-        Context context = new ContextThemeWrapper(RuntimeEnvironment.getApplication(), android.R.style.Theme_Material);
-        Resources.Theme theme = context.getTheme();
-        assertTrue(AccentTheme.paintsItsOwnBackground(theme, android.R.attr.colorForeground));
-        assertFalse("holds a size", AccentTheme.paintsItsOwnBackground(theme, android.R.attr.listPreferredItemHeight));
-        assertFalse("not in the theme", AccentTheme.paintsItsOwnBackground(theme, 0x7f990099));
-        assertFalse("see-through", AccentTheme.paintsItsOwnBackground(theme, android.R.attr.windowFrame));
-    }
-
     /**
      * Home's newer header takes the icon color its theme holds for its heart and Create buttons with
      * both switches on (#8), and keeps its own with either off, paused, or no icon attribute.
@@ -477,7 +370,7 @@ public class AccentThemeTest {
         assertFalse(AccentTheme.readsLight(0xff0c1014));
         // A theme styled twice keeps its shade: the dark one still reads as a dark theme's.
         for (AccentHue hue : AccentHue.values()) {
-            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) continue;
+            if (hue == AccentHue.BLUE || hue == AccentHue.WALLPAPER) continue;
             assertTrue(hue.name(), AccentTheme.readsLight(hue.linkOnDark));
             assertFalse(hue.name(), AccentTheme.readsLight(hue.linkOnLight));
         }

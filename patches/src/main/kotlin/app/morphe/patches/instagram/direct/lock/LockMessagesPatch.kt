@@ -81,7 +81,7 @@ val lockMessagesPatch = bytecodePatch(
         "Turn it on in HushGram settings > Messages.",
     default = true,
 ) {
-    category("Privacy")
+    category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

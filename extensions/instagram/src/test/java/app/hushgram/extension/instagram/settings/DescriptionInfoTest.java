@@ -55,7 +55,6 @@ public class DescriptionInfoTest {
 
     @After public void close() {
         Settings.DESCRIPTIONS_BEHIND_INFO.resetToDefault();
-        DescriptionInfo.searching = false;
         controller.close();
     }
 
@@ -95,8 +94,16 @@ public class DescriptionInfoTest {
         assertNotEquals(DescriptionInfo.TAG, title.getTag());
     }
 
-    @Test public void offLeavesTheDescriptionUnderTheTitle() {
-        assertFalse("off to start", Settings.DESCRIPTIONS_BEHIND_INFO.savedValue());
+    @Test public void descriptionsAreBehindInfoByDefault() {
+        assertTrue("descriptions are behind info by default", Settings.DESCRIPTIONS_BEHIND_INFO.savedValue());
+        View view = bind(row(), null);
+        assertEquals(View.GONE, view.findViewById(android.R.id.summary).getVisibility());
+        assertTrue(((TextView) view.findViewById(android.R.id.title))
+                .getCompoundDrawablesRelative()[2] instanceof DescriptionInfo.Mark);
+    }
+
+    @Test public void turningTheOptionOffLeavesTheDescriptionUnderTheTitle() {
+        Settings.DESCRIPTIONS_BEHIND_INFO.save(false);
         assertShownAsBefore(bind(row(), null));
     }
 
@@ -118,6 +125,23 @@ public class DescriptionInfoTest {
         assertTrue(shown.isShowing());
         assertEquals(DESCRIPTION, shadowOf(shown).getMessage().toString());
         assertEquals("Hide the HushGram row", shadowOf(shown).getTitle().toString());
+    }
+
+    @Test public void draggingOffTheInfoMarkDoesNotOpenTheDialog() {
+        Settings.DESCRIPTIONS_BEHIND_INFO.save(true);
+        View view = bind(row(), null);
+        TextView title = view.findViewById(android.R.id.title);
+        long now = SystemClock.uptimeMillis();
+        float y = title.getHeight() / 2f;
+        float markX = title.getWidth() - 2;
+        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, markX, y, 0);
+        MotionEvent move = MotionEvent.obtain(now, now + 20, MotionEvent.ACTION_MOVE, 1, y, 0);
+        MotionEvent up = MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_UP, 1, y, 0);
+        assertTrue(title.dispatchTouchEvent(down));
+        assertTrue(title.dispatchTouchEvent(move));
+        assertTrue(title.dispatchTouchEvent(up));
+        down.recycle(); move.recycle(); up.recycle();
+        assertNull("a cancelled info gesture does not open a dialog", ShadowAlertDialog.getLatestAlertDialog());
     }
 
     @Test public void theMarkGrowsWithALargerFont() {
@@ -187,10 +211,12 @@ public class DescriptionInfoTest {
         assertShownAsBefore(bind(row(), null));
     }
 
-    @Test public void aSearchShowsTheDescriptionsItMatched() {
+    @Test public void searchKeepsDescriptionsBehindInfoIcons() {
         Settings.DESCRIPTIONS_BEHIND_INFO.save(true);
-        DescriptionInfo.searching = true;
-        assertShownAsBefore(bind(row(), null));
+        View view = bind(row(), null);
+        TextView title = view.findViewById(android.R.id.title);
+        assertEquals(View.GONE, view.findViewById(android.R.id.summary).getVisibility());
+        assertTrue(title.getCompoundDrawablesRelative()[2] instanceof DescriptionInfo.Mark);
     }
 
     @Test public void aRowWithNoDescriptionGetsNoMark() {

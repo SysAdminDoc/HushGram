@@ -125,8 +125,6 @@ public class FeedTapPauseTest {
         PauseForTests.resume();
         HookStatus.clear();
         FeedTapPause.resetForTests();
-        Settings.HOLD_FEED_VIDEO_FAST.resetToDefault();
-        FeedHoldSpeed.inBuildForTests = null;
     }
 
     private static String report() {
@@ -419,31 +417,6 @@ public class FeedTapPauseTest {
         assertTrue(report, report.contains(FeedTapPause.PRESS_LEFT + " 2"));
         assertFalse(report, report.contains("taps left"));
         assertFalse(report, report.contains(FeedTapPause.PRESS_TAKEN));
-    }
-
-    /**
-     * With Hold for 2x on feed videos in and on, a held press is left to Instagram, which speeds the video up, and its
-     * lift pauses nothing (#552). Taps still pause, and the switch off takes the press again.
-     */
-    @Test
-    public void aHeldPressIsLeftToHoldFor2x() {
-        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
-        Settings.HOLD_FEED_VIDEO_FAST.save(true);
-        FeedHoldSpeed.inBuildForTests = true;
-        assertFalse("left to Instagram", press());
-        lift();
-        assertEquals("nothing paused", 0, feed.pauses + feed.starts);
-        assertNull(feed.marked);
-        assertTrue("a tap still pauses", tap());
-        assertEquals(1, feed.pauses);
-        FeedHoldSpeed.inBuildForTests = false;
-        assertTrue("without the patch the press is taken", press());
-        FeedHoldSpeed.inBuildForTests = true;
-        lift();
-        Settings.HOLD_FEED_VIDEO_FAST.save(false);
-        assertTrue("with the switch off the press is taken", press());
-        String report = report();
-        assertTrue(report, report.contains(FeedTapPause.PRESS_TAKEN + " 2"));
     }
 
     /** A press that throws before it's taken stays Instagram's and is reported, and its lift does nothing. */

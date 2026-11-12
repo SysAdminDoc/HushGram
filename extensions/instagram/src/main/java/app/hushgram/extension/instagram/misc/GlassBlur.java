@@ -8,12 +8,14 @@ import androidx.annotation.Nullable;
 
 /**
  * The three blur steps the glass tab bar had before its blur became a slider (#289, #391). Kept so a
- * step saved by an older build, or carried in its settings file, comes back as the radius it drew.
+ * step saved by an older build, or carried in its settings file, comes back as the radius it drew:
+ * {@link #STANDARD} is the blur the bar has always had ({@link GlassTabBar#BLUR_DP}), {@link #LIGHT}
+ * half of it and {@link #STRONG} two thirds more.
  */
 public enum GlassBlur {
-    LIGHT(9),
-    STANDARD(18),
-    STRONG(30);
+    LIGHT(GlassTabBar.BLUR_DP / 2),
+    STANDARD(GlassTabBar.BLUR_DP),
+    STRONG(Math.round(GlassTabBar.BLUR_DP * 5f / 3f));
 
     /** The blur radius in dp this step drew. */
     public final int dp;

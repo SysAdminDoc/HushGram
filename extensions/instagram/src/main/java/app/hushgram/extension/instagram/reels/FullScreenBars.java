@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
 
-import app.hushgram.extension.instagram.misc.BottomSpace;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -62,9 +61,6 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * are asked to hide. When Reels is left, the activity pauses or the switch is turned off, only what
  * HushGram asked for is undone: the immersive flags it added (anything else Instagram set meanwhile
  * stays), or on Android 11 and newer every bar it hid, with the window's own swipe behaviour back.
- *
- * <p>With the status bar hidden, a reels viewer's top bar would sit under a punch hole camera at the
- * top edge, so {@link ReelsBarCutout} lowers it below the cutout until the status bar is back (#525).
  *
  * <p>The check runs from a draw listener at most every {@link #CHECK_MS}, and acts only when the
  * answer changes, so a swipe that brought the bars back for a moment isn't fought. With both switches
@@ -112,9 +108,6 @@ public final class FullScreenBars {
     /** How many of an activity's bar heights listeners are kept to be told a new pair (#200). */
     static final int ASKERS_KEPT = 16;
     static final String COUNT_TOLD = "screens told the bars' new heights";
-    static final String COUNT_TAB_BAR_KEPT = "kept the tab bar hidden through a tell";
-    /** Whether the kept listeners are being told a pair right now. Main thread only. */
-    private static boolean telling;
     /**
      * Each activity's kept bar heights listeners, newest last. Held strongly, since Instagram lets a
      * listener go once it has called it, and each listener holds its screen, which holds the activity:
@@ -126,8 +119,6 @@ public final class FullScreenBars {
     private static Teller teller = FullScreenBars::tellHeights;
     static final String COUNT_KEYBOARD = "kept the navigation bar's space for the keyboard";
     private static Keyboard keyboard = FullScreenBars::keyboardInFront;
-    /** The camera cutout's height a test gave the window, or -1 for the window's own. */
-    private static int cutoutTop = -1;
 
     private FullScreenBars() {
     }
@@ -150,7 +141,7 @@ public final class FullScreenBars {
         synchronized (IDS) {
             Integer found = IDS.get(name);
             if (found == null) {
-                found = context.getResources().getIdentifier(name, "id", Utils.resourcePackage(context));
+                found = context.getResources().getIdentifier(name, "id", context.getPackageName());
                 IDS.put(name, found);
             }
             return found;
@@ -415,27 +406,6 @@ public final class FullScreenBars {
     }
 
     /**
-     * How tall the navigation bar is taken to be where the phone reports none at the window's foot, as a
-     * Samsung does with its gesture hint hidden, though a swipe up from there still leaves the app (#633):
-     * the system's standard height Instagram looked up in its place ({@link BottomSpace#guessedHeight}),
-     * or the one it last offered while HushGram hides the bar. 0 on a phone with no navigation bar.
-     */
-    public static int unreportedNavHeight() {
-        return Math.max(BottomSpace.guessedHeight(), hiddenNavHeight(0));
-    }
-
-    /**
-     * Where the strip at the foot of [view]'s window starts, on the screen: a drag from below there is the
-     * system's (#633). The strip is as {@link ReelSeekRoom} measures it, and none makes this the window's foot.
-     */
-    public static int systemStripTop(View view) {
-        View root = view.getRootView();
-        int[] at = new int[2];
-        root.getLocationOnScreen(at);
-        return at[1] + root.getHeight() - ReelSeekRoom.strip(view);
-    }
-
-    /**
      * Whether the keyboard shows in the front window. It brings the navigation bar back with it, hidden
      * or under a pill, and Instagram lifts a comment box or a chat's message box above the keyboard by
      * the keyboard's height less this bar's, then pads it by the height it kept. A 0 kept the box a
@@ -552,35 +522,15 @@ public final class FullScreenBars {
      * in one layout ({@link GlassTabBar#heightsTold}, #222).
      */
     private static void tellAll(List<Object> listeners) {
-        telling = true;
-        try {
-            for (Object listener : listeners) {
-                try {
-                    teller.tell(listener, keptStatus, keptNav);
-                } catch (Throwable failure) {
-                    HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights told", failure);
-                }
+        for (Object listener : listeners) {
+            try {
+                teller.tell(listener, keptStatus, keptNav);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights told", failure);
             }
-        } finally {
-            telling = false;
         }
         GlassTabBar.heightsTold();
         HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_TOLD);
-    }
-
-    /**
-     * Whether Instagram's main activity should leave its tab bar as it is rather than show it, called
-     * first in the activity's method that shows or hides the bar with [visibility]. The activity's own
-     * heights listener is one of the kept ones, and being told a pair lays the bar out again and shows
-     * it, over a chat that had just hidden it: with a floating glass pill the chat's opening and its
-     * keyboard change the navigation bar's height, so the pill came back over the message box. Only a
-     * show asked for while HushGram tells the kept listeners is skipped. Instagram never makes that
-     * call itself, since it lets a listener go once it has called it.
-     */
-    public static boolean keepsTabBarThroughATell(int visibility) {
-        if (!telling || visibility != View.VISIBLE) return false;
-        HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_TAB_BAR_KEPT);
-        return true;
     }
 
     /** How a kept listener is told a pair of heights: the patch-filled stub outside tests. */
@@ -745,12 +695,6 @@ public final class FullScreenBars {
         askers.clear();
         teller = tells == null ? FullScreenBars::tellHeights : tells;
         keyboard = FullScreenBars::keyboardInFront;
-        cutoutTop = -1;
-    }
-
-    /** Tests give the window a camera cutout [top] pixels tall, since a test window has none. */
-    static void cutoutForTests(int top) {
-        cutoutTop = top;
     }
 
     /** Tests say whether the keyboard shows. */
@@ -849,10 +793,6 @@ public final class FullScreenBars {
         private boolean stopped;
         /** Whether the keyboard showed at the last frame with the navigation bar hidden (#288). */
         private boolean keys;
-        /** The reels top bars lowered below the camera cutout while the status bar is hidden (#525). */
-        private final ReelsBarCutout cutout = new ReelsBarCutout();
-        /** Sheet content Instagram sized past the window's foot, padded back up while bars are hidden (#626). */
-        private final SheetsOnScreen sheets = new SheetsOnScreen();
 
         Session(Activity activity) {
             this.activity = new WeakReference<>(activity);
@@ -957,31 +897,9 @@ public final class FullScreenBars {
                     show();
                     giveBackShownHeights();
                 }
-                cutout.follow(decor, hides(true), cutoutTop >= 0 ? cutoutTop : ReelsBarCutout.safeTop(decor));
-                sheets.follow(decor, hidden, keyboardShows());
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "check", failure);
             }
-        }
-
-        /** Whether the keyboard shows, or true when that can't be told, so a sheet is left as it is. */
-        private boolean keyboardShows() {
-            try {
-                return keyboard.shown();
-            } catch (Throwable failure) {
-                HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "keyboard", failure);
-                return true;
-            }
-        }
-
-        /** How many reels top bars are lowered below the camera cutout now, for tests. */
-        int barsLowered() {
-            return cutout.loweredCount();
-        }
-
-        /** How many sheet contents are padded up to the window's foot now, for tests. */
-        int sheetsLifted() {
-            return sheets.liftedCount();
         }
 
         @SuppressWarnings("deprecation")
@@ -1013,8 +931,6 @@ public final class FullScreenBars {
 
         @SuppressWarnings("deprecation")
         void show() {
-            cutout.putBack();
-            sheets.putBack();
             if (!hidden && !saved) return;
             hidden = false;
             saved = false;

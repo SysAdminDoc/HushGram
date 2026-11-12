@@ -25,10 +25,8 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
-import app.morphe.patches.instagram.reels.partnership.findReelsPage
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
-import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.RegisterLiveness
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -55,20 +53,15 @@ private const val PATCH = "Clean up Reels"
  * floating bubbles and the Liked by or Followed by line with its faces. See ReelParts.kt for each
  * part.
  *
- * The Reels viewer's own top bar and its two buttons change no Instagram code: the extension's ReelsTopBar, started by
+ * The top bar and its two buttons change no Instagram code: the extension's ReelsTopBar, started by
  * the application hook the settings patch writes once this patch switches its status method on,
  * finds the bar by the class and id names Instagram keeps and hides it at runtime when its viewer
  * is the Reels tab's. It finds the Create button by the kind Instagram tags it with and Your
  * algorithm by its class, in the bar of any reel viewer, and sets just that button gone.
  *
- * A reel opened from Saved, a profile or a post gets the screen's own top bar instead, so the one
- * place Instagram adds Create to that bar asks ReelsTopBar first, with the viewer's source, and
- * leaves the button out when it's hidden (#620). See CameraButton.kt.
- *
  * The Friends tab has no name, id or tag to find it by, so the one place Instagram builds it, where
  * the tab gets its facepile icon, hands the tab's view to ReelsTopBar, which hides it the same way.
- * See FriendsTab.kt. Holding that view lists friends to pick, and each Reels page goes through a
- * filter that keeps the Friends tab's reels with those friends on them (#503). See FriendLanePicks.kt.
+ * See FriendsTab.kt.
  *
  * A twelfth switch, Keep clear mode on, has Instagram's own clear mode carry from the reel you
  * turned it on for to the next reels, and keeps the seek bar of a long reel off while it's in clear
@@ -97,15 +90,8 @@ val cleanUpReelsPatch = bytecodePatch(
         val clearMode = findClearModeWhereItFits()
         val clearModeStubs = clearModeStubs()
         val friendsTab = findFriendsTab()
-        val friendsRow = findFriendsRow()
-        val friendPicks = findFriendPicks()
-        val reelsPage = findReelsPage(PATCH)
-        val cameraButton = findCameraButton()
         hideReelParts()
-        hideCameraButton(cameraButton)
         markFriendsTab(friendsTab)
-        keepFriendsRow(friendsRow)
-        pickFriends(reelsPage, friendPicks)
         if (clearMode != null) {
             applyClearMode(clearMode)
             clearModeStubs.fill(clearMode)
@@ -193,8 +179,7 @@ private fun Method.signature() = "$definingClass->$name(${parameterTypes.joinToS
  * The comment bar's controller: [show], its showCommentBar, [hide], its hideCommentBar, and
  * [created], its onViewCreated, which keeps the bar it inflates at instruction [stored] - 1. The
  * viewer's source is in [source], and [free] is a local nothing reads at [stored]. [unVanish] is
- * where Instagram puts the bar back without asking the show. The hide reads the bar from [bar] and
- * ends at each instruction of [ends], each with two locals nothing reads there.
+ * where Instagram puts the bar back without asking the show.
  */
 internal class CommentBar(
     val show: Method,
@@ -204,8 +189,6 @@ internal class CommentBar(
     val free: Int,
     val source: String,
     val unVanish: UnVanish,
-    val bar: String,
-    val ends: List<Pair<Int, List<Int>>>,
 )
 
 /**
@@ -260,14 +243,7 @@ private fun BytecodePatchContext.commentBar(show: Method, hide: Method, created:
     }
     created.requireThisIntact(what, listOf(after))
     val free = created.freeLocalsAt(what, after, 1).single()
-    val hidden = hide.implementation!!.instructions.toList()
-    val ends = hidden.indices.filter { hidden[it].opcode == Opcode.RETURN_VOID }.map { it to hide.freeLocalsAt(what, it, 2) }
-    if (ends.isEmpty()) throw PatchException("$what: its hide never returns")
-    if (hide.localRegisterCount() > 15) throw PatchException("$what: its hide keeps this in v${hide.localRegisterCount()}, past what the hook can read")
-    hide.requireThisIntact(what, ends.map { it.first })
-    return CommentBar(
-        show, hide, created, after, free, "${source.definingClass}->${source.name}:${source.type}", unVanished(unVanish, hide), bar, ends,
-    )
+    return CommentBar(show, hide, created, after, free, "${source.definingClass}->${source.name}:${source.type}", unVanished(unVanish, hide))
 }
 
 /**
@@ -350,24 +326,10 @@ private val INSTANCE_READS = setOf(
  * Has the comment bar hidden, with Instagram's own hide, when the hook says so for the viewer's
  * source: first thing whenever the controller would show it, right after onViewCreated keeps the
  * bar it inflated, which is drawn until the controller first decides, and in unVanish, which would
- * otherwise put the bar back after a vanish, by taking its own hidden branch. Where Instagram's hide
- * returns, the bar and the source go to a second hook, which can leave the bar's room empty instead
- * of gone so the reel doesn't drop down into it (#523).
+ * otherwise put the bar back after a vanish, by taking its own hidden branch.
  */
 private fun BytecodePatchContext.hideCommentBar(bar: CommentBar) {
     val hide = "${bar.hide.definingClass}->${bar.hide.name}()V"
-    val hidden = mutable(bar.hide)
-    bar.ends.sortedByDescending { it.first }.forEach { (at, free) ->
-        val (view, source) = free
-        hidden.addInstructionsAtControlFlowLabel(
-            at,
-            """
-                iget-object v$view, p0, ${bar.bar}
-                iget-object v$source, p0, ${bar.source}
-                invoke-static { v$view, v$source }, $KEEP_COMMENT_BAR_SPACE
-            """,
-        )
-    }
     val show = mutable(bar.show)
     show.requireLocals(PATCH, 1)
     show.addInstructionsWithLabels(

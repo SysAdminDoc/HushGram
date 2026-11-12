@@ -9,10 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
-import app.morphe.patches.instagram.download.IMAGE_INFO
-import app.morphe.patches.instagram.download.PANDO_IMAGE_INFO
 import app.morphe.patches.instagram.feed.tabswipe.stopTabSwipingPatch
-import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -116,56 +113,11 @@ class FeedSeekBarHookTest {
         }
     }
 
-    /** A build without the post class or the strip's map builder stops at the look, before the patch writes anything. */
-    @Test
-    fun aBuildThePreviewCantReadFailsBeforeAnythingChanges() {
-        val bundle = Fixtures.files { it.extension == "apks" }.first()
-        val all = classes(bundle)
-        val sites = PatchContexts.of(all).findFeedSeek()
-        val builder = PatchContexts.of(all).findFeedSeekSheet(sites).builder.definingClass
-        val cases = listOf(
-            all.filter { it.type != FEED_MEDIA } to "this build has no $FEED_MEDIA",
-            all.filter { it.type != builder } to "turning a $SPRITESHEET_INFO into a map, found 0",
-        )
-        for ((classes, expected) in cases) {
-            val failure = assertThrows(expected, PatchException::class.java) { PatchContexts.of(classes).findFeedSeekSheet(sites) }
-            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
-        }
-    }
-
-    /** A build whose reel strip can't be told still goes in, with the post's own strip and the reel strip's stub left as shipped. */
-    @Test
-    fun aBuildWithoutTheReelStripGoesInWithThePostsOwn() {
-        val bundle = Fixtures.files { it.extension == "apks" }.first()
-        val classes = classes(bundle).filter { it.type != PANDO_SPRITE_CANDIDATES }
-        val context = PatchContexts.of(classes)
-        val sites = context.findFeedSeek()
-        val sheet = context.findFeedSeekSheet(sites)
-        assertEquals("no chain without the tree-backed candidates", null, sheet.scrubber)
-        context.hookFeedSeekSheet(sites, sheet)
-        val reader = context.mutableClassDefBy(FEED_SEEK_READER)
-        fun first(name: String) = reader.methods.single { it.name == name }.code().first().opcode
-        assertEquals("the post's own strip is still read", Opcode.CHECK_CAST, first("sheet"))
-        assertEquals("the reel strip's stub answers null as shipped", Opcode.CONST_4, first("scrubberSheet"))
-    }
-
     private fun builds(bundle: File, label: String): FeedSeekSites {
         val classes = classes(bundle)
         val context = PatchContexts.of(classes)
         val sites = context.findFeedSeek()
-        val sheet = context.findFeedSeekSheet(sites)
         context.hookFeedSeek(sites)
-        context.hookFeedSeekSheet(sites, sheet)
-        for (key in listOf(SPRITE_URLS, "thumbnail_width", "thumbnail_height", "thumbnails_per_row", "max_thumbnails_per_sprite", "thumbnail_duration")) {
-            assertTrue("$label: the map holds $key", context.loadsString(sheet.builder, key))
-        }
-        if (label.contains("386014758")) {
-            assertEquals(
-                "$label: the post, its strip and the strip's map",
-                listOf("LX/07Jc;->A03:Ljava/lang/Object;", "A2e", "LX/08cg;", "A02"),
-                listOf(sheet.media.toString(), sheet.getter.name, sheet.builder.definingClass, sheet.builder.name),
-            )
-        }
 
         val stock = classes.single { it.type == sites.player }.callback(sites.progress).code()
         val hooked = context.mutableClassDefBy(sites.player).callback(sites.progress).code()
@@ -184,28 +136,6 @@ class FeedSeekBarHookTest {
         fun reasons(name: String) = stub(name).mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
         assertEquals("$label: the pause gives the scrubber's reason", listOf(SEEK_PAUSE_REASON), reasons("pause"))
         assertEquals("$label: the play gives the scrubber's reason", listOf(SEEK_PLAY_REASON), reasons("play"))
-        fun fields(name: String) = stub(name).mapNotNull { ((it as? ReferenceInstruction)?.reference as? FieldReference)?.toString() }
-        assertEquals("$label: the media stub starts at the player", Opcode.CHECK_CAST, stub("media").first().opcode)
-        assertEquals("$label: the media stub reads the item, then its post", listOf(sites.item.toString(), sheet.media.toString()), fields("media"))
-        assertEquals(
-            "$label: the sheet stub asks the post for its strip, then the strip for its map",
-            listOf(
-                "$FEED_MEDIA->${sheet.getter.name}()$SPRITESHEET_INFO",
-                "${sheet.builder.definingClass}->${sheet.builder.name}($SPRITESHEET_INFO)Ljava/util/Map;",
-            ),
-            stub("sheet").mapNotNull { it.method()?.toString() },
-        )
-        val scrubber = stub("scrubberSheet").mapNotNull { it.method() }
-        assertEquals("$label: the reel strip stub starts at the post", Opcode.CHECK_CAST, stub("scrubberSheet").first().opcode)
-        assertEquals(
-            "$label: the reel strip stub goes post, picture sizes, strip candidates, strip, then the strip's map",
-            listOf(FEED_MEDIA to IMAGE_INFO, IMAGE_INFO to SPRITE_CANDIDATES, SPRITE_CANDIDATES to SPRITESHEET_INFO, sheet.builder.definingClass to "Ljava/util/Map;"),
-            scrubber.map { it.definingClass to it.returnType },
-        )
-        assertEquals("$label: the map is the same builder's", sheet.builder.name, scrubber.last().name)
-        if (label.contains("386014758")) {
-            assertEquals("$label: the reel strip's getters", listOf("A3N", "DT4", "EA6"), scrubber.dropLast(1).map { it.name })
-        }
         return sites
     }
 
@@ -231,13 +161,10 @@ class FeedSeekBarHookTest {
                 if (callback != null || SEEK_LISTENER in classDef.interfaces) found += ImmutableClassDef.of(classDef)
             }
         }
-        named += listOf(FEED_MEDIA, IMAGE_INFO, PANDO_IMAGE_INFO, SPRITE_CANDIDATES, PANDO_SPRITE_CANDIDATES)
         val taken = found.map { it.type }.toSet()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) if (classDef.type in named && classDef.type !in taken) found += ImmutableClassDef.of(classDef)
         }
-        val have = found.map { it.type }.toSet()
-        found += FixtureDex.classesLoading(bundle, SPRITE_URLS).filter { it.type !in have }
         return FixtureDex.withStringPools(bundle, found) + ExtensionDex.classDef(FEED_SEEK_READER)
     }
 

@@ -5,7 +5,6 @@
 package app.hushgram.extension.instagram.download;
 
 import android.content.Context;
-import android.content.DialogInterface;
 
 import androidx.annotation.Nullable;
 
@@ -19,9 +18,6 @@ import java.util.Set;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
-import app.hushgram.extension.instagram.stories.StoryLoop;
-import app.hushgram.extension.instagram.stories.StoryPriority;
-import app.hushgram.extension.instagram.stories.StorySpeed;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -47,19 +43,6 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *       quality, a photo at its largest size. Download as photo saves the picture even when the
  *       story has a video. Any other label goes on to Instagram.
  * </ul>
- *
- * <p>With Loop a story in the build and its switch off, the menu also gets Loop this story last,
- * whatever the Download switch says, and a tap on it loops that story through {@link StoryLoop}
- * (#610). The row reads Stop looping this story once it loops.
- *
- * <p>With Speed in the story menu on, a video story's menu also gets Playback speed after that,
- * whatever the Download switch says, and a tap on it opens the speeds through {@link StorySpeed}
- * (#621). The story stays paused until that list closes.
- *
- * <p>With Stories priority in the build, the menu of a story whose account it can read gets Add to
- * Stories priority last, whatever the switches say, and a tap on it puts that account on the list
- * through {@link StoryPriority} and turns the switch on (#641). The row reads Remove from Stories
- * priority once the account is there. Your own highlights' menu doesn't get it.
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with the switch
  * off, or when something throws, the menu is Instagram's own.
@@ -132,47 +115,18 @@ public final class StoryDownload {
     /**
      * The labels [labels] of a story's menu, with HushGram's rows at the end when the switch is on:
      * Download, Download as video and Download as photo for a photo story with music, or Download
-     * and Download as photo for a filmed video. Loop this story goes after them when the story gets
-     * it ({@link #loopLabel}), then Playback speed ({@link #speedLabel}), and Add to Stories priority
-     * last ({@link #priorityLabel}). A menu that has the rows already is left alone. Never throws.
+     * and Download as photo for a filmed video. A menu that has the rows already is left alone.
+     * Never throws.
      */
     public static CharSequence[] labels(CharSequence[] labels) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
-            if (labels == null) return labels;
-            Object menu = building.get();
-            return withPriority(withSpeed(withLoop(on() ? labels(labels, rows(menu)) : labels, menu), menu), menu);
+            if (labels == null || !on()) return labels;
+            return labels(labels, rows(building.get()));
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return labels;
         }
-    }
-
-    /** [labels] with Loop this story at the end when the story [menu] is open on gets it. */
-    private static CharSequence[] withLoop(CharSequence[] labels, Object menu) {
-        String loop = loopLabel(menu);
-        if (loop == null || hasLoop(Arrays.asList(labels))) return labels;
-        return plus(labels, loop);
-    }
-
-    /** [labels] with Playback speed at the end when the story [menu] is open on gets it. */
-    private static CharSequence[] withSpeed(CharSequence[] labels, Object menu) {
-        String speed = speedLabel(menu);
-        if (speed == null || hasSpeed(Arrays.asList(labels))) return labels;
-        return plus(labels, speed);
-    }
-
-    /** [labels] with Add to Stories priority at the end when the story [menu] is open on gets it. */
-    private static CharSequence[] withPriority(CharSequence[] labels, Object menu) {
-        String priority = priorityLabel(menu);
-        if (priority == null || hasPriority(Arrays.asList(labels))) return labels;
-        return plus(labels, priority);
-    }
-
-    private static CharSequence[] plus(CharSequence[] labels, String row) {
-        CharSequence[] more = Arrays.copyOf(labels, labels.length + 1);
-        more[labels.length] = row;
-        return more;
     }
 
     static CharSequence[] labels(CharSequence[] labels, Rows which) {
@@ -194,120 +148,15 @@ public final class StoryDownload {
     public static void labelList(List<Object> labels) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
-            if (labels == null) return;
-            Object menu = building.get();
-            if (on()) addRows(labels, labels(new CharSequence[0], rows(menu)));
-            String loop = loopLabel(menu);
-            if (loop != null && !hasLoop(labels)) labels.add(loop);
-            String speed = speedLabel(menu);
-            if (speed != null && !hasSpeed(labels)) labels.add(speed);
+            if (labels == null || !on()) return;
+            CharSequence[] more = labels(new CharSequence[0], rows(building.get()));
+            for (Object label : labels) {
+                if (label instanceof CharSequence && more[0].toString().contentEquals((CharSequence) label)) return;
+            }
+            labels.addAll(Arrays.asList(more));
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
         }
-    }
-
-    /** Adds [more], HushGram's Download rows, to [labels] unless its first row is there already. */
-    private static void addRows(List<Object> labels, CharSequence[] more) {
-        for (Object label : labels) {
-            if (label instanceof CharSequence && more[0].toString().contentEquals((CharSequence) label)) return;
-        }
-        labels.addAll(Arrays.asList(more));
-    }
-
-    /**
-     * Loop this story, or Stop looping this story once it loops, for the story [menu] is open on,
-     * or null when its menu doesn't get the row: Loop a story isn't in the build, its switch is on,
-     * or the story has no media ID.
-     */
-    @Nullable
-    static String loopLabel(Object menu) {
-        if (menu == null || !StoryLoop.offersRow()) return null;
-        Object media = InstagramMedia.storyMedia(menu);
-        if (InstagramMedia.mediaId(media) == null) return null;
-        Context context = Utils.getContext();
-        return StoryLoop.looping(media) ? L10n.t(context, "Stop looping this story") : L10n.t(context, "Loop this story");
-    }
-
-    /** Whether [labels] has Loop this story or Stop looping this story already. */
-    private static boolean hasLoop(List<?> labels) {
-        for (Object label : labels) {
-            if (label instanceof CharSequence && isLoop((CharSequence) label)) return true;
-        }
-        return false;
-    }
-
-    /** Whether [label] is Loop this story or Stop looping this story, however the menu styled it. */
-    private static boolean isLoop(CharSequence label) {
-        Context context = Utils.getContext();
-        return L10n.t(context, "Loop this story").contentEquals(label)
-                || L10n.t(context, "Stop looping this story").contentEquals(label);
-    }
-
-    /**
-     * Playback speed for the story [menu] is open on, or null when its menu doesn't get the row:
-     * Speed in the story menu is off or not in the build, or the story has no video to speed up.
-     */
-    @Nullable
-    static String speedLabel(Object menu) {
-        if (menu == null || !StorySpeed.offersRow()) return null;
-        Object media = InstagramMedia.storyMedia(menu);
-        if (media == null) return null;
-        if (ReelDownload.renditions(media).isEmpty() && InstagramMedia.dashManifest(media) == null) return null;
-        return StorySpeed.menuLabel();
-    }
-
-    /** Whether [labels] has Playback speed already. */
-    private static boolean hasSpeed(List<?> labels) {
-        for (Object label : labels) {
-            if (label instanceof CharSequence && StorySpeed.isMenuLabel((CharSequence) label)) return true;
-        }
-        return false;
-    }
-
-    /**
-     * Add to Stories priority, or Remove from Stories priority once the account is on the list, for
-     * the story [menu] is open on, or null when its menu doesn't get the row: Stories priority isn't
-     * in the build, or the story's account can't be read.
-     */
-    @Nullable
-    static String priorityLabel(Object menu) {
-        if (menu == null || !StoryPriority.offersRow()) return null;
-        return StoryPriority.menuLabel(author(menu));
-    }
-
-    /** The username of whoever posted the story [menu] is open on, or null. */
-    @Nullable
-    private static String author(Object menu) {
-        Object media = InstagramMedia.storyMedia(menu);
-        if (media == null) return null;
-        Object user = InstagramMedia.owner(media);
-        return user == null ? null : InstagramMedia.username(user);
-    }
-
-    /** Whether [labels] has Add to Stories priority or Remove from Stories priority already. */
-    private static boolean hasPriority(List<?> labels) {
-        for (Object label : labels) {
-            if (label instanceof CharSequence && StoryPriority.isMenuLabel((CharSequence) label)) return true;
-        }
-        return false;
-    }
-
-    /** Puts the account of the story [menu] is open on first in the stories row, or takes it off, and says which. */
-    private static void togglePriority(Object menu) {
-        Context context = Utils.getContext().getApplicationContext();
-        Boolean listed = StoryPriority.toggle(author(menu));
-        String said = listed == null ? L10n.t(context, "Stories priority didn't change")
-                : listed ? L10n.t(context, "Added to Stories priority") : L10n.t(context, "Removed from Stories priority");
-        Feedback.show(context, said, false);
-    }
-
-    /** Loops the story [menu] is open on, or takes its loop off, and says which. */
-    private static void toggleLoop(Object menu) {
-        Context context = Utils.getContext().getApplicationContext();
-        Boolean loops = StoryLoop.toggle(InstagramMedia.storyMedia(menu));
-        String said = loops == null ? L10n.t(context, "Loop didn't change")
-                : loops ? L10n.t(context, "Looping this story") : L10n.t(context, "This story plays once");
-        Feedback.show(context, said, false);
     }
 
     /**
@@ -343,25 +192,11 @@ public final class StoryDownload {
     /**
      * Saves the story [menu] is open on when [label], the tapped one, is one of HushGram's rows and
      * the switch is on, and answers whether it did, in which case Instagram's handler is skipped. A
-     * save that can't start says so. Loop this story loops the story instead, or takes its loop off,
-     * and Playback speed opens the speeds. Never throws.
+     * save that can't start says so. Never throws.
      */
     public static boolean save(CharSequence label, Object menu) {
         try {
-            if (label == null) return false;
-            if (StoryLoop.offersRow() && isLoop(label)) {
-                toggleLoop(menu);
-                return true;
-            }
-            if (StorySpeed.offersRow() && StorySpeed.isMenuLabel(label)) {
-                StorySpeed.fromMenu();
-                return true;
-            }
-            if (StoryPriority.offersRow() && StoryPriority.isMenuLabel(label)) {
-                togglePriority(menu);
-                return true;
-            }
-            if (!on()) return false;
+            if (label == null || !on()) return false;
             Choice choice = choice(label);
             if (choice == null) return false;
             start(choice, InstagramMedia.storyMedia(menu));
@@ -371,33 +206,6 @@ public final class StoryDownload {
             // handler goes ahead instead, and passes over a label it doesn't know.
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return false;
-        }
-    }
-
-    /**
-     * Runs [listener], the dismiss listener the story menu's handler was given, after {@link #save}
-     * handled the tap. Instagram hands it on to what its own row opens, which plays the story again
-     * when it's done, and the sheet doesn't run it after a row tap, so the story stayed paused once
-     * one of HushGram's rows closed the menu (#610). With Playback speed's list open it runs once the
-     * list closes, so the story waits for the pick (#621). Never throws.
-     */
-    public static void menuClosed(Object listener) {
-        try {
-            if (!(listener instanceof DialogInterface.OnDismissListener)) return;
-            DialogInterface.OnDismissListener dismiss = (DialogInterface.OnDismissListener) listener;
-            if (StorySpeed.afterList(() -> dismissed(dismiss))) return;
-            dismiss.onDismiss(null);
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu closed", t);
-        }
-    }
-
-    /** Runs [dismiss] after the speed list closed. Never throws. */
-    private static void dismissed(DialogInterface.OnDismissListener dismiss) {
-        try {
-            dismiss.onDismiss(null);
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu closed", t);
         }
     }
 
@@ -441,16 +249,12 @@ public final class StoryDownload {
         return savePhoto(context, media);
     }
 
-    /**
-     * Starts the save of [media]'s picture, at its largest size, even when it has a video too, whose
-     * first frame saves when that's larger ({@link MediaSave#saveStoryPicture}).
-     */
+    /** Starts the save of [media]'s picture, at its largest size, even when it has a video too. */
     private static boolean savePhoto(Context context, Object media) {
         List<MediaSave.Rendition> pictures = pictures(media);
         final int sizes = pictures.size();
         Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "story photo download tapped: " + sizes + " size(s)");
-        return MediaSave.saveStoryPicture(context, pictures, ReelDownload.renditions(media),
-                InstagramMedia.dashManifest(media), details(media));
+        return MediaSave.savePhoto(context, pictures, details(media));
     }
 
     /** A story has a numeric story URL, not a public post shortcode. */

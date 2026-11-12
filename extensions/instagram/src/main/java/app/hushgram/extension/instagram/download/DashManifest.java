@@ -55,9 +55,6 @@ final class DashManifest {
          */
         final boolean hdr;
 
-        /** Frames a second, rounded so 30000/1001 reads as 30, or 0 when the manifest doesn't say. */
-        final int frameRate;
-
         Track(String mime, String codecs, int width, int height, long bandwidth, String url) {
             this(mime, codecs, width, height, bandwidth, url, 0);
         }
@@ -67,11 +64,6 @@ final class DashManifest {
         }
 
         Track(String mime, String codecs, int width, int height, long bandwidth, String url, int label, boolean hdr) {
-            this(mime, codecs, width, height, bandwidth, url, label, hdr, 0);
-        }
-
-        Track(String mime, String codecs, int width, int height, long bandwidth, String url, int label, boolean hdr,
-                int frameRate) {
             this.mime = mime;
             this.codecs = codecs;
             this.width = width;
@@ -80,7 +72,6 @@ final class DashManifest {
             this.url = url;
             this.label = label;
             this.hdr = hdr;
-            this.frameRate = frameRate;
         }
 
         boolean isVideo() {
@@ -104,8 +95,7 @@ final class DashManifest {
         @Override
         public String toString() {
             return mime + " " + codecs + " " + width + "x" + height + " " + (bandwidth / 1000) + "kbps"
-                + (label > 0 ? " " + label + "p" : "") + (hdr ? " HDR" : "")
-                + (frameRate > 0 ? " " + frameRate + "fps" : "");
+                + (label > 0 ? " " + label + "p" : "") + (hdr ? " HDR" : "");
         }
     }
 
@@ -230,10 +220,9 @@ final class DashManifest {
      * <p>H.264 and H.265 are always permitted. AV1 is permitted only when [allowAv1] is true: a
      * story often lists only AV1 tracks, but a device with no AV1 decoder cannot play the file. VP9
      * in an MP4 is always permitted. {@code MediaMuxer} refuses it, also on Android 17, so
-     * {@link Mp4Join} writes it, and every Android phone decodes VP9. At the same size, the smoother
-     * picture wins when the manifest gives both frame rates, so a 60fps VP9 beats a 30fps H.264 of
-     * one size (#348). After that H.264 is the first choice, because all players can play it, and
-     * VP9 the last, the one format no Android muxer writes.
+     * {@link Mp4Join} writes it, and every Android phone decodes VP9. At the same size, H.264 is
+     * the first choice, because all players can play it, and VP9 the last, the one format no
+     * Android muxer writes.
      */
     static Track bestVideo(List<Track> tracks, boolean allowAv1) {
         Track best = null;
@@ -251,11 +240,6 @@ final class DashManifest {
 
             if (track.shortSide() != best.shortSide()) {
                 if (track.shortSide() > best.shortSide()) best = track;
-                continue;
-            }
-
-            if (track.frameRate > 0 && best.frameRate > 0 && track.frameRate != best.frameRate) {
-                if (track.frameRate > best.frameRate) best = track;
                 continue;
             }
 
@@ -504,7 +488,6 @@ final class DashManifest {
         String codecs = attribute(attributes, "codecs");
         if (codecs == null) codecs = attribute(setAttributes, "codecs");
         codecs = codecs == null ? "" : codecs.toLowerCase(Locale.US);
-        String rate = attribute(attributes, "frameRate");
 
         return new Track(
             mime.toLowerCase(Locale.US),
@@ -514,23 +497,8 @@ final class DashManifest {
             number(attribute(attributes, "bandwidth")),
             url,
             qualityLabel(attribute(attributes, "FBQualityLabel")),
-            setHdr || hdrSignalled(body) || hdrCodecs(codecs),
-            frameRate(rate == null ? attribute(setAttributes, "frameRate") : rate)
+            setHdr || hdrSignalled(body) || hdrCodecs(codecs)
         );
-    }
-
-    /** A DASH frame rate, {@code 30} or {@code 30000/1001}, rounded to whole frames, or 0 for anything else. */
-    static int frameRate(String text) {
-        if (text == null) return 0;
-        try {
-            int slash = text.indexOf('/');
-            double value = slash < 0
-                ? Double.parseDouble(text.trim())
-                : Double.parseDouble(text.substring(0, slash).trim()) / Double.parseDouble(text.substring(slash + 1).trim());
-            return value > 0 && value < 1000 ? (int) Math.round(value) : 0;
-        } catch (NumberFormatException notARate) {
-            return 0;
-        }
     }
 
     /** The number in a label such as {@code 720p}, or 0 for anything else. */

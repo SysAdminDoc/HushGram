@@ -57,7 +57,6 @@ public class BuildIdentityDisplayTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
-        ScreenColors.shown = null;
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
         LogBufferManager.clearLogBuffer();
     }

@@ -37,9 +37,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.WeakHashMap;
@@ -60,13 +58,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * (three on some profiles, four with Reposts) and one more for the bookmark, which is drawn in the last slot on
  * the layout's overlay, with the layout's touch listener answering for that slot.
  *
- * <p>Tapping it opens the Saved screen Instagram's own {@code instagram://saved} link leads to, which works in
- * any language. A build without that screen does what you'd do by hand instead: opens the menu at the
+ * <p>Tapping it opens Instagram's Saved screen through its own {@code instagram://saved} link, which works in
+ * any language. A build with no answer to the link does what you'd do by hand instead: opens the menu at the
  * top right and taps Saved in it. Nothing in Instagram's bytecode is touched. The menu is a Jetpack Compose
  * screen, which describes its rows as accessibility nodes whether or not a screen reader is on, so the row
  * is found by the label it carries, Saved, and a build that moves it still works. Every view is found by the
  * name Instagram gives it, and the profile counts as yours when it has the Create New button at the top
- * left or the chevron after your username that switches accounts, which other people's profiles don't.
+ * left, which other people's profiles don't.
  *
  * <p>While the menu opens and the row is tapped the screen is held invisible, so the menu doesn't flash by.
  * It's shown again whether or not the row was found, and if it wasn't, the menu is left open for you to tap
@@ -75,7 +73,6 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class ProfileSaved {
     static final String TAB_LAYOUT = "profile_tab_layout";
     static final String CREATE_BUTTON = "profile_header_create_button";
-    static final String SWITCH_ACCOUNTS = "action_bar_title_chevron";
     static final String ACTION_BUTTONS = "right_action_bar_buttons";
 
     /** How often the layout is looked at for a profile, at most. */
@@ -167,24 +164,13 @@ public final class ProfileSaved {
             View decor = activity.getWindow().getDecorView();
             View found = remembered(decor, TAB_LAYOUT, 0);
             if (!(found instanceof ViewGroup) || !found.isShown() || found.getWidth() <= 0) return;
-            if (!yours(decor)) return;
+            View create = remembered(decor, CREATE_BUTTON, 1);
+            if (create == null || !create.isShown()) return;
             remember(activity, (ViewGroup) found).keep();
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SAVED_ON_PROFILE, "tab", failure);
             why("threw " + failure);
         }
-    }
-
-    /**
-     * Whether [decor]'s screen shows your own profile: its Create New button, or with Hide the Create
-     * button on (#431), the chevron after your username that switches accounts. Other people's
-     * profiles show neither.
-     */
-    static boolean yours(View decor) {
-        View create = remembered(decor, CREATE_BUTTON, 1);
-        if (create != null && create.isShown()) return true;
-        View chevron = remembered(decor, SWITCH_ACCOUNTS, 2);
-        return chevron != null && chevron.isShown();
     }
 
     /** The row kept for [tabs], made on the first look at it. */
@@ -214,22 +200,21 @@ public final class ProfileSaved {
 
     /**
      * The view called [name] in [decor]'s window, remembered between looks: finding a view by its id walks the
-     * whole screen, which is a few milliseconds on a busy one. A remembered view that has left the window or
-     * stopped showing is looked up again, and only shown views are found: the top bar other screens share
-     * keeps a gone chevron of its own, which once remembered hid yours for good (#431).
+     * whole screen, which is a few milliseconds on a busy one. A remembered view that has left the window is
+     * looked up again.
      */
     @Nullable
     private static View remembered(View decor, String name, int slot) {
         WeakReference<View> held = seen[slot];
         View view = held == null ? null : held.get();
-        if (view != null && view.isShown() && view.getRootView() == decor) return view;
-        view = GlassTabBar.findShown(decor, name);
+        if (view != null && view.isAttachedToWindow() && view.getRootView() == decor) return view;
+        view = GlassTabBar.find(decor, name);
         seen[slot] = view == null ? null : new WeakReference<>(view);
         return view;
     }
 
     @SuppressWarnings("unchecked")
-    private static final WeakReference<View>[] seen = new WeakReference[3];
+    private static final WeakReference<View>[] seen = new WeakReference[2];
 
     static void why(String what) {
         if (DIAGNOSE) Log.w("HushSaved", what);
@@ -323,30 +308,19 @@ public final class ProfileSaved {
         }
     }
 
-    /** Instagram's own link to the Saved screen. Its router only follows it when Instagram sent it. */
+    /** Instagram's own link to the Saved screen, answered by its SavedUrlHandlerActivity in every language. */
     static final String SAVED_LINK = "instagram://saved";
-    /** The screen the link leads to. */
-    static final String SAVED_HANDLER = "com.instagram.urlhandlers.saved.SavedUrlHandlerActivity";
-    /** The bundle a link's screen reads, and the key in it naming the signed-in account. */
-    static final String LINK_BUNDLE = "com.instagram.url.extra.BUNDLE";
-    static final String SESSION_TOKEN = "IgSessionManager.SESSION_TOKEN_KEY";
-    static final String USER_SESSION = "com.instagram.common.session.UserSession";
 
     /**
-     * Opens Instagram's Saved screen, the one its {@code instagram://saved} link leads to. The link itself
-     * can't be sent: Instagram's router follows it only when Instagram sent it, and drops one from anywhere
-     * else without a word, HushGram included (453 and 454). So the screen is started by name, with the
-     * account's session in the bundle the router would have given it. The language doesn't matter and no
-     * menu opens. False when this build has no such screen or [activity] holds no session. Never throws.
+     * Opens Instagram's Saved screen through its {@code instagram://saved} link, the way the search button
+     * opens Search. The language doesn't matter and no menu opens. False when nothing in this app answers
+     * the link. Never throws.
      */
     static boolean openSavedScreen(Activity activity) {
         try {
-            String token = sessionToken(activity);
-            if (token == null) return false;
-            Intent saved = savedIntent(activity.getPackageName(), token);
-            // Intent.resolveActivity answers an explicit component without asking; the package manager checks it's there.
-            if (activity.getPackageManager().resolveActivity(saved, 0) == null) return false;
-            activity.startActivity(saved);
+            Intent link = new Intent(Intent.ACTION_VIEW, Uri.parse(SAVED_LINK)).setPackage(activity.getPackageName());
+            if (link.resolveActivity(activity.getPackageManager()) == null) return false;
+            activity.startActivity(link);
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SAVED_ON_PROFILE, "link", failure);
@@ -354,43 +328,9 @@ public final class ProfileSaved {
         }
     }
 
-    /** What Instagram's router makes of its Saved link, for the account whose session is [token]. */
-    static Intent savedIntent(String pkg, String token) {
-        Bundle bundle = new Bundle();
-        bundle.putString(SESSION_TOKEN, token);
-        return new Intent(Intent.ACTION_VIEW, Uri.parse(SAVED_LINK))
-                .setClassName(pkg, SAVED_HANDLER)
-                .putExtra(LINK_BUNDLE, bundle);
-    }
-
     /**
-     * The token of the account [activity] is signed in to, or null. Instagram's main screen holds its
-     * UserSession in a field whose name changes from build to build. The type keeps its name, and so does
-     * the session's getToken().
-     */
-    @Nullable
-    static String sessionToken(Activity activity) {
-        for (Class<?> type = activity.getClass(); type != null && type != Activity.class; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                try {
-                    if (Modifier.isStatic(field.getModifiers()) || !USER_SESSION.equals(field.getType().getName())) continue;
-                    field.setAccessible(true);
-                    Object session = field.get(activity);
-                    if (session == null) continue;
-                    Object token = session.getClass().getMethod("getToken").invoke(session);
-                    if (token instanceof String && !((String) token).isEmpty()) return (String) token;
-                } catch (Throwable failure) {
-                    HookStatus.threw(FamilyNames.SAVED_ON_PROFILE, "session", failure);
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Opens Saved. Instagram's Saved screen comes first. A build without it, or a screen holding no session,
-     * falls back to the menu and its row labelled Saved, which is only found while the label is English or
-     * HushGram's translation.
+     * Opens Saved. Instagram's own link comes first. A build with no answer to it falls back to the menu
+     * and its row labelled Saved, which is only found while the label is English or HushGram's translation.
      */
     static void open(Activity activity) {
         if (openSavedScreen(activity)) return;

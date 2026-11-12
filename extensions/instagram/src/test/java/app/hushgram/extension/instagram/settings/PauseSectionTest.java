@@ -1,10 +1,17 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
 package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.*;
+
 import android.app.Activity;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
+
 import java.util.EnumSet;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -16,6 +23,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
+
 import app.hushgram.extension.instagram.download.SavesForTests;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -23,10 +31,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/**
- * Pause and diagnostics folds like every other category, and opens by itself, without a way to
- * fold it, while HushGram is paused, the settings are locked or a save was interrupted.
- */
+/** Recovery controls remain available in the new overview and dedicated section-page model. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
 @SuppressWarnings("deprecation")
@@ -83,101 +88,108 @@ public class PauseSectionTest {
                 return (HushgramPreferenceFragment.Heading) item;
             }
         }
-        throw new AssertionError("no Pause and diagnostics on the overview");
+        throw new AssertionError("no Pause and diagnostics section on the current page");
     }
 
     private boolean onScreen(String key) {
         return page.getPreferenceScreen().findPreference(key) != null;
     }
 
-    private void assertHeldOpen(String why) {
-        HushgramPreferenceFragment.Heading pause = pause();
-        assertFalse(why + ": the section can't fold", pause.collapsible);
-        assertTrue(why, pause.expanded);
-        assertFalse(why + ": a tap on the heading does nothing", pause.isEnabled());
-        assertTrue(why + ": Pause in reach", onScreen(BaseSettings.PAUSED.key));
-        assertTrue(why + ": the lock in reach", onScreen(HushgramPreferenceFragment.LOCK_ROW_KEY));
+    private void assertRecoveryPage(String why) {
+        HushgramPreferenceFragment.Heading section = pause();
+        assertEquals(why, section.getKey(), page.currentPage());
+        assertFalse(why + ": section headings do not expand inside a section page", section.collapsible);
+        assertTrue(why + ": the recovery page has a section heading", section.pageHeader);
+        assertTrue(why + ": Pause stays in reach", onScreen(BaseSettings.PAUSED.key));
+        assertTrue(why + ": the lock stays in reach", onScreen(HushgramPreferenceFragment.LOCK_ROW_KEY));
     }
 
     private void tap(Preference row) {
+        assertNotNull("the row has its original navigation action", row.getOnPreferenceClickListener());
         assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
         ShadowLooper.idleMainLooper();
     }
 
-    @Test public void itFoldsDuringNormalUseAndATapOpensIt() throws Exception {
+    @Test public void theSectionOpensAsASeparatePageAndBackReturnsToTheOverview() throws Exception {
         open();
-        HushgramPreferenceFragment.Heading pause = pause();
-        assertTrue(pause.collapsible);
-        assertFalse(pause.expanded);
-        assertEquals(0, pause.getPreferenceCount());
+        HushgramPreferenceFragment.Heading section = pause();
+        assertTrue(section.collapsible);
+        assertFalse(section.pageHeader);
+        assertEquals(0, section.getPreferenceCount());
         assertFalse(onScreen(BaseSettings.DEBUG.key));
-        assertNotNull("folded rows stay the page's own", page.findPreference(BaseSettings.DEBUG.key));
+        assertNotNull("the hidden original row remains searchable through the fragment", page.findPreference(BaseSettings.DEBUG.key));
 
-        tap(pause);
-        assertTrue(pause.expanded);
-        assertTrue(onScreen(BaseSettings.PAUSED.key));
-        assertTrue(onScreen(HushgramPreferenceFragment.LOCK_ROW_KEY));
+        tap(section);
+        assertRecoveryPage("Pause and diagnostics opens");
         assertTrue(onScreen(BaseSettings.DEBUG.key));
-        tap(pause);
-        assertFalse(pause.expanded);
-        assertFalse(onScreen(BaseSettings.PAUSED.key));
+        assertTrue("Back returns to the overview", page.closeCategory());
+        assertEquals("", page.currentPage());
+        assertTrue(pause().collapsible);
+        assertFalse(onScreen(BaseSettings.DEBUG.key));
     }
 
     @Test public void itOpensByItselfWhilePausedFromTheNextStart() throws Exception {
         BaseSettings.PAUSED.save(true);
         open();
-        assertHeldOpen("paused from the next start");
+        assertRecoveryPage("paused from the next start");
     }
 
     @Test public void itOpensByItselfWhileThisStartIsPaused() throws Exception {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         open();
-        assertHeldOpen("paused now");
+        assertRecoveryPage("paused now");
     }
 
-    @Test public void itOpensWhileLockedAndStaysOpenOnceTheWaitEnds() throws Exception {
+    @Test public void itOpensWhileLockedAndStaysOnTheRecoveryPageAsTheWaitChanges() throws Exception {
         assertTrue(SettingsLock.lock(1));
         open();
-        assertHeldOpen("locked");
+        assertRecoveryPage("locked");
         assertTrue(SettingsLock.ask());
         page.showLock();
-        assertHeldOpen("waiting to open");
+        assertRecoveryPage("waiting to open");
 
         phone.pass(60 * MINUTE);
         page.showLock();
         assertEquals(SettingsLock.State.OPEN, SettingsLock.state());
-        HushgramPreferenceFragment.Heading pause = pause();
-        assertTrue("open settings fold again", pause.collapsible);
-        assertTrue("but the row just used doesn't fold away", pause.expanded);
-        assertTrue(onScreen(HushgramPreferenceFragment.LOCK_ROW_KEY));
+        assertRecoveryPage("unlocked for the open window");
 
         phone.pass(SettingsLock.OPEN_MS);
         page.showLock();
         assertEquals(SettingsLock.State.LOCKED, SettingsLock.state());
-        assertHeldOpen("locked again on its own clock");
+        assertRecoveryPage("locked again on its own clock");
     }
 
-    @Test public void aLockSetFromTheFoldedSectionOpensIt() throws Exception {
+    @Test public void aLockSetDuringTheSessionOpensTheRecoveryPage() throws Exception {
         open();
-        assertTrue(pause().collapsible);
+        assertEquals("", page.currentPage());
         assertTrue(SettingsLock.lock(1));
         page.showLock();
-        assertHeldOpen("just locked");
+        assertRecoveryPage("just locked");
     }
 
-    @Test public void anInterruptedSaveOpensItWithTheWarning() throws Exception {
+    @Test public void anInterruptedSaveOpensThePageWithItsWarning() throws Exception {
         SavesForTests.interrupt(RuntimeEnvironment.getApplication());
         open();
-        assertHeldOpen("a save was interrupted");
+        assertRecoveryPage("a save was interrupted");
         assertTrue(onScreen("hushgram_interrupted_saves"));
     }
 
-    @Test public void searchStillFindsItsRows() throws Exception {
+    @Test public void searchStillFindsRecoveryRows() throws Exception {
         open();
         page.searchSettings("debug");
         assertTrue(onScreen(BaseSettings.DEBUG.key));
         page.searchSettings("");
-        assertTrue(pause().collapsible);
+        assertEquals("", page.currentPage());
         assertFalse(onScreen(BaseSettings.DEBUG.key));
+    }
+
+    @Test public void recoverySectionStaysVisibleWhenSearchHasNoMatch() throws Exception {
+        open();
+        page.searchSettings("zzzz-no-match");
+        assertNotNull("pause controls must remain reachable during search", page.getPreferenceScreen().findPreference(BaseSettings.PAUSED.key));
+        assertNotNull("diagnostics must remain reachable during search", page.getPreferenceScreen().findPreference(BaseSettings.DEBUG.key));
+        assertNotNull("the recovery category itself must stay attached", pause().getParent());
+        assertNotNull("the empty search notice remains visible alongside recovery controls",
+                page.getPreferenceScreen().findPreference("hushgram_settings_search_empty"));
     }
 }

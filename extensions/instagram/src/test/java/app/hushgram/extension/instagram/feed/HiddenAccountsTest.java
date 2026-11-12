@@ -20,8 +20,6 @@ import org.robolectric.annotation.Config;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.function.ToIntFunction;
 
@@ -76,14 +74,6 @@ public class HiddenAccountsTest {
     public void restore() {
         clear();
         Settings.HIDE_FEED_VIDEOS.resetToDefault();
-        Settings.HIDDEN_IN_FAVORITES.resetToDefault();
-    }
-
-    /** What Instagram's request for a page of Home carries, with [source] as its paging source. */
-    private static void asks(String source) {
-        Map<String, String> params = new LinkedHashMap<>();
-        if (source != null) params.put(HiddenAccounts.PAGINATION_SOURCE, source);
-        HiddenAccounts.homeRequest(params);
     }
 
     private void clear() {
@@ -154,81 +144,6 @@ public class HiddenAccountsTest {
         assertTrue(HiddenAccounts.saved().isEmpty());
         Item back = new Item("nasa");
         assertSame(back, home(back));
-    }
-
-    /**
-     * With Keep hidden accounts in Favorites on, a hidden account's post stays on a page Home asked
-     * Favorites for, and still leaves For you and Following, and Favorites too with the switch off (#601).
-     */
-    @Test
-    public void favoritesKeepsHiddenAccountsWhileItsSwitchIsOn() {
-        signIn("1");
-        HiddenAccounts.add("nasa");
-        Settings.HIDDEN_IN_FAVORITES.save(true);
-
-        asks(HiddenAccounts.FAVORITES);
-        Item kept = new Item("nasa");
-        assertSame(kept, home(kept));
-        assertTrue(String.join("\n", HookStatus.report()).contains(HiddenAccounts.KEPT_IN_FAVORITES + " 1"));
-
-        asks("following");
-        assertNull("Following still leaves it out", home(new Item("nasa")));
-        asks(null);
-        assertNull("For you still leaves it out", home(new Item("nasa")));
-
-        asks(HiddenAccounts.FAVORITES);
-        Settings.HIDDEN_IN_FAVORITES.save(false);
-        assertNull("off, Favorites leaves it out too", home(new Item("nasa")));
-    }
-
-    /**
-     * 454 sends Favorites' paging source in the request's extra parameters, not its parameters: a
-     * page asked that way still keeps the post, and the next request with neither reads as For you's.
-     */
-    @Test
-    public void favoritesInTheExtrasKeepsHiddenAccountsToo() {
-        signIn("1");
-        HiddenAccounts.add("nasa");
-        Settings.HIDDEN_IN_FAVORITES.save(true);
-
-        asks(null);
-        Map<String, String> extras = new LinkedHashMap<>();
-        extras.put(HiddenAccounts.PAGINATION_SOURCE, HiddenAccounts.FAVORITES);
-        HiddenAccounts.homeRequestExtras(extras);
-        Item kept = new Item("nasa");
-        assertSame(kept, home(kept));
-
-        asks(null);
-        HiddenAccounts.homeRequestExtras(new LinkedHashMap<String, String>());
-        assertNull("For you still leaves it out", home(new Item("nasa")));
-
-        asks(HiddenAccounts.FAVORITES);
-        Map<String, Object> odd = new LinkedHashMap<>();
-        odd.put(HiddenAccounts.PAGINATION_SOURCE, 7);
-        HiddenAccounts.homeRequestExtras(odd);
-        HiddenAccounts.homeRequestExtras(null);
-        Item still = new Item("nasa");
-        assertSame("extras with no text source leave the parameters' alone", still, home(still));
-        assertFalse(String.join("\n", HookStatus.report()).contains("threw"));
-    }
-
-    /** A request with no parameters, or a paging source that isn't text, reads as For you's and never throws. */
-    @Test
-    public void anOddRequestReadsAsForYou() {
-        signIn("1");
-        HiddenAccounts.add("nasa");
-        Settings.HIDDEN_IN_FAVORITES.save(true);
-        asks(HiddenAccounts.FAVORITES);
-
-        HiddenAccounts.homeRequest(null);
-        assertNull(home(new Item("nasa")));
-
-        asks(HiddenAccounts.FAVORITES);
-        Map<String, Object> odd = new LinkedHashMap<>();
-        odd.put(HiddenAccounts.PAGINATION_SOURCE, 7);
-        HiddenAccounts.homeRequest(odd);
-        assertNull(home(new Item("nasa")));
-        assertFalse(String.join("\n", HookStatus.report()).contains("threw"));
     }
 
     /** The list is saved, so it's there after a restart, before and after Home's session comes back. */

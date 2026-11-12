@@ -62,10 +62,6 @@ public class ToastWidthTest {
         assertEquals(2, lines("Twenty-eight characters fit. And this goes on."));
         assertEquals(3, lines("Twenty-eight characters fit. And this goes on to a third line."));
         assertEquals(2, lines("%1$s and %2$s were saved."));
-        StringBuilder marked = new StringBuilder();
-        for (int letter = 0; letter < WIDTH; letter++) marked.append("กิ");
-        assertEquals(1, lines(marked.toString()));
-        assertEquals(2, lines(marked.append("ก").toString()));
         Map<String, String> one = new TreeMap<>();
         one.put("Twenty-eight characters fit. And this goes on to a third line.", "Test.java");
         assertEquals(1, longToasts(one).size());
@@ -120,7 +116,7 @@ public class ToastWidthTest {
             lines++;
             int used = 0;
             for (String word : paragraph.split(" ", -1)) {
-                int length = width(word);
+                int length = word.codePointCount(0, word.length());
                 if (used > 0 && used + 1 + length <= WIDTH) {
                     used += 1 + length;
                     continue;
@@ -135,17 +131,6 @@ public class ToastWidthTest {
             }
         }
         return lines;
-    }
-
-    /** The characters of [word] that take room on a line. A mark sitting on a letter, as Thai vowels and tones do, takes none. */
-    private static int width(String word) {
-        int width = 0;
-        for (int at = 0; at < word.length(); ) {
-            int point = word.codePointAt(at);
-            at += Character.charCount(point);
-            if (Character.getType(point) != Character.NON_SPACING_MARK) width++;
-        }
-        return width;
     }
 
     /** What the scan found, so a failing run's list can be read whole. */

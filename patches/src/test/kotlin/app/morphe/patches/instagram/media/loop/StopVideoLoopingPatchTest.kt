@@ -11,10 +11,6 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
-import app.morphe.patches.instagram.media.background.RESUME
-import app.morphe.patches.instagram.media.resume.IS_SPONSORED
-import app.morphe.patches.instagram.media.resume.MEDIA_ID
-import app.morphe.patches.instagram.media.resume.PRODUCT_TYPE_LABEL
 import app.morphe.patches.instagram.media.taptoplay.CLIPS_VIEWER_CONFIG
 import app.morphe.patches.instagram.media.taptoplay.PLAY_INTERNAL
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -24,12 +20,10 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
-import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -51,9 +45,6 @@ class StopVideoLoopingPatchTest {
     private val objectType = "Ljava/lang/Object;"
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val setLooping = "$groot->A0d(Z)V"
-    private val holder = "Lfixture/VideoSettings;"
-    private val source = "Lfixture/VideoSource;"
-    private val dump = "Lfixture/VideoSourceDump;"
 
     /**
      * playInternal and the player's setter each hand the engine's setLooping the loop flag through
@@ -99,93 +90,6 @@ class StopVideoLoopingPatchTest {
         assertEquals(Opcode.RETURN, reels.last().opcode)
     }
 
-    /**
-     * StopLooping.videoId reads the media ID of what a player plays the way the player's own reader
-     * does, through its settings and their IgVideoSource, answering null for anything else (#610).
-     */
-    @Test
-    fun videoIdReadsThePlayersMediaId() {
-        val context = PatchContexts.of(classes())
-        assertNull(context.stopVideoLooping())
-        val videoId = context.method(STOP_LOOPING, "videoId").code()
-        assertEquals(
-            "a player, cast, its settings, their source, the media ID",
-            listOf(player, player, "$player->settings:$holder", "$holder->source:$source", "$source->mediaId:$string"),
-            videoId.mapNotNull { it.referenceText() },
-        )
-        assertEquals("each null step answers null", 3, videoId.count { it.opcode == Opcode.IF_EQZ })
-        val none = videoId.indexOfLast { it.opcode == Opcode.CONST_4 }
-        for (branch in videoId.indices.filter { videoId[it].opcode == Opcode.IF_EQZ }) {
-            assertEquals("the branch at $branch", none, videoId.target(branch))
-        }
-        assertEquals(listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT), videoId.takeLast(2).map { it.opcode })
-    }
-
-    /**
-     * StopLooping.reloop hands a player the flag its setter already keeps, so the hook answers
-     * again for the video playing and a loop chosen from a menu takes at once (#610).
-     */
-    @Test
-    fun reloopHandsTheSetterItsOwnFlag() {
-        val context = PatchContexts.of(classes())
-        assertNull(context.stopVideoLooping())
-        val reloop = context.method(STOP_LOOPING, "reloop").code()
-        assertEquals(
-            "a player, cast, its kept flag, its setter",
-            listOf(player, player, "$player->looping:Z", "$player->A0i(Z)V"),
-            reloop.mapNotNull { it.referenceText() },
-        )
-        val flag = reloop.single { it.opcode == Opcode.IGET_BOOLEAN } as OneRegisterInstruction
-        val call = reloop.single { it.opcode == Opcode.INVOKE_VIRTUAL }
-        assertEquals("the setter gets the flag it kept", flag.registerA, call.registers()[1])
-        assertEquals("anything else isn't touched", reloop.size - 1, reloop.target(reloop.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
-    }
-
-    /**
-     * StopLooping.position and length ask the player's own readers, and StopLooping.restart seeks
-     * the player to the start and plays it the way Instagram resumes a video, so a video that ended
-     * plays again when it's looped from its menu (#610).
-     */
-    @Test
-    fun restartSeeksToTheStartAndPlays() {
-        val context = PatchContexts.of(classes())
-        assertNull(context.stopVideoLooping())
-        for ((name, reader) in listOf("position" to "BxZ", "length" to "A0L")) {
-            val stub = context.method(STOP_LOOPING, name).code()
-            assertEquals(name, listOf(player, player, "$player->$reader()I"), stub.mapNotNull { it.referenceText() })
-            val none = stub[stub.size - 2] as NarrowLiteralInstruction
-            assertEquals("$name answers -1 for anything else", -1, none.narrowLiteral)
-            assertEquals(stub.size - 2, stub.target(stub.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
-        }
-        val seek = "$player->A0U(IZZ)V"
-        val play = "$player->A0c(Ljava/lang/String;Z)V"
-        val restart = context.method(STOP_LOOPING, "restart").code()
-        assertEquals(
-            "a player, cast, the seek, the reason, the play",
-            listOf(player, player, seek, RESUME, play),
-            restart.mapNotNull { it.referenceText() },
-        )
-        val seekAt = restart.indexOfFirst { it.referenceText() == seek }
-        val zero = restart[seekAt - 1]
-        assertEquals(0, (zero as NarrowLiteralInstruction).narrowLiteral)
-        assertEquals("to the start, neither logged nor exact", List(3) { (zero as OneRegisterInstruction).registerA }, restart[seekAt].registers().drop(1))
-        val playAt = restart.indexOfFirst { it.referenceText() == play }
-        assertEquals("played as a resume, not after a seek", 0, (restart[playAt - 1] as NarrowLiteralInstruction).narrowLiteral)
-        assertEquals("anything else isn't touched", restart.size - 1, restart.target(restart.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
-    }
-
-    /** Without a seek it can call the loop still goes in, and an ended video looped from its menu just stays put. */
-    @Test
-    fun withoutASeekTheLoopStillGoesIn() {
-        val context = PatchContexts.of(classes(Variant(noSeek = true)))
-        assertNull(context.stopVideoLooping())
-        assertTrue("the setter is hooked", context.method(player, "A0i").code().any { it.referenceText() == LOOP })
-        assertEquals("reloop was filled", "$player->A0i(Z)V", context.method(STOP_LOOPING, "reloop").code().mapNotNull { it.referenceText() }.last())
-        assertEquals("restart stays empty", 1, context.method(STOP_LOOPING, "restart").code().size)
-        assertEquals("position stays empty", 2, context.method(STOP_LOOPING, "position").code().size)
-        assertEquals("length stays empty", 2, context.method(STOP_LOOPING, "length").code().size)
-    }
-
     /** Each shape the patch can't place the hook in safely leaves every class as it was and says why. */
     @Test
     fun refusesAndChangesNothing() {
@@ -197,8 +101,6 @@ class StopVideoLoopingPatchTest {
             Variant(playerOverwritten = true) to "writes over parameter 0",
             Variant(hiddenLogger = true) to "not public",
             Variant(rangeCall = true) to "expected a plain invoke",
-            Variant(noMediaIdReader = true) to "media ID",
-            Variant(hiddenFlag = true) to "keeps its flag in a public field",
         )) {
             val context = PatchContexts.of(classes(variant))
             val reason = context.stopVideoLooping()
@@ -207,9 +109,6 @@ class StopVideoLoopingPatchTest {
                 assertTrue("$variant: ${method.name} changed", method.code().none { it.referenceText() == LOOP })
             }
             assertEquals("$variant: the stub was filled", 2, context.method(STOP_LOOPING, "reels").code().size)
-            assertEquals("$variant: videoId was filled", 2, context.method(STOP_LOOPING, "videoId").code().size)
-            assertEquals("$variant: reloop was filled", 1, context.method(STOP_LOOPING, "reloop").code().size)
-            assertEquals("$variant: restart was filled", 1, context.method(STOP_LOOPING, "restart").code().size)
         }
     }
 
@@ -252,13 +151,7 @@ class StopVideoLoopingPatchTest {
         }
         // classesLoading carries the pools Redex moved the string into.
         val cores = FixtureDex.classesLoading(bundle, SET_LOOPING)
-        // IgVideoSource's dump, the source, and the classes of the player's fields, for videoId.
-        val dumps = FixtureDex.classesHolding(bundle, IS_SPONSORED)
-        val sources = dumps.flatMap { it.methods }.filter { method ->
-            method.code().any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == MEDIA_ID }
-        }.mapNotNull { it.parameterTypes.firstOrNull()?.toString() }
-        val extra = FixtureDex.classes(bundle, (sources + players.flatMap { it.fields }.map { it.type }).toSet()).values
-        val classes = (players + engines + madeWithConfig + cores + dumps + extra + ExtensionDex.classDef(STOP_LOOPING))
+        val classes = (players + engines + madeWithConfig + cores + ExtensionDex.classDef(STOP_LOOPING))
             .distinctBy { it.type }
         val context = PatchContexts.of(classes)
         val sites = context.findLoopSites()
@@ -282,24 +175,6 @@ class StopVideoLoopingPatchTest {
             }
         }
         assertEquals("$label: hooks", 2, hooks)
-
-        val videoId = context.method(STOP_LOOPING, "videoId").code().mapNotNull { it.referenceText() }
-        assertEquals("$label: videoId reads three fields from the player on", 5, videoId.size)
-        assertTrue("$label: from the player's own field, $videoId", videoId[2].startsWith("${sites.player}->"))
-        assertTrue("$label: ending on a String, $videoId", videoId[4].endsWith(":Ljava/lang/String;"))
-        val reloop = context.method(STOP_LOOPING, "reloop").code().mapNotNull { it.referenceText() }
-        val setter = sites.sites.single { !AccessFlags.STATIC.isSet(it.first.accessFlags) }.first
-        assertEquals("$label: reloop calls the setter", "${sites.player}->${setter.name}(Z)V", reloop.last())
-        assertTrue("$label: with the player's own flag, $reloop", reloop[2].startsWith("${sites.player}->") && reloop[2].endsWith(":Z"))
-
-        val reads = listOf("position", "length").map { name ->
-            context.method(STOP_LOOPING, name).code().mapNotNull { it.methodReference()?.key() }.single()
-        }
-        assertTrue("$label: two of the player's int readers, $reads", reads.distinct().size == 2 && reads.all { it.startsWith("${sites.player}->") && it.endsWith("()I") })
-        val restart = context.method(STOP_LOOPING, "restart").code().mapNotNull { it.methodReference()?.key() }
-        assertEquals("$label: restart seeks, then plays", 2, restart.size)
-        assertTrue("$label: the player's seek, $restart", restart[0].startsWith("${sites.player}->") && restart[0].endsWith("(IZZ)V"))
-        assertTrue("$label: the player's play, $restart", restart[1].startsWith("${sites.player}->") && restart[1].endsWith("(Ljava/lang/String;Z)V"))
     }
 
     private data class Variant(
@@ -310,9 +185,6 @@ class StopVideoLoopingPatchTest {
         val playerOverwritten: Boolean = false,
         val hiddenLogger: Boolean = false,
         val rangeCall: Boolean = false,
-        val noMediaIdReader: Boolean = false,
-        val hiddenFlag: Boolean = false,
-        val noSeek: Boolean = false,
     )
 
     private fun classes(v: Variant = Variant()): List<ClassDef> {
@@ -347,62 +219,14 @@ class StopVideoLoopingPatchTest {
             invoke-virtual { v0, p1 }, $groot->A0b(Z)V
             return-void
         """)
-        // The player's media ID reader: its settings, their IgVideoSource, the ID.
-        val reader = method(player, "A0K", emptyList(), string, 2, static = false, body = """
-            iget-object v0, p0, $player->settings:$holder
-            iget-object v0, v0, $holder->source:$source
-            iget-object v0, v0, $source->mediaId:$string
-            return-object v0
-        """)
-        // Where it is, answering 0 past a day, and how long the video is, narrowed from a long.
-        val position = method(player, "BxZ", emptyList(), "I", 3, static = false, body = """
-            iget v0, p0, $player->at:I
-            const v1, 0x5265c00
-            if-gt v0, v1, :past
-            return v0
-            :past
-            const/4 v0, 0x0
-            return v0
-        """)
-        val length = method(player, "A0L", emptyList(), "I", 3, static = false, body = """
-            iget-wide v0, p0, $player->duration:J
-            long-to-int v0, v0
-            return v0
-        """)
-        // The seek (position, log it, exact), and the play (reason, playAfterSeek) Instagram resumes through.
-        val seek = method(player, "A0U", listOf("I", "Z", "Z"), "V", 5, static = false, body = """
-            const-string v0, "clips_viewer"
-            const-string v0, "$RESUME"
-            iput p1, p0, $player->at:I
-            return-void
-        """)
-        val play = method(player, "A0c", listOf(string, "Z"), "V", 5, static = false, body = """
-            const-string v0, "$RESUME"
-            const/4 v1, 0x0
-            invoke-static { p0, p1, p2, v1 }, $player->A0I($player${string}ZZ)V
-            return-void
-        """)
         val loggerFlags = if (v.hiddenLogger) AccessFlags.FINAL.value else AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val videoPlayer = classDef(
-            player,
-            listOfNotNull(internal, setter, other, reader.takeUnless { v.noMediaIdReader }, position, length, seek.takeUnless { v.noSeek }, play),
+            player, listOf(internal, setter, other),
             listOf(
                 ImmutableField(player, "engine", groot, AccessFlags.PUBLIC.value, null, null, null),
-                ImmutableField(player, "looping", "Z", if (v.hiddenFlag) 0 else AccessFlags.PUBLIC.value, null, null, null),
+                ImmutableField(player, "looping", "Z", AccessFlags.PUBLIC.value, null, null, null),
                 ImmutableField(player, "logger", logger, loggerFlags, null, null, null),
-                ImmutableField(player, "settings", holder, AccessFlags.PUBLIC.value, null, null, null),
             ),
-        )
-        val videoSource = listOf(
-            classDef(holder, emptyList(), listOf(ImmutableField(holder, "source", source, AccessFlags.PUBLIC.value, null, null, null))),
-            classDef(source, emptyList(), listOf(ImmutableField(source, "mediaId", string, AccessFlags.PUBLIC.value, null, null, null))),
-            classDef(dump, listOf(method(dump, "A00", listOf(source), "V", 2, static = true, body = """
-                iget-object v0, p0, $source->mediaId:$string
-                const-string v0, "$MEDIA_ID"
-                const-string v0, "$PRODUCT_TYPE_LABEL"
-                const-string v0, "$IS_SPONSORED"
-                return-void
-            """))),
         )
         val engine = classDef(
             groot,
@@ -441,7 +265,7 @@ class StopVideoLoopingPatchTest {
                 superclass = logger,
             ),
         )
-        return listOf(videoPlayer, engine, heaviside) + loggers + videoSource + ExtensionDex.classDef(STOP_LOOPING)
+        return listOf(videoPlayer, engine, heaviside) + loggers + ExtensionDex.classDef(STOP_LOOPING)
     }
 
     private fun BytecodePatchContext.method(type: String, name: String): Method = classDefBy(type).methods.first { it.name == name }

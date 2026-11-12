@@ -85,7 +85,7 @@ public class SettingsVisualCaptureTest {
     /** Deterministic development preview metadata. These fixtures never represent an installed build. */
     @Implements(value = Utils.class, isInAndroidSdk = false)
     public static class CaptureMetadata {
-        @Implementation public static String getPatchesReleaseVersion() { return "0.0.19"; }
+        @Implementation public static String getPatchesReleaseVersion() { return "0.0.18"; }
         @Implementation public static String getAppVersionName() { return "453.0.0.57.79"; }
         @Implementation public static long getAppVersionCode() { return 385914557L; }
         @Implementation public static String getSourceBuildIdentity() { return "Development preview"; }
@@ -125,8 +125,9 @@ public class SettingsVisualCaptureTest {
         PreferenceGroup screen = page.getPreferenceScreen();
         assertEquals(SettingsHeader.KEY, screen.getPreference(0).getKey());
         assertEquals("hushgram_settings_search", screen.getPreference(1).getKey());
-        assertEquals("hushgram_view_toggle", screen.getPreference(2).getKey());
-        assertNull("the active banner must not occupy a row", screen.findPreference("hushgram_status"));
+        assertNull("the obsolete layout toggle is not part of the redesigned overview",
+                screen.findPreference("hushgram_view_toggle"));
+        assertNull("the status banner remains absent when HushGram is active", screen.findPreference("hushgram_status"));
         capturePage("00-overview", false);
         ListView list = page.getView().findViewById(android.R.id.list);
         int visibleCategories = 0;
@@ -138,15 +139,14 @@ public class SettingsVisualCaptureTest {
             if (key != null && key.startsWith(HushgramPreferenceFragment.CATEGORY_ROW_KEY)
                     && row.getTop() >= 0 && row.getBottom() <= list.getHeight()) {
                 visibleCategories++;
-                assertTrue("compact rows remain tappable", row.getHeight() >= 48 * row.getResources().getDisplayMetrics().density);
+                assertTrue("category rows remain tappable", row.getHeight() >= 48 * row.getResources().getDisplayMetrics().density);
             }
         }
         assertTrue("the overview should expose at least eight complete categories: " + visibleCategories, visibleCategories >= 8);
-        Preference feed = titled(screen, "Feed");
-        clickInList(feed);
-        assertNotNull(page.findPreference(Settings.START_ON_FOLLOWING.key));
+        openCategory("Feed");
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.START_ON_FOLLOWING.key));
         capturePage("01-feed", false);
-        list.setSelectionFromTop(0, 0);
+        assertTrue(page.closeCategory());
         settle();
         EditText input = page.getView().findViewWithTag("hushgram-settings-search");
         input.setText("Hide ads");
@@ -158,23 +158,13 @@ public class SettingsVisualCaptureTest {
         assertEquals(!wasHidden, Settings.HIDE_ADS.savedValue());
         capturePage("02-search", false);
         clickInList(ads);
-        list.setSelectionFromTop(0, 0);
-        settle();
         input = page.getView().findViewWithTag("hushgram-settings-search");
         input.setText("");
         settle();
-        tap(feed);
-        settle();
-        clickInList(page.getPreferenceScreen().findPreference("hushgram_view_toggle"));
-        assertFalse(Settings.CATEGORY_PAGES.savedValue());
-        assertEquals("Show settings by category",
-                page.getPreferenceScreen().findPreference("hushgram_view_toggle").getTitle());
-        clickInList(page.getPreferenceScreen().findPreference("hushgram_view_toggle"));
-        assertTrue(Settings.CATEGORY_PAGES.savedValue());
         capturePage("03-restored-overview", false);
     }
 
-    @Test public void compactOverviewAndCategoryRenderAtTwiceTheTextSize() throws Exception {
+        @Test public void compactOverviewAndCategoryRenderAtTwiceTheTextSize() throws Exception {
         scale = "compact-extra-large";
         RuntimeEnvironment.setFontScale(2f);
         open();
@@ -197,22 +187,19 @@ public class SettingsVisualCaptureTest {
     @Test public void everyCategoryAndItsScrolledContentRender() throws Exception {
         open();
         capturePage("00-overview", true);
-        List<Preference> categories = categories();
-        assertEquals("Every category, Pause and diagnostics included, can expand in place", 24, categories.size());
+        List<Preference> sections = categories();
+        assertEquals("Every HushGram category can open as its own page", 23, sections.size());
         int number = 1;
-        for (Preference category : categories) {
+        for (Preference category : sections) {
             tap(category);
-            ListView list = page.getView().findViewById(android.R.id.list);
-            assertTrue(((HushgramPreferenceFragment.Heading) category).expanded);
-            assertNotNull("Search remains on the same page", page.getPreferenceScreen().findPreference("hushgram_settings_search"));
+            HushgramPreferenceFragment.Heading heading = (HushgramPreferenceFragment.Heading) category;
+            assertTrue(heading.pageHeader);
+            assertFalse(heading.collapsible);
             capturePage(String.format(Locale.ROOT, "%02d-%s", number++, slug(category.getTitle())), true);
-            tap(category);
+            assertTrue(page.closeCategory());
             settle();
         }
-        Settings.CATEGORY_PAGES.save(false);
-        page.searchSettings("");
-        settle();
-        capturePage("24-all-settings", false);
+        capturePage("24-overview", false);
         page.searchSettings("Hide ads");
         settle();
         assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
@@ -223,7 +210,7 @@ public class SettingsVisualCaptureTest {
         capturePage("26-search-empty", false);
     }
 
-    @Test public void everyPageKeepsItsTitlesAndControlsAtLargerText() throws Exception {
+        @Test public void everyPageKeepsItsTitlesAndControlsAtLargerText() throws Exception {
         captureLargePages(1.3f, "large");
     }
 
@@ -240,7 +227,7 @@ public class SettingsVisualCaptureTest {
         for (Preference category : categories()) {
             tap(category);
             capturePage(String.format(Locale.ROOT, "%02d-%s", number++, slug(category.getTitle())), false);
-            tap(category);
+            assertTrue(page.closeCategory());
             settle();
         }
     }
@@ -294,7 +281,7 @@ public class SettingsVisualCaptureTest {
         captureAlert("28-save-folder");
         clickInList(page.findPreference(Settings.FILENAME_TEMPLATE.key));
         captureAlert("29-file-name");
-        tap(titled(page.getPreferenceScreen(), "Downloads"));
+        assertTrue(page.closeCategory());
         settle();
         openCategory("Ads and privacy");
         SwitchPreference ghost = (SwitchPreference) titled(page.getPreferenceScreen(), "Ghost mode");
@@ -305,7 +292,7 @@ public class SettingsVisualCaptureTest {
         assertTrue("The real ghost control must reflect its constituent settings", ghost.isChecked());
         capturePage("30-ghost-on", false);
         ghost.getOnPreferenceChangeListener().onPreferenceChange(ghost, false);
-        tap(titled(page.getPreferenceScreen(), "Ads and privacy"));
+        assertTrue(page.closeCategory());
         settle();
         page.searchSettings("Pause HushGram");
         settle();
@@ -966,6 +953,9 @@ public class SettingsVisualCaptureTest {
     }
 
     private void openCategory(String title) throws Exception {
+        // Clear search or return from the current section before looking for an overview row.
+        page.closeCategory();
+        settle();
         for (Preference category : categories()) {
             if (title.contentEquals(category.getTitle())) {
                 tap(category);

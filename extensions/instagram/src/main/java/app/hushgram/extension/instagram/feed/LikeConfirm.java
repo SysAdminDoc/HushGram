@@ -7,7 +7,6 @@ package app.hushgram.extension.instagram.feed;
 import android.content.Context;
 
 import android.app.Dialog;
-import android.view.View;
 
 import androidx.annotation.Nullable;
 
@@ -21,11 +20,10 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
- * Helper for the "Ask before a like" patch: a question before the Like button under a post, on a
- * reel or beside a comment likes or unlikes it, while the switch is on.
+ * Helper for the "Ask before a like" patch: a question before the Like button under a post likes
+ * or unlikes it, while the switch is on.
  *
- * <p>The patch hands the button's handler and what it was handed to {@link #hold} first thing, and
- * a reel's handler to {@link #holdReel}, which runs it again through {@link #likeReelAgain}. The
+ * <p>The patch hands the button's handler and what it was handed to {@link #hold} first thing. The
  * tap is held back while the question is up, and Continue runs the handler again, as Instagram would
  * have run it, through {@link #likeAgain}, which the patch fills. That second run goes through
  * unasked. Cancel, Back or a tap outside leave the post as it was. The handler doesn't know yet
@@ -67,15 +65,6 @@ public final class LikeConfirm {
     static void likeAgain(Object handler, Object media, Object position, String module, Object done, int index) {
     }
 
-    /** Filled in by the patch: hands the Like button's handler on a reel what it was handed, again. */
-    static void likeReelAgain(Object handler, Object button, Object item, Object state, Object source, String first,
-            String second, String third, String fourth, Object done, boolean firstFlag, boolean secondFlag) {
-    }
-
-    /** Filled in by the patch: hands the comment list's like entry what it was handed, again. */
-    static void likeCommentAgain(Object handler, Object state, Boolean fromButton, String first, String second) {
-    }
-
     /**
      * Injected first thing in the Like button's handler, with its own arguments. True holds the tap
      * while the question is up, false lets Instagram go on as usual. Never throws.
@@ -84,33 +73,7 @@ public final class LikeConfirm {
         return hold(() -> contextOf(handler), () -> likeAgain(handler, media, position, module, done, index));
     }
 
-    /**
-     * Injected first thing in the Like button's handler on a reel (#603), with its own arguments and
-     * its two booleans as ints. The question shows over the screen the button is on. Never throws.
-     */
-    public static boolean holdReel(Object handler, Object button, Object item, Object state, Object source, String first,
-            String second, String third, String fourth, Object done, int firstFlag, int secondFlag) {
-        return hold(() -> button instanceof View ? ((View) button).getContext() : null,
-                () -> likeReelAgain(handler, button, item, state, source, first, second, third, fourth, done,
-                        firstFlag != 0, secondFlag != 0));
-    }
-
-    /**
-     * Injected first thing in the comment list's like entry (#614), with its own arguments. Instagram
-     * hands it {@code FALSE} for a double tap, which isn't asked about, and {@code TRUE} or null for
-     * the heart beside the comment. The question shows over the screen in front. Never throws.
-     */
-    public static boolean holdComment(Object handler, Object state, Boolean fromButton, String first, String second) {
-        if (Boolean.FALSE.equals(fromButton)) return false;
-        return hold(Utils::getActivity, () -> likeCommentAgain(handler, state, fromButton, first, second),
-                () -> L10n.t("Like or unlike this comment?"));
-    }
-
     static boolean hold(Supplier<Context> screen, Runnable again) {
-        return hold(screen, again, () -> L10n.t("Like or unlike this post?"));
-    }
-
-    private static boolean hold(Supplier<Context> screen, Runnable again, Supplier<String> ask) {
         try {
             HookStatus.invoked(FamilyNames.ASK_BEFORE_LIKE);
             if (replaying || !Utils.settingsReady() || !Settings.ASK_BEFORE_LIKE.get()) return false;
@@ -119,7 +82,7 @@ public final class LikeConfirm {
             if (ConfirmDialog.up(up, context)) return true;
             // A question left on another screen, or one that went with its screen, can't be answered here.
             ConfirmDialog.drop(up);
-            Dialog question = ConfirmDialog.ask(context, ask.get(), L10n.t("Continue"),
+            Dialog question = ConfirmDialog.ask(context, L10n.t("Like or unlike this post?"), L10n.t("Continue"),
                     () -> again(again), null, LikeConfirm::forget);
             if (question == null) return false;
             open = new WeakReference<>(question);

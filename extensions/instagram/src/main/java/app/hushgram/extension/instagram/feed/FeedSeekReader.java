@@ -8,8 +8,6 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 
-import java.util.Map;
-
 /**
  * What the Seek bar on feed videos patch fills in: the cover of the video the feed's video player
  * has, which sits in the video's frame, and the pause, seek and play Instagram's own feed scrubber
@@ -54,27 +52,6 @@ final class FeedSeekReader {
      */
     @Nullable
     static Object play(Object player, @Nullable Object spare1, @Nullable Object spare2, @Nullable Object spare3) {
-        return null;
-    }
-
-    /** Filled in by the patch: the post the player has now, or null while it has none. */
-    @Nullable
-    static Object media(Object player) {
-        return null;
-    }
-
-    /** Filled in by the patch: [media]'s picture strip, by the names in Instagram's JSON, or null when it has none. */
-    @Nullable
-    static Map<?, ?> sheet(Object media) {
-        return null;
-    }
-
-    /**
-     * Filled in by the patch, when the build has it: the picture strip kept with [media]'s cover
-     * pictures, by the names in Instagram's JSON, or null when it has none. Reels carry theirs there.
-     */
-    @Nullable
-    static Map<?, ?> scrubberSheet(Object media) {
         return null;
     }
 }

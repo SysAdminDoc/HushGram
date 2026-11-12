@@ -59,9 +59,6 @@ internal val THREADS_UNITS = listOf(
 /** The survey Instagram asks you to fill in between posts ("in_feed_survey" in the feed's JSON). */
 internal val SURVEY_UNITS = listOf("FEED_SURVEY")
 
-/** A row of story cards between posts, like Expiring Stories ("stories_netego" in the feed's JSON, #557). */
-internal val STORY_UNITS = listOf("STORIES_NETEGO")
-
 /** The shopping units: products to shop, product picks from a post, and live shopping. */
 internal val SHOPPING_UNITS = listOf("SHOPPING_RECOMMENDATION_UNIT", "PRODUCT_PIVOTS", "LIVE_SHOPPING_NETEGO")
 
@@ -71,8 +68,8 @@ val hideSuggestedPostsPatch = bytecodePatch(
     description = "Removes posts from accounts you don't follow, suggested accounts, surveys and shopping rows " +
         "from Home. It also takes shop tiles out of Explore and the shopping bag off posts with tagged products. " +
         "Posts from accounts you follow stay. Extra switches can also hide the 'Are you interested in this post?' " +
-        "question on Home and Reels, the caught up card, the Join bar on channel posts, rows of stories about to expire, all videos, photos, carousels, posts " +
-        "you've liked, posts from business and creator accounts or posts from accounts you pick. A post's menu has Hide posts from this account to add one " +
+        "question on Home and Reels, the caught up card, all videos, photos, carousels, posts " +
+        "you've liked or posts from accounts you pick. A post's menu has Hide posts from this account to add one " +
         "to that list, and those posts leave Home on the next refresh. On by default. Turn it off in HushGram " +
         "settings > Feed.",
 ) {
@@ -83,7 +80,6 @@ val hideSuggestedPostsPatch = bytecodePatch(
 
     execute {
         requireStatusMethod(FEED_TYPES_STATUS)
-        requireStatusMethod(FAVORITES_SOURCE_STATUS)
         // Found before anything changes, so a build where Explore's sections or the products
         // indicator moved stops the patch with Home's filter not yet written.
         val exploreShops = findExploreShopSections()
@@ -103,8 +99,6 @@ val hideSuggestedPostsPatch = bytecodePatch(
         val caughtUpTitle = caughtUpCardTitleOrWarn(sectionHeader)
         // Hide the caught up card folds the same card's row (#307). A build without it keeps the card.
         val caughtUpCard = hideCaughtUpCardOrWarn()
-        // Hide the Join bar on channel posts (#625). A build without it keeps the bar.
-        val channelJoinBar = hideChannelJoinBarOrWarn()
         filterSuggestedFeedItems()
         endFollowingAtItsCard()
         // The Older Posts page's loading row, a separate builder; a build without it keeps Instagram's row.
@@ -114,7 +108,6 @@ val hideSuggestedPostsPatch = bytecodePatch(
         caughtUpTitle?.write(this, itemsFilled)
         // After the title's hook, which checks the binder's code by index.
         caughtUpCard?.write(this)
-        channelJoinBar?.write(this)
         exploreShops.write(this)
         productTags.write(this)
         interest.write(this)
@@ -125,28 +118,18 @@ val hideSuggestedPostsPatch = bytecodePatch(
         homeFeedTypesOrWarn()?.let {
             // Found with the rest, before anything is written: the menu row reads the author stub it fills.
             val menuRow = hideAccountRowOrWarn()
-            // Keep hidden accounts in Favorites reads which feed each request for a page of Home is for (#601).
-            val requestSource = homeRequestSourceOrWarn()
-            // Hide posts from business and creator accounts (#579) reads the author's account type.
-            val professional = homeProfessionalOrWarn()
             it.write()
-            professional?.write()
             // Hidden accounts tells signed-in accounts apart when Home's cache source is found too.
             // Without it, one list counts for every account.
             homeAccountOrWarn()?.write()
             menuRow?.write()
-            requestSource?.write()
             enableStatus(FEED_TYPES_STATUS)
-            if (requestSource != null) enableStatus(FAVORITES_SOURCE_STATUS)
-            if (professional != null) enableStatus(FEED_PROFESSIONAL_STATUS)
         }
         enableStatus("feedSuggestions")
     }
 }
 
 internal const val FEED_TYPES_STATUS = "feedTypes"
-internal const val FAVORITES_SOURCE_STATUS = "favoritesSource"
-internal const val FEED_PROFESSIONAL_STATUS = "feedProfessional"
 internal const val FEED_SUGGESTIONS = "$EXTENSION_PACKAGE/feed/FeedSuggestions;"
 internal const val HOME_TYPES_FILTER = "$FEED_SUGGESTIONS->homeItem(Ljava/lang/Object;)Ljava/lang/Object;"
 
@@ -252,88 +235,6 @@ internal class HomeFeedTypes(
 }
 
 /**
- * Hide posts from business and creator accounts (#579), found: the post's user and coauthor_producers
- * getters, the user's is_professional_account and account_type getters, and the extension's stubs
- * reading them. Kept apart from [HomeFeedTypes], so a build where an account's type moved keeps the
- * other type switches.
- */
-internal class HomeProfessional(
-    private val postUserStub: MutableMethod,
-    private val coauthorsStub: MutableMethod,
-    private val professionalStub: MutableMethod,
-    private val accountTypeStub: MutableMethod,
-    private val owner: Method,
-    private val coauthors: Method,
-    private val professional: Method,
-    private val accountType: Method,
-) {
-    fun write() {
-        fillPostStub(postUserStub, owner)
-        fillPostStub(coauthorsStub, coauthors)
-        // FeedSuggestions.professional answers 2 for a professional account and 1 for a personal one.
-        fillUserStub(professionalStub, professional, "Ljava/lang/Boolean;->booleanValue()Z", "add-int/lit8 p0, p0, 0x1")
-        fillUserStub(accountTypeStub, accountType, "Ljava/lang/Integer;->intValue()I", "")
-    }
-
-    /** Fills [target], a static stub taking a post, to answer the post's [getter]. */
-    private fun fillPostStub(target: MutableMethod, getter: Method) {
-        target.addInstructions(
-            0,
-            """
-                check-cast p0, $MEDIA
-                invoke-virtual { p0 }, $MEDIA->${getter.name}()${getter.returnType}
-                move-result-object p0
-                return-object p0
-            """,
-        )
-    }
-
-    /**
-     * Fills [target], a static (Object)I stub taking a user, to answer [getter]'s boxed value through
-     * [unbox] and [then], or 0 when the user doesn't say. Each way out returns on its own, so p0
-     * never merges an object and an int at one return.
-     */
-    private fun fillUserStub(target: MutableMethod, getter: Method, unbox: String, then: String) {
-        target.addInstructionsWithLabels(
-            0,
-            """
-                check-cast p0, $USER
-                invoke-virtual { p0 }, $USER->${getter.name}()${getter.returnType}
-                move-result-object p0
-                if-nez p0, :boxed
-                const/4 p0, 0x0
-                return p0
-                :boxed
-                invoke-virtual { p0 }, $unbox
-                move-result p0
-                $then
-                return p0
-            """,
-        )
-    }
-}
-
-/**
- * Finds what Hide posts from business and creator accounts needs, or answers null after the patch
- * log says why, and Hide suggested posts goes in without that switch.
- */
-internal fun BytecodePatchContext.homeProfessionalOrWarn(): HomeProfessional? = try {
-    HomeProfessional(
-        staticStub(FEED_SUGGESTIONS, "postUser", OBJECT),
-        staticStub(FEED_SUGGESTIONS, "coauthors", LIST_TYPE),
-        staticStub(FEED_SUGGESTIONS, "professional", "I"),
-        staticStub(FEED_SUGGESTIONS, "accountType", "I"),
-        publicGetter(MEDIA, "user", USER),
-        publicGetter(MEDIA, "coauthor_producers", LIST_TYPE),
-        publicGetter(USER, "is_professional_account", "Ljava/lang/Boolean;"),
-        publicGetter(USER, "account_type", "Ljava/lang/Integer;"),
-    )
-} catch (moved: PatchException) {
-    patchLog.warning("${moved.message}. Hide suggested posts goes in without Hide posts from business and creator accounts.")
-    null
-}
-
-/**
  * A feed item's suggested post unit ("explore_story", which Instagram 451 sends every suggested
  * post on Home as) and the unit's two post fields, its "media_or_ad" and its "media".
  */
@@ -423,7 +324,6 @@ internal fun BytecodePatchContext.homeFeedTypesOrWarn(): HomeFeedTypes? = try {
 
 private const val STRING = "Ljava/lang/String;"
 private const val OBJECT = "Ljava/lang/Object;"
-private const val LIST_TYPE = "Ljava/util/List;"
 
 /** The extension's static (Object) stub [name] on [owner], answering [returns], which the patch fills. */
 internal fun BytecodePatchContext.staticStub(owner: String, name: String, returns: String): MutableMethod =
@@ -477,4 +377,4 @@ internal fun BytecodePatchContext.itemPost(itemType: String, patch: String = PAT
  * Explore's grid.
  */
 internal fun BytecodePatchContext.filterSuggestedFeedItems() =
-    filterParsedFeedItems(PATCH, SUGGESTIONS_FILTER, ACCOUNT_UNITS + SUGGESTED_POST + THREADS_UNITS + SURVEY_UNITS + STORY_UNITS + SHOPPING_UNITS)
+    filterParsedFeedItems(PATCH, SUGGESTIONS_FILTER, ACCOUNT_UNITS + SUGGESTED_POST + THREADS_UNITS + SURVEY_UNITS + SHOPPING_UNITS)

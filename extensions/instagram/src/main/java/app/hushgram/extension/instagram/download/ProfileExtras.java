@@ -40,7 +40,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 /**
  * Profile extras button: a small button first in the row on the right of a profile's top bar, where
  * the three dots are, that lists HushGram's profile actions (Save profile picture, View profile
- * picture, Save profile, Copy username and Copy bio, whichever are switched on) in a small menu. The rows in the
+ * picture, Copy username and Copy bio, whichever are switched on) in a small menu. The rows in the
  * three-dot menu stay as they are ({@link ProfilePicture}); this is a second way to reach them (#234).
  *
  * <p>The patch calls {@link #bound} first thing as the bar fills its rows, and {@link #screen} right
@@ -80,26 +80,20 @@ public final class ProfileExtras {
         return null;
     }
 
-    /** Filled in by the patch: opens Instagram's About this account for [id] from [context], through [session], saying it came from [referer]. */
+    /** Filled in by the patch: opens Instagram's About this account for [id] from [context], through [session], with no referer. */
     public static void openAbout(Context context, Object session, String id, @Nullable String referer) {
     }
 
-    /**
-     * #507: what Instagram's own profile menu tells the screen it came from. Left out, the call says
-     * FeedAds, its entry from an ad, and the screen fails on a Page.
-     */
-    static final String ABOUT_REFERER = "ProfileMore";
-
     /** What opens the screen. A test swaps it. */
     interface Opener {
-        void open(Context context, Object session, String id, String referer);
+        void open(Context context, Object session, String id);
     }
 
     static java.util.function.Function<Object, String> ids = ProfileExtras::userId;
 
     static java.util.function.BooleanSupplier available = ProfileExtras::aboutAvailable;
 
-    static Opener opener = ProfileExtras::openAbout;
+    static Opener opener = (context, session, id) -> openAbout(context, session, id, null);
 
     /** Whether the About this account button is switched on and usable. */
     static boolean aboutWanted() {
@@ -136,7 +130,7 @@ public final class ProfileExtras {
             String id = ids.apply(state.user);
             if (id == null || id.isEmpty()) return;
             HookStatus.counted(ROUTE, ABOUT_OPENED);
-            opener.open(activityOf(button), state.session, id, ABOUT_REFERER);
+            opener.open(activityOf(button), state.session, id);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "about this account tap", failure);
             Logger.printException(() -> "Profile extras: About this account failed to open", failure);
@@ -221,8 +215,6 @@ public final class ProfileExtras {
             Object shown = screen == null ? null : account.of(screen);
             user(bar, shown);
             ViewingHistory.profile(shown);
-            ProfileHistory.seen(shown);
-            SavedProfiles.seen(shown);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras account", failure);
         }
@@ -267,7 +259,7 @@ public final class ProfileExtras {
     static boolean wanted() {
         try {
             return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.PROFILE_EXTRAS_BUTTON.get()
-                    && (ProfilePicture.on() || ProfilePicture.viewing() || ProfilePicture.copying() || SavedProfiles.on());
+                    && (ProfilePicture.on() || ProfilePicture.viewing() || ProfilePicture.copying());
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras switch", failure);
             return false;
@@ -349,7 +341,7 @@ public final class ProfileExtras {
 
     private static ImageView create(Context context, View bar, @Nullable View neighbor) {
         ImageView button = new ImageView(context);
-        button.setImageDrawable(new Actions(context.getResources().getDisplayMetrics().density,
+        button.setImageDrawable(new Info(context.getResources().getDisplayMetrics().density,
                 FeedDownloadButton.iconColor(context)));
         button.setScaleType(ImageView.ScaleType.CENTER);
         HomeHeader.padLike(button, neighbor);
@@ -402,7 +394,7 @@ public final class ProfileExtras {
      * from a link hands its rows a context with no activity under it, while the screen's content
      * view has one. [view]'s own context when none does.
      */
-    public static Context activityOf(View view) {
+    static Context activityOf(View view) {
         for (Object at = view; at instanceof View; at = ((View) at).getParent()) {
             Context context = ((View) at).getContext();
             for (int depth = 0; depth < 16 && context instanceof ContextWrapper; depth++) {
@@ -413,24 +405,10 @@ public final class ProfileExtras {
         return view.getContext();
     }
 
-    /** The extras button's mark, a circled arrow pointing down at its menu, so it isn't taken for About's "i" beside it. */
-    static final class Actions extends Info {
-        Actions(float density, int color) {
-            super(density, color);
-        }
-
-        @Override
-        void mark(Canvas canvas, float x, float y) {
-            paint.setStyle(Paint.Style.STROKE);
-            canvas.drawLine(x - 4 * unit, y - 1.5f * unit, x, y + 2.5f * unit, paint);
-            canvas.drawLine(x, y + 2.5f * unit, x + 4 * unit, y - 1.5f * unit, paint);
-        }
-    }
-
     /** A circled "i", drawn rather than taken from Instagram's resources, in Instagram's own icon color. */
-    static class Info extends Drawable {
-        final float unit;
-        final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    static final class Info extends Drawable {
+        private final float unit;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         Info(float density, int color) {
             unit = density;
@@ -450,11 +428,6 @@ public final class ProfileExtras {
             float y = bounds.exactCenterY();
             paint.setStyle(Paint.Style.STROKE);
             canvas.drawCircle(x, y, 9 * unit, paint);
-            mark(canvas, x, y);
-        }
-
-        /** What sits inside the circle. */
-        void mark(Canvas canvas, float x, float y) {
             canvas.drawLine(x, y - unit, x, y + 4.5f * unit, paint);
             paint.setStyle(Paint.Style.FILL);
             canvas.drawCircle(x, y - 4.2f * unit, 1.3f * unit, paint);

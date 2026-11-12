@@ -23,8 +23,7 @@ final class MetaAiCategory {
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.META_AI)) {
-            PreferenceCategory metaAi = category(screen, L10n.t("Meta AI"), SettingsIcons.AI,
-                    L10n.t("Control where Meta AI appears."));
+            PreferenceCategory metaAi = category(screen, L10n.t("Meta AI"), SettingsIcons.AI);
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_SEARCH, L10n.t("Hide Meta AI in search and Home's bar"),
                     L10n.t("Gives Search and your messages a plain search bar and removes Meta AI's buttons, "
                             + "follow-up bar and inbox row. Restart Instagram to see the change.")));

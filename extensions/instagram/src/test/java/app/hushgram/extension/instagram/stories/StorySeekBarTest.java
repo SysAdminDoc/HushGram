@@ -5,7 +5,6 @@
 package app.hushgram.extension.instagram.stories;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -37,7 +36,6 @@ import java.util.List;
 
 import app.hushgram.extension.instagram.feed.GlassSeekBar;
 import app.hushgram.extension.instagram.feed.OverlayLook;
-import app.hushgram.extension.instagram.feed.SeekShape;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -103,7 +101,6 @@ public class StorySeekBarTest {
         PauseForTests.resume();
         Settings.STORY_SEEK_BAR.resetToDefault();
         Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
-        Settings.STORY_SEEK_BAR_POSITION.resetToDefault();
         HookStatus.clear();
     }
 
@@ -112,8 +109,6 @@ public class StorySeekBarTest {
         StorySeekBar.resetForTests();
         Settings.STORY_SEEK_BAR.resetToDefault();
         Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
-        Settings.STORY_SEEK_BAR_POSITION.resetToDefault();
-        Settings.SEEK_BAR_SHAPE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -282,89 +277,8 @@ public class StorySeekBarTest {
         assertEquals("above the taller of the two rows", 150, margin(bar()));
     }
 
-    /** #636: placed below, the bar sits in the middle of the space under the Send message row, and back above it after. */
-    @Test
-    public void belowPutsTheBarInTheSpaceUnderTheSendMessageRow() {
-        rowOver(60);
-        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
-        Settings.STORY_SEEK_BAR.save(true);
-        StorySeekBar.resumed(viewer);
-        idle();
-        SeekBar bar = bar();
-        assertEquals("its full 32 pixels", 32, height(bar));
-        assertEquals("in the middle of the 60 pixels under the row", 14, margin(bar));
-
-        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.ABOVE);
-        tick();
-        idle();
-        assertEquals("back above the 181 pixel row", 241, margin(bar));
-        assertEquals(32, height(bar));
-    }
-
-    /** #636: less space under the row than the bar's height gets a bar just that tall, so it never covers the row. */
-    @Test
-    public void belowShrinksTheBarToATightSpace() {
-        rowOver(24);
-        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
-        Settings.STORY_SEEK_BAR.save(true);
-        StorySeekBar.resumed(viewer);
-        idle();
-        assertEquals(24, height(bar()));
-        assertEquals(0, margin(bar()));
-    }
-
-    /** #636: with less than 16 dp under the row, the bar stays above the row rather than over it. */
-    @Test
-    public void belowWithNoRoomUnderTheRowStaysAboveIt() {
-        rowOver(10);
-        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
-        Settings.STORY_SEEK_BAR.save(true);
-        StorySeekBar.resumed(viewer);
-        idle();
-        assertEquals("above the row and the 10 pixels under it", 191, margin(bar()));
-        assertEquals(32, height(bar()));
-    }
-
-    /** #636: below the row, the bar keeps out of the system's bars and swipe area at the window's bottom. */
-    @Test
-    public void belowKeepsClearOfTheSystemBars() {
-        rowOver(60);
-        int[] frame = new int[2];
-        content.getLocationInWindow(frame);
-        int pastFrame = content.getRootView().getHeight() - frame[1] - content.getHeight();
-        StorySeekBar.systemBottomForTests(pastFrame + 20);
-        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
-        Settings.STORY_SEEK_BAR.save(true);
-        StorySeekBar.resumed(viewer);
-        idle();
-        assertEquals(32, height(bar()));
-        assertEquals("in the middle of the 40 pixels between the row and the bars", 24, margin(bar()));
-
-        StorySeekBar.systemBottomForTests(pastFrame + 50);
-        tick();
-        idle();
-        assertEquals("10 pixels left over the bars is too little, so above the row", 241, margin(bar()));
-    }
-
-    /** The 181 pixel row along a story's bottom on 453, [space] pixels over the viewer's bottom, with the old box's stub never inflated. */
-    private void rowOver(int space) {
-        viewerView.removeView(composer);
-        int footerId = View.generateViewId();
-        StorySeekBar.footerIdForTests(activity, footerId);
-        LinearLayout footer = new LinearLayout(activity);
-        footer.setId(footerId);
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 181, Gravity.BOTTOM);
-        params.bottomMargin = space;
-        viewerView.addView(footer, params);
-        idle();
-    }
-
     private static int margin(SeekBar bar) {
         return ((FrameLayout.LayoutParams) bar.getLayoutParams()).bottomMargin;
-    }
-
-    private static int height(SeekBar bar) {
-        return bar.getLayoutParams().height;
     }
 
     /** #471: Seek bar look's choice for stories reaches the bar as it follows the video. */
@@ -379,23 +293,6 @@ public class StorySeekBarTest {
         tick();
         assertEquals(OverlayLook.SEE_THROUGH, bar.look());
         assertSame("the same bar, restyled", bar, StorySeekBar.barForTests());
-    }
-
-    /** #586: the story bar takes the same shape as the others, and Standard gives its own back. */
-    @Test
-    public void theBarTakesTheChosenShape() {
-        Settings.STORY_SEEK_BAR.save(true);
-        Settings.SEEK_BAR_SHAPE.save(SeekShape.EXPRESSIVE);
-        StorySeekBar.resumed(viewer);
-        tick();
-        SeekBar bar = bar();
-        assertEquals("SeekShapeDrawable", bar.getProgressDrawable().getClass().getSimpleName());
-        assertEquals("a shape has no round handle", 0, bar.getThumb().getIntrinsicWidth());
-
-        Settings.SEEK_BAR_SHAPE.save(SeekShape.STANDARD);
-        tick();
-        assertSame("the same bar", bar, StorySeekBar.barForTests());
-        assertFalse("SeekShapeDrawable".equals(bar.getProgressDrawable().getClass().getSimpleName()));
     }
 
     @Test

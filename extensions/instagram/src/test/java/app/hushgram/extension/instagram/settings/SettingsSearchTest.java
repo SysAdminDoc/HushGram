@@ -153,6 +153,7 @@ public class SettingsSearchTest {
         ResumePlaybackForTests.install();
         try {
             open(PatchFamily.RESUME_LONG_VIDEOS, PatchFamily.HIDE_ADS);
+            page.searchSettings(L10n.t("Clear remembered positions"));
             Preference row = visible("hushgram_clear_resume_points");
             row.getOnPreferenceClickListener().onPreferenceClick(row);
             Utils.awaitBackgroundTasksForTests();
@@ -175,8 +176,10 @@ public class SettingsSearchTest {
 
     @Test public void exportActionKeepsItsOriginalWordsDuringStatusTitleChanges() throws Exception {
         open(PatchFamily.HIDE_ADS);
-        Preference row = visible("hushgram_export_configuration");
+        Preference row = page.findPreference("hushgram_export_configuration");
+        assertNotNull(row);
         String query = row.getTitle().toString();
+        page.searchSettings(query);
         for (String status : new String[]{"Export running", "Export finished", "Export failed"}) {
             row.setTitle(status);
             page.searchSettings(query);
@@ -206,33 +209,11 @@ public class SettingsSearchTest {
         assertNotNull(visible("hushgram_settings_search_empty"));
     }
 
-    /** #642: the words people type find what the page calls something else, and only that. */
-    @Test public void everydayWordsFindWhatTheSettingsCallSomethingElse() throws Exception {
-        open(PatchFamily.REELS_TAB, PatchFamily.THREAD_SEEN, PatchFamily.ACCENT_COLOR, PatchFamily.SPOOF_LOCATION);
-        for (String query : new String[]{"navigation bar", "nav bar", "Navig"}) {
-            page.searchSettings(query);
-            assertNotNull(query, visible(Settings.HIDE_HOME_TAB.key));
-            assertNull(query, visible(Settings.SPOOF_LOCATION.key));
-        }
-        for (String query : new String[]{"dm", "DMs", "inbox"}) {
-            page.searchSettings(query);
-            assertNotNull(query, visible(Settings.READ_WITHOUT_SEEN_RECEIPT.key));
-            assertNull(query, visible(Settings.ACCENT_COLOR.key));
-        }
-        page.searchSettings("accent colour");
-        assertNotNull(visible(Settings.ACCENT_COLOR.key));
-        assertNull(visible(Settings.HIDE_HOME_TAB.key));
-        page.searchSettings("colours");
-        assertNotNull(visible(Settings.ACCENT_COLOR.key));
-        page.searchSettings("navigation xyzzy");
-        assertNull(visible(Settings.HIDE_HOME_TAB.key));
-        assertNotNull(visible("hushgram_settings_search_empty"));
-    }
-
     @Test @Config(qualifiers = "es-rES-w320dp-h640dp-xhdpi")
     public void localizedTitlesAndSummariesMatchWithoutCaseOrAccentRestrictions() throws Exception {
         open(PatchFamily.SPOOF_LOCATION, PatchFamily.FOLLOWING_FEED);
-        Preference spoof = visible(Settings.SPOOF_LOCATION.key);
+        Preference spoof = page.findPreference(Settings.SPOOF_LOCATION.key);
+        assertNotNull(spoof);
         assertNotEquals("Spoof location", spoof.getTitle().toString());
         page.searchSettings(spoof.getTitle().toString().toUpperCase(Locale.ROOT));
         assertSame(spoof, visible(Settings.SPOOF_LOCATION.key));
@@ -270,7 +251,8 @@ public class SettingsSearchTest {
     @Test @Config(qualifiers = "tr-rTR-w320dp-h640dp-xhdpi")
     public void turkishCaseVariantsAlsoKeepEnglishPatchNameLookup() throws Exception {
         open(PatchFamily.FOLLOWING_FEED, PatchFamily.SPOOF_LOCATION);
-        Preference following = visible(Settings.START_ON_FOLLOWING.key);
+        Preference following = page.findPreference(Settings.START_ON_FOLLOWING.key);
+        assertNotNull(following);
         page.searchSettings(following.getTitle().toString().toUpperCase(Locale.ROOT));
         assertSame(following, visible(Settings.START_ON_FOLLOWING.key));
         page.searchSettings("TAKLIT");
@@ -337,13 +319,15 @@ public class SettingsSearchTest {
         Settings.DOWNLOAD_QUALITY.save(DownloadQuality.SMALLEST);
         ShadowLooper.idleMainLooper();
         List<Preference> before = rows(page.getPreferenceScreen());
-        ListPreference quality = (ListPreference) visible(Settings.DOWNLOAD_QUALITY.key);
+        ListPreference quality = (ListPreference) page.findPreference(Settings.DOWNLOAD_QUALITY.key);
+        assertNotNull(quality);
         for (int i = 0; i < 4; i++) {
             page.searchSettings("spoof");
             assertNull(visible(Settings.DOWNLOAD_QUALITY.key));
             page.searchSettings("");
             assertEquals(before, rows(page.getPreferenceScreen()));
-            assertSame(quality, visible(Settings.DOWNLOAD_QUALITY.key));
+            assertSame(quality, page.findPreference(Settings.DOWNLOAD_QUALITY.key));
+            assertNull("the overview must not expose a closed section's row", visible(Settings.DOWNLOAD_QUALITY.key));
             assertEquals("SMALLEST", quality.getValue());
         }
         assertEquals(DownloadQuality.SMALLEST, Settings.DOWNLOAD_QUALITY.savedValue());
@@ -354,17 +338,21 @@ public class SettingsSearchTest {
         open(PatchFamily.FOLLOWING_FEED, PatchFamily.SPOOF_LOCATION);
         Settings.ONLY_FOLLOWING.save(true);
         ShadowLooper.idleMainLooper();
-        SwitchPreference parent = (SwitchPreference) visible(Settings.START_ON_FOLLOWING.key);
-        SwitchPreference child = (SwitchPreference) visible(Settings.ONLY_FOLLOWING.key);
+        SwitchPreference parent = (SwitchPreference) page.findPreference(Settings.START_ON_FOLLOWING.key);
+        SwitchPreference child = (SwitchPreference) page.findPreference(Settings.ONLY_FOLLOWING.key);
+        assertNotNull(parent);
+        assertNotNull(child);
         page.searchSettings("spoof");
         Settings.START_ON_FOLLOWING.save(false);
         ShadowLooper.idleMainLooper();
         assertSame(parent, page.findPreference(new StringBuilder(Settings.START_ON_FOLLOWING.key)));
         assertNull(visible(Settings.START_ON_FOLLOWING.key));
         page.searchSettings("");
-        assertSame(parent, visible(Settings.START_ON_FOLLOWING.key));
+        assertSame(parent, page.findPreference(Settings.START_ON_FOLLOWING.key));
+        assertNull(visible(Settings.START_ON_FOLLOWING.key));
         assertFalse(parent.isChecked());
-        assertSame(child, visible(Settings.ONLY_FOLLOWING.key));
+        assertSame(child, page.findPreference(Settings.ONLY_FOLLOWING.key));
+        assertNull(visible(Settings.ONLY_FOLLOWING.key));
         assertFalse(child.isEnabled());
         assertTrue(child.isChecked());
         assertTrue(Settings.ONLY_FOLLOWING.savedValue());
@@ -386,7 +374,8 @@ public class SettingsSearchTest {
         assertNotNull(visible("hushgram_settings_search_empty"));
         page.searchSettings(" \t ");
         assertNull(visible("hushgram_settings_search_empty"));
-        assertNotNull(visible(Settings.SPOOF_LOCATION.key));
+        assertNotNull(page.findPreference(Settings.SPOOF_LOCATION.key));
+        assertNull("clearing search returns to the section overview", visible(Settings.SPOOF_LOCATION.key));
     }
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -414,7 +403,8 @@ public class SettingsSearchTest {
         assertTrue(clear.performClick());
         assertEquals("", input.getText().toString());
         assertFalse(clear.isEnabled());
-        assertNotNull(visible(Settings.START_ON_FOLLOWING.key));
+        assertNotNull(page.findPreference(Settings.START_ON_FOLLOWING.key));
+        assertNull("clearing search returns to the section overview", visible(Settings.START_ON_FOLLOWING.key));
     }
 
     @Test public void frameworkStateDoesNotRetainTheSearchQuery() throws Exception {
@@ -428,8 +418,10 @@ public class SettingsSearchTest {
         page = new HushgramPreferenceFragment();
         page.setInitialSavedState(saved);
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
-        assertNotNull(visible(Settings.SPOOF_LOCATION.key));
-        assertNotNull(visible(Settings.START_ON_FOLLOWING.key));
+        assertNotNull(page.findPreference(Settings.SPOOF_LOCATION.key));
+        assertNotNull(page.findPreference(Settings.START_ON_FOLLOWING.key));
+        assertNull(visible(Settings.SPOOF_LOCATION.key));
+        assertNull(visible(Settings.START_ON_FOLLOWING.key));
         EditText input = render(visible("hushgram_settings_search")).findViewWithTag("hushgram-settings-search");
         assertEquals("", input.getText().toString());
         assertFalse("Android must not serialize the typing field", input.isSaveEnabled());
@@ -476,7 +468,8 @@ public class SettingsSearchTest {
         capture(root, "filtered");
         assertTrue(clear.performClick());
         ShadowLooper.idleMainLooper();
-        assertNotNull(visible(Settings.START_ON_FOLLOWING.key));
+        assertNotNull(page.findPreference(Settings.START_ON_FOLLOWING.key));
+        assertNull("clearing search returns to the section overview", visible(Settings.START_ON_FOLLOWING.key));
         assertEquals("", input.getText().toString());
         root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
@@ -513,7 +506,7 @@ public class SettingsSearchTest {
                 Settings.CATEGORY_PAGES.save(pages);
                 if (controller != null) controller.close();
                 open(PatchFamily.SPOOF_LOCATION, PatchFamily.FOLLOWING_FEED);
-                String mode = (pages ? "category pages" : "one list") + (touch ? ", touch" : ", keys");
+                String mode = "legacy category-pages flag=" + pages + (touch ? ", touch" : ", keys");
                 View root = page.getView();
                 float density = root.getResources().getDisplayMetrics().density;
                 int width = Math.round(320 * density);
@@ -613,14 +606,17 @@ public class SettingsSearchTest {
         assertEquals("Last carousel save", result.getTitle());
         assertEquals("Saved 1. Failed 1. Skipped 1.", result.getSummary());
         page.searchSettings("");
-        assertSame(result, visible("hushgram_last_carousel_save"));
+        assertNull("a closed Downloads section must not leak a row into the overview",
+                visible("hushgram_last_carousel_save"));
         controller.get().getFragmentManager().beginTransaction().remove(page).commitNow();
         page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
+        page.searchSettings("Last carousel save");
         assertEquals("Saved 1. Failed 1. Skipped 1.", visible("hushgram_last_carousel_save").getSummary());
         int next = SavesForTests.beginCarousel(RuntimeEnvironment.getApplication(), 2);
         try {
             ShadowLooper.idleMainLooper();
+            page.searchSettings("Last carousel save");
             assertNull(visible("hushgram_last_carousel_save"));
         } finally {
             SavesForTests.end(next);
@@ -636,6 +632,7 @@ public class SettingsSearchTest {
         int id = SavesForTests.beginCarousel(RuntimeEnvironment.getApplication(), 32);
         SavesForTests.finishCarousel(id, 3, 2, 27, 2, true);
         ShadowLooper.idleMainLooper();
+        page.searchSettings("Last carousel save");
         Preference result = visible("hushgram_last_carousel_save");
         assertNotNull(result);
         assertEquals(SaveControl.batchOutcome(), result.getSummary());

@@ -27,14 +27,14 @@ import app.hushgram.extension.shared.settings.Setting;
 
 /**
  * A small dot beside a setting this build added since the settings were last opened, and beside
- * the row that opens the category it's in, so a long page shows what's new (#274).
+ * the row that opens the category it's in, so the overview shows what is new (#274).
  *
  * <p>There is no list of which release added what. The keys of the rows the person has already been
  * shown are kept in a file of their own, apart from the settings, so a backup neither exports nor
  * imports them. The first time the settings open with none stored, every row there now counts as
  * seen: a fresh install never shows a dot. A row whose key isn't in the set is new. Leaving a
- * expanded category (or closing the settings) adds its rows, so a dot shows for the visit that
- * reveals it and is gone by the next. With the categories off, the one long list is the page.
+ * opened category adds its rows, so a dot shows for the visit that reveals it and is gone by
+ * the next. The overview itself does not mark every closed section as visited.
  *
  * <p>Only rows that are a saved setting count. A row that comes and goes on its own would
  * otherwise read as new each time it came back. Anything that goes wrong shows no dot.
@@ -109,17 +109,6 @@ final class NewRowDots {
             if (rows != null) dots.leave(rows);
         } catch (RuntimeException ignored) {
             // The dot stays a visit longer.
-        }
-    }
-
-    /** The settings are closing with every row on one list (or none open): all that was listed is seen. */
-    static void leftEverything() {
-        try {
-            NewRowDots dots = current;
-            if (dots == null || dots.searching) return;
-            for (List<Preference> rows : dots.pages.values()) dots.leave(rows);
-        } catch (RuntimeException ignored) {
-            // The dots stay a visit longer.
         }
     }
 

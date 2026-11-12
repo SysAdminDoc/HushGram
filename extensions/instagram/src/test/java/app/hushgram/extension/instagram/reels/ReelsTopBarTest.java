@@ -77,11 +77,8 @@ public class ReelsTopBarTest {
         PauseForTests.resume();
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
-        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
-        Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
-        ReelsTopBar.forgetGivenTabs();
         HookStatus.clear();
         ReelsTopBar.idForTests(ReelsTopBar.BAR_ID, BAR_ID);
         controller = Robolectric.buildActivity(Activity.class).setup();
@@ -108,10 +105,8 @@ public class ReelsTopBarTest {
         controller.pause().stop().destroy();
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
-        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
         Settings.HIDE_REELS_FRIENDS_TAB.resetToDefault();
-        Settings.SHOW_REELS_FRIENDS_TAB.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -538,72 +533,6 @@ public class ReelsTopBarTest {
         assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_CREATE_HID, 2));
     }
 
-    /** #620: the saved reels switch takes Create only off reels opened from Saved or a collection. */
-    @Test public void savedCreateGoesOnlyFromReelsOpenedFromSaved() {
-        assertFalse("starts off", Settings.HIDE_SAVED_REELS_CREATE_BUTTON.get());
-        Row grid = showRow(ClipsViewerSource.CLIPS_SAVED_TAB);
-        Row collection = showRow(ClipsViewerSource.SAVE_COLLECTION);
-        Row prime = showRow(ClipsViewerSource.PRIME_SAVED_COLLECTION);
-        Row tab = showRow(ClipsViewerSource.CLIPS_TAB);
-        Row profile = showRow(ClipsViewerSource.PROFILE_CLIPS);
-        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(true);
-        ReelsTopBar.Session session = track();
-        layout();
-        for (Row row : new Row[] {grid, collection, prime}) {
-            assertEquals("gone, not just invisible", View.GONE, row.create.getVisibility());
-            assertEquals("the bar stays", View.VISIBLE, row.bar.getVisibility());
-            assertTrue("Your algorithm stays", row.algorithm.isShown());
-            assertTrue("Search stays", row.search.isShown());
-            assertEquals("the gap closes", 0, row.algorithm.getLeft());
-        }
-        for (Row row : new Row[] {tab, profile}) {
-            assertTrue("the Reels tab and other reels keep Create", row.create.isShown());
-            assertEquals(2 * CAMERA_SIZE, row.search.getLeft());
-        }
-        assertEquals(3, session.hiddenCount());
-        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_SAVED_CREATE_HID, 3));
-        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelsTopBar.COUNT_CREATE_HID));
-
-        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(false);
-        focusBack();
-        for (Row row : new Row[] {grid, collection, prime}) {
-            assertEquals("Create is back", View.VISIBLE, row.create.getVisibility());
-        }
-        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_BUTTON_PUT_BACK, 3));
-    }
-
-    @Test public void aSavedBarNotBoundYetKeepsCreateUntilItIs() {
-        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(true);
-        Row saved = showRow(null);
-        ReelsTopBar.Session session = track();
-        assertTrue("its viewer isn't known yet, so Create stays", saved.create.isShown());
-        saved.bar.bind(ClipsViewerSource.CLIPS_SAVED_TAB);
-        idle(ReelsTopBar.LOOK_MS * 2);
-        frame();
-        idle(ReelsTopBar.LOOK_MS * 2);
-        assertEquals("bound with no layout, it's still found", View.GONE, saved.create.getVisibility());
-        assertEquals(1, session.hiddenCount());
-    }
-
-    @Test public void withBothCreateSwitchesASavedReelKeepsItsHiddenUntilBothAreOff() {
-        Row saved = showRow(ClipsViewerSource.SAVE_COLLECTION);
-        Row tab = showRow(ClipsViewerSource.CLIPS_TAB);
-        Settings.HIDE_REELS_CREATE_BUTTON.save(true);
-        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(true);
-        track();
-        assertEquals(View.GONE, saved.create.getVisibility());
-        assertEquals(View.GONE, tab.create.getVisibility());
-
-        Settings.HIDE_REELS_CREATE_BUTTON.save(false);
-        focusBack();
-        assertEquals("the Reels tab's Create is back", View.VISIBLE, tab.create.getVisibility());
-        assertEquals("the saved reel's stays gone", View.GONE, saved.create.getVisibility());
-
-        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(false);
-        focusBack();
-        assertEquals(View.VISIBLE, saved.create.getVisibility());
-    }
-
     @Test public void yourAlgorithmGoesAloneAndTheRestStays() {
         Row tab = showRow(ClipsViewerSource.CLIPS_TAB);
         Settings.HIDE_REELS_YOUR_ALGORITHM.save(true);
@@ -747,60 +676,11 @@ public class ReelsTopBarTest {
         assertFalse(ReelsTopBar.isYourAlgorithmButton(tab.search));
     }
 
-    enum Source { CLIPS_TAB, CLIPS_TAB_HOMECOMING, CLIPS_FRIEND_LANE, PROFILE }
-
-    /** Show the Friends tab (#499) turns a no into a yes only for the Reels tab's own viewer. */
-    @Test public void friendsTabAnywayOnlyAnswersTheReelsTabsViewerWhenAsked() {
-        assertFalse("off to start", Settings.SHOW_REELS_FRIENDS_TAB.defaultValue);
-        assertFalse("off", ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
-        Settings.SHOW_REELS_FRIENDS_TAB.save(true);
-        assertTrue(ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
-        assertTrue(ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB_HOMECOMING));
-        assertFalse("a profile's reels get no tabs", ReelsTopBar.friendsTabAnyway(Source.PROFILE));
-        assertFalse("the lane itself is left alone", ReelsTopBar.friendsTabAnyway(Source.CLIPS_FRIEND_LANE));
-        assertFalse("no source", ReelsTopBar.friendsTabAnyway(null));
-        assertFalse("not an enum", ReelsTopBar.friendsTabAnyway("CLIPS_TAB"));
-        Settings.HIDE_REELS_FRIENDS_TAB.save(true);
-        assertFalse("hiding the tab wins", ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
-        Settings.HIDE_REELS_FRIENDS_TAB.save(false);
-        PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse("paused", ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
-    }
-
-    /** #620: the screen's own bar over a reel from Saved or a profile asks before Instagram adds Create. */
-    @Test public void keepsCameraButtonAnswersBothCreateSwitchesBySource() {
-        for (Object source : new Object[] {ClipsViewerSource.CLIPS_SAVED_TAB, ClipsViewerSource.PROFILE_CLIPS, null}) {
-            assertTrue("both off", ReelsTopBar.keepsCameraButton(source));
-        }
-        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(true);
-        assertFalse(ReelsTopBar.keepsCameraButton(ClipsViewerSource.CLIPS_SAVED_TAB));
-        assertFalse(ReelsTopBar.keepsCameraButton(ClipsViewerSource.SAVE_COLLECTION));
-        assertFalse(ReelsTopBar.keepsCameraButton(ClipsViewerSource.PRIME_SAVED_COLLECTION));
-        assertTrue("a profile's reels keep it", ReelsTopBar.keepsCameraButton(ClipsViewerSource.PROFILE_CLIPS));
-        assertTrue("the Reels tab keeps it", ReelsTopBar.keepsCameraButton(ClipsViewerSource.CLIPS_TAB));
-        assertTrue("no source", ReelsTopBar.keepsCameraButton(null));
-        assertTrue("not an enum", ReelsTopBar.keepsCameraButton("CLIPS_SAVED_TAB"));
-        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_SAVED_CREATE_HID, 3));
-
-        Settings.HIDE_SAVED_REELS_CREATE_BUTTON.save(false);
-        Settings.HIDE_REELS_CREATE_BUTTON.save(true);
-        for (Object source : new Object[] {ClipsViewerSource.CLIPS_SAVED_TAB, ClipsViewerSource.PROFILE_CLIPS,
-                ClipsViewerSource.FEED_TIMELINE, null}) {
-            assertFalse("every reel loses it", ReelsTopBar.keepsCameraButton(source));
-        }
-        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_CREATE_HID, 4));
-
-        PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertTrue("paused", ReelsTopBar.keepsCameraButton(ClipsViewerSource.PROFILE_CLIPS));
-    }
-
     @Test public void theButtonSwitchesStartOffAndAreInTheCleanUpReelsFamily() {
         assertFalse(Settings.HIDE_REELS_CREATE_BUTTON.defaultValue);
-        assertFalse(Settings.HIDE_SAVED_REELS_CREATE_BUTTON.defaultValue);
         assertFalse(Settings.HIDE_REELS_YOUR_ALGORITHM.defaultValue);
         assertFalse(Settings.HIDE_REELS_FRIENDS_TAB.defaultValue);
         assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_REELS_CREATE_BUTTON));
-        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_SAVED_REELS_CREATE_BUTTON));
         assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_REELS_YOUR_ALGORITHM));
         assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_REELS_FRIENDS_TAB));
     }
@@ -830,40 +710,6 @@ public class ReelsTopBarTest {
         if (marked) ReelsTopBar.friendsTab(friends);
         layout();
         return new Tabs(strip, reels, friends);
-    }
-
-    /**
-     * Where HushGram gave the Reels tab its tabs, Friends opens as a viewer of its own and stays
-     * selected after coming back, so a tap on it selects Reels first and Friends is new again (#571).
-     */
-    @Test public void aTapOnTheSelectedFriendsTabSelectsReelsFirstWhereHushGramGaveTheTabs() {
-        Row tab = showRow(ClipsViewerSource.CLIPS_TAB);
-        Tabs tabs = tabs(tab.bar, true);
-        List<String> taps = new ArrayList<>();
-        tabs.reels.setOnClickListener(reels -> {
-            taps.add("reels");
-            tabs.reels.setSelected(true);
-            tabs.friends.setSelected(false);
-        });
-        tabs.friends.setSelected(true);
-        assertTrue(tabs.friends.performClick());
-        assertTrue("Instagram's own tabs are left alone", taps.isEmpty());
-
-        Settings.SHOW_REELS_FRIENDS_TAB.save(true);
-        assertTrue(ReelsTopBar.friendsTabAnyway(Source.CLIPS_TAB));
-        tabs.friends.performClick();
-        assertEquals(1, taps.size());
-        assertEquals("reels", taps.get(0));
-        assertFalse(tabs.friends.isSelected());
-        tabs.friends.performClick();
-        assertEquals("a tap on Friends while Reels is selected is Instagram's", 1, taps.size());
-
-        tabs.friends.setSelected(true);
-        tabs.reels.setSelected(false);
-        PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        tabs.friends.performClick();
-        assertEquals("paused", 1, taps.size());
-        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_FRIENDS_AGAIN, 1));
     }
 
     @Test public void theFriendsTabGoesAndReelsHasTheStripToItself() {

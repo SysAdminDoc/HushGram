@@ -18,12 +18,10 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -40,7 +38,6 @@ import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.ViewParent;
 import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -57,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
-import java.util.function.Consumer;
 
 import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.download.PictureFetch;
@@ -65,7 +61,6 @@ import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
-import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.ui.Dim;
@@ -219,7 +214,6 @@ public final class StoryMentions {
             if (waiting == null || waiting.story.get() != activity) return;
             waiting.away = true;
             waiting.behind = true;
-            Logger.printDebug(() -> "Story mentions: the story went behind the profile");
         }
 
         @Override
@@ -233,7 +227,6 @@ public final class StoryMentions {
             if (decor == null) return;
             decor.post(() -> {
                 try {
-                    Logger.printDebug(() -> "Story mentions: the story is back in front, " + PILLS.size() + " pills");
                     for (Pill pill : new ArrayList<>(PILLS)) if (pill.getRootView() == decor) settleShown(pill);
                 } catch (Throwable failure) {
                     HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
@@ -306,7 +299,6 @@ public final class StoryMentions {
             BackToList waiting = backToList;
             if (waiting == null || !waiting.holding || waiting.stale() || waiting.viewer.get() != resuming) return false;
             waiting.skipped = true;
-            Logger.printDebug(() -> "Story mentions: the story waits for its list");
             new Handler(Looper.getMainLooper()).postDelayed(() -> playIfTheListStaysAway(waiting), COMEBACK_HOLD_MS);
             return true;
         } catch (Throwable failure) {
@@ -321,7 +313,6 @@ public final class StoryMentions {
         waiting.holding = false;
         Object held = waiting.viewer.get();
         if (held == null) return;
-        Logger.printDebug(() -> "Story mentions: the list didn't come back, so the story plays");
         try {
             playback().play(held);
         } catch (Throwable failure) {
@@ -362,10 +353,7 @@ public final class StoryMentions {
     /** [pill] went off screen: if a profile is open over its story, the list waits for it to return. */
     private static void pillLeft(Pill pill) {
         BackToList waiting = backToList;
-        if (waiting != null && waiting.matches(pill.people)) {
-            waiting.away = true;
-            Logger.printDebug(() -> "Story mentions: the pill left the screen");
-        }
+        if (waiting != null && waiting.matches(pill.people)) waiting.away = true;
     }
 
     /**
@@ -390,25 +378,14 @@ public final class StoryMentions {
         if (waiting == null || pill.people.isEmpty()) return;
         if (waiting.stale()) {
             backToList = null;
-            Logger.printDebug(() -> "Story mentions: the list waited too long to come back");
         } else if (!onScreen(pill)) {
-            Logger.printDebug(() -> "Story mentions: a pill showed off the screen");
             return;
         } else if (!waiting.matches(pill.people)) {
-            // Only a story moving on in the viewer the list was left from ends it. A story opened from
-            // the profile is another viewer, and its mentions left the list closed when you came back (#403).
-            if (waiting.away && viewer.get() == waiting.viewer.get()) {
-                backToList = null;
-                Logger.printDebug(() -> "Story mentions: the story moved on, so the list stays closed");
-            }
+            if (waiting.away) backToList = null;
         } else if (waiting.away) {
             backToList = null;
             waiting.holding = false;
-            Logger.printDebug(() -> "Story mentions: the list opens again");
-            // The last touch may have gone down on the profile, a post opened from it say, so the pill
-            // whose context doesn't lead to its activity is looked for in the story's (#403).
             Activity activity = activityOf(pill);
-            if (activity == null) activity = showsIn(pill, waiting.story.get());
             list(activity != null ? activity : pill.getContext(), pill.people);
         }
     }
@@ -524,8 +501,6 @@ public final class StoryMentions {
         List<Mention> people = Collections.emptyList();
         /** The header's column while the pill sits in the name's row, so it can go under the header. */
         @Nullable LinearLayout header;
-        /** The header's row while the pill sits under it, so the pill can stay close to what shows there. */
-        @Nullable View underRow;
         private boolean moving;
 
         Pill(Context context) {
@@ -574,8 +549,6 @@ public final class StoryMentions {
         protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
             super.onLayout(changed, left, top, right, bottom);
             try {
-                // Its first layout tells the pill how wide it is, which decides what shows over it.
-                if (changed && underRow != null) post(() -> fitUnder(this));
                 LinearLayout column = header;
                 ViewParent row = getParent();
                 if (column == null || moving || !(row instanceof LinearLayout) || !crowdsName((LinearLayout) row)) return;
@@ -805,69 +778,8 @@ public final class StoryMentions {
         View headerRow = (View) header.getParent();
         LinearLayout.LayoutParams place = placement(false);
         place.setMarginStart(headerRow.getLeft() + header.getLeft() + nameStart(header));
-        place.topMargin = gapUnder(headerRow, place.getMarginStart() - headerRow.getLeft(), 0);
         pill.setLayoutParams(place);
         under.addView(pill, under.indexOfChild(headerRow) + 1);
-        pill.underRow = headerRow;
-        // The name's second line can come after this, and the row's box doesn't change for it.
-        headerRow.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-            @Override
-            public void onLayoutChange(View row, int l, int t, int r, int b, int oldL, int oldT, int oldR, int oldB) {
-                if (pill.getParent() == null || pill.underRow != row) {
-                    row.removeOnLayoutChangeListener(this);
-                    return;
-                }
-                pill.post(() -> fitUnder(pill));
-            }
-        });
-    }
-
-    /** Moves [pill] to where it belongs under the header's row, when that changed. Never throws. */
-    static void fitUnder(Pill pill) {
-        try {
-            View row = pill.underRow;
-            if (row == null || !(pill.getLayoutParams() instanceof LinearLayout.LayoutParams)) return;
-            LinearLayout.LayoutParams place = (LinearLayout.LayoutParams) pill.getLayoutParams();
-            int gap = gapUnder(row, place.getMarginStart() - row.getLeft(), pill.getWidth());
-            if (gap == place.topMargin) return;
-            place.topMargin = gap;
-            pill.setLayoutParams(place);
-        } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.STORY_MENTIONS, "story header", failure);
-        }
-    }
-
-    /**
-     * The pill's top margin under the header's [row]: a little under the lowest thing that shows over
-     * the pill, from [start] for [width] across the row (with no width yet, across all of it). The row
-     * is as tall as its tallest box, far taller than a one-line name, which left a gap as tall as the
-     * pill between them (#510). So the margin usually comes out negative, up into the row's empty foot.
-     */
-    static int gapUnder(View row, int start, int width) {
-        int gap = Dim.dp(4);
-        int height = row.getHeight();
-        if (height <= 0) return gap;
-        int lowest = lowestShowing(row, 0, 0, start, start + width);
-        return lowest <= 0 ? gap : Math.min(gap, lowest + gap - height);
-    }
-
-    /**
-     * How far down [view], at [left] and [top], reaches what it shows between [from] and [to]. Only what
-     * has nothing inside it counts, as a box around things can be far bigger than they are.
-     */
-    private static int lowestShowing(View view, int left, int top, int from, int to) {
-        if (view.getVisibility() != View.VISIBLE || view.getWidth() <= 0 || view.getHeight() <= 0) return 0;
-        if (view instanceof ViewGroup && ((ViewGroup) view).getChildCount() > 0) {
-            ViewGroup group = (ViewGroup) view;
-            int lowest = 0;
-            for (int i = 0; i < group.getChildCount(); i++) {
-                View child = group.getChildAt(i);
-                lowest = Math.max(lowest, lowestShowing(child, left + child.getLeft(), top + child.getTop(), from, to));
-            }
-            return lowest;
-        }
-        if (to > from && (left + view.getWidth() <= from || left >= to)) return 0;
-        return top + view.getHeight();
     }
 
     /**
@@ -945,21 +857,21 @@ public final class StoryMentions {
     /** The header's id, looked up once: a name lookup on every story frame adds up. */
     private static int headerId(Context context) {
         if (headerIdForTests != 0) return headerIdForTests;
-        if (headerId == -1) headerId = context.getResources().getIdentifier(HEADER, "id", Utils.resourcePackage(context));
+        if (headerId == -1) headerId = context.getResources().getIdentifier(HEADER, "id", context.getPackageName());
         return headerId;
     }
 
     /** The name's id, looked up once like the header's. */
     private static int titleId(Context context) {
         if (titleIdForTests != 0) return titleIdForTests;
-        if (titleId == -1) titleId = context.getResources().getIdentifier(TITLE, "id", Utils.resourcePackage(context));
+        if (titleId == -1) titleId = context.getResources().getIdentifier(TITLE, "id", context.getPackageName());
         return titleId;
     }
 
     /** The top bar row's id, looked up once like the header's. */
     private static int topBarId(Context context) {
         if (topBarIdForTests != 0) return topBarIdForTests;
-        if (topBarId == -1) topBarId = context.getResources().getIdentifier(TOP_BAR, "id", Utils.resourcePackage(context));
+        if (topBarId == -1) topBarId = context.getResources().getIdentifier(TOP_BAR, "id", context.getPackageName());
         return topBarId;
     }
 
@@ -1028,7 +940,6 @@ public final class StoryMentions {
         Activity activity = activity(context);
         if (activity == null) {
             HookStatus.counted(FamilyNames.STORY_MENTIONS, LIST_NO_ACTIVITY);
-            Logger.printDebug(() -> "Story mentions: no activity to show the list in");
             return null;
         }
         if (people.isEmpty()) return null;
@@ -1045,10 +956,9 @@ public final class StoryMentions {
         rows.setOrientation(LinearLayout.VERTICAL);
         rows.setPadding(0, Dim.dp(8), 0, Dim.dp(8));
         for (Mention person : people) {
-            rows.addView(row(themed, person, sheet, () -> {
+            rows.addView(row(themed, person, () -> {
                 leaving[0] = true;
                 backToList = new BackToList(people, activity, heldList.get() == dialog ? heldViewer.get() : null);
-                Logger.printDebug(() -> "Story mentions: the list waits for a profile to close");
                 watch(activity);
                 dialog.dismiss();
                 openProfile(activity, person.username);
@@ -1057,7 +967,6 @@ public final class StoryMentions {
         // Names by the picture in a right-to-left layout, in the sheet too, which isn't a painted dialog.
         ScreenColors.startTextAtTheStart(rows);
         dialog.setOnDismissListener(shown -> {
-            if (!leaving[0] && backToList != null) Logger.printDebug(() -> "Story mentions: the list closed");
             if (!leaving[0]) backToList = null;
             release(shown, !leaving[0]);
         });
@@ -1080,41 +989,20 @@ public final class StoryMentions {
     /** How much of the screen's height a sheet's accounts take before they scroll. */
     static final float SHEET_ROWS_SHARE = 0.6f;
 
-    /** The glass sheet's corners, its gap to the screen's sides and bottom, and its widest width, in dp (#525). */
-    static final int GLASS_CORNER_DP = 24;
-    static final int GLASS_GAP_DP = 8;
-    static final int GLASS_WIDEST_DP = 560;
-    /** How far the story behind the glass sheet is blurred, in dp. */
-    static final int GLASS_BLUR_DP = 24;
-    /** How much of the sheet's color covers a blurred story, and a story the phone won't blur. */
-    static final int GLASS_ALPHA = 0xB8;
-    static final int CLEAR_ALPHA = 0xEE;
-    /** How much the story dims around the sheet. */
-    static final float GLASS_DIM = 0.3f;
-    /** For tests: whether the phone blurs what's behind a window, or null to ask it. */
-    @Nullable static Boolean blursForTests;
-    /** How much of the card color a row in the glass sheet keeps. */
-    static final int ROW_GLASS_ALPHA = 0x66;
-
     /**
      * The sheet's content: "Story mentions" over a line saying what it lists, the account [rows],
-     * and a Close as wide as the sheet. Its glass tint is the window's background ({@link
-     * #alongTheBottom}); the sheet adds the light catching its top and a thin rim (#525).
+     * and a Close as wide as the sheet, on the settings' card color with rounded top corners.
      */
     private static View sheet(Context themed, LinearLayout rows, AlertDialog dialog) {
         ScreenColors colors = ScreenColors.DEFAULT;
         LinearLayout sheet = new LinearLayout(themed);
         sheet.setOrientation(LinearLayout.VERTICAL);
         sheet.setPadding(0, Dim.dp(20), 0, Dim.dp(16));
-        float corner = Dim.dp(GLASS_CORNER_DP);
-        GradientDrawable sheen = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[] {colors.light ? 0x59FFFFFF : 0x1FFFFFFF, Color.TRANSPARENT, Color.TRANSPARENT});
-        sheen.setCornerRadius(corner);
-        GradientDrawable rim = new GradientDrawable();
-        rim.setColor(Color.TRANSPARENT);
-        rim.setCornerRadius(corner);
-        rim.setStroke(Math.max(1, Dim.dp(1)), colors.light ? 0x99FFFFFF : 0x33FFFFFF);
-        sheet.setBackground(new LayerDrawable(new Drawable[] {sheen, rim}));
+        GradientDrawable surface = new GradientDrawable();
+        surface.setColor(colors.dialog);
+        float corner = Dim.dp(12);
+        surface.setCornerRadii(new float[] {corner, corner, corner, corner, 0, 0, 0, 0});
+        sheet.setBackground(surface);
 
         TextView title = new TextView(themed);
         title.setText(L10n.t(themed, "Story mentions"));
@@ -1167,96 +1055,18 @@ public final class StoryMentions {
         return sheet;
     }
 
-    /**
-     * Floats [dialog]'s window along the bottom of the screen as a pane of glass (#525): a card with
-     * a small gap to the sides and bottom, tinted with the sheet's color, with the story blurred
-     * behind it where the phone blurs behind windows (Android 12 and up, unless battery saver or the
-     * phone turns that off, which it follows while the sheet is open). Without the blur the tint is
-     * nearly solid, so the names stay easy to read over any story.
-     *
-     * <p>The blur covers the window and takes its corners from the window's background, which is why
-     * the window is the card's size and the tint its background.
-     */
+    /** Lays [dialog]'s window along the bottom of the screen, as wide as it, with no backing of its own. */
     private static void alongTheBottom(AlertDialog dialog) {
         Window window = dialog.getWindow();
         if (window == null) return;
-        GradientDrawable glass = new GradientDrawable();
-        glass.setCornerRadius(Dim.dp(GLASS_CORNER_DP));
-        int color = ScreenColors.DEFAULT.dialog;
-        glass.setColor(tint(color, false));
-        window.setBackgroundDrawable(glass);
-        int screen = dialog.getContext().getResources().getDisplayMetrics().widthPixels;
-        window.setLayout(Math.min(screen - 2 * Dim.dp(GLASS_GAP_DP), Dim.dp(GLASS_WIDEST_DP)),
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        window.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        WindowManager.LayoutParams place = window.getAttributes();
-        place.y = Dim.dp(GLASS_GAP_DP);
-        window.setAttributes(place);
-        // A shadow would show through the tint as a dark smudge; the rim draws the edge instead.
-        window.setElevation(0);
-        window.setDimAmount(GLASS_DIM);
+        window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        window.setGravity(Gravity.BOTTOM);
         window.setWindowAnimations(android.R.style.Animation_InputMethod);
-        try {
-            frost(window, glass, color, blurs(dialog.getContext()));
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && blursForTests == null) followBlur(dialog, window, glass, color);
-        } catch (Throwable failure) {
-            frost(window, glass, color, false);
-            HookStatus.threw(FamilyNames.STORY_MENTIONS, "glass sheet", failure);
-        }
     }
 
-    /** Whether the phone blurs what's behind a window right now. */
-    static boolean blurs(Context context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false;
-        Boolean forTests = blursForTests;
-        if (forTests != null) return forTests;
-        WindowManager manager = context.getSystemService(WindowManager.class);
-        return manager != null && manager.isCrossWindowBlurEnabled();
-    }
-
-    /** [color] as the glass tint: see-through over a blurred story, nearly solid over a sharp one. */
-    static int tint(int color, boolean blurred) {
-        return (color & 0x00FFFFFF) | ((blurred ? GLASS_ALPHA : CLEAR_ALPHA) << 24);
-    }
-
-    private static void frost(Window window, GradientDrawable glass, int color, boolean blurred) {
-        glass.setColor(tint(color, blurred));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) window.setBackgroundBlurRadius(blurred ? Dim.dp(GLASS_BLUR_DP) : 0);
-    }
-
-    /** Re-tints the sheet when the phone turns blurring behind windows on or off while it's open. */
-    private static void followBlur(AlertDialog dialog, Window window, GradientDrawable glass, int color) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
-        WindowManager manager = dialog.getContext().getSystemService(WindowManager.class);
-        if (manager == null) return;
-        Consumer<Boolean> follow = blurred -> {
-            try {
-                frost(window, glass, color, Boolean.TRUE.equals(blurred));
-            } catch (Throwable failure) {
-                HookStatus.threw(FamilyNames.STORY_MENTIONS, "glass sheet blur", failure);
-            }
-        };
-        View decor = window.getDecorView();
-        View.OnAttachStateChangeListener attach = new View.OnAttachStateChangeListener() {
-            @Override
-            public void onViewAttachedToWindow(View view) {
-                manager.addCrossWindowBlurEnabledListener(follow);
-            }
-
-            @Override
-            public void onViewDetachedFromWindow(View view) {
-                manager.removeCrossWindowBlurEnabledListener(follow);
-            }
-        };
-        decor.addOnAttachStateChangeListener(attach);
-        if (decor.isAttachedToWindow()) attach.onViewAttachedToWindow(decor);
-    }
-
-    /**
-     * A row with [person]'s picture, then their full name over their @username, on a card that's
-     * see-through in the glass sheet ([glass]).
-     */
-    private static View row(Context themed, Mention person, boolean glass, Runnable open) {
+    /** A row with [person]'s picture, then their full name over their @username. */
+    private static View row(Context themed, Mention person, Runnable open) {
         LinearLayout row = new LinearLayout(themed);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -1265,9 +1075,9 @@ public final class StoryMentions {
         ScreenColors colors = ScreenColors.DEFAULT;
         int secondary = colors.summary;
         GradientDrawable surface = new GradientDrawable();
-        surface.setColor(glass ? (colors.card & 0x00FFFFFF) | (ROW_GLASS_ALPHA << 24) : colors.card);
+        surface.setColor(colors.card);
         surface.setCornerRadius(Dim.dp(12));
-        surface.setStroke(Dim.dp(1), glass ? (colors.light ? 0x80FFFFFF : 0x26FFFFFF) : colors.outline);
+        surface.setStroke(Dim.dp(1), colors.outline);
         row.setBackground(new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(colors.heading)), surface, null));
         LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -1437,23 +1247,10 @@ public final class StoryMentions {
     }
 
     /** Whether [x], [y] is on a view showing in [parent] other than [pill]. */
-    private static boolean onAnother(ViewGroup parent, Pill pill, float x, float y) {
+    private static boolean onAnother(ViewGroup parent, View pill, float x, float y) {
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
-            if (child == pill || child.getVisibility() != View.VISIBLE || !holds(child, x, y, 0, 0)) continue;
-            // The pill sits in the empty foot of the header's row, and nobody taps there but on what shows.
-            if (child != pill.underRow || showsAt(child, x, y)) return true;
-        }
-        return false;
-    }
-
-    /** Whether something with nothing inside it shows at [x], [y] in [view]. */
-    private static boolean showsAt(View view, float x, float y) {
-        if (view.getVisibility() != View.VISIBLE || !holds(view, x, y, 0, 0)) return false;
-        if (!(view instanceof ViewGroup) || ((ViewGroup) view).getChildCount() == 0) return true;
-        ViewGroup group = (ViewGroup) view;
-        for (int i = 0; i < group.getChildCount(); i++) {
-            if (showsAt(group.getChildAt(i), x, y)) return true;
+            if (child != pill && child.getVisibility() == View.VISIBLE && holds(child, x, y, 0, 0)) return true;
         }
         return false;
     }
@@ -1488,15 +1285,10 @@ public final class StoryMentions {
     static Activity activityOf(View view) {
         Activity own = activity(view.getContext());
         if (own != null) return own;
-        return showsIn(view, touched.get());
-    }
-
-    /** [activity] when [view] is laid out in its window, or null. */
-    @Nullable
-    private static Activity showsIn(View view, @Nullable Activity activity) {
-        Window window = activity == null ? null : activity.getWindow();
+        Activity last = touched.get();
+        Window window = last == null ? null : last.getWindow();
         View decor = window == null ? null : window.peekDecorView();
-        return decor != null && view.getRootView() == decor ? activity : null;
+        return decor != null && view.getRootView() == decor ? last : null;
     }
 
     @Nullable
@@ -1531,7 +1323,6 @@ public final class StoryMentions {
         viewer = new WeakReference<>(null);
         heldViewer = new WeakReference<>(null);
         heldList = new WeakReference<>(null);
-        blursForTests = null;
         Application app = watching.get();
         if (app != null) app.unregisterActivityLifecycleCallbacks(COMEBACK);
         watching = new WeakReference<>(null);

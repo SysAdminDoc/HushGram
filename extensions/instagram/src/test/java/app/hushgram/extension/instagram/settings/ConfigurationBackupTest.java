@@ -118,10 +118,9 @@ public class ConfigurationBackupTest {
         original.edit().putString("private-session", "secret-token").commit();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
-        assertEquals(13, values.length());
-        assertFalse(values.getJSONObject(Settings.CATEGORY_OWN_PAGE.key).getBoolean("value"));
+        assertEquals(12, values.length());
         assertFalse(values.getJSONObject(Settings.DATE_SETTINGS_EXPORT.key).getBoolean("value"));
-        assertFalse(values.getJSONObject(Settings.DESCRIPTIONS_BEHIND_INFO.key).getBoolean("value"));
+        assertTrue(values.getJSONObject(Settings.DESCRIPTIONS_BEHIND_INFO.key).getBoolean("value"));
         assertTrue(values.getJSONObject(Settings.SETTINGS_BLACK_LOOK.key).getBoolean("value"));
         assertTrue(values.getJSONObject(Settings.HIDE_ADS.key).getBoolean("value"));
         assertTrue(values.has(BaseSettings.DEBUG.key));
@@ -479,7 +478,7 @@ public class ConfigurationBackupTest {
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         original.edit().putString(Settings.OLD_GLASS_BLUR_KEY, "HEAVY").putString(Settings.OLD_GLASS_OPACITY_KEY, "STANDARD").commit();
         Settings.carryOverGlassSteps();
-        assertEquals("a step this build never had leaves the slider where it starts", 8, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals("a step this build never had draws the standard", 18, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
         assertEquals(100, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
         assertFalse(original.contains(Settings.OLD_GLASS_BLUR_KEY));
         assertFalse(original.contains(Settings.OLD_GLASS_OPACITY_KEY));

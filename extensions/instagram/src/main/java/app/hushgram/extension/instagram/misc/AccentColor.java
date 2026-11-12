@@ -7,7 +7,6 @@ package app.hushgram.extension.instagram.misc;
 import android.content.res.ColorStateList;
 import android.os.Parcel;
 import android.util.TypedValue;
-import android.widget.TextView;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -154,32 +153,13 @@ public final class AccentColor {
     }
 
     /**
-     * Injected at the end of Instagram's text view constructors. A color a layout gives a text view
-     * in its XML is read by the framework and never meets the reads above, which left the end of
-     * Home's "Older posts" link blue (#187). Hands the colors it was built with to {@link #list}, and
-     * gives it the answer when that's a new list. Never throws.
-     */
-    public static void text(TextView view) {
-        try {
-            if (view == null) return;
-            ColorStateList before = view.getTextColors();
-            ColorStateList after = list(before);
-            if (after != before) view.setTextColor(after);
-        } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.ACCENT_COLOR, "text view", failure);
-        }
-    }
-
-    /**
      * The color picked, or null for Instagram's own: switch off, blue picked, paused or not ready,
-     * Material You with no wallpaper palette to read, this read being one of that palette's tones, or
-     * Custom with no color typed.
+     * Material You with no wallpaper palette to read, or this read being one of that palette's tones.
      */
     static AccentHue picked() {
         if (!Utils.settingsReady() || !Settings.ACCENT_COLOR.get() || MaterialYou.reading()) return null;
         AccentHue hue = Settings.ACCENT_HUE.get();
         if (hue == AccentHue.WALLPAPER && MaterialYou.shades() == null) return null;
-        if (hue == AccentHue.CUSTOM && CustomAccent.shades() == null) return null;
         return hue == null || hue == AccentHue.BLUE ? null : hue;
     }
 
@@ -234,12 +214,12 @@ public final class AccentColor {
 
     /**
      * [color] as [hue]'s shade for the part it plays, with its own alpha, or [color] for no part, or
-     * when Material You's palette can't be read or no custom color is typed.
+     * when Material You's palette can't be read.
      */
     static int swap(int color, AccentHue hue) {
         Role role = role(color);
-        if (hue == AccentHue.WALLPAPER || hue == AccentHue.CUSTOM) {
-            int[] shades = hue == AccentHue.WALLPAPER ? MaterialYou.shades() : CustomAccent.shades();
+        if (hue == AccentHue.WALLPAPER) {
+            int[] shades = MaterialYou.shades();
             if (role == Role.NONE || shades == null) return color;
             return (color & 0xff000000) | shades[role.ordinal() - 1];
         }

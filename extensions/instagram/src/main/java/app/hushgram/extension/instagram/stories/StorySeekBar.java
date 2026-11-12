@@ -4,11 +4,9 @@
  */
 package app.hushgram.extension.instagram.stories;
 
-import android.os.Build;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowInsets;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
 
@@ -20,8 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import app.hushgram.extension.instagram.feed.GlassSeekBar;
-import app.hushgram.extension.instagram.feed.SeekPreview;
-import app.hushgram.extension.instagram.feed.SeekShapes;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -86,12 +82,6 @@ public final class StorySeekBar {
     static final int HEIGHT_DP = 32;
     static final int BOTTOM_DP = 64;
 
-    /**
-     * Placed below the Send message box (#636), the bar shrinks to the room under it down to this, in
-     * dp, which still holds every shape's handle. With less room it stays above the box.
-     */
-    static final int BELOW_MIN_DP = 16;
-
     static final String HOOK = "story seek bar";
     static final String COUNT_SEEKS = "story seeks";
 
@@ -115,8 +105,6 @@ public final class StorySeekBar {
     };
 
     private static Player player = PATCHED;
-    /** What tests say the system's bars cover at the window's bottom, in pixels, or -1 to read the window. */
-    private static int systemBottomForTests = -1;
     private static final ResourceIdCache ids = new ResourceIdCache();
     @Nullable private static Overlay current;
     private static volatile boolean logged;
@@ -163,22 +151,17 @@ public final class StorySeekBar {
 
     @VisibleForTesting
     static void composerIdForTests(android.content.Context context, int id) {
-        ids.putForTests(Utils.resourcePackage(context), COMPOSER, id);
+        ids.putForTests(context.getPackageName(), COMPOSER, id);
     }
 
     @VisibleForTesting
     static void footerIdForTests(android.content.Context context, int id) {
-        ids.putForTests(Utils.resourcePackage(context), FOOTER, id);
+        ids.putForTests(context.getPackageName(), FOOTER, id);
     }
 
     @VisibleForTesting
     static void idForTests(android.content.Context context, String name, int id) {
-        ids.putForTests(Utils.resourcePackage(context), name, id);
-    }
-
-    @VisibleForTesting
-    static void systemBottomForTests(int pixels) {
-        systemBottomForTests = pixels;
+        ids.putForTests(context.getPackageName(), name, id);
     }
 
     @VisibleForTesting
@@ -194,7 +177,6 @@ public final class StorySeekBar {
         if (overlay != null) overlay.remove();
         current = null;
         player = PATCHED;
-        systemBottomForTests = -1;
         ids.clear();
         logged = false;
     }
@@ -250,7 +232,6 @@ public final class StorySeekBar {
             GlassSeekBar seek = bar != null ? bar : make(owner);
             if (seek == null) return;
             seek.look(Settings.STORY_SEEK_BAR_LOOK.get());
-            seek.shape(SeekShapes.wanted(), false);
             if (!dragging) {
                 if (seek.getMax() != duration) seek.setMax(duration);
                 int position = player.position(owner);
@@ -299,22 +280,16 @@ public final class StorySeekBar {
          * bottom. The row is the highest of {@link #ANCHORS} on screen, so on your own story the bar
          * clears the toolbar and the "Say something..." line over it, and on someone else's the Send
          * message row.
-         *
-         * <p>Placed below (#636), the bar sits in the middle of the space between the lowest row's
-         * bottom and the system's bars or swipe area, as tall as fits there up to {@link #HEIGHT_DP},
-         * so it never covers the row. With less than {@link #BELOW_MIN_DP} free, it stays above.
          */
         private void place(Object owner, SeekBar seek) {
             ViewGroup parent = (ViewGroup) seek.getParent();
             if (parent == null) return;
-            int height = dp(seek, HEIGHT_DP);
             int bottom = dp(seek, BOTTOM_DP);
             if (parent.getHeight() > 0) {
                 findAnchors(owner, parent);
                 int[] frame = new int[2];
                 parent.getLocationInWindow(frame);
                 int highest = 0;
-                int under = -1;
                 for (int i = 0; i < ANCHORS.length; i++) {
                     View box = anchors[i] == null ? null : anchors[i].get();
                     if (box == null) continue;
@@ -322,29 +297,14 @@ public final class StorySeekBar {
                     box.getLocationInWindow(at);
                     int above = frame[1] + parent.getHeight() - at[1];
                     if (above <= 0 || above >= parent.getHeight()) continue;
-                    if (ANCHORS[i].equals(COMMENT_LINE)) {
-                        if (above * 2 > parent.getHeight()) continue;
-                    } else {
-                        int below = Math.max(0, above - box.getHeight());
-                        under = under < 0 ? below : Math.min(under, below);
-                    }
+                    if (ANCHORS[i].equals(COMMENT_LINE) && above * 2 > parent.getHeight()) continue;
                     highest = Math.max(highest, above);
                 }
                 if (highest > 0) bottom = highest;
-                if (under >= 0 && Settings.STORY_SEEK_BAR_POSITION.get() == StorySeekBarPosition.BELOW) {
-                    int clear = seek.getRootView().getHeight() - systemBottom(seek);
-                    int covered = Math.max(0, frame[1] + parent.getHeight() - clear);
-                    int room = under - covered;
-                    if (room >= dp(seek, BELOW_MIN_DP)) {
-                        height = Math.min(height, room);
-                        bottom = covered + (room - height) / 2;
-                    }
-                }
             }
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) seek.getLayoutParams();
-            if (params.bottomMargin != bottom || params.height != height) {
+            if (params.bottomMargin != bottom) {
                 params.bottomMargin = bottom;
-                params.height = height;
                 seek.setLayoutParams(params);
             }
         }
@@ -366,7 +326,7 @@ public final class StorySeekBar {
                 anchors[i] = null;
                 if (view == null) view = player.view(owner);
                 if (view == null) return;
-                wanted[i] = ids.resolve(view.getResources(), Utils.resourcePackage(view.getContext()), ANCHORS[i], false);
+                wanted[i] = ids.resolve(view.getResources(), view.getContext().getPackageName(), ANCHORS[i], false);
                 any |= wanted[i] != 0;
             }
             if (!any) return;
@@ -413,7 +373,6 @@ public final class StorySeekBar {
 
         @Override
         public void onProgressChanged(SeekBar seek, int progress, boolean fromUser) {
-            if (fromUser && dragging) SeekPreview.dragged(seek, progress, null, StorySpeed.current(), FamilyNames.STORY_SEEK_BAR);
         }
 
         @Override
@@ -466,23 +425,6 @@ public final class StorySeekBar {
         view.getLocationInWindow(at);
         parent.getLocationInWindow(frame);
         return Math.max(0, Math.min(at[0] + view.getWidth(), frame[0] + parent.getWidth()) - Math.max(at[0], frame[0]));
-    }
-
-    /** How far up from the window's bottom the system's bars, swipe area and any keyboard reach, in pixels. */
-    @SuppressWarnings("deprecation")
-    private static int systemBottom(View view) {
-        if (systemBottomForTests >= 0) return systemBottomForTests;
-        WindowInsets insets = view.getRootWindowInsets();
-        if (insets == null) return 0;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            return insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.mandatorySystemGestures()
-                    | WindowInsets.Type.ime()).bottom;
-        }
-        int bottom = insets.getSystemWindowInsetBottom();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            bottom = Math.max(bottom, insets.getMandatorySystemGestureInsets().bottom);
-        }
-        return bottom;
     }
 
     private static int dp(View view, int value) {

@@ -12,7 +12,6 @@ import android.os.LocaleList;
 import android.view.textclassifier.TextClassificationManager;
 import android.view.textclassifier.TextClassifier;
 import android.view.textclassifier.TextLanguage;
-import androidx.annotation.RequiresApi;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -610,7 +609,6 @@ public final class CaptionLanguage {
     }
 
     /** Android's text classifier (API 29 and up) naming the top language of [text]. */
-    @RequiresApi(29)
     private static Guess classify(String text) {
         Context context = Utils.getContext();
         if (context == null) return null;

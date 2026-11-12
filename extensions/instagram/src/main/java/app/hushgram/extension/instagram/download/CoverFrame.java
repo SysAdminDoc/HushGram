@@ -15,6 +15,7 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.function.Function;
 
+import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -26,7 +27,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * that frame is taken from the largest video the reel lists: fetched through the same checks as a
  * video save, read with MediaMetadataRetriever and saved as a JPEG. Nothing is asked of Instagram
  * beyond the video file a video save fetches too. A custom cover is another picture, so it never
- * goes this way. A story's Download as photo goes the same way when its video has its still's shape.
+ * goes this way.
  */
 final class CoverFrame {
     private CoverFrame() {
@@ -35,7 +36,7 @@ final class CoverFrame {
     /** The source this save's lines carry in the diagnostic report. */
     private static final String SOURCE = "CoverFrame";
 
-    /** Counted under the save's patch: a cover taken from its video, or one that fell back to its still. */
+    /** Counted under Download any reel: a cover taken from its video, or one that fell back to its still. */
     static final String FROM_VIDEO = "cover taken from the video";
     static final String FRAME_FAILED = "cover frame failed";
 
@@ -67,17 +68,6 @@ final class CoverFrame {
         return best != null && pixels(still) > 0 && pixels(best) > pixels(still) ? best : null;
     }
 
-    /**
-     * {@link #source} for a picture only taken to be the video's first frame, as a story's is: the
-     * video must have [still]'s shape, within 2 percent.
-     */
-    static MediaSave.Rendition sameShapeSource(List<MediaSave.Rendition> videos, String manifest, MediaSave.Rendition still) {
-        MediaSave.Rendition video = source(videos, manifest, still);
-        if (video == null) return null;
-        long across = (long) video.width * still.height;
-        return Math.abs(across - (long) video.height * still.width) * 50L > across ? null : video;
-    }
-
     private static MediaSave.Rendition larger(MediaSave.Rendition video, MediaSave.Rendition best) {
         if (video == null || !RenditionPicker.isHttpUrl(video.url) || MediaUrlPolicy.shapeRefusal(video.url) != null) {
             return best;
@@ -104,10 +94,10 @@ final class CoverFrame {
     /**
      * Fetches [video], takes its first frame and writes it to [sink] as a JPEG, telling [progress]
      * how far the fetch has got and stopping when it's cancelled. The fetch goes through [policy]
-     * and is held to [maxBytes]. The frame is counted under [family]. Blocks, and never throws.
+     * and is held to [maxBytes]. Blocks, and never throws.
      */
     static Downloader.Result save(Context application, MediaSave.Rendition video, Downloader.Sink sink,
-            MediaUrlPolicy policy, long maxBytes, Downloader.Progress progress, String family) {
+            MediaUrlPolicy policy, long maxBytes, Downloader.Progress progress) {
         File videoFile = null;
         File picture = null;
         try {
@@ -141,7 +131,7 @@ final class CoverFrame {
 
             Downloader.Result published = Downloader.publish(picture, "image/jpeg", sink, progress);
             if (published.ok()) {
-                HookStatus.counted(family, FROM_VIDEO);
+                HookStatus.counted(FamilyNames.REEL_DOWNLOAD, FROM_VIDEO);
                 Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE,
                     () -> "the cover was taken from the video's first frame at " + width + "x" + height);
             }

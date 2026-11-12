@@ -249,19 +249,28 @@ function New-WalkFixtureUi($Destination, [string]$CaptureId, [long]$Uptime) {
         }
         $nodes.Add((ConvertTo-FixtureUiNode '' $scopeId 'false' $emptyState 'android.widget.FrameLayout' -Bounds '[0,64][400,744]'))
     } else {
-        $title = if ($Destination.kind -ceq 'settings' -and $Destination.page) { $Destination.title } else { 'HushGram' }
+        # The app bar remains HushGram. On the overview, section names are navigation rows;
+        # inside a section, its title and actual controls appear together in the list.
+        $title = 'HushGram'
         $toolbar = (ConvertTo-FixtureUiNode '' 'android:id/home' 'false' '' 'android.widget.Button' 'Back' '[0,0][64,64]') +
             (ConvertTo-FixtureUiNode $title -Bounds '[72,0][350,64]')
         $nodes.Add((ConvertTo-FixtureUiNode '' 'com.instagram.android:id/action_bar' 'false' $toolbar 'android.widget.LinearLayout' -Bounds '[0,0][400,64]'))
-        $rows = ConvertTo-FixtureUiNode $Destination.title 'android:id/title'
-        $rowTop = 180
-        foreach ($anchor in $Destination.anchors) {
-            $rows += ConvertTo-FixtureUiNode $anchor 'android:id/title' -Bounds "[20,$rowTop][380,$($rowTop + 16)]"
-            $rowTop += 20
-        }
         if ($Destination.kind -ceq 'settings-root') {
-            $rows += ConvertTo-FixtureUiNode 'Show all settings as a list' 'android:id/title' -Bounds '[20,160][380,176]'
+            $rows = ''
+            $seenRootRows = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            foreach ($anchor in $Destination.anchors) {
+                if ($seenRootRows.Add([string]$anchor)) {
+                    $rows += ConvertTo-FixtureUiNode ([string]$anchor) 'android:id/title' -Bounds '[20,120][380,156]'
+                }
+            }
             $nodes.Add((ConvertTo-FixtureUiNode 'Search settings' '' 'false' '' 'android.widget.EditText' -Bounds '[20,68][380,108]'))
+        } else {
+            $rows = ConvertTo-FixtureUiNode $Destination.title 'android:id/title' -Bounds '[20,120][380,160]'
+            $rowTop = 180
+            foreach ($anchor in $Destination.anchors) {
+                $rows += ConvertTo-FixtureUiNode $anchor 'android:id/title' -Bounds "[20,$rowTop][380,$($rowTop + 24)]"
+                $rowTop += 28
+            }
         }
         $nodes.Add((ConvertTo-FixtureUiNode '' 'android:id/list' 'false' $rows 'android.widget.ListView' -Bounds '[0,112][400,800]'))
     }
