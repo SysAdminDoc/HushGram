@@ -3139,6 +3139,12 @@ once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDroppe
 # The method loads no string, so it's the class's one instance (I)V handing a view a visibility.
 start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->keepsTabBarThroughATell(I)Z in instance (I)V calling static LX/*;->*(Landroid/view/View;II)V pooled class-holding tab_bar_migration_remove
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->keepsTabBarThroughATell(I)Z in instance (I)V calling static LX/*;->*(Landroid/view/View;II)V pooled class-holding tab_bar_migration_remove
+# The camera's navigation bar (#646), under Glass tab bar: the camera's 9:16 layout, built from a
+# Context, reads the navigation bar's height Instagram keeps once and asks
+# GlassTabBar.cameraNavBarHeight about it right before it builds itself from it. The camera opens in
+# the main window, where a floating pill had Instagram answered 0. Left out, the gallery button and
+# the mode picker sit under the navigation bar.
+once-call Lapp/hushgram/extension/instagram/misc/GlassTabBar;->cameraNavBarHeight(I)I in instance (Landroid/content/Context;ZZ)V holding Lcom/instagram/creation/capture/quickcapture/aspectratioutil/targetviewsizeprovider/NineSixteenLayoutConfigImpl;-><init>(IIIZZIII)V
 # Fill the screen (#288), under Full screen Reels: Instagram's reel crop decision (08JU.A02 on 452,
 # the one method naming both purge flags below) asks ReelFill.fill with the viewer's source and the
 # crop percentage right after working it out, and returns true (fill) on a yes. Left out, reels close

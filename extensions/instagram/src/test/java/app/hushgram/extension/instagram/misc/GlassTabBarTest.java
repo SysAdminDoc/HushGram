@@ -447,6 +447,39 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #646: the camera's 9:16 layout reads the navigation bar's height Instagram keeps once, as it's
+     * made, which can be while the pill is still in front and Instagram was answered 0. It gets the
+     * height the pill took. A height given through, a bar HushGram's full screen hides and heights
+     * nobody knows yet go through as they came.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aCameraLayoutMadeUnderThePillGetsTheNavigationBar() {
+        GlassTabBar.resetForTests();
+        GlassTabBar.animationsOnForTests = false;
+        assertEquals("no heights yet", 0, GlassTabBar.cameraNavBarHeight(0));
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+            int nav = host.dp(24);
+            host.controller.pause().resume();
+            host.frame();
+            assertEquals("the pill is in front", 0, GlassTabBar.navBarHeight(nav));
+            assertEquals("the camera's layout gets the height the pill took", nav, GlassTabBar.cameraNavBarHeight(0));
+
+            host.root.setTranslationX(host.activity.getWindow().getDecorView().getWidth());
+            host.frame();
+            assertEquals("beside the window", nav, GlassTabBar.navBarHeight(nav));
+            assertEquals("a height given through stays", nav, GlassTabBar.cameraNavBarHeight(nav));
+            assertEquals("and a 0 then is Instagram's own", 0, GlassTabBar.cameraNavBarHeight(0));
+
+            host.root.setTranslationX(0);
+            host.frame();
+            assertEquals("a bar full screen hides", 0, GlassTabBar.navBarHeight(0, nav));
+            assertEquals("keeps the camera's 0", 0, GlassTabBar.cameraNavBarHeight(0));
+        }
+    }
+
+    /**
      * #196: a stopped activity's window stays hidden through its resume, and its screens read the
      * navigation bar's height as they resume. A floating pill set to show in it counts already, so
      * Instagram's copy goes back to the pill's 0 ahead of them. A hidden bar or another activity doesn't.

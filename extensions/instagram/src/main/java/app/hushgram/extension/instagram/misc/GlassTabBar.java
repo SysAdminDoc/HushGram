@@ -997,8 +997,9 @@ public final class GlassTabBar {
      * own color under a floating pill around the gesture handle. While a floating glass bar shows in
      * the front window the answer is 0, so the screens run to the bottom edge, and the pill keeps itself
      * above the handle by [height] ({@link #navRoom}). Screens without the bar showing (a chat's
-     * composer, settings, the camera), another activity in front, the float switch off, Pause or
-     * settings not ready all get [height] as it came. A bottom sheet over the pill, such as a reel's
+     * composer, settings), another activity in front, the float switch off, Pause or settings not
+     * ready all get [height] as it came, and the camera asks again ({@link #cameraNavBarHeight}).
+     * A bottom sheet over the pill, such as a reel's
      * comments, keeps the 0 and stops above the navigation bar by its own room instead
      * ({@link Glass#liftSheets}, #209): Instagram moves its screens by the height it keeps, the Reels
      * viewer under the sheet among them, and a reel moved by every sheet that came and went stopped on
@@ -1058,6 +1059,17 @@ public final class GlassTabBar {
         navGiven = 0;
         HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_NAV_BEHIND);
         return 0;
+    }
+
+    /**
+     * Called by the camera's 9:16 layout with the navigation bar's height Instagram keeps, which it
+     * reads once as it's made (#646). The camera opens in the main window over Home, so a layout made
+     * while the floating pill was still in front read the 0 Instagram was answered, and the gallery
+     * button and the mode picker sat under the navigation bar. The camera never shows the pill, so it
+     * gets the height the pill took ({@link #sheetRoom}). Any other height goes through as it came.
+     */
+    public static int cameraNavBarHeight(int kept) {
+        return kept <= 0 && sheetRoom > 0 ? sheetRoom : kept;
     }
 
     /**
