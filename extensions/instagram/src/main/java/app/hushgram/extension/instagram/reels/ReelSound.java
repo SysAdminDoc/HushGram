@@ -4,7 +4,11 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -24,10 +28,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The patch asks {@link #wanted()} as a Reels viewer is created, and on a yes asks
  * {@link #startWithSound(Object, Object)} with the viewer and where it was opened from, a
  * {@code ClipsViewerSource} whose constant names Instagram's build keeps. Only a viewer opened from
- * Home ({@link #FROM_HOME}) or the Reels tab ({@link ReelsTopBar#REELS_TAB}) gets a yes, which makes
- * the patch set the account's state to on the way the speaker icon does (#504). Profiles, chats and
- * Explore keep Instagram's own choice. The phone's ringer and volume still count, as they do for
- * stories.
+ * Home ({@link #FROM_HOME}), the Reels tab ({@link ReelsTopBar#REELS_TAB}) or a profile
+ * ({@link #PROFILES}, #596) gets a yes, which makes the patch set the account's state to on the way
+ * the speaker icon does (#504). Chats and Explore keep Instagram's own choice. The phone's ringer and
+ * volume still count, as they do for stories.
  *
  * <p>With Start reels muted on, every viewer gets a yes from any source, and {@link #opened(Object, int)}
  * answers 0, so the patch sets the state to off instead. Nothing is put back; the speaker icon and the
@@ -46,7 +50,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * yourself stays muted.
  */
 public final class ReelSound {
-    /** What {@link HookStatus} counts: a reel opened from Home or the Reels tab with the sound turned on. */
+    /** What {@link HookStatus} counts: a reel opened from Home, the Reels tab or a profile with the sound turned on. */
     static final String STARTED = "reels started with sound";
 
     /** What {@link HookStatus} counts: a reel opened with the sound turned off by Start reels muted. */
@@ -69,6 +73,15 @@ public final class ReelSound {
 
     /** The start of every source name for a viewer opened from a post on Home, as Instagram 452 names them. */
     static final String FROM_HOME = "FEED_TIMELINE";
+
+    /**
+     * The sources of a viewer opened from a profile, yours or someone else's, as 454 names them: its
+     * Reels, posts, reposts and tagged grids, a group profile's, and a Prime profile's.
+     */
+    static final Set<String> PROFILES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "PROFILE", "SELF_PROFILE", "GROUP_PROFILE", "FEED_CONTEXTUAL_PROFILE", "FEED_CONTEXTUAL_SELF_PROFILE",
+            "FEED_CONTEXTUAL_GROUP_PROFILE", "REPOSTS_GRID", "SELF_REPOSTS_GRID", "TAGGED_MEDIA_VIEWER",
+            "PRIME_PROFILE", "PRIME_SELF_PROFILE")));
 
     /**
      * Every viewer that turned the account's sound on from off, held weakly, mapped to whether its
@@ -98,9 +111,9 @@ public final class ReelSound {
 
     /**
      * Asked after a yes from {@link #wanted()}, with the viewer and its source. True means set
-     * Instagram's audio state to on: the viewer was opened from Home or the Reels tab, the phone's
-     * ringer is on and its media volume is up. False for every other source, a source that isn't an
-     * enum, and anything that throws. Never throws.
+     * Instagram's audio state to on: the viewer was opened from Home, the Reels tab or a profile, the
+     * phone's ringer is on and its media volume is up. False for every other source, a source that
+     * isn't an enum, and anything that throws. Never throws.
      */
     public static int startWithSound(Object viewer, Object source) {
         try {
@@ -115,7 +128,7 @@ public final class ReelSound {
             if (!(source instanceof Enum)) return 0;
             String name = ((Enum<?>) source).name();
             Logger.printDebug(() -> "Reels viewer opened from " + name);
-            if (!name.startsWith(FROM_HOME) && !ReelsTopBar.REELS_TAB.contains(name)) return 0;
+            if (!name.startsWith(FROM_HOME) && !ReelsTopBar.REELS_TAB.contains(name) && !PROFILES.contains(name)) return 0;
             if (!Utils.settingsReady() || !Settings.START_REELS_WITH_SOUND.get() || !StorySound.phoneAllowsSound()) return 0;
             HookStatus.counted(FamilyNames.REEL_SOUND, STARTED);
             return 1;

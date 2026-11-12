@@ -41,7 +41,10 @@ public class ReelSoundTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     /** Stands in for Instagram's ClipsViewerSource, whose constant names its build keeps. */
-    enum Source { FEED_TIMELINE, FEED_TIMELINE_POST_TAP, CLIPS_TAB, CLIPS_TAB_HOMECOMING, FEED_CONTEXTUAL_PROFILE, DIRECT_THREAD }
+    enum Source {
+        FEED_TIMELINE, FEED_TIMELINE_POST_TAP, CLIPS_TAB, CLIPS_TAB_HOMECOMING, PROFILE, SELF_PROFILE, FEED_CONTEXTUAL_PROFILE,
+        REPOSTS_GRID, TAGGED_MEDIA_VIEWER, DIRECT_THREAD, EXPLORE_VIDEO_CHAINING
+    }
 
     private AudioManager audio;
 
@@ -85,20 +88,28 @@ public class ReelSoundTest {
         assertFalse(report, report.contains(ReelSound.STARTED));
     }
 
-    /** On, a reel opened from a post on Home or the Reels tab starts with sound; profiles and chats keep Instagram's own. */
+    /**
+     * On, a reel opened from a post on Home, the Reels tab or a profile starts with sound (#596: a
+     * profile's reels played muted); chats and Explore keep Instagram's own.
+     */
     @Test
-    public void onlyAReelOpenedFromHomeOrTheReelsTabStartsWithSound() {
+    public void onlyAReelOpenedFromHomeTheReelsTabOrAProfileStartsWithSound() {
         Settings.START_REELS_WITH_SOUND.save(true);
         assertEquals(1, ReelSound.wanted());
         assertEquals(1, ReelSound.startWithSound(new Object(), Source.FEED_TIMELINE));
         assertEquals(1, ReelSound.startWithSound(new Object(), Source.FEED_TIMELINE_POST_TAP));
         assertEquals("the Reels tab", 1, ReelSound.startWithSound(new Object(), Source.CLIPS_TAB));
         assertEquals("the Reels tab on a return", 1, ReelSound.startWithSound(new Object(), Source.CLIPS_TAB_HOMECOMING));
-        assertEquals("a profile", 0, ReelSound.startWithSound(new Object(), Source.FEED_CONTEXTUAL_PROFILE));
+        assertEquals("a profile's reels", 1, ReelSound.startWithSound(new Object(), Source.PROFILE));
+        assertEquals("your own profile's reels", 1, ReelSound.startWithSound(new Object(), Source.SELF_PROFILE));
+        assertEquals("a profile's posts", 1, ReelSound.startWithSound(new Object(), Source.FEED_CONTEXTUAL_PROFILE));
+        assertEquals("a profile's reposts", 1, ReelSound.startWithSound(new Object(), Source.REPOSTS_GRID));
+        assertEquals("a profile's tagged posts", 1, ReelSound.startWithSound(new Object(), Source.TAGGED_MEDIA_VIEWER));
         assertEquals("a chat", 0, ReelSound.startWithSound(new Object(), Source.DIRECT_THREAD));
+        assertEquals("Explore", 0, ReelSound.startWithSound(new Object(), Source.EXPLORE_VIDEO_CHAINING));
         assertEquals("not a source", 0, ReelSound.startWithSound(new Object(), "FEED_TIMELINE"));
         assertEquals("no source", 0, ReelSound.startWithSound(new Object(), null));
-        assertTrue(report(), report().contains(ReelSound.STARTED + " 4"));
+        assertTrue(report(), report().contains(ReelSound.STARTED + " 9"));
     }
 
     /** A silent or vibrating phone, or a media volume of zero, keeps Instagram's own choice. */
@@ -200,7 +211,7 @@ public class ReelSoundTest {
             assertEquals("never put back", 0, ReelSound.pausing(viewer));
             assertEquals(0, ReelSound.resuming(viewer));
         }
-        assertTrue(report(), report().contains(ReelSound.STARTED_MUTED + " 6"));
+        assertTrue(report(), report().contains(ReelSound.STARTED_MUTED + " " + Source.values().length));
     }
 
     @Test
