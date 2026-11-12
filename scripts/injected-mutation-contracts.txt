@@ -1571,6 +1571,10 @@ once-call Lapp/hushgram/extension/instagram/feed/EditsLabel;->labels(Ljava/util/
 # the class that loads continue_watching). Left out, Watch again keeps opening Reels; twice or
 # elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->inFeed(I)Z in instance (Landroid/content/Context;L*;L*;L*;ZZZZZ)V pooled class-holding continue_watching
+# Hide Watch more reels (#652) hands the button to WatchAgain.moreReels before the one return of the
+# controller method that gives it its tap (05Wa's A00 on 386014758, the ()V that calls the static
+# click setter). Left out, the button stays; anywhere else, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->moreReels(Landroid/view/View;)V in instance ()V calling static L*;->*(Landroid/view/View$OnClickListener;Landroid/view/View;)V pooled class-holding continue_watching
 #
 # Keep the tab bar on a reel's profile (#385) asks ReelProfileTabBar.open before the launcher of
 # the profile's own screen, on both routes a reel opens one by (09Ts's A02 and 044g's A0D on 454's

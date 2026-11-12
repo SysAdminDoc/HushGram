@@ -1985,6 +1985,9 @@ Leaves out the live broadcasts Instagram puts between reels in the Reels tab and
 # context: a switch on the Feed page; Watch again is the button on the card Instagram shows when a reel in the feed ends, next to Watch more reels
 Watch again in the feed	피드에서 다시 보기
 When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.	피드의 릴스가 끝났을 때 다시 보기를 누르면 릴스 탭을 열지 않고 그 자리에서 다시 재생합니다.
+# context: a switch on the Feed page under Watch again in the feed; Watch more reels is the big button on the card Instagram shows when a reel in the feed ends, it opens Reels
+Hide Watch more reels	더 많은 릴스 보기 숨기기
+Takes the Watch more reels button off the card a reel in your feed shows when it ends. Watch again stays.	피드의 릴스가 끝날 때 나오는 카드에서 더 많은 릴스 보기 버튼을 없앱니다. 다시 보기는 그대로 남습니다.
 # context: a switch on the Playback page under Keep playing in the background; Android's own name for picture in picture
 Picture in picture for reels	릴스 PIP 모드
 Leaving Instagram while a reel plays shrinks it into a small window over your other apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.	릴스가 재생되는 중에 Instagram을 나가면 다른 앱 위의 작은 창으로 줄어듭니다. 릴스 탭과 피드에서 연 릴스에서 작동하며, Android 15 이상이 필요합니다.

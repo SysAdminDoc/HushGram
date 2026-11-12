@@ -2773,6 +2773,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_watch_again_in_feed", FALSE);
 
     /**
+     * Takes "Watch more reels" off a feed reel's end card, leaving "Watch again" (#652,
+     * {@link app.hushgram.extension.instagram.feed.WatchAgain}). Read as each end card is shown, so it
+     * needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_WATCH_MORE_REELS =
+            new BooleanSetting("hushgram_hide_watch_more_reels", FALSE);
+
+    /**
      * The little round pictures on posts and reels showing a friend liked, commented on or reshared
      * them ({@link app.hushgram.extension.instagram.feed.ActivityBubbles}). Read as each post is
      * built, so posts already on screen change when they load again. Off to start.

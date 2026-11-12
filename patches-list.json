@@ -7004,7 +7004,7 @@
     },
     {
       "name": "Watch again in the feed",
-      "description": "When a reel in your feed ends, Watch again plays it over right there instead of opening it in Reels. Watch more reels still opens Reels. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "When a reel in your feed ends, Watch again plays it over right there instead of opening it in Reels, and Hide Watch more reels takes the other button off that card. Both start off. Turn them on in HushGram settings > Feed.",
       "category": "Fixes",
       "use": true,
       "dependencies": [

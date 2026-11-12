@@ -22,25 +22,58 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Watch again in the feed (#568): the hook is in the extension, and in every build of 454 the end
+ * Watch again in the feed (#568): the hooks are in the extension, and in every build of 454 the end
  * card controller's constructor hands the in-place replay flag to the extension before storing it.
  */
 class WatchAgainInFeedPatchTest {
     @Test
-    fun theHookIsInTheExtension() {
-        val declared = ExtensionDex.classDef(WATCH_AGAIN_IN_FEED.substringBefore("->")).methods
-            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
-            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$WATCH_AGAIN_IN_FEED is not in the extension: $declared", WATCH_AGAIN_IN_FEED.substringAfter("->") in declared)
+    fun theHooksAreInTheExtension() {
+        for (hook in listOf(WATCH_AGAIN_IN_FEED, WATCH_MORE_REELS)) {
+            val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
+                .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+                .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
     }
+
+    /**
+     * Hide Watch more reels (#652): in every build of 454 the method that wires the button's tap hands
+     * the button to the extension before each return, read fresh off the holder.
+     */
+    @Test
+    fun eachBuildHandsWatchMoreReelsToTheExtension() {
+        var checked = 0
+        for (bundle in bundles()) {
+            val classes = (FixtureDex.classesLoading(bundle, CONTINUE_WATCHING) + FixtureDex.classesLoading(bundle, KEEP_WATCHING_BUTTON))
+                .distinctBy { it.type }
+            val context = PatchContexts.of(classes)
+
+            val site = context.findWatchMoreReels(context.findWatchAgain().controller)
+            context.hideWatchMoreReels(site)
+
+            val bind = context.mutableClassDefBy(site.controller).methods.single {
+                "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == site.bind
+            }
+            val code = bind.code()
+            val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
+            assertTrue("${bundle.name}: ${site.bind} returns", returns.isNotEmpty())
+            for (at in returns) {
+                assertEquals("${bundle.name}: the holder is read", site.holder, code[at - 4].reference().toString())
+                assertEquals("${bundle.name}: the button is fetched", site.button, code[at - 3].reference().toString())
+                assertEquals("${bundle.name}: the hook before the return", WATCH_MORE_REELS, code[at - 1].reference().toString())
+            }
+            checked++
+        }
+        assertEquals("every build of 454 is read", Fixtures.BUILDS, checked)
+    }
+
+    private fun bundles() = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        .flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
 
     @Test
     fun eachBuildHandsTheReplayFlagToTheExtension() {
-        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
-        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
-            Fixtures.otherBuilds()
         var checked = 0
-        for (bundle in bundles) {
+        for (bundle in bundles()) {
             val context = PatchContexts.of(FixtureDex.classesLoading(bundle, CONTINUE_WATCHING))
 
             val site = context.findWatchAgain()

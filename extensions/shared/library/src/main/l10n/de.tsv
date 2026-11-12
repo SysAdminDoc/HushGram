@@ -1986,6 +1986,9 @@ Leaves out the live broadcasts Instagram puts between reels in the Reels tab and
 # context: a switch on the Feed page; Watch again is the button on the card Instagram shows when a reel in the feed ends, next to Watch more reels
 Watch again in the feed	Erneut ansehen im Feed
 When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.	Wenn ein Reel in deinem Feed endet, spielt „Erneut ansehen“ es direkt dort noch einmal ab, statt Reels zu öffnen.
+# context: a switch on the Feed page under Watch again in the feed; Watch more reels is the big button on the card Instagram shows when a reel in the feed ends, it opens Reels
+Hide Watch more reels	„Mehr Reels ansehen“ ausblenden
+Takes the Watch more reels button off the card a reel in your feed shows when it ends. Watch again stays.	Entfernt die Schaltfläche „Mehr Reels ansehen“ von der Karte, die erscheint, wenn ein Reel in deinem Feed endet. „Erneut ansehen“ bleibt.
 # context: a switch on the Playback page under Keep playing in the background; Android's own name for picture in picture
 Picture in picture for reels	Bild-im-Bild für Reels
 Leaving Instagram while a reel plays shrinks it into a small window over your other apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.	Wenn du Instagram verlässt, während ein Reel läuft, schrumpft es zu einem kleinen Fenster über deinen anderen Apps. Funktioniert in Reels und bei Reels, die du aus dem Feed öffnest, ab Android 15.

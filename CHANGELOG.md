@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Hide Watch more reels` sits under `Watch again in the feed` in Feed. When a reel in your feed ends, the card it shows keeps Watch again and drops the big Watch more reels button. Starts off. Asked for in #652.
 * `Shrink the pill as you scroll` sits under `Glass tab bar` in Tab bar. With `Liquid glass look` off, scrolling a list down makes the whole pill smaller, every tab still in it, and scrolling up or changing tab brings it back to full size. `Hide the tab bar as you scroll` wins when both are on. Restart Instagram after changing it. Starts off. Asked for in #638.
 * `Burn-in guard` fades the Add comment bar under a reel too, along with the other buttons, and tapping it brings them all back. Asked for in #648.
 * `Open Saved profiles with a tab long press` sits under `Your saved profiles` in Profiles. Pick a tab, Profile included, and holding it opens your saved list right away while a normal tap does what it always did. Needs `Saved profiles` on. Starts off. Asked for in #629.
