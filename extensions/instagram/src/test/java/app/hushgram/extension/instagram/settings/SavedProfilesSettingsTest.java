@@ -405,12 +405,16 @@ public class SavedProfilesSettingsTest {
 
     private static final String PICTURE = "https://scontent.cdninstagram.com/v/t51.2885-19/amy_n.jpg?oe=6800";
 
-    /** The settings file carries the list, and an import puts back the accounts missing, newest first. */
+    /**
+     * The settings file carries the list, and an import puts back the accounts missing, newest first,
+     * each in the folder it was in (#629).
+     */
     @Test public void theExportCarriesTheListAndAnImportPutsItBack() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PROFILE_PICTURE);
         SavedProfilesRows.save(context, "11", "amy", "Amy Pond", PICTURE, 1_000L);
         SavedProfilesRows.save(context, "", "zed", "", "", 2_000L);
+        assertEquals("Close friends", SavedProfiles.move(context, "11", "amy", "Close friends").folder);
         Settings.SAVED_PROFILES.save(true);
         byte[] exported = ConfigurationBackup.export();
         JSONObject root = new JSONObject(new String(exported, StandardCharsets.UTF_8));
@@ -425,6 +429,8 @@ public class SavedProfilesSettingsTest {
         assertEquals("Amy Pond", amy.getString("name"));
         assertEquals(PICTURE, amy.getString("url"));
         assertEquals(1_000L, amy.getLong("time"));
+        assertEquals("Close friends", amy.getString("folder"));
+        assertFalse("no folder, no field", listed.getJSONObject(0).has("folder"));
 
         // Another phone, with an account of its own saved since.
         Utils.awaitBackgroundTasksForTests();
@@ -439,6 +445,9 @@ public class SavedProfilesSettingsTest {
         assertEquals(PICTURE, all.get(2).url);
         assertEquals("Amy Pond", all.get(2).name);
         assertEquals(1_000L, all.get(2).time);
+        assertEquals("back in its folder", "Close friends", all.get(2).folder);
+        assertEquals("", all.get(1).folder);
+        assertEquals(Collections.singletonList("Close friends"), SavedProfiles.folders(all));
 
         assertTrue("an import of accounts alone still offers Undo", ConfigurationBackup.canUndo());
         assertEquals(2, ConfigurationBackup.undo().profiles);
