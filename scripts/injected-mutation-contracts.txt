@@ -1743,6 +1743,11 @@ once-call Lapp/hushgram/extension/instagram/media/StoriesPip;->resumed(Ljava/lan
 # called only by QualityChoice, so they're no hook into Instagram and get no rule;
 # DefaultPlaybackQualityTest checks them on each declared build.
 once-call Lapp/hushgram/extension/instagram/media/QualityChoice;->firstChoice(Ljava/lang/Object;)V in instance (*)V holding initializeCachedInitSegments CachedSegmentManager
+# The same choice tells eachChoice() first thing, with the evaluator and every parameter where it
+# arrives (#599), so a kept quality steps down when the video falls behind. Left out, a rung the
+# connection can't carry stalls again and again; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/media/QualityChoice;->eachChoice(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;FJJJ)V in instance (*)V holding initializeCachedInitSegments CachedSegmentManager
+once-call Lapp/hushgram/extension/instagram/media/QualityChoice;->eachChoice(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;FJJJ)V in instance (*)V holding initializeCachedInitSegments CachedSegmentManager
 #
 # View stories anonymously asks the extension first thing in PendingReelSeenStateStore's send, the
 # one method that posts the stories you watched to media/seen/, and sends the batch it answers in
