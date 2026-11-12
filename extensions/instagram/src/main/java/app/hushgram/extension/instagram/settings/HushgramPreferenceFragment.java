@@ -333,6 +333,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private Row gridToggle;
     /** The tiles, one row of the page, while the grid is on and nothing is searched. */
     @Nullable private CategoryGrid categoryGrid;
+    /** The chips under Search on a category's own page, one for each category (#642). */
+    @Nullable private CategoryStrip categoryStrip;
     /** HushGram's name over the page while the black look is on and nothing is searched (#455). */
     @Nullable private Preference header;
     /** Before you sign in, while no tap has hidden it. The home page's, like the status card. */
@@ -591,6 +593,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         categoryGrid = new CategoryGrid(context, this::openFromGrid);
         // Before the first section, after the notice and recovery notes above it.
         categoryGrid.setOrder(-10);
+        categoryStrip = new CategoryStrip(context, this::switchPage);
+        // Right under Search, the only other row a category's page has above its own.
+        categoryStrip.setOrder(-49);
         header = new SettingsHeader(context);
         header.setOrder(-60);
         Preference status = statusCard(context);
@@ -916,6 +921,24 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         lastCategory = pageCategory;
         focusPage();
         filterSettings();
+        if (list != null) list.post(() -> {
+            if (list == listView()) list.setSelection(0);
+        });
+    }
+
+    /**
+     * A chip under Search put [section] on the page in place of the one showing (#642). The list's
+     * place is the one kept when the first page opened, so Back still lands where the reader was.
+     */
+    private void switchPage(Heading section) {
+        PreferenceCategory shown = shownPage();
+        if (shown == null || shown == section || !searchText(searchQuery).trim().isEmpty()) return;
+        NewRowDots.left(shown);
+        pageCategory = section.getKey();
+        lastCategory = pageCategory;
+        focusPage();
+        filterSettings();
+        ListView list = listView();
         if (list != null) list.post(() -> {
             if (list == listView()) list.setSelection(0);
         });
@@ -1567,13 +1590,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (screen == null || search == null || screen.findPreference(search.getKey()) != search) return;
         String normalized = searchText(searchQuery).trim();
         String[] terms = normalized.isEmpty() ? new String[0] : normalized.split("\\s+");
+        String[][] needs = SearchWords.needs(terms);
         boolean pages = categoryPages();
         NewRowDots.searching(terms.length > 0);
         if (DescriptionInfo.searching != terms.length > 0) {
             DescriptionInfo.searching = terms.length > 0;
             rebindRows();
         }
-        rankForSearch(terms);
+        rankForSearch(needs);
         // Search reveals matching rows without changing the sections the person expanded.
         boolean listing = pages && terms.length == 0;
         // A category on its own page shows Search and its own rows, nothing of the home page (#525).
@@ -1615,6 +1639,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         // Tiles stand in for the folded sections' headings, so those headings stay off the page.
         boolean gridOn = listing && page == null && Settings.CATEGORY_GRID.savedValue();
         List<Heading> tiles = new ArrayList<>();
+        List<Heading> chips = new ArrayList<>();
         int matches = 0;
         for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
             PreferenceCategory group = section.getKey();
@@ -1630,8 +1655,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             for (Preference row : section.getValue()) {
                 String text = searchText(group.getTitle()) + " " + searchText(row.getTitle()) + " "
                         + searchText(row.getSummary()) + " " + searchText(searchAliases.get(row));
-                boolean match = true;
-                for (String term : terms) if (!text.contains(term)) { match = false; break; }
+                boolean match = SearchWords.holdsAll(text, needs);
                 if (match) matches++;
                 filled |= match || group == recovery;
                 if (expanded && (match || group == recovery)) {
@@ -1654,6 +1678,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (group instanceof Heading) ((Heading) group).display(listing && !held && page == null, expanded, black);
             boolean tile = gridOn && filled && group instanceof Heading;
             if (tile) tiles.add((Heading) group);
+            if (page != null && filled && group instanceof Heading) chips.add((Heading) group);
             if (filled && !(tile && !expanded) && (page == null || group == page)) {
                 if (group.getParent() != screen) screen.addPreference(group);
             } else if (group.getParent() == screen) screen.removePreference(group);
@@ -1664,6 +1689,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (categoryGrid.getParent() != screen) screen.addPreference(categoryGrid);
             } else if (categoryGrid.getParent() == screen) screen.removePreference(categoryGrid);
         }
+        if (categoryStrip != null) {
+            if (page instanceof Heading && chips.size() > 1) {
+                categoryStrip.show(chips, (Heading) page);
+                if (categoryStrip.getParent() != screen) screen.addPreference(categoryStrip);
+            } else if (categoryStrip.getParent() == screen) screen.removePreference(categoryStrip);
+        }
         // Actions below the categories remain on the same page.
         Row[] loose = {report, support};
         String[] looseAliases = {" github bug issue", " ko-fi kofi donate coffee"};
@@ -1671,8 +1702,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             Row row = loose[i];
             if (row == null) continue;
             String text = searchText(row.getTitle()) + " " + searchText(row.getSummary()) + looseAliases[i];
-            boolean match = true;
-            for (String term : terms) if (!text.contains(term)) { match = false; break; }
+            boolean match = SearchWords.holdsAll(text, needs);
             boolean shown = match && page == null;
             if (terms.length > 0 && match) matches++;
             if (shown) {
@@ -1954,15 +1984,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * anywhere in a word, because German and Korean write compounds as one word. Rows only ever
      * move down, so Search stays first, and with no terms everything is back where it was built.
      */
-    private void rankForSearch(String[] terms) {
-        if (terms.length == 0) {
+    private void rankForSearch(String[][] needs) {
+        if (needs.length == 0) {
             restoreOrders();
             return;
         }
         for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
-            boolean named = holdsAll(searchText(section.getKey().getTitle()), terms);
+            boolean named = SearchWords.holdsAll(searchText(section.getKey().getTitle()), needs);
             for (Preference row : section.getValue()) {
-                boolean inTitle = holdsAll(searchText(row.getTitle()), terms);
+                boolean inTitle = SearchWords.holdsAll(searchText(row.getTitle()), needs);
                 named |= inTitle;
                 rank(row, !inTitle);
             }
@@ -1990,11 +2020,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         int order = later ? built + RANKED_LATER : built;
         if (item.getOrder() != order) item.setOrder(order);
-    }
-
-    private static boolean holdsAll(String text, String[] terms) {
-        for (String term : terms) if (!text.contains(term)) return false;
-        return true;
     }
 
     /** Every row in the categories, on the screen or kept off it by a folded category or a search. */

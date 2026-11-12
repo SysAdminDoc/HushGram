@@ -78,6 +78,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* Searching the HushGram settings understands more of the words people use. "navigation bar" or "nav bar" finds the Tab bar, "dm" or "inbox" finds Messages, "colour" finds the color rows, and "sponsored", "alerts", "theme" and a few others find their settings too. With `Categories on their own page` on, a category's page has a row of category buttons with icons under Search, so you can jump to another one without going back to the list. Back still takes you to the list. Asked for in #642.
 * `Seek bar shape` now also shapes the progress segments on stories and the seek bar on a video opened from a chat, and it works without a seek bar switch on. With `Ambient light in stories` on, the corners of a story card show the glow instead of black wedges, whether or not `Rounded corners on stories` is on. The strip above a story glows too, without the thin dark line that used to sit over it, and the progress bar and header stay on top. `Ambient light` on its own no longer lights stories the way it lights posts, since stories have their own switch. Requested in #630.
 * `Save comment photo` now saves a comment's GIF sticker too. Press and hold the comment and pick Save. A sticker that's only on Giphy still has no Save row. Asked for in #623.
 * The diagnostic report has a `[SCREEN]` part now. It names the screen you were on, which tabs show, and the views covering most of it, so a report sent right after a blank screen shows what was in front. Asked for in #535.

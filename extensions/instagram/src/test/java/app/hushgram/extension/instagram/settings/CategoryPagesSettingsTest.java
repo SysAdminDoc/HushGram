@@ -732,6 +732,66 @@ public class CategoryPagesSettingsTest {
         assertFalse("and the next Back closes settings", page.closeCategory());
     }
 
+    /** #642: a category's page has a chip for every category under Search, and a tap moves to that one. */
+    @Test public void theChipsUnderSearchMoveBetweenCategoryPages() throws Exception {
+        Settings.CATEGORY_OWN_PAGE.save(true);
+        openDialog();
+        List<String> headers = shown(Preference.class);
+        assertNull("the list has no chips", page.getPreferenceScreen().findPreference(CategoryStrip.KEY));
+        tap(categoryRow("Feed"));
+        layoutPage();
+        CategoryStrip strip = (CategoryStrip) page.getPreferenceScreen().findPreference(CategoryStrip.KEY);
+        assertNotNull(strip);
+        assertEquals("right under Search", CategoryStrip.KEY, page.getPreferenceScreen().getPreference(1).getKey());
+        List<String> names = new ArrayList<>();
+        for (HushgramPreferenceFragment.Heading each : strip.chips()) names.add(String.valueOf(each.getTitle()));
+        assertTrue(names.toString(), names.containsAll(List.of("Settings entry", "Ads and privacy", "Feed", "Notifications")));
+        List<String> listed = new ArrayList<>(headers);
+        listed.retainAll(names);
+        List<String> chipped = new ArrayList<>(names);
+        chipped.retainAll(headers);
+        assertEquals("in the list's order", listed, chipped);
+        assertTrue(chip("Feed").isSelected());
+        assertFalse(chip("Notifications").isSelected());
+
+        assertTrue(chip("Notifications").performClick());
+        layoutPage();
+        assertEquals(List.of("Notifications"), shown(PreferenceCategory.class));
+        assertEquals("Notifications", toolbarTitle());
+        assertEquals(categoryRow("Notifications").getKey(), page.currentPage());
+        assertTrue(chip("Notifications").isSelected());
+        assertFalse(chip("Feed").isSelected());
+
+        page.searchSettings("Hide ads");
+        layoutPage();
+        assertNull("a search shows no chips", page.getPreferenceScreen().findPreference(CategoryStrip.KEY));
+        assertTrue(page.closeCategory());
+        layoutPage();
+        assertNotNull(page.getPreferenceScreen().findPreference(CategoryStrip.KEY));
+
+        assertTrue("one Back leaves the pages, however many chips were tapped", page.closeCategory());
+        layoutPage();
+        assertEquals(headers, shown(Preference.class));
+        assertNull(page.getPreferenceScreen().findPreference(CategoryStrip.KEY));
+        assertEquals("HushGram", toolbarTitle());
+        assertFalse(page.closeCategory());
+    }
+
+    /** The bound chip for [title] on the strip under Search. */
+    private View chip(String title) {
+        ListView list = page.getView().findViewById(android.R.id.list);
+        Preference strip = page.getPreferenceScreen().findPreference(CategoryStrip.KEY);
+        View row = list.getChildAt(positionOf(strip) - list.getFirstVisiblePosition());
+        assertNotNull("the strip must be on the screen", row);
+        LinearLayout chips = (LinearLayout) ((android.widget.HorizontalScrollView) row).getChildAt(0);
+        for (int i = 0; i < chips.getChildCount(); i++) {
+            View chip = chips.getChildAt(i);
+            TextView name = chip.findViewById(android.R.id.title);
+            if (CategoryStrip.CHIP_TAG.equals(chip.getTag()) && title.contentEquals(name.getText())) return chip;
+        }
+        throw new AssertionError("no chip for " + title);
+    }
+
     @Test public void theDialogsBackLeavesACategorysOwnPageBeforeClosing() throws Exception {
         Settings.CATEGORY_OWN_PAGE.save(true);
         openDialog();

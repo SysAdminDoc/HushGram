@@ -206,6 +206,29 @@ public class SettingsSearchTest {
         assertNotNull(visible("hushgram_settings_search_empty"));
     }
 
+    /** #642: the words people type find what the page calls something else, and only that. */
+    @Test public void everydayWordsFindWhatTheSettingsCallSomethingElse() throws Exception {
+        open(PatchFamily.REELS_TAB, PatchFamily.THREAD_SEEN, PatchFamily.ACCENT_COLOR, PatchFamily.SPOOF_LOCATION);
+        for (String query : new String[]{"navigation bar", "nav bar", "Navig"}) {
+            page.searchSettings(query);
+            assertNotNull(query, visible(Settings.HIDE_HOME_TAB.key));
+            assertNull(query, visible(Settings.SPOOF_LOCATION.key));
+        }
+        for (String query : new String[]{"dm", "DMs", "inbox"}) {
+            page.searchSettings(query);
+            assertNotNull(query, visible(Settings.READ_WITHOUT_SEEN_RECEIPT.key));
+            assertNull(query, visible(Settings.ACCENT_COLOR.key));
+        }
+        page.searchSettings("accent colour");
+        assertNotNull(visible(Settings.ACCENT_COLOR.key));
+        assertNull(visible(Settings.HIDE_HOME_TAB.key));
+        page.searchSettings("colours");
+        assertNotNull(visible(Settings.ACCENT_COLOR.key));
+        page.searchSettings("navigation xyzzy");
+        assertNull(visible(Settings.HIDE_HOME_TAB.key));
+        assertNotNull(visible("hushgram_settings_search_empty"));
+    }
+
     @Test @Config(qualifiers = "es-rES-w320dp-h640dp-xhdpi")
     public void localizedTitlesAndSummariesMatchWithoutCaseOrAccentRestrictions() throws Exception {
         open(PatchFamily.SPOOF_LOCATION, PatchFamily.FOLLOWING_FEED);
