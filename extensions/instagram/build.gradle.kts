@@ -1445,8 +1445,9 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
             // Each SDK and graphics mode a test asks for gets its own sandbox in this one JVM (six SDKs
-            // so far). At 3877 tests 1g ran out loading SDK 32's resources for the last class to ask for it.
-            it.maxHeapSize = "1536m"
+            // so far). At 3877 tests 1g ran out loading SDK 32's resources for the last class to ask for it,
+            // and at 10644 so did 1536m.
+            it.maxHeapSize = "2g"
             // LicenseNoticeTest holds NOTICE against the copy generated into the payload, and
             // NOTICE is outside this module, so without this Gradle calls the task up to date
             // after NOTICE changes and the comparison never runs.

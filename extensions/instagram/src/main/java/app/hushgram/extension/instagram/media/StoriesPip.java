@@ -7,7 +7,6 @@ package app.hushgram.extension.instagram.media;
 import android.app.Activity;
 import android.app.PictureInPictureParams;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.util.Rational;
 
 import androidx.annotation.Nullable;
@@ -277,7 +276,6 @@ public final class StoriesPip {
     private static boolean enter(Activity screen) {
         Window window = windowForTests;
         if (window != null) return window.enter(screen);
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false;
         if (!screen.getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
             log(() -> "this phone has no picture in picture");
             return false;

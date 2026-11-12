@@ -30,14 +30,16 @@ class DataSaverPatchTest {
         assertEquals("()Z", saving.parameterTypes.joinToString("", "(", ")") + saving.returnType)
         assertTrue(AccessFlags.PUBLIC.isSet(saving.accessFlags) && AccessFlags.STATIC.isSet(saving.accessFlags))
 
-        fun callsSaver(type: String, method: String, name: String) =
+        fun calls(type: String, method: String, owner: String, name: String) =
             ExtensionDex.classDef(type).methods.filter { it.name == method }.any { m ->
                 m.implementation?.instructions?.any {
                     val called = (it as? ReferenceInstruction)?.reference as? MethodReference
-                    called != null && called.definingClass == DATA_SAVER && called.name == name
+                    called != null && called.definingClass == owner && called.name == name
                 } == true
             }
-        assertTrue("the size picker's hook", callsSaver(LARGER_PHOTOS, "wanted", "photoWidth"))
-        assertTrue("the video choice's hook", callsSaver(QUALITY_CHOICE, "firstChoice", "saving"))
+        assertTrue("the size picker's hook", calls(LARGER_PHOTOS, "wanted", DATA_SAVER, "photoWidth"))
+        // The video choice's hook hands the evaluator and the clock to starting, which asks DataSaver.
+        assertTrue("the video choice's hook", calls(QUALITY_CHOICE, "firstChoice", QUALITY_CHOICE, "starting"))
+        assertTrue("the video choice's start", calls(QUALITY_CHOICE, "starting", DATA_SAVER, "saving"))
     }
 }

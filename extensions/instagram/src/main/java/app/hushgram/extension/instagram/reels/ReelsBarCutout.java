@@ -4,7 +4,6 @@
  */
 package app.hushgram.extension.instagram.reels;
 
-import android.os.Build;
 import android.view.DisplayCutout;
 import android.view.View;
 import android.view.ViewGroup;
@@ -69,9 +68,8 @@ final class ReelsBarCutout implements ViewTreeObserver.OnGlobalLayoutListener {
     private WeakReference<View> watched = new WeakReference<>(null);
     private boolean dirty = true;
 
-    /** How far below the window's top edge the camera cutout reaches, 0 for none or before Android 9. */
+    /** How far below the window's top edge the camera cutout reaches, 0 for none. */
     static int safeTop(View decor) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return 0;
         WindowInsets insets = decor.getRootWindowInsets();
         DisplayCutout cutout = insets == null ? null : insets.getDisplayCutout();
         return cutout == null ? 0 : Math.max(0, cutout.getSafeInsetTop());
