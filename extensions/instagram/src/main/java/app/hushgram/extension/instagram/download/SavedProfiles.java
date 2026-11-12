@@ -574,49 +574,76 @@ public final class SavedProfiles {
         return value instanceof String ? (String) value : null;
     }
 
+    /** What {@link #merge} changed, for Undo: the accounts it added and the ones here it put in a folder. */
+    public static final class Merged {
+        public final List<Profile> added = new ArrayList<>();
+        /** Each as {@link #merge} left it. */
+        public final List<Profile> filed = new ArrayList<>();
+
+        public boolean isEmpty() {
+            return added.isEmpty() && filed.isEmpty();
+        }
+    }
+
     /**
      * Puts the accounts of [profiles], read from a settings file, on the list where they aren't on it
      * already, while there's room, each with the time it was first saved and its folder, and keeps
-     * the list newest first. An account already here stays in its own folder. Their pictures are
-     * fetched when the list shows them. Answers the ones added, which Undo takes back
-     * ({@link #takeBack}).
+     * the list newest first. An account already here stays in its own folder, and one in no folder
+     * goes into the file's (#629). Their pictures are fetched when the list shows them. Undo takes
+     * back what it changed ({@link #takeBack}).
      */
-    public static List<Profile> merge(Context context, List<Profile> profiles) {
+    public static Merged merge(Context context, List<Profile> profiles) {
         Context application = application(context);
-        List<Profile> added = new ArrayList<>();
+        Merged merged = new Merged();
         synchronized (LOCK) {
             load(application);
             for (Profile profile : profiles) {
-                if (PROFILES.size() >= MAX_PROFILES) break;
-                if (indexOf(profile.id, profile.username) >= 0) continue;
                 // Spelled as the folder on this phone is, so "Friends" and "friends" stay one folder.
-                Profile kept = profile.in(existing(profile.folder, null));
+                String folder = existing(profile.folder, null);
+                int here = indexOf(profile.id, profile.username);
+                if (here >= 0) {
+                    if (!PROFILES.get(here).folder.isEmpty() || folder.isEmpty()) continue;
+                    Profile filed = PROFILES.get(here).in(folder);
+                    PROFILES.set(here, filed);
+                    merged.filed.add(filed);
+                    continue;
+                }
+                if (PROFILES.size() >= MAX_PROFILES) continue;
+                Profile kept = profile.in(folder);
                 PROFILES.add(kept);
-                added.add(kept);
+                merged.added.add(kept);
             }
-            if (added.isEmpty()) return added;
+            if (merged.isEmpty()) return merged;
             // A stable sort, so accounts saved at the same moment keep their order.
             Collections.sort(PROFILES, (one, other) -> Long.compare(other.time, one.time));
         }
         persist(application, () -> { });
-        return added;
+        return merged;
     }
 
     /**
-     * Takes [added] back off the list, each one only while it's still there as {@link #merge} put it:
-     * Undo after an import. Answers how many went.
+     * Takes what [merged] changed back, each account only while it's still as {@link #merge} left
+     * it: the ones added go off the list and the ones filed go back to no folder. Undo after an
+     * import. Answers how many went off.
      */
-    public static int takeBack(Context context, List<Profile> added) {
+    public static int takeBack(Context context, Merged merged) {
         Context application = application(context);
         List<Profile> gone = new ArrayList<>();
+        boolean unfiled = false;
         synchronized (LOCK) {
             load(application);
-            for (Profile profile : added) {
+            for (Profile profile : merged.added) {
                 int at = indexOf(profile.id, profile.username);
                 if (at >= 0 && PROFILES.get(at).time == profile.time) gone.add(PROFILES.remove(at));
             }
+            for (Profile profile : merged.filed) {
+                int at = indexOf(profile.id, profile.username);
+                if (at < 0 || PROFILES.get(at).time != profile.time || !PROFILES.get(at).folder.equals(profile.folder)) continue;
+                PROFILES.set(at, PROFILES.get(at).in(""));
+                unfiled = true;
+            }
         }
-        if (gone.isEmpty()) return 0;
+        if (gone.isEmpty() && !unfiled) return 0;
         persist(application, () -> {
             for (Profile profile : gone) forgetPicture(application, profile);
         });

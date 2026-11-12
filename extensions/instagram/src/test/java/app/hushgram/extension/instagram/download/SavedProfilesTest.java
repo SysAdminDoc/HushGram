@@ -453,8 +453,9 @@ public class SavedProfilesTest {
         assertEquals("", dee.folder);
 
         SavedProfiles.Profile annElsewhere = new SavedProfiles.Profile("1", "ann", "", "", "Work", 500L);
-        List<SavedProfiles.Profile> added = SavedProfiles.merge(context, Arrays.asList(cy, dee, annElsewhere));
-        assertEquals(2, added.size());
+        SavedProfiles.Merged merged = SavedProfiles.merge(context, Arrays.asList(cy, dee, annElsewhere));
+        assertEquals(2, merged.added.size());
+        assertTrue("an account in a folder isn't moved", merged.filed.isEmpty());
         Map<String, String> folders = new LinkedHashMap<>();
         for (SavedProfiles.Profile profile : SavedProfiles.all(context)) folders.put(profile.username, profile.folder);
         assertEquals("Friends", folders.get("cy"));
