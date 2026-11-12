@@ -30,9 +30,11 @@ import java.util.function.Predicate;
  * <p>Each copy is the whole frame at {@code downsample} of the view's size, at most {@link #MOST_PX} on its
  * long side, read with {@link PixelCopy} and handed back on the main thread. One copy is in flight for each
  * SurfaceView, at most one every {@link #COPY_EVERY_MS}, into the spare of two bitmaps, so the one the last
- * recording drew isn't the one being written. A frame that won't copy (a protected video, a surface going
- * away) leaves the place clear, and after {@link #TRIES} in a row that SurfaceView rests for {@link #REST_MS}.
- * Main thread.
+ * recording drew isn't the one being written. A copy that fails keeps the last one that landed, and after
+ * {@link #TRIES} in a row that SurfaceView rests for {@link #REST_MS}. Clearing the place on a miss showed the
+ * sharp video through the pill and then the blur again, a flicker as a feed scrolled (#429). The place is
+ * clear only before a first copy lands, when none has for a whole rest, or for a frame that never copies (a
+ * protected video). Main thread.
  */
 final class SurfaceFrames {
     /** The least time between two copies of one SurfaceView's frame. */
@@ -70,6 +72,8 @@ final class SurfaceFrames {
         boolean copying;
         boolean askedBefore;
         long askedAt;
+        /** When the copy that's shown was asked for. */
+        long shownAt;
         int failedInARow;
         long restUntil;
     }
@@ -81,7 +85,7 @@ final class SurfaceFrames {
         this.downsample = Math.max(1, downsample);
     }
 
-    /** The last frame copied from [view], or null when none has been yet or its copies keep failing. */
+    /** The last frame copied from [view], or null when none has been yet or none for {@link #REST_MS}. */
     @Nullable
     Bitmap frameOf(View view) {
         Frames held = frames.get(view);
@@ -128,14 +132,15 @@ final class SurfaceFrames {
         if (worked) {
             held.spare = held.shown;
             held.shown = copy;
+            held.shownAt = askedAt;
             held.failedInARow = 0;
             fresh.run();
             return;
         }
         held.spare = copy;
+        if (askedAt - held.shownAt >= REST_MS) held.shown = null;
         if (++held.failedInARow >= TRIES) {
             held.failedInARow = 0;
-            held.shown = null;
             held.restUntil = askedAt + REST_MS;
         }
     }

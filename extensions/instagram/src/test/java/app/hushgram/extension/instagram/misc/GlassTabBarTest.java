@@ -2595,6 +2595,60 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #429: a row that throws as the glass draws it, as one Instagram is recycling while a list scrolls can,
+     * is left out of that recording, and what's round it still draws. The throw cut the whole recording short
+     * before, and the pill dropped to its plain tint for the frame and back, a flicker while swiping.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aRowThatThrowsAsTheGlassDrawsItIsLeftOutAndTheRestStillDraws() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout parent = new FrameLayout(context);
+        FrameLayout feed = new FrameLayout(context);
+        View recycled = new View(context) {
+            @Override protected void onDraw(Canvas canvas) {
+                canvas.save();
+                canvas.translate(0, 40);
+                throw new RuntimeException("Canvas: trying to use a recycled bitmap");
+            }
+        };
+        recycled.setBackground(new ColorDrawable(Color.BLUE));
+        View row = new View(context);
+        row.setBackground(new ColorDrawable(Color.GREEN));
+        CountingSurface video = new CountingSurface(context);
+        feed.addView(recycled);
+        feed.addView(row);
+        feed.addView(video);
+        View bar = new View(context);
+        parent.addView(feed);
+        parent.addView(bar);
+        parent.layout(0, 0, 100, 100);
+        feed.layout(0, 0, 100, 100);
+        recycled.layout(0, 0, 100, 20);
+        row.layout(0, 30, 100, 50);
+        video.layout(0, 60, 100, 75);
+        bar.layout(0, 80, 100, 100);
+        Set<View> paths = new HashSet<>();
+        assertTrue(GlassTabBar.surfacePaths(parent, 1, paths));
+
+        Bitmap glass = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(glass);
+        int saves = canvas.getSaveCount();
+        Throwable threw = GlassTabBar.drawUnderBar(canvas, Color.WHITE, parent, 1, 0, 100, paths, new HashSet<>(),
+                null, null);
+
+        assertNotNull("the throw comes back for the report", threw);
+        assertEquals("the saves it left open are gone", saves, canvas.getSaveCount());
+        assertEquals("a row after it draws where it sits", Color.GREEN, glass.getPixel(50, 40));
+        assertEquals(Color.WHITE, glass.getPixel(50, 55));
+        assertEquals("a SurfaceView's place is still cleared", 0, glass.getPixel(50, 70));
+
+        recycled.setVisibility(View.GONE);
+        assertNull("nothing threw", GlassTabBar.drawUnderBar(new Canvas(Bitmap.createBitmap(100, 100,
+                Bitmap.Config.ARGB_8888)), Color.WHITE, parent, 1, 0, 100, paths, new HashSet<>(), null, null));
+    }
+
+    /**
      * #583: the viewer stays out of the glass (#222), and a copy of its reel goes in its place, through
      * the video's own crop, so a floating pill blurs the reel behind it. Before a copy, the place is clear.
      */
@@ -2735,11 +2789,12 @@ public class GlassTabBarTest {
     }
 
     /**
-     * #262: a view under the bar that throws as the glass records it, as one Instagram is recycling can
-     * while a list scrolls, costs the blur that recording and no more. The glass tries again shortly, so
-     * the blur comes back even on a still screen, rests on the plain tint after too many failures in a
-     * row, and records again once the rest is over. Before, the first throw turned the blur off for as
-     * long as the bar lived, and the pill sat on the dark tint.
+     * #262: a recording that fails costs the blur that recording and no more. The glass tries again
+     * shortly, so the blur comes back even on a still screen, rests on the plain tint after too many
+     * failures in a row, and records again once the rest is over. Before, the first throw turned the blur
+     * off for as long as the bar lived, and the pill sat on the dark tint. #429: a view that throws as the
+     * glass draws it, as one Instagram is recycling can while a list scrolls, is only left out, so the
+     * pill keeps its blur instead of flashing the tint.
      */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -2748,13 +2803,15 @@ public class GlassTabBarTest {
         GlassTabBar.animationsOnForTests = false;
         HookStatus.clear();
         try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+            boolean[] recycled = {false};
             boolean[] throwing = {false};
             Object[] pill = {null};
             View feed = new View(host.activity) {
                 @Override public void draw(Canvas canvas) {
                     // Only as the glass records it: the window's own draw goes on.
-                    if (throwing[0] && pill[0] != null && (boolean) ReflectionHelpers.getField(pill[0], "drawingBackdrop")) {
-                        throw new IllegalStateException("recycled");
+                    if (pill[0] != null && (boolean) ReflectionHelpers.getField(pill[0], "drawingBackdrop")) {
+                        if (recycled[0]) throw new IllegalStateException("recycled");
+                        if (throwing[0]) throw new OutOfMemoryError("recording");
                     }
                     super.draw(canvas);
                 }
@@ -2766,9 +2823,19 @@ public class GlassTabBarTest {
             pill[0] = host.bar.getBackground();
             assertTrue("no backdrop recorded", (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
             GlassTabBar.BlurTries tries = ReflectionHelpers.getField(host.glass(), "tries");
+            ReflectionHelpers.callInstanceMethod(pill[0], "cancelCatchUp");
+
+            recycled[0] = true;
+            ReflectionHelpers.callInstanceMethod(pill[0], "recordBackdrop");
+            assertTrue("a view that throws is left out and the blur stays",
+                    (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
+            assertFalse(tries.resting(SystemClock.uptimeMillis()));
+            assertFalse("nothing to try again", (boolean) ReflectionHelpers.getField(pill[0], "catchUpPending"));
+            String report = String.join("\n", HookStatus.report());
+            assertTrue(report, report.contains("IllegalStateException"));
+            recycled[0] = false;
 
             throwing[0] = true;
-            ReflectionHelpers.callInstanceMethod(pill[0], "cancelCatchUp");
             ReflectionHelpers.callInstanceMethod(pill[0], "recordBackdrop");
             assertFalse("a recording cut short isn't shown", (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
             assertFalse("one failure doesn't rest the blur", tries.resting(SystemClock.uptimeMillis()));
@@ -2776,10 +2843,10 @@ public class GlassTabBarTest {
             throwing[0] = false;
             ShadowLooper.idleMainLooper(GlassTabBar.RECORD_EVERY_MS * 2, java.util.concurrent.TimeUnit.MILLISECONDS);
             assertTrue("the blur came back on a still screen", (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
-            String report = String.join("\n", HookStatus.report());
-            assertTrue(report, report.contains("IllegalStateException"));
+            String missing = HookStatus.missing(app.hushgram.extension.instagram.settings.FamilyNames.GLASS_TAB_BAR).toString();
+            assertTrue(missing, missing.contains("'blur' hook (it threw java.lang.OutOfMemoryError)"));
 
-            // A view that throws every time it's drawn.
+            // A recording that fails every time.
             throwing[0] = true;
             for (int i = 0; i < GlassTabBar.BLUR_TRIES; i++) ReflectionHelpers.callInstanceMethod(pill[0], "recordBackdrop");
             assertTrue("too many in a row, and the blur rests", tries.resting(SystemClock.uptimeMillis()));
@@ -2809,7 +2876,7 @@ public class GlassTabBarTest {
                 @Override public void draw(Canvas canvas) {
                     if (pill[0] != null && (boolean) ReflectionHelpers.getField(pill[0], "drawingBackdrop")) {
                         captures.incrementAndGet();
-                        if (throwing[0]) throw new IllegalStateException("still recycled");
+                        if (throwing[0]) throw new OutOfMemoryError("still failing");
                     }
                     super.draw(canvas);
                 }
@@ -2870,7 +2937,7 @@ public class GlassTabBarTest {
                 @Override public void draw(Canvas canvas) {
                     if (pill[0] != null && (boolean) ReflectionHelpers.getField(pill[0], "drawingBackdrop")) {
                         captures.incrementAndGet();
-                        if (throwing[0]) throw new IllegalStateException("still recycled beside video");
+                        if (throwing[0]) throw new OutOfMemoryError("still failing beside video");
                     }
                     super.draw(canvas);
                 }

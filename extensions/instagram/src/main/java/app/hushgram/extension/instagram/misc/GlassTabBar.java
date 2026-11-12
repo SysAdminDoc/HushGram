@@ -613,52 +613,73 @@ public final class GlassTabBar {
      * draws itself whole. A video in a SurfaceView is a layer under the window, never in the views, so its
      * place is cleared, the way the SurfaceView clears its hole in the window, and the pill shows the video
      * through its tint. Before, the backgrounds round the video drew there, black on a feed post (#144).
+     *
+     * <p>A view whose drawing throws, such as a row Instagram is recycling as a list scrolls, is left out
+     * where it stopped and the rest still draws. Returns the first such throw, or null. Before, it cut the
+     * whole recording short, and the glass dropped to its plain tint for that frame and back, a flicker
+     * while swiping (#429).
      */
-    public static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, int depth) {
-        drawLeavingOutSurfaces(canvas, view, paths, java.util.Collections.emptySet(), null, depth);
+    @Nullable
+    public static Throwable drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, int depth) {
+        return drawLeavingOutSurfaces(canvas, view, paths, java.util.Collections.emptySet(), null, depth);
     }
 
     /** {@link #drawLeavingOutSurfaces}, leaving out the views in [skipped] too ({@link #leaveOut}). */
-    static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, java.util.Set<View> skipped,
-            int depth) {
-        drawLeavingOutSurfaces(canvas, view, paths, skipped, null, depth);
+    @Nullable
+    static Throwable drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths,
+            java.util.Set<View> skipped, int depth) {
+        return drawLeavingOutSurfaces(canvas, view, paths, skipped, null, depth);
     }
 
     /** {@link #drawLeavingOutSurfaces}, drawing the frame [frames] has for a SurfaceView in its place, when it has one ({@link SurfaceFrames}). */
-    static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, java.util.Set<View> skipped,
-            @Nullable java.util.function.Function<View, android.graphics.Bitmap> frames, int depth) {
-        drawLeavingOutSurfaces(canvas, view, paths, skipped, frames, null, depth);
+    @Nullable
+    static Throwable drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths,
+            java.util.Set<View> skipped, @Nullable java.util.function.Function<View, android.graphics.Bitmap> frames,
+            int depth) {
+        return drawLeavingOutSurfaces(canvas, view, paths, skipped, frames, null, depth);
     }
 
     /** {@link #drawLeavingOutSurfaces}, with [reels] painting the place of each view in [skipped] ({@link ReelFrames}, #583). */
-    static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, java.util.Set<View> skipped,
-            @Nullable java.util.function.Function<View, android.graphics.Bitmap> frames, @Nullable ReelFrames reels, int depth) {
-        if (view.getVisibility() != View.VISIBLE || view.getAlpha() <= 0f) return;
+    @Nullable
+    static Throwable drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths,
+            java.util.Set<View> skipped, @Nullable java.util.function.Function<View, android.graphics.Bitmap> frames,
+            @Nullable ReelFrames reels, int depth) {
+        if (view.getVisibility() != View.VISIBLE || view.getAlpha() <= 0f) return null;
         if (skipped.contains(view)) {
             if (reels != null) reels.draw(canvas, view);
-            return;
+            return null;
         }
         if (view instanceof android.view.SurfaceView) {
             drawSurfacePlace(canvas, view, frames == null ? null : frames.apply(view));
-            return;
+            return null;
         }
+        Throwable failed = null;
         int saved = canvas.save();
-        canvas.translate(view.getLeft(), view.getTop());
-        if (!view.getMatrix().isIdentity()) canvas.concat(view.getMatrix());
-        if (!(view instanceof ViewGroup) || !paths.contains(view) || depth > 100) {
-            canvas.translate(-view.getScrollX(), -view.getScrollY());
-            view.draw(canvas);
-        } else {
-            ViewGroup group = (ViewGroup) view;
-            if (group.getClipChildren()) canvas.clipRect(0, 0, view.getWidth(), view.getHeight());
-            Drawable background = view.getBackground();
-            if (background != null) background.draw(canvas);
-            canvas.translate(-view.getScrollX(), -view.getScrollY());
-            for (int i = 0, n = group.getChildCount(); i < n; i++) {
-                drawLeavingOutSurfaces(canvas, group.getChildAt(i), paths, skipped, frames, reels, depth + 1);
+        try {
+            canvas.translate(view.getLeft(), view.getTop());
+            if (!view.getMatrix().isIdentity()) canvas.concat(view.getMatrix());
+            if (!(view instanceof ViewGroup) || !paths.contains(view) || depth > 100) {
+                canvas.translate(-view.getScrollX(), -view.getScrollY());
+                view.draw(canvas);
+            } else {
+                ViewGroup group = (ViewGroup) view;
+                if (group.getClipChildren()) canvas.clipRect(0, 0, view.getWidth(), view.getHeight());
+                Drawable background = view.getBackground();
+                if (background != null) background.draw(canvas);
+                canvas.translate(-view.getScrollX(), -view.getScrollY());
+                for (int i = 0, n = group.getChildCount(); i < n; i++) {
+                    Throwable child = drawLeavingOutSurfaces(canvas, group.getChildAt(i), paths, skipped, frames, reels,
+                            depth + 1);
+                    if (failed == null) failed = child;
+                }
             }
+        } catch (RuntimeException failure) {
+            failed = failure;
+        } finally {
+            // Whatever saves a throw left open go with it.
+            canvas.restoreToCount(saved);
         }
-        canvas.restoreToCount(saved);
+        return failed;
     }
 
     /**
@@ -666,17 +687,22 @@ public final class GlassTabBar {
      * [barIndex] in [parent] that cross the strip from [top], [tall] high. Instagram's screens leave most
      * of their background to the window, so those rows record nothing. Where the blur came out see-through
      * like that, the sharp screen underneath showed through a clear pill (#583). The colour fills what they
-     * leave, and a SurfaceView's place is still cleared over it.
+     * leave, and a SurfaceView's place is still cleared over it. Returns the first view's draw that threw
+     * and was left out ({@link #drawLeavingOutSurfaces}), or null.
      */
-    static void drawUnderBar(Canvas recording, int base, ViewGroup parent, int barIndex, float top, float tall,
+    @Nullable
+    static Throwable drawUnderBar(Canvas recording, int base, ViewGroup parent, int barIndex, float top, float tall,
             java.util.Set<View> paths, java.util.Set<View> skipped,
             @Nullable java.util.function.Function<View, android.graphics.Bitmap> frames, @Nullable ReelFrames reels) {
         recording.drawColor(base);
+        Throwable failed = null;
         for (int i = 0; i < barIndex; i++) {
             View sibling = parent.getChildAt(i);
             if (sibling.getWidth() <= 0 || sibling.getBottom() <= top || sibling.getTop() >= top + tall) continue;
-            drawLeavingOutSurfaces(recording, sibling, paths, skipped, frames, reels, 0);
+            Throwable threw = drawLeavingOutSurfaces(recording, sibling, paths, skipped, frames, reels, 0);
+            if (failed == null) failed = threw;
         }
+        return failed;
     }
 
     private static final Paint SURFACE_CLEAR = new Paint();
@@ -3241,6 +3267,7 @@ public final class GlassTabBar {
                     float top = backdropSource(source, floating, scale, x0, bar.getTop(), bar.getY() + area.top, pad, tall);
                     Canvas recording = backdrop.beginRecording(width, height);
                     boolean found;
+                    Throwable leftOutDraw;
                     try {
                         recording.concat(source);
                         recording.clipRect(x0, top, x0 + wide, top + tall);
@@ -3257,12 +3284,14 @@ public final class GlassTabBar {
                         reelFrames.keepOnly(skipped);
                         stripTop = top;
                         stripTall = tall;
-                        drawUnderBar(recording, base, parent, barIndex, top, tall, leftOut, skipped, frames::frameOf, reelFrames);
+                        leftOutDraw = drawUnderBar(recording, base, parent, barIndex, top, tall, leftOut, skipped,
+                                frames::frameOf, reelFrames);
                     } finally {
                         backdrop.endRecording();
                     }
                     recorded = true;
                     tries.worked();
+                    if (leftOutDraw != null) HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "blur view", leftOutDraw);
                     // A landed video copy requests a frame, so only successful recordings may ask for one.
                     if (found) askFrames(parent, top, tall);
                     else videoCopied = false;

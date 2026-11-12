@@ -121,7 +121,8 @@ final class FrostedBackdrop {
                 for (int i = 0; i < index; i++) {
                     View sibling = source.getChildAt(i);
                     if (sibling.getWidth() <= 0 || sibling.getHeight() <= 0) continue;
-                    GlassTabBar.drawLeavingOutSurfaces(recording, sibling, leftOut, 0);
+                    Throwable leftOutDraw = GlassTabBar.drawLeavingOutSurfaces(recording, sibling, leftOut, 0);
+                    if (leftOutDraw != null) HookStatus.threw(family, hook + " view", leftOutDraw);
                 }
             } finally {
                 backdrop.endRecording();

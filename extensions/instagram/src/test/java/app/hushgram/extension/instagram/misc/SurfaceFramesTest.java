@@ -97,7 +97,11 @@ public class SurfaceFramesTest {
         assertSame("the two bitmaps take turns", targets.get(0), targets.get(2));
     }
 
-    @Test public void framesThatKeepFailingRestAndLeaveThePlaceClear() {
+    /**
+     * #429: missed copies keep the last frame through the rest they bring on. Clearing the place after the
+     * tries showed the sharp video through the pill and then the blur again, a flicker as a feed scrolled.
+     */
+    @Test public void framesThatKeepFailingRestAndKeepTheLastFrameUntilNoneHasLandedForARest() {
         SurfaceFrames frames = new SurfaceFrames(4);
         frames.ask(video, 0, fresh::incrementAndGet);
         land(true);
@@ -105,17 +109,31 @@ public class SurfaceFramesTest {
         for (int i = 0; i < SurfaceFrames.TRIES; i++) {
             now += SurfaceFrames.COPY_EVERY_MS;
             assertTrue(frames.ask(video, now, fresh::incrementAndGet));
-            if (i < SurfaceFrames.TRIES - 1) {
-                land(false);
-                assertSame("one failure keeps the last frame", targets.get(0), frames.frameOf(video));
-            } else {
-                land(false);
-            }
+            land(false);
+            assertSame("a failure keeps the last frame", targets.get(0), frames.frameOf(video));
         }
-        assertNull("after the tries, the place is clear", frames.frameOf(video));
         assertEquals("a failed copy asks for nothing", 1, fresh.get());
         assertFalse("resting", frames.ask(video, now + SurfaceFrames.REST_MS - 1, fresh::incrementAndGet));
+        assertSame("the last frame shows through the rest", targets.get(0), frames.frameOf(video));
         assertTrue("tried again after the rest", frames.ask(video, now + SurfaceFrames.REST_MS, fresh::incrementAndGet));
+        land(false);
+        assertNull("no copy for a whole rest, so the place is clear", frames.frameOf(video));
+    }
+
+    @Test public void aCopyThatLandsAfterMissesIsTheOneShown() {
+        SurfaceFrames frames = new SurfaceFrames(4);
+        frames.ask(video, 0, fresh::incrementAndGet);
+        land(true);
+        frames.ask(video, SurfaceFrames.COPY_EVERY_MS, fresh::incrementAndGet);
+        land(false);
+        frames.ask(video, 2 * SurfaceFrames.COPY_EVERY_MS, fresh::incrementAndGet);
+        land(true);
+        assertSame(targets.get(2), frames.frameOf(video));
+
+        // A rest is counted from the copy that landed last, so a miss just short of one after it keeps it.
+        frames.ask(video, 2 * SurfaceFrames.COPY_EVERY_MS + SurfaceFrames.REST_MS - 1, fresh::incrementAndGet);
+        land(false);
+        assertSame(targets.get(2), frames.frameOf(video));
     }
 
     @Test public void aRefusedCopyCountsAsAFailedOne() {
