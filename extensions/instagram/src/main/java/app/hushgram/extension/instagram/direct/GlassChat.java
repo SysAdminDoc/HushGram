@@ -120,6 +120,10 @@ public final class GlassChat {
     private static long searchedAt = -SEARCH_EVERY_MS;
     private static long boxSearchedAt = -SEARCH_EVERY_MS;
     private static long storiesSearchedAt = -SEARCH_EVERY_MS;
+    /** Whether a frame skipped a search that wasn't due yet. */
+    private static boolean putOff;
+    /** The look again a skipped search waits for, while it's waiting. */
+    @Nullable private static Runnable lookAgain;
     private static boolean counted;
 
     /** Ids by name, misses included: they don't change while the process runs. */
@@ -190,7 +194,10 @@ public final class GlassChat {
                 return;
             }
             long now = SystemClock.uptimeMillis();
-            if (now - searchedAt < SEARCH_EVERY_MS) return;
+            if (now - searchedAt < SEARCH_EVERY_MS) {
+                putOff = true;
+                return;
+            }
             searchedAt = now;
             View found = find(activity);
             if (found == null) {
@@ -263,7 +270,10 @@ public final class GlassChat {
      */
     static void glazeStories(Activity activity) {
         long now = SystemClock.uptimeMillis();
-        if (now - storiesSearchedAt < SEARCH_EVERY_MS) return;
+        if (now - storiesSearchedAt < SEARCH_EVERY_MS) {
+            putOff = true;
+            return;
+        }
         storiesSearchedAt = now;
         int viewer = id(activity, STORY_VIEWER);
         int page = id(activity, STORY_PAGE);
@@ -291,7 +301,10 @@ public final class GlassChat {
         View known = messageBox.get();
         if (known != null && known.isAttachedToWindow()) return known;
         long now = SystemClock.uptimeMillis();
-        if (now - boxSearchedAt < SEARCH_EVERY_MS) return null;
+        if (now - boxSearchedAt < SEARCH_EVERY_MS) {
+            putOff = true;
+            return null;
+        }
         boxSearchedAt = now;
         int id = id(activity, MESSAGE_BOX);
         View found = id == 0 ? null : activity.findViewById(id);
@@ -454,6 +467,7 @@ public final class GlassChat {
             watched = new WeakReference<>(activity);
             ViewTreeObserver.OnPreDrawListener listener = () -> {
                 check(activity);
+                lookAgainLater(activity);
                 return true;
             };
             activity.getWindow().getDecorView().getViewTreeObserver().addOnPreDrawListener(listener);
@@ -463,16 +477,47 @@ public final class GlassChat {
         }
     }
 
+    /**
+     * Looks again once a search a frame skipped is due. A chat that opens on a frame too soon after the last
+     * search and then sits still draws nothing more, so its header and message bar stayed Instagram's own until
+     * something moved (#513). Never throws.
+     */
+    private static void lookAgainLater(Activity activity) {
+        boolean skipped = putOff;
+        putOff = false;
+        if (!skipped || lookAgain != null) return;
+        try {
+            Runnable later = () -> {
+                lookAgain = null;
+                putOff = false;
+                if (watched.get() != activity) return;
+                check(activity);
+                lookAgainLater(activity);
+            };
+            lookAgain = later;
+            activity.getWindow().getDecorView().postDelayed(later, SEARCH_EVERY_MS);
+        } catch (Throwable failure) {
+            lookAgain = null;
+            HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);
+        }
+    }
+
     static void unfollow() {
         Activity activity = watched.get();
         ViewTreeObserver.OnPreDrawListener listener = drawListener;
+        Runnable later = lookAgain;
         drawListener = null;
+        lookAgain = null;
+        putOff = false;
         watched = new WeakReference<>(null);
         storiesSearchedAt = -SEARCH_EVERY_MS;
         try {
             restore();
-            if (activity == null || listener == null) return;
-            ViewTreeObserver observer = activity.getWindow().getDecorView().getViewTreeObserver();
+            if (activity == null) return;
+            View decor = activity.getWindow().getDecorView();
+            if (later != null) decor.removeCallbacks(later);
+            if (listener == null) return;
+            ViewTreeObserver observer = decor.getViewTreeObserver();
             if (observer.isAlive()) observer.removeOnPreDrawListener(listener);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);

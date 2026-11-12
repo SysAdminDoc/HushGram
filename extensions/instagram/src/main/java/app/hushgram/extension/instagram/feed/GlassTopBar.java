@@ -398,6 +398,8 @@ public final class GlassTopBar {
             if (broken || observer != null) return;
             observer = header.getViewTreeObserver();
             observer.addOnPreDrawListener(this);
+            // The glass goes on in a frame, and a still screen draws none.
+            header.invalidate();
         }
 
         @Override

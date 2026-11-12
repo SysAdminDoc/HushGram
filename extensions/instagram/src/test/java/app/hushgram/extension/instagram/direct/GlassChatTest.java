@@ -21,6 +21,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -38,6 +39,7 @@ import org.robolectric.shadows.ShadowLooper;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import app.hushgram.extension.instagram.feed.GlassTopBar;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -504,6 +506,47 @@ public class GlassChatTest {
         assertTrue("whiter than the header in the middle", Color.red(bitmap.getPixel(75, 75)) > Color.red(under));
         assertTrue("the shadow just under the glass", Color.red(bitmap.getPixel(75, 140)) < Color.red(under));
         assertEquals("nothing past the disc", under, bitmap.getPixel(2, 2));
+    }
+
+    /**
+     * A chat that opens on a frame too soon after the last look for one, and then sits still, still gets its glass:
+     * no frame comes to look again, so the look waits until it's due (#513).
+     */
+    @Test
+    public void aChatThatOpensOnAStillScreenStillGetsTheGlass() {
+        Settings.GLASS_CHAT.save(true);
+        root.setId(View.NO_ID);
+        GlassChat.follow(activity);
+        ViewTreeObserver frames = activity.getWindow().getDecorView().getViewTreeObserver();
+        frames.dispatchOnPreDraw();
+        root.setId(ROOT_ID);
+        frames.dispatchOnPreDraw();
+        assertFalse("too soon to look again", hasDisc(back));
+
+        ShadowLooper.idleMainLooper(GlassChat.SEARCH_EVERY_MS + 100, TimeUnit.MILLISECONDS);
+
+        assertTrue(hasDisc(back));
+        assertTrue(hasDisc(call));
+        assertTrue("a frame came to put the glass on", GlassTopBar.showing(header));
+    }
+
+    /** The message bar showing up just after the chat's header was dressed, on a still chat, gets the glass too. */
+    @Test
+    public void aMessageBarThatShowsUpOnAStillChatStillGetsTheGlass() {
+        Settings.GLASS_CHAT.save(true);
+        GlassChat.follow(activity);
+        ViewTreeObserver frames = activity.getWindow().getDecorView().getViewTreeObserver();
+        frames.dispatchOnPreDraw();
+        assertTrue(hasDisc(back));
+        ImageView pill = messageBar();
+        frames.dispatchOnPreDraw();
+        assertFalse("too soon to look again", GlassTopBar.boxShowing(pill));
+
+        ShadowLooper.idleMainLooper(GlassChat.SEARCH_EVERY_MS + 100, TimeUnit.MILLISECONDS);
+        // The frame the glass asks for: SDK 28's shadow never draws the new bar, so it drops the bar's invalidate.
+        frames.dispatchOnPreDraw();
+
+        assertTrue(GlassTopBar.boxShowing(pill));
     }
 
     @Test
