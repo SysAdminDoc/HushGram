@@ -222,7 +222,7 @@ public class ActiveSavesTest {
         Preference downloads = null;
         for (int position = 0; position < list().getCount(); position++) {
             Preference candidate = (Preference) list().getItemAtPosition(position);
-            if ("Downloads".contentEquals(candidate.getTitle())) downloads = candidate;
+            if (candidate.getTitle() != null && "Downloads".contentEquals(candidate.getTitle())) downloads = candidate;
         }
         assertNotNull("the overview has no Downloads entry", downloads);
         assertTrue(downloads.getOnPreferenceClickListener().onPreferenceClick(downloads));
