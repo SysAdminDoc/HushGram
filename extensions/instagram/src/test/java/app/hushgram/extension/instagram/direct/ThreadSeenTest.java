@@ -91,10 +91,31 @@ public class ThreadSeenTest {
         Settings.SEEN_PER_CHAT.resetToDefault();
         Settings.MARK_SEEN_ON_REPLY.resetToDefault();
         Settings.MARK_READ_IN_CHAT.resetToDefault();
+        MessagesLock.resetForTests();
+        Settings.LOCK_MESSAGES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
         ThreadSeen.forgetMarks();
+    }
+
+    /** Under the messages lock a chat isn't read yet, so it isn't recorded seen either, whatever the switches say (#649). */
+    @Test
+    public void aLockedChatStaysUnread() {
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        Settings.LOCK_MESSAGES.save(true);
+        Receipt receipt = receipt("t1", "m1");
+        assertFalse("without the lock's patch in", ThreadSeen.keepUnread(receipt, STORE, ThreadSeen::keepsUnread, chats, clock));
+
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+        assertTrue(ThreadSeen.keepUnread(receipt, STORE, ThreadSeen::keepsUnread, chats, clock));
+        assertTrue(ThreadSeen.hold(receipt, SESSION, ThreadSeen::switchedOn, chats, clock));
+
+        MessagesLock.openForTests();
+        assertFalse(ThreadSeen.keepUnread(receipt, STORE, ThreadSeen::keepsUnread, chats, clock));
+        assertFalse(ThreadSeen.hold(receipt, SESSION, ThreadSeen::switchedOn, chats, clock));
+        assertTrue(chats.sent.isEmpty());
+        assertNothingReported();
     }
 
     @Test

@@ -243,6 +243,9 @@ final class MessagesCategory {
                 messages.addPreference(lockToggle(context, Settings.LOCK_SAVED, L10n.t("Lock Saved"),
                         L10n.t("Saved and everything in it stay covered until your fingerprint, face or screen lock "
                                 + "says it's you.")));
+                messages.addPreference(lockToggle(context, Settings.LOCK_EACH_CHAT, L10n.t("Ask for each chat"),
+                        L10n.t("Every chat you open asks again, and so does your inbox when you go back to it. Off, "
+                                + "one unlock opens everything until you leave Instagram.")));
                 messages.addPreference(lockDelayRow(context));
                 messages.addPreference(unlockWithRow(context));
                 messages.addPreference(changePinRow(context));

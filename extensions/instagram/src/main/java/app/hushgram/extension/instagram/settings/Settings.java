@@ -810,6 +810,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting LOCK_SAVED = new BooleanSetting("hushgram_lock_saved", FALSE);
 
     /**
+     * Every chat you open asks again, and so does the inbox when you go back to it from a chat,
+     * instead of one unlock opening everything until you leave Instagram
+     * ({@link app.hushgram.extension.instagram.direct.MessagesLock}). Off to start.
+     */
+    public static final BooleanSetting LOCK_EACH_CHAT = new BooleanSetting("hushgram_lock_each_chat", FALSE);
+
+    /**
      * How long after you leave Instagram the locks above lock again. It starts at right away,
      * which is what they did before the choice. It isn't a switch: the ones above are.
      */
@@ -877,7 +884,7 @@ public class Settings extends BaseSettings {
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
-        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_SAVED, LOCK_AGAIN, LOCKED_CHATS,
+        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_SAVED, LOCK_EACH_CHAT, LOCK_AGAIN, LOCKED_CHATS,
                 UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
     }
 

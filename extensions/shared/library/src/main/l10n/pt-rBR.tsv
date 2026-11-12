@@ -2033,6 +2033,9 @@ Posts from your hidden accounts still show in Favorites. For you and Following l
 # context: switch next to Lock your messages; Saved is Instagram's page of your saved posts and collections (#597)
 Lock Saved	Bloquear Salvos
 Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	Salvos e tudo o que há neles ficam cobertos até sua digital, seu rosto ou o bloqueio de tela confirmar que é você.
+# context: switch under Lock your messages; on, an unlock opens only the chat it was asked in, so the next chat, or going back to the inbox, asks for the fingerprint, face, screen lock or PIN again (#649)
+Ask for each chat	Pedir em cada conversa
+Every chat you open asks again, and so does your inbox when you go back to it. Off, one unlock opens everything until you leave Instagram.	Cada conversa que você abre pede de novo, e a caixa de entrada também quando você volta a ela. Desativado, um desbloqueio abre tudo até você sair do Instagram.
 Saved is locked	Salvos está bloqueado
 Unlock Saved	Desbloquear Salvos
 # context: three-dot menu row on a reel or feed video with Stop videos looping on; makes only the video on screen play again and again (#610)

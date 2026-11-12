@@ -107,6 +107,7 @@ public class MessagesLockTest {
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCK_APP.resetToDefault();
         Settings.LOCK_SAVED.resetToDefault();
+        Settings.LOCK_EACH_CHAT.resetToDefault();
         Settings.LOCK_AGAIN.resetToDefault();
         Settings.LOCKED_CHATS.resetToDefault();
         Settings.UNLOCK_WITH.resetToDefault();
@@ -1280,6 +1281,145 @@ public class MessagesLockTest {
         ChatLocks.track(message, null, null, "direct_v2", "999", ALICE, ME);
 
         assertNotSame(message, MessagesLock.notification(message));
+    }
+
+    /** A chat opened under the cover isn't read: its seen receipt waits, and the unlock asked in it lets it go (#649). */
+    @Test
+    public void unlockingAChatLetsItsWaitingReceiptGo() {
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+        Activity activity = chat("Alice");
+        open(ALICE);
+        ThreadSeenTest.FakeChats chats = new ThreadSeenTest.FakeChats();
+        ThreadSeenTest.Session session = new ThreadSeenTest.Session(ME);
+        assertFalse("the switch is off", ThreadSeen.switchedOn());
+
+        assertTrue("sent from under the cover", ThreadSeen.hold(new ThreadSeenTest.Receipt(ALICE, "m1"), session,
+                ThreadSeen::switchedOn, chats, () -> 5_000L));
+        assertTrue(ThreadSeen.hold(new ThreadSeenTest.Receipt(BOB, "m2"), session, ThreadSeen::switchedOn, chats, () -> 5_000L));
+        MessagesLock.check(activity);
+        assertTrue(chats.sent.isEmpty());
+
+        asks.get(0)[0].run();
+
+        assertEquals("only the chat the unlock was asked in", java.util.Collections.singletonList(ME + ":" + ALICE + "/m1/s1"), chats.sent);
+        assertEquals(1, chats.cleared.size());
+        assertFalse("its next receipt goes as usual",
+                ThreadSeen.hold(new ThreadSeenTest.Receipt(ALICE, "m3"), session, ThreadSeen::switchedOn, chats, () -> 5_000L));
+    }
+
+    /** Coming in from a notification asks before the chat opens, and Ask for each chat counts the unlock for that chat. */
+    @Test
+    public void askForEachChatCountsTheUnlockForTheChatOpeningUnderIt() {
+        Settings.LOCK_EACH_CHAT.save(true);
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+        Activity activity = chat("Alice");
+        assertEquals("asked before the chat opened", 1, asks.size());
+        open(ALICE);
+
+        asks.get(0)[0].run();
+        open(ALICE);
+        MessagesLock.check(activity);
+
+        assertFalse(MessagesLock.locked());
+        assertEquals(1, asks.size());
+    }
+
+    /** Without the patch's start (not in the build), nothing waits for a lock that can't be there. */
+    @Test
+    public void receiptsWaitOnlyWithThePatchIn() {
+        assertTrue(MessagesLock.messagesLocked());
+        assertFalse(MessagesLock.receiptsWait());
+        assertFalse(MessagesLock.holdsReceipt(ME, ALICE));
+
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+        assertTrue(MessagesLock.receiptsWait());
+        assertTrue(MessagesLock.holdsReceipt(ME, ALICE));
+        MessagesLock.openForTests();
+        assertFalse(MessagesLock.receiptsWait());
+        assertFalse(MessagesLock.holdsReceipt(ME, ALICE));
+    }
+
+    @Test
+    public void aChatLockedByItselfHoldsOnlyItsOwnReceipts() {
+        Settings.LOCK_MESSAGES.save(false);
+        ChatLocks.add(ALICE, "Alice");
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+
+        assertTrue(MessagesLock.holdsReceipt(ME, ALICE));
+        assertTrue("an account that isn't known matches any", MessagesLock.holdsReceipt(null, ALICE));
+        assertFalse(MessagesLock.holdsReceipt(ME, BOB));
+        assertFalse("another account's chat", MessagesLock.holdsReceipt("999", ALICE));
+        assertFalse(MessagesLock.holdsReceipt(ME, null));
+    }
+
+    @Test
+    public void oneUnlockOpensEveryChatUntilInstagramLeaves() {
+        Object alice = new Object();
+        Object bob = new Object();
+        ChatLocks.reader = fragment -> fragment == alice ? ALICE : BOB;
+        Activity activity = chat("Alice");
+        ChatLocks.opened(alice);
+        MessagesLock.check(activity);
+        asks.get(0)[0].run();
+
+        ChatLocks.closed(alice);
+        ChatLocks.opened(bob);
+        MessagesLock.check(activity);
+
+        assertFalse(MessagesLock.locked());
+        assertEquals(1, asks.size());
+    }
+
+    @Test
+    public void askForEachChatAsksAgainInAnotherChat() {
+        Settings.LOCK_EACH_CHAT.save(true);
+        Object alice = new Object();
+        Object bob = new Object();
+        ChatLocks.reader = fragment -> fragment == alice ? ALICE : BOB;
+        Activity activity = chat("Alice");
+        ChatLocks.opened(alice);
+        MessagesLock.check(activity);
+        asks.get(0)[0].run();
+        MessagesLock.check(activity);
+        assertEquals(View.GONE, cover(activity).getVisibility());
+
+        // Back from a photo, or from the phone's own check on Android 9 and 10: the same chat.
+        ChatLocks.closed(alice);
+        ChatLocks.opened(alice);
+        assertFalse("the chat that was unlocked stays open", MessagesLock.locked());
+
+        ChatLocks.closed(alice);
+        ChatLocks.opened(bob);
+        assertTrue("another chat asks again", MessagesLock.locked());
+        MessagesLock.check(activity);
+        assertEquals(View.VISIBLE, cover(activity).getVisibility());
+        assertEquals(2, asks.size());
+    }
+
+    @Test
+    public void askForEachChatAsksAgainBackInTheInbox() {
+        Settings.LOCK_EACH_CHAT.save(true);
+        Object alice = new Object();
+        ChatLocks.reader = fragment -> ALICE;
+        Activity chat = chat("Alice");
+        ChatLocks.opened(alice);
+        MessagesLock.check(chat);
+        asks.get(0)[0].run();
+
+        ChatLocks.closed(alice);
+        Activity inbox = inbox().get();
+        MessagesLock.check(inbox);
+
+        assertTrue(MessagesLock.locked());
+        assertEquals("covered in the frame it shows", View.VISIBLE, cover(inbox, MessagesLock.INBOX_LIST).getVisibility());
+        assertEquals(2, asks.size());
+
+        // Unlocked in the inbox, the inbox stays open, and a chat still asks.
+        asks.get(1)[0].run();
+        MessagesLock.check(inbox);
+        assertFalse(MessagesLock.locked());
+        ChatLocks.opened(alice);
+        assertTrue(MessagesLock.locked());
     }
 
     @Test

@@ -2033,6 +2033,9 @@ Posts from your hidden accounts still show in Favorites. For you and Following l
 # context: switch next to Lock your messages; Saved is Instagram's page of your saved posts and collections (#597)
 Lock Saved	„Gespeichert“ sperren
 Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	„Gespeichert“ und alles darin bleibt abgedeckt, bis dein Fingerabdruck, dein Gesicht oder deine Displaysperre bestätigt, dass du es bist.
+# context: switch under Lock your messages; on, an unlock opens only the chat it was asked in, so the next chat, or going back to the inbox, asks for the fingerprint, face, screen lock or PIN again (#649)
+Ask for each chat	Für jeden Chat fragen
+Every chat you open asks again, and so does your inbox when you go back to it. Off, one unlock opens everything until you leave Instagram.	Jeder Chat, den du öffnest, fragt erneut, und dein Posteingang auch, wenn du zu ihm zurückkehrst. Ist es aus, öffnet eine Entsperrung alles, bis du Instagram verlässt.
 Saved is locked	„Gespeichert“ ist gesperrt
 Unlock Saved	„Gespeichert“ entsperren
 # context: three-dot menu row on a reel or feed video with Stop videos looping on; makes only the video on screen play again and again (#610)

@@ -91,6 +91,14 @@ import app.hushgram.extension.shared.settings.Setting;
  * until Instagram leaves the screen, and its message notifications lose their text the same way.
  * The banner for a new message waits while any chat on the list is locked, since it can't be told
  * which chat it shows.
+ *
+ * <p>A chat that opens under a cover isn't read yet, so its seen receipt waits too, whatever Read
+ * messages without the seen receipt says, and the chat stays unread ({@link ThreadSeen}). The unlock
+ * lets the receipt of the chat it was asked in go as it would have then (#649).
+ *
+ * <p>Ask for each chat makes an unlock good for one chat: another chat coming to the front locks
+ * again, and so does the inbox when it shows after a chat's unlock. The same chat coming back (from
+ * a photo, or the phone's own check on Android 9 and 10) stays open.
  */
 public final class MessagesLock {
     /** The inbox's list of chats, and the frame around it, as Instagram names them. */
@@ -158,6 +166,14 @@ public final class MessagesLock {
     static volatile Map<String, Integer> idsForTests;
 
     private static volatile boolean open;
+    /** For Ask for each chat, what the last unlock was for: a chat's id, {@link #INBOX_LIST}, or null while locked. */
+    private static volatile String openFor;
+    /**
+     * The chat the ask on screen is for, and its account: the one in front as it came up, or the one
+     * that opened after. Coming in from a notification asks as the screen resumes, before its chat does.
+     */
+    private static volatile String askedChat;
+    private static volatile String askedAccount;
     /** When Instagram last left the screen while open and Lock again said to wait; 0 when it isn't away. */
     private static volatile long leftAt;
     private static volatile boolean watching;
@@ -269,6 +285,49 @@ public final class MessagesLock {
         return !open;
     }
 
+    /**
+     * Some lock a seen receipt waits for is shut: the messages, or a chat on the list. Only with this
+     * patch in. Never throws.
+     */
+    static boolean receiptsWait() {
+        try {
+            return watching && (messagesLocked() || chatListLocked());
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, SWITCH, t);
+            return false;
+        }
+    }
+
+    /**
+     * A seen receipt of [thread] on [account] waits for the lock: the messages are locked, or the
+     * chat is on the list and locked. A null [account] matches any. Only with this patch in. Never
+     * throws.
+     */
+    static boolean holdsReceipt(String account, String thread) {
+        try {
+            if (!watching) return false;
+            if (messagesLocked()) return true;
+            if (thread == null || thread.isEmpty() || !ChatLocks.listed(account, thread)) return false;
+            expire();
+            return !open;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, SWITCH, t);
+            return false;
+        }
+    }
+
+    /**
+     * Asked when a chat comes to the front, with its id. With Ask for each chat on, a chat other than
+     * the one the last unlock was for locks again, so it asks before it shows.
+     */
+    static void chatOpened(String id) {
+        if (id != null && askedAt != 0) {
+            askedChat = id;
+            askedAccount = ChatLocks.currentAccount();
+        }
+        if (open && id != null && !id.equals(openFor) && eachChat()) relock(askedAt == 0);
+    }
+
     /** [notification] is hidden now: the messages are locked, or its chat is on the list and locked. */
     private static boolean lockedFor(Notification notification) {
         if (messagesLocked()) return true;
@@ -325,6 +384,8 @@ public final class MessagesLock {
      */
     public static void openUntilLeft() {
         if (locked() || chatListLocked()) return;
+        // With Ask for each chat, the inbox stays open as well, and a chat still asks.
+        if (openFor == null) openFor = INBOX_LIST;
         open = true;
         // The switch is saved once its row's listener returns. The screen under settings is checked
         // then, so an inbox behind them stays out of the recent apps picture from now on, not from
@@ -362,6 +423,16 @@ public final class MessagesLock {
     private static boolean messagesOn() {
         try {
             return Utils.settingsReady() && (Settings.LOCK_MESSAGES.get() || Settings.LOCK_APP.get());
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, SWITCH, t);
+            return false;
+        }
+    }
+
+    /** Ask for each chat is on, with a lock it applies to: the messages lock, or a chat on the list. */
+    private static boolean eachChat() {
+        try {
+            return Utils.settingsReady() && Settings.LOCK_EACH_CHAT.get() && (messagesOn() || ChatLocks.any());
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, SWITCH, t);
             return false;
@@ -595,6 +666,7 @@ public final class MessagesLock {
     static void relock(boolean askAgain) {
         boolean wasOpen = open;
         open = false;
+        openFor = null;
         if (askAgain) {
             askedThisTime = false;
             settingsAsked = false;
@@ -677,6 +749,13 @@ public final class MessagesLock {
                     return;
                 }
                 idleLookedAt = now;
+            }
+            String unlockedFor = openFor;
+            if (open && unlockedFor != null && !INBOX_LIST.equals(unlockedFor) && ChatLocks.current() == null
+                    && eachChat() && onScreen(activity, window, INBOX_LIST) && !onScreen(activity, window, CHAT_ROOT)) {
+                // Ask for each chat: back in the inbox from a chat that was unlocked by itself, the
+                // inbox asks too, and is covered in this frame.
+                relock(askedAt == 0);
             }
             boolean lock = locked();
             boolean whole = wholeApp();
@@ -796,6 +875,13 @@ public final class MessagesLock {
             cover.layout(area.left, area.top, area.right, area.bottom);
         }
         return true;
+    }
+
+    /** Whether [name]'s screen shows in [window], any part of it. */
+    private static boolean onScreen(Activity activity, ViewGroup window, String name) {
+        View anchor = anchor(activity, window, name);
+        Rect area = new Rect();
+        return anchor != null && anchor.isShown() && anchor.getGlobalVisibleRect(area) && !area.isEmpty();
     }
 
     /** How long a screen with nothing locked and no cover up goes between looks for an open chat. */
@@ -1099,10 +1185,18 @@ public final class MessagesLock {
         if (askedAt != 0 && now - askedAt < ASK_TIMEOUT_MS) return;
         askedAt = now;
         askedBy = new WeakReference<>(activity);
+        // The chat on screen as the ask comes up, or the one opening under it. The phone's own check
+        // takes the front, and the chat is no longer current by the time it answers.
+        askedChat = ChatLocks.current();
+        askedAccount = ChatLocks.currentAccount();
         try {
             asker.ask(activity, () -> {
+                String chat = ChatLocks.current() != null ? ChatLocks.current() : askedChat;
+                String account = ChatLocks.current() != null ? ChatLocks.currentAccount() : askedAccount;
                 askedAt = 0;
                 open = true;
+                openFor = chat != null ? chat : INBOX_LIST;
+                ThreadSeen.unlocked(account, chat);
                 // What follows (a settings change, a new PIN) belongs to the screen that asked. Turned
                 // while the phone's check was up, that screen is gone and its dialog can't show.
                 if (then != null && !activity.isDestroyed()) then.run();
@@ -1396,6 +1490,9 @@ public final class MessagesLock {
     /** Back to how a fresh start finds it. */
     static void resetForTests() {
         open = false;
+        openFor = null;
+        askedChat = null;
+        askedAccount = null;
         leftAt = 0;
         watching = false;
         started = 0;

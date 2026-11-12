@@ -80,6 +80,7 @@ Every HushGram release, newest first.
 * `Stop background feed refresh` under Battery stops the job that wakes your phone about every half hour to fetch your feed. Your feed loads when you open Instagram, and messages and notifications still come in. Reported in #341.
 * `Ask before a like` covers reels now. Tap the heart on a reel and it asks "Like or unlike this post?" first, same as in the feed. Asked for in #603.
 * `Ask before a like` asks about the heart beside a comment too, so a stray tap doesn't like it. Double tapping a comment still likes it straight away. Asked for in #614.
+* `Ask for each chat` sits under `Lock your messages`. Turn it on and every chat you open asks for your fingerprint, face, screen lock or PIN, and so does your inbox when you go back to it. Off, one unlock still opens everything until you leave Instagram. Starts off. Asked for in #649.
 
 ### Improvements
 
@@ -106,6 +107,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* With `Lock your messages` on, opening a chat from a notification no longer sends Seen or clears the unread mark before you unlock. The chat stays unread under the cover, and Seen goes once you unlock, unless `Read messages without the seen receipt` or the chat's own choice holds it. Reported in #649.
 * With `Glass tab bar` floating, the story camera's bottom row, the gallery button and the Story, Reel and Live picker, no longer sits under the navigation buttons. Instagram moves its main screens and the tab bar aside to open the camera, and HushGram still treated the bar as showing. The camera also works out its layout once, often while the pill is still in front, so it was told there was no navigation bar to stay above. The glass also stops blurring what's behind it while it's off to the side, so the camera isn't doing that extra work. Reported in #646.
 * With `See-through top bar` on, Instagram no longer keeps redrawing the screen after you leave Home for Messages or another tab. Home's page stays laid out next to the tab you're on, and HushGram kept moving its feed up behind the clock and back again on every frame, which used battery even on a still screen. Found while building #513.
 * `Glass in chats` now shows up as soon as a chat opens. If the chat sat still right after it opened, the top bar and message bar could stay plain until you scrolled. Found while checking #391.

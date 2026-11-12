@@ -1948,6 +1948,9 @@ Posts from your hidden accounts still show in Favorites. For you and Following l
 # context: switch next to Lock your messages; Saved is Instagram's page of your saved posts and collections (#597)
 Lock Saved	Khóa mục Đã lưu
 Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	Mục Đã lưu và mọi thứ trong đó vẫn bị che cho đến khi vân tay, khuôn mặt hoặc khóa màn hình xác nhận là bạn.
+# context: switch under Lock your messages; on, an unlock opens only the chat it was asked in, so the next chat, or going back to the inbox, asks for the fingerprint, face, screen lock or PIN again (#649)
+Ask for each chat	Hỏi cho từng đoạn chat
+Every chat you open asks again, and so does your inbox when you go back to it. Off, one unlock opens everything until you leave Instagram.	Mỗi đoạn chat bạn mở sẽ hỏi lại, hộp thư cũng vậy khi bạn quay lại. Khi tắt, một lần mở khóa sẽ mở mọi thứ cho đến khi bạn rời Instagram.
 Saved is locked	Mục Đã lưu đã khóa
 Unlock Saved	Mở khóa mục Đã lưu
 # context: three-dot menu row on a reel or feed video with Stop videos looping on; makes only the video on screen play again and again (#610)

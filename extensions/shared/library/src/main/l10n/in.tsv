@@ -2033,6 +2033,9 @@ Posts from your hidden accounts still show in Favorites. For you and Following l
 # context: switch next to Lock your messages; Saved is Instagram's page of your saved posts and collections (#597)
 Lock Saved	Kunci Tersimpan
 Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	Tersimpan dan semua isinya tetap tertutup sampai sidik jari, wajah, atau kunci layar Anda memastikan itu Anda.
+# context: switch under Lock your messages; on, an unlock opens only the chat it was asked in, so the next chat, or going back to the inbox, asks for the fingerprint, face, screen lock or PIN again (#649)
+Ask for each chat	Tanya untuk setiap chat
+Every chat you open asks again, and so does your inbox when you go back to it. Off, one unlock opens everything until you leave Instagram.	Setiap chat yang Anda buka akan meminta lagi, begitu juga kotak masuk saat Anda kembali ke sana. Jika nonaktif, satu kali buka kunci membuka semuanya sampai Anda keluar dari Instagram.
 Saved is locked	Tersimpan terkunci
 Unlock Saved	Buka kunci Tersimpan
 # context: three-dot menu row on a reel or feed video with Stop videos looping on; makes only the video on screen play again and again (#610)

@@ -134,6 +134,7 @@ public final class ChatLocks {
                 last = open;
                 lastName = null;
             }
+            MessagesLock.chatOpened(empty(id) ? null : id);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, OPENED, t);
             current = null;
