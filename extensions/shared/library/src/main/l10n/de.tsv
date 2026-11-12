@@ -1594,7 +1594,7 @@ Previous page	Vorherige Seite
 Next page	Nächste Seite
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	Seitenpunkte in einer Kapsel
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	Verschiebt die Seitenpunkte eines Karussellbeitrags in eine runde Kapsel unten auf dem Foto oder Video. Die Seite, auf der du bist, ist blau.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	Verschiebt die Seitenpunkte eines Karussellbeitrags in eine runde Kapsel unten auf dem Foto oder Video. Die Seite, auf der du bist, ist blau. Halte die Kapsel gedrückt und wische nach links oder rechts, um die Seiten zu wechseln.
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	Seitenzahl ausblenden
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	Entfernt die Zahl wie 3/5 aus der Ecke des Fotos oder Videos eines Karussellbeitrags.

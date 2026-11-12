@@ -1594,7 +1594,7 @@ Previous page	Önceki sayfa
 Next page	Sonraki sayfa
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	Hap üzerinde sayfa noktaları
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	Çoklu gönderinin sayfa noktalarını fotoğrafın veya videonun altındaki yuvarlak bir hapın üzerine taşır. Bulunduğun sayfa mavi görünür.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	Çoklu gönderinin sayfa noktalarını fotoğrafın veya videonun altındaki yuvarlak bir hapın üzerine taşır. Bulunduğun sayfa mavi görünür. Hapa basılı tutup sola veya sağa kaydırarak sayfa değiştirebilirsin.
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	Sayfa numarasını gizle
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	Karusel gönderisinin fotoğraf veya videosunun köşesindeki 3/5 gibi sayıyı kaldırır.

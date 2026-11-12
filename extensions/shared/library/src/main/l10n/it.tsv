@@ -1594,7 +1594,7 @@ Previous page	Pagina precedente
 Next page	Pagina successiva
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	Puntini di pagina su una pillola
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	Sposta i puntini di pagina di un post a carosello su una pillola arrotondata in fondo alla foto o al video, con la pagina in cui sei in blu.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	Sposta i puntini di pagina di un post a carosello su una pillola arrotondata in fondo alla foto o al video, con la pagina in cui sei in blu. Tieni premuta la pillola e scorri a sinistra o a destra per cambiare pagina.
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	Nascondi numero di pagina
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	Toglie il numero come 3/5 dall'angolo della foto o del video di un post a carosello.

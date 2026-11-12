@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* With `Page dots on a pill` on, you can hold the pill and slide left or right to flip through a carousel's pages, a page for each dot, the way Instagram's own dots work. Asked for in #651.
 * `Hide Watch more reels` sits under `Watch again in the feed` in Feed. When a reel in your feed ends, the card it shows keeps Watch again and drops the big Watch more reels button. Starts off. Asked for in #652.
 * `Shrink the pill as you scroll` sits under `Glass tab bar` in Tab bar. With `Liquid glass look` off, scrolling a list down makes the whole pill smaller, every tab still in it, and scrolling up or changing tab brings it back to full size. `Hide the tab bar as you scroll` wins when both are on. Restart Instagram after changing it. Starts off. Asked for in #638.
 * `Burn-in guard` fades the Add comment bar under a reel too, along with the other buttons, and tapping it brings them all back. Asked for in #648.
@@ -110,6 +111,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* With `Carousel arrows` on, scrolling the feed with your finger starting on an arrow now scrolls it. Before, the arrow held on to the touch and the feed didn't move.
 * `Default playback quality` no longer leaves a reel stuttering when your connection can't keep up with the quality you picked. Keeping a video at one quality skipped Instagram's own check of how much was loaded, so a slow connection stalled it again and again. Now a video that falls behind drops to the next lower quality, one step at a time. For two minutes after that, new videos start no higher than where it landed, so a slow patch stalls one reel instead of every reel, and then they start at your pick again. Data saver's lowest quality stays as it is. Reported in #599.
 * With `Lock your messages` on, opening a chat from a notification no longer sends Seen or clears the unread mark before you unlock. The chat stays unread under the cover, and Seen goes once you unlock, unless `Read messages without the seen receipt` or the chat's own choice holds it. Reported in #649.
 * With `Glass tab bar` floating, the story camera's bottom row, the gallery button and the Story, Reel and Live picker, no longer sits under the navigation buttons. Instagram moves its main screens and the tab bar aside to open the camera, and HushGram still treated the bar as showing. The camera also works out its layout once, often while the pill is still in front, so it was told there was no navigation bar to stay above. The glass also stops blurring what's behind it while it's off to the side, so the camera isn't doing that extra work. Reported in #646.

@@ -1584,7 +1584,7 @@ Previous page	หน้าก่อนหน้า
 Next page	หน้าถัดไป
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	จุดบอกหน้าในแถบแคปซูล
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	ย้ายจุดบอกหน้าของโพสต์ภาพหมุนไปยังแถบแคปซูลมนที่ด้านล่างของรูปภาพหรือวิดีโอ โดยแสดงหน้าที่คุณเปิดอยู่เป็นสีฟ้า
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	ย้ายจุดบอกหน้าของโพสต์ภาพหมุนไปยังแถบแคปซูลมนที่ด้านล่างของรูปภาพหรือวิดีโอ โดยแสดงหน้าที่คุณเปิดอยู่เป็นสีฟ้า กดแถบแคปซูลค้างไว้แล้วเลื่อนไปทางซ้ายหรือขวาเพื่อเปลี่ยนหน้า
 # context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
 Ambient light	แสงรอบข้าง
 Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	แสดงแสงเรืองนุ่มนวลตามโทนสีของโพสต์รอบๆ รูปภาพหรือวิดีโอ และบริเวณขอบรอบรีลส์ที่ไม่เต็มหน้าจอ โดยแสงเรืองจะเปลี่ยนตามวิดีโอขณะเล่น

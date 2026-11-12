@@ -15,8 +15,11 @@ import static org.robolectric.Shadows.shadowOf;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.Adapter;
 import android.widget.BaseAdapter;
@@ -24,6 +27,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 import java.lang.ref.WeakReference;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -636,6 +640,232 @@ public class CarouselArrowsTest {
         assertFalse(frame());
         assertEquals(1, pill().at);
         assertFalse(frame());
+    }
+
+    /** Sends the pill [action] at [x], [y] in its own coordinates. True when it takes the touch. */
+    private boolean touch(int action, float x, float y) {
+        return touch(pill(), action, x, y);
+    }
+
+    private static boolean touch(View view, int action, float x, float y) {
+        long now = SystemClock.uptimeMillis();
+        MotionEvent event = MotionEvent.obtain(now, now, action, x, y, 0);
+        try {
+            return view.dispatchTouchEvent(event);
+        } finally {
+            event.recycle();
+        }
+    }
+
+    /**
+     * What the post's column, standing in for the feed's list beside the pill and arrows in their host, is
+     * given to scroll by: each touch as its action and its height in the column.
+     */
+    private List<String> feedTouches() {
+        List<String> fed = new ArrayList<>();
+        column.setOnTouchListener((view, event) -> {
+            fed.add(MotionEvent.actionToString(event.getActionMasked()) + " " + Math.round(event.getY()));
+            return true;
+        });
+        return fed;
+    }
+
+    /** The height in the post's column of [y] on [view]. */
+    private int inColumn(View view, float y) {
+        return Math.round(view.getY() + y - column.getY());
+    }
+
+    private float middle() {
+        return pill().getWidth() / 2f;
+    }
+
+    private float pitch() {
+        return (CarouselArrows.DOT + CarouselArrows.DOT_GAP) * density();
+    }
+
+    /** #651: holding the pill and sliding along it turns a page for each dot's width, through the pager's own count. */
+    @Test
+    public void slidingAlongThePillTurnsAPageForEachDot() {
+        pillOn();
+        settle();
+        pager.loop = 300;
+        float x = middle(), y = pill().getHeight() / 2f;
+
+        assertTrue(touch(MotionEvent.ACTION_DOWN, x, y));
+        assertTrue(touch(MotionEvent.ACTION_MOVE, x + 2 * pitch(), y));
+        assertTrue(touch(MotionEvent.ACTION_MOVE, x + 2.2f * pitch(), y));
+        assertTrue(touch(MotionEvent.ACTION_MOVE, x + pitch(), y));
+        assertTrue("back to the page showing, which a pager still sliding away from counts as showing",
+                touch(MotionEvent.ACTION_MOVE, x, y));
+        assertTrue(touch(MotionEvent.ACTION_UP, x, y));
+
+        assertEquals(Arrays.asList(302, 301, 300), turned);
+        assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).isEmpty());
+    }
+
+    @Test
+    public void aSlidePastEitherEndStopsOnTheEndPage() {
+        pillOn();
+        settle();
+        float x = middle(), y = pill().getHeight() / 2f;
+
+        touch(MotionEvent.ACTION_DOWN, x, y);
+        touch(MotionEvent.ACTION_MOVE, x + 10 * pitch(), y);
+        touch(MotionEvent.ACTION_MOVE, x + 12 * pitch(), y);
+        touch(MotionEvent.ACTION_MOVE, x - 5 * pitch(), y);
+        touch(MotionEvent.ACTION_UP, x - 5 * pitch(), y);
+
+        assertEquals(Arrays.asList(2, 0), turned);
+    }
+
+    /** A short sideways move counts once the pill's been held; before that it's taken for a wobble. */
+    @Test
+    public void holdingThePillStartsTheSlideBeforeTheFingerMoves() {
+        pillOn();
+        settle();
+        float x = middle(), y = pill().getHeight() / 2f;
+        int slop = ViewConfiguration.get(activity).getScaledTouchSlop();
+        assertEquals("a slop's move is over half a dot", 1, Math.round(slop / pitch()));
+
+        touch(MotionEvent.ACTION_DOWN, x, y);
+        touch(MotionEvent.ACTION_MOVE, x + slop, y);
+        assertTrue(turned.toString(), turned.isEmpty());
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ViewConfiguration.getLongPressTimeout() + 50));
+        touch(MotionEvent.ACTION_MOVE, x + slop, y);
+        touch(MotionEvent.ACTION_UP, x + slop, y);
+
+        assertEquals(Arrays.asList(1), turned);
+    }
+
+    /**
+     * The feed's list sits beside the pill in its host on a phone, not above it, so letting a touch go never
+     * reached it and a scroll that started on the pill stuck. It gets the touch from where it went down.
+     */
+    @Test
+    public void aTouchThatHeadsUpOrDownGoesToTheFeedFromWhereItWentDown() {
+        pillOn();
+        settle();
+        List<String> fed = feedTouches();
+        float x = middle(), y = pill().getHeight() / 2f;
+        int slop = ViewConfiguration.get(activity).getScaledTouchSlop();
+
+        assertTrue(touch(MotionEvent.ACTION_DOWN, x, y));
+        assertTrue(touch(MotionEvent.ACTION_MOVE, x + slop / 2f, y - 3 * slop));
+        assertTrue(touch(MotionEvent.ACTION_MOVE, x + 3 * pitch(), y - 6 * slop));
+        assertTrue(touch(MotionEvent.ACTION_UP, x + 3 * pitch(), y - 6 * slop));
+
+        assertEquals(Arrays.asList("ACTION_DOWN " + inColumn(pill(), y), "ACTION_MOVE " + inColumn(pill(), y - 3 * slop),
+                "ACTION_MOVE " + inColumn(pill(), y - 6 * slop), "ACTION_UP " + inColumn(pill(), y - 6 * slop)), fed);
+        assertTrue(turned.toString(), turned.isEmpty());
+    }
+
+    @Test
+    public void aSlideAlongThePillIsNotGivenToTheFeed() {
+        pillOn();
+        settle();
+        List<String> fed = feedTouches();
+        float x = middle(), y = pill().getHeight() / 2f;
+        int slop = ViewConfiguration.get(activity).getScaledTouchSlop();
+
+        // Two dots' move: the slop is over one on some screens.
+        touch(MotionEvent.ACTION_DOWN, x, y);
+        touch(MotionEvent.ACTION_MOVE, x + 2 * pitch(), y);
+        touch(MotionEvent.ACTION_MOVE, x + 2 * pitch(), y - 3 * slop);
+        touch(MotionEvent.ACTION_UP, x + 2 * pitch(), y - 3 * slop);
+
+        assertTrue(fed.toString(), fed.isEmpty());
+        assertEquals(Arrays.asList(2), turned);
+    }
+
+    /** A scroll the pill gave the feed goes on when the carousel's row leaves, the pill hidden till the finger lifts. */
+    @Test
+    public void aScrollGivenToTheFeedGoesOnWhenTheCarouselsRowLeaves() {
+        pillOn();
+        settle();
+        List<String> fed = feedTouches();
+        CarouselArrows.Pill pill = pill();
+        float x = middle(), y = pill.getHeight() / 2f;
+        int slop = ViewConfiguration.get(activity).getScaledTouchSlop();
+        touch(MotionEvent.ACTION_DOWN, x, y);
+        touch(MotionEvent.ACTION_MOVE, x, y - 3 * slop);
+
+        column.removeView(pager);
+        frame();
+        assertTrue("still in its host", pill.getParent() == root);
+        assertFalse(shows(pill));
+        assertTrue(touch(pill, MotionEvent.ACTION_MOVE, x, y - 9 * slop));
+        assertTrue(touch(pill, MotionEvent.ACTION_UP, x, y - 9 * slop));
+        frame();
+
+        assertEquals(Arrays.asList("ACTION_DOWN", "ACTION_MOVE", "ACTION_MOVE", "ACTION_UP"), actions(fed));
+        assertTrue("gone once the finger's up", pill.getParent() == null);
+    }
+
+    private static List<String> actions(List<String> fed) {
+        List<String> actions = new ArrayList<>();
+        for (String touch : fed) actions.add(touch.substring(0, touch.indexOf(' ')));
+        return actions;
+    }
+
+    /** #417's arrows sit beside the feed's list too, so a scroll that starts on one goes to it, and a tap still turns. */
+    @Test
+    public void aScrollThatStartsOnAnArrowGoesToTheFeed() {
+        on();
+        settle();
+        List<String> fed = feedTouches();
+        View next = next();
+        float x = next.getWidth() / 2f, y = next.getHeight() / 2f;
+        int slop = ViewConfiguration.get(activity).getScaledTouchSlop();
+
+        assertTrue(touch(next, MotionEvent.ACTION_DOWN, x, y));
+        assertTrue(touch(next, MotionEvent.ACTION_MOVE, x, y + 3 * slop));
+        assertFalse("no longer pressed", next.isPressed());
+        assertTrue(touch(next, MotionEvent.ACTION_UP, x, y + 3 * slop));
+        shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(Arrays.asList("ACTION_DOWN " + inColumn(next, y), "ACTION_MOVE " + inColumn(next, y + 3 * slop),
+                "ACTION_UP " + inColumn(next, y + 3 * slop)), fed);
+        assertTrue(turned.toString(), turned.isEmpty());
+
+        fed.clear();
+        touch(next, MotionEvent.ACTION_DOWN, x, y);
+        touch(next, MotionEvent.ACTION_UP, x, y);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertTrue(fed.toString(), fed.isEmpty());
+        assertEquals(Arrays.asList(1), turned);
+    }
+
+    @Test
+    public void aTouchBesideTheDrawnPillIsLeftForTheCarousel() {
+        pillOn();
+        settle();
+        float side = (pill().getWidth() - CarouselArrows.Pill.wide(3, density())) / 2f;
+        assertTrue("the view is wider than three dots' pill", side > 2);
+
+        assertFalse(touch(MotionEvent.ACTION_DOWN, side - 2, pill().getHeight() / 2f));
+
+        pager.pages = pages(1);
+        assertFalse(frame());
+        assertFalse("a carousel of one page has none to slide to", touch(MotionEvent.ACTION_DOWN, middle(), 1));
+    }
+
+    @Test
+    public void aSlideThatThrowsIsReportedAndThePillStays() {
+        CarouselArrows.turnForTests((carousel, page) -> {
+            throw new IllegalStateException("refused");
+        });
+        pillOn();
+        settle();
+        float x = middle(), y = pill().getHeight() / 2f;
+
+        touch(MotionEvent.ACTION_DOWN, x, y);
+        touch(MotionEvent.ACTION_MOVE, x + 2 * pitch(), y);
+        touch(MotionEvent.ACTION_UP, x + 2 * pitch(), y);
+
+        assertTrue(shows(pill()));
+        String missing = HookStatus.missing(FAMILY).toString();
+        assertTrue(missing, missing.contains("'carousel arrows scrub' hook (it threw java.lang.IllegalStateException)"));
     }
 
     /** #471: Pill look's choice reaches the pill on the next frame, and a frosted pill still shows the page. */

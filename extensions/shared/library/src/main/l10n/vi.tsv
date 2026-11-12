@@ -1534,7 +1534,7 @@ Puts a back and a next arrow on a carousel post's photos and videos. Tap one to 
 Previous page	Trang trước
 Next page	Trang sau
 Page dots on a pill	Chấm trang trên viên thuốc
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	Đưa các chấm trang của bài viết nhiều trang lên viên thuốc tròn ở cuối ảnh hoặc video, trang đang xem màu xanh dương.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	Đưa các chấm trang của bài viết nhiều trang lên viên thuốc tròn ở cuối ảnh hoặc video, trang đang xem màu xanh dương. Giữ viên thuốc rồi trượt sang trái hoặc phải để chuyển trang.
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	Ẩn số trang
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	Bỏ số như 3/5 ở góc ảnh hoặc video của bài viết dạng băng chuyền.

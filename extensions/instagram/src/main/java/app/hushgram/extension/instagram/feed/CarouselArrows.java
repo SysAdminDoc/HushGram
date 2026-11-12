@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
@@ -15,7 +16,10 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.ViewParent;
@@ -56,7 +60,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Its second switch, Page dots on a pill (#419), puts a {@link Pill} of page dots over the bottom
  * of each carousel instead, the page showing in blue, and fades out Instagram's own dots ({@link #DOTS})
  * under that carousel while the pill stands in for them. Instagram keeps those dots in another row of
- * the feed, so they're matched to a carousel by where they sit: the nearest set just under it.
+ * the feed, so they're matched to a carousel by where they sit: the nearest set just under it. Like
+ * Instagram's own dots, the pill can be held and slid along to move through the pages (#651).
  *
  * <p>Like {@link CarouselPeek}, a resumed activity joins the shared view watcher while either switch
  * is on: each layout looks through the window once for carousels, and each frame only checks the
@@ -290,6 +295,22 @@ public final class CarouselArrows {
         }
     }
 
+    /**
+     * Slides [pager] to its page [page], when that's one of its own (#651). The page showing is asked for too,
+     * since a pager still sliding away from it may count it as showing.
+     */
+    static void goTo(View pager, int page) {
+        try {
+            Pager methods = kind(pager);
+            if (methods == null) return;
+            int at = methods.index(pager), count = methods.count(pager);
+            if (at < 0 || page < 0 || page >= count) return;
+            turn.to(pager, methods.raw(pager) + page - at);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CAROUSEL_ARROWS, HOOK + " scrub", failure);
+        }
+    }
+
     /** Gives [pager] what the switches ask for in its host, if it doesn't hold that there yet. True when any were added. */
     static boolean give(ViewGroup pager) {
         Arrows arrows = arrowsOf(pager);
@@ -321,7 +342,10 @@ public final class CarouselArrows {
             View pager = entry.getKey();
             Arrows arrows = entry.getValue().get();
             if (pager == null) continue;
-            if (arrows == null || !arrows.holds(pager) || !arrows.matches()) {
+            if (arrows != null && arrows.handing() && (!arrows.holds(pager) || !arrows.matches())) {
+                // Taken away, the pill or arrow would end the feed's scroll it started, so it's hidden till the finger lifts.
+                arrows.follow(pager, null);
+            } else if (arrows == null || !arrows.holds(pager) || !arrows.matches()) {
                 if (arrows != null) arrows.remove();
                 entries.remove();
             } else if (pager.isAttachedToWindow()) {
@@ -474,6 +498,7 @@ public final class CarouselArrows {
                 });
                 int size = Math.round(TOUCH * density);
                 for (Arrow arrow : new Arrow[] {back, next}) {
+                    arrow.carousel = carousel;
                     arrow.setVisibility(View.INVISIBLE);
                     arrow.setTag(this);
                     host.addView(arrow, new FrameLayout.LayoutParams(size, size, Gravity.TOP | Gravity.START));
@@ -483,6 +508,7 @@ public final class CarouselArrows {
             }
             if (Settings.CAROUSEL_DOTS_PILL.get()) {
                 pill = new Pill(context);
+                pill.carousel = new WeakReference<>(pager);
                 pill.setVisibility(View.INVISIBLE);
                 pill.setTag(this);
                 host.addView(pill, new FrameLayout.LayoutParams(Pill.widest(density), Math.round(PILL_HEIGHT * density),
@@ -490,6 +516,12 @@ public final class CarouselArrows {
             } else {
                 pill = null;
             }
+        }
+
+        /** Whether a touch on the pill or an arrow is being given to the feed. */
+        boolean handing() {
+            return (pill != null && pill.handoff.given()) || (back != null && back.handoff.given())
+                    || (next != null && next.handoff.given());
         }
 
         /** Whether this holds the arrows and the pill exactly when their switches are on. */
@@ -624,6 +656,19 @@ public final class CarouselArrows {
                 new FrostedBackdrop(FamilyNames.CAROUSEL_ARROWS, HOOK + " pill glass", "hushgram-carousel-pill-glass");
         int at = -1, count;
         OverlayLook look = OverlayLook.SOLID;
+        /** The carousel a slide along the pill turns (#651). */
+        WeakReference<View> carousel = new WeakReference<>(null);
+        /** Where a touch went down, the page showing then (-1 with no touch held) and the page last asked for. */
+        private float downX;
+        private int downAt = -1, asked;
+        final Handoff handoff = new Handoff();
+        /** Whether the touch is a slide: it was held, or it moved sideways. */
+        private boolean sliding;
+        private final Runnable held = () -> {
+            if (downAt < 0 || sliding) return;
+            sliding = true;
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+        };
 
         Pill(Context context) {
             super(context);
@@ -675,6 +720,12 @@ public final class CarouselArrows {
             return Math.round((MAX_DOTS * DOT + (MAX_DOTS - 1) * DOT_GAP + 2 * PILL_PAD) * density);
         }
 
+        /** The drawn pill's width around [count] pages' dots, in pixels. */
+        static float wide(int count, float density) {
+            int shown = Math.min(count, MAX_DOTS);
+            return (shown * DOT + (shown - 1) * DOT_GAP + 2 * PILL_PAD) * density;
+        }
+
         /** The first page given a dot: the window of {@link #MAX_DOTS} slides to keep [at] in its middle where it can. */
         static int first(int at, int count) {
             if (count <= MAX_DOTS) return 0;
@@ -695,7 +746,7 @@ public final class CarouselArrows {
             float density = getResources().getDisplayMetrics().density;
             int shown = Math.min(count, MAX_DOTS), from = first(at, count);
             float size = DOT * density, gap = DOT_GAP * density, pad = PILL_PAD * density;
-            float wide = shown * size + (shown - 1) * gap + 2 * pad, height = getHeight();
+            float wide = wide(count, density), height = getHeight();
             float left = (getWidth() - wide) / 2f;
             shape.set(left, 0, left + wide, height);
             float radius = height / 2f;
@@ -715,14 +766,173 @@ public final class CarouselArrows {
                 canvas.drawCircle(left + pad + i * (size + gap) + size / 2, height / 2f, size / 2 * (more ? 0.6f : 1f), dot);
             }
         }
+
+        /**
+         * Holding the pill and sliding along it turns the carousel a page for each dot's width, counted from the
+         * page showing when the finger went down, as Instagram's own dots do (#651). A touch that heads up or
+         * down is given to the feed to scroll ({@link Handoff}). TalkBack keeps the arrows and the pager's own swipe.
+         */
+        @SuppressLint("ClickableViewAccessibility")
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (handoff.passes(this, event)) return true;
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    return press(event);
+                case MotionEvent.ACTION_MOVE:
+                    return downAt >= 0 && slide(event);
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    boolean holding = downAt >= 0;
+                    letGo();
+                    return holding;
+                default:
+                    return downAt >= 0;
+            }
+        }
+
+        /** Takes a touch that lands on the drawn pill of a carousel with pages to turn. */
+        private boolean press(MotionEvent event) {
+            if (count < 2 || at < 0 || at >= count || carousel.get() == null) return false;
+            float wide = wide(count, getResources().getDisplayMetrics().density), left = (getWidth() - wide) / 2f;
+            if (event.getX() < left || event.getX() > left + wide) return false;
+            downX = event.getX();
+            downAt = asked = at;
+            sliding = false;
+            handoff.press(this, event);
+            // Nothing above takes a sideways slide away from the pill; one that heads up or down goes to the feed.
+            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+            postDelayed(held, ViewConfiguration.getLongPressTimeout());
+            return true;
+        }
+
+        private boolean slide(MotionEvent event) {
+            float dx = event.getX() - downX;
+            if (!sliding) {
+                if (handoff.heads(this, event)) {
+                    if (!handoff.give(this, carousel.get(), event)) {
+                        letGo();
+                        return false;
+                    }
+                    // The feed scrolls now, holding off what's above as its own scroll would.
+                    removeCallbacks(held);
+                    downAt = -1;
+                    return true;
+                }
+                if (Math.abs(dx) <= ViewConfiguration.get(getContext()).getScaledTouchSlop()) return true;
+                removeCallbacks(held);
+                sliding = true;
+            }
+            float pitch = (DOT + DOT_GAP) * getResources().getDisplayMetrics().density;
+            int page = Math.max(0, Math.min(count - 1, downAt + Math.round(dx / pitch)));
+            View pager = carousel.get();
+            if (page != asked && pager != null) {
+                asked = page;
+                goTo(pager, page);
+            }
+            return true;
+        }
+
+        private void letGo() {
+            removeCallbacks(held);
+            if (downAt >= 0 && getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+            downAt = -1;
+            sliding = false;
+        }
+    }
+
+    /**
+     * Gives the feed a touch that starts on the pill or an arrow and heads up or down (#651). They sit in the
+     * host, beside the feed's list rather than in it, so the list never saw such a touch to scroll by: it's
+     * replayed into the host's child holding the carousel, from where the finger went down. Places are kept
+     * in the host's content, so a pill that follows its carousel up the screen doesn't throw them off.
+     */
+    static final class Handoff {
+        @Nullable private MotionEvent down;
+        @Nullable private View to;
+
+        /** Keeps the press [event] on [from], to replay if the touch heads up or down. */
+        void press(View from, MotionEvent event) {
+            forget();
+            down = MotionEvent.obtain(event);
+            down.offsetLocation(from.getX(), from.getY());
+        }
+
+        /** Whether [event] on [from] has gone further up or down from the press than sideways, past the touch slop. */
+        boolean heads(View from, MotionEvent event) {
+            if (down == null) return false;
+            float dx = event.getX() + from.getX() - down.getX(), dy = event.getY() + from.getY() - down.getY();
+            int slop = ViewConfiguration.get(from.getContext()).getScaledTouchSlop();
+            return Math.abs(dy) > slop && Math.abs(dy) > Math.abs(dx);
+        }
+
+        /** Replays the press and [event] into what holds [pager] beside [from]. False when nothing does. */
+        boolean give(View from, @Nullable View pager, MotionEvent event) {
+            View holder = holder(from, pager);
+            if (holder == null || down == null) {
+                forget();
+                return false;
+            }
+            to = holder;
+            replay(down, 0, 0);
+            replay(event, from.getX(), from.getY());
+            return true;
+        }
+
+        /** Whether the touch was given to the feed. */
+        boolean given() {
+            return to != null;
+        }
+
+        /** Passes [event] on [from] to the feed once the touch is given, and ends there with the touch. */
+        boolean passes(View from, MotionEvent event) {
+            if (to == null) return false;
+            replay(event, from.getX(), from.getY());
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) forget();
+            return true;
+        }
+
+        void forget() {
+            if (down != null) down.recycle();
+            down = null;
+            to = null;
+        }
+
+        private void replay(MotionEvent event, float x, float y) {
+            View holder = to;
+            if (holder == null) return;
+            MotionEvent copy = MotionEvent.obtain(event);
+            try {
+                copy.offsetLocation(x - holder.getX(), y - holder.getY());
+                holder.dispatchTouchEvent(copy);
+            } finally {
+                copy.recycle();
+            }
+        }
+
+        /** The child of [from]'s host that [pager] is in, the feed's list on a phone. */
+        @Nullable
+        private static View holder(View from, @Nullable View pager) {
+            ViewParent host = from.getParent();
+            for (View view = pager; view != null; ) {
+                ViewParent parent = view.getParent();
+                if (parent == host) return view == from ? null : view;
+                view = parent instanceof View ? (View) parent : null;
+            }
+            return null;
+        }
     }
 
     /**
      * An arrow button: a light rounded square with a dark chevron, so it reads on dark and bright
-     * pages alike. Its corners are HushGram's 8 dp, like the rest of what it adds.
+     * pages alike. Its corners are HushGram's 8 dp, like the rest of what it adds. A scroll that starts
+     * on it goes to the feed ({@link Handoff}).
      */
     static final class Arrow extends View {
         static final float CORNER = 8;
+        WeakReference<View> carousel = new WeakReference<>(null);
+        final Handoff handoff = new Handoff();
         private final boolean forward;
         private final Paint disc = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint chevron = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -754,6 +964,26 @@ public final class CarouselArrows {
 
         private static float radius(View view) {
             return BUTTON * view.getResources().getDisplayMetrics().density / 2;
+        }
+
+        @SuppressLint("ClickableViewAccessibility")
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (handoff.passes(this, event)) return true;
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                handoff.press(this, event);
+            } else if (action == MotionEvent.ACTION_MOVE && handoff.heads(this, event)) {
+                // The arrow lets go of the press first, so it neither stays lit nor turns a page.
+                MotionEvent cancel = MotionEvent.obtain(event);
+                cancel.setAction(MotionEvent.ACTION_CANCEL);
+                super.onTouchEvent(cancel);
+                cancel.recycle();
+                if (handoff.give(this, carousel.get(), event)) return true;
+            } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                handoff.forget();
+            }
+            return super.onTouchEvent(event);
         }
 
         @Override

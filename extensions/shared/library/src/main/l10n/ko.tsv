@@ -1593,7 +1593,7 @@ Previous page	이전 페이지
 Next page	다음 페이지
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	알약 모양 페이지 점
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	캐러셀 게시물의 페이지 점을 사진이나 동영상 아래쪽의 둥근 알약 모양 위로 옮깁니다. 지금 보고 있는 페이지는 파란색으로 표시됩니다.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	캐러셀 게시물의 페이지 점을 사진이나 동영상 아래쪽의 둥근 알약 모양 위로 옮깁니다. 지금 보고 있는 페이지는 파란색으로 표시됩니다. 알약을 길게 누른 채 왼쪽이나 오른쪽으로 밀면 페이지를 넘길 수 있습니다.
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	페이지 번호 숨기기
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	캐러셀 게시물의 사진이나 동영상 모서리에 있는 3/5 같은 숫자를 없앱니다.

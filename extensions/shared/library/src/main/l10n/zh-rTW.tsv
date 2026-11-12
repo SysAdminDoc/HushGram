@@ -1597,7 +1597,7 @@ Previous page	上一頁
 Next page	下一頁
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	膠囊頁面圓點
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	將輪播貼文的頁面圓點移到相片或影片底部的圓角膠囊上，目前的頁面以藍色顯示。
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	將輪播貼文的頁面圓點移到相片或影片底部的圓角膠囊上，目前的頁面以藍色顯示。按住膠囊並左右滑動即可切換頁面。
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	隱藏頁碼
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	拿掉輪播貼文相片或影片角落類似 3/5 的數字。
