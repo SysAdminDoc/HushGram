@@ -166,6 +166,12 @@ final class NewRowDots {
 
     /** Paints [row]'s dot, or takes the old one off, as the page that is showing says. */
     static void paint(View row, Preference preference, int accent) {
+        TextView title = row.findViewById(android.R.id.title);
+        if (title != null) paintTitle(title, preference, accent);
+    }
+
+    /** The same for a [title] that isn't under Android's title id, like a category chip's name. */
+    static void paintTitle(TextView title, Preference preference, int accent) {
         boolean fresh = false;
         try {
             NewRowDots dots = current;
@@ -173,18 +179,16 @@ final class NewRowDots {
         } catch (RuntimeException failed) {
             // No dot.
         }
-        paint(row, fresh, accent);
+        paint(title, fresh, accent);
     }
 
     /**
-     * Puts the dot after [row]'s title when [fresh], and takes any earlier one off. The dot is part
-     * of the title's text line, so it follows the reading direction, wraps with the title at a large
-     * text size and can't leave the row.
+     * Puts the dot after [title] when [fresh], and takes any earlier one off. The dot is part of the
+     * title's text line, so it follows the reading direction, wraps with the title at a large text
+     * size and can't leave the row.
      */
-    private static void paint(View row, boolean fresh, int accent) {
+    private static void paint(TextView title, boolean fresh, int accent) {
         try {
-            TextView title = row.findViewById(android.R.id.title);
-            if (title == null) return;
             boolean had = TAG.equals(title.getTag());
             if (!fresh) {
                 if (had) {
@@ -194,7 +198,7 @@ final class NewRowDots {
                 }
                 return;
             }
-            float density = row.getResources().getDisplayMetrics().density;
+            float density = title.getResources().getDisplayMetrics().density;
             int size = Math.round(8 * density);
             GradientDrawable dot = new GradientDrawable();
             dot.setShape(GradientDrawable.OVAL);

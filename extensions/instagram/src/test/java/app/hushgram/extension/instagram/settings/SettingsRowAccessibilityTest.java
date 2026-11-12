@@ -683,7 +683,7 @@ public class SettingsRowAccessibilityTest {
         Preference header = null;
         for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
             Preference candidate = page.getPreferenceScreen().getPreference(i);
-            if ("Ads and privacy".contentEquals(candidate.getTitle())) header = candidate;
+            if (candidate.getTitle() != null && "Ads and privacy".contentEquals(candidate.getTitle())) header = candidate;
         }
         assertNotNull(header);
         View button = row(header);

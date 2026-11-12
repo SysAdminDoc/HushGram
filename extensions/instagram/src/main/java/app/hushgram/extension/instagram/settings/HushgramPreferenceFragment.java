@@ -333,8 +333,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Nullable private Row gridToggle;
     /** The tiles, one row of the page, while the grid is on and nothing is searched. */
     @Nullable private CategoryGrid categoryGrid;
-    /** The chips under Search on a category's own page, one for each category (#642). */
+    /**
+     * The chips: one for each group over the list of categories, one for each category of the group
+     * on a category's own page (#642). A copy stays over the top while they're scrolled off (#650).
+     */
     @Nullable private CategoryStrip categoryStrip;
+    /** Each group's name, which the list of categories shows over its first one. */
+    private final List<CategoryGroups.Label> groupLabels = new ArrayList<>();
+    /** The group whose chip was picked, which the list of categories shows alone, or -1 for all. */
+    private int shownGroup = -1;
     /** HushGram's name over the page while the black look is on and nothing is searched (#455). */
     @Nullable private Preference header;
     /** Before you sign in, while no tap has hidden it. The home page's, like the status card. */
@@ -375,6 +382,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (expanded != null) expandedCategories.addAll(expanded);
             restoredPosition = state.getInt("hushgram_category_position", -1);
             restoredTop = state.getInt("hushgram_category_top", 0);
+            shownGroup = state.getInt("hushgram_category_group", -1);
             documentRequest = state.getInt("hushgram_document_request", 0);
             // Older saved pages used the operation itself as their Android request code.
             documentCode = state.getInt("hushgram_document_code", documentRequest);
@@ -414,6 +422,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         state.putInt("hushgram_document_sequence", documentSequence);
         state.putString("hushgram_configuration_export", configurationExportToken);
         state.putStringArrayList("hushgram_expanded_categories", new ArrayList<>(expandedCategories));
+        state.putInt("hushgram_category_group", shownGroup);
         if (lastCategory != null) state.putString("hushgram_open_category", lastCategory);
         ListView list = listView();
         boolean searching = !searchQuery.trim().isEmpty();
@@ -455,10 +464,75 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
                 @Override public void onScroll(android.widget.AbsListView view, int first, int count, int total) {
                     showTitle();
+                    showPinnedStrip();
                 }
             });
         }
+        attachPinnedStrip();
         showTitle();
+    }
+
+    /** Puts the chips' pinned copy over the list, in place of an earlier build's. */
+    private void attachPinnedStrip() {
+        ListView list = listView();
+        if (list == null || categoryStrip == null || !(list.getParent() instanceof android.widget.FrameLayout)) return;
+        android.widget.FrameLayout hold = (android.widget.FrameLayout) list.getParent();
+        View pinned = categoryStrip.pinned(hold.getContext());
+        if (pinned.getParent() == hold) return;
+        for (int i = hold.getChildCount() - 1; i >= 0; i--) {
+            if (CategoryStrip.PINNED_TAG.equals(hold.getChildAt(i).getTag())) hold.removeViewAt(i);
+        }
+        if (pinned.getParent() instanceof android.view.ViewGroup) ((android.view.ViewGroup) pinned.getParent()).removeView(pinned);
+        hold.addView(pinned, new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP));
+        showPinnedStrip();
+    }
+
+    /**
+     * Shows the chips' copy over the top of the list while the strip itself has scrolled off it, so
+     * the other categories stay a tap away down a long page (#650). Invisible rather than gone, so
+     * a scroll doesn't lay the page out again.
+     */
+    private void showPinnedStrip() {
+        ListView list = listView();
+        View pinned = categoryStrip == null ? null : categoryStrip.pinnedIfMade();
+        if (list == null || pinned == null) return;
+        View row = null;
+        boolean off = false;
+        if (getPreferenceScreen() != null && categoryStrip.getParent() == getPreferenceScreen()) {
+            int first = list.getFirstVisiblePosition();
+            for (int at = 0; at < list.getCount() && at < first + list.getChildCount(); at++) {
+                if (list.getItemAtPosition(at) != categoryStrip) continue;
+                row = at < first ? null : list.getChildAt(at - first);
+                off = at < first || row != null && row.getTop() < list.getPaddingTop();
+                break;
+            }
+        }
+        boolean shown = pinned.getVisibility() == View.VISIBLE;
+        // It takes over where the strip was scrolled sideways to.
+        if (off && !shown && row != null) pinned.setScrollX(row.getScrollX());
+        if (off != shown) pinned.setVisibility(off ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    /** A group's chip was tapped: the list of categories shows that group alone, or every one for -1. */
+    private void pickGroup(int group) {
+        if (shownGroup == group || shownPage() != null || !searchText(searchQuery).trim().isEmpty()) return;
+        View pinned = categoryStrip == null ? null : categoryStrip.pinnedIfMade();
+        boolean fromPinned = pinned != null && pinned.getVisibility() == View.VISIBLE;
+        shownGroup = group;
+        filterSettings();
+        if (categoryGrid != null) categoryGrid.refresh();
+        ListView list = listView();
+        // Picked from the copy deep down the list: the chips go to the top, the group's categories under them.
+        if (list != null && fromPinned) list.post(() -> {
+            if (list != listView()) return;
+            for (int i = 0; i < list.getCount(); i++) {
+                if (list.getItemAtPosition(i) == categoryStrip) {
+                    list.setSelectionFromTop(i, 0);
+                    return;
+                }
+            }
+        });
     }
 
     @Override public void onViewStateRestored(Bundle state) {
@@ -593,9 +667,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         categoryGrid = new CategoryGrid(context, this::openFromGrid);
         // Before the first section, after the notice and recovery notes above it.
         categoryGrid.setOrder(-10);
-        categoryStrip = new CategoryStrip(context, this::switchPage);
-        // Right under Search, the only other row a category's page has above its own.
-        categoryStrip.setOrder(-49);
+        categoryStrip = new CategoryStrip(context, this::switchPage, this::pickGroup);
+        // Right over the categories it picks from, under the toggles; on a category's page, right
+        // under Search, the only other row the page has above its own.
+        categoryStrip.setOrder(-20);
         header = new SettingsHeader(context);
         header.setOrder(-60);
         Preference status = statusCard(context);
@@ -630,31 +705,49 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         // The export row below reads this; registering twice keeps one.
         PatchFamily.registerDiagnostics();
         Set<PatchFamily> build = PatchFamily.inThisBuild();
-        // Everyday controls first; settings access and upkeep follow them.
+        // Everyday controls first; settings access and upkeep follow them. Built in this order, since
+        // some read rows an earlier one made, and each claimed for its group as it's built (#642).
         PrivacyCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.PRIVACY);
         FeedCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.CONTENT);
         MetaAiCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.PRIVACY);
         ExploreCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.CONTENT);
         MessagesCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.PRIVACY);
         ReelsCategory.add(this, screen, context, build);
         StoriesCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.CONTENT);
         PlaybackCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.MEDIA);
         SharingCategory.add(this, screen, context, build);
         CommentsCategory.add(this, screen, context, build);
         ProfilesCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.CONTENT);
         LayoutCategory.add(this, screen, context, build);
         TabBarCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.LOOK);
         NotificationsCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.CONTENT);
         StorageCategory.add(this, screen, context, build);
         DownloadsCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.MEDIA);
         ViewingHistoryCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.CONTENT);
         BatteryCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.MEDIA);
         UpdatesCategory.add(this, screen, context, build);
         EntryCategory.add(this, screen, context, build);
         PatchTimeCategory.add(this, screen, context, build);
         BackupCategory.add(this, screen, context, build);
         PauseCategory.add(this, screen, context, build);
         AboutCategory.add(this, screen, context, build);
+        CategoryGroups.claim(screen, CategoryGroups.HUSHGRAM);
+        CategoryGroups.arrange(screen);
+        groupLabels.clear();
+        for (int group = 0; group < CategoryGroups.COUNT; group++) groupLabels.add(CategoryGroups.label(context, group));
 
         // Outside every category, like Support HushGram below it. Every row counts toward the
         // switches it lists, the ones a folded category or a search keeps off the screen too.
@@ -1639,6 +1732,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         // Tiles stand in for the folded sections' headings, so those headings stay off the page.
         boolean gridOn = listing && page == null && Settings.CATEGORY_GRID.savedValue();
+        // The groups with something to show, which get a chip each over the list of categories (#642).
+        boolean[] offered = new boolean[CategoryGroups.COUNT];
+        for (Map.Entry<PreferenceCategory, List<Preference>> section : searchableRows.entrySet()) {
+            PreferenceCategory group = section.getKey();
+            if (!section.getValue().isEmpty() || group == recovery || group == downloads) {
+                offered[CategoryGroups.of(group)] = true;
+            }
+        }
+        // A group whose categories all went away shows every group again.
+        if (shownGroup >= 0 && (shownGroup >= CategoryGroups.COUNT || !offered[shownGroup])) shownGroup = -1;
+        int[] listedIn = new int[CategoryGroups.COUNT];
         List<Heading> tiles = new ArrayList<>();
         List<Heading> chips = new ArrayList<>();
         int matches = 0;
@@ -1648,6 +1752,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             // and stays open after, so unlocking doesn't fold the row just tapped.
             boolean held = listing && page == null && group == recovery && recoveryHeldOpen();
             if (held) expandedCategories.add(group.getKey());
+            // Another group than the picked one's: off the list, its tiles and the page's chips. A
+            // search looks through every group.
+            boolean outside = listing && shownGroup >= 0 && CategoryGroups.of(group) != shownGroup
+                    && !held && group != page;
             // On their own pages the list keeps every category folded, and the inline choices wait
             // for the switch to go off again.
             boolean expanded = page != null ? group == page
@@ -1677,12 +1785,20 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
             }
             if (group instanceof Heading) ((Heading) group).display(listing && !held && page == null, expanded, black);
-            boolean tile = gridOn && filled && group instanceof Heading;
+            boolean tile = gridOn && filled && group instanceof Heading && !outside;
             if (tile) tiles.add((Heading) group);
-            if (page != null && filled && group instanceof Heading) chips.add((Heading) group);
-            if (filled && !(tile && !expanded) && (page == null || group == page)) {
+            if (page != null && filled && group instanceof Heading && !outside) chips.add((Heading) group);
+            if (filled && !outside && !(tile && !expanded) && (page == null || group == page)) {
+                listedIn[CategoryGroups.of(group)]++;
                 if (group.getParent() != screen) screen.addPreference(group);
             } else if (group.getParent() == screen) screen.removePreference(group);
+        }
+        // A group's name over its first category, while they're listed as rows and every group shows.
+        boolean labelled = listing && page == null && !gridOn && shownGroup < 0;
+        for (CategoryGroups.Label label : groupLabels) {
+            if (labelled && listedIn[label.group] > 0) {
+                if (label.getParent() != screen) screen.addPreference(label);
+            } else if (label.getParent() == screen) screen.removePreference(label);
         }
         if (categoryGrid != null) {
             if (!tiles.isEmpty()) {
@@ -1691,10 +1807,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             } else if (categoryGrid.getParent() == screen) screen.removePreference(categoryGrid);
         }
         if (categoryStrip != null) {
+            List<Integer> groups = new ArrayList<>();
+            for (int each = 0; each < offered.length; each++) if (offered[each]) groups.add(each);
+            boolean shown = true;
             if (page instanceof Heading && chips.size() > 1) {
                 categoryStrip.show(chips, (Heading) page);
+            } else if (listing && page == null && groups.size() > 1) {
+                categoryStrip.showGroups(groups, shownGroup);
+            } else shown = false;
+            if (shown) {
                 if (categoryStrip.getParent() != screen) screen.addPreference(categoryStrip);
             } else if (categoryStrip.getParent() == screen) screen.removePreference(categoryStrip);
+            attachPinnedStrip();
+            showPinnedStrip();
         }
         // Actions below the categories remain on the same page.
         Row[] loose = {report, support};
@@ -7208,8 +7333,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         private final int buttonLayout;
         boolean collapsible;
         boolean expanded;
-        /** Its row on the list of categories shows the title alone, for the black look (#455). */
+        /** Its tile in the grid shows the title alone, for the black look (#455). */
         boolean compact;
+        /** Its group on the list of categories (#642), one of {@link CategoryGroups}', or -1 before it has one. */
+        int group = -1;
 
         Heading(Context context) {
             super(context);
@@ -7226,7 +7353,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             this.compact = compact;
             setLayoutResource(collapsible ? buttonLayout : headingLayout);
             setSelectable(collapsible);
-            setSummary(collapsible && !compact ? intro : null);
+            // The black look's rows say what each category is for too (#642), only its tiles go without.
+            setSummary(collapsible ? intro : null);
             notifyChanged();
         }
 

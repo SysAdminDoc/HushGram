@@ -1655,6 +1655,12 @@ Stop videos looping	หยุดเล่นวิดีโอวนซ้ำ
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	วิดีโอในฟีดและรีลส์จะหยุดอยู่ที่เฟรมสุดท้ายแทนที่จะเล่นซ้ำ รีลส์จะยังคงเล่นวนซ้ำเมื่อเปิดการเลื่อนอัตโนมัติ เพื่อให้สามารถเลื่อนต่อไปได้
 Not used while you've picked a folder. Saves go there.	ไม่ได้ใช้ขณะที่คุณเลือกโฟลเดอร์ไว้ การบันทึกจะไปยังโฟลเดอร์นั้น
 All	ทั้งหมด
+# context: names of the groups the settings categories fall into, shown over each group on the list of categories and on the chips above it next to All (#642): privacy, what the app shows, media and storage, how the app looks, and App for HushGram's own updates, backup, pause and about
+Privacy	ความเป็นส่วนตัว
+Content	เนื้อหา
+Media and storage	สื่อและพื้นที่เก็บข้อมูล
+Look	รูปลักษณ์
+App	แอป
 Posts	โพสต์
 Nothing matches.	ไม่พบรายการที่ตรงกัน
 Couldn't open that one.	ไม่สามารถเปิดรายการนั้นได้
@@ -1746,7 +1752,7 @@ Open a chat, tap the clock button next to the call buttons at the top, or long p
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	เปิดแชท แตะปุ่มนาฬิกาข้างปุ่มโทรที่ด้านบน หรือกดค้างที่ชื่อแชท แล้วเลือก "ส่งออกแชท" ระบบจะบันทึกทั้งแชทเป็นไฟล์ข้อความในโฟลเดอร์ดาวน์โหลด/HushGram บรรทัดละหนึ่งข้อความ
 Instagram stopped loading older messages.	Instagram หยุดโหลดข้อความที่เก่ากว่าแล้ว
 Black settings page	หน้าการตั้งค่าสีดำ
-Black rows and dialogs, HushGram's name at the top, and each category on one line.	แถวและกล่องโต้ตอบสีดำ พร้อมชื่อ HushGram ที่ด้านบน และแต่ละหมวดหมู่อยู่ในหนึ่งบรรทัด
+Black rows and dialogs, with HushGram's name at the top.	แถวและกล่องโต้ตอบสีดำ พร้อมชื่อ HushGram ที่ด้านบน
 Mark as read	ทำเครื่องหมายว่าอ่านแล้ว
 Nothing to mark as read	ไม่มีรายการที่จะทำเครื่องหมายว่าอ่านแล้ว
 Mark as read button in chats	ปุ่มทำเครื่องหมายว่าอ่านแล้วในแชท

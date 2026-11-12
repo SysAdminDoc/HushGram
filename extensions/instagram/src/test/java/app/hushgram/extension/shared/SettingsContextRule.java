@@ -79,6 +79,10 @@ public final class SettingsContextRule extends ExternalResource {
         // on the one long list, so that's where they start. CategoryPagesSettingsTest resets it
         // to test the default.
         app.hushgram.extension.instagram.settings.Settings.CATEGORY_PAGES.save(false);
+        // Both start on (#650). The tests read a category's rows in place and a row's line under
+        // its title, so they start off; CategoryPagesSettingsTest and DescriptionInfoTest test them.
+        app.hushgram.extension.instagram.settings.Settings.CATEGORY_OWN_PAGE.save(false);
+        app.hushgram.extension.instagram.settings.Settings.DESCRIPTIONS_BEHIND_INFO.save(false);
     }
 
     /**
@@ -137,6 +141,8 @@ public final class SettingsContextRule extends ExternalResource {
         // for one of its own.
         Utils.setContext(RuntimeEnvironment.getApplication());
         app.hushgram.extension.instagram.settings.Settings.CATEGORY_PAGES.resetToDefault();
+        app.hushgram.extension.instagram.settings.Settings.CATEGORY_OWN_PAGE.resetToDefault();
+        app.hushgram.extension.instagram.settings.Settings.DESCRIPTIONS_BEHIND_INFO.resetToDefault();
         // The ways into the settings are read by every test that opens them.
         app.hushgram.extension.instagram.settings.Settings.SETTINGS_SHORTCUT.resetToDefault();
         app.hushgram.extension.instagram.settings.Settings.SETTINGS_LOGO_PRESS.resetToDefault();

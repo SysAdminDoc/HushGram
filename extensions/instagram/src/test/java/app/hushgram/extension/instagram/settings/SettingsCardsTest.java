@@ -114,7 +114,8 @@ public class SettingsCardsTest {
     @SuppressWarnings("unchecked")
     private <T extends Preference> T titled(String title) {
         for (Preference item : onScreen()) {
-            if (title.contentEquals(item.getTitle())) return (T) item;
+            // The chips' row has no title.
+            if (item.getTitle() != null && title.contentEquals(item.getTitle())) return (T) item;
             if (!(item instanceof PreferenceCategory)) continue;
             PreferenceCategory group = (PreferenceCategory) item;
             for (int i = 0; i < group.getPreferenceCount(); i++) {
@@ -154,14 +155,19 @@ public class SettingsCardsTest {
         return (GradientDrawable) surface;
     }
 
+    /** Round like a card's end, past the small corners where two of its rows meet. */
     private static boolean roundedTop(GradientDrawable card) {
         float[] radii = card.getCornerRadii();
-        return radii[0] > 0 && radii[2] > 0;
+        return radii[0] > dp(8) && radii[2] > dp(8);
     }
 
     private static boolean roundedBottom(GradientDrawable card) {
         float[] radii = card.getCornerRadii();
-        return radii[4] > 0 && radii[6] > 0;
+        return radii[4] > dp(8) && radii[6] > dp(8);
+    }
+
+    private static float dp(int value) {
+        return value * RuntimeEnvironment.getApplication().getResources().getDisplayMetrics().density;
     }
 
     private static boolean hasChevron(View row) {
@@ -232,13 +238,18 @@ public class SettingsCardsTest {
         GradientDrawable inside = card(render(middle));
         assertFalse(roundedTop(inside));
         assertFalse(roundedBottom(inside));
+        assertTrue("#650: rows meet at small corners", inside.getCornerRadii()[0] > 0);
         GradientDrawable bottom = card(render(last));
         assertFalse(roundedTop(bottom));
         assertTrue(roundedBottom(bottom));
         assertEquals("the card takes the page's colours", ScreenColors.DEFAULT.card, top.getColor().getDefaultColor());
     }
 
-    @Test public void theOverviewUsesFlatConnectedRows() throws Exception {
+    /**
+     * #642, #650: the categories go by group, each group's name over its first one, and a group's
+     * categories share one card, round at its ends with small corners where its rows meet.
+     */
+    @Test public void theOverviewGroupsCategoriesIntoConnectedCards() throws Exception {
         open(true, EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.FOLLOWING_FEED, PatchFamily.NOTIFICATION_GROUPS));
         List<Preference> rows = categoryRows();
         Preference entry = categoryRow("Settings entry");
@@ -246,17 +257,33 @@ public class SettingsCardsTest {
         Preference about = categoryRow("About");
         Preference first = categoryRow("Ads and privacy");
         assertSame("the list starts with the everyday controls", first, rows.get(0));
-        assertTrue(ScreenColors.opensCard(first));
-        assertFalse(ScreenColors.closesCard(first));
         assertTrue("Settings entry comes after the everyday controls, before backup: " + rows,
                 rows.indexOf(entry) > rows.indexOf(categoryRow("Feed")) && rows.indexOf(entry) < rows.indexOf(backup));
-        assertFalse("Settings entry sits inside the card", ScreenColors.opensCard(entry) || ScreenColors.closesCard(entry));
         Preference pause = categoryRow("Pause and diagnostics");
         assertEquals("Pause and diagnostics folds between backup and About: " + rows,
                 List.of(backup, pause, about), rows.subList(rows.indexOf(backup), rows.size()));
-        for (Preference row : rows.subList(1, rows.size())) {
-            assertFalse(row.getTitle() + " sits inside the card", ScreenColors.opensCard(row) || ScreenColors.closesCard(row));
+        List<Preference> screen = onScreen();
+        int labels = 0;
+        for (Preference row : rows) {
+            int at = screen.indexOf(row);
+            Preference above = screen.get(at - 1);
+            boolean leads = above instanceof CategoryGroups.Label;
+            int group = CategoryGroups.of((PreferenceCategory) row);
+            if (leads) {
+                labels++;
+                assertEquals("its group's name", CategoryGroups.title(group), above.getTitle());
+            } else {
+                assertEquals(row.getTitle() + " follows its group", group, CategoryGroups.of((PreferenceCategory) above));
+            }
+            assertEquals(row.getTitle() + " opens its group's card only first", leads, ScreenColors.opensCard(row));
+            Preference below = at + 1 < screen.size() ? screen.get(at + 1) : null;
+            assertEquals(row.getTitle() + " closes its group's card only last",
+                    below instanceof CategoryGroups.Label, ScreenColors.closesCard(row));
         }
+        assertTrue("a name for each group shown: " + labels, labels >= 3);
+        View name = render(screen.get(screen.indexOf(first) - 1));
+        assertNull("a group's name is no card", name.getBackground());
+        assertTrue("and reads as a heading", name.isAccessibilityHeading());
         Preference report = page.findPreference(HushgramPreferenceFragment.REPORT_ROW_KEY);
         assertFalse(ScreenColors.opensCard(report));
         assertFalse(ScreenColors.closesCard(report));
@@ -266,10 +293,12 @@ public class SettingsCardsTest {
         assertNull("the active status strip is absent", page.getPreferenceScreen().findPreference("hushgram_status"));
         assertEquals("hushgram_settings_search", onScreen().get(0).getKey());
         assertEquals("hushgram_view_toggle", onScreen().get(1).getKey());
-        assertFalse(roundedTop(card(render(entry))));
-        assertFalse(roundedBottom(card(render(entry))));
-        assertFalse(roundedTop(card(render(rows.get(1)))));
-        assertFalse(roundedBottom(card(render(backup))));
+        assertTrue("a card's top is round", roundedTop(card(render(first))));
+        GradientDrawable inside = card(render(backup));
+        assertFalse(roundedTop(inside));
+        assertFalse(roundedBottom(inside));
+        assertTrue("rows meet at small corners", inside.getCornerRadii()[0] > 0);
+        assertTrue("and its bottom", roundedBottom(card(render(support))));
         View drawn = render(entry);
         ImageView icon = drawn.findViewById(android.R.id.icon);
         assertNull("the line icon has no decorative tile", icon.getBackground());

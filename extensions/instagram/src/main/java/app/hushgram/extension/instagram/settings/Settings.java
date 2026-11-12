@@ -142,11 +142,11 @@ public class Settings extends BaseSettings {
 
     /**
      * A tapped category opens on a page of its own instead of under its row, and Back returns to the
-     * list (#525). Only means something while {@link #CATEGORY_PAGES} is on. Off to start. A
+     * list (#525). Only means something while {@link #CATEGORY_PAGES} is on. On to start (#650). A
      * page-look choice, so Pause doesn't turn it off.
      */
     public static final BooleanSetting CATEGORY_OWN_PAGE =
-            new BooleanSetting("hushgram_category_own_page", FALSE);
+            new BooleanSetting("hushgram_category_own_page", TRUE);
 
     /**
      * The categories as two-column tiles instead of rows (#494). A tile opens its section in place,
@@ -158,15 +158,15 @@ public class Settings extends BaseSettings {
 
     /**
      * Each switch's description behind an "i" at the end of its title, for a shorter page (#130).
-     * Off to start. A settings-page choice, read saved even during Pause ({@link DescriptionInfo}).
+     * On to start (#650). A settings-page choice, read saved even during Pause ({@link DescriptionInfo}).
      */
     public static final BooleanSetting DESCRIPTIONS_BEHIND_INFO =
-            new BooleanSetting("hushgram_descriptions_behind_info", FALSE);
+            new BooleanSetting("hushgram_descriptions_behind_info", TRUE);
 
     /**
-     * The black look for HushGram's page (#455): black rows and dialogs, HushGram's name at the top
-     * and each category on one line. On to start (the reporter asked for it as the default). A
-     * settings-page choice, read saved even during Pause.
+     * The black look for HushGram's page (#455): black rows and dialogs, with HushGram's name at the
+     * top. On to start (the reporter asked for it as the default). A settings-page choice, read
+     * saved even during Pause.
      */
     public static final BooleanSetting SETTINGS_BLACK_LOOK =
             new BooleanSetting("hushgram_settings_black_look", TRUE);

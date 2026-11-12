@@ -1671,6 +1671,12 @@ Stop videos looping	影片不重複播放
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	動態中的影片和 Reels 會停在最後一格，不再重新播放。開啟自動捲動時，Reels 仍會重複播放，好讓它能切換到下一則。
 Not used while you've picked a folder. Saves go there.	已選擇資料夾時不會使用這個名稱，檔案會存到該資料夾。
 All	全部
+# context: names of the groups the settings categories fall into, shown over each group on the list of categories and on the chips above it next to All (#642): privacy, what the app shows, media and storage, how the app looks, and App for HushGram's own updates, backup, pause and about
+Privacy	隱私
+Content	內容
+Media and storage	媒體與儲存空間
+Look	外觀
+App	應用程式
 Posts	貼文
 Nothing matches.	沒有符合的項目。
 Couldn't open that one.	無法開啟。
@@ -1762,7 +1768,7 @@ Open a chat, tap the clock button next to the call buttons at the top, or long p
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	開啟聊天，點一下上方通話按鈕旁的時鐘按鈕，或長按聊天名稱，選擇「匯出聊天」。整個聊天會存成文字檔，放在「下載」的 HushGram 資料夾，每則訊息一行。
 Instagram stopped loading older messages.	Instagram 已停止載入較舊的訊息。
 Black settings page	黑色設定頁面
-Black rows and dialogs, HushGram's name at the top, and each category on one line.	黑色的列和對話框，頂端顯示 HushGram 名稱，每個類別只佔一行。
+Black rows and dialogs, with HushGram's name at the top.	黑色的列和對話框，頂端顯示 HushGram 名稱。
 Mark as read	標示為已讀
 Nothing to mark as read	沒有可標示為已讀的內容
 Mark as read button in chats	聊天中的「標示為已讀」按鈕

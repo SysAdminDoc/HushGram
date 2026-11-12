@@ -269,7 +269,7 @@ Inside Instagram, long-press the Instagram logo at the top of your feed. A tap s
   <img src="assets/settings-about.png" alt="HushGram's About category open, with the version and build identity" width="270">
 </p>
 
-Search is at the top of settings, with **Show all settings as a list** directly below it. Tap a category to expand its controls underneath. Tap it again to collapse them. You can keep several sections open on the same page, or show every setting at once. **Show categories as a grid** turns the category rows into two-column tiles, and a tap on a tile opens that category under them. The controls you see depend on the patches you picked. The screenshots show a native rendering preview of the v0.0.17 settings.
+Search is at the top of settings, with **Show all settings as a list** directly below it. The categories come in five groups (Privacy, Content, Media and storage, Look, and App), and the chips over the list show one group or All of them. Tap a category to open it on its own page. A row of chips under Search takes you to the other categories, and it stays pinned to the top as you scroll down a long page. Back returns to the list where you left it. Turn off **Categories on their own page** under Settings entry and categories expand in place instead, as many at once as you like. **Show categories as a grid** turns the category rows into two-column tiles. The controls you see depend on the patches you picked. The screenshots show a native rendering preview of the v0.0.17 settings.
 
 **Search settings** finds controls across all categories by their labels in your phone's language or their English patch names. Clearing the search restores the sections you had open. Rotation keeps those sections and your position. A change that needs a restart shows the action below the list. Place and sharing-domain editors keep an invalid entry open so you can correct it.
 
@@ -282,8 +282,8 @@ A few rows to know about:
 - **Downloads** go to Movies and Pictures, each in an Instagram folder unless you name another, and voice messages to Recordings (Music before Android 12). **Skip what's already saved** remembers your newest 15,000 saves so the same post isn't saved twice.
 - **Download file name** accepts `{shortcode}` for the post's code from its link. Including it applies the template to photos too. Stories and saves without a known post leave that token out.
 - **Settings backup** exports your choices to a JSON file and brings them back later, on this install or another. Saved profiles come along, and an import adds back any that are missing. Your Instagram login, signing keys and playback history aren't included.
-- **Descriptions behind an info button**, under Settings entry, keeps each switch to its name. Tap the small i beside a name to read what it does. It starts off, and a screen reader always gets the full text.
-- **Black settings page**, also under Settings entry, makes the cards and dialogs black, puts HushGram's name and version at the top and cuts each category to one line. It starts on, and turning it off brings back the old charcoal page.
+- **Descriptions behind an info button**, under Settings entry, keeps each switch to its name. Tap the small i beside a name to read what it does. It starts on, and a screen reader always gets the full text.
+- **Black settings page**, also under Settings entry, makes the cards and dialogs black, and puts HushGram's name and version at the top. It starts on, and turning it off brings back the old charcoal page.
 - **Date in backup file names**, under Settings backup, adds the current date and time to the suggested export name. It starts off.
 - **Pause and diagnostics** copies a quick report or saves the full one to Download/Morphe. Links, IDs, cookies and sign-in tokens are left out, but read it over for other private text before you share it. A source build also shows an `hg1:` build identity under Version in About and in the report.
 

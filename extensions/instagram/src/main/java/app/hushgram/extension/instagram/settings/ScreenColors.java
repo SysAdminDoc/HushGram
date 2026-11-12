@@ -281,6 +281,8 @@ public final class ScreenColors {
      * last rows (Report a problem, Support HushGram) follows a page's row or the other one.
      */
     private static boolean sharesCard(Preference above, Preference below) {
+        // A category open in place shows its rows under its own, so the next one starts a card.
+        if (above instanceof HushgramPreferenceFragment.Heading && ((HushgramPreferenceFragment.Heading) above).expanded) return false;
         return (opensPage(above) && (opensPage(below) || closesPage(below))) || (closesPage(above) && closesPage(below));
     }
 
@@ -301,37 +303,55 @@ public final class ScreenColors {
         return -1;
     }
 
+    /** A card's outer corners, and the small ones where two of its rows meet (#650). */
+    static final int CARD_RADIUS_DP = 20;
+    static final int JOIN_RADIUS_DP = 4;
+
     /**
-     * Group boundaries follow the visible rows, including a filtered search result. The card's
-     * height is the row's: its text wraps at any font size and the row grows to fit.
+     * Group boundaries follow the visible rows, including a filtered search result. A card's rows
+     * sit a hair apart with small corners where they meet and round ones at its top and bottom, on
+     * the main page as on a category's (#650). The card's height is the row's: its text wraps at any
+     * font size and the row grows to fit.
      */
     void paintSurface(View row, Preference preference, boolean first, boolean last) {
         boolean overview = preference.getParent() instanceof PreferenceScreen;
-        float radius = overview ? 0 : dp(row, 10);
+        float top = dp(row, first ? CARD_RADIUS_DP : JOIN_RADIUS_DP);
+        float bottom = dp(row, last ? CARD_RADIUS_DP : JOIN_RADIUS_DP);
         GradientDrawable surface = new GradientDrawable();
         surface.setColor(card);
         surface.setStroke(dp(row, 1), preference.isSelectable() ? interactionOutline(outline)
                 : ColorStateList.valueOf(outline));
-        surface.setCornerRadii(new float[]{
-                first ? radius : 0, first ? radius : 0,
-                first ? radius : 0, first ? radius : 0,
-                last ? radius : 0, last ? radius : 0,
-                last ? radius : 0, last ? radius : 0});
-        // Full-bleed rows push their side strokes off the screen as they do the top one, so the
-        // main page has no hairline down either edge.
-        int side = overview ? -dp(row, 1) : dp(row, 18);
-        Drawable inset = new InsetDrawable(surface, side, overview ? -dp(row, 1) : first ? dp(row, 4) : -dp(row, 1),
-                side, !overview && last ? dp(row, 4) : 0);
+        surface.setCornerRadii(new float[]{top, top, top, top, bottom, bottom, bottom, bottom});
+        // Cards keep clear of both screen edges, so no stroke runs along one.
+        int side = dp(row, 18);
+        int above = first ? 6 : 1;
+        int below = last ? 6 : 1;
+        Drawable inset = new InsetDrawable(surface, side, dp(row, above), side, dp(row, below));
         row.setBackground(preference.isSelectable()
                 ? new RippleDrawable(interactionRipple(heading), inset, null).mutate() : inset);
         // Explicit padding after the inset background prevents its padding from moving the text.
-        int horizontal = overview ? 20 : 30;
+        int horizontal = overview ? 32 : 30;
         int vertical = overview ? 6 : 10;
-        row.setPaddingRelative(dp(row, horizontal), dp(row, vertical + (!overview && first ? 4 : 0)),
-                dp(row, horizontal), dp(row, vertical + (!overview && last ? 4 : 0)));
+        row.setPaddingRelative(dp(row, horizontal), dp(row, vertical + above),
+                dp(row, horizontal), dp(row, vertical + below));
         row.setMinimumHeight(dp(row, "hushgram_view_toggle".equals(preference.getKey())
                 || "hushgram_grid_toggle".equals(preference.getKey()) ? 48
-                : "hushgram_status".equals(preference.getKey()) ? 56 : overview ? 52 : 64));
+                : "hushgram_status".equals(preference.getKey()) ? 56 : overview ? 56 : 64));
+    }
+
+    /** A group's name over its first category: quiet, in sentence case, outside any card (#642). */
+    void paintGroupLabel(View row) {
+        TextView title = row.findViewById(android.R.id.title);
+        if (title != null) {
+            title.setTextColor(summary);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+            title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            title.setLetterSpacing(0.02f);
+            title.setAllCaps(false);
+        }
+        row.setBackground(null);
+        row.setPaddingRelative(dp(row, 30), dp(row, 18), dp(row, 30), dp(row, 4));
+        row.setMinimumHeight(0);
     }
 
     /** A section title. */

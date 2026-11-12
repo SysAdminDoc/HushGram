@@ -1668,6 +1668,12 @@ Stop videos looping	Não repetir os vídeos
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	Os vídeos do feed e os reels param no último quadro em vez de tocar de novo. Os reels continuam repetindo enquanto a rolagem automática está ativada, para que ela possa avançar.
 Not used while you've picked a folder. Saves go there.	Não é usada enquanto você tiver uma pasta escolhida. Tudo é salvo nela.
 All	Tudo
+# context: names of the groups the settings categories fall into, shown over each group on the list of categories and on the chips above it next to All (#642): privacy, what the app shows, media and storage, how the app looks, and App for HushGram's own updates, backup, pause and about
+Privacy	Privacidade
+Content	Conteúdo
+Media and storage	Mídia e armazenamento
+Look	Aparência
+App	App
 Posts	Posts
 Nothing matches.	Nada encontrado.
 Couldn't open that one.	Não foi possível abrir.
@@ -1759,7 +1765,7 @@ Open a chat, tap the clock button next to the call buttons at the top, or long p
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Abra uma conversa, toque no botão de relógio ao lado dos botões de chamada no topo, ou mantenha o nome da conversa pressionado, e escolha Exportar conversa. A conversa inteira é salva como arquivo de texto em Downloads, pasta HushGram, com uma linha por mensagem.
 Instagram stopped loading older messages.	O Instagram parou de carregar mensagens antigas.
 Black settings page	Página de configurações preta
-Black rows and dialogs, HushGram's name at the top, and each category on one line.	Linhas e caixas de diálogo pretas, o nome do HushGram no topo e cada categoria em uma linha.
+Black rows and dialogs, with HushGram's name at the top.	Linhas e caixas de diálogo pretas, com o nome do HushGram no topo.
 Mark as read	Marcar como lida
 Nothing to mark as read	Nada para marcar como lida
 Mark as read button in chats	Botão Marcar como lida nas conversas

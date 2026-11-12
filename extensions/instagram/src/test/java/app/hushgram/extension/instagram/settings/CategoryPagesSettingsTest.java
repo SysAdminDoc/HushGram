@@ -51,7 +51,8 @@ public class CategoryPagesSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.CATEGORY_PAGES.resetToDefault();
-        Settings.CATEGORY_OWN_PAGE.resetToDefault();
+        // On to start (#650); most of these open categories in place, and the tests of own pages turn it on.
+        Settings.CATEGORY_OWN_PAGE.save(false);
         // The classic page's order and category lines; BlackSettingsPageTest covers the black one.
         Settings.SETTINGS_BLACK_LOOK.save(false);
         Settings.START_ON_FOLLOWING.resetToDefault();
@@ -737,7 +738,7 @@ public class CategoryPagesSettingsTest {
         Settings.CATEGORY_OWN_PAGE.save(true);
         openDialog();
         List<String> headers = shown(Preference.class);
-        assertNull("the list has no chips", page.getPreferenceScreen().findPreference(CategoryStrip.KEY));
+        assertTrue("the list's chips are its groups", chip("All").isSelected());
         tap(categoryRow("Feed"));
         layoutPage();
         CategoryStrip strip = (CategoryStrip) page.getPreferenceScreen().findPreference(CategoryStrip.KEY);
@@ -772,9 +773,108 @@ public class CategoryPagesSettingsTest {
         assertTrue("one Back leaves the pages, however many chips were tapped", page.closeCategory());
         layoutPage();
         assertEquals(headers, shown(Preference.class));
-        assertNull(page.getPreferenceScreen().findPreference(CategoryStrip.KEY));
+        assertTrue("the groups again", chip("All").isSelected());
+        assertTrue(((CategoryStrip) page.getPreferenceScreen().findPreference(CategoryStrip.KEY)).chips().isEmpty());
         assertEquals("HushGram", toolbarTitle());
         assertFalse(page.closeCategory());
+    }
+
+    /** #650: a category opens on its own page to start. */
+    @Test public void categoriesOpenOnTheirOwnPageToStart() {
+        Settings.CATEGORY_OWN_PAGE.resetToDefault();
+        assertTrue(Settings.CATEGORY_OWN_PAGE.savedValue());
+    }
+
+    /**
+     * #642: the list's chips are All and the groups. A group's chip shows its categories alone, and
+     * their pages' chips stay in that group, until All shows every one again with each group's name.
+     */
+    @Test public void aGroupsChipShowsItsCategoriesAlone() throws Exception {
+        Settings.CATEGORY_OWN_PAGE.save(true);
+        openDialog();
+        List<String> every = shown(Preference.class);
+        PreferenceScreen screen = page.getPreferenceScreen();
+        Preference strip = screen.findPreference(CategoryStrip.KEY);
+        int at = 0;
+        while (screen.getPreference(at) != strip) at++;
+        assertEquals("right over the first group's name", "hushgram_category_group_0", screen.getPreference(at + 1).getKey());
+        assertNotNull(chip("Privacy"));
+        assertNotNull(chip("Content"));
+        assertNotNull("HushGram's own settings, not named HushGram twice", chip("App"));
+        assertTrue(chip("All").isSelected());
+        assertNotNull("each group's name over its categories", page.getPreferenceScreen().findPreference("hushgram_category_group_1"));
+
+        assertTrue(chip("Content").performClick());
+        layoutPage();
+        List<String> content = shown(Preference.class);
+        assertTrue(content.toString(), content.containsAll(List.of("Feed", "Notifications")));
+        assertFalse(content.toString(), content.contains("Ads and privacy") || content.contains("About"));
+        for (String title : content) {
+            assertEquals(title, CategoryGroups.CONTENT, CategoryGroups.of(categoryRow(title)));
+        }
+        assertTrue(chip("Content").isSelected());
+        assertFalse(chip("All").isSelected());
+        assertNull("no names over one group", page.getPreferenceScreen().findPreference("hushgram_category_group_1"));
+
+        tap(categoryRow("Feed"));
+        layoutPage();
+        CategoryStrip onPage = (CategoryStrip) page.getPreferenceScreen().findPreference(CategoryStrip.KEY);
+        List<String> chipped = new ArrayList<>();
+        for (HushgramPreferenceFragment.Heading each : onPage.chips()) chipped.add(String.valueOf(each.getTitle()));
+        assertEquals("the page's chips stay in the group", content, chipped);
+        assertTrue(page.closeCategory());
+        layoutPage();
+        assertEquals("Back keeps the group", content, shown(Preference.class));
+
+        page.searchSettings("Hide ads");
+        layoutPage();
+        assertTrue("a search looks through every group", shown(PreferenceCategory.class).contains("Ads and privacy"));
+        page.searchSettings("");
+        layoutPage();
+
+        assertTrue(chip("All").performClick());
+        layoutPage();
+        assertEquals(every, shown(Preference.class));
+        assertNotNull(page.getPreferenceScreen().findPreference("hushgram_category_group_1"));
+    }
+
+    /** #650: down a long page the chips stay over the top, and a tap there still moves between categories. */
+    @Test public void theChipsStayOverTheTopDownALongPage() throws Exception {
+        Settings.CATEGORY_OWN_PAGE.save(true);
+        // Every patch, for a page longer than the screen.
+        PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
+        openDialog();
+        tap(categoryRow("Ads and privacy"));
+        layoutPage();
+        ListView list = page.getView().findViewById(android.R.id.list);
+        View pinned = ((View) list.getParent()).findViewWithTag(CategoryStrip.PINNED_TAG);
+        assertNotNull("a copy of the chips over the list", pinned);
+        assertNotEquals("hidden while the chips show", View.VISIBLE, pinned.getVisibility());
+
+        list.setSelectionFromTop(list.getCount() - 1, 0);
+        layoutPage();
+        assertTrue("the strip has scrolled off", list.getFirstVisiblePosition() > positionOf(
+                page.getPreferenceScreen().findPreference(CategoryStrip.KEY)));
+        assertEquals("the copy shows", View.VISIBLE, pinned.getVisibility());
+        assertTrue("over the list's top", pinned.getTop() <= list.getTop());
+        View feed = null;
+        LinearLayout chips = (LinearLayout) ((android.widget.HorizontalScrollView) pinned).getChildAt(0);
+        for (int i = 0; i < chips.getChildCount(); i++) {
+            TextView name = chips.getChildAt(i).findViewById(CategoryStrip.NAME_ID);
+            // Android hid the first one, which has Android's title id on a page with no title (#650).
+            assertEquals(name.getText() + " shows", View.VISIBLE, name.getVisibility());
+            assertTrue(name.getText() + " has room", name.getWidth() > 0);
+            if ("Feed".contentEquals(name.getText())) feed = chips.getChildAt(i);
+        }
+        assertNotNull("the copy has the chips", feed);
+        assertTrue(feed.performClick());
+        layoutPage();
+        assertEquals("Feed", toolbarTitle());
+        assertEquals(categoryRow("Feed").getKey(), page.currentPage());
+
+        list.setSelectionFromTop(0, 0);
+        layoutPage();
+        assertNotEquals("hidden again at the top", View.VISIBLE, pinned.getVisibility());
     }
 
     /** The bound chip for [title] on the strip under Search. */
@@ -786,7 +886,7 @@ public class CategoryPagesSettingsTest {
         LinearLayout chips = (LinearLayout) ((android.widget.HorizontalScrollView) row).getChildAt(0);
         for (int i = 0; i < chips.getChildCount(); i++) {
             View chip = chips.getChildAt(i);
-            TextView name = chip.findViewById(android.R.id.title);
+            TextView name = chip.findViewById(CategoryStrip.NAME_ID);
             if (CategoryStrip.CHIP_TAG.equals(chip.getTag()) && title.contentEquals(name.getText())) return chip;
         }
         throw new AssertionError("no chip for " + title);

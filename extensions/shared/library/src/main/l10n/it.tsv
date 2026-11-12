@@ -1668,6 +1668,12 @@ Stop videos looping	Non ripetere i video
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	I video del feed e i reel si fermano sull'ultimo fotogramma invece di ripartire. I reel continuano a ripetersi finché lo scorrimento automatico è attivo, così può passare al successivo.
 Not used while you've picked a folder. Saves go there.	Non viene usata finché hai scelto una cartella. I salvataggi vanno lì.
 All	Tutti
+# context: names of the groups the settings categories fall into, shown over each group on the list of categories and on the chips above it next to All (#642): privacy, what the app shows, media and storage, how the app looks, and App for HushGram's own updates, backup, pause and about
+Privacy	Riservatezza
+Content	Contenuti
+Media and storage	Media e archiviazione
+Look	Aspetto
+App	App
 Posts	Post
 Nothing matches.	Nessun risultato.
 Couldn't open that one.	Impossibile aprirlo.
@@ -1759,7 +1765,7 @@ Open a chat, tap the clock button next to the call buttons at the top, or long p
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Apri una chat, tocca il pulsante dell'orologio accanto ai pulsanti di chiamata in alto, o tieni premuto il nome della chat, e scegli Esporta chat. L'intera chat viene salvata come file di testo in Download, cartella HushGram, con una riga per messaggio.
 Instagram stopped loading older messages.	Instagram non carica più i messaggi vecchi.
 Black settings page	Pagina delle impostazioni nera
-Black rows and dialogs, HushGram's name at the top, and each category on one line.	Righe e finestre nere, il nome di HushGram in alto e ogni categoria su una riga.
+Black rows and dialogs, with HushGram's name at the top.	Righe e finestre nere, con il nome di HushGram in alto.
 Mark as read	Segna come letto
 Nothing to mark as read	Niente da segnare come letto
 Mark as read button in chats	Pulsante Segna come letto nelle chat

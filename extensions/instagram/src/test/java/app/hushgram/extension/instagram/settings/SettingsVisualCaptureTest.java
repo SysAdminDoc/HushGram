@@ -129,7 +129,16 @@ public class SettingsVisualCaptureTest {
         assertNull("the active banner must not occupy a row", screen.findPreference("hushgram_status"));
         capturePage("00-overview", false);
         ListView list = page.getView().findViewById(android.R.id.list);
-        int visibleCategories = 0;
+        // #642: the categories sit in groups under their names, so the first screen shows the whole first
+        // group and the start of the next.
+        int[] inGroup = new int[CategoryGroups.COUNT];
+        for (int i = 0; i < screen.getPreferenceCount(); i++) {
+            Preference item = screen.getPreference(i);
+            if (item instanceof HushgramPreferenceFragment.Heading && ((HushgramPreferenceFragment.Heading) item).collapsible) {
+                inGroup[CategoryGroups.of((HushgramPreferenceFragment.Heading) item)]++;
+            }
+        }
+        int[] visible = new int[CategoryGroups.COUNT];
         for (int i = 0; i < list.getChildCount(); i++) {
             View row = list.getChildAt(i);
             Object item = list.getItemAtPosition(list.getFirstVisiblePosition() + i);
@@ -137,15 +146,28 @@ public class SettingsVisualCaptureTest {
             String key = ((Preference) item).getKey();
             if (key != null && key.startsWith(HushgramPreferenceFragment.CATEGORY_ROW_KEY)
                     && row.getTop() >= 0 && row.getBottom() <= list.getHeight()) {
-                visibleCategories++;
+                visible[CategoryGroups.of((HushgramPreferenceFragment.Heading) item)]++;
                 assertTrue("compact rows remain tappable", row.getHeight() >= 48 * row.getResources().getDisplayMetrics().density);
             }
         }
-        assertTrue("the overview should expose at least eight complete categories: " + visibleCategories, visibleCategories >= 8);
+        assertTrue("the first group shows in full: " + visible[0] + " of " + inGroup[0], inGroup[0] > 0 && visible[0] == inGroup[0]);
+        assertTrue("the next group starts on the first screen", visible[CategoryGroups.CONTENT] > 0);
         Preference feed = titled(screen, "Feed");
         clickInList(feed);
         assertNotNull(page.findPreference(Settings.START_ON_FOLLOWING.key));
         capturePage("01-feed", false);
+        // #650: once the chips scroll away, their copy over the list names every chip, the picked one too.
+        View pinned = ((View) list.getParent()).findViewWithTag(CategoryStrip.PINNED_TAG);
+        assertNotNull(pinned);
+        assertEquals("the copy shows", View.VISIBLE, pinned.getVisibility());
+        ViewGroup copied = (ViewGroup) ((ViewGroup) pinned).getChildAt(0);
+        assertTrue(copied.getChildCount() > 1);
+        for (int i = 0; i < copied.getChildCount(); i++) {
+            TextView name = copied.getChildAt(i).findViewById(CategoryStrip.NAME_ID);
+            assertEquals(name.getText() + " shows", View.VISIBLE, name.getVisibility());
+            assertTrue(name.getText() + " fits", name.length() > 0 && name.getLayout() != null
+                    && name.getWidth() >= Math.ceil(name.getLayout().getLineWidth(0)));
+        }
         list.setSelectionFromTop(0, 0);
         settle();
         EditText input = page.getView().findViewWithTag("hushgram-settings-search");
@@ -1044,7 +1066,8 @@ public class SettingsVisualCaptureTest {
 
     private void assertTitlesAndControls(View view) {
         if (view.getVisibility() != View.VISIBLE || view.getWidth() == 0 || view.getHeight() == 0) return;
-        if (view instanceof TextView && (view.getId() == android.R.id.title || view instanceof Button
+        if (view instanceof TextView && (view.getId() == android.R.id.title || view.getId() == CategoryStrip.NAME_ID
+                || view instanceof Button
                 || view.isAccessibilityHeading())) {
             TextView text = (TextView) view;
             if (text.getText().length() > 0 && text.getLayout() != null) {
@@ -1082,7 +1105,8 @@ public class SettingsVisualCaptureTest {
     private static Preference titled(PreferenceGroup group, String title) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {
             Preference item = group.getPreference(i);
-            if (title.contentEquals(item.getTitle())) return item;
+            // The chips' row has no title.
+            if (item.getTitle() != null && title.contentEquals(item.getTitle())) return item;
             if (item instanceof PreferenceGroup) {
                 Preference child = titled((PreferenceGroup) item, title);
                 if (child != null) return child;

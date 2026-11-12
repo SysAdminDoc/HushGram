@@ -1667,6 +1667,12 @@ Stop videos looping	동영상 반복 재생 중지
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	피드 동영상과 릴스가 다시 재생되지 않고 마지막 장면에서 멈춥니다. 자동 스크롤이 켜져 있으면 다음 릴스로 넘어갈 수 있도록 릴스는 계속 반복됩니다.
 Not used while you've picked a folder. Saves go there.	폴더를 골라 둔 동안에는 사용되지 않아요. 고른 폴더에 저장돼요.
 All	전체
+# context: names of the groups the settings categories fall into, shown over each group on the list of categories and on the chips above it next to All (#642): privacy, what the app shows, media and storage, how the app looks, and App for HushGram's own updates, backup, pause and about
+Privacy	개인정보
+Content	콘텐츠
+Media and storage	미디어 및 저장공간
+Look	모양
+App	앱
 Posts	게시물
 Nothing matches.	일치하는 항목이 없습니다.
 Couldn't open that one.	열 수 없습니다.
@@ -1758,7 +1764,7 @@ Open a chat, tap the clock button next to the call buttons at the top, or long p
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	채팅을 열고 위쪽 통화 버튼 옆의 시계 버튼을 누르거나 채팅 이름을 길게 누른 뒤 채팅 내보내기를 고르세요. 채팅 전체가 다운로드의 HushGram 폴더에 텍스트 파일로 저장되며, 메시지 한 개가 한 줄입니다.
 Instagram stopped loading older messages.	Instagram이 이전 메시지 불러오기를 멈췄습니다.
 Black settings page	검은색 설정 페이지
-Black rows and dialogs, HushGram's name at the top, and each category on one line.	검은색 행과 대화상자, 맨 위의 HushGram 이름, 한 줄로 줄인 각 카테고리.
+Black rows and dialogs, with HushGram's name at the top.	검은색 행과 대화상자, 맨 위에 HushGram 이름.
 Mark as read	읽음으로 표시
 Nothing to mark as read	읽음으로 표시할 항목이 없습니다
 Mark as read button in chats	채팅의 읽음으로 표시 버튼

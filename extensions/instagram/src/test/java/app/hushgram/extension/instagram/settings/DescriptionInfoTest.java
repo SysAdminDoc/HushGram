@@ -47,7 +47,7 @@ public class DescriptionInfoTest {
     private FrameLayout parent;
 
     @Before public void prepare() {
-        Settings.DESCRIPTIONS_BEHIND_INFO.resetToDefault();
+        Settings.DESCRIPTIONS_BEHIND_INFO.save(false);
         controller = Robolectric.buildActivity(Activity.class).setup();
         parent = new FrameLayout(controller.get());
         controller.get().setContentView(parent);
@@ -95,8 +95,12 @@ public class DescriptionInfoTest {
         assertNotEquals(DescriptionInfo.TAG, title.getTag());
     }
 
+    @Test public void onToStart() {
+        Settings.DESCRIPTIONS_BEHIND_INFO.resetToDefault();
+        assertTrue("#650", Settings.DESCRIPTIONS_BEHIND_INFO.savedValue());
+    }
+
     @Test public void offLeavesTheDescriptionUnderTheTitle() {
-        assertFalse("off to start", Settings.DESCRIPTIONS_BEHIND_INFO.savedValue());
         assertShownAsBefore(bind(row(), null));
     }
 

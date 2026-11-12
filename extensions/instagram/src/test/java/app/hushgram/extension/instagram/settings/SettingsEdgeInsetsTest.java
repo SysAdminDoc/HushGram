@@ -128,8 +128,8 @@ public class SettingsEdgeInsetsTest {
         open(black, true);
         int width = dp(320);
         Rect overview = surfaceOf(categoryRow("Ads and privacy"));
-        assertTrue("the stroke's left side is off the screen: " + overview, overview.left <= -dp(1));
-        assertTrue("and its right side: " + overview, overview.right >= width + dp(1));
+        assertEquals("#650: a category's card sits 18dp in, as a page's rows do", dp(18), overview.left);
+        assertEquals(width - dp(18), overview.right);
 
         Preference ads = categoryRow("Ads and privacy");
         assertTrue(ads.getOnPreferenceClickListener().onPreferenceClick(ads));

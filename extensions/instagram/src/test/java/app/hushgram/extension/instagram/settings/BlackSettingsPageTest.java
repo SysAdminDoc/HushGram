@@ -42,7 +42,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Black settings page (#455): on to start, with black cards and dialogs, HushGram's name at the top
- * and one line per category, and the classic page back at once when it's turned off.
+ * and each category's line saying what it's for (#642), and the classic page back at once when it's
+ * turned off.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37}, qualifiers = "w320dp-h640dp-xhdpi")
@@ -135,7 +136,7 @@ public class BlackSettingsPageTest {
         return ((GradientDrawable) surface).getColor().getDefaultColor();
     }
 
-    @Test public void itStartsOnWithTheHeaderBlackCardsAndOneLineCategories() throws Exception {
+    @Test public void itStartsOnWithTheHeaderBlackCardsAndCategoryIntros() throws Exception {
         open();
         SwitchPreference black = blackSwitch();
         assertEquals("Black settings page", black.getTitle().toString());
@@ -143,7 +144,8 @@ public class BlackSettingsPageTest {
         assertSame(ScreenColors.BLACK, ScreenColors.current());
         assertEquals("the header leads the page", SettingsHeader.KEY,
                 page.getPreferenceScreen().getPreference(0).getKey());
-        assertNull("one line per category", categoryRow("Feed").getSummary());
+        HushgramPreferenceFragment.Heading feed = categoryRow("Feed");
+        assertEquals("#642: a category's line says what it's for", feed.intro, feed.getSummary());
         assertEquals(Color.BLACK, cardColor(render(categoryRow("Feed"), null)));
     }
 
@@ -157,7 +159,7 @@ public class BlackSettingsPageTest {
         assertNotNull("a category row keeps its line", categoryRow("Feed").getSummary());
     }
 
-    @Test public void turningItOnBlackensTheCardsAndShortensTheCategoriesAtOnce() throws Exception {
+    @Test public void turningItOnBlackensTheCardsAtOnce() throws Exception {
         Settings.SETTINGS_BLACK_LOOK.save(false);
         open();
         int charcoal = cardColor(render(categoryRow("Feed"), null));
@@ -168,7 +170,7 @@ public class BlackSettingsPageTest {
         assertEquals("the header leads the page", SettingsHeader.KEY,
                 page.getPreferenceScreen().getPreference(0).getKey());
         HushgramPreferenceFragment.Heading feed = categoryRow("Feed");
-        assertNull("one line per category", feed.getSummary());
+        assertEquals("its line stays", feed.intro, feed.getSummary());
         assertTrue("still a row that opens its category", feed.collapsible);
         assertEquals(Color.BLACK, cardColor(render(feed, null)));
 

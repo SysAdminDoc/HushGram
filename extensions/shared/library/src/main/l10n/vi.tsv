@@ -1583,6 +1583,12 @@ Stop videos looping	Ngừng lặp video
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	Video bảng feed và reel dừng ở khung hình cuối thay vì phát lại. Reel vẫn lặp khi tự động cuộn bật, để nó chuyển tiếp được.
 Not used while you've picked a folder. Saves go there.	Không dùng khi bạn đã chọn thư mục. Bản lưu vào đó.
 All	Tất cả
+# context: names of the groups the settings categories fall into, shown over each group on the list of categories and on the chips above it next to All (#642): privacy, what the app shows, media and storage, how the app looks, and App for HushGram's own updates, backup, pause and about
+Privacy	Quyền riêng tư
+Content	Nội dung
+Media and storage	Phương tiện và bộ nhớ
+Look	Giao diện
+App	Ứng dụng
 Posts	Bài viết
 Nothing matches.	Không có kết quả phù hợp.
 Couldn't open that one.	Không mở được mục đó.
@@ -1674,7 +1680,7 @@ Open a chat, tap the clock button next to the call buttons at the top, or long p
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Mở một cuộc trò chuyện, nhấn nút đồng hồ cạnh các nút gọi ở đầu màn hình, hoặc nhấn giữ tên cuộc trò chuyện, rồi chọn Xuất cuộc trò chuyện. Toàn bộ cuộc trò chuyện được lưu thành tệp văn bản trong thư mục HushGram của Downloads, mỗi tin nhắn một dòng.
 Instagram stopped loading older messages.	Instagram đã ngừng tải tin nhắn cũ hơn.
 Black settings page	Trang cài đặt màu đen
-Black rows and dialogs, HushGram's name at the top, and each category on one line.	Hàng và hộp thoại màu đen, tên HushGram ở trên cùng, mỗi danh mục trên một dòng.
+Black rows and dialogs, with HushGram's name at the top.	Hàng và hộp thoại màu đen, tên HushGram ở trên cùng.
 Mark as read	Đánh dấu là đã đọc
 Nothing to mark as read	Không có gì để đánh dấu
 Mark as read button in chats	Nút Đánh dấu là đã đọc trong cuộc trò chuyện
