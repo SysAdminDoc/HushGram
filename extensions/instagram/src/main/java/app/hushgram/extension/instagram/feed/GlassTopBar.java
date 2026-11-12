@@ -63,11 +63,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * is paused or the header leaves the window. It fails open: anything thrown puts Instagram's header back.
  *
  * <p>On Home the feed is also taken behind the status bar and the glass reaches up over it (#462), see
- * {@link GlassReach}. While the glass tab bar is on, Home's header takes the pill's sheen too, and its rim
- * bend along the bottom edge while the pill's bends (#513).
+ * {@link GlassReach}. While the glass tab bar is on, every header, Home's and a chat's, takes the pill's sheen
+ * too, and its rim bend along the bottom edge while the pill's bends (#513).
  *
  * <p>A message box, a chat's message bar or the reply box on a story, takes the same glass as a pill (#391),
- * see {@link #glazeBox}.
+ * see {@link #glazeBox}, with the tab bar's sheen while that's on and its rim bent all the way round while the
+ * pill's bends.
  */
 public final class GlassTopBar {
     static final String HOOK = "top bar glass";
@@ -334,8 +335,6 @@ public final class GlassTopBar {
         @Nullable private final GlassReach reach;
         /** Whether the hairline runs along the bottom: Home's header has it, a chat's runs on into the messages (#537). */
         final boolean lined;
-        /** Whether this is Home's header, which takes the glass tab bar's sheen and rim bend (#513). */
-        final boolean followsTabBar;
         /** For a message box, the id of the view drawing what's under it (#391). 0 for a header. */
         final int sourceId;
         /** Whether a message box's glass stays dark whatever the theme. */
@@ -378,7 +377,6 @@ public final class GlassTopBar {
             this.over = sourceId != 0 && !(header instanceof ViewGroup);
             boolean home = sourceId == 0 && FamilyNames.HOME_TOP_BAR.equals(family);
             this.lined = sourceId == 0 && !FamilyNames.GLASS_CHAT.equals(family);
-            this.followsTabBar = home;
             this.frost = new Frost(this, header.getResources().getDisplayMetrics().density);
             this.reach = home ? new GlassReach() : null;
         }
@@ -707,21 +705,44 @@ public final class GlassTopBar {
         boolean bend(Canvas canvas, Rect area, float across) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !recorded || node == null) return false;
             bends++;
-            GlassLens lens = rim;
-            if (lens == null) {
-                lens = new GlassLens(true);
-                rim = lens;
-            }
             int saved = canvas.save();
             try {
                 canvas.clipRect(area);
                 canvas.translate(area.left, area.top);
                 rimBox.set(-across, -across, area.width() + across, area.height());
-                return lens.paint(canvas, node, -nodePad - area.left, -nodePad - nodeAbove - area.top, DOWNSAMPLE,
+                return lens().paint(canvas, node, -nodePad - area.left, -nodePad - nodeAbove - area.top, DOWNSAMPLE,
                         area.width(), area.height(), rimBox, 0f, across);
             } finally {
                 canvas.restoreToCount(saved);
             }
+        }
+
+        /**
+         * Bends the blurred backdrop all the way round a message box's pill over [bounds], the way the glass tab
+         * bar's rim bends round its own (#391), and says whether it drew. The canvas is already clipped to the pill.
+         */
+        boolean bendPill(Canvas canvas, Rect bounds) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !recorded || node == null) return false;
+            bends++;
+            int saved = canvas.save();
+            try {
+                canvas.translate(bounds.left, bounds.top);
+                int height = bounds.height();
+                rimBox.set(0, 0, bounds.width(), height);
+                return lens().paint(canvas, node, -nodePad - bounds.left, -nodePad - nodeAbove - bounds.top, DOWNSAMPLE,
+                        bounds.width(), height, rimBox, height / 2f, height);
+            } finally {
+                canvas.restoreToCount(saved);
+            }
+        }
+
+        private GlassLens lens() {
+            GlassLens lens = rim;
+            if (lens == null) {
+                lens = new GlassLens(true);
+                rim = lens;
+            }
+            return lens;
         }
     }
 
@@ -765,8 +786,8 @@ public final class GlassTopBar {
             if (glass.hollow) area.set(bounds.left, bounds.top + glass.stripTop, bounds.right, bounds.top + glass.stripBottom);
             else area.set(bounds.left, bounds.top - glass.above, bounds.right, bounds.bottom + glass.below);
             boolean blurred = glass.drawBackdrop(canvas, area);
-            // Home's header follows the glass tab bar's pill: its rim bend, measured on the header, and its sheen.
-            boolean likeTabBar = glass.followsTabBar && GlassTabBar.onNow();
+            // Every header follows the glass tab bar's pill: its rim bend, measured on the header, and its sheen.
+            boolean likeTabBar = GlassTabBar.onNow();
             if (blurred && likeTabBar && GlassTabBar.bendsNow()) {
                 glass.bend(canvas, area, Math.min(area.height(), bounds.height()));
             }
@@ -783,8 +804,9 @@ public final class GlassTopBar {
         }
 
         /**
-         * A message box's glass (#391): the blur and tint inside a pill with fully round ends, a hairline rim round
-         * it, then the box's own background over it, so an outline Instagram draws on it stays.
+         * A message box's glass (#391): the blur and tint inside a pill with fully round ends, with the glass tab
+         * bar's rim bend and sheen while that's on, a hairline rim round it, then the box's own background over
+         * it, so an outline Instagram draws on it stays.
          */
         private void drawPill(Canvas canvas, Rect bounds) {
             float radius = bounds.height() / 2f;
@@ -795,8 +817,16 @@ public final class GlassTopBar {
             try {
                 canvas.clipPath(pill);
                 boolean blurred = glass.drawBackdrop(canvas, bounds);
+                boolean likeTabBar = GlassTabBar.onNow();
+                if (blurred && likeTabBar && GlassTabBar.bendsNow()) glass.bendPill(canvas, bounds);
                 paint.setColor(GlassTabBar.tint(glass.base, blurred, GlassTabBar.opacityScale()));
                 canvas.drawRect(bounds, paint);
+                sheened = likeTabBar;
+                if (likeTabBar) {
+                    area.set(bounds);
+                    keepSheen(GlassTabBar.isDark(glass.base));
+                    canvas.drawRect(bounds, sheen);
+                }
             } finally {
                 canvas.restoreToCount(saved);
             }
