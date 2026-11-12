@@ -186,7 +186,7 @@ try {
     $known = Get-PlanSelection $allNames
     $all = @(Get-WalkRequiredDestinations -CatalogPath $catalogPath -SelectedPatches $allNames)
     $defaults = @(Get-WalkRequiredDestinations -CatalogPath $catalogPath -SelectedPatches @($catalog.patches | Where-Object use | ForEach-Object name))
-    Assert-PlanTest (@($all | Where-Object kind -CEQ 'settings').Count -eq 23) 'All patches must require all 23 headings.'
+    Assert-PlanTest (@($all | Where-Object kind -CEQ 'settings').Count -eq 24) 'All patches must require all 24 headings.'
     # A renamed heading or row leaves the walk looking for text settings no longer draw.
     $settingsSource = (Get-ChildItem -LiteralPath (Join-Path $repo 'extensions\instagram\src\main\java\app\hushgram\extension\instagram\settings') -Filter '*.java' |
         ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
@@ -205,8 +205,8 @@ try {
             Assert-PlanTest ($null -ne $first -and $first -le 10) "Walk anchors for '$($destination.id)' start at text $first of $builder; one must sit in the first rows under the heading."
         }
     }
-    Assert-PlanTest (@($defaults | Where-Object kind -CEQ 'settings').Count -eq 23) 'Default patches must require all 23 headings.'
-    Assert-PlanTest (@($all | Where-Object { $_.kind -ceq 'settings' -and $_.page }).Count -eq 23) 'Exactly 23 settings pages are expected.'
+    Assert-PlanTest (@($defaults | Where-Object kind -CEQ 'settings').Count -eq 24) 'Default patches must require all 24 headings.'
+    Assert-PlanTest (@($all | Where-Object { $_.kind -ceq 'settings' -and $_.page }).Count -eq 24) 'Exactly 24 settings pages are expected.'
     $pause = $all | Where-Object id -CEQ 'settings-pause'
     Assert-PlanTest ($pause.page -is [bool] -and $pause.page -and $pause.title -ceq 'Pause and diagnostics') 'Pause must fold like the other categories.'
     Assert-PlanTest (@(Get-WalkRequiredDestinations -CatalogPath $catalogPath -SelectedPatches @()).Count -eq 5) 'A build without settings should require only native destinations.'
