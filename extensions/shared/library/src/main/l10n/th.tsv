@@ -250,7 +250,8 @@ Turn on Tap to play to use this choice.	เปิด "แตะเพื่อ�
 Resume long videos	เล่นวิดีโอยาวต่อจากเดิม
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	วิดีโอและรีลส์ที่ยาวเกินสองนาทีจะเล่นต่อจากจุดที่คุณดูค้างไว้ เลื่อนแถบเวลาเพื่อเริ่มเล่นจากจุดอื่น ส่วนวิดีโอถ่ายทอดสดและโฆษณาจะเริ่มเล่นตามปกติ
 Default playback quality	คุณภาพการเล่นเริ่มต้น
-Videos, reels and stories play at the quality below, starting with the next one you open.	วิดีโอ, รีลส์ และสตอรี่จะเล่นตามคุณภาพด้านล่าง โดยเริ่มจากรายการถัดไปที่คุณเปิด
+# context: description of the Default playback quality switch on the Playback page, with the list of qualities below it. A video that keeps stalling because the connection is too slow for its quality switches to the next lower quality that video offers (#599)
+Videos, reels and stories play at the quality below, starting with the next one you open. When your connection can't keep up, a video drops to the next lower quality.	วิดีโอ, รีลส์ และสตอรี่จะเล่นตามคุณภาพด้านล่าง โดยเริ่มจากรายการถัดไปที่คุณเปิด เมื่อการเชื่อมต่อตามไม่ทัน วิดีโอจะลดไปใช้คุณภาพที่ต่ำกว่าถัดไป
 Playback quality	คุณภาพการเล่น
 Auto	อัตโนมัติ
 Data saver	โหมดประหยัดอินเทอร์เน็ต

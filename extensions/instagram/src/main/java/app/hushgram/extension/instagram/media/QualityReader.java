@@ -14,7 +14,8 @@ import androidx.annotation.Nullable;
  *
  * <p>The stubs live here and not in {@link QualityChoice}, whose hook the player reaches as a video
  * starts: a stub the phone's verifier refused would take the whole class down with it. Only
- * {@link QualityChoice#firstChoice} reaches this class, inside its try.
+ * {@link QualityChoice#firstChoice} and {@link QualityChoice#eachChoice} reach this class, inside
+ * their tries.
  */
 final class QualityReader {
     private QualityReader() { }

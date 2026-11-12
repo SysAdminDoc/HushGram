@@ -251,7 +251,8 @@ Turn on Tap to play to use this choice.	Hãy bật Nhấn để phát để dùn
 Resume long videos	Tiếp tục xem video dài
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Video và reel dài hơn hai phút tiếp tục từ chỗ bạn dừng. Hãy tua để bắt đầu ở nơi khác. Video trực tiếp và quảng cáo bắt đầu như bình thường.
 Default playback quality	Chất lượng phát mặc định
-Videos, reels and stories play at the quality below, starting with the next one you open.	Video, reel và tin phát ở chất lượng bên dưới, bắt đầu từ mục tiếp theo bạn mở.
+# context: description of the Default playback quality switch on the Playback page, with the list of qualities below it. A video that keeps stalling because the connection is too slow for its quality switches to the next lower quality that video offers (#599)
+Videos, reels and stories play at the quality below, starting with the next one you open. When your connection can't keep up, a video drops to the next lower quality.	Video, reel và tin phát ở chất lượng bên dưới, bắt đầu từ mục tiếp theo bạn mở. Khi kết nối không theo kịp, video sẽ hạ xuống mức chất lượng thấp hơn kế tiếp.
 Playback quality	Chất lượng phát
 Auto	Tự động
 Data saver	Tiết kiệm dữ liệu

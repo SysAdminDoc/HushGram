@@ -253,7 +253,8 @@ Turn on Tap to play to use this choice.	Aktifkan Ketuk untuk memutar untuk mengg
 Resume long videos	Lanjutkan video panjang
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Video dan reel lebih dari dua menit dilanjutkan dari posisi terakhir. Geser bilah untuk posisi lain. Video langsung dan iklan mulai seperti biasa.
 Default playback quality	Kualitas pemutaran default
-Videos, reels and stories play at the quality below, starting with the next one you open.	Video, reels, dan cerita diputar dengan kualitas di bawah, mulai dari yang berikutnya Anda buka.
+# context: description of the Default playback quality switch on the Playback page, with the list of qualities below it. A video that keeps stalling because the connection is too slow for its quality switches to the next lower quality that video offers (#599)
+Videos, reels and stories play at the quality below, starting with the next one you open. When your connection can't keep up, a video drops to the next lower quality.	Video, reels, dan cerita diputar dengan kualitas di bawah, mulai dari yang berikutnya Anda buka. Saat koneksi tidak sanggup mengikuti, video turun ke kualitas satu tingkat di bawahnya.
 Playback quality	Kualitas pemutaran
 Auto	Otomatis
 Data saver	Penghemat data

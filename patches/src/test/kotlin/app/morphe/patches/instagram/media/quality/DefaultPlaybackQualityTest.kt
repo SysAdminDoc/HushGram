@@ -67,6 +67,7 @@ class DefaultPlaybackQualityTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$FIRST_CHOICE is not in the extension: $hooks", FIRST_CHOICE in hooks)
+        assertTrue("$EACH_CHOICE is not in the extension: $hooks", EACH_CHOICE in hooks)
         val stubs = ExtensionDex.classDef(QUALITY_READER).methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         for (stub in listOf(
@@ -81,8 +82,9 @@ class DefaultPlaybackQualityTest {
 
     /**
      * The whole patch on stand-ins: the hook right after the one write of the tracks, handing over
-     * the evaluator it wrote to, a branch that landed after the write still landing past the hook,
-     * each stub filled, and the patch's status switched on.
+     * the evaluator it wrote to, a branch that landed after the write still landing past the hook;
+     * the hook on every choice first, handing over every parameter register, a branch back to the
+     * top still landing past it; each stub filled, and the patch's status switched on.
      */
     @Test
     fun theHookGoesRightAfterTheTracksAreFirstKept() {
@@ -98,6 +100,13 @@ class DefaultPlaybackQualityTest {
         val landings = landings(choice)
         assertTrue("a branch lands on the hook", write + 1 !in landings)
         assertTrue("the branch past the write no longer lands after the hook", write + 2 in landings)
+
+        assertEquals("the hook on every choice first", EACH_CHOICE, choice[0].referenceText())
+        assertEquals("every parameter register, the evaluator first", listOf(3, 16),
+            (choice[0] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+        assertEquals("one hook on every choice", 1, choice.count { it.referenceText() == EACH_CHOICE })
+        assertTrue("a branch lands on the hook on every choice", 0 !in landings)
+        assertTrue("the branch back to the top no longer lands after the hook", 1 in landings)
 
         assertEquals(listOf(evaluator, "$evaluator->A0I:$string"), filled(context, CUSTOM_TRACK_STUB))
         assertEquals(listOf(evaluator, "$evaluator->A0J:$tracks"), filled(context, FORMATS_STUB))
@@ -122,6 +131,7 @@ class DefaultPlaybackQualityTest {
             Shape(readsKept = false) to "never reads A0I",
             Shape(publicKept = false) to "$evaluator->A0I:$string isn't public",
             Shape(publicInfo = false) to "$info isn't public",
+            Shape(choiceTakes = false) to "->BHS takes ($objectType${tracks}J), not eight objects",
         )
         for ((shape, expected) in cases) {
             val context = PatchContexts.of(classes(shape) + ExtensionDex.classDef(SETTINGS_STATUS))
@@ -194,14 +204,25 @@ class DefaultPlaybackQualityTest {
 
         val original = anchors.firstChoice.code()
         val choice = context.method(anchors.evaluator.type, anchors.firstChoice.name).code()
-        assertEquals("$name: the choice's own code follows", original.size + 1, choice.size)
-        val hook = choice[anchors.hookAt]
+        assertEquals("$name: the choice's own code follows", original.size + 2, choice.size)
+        // The hook on every choice went in at the top, after the first hook, so that one sits a line later.
+        val hookAt = anchors.hookAt + 1
+        val hook = choice[hookAt]
         assertEquals("$name: the write right before the hook", Opcode.IPUT_OBJECT to anchors.formats.toString(),
-            choice[anchors.hookAt - 1].opcode to choice[anchors.hookAt - 1].referenceText())
+            choice[hookAt - 1].opcode to choice[hookAt - 1].referenceText())
         assertEquals("$name: the hook", FIRST_CHOICE, hook.referenceText())
-        assertEquals("$name: the evaluator the write went to", (choice[anchors.hookAt - 1] as TwoRegisterInstruction).registerB,
+        assertEquals("$name: the evaluator the write went to", (choice[hookAt - 1] as TwoRegisterInstruction).registerB,
             (hook as RegisterRangeInstruction).startRegister)
-        assertTrue("$name: a branch lands on the hook", anchors.hookAt !in landings(choice))
+        assertTrue("$name: a branch lands on the hook", hookAt !in landings(choice))
+
+        val taken = anchors.firstChoice.parameterTypes.map(Any::toString)
+        assertEquals("$name: the choice's parameters", listOf("F", "J", "J", "J"), taken.takeLast(4))
+        val words = 1 + taken.sumOf { if (it == "J" || it == "D") 2L else 1L }.toInt()
+        val registers = anchors.firstChoice.implementation!!.registerCount
+        assertEquals("$name: the hook on every choice first", EACH_CHOICE, choice[0].referenceText())
+        assertEquals("$name: every parameter register, the evaluator first", listOf(registers - words, words),
+            (choice[0] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+        assertTrue("$name: a branch lands on the hook on every choice", 0 !in landings(choice))
 
         assertEquals("$name: the kept track stub", listOf(anchors.evaluator.type, anchors.customTrack.toString()), filled(context, CUSTOM_TRACK_STUB))
         assertEquals("$name: the tracks stub", listOf(anchors.evaluator.type, anchors.formats.toString()), filled(context, FORMATS_STUB))
@@ -211,7 +232,9 @@ class DefaultPlaybackQualityTest {
 
     private fun assertUntouched(context: BytecodePatchContext) {
         context.classDefByOrNull(evaluator)?.let { owner ->
-            owner.methods.forEach { method -> assertTrue("$evaluator->${method.name} changed", method.code().none { it.referenceText() == FIRST_CHOICE }) }
+            owner.methods.forEach { method ->
+                assertTrue("$evaluator->${method.name} changed", method.code().none { it.referenceText() == FIRST_CHOICE || it.referenceText() == EACH_CHOICE })
+            }
         }
         val reader = context.classDefBy(QUALITY_READER)
         val original = ExtensionDex.classDef(QUALITY_READER)
@@ -274,6 +297,7 @@ class DefaultPlaybackQualityTest {
         val readsKept: Boolean = true,
         val publicKept: Boolean = true,
         val publicInfo: Boolean = true,
+        val choiceTakes: Boolean = true,
     )
 
     private fun classes(shape: Shape = Shape()): List<ClassDef> {
@@ -331,9 +355,12 @@ class DefaultPlaybackQualityTest {
                     ${if (shape.secondKeep) "iput-object v5, p0, $evaluator->A0L:$string" else ""}
                     return-void
                 """),
-                // The choice of a track: (Object, tracks, long)V, three locals. A branch from its
-                // first line lands right after the write, and must still land after the hook.
-                method(evaluator, "BHS", listOf(objectType, tracks, "J"), "V", 8, static = false, body = """
+                // The choice of a track: eight objects, the second the tracks, then a float and
+                // three longs, as 454's; three locals. A branch from its first line lands right
+                // after the write, and must still land after the hook. One from its end goes back
+                // to its first line, and must still land after the hook on every choice.
+                method(evaluator, "BHS", choiceParameters(shape), "V", if (shape.choiceTakes) 19 else 8, static = false, body = """
+                    :top
                     move-object v2, p0
                     move-object v1, p2
                     if-eqz p1, :after
@@ -344,6 +371,7 @@ class DefaultPlaybackQualityTest {
                     const/4 v0, 0x1
                     :kept
                     ${if (shape.readsKept) "iget-object v0, v2, $evaluator->A0I:$string" else "const/4 v0, 0x0"}
+                    if-eqz v0, :top
                     return-void
                 """),
                 if (shape.secondWrite) method(evaluator, "A04", listOf(tracks), "V", 2, static = false, body = """
@@ -375,6 +403,11 @@ class DefaultPlaybackQualityTest {
         )
         return listOf(heroClass, evaluatorClass, formatClass, infoClass, ExtensionDex.classDef(QUALITY_CHOICE), ExtensionDex.classDef(QUALITY_READER))
     }
+
+    /** 454's (eight objects, F, J, J, J), or 449's (Object, tracks, long) for a build the hook on every choice can't take. */
+    private fun choiceParameters(shape: Shape): List<String> =
+        if (shape.choiceTakes) listOf(objectType, tracks) + List(6) { objectType } + listOf("F", "J", "J", "J")
+        else listOf(objectType, tracks, "J")
 
     private fun Method.withFlags(flags: Int): Method =
         ImmutableMethod(definingClass, name, parameters, returnType, flags, null, null, implementation)

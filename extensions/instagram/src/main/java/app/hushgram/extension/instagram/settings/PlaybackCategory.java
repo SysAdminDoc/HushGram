@@ -90,7 +90,8 @@ final class PlaybackCategory {
             }
             if (build.contains(PatchFamily.PLAYBACK_QUALITY)) {
                 playback.addPreference(toggle(context, Settings.DEFAULT_PLAYBACK_QUALITY, L10n.t("Default playback quality"),
-                        L10n.t("Videos, reels and stories play at the quality below, starting with the next one you open.")));
+                        L10n.t("Videos, reels and stories play at the quality below, starting with the next one you open."
+                                + " When your connection can't keep up, a video drops to the next lower quality.")));
                 playback.addPreference(playbackQualityRow(context));
                 playback.addPreference(qualityTabRow(context));
             }

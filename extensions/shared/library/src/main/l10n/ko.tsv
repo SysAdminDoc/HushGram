@@ -254,7 +254,8 @@ Turn on Tap to play to use this choice.	이 옵션을 사용하려면 ‘탭하�
 Resume long videos	긴 동영상 이어보기
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	2분이 넘는 동영상과 릴스는 시청을 중단한 시점부터 이어서 재생됩니다. 다른 부분을 보려면 원하는 시점으로 이동하세요. 라이브 동영상과 광고는 기존과 동일하게 처음부터 재생됩니다
 Default playback quality	기본 재생 화질
-Videos, reels and stories play at the quality below, starting with the next one you open.	동영상, 릴스 및 스토리는 다음에 여는 콘텐츠부터 아래 설정된 화질로 재생됩니다
+# context: description of the Default playback quality switch on the Playback page, with the list of qualities below it. A video that keeps stalling because the connection is too slow for its quality switches to the next lower quality that video offers (#599)
+Videos, reels and stories play at the quality below, starting with the next one you open. When your connection can't keep up, a video drops to the next lower quality.	동영상, 릴스 및 스토리는 다음에 여는 콘텐츠부터 아래 설정된 화질로 재생됩니다. 연결 속도가 따라가지 못하면 동영상이 한 단계 낮은 화질로 내려갑니다
 Playback quality	재생 화질
 Auto	자동
 Data saver	데이터 절약

@@ -258,7 +258,8 @@ Turn on Tap to play to use this choice.	請啟用「點擊播放」以使用此�
 Resume long videos	繼續播放長影片
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	超過兩分鐘的影片與 Reels 會從上次離開的位置繼續播放。可拖曳進度列改從其他位置開始。直播與廣告仍會照常播放。
 Default playback quality	預設播放畫質
-Videos, reels and stories play at the quality below, starting with the next one you open.	從下一部開啟的影片開始，影片、Reels 和限時動態會以下方畫質播放。
+# context: description of the Default playback quality switch on the Playback page, with the list of qualities below it. A video that keeps stalling because the connection is too slow for its quality switches to the next lower quality that video offers (#599)
+Videos, reels and stories play at the quality below, starting with the next one you open. When your connection can't keep up, a video drops to the next lower quality.	從下一部開啟的影片開始，影片、Reels 和限時動態會以下方畫質播放。連線速度跟不上時，影片會降到低一級的畫質。
 Playback quality	播放畫質
 Auto	自動
 Data saver	節省數據

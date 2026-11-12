@@ -57,13 +57,22 @@ public enum PlaybackQuality {
      */
     @Nullable
     public String pick(@Nullable Iterable<String> labels) {
-        if (this == AUTO || labels == null) return null;
+        return this == AUTO ? null : atMost(labels, ceiling);
+    }
+
+    /**
+     * The best label among [labels] at or under [ceiling], or the lowest above it when none is that
+     * low; null when no label states a quality.
+     */
+    @Nullable
+    static String atMost(@Nullable Iterable<String> labels, int ceiling) {
+        if (labels == null) return null;
         String picked = null;
         int pickedQuality = 0;
         for (String label : labels) {
             int quality = qualityOf(label);
             if (quality <= 0) continue;
-            if (picked == null || better(quality, pickedQuality)) {
+            if (picked == null || better(quality, pickedQuality, ceiling)) {
                 picked = label;
                 pickedQuality = quality;
             }
@@ -71,8 +80,28 @@ public enum PlaybackQuality {
         return picked;
     }
 
-    /** Whether a rung of quality [a] suits this choice better than one of [b]. */
-    private boolean better(int a, int b) {
+    /**
+     * The best rung among [labels] under [label]'s, or null when nothing is lower or [label] states
+     * no quality.
+     */
+    @Nullable
+    static String below(@Nullable Iterable<String> labels, @Nullable String label) {
+        int from = qualityOf(label);
+        if (labels == null || from <= 0) return null;
+        String below = null;
+        int belowQuality = 0;
+        for (String other : labels) {
+            int quality = qualityOf(other);
+            if (quality > belowQuality && quality < from) {
+                below = other;
+                belowQuality = quality;
+            }
+        }
+        return below;
+    }
+
+    /** Whether a rung of quality [a] suits [ceiling] better than one of [b]. */
+    private static boolean better(int a, int b, int ceiling) {
         boolean fitsA = a <= ceiling;
         boolean fitsB = b <= ceiling;
         if (fitsA != fitsB) return fitsA;

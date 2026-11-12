@@ -84,7 +84,8 @@ public class PlaybackQualitySettingsTest {
             assertTrue(sw instanceof SwitchPreference);
             assertTrue("picking the patch is the choice to use it", ((SwitchPreference) sw).isChecked());
             assertEquals("Default playback quality", String.valueOf(sw.getTitle()));
-            assertEquals("Videos, reels and stories play at the quality below, starting with the next one you open.",
+            assertEquals("Videos, reels and stories play at the quality below, starting with the next one you open."
+                    + " When your connection can't keep up, a video drops to the next lower quality.",
                     String.valueOf(sw.getSummary()));
             assertTrue(rows.get(toggle + 1) instanceof HushgramPreferenceFragment.PlaybackQualityRow);
             HushgramPreferenceFragment.PlaybackQualityRow quality =

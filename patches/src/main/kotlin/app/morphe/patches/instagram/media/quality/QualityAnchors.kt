@@ -44,10 +44,22 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
  *   sees.
  * - Prefetching and offline saves use the evaluator's other choosers, which never write the array
  *   field or read the kept id, so only playback sees the choice.
+ * - (Read from 454, 2026-11-12.) The choice (LX/0Ghl;->BKb) takes eight objects, then a float and
+ *   three longs: the playback position, how much is buffered and how much is available, in
+ *   microseconds. Its bandwidth chooser (LX/0Gim;->BFr) reads the second long, through the LX/03yi
+ *   the choice builds, as the buffer it hands getLiveLowBufferSystemicRiskFactor, and takes the first
+ *   from the content's end. A kept track goes through a chooser of its own (LX/0hMZ) that answers
+ *   that track whatever is buffered, which is why a rung the connection can't carry stalls (#599).
+ *   So a second hook goes at the top of the choice, with all of its parameters.
  */
 
 internal const val QUALITY_CHOICE = "$EXTENSION_PACKAGE/media/QualityChoice;"
 internal const val FIRST_CHOICE = "$QUALITY_CHOICE->firstChoice(Ljava/lang/Object;)V"
+
+private const val ANY = "Ljava/lang/Object;"
+
+/** Every choice, with the evaluator and the choice's parameters, each object as Object. */
+internal const val EACH_CHOICE = "$QUALITY_CHOICE->eachChoice($ANY$ANY$ANY$ANY$ANY$ANY$ANY$ANY${ANY}FJJJ)V"
 
 /** The extension class holding the stubs the patch fills, apart from the hook. */
 internal const val QUALITY_READER = "$EXTENSION_PACKAGE/media/QualityReader;"

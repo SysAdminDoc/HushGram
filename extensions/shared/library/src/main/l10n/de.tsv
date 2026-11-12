@@ -253,7 +253,8 @@ Turn on Tap to play to use this choice.	Aktiviere „Zum Abspielen tippen“, um
 Resume long videos	Lange Videos fortsetzen
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Videos und Reels über zwei Minuten laufen an deiner letzten Stelle weiter. Die Suchleiste ändert den Start. Live-Videos und Werbung starten wie gewohnt.
 Default playback quality	Standard-Wiedergabequalität
-Videos, reels and stories play at the quality below, starting with the next one you open.	Videos, Reels und Stories laufen in der Qualität unten, ab dem nächsten Video, das du öffnest.
+# context: description of the Default playback quality switch on the Playback page, with the list of qualities below it. A video that keeps stalling because the connection is too slow for its quality switches to the next lower quality that video offers (#599)
+Videos, reels and stories play at the quality below, starting with the next one you open. When your connection can't keep up, a video drops to the next lower quality.	Videos, Reels und Stories laufen in der Qualität unten, ab dem nächsten Video, das du öffnest. Kommt deine Verbindung nicht mit, schaltet ein Video eine Qualitätsstufe herunter.
 Playback quality	Wiedergabequalität
 Auto	Automatisch
 Data saver	Datensparmodus

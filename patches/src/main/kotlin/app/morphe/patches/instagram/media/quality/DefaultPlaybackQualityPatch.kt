@@ -66,6 +66,7 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  *
  * @property firstChoice the evaluator's choice of a track, and [hookAt] the index right after its
  *           one write of [formats], where [evaluatorRegister] holds the evaluator it wrote to
+ * @property parameters the registers the choice's parameters arrive in, the evaluator first
  */
 internal class QualityAnchors(
     val evaluator: ClassDef,
@@ -77,6 +78,7 @@ internal class QualityAnchors(
     val firstChoice: Method,
     val hookAt: Int,
     val evaluatorRegister: Int,
+    val parameters: IntRange,
 )
 
 /**
@@ -125,6 +127,16 @@ internal fun BytecodePatchContext.findQualityAnchors(): QualityAnchors {
     if (write + 1 >= code.size) refuse("$where ends at its write of ${formats.name}")
     val evaluatorRegister = (code[write] as TwoRegisterInstruction).registerB
 
+    // Each choice hands the extension all of its parameters, where they arrive.
+    val taken = firstChoice.parameterTypes.map(CharSequence::toString)
+    val shape = (listOf(evaluator.type) + taken).joinToString("") { if (it.length > 1) OBJECT else it }
+    if (shape != EACH_CHOICE.substringAfter('(').substringBefore(')')) {
+        refuse("$where takes (${taken.joinToString("")}), not eight objects, a float and the three longs $EACH_CHOICE reads")
+    }
+    val registers = firstChoice.implementation?.registerCount ?: refuse("$where has no code")
+    val words = 1 + taken.sumOf { if (it == "J" || it == "D") 2L else 1L }.toInt()
+    val parameters = registers - words until registers
+
     // The stubs run in the extension, so what they cast to and read has to be public.
     val formatClass = classDefByOrNull(format) ?: refuse("this build has no $format")
     val labelClass = classDefByOrNull(labelOf.definingClass) ?: refuse("this build has no ${labelOf.definingClass}")
@@ -157,12 +169,14 @@ internal fun BytecodePatchContext.findQualityAnchors(): QualityAnchors {
             refuse("$QUALITY_READER has no static $answer $name(${parameters.joinToString("")})")
         }
     }
-    classDefByOrNull(QUALITY_CHOICE)?.methods?.singleOrNull {
-        "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == FIRST_CHOICE &&
-            AccessFlags.STATIC.isSet(it.accessFlags)
-    } ?: refuse("the extension has no $FIRST_CHOICE")
+    for (hook in listOf(FIRST_CHOICE, EACH_CHOICE)) {
+        classDefByOrNull(QUALITY_CHOICE)?.methods?.singleOrNull {
+            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook &&
+                AccessFlags.STATIC.isSet(it.accessFlags)
+        } ?: refuse("the extension has no $hook")
+    }
 
-    return QualityAnchors(evaluator, setter, formats, labelOf, label, customTrack, firstChoice, write + 1, evaluatorRegister)
+    return QualityAnchors(evaluator, setter, formats, labelOf, label, customTrack, firstChoice, write + 1, evaluatorRegister, parameters)
 }
 
 private fun ClassDef.stub(name: String, parameters: List<String>, answer: String): Method? = methods.singleOrNull {
@@ -174,11 +188,16 @@ private fun ClassDef.stub(name: String, parameters: List<String>, answer: String
  * The extension is told about the evaluator right after its choice of a track first keeps its
  * tracks, through the range form, which names the evaluator where it is and borrows no register.
  * It goes in front of the next instruction and leaves that instruction's labels on it, so a branch
- * from a path that didn't keep the tracks still skips it. Then the stubs are filled in.
+ * from a path that didn't keep the tracks still skips it. Then every choice tells the extension too,
+ * from the choice's first instruction, with its parameter registers before anything writes them; a
+ * branch back to the old first instruction stays on it. That goes in second, so the first hook's
+ * index still holds. Then the stubs are filled in.
  */
 internal fun BytecodePatchContext.applyQualityAnchors(anchors: QualityAnchors) {
     val register = anchors.evaluatorRegister
-    mutable(anchors.firstChoice).addInstructions(anchors.hookAt, "invoke-static/range { v$register .. v$register }, $FIRST_CHOICE")
+    val choice = mutable(anchors.firstChoice)
+    choice.addInstructions(anchors.hookAt, "invoke-static/range { v$register .. v$register }, $FIRST_CHOICE")
+    choice.addInstructions(0, "invoke-static/range { v${anchors.parameters.first} .. v${anchors.parameters.last} }, $EACH_CHOICE")
     fillStubs(anchors)
 }
 
