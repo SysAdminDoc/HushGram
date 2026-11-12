@@ -742,7 +742,7 @@
       ]
     },
     {
-      "id": "settings-viewing-history",
+      "id": "settings-viewinghistory",
       "title": "Viewing history",
       "builder": "ViewingHistoryCategory",
       "page": true,
