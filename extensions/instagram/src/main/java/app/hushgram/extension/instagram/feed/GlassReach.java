@@ -27,8 +27,9 @@ import java.util.function.ToIntFunction;
  * the one at the window's top stops clipping. The posts then run on behind the status bar and the glass
  * reaches up over them. In the second nothing moves, only the parents stop clipping so the glass gets
  * up there. Nothing moves unless the gap is exactly the status bar's height, and only for Home's own
- * list: another tab in the same panel, Reels full screen or the header gone puts everything back until
- * Home is showing again, and so does the glass coming off. Main thread only.
+ * list: another tab in the same panel or beside Home's page in the tab pager, Reels full screen or the
+ * header gone puts everything back until Home is showing again, and so does the glass coming off. Main
+ * thread only.
  */
 final class GlassReach {
     /** How many parents up from the header's the one at the window's top is looked for. */
@@ -81,7 +82,9 @@ final class GlassReach {
             retreat();
             return 0;
         }
-        if (!header.isShown()) return 0;
+        // Home's page stays laid out beside the tab on screen in Instagram's tab pager: pulled up there, it
+        // was let go on the next frame and pulled up again, redrawing the whole window every frame.
+        if (!header.isShown() || !across(header)) return 0;
         int status = insets.applyAsInt(source);
         if (status <= 0 || index <= 0) return 0;
         View top = frameOf(source, status);
@@ -168,9 +171,14 @@ final class GlassReach {
         if (list == null || source != panel || !header.isShown() || !list.isShown()) return false;
         int[] at = new int[2];
         source.getLocationInWindow(at);
-        if (at[1] != panelTop) return false;
-        list.getLocationInWindow(at);
-        return Math.abs(at[0]) < Math.max(1, list.getWidth() / 2);
+        return at[1] == panelTop && across(list);
+    }
+
+    /** Whether [view] sits across the screen, and not off to one side as a page beside the one showing. */
+    private static boolean across(View view) {
+        int[] at = new int[2];
+        view.getLocationInWindow(at);
+        return Math.abs(at[0]) < Math.max(1, view.getWidth() / 2);
     }
 
     private void unclipUpTo(View header, View top) {

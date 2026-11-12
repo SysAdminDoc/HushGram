@@ -105,6 +105,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* With `See-through top bar` on, Instagram no longer keeps redrawing the screen after you leave Home for Messages or another tab. Home's page stays laid out next to the tab you're on, and HushGram kept moving its feed up behind the clock and back again on every frame, which used battery even on a still screen. Found while building #513.
 * With `Glass tab bar` and `Show content behind the tab bar` on, the floating tab bar now steps aside while a chat is open, so it no longer covers the reply box. On Android 17 Instagram left its bar showing over chats, the way it did over stories. Reported in #632.
 * With `Full screen Reels`, `Full screen Home` or `Full screen Messages` hiding the bars, the comment box no longer slips below the bottom of the screen. On some Samsung phones Instagram worked out a bit too much of the comments sheet as showing, so HushGram now pads the sheet's content up until the box sits at the bottom edge. Reported in #626.
 * `Hide the Create button on reels` now also takes the plus button off reels you open from Saved, a profile or a post. On 454 those reels get a different top bar, and the switch only reached the Reels tab's. Found while building #620.

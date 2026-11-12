@@ -505,6 +505,32 @@ public class GlassReachTest {
     }
 
     /**
+     * Home's whole page beside the tab showing in Instagram's tab pager, still laid out and visible, the way
+     * 454 keeps it under the inbox: Home goes back below the clock and stays there, not pulled up and let go
+     * again frame after frame.
+     */
+    @Test
+    public void homesPageBesideAnotherTabStaysPut() {
+        glaze();
+        assertEquals(-STATUS, margin(feed));
+
+        panel.setTranslationX(-2 * WIDE);
+        for (int i = 0; i < 3; i++) frame();
+        assertTrue(header.isShown());
+        assertEquals("Home goes back below the status bar", 0, margin(feed));
+        assertEquals(0, list.getPaddingTop());
+        header.getViewTreeObserver().dispatchOnPreDraw();
+        assertFalse("and isn't moved again on the next frame", feed.isLayoutRequested());
+        assertEquals(0, margin(feed));
+
+        panel.setTranslationX(0f);
+        frame();
+        frame();
+        assertEquals("Home showing again reaches up again", -STATUS, margin(feed));
+        assertEquals(STATUS, list.getPaddingTop());
+    }
+
+    /**
      * Instagram already running Home's feed behind the status bar, with only the header below it: nothing
      * moves and the glass reaches up over the posts, wherever the header slides.
      */
