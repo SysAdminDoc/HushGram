@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Burn-in guard` fades the Add comment bar under a reel too, along with the other buttons, and tapping it brings them all back. Asked for in #648.
 * `Open Saved profiles with a tab long press` sits under `Your saved profiles` in Profiles. Pick a tab, Profile included, and holding it opens your saved list right away while a normal tap does what it always did. Needs `Saved profiles` on. Starts off. Asked for in #629.
 * `Fast scroll in Saved` sits under `Saved tab on your profile` in Profiles. Scroll Saved or one of your collections and a handle shows at the right edge. Drag it to jump anywhere in a long list, and it fades once you stop. It takes no restart. Starts off. Asked for in #644.
 * Favorites keeps the tab bar now. Turn on `Keep the tab bar on Favorites` in Feed and opening Favorites from the top of Home leaves Search and Messages a tap away. `Open Favorites with a tab long press` right under it lets you pick a tab that jumps straight to Favorites when you hold it. Both come with the `Start Home on Following` patch and start off. Asked for in #643.

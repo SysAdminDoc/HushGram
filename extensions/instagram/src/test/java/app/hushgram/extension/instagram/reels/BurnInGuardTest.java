@@ -510,6 +510,42 @@ public class BurnInGuardTest {
         assertUp("the caption");
     }
 
+    /**
+     * The Add comment bar under a reel dims with the controls, and a finger on it is a touch (#648).
+     * Laid out as 454 has it: the footer under the reel, a frame without an id, and the bar holding
+     * its text, which takes taps.
+     */
+    @Test public void theAddCommentBarDimsAndATapOnItBringsThemBack() {
+        layOutTheReelsButtons();
+        BurnInGuard.idForTests("comment_composer_inner_layout", 7308);
+        LinearLayout footer = new LinearLayout(activity);
+        footer.setId(7309);
+        FrameLayout frame = new FrameLayout(activity);
+        LinearLayout comment = new LinearLayout(activity);
+        comment.setId(7308);
+        View text = new View(activity);
+        text.setOnClickListener(view -> { });
+        comment.addView(text, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 48));
+        frame.addView(comment, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 48));
+        footer.addView(frame, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 48));
+        FrameLayout.LayoutParams footerAt = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 48);
+        footerAt.topMargin = H - 48;
+        viewer.addView(footer, footerAt);
+        layout();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        assertDimmed("idle");
+        assertEquals("the Add comment bar", BurnInGuard.IDLE_LEVEL, comment.getAlpha(), 0f);
+        assertEquals("its text isn't dimmed twice", 1f, text.getAlpha(), 0f);
+        assertEquals("the footer holding it stays", 1f, footer.getAlpha(), 0f);
+        assertEquals("the frame holding it stays", 1f, frame.getAlpha(), 0f);
+
+        tapOn(text);
+        assertUp("a tap on the Add comment bar");
+        assertEquals("the Add comment bar back", 1f, comment.getAlpha(), 0f);
+    }
+
     @Test public void aTapOnTheReelDoesntStartTheWaitOver() {
         layOutTheReelsButtons();
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);

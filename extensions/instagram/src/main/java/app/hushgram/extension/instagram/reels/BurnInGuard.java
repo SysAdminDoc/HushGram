@@ -52,8 +52,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>The dim: once the Reels screen has gone the Dim after choice ({@link BurnInWait}) without a
  * touch, the reel's overlay (its button column, author and caption), its seek bar, the Interested row
- * under some reels (the views without an id beside the button column), the top bar and the tab bar
- * are drawn at {@link #IDLE_LEVEL} of what Instagram draws them at, and the next touch brings them
+ * under some reels (the views without an id beside the button column), the Add comment bar, the top
+ * bar and the tab bar are drawn at {@link #IDLE_LEVEL} of what Instagram draws them at, and the next touch brings them
  * back. Only their alpha changes, so a dimmed button still takes its tap. They're found by the ids
  * Instagram 450 gives them ({@link #DIMMED_IDS}), and a view inside one already dimmed is left alone,
  * so nothing is dimmed twice. A finger held on the screen counts as a touch until it lifts.
@@ -111,12 +111,13 @@ public final class BurnInGuard {
      * The ids of what dims, as Instagram 450 and 451 name them: a reel's overlay and its parts (the
      * button column, the author and caption), the Reels top bar and the tab bar, and outside the
      * overlay the reel's seek bar ({@code scrubber}, 451; HushGram's time label fades with it, see
-     * {@link ReelTimeLabel}) (#162).
+     * {@link ReelTimeLabel}) (#162), and the Add comment bar under a reel, in the footer below the
+     * overlay ({@code comment_composer_inner_layout}, 454, #648). The comment sheet's own box has other ids.
      */
     static final String[] DIMMED_IDS = {
             "clips_item_overlay_component", "clips_ufi_component", "clips_media_info_component",
             "clips_viewer_media_info_container", "clips_viewer_media_info", "clips_viewer_action_bar", "tab_bar",
-            "scrubber"
+            "scrubber", "comment_composer_inner_layout"
     };
 
     /**
@@ -129,11 +130,13 @@ public final class BurnInGuard {
     /**
      * What a finger landing on counts as a touch even on the reel (#162): the button column, the
      * author and caption, the seek bar and the strip under the reel that takes its drags (451), the
-     * top bar and the tab bar. The overlay holding them isn't one, since its empty parts are the reel.
+     * top bar, the tab bar and the Add comment bar (#648). The overlay holding them isn't one, since its
+     * empty parts are the reel.
      */
     static final String[] WAKING_IDS = {
             "clips_ufi_component", "clips_media_info_component", "clips_viewer_media_info_container",
-            "clips_viewer_media_info", "clips_viewer_action_bar", "tab_bar", "scrubber", "clips_expanded_touch_view"
+            "clips_viewer_media_info", "clips_viewer_action_bar", "tab_bar", "scrubber", "clips_expanded_touch_view",
+            "comment_composer_inner_layout"
     };
 
     /** Save and its count, in the button column, which a finger landing on doesn't count as a touch (#162). */
