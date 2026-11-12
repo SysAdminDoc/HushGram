@@ -47,7 +47,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>Nothing in Instagram's bytecode is touched. Saved's pages are found by the names Instagram gives
  * them ({@link MessagesLock#SAVED_PAGES}, the ones Lock Saved watches for), and the grid is the
- * RecyclerView that is the page, holds it, or sits inside it, found by the class name Instagram keeps.
+ * RecyclerView that is the page, sits inside it, or holds it when the name is a tile's, found by the
+ * class name Instagram keeps.
  * The handle is a view of its own over the window, so Instagram's layouts never see it. A touch that
  * misses it goes on to the grid as if it weren't there, and while it's hidden it takes no touches at all.
  * It moves the grid by scrollBy, the way AndroidX's own fast scroller does, so the rows in between are
@@ -188,8 +189,10 @@ public final class SavedFastScroll {
 
     /**
      * Adds to [found] the grid of each Saved page under [view]: the page itself when it's a grid, the
-     * grid [around] it, or the biggest grid inside it. A grid already found isn't walked again, so a
-     * grid of a hundred tiles that each carry a Saved name costs one look, not a hundred.
+     * biggest grid inside it, or, for a tile with no grid inside, the grid [around] it. Inside comes
+     * first because Saved opened from the menu sits in the tab bar's pager, itself a RecyclerView. A
+     * grid already found isn't walked again, so a grid of a hundred tiles that each carry a Saved name
+     * costs one look, not a hundred.
      */
     private static void collect(View view, int[] ids, @Nullable ViewGroup around, Rect area, List<ViewGroup> found) {
         if (view.getVisibility() != View.VISIBLE || view instanceof Handle) return;
@@ -198,7 +201,8 @@ public final class SavedFastScroll {
         if (grid) around = (ViewGroup) view;
         if (named(view, ids)) {
             if (view.isShown() && view.getGlobalVisibleRect(area) && !area.isEmpty()) {
-                ViewGroup list = grid ? (ViewGroup) view : around != null ? around : biggestList(view, area);
+                ViewGroup list = grid ? (ViewGroup) view : biggestList(view, area);
+                if (list == null) list = around;
                 if (list != null && !found.contains(list)) found.add(list);
             }
             return;

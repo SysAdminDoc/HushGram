@@ -304,6 +304,27 @@ public class SavedFastScrollTest {
         assertSame(grid, SavedFastScroll.savedList(decor));
     }
 
+    /**
+     * Saved opened from the menu sits in the tab bar's pager, itself a RecyclerView: the grid inside
+     * Saved's page is the one followed, not the pager around it, and scrolling it shows the handle.
+     */
+    @Test
+    public void savedInsideTheTabPagerFollowsItsOwnGrid() {
+        Grid tabs = new Grid(controller.get(), SHOWS);
+        FrameLayout pager = new FrameLayout(controller.get());
+        pager.setId(COLLECTION);
+        Grid grid = new Grid(controller.get(), LONG);
+        pager.addView(grid, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, SHOWS));
+        tabs.addView(pager, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, SHOWS));
+        frame.addView(tabs, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, SHOWS));
+        settle();
+        assertSame(grid, SavedFastScroll.savedList(decor));
+
+        tracker().look();
+        flick(grid, 1800);
+        assertTrue(handleShows());
+    }
+
     /** A collection's pager keeps its neighbours' grids laid out beside it; the one on screen is the one. */
     @Test
     public void thePagersGridOnScreenIsTheOneFollowed() {
