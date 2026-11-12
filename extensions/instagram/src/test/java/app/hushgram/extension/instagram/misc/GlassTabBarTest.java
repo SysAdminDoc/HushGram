@@ -402,6 +402,51 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #646: Instagram opens the story camera by moving its main screens, the tab bar with them, beside the
+     * window, so the bar still counts as shown. The pill isn't on the screen then, so the camera gets the
+     * navigation bar's real height and its bottom row stops above the buttons, and nothing is recorded
+     * under the pill. Back from the camera, the screens run behind the pill again.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aPillMovedBesideTheWindowForTheStoryCameraGivesTheNavigationBarBack() {
+        GlassTabBar.resetForTests();
+        GlassTabBar.animationsOnForTests = false;
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+            int nav = host.dp(24);
+            host.controller.pause().resume();
+            host.frame();
+            assertEquals("on the screen", 0, GlassTabBar.navBarHeight(nav));
+            Object pill = host.bar.getBackground();
+            ReflectionHelpers.setField(pill, "lastRecorded", 1L);
+            host.frame();
+            assertTrue("on the screen, the glass recorded", (long) ReflectionHelpers.getField(pill, "lastRecorded") != 1L);
+
+            int width = host.activity.getWindow().getDecorView().getWidth();
+            assertTrue("the window was laid out", width > 0);
+            host.root.setTranslationX(width);
+            host.frame();
+            assertTrue("still counts as shown", host.bar.isShown());
+            assertEquals("the camera stops above the navigation bar", nav, GlassTabBar.navBarHeight(nav));
+            ReflectionHelpers.callInstanceMethod(pill, "cancelCatchUp");
+            ReflectionHelpers.setField(pill, "lastRecorded", 1L);
+            host.frame();
+            assertEquals("beside the window, the glass recorded", 1L, (long) ReflectionHelpers.getField(pill, "lastRecorded"));
+            assertFalse("beside the window, the glass arranged a catch-up", (boolean) ReflectionHelpers.getField(pill, "catchUpPending"));
+
+            host.root.setTranslationX(-width);
+            host.frame();
+            assertEquals("moved aside the other way", nav, GlassTabBar.navBarHeight(nav));
+
+            host.root.setTranslationX(0);
+            host.frame();
+            assertEquals("back from the camera", 0, GlassTabBar.navBarHeight(nav));
+            assertTrue("back from the camera, the glass recorded", (long) ReflectionHelpers.getField(pill, "lastRecorded") != 1L);
+        }
+    }
+
+    /**
      * #196: a stopped activity's window stays hidden through its resume, and its screens read the
      * navigation bar's height as they resume. A floating pill set to show in it counts already, so
      * Instagram's copy goes back to the pill's 0 ahead of them. A hidden bar or another activity doesn't.

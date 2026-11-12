@@ -1438,6 +1438,18 @@ public final class GlassTabBar {
         return decor != null && view.getRootView() == decor;
     }
 
+    /**
+     * Whether [bar] lies wholly to one side of its window, as when Instagram moves its main screens, the bar
+     * with them, aside for the story camera (#646). It still counts as shown then, but isn't on the screen.
+     */
+    static boolean besideTheWindow(View bar) {
+        int width = bar.getRootView().getWidth();
+        if (width <= 0 || bar.getWidth() <= 0) return false;
+        int[] at = new int[2];
+        bar.getLocationInWindow(at);
+        return at[0] >= width || at[0] + bar.getWidth() <= 0;
+    }
+
     static final class Watcher implements Application.ActivityLifecycleCallbacks {
         @Override public void onActivityResumed(@NonNull Activity activity) {
             nowInFront(activity);
@@ -1898,9 +1910,9 @@ public final class GlassTabBar {
             insetsShown = null;
         }
 
-        /** Whether this is a floating pill that shows in [activity]'s window. */
+        /** Whether this is a floating pill that shows in [activity]'s window, not moved aside with its screens. */
         boolean floatsShownIn(Activity activity) {
-            return floating && bar.isShown() && ownedBy(bar, activity);
+            return floating && bar.isShown() && !besideTheWindow(bar) && ownedBy(bar, activity);
         }
 
         /** Whether Instagram's bottom sheet holder in the bar's window shows a sheet. */
@@ -1999,7 +2011,7 @@ public final class GlassTabBar {
          * a stopped activity's window is still hidden while it resumes.
          */
         boolean floatsIn(Activity activity) {
-            return floating && bar.getVisibility() == View.VISIBLE && ownedBy(bar, activity);
+            return floating && bar.getVisibility() == View.VISIBLE && !besideTheWindow(bar) && ownedBy(bar, activity);
         }
 
         /**
@@ -2500,7 +2512,8 @@ public final class GlassTabBar {
          */
         private void recordUnder() {
             if (!blurWanted) return;
-            if (HushgramPause.isPaused()) {
+            // Moved aside with the main screens for the story camera, nothing under it is on the screen (#646).
+            if (HushgramPause.isPaused() || besideTheWindow(bar)) {
                 pill.cancelCatchUp();
                 return;
             }
