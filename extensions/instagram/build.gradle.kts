@@ -206,7 +206,7 @@ tasks.register("verifyAndroidBoundaries") {
                 "theUnpatchedBridgesCountAnUnselectedComment[28]", "theUnpatchedBridgesCountAnUnselectedComment[37]",
                 "withoutMediaTypeOnlyAMediaWithNoVideoPassesAsAStillPhoto[28]", "withoutMediaTypeOnlyAMediaWithNoVideoPassesAsAStillPhoto[37]",
                 "aMediaTypeThatIsntAPhotosNeverReadsTheVideo[28]", "aMediaTypeThatIsntAPhotosNeverReadsTheVideo[37]",
-                "aGifTheCommentOrItsMediaCarriesIsReadAsAGifUnlessItsASticker[28]", "aGifTheCommentOrItsMediaCarriesIsReadAsAGifUnlessItsASticker[37]",
+                "aGifOrStickerTheCommentOrItsMediaCarriesIsReadAsAGif[28]", "aGifOrStickerTheCommentOrItsMediaCarriesIsReadAsAGif[37]",
                 "aGifsFilesAreReadInstagramsOwnCopyFirstAsPlainValues[28]", "aGifsFilesAreReadInstagramsOwnCopyFirstAsPlainValues[37]",
                 "aGifRowSavesTheGifItWasShownWithAndARepeatedMenuKeepsIt[28]", "aGifRowSavesTheGifItWasShownWithAndARepeatedMenuKeepsIt[37]"),
             "app.hushgram.extension.instagram.download.CommentPhotoSaveTest" to listOf(
@@ -217,7 +217,8 @@ tasks.register("verifyAndroidBoundaries") {
                 "deniedLegacyStoragePermissionLeavesNoPendingPhoto[28]",
                 "aCommentGifSavesInstagramsOwnGifFileAsAGif[28]", "aCommentGifSavesInstagramsOwnGifFileAsAGif[37]",
                 "aCommentGifWithOnlyAnMp4SavesItAsAVideo[28]", "aCommentGifWithOnlyAnMp4SavesItAsAVideo[37]",
-                "aGifStickerAndAGiphyOnlyGifGetNoRow[28]", "aGifStickerAndAGiphyOnlyGifGetNoRow[37]"),
+                "aCommentGifStickerSavesInstagramsOwnCopyAsAGif[28]", "aCommentGifStickerSavesInstagramsOwnCopyAsAGif[37]",
+                "aGiphyOnlyGifOrStickerGetsNoRow[28]", "aGiphyOnlyGifOrStickerGetsNoRow[37]"),
             "app.hushgram.extension.instagram.download.CommentPhotoDownloadTest" to listOf(
                 "onlySuppliedMetaPhotoAddressesAreCopiedVerbatim[28]", "onlySuppliedMetaPhotoAddressesAreCopiedVerbatim[37]",
                 "missingModelsGetNoImageFallback[28]", "missingModelsGetNoImageFallback[37]",

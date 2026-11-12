@@ -271,17 +271,17 @@ public class SavedProfilesSettingsTest {
             AlertDialog name = (AlertDialog) ShadowDialog.getLatestDialog();
             assertEquals(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
                     name.getWindow().getAttributes().softInputMode & android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
-            SavedProfilesRows.field(name.getWindow().getDecorView()).setText("  Close   friends ");
+            SavedProfilesRows.field(name.getWindow().getDecorView()).setText("  My   pals ");
             name.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
             ShadowLooper.idleMainLooper();
-            assertEquals("Moved @amy to Close friends", ShadowToast.getTextOfLatestToast());
+            assertEquals("Moved @amy to My pals", ShadowToast.getTextOfLatestToast());
             assertEquals(View.VISIBLE, page.chips.getVisibility());
-            assertEquals(Arrays.asList("All", "Close friends"), chips(page));
+            assertEquals(Arrays.asList("All", "My pals"), chips(page));
             assertTrue("All is shown", page.chipRow.getChildAt(0).isSelected());
 
-            page.move((SavedProfiles.Profile) page.list.getAdapter().getItem(1), "close FRIENDS");
+            page.move((SavedProfiles.Profile) page.list.getAdapter().getItem(1), "my PALS");
             ShadowLooper.idleMainLooper();
-            assertEquals("a name in another case is that folder", "Moved @zed to Close friends",
+            assertEquals("a name in another case is that folder", "Moved @zed to My pals",
                     ShadowToast.getTextOfLatestToast());
             page.chipRow.getChildAt(1).performClick();
             assertTrue(page.chipRow.getChildAt(1).isSelected());
@@ -298,11 +298,11 @@ public class SavedProfilesSettingsTest {
             assertEquals(2, menu.size());
             assertEquals("Rename folder", String.valueOf(menu.getItem(0).getTitle()));
             assertEquals("Remove folder", String.valueOf(menu.getItem(1).getTitle()));
-            assertTrue(page.pickForFolder(SavedProfilesPage.RENAME_FOLDER, "Close friends"));
+            assertTrue(page.pickForFolder(SavedProfilesPage.RENAME_FOLDER, "My pals"));
             ShadowLooper.idleMainLooper();
             AlertDialog rename = (AlertDialog) ShadowDialog.getLatestDialog();
             EditText field = SavedProfilesRows.field(rename.getWindow().getDecorView());
-            assertEquals("Close friends", String.valueOf(field.getText()));
+            assertEquals("My pals", String.valueOf(field.getText()));
             field.setText("Besties");
             rename.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
             ShadowLooper.idleMainLooper();
