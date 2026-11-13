@@ -337,6 +337,9 @@ Hide the Explore grid	Ẩn lưới Khám phá
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Ẩn lưới bài viết và reel bên dưới thanh của tab Tìm kiếm. Tìm kiếm, nội dung tìm gần đây và kết quả vẫn giữ.
 Hide suggested accounts in search	Ẩn tài khoản gợi ý trong tìm kiếm
 Leaves the Suggested for you accounts out of what shows when you tap the search bar. Recent searches stay.	Bỏ các tài khoản Gợi ý cho bạn khỏi nội dung hiện khi bạn nhấn vào thanh tìm kiếm. Nội dung tìm gần đây vẫn giữ.
+# context: You may also like is the header Instagram's server puts on the recommended posts after search results; it isn't a fixed string in the app, so the rows describe it.
+Hide You may also like in search	Ẩn bài viết đề xuất trong kết quả tìm kiếm
+Leaves out the You may also like posts Instagram adds below your search results. The results you searched for stay.	Bỏ các bài viết Instagram đề xuất bên dưới kết quả tìm kiếm của bạn. Kết quả bạn tìm vẫn giữ.
 # context: Instagram's Messages tab and inbox, Tin nhắn. Direct, the name of Instagram's chat feature, is kept as it is in Instagram's Vietnamese.
 Messages	Tin nhắn
 # context: the row of notes at the top of Instagram's messages. Notes is Ghi chú in Instagram's Vietnamese.

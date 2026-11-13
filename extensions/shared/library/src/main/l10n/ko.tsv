@@ -339,6 +339,9 @@ Hide the Explore grid	탐색 그리드 숨기기
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	검색 탭 검색창 아래의 게시물과 릴스 격자를 숨깁니다. 검색, 최근 검색, 검색 결과는 그대로입니다.
 Hide suggested accounts in search	검색에서 추천 계정 숨기기
 Leaves the Suggested for you accounts out of what shows when you tap the search bar. Recent searches stay.	검색창을 누르면 나오는 화면에서 '추천 계정'을 숨깁니다. 최근 검색은 그대로입니다.
+# context: You may also like is the header Instagram's server puts on the recommended posts after search results; it isn't a fixed string in the app, so the rows describe it.
+Hide You may also like in search	검색 결과의 추천 게시물 숨기기
+Leaves out the You may also like posts Instagram adds below your search results. The results you searched for stay.	Instagram이 검색 결과 아래에 추가하는 추천 게시물을 숨깁니다. 검색한 결과는 그대로입니다.
 Messages	메시지
 Hide the notes row	메모 목록 숨기기
 Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.	메시지 상단에서 메모 목록을 숨깁니다. 목록 안의 지도 버블도 함께 숨겨집니다. 채팅, 검색 및 메시지 요청은 그대로 유지됩니다

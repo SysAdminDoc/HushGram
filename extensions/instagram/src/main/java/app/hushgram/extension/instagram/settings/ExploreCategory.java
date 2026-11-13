@@ -34,6 +34,10 @@ final class ExploreCategory {
                         L10n.t("Hide suggested accounts in search"),
                         L10n.t("Leaves the Suggested for you accounts out of what shows when you tap the search "
                                 + "bar. Recent searches stay.")));
+                explore.addPreference(toggle(context, Settings.HIDE_SEARCH_RECOMMENDATIONS,
+                        L10n.t("Hide You may also like in search"),
+                        L10n.t("Leaves out the You may also like posts Instagram adds below your search results. "
+                                + "The results you searched for stay.")));
             }
             if (build.contains(PatchFamily.RECENT_SEARCHES)) {
                 explore.addPreference(toggle(context, Settings.DONT_SAVE_RECENT_SEARCHES,

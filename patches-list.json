@@ -2851,7 +2851,7 @@
     },
     {
       "name": "Hide the Explore grid",
-      "description": "Empties the grid of posts and reels on the Search tab. Search, recent searches and results stay. A second switch hides the suggested accounts that show when you tap the search bar. Starts off. Turn it on in HushGram settings > Explore.",
+      "description": "Empties the grid of posts and reels on the Search tab. Search, recent searches and results stay. Two more switches hide the suggested accounts that show when you tap the search bar and the You may also like posts below search results. Starts off. Turn it on in HushGram settings > Explore.",
       "category": "Interface",
       "use": true,
       "dependencies": [

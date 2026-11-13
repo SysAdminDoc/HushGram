@@ -1221,6 +1221,18 @@ once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->hideSect
 start-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
 once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
 #
+# Its third switch, Hide You may also like in search (#657), passes the results page's list of
+# units through SearchRecommendations.units(Object) first thing in both builders of that page: the
+# results lambda (the instance invoke(Object, Object) loading "XDTTopSerpJourneyHeaderUnit", 454's
+# LX/0HRI;) and the static builder taking one list that also loads "ig_top_serp_upsell_unit" (454's
+# LX/0UiC;->A00). Left out, the You may also like block stays under the results; later or twice,
+# the builder has already read the list. HideSearchRecommendationsHookTest checks both on the
+# declared builds.
+start-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->units(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding XDTTopSerpJourneyHeaderUnit
+once-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->units(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding XDTTopSerpJourneyHeaderUnit
+start-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->units(Ljava/lang/Object;)Ljava/lang/Object; in static (*Ljava/util/List;*)L*; pooled holding ig_top_serp_upsell_unit XDTTopSerpJourneyHeaderUnit
+once-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->units(Ljava/lang/Object;)Ljava/lang/Object; in static (*Ljava/util/List;*)L*; pooled holding ig_top_serp_upsell_unit XDTTopSerpJourneyHeaderUnit
+#
 # Explore without personalization (#311) asks ExploreMenu first in the ten-minute timer, the one
 # instance ()Z method loading explore_dsa_experience_expired (some builds may pool it), and nowhere
 # else. Explore's onResume asks unpersonalize once and counts the reload once, both in the hook in

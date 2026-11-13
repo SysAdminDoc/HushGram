@@ -343,6 +343,9 @@ Hide the Explore grid	隐藏探索网格
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	隐藏搜索标签页搜索栏下方的帖子与 Reels 网格。搜索、最近搜索与搜索结果仍会保留。
 Hide suggested accounts in search	隐藏搜索中的推荐账户
 Leaves the Suggested for you accounts out of what shows when you tap the search bar. Recent searches stay.	点击搜索栏时，不再显示“为你推荐”的账户。最近搜索仍会保留。
+# context: You may also like is the header Instagram's server puts on the recommended posts after search results; it isn't a fixed string in the app, so the rows describe it.
+Hide You may also like in search	隐藏搜索结果中的推荐帖子
+Leaves out the You may also like posts Instagram adds below your search results. The results you searched for stay.	不再显示 Instagram 加在搜索结果下方的推荐帖子。你搜索的结果仍会保留。
 Messages	消息
 Hide the notes row	隐藏笔记栏
 Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.	移除消息顶端的笔记栏，包括其中的地图泡泡。聊天、搜索与陌生消息仍会保留。

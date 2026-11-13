@@ -338,6 +338,9 @@ Hide the Explore grid	Entdecken-Raster ausblenden
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Blendet das Raster mit Beiträgen und Reels unter der Leiste des Suchtabs aus. Suche, letzte Suchen und Ergebnisse bleiben.
 Hide suggested accounts in search	Vorgeschlagene Konten in der Suche ausblenden
 Leaves the Suggested for you accounts out of what shows when you tap the search bar. Recent searches stay.	Lässt die Konten unter „Vorschläge für dich“ aus dem weg, was beim Tippen auf die Suchleiste erscheint. Letzte Suchen bleiben.
+# context: You may also like is the header Instagram's server puts on the recommended posts after search results; it isn't a fixed string in the app, so the rows describe it.
+Hide You may also like in search	Empfehlungen in Suchergebnissen ausblenden
+Leaves out the You may also like posts Instagram adds below your search results. The results you searched for stay.	Lässt die Beiträge weg, die Instagram als Empfehlungen unter deine Suchergebnisse setzt. Die Ergebnisse deiner Suche bleiben.
 Messages	Nachrichten
 Hide the notes row	Notizen-Reihe ausblenden
 Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.	Entfernt die Reihe mit Notizen oben in deinen Nachrichten, auch die Karte darin. Deine Chats, die Suche und Anfragen bleiben.

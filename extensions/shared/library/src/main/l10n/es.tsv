@@ -338,6 +338,9 @@ Hide the Explore grid	Ocultar la cuadrícula de Explorar
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Oculta la cuadrícula de publicaciones y reels bajo la barra de la pestaña Buscar. La búsqueda, las búsquedas recientes y los resultados se quedan.
 Hide suggested accounts in search	Ocultar cuentas sugeridas en la búsqueda
 Leaves the Suggested for you accounts out of what shows when you tap the search bar. Recent searches stay.	Quita las cuentas de Sugerencias para ti de lo que aparece al tocar la barra de búsqueda. Las búsquedas recientes se quedan.
+# context: You may also like is the header Instagram's server puts on the recommended posts after search results; it isn't a fixed string in the app, so the rows describe it.
+Hide You may also like in search	Ocultar recomendaciones en los resultados de búsqueda
+Leaves out the You may also like posts Instagram adds below your search results. The results you searched for stay.	Quita las publicaciones que Instagram recomienda debajo de tus resultados de búsqueda. Los resultados que buscaste se quedan.
 Messages	Mensajes
 Hide the notes row	Ocultar la fila de notas
 Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.	Quita la fila de notas de la parte superior de tus mensajes, incluida la burbuja del Mapa. Tus chats, la búsqueda y las solicitudes se quedan.

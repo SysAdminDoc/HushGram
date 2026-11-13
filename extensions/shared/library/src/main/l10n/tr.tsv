@@ -338,6 +338,9 @@ Hide the Explore grid	Keşfet ızgarasını gizle
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Arama sekmesindeki çubuğun altındaki gönderi ve reels ızgarasını gizler. Arama, son aramalar ve sonuçlar kalır.
 Hide suggested accounts in search	Aramada önerilen hesapları gizle
 Leaves the Suggested for you accounts out of what shows when you tap the search bar. Recent searches stay.	Arama çubuğuna dokunduğunda çıkan Senin için önerilen hesapları kaldırır. Son aramalar kalır.
+# context: You may also like is the header Instagram's server puts on the recommended posts after search results; it isn't a fixed string in the app, so the rows describe it.
+Hide You may also like in search	Arama sonuçlarındaki önerileri gizle
+Leaves out the You may also like posts Instagram adds below your search results. The results you searched for stay.	Instagram'ın arama sonuçlarının altına eklediği önerilen gönderileri kaldırır. Aradığın sonuçlar kalır.
 Messages	Mesajlar
 Hide the notes row	Notlar satırını gizle
 Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.	Mesajlarının üst kısmındaki notlar satırını, içindeki Harita balonuyla birlikte kaldırır. Sohbetlerin, arama ve istekler kalır.

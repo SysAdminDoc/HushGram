@@ -335,6 +335,9 @@ Hide the Explore grid	ซ่อนตารางหน้าสำรวจ
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	ซ่อนตารางโพสต์และรีลส์ใต้แถบแท็บค้นหา โดยฟังก์ชันค้นหา, การค้นหาล่าสุด และผลการค้นหาจะยังคงอยู่
 Hide suggested accounts in search	ซ่อนบัญชีที่แนะนำในการค้นหา
 Leaves the Suggested for you accounts out of what shows when you tap the search bar. Recent searches stay.	ไม่แสดงบัญชี "แนะนำสำหรับคุณ" เมื่อคุณแตะที่แถบค้นหา การค้นหาล่าสุดจะยังคงอยู่
+# context: You may also like is the header Instagram's server puts on the recommended posts after search results; it isn't a fixed string in the app, so the rows describe it.
+Hide You may also like in search	ซ่อนโพสต์แนะนำในผลการค้นหา
+Leaves out the You may also like posts Instagram adds below your search results. The results you searched for stay.	ไม่แสดงโพสต์ที่ Instagram แนะนำไว้ใต้ผลการค้นหาของคุณ ผลการค้นหาที่คุณค้นหาจะยังคงอยู่
 Messages	ข้อความ
 Hide the notes row	ซ่อนแถวโน้ต
 Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.	นำแถวโน้ตที่อยู่ด้านบนของข้อความออก รวมถึงฟองแผนที่ในนั้นด้วย แชท, การค้นหา และคำขอของคุณจะยังคงอยู่

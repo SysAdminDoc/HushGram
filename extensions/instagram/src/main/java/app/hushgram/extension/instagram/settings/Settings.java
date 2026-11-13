@@ -1517,6 +1517,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_search_suggestions", FALSE);
 
     /**
+     * The You may also like block {@link app.hushgram.extension.instagram.explore.SearchRecommendations}
+     * leaves out of the end of search results. The results stay. Off to start.
+     */
+    public static final BooleanSetting HIDE_SEARCH_RECOMMENDATIONS =
+            new BooleanSetting("hushgram_hide_search_recommendations", FALSE);
+
+    /**
      * What you open from search stays out of Recent, in the app's cache and on Instagram's side
      * ({@link app.hushgram.extension.instagram.explore.RecentSearches}). Read at each save. Off to start.
      */
