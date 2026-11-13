@@ -6,8 +6,10 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
-* With `Glass tab bar` on and Instagram in light mode, the strips above and below a story are black again, the way they are without the glass. They showed white, and with `Ambient light in stories` on the glow sat on white and hid the clock. Reported in #666.
+* With `Glass tab bar` on in light mode, the strips above and below a story are black again, as they are without the glass. With `Ambient light in stories` on, the glow no longer hides the clock. Reported in #666.
 * With `Accent color` and `Icons in the accent color` on, the tab bar icons keep the picked color on Reels and after you leave it. They turned white on Reels and stayed white back on Home. Reported in #663.
+* Tapping a comment someone shared with you in a chat opens the reel it was on, not another reel that loaded first. It's part of `Open reel links on that reel`. Reported in #662.
+* When Instagram itself lets you swipe through the reels a chat shared, with `Swipe through a chat's reels` off, a reply or reaction now goes to the reel you're watching, not the one you tapped. Reported in #662.
 
 ## 0.0.20 (2026-11-12)
 

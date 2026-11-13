@@ -43,6 +43,16 @@ internal const val REEL_LINKS_SKIP = "$REEL_LINKS->skipsCachedReels(Ljava/lang/O
 internal const val REEL_LINKS_HOLD =
     "$REEL_LINKS->holdsReels(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;IIIII)I"
 internal const val REEL_LINKS_IN = "$REEL_LINKS->linkedReelIn(Ljava/lang/Object;)V"
+internal const val REEL_LINKS_COMMENT = "$REEL_LINKS->sharedCommentOpened(Ljava/lang/String;)V"
+
+/**
+ * The query parameters a tap on a comment shared in a chat reads from the comment's link, the
+ * comment and then what it was on, and the type that opens a Reels viewer. The build keeps them.
+ */
+internal const val COMMENT_ID = "comment_id"
+internal const val COMMENT_MEDIA_TYPE = "media_type"
+internal const val COMMENT_ON_REEL = "clips"
+private const val QUERY_PARAMETER = "Landroid/net/Uri;->getQueryParameter(Ljava/lang/String;)Ljava/lang/String;"
 
 /**
  * The flag name Instagram's Reels viewer loads as it builds the controller playing reels it kept on
@@ -87,6 +97,10 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * returns instead (the extension adds the chunk later with the same arguments), and tells it as the
  * adapter's insert starts, which for a link's viewer is the linked reel going in.
  *
+ * A comment shared in a chat is a link too (#662): tapping one on a reel opens a viewer from the chat
+ * with only the reel's id, and the same chunk can land first. The patch tells the extension as the
+ * tap reads what the comment was on, and the next chat viewer holds its chunks like a link's.
+ *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
  */
@@ -106,9 +120,11 @@ val openReelLinksPatch = bytecodePatch(
         val links = findReelLinksSite()
         val chunk = findReelChunkSite()
         val insert = findLinkInsertSite(chunk.adapter)
+        val comment = findSharedCommentSite()
         applyReelLinks(links)
         applyReelChunk(chunk)
         applyLinkInsert(insert)
+        applySharedComment(comment)
         enableStatus("reelLinks")
     }
 }
@@ -249,6 +265,37 @@ internal fun BytecodePatchContext.findLinkInsertSite(adapter: String): Method {
 internal fun BytecodePatchContext.applyLinkInsert(method: Method) {
     val self = method.selfRegister()
     mutable(method).addInstructions(0, "invoke-static/range { v$self .. v$self }, $REEL_LINKS_IN")
+}
+
+/**
+ * The method handling a tap on a comment shared in a chat, the index right after it reads what the
+ * comment was on (where it next loads [COMMENT_ON_REEL] to compare), and the register holding it.
+ */
+internal class SharedCommentSite(val method: Method, val index: Int, val type: Int)
+
+internal fun BytecodePatchContext.findSharedCommentSite(): SharedCommentSite {
+    val methods = classesLoadingString(COMMENT_ID).flatMap { it.methods }
+        .filter { loadsString(it, COMMENT_ID) && loadsString(it, COMMENT_MEDIA_TYPE) }
+    // const-string "media_type", getQueryParameter, move-result-object, then const-string "clips".
+    val sites = methods.flatMap { method ->
+        val code = method.code()
+        code.indices.filter { at ->
+            stringLoadedAt(code, at) == COMMENT_MEDIA_TYPE &&
+                (code.getOrNull(at + 1) as? ReferenceInstruction)?.reference?.toString() == QUERY_PARAMETER &&
+                code.getOrNull(at + 2)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
+                stringLoadedAt(code, at + 3) == COMMENT_ON_REEL
+        }.map { method to it + 3 }
+    }
+    val (method, index) = sites.singleOrNull()
+        ?: refuse("expected one tap reading \"$COMMENT_MEDIA_TYPE\" of a shared comment, then comparing it to \"$COMMENT_ON_REEL\", found ${sites.size}")
+    if (index in method.jumpTargets()) refuse("something in ${method.definingClass}->${method.name} jumps to the comparison with \"$COMMENT_ON_REEL\"")
+    val type = (method.code()[index - 1] as OneRegisterInstruction).registerA
+    return SharedCommentSite(method, index, type)
+}
+
+/** Right after the tap reads what the shared comment was on: tell [REEL_LINKS_COMMENT] with it. */
+internal fun BytecodePatchContext.applySharedComment(site: SharedCommentSite) {
+    mutable(site.method).addInstructions(site.index, "invoke-static/range { v${site.type} .. v${site.type} }, $REEL_LINKS_COMMENT")
 }
 
 /** The register holding `this` as an instance method starts: the first of its parameter registers. */

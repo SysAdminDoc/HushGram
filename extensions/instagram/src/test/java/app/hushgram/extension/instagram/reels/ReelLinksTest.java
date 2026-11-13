@@ -248,6 +248,56 @@ public class ReelLinksTest {
         assertFalse(report(), report().contains(ReelLinks.HELD));
     }
 
+    /**
+     * A comment shared in a chat, tapped on a reel, opens a viewer from the chat that loads the reel by
+     * its id: its chunks wait like a link's until the reel is in (#662). One viewer per tap.
+     */
+    @Test
+    public void aSharedCommentsViewerWaitsForItsReel() {
+        ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
+        Adapter viewer = new Adapter(ClipsViewerSource.DIRECT);
+        assertEquals("the chunk waits", 1, chunk(viewer, "a"));
+        idle();
+        assertTrue("nothing added before the reel", viewer.added.isEmpty());
+        ReelLinks.linkedReelIn(viewer);
+        idle();
+        assertEquals(Collections.singletonList(added("a")), viewer.added);
+        assertEquals("the next chat viewer isn't the comment's", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "b"));
+        String report = report();
+        assertTrue(report, report.contains(ReelLinks.HELD + " 1"));
+        assertTrue(report, report.contains(ReelLinks.ADDED + " 1"));
+    }
+
+    /**
+     * Never held for a shared comment: a chat viewer with no comment tapped, a comment on something
+     * that isn't a reel, another viewer, a viewer too long after the tap, one whose reel went in
+     * first (which spends the tap), and the switch off.
+     */
+    @Test
+    public void otherSharedCommentsAndViewersGoStraightIn() {
+        assertEquals("no comment tapped", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "a"));
+        ReelLinks.sharedCommentOpened("photo");
+        assertEquals("a comment on a post", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "a"));
+        ReelLinks.sharedCommentOpened(null);
+        assertEquals("nothing said what it was on", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "a"));
+
+        ReelLinks.sharedCommentOpened(ReelLinks.ON_GLIMMER);
+        assertEquals("the Reels tab", 0, chunk(new Adapter(ClipsViewerSource.CLIPS_TAB), "a"));
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(ReelLinks.COMMENT_MILLIS + 1, TimeUnit.MILLISECONDS);
+        assertEquals("too long after the tap", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "a"));
+
+        ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
+        Adapter cold = new Adapter(ClipsViewerSource.DIRECT);
+        ReelLinks.linkedReelIn(cold);
+        assertEquals("its reel went in first", 0, chunk(cold, "a"));
+        assertEquals("and that spent the tap", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "b"));
+
+        Settings.OPEN_REEL_LINKS_FIRST.save(false);
+        ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
+        assertEquals("off", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "a"));
+        assertFalse(report(), report().contains(ReelLinks.HELD));
+    }
+
     /** A chunk is never held when it couldn't be added again: the adapter has two methods shaped like it. */
     @Test
     public void noSingleWayToAddItMeansNoHold() {

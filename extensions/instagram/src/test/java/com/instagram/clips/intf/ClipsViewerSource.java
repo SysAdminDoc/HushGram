@@ -14,6 +14,7 @@ public enum ClipsViewerSource {
     PROFILE_CLIPS,
     FEED_TIMELINE,
     DIRECT_THREAD,
+    DIRECT,
     CLIPS_FRIEND_LANE,
     THIRD_PARTY_URL,
     PRIME_THIRD_PARTY_URL,

@@ -1925,6 +1925,13 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->skipsCachedReels(L
 once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->holdsReels(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;IIIII)I in static (LX/*;LX/*;)V pooled holding Network\sChunk\sReceived Add\sto\sUI
 once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->linkedReelIn(Ljava/lang/Object;)V in instance (Ljava/util/List;I)V pooled holding android_purge_26_q2_ClipsViewerAdapter_insertClipsItemsAtPosition
 #
+# A comment shared in a chat is a link too (#662): the same patch tells the extension what a tapped
+# shared comment was on, right after the tap reads it from the comment's link, in the one method
+# reading the comment's id and type. Left out, a shared comment on a reel can play another reel
+# first; twice or elsewhere, it isn't the hook the patch wrote. OpenReelLinksHookTest checks where it
+# lands on every declared build.
+once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->sharedCommentOpened(Ljava/lang/String;)V in instance (*)V pooled holding comment_id media_type clips glimmer
+#
 # Open links in external browser asks the extension right after the in-app browser's own super
 # call, in onCreate and in onNewIntent. Both call the one redirect, so each rule is shared-call:
 # once in its method and in no other method holding its strings. On 449 only the browser's

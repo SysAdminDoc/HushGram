@@ -41,7 +41,7 @@ class OpenReelLinksHookTest {
         val declared = ExtensionDex.classDef(REEL_LINKS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(REEL_LINKS_SKIP, REEL_LINKS_HOLD, REEL_LINKS_IN)) {
+        for (hook in listOf(REEL_LINKS_SKIP, REEL_LINKS_HOLD, REEL_LINKS_IN, REEL_LINKS_COMMENT)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -188,6 +188,51 @@ class OpenReelLinksHookTest {
                 val tell = told[0] as RegisterRangeInstruction
                 assertEquals("$what: told with this", listOf(self, 1), listOf(tell.startRegister, tell.registerCount))
                 insertStock.assertPreserved(what, telling.single(), setOf(0))
+            }
+        }
+    }
+
+    /**
+     * In each build the tap on a comment shared in a chat is found by the comment's query parameters,
+     * and the hook goes in once, right after it reads what the comment was on: it hands the extension
+     * the register the read put it in, and the comparison with a reel's type comes next, as before
+     * (#662). Every other instruction keeps its place.
+     */
+    @Test
+    fun eachDeclaredBuildTellsOfSharedComments() {
+        for (apk in bundles()) {
+            val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
+            val loading = FixtureDex.classesLoading(apk, COMMENT_ID).map { it.type }
+            assertTrue("$name: classes loading \"$COMMENT_ID\"", loading.isNotEmpty())
+            for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
+                val what = "$name ($read)"
+                val classes = classesOf(apk, loading.toSet()).values
+                val context = PatchContexts.of(classes)
+                val site = context.findSharedCommentSite()
+                val stockCode = site.method.code()
+                val typeRead = stockCode[site.index - 2]
+                assertEquals("$what: the read", "Landroid/net/Uri;->getQueryParameter(Ljava/lang/String;)Ljava/lang/String;",
+                    typeRead.referenceText())
+                assertEquals("$what: its result", Opcode.MOVE_RESULT_OBJECT, stockCode[site.index - 1].opcode)
+                assertEquals("$what: the result's register", site.type, (stockCode[site.index - 1] as OneRegisterInstruction).registerA)
+                val stock = NeutralNativePath(context.mutableOf(site.method))
+                context.apply { applySharedComment(site) }
+
+                val telling = context.methodsCalling(classes, REEL_LINKS_COMMENT)
+                assertEquals("$what: methods telling", listOf(site.method.definingClass to site.method.name),
+                    telling.map { it.definingClass to it.name })
+                val method = telling.single()
+                val code = method.code()
+                val at = site.index
+                assertEquals("$what: the hook right after the read's result",
+                    listOf(Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC_RANGE),
+                    code.subList(at - 1, at + 1).map { it.opcode })
+                val tell = code[at] as RegisterRangeInstruction
+                assertEquals("$what: told with what the comment was on", listOf(site.type, 1), listOf(tell.startRegister, tell.registerCount))
+                assertTrue("$what: compared with a reel's type next",
+                    code[at + 1].opcode in setOf(Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO) && code[at + 1].referenceText() == COMMENT_ON_REEL)
+                assertTrue("$what: a jump lands on the hook", at !in method.jumpTargets())
+                stock.assertPreserved(what, method, setOf(at))
             }
         }
     }

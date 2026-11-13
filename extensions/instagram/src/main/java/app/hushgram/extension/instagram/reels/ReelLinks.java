@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.reels;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
@@ -47,6 +48,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * when the viewer inserts reels at a position, which for a link's viewer is the linked reel going
  * in. The held chunks are added right after, behind it, or after {@link #WAIT_MILLIS} if the
  * linked reel never comes.
+ *
+ * <p>A comment shared in a chat is a link too (#662). Tapping it on a reel opens a Reels viewer from
+ * the chat ({@link #FROM_CHAT}) with only the reel's id, which loads the reel the way a link's viewer
+ * does, so the same chunk can land first and play a stranger's reel. The patch tells
+ * {@link #sharedCommentOpened(String)} as the tap reads what the comment was on, and the next chat
+ * viewer within {@link #COMMENT_MILLIS} holds its chunks like a link's.
  */
 public final class ReelLinks {
     /** What {@link HookStatus} counts: a viewer opened from a link that skipped the cached reels. */
@@ -65,6 +72,7 @@ public final class ReelLinks {
     static final String VIEWER = "reels viewer from a link";
     static final String CHUNK = "reels added to a link's viewer";
     static final String LINKED = "linked reel added";
+    static final String COMMENT = "shared comment opened";
 
     /** The source of a viewer opened from a link, as Instagram 454 names it. */
     static final String FROM_LINK = "THIRD_PARTY_URL";
@@ -72,8 +80,24 @@ public final class ReelLinks {
     /** The source of a viewer opened from a link Instagram warmed up first, as Instagram 454 names it. */
     static final String FROM_LINK_PRIME = "PRIME_THIRD_PARTY_URL";
 
+    /** The source of a viewer opened from a chat, as Instagram 454 names it. */
+    static final String FROM_CHAT = "DIRECT";
+
+    /** What a shared comment was on, as its link names it, when tapping it opens a Reels viewer. */
+    static final String ON_REEL = "clips";
+    static final String ON_GLIMMER = "glimmer";
+
     /** How long a link's viewer holds its chunks for the linked reel before adding them anyway. */
     static final long WAIT_MILLIS = 10_000;
+
+    /** How long after a shared comment is tapped the next viewer from a chat counts as the one it opened. */
+    static final long COMMENT_MILLIS = 5_000;
+
+    /** No shared comment tapped. */
+    private static final long NO_COMMENT = Long.MIN_VALUE;
+
+    /** When a shared comment on a reel was last tapped, by {@link SystemClock#uptimeMillis()}, until a chat viewer takes it. */
+    private static volatile long commentTapped = NO_COMMENT;
 
     /** A link's viewer: the chunks it held, in the order they came, and whether its linked reel is in. */
     private static final class Viewer {
@@ -124,7 +148,8 @@ public final class ReelLinks {
      * Asked as Instagram adds a chunk of reels from the network to a Reels viewer, with the viewer's
      * adapter and the arguments of the call adding it: the head item, the reels, then its five flags
      * (first page, refreshing, loading, more pages, forward). 1 holds the chunk back: the viewer was
-     * opened from a link ({@link #FROM_LINK}), its linked reel isn't in yet, the chunk goes after the
+     * opened from a link ({@link #FROM_LINK}), or from a chat right after a shared comment was tapped,
+     * its linked reel isn't in yet, the chunk goes after the
      * reels already there rather than refreshing them, and the switch is on. The chunk is then added
      * with the same arguments once the linked reel is in, or after {@link #WAIT_MILLIS}. 0 adds it
      * now: every other viewer, a chunk after the linked reel, and anything that throws. Never throws.
@@ -138,12 +163,16 @@ public final class ReelLinks {
             if (!Utils.settingsReady() || !Settings.OPEN_REEL_LINKS_FIRST.get()) return 0;
             Object[] call = {head, items, firstPage != 0, false, loading != 0, more != 0, true};
             Viewer started = null;
+            String opened = null;
             synchronized (VIEWERS) {
                 Viewer viewer = VIEWERS.get(adapter);
                 // Chunks after the linked reel go straight in, unless held ones still wait ahead of them.
                 if (viewer != null && viewer.linked && viewer.held.isEmpty()) return 0;
                 if (viewer == null) {
-                    if (!FROM_LINK.equals(sourceOf(adapter))) return 0;
+                    String source = sourceOf(adapter);
+                    if (FROM_LINK.equals(source)) opened = "a link";
+                    else if (FROM_CHAT.equals(source) && takeCommentTap()) opened = "a shared comment";
+                    else return 0;
                     Method fill = fillOf(adapter.getClass());
                     Looper looper = Looper.myLooper();
                     if (fill == null || looper == null) return 0;
@@ -156,7 +185,8 @@ public final class ReelLinks {
             if (started != null) {
                 WeakReference<Object> held = new WeakReference<>(adapter);
                 started.handler.postDelayed(() -> release(held, WAITED_OUT), WAIT_MILLIS);
-                Logger.printDebug(() -> "Reels viewer opened from a link: holding reels until the linked reel is in");
+                String from = opened;
+                Logger.printDebug(() -> "Reels viewer opened from " + from + ": holding reels until its reel is in");
             }
             HookStatus.counted(FamilyNames.REEL_LINKS, HELD);
             return 1;
@@ -181,6 +211,8 @@ public final class ReelLinks {
                 viewer = VIEWERS.get(adapter);
                 if (viewer == null) {
                     VIEWERS.put(adapter, new Viewer(null, null, true));
+                    // A chat viewer whose reel went in before any chunk is the comment's, and needed no hold.
+                    if (commentTapped != NO_COMMENT && FROM_CHAT.equals(sourceOf(adapter))) commentTapped = NO_COMMENT;
                     return;
                 }
                 if (viewer.linked) return;
@@ -191,6 +223,33 @@ public final class ReelLinks {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_LINKS, LINKED, failure);
         }
+    }
+
+    /**
+     * Told as a tap on a comment shared in a chat reads what the comment was on, [mediaType] from its
+     * link. On a reel ({@link #ON_REEL} or {@link #ON_GLIMMER}) the tap goes on to open a Reels viewer
+     * from the chat with only the reel's id, so the next one within {@link #COMMENT_MILLIS} holds its
+     * chunks until the reel is in, like a link's viewer (#662). Anything else opens no Reels viewer and
+     * is let go. Never throws.
+     */
+    public static void sharedCommentOpened(String mediaType) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_LINKS);
+            if (!ON_REEL.equals(mediaType) && !ON_GLIMMER.equals(mediaType)) return;
+            commentTapped = SystemClock.uptimeMillis();
+            Logger.printDebug(() -> "Shared comment on a " + mediaType + " tapped: its viewer waits for that reel");
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_LINKS, COMMENT, failure);
+        }
+    }
+
+    /** Whether a shared comment was tapped within {@link #COMMENT_MILLIS}, forgetting it so only one viewer counts as its. */
+    private static boolean takeCommentTap() {
+        long tapped = commentTapped;
+        if (tapped == NO_COMMENT) return false;
+        commentTapped = NO_COMMENT;
+        long since = SystemClock.uptimeMillis() - tapped;
+        return since >= 0 && since <= COMMENT_MILLIS;
     }
 
     /** Adds what [adapter]'s viewer held, in the order it came, and lets every later chunk straight in. */
@@ -216,7 +275,7 @@ public final class ReelLinks {
                 HookStatus.threw(FamilyNames.REEL_LINKS, CHUNK, failure);
             }
         }
-        Logger.printDebug(() -> "Reels viewer opened from a link: " + calls.size() + " " + why);
+        Logger.printDebug(() -> "Reels viewer waiting for its reel: " + calls.size() + " " + why);
     }
 
     /**
@@ -270,10 +329,11 @@ public final class ReelLinks {
         return fill;
     }
 
-    /** Forgets every viewer, for tests. */
+    /** Forgets every viewer and any shared comment tap, for tests. */
     static void forgetForTests() {
         synchronized (VIEWERS) {
             VIEWERS.clear();
         }
+        commentTapped = NO_COMMENT;
     }
 }

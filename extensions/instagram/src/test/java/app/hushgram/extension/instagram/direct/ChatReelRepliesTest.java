@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -44,6 +45,7 @@ public class ChatReelRepliesTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SWIPE_CHAT_REELS.save(true);
+        ChatReels.chain(0);
         HookStatus.clear();
         ChatReels.forgetReplies();
         ChatReels.tapped();
@@ -54,8 +56,26 @@ public class ChatReelRepliesTest {
         Settings.SWIPE_CHAT_REELS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
+        ChatReels.chain(0);
         HookStatus.clear();
         ChatReels.forgetReplies();
+    }
+
+    /**
+     * Instagram's own chat reels test chains a chat's reels with the switch off, and its reply bar
+     * quotes the tapped message there too, so that viewer gets the swiped reels' own messages (#662).
+     */
+    @Test
+    public void instagramsOwnChainGetsTheReelsOwnMessages() {
+        Settings.SWIPE_CHAT_REELS.save(false);
+        assertFalse("off, and Instagram doesn't chain", ChatReels.chaining());
+        assertFalse("Instagram's no", ChatReels.chain(0));
+        assertTrue("Instagram's yes", ChatReels.chain(1));
+        assertTrue("chained by Instagram", ChatReels.chaining());
+        ChatReels.chain(0);
+        assertFalse("Instagram's no again", ChatReels.chaining());
+        Settings.SWIPE_CHAT_REELS.save(true);
+        assertTrue("the switch", ChatReels.chaining());
     }
 
     /**

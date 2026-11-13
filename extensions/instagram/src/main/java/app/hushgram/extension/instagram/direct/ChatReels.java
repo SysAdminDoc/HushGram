@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -96,6 +97,8 @@ public final class ChatReels {
     private static final Map<String, Map<String, Object>> REPLIES = new Kept<>(REPLIES_KEPT);
     /** The chat's activity the last tap's viewer opened over, or null. Main thread only. */
     @Nullable private static Tapped tappedChat;
+    /** Instagram's own answer to the chat reels test, a server test it reads once a session: yes chains a chat's reels without the switch. */
+    private static volatile boolean instagramChains;
 
     private ChatReels() {
     }
@@ -108,6 +111,10 @@ public final class ChatReels {
     public static boolean chain(int answer) {
         boolean instagram = answer != 0;
         try {
+            if (instagramChains != instagram) {
+                instagramChains = instagram;
+                Logger.printDebug(() -> "Instagram's own chat reels test: " + (instagram ? "on" : "off"));
+            }
             HookStatus.invoked(FamilyNames.CHAT_REELS);
             return instagram || (Utils.settingsReady() && Settings.SWIPE_CHAT_REELS.get());
         } catch (Throwable failure) {
@@ -273,14 +280,15 @@ public final class ChatReels {
      * Remembers [info], the reply info Instagram just built for one of a chat's messages, the one in
      * [wrapper], so a reel swiped to from that chat gets the reply bar and reactions for its own message
      * (#488). Instagram keeps only the tapped reel's info and asks for it by position, so past the first
-     * reel its bar hid and a reaction quoted the tapped message. Nothing while the switch is off,
-     * HushGram is paused or the settings aren't ready, and nothing is ever sent. Never throws.
+     * reel its bar hid and a reaction quoted the tapped message. Nothing while the chat's reels aren't
+     * chained (see {@link #chaining()}), HushGram is paused or the settings aren't ready, and nothing is
+     * ever sent. Never throws.
      */
     public static void collected(@Nullable Object info, @Nullable Object wrapper) {
         try {
             HookStatus.invoked(FamilyNames.CHAT_REELS);
             if (info == null || wrapper == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
-            if (!Settings.SWIPE_CHAT_REELS.get()) return;
+            if (!chaining()) return;
             Object reel = reel(wrapper);
             if (reel != null) rememberReply(mediaId(reel), messageOf(info), info);
         } catch (Throwable failure) {
@@ -309,8 +317,8 @@ public final class ChatReels {
      * The reply info for the reel at [position] of [adapter], a viewer's adapter, when the reply bar
      * updates for that page: [instagram], Instagram's own, or the info of the reel's own message in the
      * chat (see {@link #reply(String, String)}). [instagram] for any viewer but a chat's ([source] is its
-     * ClipsViewerSource), with the switch off, while HushGram is paused, before the settings are ready
-     * and on any failure. Never throws.
+     * ClipsViewerSource), while the chat's reels aren't chained, while HushGram is paused, before the
+     * settings are ready and on any failure. Never throws.
      */
     @Nullable
     public static Object replyTo(@Nullable Object instagram, @Nullable Object source, @Nullable Object adapter, int position) {
@@ -332,8 +340,8 @@ public final class ChatReels {
      * The reply info a reply typed or a reaction sent on [item], the reel on screen, quotes:
      * [instagram], Instagram's own, or the info of the reel's own message in the chat (see
      * {@link #reply(String, String)}). [instagram] for any viewer but a chat's ([source] is its
-     * ClipsViewerSource), with the switch off, while HushGram is paused, before the settings are ready
-     * and on any failure. Never throws.
+     * ClipsViewerSource), while the chat's reels aren't chained, while HushGram is paused, before the
+     * settings are ready and on any failure. Never throws.
      */
     @Nullable
     public static Object replyInfo(@Nullable Object instagram, @Nullable Object source, @Nullable Object item) {
@@ -352,7 +360,16 @@ public final class ChatReels {
 
     /** Whether a viewer whose ClipsViewerSource is [source] gets its reels' own messages on the reply bar. */
     private static boolean replies(@Nullable Object source) {
-        return fromChat(source) && Utils.settingsReady() && !HushgramPause.isPaused() && Settings.SWIPE_CHAT_REELS.get();
+        return fromChat(source) && Utils.settingsReady() && !HushgramPause.isPaused() && chaining();
+    }
+
+    /**
+     * Whether a chat's reels are chained, so a reel swiped to needs its own message on the reply bar:
+     * the switch is on, or Instagram's own chat reels test said yes, which chains them with the switch
+     * off and has the same wrong-message reply bar (#662).
+     */
+    static boolean chaining() {
+        return instagramChains || Settings.SWIPE_CHAT_REELS.get();
     }
 
     /** The info of [item]'s own message in the chat in place of [instagram], or null to keep Instagram's. */
