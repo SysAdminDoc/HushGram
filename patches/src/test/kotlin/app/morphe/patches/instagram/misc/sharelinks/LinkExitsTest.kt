@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -79,9 +80,10 @@ class LinkExitsTest {
     }
 
     /**
-     * Every Context.startActivity call in each declared build goes to its stand-in with the
-     * registers it had and the instruction count unchanged. Instagram 449's launchers, the one
-     * WhatsApp's share button uses among them, end in these calls.
+     * Every activity start, share sheet and clipboard copy in each declared build goes to its
+     * stand-in with the registers it had and the instruction count unchanged. Instagram 449's
+     * launchers, the one WhatsApp's share button uses among them, end in Context.startActivity, and
+     * 454's share sheet Copy link ends in android.text.ClipboardManager.setText (#667).
      */
     @Test
     fun eachDeclaredBuildSendsEveryActivityStart() {
@@ -104,7 +106,7 @@ class LinkExitsTest {
     private fun builds(bundle: File, label: String) {
         val callers = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
-            if (dex.methodSection.none { it.definingClass == "Landroid/content/Context;" && it.name == "startActivity" }) {
+            if (dex.methodSection.none { call -> exits.any { it.definingClass == call.definingClass && it.name == call.name } }) {
                 return@forEach
             }
             for (classDef in dex.classes) {
@@ -113,11 +115,19 @@ class LinkExitsTest {
                 }
             }
         }
-        val found = callers.flatMap { it.methods }.flatMap { it.instructions() }.count { it.exitCall() != null }
-        assertTrue("${label}: Context.startActivity calls in the stock build: $found", found > 40)
+        val calls = callers.flatMap { it.methods }.flatMap { it.instructions() }.mapNotNull { it.exitCall() }
+        val starts = calls.count { call -> DIRECT_SHARE_EXITS.any { it.standIn == call } }
+        assertTrue("${label}: Context.startActivity calls in the stock build: $starts", starts > 40)
+        // The share sheet's Copy link writes the link with the android.text setText (#667).
+        val copyLinks = callers.flatMap { it.methods }.filter { method ->
+            val body = method.instructions()
+            body.any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "copy_link" } &&
+                body.any { it.exitCall()?.contains("->setText(") == true }
+        }
+        assertTrue("${label}: no method loading copy_link sets clipboard text", copyLinks.isNotEmpty())
 
         val context = PatchContexts.of(callers)
-        assertEquals("${label}: calls sent", found, context.rerouteLinkExits(DIRECT_SHARE_EXITS))
+        assertEquals("${label}: calls sent", calls.size, context.rerouteLinkExits(exits))
 
         for (before in callers) {
             val after = context.mutableClassDefBy(before.type).methods
@@ -167,7 +177,7 @@ class LinkExitsTest {
         parameterTypes.map(Any::toString) == other.parameterTypes.map(Any::toString)
 
     /** The stand-in an exit call is sent to, or null when this isn't one. */
-    private fun Instruction.exitCall(): String? = DIRECT_SHARE_EXITS.firstOrNull { it.matches(this) }?.standIn
+    private fun Instruction.exitCall(): String? = exits.firstOrNull { it.matches(this) }?.standIn
 
     private fun Instruction.standInCall(): String? {
         val call = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return null

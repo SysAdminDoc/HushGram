@@ -10,7 +10,9 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Application;
 import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -335,6 +337,33 @@ public class LinkCleanerTest {
             assertEquals("https://example.org/page?x=1",
                     LinkCleaner.browserLink("https://example.org/page?fbclid=abc&utm_source=campaign&x=1"));
         } finally {
+            Settings.SHARING_DOMAIN.resetToDefault();
+        }
+    }
+
+    /**
+     * The share sheet's Copy link writes the link with ClipboardManager.setText, not a clip (#667).
+     * What lands on the clipboard has no tracking keys and is on the Sharing domain.
+     */
+    @Test
+    public void shareSheetCopyLinkMovesToTheSharingDomain() {
+        ClipboardManager clipboard = (ClipboardManager) RuntimeEnvironment.getApplication()
+                .getSystemService(Context.CLIPBOARD_SERVICE);
+        Settings.SHARING_DOMAIN.save("example.com");
+        try {
+            LinkCleaner.setText((android.text.ClipboardManager) clipboard,
+                    "https://www.instagram.com/reel/C1/?igsh=abc&utm_source=ig_web_copy_link");
+            assertEquals("https://example.com/reel/C1/", clipboard.getText().toString());
+            LinkCleaner.setText(clipboard, "https://www.instagram.com/p/C1/?stkn=abc");
+            assertEquals("https://example.com/p/C1/", clipboard.getText().toString());
+            LinkCleaner.setText(clipboard, "plain words");
+            assertEquals("plain words", clipboard.getText().toString());
+            Settings.SANITIZE_SHARING_LINKS.save(false);
+            String link = "https://www.instagram.com/p/C1/?stkn=abc";
+            LinkCleaner.setText((android.text.ClipboardManager) clipboard, link);
+            assertEquals("with Sanitize sharing links off", link, clipboard.getText().toString());
+        } finally {
+            Settings.SANITIZE_SHARING_LINKS.resetToDefault();
             Settings.SHARING_DOMAIN.resetToDefault();
         }
     }

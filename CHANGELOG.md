@@ -12,6 +12,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* `Copy link` in the share sheet uses your `Sharing domain` again. The copied link had its tracking bits removed but still pointed at instagram.com. Reported in #667.
 * In light mode the strips above and below a story are black instead of white, so the clock and the navigation buttons show again. That goes for stories opened from a profile too. With `Ambient light in stories` on, the glow there sits on black as well. Reported in #666.
 * With `Accent color` and `Icons in the accent color` on, the tab bar icons keep the picked color on Reels and after you leave it. They turned white on Reels and stayed white back on Home. Reported in #663.
 * Tapping a comment someone shared with you in a chat opens the reel it was on, not another reel that loaded first. It's part of `Open reel links on that reel`. Reported in #662.

@@ -156,6 +156,35 @@ public final class LinkCleaner {
         manager.setPrimaryClip(sanitizedClip(clip));
     }
 
+    /**
+     * Stands in for {@link android.text.ClipboardManager#setText}, the call the share sheet's Copy
+     * link makes, with the Instagram links in the text cleaned (#667).
+     */
+    public static void setText(android.text.ClipboardManager manager, CharSequence text) {
+        manager.setText(sanitizedText(text));
+    }
+
+    /** Stands in for {@link ClipboardManager#setText}, the same way. */
+    public static void setText(ClipboardManager manager, CharSequence text) {
+        manager.setText(sanitizedText(text));
+    }
+
+    /**
+     * [text] with its Instagram links cleaned, or [text] itself when there's nothing to clean, the
+     * switch is off, or anything goes wrong.
+     */
+    static CharSequence sanitizedText(CharSequence text) {
+        HookStatus.invoked(FamilyNames.SANITIZE_SHARING_LINKS);
+        if (text == null || !enabled()) return text;
+        try {
+            String cleaned = cleanText(text.toString());
+            return cleaned.contentEquals(text) ? text : cleaned;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.SANITIZE_SHARING_LINKS, "clipboard", t);
+            return text;
+        }
+    }
+
     /** Stands in for {@link Intent#createChooser(Intent, CharSequence)}, cleaning the shared text first. */
     public static Intent createChooser(Intent target, CharSequence title) {
         return Intent.createChooser(sanitizedShare(target), title);
