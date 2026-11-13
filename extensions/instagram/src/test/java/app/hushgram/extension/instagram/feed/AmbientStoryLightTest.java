@@ -478,6 +478,16 @@ public class AmbientStoryLightTest {
         stripAboveTheStory(true);
     }
 
+    /**
+     * #666: in light mode Instagram paints the layout round the story and what holds it white. The glow
+     * in the strips sits on black there too, as it does in dark mode, and never on the white, which hid
+     * the clock and the navigation buttons.
+     */
+    @Test
+    public void inLightModeTheStripsGlowOnBlack() {
+        stripAboveTheStory(false, Color.WHITE);
+    }
+
     /** The highest child that shows something ends the strip, and a bare view showing nothing doesn't. */
     @Test
     public void onlyAChildThatShowsSomethingEndsTheStrip() {
@@ -513,9 +523,17 @@ public class AmbientStoryLightTest {
         view.layout(0, 0, WIDTH, 200);
     }
 
-    /** The story below the status bar in a layout painting the strip above it black, with a bare line at the layout's top or not. */
     private void stripAboveTheStory(boolean bareLine) {
+        stripAboveTheStory(bareLine, Color.BLACK);
+    }
+
+    /**
+     * The story below the status bar in a layout painting the strip above it in the theme's [paint], with
+     * a bare line at the layout's top or not. What holds the layout is painted the same.
+     */
+    private void stripAboveTheStory(boolean bareLine, int paint) {
         if (activity.getActionBar() != null) activity.getActionBar().hide();
+        if (paint != Color.BLACK) root.setBackgroundColor(paint);
         laidOut();
         View window = activity.getWindow().getDecorView();
         int width = window.getWidth(), height = window.getHeight();
@@ -533,7 +551,7 @@ public class AmbientStoryLightTest {
         FrameLayout main = new FrameLayout(activity);
         main.addView(frame, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         FrameLayout layout = new FrameLayout(activity);
-        layout.setBackgroundColor(Color.BLACK);
+        layout.setBackgroundColor(paint);
         FrameLayout.LayoutParams below = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
         below.topMargin = statusBar;
         if (bareLine) layout.addView(new View(activity), new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 1));
@@ -548,16 +566,18 @@ public class AmbientStoryLightTest {
         assertEquals(new Rect(0, statusBar, width, statusBar + stage), AmbientLight.hostLitForTests(photo));
         Bitmap drawn = shown(root);
         int strip = drawn.getPixel(width / 2, statusBar - 3);
-        assertTrue("the strip above the story, the picture's top: " + hex(strip), Color.blue(strip) > 60 && Color.red(strip) < 30);
+        assertTrue("the strip above the story, the picture's top on black: " + hex(strip),
+                Color.blue(strip) > 60 && Color.red(strip) < 30 && Color.green(strip) < 30);
         assertEquals("the progress bar stays on top", Color.WHITE, drawn.getPixel(width / 2, statusBar + 4));
         int gestureBand = drawn.getPixel(width / 2, height - gestureBar / 2);
-        assertTrue("under the gesture bar, its bottom: " + hex(gestureBand),
-                Color.alpha(gestureBand) > 20 && Color.red(gestureBand) > 60 && Color.blue(gestureBand) < 30);
+        assertTrue("under the gesture bar, its bottom on black: " + hex(gestureBand),
+                Color.alpha(gestureBand) > 20 && Color.red(gestureBand) > 60 && Color.blue(gestureBand) < 30
+                        && Color.green(gestureBand) < 30);
 
         Settings.AMBIENT_LIGHT_STORIES.save(false);
         AmbientLight.switchChanged(activity);
         shadowOf(Looper.getMainLooper()).idle();
-        assertEquals("off, the layout's own black again", Color.BLACK, shown(root).getPixel(width / 2, statusBar - 3));
+        assertEquals("off, the layout's own paint again", paint, shown(root).getPixel(width / 2, statusBar - 3));
     }
 
     @Test

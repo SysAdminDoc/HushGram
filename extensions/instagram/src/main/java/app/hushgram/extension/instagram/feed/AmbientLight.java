@@ -242,6 +242,20 @@ public final class AmbientLight {
         return Utils.settingsReady() && Settings.AMBIENT_LIGHT.get();
     }
 
+    /**
+     * Whether a story's glow lights the strips under the system bars in [decor]'s window now, so the
+     * black covers there step aside for it (#666). Main thread only.
+     */
+    public static boolean storyBandsLit(View decor) {
+        if (!storiesWanted()) return false;
+        for (Light light : lights.values()) {
+            if (light.kind != Kind.STORY || light.face == null || light.hostLit.isEmpty()) continue;
+            ViewGroup host = light.host();
+            if (host != null && host.isShown() && host.getRootView() == decor) return true;
+        }
+        return false;
+    }
+
     /** Whether Blend post edges is on now. */
     static boolean blendWanted() {
         return Utils.settingsReady() && Settings.AMBIENT_LIGHT_BLEND.get();
@@ -1573,6 +1587,8 @@ public final class AmbientLight {
                 if (bands) {
                     for (int i = 0; i < light.strips.size(); i++) canvas.clipOutRect(light.strips.get(i));
                 }
+                // A story's bands glow on black, whatever the theme gave the host (#666).
+                if (bands && host == on && light.kind == Kind.STORY) canvas.drawColor(Color.BLACK);
                 // A rounded story frame's corners are left to the view it sits in, when that one draws them (#630).
                 pieces(canvas, light, lit, light.corner > 0 && (bands || !light.backDraws()));
                 if (bands) canvas.restoreToCount(saved);
@@ -1621,6 +1637,8 @@ public final class AmbientLight {
                     moveTo(canvas, host, on);
                     canvas.clipRect(light.strips.get(index));
                     canvas.clipOutRect(light.hostStage);
+                    // Over the cover's own colour, which is white in light mode, the glow sits on black (#666).
+                    canvas.drawColor(Color.BLACK);
                     pieces(canvas, light, light.hostLit, light.corner > 0);
                     canvas.restoreToCount(saved);
                 }

@@ -57,6 +57,7 @@ import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.RefreshRate;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.misc.PureBlackNav;
+import app.hushgram.extension.instagram.misc.StoryBands;
 import app.hushgram.extension.instagram.misc.TabIcons;
 import app.hushgram.extension.instagram.direct.GlassChat;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
@@ -182,6 +183,7 @@ public final class SettingsEntry {
         CarouselArrows.install(context);
         AmbientLight.install(context);
         PureBlackNav.install(context);
+        StoryBands.install(context);
         StoryProgressBar.install(context);
         ProfileMenuPress.install(context);
         ProfileTitle.install(context);
