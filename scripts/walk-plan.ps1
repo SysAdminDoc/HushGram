@@ -195,6 +195,26 @@ function Test-WalkNodeUncovered {
                 -not $Inert.GetAttribute('resource-id') -and
                 [string]::IsNullOrWhiteSpace($Inert.GetAttribute('text') + $Inert.GetAttribute('content-desc') + $Inert.GetAttribute('hint'))
         }
+        # A carousel post draws its tag hints layer as a childless contentless ViewGroup over the
+        # photo, at the photo's bounds, while the PNG shows the photo (S22 release walk 2026-11-13).
+        if ($Candidate.GetAttribute('class') -ceq 'android.view.ViewGroup' -and
+            $Candidate.GetAttribute('resource-id') -ceq ($prefix + 'row_feed_photo_media_tag_hints')) {
+            return $Candidate.ChildNodes.Count -eq 0 -and -not (Test-WalkInteractiveFlag $Candidate) -and
+                $Candidate.GetAttribute('enabled') -ceq 'true' -and $Candidate.GetAttribute('clickable') -ceq 'false' -and
+                $Candidate.GetAttribute('scrollable') -ceq 'false' -and $Candidate.GetAttribute('selected') -ceq 'false' -and
+                [string]::IsNullOrWhiteSpace($Candidate.GetAttribute('text') + $Candidate.GetAttribute('content-desc') + $Candidate.GetAttribute('hint')) -and
+                $Candidate.ParentNode.GetAttribute('resource-id') -ceq ($prefix + 'carousel_image_media_group')
+        }
+        # The same post lays an anonymous ViewGroup over its media frame that holds only empty
+        # ViewGroups and the 2/5 index pill.
+        if ($Candidate.GetAttribute('class') -ceq 'android.view.ViewGroup' -and -not $Candidate.GetAttribute('resource-id') -and
+            $Candidate.ParentNode.SelectNodes("./node/node/node[@resource-id='${prefix}zoomable_view_container']/node[@resource-id='${prefix}carousel_image_media_group']").Count -eq 1) {
+            return @($Candidate.SelectNodes('descendant-or-self::node') | Where-Object {
+                -not (($_.GetAttribute('class') -ceq 'android.view.ViewGroup' -and (Test-WalkInertNode $_)) -or
+                    ($_.GetAttribute('resource-id') -ceq ($prefix + 'carousel_index_indicator_text_view') -and
+                        $_.GetAttribute('class') -ceq 'android.widget.TextView' -and $_.ChildNodes.Count -eq 0))
+            }).Count -eq 0
+        }
         # A long reel's scrubber sits in a tall contentless ViewGroup drawn after the reel's info
         # column (walk 6bae0505 capture-0006). Only the thin bar at its bottom edge shows.
         if ($Candidate.GetAttribute('class') -ceq 'android.view.ViewGroup') {
@@ -361,8 +381,11 @@ function Get-WalkSlidTabBar {
     $edges = '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$'
     $windowBounds = [regex]::Match($window.GetAttribute('bounds'), $edges)
     $barBounds = [regex]::Match($bars[0].GetAttribute('bounds'), $edges)
+    # A bar its parent clips away entirely reports a top past its own bottom instead, since that
+    # parent ends above the window's edge (S22 release walk 2026-11-13: [0,2297][1080,2274]).
     if (-not $windowBounds.Success -or -not $barBounds.Success -or
-        [int]$barBounds.Groups[2].Value -lt [int]$windowBounds.Groups[4].Value) { return }
+        ([int]$barBounds.Groups[2].Value -lt [int]$windowBounds.Groups[4].Value -and
+            [int]$barBounds.Groups[2].Value -lt [int]$barBounds.Groups[4].Value)) { return }
     if (@($bars[0].SelectNodes('descendant-or-self::node') | Where-Object {
         $_.GetAttribute('visible-to-user') -ceq 'true' }).Count) { return }
     ,$bars[0]
@@ -564,7 +587,9 @@ function Test-WalkDestinationContent {
                 $hasHeader = @(Get-WalkIdNode 'row_feed_profile_header' | Where-Object {
                     (Test-WalkNodeLabel $_) -or @(Get-WalkDescendant $_ | Where-Object { Test-WalkNodeLabel $_ }).Count -gt 0
                 }).Count -gt 0
-                $hasContent = $hasHeader -and ($ids.Contains("${Package}:id/row_feed_photo_imageview") -or $ids.Contains("${Package}:id/video_container"))
+                # A carousel post draws its media as carousel_image (S22 release walk 2026-11-13).
+                $hasContent = $hasHeader -and ($ids.Contains("${Package}:id/row_feed_photo_imageview") -or
+                    $ids.Contains("${Package}:id/video_container") -or $ids.Contains("${Package}:id/carousel_image"))
             }
             'explore' {
                 foreach ($grid in @(Get-WalkIdNode 'recycler_view')) {

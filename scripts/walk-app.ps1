@@ -59,6 +59,11 @@ param(
     [string]$KeyAlias = 'sideload',
     [AllowEmptyString()][string]$KeystorePassword,
     [AllowEmptyString()][string]$KeyPassword,
+    # A BKS key (the Morphe device keys) signs the capture APK only with its store type and the
+    # BouncyCastle provider class and jar, which apksigner needs to open it.
+    [string]$KeystoreType,
+    [string]$ProviderClass,
+    [string]$ProviderJar,
     [string]$Sdk,
     [string]$Java,
     # The checkout whose release bundle is walked, the one holding this script unless given.
@@ -492,6 +497,9 @@ if ($MyInvocation.InvocationName -ne '.') {
         if ([string]::IsNullOrEmpty($KeyPassword)) { $KeyPassword = $KeystorePassword }
     }
     $signing = @{ Keystore=$Keystore; KeyAlias=$KeyAlias; KeystorePassword=$KeystorePassword; KeyPassword=$KeyPassword }
+    foreach ($providerField in @('KeystoreType','ProviderClass','ProviderJar')) {
+        if ($PSBoundParameters.ContainsKey($providerField)) { $signing[$providerField] = Get-Variable -Name $providerField -ValueOnly }
+    }
     Invoke-WalkApp -Serial $Serial -ExpectedModel $ExpectedModel -ExpectedAvd $ExpectedAvd -Package $Package `
         -Visit $Visit -SkipPatch:$SkipPatch -SkipSettings:$SkipSettings -SettleSeconds $SettleSeconds `
         -SignedApk $SignedApk -Report $Report -Record $Record `
