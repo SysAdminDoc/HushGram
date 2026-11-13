@@ -255,7 +255,8 @@ function Test-WalkNodeUncovered {
         # anonymous inbox row and its composite thread description, not arbitrary buttons.
         if ($Candidate.GetAttribute('class') -ceq 'android.widget.Button') {
             if ($resourceId -or $parentId -or $parent.GetAttribute('class') -cne 'android.view.View' -or
-                $Candidate.SelectNodes("ancestor::node[@resource-id='${prefix}inbox_refreshable_thread_list_recyclerview']").Count -ne 1) { return $false }
+                ($Candidate.SelectNodes("ancestor::node[@resource-id='${prefix}inbox_refreshable_thread_list_recyclerview']").Count +
+                    $Candidate.SelectNodes("ancestor::node[@class='androidx.compose.ui.platform.ComposeView'][parent::node[@resource-id='${prefix}refreshable_container'][parent::node[@resource-id='${prefix}list_container']]]").Count) -ne 1) { return $false }
             return @($parent.SelectNodes('./node') | Where-Object {
                 $_.GetAttribute('class') -ceq 'android.view.View' -and
                 $_.GetAttribute('bounds') -ceq $Candidate.GetAttribute('bounds') -and
@@ -613,7 +614,15 @@ function Test-WalkDestinationContent {
             'inbox' {
                 # A thread's composite accessible description, not Search, tabs or the notes
                 # row, is the witness in audit-2026-10-25/25-final-inbox.xml. No names are fixed.
-                foreach ($list in @(Get-WalkIdNode 'inbox_refreshable_thread_list_recyclerview')) {
+                # A Compose inbox draws its threads in a ComposeView under list_container's
+                # refreshable_container, with no recycler id (S22 release walk 2026-11-13).
+                $threadLists = @(Get-WalkIdNode 'inbox_refreshable_thread_list_recyclerview')
+                if (-not $threadLists.Count -and $ids.Contains("${Package}:id/direct_inbox_action_bar")) {
+                    $threadLists = @(Get-WalkIdNode 'refreshable_container' | Where-Object {
+                        $_.ParentNode.GetAttribute('resource-id') -ceq "${Package}:id/list_container" -and
+                        $_.SelectNodes("./node[@class='androidx.compose.ui.platform.ComposeView']").Count -eq 1 })
+                }
+                foreach ($list in $threadLists) {
                     $hasContent = $hasContent -or @(Get-WalkDescendant $list | Where-Object {
                         $_.GetAttribute('content-desc') -match '^[^,]+,\s*[^,]+,\s*\S' -and
                         $_.SelectNodes("ancestor::node[@resource-id='${Package}:id/cf_hub_recycler_view' or @resource-id='${Package}:id/pog_root_view']").Count -eq 0
