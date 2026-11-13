@@ -12,6 +12,8 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.feed.back.SCROLL_TITLE
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -21,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -41,7 +44,7 @@ import java.io.File
 class AskBeforeRefreshHookTest {
     @Test
     fun theEndOfAPullAsksBeforeItCallsTheListener() {
-        val context = PatchContexts.of(listOf(listener(), layout(), pullEnd(), nested(), extension()))
+        val context = PatchContexts.of(listOf(listener(), layout(), pullEnd(), nested(), extension()) + tabBar())
         context.askBeforeRefresh()
 
         val code = context.pullEndCode()!!
@@ -60,7 +63,7 @@ class AskBeforeRefreshHookTest {
 
     @Test
     fun aPullPastThePointAsksBeforeTheNestedLayoutCallsItsListener() {
-        val context = PatchContexts.of(listOf(listener(), layout(), pullEnd(), nested(), extension()))
+        val context = PatchContexts.of(listOf(listener(), layout(), pullEnd(), nested(), extension()) + tabBar())
         context.askBeforeRefresh()
 
         val code = context.triggerCode()!!
@@ -94,6 +97,46 @@ class AskBeforeRefreshHookTest {
             val call = code[at + 2] as FiveRegisterInstruction
             assertEquals("$case: the layout and false", listOf(1, 0), listOf(call.registerC, call.registerD))
         }
+    }
+
+    /**
+     * A tap on the tab showing goes to RefreshConfirm.retap with the button and the screen, in place of
+     * the call telling the screen, and the stubs read the button's tab and make that call directly.
+     */
+    @Test
+    fun aTapOnTheTabShowingGoesToTheExtension() {
+        val context = PatchContexts.of(listOf(listener(), layout(), pullEnd(), nested(), extension()) + tabBar())
+        context.askBeforeRefresh()
+
+        val code = context.retapCode()!!
+        assertEquals(
+            listOf(Opcode.INSTANCE_OF, Opcode.IF_EQZ, Opcode.MOVE_OBJECT, Opcode.CHECK_CAST, Opcode.INVOKE_STATIC, Opcode.RETURN_VOID),
+            code.map { it.opcode },
+        )
+        assertEquals(RETAP, (code[4] as ReferenceInstruction).reference.toString())
+        val call = code[4] as FiveRegisterInstruction
+        assertEquals("the button and the screen", listOf(2, 0), listOf(call.registerC, call.registerD))
+        assertTabStubs(context, "$BUTTON->tab:$TAB", "$RETAPPED->retapped()V")
+    }
+
+    /** The tab stub reads [field] off the button, and scrollTop makes [call] on the screen, directly. */
+    private fun assertTabStubs(context: BytecodePatchContext, field: String, call: String, case: String = "") {
+        val tab = context.stub(TAB_OF)
+        assertEquals("$case: two registers", 2, tab.implementation!!.registerCount)
+        val read = tab.implementation!!.instructions.toList()
+        assertEquals(case, listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT), read.map { it.opcode })
+        assertEquals(case, field.substringBefore("->"), (read[0] as ReferenceInstruction).reference.toString())
+        assertEquals(case, field, (read[1] as ReferenceInstruction).reference.toString())
+        val get = read[1] as TwoRegisterInstruction
+        assertEquals("$case: the tab into v0, off the button in p0", listOf(0, 1), listOf(get.registerA, get.registerB))
+
+        val top = context.stub(SCROLL_TOP)
+        assertEquals("$case: one register", 1, top.implementation!!.registerCount)
+        val made = top.implementation!!.instructions.toList()
+        assertEquals(case, listOf(Opcode.CHECK_CAST, Opcode.INVOKE_INTERFACE, Opcode.RETURN_VOID), made.map { it.opcode })
+        assertEquals(case, call.substringBefore("->"), (made[0] as ReferenceInstruction).reference.toString())
+        assertEquals(case, call, (made[1] as ReferenceInstruction).reference.toString())
+        assertEquals(case, 0, (made[1] as FiveRegisterInstruction).registerC)
     }
 
     /** Refresh on the nested layout calls [call], the method the layout calls on its listener, directly. */
@@ -146,6 +189,27 @@ class AskBeforeRefreshHookTest {
         refuses("an extension without the refresh stub", swipe + nested() + extension(without = REFRESH_NOW))
     }
 
+    @Test
+    fun aTabBarThatIsntTheOneFailsThePatchUnchanged() {
+        val pulls = listOf(listener(), layout(), pullEnd(), nested(), extension())
+        refuses("no Home", pulls, tabBar().filter { it.type != HOME })
+        refuses("Home's tab handler scrolling for another reason", pulls, tabBar(reason = "TAB_SWITCH"))
+        refuses("no interface declaring the handler", pulls, tabBar(homeInterfaces = emptyList()))
+        refuses("an interface that isn't public", pulls, tabBar(retappedFlags = AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value))
+        refuses("no button telling the screen", pulls, tabBar(tapButton = button(call = "invoke-interface { v0 }, $RETAPPED->other()V")))
+        refuses("two buttons telling the screen", pulls, tabBar() + button(type = OTHER_BUTTON))
+        refuses("the button written over before the call", pulls, tabBar(tapButton = button(entry = "move-object p0, p1")))
+        refuses("the button out of an invoke's reach", pulls, tabBar(tapButton = button(registers = 20,
+            body = "move-object/from16 v0, p1\ncheck-cast v0, $RETAPPED\ninvoke-interface { v0 }, $RETAPPED->retapped()V\nreturn-void")))
+        refuses("a tab field that isn't public", pulls, tabBar(tapButton = button(tabFlags = AccessFlags.FINAL.value)))
+        refuses("a button class that isn't public", pulls, tabBar(tapButton = button(classFlags = AccessFlags.FINAL.value)))
+        refuses("tabs without Explore", pulls, tabBar(tabs = listOf("FEED", "CLIPS", "PROFILE")))
+        val noExtension = pulls.filter { it.type != REFRESH_CONFIRM }
+        refuses("an extension without retap", noExtension + extension(without = "retap"))
+        refuses("an extension without the tab stub", noExtension + extension(without = TAB_OF))
+        refuses("an extension without the scrollTop stub", noExtension + extension(without = SCROLL_TOP))
+    }
+
     /**
      * On every declared build's fixture: the one refresh layout whose setOnRefreshListener only
      * stores the listener, and the one end-of-pull animation reading it, which asks once, right
@@ -175,14 +239,35 @@ class AskBeforeRefreshHookTest {
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
                 if (classDef.methods.any { it.name == "setOnRefreshListener" } || ANIMATION_LISTENER in classDef.interfaces ||
-                    classDef.type == NESTED_LAYOUT
+                    classDef.type == NESTED_LAYOUT || classDef.tellsAScreen()
                 ) {
                     classes += ImmutableClassDef.of(classDef)
                 }
             }
         }
-        val context = PatchContexts.of(classes.distinctBy { it.type } + extension())
+        // Home, its interfaces and the enums it scrolls with, and what the tab buttons keep.
+        val homes = FixtureDex.classesLoading(bundle, SCROLL_TITLE)
+        val buttons = classes.filter { it.tellsAScreen() }
+        val kept = homes.flatMap { home -> home.interfaces + home.methods.flatMap { it.parameterTypes.map(Any::toString) } } +
+            buttons.flatMap { button -> button.fields.map { it.type } }
+        val have = (classes + homes).mapTo(HashSet()) { it.type }
+        val slice = (classes + homes + FixtureDex.classes(bundle, kept.toSet() - have).values).distinctBy { it.type }
+        val context = PatchContexts.of(slice + extension())
         context.askBeforeRefresh()
+
+        val retaps = buttons.flatMap { button ->
+            context.mutableClassDefBy(button.type).methods.filter { method -> method.implementation?.instructions?.any { it.calls(RETAP) } == true }
+        }
+        assertEquals("$label: one tab button tells the extension", 1, retaps.size)
+        val tapped = retaps.single()
+        val code = tapped.implementation!!.instructions.toList()
+        assertEquals(label, 1, code.count { it.calls(RETAP) })
+        assertEquals("$label: with the button", tapped.localRegisterCount(), (code.single { it.calls(RETAP) } as FiveRegisterInstruction).registerC)
+        val tab = (context.stub(TAB_OF).implementation!!.instructions.toList()[1] as ReferenceInstruction).reference.toString()
+        assertEquals("$label: the tab comes off that button", tapped.definingClass, tab.substringBefore("->"))
+        val top = (context.stub(SCROLL_TOP).implementation!!.instructions.toList()[1] as ReferenceInstruction).reference.toString()
+        assertTrue("$label: the call is one Home answers", top.substringBefore("->") in homes.flatMap { it.interfaces })
+        assertTabStubs(context, tab, top, label)
 
         val asked = classes.filter { ANIMATION_LISTENER in it.interfaces }.flatMap { end ->
             context.mutableClassDefBy(end.type).methods.filter { it.name == "onAnimationEnd" }
@@ -219,21 +304,30 @@ class AskBeforeRefreshHookTest {
         assertRefresh(context, (pull[asks + 4] as ReferenceInstruction).reference.toString(), label)
     }
 
-    private fun refuses(case: String, classes: List<ClassDef>) {
-        val context = PatchContexts.of(classes)
+    private fun refuses(case: String, classes: List<ClassDef>, bar: List<ClassDef> = tabBar()) {
+        val context = PatchContexts.of(classes + bar)
         val before = context.pullEndCode()?.map(::shape)
         val trigger = context.triggerCode()?.map(::shape)
+        val retap = context.retapCode()?.map(::shape)
         val stubs = context.stubs()
         assertNotNull(case, assertThrows(case, PatchException::class.java) { context.askBeforeRefresh() })
         assertEquals(case, before, context.pullEndCode()?.map(::shape))
         assertEquals("$case: the nested layout untouched", trigger, context.triggerCode()?.map(::shape))
+        assertEquals("$case: the tab button untouched", retap, context.retapCode()?.map(::shape))
         assertEquals("$case: the stubs untouched", stubs, context.stubs())
     }
 
     private fun BytecodePatchContext.stubs(): List<List<Opcode>>? = classDefByOrNull(REFRESH_CONFIRM)?.let {
-        mutableClassDefBy(REFRESH_CONFIRM).methods.filter { it.name == SPINNER_OFF || it.name == REFRESH_NOW }.sortedBy { it.name }
-            .map { method -> method.implementation!!.instructions.map { it.opcode } }
+        mutableClassDefBy(REFRESH_CONFIRM).methods.filter { it.name in listOf(SPINNER_OFF, REFRESH_NOW, TAB_OF, SCROLL_TOP) }
+            .sortedBy { it.name }.map { method -> method.implementation!!.instructions.map { it.opcode } }
     }
+
+    private fun BytecodePatchContext.stub(name: String): Method =
+        mutableClassDefBy(REFRESH_CONFIRM).methods.single { it.name == name && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;") }
+
+    private fun BytecodePatchContext.retapCode(): List<Instruction>? =
+        classDefByOrNull(BUTTON)?.let { mutableClassDefBy(BUTTON).methods.single { it.name == "tapped" } }
+            ?.implementation?.instructions?.toList()
 
     private fun BytecodePatchContext.spinnerOff(): Method =
         mutableClassDefBy(REFRESH_CONFIRM).methods.single { it.name == SPINNER_OFF }
@@ -248,10 +342,16 @@ class AskBeforeRefreshHookTest {
     private fun shape(instruction: Instruction): String = when {
         instruction.calls(REFRESH_LISTENER) -> REFRESH_LISTENER
         instruction.calls(PULL_LISTENER) -> PULL_LISTENER
+        instruction.calls(RETAP) -> RETAP
         else -> instruction.opcode.name
     }
 
     private fun Instruction.calls(reference: String) = (this as? ReferenceInstruction)?.reference?.toString() == reference
+
+    /** Whether this is a click listener with an instance `(Fragment)V`, which a tab button tells its screen with. */
+    private fun ClassDef.tellsAScreen(): Boolean = CLICK in interfaces && methods.any {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(FRAGMENT)
+    }
 
     private fun BytecodePatchContext.pullEndCode(): List<Instruction>? =
         classDefByOrNull(PULL_END)?.let { mutableClassDefBy(PULL_END).methods.single { it.name == "onAnimationEnd" }.implementation!!.instructions.toList() }
@@ -264,8 +364,81 @@ class AskBeforeRefreshHookTest {
         const val OTHER_END = "Lfixture/OtherPullEnd;"
         const val NESTED_LISTENER = "Lfixture/PullListener;"
         const val SPRING = "Lfixture/Spring;"
+        const val HOME = "Lfixture/Home;"
+        const val REASON = "Lfixture/ScrollReason;"
+        const val RETAPPED = "Lfixture/Retapped;"
+        const val BUTTON = "Lfixture/TabButton;"
+        const val OTHER_BUTTON = "Lfixture/OtherTabButton;"
+        const val TAB = "Lfixture/Tab;"
+        const val CLICK = "Landroid/view/View\$OnClickListener;"
         val PUBLIC = AccessFlags.PUBLIC.value
         val PUBLIC_FINAL = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+
+        /** Every class the tab bar's retap needs, Home, its reasons, the handler's interface, [tapButton] and the tabs. */
+        fun tabBar(
+            reason: String = HOME_PRESS,
+            homeInterfaces: List<String> = listOf(RETAPPED),
+            retappedFlags: Int = PUBLIC or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value,
+            tapButton: ClassDef = button(),
+            tabs: List<String> = listOf("FEED", "CLIPS", "SEARCH", "PROFILE"),
+        ): List<ClassDef> = listOf(
+            home(homeInterfaces),
+            enum(REASON, listOf("PULL_TO_REFRESH", reason)),
+            ImmutableClassDef(RETAPPED, retappedFlags, "Ljava/lang/Object;", null, null, null, null,
+                listOf(ImmutableMethod(RETAPPED, "retapped", null, "V", PUBLIC or AccessFlags.ABSTRACT.value, null, null, null))),
+            tapButton,
+            enum(TAB, tabs),
+        )
+
+        /**
+         * Home's feed fragment as 454 has it: its scroll to the top loads the title and takes a reason,
+         * and its handler for a tap on its own tab scrolls for [HOME_PRESS], the second reason.
+         */
+        fun home(interfaces: List<String>): ClassDef = ImmutableClassDef(
+            HOME, PUBLIC_FINAL, "Landroidx/fragment/app/Fragment;", interfaces, null, null, null,
+            listOf(
+                method(HOME, "scroll", listOf(REASON), 3, PUBLIC_FINAL,
+                    "const-string v0, \"$SCROLL_TITLE\"\nreturn-void"),
+                method(HOME, "retapped", emptyList(), 2, PUBLIC_FINAL,
+                    "sget-object v0, $REASON->c1:$REASON\ninvoke-virtual { p0, v0 }, $HOME->scroll($REASON)V\nreturn-void"),
+                method(HOME, "pulled", emptyList(), 2, PUBLIC_FINAL,
+                    "sget-object v0, $REASON->c0:$REASON\ninvoke-virtual { p0, v0 }, $HOME->scroll($REASON)V\nreturn-void"),
+            ),
+        )
+
+        /** An enum whose constants c0, c1 and on are built with [names], as javac builds them. */
+        fun enum(type: String, names: List<String>): ClassDef {
+            val build = names.indices.joinToString("\n") { at ->
+                "new-instance v0, $type\nconst-string v1, \"${names[at]}\"\nconst/16 v2, $at\n" +
+                    "invoke-direct { v0, v1, v2 }, $type-><init>(Ljava/lang/String;I)V\nsput-object v0, $type->c$at:$type"
+            }
+            val clinit = method(type, "<clinit>", emptyList(), 3, AccessFlags.STATIC.value or AccessFlags.CONSTRUCTOR.value,
+                "$build\nreturn-void")
+            val fields = names.indices.map { ImmutableField(type, "c$it", type, PUBLIC or AccessFlags.STATIC.value or AccessFlags.FINAL.value, null, null, null) }
+            return ImmutableClassDef(type, PUBLIC_FINAL or AccessFlags.ENUM.value, "Ljava/lang/Enum;", null, null, null, fields, listOf(clinit))
+        }
+
+        /**
+         * The tab bar's button as 454 has it: tapped while its tab shows and not popped back to the
+         * root, it tells the tab's screen. v0 and v1 are its locals, p0 the button and p1 the screen.
+         */
+        fun button(
+            type: String = BUTTON,
+            classFlags: Int = PUBLIC_FINAL,
+            tabFlags: Int = PUBLIC_FINAL,
+            entry: String = "",
+            call: String = "invoke-interface { v0 }, $RETAPPED->retapped()V",
+            registers: Int = 4,
+            body: String = listOf(entry, "instance-of v1, p1, $RETAPPED", "if-eqz v1, :done", "move-object v0, p1",
+                "check-cast v0, $RETAPPED", call, ":done", "return-void").filter { it.isNotBlank() }.joinToString("\n"),
+        ): ClassDef {
+            val fields = listOf(
+                ImmutableField(type, "tab", TAB, tabFlags, null, null, null),
+                ImmutableField(type, "session", "Ljava/lang/Object;", PUBLIC_FINAL, null, null, null),
+            )
+            return ImmutableClassDef(type, classFlags, "Ljava/lang/Object;", listOf(CLICK), null, null, fields,
+                listOf(method(type, "tapped", listOf(FRAGMENT), registers, AccessFlags.PRIVATE.value, body)))
+        }
 
         /** The extension's RefreshConfirm, less any method named [without]. */
         fun extension(without: String? = null): ClassDef = ExtensionDex.classDef(REFRESH_CONFIRM).let { built ->

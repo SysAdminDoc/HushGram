@@ -6,15 +6,20 @@ package app.morphe.patches.instagram.feed.confirm
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
+import app.morphe.patches.instagram.feed.back.SCROLL_TITLE
+import app.morphe.patches.instagram.feed.back.enumConstantName
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
@@ -54,8 +59,29 @@ internal const val SPINNER_OFF = "spinnerOff"
 
 /** The extension's stub the patch fills with a direct call of the nested layout's refresh listener. */
 internal const val REFRESH_NOW = "refresh"
+
+/** Takes the tab bar's call telling the tab showing that its button was tapped again (#655). */
+internal const val RETAP = "$REFRESH_CONFIRM->retap(Ljava/lang/Object;Ljava/lang/Object;)V"
+
+/** The extension's stub the patch fills with a read of a tab button's tab. */
+internal const val TAB_OF = "tab"
+
+/** The extension's stub the patch fills with the call the tab bar makes on a tab tapped while it shows. */
+internal const val SCROLL_TOP = "scrollTop"
+
+/**
+ * The names the tab bar's enum gives Home's, Reels' and Explore's tabs (the constants' own names, not their
+ * fragment tags), which the extension reads a button's tab against.
+ */
+internal val RELOADING_TABS = listOf("FEED", "CLIPS", "SEARCH")
+
+/** The reason Home's handler for a tap on its own tab scrolls to the top with, as the reason enum spells it. */
+internal const val HOME_PRESS = "HOME_PRESS"
 private const val VIEW = "Landroid/view/View;"
 private const val ANIMATION = "Landroid/view/animation/Animation;"
+private const val ANY = "Ljava/lang/Object;"
+private const val ENUM = "Ljava/lang/Enum;"
+private const val CLICK_LISTENER = "Landroid/view/View\$OnClickListener;"
 
 /**
  * Pulling down to refresh a list waits for a question while the switch is on. Included in the
@@ -64,9 +90,9 @@ private const val ANIMATION = "Landroid/view/animation/Animation;"
 @Suppress("unused")
 val askBeforeRefreshPatch = bytecodePatch(
     name = "Ask before a refresh",
-    description = "Asks you to confirm before pulling down refreshes Home, Reels or another list, so an " +
-        "accidental pull doesn't replace what you were reading. Starts off. Turn it on in HushGram settings > " +
-        "Feed.",
+    description = "Asks you to confirm before pulling down, or tapping the tab you're on again, refreshes Home, " +
+        "Reels or another list, so an accidental pull or tap doesn't replace what you were reading. Starts off. " +
+        "Turn it on in HushGram settings > Feed.",
     default = true,
 ) {
     category("Feed")
@@ -234,6 +260,140 @@ private fun List<Instruction>.calledAt(read: Int): MethodReference? {
     return called
 }
 
+/**
+ * Where the tab bar tells the tab showing that its button was tapped again: [method], the index of
+ * that call, the call, the registers holding the tab button and the tab's screen, and the field the
+ * button keeps its tab in.
+ */
+internal class TabRetapTarget(
+    val method: MutableMethod,
+    val call: Int,
+    val retap: MethodReference,
+    val button: Int,
+    val screen: Int,
+    val tab: FieldReference,
+)
+
+/**
+ * Finds where the tab bar tells the tab showing that its button was tapped again, and checks it
+ * before anything changes:
+ * - One class loads [SCROLL_TITLE], Home's feed fragment, with one instance `scroll(reason)V` taking
+ *   an enum and loading it.
+ * - Home has one instance `()V` scrolling once, with the reason built as [HOME_PRESS] read right
+ *   before: its handler for a tap on its own tab. One of Home's interfaces declares it, public, as
+ *   the extension makes the call.
+ * - One click listener has an instance `(Fragment)V` making that call, once: the tab button's, for
+ *   a tab that shows already. Its two registers are within an invoke's reach, and `this` is intact
+ *   there.
+ * - The button keeps its tab in one instance field, public in a public class, as the extension
+ *   reads it, of an enum building constants named each of [RELOADING_TABS].
+ */
+internal fun BytecodePatchContext.findTabRetap(): TabRetapTarget {
+    val homes = classesLoadingString(SCROLL_TITLE)
+    val home = homes.singleOrNull() ?: refuse("expected one class loading \"$SCROLL_TITLE\", found ${homes.size}")
+    val scrolls = home.methods.filter { scroll ->
+        !AccessFlags.STATIC.isSet(scroll.accessFlags) && scroll.returnType == "V" && scroll.parameterTypes.size == 1 &&
+            loadsString(scroll, SCROLL_TITLE)
+    }
+    val scroll = scrolls.singleOrNull()
+        ?: refuse("expected one scroll(reason) in ${home.type} loading \"$SCROLL_TITLE\", found ${scrolls.size}")
+    val reasons = classDefByOrNull(scroll.parameterTypes.single().toString())?.takeIf { it.superclass == ENUM }
+        ?: refuse("${home.type}'s scroll to the top doesn't take an enum")
+    val handlers = home.methods.filter { it.scrollsFor(scroll, reasons) == HOME_PRESS }
+    val handler = handlers.singleOrNull()
+        ?: refuse("expected one ()V in ${home.type} scrolling to the top for $HOME_PRESS, found ${handlers.size}")
+    val declared = home.interfaces.mapNotNull { classDefByOrNull(it) }.filter { declaring ->
+        declaring.methods.any { it.name == handler.name && it.parameterTypes.isEmpty() && it.returnType == "V" }
+    }
+    val retapType = declared.singleOrNull()
+        ?: refuse("expected one of ${home.type}'s interfaces to declare ${handler.name}()V, found ${declared.size}")
+    if (!AccessFlags.PUBLIC.isSet(retapType.accessFlags)) refuse("${retapType.type} isn't public, so the extension couldn't call it")
+
+    val sites = mutableListOf<Pair<Method, Int>>()
+    classDefForEach { classDef ->
+        if (classDef.type.startsWith(EXTENSION_ROOT) || CLICK_LISTENER !in classDef.interfaces) return@classDefForEach
+        for (method in classDef.methods) {
+            if (AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "V" ||
+                method.parameterTypes.map(Any::toString) != listOf(FRAGMENT)
+            ) {
+                continue
+            }
+            val code = method.code()
+            code.indices.filter { code[it].callsRetap(retapType.type, handler.name) }.forEach { sites += method to it }
+        }
+    }
+    val (tapped, call) = sites.singleOrNull()
+        ?: refuse("expected one tab button telling the tab showing it was tapped again, found ${sites.size}")
+    val invoke = tapped.code()[call] as FiveRegisterInstruction
+    val button = tapped.localRegisterCount()
+    if (button > 15 || invoke.registerC > 15) refuse("the tab button keeps what the hook needs in a register it can't reach")
+    tapped.requireThisIntact(REFRESH_PATCH, listOf(call))
+
+    val buttonClass = classDefBy(tapped.definingClass)
+    val tabs = buttonClass.fields.filter { field ->
+        !AccessFlags.STATIC.isSet(field.accessFlags) && classDefByOrNull(field.type)?.buildsTabs() == true
+    }
+    val tab = tabs.singleOrNull() ?: refuse("expected one tab field in ${buttonClass.type}, found ${tabs.size}")
+    if (!AccessFlags.PUBLIC.isSet(buttonClass.accessFlags) || !AccessFlags.PUBLIC.isSet(tab.accessFlags)) {
+        refuse("${buttonClass.type}->${tab.name} isn't public, so the extension couldn't read the tab")
+    }
+
+    val extension = classDefByOrNull(REFRESH_CONFIRM) ?: refuse("the extension has no $REFRESH_CONFIRM")
+    extension.publicStatic(RETAP) ?: refuse("the extension has no public static $RETAP")
+    extension.objectStub(TAB_OF, ANY) ?: refuse("the extension has no static $TAB_OF(Object) to fill")
+    extension.objectStub(SCROLL_TOP, "V") ?: refuse("the extension has no static $SCROLL_TOP(Object) to fill")
+    val method = mutableClassDefBy(tapped.definingClass).methods.single {
+        it.name == tapped.name && it.parameterTypes.map(Any::toString) == listOf(FRAGMENT) && it.returnType == "V"
+    }
+    val retap = (invoke as ReferenceInstruction).reference as MethodReference
+    return TabRetapTarget(method, call, retap, button, invoke.registerC, tab)
+}
+
+/**
+ * The name of the reason this method scrolls [scroll]'s feed to the top with, when it's an instance
+ * `()V` calling [scroll] once on this, with one of [reasons]'s constants read right before into the
+ * register it hands over. Null for any other method.
+ */
+private fun Method.scrollsFor(scroll: Method, reasons: ClassDef): String? {
+    if (AccessFlags.STATIC.isSet(accessFlags) || parameterTypes.isNotEmpty() || returnType != "V") return null
+    val code = code()
+    val calls = code.indices.filter { at ->
+        val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
+        code[at].opcode == Opcode.INVOKE_VIRTUAL && called?.definingClass == scroll.definingClass && called.name == scroll.name &&
+            called.parameterTypes.map(Any::toString) == scroll.parameterTypes.map(Any::toString)
+    }
+    val at = calls.singleOrNull() ?: return null
+    val invoke = code[at] as FiveRegisterInstruction
+    val read = code.getOrNull(at - 1)
+    val field = (read as? ReferenceInstruction)?.reference as? FieldReference
+    if (invoke.registerCount != 2 || invoke.registerC != localRegisterCount() || read?.opcode != Opcode.SGET_OBJECT ||
+        (read as OneRegisterInstruction).registerA != invoke.registerD || field?.definingClass != reasons.type
+    ) {
+        return null
+    }
+    return enumConstantName(reasons, field)
+}
+
+/** Whether this is an interface call of [type]'s [name]()V. */
+private fun Instruction.callsRetap(type: String, name: String): Boolean {
+    val called = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    return opcode == Opcode.INVOKE_INTERFACE && called.definingClass == type && called.name == name &&
+        called.parameterTypes.isEmpty() && called.returnType == "V"
+}
+
+/** Whether this is an enum building a constant named each of [RELOADING_TABS]. */
+private fun ClassDef.buildsTabs(): Boolean = superclass == ENUM && RELOADING_TABS.all { name ->
+    fields.any { AccessFlags.STATIC.isSet(it.accessFlags) && it.type == type && enumConstantName(this, it) == name }
+}
+
+private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+/** The extension's static [name](Object) answering [returns], or null. */
+private fun ClassDef.objectStub(name: String, returns: String): Method? = methods.singleOrNull {
+    it.name == name && it.returnType == returns && it.parameterTypes.map(Any::toString) == listOf(ANY) &&
+        AccessFlags.STATIC.isSet(it.accessFlags)
+}
+
 /** The extension's static void spinnerOff(View), or null. */
 private fun ClassDef.spinnerStub(): Method? = methods.singleOrNull {
     it.name == SPINNER_OFF && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(VIEW) &&
@@ -262,6 +422,7 @@ private fun replaced(stub: Method, registers: Int, body: String): MutableMethod 
 internal fun BytecodePatchContext.askBeforeRefresh() {
     val found = findPullEnd()
     val trigger = findPullTrigger()
+    val retap = findTabRetap()
     classDefBy(REFRESH_CONFIRM).let { extension ->
         extension.publicStatic(PULL_LISTENER) ?: refuse("the extension has no public static $PULL_LISTENER")
         extension.refreshStub() ?: refuse("the extension has no static $REFRESH_NOW(Object) to fill")
@@ -313,6 +474,33 @@ internal fun BytecodePatchContext.askBeforeRefresh() {
             """
                 check-cast p0, ${trigger.listenerType}
                 invoke-interface { p0 }, ${trigger.call}
+                return-void
+            """,
+        ),
+    )
+
+    // The tab bar's call goes to the extension, which makes it itself unless it asks first.
+    retap.method.replaceInstruction(retap.call, "invoke-static { v${retap.button}, v${retap.screen} }, $RETAP")
+    val tab = confirm.methods.single { it.name == TAB_OF && it.parameterTypes.map(Any::toString) == listOf(ANY) }
+    confirm.methods.remove(tab)
+    confirm.methods.add(
+        replaced(
+            tab, 2,
+            """
+                check-cast p0, ${retap.tab.definingClass}
+                iget-object v0, p0, ${retap.tab}
+                return-object v0
+            """,
+        ),
+    )
+    val top = confirm.methods.single { it.name == SCROLL_TOP && it.parameterTypes.map(Any::toString) == listOf(ANY) }
+    confirm.methods.remove(top)
+    confirm.methods.add(
+        replaced(
+            top, 1,
+            """
+                check-cast p0, ${retap.retap.definingClass}
+                invoke-interface { p0 }, ${retap.retap}
                 return-void
             """,
         ),

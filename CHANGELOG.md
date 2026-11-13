@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Features
+
+* `Ask before a refresh` also asks when you tap Home, Reels or Explore while you're already on it, since that tap scrolls back to the top and reloads too. Cancel leaves the list where it was. Asked for in #655.
+
 ### Bug Fixes
 
 * With `Glass tab bar` on in light mode, the strips above and below a story are black again, as they are without the glass. With `Ambient light in stories` on, the glow no longer hides the clock. Reported in #666.

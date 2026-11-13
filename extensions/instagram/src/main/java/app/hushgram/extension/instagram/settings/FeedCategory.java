@@ -196,8 +196,8 @@ final class FeedCategory {
         }
         if (askRefresh) {
             feed.addPreference(toggle(context, Settings.ASK_BEFORE_REFRESH, L10n.t("Ask before a refresh"),
-                    L10n.t("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on "
-                            + "screen.")));
+                    L10n.t("Asks before a pull down or another tap on its tab refreshes Home, Reels or another list. "
+                            + "Cancel keeps what's on screen.")));
         }
         if (saveTray) {
             feed.addPreference(toggle(context, Settings.SKIP_COLLECTIONS_TRAY, L10n.t("Skip the collections tray"),

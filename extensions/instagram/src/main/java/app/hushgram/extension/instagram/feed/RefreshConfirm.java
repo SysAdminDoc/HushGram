@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.view.View;
 import android.view.animation.Animation;
@@ -11,6 +12,7 @@ import android.view.animation.Animation;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -42,6 +44,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * setRefreshing, which {@link #spinnerOff} calls, and leave what's on screen. A second pull while
  * the question is up doesn't put up a second one.
  *
+ * <p>A tap on the Home, Reels or Explore button while that tab shows scrolls it back to the top and
+ * reloads it (#655). The tab bar tells the tab's screen through one call, which the patch hands to
+ * {@link #retap} in its place. On those three tabs it asks the same question first, Refresh makes
+ * the call, and Cancel leaves the tab where it was.
+ *
  * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet, no screen
  * to ask on or anything thrown, the refresh goes ahead as it always did.
  */
@@ -61,6 +68,10 @@ public final class RefreshConfirm {
      * which holds the layout, so it's held weakly here too, or the layout would never be let go.
      */
     private static final Map<View, WeakReference<Dialog>> OPEN = new WeakHashMap<>();
+
+    /** The question a tap on the tab showing has up, until it's gone, held weakly for the same reason. Main thread only. */
+    @Nullable
+    private static WeakReference<Dialog> retapQuestion;
 
     private RefreshConfirm() {
     }
@@ -104,6 +115,83 @@ public final class RefreshConfirm {
             HookStatus.threw(FamilyNames.ASK_BEFORE_REFRESH, ASK, failure);
             return listener;
         }
+    }
+
+    /**
+     * Injected in place of the tab bar's call telling the tab showing that its button was tapped
+     * again, which on Home, Reels and Explore scrolls back to the top and reloads. [button] is the
+     * tab button's click listener and [screen] the tab's screen, cast to the type the call is made
+     * on. On those three tabs it puts the question up and leaves the call to Refresh. Otherwise it
+     * makes the call, and what that throws goes on as Instagram's would.
+     */
+    public static void retap(Object button, Object screen) {
+        if (!askedFirst(button, screen)) scrollTop(screen);
+    }
+
+    /**
+     * Puts the question up for a tap on [button]'s tab while it shows, unless its tab doesn't reload
+     * or one is up already. Answers whether the call waits for it.
+     */
+    private static boolean askedFirst(Object button, Object screen) {
+        try {
+            HookStatus.invoked(FamilyNames.ASK_BEFORE_REFRESH);
+            if (!Utils.settingsReady() || !Settings.ASK_BEFORE_REFRESH.get() || !reloads(tab(button))) return false;
+            Activity showing = Utils.getActivity();
+            if (ConfirmDialog.up(retapOpen(), showing)) return true;
+            Dialog question = ConfirmDialog.ask(showing, L10n.t("Refresh this list?"), L10n.t("Refresh"),
+                    () -> topAgain(screen), null, RefreshConfirm::forgetRetap);
+            if (question == null) return false;
+            retapQuestion = new WeakReference<>(question);
+            HookStatus.counted(FamilyNames.ASK_BEFORE_REFRESH, ASKED);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ASK_BEFORE_REFRESH, ASK, failure);
+            return false;
+        }
+    }
+
+    /**
+     * Whether [tab], the tab bar's own constant for a button's tab, is one whose button scrolls back
+     * to the top and reloads when tapped while it shows: Home, as itself or with its feed switcher,
+     * Reels or Explore. The patch checks the tab bar's enum names them so.
+     */
+    static boolean reloads(@Nullable Object tab) {
+        if (!(tab instanceof Enum)) return false;
+        switch (((Enum<?>) tab).name()) {
+            case "FEED":
+            case "FEED_SWITCHER":
+            case "CLIPS":
+            case "SEARCH":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /** Refresh on a tab tapped while it shows: makes the call the tap would have. */
+    private static void topAgain(Object screen) {
+        try {
+            scrollTop(screen);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ASK_BEFORE_REFRESH, ASK, failure);
+        }
+    }
+
+    /** The question a tap on the tab showing has up, or null. */
+    @Nullable
+    private static Dialog retapOpen() {
+        return retapQuestion == null ? null : retapQuestion.get();
+    }
+
+    /** Lets go of [gone] once it's gone, unless a newer question has taken its place. */
+    private static void forgetRetap(Dialog gone) {
+        Dialog open = retapOpen();
+        if (open == null || open == gone) retapQuestion = null;
+    }
+
+    /** Whether a question for a tap on the tab showing is still held, for the tests. */
+    static boolean holdsRetap() {
+        return retapQuestion != null;
     }
 
     /** Refresh on the nested-scrolling layout: calls the listener the pull would have called. */
@@ -177,5 +265,33 @@ public final class RefreshConfirm {
             }
         }
         throw new NoSuchMethodException(listener.getClass().getName() + " has no refresh method");
+    }
+
+    /**
+     * Filled in by the patch with a read of the field the tab bar's [button] keeps its tab in, which
+     * the patch proves is the tab bar's enum. Unpatched, it reads the button's one enum field.
+     */
+    @Nullable
+    static Object tab(Object button) throws ReflectiveOperationException {
+        for (Field field : button.getClass().getDeclaredFields()) {
+            if (field.getType().isEnum()) {
+                field.setAccessible(true);
+                return field.get(button);
+            }
+        }
+        throw new NoSuchFieldException(button.getClass().getName() + " has no tab");
+    }
+
+    /**
+     * Filled in by the patch with the call the tab bar makes on [screen] when its button is tapped
+     * while it shows. Unpatched, it calls the one method of the screen's interfaces that takes
+     * nothing, as {@link #refresh} does.
+     */
+    static void scrollTop(Object screen) {
+        try {
+            refresh(screen);
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException(failure);
+        }
     }
 }

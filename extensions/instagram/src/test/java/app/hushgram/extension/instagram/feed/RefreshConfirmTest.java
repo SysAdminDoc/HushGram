@@ -42,9 +42,12 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class RefreshConfirmTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
     private Activity activity;
+    private Activity showing;
 
     @Before public void start() {
         activity = Robolectric.buildActivity(Activity.class).setup().get();
+        showing = Utils.getActivity();
+        Utils.setActivity(activity);
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         ShadowDialog.reset();
@@ -55,6 +58,7 @@ public class RefreshConfirmTest {
         Settings.ASK_BEFORE_REFRESH.resetToDefault();
         PauseForTests.resume();
         HookStatus.clear();
+        Utils.setActivity(showing);
     }
 
     /** A refresh layout as Instagram's keeps it: setRefreshing is public, and the extension reaches it by name. */
@@ -238,6 +242,101 @@ public class RefreshConfirmTest {
         Settings.ASK_BEFORE_REFRESH.save(true);
         assertNull(pull(new Spinner(activity), new Object()));
         tap(shown(), AlertDialog.BUTTON_POSITIVE);
+        String missing = HookStatus.missing(FamilyNames.ASK_BEFORE_REFRESH).toString();
+        assertTrue(missing, missing.contains("'" + RefreshConfirm.ASK + "'"));
+    }
+
+    /** The tab bar's enum, which names each tab as Instagram's does. */
+    private enum Tab { FEED, FEED_SWITCHER, CLIPS, SEARCH, PROFILE, DIRECT }
+
+    /** A tab button, keeping the tab it's for. Unpatched, the extension reads its one enum field. */
+    private static final class Button {
+        final Tab tab;
+
+        Button(Tab tab) {
+            this.tab = tab;
+        }
+    }
+
+    /** A tab's screen: the tab bar calls it when its button is tapped while it shows, and it scrolls up and reloads. */
+    private static final class Screen implements Runnable {
+        int tops;
+
+        @Override public void run() {
+            tops++;
+        }
+    }
+
+    @Test public void offATapOnTheTabShowingReloadsUnasked() {
+        Screen home = new Screen();
+        RefreshConfirm.retap(new Button(Tab.FEED), home);
+        assertEquals(1, home.tops);
+        assertNull(ShadowDialog.getLatestDialog());
+    }
+
+    @Test public void onATapOnTheTabShowingWaitsForRefresh() {
+        Settings.ASK_BEFORE_REFRESH.save(true);
+        Screen reels = new Screen();
+        Button button = new Button(Tab.CLIPS);
+        RefreshConfirm.retap(button, reels);
+        AlertDialog question = shown();
+        RefreshConfirm.retap(button, reels);
+        assertSame("a second tap doesn't put up a second question", question, ShadowDialog.getLatestDialog());
+        assertEquals(0, reels.tops);
+        assertTrue(RefreshConfirm.holdsRetap());
+
+        tap(question, AlertDialog.BUTTON_POSITIVE);
+        assertEquals("Refresh makes the call the tap would have", 1, reels.tops);
+        assertFalse("the question is let go once it's gone", RefreshConfirm.holdsRetap());
+        assertEquals(List.of(FamilyNames.ASK_BEFORE_REFRESH + ": invoked 2, 0 found, 0 missing. Counted: " + RefreshConfirm.ASKED + " 1"),
+                HookStatus.report());
+    }
+
+    @Test public void cancelLeavesTheTabWhereItWasAndTheNextTapAsksAgain() {
+        Settings.ASK_BEFORE_REFRESH.save(true);
+        Screen explore = new Screen();
+        Button button = new Button(Tab.SEARCH);
+        RefreshConfirm.retap(button, explore);
+        tap(shown(), AlertDialog.BUTTON_NEGATIVE);
+        assertEquals(0, explore.tops);
+        assertFalse("Cancel lets the question go", RefreshConfirm.holdsRetap());
+
+        RefreshConfirm.retap(button, explore);
+        tap(shown(), AlertDialog.BUTTON_POSITIVE);
+        assertEquals(1, explore.tops);
+    }
+
+    /** Only Home, as itself or with its feed switcher, Reels and Explore reload on a tap while they show. */
+    @Test public void aTapOnAnotherTabGoesThroughUnasked() {
+        Settings.ASK_BEFORE_REFRESH.save(true);
+        Screen screen = new Screen();
+        RefreshConfirm.retap(new Button(Tab.PROFILE), screen);
+        RefreshConfirm.retap(new Button(Tab.DIRECT), screen);
+        assertEquals(2, screen.tops);
+        assertNull(ShadowDialog.getLatestDialog());
+        for (Tab tab : Tab.values()) {
+            assertEquals(tab.name(), tab.ordinal() < Tab.PROFILE.ordinal(), RefreshConfirm.reloads(tab));
+        }
+        assertFalse(RefreshConfirm.reloads(null));
+        assertFalse(RefreshConfirm.reloads("FEED"));
+    }
+
+    /** Paused, unready, with no screen to ask on or no tab to read, the tap goes ahead as Instagram's. */
+    @Test public void pausedUnreadyScreenlessAndTablessLetTheTapThrough() {
+        Settings.ASK_BEFORE_REFRESH.save(true);
+        Screen home = new Screen();
+        Button button = new Button(Tab.FEED);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        RefreshConfirm.retap(button, home);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> RefreshConfirm.retap(button, home));
+        SettingsContextRule.beforeThePauseIsDecided(() -> RefreshConfirm.retap(button, home));
+        Utils.setActivity(null);
+        RefreshConfirm.retap(button, home);
+        Utils.setActivity(activity);
+        RefreshConfirm.retap(new Object(), home);
+        assertEquals(5, home.tops);
+        assertNull(ShadowDialog.getLatestDialog());
         String missing = HookStatus.missing(FamilyNames.ASK_BEFORE_REFRESH).toString();
         assertTrue(missing, missing.contains("'" + RefreshConfirm.ASK + "'"));
     }

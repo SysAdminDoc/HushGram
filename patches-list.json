@@ -287,7 +287,7 @@
     },
     {
       "name": "Ask before a refresh",
-      "description": "Asks you to confirm before pulling down refreshes Home, Reels or another list, so an accidental pull doesn't replace what you were reading. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Asks you to confirm before pulling down, or tapping the tab you're on again, refreshes Home, Reels or another list, so an accidental pull or tap doesn't replace what you were reading. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [
