@@ -48,6 +48,8 @@ final class PlainTabSlide implements GlassTabSlide.Host {
     final GlassTabSlide slide;
     final GradientDrawable highlight = new GradientDrawable();
     private boolean shown;
+    /** Instagram's touch strip for the seek bar, found once: Instagram keeps one and moves it between reels. */
+    @Nullable private WeakReference<View> stripRef;
 
     PlainTabSlide(ViewGroup bar) {
         this.bar = bar;
@@ -92,13 +94,33 @@ final class PlainTabSlide implements GlassTabSlide.Host {
         return shown;
     }
 
-    /** The tabs' row, without the bar's padding (the room Instagram keeps under it for the navigation bar). */
+    /**
+     * The tabs' row, without the bar's padding (the room Instagram keeps under it for the navigation bar),
+     * and without the part a shown reel's seek bar strip runs over (#526).
+     */
     @Override public boolean onPill(float x, float y) {
         return x >= bar.getPaddingLeft() && x < bar.getWidth() - bar.getPaddingRight()
-                && y >= bar.getPaddingTop() && y < bar.getHeight() - bar.getPaddingBottom();
+                && y >= bar.getPaddingTop() && y < bar.getHeight() - bar.getPaddingBottom()
+                && !onTheStrip(x, y);
     }
 
-    /** Instagram's own bar leaves the seek bar's strip to Instagram. */
+    /**
+     * Whether [x], [y], in the bar's pixels, lie on a shown reel's seek bar strip. Instagram's strip runs
+     * a little past the reel over the top of its tab bar, and a drag starting there is a seek (#526).
+     */
+    private boolean onTheStrip(float x, float y) {
+        View strip = stripRef == null ? null : stripRef.get();
+        if (strip == null || !strip.isAttachedToWindow() || !strip.isShown()) {
+            strip = GlassTabBar.findShown(bar.getRootView(), GlassTabBar.TOUCH_STRIP);
+            stripRef = strip == null ? null : new WeakReference<>(strip);
+        }
+        return GlassTabBar.onTheStrip(strip, bar, x, y);
+    }
+
+    /**
+     * Nothing to route: Instagram's own dispatch hands the seek bar's strip its presses, which
+     * {@link #onPill} leaves alone.
+     */
     @Nullable
     @Override public View stripAt(float x, float y) {
         return null;

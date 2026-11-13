@@ -21,6 +21,7 @@ Every HushGram release, newest first.
 * With `Accent color` and `Icons in the accent color` on, the tab bar icons keep the picked color on Reels and after you leave it. They turned white on Reels and stayed white back on Home. Reported in #663.
 * Tapping a comment someone shared with you in a chat opens the reel it was on, not another reel that loaded first. It's part of `Open reel links on that reel`. Reported in #662.
 * When Instagram itself lets you swipe through the reels a chat shared, with `Swipe through a chat's reels` off, a reply or reaction now goes to the reel you're watching, not the one you tapped. Reported in #662.
+* With `Glass tab bar` off and `Slide across the tabs` on, dragging a reel's seek bar along its lower edge seeks again. That part of the seek bar sits over the top of the tab bar, and the drag used to slide across the tabs and open one instead. Reported in #526.
 
 ## 0.0.20 (2026-11-12)
 
