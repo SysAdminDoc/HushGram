@@ -18,6 +18,7 @@ import app.morphe.patches.instagram.reels.profiletabbar.findTabRootCheck
 import app.morphe.patches.instagram.reels.profiletabbar.requirePublic
 import app.morphe.patches.instagram.reels.profiletabbar.writeFragmentList
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.returnEarlyClass
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -130,13 +131,7 @@ private fun BytecodePatchContext.favoritesRootAt(host: TabHost, check: Method): 
 /** Writes the stubs the extension reaches Home's feed types and feed switch through. */
 private fun BytecodePatchContext.writeFavoritesTargets(switch: FeedSwitch) {
     val targets = mutableClassDefBy(FAVORITES_TARGETS)
-    targets.methods.single { it.name == "feedTypes" }.addInstructions(
-        0,
-        """
-            const-class v0, ${switch.feedType}
-            return-object v0
-        """.trimIndent(),
-    )
+    targets.methods.single { it.name == "feedTypes" }.returnEarlyClass(switch.feedType)
     targets.methods.single { it.name == "show" }.addInstructions(
         0,
         """

@@ -1153,6 +1153,22 @@ fun MutableMethod.returnEarly(value: Void?) {
 }
 
 /**
+ * Overrides the first instruction of a method with the class literal [type], a type descriptor
+ * such as `LX/0abc;`. None of the original method code will execute.
+ *
+ * Target method must have return type Ljava/lang/Class;
+ *
+ * @see returnEarly
+ */
+fun MutableMethod.returnEarlyClass(type: String) {
+    check(returnType == "Ljava/lang/Class;") { RETURN_TYPE_MISMATCH }
+    check(type.length > 2 && (type.first() == 'L' && type.last() == ';' || type.first() == '[')) {
+        "$type is not a type descriptor"
+    }
+    overrideReturnValue(type, false, classLiteral = true)
+}
+
+/**
  * Overrides all return statements with a constant `Boolean` value.
  * All method code is executed the same as unpatched.
  *
@@ -1282,6 +1298,7 @@ private fun MutableMethod.overrideReturnValue(
     value: String,
     returnLate: Boolean,
     nullReturn: Boolean = false,
+    classLiteral: Boolean = false,
 ) {
     // A String or CharSequence return type takes the const-string path below, which is right for
     // returnEarly(String) and wrong for returnEarly(null): it wrote the text "0x0" where the
@@ -1289,7 +1306,12 @@ private fun MutableMethod.overrideReturnValue(
     // object.
     val stringValue = !nullReturn &&
         (returnType == "Ljava/lang/String;" || returnType == "Ljava/lang/CharSequence;")
-    val instructions = if (stringValue) {
+    val instructions = if (classLiteral) {
+        """
+            const-class v0, $value
+            return-object v0
+        """
+    } else if (stringValue) {
         """
             const-string v0, "$value"
             return-object v0

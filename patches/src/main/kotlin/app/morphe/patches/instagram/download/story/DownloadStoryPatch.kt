@@ -265,7 +265,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory(withButton: Boolean 
         """,
     )
     // The same Media off the story item the loop check is asked about, so Loop this story (#610)
-    // reads the ID the menu's row toggled.
+    // reads the ID the menu's row toggled. Answers an Object too, so the null check may share the return.
     storyItemMedia.addInstructionsWithLabels(
         0,
         """

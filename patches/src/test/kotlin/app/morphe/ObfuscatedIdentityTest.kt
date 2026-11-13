@@ -138,6 +138,6 @@ class ObfuscatedIdentityTest {
          * encoder bitrate mode and the AV1 codec the converted-save report names, the first tab
          * of the viewing history, and the artist tag in a saved MP4's metadata.
          */
-        val REAL_NAMES = setOf("Ads", "All", "ART", "Bio", "CBR", "AV1", "add","get", "put", "run", "id", "raw", "mp3", "mp4", "m4a", "m4v")
+        val REAL_NAMES = setOf("Ads", "All", "App", "ART", "Bio", "CBR", "AV1", "add","get", "put", "run", "id", "raw", "mp3", "mp4", "m4a", "m4v")
     }
 }

@@ -8,6 +8,8 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
@@ -122,6 +124,20 @@ class BytecodeUtilsTest {
         val long = method("J")
         val refused = assertThrows(IllegalStateException::class.java) { long.returnEarly(1.5) }
         assertTrue(refused.message!!.contains("return type"))
+    }
+
+    @Test
+    fun `a class literal return takes a Class method and a type descriptor`() {
+        val stub = method("Ljava/lang/Class;")
+        stub.returnEarlyClass("LX/0abc;")
+        val code = stub.implementation!!.instructions.toList()
+        assertEquals(Opcode.CONST_CLASS, code[0].opcode)
+        assertEquals("LX/0abc;", ((code[0] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals(Opcode.RETURN_OBJECT, code[1].opcode)
+
+        val wrongType = assertThrows(IllegalStateException::class.java) { method("Ljava/lang/Object;").returnEarlyClass("LX/0abc;") }
+        assertTrue(wrongType.message!!.contains("return type"))
+        assertThrows(IllegalStateException::class.java) { method("Ljava/lang/Class;").returnEarlyClass("X.0abc") }
     }
 
     @Test
