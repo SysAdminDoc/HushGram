@@ -179,6 +179,7 @@ import app.morphe.patches.instagram.misc.profilesaved.savedOnProfilePatch
 import app.morphe.patches.instagram.direct.blend.dontReportBlendVisitsPatch
 import app.morphe.patches.instagram.feed.bubbles.hideActivityBubblesPatch
 import app.morphe.patches.instagram.misc.phonelayout.phoneLayoutPatch
+import app.morphe.patches.instagram.reels.sleep.letScreenSleepAfterReelPatch
 import app.morphe.patcher.patch.Patch
 import com.google.gson.JsonParser
 import java.io.File
@@ -359,6 +360,7 @@ class DefaultCatalogTest {
         hideSuggestedPostsPatch,
         hideSuggestedStoriesPatch,
         keepReelSpeedPatch,
+        letScreenSleepAfterReelPatch,
         openLinksExternallyPatch,
         openReelLinksPatch,
         removeAdIdPatch,
@@ -378,7 +380,7 @@ class DefaultCatalogTest {
     )
 
     @Test fun existingDefaultsRetainTheirSelections() {
-        assertEquals(18, prior.size)
+        assertEquals(19, prior.size)
         prior.forEach { assertEquals(it.name, true, it.default) }
     }
 
@@ -395,7 +397,7 @@ class DefaultCatalogTest {
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 175, all.size)
+        assertEquals("every named patch needs one reviewed decision", 176, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

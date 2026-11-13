@@ -51,6 +51,8 @@ public enum PatchFamily {
     REMOVE_AD_ID(FamilyNames.REMOVE_AD_ID, "removeAdId", "the removed advertising ID permissions"),
     REEL_WATCH_HISTORY(FamilyNames.REEL_WATCH_HISTORY, "reelWatchHistory", null,
             Settings.DONT_SEND_REEL_WATCH_HISTORY),
+    SCREEN_SLEEP_AFTER_REEL(FamilyNames.SCREEN_SLEEP_AFTER_REEL, "screenSleepAfterReel", null,
+            Settings.LET_SCREEN_SLEEP_AFTER_REEL),
     STORY_AUTO_ADVANCE(FamilyNames.STORY_AUTO_ADVANCE, "storyAutoAdvance", null,
             Settings.BLOCK_STORY_AUTO_ADVANCE),
     STORY_TIME(FamilyNames.STORY_TIME, "storyTime", null, Settings.SHOW_STORY_TIME),
