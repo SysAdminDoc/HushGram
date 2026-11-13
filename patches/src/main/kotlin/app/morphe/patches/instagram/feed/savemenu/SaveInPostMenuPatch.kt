@@ -226,14 +226,14 @@ private fun Instruction.firstArgument(): Int? = when (this) {
 /**
  * Save, or Remove from saved on a post you saved, in the menu behind a feed post's three dots (#569):
  * Instagram's own options, which its menu already handles, added where anyone else's rows start and
- * kept by the short menu. The same patch lets the extension take the Save button off feed posts.
- * In the default selection with both switches off.
+ * kept by the short menu. The same patch lets the extension take the Save button off feed posts,
+ * and the Like button with its count (#668). In the default selection with every switch off.
  */
 @Suppress("unused")
 val saveInPostMenuPatch = bytecodePatch(
     name = "Save in the post menu",
-    description = "Adds Save to the menu behind the three dots on posts in your feed, and a switch that takes the " +
-        "Save button off them. Starts off. Turn them on in HushGram settings > Feed.",
+    description = "Adds Save to the menu behind the three dots on posts in your feed, and switches that take the " +
+        "Save button or the Like button off them. Starts off. Turn them on in HushGram settings > Feed.",
 ) {
     category("Fixes")
     dependsOn(settingsPatch, instagramExtensionPatch)

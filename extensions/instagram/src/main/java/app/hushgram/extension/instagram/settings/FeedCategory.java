@@ -344,6 +344,9 @@ final class FeedCategory {
             feed.addPreference(onFlip(toggle(context, Settings.HIDE_FEED_SAVE_BUTTON, L10n.t("Hide the Save button"),
                     L10n.t("Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.")),
                     FeedSaveRow::switchChanged));
+            feed.addPreference(onFlip(toggle(context, Settings.HIDE_FEED_LIKE_BUTTON, L10n.t("Hide the Like button"),
+                    L10n.t("Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.")),
+                    FeedSaveRow::switchChanged));
         }
         if (activityBubbles) {
             feed.addPreference(toggle(context, Settings.HIDE_ACTIVITY_BUBBLES, L10n.t("Hide activity bubbles"),

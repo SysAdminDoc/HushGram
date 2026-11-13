@@ -1174,6 +1174,10 @@ Pick friends	選擇好友
 Open the Friends tab first.	請先開啟好友分頁。
 No friends to pick yet.	還沒有可選的好友。
 Applies to the next reels loaded.	從接下來載入的 Reels 開始套用。
+Hide the Like button on reels	隱藏 Reels 上的讚按鈕
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	移除 Reel 旁按鈕列中的愛心與下方的讚數。仍可點兩下對 Reel 按讚。
+Hide the Comment button on reels	隱藏 Reels 上的留言按鈕
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	移除 Reel 旁按鈕列中的留言按鈕與下方數量。Reel 下方的留言列有自己的開關。
 Hide the Save button on reels	隱藏 Reels 上的儲存按鈕
 Burn-in guard	防烙印保護
 Dim when idle	閒置時淡化
@@ -1986,6 +1990,8 @@ Save in the post menu	貼文選單中的儲存
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	在貼文三個點開啟的選單中加入「儲存」，已儲存的貼文則顯示「從已儲存移除」。
 Hide the Save button	隱藏儲存按鈕
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	移除動態中貼文底部的儲存按鈕，避免誤觸而儲存貼文。
+Hide the Like button	隱藏讚按鈕
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	移除動態消息貼文底部的愛心與讚數。仍可點兩下對貼文按讚。
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	從已儲存移除
 # context: a switch on the Reels page

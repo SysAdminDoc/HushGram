@@ -486,6 +486,19 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveButto
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveButton()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveButtonComponent
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveCount()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveCountComponent
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSaveCount()Z in instance (L*;JJ)L*; holding android_purge_26_q2_ClipsUfiComponent_maybeCreateSaveCountComponent
+# Hide the Like button and Hide the Comment button on reels do the same in the clips UFI's builders of
+# the Like button, the like count, the Comment button and the comment count (#668). The Like ones hold
+# their markers. The Comment button's holds none: it's the instance builder of the UFI taking the scope,
+# the tap action and two colors that makes the button's component from a color filter and the session.
+# The comment count's is the one of that shape loading the count's text name.
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideLikeButton()Z in instance (*)L*; holding android_purge_26_q2_ClipsUfiComponent_createLikeButtonComponent
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideLikeButton()Z in instance (*)L*; holding android_purge_26_q2_ClipsUfiComponent_createLikeButtonComponent
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideLikeCount()Z in instance (*)L*; holding android_purge_26_q2_ClipsUfiComponent_createLikeCountComponent
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideLikeCount()Z in instance (*)L*; holding android_purge_26_q2_ClipsUfiComponent_createLikeCountComponent
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentButton()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; calling instance LX/*;-><init>(Landroid/graphics/ColorFilter;Lcom/instagram/common/session/UserSession;*)V class-holding android_purge_26_q2_ClipsUfiComponent_createLikeButtonComponent
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentButton()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; calling instance LX/*;-><init>(Landroid/graphics/ColorFilter;Lcom/instagram/common/session/UserSession;*)V class-holding android_purge_26_q2_ClipsUfiComponent_createLikeButtonComponent
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentCount()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; holding ufi_count
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentCount()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; holding ufi_count
 # Hide the Friends tab on Reels hands friendsTab(View) the Friends tab's view right after the method
 # that builds the Reels top tabs gives the tab its icon and reads the tab's view back (#300). That
 # method is the one taking the TabLayout first that loads the Friends tab icon and takes the tabs'

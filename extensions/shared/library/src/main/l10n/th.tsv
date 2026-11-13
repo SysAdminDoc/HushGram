@@ -1177,6 +1177,10 @@ Pick friends	เลือกเพื่อน
 Open the Friends tab first.	เปิดแท็บเพื่อนก่อน
 No friends to pick yet.	ยังไม่มีเพื่อนให้เลือก
 Applies to the next reels loaded.	มีผลกับรีลส์ถัดไปที่โหลด
+Hide the Like button on reels	ซ่อนปุ่มถูกใจในรีลส์
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	นำรูปหัวใจและจำนวนถูกใจใต้ปุ่มออกจากคอลัมน์ปุ่มข้างรีลส์ คุณยังแตะสองครั้งเพื่อกดถูกใจรีลส์ได้อยู่
+Hide the Comment button on reels	ซ่อนปุ่มความคิดเห็นในรีลส์
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	นำปุ่มความคิดเห็นและจำนวนใต้ปุ่มออกจากคอลัมน์ปุ่มข้างรีลส์ แถบความคิดเห็นใต้รีลส์มีสวิตช์แยกของตัวเองอยู่
 Hide the Save button on reels	ซ่อนปุ่มบันทึกในรีลส์
 Burn-in guard	ระบบป้องกันจอเบิร์น
 Dim when idle	หรี่แสงเมื่อไม่ได้ใช้งาน
@@ -1970,6 +1974,8 @@ Save in the post menu	บันทึกในเมนูโพสต์
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	เพิ่ม "บันทึก" ลงในเมนูใต้จุดสามจุดของโพสต์ หรือ "ลบออกจากรายการที่บันทึกไว้" เมื่อคุณได้บันทึกไว้แล้ว
 Hide the Save button	ซ่อนปุ่มบันทึก
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	นำปุ่มบันทึกออกจากด้านล่างของโพสต์ในฟีดของคุณ เพื่อป้องกันการแตะโดนโดยไม่ตั้งใจจนบันทึกโพสต์
+Hide the Like button	ซ่อนปุ่มถูกใจ
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	นำรูปหัวใจและจำนวนถูกใจออกจากด้านล่างของโพสต์ในฟีดของคุณ คุณยังแตะสองครั้งเพื่อกดถูกใจโพสต์ได้อยู่
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	ลบออกจากรายการที่บันทึกไว้
 # context: a switch on the Reels page

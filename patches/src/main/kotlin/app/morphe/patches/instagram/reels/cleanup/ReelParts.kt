@@ -16,6 +16,10 @@ internal const val HIDE_SOCIAL_FOOTER = "$DECLUTTER->hideSocialFooter()Z"
 internal const val HIDE_EVERY_COMMENT_BAR = "$DECLUTTER->hideEveryCommentBar()Z"
 internal const val HIDE_SAVE_BUTTON = "$DECLUTTER->hideSaveButton()Z"
 internal const val HIDE_SAVE_COUNT = "$DECLUTTER->hideSaveCount()Z"
+internal const val HIDE_LIKE_BUTTON = "$DECLUTTER->hideLikeButton()Z"
+internal const val HIDE_LIKE_COUNT = "$DECLUTTER->hideLikeCount()Z"
+internal const val HIDE_COMMENT_BUTTON = "$DECLUTTER->hideCommentButton()Z"
+internal const val HIDE_COMMENT_COUNT = "$DECLUTTER->hideCommentCount()Z"
 internal const val HIDE_COMMENT_BAR = "$DECLUTTER->hideCommentBar(Ljava/lang/Object;)Z"
 internal const val KEEP_COMMENT_BAR_SPACE = "$DECLUTTER->keepCommentBarSpace(Landroid/view/View;Ljava/lang/Object;)V"
 internal const val HIDE_DIRECT_REPLY_BAR = "$DECLUTTER->hideDirectReplyBar(Ljava/lang/Object;)Z"
@@ -88,6 +92,28 @@ internal val SAVE_PARTS = listOf(
     ReelPart("ClipsUfiComponent_maybeCreateSaveButtonComponent", HIDE_SAVE_BUTTON),
     ReelPart("ClipsUfiComponent_maybeCreateSaveCountComponent", HIDE_SAVE_COUNT),
 )
+
+/**
+ * The Like button and the like count in the same column (#668). On Instagram 454 the clips UFI
+ * builds each in a private method of its own, marked like the Save builders, and adds what it
+ * answers the same way, so an empty answer leaves no gap. Each takes more than the Save builders
+ * (the like actions and the like count's state), so only the kind of method is checked.
+ */
+internal val LIKE_PARTS = listOf(
+    ReelPart("ClipsUfiComponent_createLikeButtonComponent", HIDE_LIKE_BUTTON),
+    ReelPart("ClipsUfiComponent_createLikeCountComponent", HIDE_LIKE_COUNT),
+)
+
+/**
+ * The Comment button's component, by its render's marker. Its builder in the clips UFI carries no
+ * marker of its own on 454: it's the one method of the UFI answering this component. The comment
+ * count's builder is the one other method of the UFI taking the same parameters and loading
+ * [UFI_COUNT], the resource name of the count's text.
+ */
+internal const val COMMENT_BUTTON_RENDER = "ClipsCommentButtonComponent_render"
+internal const val UFI_COUNT = "ufi_count"
+internal val COMMENT_BUTTON = ReelPart(COMMENT_BUTTON_RENDER, HIDE_COMMENT_BUTTON)
+internal val COMMENT_COUNT = ReelPart(UFI_COUNT, HIDE_COMMENT_COUNT)
 
 /**
  * The overlays near the username that aren't a creation pill (#332): the suggested search terms
@@ -168,6 +194,7 @@ internal const val CHAT_SOURCE = "DIRECT"
 /** Where the viewer was opened from, an enum that keeps its name, which the controller holds. */
 internal const val CLIPS_VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
-internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + SAVE_PARTS.map { it.marker } + PRODUCT_CTA.marker + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
+internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + SAVE_PARTS.map { it.marker } + LIKE_PARTS.map { it.marker } +
+    COMMENT_BUTTON_RENDER + PRODUCT_CTA.marker + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
     COMMENT_BAR_SHOW + COMMENT_BAR_HIDE + COMMENT_BAR_CREATED + COMMENT_BAR_UNVANISH +
     DIRECT_REPLY_BAR_SHOW + DIRECT_REPLY_BAR_HIDE + DIRECT_REPLY_BAR_CREATED

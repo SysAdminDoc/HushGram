@@ -1186,6 +1186,10 @@ Pick friends	Freunde auswählen
 Open the Friends tab first.	Öffne zuerst den Freunde-Tab.
 No friends to pick yet.	Noch keine Freunde zur Auswahl.
 Applies to the next reels loaded.	Gilt für die nächsten geladenen Reels.
+Hide the Like button on reels	Gefällt-mir-Button bei Reels ausblenden
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	Nimmt das Herz aus der Button-Spalte neben einem Reel, dazu die Zahl der Likes darunter. Ein Doppeltipp gibt einem Reel weiterhin ein Like.
+Hide the Comment button on reels	Kommentar-Button bei Reels ausblenden
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Nimmt den Kommentar-Button aus der Button-Spalte neben einem Reel, dazu die Zahl darunter. Die Kommentarleiste unter einem Reel hat einen eigenen Schalter.
 Hide the Save button on reels	Speichern-Button bei Reels ausblenden
 Burn-in guard	Einbrennschutz
 Dim when idle	Abdunkeln bei Inaktivität
@@ -1983,6 +1987,8 @@ Save in the post menu	Speichern im Beitragsmenü
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Fügt „Speichern“ zum Menü hinter den drei Punkten eines Beitrags hinzu, oder „Aus Gespeichertem entfernen“, wenn du ihn schon gespeichert hast.
 Hide the Save button	Speichern-Button ausblenden
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Entfernt den Speichern-Button unten an Beiträgen in deinem Feed, damit ein versehentliches Tippen nichts speichert.
+Hide the Like button	Gefällt-mir-Button ausblenden
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Nimmt das Herz und die Zahl der Likes unten von Beiträgen in deinem Feed. Ein Doppeltipp gibt einem Beitrag weiterhin ein Like.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Aus Gespeichertem entfernen
 # context: a switch on the Reels page

@@ -647,7 +647,7 @@
     },
     {
       "name": "Clean up Reels",
-      "description": "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Save button, the Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons, and a story's, while you aren't touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels, and can start every reel in it. Starts off. Turn it on in HushGram settings > Reels.",
+      "description": "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Like, Comment and Save buttons, the Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons, and a story's, while you aren't touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels, and can start every reel in it. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
       "use": true,
       "dependencies": [
@@ -5003,7 +5003,7 @@
     },
     {
       "name": "Save in the post menu",
-      "description": "Adds Save to the menu behind the three dots on posts in your feed, and a switch that takes the Save button off them. Starts off. Turn them on in HushGram settings > Feed.",
+      "description": "Adds Save to the menu behind the three dots on posts in your feed, and switches that take the Save button or the Like button off them. Starts off. Turn them on in HushGram settings > Feed.",
       "category": "Fixes",
       "use": true,
       "dependencies": [

@@ -62,6 +62,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       nothing when the hook says to hide, which Instagram's own "maybe create" methods do
  *       whenever a reel has no such button, so the column closes up with no gap. The Save button
  *       of a feed post is another component and stays.
+ *   <li>{@link #hideLikeButton}, {@link #hideLikeCount}, {@link #hideCommentButton} and
+ *       {@link #hideCommentCount} the same way, first thing in the column's builders of the Like
+ *       button, the like count, the Comment button and the comment count (#668). The column adds
+ *       only what each hands it, so an empty answer leaves no gap.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with a switch
@@ -109,6 +113,10 @@ public final class ReelDeclutter {
     /** Diagnostics counts, fixed text. */
     static final String COUNT_SAVE_HIDDEN = "reel Save buttons hidden";
     static final String COUNT_SAVE_COUNT_HIDDEN = "reel save counts hidden";
+    static final String COUNT_LIKE_HIDDEN = "reel Like buttons hidden";
+    static final String COUNT_LIKE_COUNT_HIDDEN = "reel like counts hidden";
+    static final String COUNT_COMMENT_HIDDEN = "reel Comment buttons hidden";
+    static final String COUNT_COMMENT_COUNT_HIDDEN = "reel comment counts hidden";
     static final String COUNT_REPLY_BAR_HIDDEN = "chat reel reply bars kept hidden";
     static final String COUNT_COMMENT_BAR_SPACE_KEPT = "hidden comment bars that kept their space";
 
@@ -159,6 +167,34 @@ public final class ReelDeclutter {
     public static boolean hideSaveCount() {
         boolean hide = hide(Settings.HIDE_REEL_SAVE_BUTTON, "save count");
         if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_SAVE_COUNT_HIDDEN);
+        return hide;
+    }
+
+    /** True leaves the Like button out of a reel's button column. Never throws. */
+    public static boolean hideLikeButton() {
+        boolean hide = hide(Settings.HIDE_REEL_LIKE_BUTTON, "Like button");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_LIKE_HIDDEN);
+        return hide;
+    }
+
+    /** True leaves the like count under a reel's Like button out. Never throws. */
+    public static boolean hideLikeCount() {
+        boolean hide = hide(Settings.HIDE_REEL_LIKE_BUTTON, "like count");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_LIKE_COUNT_HIDDEN);
+        return hide;
+    }
+
+    /** True leaves the Comment button out of a reel's button column. Never throws. */
+    public static boolean hideCommentButton() {
+        boolean hide = hide(Settings.HIDE_REEL_COMMENT_BUTTON, "Comment button");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_COMMENT_HIDDEN);
+        return hide;
+    }
+
+    /** True leaves the comment count under a reel's Comment button out. Never throws. */
+    public static boolean hideCommentCount() {
+        boolean hide = hide(Settings.HIDE_REEL_COMMENT_BUTTON, "comment count");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_COMMENT_COUNT_HIDDEN);
         return hide;
     }
 

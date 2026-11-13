@@ -143,6 +143,12 @@ final class ReelsCategory {
                     L10n.t("Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps "
                             + "only reels they liked or shared. A page with none of them keeps one reel so the next "
                             + "page can load.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_LIKE_BUTTON, L10n.t("Hide the Like button on reels"),
+                    L10n.t("Takes the heart out of the column of buttons beside a reel, and the like count under it. "
+                            + "Double tap still likes a reel.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_COMMENT_BUTTON, L10n.t("Hide the Comment button on reels"),
+                    L10n.t("Takes the Comment button out of the column of buttons beside a reel, and the count under "
+                            + "it. The comment bar under a reel has its own switch.")));
             reels.add(toggle(context, Settings.HIDE_REEL_SAVE_BUTTON, L10n.t("Hide the Save button on reels"),
                     L10n.t("Takes the Save button out of the column of buttons beside a reel, and the count under it. "
                             + "Posts in your feed keep theirs.")));

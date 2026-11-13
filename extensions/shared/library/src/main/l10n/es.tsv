@@ -1186,6 +1186,10 @@ Pick friends	Elegir amigos
 Open the Friends tab first.	Abre primero la pestaña Amigos.
 No friends to pick yet.	Aún no hay amigos para elegir.
 Applies to the next reels loaded.	Se aplica a los próximos reels que carguen.
+Hide the Like button on reels	Ocultar el botón Me gusta en los reels
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	Quita el corazón de la columna de botones junto a un reel, y el número de Me gusta que va debajo. Con un doble toque aún le das Me gusta a un reel.
+Hide the Comment button on reels	Ocultar el botón Comentar en los reels
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Quita el botón Comentar de la columna de botones junto a un reel, y el número que va debajo. La barra de comentarios bajo un reel tiene su propio interruptor.
 Hide the Save button on reels	Ocultar el botón Guardar en los reels
 Burn-in guard	Protección contra quemado
 Dim when idle	Atenuar en reposo
@@ -1983,6 +1987,8 @@ Save in the post menu	Guardar en el menú de la publicación
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Añade Guardar al menú de los tres puntos de una publicación, o Quitar de guardados si ya la guardaste.
 Hide the Save button	Ocultar el botón Guardar
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Quita el botón Guardar de la parte inferior de las publicaciones de tu feed, para que un toque por error no guarde ninguna.
+Hide the Like button	Ocultar el botón Me gusta
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Quita el corazón y el número de Me gusta de la parte de abajo de las publicaciones de tu feed. Con un doble toque aún le das Me gusta a una publicación.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Quitar de guardados
 # context: a switch on the Reels page

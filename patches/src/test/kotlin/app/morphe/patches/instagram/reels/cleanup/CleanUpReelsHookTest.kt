@@ -53,6 +53,7 @@ class CleanUpReelsHookTest {
         for (hook in listOf(
             HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR, HIDE_EVERY_COMMENT_BAR,
             HIDE_SAVE_BUTTON, HIDE_SAVE_COUNT, HIDE_DIRECT_REPLY_BAR, KEEP_COMMENT_BAR_SPACE,
+            HIDE_LIKE_BUTTON, HIDE_LIKE_COUNT, HIDE_COMMENT_BUTTON, HIDE_COMMENT_COUNT,
         )) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
@@ -73,8 +74,16 @@ class CleanUpReelsHookTest {
             assertGuardFirst(part.marker, part, method)
         }
         val ufi = context.mutableClassDefBy(UFI).methods
-        assertEquals(setOf("A0D", "A06"), ufi.map { it.name }.toSet())
+        assertEquals(setOf("A0D", "A06", "A0J", "A02", "A0I", "A0E", "A0C"), ufi.map { it.name }.toSet())
         SAVE_PARTS.zip(listOf("A0D", "A06")).forEach { (part, name) -> assertGuardFirst(part.marker, part, ufi.single { it.name == name }) }
+        // The Like and Comment buttons and their counts (#668); the save count's own count and the
+        // Comment button's render stay as they were.
+        (LIKE_PARTS + COMMENT_BUTTON + COMMENT_COUNT).zip(listOf("A0J", "A02", "A0I", "A0E")).forEach { (part, name) ->
+            assertGuardFirst(part.hook, part, ufi.single { it.name == name })
+        }
+        assertEquals("the other count was touched", 3, ufi.single { it.name == "A0C" }.instructions().size)
+        assertEquals("the Comment button's render was touched", 3,
+            context.mutableClassDefBy(owner(COMMENT_BUTTON_RENDER)).methods.single().instructions().size)
         assertGuardFirst(PRODUCT_CTA.marker, PRODUCT_CTA, context.mutableClassDefBy(owner(PRODUCT_CTA.marker)).methods.single())
         val legacy = context.mutableClassDefBy(owner("ClipsFollowButtonComponentLegacy_render")).methods.single()
         assertEquals("the Legacy Follow button was touched", 3, legacy.instructions().size)
@@ -220,6 +229,23 @@ class CleanUpReelsHookTest {
         assertTrue(failure.message!!, failure.message!!.contains("held by one method"))
     }
 
+    /**
+     * The Like builders have to be instance builders of the clips UFI, and the Comment button's
+     * builder and the comment count's each found once there (#668).
+     */
+    @Test
+    fun aLikeOrCommentBuilderItCantFindFailsThePatch() {
+        for ((case, classes, expected) in listOf(
+            Triple("static like", classes(ufiShape = "static like"), LIKE_PARTS[0].marker),
+            Triple("no like count", classes(leaveOut = LIKE_PARTS[1].marker), LIKE_PARTS[1].marker),
+            Triple("no comment button", classes(ufiShape = "no comment button"), "Comment button"),
+            Triple("two comment counts", classes(ufiShape = "two counts"), UFI_COUNT),
+        )) {
+            val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).hideReelParts() }
+            assertTrue("$case: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
     @Test
     fun aMarkerInTwoMethodsFailsThePatch() {
         val copy = render("Lfixture/Copy;", "ClipsFollowButtonComponent_render")
@@ -333,6 +359,33 @@ class CleanUpReelsHookTest {
             assertEquals("$label: who asks ${part.hook}", listOf("${before.definingClass}->${before.name}"),
                 askers.map { (type, method) -> "$type->${method.name}" })
         }
+        // The Like button, the like count, the Comment button and the comment count (#668): each hook
+        // is asked by one instance method of the clips UFI, first thing, and by nothing else. The Like
+        // builders are the ones holding their markers, the Comment button's answers the component
+        // holding its render's marker, and the count's takes the same parameters and loads ufi_count.
+        val ufiType = classes.flatMap { it.methods }.single { LIKE_PARTS[0].marker in it.markers() }.definingClass
+        val commentType = classes.flatMap { it.methods }.single { COMMENT_BUTTON_RENDER in it.markers() }.definingClass
+        val hooked = (LIKE_PARTS + COMMENT_BUTTON + COMMENT_COUNT).associateWith { part ->
+            val askers = classes.flatMap { context.mutableClassDefBy(it.type).methods.toList() }
+                .filter { method -> method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == part.hook } }
+            assertEquals("$label: who asks ${part.hook}", listOf(ufiType), askers.map { it.definingClass })
+            val after = askers.single()
+            val before = classes.single { it.type == ufiType }.methods.single {
+                it.name == after.name && it.parameterTypes.map(Any::toString) == after.parameterTypes.map(Any::toString)
+            }
+            assertFalse("$label: ${part.hook}'s builder is static", AccessFlags.STATIC.isSet(before.accessFlags))
+            assertEquals("$label: ${part.hook}'s builder size", before.instructions().size + 5, after.instructions().size)
+            assertGuardFirst("$label: ${part.hook}", part, after)
+            before
+        }
+        LIKE_PARTS.forEach { part -> assertTrue("$label: ${part.hook} guards ${part.marker}", part.marker in hooked.getValue(part).markers()) }
+        assertEquals("$label: the Comment button's builder", commentType, hooked.getValue(COMMENT_BUTTON).returnType)
+        val commentCount = hooked.getValue(COMMENT_COUNT)
+        assertEquals("$label: the comment count's parameters", hooked.getValue(COMMENT_BUTTON).parameterTypes.map(Any::toString),
+            commentCount.parameterTypes.map(Any::toString))
+        assertTrue("$label: the comment count loads $UFI_COUNT", commentCount.instructions().any {
+            ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == UFI_COUNT
+        })
         // The reel CTA's product button: the one builder, guarded first and growing by the guard alone.
         val productBefore = classes.flatMap { it.methods }.single { PRODUCT_CTA.marker in it.markers() }
         val productAfter = after(productBefore)
@@ -634,13 +687,14 @@ class CleanUpReelsHookTest {
         unVanish: String = "ok",
         replyBar: String = "ok",
         productCtaLabel: String = "Ljava/lang/String;",
+        ufiShape: String = "ok",
     ): List<ClassDef> {
-        val renders = (REEL_PARTS.filter { !it.check }.map { it.marker } + "ClipsFollowButtonComponentLegacy_render")
+        val renders = (REEL_PARTS.filter { !it.check }.map { it.marker } + "ClipsFollowButtonComponentLegacy_render" + COMMENT_BUTTON_RENDER)
             .filter { it != leaveOut }
             .map { render(owner(it), it, static = it == staticRender) }
         val builders = SAVE_PARTS.filter { it.marker != leaveOut && (saveShape != "both" || it === SAVE_PARTS[0]) }
-            .map { save(UFI, if (it === SAVE_PARTS[0]) "A0D" else "A06", it.marker, saveShape) }
-        val saves = if (builders.isEmpty()) emptyList() else listOf(classOf(UFI, "Lfixture/KComponent;", *builders.toTypedArray()))
+            .map { save(UFI, if (it === SAVE_PARTS[0]) "A0D" else "A06", it.marker, saveShape) } + ufiBuilders(ufiShape, leaveOut)
+        val saves = listOf(classOf(UFI, "Lfixture/KComponent;", *builders.toTypedArray()))
         val checks = REEL_PARTS.filter { it.check && it.marker != leaveOut }.map { check(owner(it.marker), it.marker, checkReturns) }
         val none = if (noneOfItsOwn) "$NO_BUBBLES->A00:$NO_BUBBLES" else "$BUBBLES->none:$NO_BUBBLES"
         val bubbles = classOf(
@@ -940,6 +994,31 @@ class CleanUpReelsHookTest {
             """,
             static = static,
         )
+    }
+
+    /**
+     * The clips UFI's other builders, shaped like 454's (#668): the Like button's and the like
+     * count's, holding their markers; the Comment button's, answering its component, and the comment
+     * count's, taking the same parameters and loading ufi_count; and another count loading ufi_count
+     * with the Save builders' parameters. [shape] breaks one of them.
+     */
+    private fun ufiBuilders(shape: String, leaveOut: String?): List<Method> {
+        val nothing = "const/4 v0, 0x0\nreturn-object v0"
+        val likes = LIKE_PARTS.filter { it.marker != leaveOut }.map { part ->
+            method(
+                UFI, if (part === LIKE_PARTS[0]) "A0J" else "A02", listOf(scope, "Lkotlin/jvm/functions/Function1;", "J", "J"), component, 8,
+                "const-string v0, \"android_purge_26_q2_${part.marker}\"\n$nothing",
+                static = shape == "static like" && part === LIKE_PARTS[0],
+            )
+        }
+        val commentParameters = listOf(scope, "Lkotlin/jvm/functions/Function0;", "J", "J")
+        fun counter(name: String, parameters: List<String>) =
+            method(UFI, name, parameters, component, 8, "const-string v0, \"$UFI_COUNT\"\n$nothing", static = false)
+        val button = if (shape == "no comment button") emptyList() else listOf(
+            method(UFI, "A0I", commentParameters, owner(COMMENT_BUTTON_RENDER), 8, nothing, static = false),
+        )
+        val counts = listOf(counter("A0E", commentParameters)) + if (shape == "two counts") listOf(counter("A0F", commentParameters)) else emptyList()
+        return likes + button + counts + counter("A0C", listOf(scope, "J", "J"))
     }
 
     private fun check(type: String, marker: String, returns: String): ClassDef = ImmutableClassDef(

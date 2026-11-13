@@ -38,7 +38,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * account is. Instagram's menu handles a tap on either itself, so it saves to the same place the
  * button does and shows its usual confirmation. Whether the post is saved is read the way
  * Instagram's older menu reads it. The button is hidden by {@link ViewHider}, only inside a feed
- * post's row of buttons.
+ * post's row of buttons, and so are the Like button and its count with their own switch (#668).
  *
  * <p>Instagram's builder adds its own Save or Unsave row to some posts' menus, suggested posts
  * among them, after the spot the row goes in. The short menu used to drop that one, but it keeps
@@ -48,10 +48,14 @@ public final class FeedSaveRow {
     /** The row of buttons under a feed post, and its Save button. */
     static final String BUTTONS = "row_feed_view_group_buttons";
     static final String SAVE_BUTTON = "row_feed_button_save";
+    /** The Like button in that row and the count beside it (#668). */
+    static final String LIKE_BUTTON = "row_feed_button_like";
+    static final String LIKE_COUNT = "row_feed_like_count";
 
     static final String HOOK = "feed save row";
     static final String COUNT_OFFERED = "save rows added";
     static final String COUNT_HIDDEN = "feed save buttons hidden";
+    static final String COUNT_LIKE_HIDDEN = "feed like buttons hidden";
     static final String COUNT_SETTLED = "save rows left to Instagram's own";
 
     /** The row {@link #offer} added on this thread, until the builder hands its rows back. */
@@ -61,6 +65,10 @@ public final class FeedSaveRow {
 
     private static final ViewHider HIDER = new ViewHider(FamilyNames.FEED_SAVE, "feed save button", COUNT_HIDDEN,
             () -> Settings.HIDE_FEED_SAVE_BUTTON.get(), BUTTONS, SAVE_BUTTON);
+
+    /** Hide the Like button (#668): the heart and its count, only inside a feed post's row of buttons. */
+    private static final ViewHider LIKE_HIDER = new ViewHider(FamilyNames.FEED_SAVE, "feed like button",
+            COUNT_LIKE_HIDDEN, () -> Settings.HIDE_FEED_LIKE_BUTTON.get(), BUTTONS, LIKE_BUTTON, LIKE_COUNT);
 
     private FeedSaveRow() {
     }
@@ -92,11 +100,13 @@ public final class FeedSaveRow {
     /** Called as the application starts. Does nothing in a build without the patch. */
     public static void install(Context context) {
         HIDER.install(context, SettingsStatus.feedSave());
+        LIKE_HIDER.install(context, SettingsStatus.feedSave());
     }
 
-    /** The switch was flipped in HushGram settings, a dialog over [activity]: the screen under it decides now. */
+    /** A switch was flipped in HushGram settings, a dialog over [activity]: the screen under it decides now. */
     public static void switchChanged(@Nullable Activity activity) {
         HIDER.switchChanged(activity);
+        LIKE_HIDER.switchChanged(activity);
     }
 
     /** Whether the row may show: its switch is on, settings are ready and HushGram isn't paused. */
@@ -237,12 +247,17 @@ public final class FeedSaveRow {
         return HIDER;
     }
 
+    static ViewHider likeHider() {
+        return LIKE_HIDER;
+    }
+
     public static boolean listeningForTests(Activity activity) {
-        return HIDER.listeningForTests(activity);
+        return HIDER.listeningForTests(activity) || LIKE_HIDER.listeningForTests(activity);
     }
 
     public static void resetForTests() {
         HIDER.resetForTests();
+        LIKE_HIDER.resetForTests();
         OFFERED.remove();
     }
 }

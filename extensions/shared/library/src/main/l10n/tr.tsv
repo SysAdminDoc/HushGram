@@ -1186,6 +1186,10 @@ Pick friends	Arkadaş seç
 Open the Friends tab first.	Önce Arkadaşlar sekmesini aç.
 No friends to pick yet.	Henüz seçilecek arkadaş yok.
 Applies to the next reels loaded.	Sonraki yüklenen reellere uygulanır.
+Hide the Like button on reels	Reels'te Beğen düğmesini gizle
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	Kalbi reel'in yanındaki düğme sütunundan ve altındaki beğeni sayısını kaldırır. Çift dokunarak reel'i yine beğenebilirsin.
+Hide the Comment button on reels	Reels'te Yorum düğmesini gizle
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Yorum düğmesini reel'in yanındaki düğme sütunundan ve altındaki sayıyı kaldırır. Reel'in altındaki yorum çubuğunun kendi anahtarı var.
 Hide the Save button on reels	Reels'te Kaydet düğmesini gizle
 Burn-in guard	Ekran yanığı koruması
 Dim when idle	Boştayken karart
@@ -1983,6 +1987,8 @@ Save in the post menu	Gönderi menüsünde Kaydet
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Bir gönderinin üç noktasının açtığı menüye Kaydet ekler, zaten kaydettiysen Kaydedilenlerden kaldır ekler.
 Hide the Save button	Kaydet düğmesini gizle
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Akışındaki gönderilerin altındaki Kaydet düğmesini kaldırır, böylece yanlışlıkla bir dokunuş hiçbir şeyi kaydetmez.
+Hide the Like button	Beğen düğmesini gizle
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Akışındaki gönderilerin altından kalbi ve beğeni sayısını kaldırır. Çift dokunarak gönderiyi yine beğenebilirsin.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Kaydedilenlerden kaldır
 # context: a switch on the Reels page

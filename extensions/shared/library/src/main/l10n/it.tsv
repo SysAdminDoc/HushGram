@@ -1186,6 +1186,10 @@ Pick friends	Scegli amici
 Open the Friends tab first.	Apri prima la scheda Amici.
 No friends to pick yet.	Ancora nessun amico da scegliere.
 Applies to the next reels loaded.	Vale per i prossimi reel caricati.
+Hide the Like button on reels	Nascondi il pulsante Mi piace sui reel
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	Toglie il cuore dalla colonna di pulsanti accanto a un reel, e il numero di Mi piace sotto. Il doppio tocco mette ancora Mi piace a un reel.
+Hide the Comment button on reels	Nascondi il pulsante Commenta sui reel
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Toglie il pulsante Commenta dalla colonna di pulsanti accanto a un reel, e il conteggio sotto. La barra dei commenti sotto un reel ha un suo interruttore.
 Hide the Save button on reels	Nascondi il pulsante Salva sui reel
 Burn-in guard	Protezione burn-in
 Dim when idle	Attenua quando inattivo
@@ -1983,6 +1987,8 @@ Save in the post menu	Salva nel menu del post
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Aggiunge Salva al menu dei tre puntini di un post, oppure Rimuovi dagli elementi salvati se l'hai già salvato.
 Hide the Save button	Nascondi il pulsante Salva
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Toglie il pulsante Salva dal fondo dei post nel tuo feed, così un tocco per sbaglio non ne salva nessuno.
+Hide the Like button	Nascondi il pulsante Mi piace
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Toglie il cuore e il numero di Mi piace dalla parte bassa dei post nel tuo feed. Il doppio tocco mette ancora Mi piace a un post.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Rimuovi dagli elementi salvati
 # context: a switch on the Reels page

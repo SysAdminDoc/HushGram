@@ -1174,6 +1174,10 @@ Pick friends	选择好友
 Open the Friends tab first.	请先打开好友标签页。
 No friends to pick yet.	还没有可选的好友。
 Applies to the next reels loaded.	从接下来加载的 Reels 开始应用。
+Hide the Like button on reels	隐藏 Reels 上的赞按钮
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	移除 Reel 旁按钮栏中的爱心与下方的赞数。仍可双击为 Reel 点赞。
+Hide the Comment button on reels	隐藏 Reels 上的评论按钮
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	移除 Reel 旁按钮栏中的评论按钮与下方数量。Reel 下方的评论栏有自己的开关。
 Hide the Save button on reels	隐藏 Reels 上的保存按钮
 Burn-in guard	防烙印保护
 Dim when idle	闲置时淡化
@@ -1986,6 +1990,8 @@ Save in the post menu	帖子菜单中的保存
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	在帖子三个点打开的菜单中加入“保存”，已保存的帖子则显示“从已保存移除”。
 Hide the Save button	隐藏保存按钮
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	移除动态中帖子底部的保存按钮，避免误触而保存帖子。
+Hide the Like button	隐藏赞按钮
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	移除动态首页帖子底部的爱心与赞数。仍可双击为帖子点赞。
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	从已保存移除
 # context: a switch on the Reels page

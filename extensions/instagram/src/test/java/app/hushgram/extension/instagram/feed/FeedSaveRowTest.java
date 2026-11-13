@@ -60,7 +60,9 @@ public class FeedSaveRowTest {
     private LinearLayout screen;
     private View save;
     private View like;
+    private View likeCount;
     private View savedElsewhere;
+    private View likedElsewhere;
 
     @Before
     public void prepare() {
@@ -68,27 +70,40 @@ public class FeedSaveRowTest {
         PauseForTests.resume();
         Settings.SAVE_IN_POST_MENU.save(true);
         Settings.HIDE_FEED_SAVE_BUTTON.resetToDefault();
+        Settings.HIDE_FEED_LIKE_BUTTON.resetToDefault();
         HookStatus.clear();
 
         controller = Robolectric.buildActivity(Activity.class).setup().visible();
         activity = controller.get();
-        FeedSaveRow.hider().resetForTests();
+        FeedSaveRow.resetForTests();
         int buttonsId = View.generateViewId();
         int saveId = View.generateViewId();
+        int likeId = View.generateViewId();
+        int likeCountId = View.generateViewId();
         FeedSaveRow.hider().idForTests(activity, FeedSaveRow.BUTTONS, buttonsId);
         FeedSaveRow.hider().idForTests(activity, FeedSaveRow.SAVE_BUTTON, saveId);
+        FeedSaveRow.likeHider().idForTests(activity, FeedSaveRow.BUTTONS, buttonsId);
+        FeedSaveRow.likeHider().idForTests(activity, FeedSaveRow.LIKE_BUTTON, likeId);
+        FeedSaveRow.likeHider().idForTests(activity, FeedSaveRow.LIKE_COUNT, likeCountId);
         screen = new LinearLayout(activity);
         LinearLayout buttons = new LinearLayout(activity);
         buttons.setId(buttonsId);
         like = new View(activity);
+        like.setId(likeId);
+        likeCount = new View(activity);
+        likeCount.setId(likeCountId);
         save = new View(activity);
         save.setId(saveId);
         buttons.addView(like);
+        buttons.addView(likeCount);
         buttons.addView(save);
         savedElsewhere = new View(activity);
         savedElsewhere.setId(saveId);
+        likedElsewhere = new View(activity);
+        likedElsewhere.setId(likeId);
         screen.addView(buttons);
         screen.addView(savedElsewhere);
+        screen.addView(likedElsewhere);
         FrameLayout root = new FrameLayout(activity);
         root.addView(screen);
         activity.setContentView(root);
@@ -100,6 +115,7 @@ public class FeedSaveRowTest {
         FeedSaveRow.resetForTests();
         Settings.SAVE_IN_POST_MENU.resetToDefault();
         Settings.HIDE_FEED_SAVE_BUTTON.resetToDefault();
+        Settings.HIDE_FEED_LIKE_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -364,5 +380,37 @@ public class FeedSaveRowTest {
         assertEquals(View.GONE, save.getVisibility());
         assertEquals("Like stays", View.VISIBLE, like.getVisibility());
         assertEquals("a Save button outside a feed post stays", View.VISIBLE, savedElsewhere.getVisibility());
+    }
+
+    /**
+     * Hide the Like button (#668) takes the heart and its count out of a feed post's buttons, leaves
+     * Save and a Like button anywhere else, and with its switch off or HushGram paused never listens.
+     */
+    @Test
+    public void theLikeButtonAndItsCountLeaveOnlyAFeedPostsButtons() {
+        FeedSaveRow.likeHider().watch(activity);
+        assertFalse("off to start", FeedSaveRow.likeHider().listeningForTests(activity));
+        Settings.HIDE_FEED_SAVE_BUTTON.save(true);
+        FeedSaveRow.likeHider().watch(activity);
+        assertFalse("the Save switch alone leaves Like", FeedSaveRow.likeHider().listeningForTests(activity));
+
+        Settings.HIDE_FEED_SAVE_BUTTON.save(false);
+        Settings.HIDE_FEED_LIKE_BUTTON.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        FeedSaveRow.likeHider().watch(activity);
+        assertFalse("paused", FeedSaveRow.likeHider().listeningForTests(activity));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        FeedSaveRow.likeHider().watch(activity);
+        assertTrue(screen.getViewTreeObserver().dispatchOnPreDraw());
+        assertEquals(View.GONE, like.getVisibility());
+        assertEquals(View.GONE, likeCount.getVisibility());
+        assertEquals("Save stays", View.VISIBLE, save.getVisibility());
+        assertEquals("a Like button outside a feed post stays", View.VISIBLE, likedElsewhere.getVisibility());
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(FeedSaveRow.COUNT_LIKE_HIDDEN));
+        assertFalse(report, report.contains(FeedSaveRow.COUNT_HIDDEN));
     }
 }

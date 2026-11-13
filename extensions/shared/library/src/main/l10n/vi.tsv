@@ -1157,6 +1157,10 @@ Pick friends	Chọn bạn bè
 Open the Friends tab first.	Hãy mở tab Bạn bè trước.
 No friends to pick yet.	Chưa có bạn bè nào để chọn.
 Applies to the next reels loaded.	Áp dụng cho các reel tải tiếp theo.
+Hide the Like button on reels	Ẩn nút Thích trên reel
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	Gỡ biểu tượng trái tim khỏi cột nút bên cạnh reel và số lượt thích bên dưới. Bạn vẫn có thể nhấn đúp để thích reel.
+Hide the Comment button on reels	Ẩn nút Bình luận trên reel
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Gỡ nút Bình luận khỏi cột nút bên cạnh reel và số lượng bên dưới. Thanh bình luận dưới reel có công tắc riêng.
 Hide the Save button on reels	Ẩn nút Lưu trên reel
 Burn-in guard	Chống ám màn hình
 Dim when idle	Làm mờ khi không dùng
@@ -1898,6 +1902,8 @@ Save in the post menu	Lưu trong menu bài viết
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Thêm Lưu vào menu ba dấu chấm của bài viết, hoặc Gỡ khỏi mục đã lưu khi bạn đã lưu nó.
 Hide the Save button	Ẩn nút Lưu
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Bỏ nút Lưu khỏi cuối các bài viết trong bảng feed, để chạm nhầm không lưu bài nào.
+Hide the Like button	Ẩn nút Thích
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Gỡ biểu tượng trái tim và số lượt thích khỏi phía dưới bài viết trong bảng feed của bạn. Bạn vẫn có thể nhấn đúp để thích bài viết.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Gỡ khỏi mục đã lưu
 # context: a switch on the Reels page

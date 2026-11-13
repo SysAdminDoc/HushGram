@@ -1186,6 +1186,10 @@ Pick friends	Pilih teman
 Open the Friends tab first.	Buka tab Teman dulu.
 No friends to pick yet.	Belum ada teman untuk dipilih.
 Applies to the next reels loaded.	Berlaku untuk reel berikutnya yang dimuat.
+Hide the Like button on reels	Sembunyikan tombol Suka di reel
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	Menghapus ikon hati dari deretan tombol di samping reel, beserta jumlah suka di bawahnya. Ketuk dua kali tetap menyukai reel.
+Hide the Comment button on reels	Sembunyikan tombol Komentar di reel
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Menghapus tombol Komentar dari deretan tombol di samping reel, beserta angka di bawahnya. Kolom komentar di bawah reel punya sakelarnya sendiri.
 Hide the Save button on reels	Sembunyikan tombol Simpan di reel
 Burn-in guard	Pelindung burn-in
 Dim when idle	Redupkan saat diam
@@ -1983,6 +1987,8 @@ Save in the post menu	Simpan di menu postingan
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Menambahkan Simpan ke menu di balik tiga titik postingan, atau Hapus dari tersimpan jika kamu sudah menyimpannya.
 Hide the Save button	Sembunyikan tombol Simpan
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Menghapus tombol Simpan dari bagian bawah postingan di feed kamu, agar ketukan tak sengaja tidak menyimpannya.
+Hide the Like button	Sembunyikan tombol Suka
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Menghapus ikon hati dan jumlah suka dari bagian bawah postingan di feed kamu. Ketuk dua kali tetap menyukai postingan.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Hapus dari tersimpan
 # context: a switch on the Reels page

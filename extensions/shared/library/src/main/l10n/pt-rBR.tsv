@@ -1186,6 +1186,10 @@ Pick friends	Escolher amigos
 Open the Friends tab first.	Abra a aba Amigos primeiro.
 No friends to pick yet.	Ainda não há amigos para escolher.
 Applies to the next reels loaded.	Vale para os próximos reels carregados.
+Hide the Like button on reels	Ocultar o botão Curtir nos reels
+Takes the heart out of the column of buttons beside a reel, and the like count under it. Double tap still likes a reel.	Tira o coração da coluna de botões ao lado de um reel, junto com o número de curtidas embaixo dele. Tocar duas vezes ainda curte um reel.
+Hide the Comment button on reels	Ocultar o botão Comentar nos reels
+Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Tira o botão Comentar da coluna de botões ao lado de um reel, junto com o número embaixo dele. A barra de comentários embaixo de um reel tem uma chave própria.
 Hide the Save button on reels	Ocultar o botão Salvar nos reels
 Burn-in guard	Proteção contra burn-in
 Dim when idle	Escurecer quando parado
@@ -1983,6 +1987,8 @@ Save in the post menu	Salvar no menu do post
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Adiciona Salvar ao menu dos três pontos de um post, ou Remover dos salvos quando você já salvou.
 Hide the Save button	Ocultar o botão Salvar
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Tira o botão Salvar da parte de baixo dos posts do seu feed, para um toque sem querer não salvar nada.
+Hide the Like button	Ocultar o botão Curtir
+Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Tira o coração e o número de curtidas da parte de baixo dos posts do seu feed. Tocar duas vezes ainda curte um post.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Remover dos salvos
 # context: a switch on the Reels page

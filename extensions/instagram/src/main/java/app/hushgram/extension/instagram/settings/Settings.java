@@ -2767,6 +2767,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_save_button", FALSE);
 
     /**
+     * The Like button and the like count under a feed post (#668,
+     * {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). Read before each frame of a resumed
+     * screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_LIKE_BUTTON =
+            new BooleanSetting("hushgram_hide_feed_like_button", FALSE);
+
+    /**
      * "Watch again" on a feed reel's end card replays the reel in the feed instead of opening Reels
      * (#568, {@link app.hushgram.extension.instagram.feed.WatchAgain}). Read as each end card is set
      * up, so it needs no restart. Off to start.
@@ -2952,6 +2960,20 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_REEL_SAVE_BUTTON =
             new BooleanSetting("hushgram_hide_reel_save_button", FALSE);
+
+    /**
+     * The Like (heart) button in the right-hand column of a reel, and the like count under it.
+     * Double tap still likes a reel. Off to start (#668).
+     */
+    public static final BooleanSetting HIDE_REEL_LIKE_BUTTON =
+            new BooleanSetting("hushgram_hide_reel_like_button", FALSE);
+
+    /**
+     * The Comment button in the right-hand column of a reel, and the comment count under it. Off
+     * to start (#668).
+     */
+    public static final BooleanSetting HIDE_REEL_COMMENT_BUTTON =
+            new BooleanSetting("hushgram_hide_reel_comment_button", FALSE);
 
     /**
      * Instagram's clear mode, once you turn it on for a reel, stays on for the next reels you swipe

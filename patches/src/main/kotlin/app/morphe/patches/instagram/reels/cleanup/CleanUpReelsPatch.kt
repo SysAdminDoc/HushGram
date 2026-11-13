@@ -32,6 +32,7 @@ import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.RegisterLiveness
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -45,11 +46,12 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 private const val PATCH = "Clean up Reels"
 
 /**
- * Takes eleven things off the Reels viewer, each behind its own switch: the Follow button beside a
+ * Takes thirteen things off the Reels viewer, each behind its own switch: the Follow button beside a
  * reel's author, the pills that prompt you to make something or promote something, and friends'
  * activity with the comment preview, and the Add comment bar under a reel opened from a profile's
  * reposts, and the same bar under every reel, the Reels tab's included, the reply bar under a reel
- * opened from a chat, the Save button in a reel's button column, the Reels tab's top bar, the
+ * opened from a chat, the Like, Comment and Save buttons in a reel's button column (each with its
+ * count, #668), the Reels tab's top bar, the
  * Create (+) and Your algorithm buttons in the top bar of reels, and the Friends tab beside Reels.
  * The patch is in the default selection and every switch starts off. Friends' activity covers the
  * floating bubbles and the Liked by or Followed by line with its faces. See ReelParts.kt for each
@@ -82,7 +84,7 @@ private const val PATCH = "Clean up Reels"
 val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban " +
-        "Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Save button, the " +
+        "Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Like, Comment and Save buttons, the " +
         "Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons, and a story's, while you aren't " +
         "touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels, and can start every reel in it. " +
         "Starts off. Turn it on in HushGram settings > Reels.",
@@ -125,8 +127,10 @@ internal fun BytecodePatchContext.hideReelParts() {
     val wanted = CLEANUP_MARKERS.toSet()
     val found = mutableMapOf<String, MutableList<Method>>()
     val marked = typesMarked(*CLEANUP_MARKERS.toTypedArray())
+    val markedClasses = mutableMapOf<String, ClassDef>()
     classDefForEach { classDef ->
         if (classDef.type !in marked) return@classDefForEach
+        markedClasses[classDef.type] = classDef
         classDef.methods.forEach { method ->
             method.markers().filter { it in wanted }.distinct().forEach { found.getOrPut(it) { mutableListOf() } += method }
         }
@@ -147,7 +151,13 @@ internal fun BytecodePatchContext.hideReelParts() {
     methods.forEach { (part, method) -> requireShape(part, method) }
     saves.forEach { (part, method) -> requireSaveShape(part, method) }
     requireProductCtaShape(productCta)
-    val everyMethod = (methods.values + saves.values + productCta + bubbles + socialContext).map { "${it.definingClass}->${it.name}" }
+    // The Like and Comment buttons and their counts, built in the clips UFI that holds the Like builders (#668).
+    val likes = LIKE_PARTS.associateWith { holding(it.marker) }
+    val ufi = likes.getValue(LIKE_PARTS[0]).definingClass
+    likes.forEach { (part, method) -> requireUfiBuilder(part.marker, method, ufi) }
+    val (commentButton, commentCount) = commentBuilders(markedClasses.getValue(ufi), holding(COMMENT_BUTTON_RENDER).definingClass)
+    val ufiParts = likes + mapOf(COMMENT_BUTTON to commentButton, COMMENT_COUNT to commentCount)
+    val everyMethod = (methods.values + saves.values + ufiParts.values + productCta + bubbles + socialContext).map { "${it.definingClass}->${it.name}" }
     if (everyMethod.toSet().size != everyMethod.size) throw PatchException("$PATCH: two parts are held by one method: $everyMethod")
     val renders = methods.filterKeys { !it.check }.values
     val shapes = renders.map { it.parameterTypes.single().toString() to it.returnType }.toSet()
@@ -158,14 +168,14 @@ internal fun BytecodePatchContext.hideReelParts() {
     val replyBar = directReplyBar(holding(DIRECT_REPLY_BAR_SHOW), holding(DIRECT_REPLY_BAR_HIDE), holding(DIRECT_REPLY_BAR_CREATED))
     // The reply bar's hooks go in further down their methods, at places worked out before anything
     // changes, so neither method may be one another part writes into.
-    val written = (methods.values + saves.values + productCta + bubbles + socialContext + bar.show + bar.created + bar.unVanish.method)
+    val written = (methods.values + saves.values + ufiParts.values + productCta + bubbles + socialContext + bar.show + bar.created + bar.unVanish.method)
         .map { it.signature() }
     val replyBarMethods = listOf(replyBar.show, replyBar.created).map { it.signature() }
     if (replyBarMethods.toSet().size != replyBarMethods.size || replyBarMethods.any { it in written }) {
         throw PatchException("$PATCH: the direct reply bar's show or onViewCreated is a method another part changes: $replyBarMethods")
     }
 
-    (methods + saves + (PRODUCT_CTA to productCta)).forEach { (part, found) ->
+    (methods + saves + ufiParts + (PRODUCT_CTA to productCta)).forEach { (part, found) ->
         val method = mutable(found)
         method.requireLocals(PATCH, 1)
         val answer = if (part.check) "return v0" else "return-object v0"
@@ -656,6 +666,48 @@ private fun requireSaveShape(part: ReelPart, method: Method) {
     } ?: return
     throw PatchException("$PATCH: ${method.definingClass}->${method.name}, holding the ${part.marker} marker, $problem")
 }
+
+/**
+ * A builder of the reel's button column is a private instance method of the clips UFI [ufi] with a
+ * body, answering the component or nothing.
+ */
+private fun requireUfiBuilder(what: String, method: Method, ufi: String) {
+    val problem = when {
+        method.definingClass != ufi -> "is not in the clips UFI $ufi"
+        method.implementation == null -> "has no body"
+        AccessFlags.STATIC.isSet(method.accessFlags) || !method.returnType.startsWith("L") ->
+            "is not an instance builder answering a component"
+        else -> null
+    } ?: return
+    throw PatchException("$PATCH: ${method.definingClass}->${method.name}, building the $what part, $problem")
+}
+
+/**
+ * The Comment button's builder in the clips UFI [ufi], the one method answering the button's
+ * [component], and the comment count's, the one other method of the UFI taking the same parameters
+ * and loading [UFI_COUNT] (#668).
+ */
+private fun commentBuilders(ufi: ClassDef, component: String): Pair<Method, Method> {
+    val buttons = ufi.methods.filter { it.returnType == component }
+    val button = buttons.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one method of ${ufi.type} answering the Comment button $component, found ${buttons.map { it.name }}",
+    )
+    requireUfiBuilder(COMMENT_BUTTON_RENDER, button, ufi.type)
+    val parameters = button.parameterTypes.map { it.toString() }
+    val counts = ufi.methods.filter { method ->
+        method.name != button.name && method.parameterTypes.map { it.toString() } == parameters &&
+            method.implementation?.instructions?.any { it.loadsUfiCount() } == true
+    }
+    val count = counts.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one method of ${ufi.type} taking ${parameters.joinToString("")} and loading \"$UFI_COUNT\", " +
+            "found ${counts.map { it.name }}",
+    )
+    requireUfiBuilder("comment count", count, ufi.type)
+    return button to count
+}
+
+private fun Instruction.loadsUfiCount() = (opcode == Opcode.CONST_STRING || opcode == Opcode.CONST_STRING_JUMBO) &&
+    ((this as ReferenceInstruction).reference as StringReference).string == UFI_COUNT
 
 /** The reel CTA's product button is built from the component scope and its label, and answers the component. */
 private fun requireProductCtaShape(method: Method) {
