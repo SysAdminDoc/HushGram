@@ -42,6 +42,7 @@ JhouHank contributed the Traditional Chinese (Taiwan) translation in PR #313.
 The table was imported from commit
 95b2fd99e642f8f1d0a8563ba36fe7af1c21f933, under GPL-3.0-only.
 Font placement hints were adjusted here. Privacy descriptions and notification counts are also maintained here.
+The Simplified Chinese table is converted from it with OpenCC.
 https://github.com/SysAdminDoc/HushGram/pull/313
 https://github.com/JhouHank/HushGram
 

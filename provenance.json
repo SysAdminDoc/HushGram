@@ -14,7 +14,8 @@
     },
     {
       "paths": [
-        "extensions/shared/library/src/main/l10n/zh-rTW.tsv"
+        "extensions/shared/library/src/main/l10n/zh-rTW.tsv",
+        "extensions/shared/library/src/main/l10n/zh.tsv"
       ],
       "origin": "ported",
       "upstream": "https://github.com/JhouHank/HushGram",
@@ -24,7 +25,7 @@
         "https://github.com/crimera/piko"
       ],
       "license": "GPL-3.0-only with Piko's section 7(b) attribution notice",
-      "changes": "JhouHank's Traditional Chinese (Taiwan) table imported from HushGram PR #313. Font placement hints were adjusted here. Privacy descriptions and notification counts are also maintained here. The contributor declares their Piko translations as a terminology reference; its exact source revision is not supplied. Piko's attribution is preserved in the table and NOTICE. No Piko implementation is imported."
+      "changes": "JhouHank's Traditional Chinese (Taiwan) table imported from HushGram PR #313. Font placement hints were adjusted here. Privacy descriptions and notification counts are also maintained here. The contributor declares their Piko translations as a terminology reference; its exact source revision is not supplied. Piko's attribution is preserved in the table and NOTICE. No Piko implementation is imported. The Simplified Chinese table zh.tsv is converted from it here with OpenCC tw2sp, with Instagram's mainland labels from its zh_CN strings swapped in."
     },
     {
       "paths": [

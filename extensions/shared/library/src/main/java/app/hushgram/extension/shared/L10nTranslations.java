@@ -20,7 +20,7 @@ public final class L10nTranslations {
     }
 
     /** The language tags with a table, lower case. */
-    static final String[] LANGUAGES = {"de", "es", "in", "it", "ko", "pt-rbr", "th", "tr", "vi", "zh-rtw"};
+    static final String[] LANGUAGES = {"de", "es", "in", "it", "ko", "pt-rbr", "th", "tr", "vi", "zh", "zh-rtw"};
 
     /**
      * The table for one language tag, or null when nothing was translated into it.
@@ -48,6 +48,8 @@ public final class L10nTranslations {
                 return buildTr();
             case "vi":
                 return buildVi();
+            case "zh":
+                return buildZh();
             case "zh-rtw":
                 return buildZh_rTW();
             default:
@@ -35900,6 +35902,3989 @@ public final class L10nTranslations {
                 "b\u1ea3n s\u1eeda l\u1ed7i kh\u1edfi \u0111\u1ed9ng cho thi\u1ebft b\u1ecb x86");
         table.put("this sound",
                 "\u00e2m thanh n\u00e0y");
+    }
+
+    private static Map<String, String> buildZh() {
+        Map<String, String> table = new HashMap<>(3846);
+        fillZh0(table);
+        fillZh1(table);
+        fillZh2(table);
+        fillZh3(table);
+        fillZh4(table);
+        fillZh5(table);
+        fillZh6(table);
+        fillZh7(table);
+        fillZh8(table);
+        fillZh9(table);
+        fillZh10(table);
+        fillZh11(table);
+        fillZh12(table);
+        fillZh13(table);
+        fillZh14(table);
+        fillZh15(table);
+        fillZh16(table);
+        fillZh17(table);
+        fillZh18(table);
+        fillZh19(table);
+        fillZh20(table);
+        fillZh21(table);
+        fillZh22(table);
+        fillZh23(table);
+        fillZh24(table);
+        fillZh25(table);
+        fillZh26(table);
+        fillZh27(table);
+        fillZh28(table);
+        fillZh29(table);
+        fillZh30(table);
+        fillZh31(table);
+        fillZh32(table);
+        return table;
+    }
+
+    private static void fillZh0(Map<String, String> table) {
+        table.put("%1$d account",
+                "%1$d \u4e2a\u8d26\u6237");
+        table.put("%1$d accounts",
+                "%1$d \u4e2a\u8d26\u6237");
+        table.put("%1$d dp",
+                "%1$d dp");
+        table.put("%1$d hour",
+                "%1$d \u5c0f\u65f6");
+        table.put("%1$d hours",
+                "%1$d \u5c0f\u65f6");
+        table.put("%1$d mentions",
+                "%1$d \u4e2a\u63d0\u53ca");
+        table.put("%1$d minutes",
+                "%1$d \u5206\u949f");
+        table.put("%1$d minutes in the background",
+                "\u5728\u80cc\u666f %1$d \u5206\u949f");
+        table.put("%1$d notification type is muted.",
+                "\u5df2\u5c06 %1$d \u79cd\u901a\u77e5\u7c7b\u578b\u8bbe\u4e3a\u9759\u97f3\u3002");
+        table.put("%1$d notification types are muted.",
+                "\u5df2\u5c06 %1$d \u79cd\u901a\u77e5\u7c7b\u578b\u8bbe\u4e3a\u9759\u97f3\u3002");
+        table.put("%1$d of them because storage is low.",
+                "\u5176\u4e2d %1$d \u4e2a\u662f\u56e0\u4e3a\u5b58\u50a8\u7a7a\u95f4\u4e0d\u8db3\u3002");
+        table.put("%1$d people stopped following you",
+                "\u6709 %1$d \u4eba\u53d6\u6d88\u5173\u6ce8\u4f60");
+        table.put("%1$d reels",
+                "%1$d \u5219 Reels");
+        table.put("%1$d reels. Swipe again after %2$d minutes away.",
+                "\u5df2\u770b %1$d \u5219 Reels\u3002\u79bb\u5f00 %2$d \u5206\u949f\u540e\u53ef\u518d\u6ed1\u52a8\u3002");
+        table.put("%1$d row is left off Instagram's Settings and activity.",
+                "Instagram\u201c\u8bbe\u7f6e\u548c\u52a8\u6001\u201d\u4e2d\u5df2\u9690\u85cf %1$d \u4e2a\u9879\u76ee\u3002");
+        table.put("%1$d rows are left off Instagram's Settings and activity.",
+                "Instagram\u201c\u8bbe\u7f6e\u548c\u52a8\u6001\u201d\u4e2d\u5df2\u9690\u85cf %1$d \u4e2a\u9879\u76ee\u3002");
+        table.put("%1$d saved in lower quality than on Instagram.",
+                "\u5176\u4e2d %1$d \u9875\u7684\u4fdd\u5b58\u753b\u8d28\u4f4e\u4e8e Instagram \u4e0a\u7684\u7248\u672c\u3002");
+        table.put("%1$d saves stopped. Reopen the media and save again.",
+                "%1$d \u9879\u4fdd\u5b58\u4f5c\u4e1a\u5df2\u505c\u6b62\u3002\u8bf7\u91cd\u65b0\u6253\u5f00\u5a92\u4f53\u540e\u518d\u6b21\u4fdd\u5b58\u3002");
+        table.put("%1$d saves were interrupted",
+                "%1$d \u9879\u4fdd\u5b58\u4f5c\u4e1a\u906d\u5230\u4e2d\u65ad");
+        table.put("%1$d seconds",
+                "%1$d \u79d2");
+        table.put("%1$d word",
+                "%1$d \u4e2a\u5b57\u8bcd");
+        table.put("%1$d words",
+                "%1$d \u4e2a\u5b57\u8bcd");
+        table.put("%1$d%%",
+                "%1$d%%");
+        table.put("%1$dh %2$dm left",
+                "\u5269\u4f59 %1$d \u5c0f\u65f6 %2$d \u5206\u949f");
+        table.put("%1$dm left",
+                "\u5269\u4f59 %1$d \u5206\u949f");
+        table.put("%1$s (opened last)",
+                "%1$s\uff08\u6700\u8fd1\u6253\u5f00\uff09");
+        table.put("%1$s (standard)",
+                "%1$s (\u6807\u51c6)");
+        table.put("%1$s Mbps",
+                "%1$s Mbps");
+        table.put("%1$s ago",
+                "%1$s\u524d");
+        table.put("%1$s and %2$d more",
+                "%1$s \u548c\u53e6\u5916 %2$d \u4eba");
+        table.put("%1$s becomes the date and time of the save, %2$s the video's number on Instagram, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.",
+                "%1$s \u4ee3\u8868\u4fdd\u5b58\u65e5\u671f\u4e0e\u65f6\u95f4\uff0c%2$s \u4ee3\u8868\u89c6\u9891\u5728 Instagram \u4e0a\u7684\u7f16\u53f7\uff0c%3$s \u4ee3\u8868\u53d1\u5e03\u8005\uff0c%4$s \u4ee3\u8868\u53d1\u5e03\u65e5\u671f\u3002\u65e0\u6cd5\u53d6\u5f97\u7684\u4fe1\u606f\u4f1a\u7565\u8fc7\uff1b\u82e5\u540d\u79f0\u672a\u5305\u542b\u8fd9\u4e9b\u9879\u76ee\uff0c\u5219\u4f1a\u52a0\u5165\u65e5\u671f\u3002\u6587\u4ef6\u5939\u5185\u5df2\u6709\u76f8\u540c\u540d\u79f0\u65f6\uff0c\u4f1a\u5728\u7ed3\u5c3e\u52a0\u4e0a\u4fdd\u5b58\u65f6\u95f4\u3002\u65e0\u6548\u5b57\u7b26\u4f1a\u66ff\u6362\u4e3a\u4e0b\u5212\u7ebf\u3002\u7559\u7a7a\u5219\u4f7f\u7528\u9ed8\u8ba4\u503c %5$s\u3002");
+        table.put("%1$s by %2$s",
+                "%1$s\uff0c\u6f14\u51fa\u8005\uff1a%2$s");
+        table.put("%1$s didn't take this save, so it went to Movies and Pictures.",
+                "%1$s \u65e0\u6cd5\u5b58\u653e\u8fd9\u6b21\u4fdd\u5b58\u7684\u5185\u5bb9\uff0c\u56e0\u6b64\u6539\u653e\u5728 Movies \u548c Pictures\u3002");
+        table.put("%1$s followed you again, %2$s",
+                "%1$s \u518d\u6b21\u5173\u6ce8\u4f60\uff0c%2$s");
+        table.put("%1$s is hidden",
+                "\u5df2\u9690\u85cf %1$s");
+        table.put("%1$s is locked",
+                "\u5df2\u9501\u5b9a %1$s");
+        table.put("%1$s is now %2$d of %3$d",
+                "%1$s \u73b0\u5728\u4f4d\u4e8e\u7b2c %2$d \u9879\uff0c\u5171 %3$d \u9879");
+        table.put("%1$s is pinned",
+                "\u5df2\u9489\u9009 %1$s");
+        table.put("%1$s is shown again",
+                "\u5df2\u91cd\u65b0\u663e\u793a %1$s");
+        table.put("%1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.",
+                "%1$s \u662f\u5e16\u5b50\u7f51\u5740\u4e2d\u7684\u77ed\u4ee3\u7801\u3002\u5feb\u62cd\u548c\u672a\u77e5\u5e16\u5b50\u4f1a\u7701\u7565\u3002\u52a0\u5165\u6b64\u4ee3\u7801\u540e\uff0c\u8303\u672c\u4e5f\u4f1a\u7528\u4e8e\u7167\u7247\u6587\u4ef6\u540d\u3002");
+        table.put("%1$s is unlocked",
+                "\u5df2\u89e3\u9501 %1$s");
+        table.put("%1$s is unpinned",
+                "\u5df2\u53d6\u6d88\u9489\u9009 %1$s");
+        table.put("%1$s of %2$s",
+                "%1$s / %2$s");
+        table.put("%1$s so far",
+                "\u76ee\u524d\u5171 %1$s");
+        table.put("%1$s started following you, %2$s",
+                "%1$s \u5f00\u59cb\u5173\u6ce8\u4f60\uff0c%2$s");
+        table.put("%1$s unfollowed you, %2$s",
+                "%1$s \u5df2\u53d6\u6d88\u5173\u6ce8\u4f60\uff0c%2$s");
+        table.put("%1$s, gone by %2$s",
+                "%1$s\uff0c\u4e8e %2$s \u53d1\u73b0\u5df2\u53d6\u6d88\u5173\u6ce8");
+        table.put("%1$s, see who this story mentions",
+                "%1$s\uff0c\u67e5\u770b\u6b64\u5feb\u62cd\u63d0\u53ca\u7684\u8d26\u6237");
+        table.put("%1$s. It shows once you leave Instagram. If the icon is gone from your home screen, add it again from the app drawer.",
+                "%1$s\u3002\u79bb\u5f00 Instagram \u540e\u5373\u4f1a\u663e\u793a\u3002\u82e5\u4e3b\u753b\u9762\u7684\u56fe\u6807\u6d88\u5931\uff0c\u8bf7\u4ece\u5e94\u7528\u7a0b\u5e8f\u62bd\u5c49\u91cd\u65b0\u52a0\u5165\u3002");
+        table.put("%1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.",
+                "%1$s\u3002\u8fd9\u662f\u5728\u6253\u8865\u4e01\u65f6\u8bbe\u7f6e\u7684\uff0c\u6682\u505c\u4e5f\u65e0\u6cd5\u7981\u7528\u3002\u82e5\u8981\u786e\u8ba4\u662f\u5426\u7531\u6b64\u9020\u6210\uff0c\u8bf7\u91cd\u65b0\u6253\u8865\u4e01\u5e76\u6392\u9664\u6b64\u9879\u3002");
+        table.put("%1$s. The others stay as you set them.",
+                "%1$s\u3002\u5176\u4ed6\u5f00\u5173\u4f1a\u4fdd\u7559\u4f60\u539f\u672c\u7684\u8bbe\u7f6e\u3002");
+        table.put("%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.",
+                "%1$s\u3002\u8fd9\u4e9b\u662f\u5728\u6253\u8865\u4e01\u65f6\u8bbe\u7f6e\u7684\uff0c\u6682\u505c\u4e5f\u65e0\u6cd5\u7981\u7528\u3002\u82e5\u8981\u6392\u67e5\u5176\u4e2d\u4e00\u9879\uff0c\u8bf7\u91cd\u65b0\u6253\u8865\u4e01\uff0c\u5e76\u6392\u9664\u8be5\u9879\u540e\u65b9\u62ec\u53f7\u5185\u7684\u8865\u4e01\u3002");
+        table.put("%d notification",
+                "%d \u5219\u901a\u77e5");
+        table.put("%d notifications",
+                "%d \u5219\u901a\u77e5");
+        table.put("1 hour",
+                "1 \u5c0f\u65f6");
+        table.put("1 mention",
+                "1 \u4e2a\u63d0\u53ca");
+        table.put("1 minute",
+                "1 \u5206\u949f");
+        table.put("1 person stopped following you",
+                "\u6709 1 \u4eba\u53d6\u6d88\u5173\u6ce8\u4f60");
+        table.put("1 second",
+                "1 \u79d2");
+        table.put("1.5 seconds",
+                "1.5 \u79d2");
+    }
+
+    private static void fillZh1(Map<String, String> table) {
+        table.put("15 minutes",
+                "15 \u5206\u949f");
+        table.put("1m left",
+                "\u5269\u4f59 1 \u5206\u949f");
+        table.put("5 minutes",
+                "5 \u5206\u949f");
+        table.put("@%1$s is hidden in Home and Following",
+                "\u5df2\u4ece\u9996\u9875\u4e0e\u5df2\u5173\u6ce8\u9690\u85cf @%1$s \u7684\u5e16\u5b50");
+        table.put("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.",
+                "\u4f7f\u7528\u5728\u6b64\u8bbe\u7f6e\u7684 PIN \u7801\u89e3\u9501\u6d88\u606f\uff0c\u53d6\u4ee3\u5c4f\u5e55\u9501\u5b9a\u3002PIN \u7801\u65e0\u6cd5\u590d\u539f\uff0c\u53ea\u80fd\u901a\u8fc7\u6e05\u9664 Instagram \u5b58\u50a8\u7a7a\u95f4\u6765\u79fb\u9664\u3002");
+        table.put("A carousel post's page sits a little in from the edges, with the start of the next page showing at the right.",
+                "\u8f6e\u64ad\u5e16\u5b50\u7684\u9875\u9762\u4f1a\u4e0e\u8fb9\u7f18\u7a0d\u5fae\u5185\u7f29\uff0c\u53f3\u4fa7\u9732\u51fa\u4e0b\u4e00\u9875\u7684\u5f00\u5934\u3002");
+        table.put("A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.",
+                "\u5728\u8fd9\u652f\u624b\u673a\u4e0a\uff0c\u6253\u5f00\u8fc7\u7684\u804a\u5929\u4ecd\u4f1a\u7ef4\u6301\u672a\u8bfb\uff0c\u76f4\u5230\u4f60\u957f\u6309\u5e76\u70b9\u51fb\u201c\u6807\u793a\u4e3a\u5df2\u8bfb\u201d\u3002\u65b0\u6536\u5230\u7684\u6d88\u606f\u4e5f\u4f1a\u7ef4\u6301\u672a\u8bfb\u3002\u5173\u95ed\u540e\uff0c\u5373\u4f7f\u5237\u65b0\u6d88\u606f\uff0c\u6253\u5f00\u8fc7\u7684\u804a\u5929\u4ecd\u4f1a\u7ef4\u6301\u5df2\u8bfb\uff0c\u76f4\u5230\u6536\u5230\u65b0\u6d88\u606f\u3002");
+        table.put("A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.",
+                "\u5728\u5bf9\u65b9\u8fd8\u4e0d\u77e5\u9053\u4f60\u5df2\u770b\u8fc7\u804a\u5929\u65f6\uff0c\u804a\u5929\u9876\u7aef\u4f1a\u663e\u793a\u52fe\u53f7\u3002\u70b9\u51fb\u5b83\uff0c\u5bf9\u65b9\u5c31\u4f1a\u770b\u5230\u201c\u5df2\u8bfb\u201d\u3002");
+        table.put("A click each time the highlight moves to another tab, even with the phone's touch sounds off. Silent and vibrate mode keep it quiet.",
+                "\u6bcf\u5f53\u6807\u793a\u79fb\u5230\u53e6\u4e00\u4e2a\u6807\u7b7e\u9875\u65f6\u53d1\u51fa\u70b9\u51fb\u58f0\uff0c\u5373\u4f7f\u624b\u673a\u7684\u89e6\u6478\u97f3\u6548\u5df2\u5173\u95ed\u4e5f\u4f1a\u64ad\u653e\u3002\u9759\u97f3\u548c\u9707\u52a8\u6a21\u5f0f\u4e0b\u4e0d\u4f1a\u53d1\u51fa\u58f0\u97f3\u3002");
+        table.put("A color as six hex digits, like #4A6B82. HushGram makes it darker or lighter where text needs it. Restart Instagram to see it.",
+                "\u7528\u516d\u4f4d\u5341\u516d\u8fdb\u4f4d\u6570\u5b57\u8868\u793a\u7684\u989c\u8272\uff0c\u4f8b\u5982 #4A6B82\u3002HushGram \u4f1a\u5728\u6587\u5b57\u9700\u8981\u7684\u5730\u65b9\u628a\u5b83\u8c03\u6df1\u6216\u8c03\u6d45\u3002\u91cd\u65b0\u542f\u52a8 Instagram \u5373\u53ef\u770b\u5230.");
+        table.put("A diagnostic report is already being saved.",
+                "\u5df2\u6709\u8bca\u65ad\u62a5\u544a\u6b63\u5728\u4fdd\u5b58\u3002");
+        table.put("A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.",
+                "\u53cc\u51fb\u8bc4\u8bba\u4e0d\u4f1a\u70b9\u8d5e\u3002\u9ed8\u8ba4\u5173\u95ed\uff0c\u56e0\u6b64\u8bc4\u8bba\u4f1a\u4fdd\u7559\u53cc\u51fb\u70b9\u8d5e\u529f\u80fd\uff0c\u76f4\u5230\u4f60\u542f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.",
+                "\u53cc\u51fb\u804a\u5929\u4e2d\u7684\u6d88\u606f\u4e0d\u4f1a\u53d1\u9001\u5fc3\u60c5\u56de\u5e94\u3002\u9ed8\u8ba4\u5173\u95ed\u3002\u957f\u6309\u4ecd\u4f1a\u663e\u793a\u5fc3\u60c5\u56de\u5e94\u9009\u9879\u3002");
+        table.put("A double tap on a post doesn't like it. Turn this off to keep double tap to like on posts.",
+                "\u53cc\u51fb\u5e16\u5b50\u4e0d\u4f1a\u70b9\u8d5e\u3002\u5173\u95ed\u6b64\u9009\u9879\u53ef\u4fdd\u7559\u5e16\u5b50\u53cc\u51fb\u70b9\u8d5e\u529f\u80fd\u3002");
+        table.put("A double tap on a post or reel no longer likes it or shows a heart. A single tap and the Like button work as before.",
+                "\u53cc\u51fb\u5e16\u5b50\u6216 Reel \u4e0d\u518d\u70b9\u8d5e\u6216\u663e\u793a\u7231\u5fc3\u3002\u5355\u51fb\u4e0e\u70b9\u8d5e\u6309\u94ae\u4ecd\u4f1a\u7167\u5e38\u8fd0\u4f5c\u3002");
+        table.put("A double tap on a reel doesn't like it. Turn this off to keep double tap to like on reels.",
+                "\u53cc\u51fb Reel \u4e0d\u4f1a\u70b9\u8d5e\u3002\u5173\u95ed\u6b64\u9009\u9879\u53ef\u4fdd\u7559 Reels \u53cc\u51fb\u70b9\u8d5e\u529f\u80fd\u3002");
+        table.put("A double tap on the left side of a reel goes back, and on the right side it goes ahead, as far as Skip length says. A double tap in the middle still likes it. Reels no longer than that don't skip.",
+                "\u5728 Reel \u5de6\u4fa7\u70b9\u4e24\u4e0b\u4f1a\u5012\u9000\uff0c\u5728\u53f3\u4fa7\u70b9\u4e24\u4e0b\u4f1a\u5feb\u8f6c\uff0c\u5e45\u5ea6\u4f9d\u8df3\u8f6c\u957f\u5ea6\u800c\u5b9a\u3002\u5728\u4e2d\u95f4\u70b9\u4e24\u4e0b\u4ecd\u4f1a\u70b9\u8d5e\u3002\u4e0d\u6bd4\u8fd9\u66f4\u957f\u7684 Reel \u4e0d\u4f1a\u8df3\u8f6c\u3002");
+        table.put("A fainter bar and handle, so more of the video shows through.",
+                "\u8f83\u6de1\u7684\u62d6\u52a8\u6761\u4e0e\u63a7\u70b9\uff0c\u80fd\u770b\u5230\u66f4\u591a\u89c6\u9891\u3002");
+        table.put("A file named %1$s in %2$s paused HushGram.",
+                "%2$s \u4e2d\u540d\u4e3a %1$s \u7684\u6587\u4ef6\u4f7f HushGram \u6682\u505c\u3002");
+        table.put("A finished story stays on screen until you tap or swipe. Turn this off for Instagram's timing.",
+                "\u5feb\u62cd\u64ad\u653e\u7ed3\u675f\u540e\u4f1a\u505c\u7559\u5728\u753b\u9762\u4e0a\uff0c\u76f4\u5230\u4f60\u70b9\u51fb\u6216\u6ed1\u52a8\u3002\u5173\u95ed\u540e\u4f1a\u4f7f\u7528 Instagram \u539f\u672c\u7684\u5207\u6362\u65f6\u95f4\u3002");
+        table.put("A font file",
+                "\u5b57\u5e93\u6848");
+        table.put("A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.",
+                "\u6bdb\u73bb\u7483\u80f6\u56ca\uff0c\u4f1a\u6a21\u7cca\u5176\u4e0b\u65b9\u7684\u7167\u7247\u3002Android 12 \u4ee5\u524d\u6539\u4e3a\u534a\u900f\u660e\u3002");
+        table.put("A group for each kind of notification, such as comments or messages, in place of one group.",
+                "\u4f9d\u8bc4\u8bba\u3001\u6d88\u606f\u7b49\u901a\u77e5\u7c7b\u578b\u5404\u81ea\u5206\u7ec4\uff0c\u800c\u975e\u5168\u90e8\u653e\u5728\u540c\u4e00\u7ec4\u3002");
+        table.put("A left swipe on a reel opens the creator's profile, like Instagram used to. Tap Friends at the top to reach your friends' reels.",
+                "\u5728 Reel \u5411\u5de6\u6ed1\u52a8\u4f1a\u6253\u5f00\u521b\u4f5c\u8005\u7684\u4e3b\u9875\uff0c\u5982\u540c Instagram \u4ee5\u524d\u7684\u64cd\u4f5c\u3002\u70b9\u51fb\u9876\u7aef\u201c\u597d\u53cb\u201d\u53ef\u67e5\u770b\u597d\u53cb\u7684 Reels\u3002");
+        table.put("A light pill with dark dots, as it's always been.",
+                "\u6d45\u8272\u80f6\u56ca\u914d\u6df1\u8272\u5706\u70b9\uff0c\u4e0e\u4ee5\u5f80\u76f8\u540c\u3002");
+        table.put("A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.",
+                "\u5728\u70b9\u51fb\u6216\u6ed1\u52a8\u5207\u6362\u753b\u9762\u65f6\uff0c\u6807\u793a\u6bcf\u6ed1\u8fc7\u4e00\u4e2a\u6807\u7b7e\u9875\u5c31\u4f1a\u8f7b\u9707\u4e00\u6b21\uff0c\u8ba9\u89e6\u89c9\u56de\u9988\u8ddf\u968f\u6807\u7b7e\u680f\u3002");
+        table.put("A little more",
+                "\u7a0d\u591a");
+        table.put("A long press on the Instagram logo at the top of Home opens these settings. Off, the long press goes back to Instagram.",
+                "\u957f\u6309\u9996\u9875\u9876\u7aef\u7684 Instagram \u6807\u5fd7\u5373\u53ef\u6253\u5f00\u8fd9\u4e9b\u8bbe\u7f6e\u3002\u5173\u95ed\u540e\uff0c\u957f\u6309\u4f1a\u6062\u590d Instagram \u539f\u672c\u7684\u64cd\u4f5c\u3002");
+        table.put("A long press on the menu button, the three lines at the top right of your own profile, opens HushGram. A tap still opens Instagram's menu, and other profiles stay the same.",
+                "\u957f\u6309\u81ea\u5df1\u4e3b\u9875\u53f3\u4e0a\u89d2\u7684\u4e09\u6761\u7ebf\u83dc\u5355\u6309\u94ae\uff0c\u5373\u53ef\u6253\u5f00 HushGram\u3002\u70b9\u51fb\u4ecd\u4f1a\u6253\u5f00 Instagram \u83dc\u5355\uff0c\u5176\u4ed6\u4eba\u7684\u4e3b\u9875\u4e0d\u53d7\u5f71\u54cd\u3002");
+        table.put("A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.",
+                "\u4ece Reel \u6253\u5f00\u7684\u4e3b\u9875\u4f1a\u7559\u5728\u76ee\u524d\u7684\u6807\u7b7e\u9875\uff0c\u4e0b\u65b9\u4fdd\u7559\u6807\u7b7e\u680f\u3002\u8fd4\u56de\u4f1a\u56de\u5230 Reel.");
+        table.put("A reel Instagram's auto scroll moves to waits for your tap too. Off, auto scroll plays reel after reel.",
+                "Instagram \u81ea\u52a8\u5377\u52a8\u5207\u6362\u5230\u7684 Reel \u4e5f\u4f1a\u7b49\u5f85\u4f60\u70b9\u51fb\u624d\u64ad\u653e\u3002\u5173\u95ed\u65f6\uff0c\u81ea\u52a8\u5377\u52a8\u4f1a\u8fde\u7eed\u64ad\u653e Reels\u3002");
+        table.put("A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.",
+                "Reels \u94fe\u63a5\u4f1a\u6253\u5f00\u5b83\u6307\u5411\u7684 Reel\u3002\u8be5 Reel \u52a0\u8f7d\u65f6\uff0cInstagram \u4e0d\u4f1a\u5148\u64ad\u653e\u5b58\u5728\u4f60\u624b\u673a\u4e0a\u7684\u5176\u4ed6 Reel\u3002");
+        table.put("A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead of black bars, and the strip under the tab bar and the band behind the clock show the reel blurred too. The copy shows only where a reel leaves room, as with Show the whole reel on. Open Reels again after a change.",
+                "\u672a\u586b\u6ee1\u5c4f\u5e55\u7684 Reel \u4f1a\u5728\u4e0a\u4e0b\u663e\u793a\u81ea\u8eab\u7684\u6a21\u7cca\u56fe\u50cf\uff0c\u53d6\u4ee3\u9ed1\u8fb9\uff1b\u6807\u7b7e\u680f\u4e0b\u65b9\u4e0e\u65f6\u949f\u540e\u65b9\u4e5f\u4f1a\u663e\u793a\u6a21\u7cca\u7684 Reel\u3002\u6a21\u7cca\u56fe\u50cf\u53ea\u4f1a\u51fa\u73b0\u5728 Reel \u7559\u6709\u7a7a\u95f4\u7684\u5730\u65b9\uff0c\u4f8b\u5982\u6253\u5f00\u201c\u663e\u793a\u5b8c\u6574\u7684 Reels\u201d\u65f6\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u6253\u5f00 Reels\u3002");
+        table.put("A reel you open from the Reels tab, a profile or a post on Home plays with sound, and Home is muted again when you go back. Your phone's ringer and volume still count.",
+                "\u4ece Reels \u6807\u7b7e\u9875\u3001\u4e3b\u9875\u6216\u9996\u9875\u5e16\u5b50\u6253\u5f00\u7684 Reel \u4f1a\u6709\u58f0\u97f3\u64ad\u653e\uff0c\u8fd4\u56de\u540e\u9996\u9875\u4f1a\u518d\u6b21\u9759\u97f3\u3002\u624b\u673a\u7684\u94c3\u58f0\u6a21\u5f0f\u548c\u97f3\u91cf\u4ecd\u7136\u6709\u6548\u3002");
+        table.put("A rounded bar split by a tall handle.",
+                "\u7531\u9ad8\u62d6\u52a8\u94ae\u5206\u9694\u7684\u5706\u89d2\u62d6\u52a8\u6761\u3002");
+        table.put("A save stopped. Reopen the media and save again.",
+                "\u4e00\u9879\u4fdd\u5b58\u4f5c\u4e1a\u5df2\u505c\u6b62\u3002\u8bf7\u91cd\u65b0\u6253\u5f00\u5a92\u4f53\u540e\u518d\u6b21\u4fdd\u5b58\u3002");
+        table.put("A save was interrupted",
+                "\u4e00\u9879\u4fdd\u5b58\u4f5c\u4e1a\u906d\u5230\u4e2d\u65ad");
+        table.put("A see-through dark pill with white dots, so more of the photo shows.",
+                "\u534a\u900f\u660e\u6df1\u8272\u80f6\u56ca\u914d\u767d\u8272\u5706\u70b9\uff0c\u80fd\u770b\u5230\u66f4\u591a\u7167\u7247\u3002");
+        table.put("A sideways swipe no longer moves you between Home, Reels and the other main tabs. Tap the tab bar instead. Stop swipe to create covers the camera.",
+                "\u5de6\u53f3\u6ed1\u52a8\u4e0d\u518d\u5207\u6362\u9996\u9875\u3001Reels \u4e0e\u5176\u4ed6\u4e3b\u8981\u6807\u7b7e\u9875\uff0c\u8bf7\u6539\u70b9\u51fb\u6807\u7b7e\u680f\u3002\u76f8\u673a\u5219\u7531\u201c\u7981\u7528\u6ed1\u52a8\u521b\u5efa\u201d\u63a7\u5236\u3002");
+        table.put("A sideways swipe on Home no longer opens the camera. The + button and every other way into the camera still work.",
+                "\u5728\u9996\u9875\u5de6\u53f3\u6ed1\u52a8\u4e0d\u518d\u6253\u5f00\u76f8\u673a\u3002+ \u6309\u94ae\u53ca\u5176\u4ed6\u6253\u5f00\u76f8\u673a\u7684\u65b9\u5f0f\u4ecd\u53ef\u4f7f\u7528\u3002");
+        table.put("A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.",
+                "\u8f83\u5c0f\u7684\u6807\u7b7e\uff0c\u7f6e\u4e2d\u4e8e\u5934\u50cf\u4e0b\u65b9\u3002\u82e5\u8be5\u5904\u6ca1\u6709\u7a7a\u95f4\uff0c\u5219\u6539\u653e\u5728\u5404\u9879\u6570\u91cf\u4e0b\u65b9\u3002");
+        table.put("A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.",
+                "\u7528\u4e24\u6307\u7f29\u653e\u5feb\u62cd\u65f6\u4f1a\u7ee7\u7eed\u64ad\u653e\u3002\u82e5\u5148\u6309\u4f4f\u4e0d\u653e\uff0c\u7f29\u653e\u65f6\u4f1a\u7ef4\u6301\u6682\u505c\u3002");
+        table.put("A story plays again from the start when it ends, until you tap or swipe to move on. Ads still move on. With Stop Story auto-advance on too, stories loop.",
+                "\u5feb\u62cd\u64ad\u653e\u7ed3\u675f\u540e\u4f1a\u4ece\u5934\u91cd\u64ad\uff0c\u76f4\u5230\u4f60\u70b9\u51fb\u6216\u6ed1\u52a8\u5207\u6362\u3002\u5e7f\u544a\u4ecd\u4f1a\u81ea\u52a8\u5207\u6362\u3002\u540c\u65f6\u542f\u7528\u201c\u7981\u7528\u81ea\u52a8\u5207\u6362\u5feb\u62cd\u201d\u65f6\uff0c\u4ecd\u4f1a\u5faa\u73af\u64ad\u653e\u3002");
+        table.put("A story you tap in the stories row opens with a slower zoom that doesn't bounce, and closes the same way.",
+                "\u5728\u5feb\u62cd\u680f\u70b9\u51fb\u7684\u5feb\u62cd\u4f1a\u4ee5\u8f83\u6162\u3001\u4e0d\u56de\u5f39\u7684\u7f29\u653e\u6253\u5f00\uff0c\u5173\u95ed\u65f6\u4e5f\u4e00\u6837\u3002");
+        table.put("A story's header says how many accounts it mentions, even when the mention is hidden. Tap that for the list, and tap someone to open their profile.",
+                "\u5feb\u62cd\u9876\u7aef\u4f1a\u663e\u793a\u63d0\u53ca\u7684\u8d26\u6237\u6570\u91cf\uff0c\u5373\u4f7f\u63d0\u53ca\u88ab\u9690\u85cf\u4e5f\u9002\u7528\u3002\u70b9\u51fb\u53ef\u67e5\u770b\u540d\u5355\uff0c\u518d\u70b9\u51fb\u8d26\u6237\u5373\u53ef\u6253\u5f00\u4e3b\u9875\u3002");
+        table.put("A story's header shows its time the way the choice below says, instead of how long ago. It follows your phone's language and 12 or 24-hour setting.",
+                "\u5feb\u62cd\u9876\u7aef\u4f1a\u4f9d\u4e0b\u65b9\u9009\u9879\u663e\u793a\u65f6\u95f4\uff0c\u53d6\u4ee3\u591a\u4e45\u4ee5\u524d\u53d1\u5e03\u7684\u6587\u5b57\u3002\u4f7f\u7528\u624b\u673a\u7684\u8bed\u8a00\u4e0e 12 \u6216 24 \u5c0f\u65f6\u5236\u8bbe\u7f6e\u3002");
+        table.put("A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.",
+                "\u5728 Reels \u6ed1\u52a8\u4e0d\u518d\u5207\u6362\u81f3\u4e0b\u4e00\u5219\uff0c\u4e0b\u62c9\u4e5f\u4e0d\u4f1a\u52a0\u8f7d\u65b0\u89c6\u9891\u3002\u5df2\u6253\u5f00\u7684 Reel \u4ecd\u4f1a\u64ad\u653e\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("A swipe right on Home opens %1$s. The + button still opens the camera.",
+                "\u5728\u9996\u9875\u5411\u53f3\u6ed1\u52a8\u4f1a\u6253\u5f00 %1$s\u3002+ \u6309\u94ae\u4ecd\u4f1a\u6253\u5f00\u76f8\u673a\u3002");
+        table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
+                "\u5728\u4ed6\u4eba\u7684\u5feb\u62cd\u5411\u4e0a\u6ed1\u52a8\u4e0d\u518d\u6253\u5f00\u56de\u590d\u6846\u4e0e\u5fc3\u60c5\u56de\u5e94\u3002\u8bf7\u70b9\u51fb\u201c\u53d1\u9001\u6d88\u606f\u201d\u56de\u590d\u3002");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
+                "\u70b9\u51fb\u64ad\u653e\u4e2d\u7684 Reel \u4e0d\u4f1a\u6709\u4efb\u4f55\u53cd\u5e94\uff0c\u8bef\u89e6\u4e5f\u4e0d\u4f1a\u8ba9\u5b83\u505c\u4e0b\u3002\u5df2\u6682\u505c\u7684 Reel \u4ecd\u4f1a\u5728\u70b9\u51fb\u540e\u64ad\u653e\u3002");
+        table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
+                "\u70b9\u51fb\u64ad\u653e\u4e2d\u7684 Reel \u4f1a\u5207\u6362\u9759\u97f3\u5e76\u7ee7\u7eed\u64ad\u653e\u3002\u5df2\u6682\u505c\u7684 Reel \u4ecd\u4f1a\u5728\u70b9\u51fb\u540e\u64ad\u653e\u3002");
+        table.put("A tap on a reel",
+                "\u70b9\u51fb Reel \u7684\u64cd\u4f5c");
+        table.put("A tap on a reel does what Instagram does.",
+                "\u70b9\u51fb Reel \u65f6\u4f7f\u7528 Instagram \u539f\u672c\u7684\u64cd\u4f5c\u3002");
+        table.put("A tap on a reel pauses it, and another tap plays it again.",
+                "\u70b9\u51fb Reel \u5373\u53ef\u6682\u505c\uff0c\u518d\u6b21\u70b9\u51fb\u5373\u53ef\u7ee7\u7eed\u64ad\u653e\u3002");
+        table.put("A tap on the download icon beside a reel lets you pick the reel, its cover or its sound, whichever it has.",
+                "\u70b9\u51fb Reel \u65c1\u7684\u4e0b\u8f7d\u56fe\u6807\uff0c\u5373\u53ef\u4f9d\u8be5 Reel \u62e5\u6709\u7684\u5185\u5bb9\u9009\u62e9\u4fdd\u5b58 Reel\u3001\u5c01\u9762\u6216\u97f3\u9891\u3002");
+        table.put("A thicker rounded bar with no handle.",
+                "\u8f83\u7c97\u7684\u5706\u89d2\u62d6\u52a8\u6761\uff0c\u6ca1\u6709\u62d6\u52a8\u94ae\u3002");
+        table.put("A thin line with no handle that grows while you drag it. On feed videos it sits on the bottom edge.",
+                "\u6ca1\u6709\u62d6\u52a8\u94ae\u7684\u7ec6\u7ebf\uff0c\u62d6\u52a8\u65f6\u4f1a\u53d8\u7c97\u3002\u5728\u52a8\u6001\u89c6\u9891\u4e0a\u4f1a\u8d34\u9f50\u4e0b\u7f18\u3002");
+        table.put("A video or reel playing with sound keeps going when you leave Instagram or turn the screen off. A notification lets you pause or stop it.",
+                "\u6709\u58f0\u97f3\u64ad\u653e\u4e2d\u7684\u89c6\u9891\u6216 Reel\uff0c\u5728\u4f60\u79bb\u5f00 Instagram \u6216\u5173\u95ed\u5c4f\u5e55\u65f6\u4f1a\u7ee7\u7eed\u64ad\u653e\u3002\u901a\u77e5\u53ef\u8ba9\u4f60\u6682\u505c\u6216\u505c\u6b62\u64ad\u653e\u3002");
+        table.put("A wavy line for the part played, with a tall handle.",
+                "\u5df2\u64ad\u653e\u90e8\u5206\u4e3a\u6ce2\u6d6a\u7ebf\uff0c\u5e76\u9644\u9ad8\u62d6\u52a8\u94ae\u3002");
+        table.put("A white bar and handle, as they've always been.",
+                "\u767d\u8272\u62d6\u52a8\u6761\u4e0e\u63a7\u70b9\uff0c\u4e0e\u4ee5\u5f80\u76f8\u540c\u3002");
+    }
+
+    private static void fillZh2(Map<String, String> table) {
+        table.put("A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead.",
+                "\u767d\u8272\u62d6\u52a8\u6761\u7f6e\u4e8e\u6bdb\u73bb\u7483\u6761\u4e0a\uff0c\u4f1a\u6a21\u7cca\u5176\u4e0b\u65b9\u7684\u89c6\u9891\u3002Android 12 \u4ee5\u524d\u6b64\u6761\u6539\u4e3a\u534a\u900f\u660e\u3002");
+        table.put("About",
+                "\u5173\u4e8e");
+        table.put("About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.",
+                "Instagram \u5927\u7ea6\u6bcf\u534a\u5c0f\u65f6\u4f1a\u5524\u9192\u624b\u673a\uff0c\u63d0\u524d\u4e0b\u8f7d\u4f60\u7684\u52a8\u6001\u3002\u6b64\u9009\u9879\u4f1a\u505c\u6b62\u8be5\u884c\u4e3a\u3002\u52a8\u6001\u6539\u5728\u6253\u5f00\u5e94\u7528\u7a0b\u5e8f\u65f6\u52a0\u8f7d\uff0c\u6d88\u606f\u4e0e\u901a\u77e5\u4ecd\u4f1a\u7167\u5e38\u9001\u8fbe\u3002");
+        table.put("About this account",
+                "\u5173\u4e8e\u8fd9\u4e2a\u8d26\u6237");
+        table.put("About this account button",
+                "\u201c\u5173\u4e8e\u8fd9\u4e2a\u8d26\u6237\u201d\u6309\u94ae");
+        table.put("About this reel keeps its summary and Sources, and only the Ask Meta AI box under them goes.",
+                "\u4fdd\u7559\u201c\u5173\u4e8e\u8fd9\u5219 Reel\u201d\u7684\u6458\u8981\u4e0e\u201c\u6765\u6e90\u201d\uff0c\u4ec5\u79fb\u9664\u4e0b\u65b9\u7684\u201c\u8be2\u95ee Meta AI\u201d\u533a\u5757\u3002");
+        table.put("Above the Send message box",
+                "\u201c\u53d1\u9001\u6d88\u606f\u201d\u6846\u4e0a\u65b9");
+        table.put("Accent color",
+                "\u5f3a\u8c03\u8272");
+        table.put("Account %1$s",
+                "\u8d26\u6237 %1$s");
+        table.put("Accounts mentioned in this story",
+                "\u6b64\u5feb\u62cd\u63d0\u53ca\u7684\u8d26\u6237");
+        table.put("Active %1$s at %2$s",
+                "%1$s %2$s \u4e0a\u7ebf");
+        table.put("Active at %1$s",
+                "%1$s \u4e0a\u7ebf");
+        table.put("Active yesterday at %1$s",
+                "\u6628\u5929 %1$s \u4e0a\u7ebf");
+        table.put("Activity",
+                "\u52a8\u6001");
+        table.put("Add .ttf or .otf files from your phone. Uncheck one to take it out.",
+                "\u4ece\u624b\u673a\u6dfb\u52a0 .ttf \u6216 .otf \u5b57\u5e93\u3002\u53d6\u6d88\u52fe\u9009\u5373\u53ef\u79fb\u9664\u3002");
+        table.put("Add a fingerprint or face in your phone's settings first.",
+                "\u8bf7\u5148\u5728\u624b\u673a\u8bbe\u7f6e\u4e2d\u6dfb\u52a0\u6307\u7eb9\u6216\u8138\u90e8\u3002");
+        table.put("Add a font file",
+                "\u6dfb\u52a0\u5b57\u5e93");
+        table.put("Add a username",
+                "\u6dfb\u52a0\u7528\u6237\u540d");
+        table.put("Add the current date and time when exporting settings. Off keeps HushGram-settings.json.",
+                "\u5bfc\u51fa\u8bbe\u7f6e\u65f6\u52a0\u5165\u76ee\u524d\u7684\u65e5\u671f\u4e0e\u65f6\u95f4\u3002\u5173\u95ed\u65f6\u4fdd\u7559 HushGram-settings.json\u3002");
+        table.put("Add the source to saved photos and videos",
+                "\u5728\u4fdd\u5b58\u7684\u7167\u7247\u548c\u89c6\u9891\u4e2d\u52a0\u5165\u6765\u6e90\u4fe1\u606f");
+        table.put("Add to Stories priority",
+                "\u52a0\u5165\u5feb\u62cd\u4f18\u5148\u7ea7");
+        table.put("Add to channel",
+                "\u6dfb\u52a0\u81f3\u9891\u9053");
+        table.put("Add to home screen",
+                "\u52a0\u5230\u4e3b\u753b\u9762");
+        table.put("Add to story",
+                "\u6dfb\u52a0\u81f3\u5feb\u62cd");
+        table.put("Added %1$s. Pick it in the story text editor.",
+                "%1$s \u5df2\u6dfb\u52a0\u3002\u53ef\u5728\u5feb\u62cd\u6587\u5b57\u7f16\u8f91\u5668\u4e2d\u4e0e Instagram \u5b57\u4f53\u4e00\u8d77\u9009\u7528\u3002");
+        table.put("Added to Stories priority",
+                "\u5df2\u52a0\u5165\u5feb\u62cd\u4f18\u5148\u7ea7");
+        table.put("Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.",
+                "\u5728\u8f6e\u64ad\u5e16\u5b50\u83dc\u5355\u7684\u201c\u4fdd\u5b58\u5168\u90e8\u201d\u4e0b\u65b9\u4e0e\u4e0b\u8f7d\u56fe\u6807\u4e2d\u6dfb\u52a0\u201c\u9009\u62e9\u9875\u9762\u201d\u3002\u52fe\u9009\u6240\u9700\u9875\u9762\u540e\uff0c\u53ea\u4f1a\u4f9d\u5e8f\u4fdd\u5b58\u8fd9\u4e9b\u9875\u9762\u3002");
+        table.put("Adds Copy to a selected comment's menu. Copies the original text, including line breaks.",
+                "\u5728\u6240\u9009\u8bc4\u8bba\u7684\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u590d\u5236\u201d\uff0c\u590d\u5236\u539f\u59cb\u6587\u5b57\u5e76\u4fdd\u7559\u6362\u884c\u3002");
+        table.put("Adds Copy username and Copy bio to the menu on someone's profile. Each copies the text exactly as the account has it.",
+                "\u5728\u4ed6\u4eba\u4e3b\u9875\u7684\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u590d\u5236\u7528\u6237\u540d\u201d\u4e0e\u201c\u590d\u5236\u4e2a\u4eba\u7b80\u4ecb\u201d\uff0c\u4f9d\u8d26\u6237\u539f\u6587\u5b8c\u6574\u590d\u5236\u3002");
+        table.put("Adds Copy username to a selected comment's menu, for the account that wrote it.",
+                "\u5728\u6240\u9009\u8bc4\u8bba\u7684\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u590d\u5236\u7528\u6237\u540d\u201d\uff0c\u590d\u5236\u53d1\u8868\u8be5\u8bc4\u8bba\u7684\u8d26\u6237\u540d\u79f0\u3002");
+        table.put("Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.",
+                "\u5728\u52a8\u6001\u9996\u9875\u5e16\u5b50\u6216 Reel \u7684\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u8be6\u7ec6\u6570\u636e\u201d\uff0c\u663e\u793a\u53d1\u5e03\u65f6\u95f4\u3001\u53d1\u5e03\u8005\u3001\u5a92\u4f53 ID \u4e0e\u4e0b\u8f7d\u4fdd\u5b58\u7684\u5c3a\u5bf8\uff0c\u5e76\u63d0\u4f9b\u590d\u5236\u6587\u4ef6\u94fe\u63a5\u3001\u7528\u6237\u540d\u4e0e\u8bf4\u660e\u6587\u5b57\u7684\u6309\u94ae\u3002");
+        table.put("Adds Download audio under Download. It saves the sound of the reel as an audio file.",
+                "\u5728\u201c\u4e0b\u8f7d\u201d\u4e0b\u65b9\u6dfb\u52a0\u201c\u4e0b\u8f7d\u97f3\u9891\u201d\uff0c\u5c06 Reel \u7684\u58f0\u97f3\u4fdd\u5b58\u4e3a\u97f3\u9891\u6587\u4ef6\u3002");
+        table.put("Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.",
+                "\u5728\u52a8\u6001\u9996\u9875\u89c6\u9891\u5e16\u5b50\u4e0e\u76ee\u524d\u663e\u793a\u89c6\u9891\u7684\u8f6e\u64ad\u5e16\u5b50\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u4e0b\u8f7d\u5c01\u9762\u201d\uff0c\u4ee5\u6700\u5927\u5c3a\u5bf8\u4fdd\u5b58\u89c6\u9891\u64ad\u653e\u524d\u7684\u9759\u6001\u56fe\u7247\u3002");
+        table.put("Adds Download cover under Download. It saves the still picture a reel shows before it plays, at its largest size.",
+                "\u5728\u201c\u4e0b\u8f7d\u201d\u4e0b\u65b9\u6dfb\u52a0\u201c\u4e0b\u8f7d\u5c01\u9762\u201d\uff0c\u4ee5\u6700\u5927\u5c3a\u5bf8\u4fdd\u5b58 Reel \u64ad\u653e\u524d\u663e\u793a\u7684\u9759\u6001\u56fe\u7247\u3002");
+        table.put("Adds Download to every reel's more menu, saved at your download quality. Off or paused, Instagram's own menu returns.",
+                "\u5728\u6bcf\u5219 Reel \u7684\u66f4\u591a\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u4e0b\u8f7d\u201d\uff0c\u5e76\u4f9d\u4e0b\u8f7d\u753b\u8d28\u8bbe\u7f6e\u4fdd\u5b58\u3002\u5173\u95ed\u6216\u6682\u505c\u540e\u4f1a\u8fd8\u539f Instagram \u539f\u672c\u7684\u83dc\u5355\u3002");
+        table.put("Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.",
+                "\u5728\u52a8\u6001\u9996\u9875\u7684\u89c6\u9891\u5e16\u5b50\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u4e0b\u8f7d\u201d\uff0c\u4f7f\u7528\u4e0b\u65b9\u7684\u753b\u8d28\u8bbe\u7f6e\u3002\u5173\u95ed\u6216\u6682\u505c\u540e\u4f1a\u8fd8\u539f Instagram \u539f\u672c\u7684\u83dc\u5355\u3002");
+        table.put("Adds Download to the menu of anyone's story, photo or video, saved at your download quality. Off or paused, Instagram's own menu returns.",
+                "\u5728\u4efb\u4f55\u4eba\u7684\u5feb\u62cd\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u4e0b\u8f7d\u201d\uff0c\u7167\u7247\u4e0e\u89c6\u9891\u7686\u9002\u7528\uff0c\u5e76\u4f9d\u4e0b\u8f7d\u753b\u8d28\u8bbe\u7f6e\u4fdd\u5b58\u3002\u5173\u95ed\u6216\u6682\u505c\u540e\u4f1a\u8fd8\u539f Instagram \u539f\u672c\u7684\u83dc\u5355\u3002");
+        table.put("Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns if they've set any. Nothing shows until Instagram has checked.",
+                "\u5728\u4ed6\u4eba\u4e3b\u9875\u7684\u540d\u79f0\u65c1\u6dfb\u52a0\u201c\u5df2\u5173\u6ce8\u4f60\u201d\u6216\u201c\u672a\u5173\u6ce8\u4f60\u201d\uff1b\u82e5\u6709\u8bbe\u7f6e\u4ee3\u540d\u8bcd\uff0c\u4f1a\u663e\u793a\u5728\u4ee3\u540d\u8bcd\u4e4b\u540e\u3002Instagram \u5b8c\u6210\u67e5\u627e\u524d\u4e0d\u4f1a\u663e\u793a\u3002");
+        table.put("Adds Playback speed to the menu a reel's three dots open. Pick a speed there from 0.5x to 3x. With Keep the reel speed on, the next reels play at it too.",
+                "\u5728 Reel \u4e09\u4e2a\u70b9\u6253\u5f00\u7684\u83dc\u5355\u4e2d\u52a0\u5165\u201c\u64ad\u653e\u901f\u5ea6\u201d\u3002\u53ef\u5728\u90a3\u91cc\u9009\u62e9 0.5x \u5230 3x \u7684\u901f\u5ea6\u3002\u6253\u5f00\u201c\u4fdd\u7559 Reels \u64ad\u653e\u901f\u5ea6\u201d\u65f6\uff0c\u4e4b\u540e\u7684 Reels \u4e5f\u4f1a\u4ee5\u8fd9\u4e2a\u901f\u5ea6\u64ad\u653e\u3002");
+        table.put("Adds Playback speed to the menu a video story's three dots open, with the same 1x, 1.5x and 2x, and keeps the speed button off the story. Later video stories keep the speed you pick until you change it or restart Instagram.",
+                "\u5728\u89c6\u9891\u5feb\u62cd\u4e09\u4e2a\u70b9\u6253\u5f00\u7684\u83dc\u5355\u4e2d\u52a0\u5165\u201c\u64ad\u653e\u901f\u5ea6\u201d\uff0c\u63d0\u4f9b\u76f8\u540c\u7684 1x\u30011.5x \u548c 2x\uff0c\u5e76\u79fb\u9664\u5feb\u62cd\u4e0a\u7684\u901f\u5ea6\u6309\u94ae\u3002\u4e4b\u540e\u7684\u89c6\u9891\u5feb\u62cd\u4f1a\u6cbf\u7528\u4f60\u9009\u62e9\u7684\u901f\u5ea6\uff0c\u76f4\u5230\u4f60\u66f4\u6539\u6216\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.",
+                "\u5728\u4ed6\u4eba\u4e3b\u9875\u7684\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u4fdd\u5b58\u5934\u50cf\u201d\uff0c\u4ee5 Instagram \u63d0\u4f9b\u7684\u6700\u5927\u5c3a\u5bf8\u4fdd\u5b58\u3002");
+        table.put("Adds Save profile to the menu on someone's profile, even one you don't follow. The list stays on this phone, apart from Instagram's Favorites and Following.",
+                "\u5728\u4ed6\u4eba\u4e3b\u9875\u7684\u83dc\u5355\u4e2d\u52a0\u5165\u201c\u4fdd\u5b58\u4e3b\u9875\u201d\uff0c\u5373\u4f7f\u662f\u4f60\u6ca1\u6709\u5173\u6ce8\u7684\u8d26\u6237\u4e5f\u53ef\u4ee5\u3002\u6e05\u5355\u53ea\u4fdd\u7559\u5728\u8fd9\u652f\u624b\u673a\u4e0a\uff0c\u4e0e Instagram \u7684\u201c\u7279\u522b\u5173\u6ce8\u201d\u548c\u201c\u5df2\u5173\u6ce8\u201d\u5206\u5f00\u3002");
+        table.put("Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.",
+                "\u5728\u5e16\u5b50\u4e09\u4e2a\u70b9\u6253\u5f00\u7684\u83dc\u5355\u4e2d\u52a0\u5165\u201c\u4fdd\u5b58\u201d\uff0c\u5df2\u4fdd\u5b58\u7684\u5e16\u5b50\u5219\u663e\u793a\u201c\u4ece\u5df2\u4fdd\u5b58\u79fb\u9664\u201d\u3002");
+        table.put("Adds Save to the menu you get by holding a voice message in a chat. Saves the recording as an audio file. One sent to be played once never gets it.",
+                "\u5728\u804a\u5929\u4e2d\u957f\u6309\u8bed\u97f3\u9891\u606f\u7684\u83dc\u5355\u5185\u6dfb\u52a0\u201c\u4fdd\u5b58\u201d\uff0c\u5c06\u5f55\u97f3\u4fdd\u5b58\u4e3a\u97f3\u9891\u6587\u4ef6\u3002\u53ea\u80fd\u64ad\u653e\u4e00\u6b21\u7684\u8bed\u97f3\u4e0d\u4f1a\u63d0\u4f9b\u6b64\u9009\u9879\u3002");
+        table.put("Adds Select text to a selected comment's menu, a post's details and a profile's menu. It opens the text in a window where you can select part of it and copy it. Links work there.",
+                "\u5728\u8bc4\u8bba\u83dc\u5355\u3001\u5e16\u5b50\u8be6\u7ec6\u6570\u636e\u548c\u4e3b\u9875\u83dc\u5355\u52a0\u5165\u201c\u9009\u53d6\u6587\u5b57\u201d\u3002\u6587\u5b57\u4f1a\u5728\u7a97\u53e3\u4e2d\u6253\u5f00\uff0c\u4f60\u53ef\u4ee5\u9009\u53d6\u4e00\u90e8\u5206\u6765\u590d\u5236\u3002\u94fe\u63a5\u4e5f\u80fd\u70b9\u5f00\u3002");
+        table.put("Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.",
+                "\u5728\u4ed6\u4eba\u4e3b\u9875\u7684\u83dc\u5355\u4e2d\u6dfb\u52a0\u201c\u67e5\u770b\u5934\u50cf\u201d\uff0c\u4ee5 Instagram \u63d0\u4f9b\u7684\u6700\u5927\u5c3a\u5bf8\u5168\u5c4f\u5e55\u6253\u5f00\uff0c\u652f\u6301\u53cc\u6307\u7f29\u653e\u5e76\u63d0\u4f9b\u4fdd\u5b58\u6309\u94ae\u3002");
+        table.put("Adds a Messages button at the top of Home when Instagram moved Messages to your tab bar. A tap opens your messages like the tab does. Restart Instagram to see the change.",
+                "\u5f53 Instagram \u5c06\u6d88\u606f\u79fb\u5230\u6807\u7b7e\u680f\u65f6\uff0c\u5728\u9996\u9875\u9876\u7aef\u52a0\u5165\u6d88\u606f\u6309\u94ae\u3002\u70b9\u51fb\u540e\u5982\u540c\u6d88\u606f\u6807\u7b7e\u9875\u4e00\u6837\u6253\u5f00\u6d88\u606f\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.",
+                "\u5728\u81ea\u5df1\u7684\u4e3b\u9875\u6807\u7b7e\u9875\u4e2d\u52a0\u5165\u4e66\u7b7e\uff0c\u6253\u5f00\u201c\u5df2\u6536\u85cf\u201d\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("Adds a clock at the top of Home that opens your viewing history in one tap. Restart Instagram to see the change.",
+                "\u5728\u9996\u9875\u9876\u7aef\u52a0\u5165\u65f6\u949f\uff0c\u8f7b\u89e6\u4e00\u4e0b\u5373\u53ef\u6253\u5f00\u6d4f\u89c8\u7eaa\u5f55\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Adds a gear at the top of Home that opens HushGram settings. Restart Instagram to see the change.",
+                "\u5728\u9996\u9875\u9876\u7aef\u52a0\u5165\u9f7f\u8f6e\uff0c\u53ef\u6253\u5f00 HushGram \u8bbe\u7f6e\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Adds a ghost button at the top of Home, next to Messages when it's there and at the end of the buttons when it isn't. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.",
+                "\u5728\u9996\u9875\u9876\u7aef\u52a0\u5165\u5e7d\u7075\u6309\u94ae\uff1b\u6709\u6d88\u606f\u6309\u94ae\u65f6\u653e\u5728\u65c1\u8fb9\uff0c\u6ca1\u6709\u65f6\u5219\u653e\u5728\u6309\u94ae\u680f\u672b\u7aef\u3002\u70b9\u51fb\u5373\u53ef\u6253\u5f00\u6216\u5173\u95ed\u5e7d\u7075\u6a21\u5f0f\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too. Restart Instagram to see the change.",
+                "\u5728\u9996\u9875\u9876\u7aef\u52a0\u5165\u653e\u5927\u955c\uff0c\u4e0e\u641c\u7d22\u6807\u7b7e\u9875\u4e00\u6837\u53ef\u6253\u5f00\u641c\u7d22\u3002\u9690\u85cf\u641c\u7d22\u6807\u7b7e\u9875\u65f6\u4e5f\u53ef\u4f7f\u7528\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.",
+                "\u5728\u9996\u9875\u9876\u7aef\u52a0\u5165\u83dc\u5355\u6309\u94ae\uff0c\u5185\u542b\u6d4f\u89c8\u7eaa\u5f55\u3001\u9b3c\u9b42\u6a21\u5f0f\u4e0e HushGram \u8bbe\u7f6e\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Adds a row next to Download on a reel and a feed video that plays it in an app you pick, such as VLC. The player streams it from Instagram's servers.",
+                "\u5728 Reel \u4e0e\u52a8\u6001\u9996\u9875\u89c6\u9891\u7684\u201c\u4e0b\u8f7d\u201d\u65c1\u6dfb\u52a0\u9009\u9879\uff0c\u4f7f\u7528\u4f60\u9009\u62e9\u7684\u5e94\u7528\u7a0b\u5e8f\uff08\u4f8b\u5982 VLC\uff09\u64ad\u653e\u3002\u64ad\u653e\u5668\u4f1a\u4ece Instagram \u670d\u52a1\u5668\u6d41\u5f0f\u64ad\u653e\u3002");
+        table.put("Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.",
+                "\u5728\u5e16\u5b50\u7684\u8bc4\u8bba\u4e0a\u65b9\u52a0\u5165\u641c\u7d22\u6846\u3002\u8f93\u5165\u6587\u5b57\u6216\u540d\u79f0\uff0c\u8bc4\u8bba\u4f1a\u5377\u52a8\u5230\u4e0b\u4e00\u5219\u542b\u6709\u5b83\u7684\u8bc4\u8bba\u3002\u4f60\u8fd8\u6ca1\u5c55\u5f00\u7684\u56de\u590d\u4e0d\u4f1a\u88ab\u641c\u7d22\u3002");
+        table.put("Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.",
+                "\u5728\u52a8\u6001\u89c6\u9891\u5de6\u4e0b\u89d2\u52a0\u5165\u5c0f\u6309\u94ae\uff0c\u53ef\u663e\u793a\u6216\u9690\u85cf\u62d6\u52a8\u6761\u3002\u65e0\u8bba\u52a8\u6001\u89c6\u9891\u62d6\u52a8\u6761\u5f00\u6216\u5173\u90fd\u80fd\u4f7f\u7528\u3002");
+        table.put("Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.",
+                "\u5728\u8fdb\u5ea6\u6761\u6dfb\u52a0\u53ef\u62d6\u52a8\u7684\u767d\u8272\u5706\u5f62\u62d6\u52a8\u94ae\u3002\u5e7f\u544a\u4ecd\u4f7f\u7528\u539f\u672c\u7684\u8fdb\u5ea6\u6761\u3002");
+        table.put("Adds an eye button to the top of a live while you watch anonymously. Tap it to show up on that live's viewer list. Other lives stay hidden.",
+                "\u533f\u540d\u89c2\u770b\u76f4\u64ad\u65f6\uff0c\u5728\u76f4\u64ad\u9876\u7aef\u6dfb\u52a0\u773c\u775b\u6309\u94ae\u3002\u70b9\u51fb\u5373\u53ef\u8ba9\u4f60\u51fa\u73b0\u5728\u8be5\u573a\u76f4\u64ad\u7684\u89c2\u770b\u8005\u540d\u5355\u4e2d\uff0c\u5176\u4ed6\u76f4\u64ad\u4ecd\u7ef4\u6301\u533f\u540d\u3002");
+        table.put("Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.",
+                "\u533f\u540d\u89c2\u770b\u65f6\uff0c\u5728\u6bcf\u5219\u5feb\u62cd\u9876\u7aef\u6dfb\u52a0\u773c\u775b\u6309\u94ae\u3002\u70b9\u51fb\u5373\u53ef\u8ba9\u4f60\u51fa\u73b0\u5728\u8be5\u5219\u5feb\u62cd\u7684\u89c2\u770b\u8005\u540d\u5355\u4e2d\uff0c\u5176\u4ed6\u5feb\u62cd\u4ecd\u7ef4\u6301\u533f\u540d\u3002");
+        table.put("Adds the Friends tab to the top of the Reels tab if your account never got it. What's in it still comes from Instagram, so it can be empty. Hide the Friends tab wins.",
+                "\u5982\u679c\u4f60\u7684\u8d26\u6237\u4ece\u672a\u51fa\u73b0\u597d\u53cb\u6807\u7b7e\u9875\uff0c\u5c31\u5728 Reels \u6807\u7b7e\u9875\u9876\u7aef\u52a0\u4e0a\u5b83\u3002\u5185\u5bb9\u4ecd\u6765\u81ea Instagram\uff0c\u6240\u4ee5\u53ef\u80fd\u662f\u7a7a\u7684\u3002\u9690\u85cf\u597d\u53cb\u6807\u7b7e\u9875\u4f18\u5148\u3002");
+    }
+
+    private static void fillZh3(Map<String, String> table) {
+        table.put("Adds the fonts below to the story text editor alongside Instagram's own fonts, which all stay. Pick one there like any other font.",
+                "\u5c06\u4e0b\u65b9\u5b57\u4f53\u52a0\u5165\u5feb\u62cd\u6587\u5b57\u7f16\u8f91\u5668\uff0c\u4e0e Instagram \u539f\u6709\u5b57\u4f53\u5e76\u5217\uff08\u539f\u6709\u5b57\u4f53\u7686\u4f1a\u4fdd\u7559\uff09\u3002\u4f60\u53ef\u4ee5\u50cf\u9009\u7528\u5176\u4ed6\u5b57\u4f53\u4e00\u6837\u9009\u7528\u5b83\u4eec\u3002");
+        table.put("Adds the seconds to a reel's time, like Oct 2, 3:45:30 PM.",
+                "\u5728 Reel \u7684\u65f6\u95f4\u4e2d\u52a0\u5165\u79d2\u6570\uff0c\u4f8b\u5982 10 \u6708 2 \u65e5\u4e0b\u5348 3:45:30\u3002");
+        table.put("Ads and privacy",
+                "\u5e7f\u544a\u4e0e\u9690\u79c1");
+        table.put("Advertising ID removed",
+                "\u5df2\u79fb\u9664\u5e7f\u544a ID");
+        table.put("After %1$d minutes",
+                "%1$d \u5206\u949f\u540e");
+        table.put("After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for %2$d minutes. Messages, your profile and the tab bar still work.",
+                "\u5728\u9996\u9875\u3001Reels \u4e0e\u63a2\u7d22\u6807\u7b7e\u9875\u4f7f\u7528 %1$d \u5206\u949f\u540e\uff0c\u4f1a\u663e\u793a\u4f11\u606f\u753b\u9762\u5e76\u906e\u4f4f\u8fd9\u4e9b\u6807\u7b7e\u9875 %2$d \u5206\u949f\u3002\u6d88\u606f\u3001\u4e3b\u9875\u4e0e\u6807\u7b7e\u680f\u4ecd\u53ef\u4f7f\u7528\u3002");
+        table.put("After %1$d seconds",
+                "%1$d \u79d2\u540e");
+        table.put("After 1 hour",
+                "1 \u5c0f\u65f6\u540e");
+        table.put("After 1 minute",
+                "1 \u5206\u949f\u540e");
+        table.put("After 15 minutes",
+                "15 \u5206\u949f\u540e");
+        table.put("After 5 minutes",
+                "5 \u5206\u949f\u540e");
+        table.put("After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.",
+                "\u89c2\u770b\u4e0b\u65b9\u9009\u62e9\u7684 Reels \u6570\u91cf\u540e\u4f1a\u7981\u7528 Reels \u6ed1\u52a8\uff0c\u76f4\u5230 Instagram \u5728\u80cc\u666f\u505c\u7559\u4f60\u9009\u62e9\u7684\u65f6\u95f4\u3002\u4ece\u6d88\u606f\u6216\u5e16\u5b50\u6253\u5f00\u7684 Reel \u4ecd\u4f1a\u64ad\u653e\u3002");
+        table.put("After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.",
+                "\u4f60\u628a\u81ea\u5df1\u7684\u7c89\u4e1d\u6e05\u5355\u5377\u5230\u5e95\u540e\uff0c\u4f1a\u7528\u901a\u77e5\u544a\u8bc9\u4f60\u81ea\u4e0a\u6b21\u4ee5\u6765\u8c01\u79bb\u5f00\u4e86\u3002\u4e0d\u4f1a\u5411 Instagram \u591a\u8981\u6c42\u4efb\u4f55\u4e1c\u897f\u3002");
+        table.put("All",
+                "\u5168\u90e8");
+        table.put("All of Instagram stays covered until your fingerprint, face or screen lock says it's you, your messages too.",
+                "Instagram \u7684\u6240\u6709\u753b\u9762\uff08\u5305\u62ec\u6d88\u606f\uff09\u90fd\u4f1a\u88ab\u906e\u4f4f\uff0c\u76f4\u5230\u901a\u8fc7\u6307\u7eb9\u3001\u8138\u90e8\u6216\u5c4f\u5e55\u9501\u5b9a\u9a8c\u8bc1\u8eab\u5206\u3002");
+        table.put("All of them. Tap to leave some out, and Ghost mode leaves those as you set them.",
+                "\u5168\u90e8\u3002\u70b9\u51fb\u53ef\u6392\u9664\u90e8\u5206\u5f00\u5173\uff0c\u5e7d\u7075\u6a21\u5f0f\u4f1a\u4fdd\u7559\u8fd9\u4e9b\u5f00\u5173\u539f\u672c\u7684\u8bbe\u7f6e\u3002");
+        table.put("Allow screenshots",
+                "\u5141\u8bb8\u622a\u5c4f");
+        table.put("Already saved %1$d. Download again within 30 seconds for those.",
+                "\u5df2\u6709 %1$d \u9879\u4fdd\u5b58\u8fc7\u3002\u82e5\u8981\u518d\u6b21\u4fdd\u5b58\u8fd9\u4e9b\u9879\u76ee\uff0c\u8bf7\u5728 30 \u79d2\u5185\u518d\u6b21\u4e0b\u8f7d\u3002");
+        table.put("Already saved. Download again within 30 seconds for a copy.",
+                "\u5df2\u4fdd\u5b58\u8fc7\u3002\u82e5\u8981\u53e6\u5b58\u526f\u672c\uff0c\u8bf7\u5728 30 \u79d2\u5185\u518d\u6b21\u4e0b\u8f7d\u3002");
+        table.put("Also on Home",
+                "\u540c\u65f6\u5e94\u7528\u81f3\u9996\u9875");
+        table.put("Always Home",
+                "\u4e00\u5f8b\u6253\u5f00\u9996\u9875");
+        table.put("Always show seek bar in clear mode",
+                "\u6e05\u723d\u6a21\u5f0f\u4e2d\u4e00\u5f8b\u663e\u793a\u8fdb\u5ea6\u6761");
+        table.put("Ambient light",
+                "\u73af\u5883\u5149");
+        table.put("Ambient light in stories",
+                "\u5feb\u62cd\u73af\u5883\u5149");
+        table.put("An HTTP proxy's address and port, with a colon between them, like 192.168.1.10:8080. Proxies that need a password, and SOCKS proxies, don't work here. Instagram needs a restart to use it.",
+                "HTTP Proxy \u7684\u5730\u5740\u548c\u8fde\u63a5\u7aef\u53e3\uff0c\u4e2d\u95f4\u7528\u5192\u53f7\u9694\u5f00\uff0c\u4f8b\u5982 192.168.1.10:8080\u3002\u9700\u8981\u5bc6\u7801\u7684 Proxy \u548c SOCKS Proxy \u65e0\u6cd5\u5728\u8fd9\u91cc\u4f7f\u7528\u3002Instagram \u9700\u8981\u91cd\u65b0\u542f\u52a8\u624d\u4f1a\u4f7f\u7528\u3002");
+        table.put("An emoji font file",
+                "\u8868\u60c5\u7b26\u53f7\u5b57\u5e93\u6848");
+        table.put("An eye at the top of each chat holds or sends Seen in that chat alone, whatever Read messages without the seen receipt says. Changing it doesn't send anything by itself.",
+                "\u6bcf\u4e2a\u804a\u5929\u9876\u7aef\u7684\u773c\u775b\u56fe\u6807\u53ef\u8ba9\u8be5\u804a\u5929\u5355\u72ec\u4fdd\u7559\u6216\u53d1\u9001\u201c\u5df2\u8bfb\u201d\uff0c\u4e0d\u53d7\u201c\u533f\u540d\u67e5\u770b\u6d88\u606f\u201d\u5f71\u54cd\u3002\u53d8\u66f4\u672c\u8eab\u4e0d\u4f1a\u53d1\u9001\u4efb\u4f55\u5185\u5bb9\u3002");
+        table.put("App",
+                "\u5e94\u7528\u7a0b\u5e8f");
+        table.put("App icon",
+                "\u5e94\u7528\u7a0b\u5e8f\u56fe\u6807");
+        table.put("App-only proxy",
+                "\u4ec5\u9650\u6b64\u5e94\u7528\u7a0b\u5e8f\u7684 Proxy");
+        table.put("Applies to the next reels loaded.",
+                "\u4ece\u63a5\u4e0b\u6765\u52a0\u8f7d\u7684 Reels \u5f00\u59cb\u5e94\u7528\u3002");
+        table.put("Ask before a call",
+                "\u62e8\u6253\u7535\u8bdd\u524d\u8be2\u95ee");
+        table.put("Ask before a follow",
+                "\u5173\u6ce8\u524d\u8be2\u95ee");
+        table.put("Ask before a like",
+                "\u70b9\u8d5e\u524d\u8be2\u95ee");
+        table.put("Ask before a refresh",
+                "\u5237\u65b0\u524d\u8be2\u95ee");
+        table.put("Ask for each chat",
+                "\u6bcf\u4e2a\u804a\u5929\u90fd\u8981\u9a8c\u8bc1");
+        table.put("Ask for larger photos",
+                "\u8981\u6c42\u66f4\u5927\u5c3a\u5bf8\u7684\u7167\u7247");
+        table.put("Ask to unlock",
+                "\u8bf7\u6c42\u89e3\u9501");
+        table.put("Ask what to save",
+                "\u8be2\u95ee\u8981\u4fdd\u5b58\u4ec0\u4e48");
+        table.put("Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.",
+                "\u8981\u6c42 Android \u4ee5\u5c4f\u5e55\u6700\u9ad8\u7684\u66f4\u65b0\u7387\u3001\u76f8\u540c\u7684\u5206\u8fa8\u7387\u8fd0\u884c Instagram\u3002\u90e8\u5206\u624b\u673a\u4f1a\u4e3a\u5e94\u7528\u7a0b\u5e8f\u8bbe\u7f6e\u81ea\u5df1\u7684\u4e0a\u9650\uff0c\u7701\u7535\u6a21\u5f0f\u4e5f\u4ecd\u53ef\u80fd\u8c03\u4f4e\u66f4\u65b0\u7387\u3002");
+        table.put("Asks before a Follow or Follow back button follows someone or sends them a request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you.",
+                "\u5728\u201c\u5173\u6ce8\u201d\u6216\u201c\u56de\u5173\u8e2a\u201d\u6309\u94ae\u5173\u6ce8\u67d0\u4eba\u6216\u9001\u51fa\u5173\u6ce8\u8981\u6c42\u524d\u5148\u8be2\u95ee\uff0c\u907f\u514d\u5728\u4e3b\u9875\u3001\u7c89\u4e1d\u540d\u5355\u6216\u5173\u6ce8\u540d\u5355\u8bef\u89e6\u65f6\u76f4\u63a5\u5e2e\u4f60\u5173\u6ce8.");
+        table.put("Asks before a pull down or another tap on its tab refreshes Home, Reels or another list. Cancel keeps what's on screen.",
+                "\u4e0b\u62c9\u6216\u518d\u6b21\u70b9\u6309\u6807\u7b7e\u9875\u5237\u65b0\u9996\u9875\u3001Reels \u6216\u5176\u4ed6\u6e05\u5355\u524d\u5148\u8be2\u95ee\u3002\u53d6\u6d88\u4f1a\u4fdd\u7559\u753b\u9762\u4e0a\u7684\u5185\u5bb9\u3002");
+        table.put("Asks before the Like button under a post, on a reel or on a comment likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.",
+                "\u901a\u8fc7\u5e16\u5b50\u4e0b\u65b9\u3001Reels \u4e0a\u6216\u8bc4\u8bba\u4e0a\u7684\u70b9\u8d5e\u6309\u94ae\u70b9\u8d5e\u6216\u6536\u56de\u8d5e\u524d\u5148\u8be2\u95ee\uff0c\u907f\u514d\u8bef\u89e6\u3002\u53cc\u51fb\u5219\u4e0d\u4f1a\u8be2\u95ee\u3002");
+        table.put("At once",
+                "\u7acb\u5373");
+        table.put("Attachment",
+                "\u9644\u4ef6");
+        table.put("Auto",
+                "\u81ea\u52a8");
+        table.put("Back",
+                "\u8fd4\u56de");
+        table.put("Back leaves Home as it is",
+                "\u8fd4\u56de\u65f6\u4fdd\u7559\u9996\u9875\u72b6\u6001");
+        table.put("Back on Home leaves Instagram without first scrolling the feed to the top and reloading it.",
+                "\u5728\u9996\u9875\u6309\u8fd4\u56de\u4f1a\u76f4\u63a5\u79bb\u5f00 Instagram\uff0c\u4e0d\u518d\u5148\u5c06\u52a8\u6001\u5377\u56de\u9876\u7aef\u5e76\u91cd\u65b0\u52a0\u8f7d\u3002");
+        table.put("Background playback",
+                "\u80cc\u666f\u64ad\u653e");
+        table.put("Backgrounds in the accent color",
+                "\u80cc\u666f\u4f7f\u7528\u5f3a\u8c03\u8272");
+        table.put("Badges in the accent color",
+                "\u5fbd\u7ae0\u4f7f\u7528\u5f3a\u8c03\u8272");
+        table.put("Band",
+                "Band");
+        table.put("Bars to hide",
+                "\u8981\u9690\u85cf\u7684\u7cfb\u7edf\u680f");
+        table.put("Battery",
+                "\u7535\u6c60");
+        table.put("Before you sign in",
+                "\u767b\u5f55\u4e4b\u524d");
+        table.put("Below the Send message box",
+                "\u201c\u53d1\u9001\u6d88\u606f\u201d\u6846\u4e0b\u65b9");
+        table.put("Bend light at the edges",
+                "\u5728\u8fb9\u7f18\u6298\u5c04\u5149\u7ebf");
+        table.put("Best",
+                "\u6700\u4f73");
+        table.put("Bigger seek bar on reels",
+                "\u52a0\u5927 Reels \u8fdb\u5ea6\u6761");
+    }
+
+    private static void fillZh4(Map<String, String> table) {
+        table.put("Bio",
+                "\u4e2a\u4eba\u7b80\u4ecb");
+        table.put("Bio copied",
+                "\u5df2\u590d\u5236\u4e2a\u4eba\u7b80\u4ecb");
+        table.put("Black rows and dialogs, with HushGram's name at the top.",
+                "\u9ed1\u8272\u7684\u5217\u548c\u5bf9\u8bdd\u6846\uff0c\u9876\u7aef\u663e\u793a HushGram \u540d\u79f0\u3002");
+        table.put("Black settings page",
+                "\u9ed1\u8272\u8bbe\u7f6e\u9875\u9762");
+        table.put("Blend post edges",
+                "\u878d\u5408\u5e16\u5b50\u8fb9\u7f18");
+        table.put("Block",
+                "\u5c4f\u853d");
+        table.put("Block button on reels",
+                "Reels \u7684\u5c4f\u853d\u6309\u94ae");
+        table.put("Blocked words",
+                "\u5c4f\u853d\u5b57\u8bcd");
+        table.put("Blue",
+                "\u84dd\u8272");
+        table.put("Blur behind the tab bar",
+                "\u6a21\u7cca\u6807\u7b7e\u680f\u540e\u65b9\u5185\u5bb9");
+        table.put("Blur strength",
+                "\u6a21\u7cca\u5f3a\u5ea6");
+        table.put("Blur the bars around a reel",
+                "\u6a21\u7cca Reel \u5468\u56f4\u7684\u7559\u767d");
+        table.put("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.",
+                "\u5728 Android 12 \u4ee5\u4e0a\u7248\u672c\u6a21\u7cca\u80f6\u56ca\u540e\u65b9\u7684\u5185\u5bb9\u3002\u5173\u95ed\u65f6\uff0c\u80f6\u56ca\u4f7f\u7528\u96fe\u9762\u8272\u8c03\u3002");
+        table.put("Both bars",
+                "\u4e24\u8005\u7686\u9690\u85cf");
+        table.put("Break length",
+                "\u4f11\u606f\u65f6\u95f4\u957f\u5ea6");
+        table.put("Burn-in guard",
+                "\u9632\u70d9\u5370\u4fdd\u62a4");
+        table.put("Burn-in guard also fades the top and bottom of a story while you watch without touching, the eye button too. Any tap brings them back.",
+                "\u4e0d\u78b0\u5c4f\u5e55\u89c2\u770b\u5feb\u62cd\u65f6\uff0c\u9632\u70d9\u5370\u4fdd\u62a4\u4e5f\u4f1a\u8ba9\u4e0a\u65b9\u548c\u4e0b\u65b9\u53d8\u6697\uff0c\u773c\u775b\u6309\u94ae\u4e5f\u4e00\u6837\u3002\u8f7b\u89e6\u4efb\u4f55\u5730\u65b9\u5373\u53ef\u6062\u590d\u3002");
+        table.put("Buttons in the message box",
+                "\u6d88\u606f\u8f93\u5165\u6846\u6309\u94ae");
+        table.put("Buttons on the share sheet",
+                "\u5206\u4eab\u8868\u5355\u6309\u94ae");
+        table.put("By @%1$s",
+                "\u53d1\u5e03\u8005\uff1a@%1$s");
+        table.put("Call",
+                "\u62e8\u6253");
+        table.put("Camera",
+                "\u76f8\u673a");
+        table.put("Can slow down older phones.",
+                "\u53ef\u80fd\u4f1a\u8ba9\u8f83\u65e7\u7684\u624b\u673a\u53d8\u6162.");
+        table.put("Cancel",
+                "\u53d6\u6d88");
+        table.put("Cancel saving this carousel",
+                "\u53d6\u6d88\u4fdd\u5b58\u6b64\u8f6e\u64ad\u5e16\u5b50");
+        table.put("Cancel saving this photo",
+                "\u53d6\u6d88\u4fdd\u5b58\u6b64\u7167\u7247");
+        table.put("Cancel saving this video",
+                "\u53d6\u6d88\u4fdd\u5b58\u6b64\u89c6\u9891");
+        table.put("Cancel saving this voice message",
+                "\u53d6\u6d88\u4fdd\u5b58\u6b64\u8bed\u97f3\u9891\u606f");
+        table.put("Caption",
+                "\u8bf4\u660e\u6587\u5b57");
+        table.put("Caption copied",
+                "\u5df2\u590d\u5236\u8bf4\u660e\u6587\u5b57");
+        table.put("Carousel arrows",
+                "\u8f6e\u64ad\u7bad\u5934");
+        table.put("Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.",
+                "\u5df2\u53d6\u6d88\u8f6e\u64ad\u5e16\u5b50\u4fdd\u5b58\u3002\u5df2\u4fdd\u5b58 %1$d \u9875\uff0c\u5931\u8d25 %2$d \u9875\uff0c\u7565\u8fc7 %3$d \u9875\u3002");
+        table.put("Categories on their own page",
+                "\u5206\u7c7b\u5404\u81ea\u4e00\u9875");
+        table.put("Center the logo on Home's header",
+                "\u5c06\u9996\u9875\u9876\u7aef\u6807\u5fd7\u7f6e\u4e2d");
+        table.put("Center the name on profiles",
+                "\u5c06\u4e3b\u9875\u540d\u79f0\u7f6e\u4e2d");
+        table.put("Center titles on other screens",
+                "\u5c06\u5176\u4ed6\u753b\u9762\u7684\u6807\u9898\u7f6e\u4e2d");
+        table.put("Change how Instagram looks, from its colors to its emoji.",
+                "\u53d8\u66f4 Instagram \u5916\u89c2\uff0c\u4ece\u989c\u8272\u5230\u8868\u60c5\u7b26\u53f7\u7686\u53ef\u8c03\u6574\u3002");
+        table.put("Change the like animation",
+                "\u66f4\u6539\u201c\u70b9\u8d5e\u201d\u52a8\u753b");
+        table.put("Chat %1$s",
+                "\u804a\u5929 %1$s");
+        table.put("Chat saved in Downloads/HushGram.",
+                "\u804a\u5929\u5df2\u5b58\u5230\u4e0b\u8f7d/HushGram\u3002");
+        table.put("Chat saved in the app's Download folder.",
+                "\u804a\u5929\u5df2\u5b58\u5230\u5e94\u7528\u7a0b\u5e8f\u7684\u4e0b\u8f7d\u6587\u4ef6\u5939\u3002");
+        table.put("Choose Seen in each chat",
+                "\u4e3a\u6bcf\u4e2a\u804a\u5929\u9009\u62e9\u201c\u5df2\u8bfb\u201d");
+        table.put("Choose a file for the settings export.",
+                "\u8bf7\u9009\u62e9\u5bfc\u51fa\u8bbe\u7f6e\u7684\u6587\u4ef6\u3002");
+        table.put("Choose a file for your installed patches' settings and saved profiles. Your login and history stay on this device.",
+                "\u9009\u62e9\u6587\u4ef6\u4ee5\u4fdd\u5b58\u5df2\u5b89\u88c5\u8865\u4e01\u7684\u8bbe\u7f6e\u4e0e\u4fdd\u5b58\u7684\u4e3b\u9875\u3002\u767b\u5f55\u4fe1\u606f\u4e0e\u8bb0\u5f55\u4ecd\u7559\u5728\u6b64\u8bbe\u5907\u4e0a\u3002");
+        table.put("Choose a file for your installed patches' settings. Accounts and history stay on this device.",
+                "\u9009\u62e9\u6587\u4ef6\u4ee5\u4fdd\u5b58\u5df2\u5b89\u88c5\u8865\u4e01\u7684\u8bbe\u7f6e\u3002\u8d26\u6237\u4e0e\u8bb0\u5f55\u4ecd\u7559\u5728\u6b64\u8bbe\u5907\u4e0a\u3002");
+        table.put("Choose a folder",
+                "\u9009\u62e9\u6587\u4ef6\u5939");
+        table.put("Choose a folder name under Movies and Pictures. Invalid characters become underscores. Leave it blank to use the default folder, %1$s. For an SD card or anywhere else, use Choose a folder.",
+                "\u9009\u62e9 Movies \u4e0e Pictures \u5e95\u4e0b\u7684\u6587\u4ef6\u5939\u540d\u79f0\u3002\u65e0\u6548\u5b57\u7b26\u4f1a\u66ff\u6362\u4e3a\u4e0b\u5212\u7ebf\u3002\u7559\u7a7a\u5219\u4f7f\u7528\u9ed8\u8ba4\u6587\u4ef6\u5939 %1$s\u3002 \u82e5\u8981\u5b58\u5230 SD \u5361\u6216\u5176\u4ed6\u4f4d\u7f6e\uff0c\u8bf7\u4f7f\u7528\u201c\u9009\u62e9\u6587\u4ef6\u5939\u201d\u3002");
+        table.put("Choose a settings file. All valid choices apply together, and ones this version doesn't know are skipped. The Undo row shows how long you can undo.",
+                "\u9009\u62e9\u8bbe\u7f6e\u6587\u4ef6\u3002\u6240\u6709\u6709\u6548\u9009\u9879\u4f1a\u4e00\u5e76\u5e94\u7528\uff0c\u6b64\u7248\u672c\u4e0d\u8ba4\u5f97\u7684\u9009\u9879\u5219\u4f1a\u7565\u8fc7\u3002\u201c\u590d\u539f\u201d\u5217\u4f1a\u663e\u793a\u53ef\u590d\u539f\u7684\u671f\u9650\u3002");
+        table.put("Choose a tab",
+                "\u9009\u62e9\u6807\u7b7e\u9875");
+        table.put("Choose carousel pages",
+                "\u9009\u62e9\u8f6e\u64ad\u9875\u9762");
+        table.put("Choose pages",
+                "\u9009\u62e9\u9875\u9762");
+        table.put("Choose what Home shows and how it behaves.",
+                "\u9009\u62e9\u9996\u9875\u663e\u793a\u7684\u5185\u5bb9\u4e0e\u64cd\u4f5c\u65b9\u5f0f\u3002");
+        table.put("Chosen when you patched, so Pause leaves them on. Patch again to change them.",
+                "\u8fd9\u4e9b\u9879\u76ee\u5728\u6253\u8865\u4e01\u65f6\u51b3\u5b9a\uff0c\u6682\u505c\u65f6\u4ecd\u4f1a\u542f\u7528\u3002\u82e5\u8981\u53d8\u66f4\uff0c\u8bf7\u91cd\u65b0\u6253\u8865\u4e01\u3002");
+        table.put("Classic",
+                "\u7ecf\u5178");
+        table.put("Clear diagnostic data",
+                "\u6e05\u9664\u8bca\u65ad\u6570\u636e");
+        table.put("Clear download history",
+                "\u6e05\u9664\u4e0b\u8f7d\u8bb0\u5f55");
+        table.put("Clear profile history",
+                "\u6e05\u9664\u4e3b\u9875\u7eaa\u5f55");
+        table.put("Clear remembered positions",
+                "\u6e05\u9664\u8bb0\u4f4f\u7684\u64ad\u653e\u4f4d\u7f6e");
+        table.put("Clear saved copies now",
+                "\u7acb\u5373\u6e05\u9664\u4fdd\u5b58\u7684\u526f\u672c");
+        table.put("Clear search",
+                "\u6e05\u9664\u641c\u7d22");
+    }
+
+    private static void fillZh5(Map<String, String> table) {
+        table.put("Clear the media cache",
+                "\u6e05\u9664\u5a92\u4f53\u7f13\u5b58");
+        table.put("Clear unfollower list",
+                "\u6e05\u9664\u53d6\u6d88\u7c89\u4e1d\u540d\u5355");
+        table.put("Clear viewing history",
+                "\u6e05\u9664\u6d4f\u89c8\u7eaa\u5f55");
+        table.put("Close",
+                "\u5173\u95ed");
+        table.put("Collapsed",
+                "\u5df2\u6536\u5408");
+        table.put("Color",
+                "\u989c\u8272");
+        table.put("Coming back to Instagram leaves Home on the post you were on, however long you were away. Pull down to refresh still reloads it.",
+                "\u56de\u5230 Instagram \u65f6\uff0c\u4e0d\u8bba\u79bb\u5f00\u591a\u4e45\uff0c\u9996\u9875\u90fd\u4f1a\u505c\u5728\u4f60\u521a\u624d\u770b\u7684\u5e16\u5b50\u3002\u4e0b\u62c9\u5237\u65b0\u4ecd\u4f1a\u91cd\u65b0\u52a0\u8f7d\u3002");
+        table.put("Comment",
+                "\u8bc4\u8bba");
+        table.put("Comment copied",
+                "\u5df2\u590d\u5236\u8bc4\u8bba");
+        table.put("Comments",
+                "\u8bc4\u8bba");
+        table.put("Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.",
+                "\u6253\u5f00\u8bc4\u8bba\u65f6\u4e0d\u663e\u793a\u952e\u76d8\u3002\u70b9\u51fb\u8bc4\u8bba\u8f93\u5165\u6846\u6216\u201c\u56de\u590d\u201d\u4ecd\u4f1a\u5f39\u51fa\u952e\u76d8\u3002");
+        table.put("Compact",
+                "\u7d27\u51d1");
+        table.put("Confirm PIN",
+                "\u786e\u8ba4 PIN \u7801");
+        table.put("Content",
+                "\u5185\u5bb9");
+        table.put("Continue",
+                "\u7ee7\u7eed");
+        table.put("Control where Meta AI appears.",
+                "\u9009\u62e9 Meta AI \u51fa\u73b0\u7684\u4f4d\u7f6e\u3002");
+        table.put("Convert to keep the full size",
+                "\u8f6c\u6362\u683c\u5f0f\u4ee5\u4fdd\u7559\u5b8c\u6574\u5c3a\u5bf8");
+        table.put("Converting to H.264",
+                "\u6b63\u5728\u8f6c\u6362\u4e3a H.264");
+        table.put("Copied",
+                "\u5df2\u590d\u5236");
+        table.put("Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.",
+                "\u590d\u5236\u7b80\u8981\u62a5\u544a\uff0c\u6216\u5c06\u5b8c\u6574\u62a5\u544a\u4fdd\u5b58\u81f3 %1$s\u3002\u62a5\u544a\u4e0d\u542b\u94fe\u63a5\u3001ID\u3001Cookie \u4e0e\u767b\u5f55\u4fe1\u606f\u3002\u5206\u4eab\u524d\uff0c\u8bf7\u786e\u8ba4\u662f\u5426\u8fd8\u6709\u5176\u4ed6\u79c1\u4eba\u6587\u5b57\u3002");
+        table.put("Copy a short report to the clipboard.",
+                "\u5c06\u7b80\u8981\u62a5\u544a\u590d\u5236\u5230\u526a\u8d34\u677f\u3002");
+        table.put("Copy all",
+                "\u5168\u90e8\u590d\u5236");
+        table.put("Copy bio",
+                "\u590d\u5236\u4e2a\u4eba\u7b80\u4ecb");
+        table.put("Copy caption",
+                "\u590d\u5236\u8bf4\u660e\u6587\u5b57");
+        table.put("Copy caption without hashtags",
+                "\u590d\u5236\u8bf4\u660e\u6587\u5b57\u5e76\u79fb\u9664\u8bdd\u9898\u6807\u7b7e");
+        table.put("Copy comment",
+                "\u590d\u5236\u8bc4\u8bba");
+        table.put("Copy link",
+                "\u590d\u5236\u94fe\u63a5");
+        table.put("Copy media link",
+                "\u590d\u5236\u5a92\u4f53\u94fe\u63a5");
+        table.put("Copy quick report",
+                "\u590d\u5236\u7b80\u8981\u62a5\u544a");
+        table.put("Copy text",
+                "\u590d\u5236\u6587\u5b57");
+        table.put("Copy text button on reels",
+                "Reels \u7684\u590d\u5236\u6587\u5b57\u6309\u94ae");
+        table.put("Copy text button on stories",
+                "\u5feb\u62cd\u7684\u590d\u5236\u6587\u5b57\u6309\u94ae");
+        table.put("Copy text with",
+                "\u9009\u62e9\u590d\u5236\u6587\u5b57\u7684\u5e94\u7528\u7a0b\u5e8f");
+        table.put("Copy the commenter's username",
+                "\u590d\u5236\u8bc4\u8bba\u8005\u7684\u7528\u6237\u540d");
+        table.put("Copy username",
+                "\u590d\u5236\u7528\u6237\u540d");
+        table.put("Copy username and bio",
+                "\u590d\u5236\u7528\u6237\u540d\u4e0e\u4e2a\u4eba\u7b80\u4ecb");
+        table.put("Copy without the @names at the start",
+                "\u590d\u5236\u65f6\u79fb\u9664\u5f00\u5934\u7684 @\u540d\u79f0");
+        table.put("Copy, save or hide comments.",
+                "\u590d\u5236\u3001\u4fdd\u5b58\u6216\u9690\u85cf\u8bc4\u8bba\u3002");
+        table.put("Copying to the gallery",
+                "\u6b63\u5728\u590d\u5236\u5230\u76f8\u518c");
+        table.put("Corner size",
+                "\u5706\u89d2\u5927\u5c0f");
+        table.put("Couldn't clear the download history. Try again.",
+                "\u65e0\u6cd5\u6e05\u9664\u4e0b\u8f7d\u8bb0\u5f55\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't clear the profile history. Try again.",
+                "\u65e0\u6cd5\u6e05\u9664\u4e3b\u9875\u7eaa\u5f55\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't clear the saved copies. Try again.",
+                "\u65e0\u6cd5\u6e05\u9664\u4fdd\u5b58\u7684\u526f\u672c\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't clear the unfollower list. Try again.",
+                "\u65e0\u6cd5\u6e05\u9664\u53d6\u6d88\u7c89\u4e1d\u540d\u5355\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't clear the viewing history. Try again.",
+                "\u65e0\u6cd5\u6e05\u9664\u6d4f\u89c8\u7eaa\u5f55\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't copy comment",
+                "\u65e0\u6cd5\u590d\u5236\u8bc4\u8bba");
+        table.put("Couldn't copy the GIF name",
+                "\u65e0\u6cd5\u590d\u5236 GIF \u540d\u79f0");
+        table.put("Couldn't copy the bio",
+                "\u65e0\u6cd5\u590d\u5236\u4e2a\u4eba\u7b80\u4ecb");
+        table.put("Couldn't copy the caption",
+                "\u65e0\u6cd5\u590d\u5236\u8bf4\u660e\u6587\u5b57");
+        table.put("Couldn't copy the media link",
+                "\u65e0\u6cd5\u590d\u5236\u5a92\u4f53\u94fe\u63a5");
+        table.put("Couldn't copy the username",
+                "\u65e0\u6cd5\u590d\u5236\u7528\u6237\u540d");
+        table.put("Couldn't copy this screen",
+                "\u65e0\u6cd5\u590d\u5236\u8fd9\u4e2a\u753b\u9762");
+        table.put("Couldn't download the emoji. Try again.",
+                "\u65e0\u6cd5\u4e0b\u8f7d\u8868\u60c5\u7b26\u53f7\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't export HushGram settings. Try another file.",
+                "\u65e0\u6cd5\u5bfc\u51fa HushGram \u8bbe\u7f6e\uff0c\u8bf7\u5c1d\u8bd5\u5176\u4ed6\u6587\u4ef6\u3002");
+        table.put("Couldn't find the reel you came from",
+                "\u627e\u4e0d\u5230\u521a\u624d\u7684 Reel");
+        table.put("Couldn't find this chat's messages.",
+                "\u627e\u4e0d\u5230\u8fd9\u4e2a\u804a\u5929\u7684\u6d88\u606f\u3002");
+        table.put("Couldn't finish that change. Showing what's saved.",
+                "\u672a\u80fd\u5b8c\u6210\u66f4\u65b0\u8bbe\u7f6e\uff0c\u76ee\u524d\u663e\u793a\u7684\u662f\u5df2\u4fdd\u5b58\u7684\u503c\u3002");
+        table.put("Couldn't hide this account",
+                "\u65e0\u6cd5\u9690\u85cf\u6b64\u8d26\u6237");
+        table.put("Couldn't hide this notice. Try again.",
+                "\u65e0\u6cd5\u9690\u85cf\u6b64\u901a\u77e5\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't load this chat",
+                "\u65e0\u6cd5\u52a0\u8f7d\u8fd9\u4e2a\u804a\u5929");
+    }
+
+    private static void fillZh6(Map<String, String> table) {
+        table.put("Couldn't load your emoji, so the phone's show.",
+                "\u65e0\u6cd5\u52a0\u8f7d\u4f60\u7684\u8868\u60c5\u7b26\u53f7\uff0c\u56e0\u6b64\u663e\u793a\u624b\u673a\u7684\u8868\u60c5\u7b26\u53f7\u3002");
+        table.put("Couldn't load your font. Pick it again in Layout.",
+                "\u65e0\u6cd5\u52a0\u8f7d\u4f60\u7684\u5b57\u4f53\uff0c\u8bf7\u5728\u201c\u7248\u9762\u914d\u7f6e\u201d\u91cd\u65b0\u9009\u62e9\u3002");
+        table.put("Couldn't mark as read",
+                "\u65e0\u6cd5\u6807\u793a\u4e3a\u5df2\u8bfb");
+        table.put("Couldn't open another player",
+                "\u65e0\u6cd5\u6253\u5f00\u5176\u4ed6\u64ad\u653e\u5668");
+        table.put("Couldn't open that one.",
+                "\u65e0\u6cd5\u6253\u5f00\u3002");
+        table.put("Couldn't open the picture",
+                "\u65e0\u6cd5\u6253\u5f00\u7167\u7247");
+        table.put("Couldn't open the text",
+                "\u65e0\u6cd5\u6253\u5f00\u6587\u5b57");
+        table.put("Couldn't play this video",
+                "\u65e0\u6cd5\u64ad\u653e\u8fd9\u90e8\u89c6\u9891");
+        table.put("Couldn't put back the diagnostic data. Try again.",
+                "\u65e0\u6cd5\u8fd8\u539f\u8bca\u65ad\u6570\u636e\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't read that picture.",
+                "\u65e0\u6cd5\u8bfb\u53d6\u8fd9\u5f20\u56fe\u7247\u3002");
+        table.put("Couldn't reply with this GIF",
+                "\u65e0\u6cd5\u7528\u8fd9\u4e2a GIF \u56de\u590d");
+        table.put("Couldn't restart Instagram. Close it and open it again.",
+                "\u65e0\u6cd5\u91cd\u65b0\u542f\u52a8 Instagram\uff0c\u8bf7\u5173\u95ed\u540e\u518d\u6b21\u6253\u5f00\u3002");
+        table.put("Couldn't save or fully restore the settings. Check the shown values and try Undo.",
+                "\u65e0\u6cd5\u4fdd\u5b58\u6216\u5b8c\u6574\u8fd8\u539f\u8bbe\u7f6e\u3002\u8bf7\u786e\u8ba4\u663e\u793a\u7684\u503c\uff0c\u5e76\u5c1d\u8bd5\u590d\u539f\u3002");
+        table.put("Couldn't save the PIN.",
+                "\u65e0\u6cd5\u4fdd\u5b58 PIN \u7801\u3002");
+        table.put("Couldn't save the chat.",
+                "\u65e0\u6cd5\u4fdd\u5b58\u804a\u5929\u3002");
+        table.put("Couldn't save the choice",
+                "\u65e0\u6cd5\u4fdd\u5b58\u9009\u62e9");
+        table.put("Couldn't save the diagnostic report. Try again.",
+                "\u65e0\u6cd5\u4fdd\u5b58\u8bca\u65ad\u62a5\u544a\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't save the picture.",
+                "\u65e0\u6cd5\u4fdd\u5b58\u56fe\u7247\u3002");
+        table.put("Couldn't save the quality. Set it in HushGram settings.",
+                "\u65e0\u6cd5\u4fdd\u5b58\u64ad\u653e\u753b\u8d28\uff0c\u8bf7\u6253\u5f00 HushGram \u8bbe\u7f6e\u8fdb\u884c\u8bbe\u7f6e\u3002");
+        table.put("Couldn't save the settings. The previous values were restored.",
+                "\u65e0\u6cd5\u4fdd\u5b58\u8bbe\u7f6e\uff0c\u5df2\u8fd8\u539f\u5148\u524d\u7684\u503c\u3002");
+        table.put("Couldn't send",
+                "\u65e0\u6cd5\u53d1\u9001");
+        table.put("Couldn't start that. Try again.",
+                "\u65e0\u6cd5\u5f00\u59cb\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't start the report export. Try again shortly.",
+                "\u65e0\u6cd5\u5f00\u59cb\u5bfc\u51fa\u62a5\u544a\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002");
+        table.put("Couldn't turn HushGram back on. Try again.",
+                "\u65e0\u6cd5\u91cd\u65b0\u542f\u7528 HushGram\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Couldn't update remembered playback positions.",
+                "\u65e0\u6cd5\u66f4\u65b0\u8bb0\u4f4f\u7684\u64ad\u653e\u4f4d\u7f6e\u3002");
+        table.put("Couldn't use that file. Your settings haven't changed.",
+                "\u65e0\u6cd5\u4f7f\u7528\u6b64\u8bbe\u7f6e\u6587\u4ef6\u3002\u4f60\u7684\u8bbe\u7f6e\u672a\u53d8\u66f4\u3002");
+        table.put("Couldn't use that folder. Saves go where they did.",
+                "\u65e0\u6cd5\u4f7f\u7528\u8be5\u6587\u4ef6\u5939\u3002\u4fdd\u5b58\u7684\u5185\u5bb9\u4ecd\u4f1a\u5b58\u5230\u539f\u672c\u7684\u4f4d\u7f6e\u3002");
+        table.put("Count on the heart",
+                "\u7231\u5fc3\u4e0a\u7684\u6570\u5b57");
+        table.put("Create",
+                "\u521b\u5efa");
+        table.put("Create (+)",
+                "\u521b\u5efa\uff08+\uff09");
+        table.put("Creator tools",
+                "\u521b\u4f5c\u8005\u5de5\u5177");
+        table.put("Custom",
+                "\u81ea\u8ba2");
+        table.put("Custom app icon",
+                "\u81ea\u8ba2\u5e94\u7528\u7a0b\u5e8f\u56fe\u6807");
+        table.put("Custom color",
+                "\u81ea\u8ba2\u989c\u8272");
+        table.put("Custom tab",
+                "\u81ea\u8ba2\u6807\u7b7e\u9875");
+        table.put("Data saver",
+                "\u8282\u7701\u6570\u636e");
+        table.put("Date and time",
+                "\u65e5\u671f\u4e0e\u65f6\u95f4");
+        table.put("Date in backup file names",
+                "\u5728\u5907\u4efd\u6587\u4ef6\u540d\u52a0\u5165\u65e5\u671f");
+        table.put("Debug logging",
+                "\u8c03\u8bd5\u8bb0\u5f55");
+        table.put("Default playback quality",
+                "\u9ed8\u8ba4\u64ad\u653e\u753b\u8d28");
+        table.put("Deletes the saved photos Instagram keeps to show again, whatever their size, and the saved videos the next time it starts.",
+                "\u5220\u9664 Instagram \u4fdd\u7559\u4f9b\u518d\u6b21\u663e\u793a\u7684\u6240\u6709\u5c3a\u5bf8\u7167\u7247\u526f\u672c\uff0c\u5e76\u5728\u4e0b\u6b21\u542f\u52a8\u65f6\u5220\u9664\u4fdd\u5b58\u7684\u89c6\u9891\u526f\u672c\u3002");
+        table.put("Descriptions behind an info button",
+                "\u8bf4\u660e\u6536\u5728\u4fe1\u606f\u6309\u94ae\u540e");
+        table.put("Details",
+                "\u8be6\u7ec6\u6570\u636e");
+        table.put("Details in a post's menu",
+                "\u5e16\u5b50\u83dc\u5355\u4e2d\u7684\u8be6\u7ec6\u6570\u636e");
+        table.put("Diagnostic data cleared. Tap again to put it back.",
+                "\u5df2\u6e05\u9664\u8bca\u65ad\u6570\u636e\u3002\u518d\u6b21\u70b9\u51fb\u5373\u53ef\u8fd8\u539f\u3002");
+        table.put("Diagnostic data put back.",
+                "\u5df2\u8fd8\u539f\u8bca\u65ad\u6570\u636e\u3002");
+        table.put("Diagnostic report copied to the clipboard.",
+                "\u5df2\u5c06\u8bca\u65ad\u62a5\u544a\u590d\u5236\u5230\u526a\u8d34\u677f\u3002");
+        table.put("Diagnostic report saved.",
+                "\u5df2\u4fdd\u5b58\u8bca\u65ad\u62a5\u544a\u3002");
+        table.put("Didn't recognize: %1$s",
+                "\u65e0\u6cd5\u8fa8\u8bc6\uff1a%1$s");
+        table.put("Dim after",
+                "\u6de1\u5316\u5ef6\u8fdf");
+        table.put("Dim stories too",
+                "\u5feb\u62cd\u4e5f\u8c03\u6697");
+        table.put("Dim when idle",
+                "\u95f2\u7f6e\u65f6\u6de1\u5316");
+        table.put("Dim when idle and shift",
+                "\u95f2\u7f6e\u65f6\u6de1\u5316\u5e76\u4f4d\u79fb");
+        table.put("Discord",
+                "Discord");
+        table.put("Doesn't follow you",
+                "\u672a\u5173\u6ce8\u4f60");
+        table.put("Don't report Blend visits",
+                "\u4e0d\u4e0a\u62a5 Blend \u9020\u8bbf");
+        table.put("Don't report screenshots",
+                "\u4e0d\u4e0a\u62a5\u622a\u5c4f");
+        table.put("Don't save recent searches",
+                "\u4e0d\u4fdd\u5b58\u6700\u8fd1\u641c\u7d22");
+        table.put("Don't send reel watch history",
+                "\u4e0d\u53d1\u9001 Reels \u89c2\u770b\u8bb0\u5f55");
+        table.put("Don't vibrate in clear mode",
+                "\u6e05\u723d\u6a21\u5f0f\u4e2d\u4e0d\u9707\u52a8");
+    }
+
+    private static void fillZh7(Map<String, String> table) {
+        table.put("Double tap the left side of the video playing in a feed to go back, or the right side to go ahead, as far as Skip length says. A double tap in the middle works as before.",
+                "\u5728\u52a8\u6001\u4e2d\u64ad\u653e\u7684\u89c6\u9891\u5de6\u4fa7\u70b9\u4e24\u4e0b\u53ef\u5012\u9000\uff0c\u53f3\u4fa7\u70b9\u4e24\u4e0b\u53ef\u5feb\u8f6c\uff0c\u5e45\u5ea6\u4f9d\u8df3\u8f6c\u957f\u5ea6\u800c\u5b9a\u3002\u5728\u4e2d\u95f4\u70b9\u4e24\u4e0b\u5219\u548c\u4ee5\u524d\u4e00\u6837\u3002");
+        table.put("Double tap the same post again within a second and a half and the heart pops up bigger, up to nearly twice its size. A pause and it starts small again.",
+                "\u5728\u4e00\u79d2\u534a\u5185\u518d\u6b21\u8fde\u70b9\u4e24\u4e0b\u540c\u4e00\u5219\u5e16\u5b50\uff0c\u7231\u5fc3\u4f1a\u5f39\u51fa\u5f97\u66f4\u5927\uff0c\u6700\u591a\u63a5\u8fd1\u4e24\u500d\u5927\u3002\u505c\u4e00\u4e0b\u5c31\u4f1a\u4ece\u5c0f\u7684\u91cd\u65b0\u5f00\u59cb\u3002");
+        table.put("Double tap to skip",
+                "\u70b9\u4e24\u4e0b\u5feb\u8f6c");
+        table.put("Double tap to skip on feed videos",
+                "\u70b9\u4e24\u4e0b\u5373\u53ef\u5728\u52a8\u6001\u89c6\u9891\u4e2d\u8df3\u8f6c");
+        table.put("Double-tap Messages for hidden chats",
+                "\u70b9\u4e24\u4e0b\u6d88\u606f\u6253\u5f00\u9690\u85cf\u7684\u804a\u5929");
+        table.put("Download",
+                "\u4e0b\u8f7d");
+        table.put("Download as photo",
+                "\u4e0b\u8f7d\u4e3a\u7167\u7247");
+        table.put("Download as video",
+                "\u4e0b\u8f7d\u4e3a\u89c6\u9891");
+        table.put("Download audio",
+                "\u4e0b\u8f7d\u97f3\u9891");
+        table.put("Download button on feed posts",
+                "\u5e16\u5b50\u4e0b\u8f7d\u6309\u94ae");
+        table.put("Download button on reels",
+                "Reels \u4e0b\u8f7d\u6309\u94ae");
+        table.put("Download button on stories",
+                "\u5feb\u62cd\u7684\u4e0b\u8f7d\u6309\u94ae");
+        table.put("Download cover",
+                "\u4e0b\u8f7d\u5c01\u9762");
+        table.put("Download didn't finish. Check your connection and free storage, then try again.",
+                "\u4e0b\u8f7d\u672a\u5b8c\u6210\uff0c\u8bf7\u68c0\u67e5\u8fde\u63a5\u4e0e\u53ef\u7528\u5b58\u50a8\u7a7a\u95f4\u540e\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Download failed",
+                "\u4e0b\u8f7d\u5931\u8d25");
+        table.put("Download failed. Check your connection and try again.",
+                "\u4e0b\u8f7d\u5931\u8d25\uff0c\u8bf7\u68c0\u67e5\u8fde\u63a5\u540e\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Download feed photos",
+                "\u4e0b\u8f7d\u52a8\u6001\u9996\u9875\u7167\u7247");
+        table.put("Download feed videos",
+                "\u4e0b\u8f7d\u52a8\u6001\u9996\u9875\u89c6\u9891");
+        table.put("Download file name",
+                "\u4e0b\u8f7d\u6587\u4ef6\u540d\u79f0");
+        table.put("Download history cleared.",
+                "\u5df2\u6e05\u9664\u4e0b\u8f7d\u8bb0\u5f55\u3002");
+        table.put("Download on a reel, a feed post or a story opens the share sheet with its link, for a downloader app such as Seal. Save all and the other save rows still save here.",
+                "\u70b9\u51fb Reel\u3001\u52a8\u6001\u9996\u9875\u5e16\u5b50\u6216\u5feb\u62cd\u7684\u201c\u4e0b\u8f7d\u201d\uff0c\u4f1a\u6253\u5f00\u5305\u542b\u94fe\u63a5\u7684\u5206\u4eab\u8868\u5355\uff0c\u4ee5\u4fbf\u53d1\u9001\u7ed9 Seal \u7b49\u4e0b\u8f7d\u5668\u3002\u201c\u4fdd\u5b58\u5168\u90e8\u201d\u4e0e\u5176\u4ed6\u4fdd\u5b58\u9009\u9879\u4ecd\u4f1a\u5728\u6b64\u4fdd\u5b58\u3002");
+        table.put("Download on reels",
+                "Reels \u4e0b\u8f7d\u9009\u9879");
+        table.put("Download on stories",
+                "\u5feb\u62cd\u4e0b\u8f7d\u9009\u9879");
+        table.put("Download profile card (on profiles)",
+                "\u4e0b\u8f7d\u4e3b\u9875\u5361\u7247 (\u5728\u4e3b\u9875)");
+        table.put("Download quality",
+                "\u4e0b\u8f7d\u753b\u8d28");
+        table.put("Download video covers",
+                "\u4e0b\u8f7d\u89c6\u9891\u5c01\u9762");
+        table.put("Download voice messages",
+                "\u4e0b\u8f7d\u8bed\u97f3\u9891\u606f");
+        table.put("Downloading",
+                "\u4e0b\u8f7d\u4e2d");
+        table.put("Downloading the emoji...",
+                "\u6b63\u5728\u4e0b\u8f7d\u8868\u60c5\u7b26\u53f7...");
+        table.put("Downloads",
+                "\u4e0b\u8f7d");
+        table.put("Drag to move %1$s",
+                "\u62d6\u52a8\u4ee5\u79fb\u52a8 %1$s");
+        table.put("Drag to move, pinch to zoom.",
+                "\u62d6\u52a8\u79fb\u52a8,\u53cc\u6307\u7f29\u653e\u3002");
+        table.put("Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.",
+                "\u5c06 Instagram \u6807\u7b7e\u680f\u6539\u4e3a\u6d6e\u52a8\u7684\u5706\u89d2\u73bb\u7483\u80f6\u56ca\uff0c\u5e76\u6807\u793a\u76ee\u524d\u6807\u7b7e\u9875\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("Draws the bar along the top of a story as thick as the choice below. Its segments and timing stay as they were.",
+                "\u4f9d\u4e0b\u65b9\u9009\u62e9\u7684\u7c97\u7ec6\u7ed8\u5236\u5feb\u62cd\u9876\u7aef\u7684\u8fdb\u5ea6\u6761\u3002\u5404\u6bb5\u4e0e\u65f6\u95f4\u957f\u5ea6\u4e0d\u53d8\u3002");
+        table.put("Draws the mention pill's text in red instead of white, so it stands out on bright stories.",
+                "\u5c06\u6807\u6ce8\u6807\u7b7e\u7684\u6587\u5b57\u6539\u7528\u7ea2\u8272\u800c\u975e\u767d\u8272\uff0c\u5728\u660e\u4eae\u7684\u5feb\u62cd\u4e0a\u66f4\u9192\u76ee\u3002");
+        table.put("Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.",
+                "\u9996\u9875\u9876\u7aef\u5feb\u62cd\u680f\u7684\u5149\u5708\u4f1a\u4f7f\u7528\u4e0b\u65b9\u5c3a\u5bf8\uff0c\u672a\u89c2\u770b\u5feb\u62cd\u7684\u5149\u5708\u5219\u4f7f\u7528\u4e0b\u65b9\u989c\u8272\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Dusk blue",
+                "\u66ae\u8272\u84dd");
+        table.put("Each save goes into a folder named for the account that posted it, inside the save folder. A save that doesn't know who posted stays in the save folder.",
+                "\u6bcf\u6b21\u4fdd\u5b58\u65f6\uff0c\u4f1a\u5728\u4fdd\u5b58\u6587\u4ef6\u5939\u5185\u7f6e\u7acb\u4ee5\u53d1\u5e16\u8d26\u6237\u547d\u540d\u7684\u5b50\u6587\u4ef6\u5939\u3002\u82e5\u65e0\u6cd5\u53d6\u5f97\u53d1\u5e16\u8d26\u6237\uff0c\u5219\u76f4\u63a5\u7559\u5728\u4fdd\u5b58\u6587\u4ef6\u5939\u4e2d\u3002");
+        table.put("Each time you scroll your own Followers list to the end, compares it with the last time and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.",
+                "\u6bcf\u6b21\u5c06\u81ea\u5df1\u7684\u7c89\u4e1d\u540d\u5355\u5377\u5230\u5e95\u65f6\uff0c\u4f1a\u4e0e\u4e0a\u6b21\u6bd4\u8f83\u5e76\u5217\u51fa\u79bb\u5f00\u7684\u4eba\u3002\u4e0d\u4f1a\u5411 Instagram \u989d\u5916\u8981\u6c42\u6570\u636e\uff0c\u540d\u5355\u4e5f\u53ea\u4fdd\u7559\u5728\u624b\u673a\u4e0a\u3002");
+        table.put("Each video saves at %1$s or the closest quality below it. A video with nothing that low saves at the closest quality above.",
+                "\u6bcf\u90e8\u89c6\u9891\u4f1a\u4ee5 %1$s \u6216\u6700\u63a5\u8fd1\u4e14\u8f83\u4f4e\u7684\u753b\u8d28\u4fdd\u5b58\u3002\u82e5\u6ca1\u6709\u8fd9\u4e48\u4f4e\u7684\u753b\u8d28\uff0c\u5219\u4f7f\u7528\u6700\u63a5\u8fd1\u4e14\u8f83\u9ad8\u7684\u753b\u8d28\u3002");
+        table.put("Each video saves at its lowest quality, for the smallest file.",
+                "\u6bcf\u90e8\u89c6\u9891\u7686\u4ee5\u6700\u4f4e\u753b\u8d28\u4fdd\u5b58\uff0c\u8ba9\u6587\u4ef6\u6700\u5c0f\u3002");
+        table.put("Each video saves at the best quality Instagram offers for it.",
+                "\u6bcf\u90e8\u89c6\u9891\u7686\u4ee5 Instagram \u63d0\u4f9b\u7684\u6700\u4f73\u753b\u8d28\u4fdd\u5b58\u3002");
+        table.put("Emoji draw as %1$s, downloaded from its maker. Restart Instagram to see a change.",
+                "\u8868\u60c5\u7b26\u53f7\u4ee5 %1$s \u663e\u793a\uff0c\u4ece\u5176\u5236\u4f5c\u8005\u4e0b\u8f7d\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Emoji draw from the emoji font file you picked. Pick it again to change the file. Restart Instagram to see a change.",
+                "\u8868\u60c5\u7b26\u53f7\u4f7f\u7528\u6240\u9009\u7684\u8868\u60c5\u7b26\u53f7\u5b57\u5e93\u6848\u3002\u518d\u6b21\u9009\u62e9\u5373\u53ef\u53d8\u66f4\u6587\u4ef6\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Emoji font in story text",
+                "\u5feb\u62cd\u6587\u5b57\u7684\u8868\u60c5\u7b26\u53f7\u5b57\u4f53");
+        table.put("Emoji font saved. Emoji in story text draw in it.",
+                "\u8868\u60c5\u7b26\u53f7\u5b57\u4f53\u5df2\u4fdd\u5b58\u3002\u5feb\u62cd\u6587\u5b57\u4e2d\u7684\u8868\u60c5\u7b26\u53f7\u4f1a\u4f7f\u7528\u6b64\u5b57\u4f53\u3002");
+        table.put("Emoji pack",
+                "\u8868\u60c5\u7b26\u53f7\u5957\u4ef6");
+        table.put("Emoji saved. Restart Instagram to see them.",
+                "\u8868\u60c5\u7b26\u53f7\u5df2\u4fdd\u5b58\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u67e5\u770b\u3002");
+        table.put("Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.",
+                "\u4f60\u5728\u5feb\u62cd\u6587\u5b57\u4e2d\u8f93\u5165\u7684\u8868\u60c5\u7b26\u53f7\uff0c\u4f1a\u4f7f\u7528\u4f60\u9009\u62e9\u7684\u8868\u60c5\u7b26\u53f7\u5b57\u5e93\u3002\u542f\u7528\u65f6\u4f1a\u8bf7\u4f60\u9009\u53d6\u6587\u4ef6\uff1b\u7981\u7528\u540e\u5219\u4f1a\u6062\u590d\u4f7f\u7528 Instagram \u7684\u8868\u60c5\u7b26\u53f7\u3002");
+        table.put("Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.",
+                "\u523b\u610f\u6e05\u7a7a\u52a8\u6001\u9996\u9875\uff0c\u53ea\u663e\u793a\u5feb\u62cd\u680f\uff0c\u4e0b\u65b9\u4e0d\u663e\u793a\u5185\u5bb9\u3002\u4e3b\u9875\u3001\u63a2\u7d22\u4e0e Reels \u4ecd\u4f1a\u663e\u793a\u5e16\u5b50\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Empties the activity log and any kept crash that a diagnostic report would include.",
+                "\u6e05\u7a7a\u8bca\u65ad\u62a5\u544a\u4f1a\u5305\u542b\u7684\u6d3b\u52a8\u8bb0\u5f55\u4e0e\u5df2\u4fdd\u5b58\u7684\u5f53\u673a\u8bb0\u5f55\u3002");
+        table.put("Enter your PIN",
+                "\u8f93\u5165 PIN \u7801");
+        table.put("Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.",
+                "\u6d88\u606f\u8f93\u5165\u6846\u4e2d\u7684\u6240\u6709\u6309\u94ae\u7686\u4f1a\u663e\u793a\u3002\u53d6\u6d88\u52fe\u9009\u7528\u4e0d\u5230\u7684\u6309\u94ae\uff0c\u6587\u5b57\u8f93\u5165\u6846\u4e0e\u53d1\u9001\u6309\u94ae\u4e00\u5f8b\u4fdd\u7559\u3002");
+        table.put("Every button under the people on the share sheet shows. Untick the ones you don't use.",
+                "\u5206\u4eab\u8868\u5355\u4e2d\u8054\u7cfb\u4eba\u4e0b\u65b9\u7684\u6240\u6709\u6309\u94ae\u7686\u4f1a\u663e\u793a\u3002\u53d6\u6d88\u52fe\u9009\u7528\u4e0d\u5230\u7684\u6309\u94ae\u3002");
+        table.put("Every chat you open asks again, and so does your inbox when you go back to it. Off, one unlock opens everything until you leave Instagram.",
+                "\u4f60\u6253\u5f00\u7684\u6bcf\u4e2a\u804a\u5929\u90fd\u4f1a\u518d\u6b21\u8981\u6c42\u9a8c\u8bc1\uff0c\u56de\u5230\u6536\u4ef6\u5323\u65f6\u4e5f\u4e00\u6837\u3002\u5173\u95ed\u65f6\uff0c\u89e3\u9501\u4e00\u6b21\u5c31\u80fd\u6253\u5f00\u6240\u6709\u5185\u5bb9\uff0c\u76f4\u5230\u4f60\u79bb\u5f00 Instagram\u3002");
+        table.put("Every reel fits inside the screen, with black bars where its shape differs, so nothing is cut off at the sides. Works without Full screen Reels and wins over Fill the screen.",
+                "\u6bcf\u652f Reels \u90fd\u4f1a\u5b8c\u6574\u653e\u8fdb\u5c4f\u5e55\uff0c\u5f62\u72b6\u4e0d\u540c\u7684\u5730\u65b9\u663e\u793a\u9ed1\u8fb9\uff0c\u5de6\u53f3\u4e0d\u4f1a\u88ab\u88c1\u5207\u3002\u4e0d\u9700\u8981\u6253\u5f00\u5168\u5c4f\u5e55 Reels\uff0c\u5e76\u4e14\u4f18\u5148\u4e8e\u586b\u6ee1\u5c4f\u5e55\u3002");
+        table.put("Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.",
+                "\u65e0\u8bba\u4ece\u54ea\u91cc\u6253\u5f00\uff0c\u6bcf\u5219 Reels \u90fd\u4f1a\u9759\u97f3\u5f00\u59cb\u3002\u97f3\u91cf\u952e\u6216\u5587\u53ed\u56fe\u6807\u53ef\u53d6\u6d88\u9759\u97f3\u3002\u4f18\u5148\u4e8e\u201cReels \u9ed8\u8ba4\u6253\u5f00\u58f0\u97f3\u201d\u3002");
+        table.put("Every row of Instagram's Settings and activity shows. Untick the ones you don't use.",
+                "\u663e\u793a Instagram\u201c\u8bbe\u7f6e\u548c\u52a8\u6001\u201d\u4e2d\u7684\u6240\u6709\u9879\u76ee\u3002\u53d6\u6d88\u52fe\u9009\u4e0d\u9700\u8981\u7684\u9879\u76ee\u3002");
+        table.put("Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.",
+                "\u9664\u4e86\u201c\u8c03\u8bd5\u8bb0\u5f55\u201d\u4ee5\u5916\uff0c\u6240\u6709\u5f00\u5173\u90fd\u4f1a\u89c6\u4e3a\u5173\u95ed\uff1b\u6253\u8865\u4e01\u65f6\u7684\u53d8\u66f4\u4ecd\u4f1a\u4fdd\u7559\u3002\u4f60\u4fdd\u5b58\u7684\u8bbe\u7f6e\u4e0d\u4f1a\u6539\u53d8\u3002");
+        table.put("Every tab shows on other people's profiles. Untick the ones you don't want. The grid of posts always stays.",
+                "\u4ed6\u4eba\u7684\u4e3b\u9875\u4f1a\u663e\u793a\u6240\u6709\u6807\u7b7e\u9875\u3002\u53d6\u6d88\u52fe\u9009\u4e0d\u60f3\u663e\u793a\u7684\u6807\u7b7e\u9875\uff0c\u5e16\u5b50\u7f51\u683c\u4e00\u5f8b\u4fdd\u7559\u3002");
+    }
+
+    private static void fillZh8(Map<String, String> table) {
+        table.put("Every tab shows on your profile. Untick the ones you don't want. The grid of posts always stays.",
+                "\u81ea\u5df1\u7684\u4e3b\u9875\u4f1a\u663e\u793a\u6240\u6709\u6807\u7b7e\u9875\u3002\u53d6\u6d88\u52fe\u9009\u4e0d\u60f3\u663e\u793a\u7684\u6807\u7b7e\u9875\uff0c\u5e16\u5b50\u7f51\u683c\u4e00\u5f8b\u4fdd\u7559\u3002");
+        table.put("Everyone",
+                "\u6240\u6709\u4eba");
+        table.put("Everyone can ring your phone, as usual.",
+                "\u6240\u6709\u4eba\u90fd\u80fd\u50cf\u5e73\u5e38\u4e00\u6837\u6253\u7ed9\u4f60\u3002");
+        table.put("Everyone except your list",
+                "\u540d\u5355\u4ee5\u5916\u7684\u6240\u6709\u4eba");
+        table.put("Everywhere",
+                "\u6240\u6709\u4f4d\u7f6e");
+        table.put("Everywhere but Reels",
+                "Reels \u4ee5\u5916\u7684\u4f4d\u7f6e");
+        table.put("Example file name",
+                "\u6587\u4ef6\u540d\u8303\u4f8b");
+        table.put("Expandable categories",
+                "\u53ef\u5c55\u5f00\u7684\u5206\u7c7b");
+        table.put("Expanded",
+                "\u5df2\u5c55\u5f00");
+        table.put("Explore",
+                "\u63a2\u7d22");
+        table.put("Explore asks for the grid that isn't personalized every time it opens, and stays on it past ten minutes. Instagram only promises that grid in the EU.",
+                "\u63a2\u7d22\u6bcf\u6b21\u6253\u5f00\u65f6\u90fd\u4f1a\u8981\u6c42\u975e\u4e2a\u4eba\u5316\u7684\u7f51\u683c\uff0c\u5341\u5206\u949f\u540e\u4e5f\u4e0d\u4f1a\u5207\u6362\u56de\u53bb\u3002Instagram \u53ea\u5728\u6b27\u76df\u4fdd\u8bc1\u63d0\u4f9b\u8fd9\u4e2a\u7f51\u683c\u3002");
+        table.put("Explore without personalization",
+                "\u4e0d\u4e2a\u4eba\u5316\u7684\u63a2\u7d22");
+        table.put("Export HushGram settings",
+                "\u5bfc\u51fa HushGram \u8bbe\u7f6e");
+        table.put("Export a chat as text",
+                "\u5c06\u804a\u5929\u5bfc\u51fa\u4e3a\u6587\u5b57");
+        table.put("Export chat",
+                "\u5bfc\u51fa\u804a\u5929");
+        table.put("Export diagnostic report",
+                "\u5bfc\u51fa\u8bca\u65ad\u62a5\u544a");
+        table.put("Exporting HushGram settings...",
+                "\u6b63\u5728\u5bfc\u51fa HushGram \u8bbe\u7f6e\u2026");
+        table.put("Expressive",
+                "\u8868\u73b0\u529b");
+        table.put("Facebook",
+                "Facebook");
+        table.put("Fades the top and bottom of a post's photo or video into its glow, so the edge doesn't show as a hard line.",
+                "\u8ba9\u5e16\u5b50\u7167\u7247\u6216\u89c6\u9891\u7684\u4e0a\u4e0b\u8fb9\u7f18\u878d\u5165\u5149\u6655\uff0c\u8fb9\u7f18\u5c31\u4e0d\u4f1a\u50cf\u4e00\u6761\u751f\u786c\u7684\u7ebf.");
+        table.put("Fall back to Following",
+                "\u6539\u7528\u201c\u5df2\u5173\u6ce8\u201d");
+        table.put("Fast",
+                "\u5feb");
+        table.put("Fast scroll in Saved",
+                "\u5728\u201c\u5df2\u6536\u85cf\u201d\u4e2d\u5feb\u901f\u5377\u52a8");
+        table.put("Favorites still shows them.",
+                "\u201c\u7279\u522b\u5173\u6ce8\u201d\u4ecd\u4f1a\u663e\u793a\u8fd9\u4e9b\u5e16\u5b50\u3002");
+        table.put("Feed",
+                "\u52a8\u6001\u9996\u9875");
+        table.put("Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.",
+                "\u52a8\u6001\u4e2d\u7684\u89c6\u9891\u548c Reels \u4f1a\u505c\u5728\u6700\u540e\u4e00\u683c\uff0c\u4e0d\u518d\u91cd\u65b0\u64ad\u653e\u3002\u6253\u5f00\u81ea\u52a8\u5377\u52a8\u65f6\uff0cReels \u4ecd\u4f1a\u91cd\u590d\u64ad\u653e\uff0c\u597d\u8ba9\u5b83\u80fd\u5207\u6362\u5230\u4e0b\u4e00\u5219\u3002");
+        table.put("Feed videos and stories wait for your tap. Reels play as you swipe to them.",
+                "\u52a8\u6001\u9996\u9875\u89c6\u9891\u4e0e\u5feb\u62cd\u4f1a\u7b49\u5f85\u4f60\u70b9\u51fb\u3002Reels \u5219\u5728\u6ed1\u52a8\u81f3\u8be5\u89c6\u9891\u65f6\u64ad\u653e\u3002");
+        table.put("Feed videos, reels and stories all wait for your tap.",
+                "\u52a8\u6001\u9996\u9875\u89c6\u9891\u3001Reels \u548c\u5feb\u62cd\u7686\u7b49\u5f85\u4f60\u70b9\u51fb\u624d\u64ad\u653e\u3002");
+        table.put("Fewer than %1$s likes",
+                "\u70b9\u8d5e\u6570\u4f4e\u4e8e %1$s");
+        table.put("Fewer than %1$s views",
+                "\u89c2\u770b\u6b21\u6570\u4f4e\u4e8e %1$s");
+        table.put("File name",
+                "\u6587\u4ef6\u540d\u79f0");
+        table.put("File name set to %1$s.",
+                "\u6587\u4ef6\u540d\u79f0\u5df2\u8bbe\u4e3a %1$s\u3002");
+        table.put("Fill the screen",
+                "\u586b\u6ee1\u5c4f\u5e55");
+        table.put("Fills that screen with the accent color, or Instagram's blue while Accent color is off. A custom color shows as the closest one in the list. It shows from the next start.",
+                "\u4ee5\u5f3a\u8c03\u8272\u586b\u6ee1\u8be5\u753b\u9762\uff0c\u5173\u95ed\u5f3a\u8c03\u8272\u65f6\u5219\u4f7f\u7528 Instagram \u7684\u84dd\u8272\u3002\u81ea\u8ba2\u989c\u8272\u4f1a\u4ee5\u6e05\u5355\u4e2d\u6700\u63a5\u8fd1\u7684\u989c\u8272\u663e\u793a\u3002\u4e0b\u6b21\u542f\u52a8\u65f6\u663e\u793a\u3002");
+        table.put("Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.",
+                "\u7528\u5feb\u62cd\u81ea\u5df1\u7684\u989c\u8272\uff0c\u4ee5\u67d4\u548c\u5149\u6655\u586b\u6ee1\u672a\u5360\u6ee1\u5c4f\u5e55\u7684\u5feb\u62cd\u4e0a\u4e0b\u65b9\u7684\u7a7a\u767d\u3002\u52a8\u6001\u9996\u9875\u91cc\u7684\u5149\u6655\u8303\u56f4\u548c\u5149\u6655\u901f\u5ea6\u4e5f\u4f1a\u5e94\u7528\u3002");
+        table.put("Filter the Stories tray by verified accounts",
+                "\u4f9d\u5df2\u9a8c\u8bc1\u8d26\u6237\u7b5b\u9009\u5feb\u62cd\u6a2a\u5e45");
+        table.put("Find a post, reel, story or profile you saw before.",
+                "\u627e\u56de\u4f60\u770b\u8fc7\u7684\u5e16\u5b50\u3001Reels\u3001\u5feb\u62cd\u6216\u4e3b\u9875\u3002");
+        table.put("Find the reel",
+                "\u5bfb\u627e Reel");
+        table.put("Find the reel you came from",
+                "\u5bfb\u627e\u521a\u624d\u7684 Reel");
+        table.put("Fingerprint or face only",
+                "\u4ec5\u9650\u6307\u7eb9\u6216\u8138\u90e8");
+        table.put("Fingers",
+                "\u624b\u6307\u6570\u91cf");
+        table.put("Folder name",
+                "\u6587\u4ef6\u5939\u540d\u79f0");
+        table.put("Folder per account",
+                "\u6309\u8d26\u6237\u5206\u7c7b\u6587\u4ef6\u5939");
+        table.put("Folder set to %1$s.",
+                "\u6587\u4ef6\u5939\u5df2\u8bbe\u4e3a %1$s\u3002");
+        table.put("Follow",
+                "\u5173\u6ce8");
+        table.put("Follow @%1$s?",
+                "\u8981\u5173\u6ce8 @%1$s \u5417\uff1f");
+        table.put("Follow label",
+                "\u5173\u6ce8\u72b6\u6001\u6807\u7b7e");
+        table.put("Follow this account?",
+                "\u8981\u5173\u6ce8\u8fd9\u4e2a\u8d26\u6237\u5417\uff1f");
+        table.put("Follower history",
+                "\u7c89\u4e1d\u7eaa\u5f55");
+        table.put("Following each other",
+                "\u4e92\u76f8\u5df2\u5173\u6ce8");
+        table.put("Follows you",
+                "\u5df2\u5173\u6ce8\u4f60");
+        table.put("Font",
+                "\u5b57\u4f53");
+        table.put("Font saved. Restart Instagram to see it.",
+                "\u5df2\u4fdd\u5b58\u5b57\u4f53\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u3002");
+        table.put("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.",
+                "\u9002\u7528\u4e8e WhatsApp\u3001CapCut \u548c InShot \u7b49\u89c6\u9891\u7f16\u8f91\u5668\uff0c\u4ee5\u53ca\u64ad\u653e\u4fdd\u5b58\u89c6\u9891\u65f6\u6ca1\u6709\u58f0\u97f3\u7684\u76f8\u518c\u6216\u64ad\u653e\u5668\u3002\u53ef\u80fd\u4f1a\u964d\u4f4e\u753b\u8d28\u3002");
+        table.put("For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram has at full size only in HDR is saved at its largest standard size instead.",
+                "\u9002\u7528\u4e8e\u4f1a\u628a HDR \u663e\u793a\u6210\u504f\u9ec4\u6216\u504f\u7eff\u7684\u5e94\u7528\u7a0b\u5e8f\uff0c\u4f8b\u5982 Messenger\u3002Instagram \u53ea\u6709 HDR \u5b8c\u6574\u5c3a\u5bf8\u7684\u89c6\u9891\uff0c\u4f1a\u6539\u4ee5\u6700\u5927\u7684\u6807\u51c6\u5c3a\u5bf8\u4fdd\u5b58\u3002");
+        table.put("For phones that play AV1 badly. A video Instagram has at full size only as AV1 is saved as VP9 when it has one, or at its largest H.264 size. Convert to keep the full size then converts only VP9.",
+                "\u9002\u7528\u4e8e AV1 \u64ad\u653e\u4e0d\u987a\u7684\u624b\u673a\u3002Instagram \u53ea\u6709 AV1 \u5b8c\u6574\u5c3a\u5bf8\u7684\u89c6\u9891\uff0c\u6709 VP9 \u65f6\u4ee5 VP9 \u4fdd\u5b58\uff0c\u5426\u5219\u4ee5\u6700\u5927\u7684 H.264 \u5c3a\u5bf8\u4fdd\u5b58\u3002\u8f6c\u6362\u683c\u5f0f\u4ee5\u4fdd\u7559\u5b8c\u6574\u5c3a\u5bf8\u6b64\u65f6\u53ea\u4f1a\u8f6c\u6362 VP9\u3002");
+        table.put("For you shows a page of posts from accounts you follow after each page of its own, until you've seen them all. Pull down on Home to start both over. Restart Instagram to see the change.",
+                "\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u6bcf\u663e\u793a\u4e00\u9875\u81ea\u5df1\u7684\u5185\u5bb9\u540e\uff0c\u5c31\u4f1a\u663e\u793a\u4e00\u9875\u4f60\u5173\u6ce8\u8d26\u6237\u7684\u5e16\u5b50\uff0c\u76f4\u5230\u4f60\u5168\u90e8\u770b\u5b8c\u3002\u5728\u9996\u9875\u5f80\u4e0b\u62c9\u5373\u53ef\u8ba9\u4e24\u8005\u4ece\u5934\u5f00\u59cb\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Forgets every post, reel, story and profile on the list, for all your accounts. The switch stays as it is.",
+                "\u6e05\u9664\u6e05\u5355\u4e2d\u6240\u6709\u7684\u5e16\u5b50\u3001Reels\u3001\u5feb\u62cd\u548c\u4e3b\u9875\uff0c\u6db5\u76d6\u4f60\u7684\u6240\u6709\u8d26\u6237\u3002\u5f00\u5173\u7ef4\u6301\u539f\u72b6\u3002");
+        table.put("Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.",
+                "\u6e05\u9664\u6e05\u5355\u4e2d\u6240\u6709\u7684\u7528\u6237\u540d\u3001\u4e2a\u4eba\u7b80\u4ecb\u548c\u7167\u7247\uff0c\u6db5\u76d6\u4f60\u7684\u6240\u6709\u8d26\u6237\u3002\u5f00\u5173\u7ef4\u6301\u539f\u72b6\u3002");
+        table.put("Forgets everything Skip what's already saved remembers, for all your accounts. Your saved files stay.",
+                "\u6e05\u9664\u6240\u6709\u8d26\u6237\u4e2d\u201c\u7565\u8fc7\u5df2\u4fdd\u5b58\u7684\u5185\u5bb9\u201d\u8bb0\u4f4f\u7684\u9879\u76ee\u3002\u5df2\u4fdd\u5b58\u7684\u6587\u4ef6\u4ecd\u4f1a\u4fdd\u7559\u3002");
+    }
+
+    private static void fillZh9(Map<String, String> table) {
+        table.put("Forgets the saved Followers lists and everyone listed above, for all your accounts.",
+                "\u6e05\u9664\u6240\u6709\u8d26\u6237\u4fdd\u5b58\u7684\u7c89\u4e1d\u540d\u5355\uff0c\u4ee5\u53ca\u4e0a\u65b9\u680f\u51fa\u7684\u6240\u6709\u4eba\u3002");
+        table.put("Forgot PIN?",
+                "\u5fd8\u8bb0 PIN \u7801\uff1f");
+        table.put("Freed %1$s.",
+                "\u5df2\u53d1\u5e03 %1$s\u3002");
+        table.put("Freed %1$s. The videos go the next time Instagram starts.",
+                "\u5df2\u53d1\u5e03 %1$s\u3002\u89c6\u9891\u5c06\u5728\u4e0b\u6b21\u542f\u52a8 Instagram \u65f6\u6e05\u9664\u3002");
+        table.put("From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.",
+                "\u4e0b\u6b21\u542f\u52a8\u8d77\uff0c\u9664\u4e86\u201c\u8c03\u8bd5\u8bb0\u5f55\u201d\u4ee5\u5916\uff0c\u6240\u6709\u5f00\u5173\u90fd\u4f1a\u89c6\u4e3a\u5173\u95ed\u3002\u6253\u8865\u4e01\u65f6\u7684\u53d8\u66f4\u4ecd\u4f1a\u4fdd\u7559\uff0c\u4f60\u9009\u62e9\u7684\u8bbe\u7f6e\u4e5f\u4f1a\u7ee7\u7eed\u4fdd\u5b58\u3002");
+        table.put("Frosted glass",
+                "\u6bdb\u73bb\u7483");
+        table.put("Full report saved to %1$s",
+                "\u5df2\u5c06\u5b8c\u6574\u62a5\u544a\u4fdd\u5b58\u81f3 %1$s");
+        table.put("Full resolution photos",
+                "\u5b8c\u6574\u5206\u8fa8\u7387\u7167\u7247");
+        table.put("Full screen",
+                "\u5168\u5c4f\u5e55");
+        table.put("Full screen Home",
+                "\u5168\u5c4f\u5e55\u9996\u9875");
+        table.put("Full screen Messages",
+                "\u5168\u5c4f\u5e55\u6d88\u606f");
+        table.put("Full screen Reels",
+                "\u5168\u5c4f\u5e55 Reels");
+        table.put("Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.",
+                "\u5168\u5c4f\u5e55 Reels \u4e0e\u9996\u9875\u4ec5\u9690\u85cf\u5e95\u90e8\u5bfc\u822a\u680f\uff0c\u72b6\u6001\u680f\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.",
+                "\u5168\u5c4f\u5e55 Reels \u4e0e\u9996\u9875\u4ec5\u9690\u85cf\u9876\u7aef\u72b6\u6001\u680f\uff0c\u5bfc\u822a\u680f\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Full screen Reels and Home hide the status bar and the navigation bar.",
+                "\u5168\u5c4f\u5e55 Reels \u4e0e\u9996\u9875\u4f1a\u9690\u85cf\u72b6\u6001\u680f\u548c\u5bfc\u822a\u680f\u3002");
+        table.put("Full screen button on reels",
+                "Reels \u5168\u5c4f\u5e55\u6309\u94ae");
+        table.put("Full screen didn't open",
+                "\u65e0\u6cd5\u6253\u5f00\u5168\u5c4f\u5e55");
+        table.put("Full size covers",
+                "\u5b8c\u6574\u5c3a\u5bf8\u5c01\u9762");
+        table.put("Full tick",
+                "\u5b8c\u6574\u9707\u52a8");
+        table.put("Fully round",
+                "\u5168\u5706\u89d2");
+        table.put("GIF name",
+                "GIF \u540d\u79f0");
+        table.put("GIF name copied",
+                "\u5df2\u590d\u5236 GIF \u540d\u79f0");
+        table.put("GIF or sticker",
+                "GIF \u6216\u8d34\u56fe");
+        table.put("GPL-3.0, with the notices of the projects this is built on",
+                "GPL-3.0\uff0c\u4ee5\u53ca\u672c\u9879\u76ee\u6240\u91c7\u7528\u9879\u76ee\u7684\u58f0\u660e");
+        table.put("Gallery",
+                "\u76f8\u518c");
+        table.put("Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send always stay.",
+                "\u542f\u7528\u201c\u76f8\u518c\u4e0e\u9ea6\u514b\u98ce\u653e\u8fdb\u52a0\u53f7\u83dc\u5355\u201d\u65f6\uff0c\u76f8\u518c\u4e0e\u8bed\u97f3\u9891\u606f\u4f1a\u5728\u52a0\u53f7\u83dc\u5355\u4e2d\u3002\u6587\u5b57\u8f93\u5165\u6846\u4e0e\u53d1\u9001\u6309\u94ae\u4e00\u5f8b\u4fdd\u7559\u3002");
+        table.put("Gallery and microphone in the plus menu",
+                "\u76f8\u518c\u4e0e\u9ea6\u514b\u98ce\u653e\u8fdb\u52a0\u53f7\u83dc\u5355");
+        table.put("Ghost mode",
+                "\u5e7d\u7075\u6a21\u5f0f");
+        table.put("Ghost mode button on Home's header",
+                "\u9996\u9875\u9876\u7aef\u7684\u5e7d\u7075\u6a21\u5f0f\u6309\u94ae");
+        table.put("Ghost mode is off, and so is each of its switches.",
+                "\u5e7d\u7075\u6a21\u5f0f\u4e0e\u5176\u6240\u6709\u5f00\u5173\u7686\u5df2\u5173\u95ed\u3002");
+        table.put("Ghost mode is on, and so is each of its switches.",
+                "\u5e7d\u7075\u6a21\u5f0f\u4e0e\u5176\u6240\u6709\u5f00\u5173\u7686\u5df2\u6253\u5f00\u3002");
+        table.put("Ghost mode needs at least one switch to turn.",
+                "\u5e7d\u7075\u6a21\u5f0f\u81f3\u5c11\u9700\u8981\u63a7\u5236\u4e00\u4e2a\u5f00\u5173\u3002");
+        table.put("Ghost mode partly changed. Check HushGram settings.",
+                "\u65e0\u6cd5\u53d8\u66f4\u6240\u6709\u5e7d\u7075\u6a21\u5f0f\u5f00\u5173\uff0c\u8bf7\u6253\u5f00 HushGram \u8bbe\u7f6e\u786e\u8ba4\u3002");
+        table.put("Ghost mode partly changed. Check the switches below.",
+                "\u65e0\u6cd5\u53d8\u66f4\u6240\u6709\u5e7d\u7075\u6a21\u5f0f\u5f00\u5173\uff0c\u8bf7\u5728\u4e0b\u65b9\u786e\u8ba4\u3002");
+        table.put("Gives Search and your messages a plain search bar and removes Meta AI's buttons, follow-up bar and inbox row. Restart Instagram to see the change.",
+                "\u8ba9\u641c\u7d22\u4e0e\u6d88\u606f\u4f7f\u7528\u4e00\u822c\u641c\u7d22\u680f\uff0c\u5e76\u79fb\u9664 Meta AI \u6309\u94ae\u3001\u8ffd\u95ee\u680f\u4e0e\u6536\u4ef6\u5323\u680f\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.",
+                "\u8ba9\u804a\u5929\u9876\u680f\u548c\u6d88\u606f\u680f\u5448\u73b0\u6bdb\u73bb\u7483\u6548\u679c\uff0c\u5e76\u628a\u8fd4\u56de\u3001\u901a\u8bdd\u548c\u89c6\u9891\u6309\u94ae\u653e\u5728\u5706\u5f62\u73bb\u7483\u5708\u4e0a\u3002\u4e0b\u6b21\u6253\u5f00\u804a\u5929\u65f6\u751f\u6548\u3002\u6a21\u7cca\u6548\u679c\u9700\u8981 Android 12 \u6216\u66f4\u65b0\u7248\u672c\u3002");
+        table.put("Gives reels the seek bar of a video in a chat, a thin gray line that turns white as it plays, with a big round white handle. The time shows above it. Drag it to seek. When Bigger seek bar on reels is on too, this look wins. It also keeps the bar on short reels.",
+                "\u8ba9 Reels \u4f7f\u7528\u804a\u5929\u89c6\u9891\u7684\u8fdb\u5ea6\u6761\uff1a\u64ad\u653e\u65f6\u7531\u7070\u8f6c\u767d\u7684\u7ec6\u7ebf\uff0c\u642d\u914d\u5927\u578b\u767d\u8272\u5706\u5f62\u62d6\u52a8\u94ae\uff0c\u4e0a\u65b9\u663e\u793a\u65f6\u95f4\u3002\u62d6\u52a8\u5373\u53ef\u8df3\u8f6c\u3002\u540c\u65f6\u542f\u7528\u201c\u52a0\u5927 Reels \u8fdb\u5ea6\u6761\u201d\u65f6\uff0c\u4f1a\u4f18\u5148\u4f7f\u7528\u6b64\u6837\u5f0f\u3002\u4e5f\u4f1a\u4fdd\u7559\u77ed Reels \u7684\u8fdb\u5ea6\u6761\u3002");
+        table.put("Gives the Send message box on other people's stories frosted glass, so it's easy to read over any story. Needs Android 12 or newer for the blur.",
+                "\u8ba9\u4ed6\u4eba\u5feb\u62cd\u7684\u201c\u53d1\u9001\u6d88\u606f\u201d\u6846\u5448\u73b0\u6bdb\u73bb\u7483\u6548\u679c\uff0c\u5728\u4efb\u4f55\u5feb\u62cd\u4e0a\u90fd\u6e05\u695a\u6613\u8bfb\u3002\u6a21\u7cca\u6548\u679c\u9700\u8981 Android 12 \u6216\u66f4\u65b0\u7248\u672c\u3002");
+        table.put("Glass in chats",
+                "\u804a\u5929\u73bb\u7483\u6548\u679c");
+        table.put("Glass reply box on stories",
+                "\u5feb\u62cd\u56de\u590d\u6846\u73bb\u7483\u6548\u679c");
+        table.put("Glass tab bar",
+                "\u73bb\u7483\u6807\u7b7e\u680f");
+        table.put("Glow speed",
+                "\u5149\u6655\u901f\u5ea6");
+        table.put("Glow spread",
+                "\u5149\u6655\u8303\u56f4");
+        table.put("Going to that date",
+                "\u6b63\u5728\u524d\u5f80\u8be5\u65e5\u671f");
+        table.put("Gold",
+                "\u91d1\u8272");
+        table.put("Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.",
+                "Google Play \u4e0d\u4f1a\u518d\u4e3a\u6b64\u7248\u672c\u63d0\u4f9b Meta \u7684\u66f4\u65b0\u3002\u82e5\u8981\u6062\u590d\u4e00\u822c Instagram\uff0c\u8bf7\u5148\u5378\u8f7d\u6b64\u7248\u672c\uff0c\u8fd9\u4f1a\u5220\u9664\u624b\u673a\u4e0a\u7684 Instagram \u6570\u636e\u3002\u4e4b\u540e\u7684 HushGram \u7248\u672c\u4e5f\u9700\u5e94\u7528\u201c\u53d8\u66f4\u7248\u672c\u53f7\u7801\u201d\uff0c\u5426\u5219\u65e0\u6cd5\u8986\u76d6\u5b89\u88c5\u3002");
+        table.put("Google's emoji everywhere",
+                "\u5168\u90e8\u4f7f\u7528 Google \u8868\u60c5\u7b26\u53f7");
+        table.put("Gray out stories you've watched",
+                "\u5c06\u5df2\u770b\u8fc7\u7684\u5feb\u62cd\u663e\u793a\u4e3a\u7070\u8272");
+        table.put("Green",
+                "\u7eff\u8272");
+        table.put("Group by type",
+                "\u4f9d\u7c7b\u578b\u5206\u7ec4");
+        table.put("Group notifications",
+                "\u901a\u77e5\u5206\u7ec4");
+        table.put("Group or mute Instagram's notifications so they don't pile up.",
+                "\u5c06 Instagram \u901a\u77e5\u5206\u7ec4\u6216\u8bbe\u4e3a\u9759\u97f3\uff0c\u907f\u514d\u5806\u6ee1\u901a\u77e5\u680f\u3002");
+        table.put("Group or mute Instagram's notifications, and take suggestions off the Notifications page.",
+                "\u5c06 Instagram \u901a\u77e5\u5206\u7ec4\u6216\u8bbe\u4e3a\u9759\u97f3\uff0c\u5e76\u79fb\u9664\u901a\u77e5\u9875\u9762\u4e0a\u7684\u63a8\u8350\u3002");
+        table.put("Grow the heart",
+                "\u653e\u5927\u7231\u5fc3");
+        table.put("HDR photos and reels stop brightening the screen above everything else. They show at the same brightness as the rest of Instagram.",
+                "HDR \u7167\u7247\u4e0e Reels \u4e0d\u518d\u8ba9\u5c4f\u5e55\u4eae\u5ea6\u9ad8\u4e8e\u5176\u4ed6\u5185\u5bb9\uff0c\u800c\u662f\u4e0e Instagram \u5176\u4ed6\u90e8\u5206\u7ef4\u6301\u76f8\u540c\u4eae\u5ea6\u3002");
+        table.put("Half a second",
+                "\u534a\u79d2");
+        table.put("Hand-drawn Instagram",
+                "\u624b\u7ed8 Instagram");
+        table.put("Haptic strength",
+                "\u89e6\u89c9\u56de\u9988\u5f3a\u5ea6");
+        table.put("Haptic style",
+                "\u89e6\u89c9\u56de\u9988\u6837\u5f0f");
+        table.put("Haptics on the tab bar",
+                "\u6807\u7b7e\u680f\u89e6\u89c9\u56de\u9988");
+    }
+
+    private static void fillZh10(Map<String, String> table) {
+        table.put("Header picture removed.",
+                "\u5df2\u79fb\u9664\u9996\u9875\u9876\u7aef\u56fe\u7247\u3002");
+        table.put("Header picture set.",
+                "\u5df2\u8bbe\u7f6e\u9996\u9875\u9876\u7aef\u56fe\u7247\u3002");
+        table.put("Here it is.",
+                "\u5c31\u5728\u8fd9\u91cc\u3002");
+        table.put("Hidden accounts",
+                "\u9690\u85cf\u7684\u8d26\u6237");
+        table.put("Hidden chats",
+                "\u5df2\u9690\u85cf\u7684\u804a\u5929");
+        table.put("Hidden sounds",
+                "\u9690\u85cf\u7684\u97f3\u9891");
+        table.put("Hide 'Are you interested?' bubbles",
+                "\u9690\u85cf\u201c\u611f\u5174\u8da3\u5417\uff1f\u201d\u6ce1\u6ce1");
+        table.put("Hide AI images in the plus menu",
+                "\u5728\u52a0\u53f7\u83dc\u5355\u4e2d\u9690\u85cf AI \u56fe\u7247");
+        table.put("Hide AI-labeled reels",
+                "\u9690\u85cf\u6807\u793a\u4e3a AI \u7684 Reels");
+        table.put("Hide About this reel",
+                "\u9690\u85cf\u201c\u5173\u4e8e\u8fd9\u5219 Reel\u201d");
+        table.put("Hide Add Yours cards between stories",
+                "\u9690\u85cf\u5feb\u62cd\u4e4b\u95f4\u7684\u201c\u6362\u4f60\u4e86\u201d\u5361\u7247");
+        table.put("Hide Ask Meta AI in About this reel",
+                "\u9690\u85cf\u201c\u5173\u4e8e\u8fd9\u5219 Reel\u201d\u4e2d\u7684\u201c\u8be2\u95ee Meta AI\u201d");
+        table.put("Hide Blend on reels",
+                "\u9690\u85cf Reels \u4e0a\u7684 Blend");
+        table.put("Hide Complete your profile",
+                "\u9690\u85cf\u201c\u5b8c\u5584\u4e3b\u9875\u201d");
+        table.put("Hide Create on Home's header",
+                "\u9690\u85cf\u9996\u9875\u9876\u7aef\u7684\u521b\u5efa\u6309\u94ae");
+        table.put("Hide Draw in the plus menu",
+                "\u5728\u52a0\u53f7\u83dc\u5355\u4e2d\u9690\u85cf\u7ed8\u56fe");
+        table.put("Hide Explore's personalized menu",
+                "\u9690\u85cf\u63a2\u7d22\u7684\u4e2a\u4eba\u5316\u83dc\u5355");
+        table.put("Hide Facebook links",
+                "\u9690\u85cf Facebook \u94fe\u63a5");
+        table.put("Hide Featured in notifications",
+                "\u9690\u85cf\u901a\u77e5\u4e2d\u7684\u7cbe\u9009\u5185\u5bb9");
+        table.put("Hide Follow on posts",
+                "\u9690\u85cf\u5e16\u5b50\u4e0a\u7684\u5173\u6ce8\u6309\u94ae");
+        table.put("Hide Follow on stories",
+                "\u9690\u85cf\u5feb\u62cd\u4e0a\u7684\u5173\u6ce8\u6309\u94ae");
+        table.put("Hide GIFs in comments",
+                "\u9690\u85cf\u8bc4\u8bba\u4e2d\u7684 GIF");
+        table.put("Hide Instagram Plus prompts",
+                "\u9690\u85cf Instagram Plus \u63a8\u5e7f");
+        table.put("Hide Instants",
+                "\u9690\u85cf Instants");
+        table.put("Hide Made with Edits",
+                "\u9690\u85cf\u201cMade with Edits\u201d");
+        table.put("Hide Messages on Home's header",
+                "\u9690\u85cf\u9996\u9875\u9876\u7aef\u7684\u6d88\u606f");
+        table.put("Hide Meta AI in search and Home's bar",
+                "\u9690\u85cf\u641c\u7d22\u4e0e\u9996\u9875\u680f\u4e2d\u7684 Meta AI");
+        table.put("Hide Meta AI in the share sheet",
+                "\u9690\u85cf\u5206\u4eab\u8868\u5355\u4e2d\u7684 Meta AI");
+        table.put("Hide Meta AI posts",
+                "\u9690\u85cf Meta AI \u5e16\u5b50");
+        table.put("Hide Notes on profile pictures",
+                "\u9690\u85cf\u5934\u50cf\u4e0a\u7684\u7b14\u8bb0");
+        table.put("Hide People you don't follow back",
+                "\u9690\u85cf\u201c\u4f60\u672a\u56de\u5173\u7684\u7528\u6237\u201d");
+        table.put("Hide Reels in the feed",
+                "\u9690\u85cf\u52a8\u6001\u9996\u9875\u4e2d\u7684 Reels");
+        table.put("Hide Reply on comments",
+                "\u9690\u85cf\u8bc4\u8bba\u7684\u201c\u56de\u590d\u201d");
+        table.put("Hide Saved in the plus menu",
+                "\u5728\u52a0\u53f7\u83dc\u5355\u4e2d\u9690\u85cf\u5df2\u4fdd\u5b58");
+        table.put("Hide Share profile",
+                "\u9690\u85cf\u5206\u4eab\u4e3b\u9875");
+        table.put("Hide Subscribe on posts",
+                "\u9690\u85cf\u5e16\u5b50\u4e0a\u7684\u8ba2\u9605\u6309\u94ae");
+        table.put("Hide Subscribe on profiles",
+                "\u9690\u85cf\u4e3b\u9875\u4e0a\u7684\u8ba2\u9605");
+        table.put("Hide Suggested for you between stories",
+                "\u9690\u85cf\u5feb\u62cd\u4e4b\u95f4\u7684\u201c\u4e3a\u4f60\u63a8\u8350\u201d");
+        table.put("Hide Suggested for you on follow lists",
+                "\u9690\u85cf\u5173\u6ce8\u540d\u5355\u4e2d\u7684\u201c\u4e3a\u4f60\u63a8\u8350\u201d");
+        table.put("Hide Threads posts",
+                "\u9690\u85cf Threads \u5e16\u5b50");
+        table.put("Hide Watch more reels",
+                "\u9690\u85cf\u201c\u89c2\u770b\u66f4\u591a Reels\u201d");
+        table.put("Hide Your algorithm on reels",
+                "\u9690\u85cf Reels \u4e0a\u7684\u201c\u4f60\u7684\u7b97\u6cd5\u201d");
+        table.put("Hide activity bubbles",
+                "\u9690\u85cf\u52a8\u6001\u6ce1\u6ce1");
+        table.put("Hide ads",
+                "\u9690\u85cf\u5e7f\u544a");
+        table.put("Hide ads and share less with Instagram.",
+                "\u9690\u85cf\u5e7f\u544a\uff0c\u51cf\u5c11\u4e0e Instagram \u5206\u4eab\u7684\u4fe1\u606f\u3002");
+        table.put("Hide captions",
+                "\u9690\u85cf\u8bf4\u660e\u6587\u5b57");
+        table.put("Hide carousels",
+                "\u9690\u85cf\u8f6e\u64ad\u5e16\u5b50");
+        table.put("Hide channel invites",
+                "\u9690\u85cf\u9891\u9053\u9080\u8bf7");
+        table.put("Hide channel invites in notifications",
+                "\u9690\u85cf\u901a\u77e5\u4e2d\u7684\u9891\u9053\u9080\u8bf7");
+        table.put("Hide comments",
+                "\u9690\u85cf\u8bc4\u8bba");
+        table.put("Hide friends' activity and comment previews",
+                "\u9690\u85cf\u597d\u53cb\u6d3b\u52a8\u4e0e\u8bc4\u8bba\u9884\u89c8");
+        table.put("Hide group buttons",
+                "\u9690\u85cf\u7fa4\u7ec4\u6309\u94ae");
+        table.put("Hide highlights",
+                "\u9690\u85cf\u7cbe\u9009\u5feb\u62cd");
+        table.put("Hide interests",
+                "\u9690\u85cf\u5174\u8da3");
+        table.put("Hide lives in Reels",
+                "\u9690\u85cf Reels \u4e2d\u7684\u76f4\u64ad");
+        table.put("Hide memories and recaps",
+                "\u9690\u85cf\u56de\u5fc6\u4e0e\u56de\u987e");
+        table.put("Hide notifications on Home's header",
+                "\u9690\u85cf\u9996\u9875\u9876\u7aef\u7684\u901a\u77e5");
+        table.put("Hide page number",
+                "\u9690\u85cf\u9875\u7801");
+        table.put("Hide paid partnership Reels",
+                "\u9690\u85cf\u4ed8\u8d39\u5408\u4f5c Reels");
+        table.put("Hide photos",
+                "\u9690\u85cf\u7167\u7247");
+    }
+
+    private static void fillZh11(Map<String, String> table) {
+        table.put("Hide poll prompts on reels",
+                "\u9690\u85cf Reels \u7684\u6295\u7968\u63d0\u793a");
+        table.put("Hide posts from business and creator accounts",
+                "\u9690\u85cf\u5546\u4e1a\u548c\u521b\u4f5c\u8005\u8d26\u6237\u7684\u5e16\u5b50");
+        table.put("Hide posts from this account",
+                "\u9690\u85cf\u6b64\u8d26\u6237\u7684\u5e16\u5b50");
+        table.put("Hide posts you've liked",
+                "\u9690\u85cf\u5df2\u70b9\u8d5e\u7684\u5e16\u5b50");
+        table.put("Hide promotion buttons on reels",
+                "\u9690\u85cf Reels \u63a8\u5e7f\u6309\u94ae");
+        table.put("Hide reels by caption words",
+                "\u4f9d\u8bf4\u660e\u6587\u5b57\u9690\u85cf Reels");
+        table.put("Hide reels by sound",
+                "\u4f9d\u97f3\u9891\u9690\u85cf Reels");
+        table.put("Hide reels in other languages",
+                "\u9690\u85cf\u5176\u4ed6\u8bed\u8a00\u7684 Reels");
+        table.put("Hide reels with few views",
+                "\u9690\u85cf\u89c2\u770b\u6b21\u6570\u5c11\u7684 Reels");
+        table.put("Hide shopping",
+                "\u9690\u85cf\u8d2d\u7269\u5185\u5bb9");
+        table.put("Hide shopping buttons on reels",
+                "\u9690\u85cf Reels \u7684\u8d2d\u7269\u6309\u94ae");
+        table.put("Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.",
+                "\u9690\u85cf\u4e2a\u522b\u804a\u5929\u3002\u9690\u85cf\u7684\u804a\u5929\u4f1a\u4ece\u6536\u4ef6\u5323\u79fb\u9664\uff0c\u4e5f\u4e0d\u4f1a\u53d1\u51fa\u901a\u77e5\uff0c\u76f4\u5230\u4f60\u5728\u6b64\u91cd\u65b0\u663e\u793a\u3002");
+        table.put("Hide story rewinds",
+                "\u9690\u85cf\u5feb\u62cd\u5f80\u4e8b\u56de\u987e");
+        table.put("Hide story rows",
+                "\u9690\u85cf\u5feb\u62cd\u680f");
+        table.put("Hide suggested accounts",
+                "\u9690\u85cf\u63a8\u8350\u8d26\u6237");
+        table.put("Hide suggested accounts in Messages",
+                "\u9690\u85cf\u6d88\u606f\u4e2d\u7684\u63a8\u8350\u8d26\u6237");
+        table.put("Hide suggested accounts in search",
+                "\u9690\u85cf\u641c\u7d22\u4e2d\u7684\u63a8\u8350\u8d26\u6237");
+        table.put("Hide suggested people",
+                "\u9690\u85cf\u63a8\u8350\u7528\u6237");
+        table.put("Hide suggested posts",
+                "\u9690\u85cf\u63a8\u8350\u5e16\u5b50");
+        table.put("Hide suggested searches on reels",
+                "\u9690\u85cf Reels \u7684\u63a8\u8350\u641c\u7d22");
+        table.put("Hide suggested stories",
+                "\u9690\u85cf\u63a8\u8350\u5feb\u62cd");
+        table.put("Hide suggestions in notifications",
+                "\u9690\u85cf\u901a\u77e5\u4e2d\u7684\u63a8\u8350\u5185\u5bb9");
+        table.put("Hide surveys",
+                "\u9690\u85cf\u95ee\u5377");
+        table.put("Hide that you're typing",
+                "\u9690\u85cf\u201c\u6b63\u5728\u8f93\u5165\u2026\u201d\u72b6\u6001");
+        table.put("Hide the 2x popup",
+                "\u9690\u85cf 2 \u500d\u901f\u63d0\u793a");
+        table.put("Hide the Comment button on stories",
+                "\u9690\u85cf\u5feb\u62cd\u7684\u8bc4\u8bba\u6309\u94ae");
+        table.put("Hide the Community Standards reminder",
+                "\u9690\u85cf\u793e\u533a\u5b88\u5219\u63d0\u9192");
+        table.put("Hide the Create button",
+                "\u9690\u85cf\u521b\u5efa\u6309\u94ae");
+        table.put("Hide the Create button on reels",
+                "\u9690\u85cf Reels \u4e0a\u7684\u521b\u5efa\u6309\u94ae");
+        table.put("Hide the Create button on saved reels",
+                "\u9690\u85cf\u5df2\u4fdd\u5b58 Reels \u4e0a\u7684\u521b\u5efa\u6309\u94ae");
+        table.put("Hide the Create tab",
+                "\u9690\u85cf\u521b\u5efa\u6807\u7b7e\u9875");
+        table.put("Hide the Explore grid",
+                "\u9690\u85cf\u63a2\u7d22\u7f51\u683c");
+        table.put("Hide the Follow button",
+                "\u9690\u85cf\u5173\u6ce8\u6309\u94ae");
+        table.put("Hide the Friends tab on Reels",
+                "\u9690\u85cf Reels \u7684\u597d\u53cb\u6807\u7b7e\u9875");
+        table.put("Hide the Home tab",
+                "\u9690\u85cf\u9996\u9875\u6807\u7b7e\u9875");
+        table.put("Hide the HushGram row in Instagram's menu",
+                "\u9690\u85cf Instagram \u83dc\u5355\u4e2d\u7684 HushGram \u9879\u76ee");
+        table.put("Hide the Join bar on channel posts",
+                "\u9690\u85cf\u9891\u9053\u5e16\u5b50\u7684\u201c\u52a0\u5165\u201d\u5217");
+        table.put("Hide the Like button on stories",
+                "\u9690\u85cf\u5feb\u62cd\u7684\u8d5e\u6309\u94ae");
+        table.put("Hide the Map bubble",
+                "\u9690\u85cf\u5730\u56fe\u6ce1\u6ce1");
+        table.put("Hide the Messages tab",
+                "\u9690\u85cf\u6d88\u606f\u6807\u7b7e\u9875");
+        table.put("Hide the Muse button on your profile",
+                "\u9690\u85cf\u4e3b\u9875\u4e0a\u7684 Muse \u6309\u94ae");
+        table.put("Hide the Muse card",
+                "\u9690\u85cf Muse \u5361\u7247");
+        table.put("Hide the Music for you card",
+                "\u9690\u85cf\u201c\u4e3a\u4f60\u63a8\u8350\u7684\u97f3\u4e50\u201d\u5361\u7247");
+        table.put("Hide the Profile tab",
+                "\u9690\u85cf\u4e3b\u9875\u6807\u7b7e\u9875");
+        table.put("Hide the Reels tab",
+                "\u9690\u85cf Reels \u6807\u7b7e\u9875");
+        table.put("Hide the Repost button",
+                "\u9690\u85cf\u8f6c\u53d1\u6309\u94ae");
+        table.put("Hide the Save button",
+                "\u9690\u85cf\u4fdd\u5b58\u6309\u94ae");
+        table.put("Hide the Save button on reels",
+                "\u9690\u85cf Reels \u4e0a\u7684\u4fdd\u5b58\u6309\u94ae");
+        table.put("Hide the Search tab",
+                "\u9690\u85cf\u641c\u7d22\u6807\u7b7e\u9875");
+        table.put("Hide the Share button",
+                "\u9690\u85cf\u5206\u4eab\u6309\u94ae");
+        table.put("Hide the Share button on stories",
+                "\u9690\u85cf\u5feb\u62cd\u7684\u5206\u4eab\u6309\u94ae");
+        table.put("Hide the Stories tray",
+                "\u9690\u85cf\u5feb\u62cd\u6a2a\u5e45");
+        table.put("Hide the Threads badge",
+                "\u9690\u85cf Threads \u5fbd\u7ae0");
+        table.put("Hide the Threads button",
+                "\u9690\u85cf Threads \u6309\u94ae");
+        table.put("Hide the WhatsApp link",
+                "\u9690\u85cf WhatsApp \u94fe\u63a5");
+        table.put("Hide the arrow at the end of the buttons",
+                "\u9690\u85cf\u6309\u94ae\u680f\u5c3e\u7aef\u7684\u7bad\u5934");
+        table.put("Hide the audio icon on posts",
+                "\u9690\u85cf\u5e16\u5b50\u4e0a\u7684\u97f3\u9891\u56fe\u6807");
+        table.put("Hide the call buttons in chats",
+                "\u9690\u85cf\u804a\u5929\u4e2d\u7684\u901a\u8bdd\u6309\u94ae");
+        table.put("Hide the caught up card",
+                "\u9690\u85cf\u201c\u5df2\u770b\u5b8c\u6700\u65b0\u5e16\u5b50\u201d\u5361\u7247");
+        table.put("Hide the comment bar on all reels",
+                "\u9690\u85cf\u6240\u6709 Reels \u7684\u8bc4\u8bba\u680f");
+    }
+
+    private static void fillZh12(Map<String, String> table) {
+        table.put("Hide the comment bar on reposted reels",
+                "\u9690\u85cf\u8f6c\u53d1 Reels \u7684\u8bc4\u8bba\u680f");
+        table.put("Hide the emoji row",
+                "\u9690\u85cf\u8868\u60c5\u7b26\u53f7\u5217");
+        table.put("Hide the home feed",
+                "\u9690\u85cf\u52a8\u6001\u9996\u9875\u5185\u5bb9");
+        table.put("Hide the notes row",
+                "\u9690\u85cf\u7b14\u8bb0\u680f");
+        table.put("Hide the other profile banners",
+                "\u9690\u85cf\u5176\u4ed6\u4e3b\u9875\u6a2a\u5e45");
+        table.put("Hide the profile song",
+                "\u9690\u85cf\u4e3b\u9875\u6b4c\u66f2");
+        table.put("Hide the reply bar on reels from chats",
+                "\u9690\u85cf\u4ece\u804a\u5929\u6253\u5f00\u7684 Reels \u56de\u590d\u680f");
+        table.put("Hide the reply box on stories",
+                "\u9690\u85cf\u5feb\u62cd\u7684\u56de\u590d\u6846");
+        table.put("Hide the search bar",
+                "\u9690\u85cf\u641c\u7d22\u680f");
+        table.put("Hide the search bar in Messages",
+                "\u9690\u85cf\u6d88\u606f\u4e2d\u7684\u641c\u7d22\u680f");
+        table.put("Hide the tab bar as you scroll",
+                "\u5377\u52a8\u65f6\u9690\u85cf\u6807\u7b7e\u680f");
+        table.put("Hide the tab bar on Reels",
+                "\u5728 Reels \u9690\u85cf\u6807\u7b7e\u680f");
+        table.put("Hide the top bar on the Reels tab",
+                "\u9690\u85cf Reels \u6807\u7b7e\u9875\u9876\u680f");
+        table.put("Hide their posts",
+                "\u9690\u85cf\u5bf9\u65b9\u7684\u5e16\u5b50");
+        table.put("Hide this sound",
+                "\u9690\u85cf\u6b64\u97f3\u9891");
+        table.put("Hide videos",
+                "\u9690\u85cf\u89c6\u9891");
+        table.put("Hide your active status",
+                "\u9690\u85cf\u4e0a\u7ebf\u72b6\u6001");
+        table.put("Hides Meta AI's videos, chats and pictures of you that Instagram puts in your home feed.",
+                "\u9690\u85cf Instagram \u653e\u5728\u52a8\u6001\u9996\u9875\u4e2d\u7684 Meta AI \u89c6\u9891\u3001\u804a\u5929\u4e0e\u4f60\u7684\u751f\u6210\u56fe\u7247\u3002");
+        table.put("Hides posts and reels from accounts you don't follow, marked Suggested for you. Posts from accounts you follow stay.",
+                "\u9690\u85cf\u672a\u5173\u6ce8\u8d26\u6237\u53d1\u5e03\u3001\u6807\u793a\u4e3a\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u7684\u5e16\u5b50\u4e0e Reels\u3002\u5df2\u5173\u6ce8\u8d26\u6237\u7684\u5e16\u5b50\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Hides sponsored posts, reels, stories and the ad in comments. No empty gap is left where an ad would have been.",
+                "\u9690\u85cf\u8d5e\u52a9\u5e16\u5b50\u3001Reels\u3001\u5feb\u62cd\u548c\u8bc4\u8bba\u4e2d\u7684\u5e7f\u544a\uff0c\u539f\u672c\u663e\u793a\u5e7f\u544a\u7684\u4f4d\u7f6e\u4e0d\u4f1a\u7559\u4e0b\u7a7a\u767d\u3002");
+        table.put("Hides stories from accounts you don't follow, and accounts Instagram suggests, in the row at the top of Home. Stories from accounts you follow stay.",
+                "\u9690\u85cf\u9996\u9875\u9876\u7aef\u680f\u4e2d\u6765\u81ea\u672a\u5173\u6ce8\u8d26\u6237\u7684\u5feb\u62cd\uff0c\u4ee5\u53ca Instagram \u63a8\u8350\u7684\u8d26\u6237\u3002\u5df2\u5173\u6ce8\u8d26\u6237\u7684\u5feb\u62cd\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Hides the bar under a post that asks you to join the account's channel. The post stays.",
+                "\u9690\u85cf\u5e16\u5b50\u4e0b\u65b9\u9080\u8bf7\u4f60\u52a0\u5165\u8be5\u8d26\u6237\u9891\u9053\u7684\u680f\u3002\u5e16\u5b50\u4f1a\u4fdd\u7559\u3002");
+        table.put("Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.",
+                "\u9690\u85cf\u5e16\u5b50\u4e0b\u65b9\u8be2\u95ee\u201c\u4f60\u5bf9\u8fd9\u5219\u5e16\u5b50\u611f\u5174\u8da3\u5417\uff1f\u201d\u7684\u6ce1\u6ce1\u53ca\u201c\u4e0d\u611f\u5174\u8da3\u201d\u3001\u201c\u611f\u5174\u8da3\u201d\u6309\u94ae\u3002\u4e0d\u4f1a\u4ee3\u4f60\u4f5c\u7b54\u3002");
+        table.put("Hides the buttons that push Edits, templates, Meta AI and Ray-Ban Meta glasses. Live badges and state-controlled media labels stay.",
+                "\u9690\u85cf\u63a8\u5e7f Edits\u3001\u8303\u672c\u3001Meta AI \u548c Ray-Ban Meta \u773c\u955c\u7684\u6309\u94ae\u3002\u76f4\u64ad\u5fbd\u7ae0\u4e0e\u56fd\u8425\u5a92\u4f53\u6807\u7b7e\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Hides the card after the posts from accounts you follow that says you've seen the latest ones, and its Older posts link. When Home has no new posts at all, only that line goes and the link stays. Pull down on Home to refresh after changing it.",
+                "\u9690\u85cf\u5df2\u5173\u6ce8\u8d26\u6237\u5e16\u5b50\u4e4b\u540e\u7684\u201c\u5df2\u770b\u5b8c\u6700\u65b0\u5e16\u5b50\u201d\u5361\u7247\u4e0e\u201c\u8f83\u65e7\u5e16\u5b50\u201d\u94fe\u63a5\u3002\u82e5\u9996\u9875\u5b8c\u5168\u6ca1\u6709\u65b0\u5e16\u5b50\uff0c\u53ea\u4f1a\u9690\u85cf\u90a3\u884c\u6587\u5b57\uff0c\u94fe\u63a5\u4ecd\u4f1a\u4fdd\u7559\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Hides the cards between posts that ask you to rate what you saw.",
+                "\u9690\u85cf\u5e16\u5b50\u4e4b\u95f4\u8bf7\u4f60\u8bc4\u4ef7\u6240\u770b\u5185\u5bb9\u7684\u5361\u7247\u3002");
+        table.put("Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.",
+                "\u9690\u85cf\u641c\u7d22\u6807\u7b7e\u9875\u641c\u7d22\u680f\u4e0b\u65b9\u7684\u5e16\u5b50\u4e0e Reels \u7f51\u683c\u3002\u641c\u7d22\u3001\u6700\u8fd1\u641c\u7d22\u4e0e\u641c\u7d22\u7ed3\u679c\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Hides the posts, accounts and communities from Threads that Instagram mixes into your feed.",
+                "\u9690\u85cf Instagram \u5728\u52a8\u6001\u9996\u9875\u4e2d\u63d2\u5165\u7684 Threads \u5e16\u5b50\u3001\u8d26\u6237\u4e0e\u793e\u533a\u3002");
+        table.put("Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.",
+                "\u9690\u85cf\u9996\u9875\u9876\u7aef\u5feb\u62cd\u680f\u4e2d\uff0c\u91cd\u65b0\u5448\u73b0\u65e7\u7cbe\u9009\u7684\u5f80\u4e8b\u56de\u987e\u5361\u7247\u3002");
+        table.put("Hides the rows of accounts, shops and hashtags Instagram suggests you follow.",
+                "\u9690\u85cf Instagram \u63a8\u8350\u5173\u6ce8\u7684\u8d26\u6237\u3001\u5546\u5e97\u4e0e\u8bdd\u9898\u6807\u7b7e\u680f\u3002");
+        table.put("Hides the rows of products to shop and live shopping that Instagram puts between posts, and the shop tiles in Explore. Posts with tagged products don't show the shopping bag.",
+                "\u9690\u85cf Instagram \u5728\u5e16\u5b50\u4e4b\u95f4\u63d2\u5165\u7684\u5546\u54c1\u4e0e\u76f4\u64ad\u8d2d\u7269\u680f\uff0c\u4ee5\u53ca\u63a2\u7d22\u4e2d\u7684\u5546\u5e97\u65b9\u5757\u3002\u6807\u6ce8\u5546\u54c1\u7684\u5e16\u5b50\u4e5f\u4e0d\u4f1a\u663e\u793a\u8d2d\u7269\u888b\u3002");
+        table.put("Hides the rows of stories that Instagram puts between posts, like stories that are about to expire. Pull down on Home to refresh after changing it.",
+                "\u9690\u85cf Instagram \u63d2\u5728\u5e16\u5b50\u4e4b\u95f4\u7684\u5feb\u62cd\u680f\uff0c\u4f8b\u5982\u5373\u5c06\u5230\u671f\u7684\u5feb\u62cd\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.",
+                "\u663e\u793a\u9996\u9875\u65f6\u9690\u85cf\u72b6\u6001\u680f\u4e0e\u5bfc\u822a\u680f\u3002\u4ece\u8fb9\u7f18\u5411\u5185\u6ed1\u52a8\u53ef\u77ed\u6682\u663e\u793a\u3002");
+        table.put("Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
+                "\u663e\u793a Reels \u65f6\u9690\u85cf\u72b6\u6001\u680f\u4e0e\u5bfc\u822a\u680f\u3002\u4ece\u8fb9\u7f18\u5411\u5185\u6ed1\u52a8\u53ef\u77ed\u6682\u663e\u793a\u3002\u8fd4\u56de\u4e0e\u952e\u76d8\u4ecd\u53ef\u7167\u5e38\u4f7f\u7528\u3002");
+        table.put("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.",
+                "\u663e\u793a\u6d88\u606f\u6216\u804a\u5929\u65f6\u9690\u85cf\u72b6\u6001\u680f\u4e0e\u5bfc\u822a\u680f\u3002\u4ece\u8fb9\u7f18\u5411\u5185\u6ed1\u52a8\u53ef\u77ed\u6682\u663e\u793a\u3002\u8fd4\u56de\u4e0e\u952e\u76d8\u4ecd\u53ef\u7167\u5e38\u4f7f\u7528\u3002");
+        table.put("Hides the top bar button that switches Explore's personalization, where Instagram shows it (in the EU).",
+                "\u5728 Instagram \u663e\u793a\u6b64\u6309\u94ae\u7684\u5730\u533a\uff08\u6b27\u76df\uff09\uff0c\u9690\u85cf\u9876\u680f\u4e0a\u5207\u6362\u63a2\u7d22\u4e2a\u4eba\u5316\u7684\u6309\u94ae\u3002");
+        table.put("Hiding reels with %1$s",
+                "\u5df2\u9690\u85cf\u4f7f\u7528 %1$s \u7684 Reels");
+        table.put("Highest",
+                "\u6700\u9ad8");
+        table.put("History button on Home's header",
+                "\u9996\u9875\u9876\u7aef\u7684\u7eaa\u5f55\u6309\u94ae");
+        table.put("Hold Seen in this chat",
+                "\u5728\u6b64\u804a\u5929\u4fdd\u7559\u201c\u5df2\u8bfb\u201d");
+        table.put("Hold for 2x on feed videos",
+                "\u957f\u6309\u52a8\u6001\u9996\u9875\u89c6\u9891\u4ee5 2 \u500d\u901f\u64ad\u653e");
+        table.put("Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps only reels they liked or shared. A page with none of them keeps one reel so the next page can load.",
+                "\u5728 Reels \u957f\u6309\u597d\u53cb\u6807\u7b7e\u9875\uff0c\u4ece\u5b83\u663e\u793a\u8fc7\u7684\u597d\u53cb\u4e2d\u6311\u9009\u3002\u4e4b\u540e\u53ea\u4fdd\u7559\u4ed6\u4eec\u70b9\u8d5e\u6216\u5206\u4eab\u7684 Reels\u3002\u6ca1\u6709\u4ed6\u4eec\u7684\u9875\u9762\u4f1a\u7559\u4e0b\u4e00\u5219 Reels\uff0c\u8ba9\u4e0b\u4e00\u9875\u80fd\u52a0\u8f7d\u3002");
+        table.put("Hold the Friends tab to pick friends",
+                "\u957f\u6309\u597d\u53cb\u6807\u7b7e\u9875\u4ee5\u9009\u62e9\u597d\u53cb");
+        table.put("Hold time",
+                "\u957f\u6309\u65f6\u95f4");
+        table.put("Hold to download",
+                "\u957f\u6309\u4e0b\u8f7d");
+        table.put("Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Fingers below can make it three. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.",
+                "\u5c06\u4e24\u6307\u505c\u7559\u5728\u52a8\u6001\u9996\u9875\u5e16\u5b50\u7684\u56fe\u7247\u3001\u89c6\u9891\u6216 Reel \u4e0a\uff0c\u5373\u53ef\u4fdd\u5b58\u624b\u6307\u4e0b\u65b9\u7684\u5185\u5bb9\uff0c\u7b49\u540c\u83dc\u5355\u4e2d\u7684\u201c\u4e0b\u8f7d\u201d\u3002\u53ef\u5728\u4e0b\u65b9\u7684\u201c\u624b\u6307\u6570\u91cf\u201d\u6539\u4e3a\u4e09\u6307\u3002Instagram \u7684\u5355\u6307\u957f\u6309\u4e0d\u53d7\u5f71\u54cd\u3002\u9700\u542f\u7528\u201c\u4e0b\u8f7d\u52a8\u6001\u9996\u9875\u89c6\u9891\u201d\u6216\u201c\u4e0b\u8f7d\u52a8\u6001\u9996\u9875\u7167\u7247\u201d\uff1bReels \u5219\u9700\u542f\u7528\u201cReels \u4e0b\u8f7d\u9009\u9879\u201d\u3002");
+        table.put("Home",
+                "\u9996\u9875");
+        table.put("Home feed picker",
+                "\u9996\u9875\u52a8\u6001\u9009\u62e9\u5668");
+        table.put("Home header picture",
+                "\u9996\u9875\u9876\u7aef\u56fe\u7247");
+        table.put("Home header text",
+                "\u9996\u9875\u9876\u7aef\u6587\u5b57");
+        table.put("Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.",
+                "\u5012\u6570\u7ed3\u675f\u540e\uff0c\u9996\u9875\u3001Reels \u4e0e\u63a2\u7d22\u4f1a\u91cd\u65b0\u5f00\u653e\u3002\u6d88\u606f\u4e0e\u4e3b\u9875\u4ecd\u53ef\u4f7f\u7528\u3002");
+        table.put("Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.",
+                "\u9996\u9875\u3001Reels \u4e0e\u5176\u4ed6\u6807\u7b7e\u9875\u7684\u5185\u5bb9\u4f1a\u5ef6\u4f38\u5230\u80f6\u56ca\u540e\u65b9\uff0c\u8ba9\u73bb\u7483\u80fd\u6a21\u7cca\u5b9e\u9645\u5185\u5bb9\u3002");
+        table.put("How far a photo or video you're saving has got, with a button to cancel it",
+                "\u663e\u793a\u7167\u7247\u6216\u89c6\u9891\u7684\u4fdd\u5b58\u8fdb\u5ea6\uff0c\u5e76\u63d0\u4f9b\u53d6\u6d88\u6309\u94ae");
+        table.put("How long until the story expires, like 18h 14m left. Older stories show the date and time.",
+                "\u8ddd\u79bb\u5feb\u62cd\u8fc7\u671f\u7684\u65f6\u95f4\uff0c\u4f8b\u5982\u5269\u4f59 18 \u5c0f\u65f6 14 \u5206\u949f\u3002\u8f83\u65e7\u7684\u5feb\u62cd\u5219\u663e\u793a\u65e5\u671f\u4e0e\u65f6\u95f4\u3002");
+        table.put("How the time shows",
+                "\u65f6\u95f4\u663e\u793a\u65b9\u5f0f");
+        table.put("How you open HushGram and lay out settings.",
+                "\u6253\u5f00 HushGram \u7684\u65b9\u5f0f\u4e0e\u8bbe\u7f6e\u7248\u9762\u3002");
+        table.put("HushGram %1$s on Instagram %2$s",
+                "HushGram %1$s\uff0cInstagram %2$s");
+        table.put("HushGram PIN",
+                "HushGram PIN \u7801");
+        table.put("HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
+                "HushGram \u5df2\u65e0\u6cd5\u8bbf\u95ee %1$s\uff0c\u56e0\u6b64\u4fdd\u5b58\u7684\u5185\u5bb9\u4f1a\u653e\u5728 Movies \u548c Pictures\u3002\u8bf7\u91cd\u65b0\u9009\u62e9\u6587\u4ef6\u5939\u3002");
+        table.put("HushGram is on",
+                "HushGram \u5df2\u542f\u7528");
+    }
+
+    private static void fillZh13(Map<String, String> table) {
+        table.put("HushGram is paused",
+                "HushGram \u5df2\u6682\u505c");
+        table.put("HushGram launch screen",
+                "HushGram \u542f\u52a8\u753b\u9762");
+        table.put("HushGram menu",
+                "HushGram \u83dc\u5355");
+        table.put("HushGram pauses when Instagram restarts.",
+                "\u91cd\u65b0\u542f\u52a8 Instagram \u540e\uff0cHushGram \u5c06\u4f1a\u6682\u505c\u3002");
+        table.put("HushGram profile actions",
+                "HushGram \u4e3b\u9875\u64cd\u4f5c");
+        table.put("HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them from this device.",
+                "HushGram \u6700\u591a\u4f1a\u8bb0\u4f4f 200 \u90e8\u89c6\u9891\u7684\u505c\u6b62\u4f4d\u7f6e\uff0c\u4fdd\u7559 30 \u5929\u3002\u70b9\u51fb\u5373\u53ef\u4ece\u6b64\u8bbe\u5907\u6e05\u9664\u3002");
+        table.put("HushGram saves",
+                "HushGram \u4fdd\u5b58\u9879\u76ee");
+        table.put("HushGram settings",
+                "HushGram \u8bbe\u7f6e");
+        table.put("HushGram settings are locked",
+                "HushGram \u8bbe\u7f6e\u5df2\u9501\u5b9a");
+        table.put("HushGram settings couldn't open",
+                "\u65e0\u6cd5\u6253\u5f00 HushGram \u8bbe\u7f6e");
+        table.put("HushGram settings exported.",
+                "\u5df2\u5bfc\u51fa HushGram \u8bbe\u7f6e\u3002");
+        table.put("HushGram turns back on when Instagram restarts.",
+                "\u91cd\u65b0\u542f\u52a8 Instagram \u540e\uff0cHushGram \u5c06\u4f1a\u91cd\u65b0\u542f\u7528\u3002");
+        table.put("Icons in the accent color",
+                "\u56fe\u6807\u4f7f\u7528\u5f3a\u8c03\u8272");
+        table.put("Import HushGram settings",
+                "\u5bfc\u5165 HushGram \u8bbe\u7f6e");
+        table.put("Imported %1$d settings.",
+                "\u5df2\u5bfc\u5165 %1$d \u9879\u8bbe\u7f6e\u3002");
+        table.put("Imported %1$d settings. Skipped %2$d that this version doesn't know.",
+                "\u5df2\u5bfc\u5165 %1$d \u9879\u8bbe\u7f6e\uff0c\u7565\u8fc7\u6b64\u7248\u672c\u4e0d\u8ba4\u5f97\u7684 %2$d \u9879\u8bbe\u7f6e\u3002");
+        table.put("Instagram accepts this build",
+                "\u8ba9 Instagram \u63a5\u53d7\u6b64\u7248\u672c");
+        table.put("Instagram blue",
+                "Instagram \u84dd");
+        table.put("Instagram can't read where the photos and videos in your gallery were taken.",
+                "Instagram \u65e0\u6cd5\u8bfb\u53d6\u56fe\u5e93\u4e2d\u7167\u7247\u548c\u89c6\u9891\u7684\u62cd\u6444\u5730\u70b9.");
+        table.put("Instagram can't read your phone's advertising ID or tell Android's ad services which ads you saw or tapped. The permissions for them are gone from this build.",
+                "Instagram \u65e0\u6cd5\u8bfb\u53d6\u624b\u673a\u7684\u5e7f\u544a ID\uff0c\u4e5f\u65e0\u6cd5\u5411 Android \u5e7f\u544a\u670d\u52a1\u4e0a\u62a5\u4f60\u770b\u8fc7\u6216\u70b9\u51fb\u8fc7\u54ea\u4e9b\u5e7f\u544a\u3002\u6b64\u7248\u672c\u5df2\u79fb\u9664\u76f8\u5173\u6743\u9650\u3002");
+        table.put("Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.",
+                "Instagram \u8fde\u7eed\u4e09\u6b21\u5728\u542f\u52a8\u540e\u4e00\u5206\u949f\u5185\u5f53\u673a\u6216\u65e0\u56de\u5e94\uff0c\u56e0\u6b64 HushGram \u5df2\u81ea\u52a8\u6682\u505c\u3002");
+        table.put("Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.",
+                "Instagram \u4e0d\u4f1a\u68c0\u6d4b\u5230\u4f60\u622a\u5c4f\uff0c\u56e0\u6b64\u4e0d\u4f1a\u901a\u77e5\u53d1\u9001\u9650\u65f6\u7167\u7247\u6216\u89c6\u9891\u7684\u4eba\u3002\u622a\u5c4f\u4ecd\u4f1a\u7167\u5e38\u4fdd\u5b58\u3002");
+        table.put("Instagram goes through %1$s.",
+                "Instagram \u901a\u8fc7 %1$s \u8fde\u63a5\u3002");
+        table.put("Instagram gradient on dark",
+                "\u6df1\u8272\u5e95\u7684 Instagram \u6e10\u53d8");
+        table.put("Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.",
+                "Instagram \u5c1a\u672a\u5728\u8fd9\u652f\u624b\u673a\u4e0a\u521b\u5efa\u901a\u77e5\u7c7b\u578b\u3002\u8bf7\u5148\u6253\u5f00 Instagram \u4e00\u6b21\uff0c\u518d\u56de\u5230\u8fd9\u91cc\u3002");
+        table.put("Instagram hides the tab bar when Favorites opens from the top of Home. This keeps it, so Search and Messages stay a tap away.",
+                "\u4ece\u9996\u9875\u9876\u7aef\u6253\u5f00\u201c\u7279\u522b\u5173\u6ce8\u201d\u65f6\uff0cInstagram \u4f1a\u9690\u85cf\u6807\u7b7e\u680f\u3002\u8fd9\u4e2a\u9009\u9879\u4f1a\u4fdd\u7559\u6807\u7b7e\u680f\uff0c\u8ba9\u201c\u641c\u7d22\u201d\u548c\u201c\u6d88\u606f\u201d\u968f\u65f6\u4e00\u70b9\u5c31\u5230\u3002");
+        table.put("Instagram in black on white",
+                "\u767d\u5e95\u9ed1\u8272 Instagram");
+        table.put("Instagram in pink",
+                "\u7c89\u7ea2\u8272 Instagram");
+        table.put("Instagram is locked",
+                "Instagram \u5df2\u9501\u5b9a");
+        table.put("Instagram isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you, and stories you've watched keep showing as new.",
+                "\u4e0d\u8ba9 Instagram \u5f97\u77e5\u4f60\u89c2\u770b\u4e86\u54ea\u4e9b\u5feb\u62cd\uff0c\u56e0\u6b64\u4f60\u4e0d\u4f1a\u51fa\u73b0\u5728\u89c2\u770b\u8005\u540d\u5355\u4e2d\u3002\u56de\u590d\u6216\u53d1\u9001\u5fc3\u60c5\u56de\u5e94\u4ecd\u4f1a\u663e\u793a\u4f60\uff0c\u4e14\u5df2\u770b\u8fc7\u7684\u5feb\u62cd\u4ecd\u4f1a\u663e\u793a\u4e3a\u672a\u89c2\u770b\u3002");
+        table.put("Instagram kept crashing, so HushGram paused itself.",
+                "Instagram \u4e00\u76f4\u5f53\u673a\uff0cHushGram \u5df2\u81ea\u52a8\u6682\u505c\u3002");
+        table.put("Instagram locks as soon as you leave it or the screen turns off.",
+                "\u79bb\u5f00 Instagram \u6216\u5173\u95ed\u5c4f\u5e55\u540e\u4f1a\u7acb\u5373\u9501\u5b9a\u3002");
+        table.put("Instagram locks once you've been away from it for %1$s.",
+                "\u79bb\u5f00 Instagram %1$s \u540e\u4f1a\u9501\u5b9a\u3002");
+        table.put("Instagram logo on Home",
+                "\u9996\u9875\u663e\u793a Instagram \u6807\u5fd7");
+        table.put("Instagram on black",
+                "\u9ed1\u5e95 Instagram");
+        table.put("Instagram on plum",
+                "\u6885\u7d2b\u5e95 Instagram");
+        table.put("Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.",
+                "\u4ece\u56fe\u6807\u542f\u52a8 Instagram \u65f6\u6253\u5f00 %1$s\u3002\u901a\u77e5\u4e0e\u94fe\u63a5\u4ecd\u4f1a\u6253\u5f00\u5bf9\u5e94\u5185\u5bb9\u3002\u82e5\u8be5\u6807\u7b7e\u9875\u4e0d\u5728\u6807\u7b7e\u680f\u4e0a\uff0c\u5219\u6253\u5f00\u9996\u9875\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Instagram opens on Home when you start it from its icon, even if you left it on Reels. A notification or a link still opens what it's for. Restart Instagram to see the change.",
+                "\u4ece\u56fe\u6807\u542f\u52a8 Instagram \u65f6\u4e00\u5f8b\u6253\u5f00\u9996\u9875\uff0c\u5373\u4f7f\u4e0a\u6b21\u505c\u7559\u5728 Reels\u3002\u901a\u77e5\u4e0e\u94fe\u63a5\u4ecd\u4f1a\u6253\u5f00\u5bf9\u5e94\u5185\u5bb9\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Instagram opens the way it always has, which can be Reels if you left it there.",
+                "Instagram \u4f9d\u539f\u672c\u7684\u65b9\u5f0f\u6253\u5f00\uff1b\u82e5\u4e0a\u6b21\u505c\u7559\u5728 Reels\uff0c\u4e5f\u53ef\u80fd\u76f4\u63a5\u6253\u5f00 Reels\u3002");
+        table.put("Instagram picks the quality as each video plays, from your connection.",
+                "Instagram \u4f1a\u5728\u64ad\u653e\u6bcf\u90e8\u89c6\u9891\u65f6\uff0c\u4f9d\u8fde\u63a5\u72b6\u51b5\u9009\u62e9\u753b\u8d28\u3002");
+        table.put("Instagram picks the tab bar for your account, and it can switch between the two on its own.",
+                "Instagram \u4f1a\u4e3a\u4f60\u7684\u8d26\u6237\u6311\u9009\u6807\u7b7e\u680f\uff0c\u4e5f\u53ef\u80fd\u81ea\u884c\u5728\u4e24\u8005\u4e4b\u95f4\u5207\u6362\u3002");
+        table.put("Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.",
+                "Instagram \u4f1a\u8bbe\u7f6e\u95f9\u949f\uff0c\u5728\u4e94\u5206\u949f\u540e\u5524\u9192\u624b\u673a\u5e76\u53d1\u9001\u4f7f\u7528\u4e8b\u4ef6\u3002\u6b64\u9009\u9879\u4f1a\u7981\u7528\u8be5\u95f9\u949f\uff0c\u4e8b\u4ef6\u6539\u5728\u4e0b\u6b21\u4f7f\u7528\u5e94\u7528\u7a0b\u5e8f\u65f6\u53d1\u9001\u3002");
+        table.put("Instagram stopped loading older messages.",
+                "Instagram \u5df2\u505c\u6b62\u52a0\u8f7d\u8f83\u65e7\u7684\u6d88\u606f\u3002");
+        table.put("Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.",
+                "\u4e0d\u518d\u663e\u793a Instagram \u7248\u672c\u8fc7\u65e7\u7684\u753b\u9762\u3002\u6253\u8fc7\u8865\u4e01\u7684\u7248\u672c\u4e0d\u4f1a\u81ea\u884c\u66f4\u65b0\uff0c\u6b64\u529f\u80fd\u53ef\u8ba9\u5b83\u7ee7\u7eed\u4f7f\u7528\u3002");
+        table.put("Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
+                "Instagram \u6bcf\u9694\u4e00\u4e24\u5206\u949f\u5c31\u4f1a\u5524\u9192\u624b\u673a\uff0c\u5373\u4f7f\u5c4f\u5e55\u5173\u95ed\u4e5f\u4e00\u6837\uff0c\u76ee\u7684\u53ea\u662f\u8bb0\u5f55\u81ea\u5df1\u4ecd\u5728\u8fd0\u884c\u3002\u6b64\u9009\u9879\u4f1a\u505c\u6b62\u8be5\u884c\u4e3a\u3002\u6d88\u606f\u3001\u901a\u77e5\u4e0e\u753b\u9762\u4e0a\u7684\u529f\u80fd\u4e0d\u53d7\u5f71\u54cd\u3002");
+        table.put("Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.",
+                "\u542f\u7528\u5176\u4ed6 HushGram \u5165\u53e3\u65f6\uff0cInstagram \u7684\u201c\u8bbe\u7f6e\u548c\u52a8\u6001\u201d\u753b\u9762\u4f1a\u9690\u85cf HushGram \u9879\u76ee\u3002\u5173\u95ed\u6240\u6709\u5176\u4ed6\u5165\u53e3\u540e\uff0c\u6b64\u9879\u76ee\u4f1a\u91cd\u65b0\u51fa\u73b0\u3002");
+        table.put("Instagram's choice",
+                "Instagram \u7684\u9009\u62e9");
+        table.put("Instagram's colors",
+                "Instagram \u9ed8\u8ba4\u989c\u8272");
+        table.put("Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.",
+                "\u5c06 Instagram \u6df1\u8272\u6a21\u5f0f\u7684\u8fd1\u9ed1\u7070\u8272\u6539\u4e3a\u7eaf\u9ed1\uff0c\u5e95\u90e8\u6ed1\u51fa\u7684\u83dc\u5355\u4e5f\u9002\u7528\u3002\u6309\u94ae\u4ecd\u4fdd\u7559\u539f\u672c\u7684\u7070\u8272\u3002");
+        table.put("Instagram's default",
+                "Instagram \u9ed8\u8ba4");
+        table.put("Instagram's font",
+                "Instagram \u5b57\u4f53");
+        table.put("Instagram's icons on the top bar, the tab bar and under posts take the color you picked. Text stays as it is. Restart Instagram to see the change.",
+                "\u9876\u90e8\u680f\u3001\u6807\u7b7e\u680f\u548c\u5e16\u5b50\u4e0b\u65b9\u7684 Instagram \u56fe\u6807\u4f1a\u6539\u7528\u4f60\u9009\u62e9\u7684\u989c\u8272\u3002\u6587\u5b57\u4fdd\u6301\u4e0d\u53d8\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Instagram's logo stays at the top of Home.",
+                "\u9996\u9875\u9876\u7aef\u4fdd\u7559 Instagram \u6807\u5fd7\u3002");
+        table.put("Instagram's own",
+                "Instagram \u539f\u7248");
+        table.put("Instagram's own checks of who signed the app keep passing on this patched build.",
+                "\u8ba9\u6253\u8fc7\u8865\u4e01\u7684\u7248\u672c\u7ee7\u7eed\u901a\u8fc7 Instagram \u672c\u8eab\u5bf9\u5e94\u7528\u7a0b\u5e8f\u7b7e\u7f72\u8005\u7684\u68c0\u67e5\u3002");
+        table.put("Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.",
+                "Instagram \u539f\u672c\u7684\u5b57\u4f53\u3002\u4e5f\u53ef\u9009\u62e9\u624b\u673a\u5b57\u4f53\u6216 .ttf\u3001.otf \u6587\u4ef6\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Instagram's own. Pick another to change the icon on your home screen and in the app drawer.",
+                "Instagram \u539f\u7248\u3002\u9009\u62e9\u5176\u4ed6\u56fe\u6807\uff0c\u53ef\u53d8\u66f4\u4e3b\u753b\u9762\u4e0e\u5e94\u7528\u7a0b\u5e8f\u62bd\u5c49\u4e2d\u7684\u56fe\u6807\u3002");
+        table.put("Instagram's reminder to review whether it can process your data for ads stops opening by itself. Your ad choice doesn't change, and nothing is answered for you.",
+                "Instagram \u8981\u4f60\u67e5\u770b\u662f\u5426\u53ef\u5904\u7406\u4f60\u7684\u6570\u636e\u4ee5\u7528\u4e8e\u5e7f\u544a\u7684\u63d0\u9192\uff0c\u4e0d\u4f1a\u518d\u81ea\u884c\u6253\u5f00\u3002\u4f60\u7684\u5e7f\u544a\u9009\u62e9\u4e0d\u4f1a\u6539\u53d8\uff0c\u4e5f\u4e0d\u4f1a\u4ee3\u4f60\u4f5c\u7b54\u3002");
+        table.put("Instagram's seek bar stays under every reel, short ones too, with the time played and the reel's length above it. Ads keep Instagram's own rules.",
+                "\u6bcf\u5219 Reel \u4e0b\u65b9\u90fd\u4f1a\u4fdd\u7559 Instagram \u7684\u8fdb\u5ea6\u6761\uff0c\u77ed\u7247\u4e5f\u9002\u7528\uff0c\u5e76\u5728\u4e0a\u65b9\u663e\u793a\u5df2\u64ad\u653e\u65f6\u95f4\u4e0e\u89c6\u9891\u957f\u5ea6\u3002\u5e7f\u544a\u4ecd\u4f9d Instagram \u539f\u672c\u7684\u89c4\u5219\u8fd0\u4f5c\u3002");
+        table.put("Instagram's size",
+                "Instagram \u9ed8\u8ba4\u5c3a\u5bf8");
+    }
+
+    private static void fillZh14(Map<String, String> table) {
+        table.put("Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.",
+                "Instagram \u6587\u5b57\u4f7f\u7528\u6240\u9009\u5b57\u5e93\u6848\u3002\u518d\u6b21\u9009\u62e9\u5373\u53ef\u53d8\u66f4\u6587\u4ef6\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Instagram's text uses your phone's font. Restart Instagram to see a change.",
+                "Instagram \u6587\u5b57\u4f7f\u7528\u624b\u673a\u5b57\u4f53\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Joining the picture and sound",
+                "\u6b63\u5728\u5408\u5e76\u56fe\u50cf\u4e0e\u58f0\u97f3");
+        table.put("Jump a profile's posts to a date",
+                "\u8df3\u5230\u4e3b\u9875\u5e16\u5b50\u7684\u67d0\u4e2a\u65e5\u671f");
+        table.put("Jump to a date",
+                "\u8df3\u5230\u67d0\u4e2a\u65e5\u671f");
+        table.put("Jump to the first message",
+                "\u8df3\u5230\u7b2c\u4e00\u5219\u6d88\u606f");
+        table.put("Jump to the first message or a date",
+                "\u8df3\u5230\u7b2c\u4e00\u5219\u6d88\u606f\u6216\u67d0\u4e2a\u65e5\u671f");
+        table.put("KakaoTalk",
+                "KakaoTalk");
+        table.put("Keep Featured off the heart's dot",
+                "\u4e0d\u8ba9\u7cbe\u9009\u5185\u5bb9\u70b9\u4eae\u7231\u5fc3\u4e0a\u7684\u7ea2\u70b9");
+        table.put("Keep Home's top bar",
+                "\u56fa\u5b9a\u9996\u9875\u9876\u680f");
+        table.put("Keep Instagram's saved photos and videos from filling your phone.",
+                "\u907f\u514d Instagram \u4fdd\u5b58\u7684\u7167\u7247\u4e0e\u89c6\u9891\u5360\u6ee1\u624b\u673a\u3002");
+        table.put("Keep a seek bar",
+                "\u4fdd\u6301\u663e\u793a\u8fdb\u5ea6\u6761");
+        table.put("Keep a viewing history",
+                "\u4fdd\u7559\u6d4f\u89c8\u7eaa\u5f55");
+        table.put("Keep auto scroll on",
+                "\u4fdd\u6301\u81ea\u52a8\u5377\u52a8");
+        table.put("Keep chats unread here",
+                "\u5728\u6b64\u4fdd\u7559\u804a\u5929\u672a\u8bfb\u72b6\u6001");
+        table.put("Keep clear mode on",
+                "\u4fdd\u6301\u6e05\u723d\u6a21\u5f0f");
+        table.put("Keep hidden accounts in Favorites",
+                "\u5728\u201c\u7279\u522b\u5173\u6ce8\u201d\u4fdd\u7559\u9690\u85cf\u7684\u8d26\u6237");
+        table.put("Keep in chat",
+                "\u4fdd\u7559\u5728\u804a\u5929");
+        table.put("Keep photo locations from Instagram",
+                "\u5bf9 Instagram \u9690\u85cf\u7167\u7247\u4f4d\u7f6e");
+        table.put("Keep playing",
+                "\u7ee7\u7eed\u64ad\u653e");
+        table.put("Keep playing in the background",
+                "\u5728\u80cc\u666f\u7ee7\u7eed\u64ad\u653e");
+        table.put("Keep profile history",
+                "\u4fdd\u7559\u4e3b\u9875\u7eaa\u5f55");
+        table.put("Keep reels muted on the volume keys",
+                "\u6309\u97f3\u91cf\u952e\u65f6\u4fdd\u6301 Reels \u9759\u97f3");
+        table.put("Keep stories playing while zooming",
+                "\u7f29\u653e\u65f6\u7ee7\u7eed\u64ad\u653e\u5feb\u62cd");
+        table.put("Keep story buttons below the story",
+                "\u5c06\u5feb\u62cd\u6309\u94ae\u7559\u5728\u5feb\u62cd\u4e0b\u65b9");
+        table.put("Keep the Reels top bar",
+                "\u56fa\u5b9a Reels \u9876\u680f");
+        table.put("Keep the Stories tray in the feed",
+                "\u8ba9\u5feb\u62cd\u6a2a\u5e45\u7559\u5728\u52a8\u6001\u4e2d");
+        table.put("Keep the comment bar's space",
+                "\u4fdd\u7559\u8bc4\u8bba\u680f\u7684\u7a7a\u95f4");
+        table.put("Keep the pill full size",
+                "\u4fdd\u6301\u80f6\u56ca\u5b8c\u6574\u5927\u5c0f");
+        table.put("Keep the reel speed",
+                "\u4fdd\u7559 Reels \u64ad\u653e\u901f\u5ea6");
+        table.put("Keep the tab bar on Favorites",
+                "\u5728\u201c\u7279\u522b\u5173\u6ce8\u201d\u4fdd\u7559\u6807\u7b7e\u680f");
+        table.put("Keep the tab bar on a reel's profile",
+                "\u5728 Reel \u7684\u4e3b\u9875\u4fdd\u7559\u6807\u7b7e\u680f");
+        table.put("Keep the zoom open",
+                "\u4fdd\u6301\u653e\u5927\u753b\u9762");
+        table.put("Keep waiting",
+                "\u7ee7\u7eed\u7b49\u5f85");
+        table.put("Keep your place in Home",
+                "\u4fdd\u7559\u9996\u9875\u7684\u6d4f\u89c8\u4f4d\u7f6e");
+        table.put("Keeps %1$s",
+                "\u4fdd\u7559 %1$s");
+        table.put("Keeps %1$s. Didn't recognize: %2$s",
+                "\u4fdd\u7559 %1$s\u3002\u65e0\u6cd5\u8fa8\u8bc6\uff1a%2$s");
+        table.put("Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.",
+                "\u4e0d\u8ba9 Instagram \u7684\u201c\u4e3a\u4f60\u63a8\u8350\u7684\u97f3\u4e50\u201d\u5361\u7247\u51fa\u73b0\u5728\u89c2\u770b\u4e2d\u7684\u5feb\u62cd\u4e4b\u95f4\u3002\u5feb\u62cd\u672c\u8eab\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.",
+                "\u5728\u9996\u9875\u9876\u7aef\u4fdd\u7559 Instagram \u6807\u5fd7\uff0c\u53d6\u4ee3\u52a8\u6001\u540d\u79f0\u3002\u70b9\u51fb\u5373\u53ef\u5207\u6362\u52a8\u6001\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.",
+                "\u5377\u52a8\u65f6\u8ba9 Instagram \u6807\u5fd7\u548c\u65c1\u8fb9\u7684\u6309\u94ae\u7559\u5728\u9996\u9875\u9876\u7aef\uff0c\u4e0d\u4f1a\u6ed1\u8d70\u3002");
+        table.put("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.",
+                "\u6ed1\u52a8\u6d4f\u89c8 Reels \u65f6\u8ba9 Reels \u6807\u9898\u3001\u597d\u53cb\u6807\u7b7e\u9875\u548c\u65c1\u8fb9\u7684\u6309\u94ae\u7559\u5728\u9876\u7aef\uff0c\u4e0d\u4f1a\u6ed1\u8d70\u3002");
+        table.put("Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.",
+                "\u628a\u4f60\u6311\u9009\u7684\u804a\u5929\u56fa\u5b9a\u5728\u6536\u4ef6\u5323\u6700\u4e0a\u65b9\u3002\u9489\u9009\u53ea\u5b58\u5728\u8fd9\u652f\u624b\u673a\u4e0a\uff0c\u5176\u4ed6\u804a\u5929\u4ecd\u4f9d Instagram \u7684\u987a\u5e8f\u6392\u5217\u3002");
+        table.put("Keeps the newer bar, with Messages on it, and you can swipe sideways between every tab, even if Instagram moves your account back to the older one. Restart Instagram to see the change.",
+                "\u4fdd\u7559\u542b\u6709\u6d88\u606f\u7684\u65b0\u7248\u6807\u7b7e\u680f\uff0c\u5373\u4f7f Instagram \u628a\u4f60\u7684\u8d26\u6237\u6539\u56de\u65e7\u7248\uff0c\u4e5f\u80fd\u5728\u6240\u6709\u6807\u7b7e\u9875\u4e4b\u95f4\u5de6\u53f3\u6ed1\u52a8\u3002\u91cd\u65b0\u542f\u52a8 Instagram \u5373\u53ef\u770b\u5230\u53d8\u66f4\u3002");
+        table.put("Keeps the older bar, with Create on it and Messages at the top of Home. Swiping only moves between Home and the screens beside it. Restart Instagram to see the change.",
+                "\u4fdd\u7559\u542b\u6709\u521b\u5efa\u6309\u94ae\u3001\u6d88\u606f\u4f4d\u4e8e\u9996\u9875\u9876\u7aef\u7684\u65e7\u7248\u6807\u7b7e\u680f\u3002\u6ed1\u52a8\u53ea\u4f1a\u5728\u9996\u9875\u548c\u65c1\u8fb9\u7684\u753b\u9762\u4e4b\u95f4\u5207\u6362\u3002\u91cd\u65b0\u542f\u52a8 Instagram \u5373\u53ef\u770b\u5230\u53d8\u66f4\u3002");
+        table.put("Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other buttons stay hidden. Short reels get a bar too, in clear mode or not.",
+                "\u5728\u6e05\u723d\u6a21\u5f0f\u7684 Reel \u4e0a\u4fdd\u7559\u8fdb\u5ea6\u6761\uff0c\u4ecd\u53ef\u62d6\u52a8\uff0c\u5176\u4ed6\u6309\u94ae\u7ef4\u6301\u9690\u85cf\u3002\u4e0d\u8bba\u662f\u5426\u4e3a\u6e05\u723d\u6a21\u5f0f\uff0c\u77ed Reels \u4e5f\u4f1a\u6709\u8fdb\u5ea6\u6761\u3002");
+        table.put("Keeps the speaker icon next to clear mode's exit button.",
+                "\u5728\u6e05\u723d\u6a21\u5f0f\u7684\u79bb\u5f00\u6309\u94ae\u65c1\u4fdd\u7559\u5587\u53ed\u56fe\u6807\u3002");
+        table.put("Keeps your phone's languages: %1$s",
+                "\u4fdd\u7559\u624b\u673a\u7684\u8bed\u8a00\uff1a%1$s");
+        table.put("LINE",
+                "LINE");
+        table.put("Language codes or names, with a comma or a new line between them, like en, Hindi or Espa\u00f1ol. Leave it empty to keep your phone's languages.",
+                "\u8bed\u8a00\u4ee3\u7801\u6216\u540d\u79f0\uff0c\u4ee5\u9017\u53f7\u6216\u6362\u884c\u5206\u9694\uff0c\u4f8b\u5982 en\u3001Hindi \u6216 Espa\u00f1ol\u3002\u7559\u7a7a\u5219\u4fdd\u7559\u624b\u673a\u7684\u8bed\u8a00.");
+        table.put("Languages to keep",
+                "\u8981\u4fdd\u7559\u7684\u8bed\u8a00");
+        table.put("Large",
+                "\u5927");
+        table.put("Last carousel save",
+                "\u4e0a\u6b21\u8f6e\u64ad\u5e16\u5b50\u4fdd\u5b58\u7ed3\u679c");
+        table.put("Last seen in full on %1$s.",
+                "\u4e0a\u6b21\u5b8c\u6574\u8bfb\u53d6\u4e8e %1$s\u3002");
+        table.put("Launch screen in the accent color",
+                "\u542f\u52a8\u753b\u9762\u4f7f\u7528\u5f3a\u8c03\u8272");
+        table.put("Layout",
+                "\u7248\u9762\u914d\u7f6e");
+        table.put("Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.",
+                "\u4ece\u5206\u4eab\u8868\u5355\u79fb\u9664\u201c\u65b0\u7fa4\u7ec4\u201d\u4e0e\u5c06\u6240\u9009\u5bf9\u8c61\u7ec4\u6210\u7fa4\u7ec4\u53d1\u9001\u7684\u6309\u94ae\u3002\u201c\u5206\u522b\u53d1\u9001\u201d\u4ecd\u4f1a\u4fdd\u7559\uff0c\u4e5f\u4ecd\u53ef\u4ece\u6d88\u606f\u521b\u5efa\u7fa4\u7ec4\u3002");
+        table.put("Leaves an empty band where a hidden comment bar was on reels you open from a post or a profile, so the reel, its buttons and the seek bar don't move down.",
+                "\u5728\u4ece\u5e16\u5b50\u6216\u4e3b\u9875\u6253\u5f00\u7684 Reel \u4e0a\uff0c\u4e8e\u9690\u85cf\u7684\u8bc4\u8bba\u680f\u539f\u5904\u7559\u4e0b\u4e00\u6761\u7a7a\u767d\u5e26\uff0c\u8ba9 Reel\u3001\u6309\u94ae\u548c\u8fdb\u5ea6\u6761\u4e0d\u4f1a\u5f80\u4e0b\u79fb\u3002");
+        table.put("Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.",
+                "\u4e5f\u7565\u8fc7\u9996\u9875\u4e2d\u8bf4\u660e\u6587\u5b57\u5305\u542b\u6e05\u5355\u5b57\u8bcd\u6216\u8bcd\u7ec4\u7684\u5e16\u5b50\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Leaves out posts on Home whose caption is in another language too. Pull down on Home to refresh after changing it.",
+                "\u4e5f\u6392\u9664\u9996\u9875\u4e0a\u8bf4\u660e\u6587\u5b57\u4f7f\u7528\u5176\u4ed6\u8bed\u8a00\u7684\u5e16\u5b50\u3002\u53d8\u66f4\u540e\u8bf7\u5728\u9996\u9875\u4e0b\u62c9\u4ee5\u5237\u65b0.");
+        table.put("Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.",
+                "\u7565\u8fc7 Reels \u6807\u7b7e\u9875\u4e2d\u8bf4\u660e\u6587\u5b57\u5305\u542b\u4e0b\u65b9\u6e05\u5355\u5b57\u8bcd\u6216\u8bcd\u7ec4\u7684 Reels\u3002\u4f60\u81ea\u884c\u6253\u5f00\u7684 Reel \u4ecd\u4f1a\u64ad\u653e\u3002");
+    }
+
+    private static void fillZh15(Map<String, String> table) {
+        table.put("Leaves out reels in the Reels tab whose caption is in a language you didn't list below. A caption too short to tell, or a reel you open yourself, still shows.",
+                "\u5728 Reels \u6807\u7b7e\u9875\u4e2d\u6392\u9664\u8bf4\u660e\u6587\u5b57\u4f7f\u7528\u4f60\u6ca1\u6709\u5217\u5728\u4e0b\u65b9\u7684\u8bed\u8a00\u7684 Reels\u3002\u592a\u77ed\u800c\u65e0\u6cd5\u5224\u65ad\u7684\u8bf4\u660e\u6587\u5b57\uff0c\u6216\u4f60\u81ea\u5df1\u6253\u5f00\u7684 Reels\uff0c\u4ecd\u4f1a\u663e\u793a.");
+        table.put("Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.",
+                "\u5728 Reels \u6807\u7b7e\u9875\u4e2d\u7565\u8fc7\u89c2\u770b\u6b21\u6570\u6216\u70b9\u8d5e\u6570\u4f4e\u4e8e\u4e0b\u65b9\u6570\u5b57\u7684 Reels\u3002\u4f60\u5173\u6ce8\u7684\u8d26\u6237\u3001\u522b\u4eba\u4f20\u7ed9\u4f60\u7684 Reels\uff0c\u4ee5\u53ca\u6ca1\u6709\u6570\u5b57\u7684 Reels \u4ecd\u4f1a\u64ad\u653e\u3002");
+        table.put("Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.",
+                "\u7565\u8fc7\u5e26\u6709 Instagram \u539f\u751f AI \u6807\u7b7e\u7684 Reels\u3002\u6ca1\u6709\u8be5\u6807\u7b7e\u7684 Reel \u4ecd\u4f1a\u4fdd\u7559\uff0c\u5373\u4f7f\u5185\u5bb9\u7531 AI \u5236\u4f5c\u3002");
+        table.put("Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.",
+                "\u9690\u85cf\u6807\u793a\u201c\u4ed8\u8d39\u5408\u4f5c\u4f19\u4f34\u201d\u6216 Instagram \u6807\u8bb0\u4e3a\u52a0\u5f3a\u63a8\u5e7f\u7684 Reels\u3002\u5e7f\u544a\u53e6\u6709\u72ec\u7acb\u5f00\u5173\u3002");
+        table.put("Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.",
+                "\u79fb\u9664\u6d4f\u89c8\u5feb\u62cd\u65f6\uff0cInstagram \u5728\u4e2d\u95f4\u63d2\u5165\u7684\u201c\u6362\u4f60\u4e86\u201d\u5361\u7247\uff0c\u4f8b\u5982\u201c\u70ed\u95e8\u6362\u4f60\u4e86\u201d\u4e0e\u201c\u52a0\u5165\u70ed\u95e8\u6362\u4f60\u4e86\u201d\u3002\u5feb\u62cd\u672c\u8eab\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Leaves out the Suggested for you cards of accounts to follow that Instagram puts between the stories you tap through. The stories themselves stay.",
+                "\u79fb\u9664\u6d4f\u89c8\u5feb\u62cd\u65f6\uff0cInstagram \u5728\u4e2d\u95f4\u63d2\u5165\u7684\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u5173\u6ce8\u8d26\u6237\u5361\u7247\u3002\u5feb\u62cd\u672c\u8eab\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Leaves out the live broadcasts Instagram puts between reels in the Reels tab and when you swipe through reels from Explore.",
+                "\u7565\u8fc7 Instagram \u5728 Reels \u6807\u7b7e\u9875\u4e2d\uff0c\u4ee5\u53ca\u4ece\u63a2\u7d22\u6ed1\u52a8\u6d4f\u89c8 Reels \u65f6\uff0c\u5939\u5728 Reels \u4e4b\u95f4\u7684\u76f4\u64ad\u3002");
+        table.put("Leaves the Suggested for you accounts out of what shows when you tap the search bar. Recent searches stay.",
+                "\u70b9\u51fb\u641c\u7d22\u680f\u65f6\uff0c\u4e0d\u518d\u663e\u793a\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u7684\u8d26\u6237\u3002\u6700\u8fd1\u641c\u7d22\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Leaves the Suggested for you section off the followers, following and mutual lists and the screen where you approve follow requests, and the Suggested tab off other people's follow lists. Every account in the lists and every real request stays.",
+                "\u79fb\u9664\u7c89\u4e1d\u3001\u5df2\u5173\u6ce8\u4e0e\u5171\u540c\u5173\u6ce8\u540d\u5355\uff0c\u4ee5\u53ca\u4f60\u6838\u51c6\u5173\u6ce8\u8981\u6c42\u7684\u753b\u9762\u4e2d\u7684\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u533a\u5757\uff0c\u8fd8\u6709\u4ed6\u4eba\u5173\u6ce8\u540d\u5355\u4e2d\u7684\u63a8\u8350\u6807\u7b7e\u9875\u3002\u540d\u5355\u5185\u7684\u8d26\u6237\u4e0e\u771f\u6b63\u7684\u8981\u6c42\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Leaving Instagram while a reel plays shrinks it into a small window over your other apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.",
+                "\u5728 Reel \u64ad\u653e\u65f6\u79bb\u5f00 Instagram\uff0c\u89c6\u9891\u4f1a\u7f29\u6210\u6d6e\u5728\u5176\u4ed6\u5e94\u7528\u7a0b\u5e8f\u4e0a\u65b9\u7684\u5c0f\u7a97\u53e3\u3002\u9002\u7528\u4e8e Reels \u548c\u4ece\u52a8\u6001\u6d88\u606f\u6253\u5f00\u7684 Reel\uff0c\u9700\u8981 Android 15 \u4ee5\u4e0a\u7248\u672c\u3002");
+        table.put("Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.",
+                "\u5728\u5feb\u62cd\u64ad\u653e\u65f6\u79bb\u5f00 Instagram\uff0c\u5b83\u4f1a\u7f29\u6210\u6d6e\u5728\u5176\u4ed6\u5e94\u7528\u7a0b\u5e8f\u4e0a\u65b9\u7684\u5c0f\u7a97\u53e3\uff0c\u5e76\u5728\u5176\u4e2d\u7ee7\u7eed\u64ad\u653e\u5feb\u62cd.");
+        table.put("Left off other profiles: %1$s. The grid of posts stays.",
+                "\u4ed6\u4eba\u7684\u4e3b\u9875\u4e2d\u5df2\u9690\u85cf\uff1a%1$s\u3002\u5e16\u5b50\u7f51\u683c\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Left off the message box: %1$s. Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send stay.",
+                "\u6d88\u606f\u8f93\u5165\u6846\u4e2d\u5df2\u9690\u85cf\uff1a%1$s\u3002\u542f\u7528\u201c\u76f8\u518c\u4e0e\u9ea6\u514b\u98ce\u653e\u8fdb\u52a0\u53f7\u83dc\u5355\u201d\u65f6\uff0c\u76f8\u518c\u4e0e\u8bed\u97f3\u9891\u606f\u4f1a\u5728\u52a0\u53f7\u83dc\u5355\u4e2d\u3002\u6587\u5b57\u8f93\u5165\u6846\u4e0e\u53d1\u9001\u6309\u94ae\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Left off the message box: %1$s. The text box and Send stay.",
+                "\u6d88\u606f\u8f93\u5165\u6846\u4e2d\u5df2\u9690\u85cf\uff1a%1$s\u3002\u6587\u5b57\u8f93\u5165\u6846\u4e0e\u53d1\u9001\u6309\u94ae\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Left off the share sheet: %1$s.",
+                "\u5206\u4eab\u8868\u5355\u4e2d\u5df2\u9690\u85cf\uff1a%1$s\u3002");
+        table.put("Left off your profile: %1$s. The grid of posts stays.",
+                "\u4f60\u7684\u4e3b\u9875\u4e2d\u5df2\u9690\u85cf\uff1a%1$s\u3002\u5e16\u5b50\u7f51\u683c\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Left out by your download switches",
+                "\u4f9d\u4f60\u7684\u4e0b\u8f7d\u5f00\u5173\u8bbe\u7f6e\u7565\u8fc7");
+        table.put("Licenses",
+                "\u6388\u6743\u6761\u6b3e");
+        table.put("Light when paused",
+                "\u6682\u505c\u65f6\u4eae\u8d77");
+        table.put("Like animation",
+                "\u70b9\u8d5e\u52a8\u753b");
+        table.put("Like or unlike this comment?",
+                "\u8981\u5bf9\u8fd9\u5219\u8bc4\u8bba\u70b9\u8d5e\u6216\u6536\u56de\u8d5e\u5417\uff1f");
+        table.put("Like or unlike this post?",
+                "\u8981\u5bf9\u8fd9\u5219\u5e16\u5b50\u70b9\u8d5e\u6216\u6536\u56de\u8d5e\u5417\uff1f");
+        table.put("Likes aren't looked at",
+                "\u4e0d\u770b\u70b9\u8d5e\u6570");
+        table.put("Link expired. Reopen the item and try again.",
+                "\u94fe\u63a5\u5df2\u8fc7\u671f\u3002\u8bf7\u91cd\u65b0\u6253\u5f00\u8be5\u9879\u76ee\u540e\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Links keep instagram.com.",
+                "\u94fe\u63a5\u7ef4\u6301\u4f7f\u7528 instagram.com\u3002");
+        table.put("Links to instagram.com go out on %1$s.",
+                "instagram.com \u7684\u94fe\u63a5\u4f1a\u6539\u7528 %1$s \u5206\u4eab\u3002");
+        table.put("Links to instagram.com that you copy or share go out on this domain instead, for a site that shows Instagram posts and reels in chat apps. Type the domain alone, like example.com. Leave it blank to keep instagram.com.",
+                "\u590d\u5236\u6216\u5206\u4eab instagram.com \u94fe\u63a5\u65f6\uff0c\u6539\u7528\u6b64\u7f51\u57df\uff0c\u4ee5\u4fbf\u901a\u8fc7\u5176\u4ed6\u7f51\u7ad9\u5728\u804a\u5929\u5e94\u7528\u7a0b\u5e8f\u4e2d\u663e\u793a Instagram \u5e16\u5b50\u4e0e Reels\u3002\u4ec5\u8f93\u5165\u7f51\u57df\uff0c\u4f8b\u5982 example.com\u3002\u7559\u7a7a\u5219\u4fdd\u7559 instagram.com\u3002");
+        table.put("Liquid glass look",
+                "\u6db2\u6001\u73bb\u7483\u5916\u89c2");
+        table.put("Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.",
+                "\u5728\u641c\u7d22\u680f\u4e0b\u65b9\u680f\u51fa\u6240\u6709\u6700\u8fd1\u641c\u7d22\uff0c\u800c\u975e\u4ec5\u524d\u51e0\u7b14\u3002\u201c\u67e5\u770b\u5168\u90e8\u201d\u4e0e\u6bcf\u5217\u7684 x \u4ecd\u53ef\u7167\u5e38\u4f7f\u7528\u3002");
+        table.put("Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.",
+                "\u89c2\u770b\u76f4\u64ad\u65f6\uff0c\u4f60\u4e0d\u4f1a\u51fa\u73b0\u5728\u76f4\u64ad\u4e3b\u7684\u89c2\u770b\u8005\u540d\u5355\u4e2d\uff0c\u5bf9\u65b9\u4e5f\u4e0d\u4f1a\u77e5\u9053\u4f60\u6b63\u5728\u89c2\u770b\u3002\u8bc4\u8bba\u6216\u53d1\u9001\u5fc3\u60c5\u56de\u5e94\u4ecd\u4f1a\u663e\u793a\u4f60\u3002\u4f60\u770b\u5230\u7684\u89c2\u770b\u4eba\u6570\u5c06\u505c\u6b62\u66f4\u65b0\uff0c\u76f4\u64ad\u7ed3\u675f\u540e\u4e5f\u53ef\u80fd\u6301\u7eed\u663e\u793a\u4e3a\u76f4\u64ad\u4e2d\uff0c\u76f4\u5230\u4f60\u79bb\u5f00\u3002");
+        table.put("Loading",
+                "\u52a0\u8f7d\u4e2d");
+        table.put("Loading older messages.",
+                "\u6b63\u5728\u52a0\u8f7d\u8f83\u65e7\u7684\u6d88\u606f\u3002");
+        table.put("Loading older messages. %1$d message so far.",
+                "\u6b63\u5728\u52a0\u8f7d\u8f83\u65e7\u7684\u6d88\u606f\u3002\u76ee\u524d %1$d \u5219\u3002");
+        table.put("Loading older messages. %1$d messages so far.",
+                "\u6b63\u5728\u52a0\u8f7d\u8f83\u65e7\u7684\u6d88\u606f\u3002\u76ee\u524d %1$d \u5219\u3002");
+        table.put("Loading the picture...",
+                "\u6b63\u5728\u52a0\u8f7d\u56fe\u7247\u2026");
+        table.put("Loads photos in your feed, carousels and opened posts at the largest size Instagram offers. This can use more data.",
+                "\u4ee5 Instagram \u63d0\u4f9b\u7684\u6700\u5927\u5c3a\u5bf8\u52a0\u8f7d\u52a8\u6001\u9996\u9875\u3001\u8f6e\u64ad\u5e16\u5b50\u53ca\u5df2\u6253\u5f00\u5e16\u5b50\u4e2d\u7684\u7167\u7247\u3002\u53ef\u80fd\u4f1a\u4f7f\u7528\u66f4\u591a\u6570\u636e\u3002");
+        table.put("Loads smaller photos and starts videos, reels and stories at the lowest quality. Grid thumbnails stay as they are. It takes priority over Full resolution photos and the quality above.",
+                "\u52a0\u8f7d\u8f83\u5c0f\u7684\u7167\u7247\uff0c\u5e76\u4ee5\u6700\u4f4e\u753b\u8d28\u5f00\u59cb\u64ad\u653e\u89c6\u9891\u3001Reels \u4e0e\u5feb\u62cd\u3002\u7f51\u683c\u7f29\u7565\u56fe\u4e0d\u53d8\u3002\u6b64\u8bbe\u7f6e\u4f18\u5148\u4e8e\u201c\u5b8c\u6574\u5206\u8fa8\u7387\u7167\u7247\u201d\u4e0e\u4e0a\u65b9\u7684\u753b\u8d28\u8bbe\u7f6e\u3002");
+        table.put("Lock Saved",
+                "\u9501\u5b9a\u201c\u5df2\u6536\u85cf\u201d");
+        table.put("Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.",
+                "\u5c06 Reel \u9501\u5b9a\u4e3a 2 \u500d\u901f\uff08\u6309\u4f4f\u8fb9\u7f18\u540e\u5411\u4e0b\u6ed1\u52a8\uff09\uff0c\u4e4b\u540e\u7684 Reels \u4e5f\u4f1a\u4ee5 2 \u500d\u901f\u64ad\u653e\u3002\u6ed1\u52a8\u89e3\u9664\u9501\u5b9a\uff0c\u6216\u6309\u4f4f\u8fb9\u7f18\u540e\u653e\u5f00\uff0c\u5373\u53ef\u6062\u590d\u6b63\u5e38\u901f\u5ea6\u3002");
+        table.put("Lock again",
+                "\u91cd\u65b0\u9501\u5b9a");
+        table.put("Lock all of Instagram",
+                "\u9501\u5b9a\u6574\u4e2a Instagram");
+        table.put("Lock single chats. A locked chat opens only once you unlock it the way Unlock with says, and its notifications say only that a message came.",
+                "\u9501\u5b9a\u4e2a\u522b\u804a\u5929\u3002\u5df2\u9501\u5b9a\u7684\u804a\u5929\u8981\u4f9d\u201c\u89e3\u9501\u65b9\u5f0f\u201d\u7684\u8bbe\u7f6e\u89e3\u9501\u540e\u624d\u4f1a\u6253\u5f00\uff1b\u901a\u77e5\u53ea\u4f1a\u663e\u793a\u6536\u5230\u65b0\u6d88\u606f\u3002");
+        table.put("Lock switches stay as they are until you change them here.",
+                "\u9501\u5b9a\u5f00\u5173\u4f1a\u7ef4\u6301\u539f\u72b6\uff0c\u76f4\u5230\u4f60\u5728\u6b64\u53d8\u66f4\u3002");
+        table.put("Lock these settings",
+                "\u9501\u5b9a\u8fd9\u4e9b\u8bbe\u7f6e");
+        table.put("Lock turned off",
+                "\u5df2\u7981\u7528\u9501\u5b9a");
+        table.put("Lock your messages",
+                "\u9501\u5b9a\u6d88\u606f");
+        table.put("Locked chats",
+                "\u5df2\u9501\u5b9a\u7684\u804a\u5929");
+        table.put("Logo and titles at the start",
+                "\u5c06\u6807\u5fd7\u4e0e\u6807\u9898\u9760\u8d77\u59cb\u4fa7\u5bf9\u9f50");
+        table.put("Long press %1$s to open Favorites instead of that tab's usual action. Normal taps and other tabs stay the same. If the same tab opens HushGram, picks the playback quality, turns Ghost mode or opens Saved profiles, that comes first.",
+                "\u957f\u6309 %1$s \u4f1a\u6253\u5f00\u201c\u7279\u522b\u5173\u6ce8\u201d\uff0c\u53d6\u4ee3\u8be5\u6807\u7b7e\u9875\u539f\u672c\u7684\u64cd\u4f5c\u3002\u4e00\u822c\u70b9\u51fb\u4e0e\u5176\u4ed6\u6807\u7b7e\u9875\u4e0d\u53d7\u5f71\u54cd\u3002\u82e5\u540c\u4e00\u6807\u7b7e\u9875\u4e5f\u7528\u6765\u6253\u5f00 HushGram\u3001\u9009\u62e9\u64ad\u653e\u753b\u8d28\u3001\u5207\u6362\u5e7d\u7075\u6a21\u5f0f\u6216\u6253\u5f00\u5df2\u4fdd\u5b58\u7684\u4e3b\u9875\uff0c\u4f1a\u4f18\u5148\u8fd0\u884c\u90a3\u4e9b\u64cd\u4f5c\u3002");
+        table.put("Long press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.",
+                "\u957f\u6309 %1$s \u4f1a\u6253\u5f00 HushGram\uff0c\u53d6\u4ee3\u8be5\u6807\u7b7e\u9875\u539f\u672c\u7684\u64cd\u4f5c\u3002\u4e00\u822c\u70b9\u51fb\u4e0e\u5176\u4ed6\u6807\u7b7e\u9875\u4e0d\u53d7\u5f71\u54cd\u3002\u4ec5\u53ef\u4f7f\u7528\u8d26\u6237\u6709\u663e\u793a\u7684\u6807\u7b7e\u9875\u3002");
+        table.put("Long press %1$s to open Your saved profiles instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Saved profiles on. If the same tab opens HushGram, picks the playback quality or turns Ghost mode, that comes first.",
+                "\u957f\u6309 %1$s \u4f1a\u6253\u5f00\u4f60\u4fdd\u5b58\u7684\u4e3b\u9875\uff0c\u53d6\u4ee3\u8be5\u6807\u7b7e\u9875\u539f\u672c\u7684\u64cd\u4f5c\u3002\u4e00\u822c\u70b9\u51fb\u4e0e\u5176\u4ed6\u6807\u7b7e\u9875\u4e0d\u53d7\u5f71\u54cd\u3002\u9700\u6253\u5f00\u201c\u5df2\u4fdd\u5b58\u7684\u4e3b\u9875\u201d\u3002\u82e5\u540c\u4e00\u6807\u7b7e\u9875\u4e5f\u7528\u6765\u6253\u5f00 HushGram\u3001\u9009\u62e9\u64ad\u653e\u753b\u8d28\u6216\u5207\u6362\u5e7d\u7075\u6a21\u5f0f\uff0c\u4f1a\u4f18\u5148\u8fd0\u884c\u90a3\u4e9b\u64cd\u4f5c\u3002");
+        table.put("Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.",
+                "\u957f\u6309 %1$s \u4f1a\u9009\u62e9\u64ad\u653e\u753b\u8d28\uff0c\u53d6\u4ee3\u8be5\u6807\u7b7e\u9875\u539f\u672c\u7684\u64cd\u4f5c\u3002\u4e00\u822c\u70b9\u51fb\u4e0e\u5176\u4ed6\u6807\u7b7e\u9875\u4e0d\u53d7\u5f71\u54cd\u3002\u9700\u542f\u7528\u201c\u9ed8\u8ba4\u64ad\u653e\u753b\u8d28\u201d\u3002\u82e5\u540c\u4e00\u6807\u7b7e\u9875\u4e5f\u7528\u6765\u6253\u5f00 HushGram\uff0c\u4f1a\u4f18\u5148\u6253\u5f00 HushGram\u3002");
+        table.put("Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.",
+                "\u957f\u6309 %1$s \u4f1a\u6253\u5f00\u6216\u5173\u95ed\u5e7d\u7075\u6a21\u5f0f\uff0c\u53d6\u4ee3\u8be5\u6807\u7b7e\u9875\u539f\u672c\u7684\u64cd\u4f5c\uff0c\u5e76\u4ee5\u77ed\u6682\u63d0\u793a\u663e\u793a\u5207\u6362\u7ed3\u679c\u3002\u4e00\u822c\u70b9\u51fb\u4e0e\u5176\u4ed6\u6807\u7b7e\u9875\u4e0d\u53d7\u5f71\u54cd\u3002\u82e5\u540c\u4e00\u6807\u7b7e\u9875\u4e5f\u7528\u6765\u6253\u5f00 HushGram \u6216\u9009\u62e9\u64ad\u653e\u753b\u8d28\uff0c\u4f1a\u4f18\u5148\u8fd0\u884c\u90a3\u4e9b\u64cd\u4f5c\u3002");
+        table.put("Long press a chat in your messages and tap Preview to read its newest messages without opening it, so nobody sees Seen. You can reply from there too.",
+                "\u5728\u6d88\u606f\u4e2d\u957f\u6309\u804a\u5929\u5e76\u70b9\u51fb\u201c\u9884\u89c8\u201d\uff0c\u5c31\u80fd\u5728\u4e0d\u6253\u5f00\u804a\u5929\u7684\u60c5\u51b5\u4e0b\u9605\u8bfb\u6700\u65b0\u6d88\u606f\uff0c\u5bf9\u65b9\u4e0d\u4f1a\u770b\u5230\u201c\u5df2\u8bfb\u201d\u3002\u4f60\u4e5f\u53ef\u4ee5\u76f4\u63a5\u5728\u90a3\u91cc\u56de\u590d\u3002");
+        table.put("Long press a photo to zoom",
+                "\u957f\u6309\u7167\u7247\u653e\u5927");
+        table.put("Long press a post for full screen",
+                "\u957f\u6309\u5e16\u5b50\u4ee5\u5168\u5c4f\u5e55\u663e\u793a");
+        table.put("Look",
+                "\u5916\u89c2");
+        table.put("Loop a story",
+                "\u5faa\u73af\u64ad\u653e\u5feb\u62cd");
+        table.put("Loop didn't change",
+                "\u91cd\u590d\u64ad\u653e\u672a\u53d8\u66f4");
+        table.put("Loop this story",
+                "\u91cd\u590d\u64ad\u653e\u8fd9\u5219\u5feb\u62cd");
+    }
+
+    private static void fillZh16(Map<String, String> table) {
+        table.put("Loop this video",
+                "\u91cd\u590d\u64ad\u653e\u8fd9\u90e8\u89c6\u9891");
+        table.put("Looping this story",
+                "\u6b63\u5728\u91cd\u590d\u64ad\u653e\u8fd9\u5219\u5feb\u62cd");
+        table.put("Looping this video",
+                "\u6b63\u5728\u91cd\u590d\u64ad\u653e\u8fd9\u90e8\u89c6\u9891");
+        table.put("Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.",
+                "\u52a0\u7c97\u8fdb\u5ea6\u6761\uff0c\u52a0\u5165\u767d\u8272\u5706\u5f62\u62d6\u52a8\u94ae\u4e0e\u4e0a\u65b9\u65f6\u95f4\uff0c\u5e76\u4ee5\u67d4\u548c\u7684\u6df1\u8272\u6e10\u53d8\u4e3a\u80cc\u666f\uff0c\u8ba9\u4efb\u4f55\u89c6\u9891\u4e0a\u90fd\u6e05\u695a\u53ef\u89c1\u3002\u62d6\u52a8\u5373\u53ef\u8df3\u8f6c\uff0c\u4e5f\u4f1a\u4fdd\u7559\u77ed Reels \u7684\u8fdb\u5ea6\u6761\u3002");
+        table.put("Mark a chat seen when you reply",
+                "\u56de\u590d\u65f6\u5c06\u804a\u5929\u6807\u793a\u4e3a\u5df2\u8bfb");
+        table.put("Mark as read",
+                "\u6807\u793a\u4e3a\u5df2\u8bfb");
+        table.put("Mark as read button in chats",
+                "\u804a\u5929\u4e2d\u7684\u201c\u6807\u793a\u4e3a\u5df2\u8bfb\u201d\u6309\u94ae");
+        table.put("Mark as seen",
+                "\u6807\u8bb0\u4e3a\u5df2\u8bfb");
+        table.put("Mark as seen button",
+                "\u6807\u8bb0\u4e3a\u5df2\u8bfb\u6309\u94ae");
+        table.put("Mark as seen button on lives",
+                "\u76f4\u64ad\u7684\u6807\u8bb0\u4e3a\u5df2\u8bfb\u6309\u94ae");
+        table.put("Mark one-time photos and videos",
+                "\u6807\u793a\u4ec5\u9650\u67e5\u770b\u4e00\u6b21\u7684\u7167\u7247\u548c\u89c6\u9891");
+        table.put("Mark who doesn't follow you back",
+                "\u6807\u793a\u672a\u56de\u5173\u7684\u8d26\u6237");
+        table.put("Marked as read",
+                "\u5df2\u6807\u793a\u4e3a\u5df2\u8bfb");
+        table.put("Marked as seen and sent",
+                "\u5df2\u6807\u8bb0\u4e3a\u5df2\u8bfb\u5e76\u9001\u51fa");
+        table.put("Marked as seen. Tap again to undo.",
+                "\u5df2\u6807\u8bb0\u4e3a\u5df2\u8bfb\u3002\u518d\u6b21\u70b9\u51fb\u5373\u53ef\u590d\u539f\u3002");
+        table.put("Material You",
+                "Material You");
+        table.put("Material You needs Android 12 or newer, so Instagram's blue stays.",
+                "Material You \u9700\u8981 Android 12 \u6216\u66f4\u65b0\u7248\u672c\uff0c\u56e0\u6b64\u4ecd\u4f1a\u4f7f\u7528 Instagram \u7684\u84dd\u8272\u3002");
+        table.put("Media ID %1$s",
+                "\u5a92\u4f53 ID %1$s");
+        table.put("Media and storage",
+                "\u5a92\u4f53\u4e0e\u5b58\u50a8\u7a7a\u95f4");
+        table.put("Media link",
+                "\u5a92\u4f53\u94fe\u63a5");
+        table.put("Media link copied. It stops working after a few days.",
+                "\u5df2\u590d\u5236\u5a92\u4f53\u94fe\u63a5\u3002\u94fe\u63a5\u4f1a\u5728\u51e0\u5929\u540e\u5931\u6548\u3002");
+        table.put("Media link is the %1$d \u00d7 %2$d file",
+                "\u5a92\u4f53\u94fe\u63a5\u6307\u5411 %1$d \u00d7 %2$d \u7684\u6587\u4ef6");
+        table.put("Media quality, auto-play and controls.",
+                "\u5a92\u4f53\u54c1\u8d28\u3001\u81ea\u52a8\u64ad\u653e\u4e0e\u63a7\u5236\u9009\u9879\u3002");
+        table.put("Medium",
+                "\u4e2d");
+        table.put("Mentioned in this story",
+                "\u6b64\u5feb\u62cd\u63d0\u53ca\u7684\u8d26\u6237");
+        table.put("Menu button on Home's header",
+                "\u9996\u9875\u9876\u7aef\u7684\u83dc\u5355\u6309\u94ae");
+        table.put("Messages",
+                "\u6d88\u606f");
+        table.put("Messages after a reel",
+                "Reels \u4e4b\u540e\u7684\u6d88\u606f");
+        table.put("Messages button on Home's header",
+                "\u9996\u9875\u9876\u7aef\u7684\u6d88\u606f\u6309\u94ae");
+        table.put("Messenger",
+                "Messenger");
+        table.put("Meta AI",
+                "Meta AI");
+        table.put("Minimum likes",
+                "\u6700\u4f4e\u70b9\u8d5e\u6570");
+        table.put("Minimum views",
+                "\u6700\u4f4e\u89c2\u770b\u6b21\u6570");
+        table.put("Mix in Following",
+                "\u7a7f\u63d2\u201c\u5df2\u5173\u6ce8\u201d");
+        table.put("More",
+                "\u66f4\u591a");
+        table.put("Move down",
+                "\u4e0b\u79fb");
+        table.put("Move on when a reel ends",
+                "Reel \u7ed3\u675f\u540e\u64ad\u653e\u4e0b\u4e00\u5219");
+        table.put("Move to folder",
+                "\u79fb\u81f3\u6587\u4ef6\u5939");
+        table.put("Move up",
+                "\u4e0a\u79fb");
+        table.put("Moved @%1$s to %2$s",
+                "\u5df2\u5c06 @%1$s \u79fb\u81f3 %2$s");
+        table.put("Moved @%s out of its folder",
+                "\u5df2\u5c06 @%s \u79fb\u51fa\u6587\u4ef6\u5939");
+        table.put("Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.",
+                "\u5c06\u8f6e\u64ad\u5e16\u5b50\u7684\u9875\u9762\u5706\u70b9\u79fb\u5230\u7167\u7247\u6216\u89c6\u9891\u5e95\u90e8\u7684\u5706\u89d2\u80f6\u56ca\u4e0a\uff0c\u76ee\u524d\u7684\u9875\u9762\u4ee5\u84dd\u8272\u663e\u793a\u3002\u6309\u4f4f\u80f6\u56ca\u5e76\u5de6\u53f3\u6ed1\u52a8\u5373\u53ef\u5207\u6362\u9875\u9762\u3002");
+        table.put("Moves the gallery and microphone buttons off the message bar and into the plus menu. They work as before. Turn it off and they're back the next time a chat opens.",
+                "\u628a\u76f8\u518c\u548c\u9ea6\u514b\u98ce\u6309\u94ae\u4ece\u6d88\u606f\u680f\u79fb\u5230\u52a0\u53f7\u83dc\u5355\u3002\u5b83\u4eec\u7684\u529f\u80fd\u548c\u4ee5\u524d\u4e00\u6837\u3002\u5173\u95ed\u540e\uff0c\u4e0b\u6b21\u6253\u5f00\u804a\u5929\u65f6\u5c31\u4f1a\u56de\u6765\u3002");
+        table.put("Mute",
+                "\u9759\u97f3");
+        table.put("Mute button in clear mode",
+                "\u6e05\u723d\u6a21\u5f0f\u9759\u97f3\u6309\u94ae");
+        table.put("Mute button on reels",
+                "Reels \u9759\u97f3\u6309\u94ae");
+        table.put("Mute notification types",
+                "\u5c06\u901a\u77e5\u7c7b\u578b\u8bbe\u4e3a\u9759\u97f3");
+        table.put("Name saves by account and post time",
+                "\u6309\u8d26\u6237\u4e0e\u53d1\u5e03\u65f6\u95f4\u547d\u540d");
+        table.put("Names each photo and video for the account that posted it and when, like username_20261005_143012, so an account's saves sort by date. A carousel page gets its number on the end. Takes the place of the video file name. A save that doesn't know who posted or when keeps its usual name.",
+                "\u4ee5\u53d1\u5e03\u8d26\u6237\u4e0e\u65f6\u95f4\u4e3a\u6bcf\u5f20\u7167\u7247\u53ca\u89c6\u9891\u547d\u540d\uff0c\u4f8b\u5982 username_20261005_143012\uff0c\u8ba9\u540c\u4e00\u8d26\u6237\u7684\u4fdd\u5b58\u9879\u76ee\u4f9d\u65e5\u671f\u6392\u5e8f\u3002\u8f6e\u64ad\u9875\u9762\u4f1a\u5728\u7ed3\u5c3e\u52a0\u5165\u9875\u7801\u3002\u6b64\u8bbe\u7f6e\u4f1a\u53d6\u4ee3\u89c6\u9891\u6587\u4ef6\u540d\u8bbe\u7f6e\u3002\u82e5\u65e0\u6cd5\u53d6\u5f97\u53d1\u5e03\u8005\u6216\u65f6\u95f4\uff0c\u5219\u4fdd\u7559\u539f\u672c\u7684\u547d\u540d\u65b9\u5f0f\u3002");
+        table.put("Narrow",
+                "\u7a84");
+        table.put("Never",
+                "\u6c38\u4e0d");
+        table.put("Never save AV1 video",
+                "\u6c38\u4e0d\u4fdd\u5b58 AV1 \u89c6\u9891");
+        table.put("Never save HDR video",
+                "\u6c38\u4e0d\u4fdd\u5b58 HDR \u89c6\u9891");
+        table.put("Never. Pick a time and the tab bar slides away once a reel has played that long without a touch. Restart Instagram after changing it.",
+                "\u6c38\u4e0d\u9690\u85cf\u3002\u9009\u62e9\u65f6\u95f4\u540e\uff0cReel \u64ad\u653e\u8fbe\u6307\u5b9a\u65f6\u95f4\u4e14\u672a\u89e6\u78b0\u753b\u9762\u65f6\uff0c\u6807\u7b7e\u680f\u5c31\u4f1a\u6ed1\u51fa\u753b\u9762\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("New",
+                "\u6dfb\u52a0\u9879\u76ee");
+        table.put("New PIN",
+                "\u65b0 PIN \u7801");
+        table.put("New folder",
+                "\u6dfb\u52a0\u6587\u4ef6\u5939");
+        table.put("New message",
+                "\u65b0\u6d88\u606f");
+        table.put("New message after this reel",
+                "\u8fd9\u5219 Reel \u4e4b\u540e\u6709\u65b0\u6d88\u606f");
+        table.put("New profile picture",
+                "\u65b0\u7684\u5934\u50cf");
+    }
+
+    private static void fillZh17(Map<String, String> table) {
+        table.put("New profile picture and bio",
+                "\u65b0\u7684\u5934\u50cf\u548c\u4e2a\u4eba\u7b80\u4ecb");
+        table.put("Next match",
+                "\u4e0b\u4e00\u4e2a\u7ed3\u679c");
+        table.put("Next page",
+                "\u4e0b\u4e00\u9875");
+        table.put("No Play Store updates",
+                "\u7981\u7528 Play \u5546\u5e97\u66f4\u65b0");
+        table.put("No accounts are hidden yet. Add a username to take that account's posts out of Home and Following.",
+                "\u5c1a\u672a\u9690\u85cf\u4efb\u4f55\u8d26\u6237\u3002\u6dfb\u52a0\u7528\u6237\u540d\uff0c\u5373\u53ef\u4ece\u9996\u9875\u4e0e\u5df2\u5173\u6ce8\u79fb\u9664\u8be5\u8d26\u6237\u7684\u5e16\u5b50\u3002");
+        table.put("No accounts yet",
+                "\u5c1a\u672a\u52a0\u5165\u8d26\u6237");
+        table.put("No app can open the bug report.",
+                "\u624b\u673a\u4e0a\u6ca1\u6709\u53ef\u6253\u5f00\u95ee\u9898\u4e0a\u62a5\u7684\u5e94\u7528\u7a0b\u5e8f\u3002");
+        table.put("No app can open this link.",
+                "\u624b\u673a\u4e0a\u6ca1\u6709\u53ef\u6253\u5f00\u6b64\u94fe\u63a5\u7684\u5e94\u7528\u7a0b\u5e8f\u3002");
+        table.put("No app here can read text",
+                "\u6ca1\u6709\u53ef\u8bfb\u53d6\u6587\u5b57\u7684\u5e94\u7528\u7a0b\u5e8f");
+        table.put("No app on this phone can play this video",
+                "\u624b\u673a\u4e0a\u6ca1\u6709\u53ef\u64ad\u653e\u6b64\u89c6\u9891\u7684\u5e94\u7528\u7a0b\u5e8f");
+        table.put("No call rings your phone. Callers just get no answer.",
+                "\u6ca1\u6709\u4efb\u4f55\u6765\u7535\u4f1a\u54cd\u3002\u5bf9\u65b9\u53ea\u4f1a\u5f97\u4e0d\u5230\u56de\u5e94\u3002");
+        table.put("No color emoji in that file. Nothing changed.",
+                "\u8be5\u6587\u4ef6\u4e2d\u6ca1\u6709\u5f69\u8272\u8868\u60c5\u7b26\u53f7\uff0c\u672a\u505a\u4efb\u4f55\u53d8\u66f4\u3002");
+        table.put("No direct link for this one",
+                "\u6b64\u9879\u76ee\u6ca1\u6709\u76f4\u63a5\u94fe\u63a5");
+        table.put("No folder",
+                "\u4e0d\u653e\u5165\u6587\u4ef6\u5939");
+        table.put("No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.",
+                "\u5c1a\u672a\u6dfb\u52a0\u5b57\u4f53\u3002\u6dfb\u52a0 .ttf \u6216 .otf \u6587\u4ef6\u540e\uff0c\u5c31\u4f1a\u4e0e Instagram \u5b57\u4f53\u4e00\u8d77\u663e\u793a\u5728\u5feb\u62cd\u6587\u5b57\u7f16\u8f91\u5668\u4e2d\u3002");
+        table.put("No friends to pick yet.",
+                "\u8fd8\u6ca1\u6709\u53ef\u9009\u7684\u597d\u53cb\u3002");
+        table.put("No matching settings",
+                "\u6ca1\u6709\u7b26\u5408\u7684\u8bbe\u7f6e");
+        table.put("No messages found to save.",
+                "\u6ca1\u6709\u53ef\u4fdd\u5b58\u7684\u6d88\u606f\u3002");
+        table.put("No more matches",
+                "\u6ca1\u6709\u66f4\u591a\u7ed3\u679c");
+        table.put("No one has left since then.",
+                "\u81ea\u4e0a\u6b21\u4ee5\u6765\uff0c\u6ca1\u6709\u4eba\u79bb\u5f00\u3002");
+        table.put("No other way into HushGram is on, so the row stays in Instagram's menu.",
+                "\u76ee\u524d\u672a\u542f\u7528\u5176\u4ed6 HushGram \u5165\u53e3\uff0c\u56e0\u6b64 Instagram \u83dc\u5355\u4e2d\u7684\u9879\u76ee\u4f1a\u4fdd\u7559\u3002");
+        table.put("No pages chosen",
+                "\u5c1a\u672a\u9009\u62e9\u9875\u9762");
+        table.put("No place set. Until there is one, Instagram is told 0, 0 while Spoof location is on.",
+                "\u5c1a\u672a\u8bbe\u7f6e\u4f4d\u7f6e\u3002\u542f\u7528\u201c\u4f2a\u88c5\u4f4d\u7f6e\u201d\u671f\u95f4\uff0c\u672a\u8bbe\u7f6e\u524d\u4f1a\u5411 Instagram \u4e0a\u62a5 0, 0\u3002");
+        table.put("No server set. Until there is one, Instagram goes out directly.",
+                "\u5c1a\u672a\u8bbe\u7f6e\u670d\u52a1\u5668\u3002\u8bbe\u7f6e\u4e4b\u524d\uff0cInstagram \u4f1a\u76f4\u63a5\u8fde\u63a5\u3002");
+        table.put("No settings import to undo.",
+                "\u6ca1\u6709\u53ef\u590d\u539f\u7684\u8bbe\u7f6e\u5bfc\u5165\u3002");
+        table.put("No sounds are hidden yet. Turn on Hide reels by sound, then tap the music icon beside a reel.",
+                "\u5c1a\u672a\u9690\u85cf\u4efb\u4f55\u97f3\u9891\u3002\u8bf7\u542f\u7528\u201c\u4f9d\u97f3\u9891\u9690\u85cf Reels\u201d\uff0c\u518d\u70b9\u51fb Reel \u65c1\u7684\u97f3\u4e50\u56fe\u6807\u3002");
+        table.put("No words yet",
+                "\u5c1a\u65e0\u5b57\u8bcd");
+        table.put("Nobody",
+                "\u6ca1\u6709\u4eba");
+        table.put("Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.",
+                "\u9664\u4e86 Meta\uff0c\u6ca1\u6709\u4eba\u77e5\u9053\u54ea\u4e9b\u884c\u4e3a\u4f1a\u5bfc\u81f4\u8d26\u6237\u88ab\u5c01\u7981\u3002\u6253\u8fc7\u8865\u4e01\u7684 Instagram \u65e0\u6cd5\u901a\u8fc7 Google \u5bf9 Play \u5546\u5e97\u6765\u6e90\u7684\u68c0\u67e5\uff0c\u4e5f\u6ca1\u6709\u4efb\u4f55\u8865\u4e01\u80fd\u6539\u53d8\u8fd9\u70b9\u3002\u82e5\u4e0d\u60f3\u8ba9\u8d26\u6237\u627f\u62c5\u98ce\u9669\uff0c\u53ef\u4ee5\u5148\u4f7f\u7528\u5907\u7528\u8d26\u6237\u3002\u540c\u4e00\u7b7e\u7f72\u5bc6\u94a5\u7684\u66f4\u65b0\u53ef\u76f4\u63a5\u8986\u76d6\u5b89\u88c5\uff0c\u4fdd\u7559 Instagram \u6570\u636e\u4e0e\u767b\u5f55\u72b6\u6001\u3002\u5df2\u53d6\u5f97 Root \u6743\u9650\u7684\u624b\u673a\u53ef\u901a\u8fc7 Root Mount \u5b89\u88c5\uff0c\u4fdd\u7559\u65e2\u6709\u767b\u5f55\u72b6\u6001\u3002");
+        table.put("None yet. Custom stays Instagram's blue until you type one.",
+                "\u5c1a\u672a\u8bbe\u7f6e\u3002\u8f93\u5165\u989c\u8272\u524d\uff0c\u81ea\u8ba2\u4f1a\u7ef4\u6301 Instagram \u7684\u84dd\u8272.");
+        table.put("Not interested",
+                "\u4e0d\u611f\u5174\u8da3");
+        table.put("Not interested button on reels",
+                "Reels \u7684\u4e0d\u611f\u5174\u8da3\u6309\u94ae");
+        table.put("Not saved: %1$d posts are already waiting",
+                "\u672a\u4fdd\u5b58\uff1a\u5df2\u6709 %1$d \u5219\u5e16\u5b50\u6b63\u5728\u7b49\u5f85");
+        table.put("Not saved: a carousel can have at most %1$d pages",
+                "\u672a\u4fdd\u5b58\uff1a\u8f6e\u64ad\u5e16\u5b50\u6700\u591a\u53ea\u80fd\u6709 %1$d \u9875");
+        table.put("Not saved: that isn't an Instagram photo or video",
+                "\u672a\u4fdd\u5b58\uff1a\u8fd9\u4e0d\u662f Instagram \u7167\u7247\u6216\u89c6\u9891");
+        table.put("Not saved: the account changed",
+                "\u672a\u4fdd\u5b58\uff1a\u8d26\u6237\u5df2\u5207\u6362");
+        table.put("Not saved: the file is over 512 MB",
+                "\u672a\u4fdd\u5b58\uff1a\u6587\u4ef6\u8d85\u8fc7 512 MB");
+        table.put("Not saved: the screen closed",
+                "\u672a\u4fdd\u5b58\uff1a\u753b\u9762\u5df2\u5173\u95ed");
+        table.put("Not used while you've picked a folder. Saves go there.",
+                "\u5df2\u9009\u62e9\u6587\u4ef6\u5939\u65f6\u4e0d\u4f1a\u4f7f\u7528\u8fd9\u4e2a\u540d\u79f0\uff0c\u6587\u4ef6\u4f1a\u5b58\u5230\u8be5\u6587\u4ef6\u5939\u3002");
+        table.put("Nothing here yet",
+                "\u8fd9\u91cc\u8fd8\u6ca1\u6709\u5185\u5bb9");
+        table.put("Nothing here yet. With Keep a viewing history on, what you look at shows up here.",
+                "\u76ee\u524d\u8fd8\u6ca1\u6709\u5185\u5bb9\u3002\u6253\u5f00\u4fdd\u7559\u6d4f\u89c8\u7eaa\u5f55\u540e\uff0c\u4f60\u770b\u8fc7\u7684\u5185\u5bb9\u4f1a\u663e\u793a\u5728\u8fd9\u91cc\u3002");
+        table.put("Nothing here yet. With Keep profile history on, the old usernames, bios and pictures of profiles you open show up here.",
+                "\u76ee\u524d\u8fd8\u6ca1\u6709\u5185\u5bb9\u3002\u6253\u5f00\u201c\u4fdd\u7559\u4e3b\u9875\u7eaa\u5f55\u201d\u540e\uff0c\u4f60\u6253\u5f00\u8fc7\u7684\u4e3b\u9875\u7684\u65e7\u7528\u6237\u540d\u3001\u4e2a\u4eba\u7b80\u4ecb\u548c\u7167\u7247\u4f1a\u663e\u793a\u5728\u8fd9\u91cc\u3002");
+        table.put("Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.",
+                "\u9996\u9875\u9876\u7aef\u7684\u5feb\u62cd\u680f\u5c06\u4e0d\u52a0\u8f7d\u4efb\u4f55\u5185\u5bb9\uff0c\u5305\u62ec\u4f60\u81ea\u5df1\u7684\u5feb\u62cd\uff1b\u4e3b\u9875\u7684\u7cbe\u9009\u4e5f\u4f1a\u4fdd\u6301\u7a7a\u767d\uff0c\u4ee5\u8282\u7701\u6570\u636e\u3002\u4ecd\u53ef\u70b9\u51fb\u4e3b\u9875\u6216\u804a\u5929\u4e2d\u7684\u5149\u5708\u6253\u5f00\u5feb\u62cd\u3002");
+        table.put("Nothing logged yet. With Recent unfollowers on, each time you scroll your own Followers list to the end, changes since the last time are added here.",
+                "\u5c1a\u672a\u8bb0\u5f55\u4efb\u4f55\u5185\u5bb9\u3002\u542f\u7528\u201c\u6700\u8fd1\u53d6\u6d88\u7c89\u4e1d\u201d\u540e\uff0c\u6bcf\u6b21\u4f60\u628a\u81ea\u5df1\u7684\u7c89\u4e1d\u6e05\u5355\u5377\u5230\u5e95\uff0c\u81ea\u4e0a\u6b21\u4ee5\u6765\u7684\u53d8\u52a8\u5c31\u4f1a\u52a0\u5230\u8fd9\u91cc\u3002");
+        table.put("Nothing matches.",
+                "\u6ca1\u6709\u7b26\u5408\u7684\u9879\u76ee\u3002");
+        table.put("Nothing saved yet. With Saved profiles on, tap Save profile in the menu on someone's profile and it shows up here.",
+                "\u5c1a\u672a\u4fdd\u5b58\u4efb\u4f55\u5185\u5bb9\u3002\u6253\u5f00\u201c\u5df2\u4fdd\u5b58\u7684\u4e3b\u9875\u201d\u540e\uff0c\u5728\u4ed6\u4eba\u4e3b\u9875\u7684\u83dc\u5355\u4e2d\u70b9\u6309\u201c\u4fdd\u5b58\u4e3b\u9875\u201d\uff0c\u8be5\u6587\u4ef6\u5c31\u4f1a\u663e\u793a\u5728\u8fd9\u91cc\u3002");
+        table.put("Nothing to compare yet. With Recent unfollowers on, open your own Followers list and scroll to the end. The next time you do, anyone missing shows here.",
+                "\u76ee\u524d\u6ca1\u6709\u53ef\u6bd4\u8f83\u7684\u6570\u636e\u3002\u542f\u7528\u201c\u6700\u8fd1\u53d6\u6d88\u7c89\u4e1d\u201d\u540e\uff0c\u6253\u5f00\u81ea\u5df1\u7684\u7c89\u4e1d\u540d\u5355\u5e76\u5377\u5230\u5e95\u3002\u4e0b\u6b21\u518d\u8fd9\u4e48\u505a\u65f6\uff0c\u5c11\u6389\u7684\u8d26\u6237\u4f1a\u663e\u793a\u5728\u6b64\u3002");
+        table.put("Nothing to do for this profile",
+                "\u6b64\u4e3b\u9875\u6ca1\u6709\u53ef\u7528\u7684\u64cd\u4f5c");
+        table.put("Nothing to download on this post",
+                "\u6b64\u5e16\u5b50\u6ca1\u6709\u53ef\u4e0b\u8f7d\u7684\u5185\u5bb9");
+        table.put("Nothing to mark as read",
+                "\u6ca1\u6709\u53ef\u6807\u793a\u4e3a\u5df2\u8bfb\u7684\u5185\u5bb9");
+        table.put("Notifications",
+                "\u901a\u77e5");
+        table.put("Notify me of unfollowers",
+                "\u901a\u77e5\u6211\u6709\u4eba\u53d6\u6d88\u5173\u6ce8");
+        table.put("OK",
+                "\u786e\u8ba4");
+        table.put("Off",
+                "\u5173\u95ed");
+        table.put("Off. It can cover the Home, Reels and Explore tabs for a break after you've spent a while on them.",
+                "\u5df2\u5173\u95ed\u3002\u53ef\u5728\u4f7f\u7528\u9996\u9875\u3001Reels \u4e0e\u63a2\u7d22\u4e00\u6bb5\u65f6\u95f4\u540e\uff0c\u906e\u4f4f\u8fd9\u4e9b\u6807\u7b7e\u9875\u8ba9\u4f60\u4f11\u606f\u4e00\u4e0b\u3002");
+        table.put("Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.",
+                "\u5df2\u5173\u95ed\u3002\u53ef\u5728\u672a\u89e6\u78b0\u753b\u9762\u65f6\u6de1\u5316 Reel \u6309\u94ae\uff0c\u907f\u514d OLED \u5c4f\u5e55\u70d9\u5370\u3002");
+        table.put("Old bio, %s",
+                "\u65e7\u7684\u4e2a\u4eba\u7b80\u4ecb\uff0c%s");
+        table.put("Old profile picture, %s",
+                "\u65e7\u7684\u5934\u50cf\uff0c%s");
+        table.put("On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.",
+                "\u5728 Reels \u4e2d\uff0c\u672a\u89e6\u78b0\u753b\u9762 %1$d \u79d2\u540e\u6807\u7b7e\u680f\u4f1a\u6ed1\u51fa\u753b\u9762\u3002\u70b9\u51fb\u5c4f\u5e55\u5e95\u90e8\u8fb9\u7f18\u3001\u5207\u6362\u6807\u7b7e\u9875\u6216\u6309\u8fd4\u56de\u5373\u53ef\u91cd\u65b0\u663e\u793a\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("On a carousel, the download icon saves all of its pages at once instead of asking.",
+                "\u5728\u8f6e\u64ad\u5e16\u5b50\u70b9\u51fb\u4e0b\u8f7d\u56fe\u6807\u65f6\uff0c\u76f4\u63a5\u4fdd\u5b58\u6240\u6709\u9875\u9762\uff0c\u4e0d\u518d\u8be2\u95ee\u3002");
+    }
+
+    private static void fillZh18(Map<String, String> table) {
+        table.put("On a foldable or tablet, Instagram keeps its phone layout across the whole screen, with the tab bar at the bottom instead of down the side. Restart Instagram to see the change.",
+                "\u5728\u6298\u53e0\u624b\u673a\u6216\u5e73\u677f\u4e0a\uff0cInstagram \u4f1a\u5728\u6574\u4e2a\u5c4f\u5e55\u7ef4\u6301\u624b\u673a\u7248\u9762\uff0c\u6807\u7b7e\u680f\u7559\u5728\u5e95\u90e8\u800c\u4e0d\u662f\u4fa7\u8fb9\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("On a phone under 1440 pixels wide, asks Instagram for photos sized for a wider screen. This uses more data. Restart Instagram to see the change.",
+                "\u5728\u5c4f\u5e55\u5bbd\u5ea6\u4f4e\u4e8e 1440 \u50cf\u7d20\u7684\u624b\u673a\u4e0a\uff0c\u5411 Instagram \u8981\u6c42\u9002\u5408\u66f4\u5bbd\u5c4f\u5e55\u7684\u7167\u7247\u3002\u4f1a\u4f7f\u7528\u66f4\u591a\u6570\u636e\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.",
+                "\u5728\u8f83\u957f\u7684\u5c4f\u5e55\u4e0a\uff0c\u5feb\u62cd\u4f1a\u50cf\u5728\u8f83\u77ed\u7684\u624b\u673a\u4e0a\u4e00\u6837\u8986\u76d6\u6574\u4e2a\u5c4f\u5e55\uff0c\u56de\u590d\u680f\u53e0\u5728\u4e0a\u65b9\uff0c\u800c\u4e0d\u662f\u4ee5\u5706\u89d2\u5361\u7247\u663e\u793a\u5728\u56de\u590d\u680f\u4e0a\u65b9\u3002");
+        table.put("On comments",
+                "\u8bc4\u8bba");
+        table.put("On messages",
+                "\u6d88\u606f");
+        table.put("On posts",
+                "\u5e16\u5b50");
+        table.put("On reels",
+                "Reels");
+        table.put("On the Reels screen, the buttons, caption and bars fade when you leave them alone, and the screen moves a step every 2 minutes. Touching one of them brings them back.",
+                "\u5728 Reels \u753b\u9762\u4e2d\uff0c\u672a\u64cd\u4f5c\u7684\u6309\u94ae\u3001\u8bf4\u660e\u6587\u5b57\u4e0e\u5217\u4f1a\u6de1\u5316\uff0c\u753b\u9762\u4e5f\u4f1a\u6bcf\u4e24\u5206\u949f\u4f4d\u79fb\u4e00\u6b21\u3002\u89e6\u78b0\u5176\u4e2d\u4e00\u9879\u5373\u53ef\u6062\u590d\u663e\u793a\u3002");
+        table.put("On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.",
+                "\u5728 Reels \u753b\u9762\u4e2d\uff0c\u672a\u64cd\u4f5c\u7684\u6309\u94ae\u3001\u8bf4\u660e\u6587\u5b57\u4e0e\u5217\u4f1a\u6de1\u5316\u3002\u89e6\u78b0\u5176\u4e2d\u4e00\u9879\u5373\u53ef\u6062\u590d\u663e\u793a\u3002");
+        table.put("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
+                "\u5728\u6b64 Instagram \u7248\u672c\u4e0a\uff0c\u5df2\u6db5\u76d6 %1$d \u6761\u8def\u5f84\uff0c\u5171 %2$d \u6761\u3002\u5176\u4f59\u8def\u5f84\u5217\u4e8e\u8bca\u65ad\u62a5\u544a\u3002");
+        table.put("On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.",
+                "\u5728\u4f60\u7684\u5173\u6ce8\u540d\u5355\u5185\uff0c\u4e8e\u672a\u56de\u5173\u8d26\u6237\u7684\u540d\u79f0\u524d\u65b9\u6dfb\u52a0\u201c\u672a\u5173\u6ce8\u4f60\u201d\u3002Instagram \u5b8c\u6210\u67e5\u627e\u524d\u4e0d\u4f1a\u663e\u793a\u3002");
+        table.put("On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.",
+                "\u5728\u4f60\u7684\u5173\u6ce8\u540d\u5355\u5185\uff0c\u5c06\u672a\u56de\u5173\u8d26\u6237\u79fb\u81f3\u9876\u7aef\uff0c\u5404\u7ec4\u5185\u4ecd\u7ef4\u6301 Instagram \u539f\u672c\u7684\u987a\u5e8f\u3002\u5c1a\u672a\u5b8c\u6210\u67e5\u627e\u7684\u8d26\u6237\u4f1a\u7559\u5728\u4e0b\u65b9\u3002");
+        table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",
+                "\u9632\u70d9\u5370\u4fdd\u62a4\u6de1\u5316\u6309\u94ae\u540e\uff0c\u65e0\u8bba\u5728 Reels \u70b9\u51fb\u6216\u6ed1\u52a8\u4ec0\u4e48\uff0c\u6309\u94ae\u90fd\u4f1a\u7ef4\u6301\u6de1\u5316\uff0c\u4e0b\u4e00\u5219 Reel \u4e5f\u4e00\u6837\u3002\u6309\u94ae\u4ecd\u53ef\u64cd\u4f5c\uff0c\u79bb\u5f00 Reels \u540e\u4f1a\u6062\u590d\u663e\u793a\u3002");
+        table.put("Once you turn on Instagram's auto scroll in Reels, it stays on after a restart or after you leave Reels, until you turn it off.",
+                "\u5728 Reels \u6253\u5f00 Instagram \u7684\u81ea\u52a8\u5377\u52a8\u540e\uff0c\u5373\u4f7f\u91cd\u65b0\u542f\u52a8\u6216\u79bb\u5f00 Reels \u4ecd\u4f1a\u4fdd\u6301\u6253\u5f00\uff0c\u76f4\u5230\u4f60\u5c06\u5176\u5173\u95ed\u3002");
+        table.put("Only accounts that aren't verified",
+                "\u4ec5\u9650\u672a\u9a8c\u8bc1\u8d26\u6237");
+        table.put("Only accounts you follow",
+                "\u4ec5\u663e\u793a\u5df2\u5173\u6ce8\u7684\u8d26\u6237");
+        table.put("Only in Reels",
+                "\u4ec5 Reels");
+        table.put("Only on mobile data",
+                "\u4ec5\u9650\u79fb\u52a8\u6570\u636e");
+        table.put("Only people on your list",
+                "\u53ea\u6709\u540d\u5355\u4e0a\u7684\u4eba");
+        table.put("Only people on your list ring your phone. Anyone else gets no answer.",
+                "\u53ea\u6709\u540d\u5355\u4e0a\u7684\u4eba\u6765\u7535\u624d\u4f1a\u54cd\u3002\u5176\u4ed6\u4eba\u5f97\u4e0d\u5230\u56de\u5e94\u3002");
+        table.put("Only received reels",
+                "\u4ec5\u9650\u6536\u5230\u7684 Reels");
+        table.put("Only suggestions in For you. Home will open on Following.",
+                "\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u53ea\u6709\u63a8\u8350\u5e16\u5b50\uff0c\u9996\u9875\u5c06\u6539\u5f00\u201c\u5df2\u5173\u6ce8\u201d\u3002");
+        table.put("Only the newest 50 are shown.",
+                "\u4ec5\u663e\u793a\u6700\u65b0\u7684 50 \u7b14\u3002");
+        table.put("Only the time the story was posted, like 3:45 PM. Stories posted before today show the date and time.",
+                "\u4ec5\u663e\u793a\u5feb\u62cd\u53d1\u5e03\u7684\u65f6\u95f4\uff0c\u4f8b\u5982\u4e0b\u5348 3:45\u3002\u4eca\u5929\u4e4b\u524d\u53d1\u5e03\u7684\u5feb\u62cd\u5219\u663e\u793a\u65e5\u671f\u4e0e\u65f6\u95f4\u3002");
+        table.put("Only verified accounts",
+                "\u4ec5\u9650\u5df2\u9a8c\u8bc1\u8d26\u6237");
+        table.put("Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.",
+                "\u53ea\u6709\u6307\u7eb9\u6216\u8138\u90e8\u80fd\u89e3\u9501\u6d88\u606f\u3002\u624b\u673a\u82e5\u5c1a\u672a\u8bbe\u7f6e\u4efb\u4f55\u4e00\u79cd\uff0c\u5219\u7531\u5c4f\u5e55\u9501\u5b9a\u89e3\u9501\u3002");
+        table.put("Open Favorites with a tab long press",
+                "\u957f\u6309\u6807\u7b7e\u9875\u6253\u5f00\u201c\u7279\u522b\u5173\u6ce8\u201d");
+        table.put("Open Saved profiles with a tab long press",
+                "\u957f\u6309\u6807\u7b7e\u9875\u6253\u5f00\u5df2\u4fdd\u5b58\u7684\u4e3b\u9875");
+        table.put("Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.",
+                "\u8bf7\u5148\u5728 Instagram \u4e2d\u6253\u5f00\u4e00\u6b21\u201c\u8bbe\u7f6e\u548c\u52a8\u6001\u201d\uff0c\u518d\u56de\u5230\u8fd9\u91cc\u3002\u63a5\u7740\u5c31\u80fd\u5728\u6b64\u6e05\u5355\u4e2d\u53d6\u6d88\u52fe\u9009\u8981\u9690\u85cf\u7684\u9879\u76ee\u3002");
+        table.put("Open a chat in Instagram, then come back here to hide it.",
+                "\u5148\u5728 Instagram \u6253\u5f00\u804a\u5929\uff0c\u518d\u56de\u5230\u6b64\u5904\u9690\u85cf\u3002");
+        table.put("Open a chat in Instagram, then come back here to lock it.",
+                "\u5148\u5728 Instagram \u6253\u5f00\u804a\u5929\uff0c\u518d\u56de\u5230\u6b64\u5904\u9501\u5b9a\u3002");
+        table.put("Open a chat in Instagram, then come back here to pin it.",
+                "\u5148\u5728 Instagram \u6253\u5f00\u4e00\u4e2a\u804a\u5929\uff0c\u518d\u56de\u5230\u8fd9\u91cc\u9489\u9009\u5b83\u3002");
+        table.put("Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.",
+                "\u6253\u5f00\u804a\u5929\uff0c\u70b9\u4e00\u4e0b\u4e0a\u65b9\u901a\u8bdd\u6309\u94ae\u65c1\u7684\u65f6\u949f\u6309\u94ae\uff0c\u6216\u957f\u6309\u804a\u5929\u540d\u79f0\uff0c\u9009\u62e9\u201c\u5bfc\u51fa\u804a\u5929\u201d\u3002\u6574\u4e2a\u804a\u5929\u4f1a\u5b58\u6210\u6587\u5b57\u6863\uff0c\u653e\u5728\u201c\u4e0b\u8f7d\u201d\u7684 HushGram \u6587\u4ef6\u5939\uff0c\u6bcf\u5219\u6d88\u606f\u4e00\u884c\u3002");
+        table.put("Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.",
+                "\u6253\u5f00\u804a\u5929\uff0c\u70b9\u4e00\u4e0b\u4e0a\u65b9\u901a\u8bdd\u6309\u94ae\u65c1\u7684\u65f6\u949f\u6309\u94ae\uff0c\u6216\u957f\u6309\u804a\u5929\u540d\u79f0\uff0c\u9009\u62e9\u201c\u8df3\u5230\u7b2c\u4e00\u5219\u6d88\u606f\u201d\u6216\u201c\u8df3\u5230\u67d0\u4e2a\u65e5\u671f\u201d\u3002\u804a\u5929\u4f1a\u81ea\u52a8\u52a0\u8f7d\u8f83\u65e7\u7684\u6d88\u606f\uff0c\u5e76\u663e\u793a\u6570\u91cf\u548c\u53d6\u6d88\u6309\u94ae\u3002");
+        table.put("Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.",
+                "\u4ece Reel \u6253\u5f00\u521b\u4f5c\u8005\u4e3b\u9875\uff0c\u518d\u6253\u5f00\u5176 Reels \u6807\u7b7e\u9875\u65f6\uff0c\u4f1a\u5377\u52a8\u81f3\u8be5 Reel \u5e76\u77ed\u6682\u52a0\u6846\u6807\u793a\u3002\u7167\u7247 Reel \u4f1a\u5728\u5e16\u5b50\u4e2d\u5bfb\u627e\u3002\u201c\u505c\u6b62\u5bfb\u627e\u201d\u4f1a\u5728\u76ee\u524d\u4f4d\u7f6e\u7ed3\u675f\u641c\u7d22\u3002");
+        table.put("Open a photo or video from a chat and swipe up for the next photo, video or shared post in that chat, in chat order. Swipe down to go back one. Back takes you to the chat.",
+                "\u6253\u5f00\u804a\u5929\u4e2d\u7684\u7167\u7247\u6216\u89c6\u9891\u540e\u5f80\u4e0a\u6ed1\uff0c\u5373\u53ef\u4f9d\u804a\u5929\u987a\u5e8f\u770b\u8be5\u804a\u5929\u7684\u4e0b\u4e00\u5f20\u7167\u7247\u3001\u4e0b\u4e00\u90e8\u89c6\u9891\u6216\u5206\u4eab\u7684\u5e16\u5b50\u3002\u5f80\u4e0b\u6ed1\u53ef\u56de\u5230\u4e0a\u4e00\u4e2a\u3002\u8fd4\u56de\u4f1a\u56de\u5230\u804a\u5929\u3002");
+        table.put("Open app info",
+                "\u6253\u5f00\u5e94\u7528\u7a0b\u5e8f\u4fe1\u606f");
+        table.put("Open comments without the keyboard",
+                "\u6253\u5f00\u8bc4\u8bba\u65f6\u4e0d\u5f39\u51fa\u952e\u76d8");
+        table.put("Open in another player",
+                "\u5728\u5176\u4ed6\u64ad\u653e\u5668\u4e2d\u6253\u5f00");
+        table.put("Open links in external browser",
+                "\u5728\u5916\u90e8\u6d4f\u89c8\u5668\u4e2d\u6253\u5f00\u94fe\u63a5");
+        table.put("Open profile",
+                "\u6253\u5f00\u4e3b\u9875");
+        table.put("Open reel links on that reel",
+                "\u5728\u94fe\u63a5\u6307\u5411\u7684 Reel \u6253\u5f00 Reels \u94fe\u63a5");
+        table.put("Open settings from the logo",
+                "\u4ece\u6807\u5fd7\u6253\u5f00\u8bbe\u7f6e");
+        table.put("Open settings with a long press on your profile's menu",
+                "\u957f\u6309\u4e3b\u9875\u83dc\u5355\u6253\u5f00\u8bbe\u7f6e");
+        table.put("Open settings with a tab long press",
+                "\u957f\u6309\u6807\u7b7e\u9875\u6253\u5f00\u8bbe\u7f6e");
+        table.put("Open the Friends tab first.",
+                "\u8bf7\u5148\u6253\u5f00\u597d\u53cb\u6807\u7b7e\u9875\u3002");
+        table.put("Open the profile's posts first",
+                "\u8bf7\u5148\u6253\u5f00\u4e3b\u9875\u7684\u5e16\u5b50");
+        table.put("Open with",
+                "\u4f7f\u7528\u4ee5\u4e0b\u65b9\u5f0f\u6253\u5f00");
+        table.put("Opening a Blend doesn't tell the chat it belongs to that you visited it. The Blend and its reels open as usual.",
+                "\u6253\u5f00 Blend \u65f6\uff0c\u4e0d\u4f1a\u544a\u8bc9\u5b83\u6240\u5c5e\u7684\u804a\u5929\u4f60\u9020\u8bbf\u8fc7\u3002Blend \u548c\u5176\u4e2d\u7684 Reels \u7167\u5e38\u6253\u5f00\u3002");
+        table.put("Opening a chat doesn't tell people you've seen their messages, and you still see when they've seen yours. To let one chat know, long press it in your messages and tap Mark as read.",
+                "\u6253\u5f00\u804a\u5929\u65f6\u4e0d\u4f1a\u8ba9\u5bf9\u65b9\u77e5\u9053\u4f60\u5df2\u8bfb\uff0c\u4f60\u4ecd\u53ef\u770b\u5230\u5bf9\u65b9\u7684\u5df2\u8bfb\u72b6\u6001\u3002\u82e5\u8981\u8ba9\u67d0\u4e2a\u804a\u5929\u77e5\u9053\u4f60\u5df2\u8bfb\uff0c\u8bf7\u5728\u6d88\u606f\u4e2d\u957f\u6309\u8be5\u804a\u5929\u5e76\u70b9\u51fb\u201c\u6807\u793a\u4e3a\u5df2\u8bfb\u201d\u3002");
+        table.put("Opening someone's profile takes you on to their posts as a scrolling list of full posts. Go Back for the grid. Your own profile keeps its grid.",
+                "\u6253\u5f00\u4ed6\u4eba\u4e3b\u9875\u65f6\uff0c\u76f4\u63a5\u4ee5\u53ef\u5377\u52a8\u7684\u5b8c\u6574\u5e16\u5b50\u6e05\u5355\u663e\u793a\u3002\u8fd4\u56de\u5373\u53ef\u67e5\u770b\u7f51\u683c\u3002\u81ea\u5df1\u7684\u4e3b\u9875\u4ecd\u4f7f\u7528\u7f51\u683c\u3002");
+        table.put("Opens Home on posts from accounts you follow instead of For you. Tap the top of Home to switch. Restart Instagram to see the change.",
+                "\u6253\u5f00\u9996\u9875\u65f6\u663e\u793a\u5df2\u5173\u6ce8\u8d26\u6237\u7684\u5e16\u5b50\uff0c\u800c\u975e\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u3002\u70b9\u51fb\u9996\u9875\u9876\u7aef\u5373\u53ef\u5207\u6362\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Opens a GitHub report with your versions and settings filled in. Add what happened.",
+                "\u6253\u5f00\u5df2\u586b\u5165\u7248\u672c\u4e0e\u8bbe\u7f6e\u7684 GitHub \u95ee\u9898\u4e0a\u62a5\uff0c\u8bf7\u8865\u5145\u53d1\u751f\u7684\u60c5\u51b5\u3002");
+        table.put("Orange",
+                "\u6a58\u8272");
+        table.put("PIN",
+                "PIN \u7801");
+        table.put("PIN saved.",
+                "\u5df2\u4fdd\u5b58 PIN \u7801\u3002");
+        table.put("Page %1$d of %2$d",
+                "\u7b2c %1$d \u9875\uff0c\u5171 %2$d \u9875");
+        table.put("Page %1$d, photo",
+                "\u7b2c %1$d \u9875\uff0c\u7167\u7247");
+        table.put("Page %1$d, video",
+                "\u7b2c %1$d \u9875\uff0c\u89c6\u9891");
+        table.put("Page dots on a pill",
+                "\u80f6\u56ca\u9875\u9762\u5706\u70b9");
+    }
+
+    private static void fillZh19(Map<String, String> table) {
+        table.put("Pause",
+                "\u6682\u505c");
+        table.put("Pause HushGram",
+                "\u6682\u505c HushGram");
+        table.put("Pause HushGram, lock these settings, or make a report when something breaks.",
+                "\u6682\u505c HushGram\u3001\u9501\u5b9a\u8fd9\u4e9b\u8bbe\u7f6e\uff0c\u6216\u5728\u51fa\u95ee\u9898\u65f6\u5236\u4f5c\u62a5\u544a\u3002");
+        table.put("Pause a reel and Burn-in guard brings the buttons back to full brightness until you play it again or swipe on. The wait then starts over.",
+                "\u6682\u505c Reels \u540e\uff0c\u9632\u70d9\u5370\u4fdd\u62a4\u4f1a\u8ba9\u6309\u94ae\u6062\u590d\u5168\u4eae\uff0c\u76f4\u5230\u4f60\u518d\u6b21\u64ad\u653e\u6216\u6ed1\u5230\u4e0b\u4e00\u90e8\u3002\u4e4b\u540e\u7b49\u5f85\u65f6\u95f4\u4f1a\u91cd\u65b0\u8ba1\u7b97\u3002");
+        table.put("Pause and diagnostics",
+                "\u6682\u505c\u4e0e\u8bca\u65ad");
+        table.put("Paused in the background",
+                "\u5df2\u5728\u80cc\u666f\u6682\u505c");
+        table.put("Peek at the next carousel page",
+                "\u9884\u89c8\u4e0b\u4e00\u5f20\u8f6e\u64ad\u9875\u9762");
+        table.put("People don't see Active now for you while you use Instagram, and you still see when they're active. It takes effect the next time you come back to Instagram.",
+                "\u4f7f\u7528 Instagram \u65f6\uff0c\u5176\u4ed6\u4eba\u4e0d\u4f1a\u770b\u5230\u4f60\u201c\u76ee\u524d\u5728\u5728\u7ebf\u201d\uff0c\u4f60\u4ecd\u53ef\u770b\u5230\u4ed6\u4eba\u7684\u4e0a\u7ebf\u72b6\u6001\u3002\u4e0b\u6b21\u8fd4\u56de Instagram \u65f6\u751f\u6548\u3002");
+        table.put("People on your list don't ring your phone. Everyone else still does.",
+                "\u540d\u5355\u4e0a\u7684\u4eba\u6765\u7535\u4e0d\u4f1a\u54cd\u3002\u5176\u4ed6\u4eba\u7167\u5e38\u4f1a\u54cd\u3002");
+        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
+                "\u8f93\u5165\u6d88\u606f\u65f6\uff0c\u804a\u5929\u5bf9\u8c61\u4e0d\u4f1a\u770b\u5230\u6b63\u5728\u8f93\u5165\u7684\u63d0\u793a\uff0c\u4f60\u4ecd\u53ef\u770b\u5230\u5bf9\u65b9\u7684\u63d0\u793a\u3002");
+        table.put("Phone layout on big screens",
+                "\u5927\u5c4f\u5e55\u4f7f\u7528\u624b\u673a\u7248\u9762");
+        table.put("Phone lock",
+                "\u624b\u673a\u9501\u5b9a");
+        table.put("Photo or video",
+                "\u7167\u7247\u6216\u89c6\u9891");
+        table.put("Photo quality",
+                "\u7167\u7247\u54c1\u8d28");
+        table.put("Photo size",
+                "\u7167\u7247\u5c3a\u5bf8");
+        table.put("Photos and videos go to %1$s. Tap to pick another folder.",
+                "\u7167\u7247\u548c\u89c6\u9891\u4f1a\u5b58\u5230 %1$s\u3002\u8f7b\u89e6\u5373\u53ef\u9009\u62e9\u5176\u4ed6\u6587\u4ef6\u5939\u3002");
+        table.put("Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.",
+                "\u4ee5\u53ea\u80fd\u770b\u4e00\u6b21\u6216\u53ef\u91cd\u64ad\u65b9\u5f0f\u53d1\u9001\u7684\u7167\u7247\u4e0e\u89c6\u9891\u4f1a\u4fdd\u7559\u5728\u804a\u5929\uff0c\u8ba9\u4f60\u518d\u6b21\u6253\u5f00\u3002\u5df2\u52a0\u8f7d\u7684\u5185\u5bb9\u8bf7\u91cd\u65b0\u6253\u5f00\u804a\u5929\u4ee5\u66f4\u65b0\u3002");
+        table.put("Pick a picture to show at the top of Home, in place of Instagram's logo or your text.",
+                "\u9009\u62e9\u4e00\u5f20\u56fe\u7247\uff0c\u663e\u793a\u5728\u9996\u9875\u9876\u7aef\uff0c\u53d6\u4ee3 Instagram \u6807\u5fd7\u6216\u4f60\u7684\u6587\u5b57\u3002");
+        table.put("Pick a picture, frame it and add it to your home screen as a shortcut to Instagram.",
+                "\u9009\u4e00\u5f20\u56fe\u7247\u3001\u8c03\u6574\u4f4d\u7f6e,\u518d\u4ee5 Instagram \u6377\u5f84\u7684\u5f62\u5f0f\u52a0\u5230\u4e3b\u753b\u9762\u3002");
+        table.put("Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.",
+                "\u9009\u62e9 1 \u81f3 72 \u5c0f\u65f6\u7684\u7b49\u5f85\u65f6\u95f4\u3002\u9501\u5b9a\u540e\uff0c\u5fc5\u987b\u63d0\u51fa\u89e3\u9501\u7533\u8bf7\u5e76\u7b49\u5f85\u65f6\u95f4\u7ed3\u675f\uff0c\u624d\u80fd\u53d8\u66f4\u6b64\u5904\u7684\u8bbe\u7f6e\u3002");
+        table.put("Pick an animation. Until you do, the heart stays Instagram's.",
+                "\u8bf7\u9009\u62e9\u52a8\u753b\u3002\u9009\u62e9\u524d\uff0c\u7231\u5fc3\u4f1a\u7ef4\u6301 Instagram \u539f\u672c\u7684\u6837\u5f0f\u3002");
+        table.put("Pick friends",
+                "\u9009\u62e9\u597d\u53cb");
+        table.put("Pick the playback quality with a tab long press",
+                "\u957f\u6309\u6807\u7b7e\u9875\u9009\u62e9\u64ad\u653e\u753b\u8d28");
+        table.put("Pick your tabs, their order and how the bar looks.",
+                "\u9009\u62e9\u6807\u7b7e\u9875\u3001\u6392\u5217\u987a\u5e8f\u4e0e\u6807\u7b7e\u680f\u5916\u89c2\u3002");
+        table.put("Picture in picture for reels",
+                "Reel \u5b50\u6bcd\u753b\u9762");
+        table.put("Picture in picture for stories",
+                "\u5feb\u62cd\u5b50\u6bcd\u753b\u9762");
+        table.put("Pill look",
+                "\u80f6\u56ca\u6837\u5f0f");
+        table.put("Pinch to zoom",
+                "\u53cc\u6307\u7f29\u653e");
+        table.put("Pine",
+                "\u677e\u7eff");
+        table.put("Pink",
+                "\u7c89\u7ea2\u8272");
+        table.put("Pinned chats",
+                "\u5df2\u9489\u9009\u7684\u804a\u5929");
+        table.put("Place",
+                "\u4f4d\u7f6e");
+        table.put("Play",
+                "\u64ad\u653e");
+        table.put("Playback",
+                "\u64ad\u653e");
+        table.put("Playback and controls in the Reels tab.",
+                "Reels \u6807\u7b7e\u9875\u7684\u64ad\u653e\u4e0e\u63a7\u5236\u9009\u9879\u3002");
+        table.put("Playback quality",
+                "\u64ad\u653e\u753b\u8d28");
+        table.put("Playback quality: %1$s. The next video uses it.",
+                "\u64ad\u653e\u753b\u8d28\uff1a%1$s\u3002\u4e0b\u4e00\u90e8\u6253\u5f00\u7684\u89c6\u9891\u4f1a\u4f7f\u7528\u6b64\u753b\u8d28\u3002");
+        table.put("Playback speed",
+                "\u64ad\u653e\u901f\u5ea6");
+        table.put("Playback speed, %1$s",
+                "\u64ad\u653e\u901f\u5ea6\uff0c%1$s");
+        table.put("Playing in the background",
+                "\u6b63\u5728\u80cc\u666f\u64ad\u653e");
+        table.put("Post",
+                "\u5e16\u5b50");
+        table.put("Posted %1$s",
+                "\u53d1\u5e03\u4e8e %1$s");
+        table.put("Posts",
+                "\u5e16\u5b50");
+        table.put("Posts from @%1$s are hidden",
+                "\u5df2\u9690\u85cf @%1$s \u7684\u5e16\u5b50");
+        table.put("Posts from @%1$s show again",
+                "\u5df2\u91cd\u65b0\u663e\u793a @%1$s \u7684\u5e16\u5b50");
+        table.put("Posts from your hidden accounts still show in Favorites. For you and Following leave them out. Pull down on Home to refresh after changing it.",
+                "\u9690\u85cf\u8d26\u6237\u7684\u5e16\u5b50\u4ecd\u4f1a\u51fa\u73b0\u5728\u201c\u7279\u522b\u5173\u6ce8\u201d\u3002\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u4e0e\u201c\u5df2\u5173\u6ce8\u201d\u4e0d\u4f1a\u663e\u793a\u8fd9\u4e9b\u5e16\u5b50\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Preparing diagnostic report...",
+                "\u6b63\u5728\u51c6\u5907\u8bca\u65ad\u62a5\u544a\u2026");
+        table.put("Press and hold a comment that has its own photo, GIF or sticker, and its menu gets Save. Saves the largest size Instagram sent.",
+                "\u957f\u6309\u542b\u6709\u81ea\u5df1\u7167\u7247\u3001GIF \u6216\u8d34\u56fe\u7684\u8bc4\u8bba\uff0c\u83dc\u5355\u4e2d\u5c31\u4f1a\u51fa\u73b0\u201c\u4fdd\u5b58\u201d\u3002\u4ee5 Instagram \u53d1\u9001\u7684\u6700\u5927\u5c3a\u5bf8\u4fdd\u5b58\u3002");
+        table.put("Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.",
+                "\u957f\u6309\u52a8\u6001\u4e2d\u7684\u7167\u7247\uff0c\u5373\u53ef\u5728\u624b\u6307\u5468\u56f4\u653e\u5927\u4e3a\u4e24\u500d\uff0c\u6ed1\u52a8\u53ef\u67e5\u770b\u5176\u4ed6\u533a\u57df\uff0c\u653e\u5f00\u5373\u5173\u95ed\u3002\u542f\u7528\u65f6\u4f1a\u53d6\u4ee3 Instagram \u539f\u672c\u7684\u7167\u7247\u957f\u6309\u64cd\u4f5c\u3002");
+        table.put("Press and hold a post in a feed to open it full screen. Pinch a photo to zoom and tap it to close. A video plays with a slider and a Close button. While this is on, it goes before the zoom and Instagram's own long press.",
+                "\u5728\u52a8\u6001\u4e2d\u957f\u6309\u5e16\u5b50\u5373\u53ef\u5168\u5c4f\u5e55\u6253\u5f00\u3002\u4ee5\u53cc\u6307\u7f29\u653e\u7167\u7247\uff0c\u8f7b\u89e6\u5373\u53ef\u5173\u95ed\u3002\u89c6\u9891\u4f1a\u4ee5\u6ed1\u6746\u548c\u201c\u5173\u95ed\u201d\u6309\u94ae\u64ad\u653e\u3002\u6253\u5f00\u540e\uff0c\u4f1a\u4f18\u5148\u4e8e\u7f29\u653e\u548c Instagram \u539f\u672c\u7684\u957f\u6309\u52a8\u4f5c\u3002");
+        table.put("Press and hold a video in a feed to play it at 2x, and let go to go back to normal speed.",
+                "\u957f\u6309\u52a8\u6001\u4e2d\u7684\u89c6\u9891\u4f1a\u4ee5 2 \u500d\u901f\u64ad\u653e\uff0c\u653e\u5f00\u5373\u6062\u590d\u6b63\u5e38\u901f\u5ea6\u3002");
+        table.put("Preview",
+                "\u9884\u89c8");
+        table.put("Preview chats",
+                "\u9884\u89c8\u804a\u5929");
+        table.put("Preview of the tab bar",
+                "\u6807\u7b7e\u680f\u9884\u89c8");
+        table.put("Preview while you drag a seek bar",
+                "\u62d6\u52a8\u62d6\u52a8\u6761\u65f6\u9884\u89c8");
+        table.put("Previous match",
+                "\u4e0a\u4e00\u4e2a\u7ed3\u679c");
+        table.put("Previous page",
+                "\u4e0a\u4e00\u9875");
+        table.put("Priority accounts",
+                "\u4f18\u5148\u8d26\u6237");
+        table.put("Privacy",
+                "\u9690\u79c1");
+        table.put("Privacy and controls for your chats.",
+                "\u804a\u5929\u7684\u9690\u79c1\u4e0e\u63a7\u5236\u9009\u9879\u3002");
+    }
+
+    private static void fillZh20(Map<String, String> table) {
+        table.put("Profile",
+                "\u4e3b\u9875");
+        table.put("Profile changes",
+                "\u4e3b\u9875\u53d8\u66f4");
+        table.put("Profile extras button",
+                "\u4e3b\u9875\u989d\u5916\u9009\u9879\u6309\u94ae");
+        table.put("Profile history cleared.",
+                "\u5df2\u6e05\u9664\u4e3b\u9875\u7eaa\u5f55\u3002");
+        table.put("Profile picture",
+                "\u5934\u50cf");
+        table.put("Profiles",
+                "\u4e3b\u9875");
+        table.put("Proxy server",
+                "Proxy \u670d\u52a1\u5668");
+        table.put("Pure black dark mode",
+                "AMOLED \u7eaf\u9ed1\u6a21\u5f0f");
+        table.put("Pure black dark mode isn't in this build",
+                "\u8fd9\u4e2a\u7248\u672c\u6ca1\u6709 AMOLED \u7eaf\u9ed1\u6a21\u5f0f");
+        table.put("Purple",
+                "\u7d2b\u8272");
+        table.put("Put a finger on the tab bar and slide it sideways. A highlight follows your finger, and letting go opens the tab under it. Taps and long presses on a tab work as before. It works with or without Glass tab bar. Restart Instagram after changing it.",
+                "\u5c06\u624b\u6307\u653e\u5728\u6807\u7b7e\u680f\u4e0a\u5de6\u53f3\u6ed1\u52a8\uff0c\u6807\u793a\u4f1a\u8ddf\u968f\u624b\u6307\uff0c\u653e\u5f00\u540e\u6253\u5f00\u4e0b\u65b9\u7684\u6807\u7b7e\u9875\u3002\u70b9\u51fb\u4e0e\u957f\u6309\u6807\u7b7e\u9875\u7684\u64cd\u4f5c\u4e0d\u53d8\uff0c\u65e0\u8bba\u662f\u5426\u542f\u7528\u201c\u73bb\u7483\u6807\u7b7e\u680f\u201d\u90fd\u53ef\u4f7f\u7528\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("Put accounts that don't follow you back first",
+                "\u4f18\u5148\u663e\u793a\u672a\u56de\u5173\u7684\u8d26\u6237");
+        table.put("Puts Activity, the screen the heart opens, on the tab bar before Profile. Tab order can move it, and Hide notifications on Home's header takes the heart away. Restart Instagram to see the change.",
+                "\u5728\u6807\u7b7e\u680f\u7684\u4e3b\u9875\u4e4b\u524d\u52a0\u5165\u201c\u52a8\u6001\u201d\uff0c\u5373\u7231\u5fc3\u6309\u94ae\u6253\u5f00\u7684\u753b\u9762\u3002\u53ef\u901a\u8fc7\u201c\u6807\u7b7e\u9875\u987a\u5e8f\u201d\u79fb\u52a8\uff1b\u201c\u9690\u85cf\u9996\u9875\u9876\u7aef\u7684\u901a\u77e5\u201d\u4f1a\u79fb\u9664\u7231\u5fc3\u6309\u94ae\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.",
+                "\u5728\u957f\u6309 Instagram \u56fe\u6807\u663e\u793a\u7684\u83dc\u5355\u4e2d\u52a0\u5165 HushGram \u8bbe\u7f6e\u3002\u5173\u95ed\u540e\u4f1a\u4ece\u8be5\u83dc\u5355\u79fb\u9664\u3002");
+        table.put("Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.",
+                "\u5c06 Instagram \u6807\u5fd7\u4e0e\u5404\u5217\u6807\u9898\u79fb\u81f3\u5217\u7684\u8d77\u59cb\u4fa7\uff0c\u5982\u540c Instagram \u4ee5\u524d\u7684\u6392\u5217\u65b9\u5f0f\u3002\u82e5 Instagram \u5c06\u5b83\u4eec\u7f6e\u4e2d\uff0c\u53ef\u542f\u7528\u6b64\u9009\u9879\u3002\u6b64\u8bbe\u7f6e\u4f18\u5148\u4e8e\u4e0a\u65b9\u7684\u7f6e\u4e2d\u5f00\u5173\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u9996\u9875\u53d8\u66f4\u3002");
+        table.put("Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden or added. A feed's name shown there is centered too. Restart Instagram to see the change.",
+                "\u5c06 Instagram \u6807\u5fd7\u7f6e\u4e8e\u9996\u9875\u9876\u7aef\u4e2d\u592e\uff0c\u5373\u4f7f\u9690\u85cf\u6216\u6dfb\u52a0\u9876\u7aef\u6309\u94ae\u4e5f\u9002\u7528\u3002\u8be5\u5904\u663e\u793a\u7684\u52a8\u6001\u540d\u79f0\u4e5f\u4f1a\u7f6e\u4e2d\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Puts Messages on the tab bar, before Profile, if Instagram left it off yours. Tab order can move it. Restart Instagram to see the change.",
+                "\u82e5 Instagram \u672a\u5728\u4f60\u7684\u6807\u7b7e\u680f\u663e\u793a\u6d88\u606f\uff0c\u5219\u5c06\u5176\u52a0\u5165\u4e3b\u9875\u4e4b\u524d\u3002\u53ef\u901a\u8fc7\u201c\u6807\u7b7e\u9875\u987a\u5e8f\u201d\u79fb\u52a8\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Puts Reels back on the tab bar if Instagram left it off yours. Hide the Reels tab wins if both are on. Restart Instagram to see the change.",
+                "\u82e5 Instagram \u672a\u5728\u4f60\u7684\u6807\u7b7e\u680f\u663e\u793a Reels\uff0c\u5219\u5c06\u5176\u52a0\u56de\u3002\u540c\u65f6\u542f\u7528\u201c\u9690\u85cf Reels \u6807\u7b7e\u9875\u201d\u65f6\uff0c\u4f1a\u4f18\u5148\u9690\u85cf\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Puts a Block icon beside someone else's reel. A tap opens Instagram's own block screen for that account, so you still confirm it there.",
+                "\u5728\u4ed6\u4eba\u7684 Reel \u65c1\u52a0\u5165\u5c4f\u853d\u56fe\u6807\u3002\u70b9\u51fb\u4f1a\u6253\u5f00 Instagram \u539f\u672c\u7684\u8d26\u6237\u5c4f\u853d\u753b\u9762\uff0c\u4ecd\u9700\u5728\u8be5\u5904\u786e\u8ba4\u3002");
+        table.put("Puts a Download button at the top of a story, beside the three dots. One tap saves the photo or video in front, the same as Download in the menu.",
+                "\u5728\u5feb\u62cd\u9876\u7aef\u7684\u4e09\u4e2a\u70b9\u65c1\u52a0\u5165\u4e0b\u8f7d\u6309\u94ae\u3002\u70b9\u4e00\u4e0b\u5c31\u80fd\u4fdd\u5b58\u76ee\u524d\u7684\u7167\u7247\u6216\u89c6\u9891\uff0c\u4e0e\u83dc\u5355\u4e2d\u7684\u4e0b\u8f7d\u76f8\u540c\u3002");
+        table.put("Puts a Full screen icon beside a reel, so one tap does what Full screen in its menu does. Start every reel in clear mode opens every reel that way.",
+                "\u5728 Reel \u65c1\u52a0\u5165\u5168\u5c4f\u5e55\u56fe\u6807\uff0c\u70b9\u4e00\u4e0b\u5c31\u548c\u83dc\u5355\u4e2d\u7684\u201c\u5168\u5c4f\u5e55\u201d\u4e00\u6837\u3002\u6253\u5f00\u201c\u6bcf\u4e2a Reel \u90fd\u4ee5\u6e05\u723d\u6a21\u5f0f\u5f00\u59cb\u201d\u540e\uff0c\u6bcf\u4e2a Reel \u90fd\u4f1a\u8fd9\u6837\u6253\u5f00\u3002");
+        table.put("Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.",
+                "\u5728\u5feb\u62cd\u9876\u7aef\u7684\u4e09\u4e2a\u70b9\u65c1\u52a0\u5165\u667a\u80fd\u955c\u5934\u56fe\u6807\u3002\u70b9\u51fb\u540e\uff0cGoogle \u667a\u80fd\u955c\u5934\u4f1a\u6253\u5f00\u76ee\u524d\u7684\u753b\u9762\uff0c\u8ba9\u4f60\u9009\u53d6\u5e76\u590d\u5236\u5176\u4e2d\u7684\u6587\u5b57\u3002");
+        table.put("Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, so you can select and copy its text.",
+                "\u5728 Reel \u65c1\u52a0\u5165\u667a\u80fd\u955c\u5934\u56fe\u6807\u3002\u70b9\u51fb\u540e\uff0cGoogle \u667a\u80fd\u955c\u5934\u4f1a\u6253\u5f00\u76ee\u524d\u7684\u753b\u9762\uff0c\u8ba9\u4f60\u9009\u53d6\u5e76\u590d\u5236\u5176\u4e2d\u7684\u6587\u5b57\u3002");
+        table.put("Puts a Not interested icon beside a reel, so one tap does what Not interested in its menu does.",
+                "\u5728 Reel \u65c1\u52a0\u5165\u4e0d\u611f\u5174\u8da3\u56fe\u6807\uff0c\u70b9\u51fb\u5373\u53ef\u8fd0\u884c\u4e0e\u83dc\u5355\u4e2d\u201c\u4e0d\u611f\u5174\u8da3\u201d\u76f8\u540c\u7684\u64cd\u4f5c\u3002");
+        table.put("Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.",
+                "\u5728\u8f6e\u64ad\u5e16\u5b50\u7684\u7167\u7247\u548c\u89c6\u9891\u4e0a\u52a0\u4e0a\u4e0a\u4e00\u9875\u548c\u4e0b\u4e00\u9875\u7bad\u5934\u3002\u70b9\u4e00\u4e0b\u5c31\u80fd\u6362\u9875\uff0c\u4e0d\u7528\u6ed1\u52a8\u3002");
+        table.put("Puts a border and Instagram's view once icon on a one-time photo or video in a chat, so you can tell it from the rest before you open it. Only how the chat looks changes.",
+                "\u5728\u804a\u5929\u4e2d\u4ec5\u9650\u67e5\u770b\u4e00\u6b21\u7684\u7167\u7247\u6216\u89c6\u9891\u4e0a\u52a0\u4e0a\u8fb9\u6846\u548c Instagram \u7684\u67e5\u770b\u4e00\u6b21\u56fe\u6807\uff0c\u8ba9\u4f60\u5728\u6253\u5f00\u524d\u5c31\u80fd\u5206\u8fa8\u3002\u53ea\u6709\u804a\u5929\u7684\u5916\u89c2\u4f1a\u6539\u53d8\u3002");
+        table.put("Puts a button next to the three dots on profiles that opens HushGram's profile actions. Needs Save profile picture, View profile picture or Copy username and bio on. The rows in the three-dot menu stay too.",
+                "\u5728\u4e3b\u9875\u7684\u4e09\u70b9\u6309\u94ae\u65c1\u6dfb\u52a0\u6309\u94ae\uff0c\u6253\u5f00 HushGram \u7684\u4e3b\u9875\u64cd\u4f5c\u3002\u9700\u6253\u5f00\u201c\u4fdd\u5b58\u5934\u50cf\u201d\u3001\u201c\u67e5\u770b\u5934\u50cf\u201d\u6216\u201c\u590d\u5236\u7528\u6237\u540d\u4e0e\u4e2a\u4eba\u7b80\u4ecb\u201d\u5176\u4e2d\u4e00\u9879\u3002\u4e09\u70b9\u51fb\u5355\u4e2d\u7684\u9009\u9879\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Puts a calendar on a profile's top bar. Pick a day and the posts grid goes back to that day. Pull down for the newest again.",
+                "\u5728\u4e3b\u9875\u9876\u680f\u52a0\u4e0a\u65e5\u5386\u3002\u9009\u4e00\u5929\uff0c\u5e16\u5b50\u683c\u72b6\u753b\u9762\u5c31\u4f1a\u56de\u5230\u90a3\u5929\u3002\u5f80\u4e0b\u62c9\u53ef\u518d\u770b\u6700\u65b0\u7684\u3002");
+        table.put("Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them. Needs Download feed videos or photos.",
+                "\u5728\u5e16\u5b50\u4e0b\u65b9\u4fdd\u5b58\u6309\u94ae\u7684\u5de6\u4fa7\u52a0\u5165\u4e0b\u8f7d\u56fe\u6807\uff0c\u70b9\u51fb\u5373\u53ef\u4fdd\u5b58\uff0c\u4e0d\u5fc5\u6253\u5f00\u83dc\u5355\u3002\u8f6e\u64ad\u5e16\u5b50\u4f1a\u8be2\u95ee\u4fdd\u5b58\u76ee\u524d\u9875\u9762\u6216\u5168\u90e8\u9875\u9762\u3002\u9700\u542f\u7528\u201c\u4e0b\u8f7d\u52a8\u6001\u9996\u9875\u89c6\u9891\u201d\u6216\u201c\u4e0b\u8f7d\u52a8\u6001\u9996\u9875\u7167\u7247\u201d\u3002");
+        table.put("Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.",
+                "\u5728 Reel \u65c1\u7684\u4fdd\u5b58\u6309\u94ae\u4e0b\u65b9\u52a0\u5165\u4e0b\u8f7d\u56fe\u6807\uff0c\u70b9\u51fb\u5373\u53ef\u8fd0\u884c\u4e0e\u83dc\u5355\u4e2d\u201c\u4e0b\u8f7d\u201d\u76f8\u540c\u7684\u64cd\u4f5c\u3002\u9700\u542f\u7528\u201cReels \u4e0b\u8f7d\u9009\u9879\u201d\u3002");
+        table.put("Puts a green check on the picture of each account that follows you back and a red cross on each one that doesn't, instead of the words.",
+                "\u5728\u6709\u56de\u5173\u4f60\u7684\u8d26\u6237\u5927\u5934\u8d34\u7167\u4e0a\u52a0\u7eff\u8272\u52fe\u52fe\uff0c\u5728\u672a\u56de\u5173\u7684\u8d26\u6237\u4e0a\u52a0\u7ea2\u8272\u53c9\u53c9\uff0c\u53d6\u4ee3\u6587\u5b57\u3002");
+        table.put("Puts a music icon beside a reel. Tap it and the Reels tab skips other reels using that sound. Tap it again to bring them back.",
+                "\u5728 Reel \u65c1\u52a0\u5165\u97f3\u4e50\u56fe\u6807\u3002\u70b9\u51fb\u540e\uff0cReels \u6807\u7b7e\u9875\u4f1a\u7565\u8fc7\u4f7f\u7528\u76f8\u540c\u97f3\u9891\u7684\u5176\u4ed6 Reels\uff1b\u518d\u6b21\u70b9\u51fb\u5373\u53ef\u6062\u590d\u3002");
+        table.put("Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.",
+                "\u5728\u5e16\u5b50\u7684\u7167\u7247\u6216\u89c6\u9891\u5468\u56f4\u52a0\u4e0a\u5e16\u5b50\u672c\u8eab\u8272\u5f69\u7684\u67d4\u548c\u5149\u6655\uff0c\u6ca1\u6709\u586b\u6ee1\u5c4f\u5e55\u7684 Reels \u5468\u56f4\u7a7a\u767d\u5904\u4e5f\u4f1a\u4eae\u8d77\u3002\u89c6\u9891\u64ad\u653e\u65f6\u5149\u6655\u4f1a\u8ddf\u7740\u53d8\u5316\u3002");
+        table.put("Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel keeps playing.",
+                "\u5728 Reel \u65c1\u52a0\u5165\u5587\u53ed\u56fe\u6807\u3002\u70b9\u4e00\u4e0b\u5373\u53ef\u5728 Reel \u7ee7\u7eed\u64ad\u653e\u65f6\u5173\u95ed\u6216\u6253\u5f00\u58f0\u97f3\u3002");
+        table.put("Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.",
+                "\u5728\u89c6\u9891\u5feb\u62cd\u9876\u7aef\u7684\u4e09\u4e2a\u70b9\u65c1\u52a0\u5165\u901f\u5ea6\u6309\u94ae\u3002\u70b9\u4e00\u4e0b\u5207\u6362\u4e3a 1.5x\uff0c\u518d\u70b9\u4e00\u4e0b\u4e3a 2x\uff0c\u518d\u70b9\u4e00\u6b21\u56de\u5230 1x\u3002\u4e4b\u540e\u7684\u89c6\u9891\u5feb\u62cd\u4f1a\u6cbf\u7528\u8fd9\u4e2a\u901f\u5ea6\uff0c\u76f4\u5230\u4f60\u66f4\u6539\u6216\u91cd\u65b0\u542f\u52a8 Instagram\u3002\u5e7f\u544a\u4ee5\u6b63\u5e38\u901f\u5ea6\u64ad\u653e\u3002");
+        table.put("Puts a speed icon beside a reel. Tap it to pick a speed from 0.5x to 3x. With Keep the reel speed on, the next reels play at it too.",
+                "\u5728 Reel \u65c1\u52a0\u5165\u901f\u5ea6\u56fe\u6807\u3002\u70b9\u4e00\u4e0b\u5373\u53ef\u9009\u62e9 0.5x \u5230 3x \u7684\u901f\u5ea6\u3002\u6253\u5f00\u201c\u4fdd\u7559 Reels \u64ad\u653e\u901f\u5ea6\u201d\u65f6\uff0c\u4e4b\u540e\u7684 Reels \u4e5f\u4f1a\u4ee5\u8fd9\u4e2a\u901f\u5ea6\u64ad\u653e\u3002");
+        table.put("Puts an (i) next to the three dots on a profile that opens Instagram's About this account for that account. Instagram took its own away.",
+                "\u5728\u4e3b\u9875\u7684\u4e09\u4e2a\u70b9\u65c1\u653e\u4e00\u4e2a (i),\u4e3a\u8be5\u8d26\u6237\u6253\u5f00 Instagram \u7684\u201c\u5173\u4e8e\u8fd9\u4e2a\u8d26\u6237\u201d\u3002Instagram \u5df2\u79fb\u9664\u539f\u672c\u7684\u6309\u94ae\u3002");
+        table.put("Puts every notification from Instagram in one group that shows how many it holds, so they don't fill your notification shade. Tapping one still opens it.",
+                "\u5c06\u6240\u6709 Instagram \u901a\u77e5\u5408\u5e76\u4e3a\u4e00\u7ec4\u5e76\u663e\u793a\u6570\u91cf\uff0c\u907f\u514d\u5360\u6ee1\u901a\u77e5\u680f\u3002\u70b9\u51fb\u901a\u77e5\u4ecd\u53ef\u6253\u5f00\u5bf9\u5e94\u5185\u5bb9\u3002");
+        table.put("Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.",
+                "\u6e05\u5355\u4e2d\u7684\u8d26\u6237\u53ea\u8981\u6709\u4f60\u8fd8\u6ca1\u770b\u7684\u5feb\u62cd\uff0c\u5c31\u4f1a\u4f9d\u6e05\u5355\u987a\u5e8f\u6392\u5728\u9996\u9875\u4e0a\u65b9\u5feb\u62cd\u680f\u7684\u6700\u524d\u9762\u3002\u770b\u8fc7\u4e4b\u540e\uff0c\u4f1a\u56de\u5230 Instagram \u539f\u672c\u7684\u6392\u5217\u3002\u4f60\u81ea\u5df1\u7684\u5feb\u62cd\u4ecd\u5728\u6700\u524d\u9762\u3002");
+        table.put("Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too.",
+                "\u6539\u5728\u4e3b\u9875\u7684\u5e16\u5b50\u3001\u7c89\u4e1d\u4e0e\u5df2\u5173\u6ce8\u6570\u91cf\u4e0b\u65b9\uff0c\u4ee5\u6807\u7b7e\u663e\u793a\u5173\u6ce8\u72b6\u6001\u3002\u82e5\u4f60\u4e5f\u5173\u6ce8\u5bf9\u65b9\uff0c\u4f1a\u663e\u793a\u201c\u4e92\u76f8\u5df2\u5173\u6ce8\u201d\u3002");
+        table.put("Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.",
+                "\u628a\u62d6\u52a8\u6761\u653e\u5728\u89c6\u9891\u6700\u5e95\u90e8\u7684\u8fb9\u7f18\uff0c\u5377\u52a8\u65f6\u6bd4\u8f83\u4e0d\u5bb9\u6613\u8bef\u89e6\u3002");
+        table.put("Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.",
+                "\u5728\u4e24\u4fa7\u6309\u94ae\u5141\u8bb8\u7684\u7a7a\u95f4\u5185\uff0c\u5c06\u901a\u77e5\u7b49\u5176\u4ed6\u753b\u9762\u7684\u9876\u7aef\u6807\u9898\u7f6e\u4e2d\u3002\u6309\u94ae\u4ecd\u7559\u5728\u539f\u4f4d\u3002");
+        table.put("Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.",
+                "\u5c06\u7528\u6237\u540d\u7f6e\u4e8e\u4e3b\u9875\u9876\u680f\u4e2d\u592e\uff0c\u81ea\u5df1\u4e0e\u4ed6\u4eba\u7684\u4e3b\u9875\u7686\u9002\u7528\u3002\u6309\u94ae\u4ecd\u7559\u5728\u539f\u4f4d\u3002");
+        table.put("QR code",
+                "QR \u7801");
+        table.put("Queued. It starts once the post before it is saved.",
+                "\u5df2\u52a0\u5165\u961f\u5217\uff0c\u524d\u4e00\u5219\u5e16\u5b50\u4fdd\u5b58\u5b8c\u6210\u540e\u4f1a\u5f00\u59cb\u3002");
+        table.put("Read messages without the seen receipt",
+                "\u533f\u540d\u67e5\u770b\u6d88\u606f");
+        table.put("Reading the list\u2026",
+                "\u6b63\u5728\u8bfb\u53d6\u540d\u5355\u2026");
+        table.put("Recent unfollowers",
+                "\u6700\u8fd1\u53d6\u6d88\u7c89\u4e1d");
+        table.put("Recently seen",
+                "\u6700\u8fd1\u770b\u8fc7");
+        table.put("Record patch activity and show errors for a bug report. Leave off during normal use.",
+                "\u8bb0\u5f55\u8865\u4e01\u6d3b\u52a8\u5e76\u663e\u793a\u9519\u8bef\uff0c\u4ee5\u4f9b\u4e0a\u62a5\u95ee\u9898\u3002\u5e73\u5e38\u4f7f\u7528\u65f6\u8bf7\u4fdd\u6301\u5173\u95ed\u3002");
+        table.put("Red",
+                "\u7ea2\u8272");
+        table.put("Red story mentions",
+                "\u7ea2\u8272\u5feb\u62cd\u6807\u6ce8");
+        table.put("Reel",
+                "Reels");
+        table.put("Reel covers and grid pictures come at full size, so Download cover saves a picked cover at full size too. Grids use a lot more data. Restart Instagram to see the change.",
+                "\u4ee5\u5b8c\u6574\u5c3a\u5bf8\u52a0\u8f7d Reel \u5c01\u9762\u4e0e\u7f51\u683c\u56fe\u7247\uff0c\u56e0\u6b64\u201c\u4e0b\u8f7d\u5c01\u9762\u201d\u4e5f\u80fd\u4ee5\u5b8c\u6574\u5c3a\u5bf8\u4fdd\u5b58\u9009\u5b9a\u7684\u5c01\u9762\u3002\u7f51\u683c\u4f1a\u4f7f\u7528\u66f4\u591a\u6570\u636e\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Reels",
+                "Reels");
+        table.put("Reels before swiping stops",
+                "\u7981\u7528\u6ed1\u52a8\u524d\u7684 Reels \u6570\u91cf");
+        table.put("Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.",
+                "\u4ece\u7b2c\u4e00\u4e2a Reel \u8d77\u5c31\u4ee5\u6e05\u723d\u6a21\u5f0f\u6253\u5f00\uff0c\u4e0d\u5fc5\u70b9\u6309\u3002\u624b\u52a8\u79bb\u5f00\u6e05\u723d\u6a21\u5f0f\u540e\uff0c\u540e\u7eed Reels \u4f1a\u91cd\u65b0\u663e\u793a\u6309\u94ae\u3002\u9664\u975e\u6253\u5f00\u201c\u5141\u8bb8\u622a\u5c4f\u201d\uff0c\u5426\u5219 Instagram \u4f1a\u5728\u6e05\u723d\u6a21\u5f0f\u4e2d\u5c4f\u853d\u622a\u5c4f\u3002");
+        table.put("Reels that are a photo with a song get the same seek bar and time as a video reel, following the song. Drag it to seek.",
+                "\u7167\u7247\u642d\u914d\u6b4c\u66f2\u7684 Reels \u4f1a\u663e\u793a\u4e0e\u89c6\u9891 Reels \u76f8\u540c\u7684\u8fdb\u5ea6\u6761\u548c\u65f6\u95f4\uff0c\u5e76\u8ddf\u7740\u6b4c\u66f2\u524d\u8fdb\u3002\u62d6\u52a8\u5373\u53ef\u8df3\u8f6c\u3002");
+        table.put("Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of showing black bars above and below. Square and wide videos still fit.",
+                "\u957f\u5bbd\u6bd4\u63a5\u8fd1\u5c4f\u5e55\u7684 Reels \u4f1a\u586b\u6ee1\u5c4f\u5e55\uff0c\u5de6\u53f3\u7a0d\u5fae\u88c1\u5207\uff0c\u4e0d\u518d\u4e8e\u4e0a\u4e0b\u663e\u793a\u9ed1\u8fb9\u3002\u6b63\u65b9\u5f62\u548c\u5bbd\u753b\u9762\u89c6\u9891\u4ecd\u4f1a\u5b8c\u6574\u663e\u793a\u3002");
+        table.put("Reels wait for your tap. Feed videos and stories play as Instagram plays them.",
+                "Reels \u4f1a\u7b49\u5f85\u4f60\u70b9\u51fb\u3002\u52a8\u6001\u9996\u9875\u89c6\u9891\u4e0e\u5feb\u62cd\u5219\u4f9d Instagram \u539f\u672c\u7684\u65b9\u5f0f\u64ad\u653e\u3002");
+    }
+
+    private static void fillZh21(Map<String, String> table) {
+        table.put("Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.",
+                "\u70b9\u8d5e\u6570\u4f4e\u4e8e\u6b64\u6570\u5b57\u7684 Reels \u4f1a\u88ab\u7565\u8fc7\u3002\u8bf7\u8f93\u5165\u6574\u6570\uff0c\u6216\u8f93\u5165 0 \u4e0d\u770b\u70b9\u8d5e\u6570\u3002");
+        table.put("Reels with fewer views than this are left out. Type a whole number.",
+                "\u89c2\u770b\u6b21\u6570\u4f4e\u4e8e\u6b64\u6570\u5b57\u7684 Reels \u4f1a\u88ab\u7565\u8fc7\u3002\u8bf7\u8f93\u5165\u6574\u6570\u3002");
+        table.put("Reels you opened from a chat end after the last one shared in that chat, with no suggested reels after it. Works with Swipe through a chat's reels on.",
+                "\u4ece\u804a\u5929\u6253\u5f00\u7684 Reels \u4f1a\u5728\u8be5\u804a\u5929\u5206\u4eab\u7684\u6700\u540e\u4e00\u5219\u7ed3\u675f\uff0c\u4e4b\u540e\u4e0d\u4f1a\u51fa\u73b0\u63a8\u8350\u7684 Reels\u3002\u9700\u6253\u5f00\u201c\u5728\u804a\u5929\u7684 Reels \u4e4b\u95f4\u6ed1\u52a8\u201d\u3002");
+        table.put("Refraction intensity",
+                "\u6298\u5c04\u5f3a\u5ea6");
+        table.put("Refresh",
+                "\u5237\u65b0");
+        table.put("Refresh this list?",
+                "\u8981\u5237\u65b0\u6b64\u6e05\u5355\u5417\uff1f");
+        table.put("Remembered playback positions restored.",
+                "\u5df2\u8fd8\u539f\u8bb0\u4f4f\u7684\u64ad\u653e\u4f4d\u7f6e\u3002");
+        table.put("Remembers the posts, reels, stories and profiles that come up on screen, and who posted them, newest first, on this phone only. The list shows their pictures, loaded from Instagram's image servers and kept on the phone. Turn it off and it stops at once.",
+                "\u53ea\u5728\u8fd9\u652f\u624b\u673a\u4e0a\u8bb0\u4f4f\u753b\u9762\u4e0a\u51fa\u73b0\u8fc7\u7684\u5e16\u5b50\u3001Reels\u3001\u5feb\u62cd\u548c\u4e3b\u9875\uff0c\u4ee5\u53ca\u53d1\u5e03\u8005\uff0c\u6700\u65b0\u7684\u6392\u5728\u6700\u524d\u9762\u3002\u6e05\u5355\u4f1a\u663e\u793a\u5b83\u4eec\u7684\u56fe\u7247\uff0c\u4ece Instagram \u7684\u56fe\u7247\u670d\u52a1\u5668\u52a0\u8f7d\u5e76\u4fdd\u5b58\u5728\u624b\u673a\u4e0a\u3002\u5173\u95ed\u540e\u4f1a\u7acb\u5373\u505c\u6b62\u3002");
+        table.put("Remembers the username, bio and profile picture of each profile you open, on this phone only, and tells you when one changed since your last visit. Pictures are copied from Instagram's image servers. Turn it off and it stops at once.",
+                "\u53ea\u5728\u8fd9\u652f\u624b\u673a\u4e0a\u8bb0\u4f4f\u4f60\u6253\u5f00\u7684\u6bcf\u4e2a\u4e3b\u9875\u7684\u7528\u6237\u540d\u3001\u4e2a\u4eba\u7b80\u4ecb\u548c\u5934\u50cf\uff0c\u5e76\u5728\u4e0a\u6b21\u9020\u8bbf\u540e\u6709\u53d8\u52a8\u65f6\u544a\u8bc9\u4f60\u3002\u7167\u7247\u4f1a\u4ece Instagram \u7684\u56fe\u7247\u670d\u52a1\u5668\u590d\u5236\u3002\u5173\u95ed\u540e\u4f1a\u7acb\u5373\u505c\u6b62\u3002");
+        table.put("Remembers what you save while it's on, so a post, carousel page, reel or story isn't saved twice. Save all skips the pages you already have. Download again within 30 seconds to save another copy. A file you deleted or moved saves again.",
+                "\u542f\u7528\u65f6\u4f1a\u8bb0\u4f4f\u4fdd\u5b58\u8fc7\u7684\u5185\u5bb9\uff0c\u907f\u514d\u91cd\u590d\u4fdd\u5b58\u5e16\u5b50\u3001\u8f6e\u64ad\u9875\u9762\u3001Reel \u6216\u5feb\u62cd\u3002\u201c\u4fdd\u5b58\u5168\u90e8\u201d\u4f1a\u7565\u8fc7\u5df2\u6709\u7684\u9875\u9762\u3002\u5728 30 \u79d2\u5185\u518d\u6b21\u4e0b\u8f7d\u5373\u53ef\u53e6\u5b58\u526f\u672c\u3002\u5df2\u5220\u9664\u6216\u79fb\u52a8\u7684\u6587\u4ef6\u5219\u4f1a\u91cd\u65b0\u4fdd\u5b58\u3002");
+        table.put("Remove @%s from saved",
+                "\u5c06 @%s \u4ece\u5df2\u4fdd\u5b58\u79fb\u9664");
+        table.put("Remove build expired popup",
+                "\u79fb\u9664\u7248\u672c\u8fc7\u671f\u63d0\u793a");
+        table.put("Remove folder",
+                "\u79fb\u9664\u6587\u4ef6\u5939");
+        table.put("Remove from Stories priority",
+                "\u4ece\u5feb\u62cd\u4f18\u5148\u7ea7\u79fb\u9664");
+        table.put("Remove from history",
+                "\u4ece\u7eaa\u5f55\u4e2d\u79fb\u9664");
+        table.put("Remove from saved",
+                "\u4ece\u5df2\u4fdd\u5b58\u79fb\u9664");
+        table.put("Remove the empty space at the bottom",
+                "\u79fb\u9664\u5e95\u90e8\u7a7a\u767d\u533a\u57df");
+        table.put("Remove the header picture",
+                "\u79fb\u9664\u9876\u7aef\u56fe\u7247");
+        table.put("Removed @%s from saved",
+                "\u5df2\u5c06 @%s \u4ece\u5df2\u4fdd\u5b58\u79fb\u9664");
+        table.put("Removed from Stories priority",
+                "\u5df2\u4ece\u5feb\u62cd\u4f18\u5148\u7ea7\u79fb\u9664");
+        table.put("Removed from your story fonts",
+                "\u5df2\u4ece\u5feb\u62cd\u5b57\u4f53\u4e2d\u79fb\u9664");
+        table.put("Removed the folder %s",
+                "\u5df2\u79fb\u9664\u6587\u4ef6\u5939 %s");
+        table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
+                "\u79fb\u9664\u9996\u9875\u9876\u7aef\u7684\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u9009\u9879\uff0c\u8ba9\u9996\u9875\u7ef4\u6301\u201c\u5df2\u5173\u6ce8\u201d\u6216\u201c\u7279\u522b\u5173\u6ce8\u201d\u3002\u9700\u542f\u7528\u201c\u9996\u9875\u9ed8\u8ba4\u663e\u793a\u5df2\u5173\u6ce8\u201d\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
+                "\u4ece\u5206\u4eab\u8868\u5355\u5e95\u90e8\u680f\u79fb\u9664 Meta AI\u3002\u90e8\u5206\u8d26\u6237\u4f1a\u663e\u793a\u4e3a Muse\u3002");
+        table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
+                "\u79fb\u9664\u9996\u9875\u6240\u6709\u5305\u542b\u591a\u5f20\u7167\u7247\u6216\u591a\u90e8\u89c6\u9891\u7684\u5e16\u5b50\uff0c\u5305\u62ec\u5df2\u5173\u6ce8\u8d26\u6237\u7684\u5e16\u5b50\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
+                "\u79fb\u9664\u9996\u9875\u6240\u6709\u5355\u5f20\u7167\u7247\u5e16\u5b50\uff0c\u5305\u62ec\u5df2\u5173\u6ce8\u8d26\u6237\u7684\u5e16\u5b50\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
+                "\u79fb\u9664\u9996\u9875\u6240\u6709\u5355\u90e8\u89c6\u9891\u5e16\u5b50\u4e0e Reels\uff0c\u5305\u62ec\u5df2\u5173\u6ce8\u8d26\u6237\u7684\u5185\u5bb9\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
+                "\u4ece\u9996\u9875\u4e0e\u5df2\u5173\u6ce8\u79fb\u9664\u5546\u4e1a\u548c\u521b\u4f5c\u8005\u8d26\u6237\u7684\u5e16\u5b50\uff0c\u5305\u62ec\u4f7f\u7528\u8fd9\u7c7b\u8d26\u6237\u7684\u670b\u53cb\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
+                "\u4ece\u9996\u9875\u4e0e\u5df2\u5173\u6ce8\u79fb\u9664\u4f60\u5df2\u70b9\u8d5e\u7684\u5e16\u5b50\u3002\u521a\u70b9\u8d5e\u7684\u5e16\u5b50\u4f1a\u4fdd\u7559\uff0c\u76f4\u5230\u4f60\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
+        table.put("Removes the Blend invite button from reels. Everything else on a reel stays.",
+                "\u79fb\u9664 Reels \u4e0a\u7684 Blend \u9080\u8bf7\u6309\u94ae\u3002Reel \u4e0a\u7684\u5176\u4ed6\u5185\u5bb9\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Removes the Meet Muse card, with its Try Muse button, from Home and your profile. Your other cards stay.",
+                "\u4ece\u9996\u9875\u4e0e\u4e3b\u9875\u79fb\u9664\u201c\u8ba4\u8bc6 Muse\u201d\u5361\u7247\u53ca\u5176\u201c\u8bd5\u7528 Muse\u201d\u6309\u94ae\u3002\u5176\u4ed6\u5361\u7247\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Removes the Muse button from the top bar of your profile. Your username and the menu stay.",
+                "\u4ece\u4e3b\u9875\u9876\u680f\u79fb\u9664 Muse \u6309\u94ae\u3002\u7528\u6237\u540d\u4e0e\u83dc\u5355\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Removes the empty gap under Instagram's tab bar that appears when your phone hides its navigation bar or Instagram is in a pop-up window. Restart Instagram to see the change.",
+                "\u79fb\u9664\u624b\u673a\u9690\u85cf\u5bfc\u822a\u680f\u6216 Instagram \u4ee5\u5f39\u51fa\u5f0f\u7a97\u53e3\u663e\u793a\u65f6\uff0c\u6807\u7b7e\u680f\u4e0b\u65b9\u51fa\u73b0\u7684\u7a7a\u767d\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Removes the stack of Instants (quick photos from friends) from your messages. Restart Instagram to see the change.",
+                "\u79fb\u9664\u6d88\u606f\u4e2d\u7684 Instants \u7167\u7247\u5806\u6808\uff08\u597d\u53cb\u7684\u5373\u62cd\u7167\u7247\uff09\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Removes the summary, Sources and Ask Meta AI box from a reel's more menu. In your feed the audio row goes too. Other options stay.",
+                "\u4ece Reel \u7684\u66f4\u591a\u83dc\u5355\u79fb\u9664\u6458\u8981\u3001\u201c\u6765\u6e90\u201d\u4e0e\u201c\u8be2\u95ee Meta AI\u201d\u533a\u5757\u3002\u52a8\u6001\u9996\u9875\u4e2d\u7684\u97f3\u9891\u680f\u4e5f\u4f1a\u79fb\u9664\u3002\u5176\u4ed6\u9009\u9879\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.",
+                "\u79fb\u9664\u590d\u5236\u6216\u5206\u4eab\u94fe\u63a5\u4e2d\u7684\u8ddf\u8e2a\u6807\u8bb0\uff0c\u5e76\u7565\u8fc7 Instagram \u7684\u70b9\u51fb\u8ddf\u8e2a\u5668\u6253\u5f00\u4e2a\u4eba\u7b80\u4ecb\u94fe\u63a5\u3002\u94fe\u63a5\u4ecd\u4f1a\u6253\u5f00\u76f8\u540c\u7684\u5e16\u5b50\u3001Reel \u6216\u4e3b\u9875\u3002");
+        table.put("Rename folder",
+                "\u91cd\u547d\u540d\u6587\u4ef6\u5939");
+        table.put("Renamed the folder to %s",
+                "\u5df2\u5c06\u6587\u4ef6\u5939\u91cd\u547d\u540d\u4e3a %s");
+        table.put("Reopen the media and save again.",
+                "\u8bf7\u91cd\u65b0\u6253\u5f00\u5a92\u4f53\u540e\u518d\u6b21\u4fdd\u5b58\u3002");
+        table.put("Reply to author (posts and reels)",
+                "\u56de\u590d\u4f5c\u8005 (\u5e16\u5b50\u548c\u8fde\u7eed\u77ed\u7247)");
+        table.put("Reply with a comment's GIF",
+                "\u7528\u8bc4\u8bba\u7684 GIF \u56de\u590d");
+        table.put("Report a problem",
+                "\u4e0a\u62a5\u95ee\u9898");
+        table.put("Reposts",
+                "\u8f6c\u53d1");
+        table.put("Reset",
+                "\u91cd\u8bbe");
+        table.put("Restart Instagram to apply these choices.",
+                "\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u8fd9\u4e9b\u9009\u9879\u3002");
+        table.put("Restart Instagram to bring Search back to your tab bar.",
+                "\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\uff0c\u5c06\u641c\u7d22\u52a0\u56de\u6807\u7b7e\u680f\u3002");
+        table.put("Restart Instagram to put Messages on your tab bar.",
+                "\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\uff0c\u5c06\u6d88\u606f\u52a0\u5165\u6807\u7b7e\u680f\u3002");
+        table.put("Restored %1$d settings. Kept %2$d newer choices.",
+                "\u5df2\u8fd8\u539f %1$d \u9879\u8bbe\u7f6e\uff0c\u4fdd\u7559\u8f83\u65b0\u7684 %2$d \u9879\u9009\u62e9\u3002");
+        table.put("Resume long videos",
+                "\u7ee7\u7eed\u64ad\u653e\u957f\u89c6\u9891");
+        table.put("Retro Instagram",
+                "\u590d\u53e4 Instagram");
+        table.put("Retry",
+                "\u91cd\u8bd5");
+        table.put("Right away",
+                "\u7acb\u5373");
+        table.put("Ring color",
+                "\u5149\u5708\u989c\u8272");
+        table.put("Ring size",
+                "\u5149\u5708\u5c3a\u5bf8");
+        table.put("Round handle on the seek bar",
+                "\u8fdb\u5ea6\u6761\u5706\u5f62\u62d6\u52a8\u94ae");
+        table.put("Rounded",
+                "\u5706\u89d2");
+        table.put("Rounded corners on Reels",
+                "Reels \u5706\u89d2");
+        table.put("Rounded corners on posts",
+                "\u5e16\u5b50\u5706\u89d2");
+        table.put("Rounded corners on stories",
+                "\u5feb\u62cd\u5706\u89d2");
+        table.put("Rounder",
+                "\u66f4\u5706");
+    }
+
+    private static void fillZh22(Map<String, String> table) {
+        table.put("Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.",
+                "\u5c06\u9996\u9875\u4e0e\u5df2\u5173\u6ce8\u5e16\u5b50\u7684\u7167\u7247\u3001\u89c6\u9891\u4e0e\u8f6e\u64ad\u9875\u9762\u6539\u4e3a\u5706\u89d2\u3002\u53d8\u66f4\u540e\u5377\u52a8\u5230\u7684\u5e16\u5b50\u624d\u4f1a\u663e\u793a\u3002\u5feb\u62cd\u3001\u4e3b\u9875\u4e0e\u63a2\u7d22\u4e0d\u53d8\u3002");
+        table.put("Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.",
+                "\u5728 Reels \u6807\u7b7e\u9875\u53ca\u4efb\u4f55\u4ee5\u5168\u5c4f\u5e55\u6253\u5f00 Reels \u7684\u5730\u65b9\uff0c\u5c06 Reels \u89c6\u9891\u7684\u8fb9\u89d2\u53d8\u5706\u3002\u8fdb\u5ea6\u6761\u3001\u5b57\u5e55\u548c\u6309\u94ae\u4fdd\u6301\u5b8c\u6574\u3002");
+        table.put("Rounds the corners of a story's photo or video, from the tray, a profile or a highlight. The progress bar, names and stickers stay whole.",
+                "\u65e0\u8bba\u4ece\u52a8\u6001\u680f\u3001\u4e3b\u9875\u6216\u7cbe\u9009\u52a8\u6001\u6253\u5f00\uff0c\u90fd\u4f1a\u5c06\u5feb\u62cd\u7167\u7247\u6216\u89c6\u9891\u7684\u8fb9\u89d2\u53d8\u5706\u3002\u8fdb\u5ea6\u6761\u3001\u540d\u79f0\u548c\u8d34\u56fe\u4fdd\u6301\u5b8c\u6574\u3002");
+        table.put("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.",
+                "\u5c06\u80f6\u56ca\u4e0e\u6807\u793a\u53d8\u5f97\u66f4\u5706\uff0c\u5e76\u5c06\u641c\u7d22\u653e\u5165\u72ec\u7acb\u7684\u73bb\u7483\u5706\u5708\u3002\u5411\u4e0b\u5377\u52a8\u6e05\u5355\u65f6\uff0c\u6807\u7b7e\u680f\u4f1a\u7f29\u6210\u76ee\u524d\u6807\u7b7e\u9875\u4e0e\u641c\u7d22\uff0c\u9664\u975e\u5df2\u542f\u7528\u201c\u5377\u52a8\u65f6\u9690\u85cf\u6807\u7b7e\u680f\u201d\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("Rows in Instagram's settings",
+                "Instagram \u8bbe\u7f6e\u4e2d\u7684\u9879\u76ee");
+        table.put("Run Reels behind the tab bar",
+                "\u8ba9 Reels \u5728\u6807\u7b7e\u680f\u540e\u65b9\u64ad\u653e");
+        table.put("SMS",
+                "\u77ed\u4fe1");
+        table.put("Sanitize sharing links",
+                "\u51c0\u5316\u5206\u4eab\u94fe\u63a5");
+        table.put("Save",
+                "\u4fdd\u5b58");
+        table.put("Save all",
+                "\u4fdd\u5b58\u5168\u90e8");
+        table.put("Save canceled",
+                "\u5df2\u53d6\u6d88\u4fdd\u5b58");
+        table.put("Save comment photo",
+                "\u4fdd\u5b58\u8bc4\u8bba\u7167\u7247");
+        table.put("Save every page without asking",
+                "\u76f4\u63a5\u4fdd\u5b58\u6240\u6709\u9875\u9762");
+        table.put("Save folder",
+                "\u4fdd\u5b58\u6587\u4ef6\u5939");
+        table.put("Save full report",
+                "\u4fdd\u5b58\u5b8c\u6574\u62a5\u544a");
+        table.put("Save in the post menu",
+                "\u5e16\u5b50\u83dc\u5355\u4e2d\u7684\u4fdd\u5b58");
+        table.put("Save photos, videos and more, and choose where they go.",
+                "\u4fdd\u5b58\u7167\u7247\u3001\u89c6\u9891\u7b49\u5185\u5bb9\uff0c\u5e76\u9009\u62e9\u4fdd\u5b58\u4f4d\u7f6e\u3002");
+        table.put("Save profile",
+                "\u4fdd\u5b58\u4e3b\u9875");
+        table.put("Save profile picture",
+                "\u4fdd\u5b58\u5934\u50cf");
+        table.put("Save the full report in %1$s.",
+                "\u5c06\u5b8c\u6574\u62a5\u544a\u4fdd\u5b58\u81f3 %1$s\u3002");
+        table.put("Save to folder",
+                "\u4fdd\u5b58\u81f3\u6587\u4ef6\u5939");
+        table.put("Save videos as MKV",
+                "\u5c06\u89c6\u9891\u4fdd\u5b58\u4e3a MKV");
+        table.put("Save videos other apps can open",
+                "\u4fdd\u5b58\u5176\u4ed6\u5e94\u7528\u7a0b\u5e8f\u53ef\u6253\u5f00\u7684\u89c6\u9891");
+        table.put("Save your HushGram choices to a file, or bring them back.",
+                "\u5c06 HushGram \u8bbe\u7f6e\u4fdd\u5b58\u4e3a\u6587\u4ef6\uff0c\u6216\u4ece\u6587\u4ef6\u8fd8\u539f\u3002");
+        table.put("Saved",
+                "\u5df2\u4fdd\u5b58");
+        table.put("Saved %1$d. Failed %2$d. Skipped %3$d.",
+                "\u5df2\u4fdd\u5b58 %1$d \u9875\uff0c\u5931\u8d25 %2$d \u9875\uff0c\u7565\u8fc7 %3$d \u9875\u3002");
+        table.put("Saved @%1$s to %2$s",
+                "\u5df2\u5c06 @%1$s \u4fdd\u5b58\u81f3 %2$s");
+        table.put("Saved @%s",
+                "\u5df2\u4fdd\u5b58 @%s");
+        table.put("Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.",
+                "\u201c\u5df2\u6536\u85cf\u201d\u53ca\u5176\u4e2d\u7684\u6240\u6709\u5185\u5bb9\u90fd\u4f1a\u88ab\u906e\u4f4f\uff0c\u76f4\u5230\u901a\u8fc7\u6307\u7eb9\u3001\u8138\u90e8\u6216\u5c4f\u5e55\u9501\u5b9a\u9a8c\u8bc1\u8eab\u5206\u3002");
+        table.put("Saved is locked",
+                "\u201c\u5df2\u6536\u85cf\u201d\u5df2\u9501\u5b9a");
+        table.put("Saved profiles",
+                "\u5df2\u4fdd\u5b58\u7684\u4e3b\u9875");
+        table.put("Saved profiles added: %d.",
+                "\u5df2\u6dfb\u52a0 %d \u4e2a\u4fdd\u5b58\u7684\u4e3b\u9875\u3002");
+        table.put("Saved profiles is full.",
+                "\u5df2\u4fdd\u5b58\u7684\u4e3b\u9875\u5df2\u8fbe\u4e0a\u9650\u3002");
+        table.put("Saved tab on your profile",
+                "\u4e3b\u9875\u7684\u5df2\u4fdd\u5b58\u6807\u7b7e\u9875");
+        table.put("Saved to %1$s",
+                "\u5df2\u4fdd\u5b58\u81f3 %1$s");
+        table.put("Saved to %1$s in lower quality because storage is low",
+                "\u5b58\u50a8\u7a7a\u95f4\u4e0d\u8db3\uff0c\u5df2\u4ee5\u8f83\u4f4e\u753b\u8d28\u4fdd\u5b58\u5230 %1$s");
+        table.put("Saved to %1$s in lower quality than on Instagram",
+                "\u5df2\u4fdd\u5b58\u81f3 %1$s\uff0c\u753b\u8d28\u4f4e\u4e8e Instagram \u4e0a\u7684\u7248\u672c");
+        table.put("Saved to the gallery",
+                "\u5df2\u4fdd\u5b58\u81f3\u76f8\u518c");
+        table.put("Saved to the gallery in lower quality because storage is low",
+                "\u5b58\u50a8\u7a7a\u95f4\u4e0d\u8db3\uff0c\u5df2\u4ee5\u8f83\u4f4e\u753b\u8d28\u4fdd\u5b58\u5230\u76f8\u518c");
+        table.put("Saved to the gallery in lower quality than on Instagram",
+                "\u5df2\u4fdd\u5b58\u81f3\u76f8\u518c\uff0c\u753b\u8d28\u4f4e\u4e8e Instagram \u4e0a\u7684\u7248\u672c");
+        table.put("Saved. Restart Instagram to apply this change.",
+                "\u5df2\u4fdd\u5b58\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Saves go to Movies and Pictures again.",
+                "\u4fdd\u5b58\u7684\u5185\u5bb9\u5df2\u6539\u56de\u653e\u5728 Movies \u548c Pictures\u3002");
+        table.put("Saves go to Movies and Pictures. Pick any folder instead, a hidden one too, and every photo and video goes there.",
+                "\u4fdd\u5b58\u7684\u5185\u5bb9\u4f1a\u653e\u5728 Movies \u548c Pictures\u3002\u4f60\u53ef\u4ee5\u6539\u9009\u4efb\u4f55\u6587\u4ef6\u5939\uff0c\u5305\u62ec\u9690\u85cf\u6587\u4ef6\u5939\uff0c\u6240\u6709\u7167\u7247\u548c\u89c6\u9891\u90fd\u4f1a\u5b58\u5230\u90a3\u91cc\u3002");
+        table.put("Saves videos as .mkv files instead of .mp4, for galleries that show no thumbnail for VP9 or AV1 videos. Nothing is re-encoded. A video Instagram sends as one file stays .mp4.",
+                "\u5c06\u89c6\u9891\u4fdd\u5b58\u4e3a .mkv \u6863\u800c\u975e .mp4\uff0c\u9002\u7528\u4e8e\u4e0d\u4f1a\u663e\u793a VP9 \u6216 AV1 \u89c6\u9891\u7f29\u7565\u56fe\u7684\u76f8\u518c\u3002\u4e0d\u4f1a\u91cd\u65b0\u7f16\u7801\u3002Instagram \u4ee5\u5355\u4e00\u6587\u4ef6\u53d1\u9001\u7684\u89c6\u9891\u4ecd\u4f1a\u662f .mp4\u3002");
+        table.put("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes or in HDR stay smaller.",
+                "\u4ee5\u5b8c\u6574\u5c3a\u5bf8\u4fdd\u5b58\u5176\u4ed6\u5e94\u7528\u7a0b\u5e8f\u53ef\u6253\u5f00\u7684\u89c6\u9891\u3002\u82e5 Instagram \u4ec5\u63d0\u4f9b VP9 \u6216 AV1\uff0c\u4f1a\u5728\u624b\u673a\u4e0a\u8f6c\u6362\u4e3a H.264\uff0c\u800c\u975e\u4fdd\u5b58\u8f83\u5c0f\u7684\u7248\u672c\u3002\u5904\u7406\u8f83\u6162\uff0c\u8d85\u8fc7 3 \u5206\u949f\u6216 HDR \u7684\u89c6\u9891\u4ecd\u4f1a\u4fdd\u5b58\u8f83\u5c0f\u7684\u7248\u672c\u3002");
+        table.put("Saving a carousel",
+                "\u6b63\u5728\u4fdd\u5b58\u8f6e\u64ad\u5e16\u5b50");
+        table.put("Saving a photo",
+                "\u6b63\u5728\u4fdd\u5b58\u7167\u7247");
+        table.put("Saving a post or reel shows Instagram's Saved message instead of the tray that asks you to start a collection.",
+                "\u4fdd\u5b58\u5e16\u5b50\u6216 Reels \u65f6\uff0cInstagram \u53ea\u4f1a\u663e\u793a\u5df2\u4fdd\u5b58\u7684\u6d88\u606f\uff0c\u800c\u4e0d\u662f\u8981\u4f60\u521b\u5efa\u73cd\u85cf\u5206\u7c7b\u7684\u9762\u677f\u3002");
+        table.put("Saving a video",
+                "\u6b63\u5728\u4fdd\u5b58\u89c6\u9891");
+        table.put("Saving a voice message",
+                "\u6b63\u5728\u4fdd\u5b58\u8bed\u97f3\u9891\u606f");
+        table.put("Saving diagnostic report...",
+                "\u6b63\u5728\u4fdd\u5b58\u8bca\u65ad\u62a5\u544a\u2026");
+        table.put("Saving...",
+                "\u4fdd\u5b58\u4e2d\u2026");
+        table.put("Saving... You can cancel from Downloads in HushGram settings.",
+                "\u4fdd\u5b58\u4e2d\u2026\u4f60\u53ef\u4ee5\u4ece HushGram \u8bbe\u7f6e\u4e2d\u7684\u201c\u4e0b\u8f7d\u201d\u53d6\u6d88\u3002");
+        table.put("Screens, panels, cards and menus take a dark or light shade of the color you picked. Story and reel viewers keep their own background. Wins over Pure black dark mode. Restart Instagram to see the change.",
+                "\u753b\u9762\u3001\u9762\u677f\u3001\u5361\u7247\u548c\u83dc\u5355\u4f1a\u6539\u7528\u4f60\u9009\u62e9\u989c\u8272\u7684\u6df1\u8272\u6216\u6d45\u8272\u8c03\u3002\u5feb\u62cd\u548c Reels \u67e5\u770b\u5668\u4fdd\u7559\u81ea\u5df1\u7684\u80cc\u666f\u3002\u4f18\u5148\u4e8e Pure black dark mode\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u67e5\u770b\u53d8\u66f4\u3002");
+        table.put("Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.",
+                "\u5141\u8bb8\u5728 Instagram \u539f\u672c\u7981\u6b62\u7684\u753b\u9762\u622a\u5c4f\u4e0e\u5f55\u50cf\uff0c\u4f8b\u5982\u4f1a\u6d88\u5931\u7684\u7167\u7247\u4e0e\u89c6\u9891\u3002\u82e5\u4e0d\u60f3\u8ba9\u53d1\u9001\u8005\u6536\u5230\u901a\u77e5\uff0c\u4e5f\u8bf7\u542f\u7528\u201c\u4e0d\u4e0a\u62a5\u622a\u5c4f\u201d\u3002");
+        table.put("Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.",
+                "\u5411\u4e0b\u5377\u52a8\u6e05\u5355\u65f6\uff0c\u6db2\u6001\u80f6\u56ca\u4f1a\u7ef4\u6301\u539f\u6837\uff0c\u6240\u6709\u6807\u7b7e\u9875\u7686\u4fdd\u7559\u5728\u539f\u4f4d\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.",
+                "\u5411\u4e0b\u5377\u52a8\u6e05\u5355\u65f6\uff0c\u6807\u7b7e\u680f\u4f1a\u6ed1\u51fa\u753b\u9762\uff1b\u5411\u4e0a\u5377\u52a8\u3001\u56de\u5230\u9876\u7aef\u6216\u5207\u6362\u6807\u7b7e\u9875\u65f6\u4f1a\u91cd\u65b0\u51fa\u73b0\u3002\u65e0\u8bba\u662f\u5426\u542f\u7528\u201c\u73bb\u7483\u6807\u7b7e\u680f\u201d\u90fd\u53ef\u4f7f\u7528\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("Search",
+                "\u641c\u7d22");
+        table.put("Search button on Home's header",
+                "\u9996\u9875\u9876\u7aef\u7684\u641c\u7d22\u6309\u94ae");
+        table.put("Search comments",
+                "\u641c\u7d22\u8bc4\u8bba");
+    }
+
+    private static void fillZh23(Map<String, String> table) {
+        table.put("Search settings",
+                "\u641c\u7d22\u8bbe\u7f6e");
+        table.put("Search, suggestions and the Explore grid.",
+                "\u641c\u7d22\u3001\u63a8\u8350\u4e0e\u63a2\u7d22\u7f51\u683c\u3002");
+        table.put("Searching...",
+                "\u641c\u7d22\u4e2d...");
+        table.put("See who a story mentions",
+                "\u67e5\u770b\u5feb\u62cd\u63d0\u53ca");
+        table.put("See who follows you back, and clear extras off profiles.",
+                "\u67e5\u770b\u8c01\u56de\u5173\u4e86\u4f60\uff0c\u5e76\u79fb\u9664\u4e3b\u9875\u7684\u989d\u5916\u5185\u5bb9\u3002");
+        table.put("See-through",
+                "\u534a\u900f\u660e");
+        table.put("See-through top bar",
+                "\u900f\u660e\u9876\u680f");
+        table.put("Seek bar",
+                "\u62d6\u52a8\u6761");
+        table.put("Seek bar button on feed videos",
+                "\u52a8\u6001\u89c6\u9891\u62d6\u52a8\u6761\u6309\u94ae");
+        table.put("Seek bar like DM videos",
+                "\u4f7f\u7528\u6d88\u606f\u89c6\u9891\u6837\u5f0f\u7684\u8fdb\u5ea6\u6761");
+        table.put("Seek bar look",
+                "\u62d6\u52a8\u6761\u6837\u5f0f");
+        table.put("Seek bar on feed videos",
+                "\u52a8\u6001\u89c6\u9891\u62d6\u52a8\u6761");
+        table.put("Seek bar on photos with music",
+                "\u5728\u542b\u97f3\u4e50\u7684\u7167\u7247\u4e0a\u663e\u793a\u8fdb\u5ea6\u6761");
+        table.put("Seek bar on stories",
+                "\u5feb\u62cd\u62d6\u52a8\u6761");
+        table.put("Seek bar on the bottom edge",
+                "\u62d6\u52a8\u6761\u8d34\u9f50\u5e95\u90e8\u8fb9\u7f18");
+        table.put("Seek bar position",
+                "\u62d6\u52a8\u6761\u4f4d\u7f6e");
+        table.put("Seek bar shape",
+                "\u62d6\u52a8\u6761\u5f62\u72b6");
+        table.put("Seen goes out in this chat",
+                "\u6b64\u804a\u5929\u4f1a\u53d1\u9001\u201c\u5df2\u8bfb\u201d");
+        table.put("Seen held in this chat",
+                "\u6b64\u804a\u5929\u4f1a\u4fdd\u7559\u201c\u5df2\u8bfb\u201d");
+        table.put("Select text",
+                "\u9009\u53d6\u6587\u5b57");
+        table.put("Select text to copy",
+                "\u9009\u53d6\u8981\u590d\u5236\u7684\u6587\u5b57");
+        table.put("Send",
+                "\u53d1\u9001");
+        table.put("Send Seen in this chat",
+                "\u5728\u6b64\u804a\u5929\u53d1\u9001\u201c\u5df2\u8bfb\u201d");
+        table.put("Send downloads to another app",
+                "\u5c06\u4e0b\u8f7d\u53d1\u9001\u81f3\u5176\u4ed6\u5e94\u7528\u7a0b\u5e8f");
+        table.put("Send to",
+                "\u53d1\u9001\u81f3");
+        table.put("Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.",
+                "\u5728\u804a\u5929\u4e2d\u53d1\u9001\u6d88\u606f\u540e\uff0c\u5bf9\u65b9\u4f1a\u770b\u5230\u4f60\u5df2\u8bfb\u8fc7\u4ed6\u4eec\u5148\u524d\u4f20\u6765\u7684\u5185\u5bb9\u3002\u4f60\u6ca1\u6709\u56de\u590d\u7684\u804a\u5929\uff0c\u5bf9\u65b9\u4ecd\u770b\u4e0d\u5230\u5df2\u8bfb\u3002");
+        table.put("Sends Instagram through the HTTP proxy set below. Other apps and your phone's own settings aren't changed.",
+                "\u8ba9 Instagram \u901a\u8fc7\u4e0b\u65b9\u8bbe\u7f6e\u7684 HTTP Proxy \u8fde\u63a5\u3002\u5176\u4ed6\u5e94\u7528\u7a0b\u5e8f\u548c\u624b\u673a\u672c\u8eab\u7684\u8bbe\u7f6e\u90fd\u4e0d\u4f1a\u53d8\u66f4\u3002");
+        table.put("Sent",
+                "\u5df2\u53d1\u9001");
+        table.put("Sent to another app. Change this in Downloads.",
+                "\u5df2\u53d1\u9001\u81f3\u5176\u4ed6\u5e94\u7528\u7a0b\u5e8f\u3002\u82e5\u8981\u6539\u5728\u6b64\u4fdd\u5b58\uff0c\u8bf7\u5173\u95ed\u201c\u4e0b\u8f7d\u201d\u4e2d\u7684\u201c\u5c06\u4e0b\u8f7d\u53d1\u9001\u81f3\u5176\u4ed6\u5e94\u7528\u7a0b\u5e8f\u201d\u3002");
+        table.put("Set a PIN",
+                "\u8bbe\u7f6e PIN \u7801");
+        table.put("Set a phone screen lock so HushGram can lock Instagram.",
+                "\u8bf7\u5148\u5728\u624b\u673a\u4e0a\u8bbe\u7f6e\u5c4f\u5e55\u9501\u5b9a\uff0cHushGram \u624d\u80fd\u9501\u5b9a Instagram\u3002");
+        table.put("Set a phone screen lock so HushGram can lock Saved.",
+                "\u8bf7\u5148\u5728\u624b\u673a\u4e0a\u8bbe\u7f6e\u5c4f\u5e55\u9501\u5b9a\uff0cHushGram \u624d\u80fd\u9501\u5b9a\u201c\u5df2\u6536\u85cf\u201d\u3002");
+        table.put("Set a phone screen lock so HushGram can lock messages.",
+                "\u8bf7\u5148\u5728\u624b\u673a\u4e0a\u8bbe\u7f6e\u5c4f\u5e55\u9501\u5b9a\uff0cHushGram \u624d\u80fd\u9501\u5b9a\u6d88\u606f\u3002");
+        table.put("Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.",
+                "\u8bbe\u7f6e\u6216\u53d8\u66f4 4 \u81f3 8 \u4f4d\u6570\u7684 PIN \u7801\u3002\u4ec5\u4fdd\u7559\u5728\u6b64\u624b\u673a\u4e0a\uff0c\u4e0d\u4f1a\u5305\u542b\u5728\u5907\u4efd\u4e2d\u3002");
+        table.put("Set when you patched",
+                "\u6253\u8865\u4e01\u65f6\u8bbe\u7f6e");
+        table.put("Settings are open",
+                "\u8bbe\u7f6e\u5df2\u5f00\u653e");
+        table.put("Settings backup",
+                "\u8bbe\u7f6e\u5907\u4efd");
+        table.put("Settings button on Home's header",
+                "\u9996\u9875\u9876\u7aef\u7684\u8bbe\u7f6e\u6309\u94ae");
+        table.put("Settings couldn't open",
+                "\u65e0\u6cd5\u6253\u5f00\u8bbe\u7f6e");
+        table.put("Settings couldn't refresh completely. Reopen settings and try again.",
+                "\u8bbe\u7f6e\u672a\u80fd\u5b8c\u6574\u5237\u65b0\uff0c\u8bf7\u91cd\u65b0\u6253\u5f00\u8bbe\u7f6e\u540e\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("Settings entry",
+                "\u8bbe\u7f6e\u5165\u53e3");
+        table.put("Settings export canceled.",
+                "\u5df2\u53d6\u6d88\u5bfc\u51fa\u8bbe\u7f6e\u3002");
+        table.put("Settings locked",
+                "\u8bbe\u7f6e\u5df2\u9501\u5b9a");
+        table.put("Settings restored.",
+                "\u5df2\u8fd8\u539f\u8bbe\u7f6e\u3002");
+        table.put("Settings shortcut on the app icon",
+                "\u5e94\u7528\u7a0b\u5e8f\u56fe\u6807\u7684\u8bbe\u7f6e\u6377\u5f84");
+        table.put("Share to",
+                "\u5206\u4eab\u81f3");
+        table.put("Sharing",
+                "\u5206\u4eab");
+        table.put("Sharing domain",
+                "\u5206\u4eab\u7f51\u57df");
+        table.put("Short tick",
+                "\u77ed\u9707");
+        table.put("Show a comment GIF's name",
+                "\u663e\u793a\u8bc4\u8bba GIF \u7684\u540d\u79f0");
+        table.put("Show a post's exact time",
+                "\u663e\u793a\u5e16\u5b50\u7684\u786e\u5207\u65f6\u95f4");
+        table.put("Show a reel's exact time",
+                "\u663e\u793a Reel \u7684\u786e\u5207\u65f6\u95f4");
+        table.put("Show a story's exact time",
+                "\u663e\u793a\u5feb\u62cd\u7684\u786e\u5207\u65f6\u95f4");
+        table.put("Show all",
+                "\u663e\u793a\u5168\u90e8");
+        table.put("Show all recent searches",
+                "\u663e\u793a\u6240\u6709\u6700\u8fd1\u641c\u7d22");
+        table.put("Show all settings as a list",
+                "\u4ee5\u6e05\u5355\u663e\u793a\u6240\u6709\u8bbe\u7f6e");
+        table.put("Show and reorder tabs",
+                "\u663e\u793a\u4e0e\u6392\u5217\u6807\u7b7e\u9875");
+        table.put("Show categories as a grid",
+                "\u4ee5\u683c\u72b6\u663e\u793a\u5206\u7c7b");
+        table.put("Show categories as rows",
+                "\u4ee5\u5217\u663e\u793a\u5206\u7c7b");
+        table.put("Show content behind the tab bar",
+                "\u5728\u6807\u7b7e\u680f\u540e\u65b9\u663e\u793a\u5185\u5bb9");
+    }
+
+    private static void fillZh24(Map<String, String> table) {
+        table.put("Show how long ago a reel was posted",
+                "\u663e\u793a Reel \u53d1\u5e03\u81f3\u4eca\u7684\u65f6\u95f4");
+        table.put("Show if a profile follows you",
+                "\u663e\u793a\u8d26\u6237\u662f\u5426\u5df2\u5173\u6ce8\u4f60");
+        table.put("Show it as a chip",
+                "\u4ee5\u6807\u7b7e\u663e\u793a");
+        table.put("Show it on the profile picture",
+                "\u663e\u793a\u5728\u5927\u5934\u8d34\u7167\u4e0a");
+        table.put("Show like counts the poster hid",
+                "\u663e\u793a\u53d1\u5e16\u8005\u9690\u85cf\u7684\u70b9\u8d5e\u6570");
+        table.put("Show profile posts as a list",
+                "\u4ee5\u6e05\u5355\u663e\u793a\u4e3b\u9875\u5e16\u5b50");
+        table.put("Show seconds in a reel's time",
+                "\u5728 Reel \u65f6\u95f4\u4e2d\u663e\u793a\u79d2\u6570");
+        table.put("Show settings by category",
+                "\u4f9d\u5206\u7c7b\u663e\u793a\u8bbe\u7f6e");
+        table.put("Show the Activity tab",
+                "\u663e\u793a\u52a8\u6001\u6807\u7b7e\u9875");
+        table.put("Show the Friends tab on Reels",
+                "\u663e\u793a Reels \u7684\u597d\u53cb\u6807\u7b7e\u9875");
+        table.put("Show the Messages tab",
+                "\u663e\u793a\u6d88\u606f\u6807\u7b7e\u9875");
+        table.put("Show the Reels tab",
+                "\u663e\u793a Reels \u6807\u7b7e\u9875");
+        table.put("Show the whole reel",
+                "\u663e\u793a\u5b8c\u6574\u7684 Reels");
+        table.put("Show when someone was last active",
+                "\u663e\u793a\u6700\u540e\u4e0a\u7ebf\u65f6\u95f4");
+        table.put("Showing reels with %1$s again",
+                "\u5df2\u91cd\u65b0\u663e\u793a\u4f7f\u7528 %1$s \u7684 Reels");
+        table.put("Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.",
+                "\u5728 Android 13 \u4ee5\u4e0a\u7248\u672c\uff0c\u5c06 Instagram \u542f\u52a8\u753b\u9762\u7684\u6807\u5fd7\u6539\u4e3a HushGram\u3002\u4e0b\u6b21\u542f\u52a8\u65f6\u663e\u793a\u3002");
+        table.put("Shows a bar along the bottom of the video playing in a feed. Drag it and let go to jump to that point in the video.",
+                "\u5728\u52a8\u6001\u4e2d\u64ad\u653e\u7684\u89c6\u9891\u5e95\u90e8\u663e\u793a\u4e00\u6761\u62d6\u52a8\u6761\u3002\u62d6\u52a8\u540e\u653e\u5f00\uff0c\u5373\u53ef\u8df3\u5230\u89c6\u9891\u4e2d\u7684\u90a3\u4e2a\u4f4d\u7f6e\u3002");
+        table.put("Shows a bar near the bottom of a video story. Drag it to jump to any point in the video. Photos don't get one.",
+                "\u5728\u89c6\u9891\u5feb\u62cd\u5e95\u90e8\u9644\u8fd1\u663e\u793a\u4e00\u6761\u62d6\u52a8\u6761\u3002\u62d6\u52a8\u5b83\u5373\u53ef\u8df3\u5230\u89c6\u9891\u4e2d\u7684\u4efb\u4f55\u4f4d\u7f6e\u3002\u7167\u7247\u4e0d\u4f1a\u663e\u793a\u3002");
+        table.put("Shows a handle at the right edge of Saved and your collections while they scroll. Drag it to jump through them.",
+                "\u5377\u52a8\u201c\u5df2\u6536\u85cf\u201d\u548c\u4f60\u7684\u73cd\u85cf\u5206\u7c7b\u65f6\uff0c\u5728\u53f3\u4fa7\u8fb9\u7f18\u663e\u793a\u62c9\u6746\u3002\u62d6\u52a8\u62c9\u6746\u5373\u53ef\u5feb\u901f\u8df3\u8f6c\u3002");
+        table.put("Shows each switch by its name alone. Tap the i next to a name to read what it does.",
+                "\u6bcf\u4e2a\u5f00\u5173\u53ea\u663e\u793a\u540d\u79f0\u3002\u70b9\u4e00\u4e0b\u540d\u79f0\u65c1\u7684 i \u5373\u53ef\u67e5\u770b\u5b83\u7684\u4f5c\u7528\u3002");
+        table.put("Shows every emoji in Google's style instead of your phone's own. Restart Instagram to see the change.",
+                "\u5c06\u6240\u6709\u8868\u60c5\u7b26\u53f7\u6539\u4e3a Google \u6837\u5f0f\uff0c\u53d6\u4ee3\u624b\u673a\u539f\u672c\u7684\u6837\u5f0f\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.",
+                "\u53d1\u5e16\u8005\u9690\u85cf\u5e16\u5b50\u6216 Reel \u7684\u70b9\u8d5e\u6570\u65f6\uff0c\u53ea\u8981 Instagram \u4ecd\u53d1\u9001\u6b64\u6570\u5b57\u5c31\u4f1a\u663e\u793a\uff1b\u82e5\u672a\u53d1\u9001\u5219\u4e0d\u53d8\u3002\u53d8\u66f4\u540e\u52a0\u8f7d\u7684\u5e16\u5b50\u624d\u4f1a\u663e\u793a\u3002");
+        table.put("Shows the date and time a reel was posted under the author's name, like Oct 2, 3:45 PM. A change shows from the next reel.",
+                "\u5728\u521b\u4f5c\u8005\u540d\u79f0\u4e0b\u65b9\u663e\u793a Reel \u7684\u53d1\u5e03\u65e5\u671f\u4e0e\u65f6\u95f4\uff0c\u4f8b\u5982 10 \u6708 2 \u65e5\u4e0b\u5348 3:45\u3002\u53d8\u66f4\u4f1a\u4ece\u4e0b\u4e00\u5219 Reel \u5f00\u59cb\u663e\u793a\u3002");
+        table.put("Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.",
+                "\u5728\u65f6\u95f4\u4e0b\u65b9\u53e6\u5916\u663e\u793a\u53d1\u5e03\u81f3\u4eca\u7684\u5929\u6570\u3001\u65f6\u6570\u4e0e\u5206\u949f\u6570\uff0c\u4f8b\u5982 1 \u5929 2 \u5c0f\u65f6 5 \u5206\u949f\u524d\u3002");
+        table.put("Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.",
+                "\u5728\u52a8\u6001\u89c6\u9891\u3001\u5feb\u62cd\u6216 Reels \u4e0a\u62d6\u52a8\u62d6\u52a8\u6761\u65f6\uff0c\u4e8e\u624b\u6307\u4e0a\u65b9\u663e\u793a\u65f6\u95f4\uff0c\u82e5 Instagram \u6709\u8be5\u89c6\u9891\u7684\u56fe\u7247\uff0c\u4e5f\u4f1a\u663e\u793a\u8be5\u65f6\u523b\u7684\u5c0f\u56fe\u3002");
+        table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
+                "\u663e\u793a\u5e16\u5b50\u4e0e\u8bc4\u8bba\u7684\u53d1\u5e03\u65f6\u95f4\uff0c\u4f8b\u5982 10 \u6708 2 \u65e5\u4e0b\u5348 3:45\uff0c\u53d6\u4ee3\u591a\u4e45\u4ee5\u524d\u7684\u6587\u5b57\u3002\u53d8\u66f4\u540e\u52a0\u8f7d\u7684\u5e16\u5b50\u624d\u4f1a\u663e\u793a\u3002");
+        table.put("Shows your feed blurred under Home's top bar, like frosted glass.",
+                "\u5728\u9996\u9875\u9876\u680f\u4e0b\u65b9\u4ee5\u96fe\u9762\u73bb\u7483\u822c\u7684\u6a21\u7cca\u6548\u679c\u663e\u793a\u4f60\u7684\u52a8\u6001\u3002");
+        table.put("Shrink the pill as you scroll",
+                "\u5377\u52a8\u65f6\u7f29\u5c0f\u80f6\u56ca");
+        table.put("Size %1$d \u00d7 %2$d",
+                "\u5c3a\u5bf8 %1$d \u00d7 %2$d");
+        table.put("Skip length",
+                "\u8df3\u8f6c\u957f\u5ea6");
+        table.put("Skip the ad data reminder",
+                "\u7565\u8fc7\u5e7f\u544a\u6570\u636e\u63d0\u9192");
+        table.put("Skip the collections tray",
+                "\u7565\u8fc7\u73cd\u85cf\u5206\u7c7b\u9762\u677f");
+        table.put("Skip the contacts and location popups",
+                "\u7565\u8fc7\u8054\u7cfb\u4eba\u548c\u4f4d\u7f6e\u5f39\u51fa\u7a97\u53e3");
+        table.put("Skip what's already saved",
+                "\u7565\u8fc7\u5df2\u4fdd\u5b58\u7684\u5185\u5bb9");
+        table.put("Slate",
+                "\u77f3\u677f\u7070");
+        table.put("Slide across the tabs",
+                "\u6ed1\u52a8\u9009\u62e9\u6807\u7b7e\u9875");
+        table.put("Slow",
+                "\u6162");
+        table.put("Small",
+                "\u5c0f");
+        table.put("Small, under the picture",
+                "\u7167\u7247\u4e0b\u65b9\u7684\u5c0f\u578b\u6807\u7b7e");
+        table.put("Smallest",
+                "\u6700\u5c0f");
+        table.put("Smooth story opening",
+                "\u5e73\u987a\u6253\u5f00\u5feb\u62cd");
+        table.put("Snapchat",
+                "Snapchat");
+        table.put("Soft tick",
+                "\u8f7b\u9707");
+        table.put("Solid",
+                "\u4e0d\u900f\u660e");
+        table.put("Solid story rings",
+                "\u7eaf\u8272\u5feb\u62cd\u5706\u73af");
+        table.put("Some changes apply when Instagram restarts. Tap to restart it now.",
+                "\u90e8\u5206\u53d8\u66f4\u4f1a\u5728\u91cd\u65b0\u542f\u52a8 Instagram \u540e\u751f\u6548\u3002\u70b9\u51fb\u5373\u53ef\u7acb\u5373\u91cd\u65b0\u542f\u52a8\u3002");
+        table.put("Sound",
+                "\u58f0\u97f3");
+        table.put("Sound didn't change",
+                "\u58f0\u97f3\u672a\u53d8\u66f4");
+        table.put("Source code and issues",
+                "\u6e90\u4ee3\u7801\u4e0e\u95ee\u9898\u4e0a\u62a5");
+        table.put("Space under the tab bar",
+                "\u6807\u7b7e\u680f\u4e0b\u65b9\u95f4\u8ddd");
+        table.put("Speed button on reels",
+                "Reels \u901f\u5ea6\u6309\u94ae");
+        table.put("Speed button on stories",
+                "\u5feb\u62cd\u901f\u5ea6\u6309\u94ae");
+        table.put("Speed didn't change",
+                "\u901f\u5ea6\u672a\u53d8\u66f4");
+        table.put("Speed in the reel menu",
+                "Reel \u83dc\u5355\u4e2d\u7684\u901f\u5ea6");
+        table.put("Speed in the story menu",
+                "\u5feb\u62cd\u83dc\u5355\u4e2d\u7684\u901f\u5ea6");
+        table.put("Split the notes row",
+                "\u62c6\u5206\u7b14\u8bb0\u680f");
+        table.put("Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.",
+                "\u5c06\u7b14\u8bb0\u680f\u62c6\u6210 Instants\u3001\u7b14\u8bb0\u548c\u5feb\u62cd\u4e09\u53e0\uff0c\u8fd9\u662f Instagram \u6b63\u5728\u6d4b\u8bd5\u7684\u7248\u9762\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Spoof location",
+                "\u4f2a\u88c5\u4f4d\u7f6e");
+        table.put("Standard",
+                "\u6807\u51c6");
+        table.put("Start Home on Following",
+                "\u9996\u9875\u9ed8\u8ba4\u663e\u793a\u5df2\u5173\u6ce8");
+    }
+
+    private static void fillZh25(Map<String, String> table) {
+        table.put("Start a video call?",
+                "\u8981\u5f00\u59cb\u89c6\u9891\u901a\u8bdd\u5417\uff1f");
+        table.put("Start a voice call?",
+                "\u8981\u5f00\u59cb\u8bed\u97f3\u901a\u8bdd\u5417\uff1f");
+        table.put("Start every reel in clear mode",
+                "\u6bcf\u4e2a Reel \u90fd\u4ee5\u6e05\u723d\u6a21\u5f0f\u5f00\u59cb");
+        table.put("Start feed videos with sound",
+                "\u52a8\u6001\u9996\u9875\u89c6\u9891\u9ed8\u8ba4\u6253\u5f00\u58f0\u97f3");
+        table.put("Start reels muted",
+                "Reels \u9ed8\u8ba4\u9759\u97f3");
+        table.put("Start reels with sound",
+                "Reels \u9ed8\u8ba4\u6253\u5f00\u58f0\u97f3");
+        table.put("Start stories with sound",
+                "\u5feb\u62cd\u9ed8\u8ba4\u6253\u5f00\u58f0\u97f3");
+        table.put("Start tab",
+                "\u542f\u52a8\u6807\u7b7e\u9875");
+        table.put("Stay dim when I tap",
+                "\u70b9\u51fb\u65f6\u4fdd\u6301\u6de1\u5316");
+        table.put("Stays in while paused",
+                "\u6682\u505c\u65f6\u4ecd\u751f\u6548");
+        table.put("Stickers",
+                "\u8d34\u56fe");
+        table.put("Still loading, try again",
+                "\u4ecd\u5728\u52a0\u8f7d\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21");
+        table.put("Still saving or exporting. Restart once it's done.",
+                "\u4ecd\u6709\u4fdd\u5b58\u6216\u5bfc\u51fa\u4f5c\u4e1a\u8fdb\u884c\u4e2d\uff0c\u8bf7\u5f85\u5b8c\u6210\u540e\u518d\u91cd\u65b0\u542f\u52a8\u3002");
+        table.put("Still scroll reels from Search and Explore",
+                "\u4ece\u641c\u7d22\u548c\u63a2\u7d22\u6253\u5f00\u7684 Reels \u4ecd\u53ef\u5377\u52a8");
+        table.put("Still scroll reels from a profile",
+                "\u4ece\u4e3b\u9875\u6253\u5f00\u7684 Reels \u4ecd\u53ef\u5377\u52a8");
+        table.put("Still scroll reels from a song page",
+                "\u4ece\u6b4c\u66f2\u9875\u9762\u6253\u5f00\u7684 Reels \u4ecd\u53ef\u5377\u52a8");
+        table.put("Stop",
+                "\u505c\u6b62");
+        table.put("Stop Instagram from saying this version is too old.",
+                "\u4e0d\u518d\u8ba9 Instagram \u663e\u793a\u7248\u672c\u8fc7\u65e7\u7684\u63d0\u793a\u3002");
+        table.put("Stop Reels scrolling",
+                "\u7981\u7528 Reels \u5377\u52a8");
+        table.put("Stop Story auto-advance",
+                "\u7981\u7528\u81ea\u52a8\u5207\u6362\u5feb\u62cd");
+        table.put("Stop after a set number of reels",
+                "\u89c2\u770b\u8bbe\u7f6e\u6570\u91cf\u7684 Reels \u540e\u505c\u6b62");
+        table.put("Stop after the chat's reels",
+                "\u770b\u5b8c\u804a\u5929\u7684 Reels \u5c31\u505c\u6b62");
+        table.put("Stop background feed refresh",
+                "\u505c\u6b62\u80cc\u666f\u52a8\u6001\u66f4\u65b0");
+        table.put("Stop background work Instagram doesn't need.",
+                "\u505c\u6b62 Instagram \u4e0d\u5fc5\u8981\u7684\u80cc\u666f\u5de5\u4f5c\u3002");
+        table.put("Stop loading stories and highlights",
+                "\u505c\u6b62\u52a0\u8f7d\u5feb\u62cd\u4e0e\u7cbe\u9009");
+        table.put("Stop looking",
+                "\u505c\u6b62\u5bfb\u627e");
+        table.put("Stop looping this story",
+                "\u505c\u6b62\u91cd\u590d\u64ad\u653e\u8fd9\u5219\u5feb\u62cd");
+        table.put("Stop looping this video",
+                "\u505c\u6b62\u91cd\u590d\u64ad\u653e\u8fd9\u90e8\u89c6\u9891");
+        table.put("Stop swipe to create",
+                "\u7981\u7528\u6ed1\u52a8\u521b\u5efa");
+        table.put("Stop swipe up to reply",
+                "\u7981\u7528\u4e0a\u6ed1\u56de\u590d");
+        table.put("Stop swiping between tabs",
+                "\u7981\u7528\u6ed1\u52a8\u5207\u6362\u6807\u7b7e\u9875");
+        table.put("Stop the analytics upload alarm",
+                "\u7981\u7528\u5206\u6790\u6570\u636e\u4e0a\u4f20\u95f9\u949f");
+        table.put("Stop the background heartbeat",
+                "\u7981\u7528\u80cc\u666f\u5b58\u6d3b\u4e0a\u62a5");
+        table.put("Stop the wait",
+                "\u53d6\u6d88\u7b49\u5f85");
+        table.put("Stop using the folder you picked. Saves go back to Movies and Pictures.",
+                "\u505c\u6b62\u4f7f\u7528\u4f60\u9009\u62e9\u7684\u6587\u4ef6\u5939\u3002\u4fdd\u5b58\u7684\u5185\u5bb9\u4f1a\u6539\u56de\u653e\u5728 Movies \u548c Pictures\u3002");
+        table.put("Stop videos looping",
+                "\u89c6\u9891\u4e0d\u91cd\u590d\u64ad\u653e");
+        table.put("Stops Instagram from floating the row of stories over Home when you come back to it mid-feed or scroll up fast. The row stays at the top of the feed and scrolls away with it.",
+                "\u5728\u52a8\u6001\u4e2d\u9014\u56de\u5230\u9996\u9875\u6216\u5feb\u901f\u5f80\u4e0a\u6ed1\u65f6\uff0c\u4e0d\u8ba9 Instagram \u628a\u5feb\u62cd\u680f\u6d6e\u5728\u9996\u9875\u4e0a\u65b9\u3002\u8fd9\u4e00\u5217\u4f1a\u7559\u5728\u52a8\u6001\u9876\u7aef\uff0c\u5e76\u968f\u52a8\u6001\u4e00\u8d77\u5377\u8d70\u3002");
+        table.put("Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.",
+                "\u4e0d\u8ba9\u5bf9\u65b9\u77e5\u9053\u4f60\u5df2\u6253\u5f00\u53ea\u80fd\u770b\u4e00\u6b21\u7684\u7167\u7247\u4e0e\u89c6\u9891\u3002\u89c2\u770b\u540e\u4ecd\u4f1a\u6d88\u5931\u3002\u6b64\u4e3a\u6d4b\u8bd5\u529f\u80fd\uff0c\u9ed8\u8ba4\u5173\u95ed\u3002");
+        table.put("Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.",
+                "\u4e0d\u518d\u5411 Instagram \u4e0a\u62a5\u4f60\u770b\u8fc7\u54ea\u4e9b Reels \u6216\u89c2\u770b\u8fdb\u5ea6\u3002Instagram \u4f1a\u7528\u8fd9\u4e9b\u6570\u636e\u63a8\u8350 Reels\uff0c\u56e0\u6b64\u5df2\u770b\u8fc7\u7684 Reels \u53ef\u80fd\u518d\u6b21\u51fa\u73b0\u3002");
+        table.put("Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.",
+                "\u505c\u6b62\u4f60\u52fe\u9009\u7684\u901a\u77e5\u7c7b\u578b\uff0c\u5305\u62ec Instagram \u81ea\u5df1\u7684\u901a\u77e5\u8bbe\u7f6e\u65e0\u6cd5\u5173\u95ed\u7684\u7c7b\u578b\u3002");
+        table.put("Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.",
+                "\u907f\u514d\u7231\u5fc3\u4e0a\u7684\u7ea2\u70b9\u53ea\u56e0\u7cbe\u9009\u5185\u5bb9\u800c\u51fa\u73b0\u3002\u70b9\u8d5e\u3001\u8bc4\u8bba\u548c\u65b0\u7c89\u4e1d\u4ecd\u4f1a\u8ba9\u5b83\u4eae\u8d77\u3002");
+        table.put("Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode on, that's every swipe.",
+                "Reel \u4ee5\u6e05\u723d\u6a21\u5f0f\u6253\u5f00\u65f6\uff0c\u505c\u6b62 Instagram \u64ad\u653e\u7684\u77ed\u6682\u9707\u52a8\u3002\u6253\u5f00\u201c\u4fdd\u6301\u6e05\u723d\u6a21\u5f0f\u201d\u65f6\uff0c\u6bcf\u6b21\u6ed1\u52a8\u90fd\u4f1a\u9707\u52a8\u3002");
+        table.put("Storage",
+                "\u5b58\u50a8\u7a7a\u95f4");
+        table.put("Stories",
+                "\u5feb\u62cd");
+        table.put("Stories fill the screen",
+                "\u5feb\u62cd\u586b\u6ee1\u5c4f\u5e55");
+        table.put("Stories only",
+                "\u4ec5\u5feb\u62cd");
+        table.put("Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, so on silent or with the volume down, stories stay quiet.",
+                "\u6253\u5f00\u5feb\u62cd\u65f6\u4f1a\u542f\u7528\u58f0\u97f3\uff0c\u7b49\u540c\u70b9\u51fb Instagram \u7684\u5587\u53ed\u6309\u94ae\u3002\u4ecd\u53d7\u624b\u673a\u94c3\u58f0\u4e0e\u97f3\u91cf\u8bbe\u7f6e\u5f71\u54cd\uff0c\u56e0\u6b64\u9759\u97f3\u6216\u97f3\u91cf\u8c03\u4f4e\u65f6\u4ecd\u4e0d\u4f1a\u51fa\u58f0\u3002");
+        table.put("Stories priority",
+                "\u5feb\u62cd\u4f18\u5148\u7ea7");
+        table.put("Stories priority didn't change",
+                "\u5feb\u62cd\u4f18\u5148\u7ea7\u6ca1\u6709\u53d8\u66f4");
+        table.put("Stories to keep",
+                "\u8981\u4fdd\u7559\u7684\u5feb\u62cd");
+        table.put("Stories, posts and reels",
+                "\u5feb\u62cd\u3001\u5e16\u5b50\u548c Reels");
+        table.put("Story",
+                "\u5feb\u62cd");
+        table.put("Story mentions",
+                "\u5feb\u62cd\u63d0\u53ca");
+        table.put("Story ring size",
+                "\u5feb\u62cd\u5149\u5708\u5c3a\u5bf8");
+        table.put("Story rings are one solid shade of the color you picked instead of running light to dark. Restart Instagram to see the change.",
+                "\u5feb\u62cd\u5706\u73af\u4f1a\u4f7f\u7528\u4f60\u9009\u62e9\u989c\u8272\u7684\u5355\u4e00\u8272\u8c03\uff0c\u800c\u4e0d\u662f\u7531\u6d45\u5230\u6df1\u7684\u6e10\u53d8\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u67e5\u770b\u53d8\u66f4\u3002");
+        table.put("Story rings in the accent color",
+                "\u5feb\u62cd\u5706\u73af\u4f7f\u7528\u5f3a\u8c03\u8272");
+        table.put("Story rings take the color you picked instead of Instagram's gradient. A few other gradients share those colors and change with them. Restart Instagram to see the change.",
+                "\u5feb\u62cd\u5706\u73af\u4f1a\u6539\u7528\u4f60\u9009\u62e9\u7684\u989c\u8272,\u53d6\u4ee3 Instagram \u7684\u6e10\u53d8\u3002\u5c11\u6570\u4f7f\u7528\u76f8\u540c\u989c\u8272\u7684\u5176\u4ed6\u6e10\u53d8\u4e5f\u4f1a\u4e00\u8d77\u6539\u53d8\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u67e5\u770b\u53d8\u66f4\u3002");
+        table.put("Support HushGram",
+                "\u652f\u6301 HushGram");
+        table.put("Swipe between tabs",
+                "\u5728\u6807\u7b7e\u9875\u95f4\u6ed1\u52a8");
+        table.put("Swipe left to open the profile",
+                "\u5de6\u6ed1\u6253\u5f00\u4e3b\u9875");
+    }
+
+    private static void fillZh26(Map<String, String> table) {
+        table.put("Swipe right on Home opens",
+                "\u5728\u9996\u9875\u5411\u53f3\u6ed1\u52a8\u4f1a\u6253\u5f00");
+        table.put("Swipe through a chat's photos and posts",
+                "\u5728\u804a\u5929\u7684\u7167\u7247\u548c\u5e16\u5b50\u4e4b\u95f4\u6ed1\u52a8");
+        table.put("Swipe through a chat's reels",
+                "\u5728\u804a\u5929\u7684 Reels \u4e4b\u95f4\u6ed1\u52a8");
+        table.put("Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.",
+                "\u6ed1\u52a8\u6d4f\u89c8\u804a\u5929\u7684 Reels \u65f6\uff0c\u4f1a\u7565\u8fc7\u4f60\u5728\u8be5\u5904\u53d1\u9001\u7684\uff0c\u53ea\u6d4f\u89c8\u5bf9\u65b9\u5206\u4eab\u7684 Reels\u3002\u9700\u6253\u5f00\u201c\u5728\u804a\u5929\u7684 Reels \u4e4b\u95f4\u6ed1\u52a8\u201d\u624d\u4f1a\u751f\u6548\u3002");
+        table.put("Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before any suggested reels. Back takes you to the chat.",
+                "\u5728\u4ece\u804a\u5929\u6253\u5f00\u7684 Reels \u4e0a\u5f80\u4e0a\u6ed1\uff0c\u4f1a\u5148\u770b\u5b8c\u8be5\u804a\u5929\u5206\u4eab\u7684\u5176\u4ed6 Reels\uff0c\u518d\u770b\u5230\u63a8\u8350\u7684 Reels\u3002\u8fd4\u56de\u4f1a\u56de\u5230\u804a\u5929\u3002");
+        table.put("Switches Ghost mode turns",
+                "\u5e7d\u7075\u6a21\u5f0f\u63a7\u5236\u7684\u5f00\u5173");
+        table.put("System tick",
+                "\u7cfb\u7edf\u9707\u52a8");
+        table.put("Tab bar",
+                "\u6807\u7b7e\u680f");
+        table.put("Tab bar corners",
+                "\u6807\u7b7e\u680f\u5706\u89d2");
+        table.put("Tab bar height",
+                "\u6807\u7b7e\u680f\u9ad8\u5ea6");
+        table.put("Tab bar layout",
+                "\u6807\u7b7e\u680f\u7248\u9762");
+        table.put("Tab icon size",
+                "\u6807\u7b7e\u9875\u56fe\u6807\u5927\u5c0f");
+        table.put("Tab long presses keep Instagram's own action. Choose one to open Favorites instead.",
+                "\u957f\u6309\u6807\u7b7e\u9875\u4f1a\u4fdd\u7559 Instagram \u539f\u672c\u7684\u64cd\u4f5c\u3002\u9009\u62e9\u4e00\u4e2a\u6807\u7b7e\u9875\uff0c\u6539\u4e3a\u6253\u5f00\u201c\u7279\u522b\u5173\u6ce8\u201d\u3002");
+        table.put("Tab long presses keep Instagram's own action. Choose one to open HushGram instead.",
+                "\u957f\u6309\u6807\u7b7e\u9875\u4f1a\u4fdd\u7559 Instagram \u539f\u672c\u7684\u64cd\u4f5c\u3002\u9009\u62e9\u4e00\u4e2a\u6807\u7b7e\u9875\uff0c\u6539\u4e3a\u6253\u5f00 HushGram\u3002");
+        table.put("Tab long presses keep Instagram's own action. Choose one to open Saved profiles instead.",
+                "\u957f\u6309\u6807\u7b7e\u9875\u4f1a\u4fdd\u7559 Instagram \u539f\u672c\u7684\u64cd\u4f5c\u3002\u9009\u62e9\u4e00\u4e2a\u6807\u7b7e\u9875\uff0c\u6539\u4e3a\u6253\u5f00\u5df2\u4fdd\u5b58\u7684\u4e3b\u9875\u3002");
+        table.put("Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.",
+                "\u957f\u6309\u6807\u7b7e\u9875\u4f1a\u4fdd\u7559 Instagram \u539f\u672c\u7684\u64cd\u4f5c\u3002\u9009\u62e9\u4e00\u4e2a\u6807\u7b7e\u9875\uff0c\u6539\u4e3a\u9009\u62e9\u64ad\u653e\u753b\u8d28\u3002");
+        table.put("Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.",
+                "\u957f\u6309\u6807\u7b7e\u9875\u4f1a\u4fdd\u7559 Instagram \u539f\u672c\u7684\u64cd\u4f5c\u3002\u9009\u62e9\u4e00\u4e2a\u6807\u7b7e\u9875\uff0c\u6539\u4e3a\u6253\u5f00\u6216\u5173\u95ed\u5e7d\u7075\u6a21\u5f0f\u3002");
+        table.put("Tab order",
+                "\u6807\u7b7e\u9875\u987a\u5e8f");
+        table.put("Tabs go in this order: %1$s. Restart Instagram to see the change.",
+                "\u6807\u7b7e\u9875\u987a\u5e8f\uff1a%1$s\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Tabs on other profiles",
+                "\u4ed6\u4eba\u4e3b\u9875\u7684\u6807\u7b7e\u9875");
+        table.put("Tabs on your profile",
+                "\u81ea\u5df1\u4e3b\u9875\u7684\u6807\u7b7e\u9875");
+        table.put("Tagged",
+                "\u88ab\u6807\u6ce8");
+        table.put("Take a scroll break",
+                "\u5377\u52a8\u4f11\u606f\u65f6\u95f4");
+        table.put("Take buttons you don't use off posts and the share sheet.",
+                "\u79fb\u9664\u5e16\u5b50\u4e0e\u5206\u4eab\u8868\u5355\u4e2d\u7528\u4e0d\u5230\u7684\u6309\u94ae\u3002");
+        table.put("Take suggestions and Featured off the Notifications page.",
+                "\u79fb\u9664\u901a\u77e5\u9875\u9762\u4e0a\u7684\u63a8\u8350\u548c\u7cbe\u9009\u5185\u5bb9\u3002");
+        table.put("Takes AI images off the menu the plus button opens in a chat's message bar.",
+                "\u4ece\u804a\u5929\u6d88\u606f\u680f\u7684\u52a0\u53f7\u6309\u94ae\u6240\u6253\u5f00\u7684\u83dc\u5355\u4e2d\u79fb\u9664 AI \u56fe\u7247\u3002");
+        table.put("Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.",
+                "\u4ece\u6807\u7b7e\u680f\u79fb\u9664\u521b\u5efa\u5e76\u6536\u8d77\u7a7a\u767d\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Takes Draw off the menu the plus button opens in a chat's message bar.",
+                "\u4ece\u804a\u5929\u6d88\u606f\u680f\u7684\u52a0\u53f7\u6309\u94ae\u6240\u6253\u5f00\u7684\u83dc\u5355\u4e2d\u79fb\u9664\u7ed8\u56fe\u3002");
+        table.put("Takes GIFs and stickers out of comments, and the GIF button off the comment box. A comment with words keeps them. One that's only a GIF goes, along with its replies.",
+                "\u79fb\u9664\u8bc4\u8bba\u4e2d\u7684 GIF \u548c\u8d34\u56fe\uff0c\u4ee5\u53ca\u8bc4\u8bba\u8f93\u5165\u6846\u4e0a\u7684 GIF \u6309\u94ae\u3002\u6709\u6587\u5b57\u7684\u8bc4\u8bba\u4f1a\u4fdd\u7559\u6587\u5b57\uff0c\u53ea\u6709 GIF \u7684\u8bc4\u8bba\u5219\u4f1a\u8fde\u540c\u56de\u590d\u4e00\u8d77\u9690\u85cf\u3002");
+        table.put("Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.",
+                "\u4ece\u6807\u7b7e\u680f\u79fb\u9664\u9996\u9875\u3002\u539f\u672c\u6253\u5f00\u9996\u9875\u7684\u4f4d\u7f6e\u4f1a\u6539\u4e3a\u6253\u5f00\u201c\u542f\u52a8\u6807\u7b7e\u9875\u201d\uff0c\u56e0\u6b64\u8bf7\u9009\u62e9\u6807\u7b7e\u680f\u4e0a\u9996\u9875\u4ee5\u5916\u7684\u6807\u7b7e\u9875\uff0c\u5426\u5219\u9996\u9875\u4ecd\u4f1a\u4fdd\u7559\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Takes Instagram's Messages button off the top of Home, for when Messages is on your tab bar too. Restart Instagram to see the change.",
+                "\u6d88\u606f\u5df2\u5728\u6807\u7b7e\u680f\u4e0a\u65f6\uff0c\u53ef\u79fb\u9664\u9996\u9875\u9876\u7aef\u7684 Instagram \u6d88\u606f\u6309\u94ae\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Takes Instagram's offers to try Plus out of chats, stories and menus. Nothing that comes with Plus is turned on.",
+                "\u79fb\u9664\u804a\u5929\u3001\u5feb\u62cd\u548c\u83dc\u5355\u4e2d Instagram \u9080\u4f60\u8bd5\u7528 Plus \u7684\u63a8\u5e7f\u3002Plus \u7684\u529f\u80fd\u90fd\u4e0d\u4f1a\u56e0\u6b64\u6253\u5f00\u3002");
+        table.put("Takes Profile off the tab bar. Your profile still opens from other places in the app. Restart Instagram to see the change.",
+                "\u4ece\u6807\u7b7e\u680f\u79fb\u9664\u4e3b\u9875\u3002\u4ecd\u53ef\u4ece\u5e94\u7528\u7a0b\u5e8f\u7684\u5176\u4ed6\u4f4d\u7f6e\u6253\u5f00\u4e3b\u9875\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Takes Reels off the tab bar. Reels in your feed and reels people send you still open. Restart Instagram to see the change.",
+                "\u4ece\u6807\u7b7e\u680f\u79fb\u9664 Reels\u3002\u52a8\u6001\u9996\u9875\u4e0e\u4ed6\u4eba\u53d1\u9001\u7684 Reels \u4ecd\u53ef\u6253\u5f00\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.",
+                "\u79fb\u9664\u5e16\u5b50\u6216 Reels \u8bc4\u8bba\u4e2d\u6bcf\u5219\u8bc4\u8bba\u7684\u201c\u56de\u590d\u201d\u3002\u201c\u67e5\u770b\u66f4\u591a\u56de\u590d\u201d\u4ecd\u4f1a\u4fdd\u7559\uff0c\u4f60\u8fd8\u662f\u53ef\u4ee5\u5c55\u5f00\u56de\u590d\u3002");
+        table.put("Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.",
+                "\u79fb\u9664\u5e16\u5b50\u4e0e Reels \u7684\u8f6c\u53d1\u6309\u94ae\u53ca\u6b21\u6570\uff0c\u907f\u514d\u8bef\u5c06\u5185\u5bb9\u8f6c\u53d1\u7ed9\u7c89\u4e1d\u3002\u4ecd\u53ef\u901a\u8fc7\u5206\u4eab\u5c06\u5e16\u5b50\u6216 Reel \u53d1\u9001\u7ed9\u4ed6\u4eba\u3002");
+        table.put("Takes Saved off the menu the plus button opens in a chat's message bar.",
+                "\u4ece\u804a\u5929\u6d88\u606f\u680f\u7684\u52a0\u53f7\u6309\u94ae\u6240\u6253\u5f00\u7684\u83dc\u5355\u4e2d\u79fb\u9664\u5df2\u4fdd\u5b58\u3002");
+        table.put("Takes Search off the tab bar and closes up the gap. Restart Instagram to see the change.",
+                "\u4ece\u6807\u7b7e\u680f\u79fb\u9664\u641c\u7d22\u5e76\u6536\u8d77\u7a7a\u767d\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Takes Suggested for you and the Discover people button off profiles, yours included. Bios, counts, posts and follower lists stay.",
+                "\u4ece\u4e3b\u9875\u79fb\u9664\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u4e0e\u201c\u63a2\u7d22\u7528\u6237\u201d\u6309\u94ae\uff0c\u81ea\u5df1\u7684\u4e3b\u9875\u4e5f\u9002\u7528\u3002\u4e2a\u4eba\u7b80\u4ecb\u3001\u5404\u9879\u6570\u91cf\u3001\u5e16\u5b50\u4e0e\u7c89\u4e1d\u540d\u5355\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.",
+                "\u79fb\u9664 Reels \u6807\u7b7e\u9875\u9876\u7aef\u7684\u6574\u5217\u5185\u5bb9\uff0c\u5305\u62ec Reels \u6807\u9898\u3001\u76f8\u673a\u6309\u94ae\u4e0e Instagram \u653e\u5728\u8be5\u5904\u7684\u5176\u4ed6\u9879\u76ee\u3002\u4ece\u4e3b\u9875\u3001\u5e16\u5b50\u6216\u804a\u5929\u6253\u5f00\u7684 Reels \u4ecd\u4f1a\u4fdd\u7559\u9876\u680f\u3002\u76f8\u673a\u4ecd\u53ef\u4ece\u9996\u9875\u6253\u5f00\u3002");
+        table.put("Takes invites to join someone's channel off your notifications. Everything else stays.",
+                "\u4ece\u901a\u77e5\u4e2d\u79fb\u9664\u52a0\u5165\u4ed6\u4eba\u9891\u9053\u7684\u9080\u8bf7\u3002\u5176\u4ed6\u5185\u5bb9\u90fd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes only the Map bubble out of the row of notes. Your notes stay.",
+                "\u53ea\u79fb\u9664\u7b14\u8bb0\u680f\u4e2d\u7684\u5730\u56fe\u6ce1\u6ce1\u3002\u7b14\u8bb0\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes only the Subscribe button off the top of posts in your feed. Follow stays.",
+                "\u53ea\u79fb\u9664\u52a8\u6001\u9996\u9875\u5e16\u5b50\u9876\u7aef\u7684\u201c\u8ba2\u9605\u201d\u6309\u94ae\u3002\u201c\u5173\u6ce8\u201d\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes posts by the accounts you pick out of Home and Following. Each account you sign in to keeps its own list.",
+                "\u4ece\u9996\u9875\u4e0e\u5df2\u5173\u6ce8\u79fb\u9664\u6240\u9009\u8d26\u6237\u7684\u5e16\u5b50\u3002\u6bcf\u4e2a\u767b\u5f55\u8d26\u6237\u90fd\u6709\u5404\u81ea\u7684\u540d\u5355\u3002");
+        table.put("Takes rows that only suggest something off your notifications, like a thread from an account you don't follow or someone you might know. Likes, comments, mentions and new followers stay.",
+                "\u79fb\u9664\u901a\u77e5\u4e2d\u4ec5\u7528\u6765\u63a8\u8350\u5185\u5bb9\u7684\u680f\uff0c\u4f8b\u5982\u672a\u5173\u6ce8\u8d26\u6237\u7684\u4e32\u6587\u6216\u4f60\u53ef\u80fd\u8ba4\u8bc6\u7684\u4eba\u3002\u70b9\u8d5e\u3001\u8bc4\u8bba\u3001\u63d0\u53ca\u4e0e\u65b0\u7c89\u4e1d\u901a\u77e5\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
+                "\u79fb\u9664\u5e16\u5b50\u4f5c\u8005\u4e0b\u65b9\u90a3\u4e00\u884c\u7684\u201cMade with Edits\u201d\u6807\u7b7e\u3002\u6b4c\u66f2\u3001\u5730\u70b9\u548c\u5176\u4ed6\u6807\u7b7e\u4ecd\u4f1a\u5728\u90a3\u91cc\u8f6e\u6d41\u663e\u793a\u3002");
+        table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
+                "\u957f\u6309 Reels \u52a0\u5feb\u64ad\u653e\u65f6\uff0c\u4e0d\u663e\u793a 2x \u6807\u7b7e\u3002\u52a0\u901f\u64ad\u653e\u4ecd\u7136\u6709\u6548\u3002");
+        table.put("Takes the Comment button and the comment count off the posts in your feed.",
+                "\u79fb\u9664\u52a8\u6001\u9996\u9875\u5e16\u5b50\u7684\u8bc4\u8bba\u6309\u94ae\u4e0e\u8bc4\u8bba\u6570\u3002");
+        table.put("Takes the Comment button off the bottom of other people's stories that have one. No empty space is left behind.",
+                "\u79fb\u9664\u4ed6\u4eba\u5feb\u62cd\u5e95\u90e8\u7684\u201c\u8bc4\u8bba\u201d\u6309\u94ae\uff08\u82e5\u6709\u7684\u8bdd\uff09\u3002\u4e0d\u4f1a\u7559\u4e0b\u7a7a\u767d\u3002");
+        table.put("Takes the Complete your profile cards, like Add bio and Find people to follow, off your own profile. Your bio, counts and posts stay.",
+                "\u79fb\u9664\u81ea\u5df1\u4e3b\u9875\u4e0a\u7684\u201c\u5b8c\u5584\u4e3b\u9875\u201d\u5361\u7247\uff0c\u4f8b\u5982\u201c\u6dfb\u52a0\u4e2a\u4eba\u7b80\u4ecb\u201d\u4e0e\u201c\u5bfb\u627e\u5173\u6ce8\u5bf9\u8c61\u201d\u3002\u4e2a\u4eba\u7b80\u4ecb\u3001\u5404\u9879\u6570\u91cf\u4e0e\u5e16\u5b50\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.",
+                "\u79fb\u9664\u901a\u77e5\u9876\u7aef\u7684\u7cbe\u9009\u533a\u5757\uff0c\u4e5f\u5c31\u662f Instagram \u6311\u9009\u7ed9\u4f60\u7684\u5e16\u5b50\u4e0e\u4e32\u6587\u3002\u4e0b\u65b9\u5185\u5bb9\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.",
+                "\u79fb\u9664\u52a8\u6001\u9996\u9875\u5e16\u5b50\u9876\u7aef\u7684\u201c\u5173\u6ce8\u201d\u4e0e\u201c\u8ba2\u9605\u201d\u6309\u94ae\u3002\u540d\u79f0\u3001\u65f6\u95f4\u4e0e\u83dc\u5355\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.",
+                "\u79fb\u9664\u672a\u5173\u6ce8\u8d26\u6237\u5feb\u62cd\u9876\u7aef\u7684\u5173\u6ce8\u6309\u94ae\u3002\u540d\u79f0\u3001\u65f6\u95f4\u4e0e\u83dc\u5355\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the Friends tab, with reels the people you follow shared, off the top of the Reels tab. Reels stays where it is.",
+                "\u79fb\u9664 Reels \u6807\u7b7e\u9875\u9876\u7aef\u7684\u201c\u597d\u53cb\u201d\u6807\u7b7e\u9875\uff0c\u5176\u4e2d\u5305\u542b\u4f60\u5173\u6ce8\u7684\u4eba\u5206\u4eab\u7684 Reels\u3002\u201cReels\u201d\u4ecd\u4f1a\u4fdd\u7559\u5728\u539f\u4f4d\u3002");
+        table.put("Takes the Messages button off the tab bar. A Messages button on Home's header still opens your chats, and so do notifications.",
+                "\u4ece\u6807\u7b7e\u680f\u79fb\u9664\u6d88\u606f\u6309\u94ae\u3002\u4ecd\u53ef\u901a\u8fc7\u9996\u9875\u9876\u7aef\u7684\u6d88\u606f\u6309\u94ae\u6216\u901a\u77e5\u6253\u5f00\u804a\u5929\u3002");
+        table.put("Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.",
+                "\u79fb\u9664\u5934\u50cf\u4e0a\u7684\u7b14\u8bb0\u6ce1\u6ce1\uff0c\u81ea\u5df1\u7684\u4e5f\u9002\u7528\u3002\u6d88\u606f\u4e2d\u7684\u7b14\u8bb0\u4e0d\u53d7\u5f71\u54cd\u3002");
+        table.put("Takes the People you don't follow back section off the bottom of your notifications. Notifications about new followers stay.",
+                "\u79fb\u9664\u901a\u77e5\u5e95\u90e8\u7684\u201c\u4f60\u672a\u56de\u5173\u7684\u7528\u6237\u201d\u533a\u5757\u3002\u65b0\u7c89\u4e1d\u901a\u77e5\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.",
+                "\u79fb\u9664\u52a8\u6001\u4e2d\u5e16\u5b50\u5e95\u90e8\u7684\u4fdd\u5b58\u6309\u94ae\uff0c\u907f\u514d\u8bef\u89e6\u800c\u4fdd\u5b58\u5e16\u5b50\u3002");
+        table.put("Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.",
+                "\u79fb\u9664 Reel \u65c1\u6309\u94ae\u680f\u4e2d\u7684\u4fdd\u5b58\u6309\u94ae\u4e0e\u4e0b\u65b9\u6570\u91cf\u3002\u52a8\u6001\u9996\u9875\u5e16\u5b50\u7684\u4fdd\u5b58\u6309\u94ae\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the Send message box off the bottom of other people's stories. The like and share buttons next to it stay where they are.",
+                "\u79fb\u9664\u4ed6\u4eba\u5feb\u62cd\u5e95\u90e8\u7684\u201c\u53d1\u9001\u6d88\u606f\u201d\u6846\u3002\u65c1\u8fb9\u7684\u70b9\u8d5e\u548c\u5206\u4eab\u6309\u94ae\u4f1a\u7559\u5728\u539f\u4f4d\u3002");
+    }
+
+    private static void fillZh27(Map<String, String> table) {
+        table.put("Takes the Share button and its count off the posts in your feed and off reels.",
+                "\u79fb\u9664\u52a8\u6001\u9996\u9875\u5e16\u5b50\u4e0e Reels \u7684\u5206\u4eab\u6309\u94ae\u53ca\u6b21\u6570\u3002");
+        table.put("Takes the Share profile button off your profile, and Edit profile stretches to fill the space.",
+                "\u79fb\u9664\u4e3b\u9875\u4e0a\u7684\u201c\u5206\u4eab\u4e3b\u9875\u201d\u6309\u94ae\uff0c\u5e76\u5c06\u201c\u7f16\u8f91\u4e3b\u9875\u201d\u52a0\u5bbd\u4ee5\u586b\u6ee1\u7a7a\u95f4\u3002");
+        table.put("Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill the space.",
+                "\u79fb\u9664\u521b\u4f5c\u8005\u4e3b\u9875\u4e0a\u7684\u201c\u8ba2\u9605\u201d\u6309\u94ae\uff0c\u5e76\u5c06\u5176\u4ed6\u6309\u94ae\u52a0\u5bbd\u4ee5\u586b\u6ee1\u7a7a\u95f4\u3002");
+        table.put("Takes the Threads badge from under the bio on other people's profiles. Yours keeps it.",
+                "\u79fb\u9664\u4ed6\u4eba\u4e3b\u9875\u4e2d\u4e2a\u4eba\u7b80\u4ecb\u4e0b\u65b9\u7684 Threads \u5fbd\u7ae0\u3002\u4f60\u81ea\u5df1\u7684\u4e3b\u9875\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.",
+                "\u79fb\u9664\u4e3b\u9875\u9876\u7aef\u7684 Threads \u6309\u94ae\uff0c\u81ea\u5df1\u7684\u4e3b\u9875\u4e5f\u9002\u7528\u3002\u83dc\u5355\u4e0e\u5176\u4ed6\u6309\u94ae\u4ecd\u4f1a\u4fdd\u7559\u5728\u539f\u4f4d\u3002");
+        table.put("Takes the Watch more reels button off the card a reel in your feed shows when it ends. Watch again stays.",
+                "\u52a8\u6001\u4e2d\u7684 Reels \u64ad\u5b8c\u65f6\uff0c\u7ed3\u675f\u753b\u9762\u4e0d\u4f1a\u663e\u793a\u201c\u89c2\u770b\u66f4\u591a Reels\u201d\u6309\u94ae\uff0c\u201c\u518d\u770b\u4e00\u6b21\u201d\u4f1a\u4fdd\u7559.");
+        table.put("Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The rest of the bar stays.",
+                "\u79fb\u9664 Reels \u6807\u7b7e\u9875\u9876\u7aef\u7684\u201c\u4f60\u7684\u7b97\u6cd5\u201d\u6309\u94ae\u5e76\u6536\u8d77\u7a7a\u767d\u3002\u9876\u680f\u7684\u5176\u4ed6\u5185\u5bb9\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.",
+                "\u79fb\u9664\u6d88\u606f\u5e95\u90e8 Instagram \u63a8\u8350\u7684\u8d26\u6237\u3002\u804a\u5929\u4e0e\u5173\u6ce8\u9080\u8bf7\u4ecd\u4f1a\u4fdd\u7559\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, and the other buttons stretch to fill the space.",
+                "\u79fb\u9664\u4e3b\u9875\u6309\u94ae\u680f\u5c3e\u7aef\u7684\u7bad\u5934\u53ca\u5176\u6253\u5f00\u7684\u83dc\u5355\uff0c\u5e76\u5c06\u5176\u4ed6\u6309\u94ae\u52a0\u5bbd\u4ee5\u586b\u6ee1\u7a7a\u95f4\u3002");
+        table.put("Takes the banner reminding you to be respectful off the bottom of a chat.",
+                "\u79fb\u9664\u804a\u5929\u5e95\u90e8\u63d0\u9192\u4f60\u4fdd\u6301\u5c0a\u91cd\u7684\u6a2a\u5e45\u3002");
+        table.put("Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.",
+                "\u79fb\u9664\u52a8\u6001\u5e16\u5b50\u4e0e Reels \u4e0a\u7684\u8bf4\u660e\u6587\u5b57\u3002\u5e16\u5b50\u4f1a\u4fdd\u7559\uff0c\u8bc4\u8bba\u9875\u9762\u9876\u7aef\u4ecd\u4f1a\u663e\u793a\u3002");
+        table.put("Takes the heart off the bottom of other people's stories, so nothing gets liked by mistake. No empty space is left behind.",
+                "\u79fb\u9664\u4ed6\u4eba\u5feb\u62cd\u5e95\u90e8\u7684\u7231\u5fc3\uff0c\u907f\u514d\u4e0d\u5c0f\u5fc3\u70b9\u8d5e\u3002\u4e0d\u4f1a\u7559\u4e0b\u7a7a\u767d\u3002");
+        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.",
+                "\u79fb\u9664\u9996\u9875\u9876\u7aef\u7684\u7231\u5fc3\u6309\u94ae\u5e76\u6536\u8d77\u7a7a\u767d\u3002\u901a\u77e5\u4ecd\u4f1a\u9001\u8fbe\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Takes the interests someone added, like reading or hiking, from under their bio. Yours keeps them.",
+                "\u79fb\u9664\u4ed6\u4eba\u5728\u4e2a\u4eba\u7b80\u4ecb\u4e0b\u65b9\u6dfb\u52a0\u7684\u5174\u8da3\uff0c\u4f8b\u5982\u9605\u8bfb\u6216\u5065\u884c\u3002\u4f60\u81ea\u5df1\u7684\u4e3b\u9875\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the invite to someone's broadcast channel from under their bio. Yours keeps it.",
+                "\u79fb\u9664\u4ed6\u4eba\u4e2a\u4eba\u7b80\u4ecb\u4e0b\u65b9\u7684\u5e7f\u64ad\u9891\u9053\u9080\u8bf7\u3002\u4f60\u81ea\u5df1\u7684\u4e3b\u9875\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the link to someone's WhatsApp from under their bio. Yours keeps it.",
+                "\u79fb\u9664\u4ed6\u4eba\u4e2a\u4eba\u7b80\u4ecb\u4e0b\u65b9\u8fde\u5230 WhatsApp \u7684\u94fe\u63a5\u3002\u4f60\u81ea\u5df1\u7684\u4e3b\u9875\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the links to someone's Facebook profile, page or group from under their bio. Yours keeps them.",
+                "\u79fb\u9664\u4ed6\u4eba\u4e2a\u4eba\u7b80\u4ecb\u4e0b\u65b9\u8fde\u5230 Facebook \u4e3b\u9875\u3001\u7c89\u4e1d\u4e13\u9875\u6216\u793e\u56e2\u7684\u94fe\u63a5\u3002\u4f60\u81ea\u5df1\u7684\u4e3b\u9875\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the little round pictures off posts and reels that show a friend liked, commented on or reshared them. Posts already on screen change when they load again.",
+                "\u79fb\u9664\u5e16\u5b50\u548c Reels \u4e0a\u663e\u793a\u670b\u53cb\u70b9\u8d5e\u3001\u8bc4\u8bba\u6216\u8f6c\u53d1\u7684\u5c0f\u5706\u5f62\u7167\u7247\u3002\u5df2\u5728\u753b\u9762\u4e0a\u7684\u5e16\u5b50\u4f1a\u5728\u91cd\u65b0\u52a0\u8f7d\u65f6\u53d8\u66f4\u3002");
+        table.put("Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.",
+                "\u79fb\u9664\u9996\u9875\u9876\u7aef\u5feb\u62cd\u680f\u4e2d\uff0cInstagram \u4ea7\u751f\u7684\u56de\u5fc6\u3001\u56de\u987e\u3001\u5173\u6ce8\u5468\u5e74\u7eaa\u5ff5\u4e0e\u751f\u65e5\u5361\u7247\u3002\u7528\u6237\u53d1\u5e03\u7684\u5feb\u62cd\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the number like 3/5 off the corner of a carousel post's photo or video.",
+                "\u62ff\u6389\u8f6e\u64ad\u5e16\u5b50\u7167\u7247\u6216\u89c6\u9891\u89d2\u843d\u7c7b\u4f3c 3/5 \u7684\u6570\u5b57\u3002");
+        table.put("Takes the paper plane off the bottom of other people's stories. No empty space is left behind.",
+                "\u79fb\u9664\u4ed6\u4eba\u5feb\u62cd\u5e95\u90e8\u7684\u7eb8\u98de\u673a\u3002\u4e0d\u4f1a\u7559\u4e0b\u7a7a\u767d\u3002");
+        table.put("Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.",
+                "\u79fb\u9664\u9996\u9875\u9876\u7aef\u7684\u52a0\u53f7\u6309\u94ae\u5e76\u6536\u8d77\u7a7a\u767d\u3002\u521b\u5efa\u6807\u7b7e\u9875\u4e0e\u6ed1\u52a8\u521b\u5efa\u53e6\u6709\u72ec\u7acb\u8bbe\u7f6e\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Takes the plus button off the top of reels you open from Saved or a collection and closes up the gap. The Reels tab and other reels keep theirs.",
+                "\u79fb\u9664\u4ece\u201c\u5df2\u6536\u85cf\u201d\u6216\u6536\u85cf\u5939\u6253\u5f00\u7684 Reels \u9876\u7aef\u7684\u52a0\u53f7\u6309\u94ae\u5e76\u6536\u8d77\u7a7a\u767d\u3002Reels \u6807\u7b7e\u9875\u4e0e\u5176\u4ed6 Reels \u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the plus button that opens the camera off the top of reels, on the Reels tab and everywhere else, and closes up the gap. The rest of the bar stays.",
+                "\u79fb\u9664 Reels \u9876\u7aef\u7528\u6765\u6253\u5f00\u76f8\u673a\u7684\u52a0\u53f7\u6309\u94ae\u5e76\u6536\u8d77\u7a7a\u767d\uff0cReels \u6807\u7b7e\u9875\u4e0e\u5176\u4ed6\u4f4d\u7f6e\u7686\u9002\u7528\u3002\u9876\u680f\u7684\u5176\u4ed6\u5185\u5bb9\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.",
+                "\u79fb\u9664\u81ea\u5df1\u4e3b\u9875\u9876\u7aef\u7528\u6765\u521b\u5efa\u5e16\u5b50\u7684\u52a0\u53f7\u3002\u5176\u4ed6\u6309\u94ae\u4ecd\u7559\u5728\u539f\u4f4d\u3002");
+        table.put("Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.",
+                "\u79fb\u9664\u4ed6\u4eba\u4e3b\u9875\u4e2d\u4e2a\u4eba\u7b80\u4ecb\u4e0b\u65b9\u7684\u5176\u4f59\u6a2a\u5e45\uff0c\u4f8b\u5982\u6d3b\u52a8\u3001\u52df\u6b3e\u3001\u5b66\u6821\u4e0e\u8425\u4e1a\u65f6\u95f4\u3002\u4f60\u81ea\u5df1\u7684\u4e3b\u9875\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.",
+                "\u79fb\u9664\u6d88\u606f\u9876\u7aef\u7684\u7b14\u8bb0\u680f\uff0c\u5305\u62ec\u5176\u4e2d\u7684\u5730\u56fe\u6ce1\u6ce1\u3002\u804a\u5929\u3001\u641c\u7d22\u4e0e\u964c\u751f\u6d88\u606f\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the row of quick emoji off above the comment box. The box itself stays.",
+                "\u79fb\u9664\u8bc4\u8bba\u8f93\u5165\u6846\u4e0a\u65b9\u7684\u5feb\u901f\u8868\u60c5\u7b26\u53f7\u5217\uff0c\u8f93\u5165\u6846\u672c\u8eab\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.",
+                "\u79fb\u9664\u4e3b\u9875\u7684\u7cbe\u9009\u5feb\u62cd\u680f\uff0c\u81ea\u5df1\u7684\u4e3b\u9875\u4e5f\u9002\u7528\u3002\u4e2a\u4eba\u7b80\u4ecb\u3001\u5404\u9879\u6570\u91cf\u4e0e\u5e16\u5b50\u4ecd\u4f1a\u4fdd\u7559\uff0c\u5feb\u62cd\u4e2d\u7684\u201c\u6dfb\u52a0\u81f3\u7cbe\u9009\u201d\u4e5f\u4e0d\u53d7\u5f71\u54cd\u3002");
+        table.put("Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.",
+                "\u79fb\u9664\u6d88\u606f\u9876\u7aef\u7684\u641c\u7d22\u680f\u4e0e\u7b5b\u9009\u6309\u94ae\uff0c\u4e5f\u4f1a\u79fb\u9664 Meta AI \u5217\u3002\u804a\u5929\u3001\u7b14\u8bb0\u4e0e\u964c\u751f\u6d88\u606f\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the search bar off the top of the share sheet. The people you can send to still show.",
+                "\u79fb\u9664\u5206\u4eab\u8868\u5355\u9876\u7aef\u7684\u641c\u7d22\u680f\u3002\u53ef\u53d1\u9001\u7684\u5bf9\u8c61\u4ecd\u4f1a\u663e\u793a\u3002");
+        table.put("Takes the song someone picked for their profile from under their bio. Yours keeps it.",
+                "\u79fb\u9664\u4ed6\u4eba\u4e3a\u4e3b\u9875\u6311\u9009\u3001\u663e\u793a\u5728\u4e2a\u4eba\u7b80\u4ecb\u4e0b\u65b9\u7684\u6b4c\u66f2\u3002\u4f60\u81ea\u5df1\u7684\u4e3b\u9875\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.",
+                "\u79fb\u9664\u52a8\u6001\u4e2d\u89c6\u9891\u4e0a\u7684\u5587\u53ed\u56fe\u6807\u3002\u70b9\u4e00\u4e0b\u89c6\u9891\u4ecd\u53ef\u6253\u5f00\u6216\u5173\u95ed\u58f0\u97f3\u3002\u753b\u9762\u4e0a\u5df2\u6709\u7684\u5e16\u5b50\u4f1a\u5728\u91cd\u65b0\u52a0\u8f7d\u540e\u66f4\u65b0\u3002");
+        table.put("Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.",
+                "\u79fb\u9664\u804a\u5929\u9876\u7aef\u7684\u8bed\u97f3\u4e0e\u89c6\u9891\u901a\u8bdd\u6309\u94ae\uff0c\u540d\u79f0\u4ecd\u4fdd\u6709\u663e\u793a\u7a7a\u95f4\u3002\u5173\u95ed\u540e\uff0c\u4e0b\u6b21\u6253\u5f00\u804a\u5929\u5c31\u4f1a\u6062\u590d\u3002");
+        table.put("Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.",
+                "\u79fb\u9664\u9996\u9875\u9876\u7aef\u6574\u5217\u5feb\u62cd\uff0c\u5305\u62ec\u201c\u4f60\u7684\u5feb\u62cd\u201d\u3002\u4ecd\u53ef\u4ece\u4e3b\u9875\u6216\u6d88\u606f\u6253\u5f00\u5feb\u62cd\u3002");
+        table.put("Tall",
+                "\u52a0\u9ad8");
+        table.put("Tap a category to show or hide its settings on this page.",
+                "\u70b9\u51fb\u5206\u7c7b\u5373\u53ef\u5728\u6b64\u9875\u9762\u663e\u793a\u6216\u9690\u85cf\u8be5\u5206\u7c7b\u7684\u8bbe\u7f6e\u3002");
+        table.put("Tap a feed video to pause it",
+                "\u70b9\u51fb\u52a8\u6001\u9996\u9875\u89c6\u9891\u4ee5\u6682\u505c");
+        table.put("Tap sound on the tab bar",
+                "\u6807\u7b7e\u680f\u89e6\u6478\u97f3\u6548");
+        table.put("Tap sound volume",
+                "\u89e6\u6478\u97f3\u6548\u97f3\u91cf");
+        table.put("Tap the video playing in a feed to pause it in place instead of opening it in Reels, and tap it again to play it. Ads keep Instagram's own tap.",
+                "\u70b9\u51fb\u52a8\u6001\u4e2d\u64ad\u653e\u7684\u89c6\u9891\u4f1a\u76f4\u63a5\u6682\u505c\uff0c\u800c\u975e\u5728 Reels \u4e2d\u6253\u5f00\uff1b\u518d\u6b21\u70b9\u51fb\u5373\u53ef\u64ad\u653e\u3002\u5e7f\u544a\u4ecd\u4f7f\u7528 Instagram \u539f\u672c\u7684\u70b9\u51fb\u64cd\u4f5c\u3002");
+        table.put("Tap to hide this.",
+                "\u70b9\u51fb\u5373\u53ef\u9690\u85cf\u3002");
+        table.put("Tap to play",
+                "\u70b9\u51fb\u64ad\u653e");
+        table.put("Tap to see all %1$d, by kind or by search.",
+                "\u8f7b\u89e6\u5373\u53ef\u4f9d\u7c7b\u578b\u6216\u641c\u7d22\u67e5\u770b\u5168\u90e8 %1$d \u7b14\u3002");
+        table.put("Tap to see all %1$d, or search them.",
+                "\u8f7b\u89e6\u5373\u53ef\u67e5\u770b\u5168\u90e8 %1$d \u9879\uff0c\u6216\u8fdb\u884c\u641c\u7d22\u3002");
+        table.put("Tap to turn it back on.",
+                "\u70b9\u51fb\u5373\u53ef\u91cd\u65b0\u542f\u7528\u3002");
+        table.put("Tapping a call button in a chat asks first, so a stray tap doesn't ring anyone. Call starts it, Cancel doesn't.",
+                "\u70b9\u51fb\u804a\u5929\u4e2d\u7684\u901a\u8bdd\u6309\u94ae\u65f6\u5148\u8be2\u95ee\uff0c\u907f\u514d\u8bef\u89e6\u62e8\u53f7\u3002\u201c\u62e8\u6253\u201d\u4f1a\u5f00\u59cb\u901a\u8bdd\uff0c\u201c\u53d6\u6d88\u201d\u5219\u4e0d\u4f1a\u3002");
+        table.put("Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.",
+                "\u70b9\u51fb\u89c6\u9891\u3001\u53cc\u51fb\u70b9\u8d5e\uff0c\u4ee5\u53ca\u4fdd\u5b58\u4e0e\u4e0b\u8f7d\u4e0d\u7b97\u89e6\u78b0\u64cd\u4f5c\uff0c\u56e0\u6b64\u6309\u94ae\u4f1a\u7ef4\u6301\u6de1\u5316\u3002");
+        table.put("Teal",
+                "\u84dd\u7eff\u8272");
+        table.put("Tells Instagram your phone is at %1$s.",
+                "\u5411 Instagram \u4e0a\u62a5\u624b\u673a\u4f4d\u4e8e %1$s\u3002");
+        table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
+                "\u5411 Instagram \u4e0a\u62a5\u624b\u673a\u4f4d\u4e8e\u4e0b\u65b9\u8bbe\u7f6e\u7684\u4f4d\u7f6e\uff0c\u4f9b\u4f4d\u7f6e\u8d34\u56fe\u3001\u9644\u8fd1\u5730\u70b9\u4e0e\u5730\u56fe\u4f7f\u7528\u3002\u7167\u7247\u672c\u8eab\u7684\u4f4d\u7f6e\u4e0d\u4f1a\u6539\u53d8\u3002");
+        table.put("That file isn't a usable font. Emoji didn't change.",
+                "HushGram \u65e0\u6cd5\u4f7f\u7528\u6b64\u5b57\u5e93\uff0c\u5feb\u62cd\u7684\u8868\u60c5\u7b26\u53f7\u5b57\u4f53\u672a\u53d8\u66f4\u3002");
+        table.put("That file isn't a usable font. Nothing was added.",
+                "HushGram \u65e0\u6cd5\u4f7f\u7528\u6b64\u5b57\u5e93\uff0c\u56e0\u6b64\u672a\u6dfb\u52a0\u4efb\u4f55\u5185\u5bb9\u3002");
+        table.put("That file isn't a usable font. Yours didn't change.",
+                "HushGram \u65e0\u6cd5\u4f7f\u7528\u6b64\u5b57\u5e93\u6848\uff0c\u4f60\u7684\u5b57\u4f53\u672a\u53d8\u66f4\u3002");
+        table.put("That isn't a color. Try #4A6B82.",
+                "\u8fd9\u4e0d\u662f\u989c\u8272\u3002\u8bd5\u8bd5 #4A6B82.");
+        table.put("That isn't a domain. Try one like example.com.",
+                "\u8fd9\u4e0d\u662f\u6709\u6548\u7684\u7f51\u57df\u3002\u8bf7\u8f93\u5165 example.com \u4e4b\u7c7b\u7684\u7f51\u57df\uff0c\u6216\u7559\u7a7a\u3002");
+        table.put("That isn't a picture.",
+                "\u8fd9\u4e0d\u662f\u56fe\u7247\u3002");
+        table.put("That isn't a place. Type latitude, longitude.",
+                "\u8fd9\u4e0d\u662f\u6709\u6548\u7684\u4f4d\u7f6e\u3002\u8bf7\u8f93\u5165\u7eac\u5ea6\u4e0e\u7ecf\u5ea6\uff0c\u5e76\u4ee5\u9017\u53f7\u5206\u9694\u3002");
+        table.put("That isn't a proxy server. Try 10.0.0.2:8080.",
+                "\u8fd9\u4e0d\u662f Proxy \u670d\u52a1\u5668\u3002\u4f8b\u5982 10.0.0.2:8080");
+        table.put("That picture is over %1$d MB.",
+                "\u8fd9\u5f20\u56fe\u7247\u8d85\u8fc7 %1$d MB\u3002");
+    }
+
+    private static void fillZh28(Map<String, String> table) {
+        table.put("That reel isn't on their profile. It might be a trial reel.",
+                "\u8be5 Reel \u4e0d\u5728\u5bf9\u65b9\u7684\u4e3b\u9875\u4e2d\uff0c\u53ef\u80fd\u662f\u6d4b\u8bd5\u7528 Reel\u3002");
+        table.put("That's a trial reel, so it isn't on their profile",
+                "\u8fd9\u662f\u8bd5\u7528 Reel\uff0c\u56e0\u6b64\u4e0d\u4f1a\u51fa\u73b0\u5728\u5bf9\u65b9\u7684\u4e3b\u9875\u4e0a");
+        table.put("That's as far back as this chat goes.",
+                "\u8fd9\u4e2a\u804a\u5929\u53ea\u5230\u8fd9\u91cc\u3002");
+        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
+                "\u9690\u85cf\u6bcf\u5219 Reel \u4e0b\u65b9\u7684\u201c\u6dfb\u52a0\u8bc4\u8bba\u201d\u5217\uff0c\u5305\u62ec Reels \u6807\u7b7e\u9875\u4e2d\u7684\u89c6\u9891\u3002\u4ecd\u53ef\u901a\u8fc7\u8bc4\u8bba\u6309\u94ae\u6253\u5f00\u8bc4\u8bba\u3002");
+        table.put("The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.",
+                "\u9690\u85cf\u4ece\u4e3b\u9875\u8f6c\u53d1\u6807\u7b7e\u9875\u6253\u5f00\u7684 Reel \u4e0b\u65b9\u7684\u201c\u6dfb\u52a0\u8bc4\u8bba\u201d\u5217\u3002\u4ecd\u53ef\u901a\u8fc7\u8bc4\u8bba\u6309\u94ae\u6253\u5f00\u8bc4\u8bba\u3002");
+        table.put("The Follow and Subscribe buttons beside a reel's author. Their profile still has them.",
+                "\u9690\u85cf Reel \u521b\u4f5c\u8005\u65c1\u7684\u201c\u5173\u6ce8\u201d\u4e0e\u201c\u8ba2\u9605\u201d\u6309\u94ae\u3002\u4e3b\u9875\u4e2d\u7684\u6309\u94ae\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.",
+                "PIN \u7801\u65e0\u6cd5\u590d\u539f\u3002\u82e5\u8981\u79fb\u9664\uff0c\u8bf7\u5728 Android \u5e94\u7528\u7a0b\u5e8f\u8bbe\u7f6e\u4e2d\u6e05\u9664 Instagram \u7684\u5b58\u50a8\u7a7a\u95f4\u3002\u8fd9\u4f1a\u5c06\u4f60\u6ce8\u9500\u5e76\u91cd\u8bbe HushGram \u8bbe\u7f6e\u3002\u5df2\u4fdd\u5b58\u7684\u8bbe\u7f6e\u5907\u4efd\u53ef\u8fd8\u539f\u5176\u4ed6\u8bbe\u7f6e\uff0c\u4f46\u4e0d\u5305\u542b PIN \u7801\u3002");
+        table.put("The PINs don't match.",
+                "\u4e24\u6b21\u8f93\u5165\u7684 PIN \u7801\u4e0d\u76f8\u7b26\u3002");
+        table.put("The Reels video fills the screen behind the pill. Its caption, buttons and seek bar sit just above the pill.",
+                "Reels \u89c6\u9891\u4f1a\u586b\u6ee1\u80f6\u56ca\u540e\u65b9\u7684\u753b\u9762\uff0c\u8bf4\u660e\u6587\u5b57\u3001\u6309\u94ae\u4e0e\u8fdb\u5ea6\u6761\u5219\u4f4d\u4e8e\u80f6\u56ca\u6b63\u4e0a\u65b9\u3002");
+        table.put("The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.",
+                "\u9690\u85cf\u4ece\u804a\u5929\u6253\u5f00\u7684 Reel \u4e0b\u65b9\u7684\u56de\u590d\u6846\u3001\u5fc3\u60c5\u56de\u5e94\u4e0e\u52a0\u53f7\u6309\u94ae\u3002\u804a\u5929\u672c\u8eab\u7684\u6d88\u606f\u8f93\u5165\u6846\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("The bar and round handle you know.",
+                "\u60a8\u719f\u6089\u7684\u62d6\u52a8\u6761\u4e0e\u5706\u5f62\u62d6\u52a8\u94ae\u3002");
+        table.put("The bar sits in the space under the Send message box. Where there's no room under it, the bar stays above it.",
+                "\u62d6\u52a8\u6761\u4f1a\u4f4d\u4e8e\u201c\u53d1\u9001\u6d88\u606f\u201d\u6846\u4e0b\u65b9\u7684\u7a7a\u95f4\u3002\u4e0b\u65b9\u6ca1\u6709\u7a7a\u95f4\u65f6\uff0c\u4f1a\u7559\u5728\u6846\u7684\u4e0a\u65b9\u3002");
+        table.put("The bar sits just above the Send message box at the bottom of a story.",
+                "\u62d6\u52a8\u6761\u4f1a\u4f4d\u4e8e\u5feb\u62cd\u5e95\u90e8\u201c\u53d1\u9001\u6d88\u606f\u201d\u6846\u7684\u6b63\u4e0a\u65b9\u3002");
+        table.put("The bubbles of friends who liked or commented, the Followed by and Liked by lines with their faces, the comment shown under a reel and the row of friends who saw it. Comments are still a tap away.",
+                "\u9690\u85cf\u70b9\u8d5e\u6216\u8bc4\u8bba\u597d\u53cb\u7684\u6ce1\u6ce1\u3001\u9644\u6709\u5934\u50cf\u7684\u5173\u6ce8\u4e0e\u70b9\u8d5e\u4fe1\u606f\u3001Reel \u4e0b\u65b9\u7684\u8bc4\u8bba\u9884\u89c8\uff0c\u4ee5\u53ca\u770b\u8fc7\u8be5 Reel \u7684\u597d\u53cb\u680f\u3002\u4ecd\u53ef\u70b9\u51fb\u67e5\u770b\u8bc4\u8bba\u3002");
+        table.put("The camera, as Instagram has it. Pick a tab and the same swipe opens that tab instead.",
+                "\u76f8\u673a\uff0c\u4e0e Instagram \u539f\u672c\u76f8\u540c\u3002\u9009\u62e9\u6807\u7b7e\u9875\u540e\uff0c\u540c\u6837\u7684\u6ed1\u52a8\u4f1a\u6539\u4e3a\u6253\u5f00\u8be5\u6807\u7b7e\u9875\u3002");
+        table.put("The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.",
+                "\u9690\u85cf Instagram \u5728 Reels \u4e4b\u95f4\u63d2\u5165\u7684\u63a8\u8350\u7528\u6237\u4e0e\u521b\u4f5c\u8005\u5361\u7247\u3002\u6bcf\u5219 Reel \u4ecd\u4f1a\u64ad\u653e\u3002");
+        table.put("The chip sits under the posts, followers and following counts.",
+                "\u6807\u7b7e\u4f4d\u4e8e\u5e16\u5b50\u3001\u7c89\u4e1d\u4e0e\u5df2\u5173\u6ce8\u6570\u91cf\u4e0b\u65b9\u3002");
+        table.put("The date and time the story was posted, like Oct 2, 3:45 PM.",
+                "\u5feb\u62cd\u53d1\u5e03\u7684\u65e5\u671f\u4e0e\u65f6\u95f4\uff0c\u4f8b\u5982 10 \u6708 2 \u65e5\u4e0b\u5348 3:45\u3002");
+        table.put("The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.",
+                "\u65e0\u6cd5\u79fb\u9664\u6587\u4ef6 %1$s\u3002\u8bf7\u4ece %2$s \u5220\u9664\u5b83\uff0c\u4ee5\u91cd\u65b0\u542f\u7528 HushGram\u3002");
+        table.put("The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.",
+                "\u9996\u9875\u9876\u7aef\u7684\u7231\u5fc3\u4f1a\u50cf\u6d88\u606f\u4e00\u6837\u663e\u793a\u5f85\u8bfb\u901a\u77e5\u7684\u6570\u91cf\uff0c\u53d6\u4ee3\u7ea2\u70b9\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("The heart plays %1$s when you double tap a post.",
+                "\u53cc\u51fb\u5e16\u5b50\u65f6\uff0c\u7231\u5fc3\u4f1a\u64ad\u653e %1$s\u3002");
+        table.put("The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.",
+                "\u53cc\u51fb\u5e16\u5b50\u65f6\u5f39\u51fa\u7684\u7231\u5fc3\u4f1a\u64ad\u653e\u4e0b\u65b9\u9009\u62e9\u7684\u52a8\u753b\u3002\u8fd9\u4e9b\u662f Instagram \u4e3a Rings \u521b\u4f5c\u8005\u5236\u4f5c\u7684\u52a8\u753b\u3002");
+        table.put("The icons on the tab bar are %1$s of the size Instagram gives them.",
+                "\u6807\u7b7e\u680f\u7684\u56fe\u6807\u4e3a Instagram \u8bbe\u7f6e\u5927\u5c0f\u7684 %1$s\u3002");
+        table.put("The icons on the tab bar are the size Instagram gives them.",
+                "\u6807\u7b7e\u680f\u7684\u56fe\u6807\u7ef4\u6301 Instagram \u8bbe\u7f6e\u7684\u5927\u5c0f\u3002");
+        table.put("The last way into these settings stays on.",
+                "\u6700\u540e\u4e00\u4e2a\u8bbe\u7f6e\u5165\u53e3\u4f1a\u7ef4\u6301\u542f\u7528\u3002");
+        table.put("The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.",
+                "\u4ee5\u5ea6\u4e3a\u5355\u4f4d\u8f93\u5165\u7eac\u5ea6\u4e0e\u7ecf\u5ea6\uff0c\u5e76\u4ee5\u9017\u53f7\u5206\u9694\uff0c\u4f8b\u5982 40.758, -73.9855\u3002\u5317\u7eac\u4e0e\u4e1c\u7ecf\u4e3a\u6b63\uff0c\u5357\u7eac\u4e0e\u897f\u7ecf\u4e3a\u8d1f\u3002\u5728\u5730\u56fe\u5e94\u7528\u7a0b\u5e8f\u4e2d\u957f\u6309\u5730\u70b9\u5373\u53ef\u67e5\u770b\u4e24\u8005\u3002");
+        table.put("The navigation bar only",
+                "\u4ec5\u5bfc\u822a\u680f");
+        table.put("The pill sits in the top bar next to the menu and reads like @1 mention. Its list opens from the bottom of the screen.",
+                "\u6807\u7b7e\u663e\u793a\u5728\u9876\u680f\u7684\u83dc\u5355\u65c1\uff0c\u4f8b\u5982 @1 \u4e2a\u63d0\u53ca\u3002\u6e05\u5355\u4f1a\u4ece\u753b\u9762\u5e95\u90e8\u6253\u5f00\u3002");
+        table.put("The pill sits in the top bar next to the menu and shows only the count, like @1. Its list opens from the bottom of the screen.",
+                "\u6807\u7b7e\u663e\u793a\u5728\u9876\u680f\u7684\u83dc\u5355\u65c1\uff0c\u53ea\u663e\u793a\u6570\u5b57\uff0c\u4f8b\u5982 @1\u3002\u6e05\u5355\u4f1a\u4ece\u753b\u9762\u5e95\u90e8\u6253\u5f00\u3002");
+        table.put("The pill sits under the story's name and reads like 1 mention. Its list opens over the story.",
+                "\u6807\u7b7e\u663e\u793a\u5728\u5feb\u62cd\u540d\u79f0\u4e0b\u65b9\uff0c\u4f8b\u5982 1 \u4e2a\u63d0\u53ca\u3002\u6e05\u5355\u4f1a\u5728\u5feb\u62cd\u4e0a\u65b9\u6253\u5f00\u3002");
+        table.put("The pill's rim bends what's behind it like real glass, so what passes under the edge shows upside down. Android 13 and newer. Restart Instagram after changing it.",
+                "\u80f6\u56ca\u7684\u8fb9\u7f18\u4f1a\u50cf\u771f\u6b63\u7684\u73bb\u7483\u4e00\u6837\u6298\u5c04\u540e\u65b9\u7684\u5185\u5bb9\uff0c\u7ecf\u8fc7\u8fb9\u7f18\u4e0b\u65b9\u7684\u4e1c\u897f\u4f1a\u4e0a\u4e0b\u98a0\u5012\u3002\u9700\u8981 Android 13 \u4ee5\u4e0a\u7248\u672c\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("The poll and vote prompts near a reel's author.",
+                "Reels \u4f5c\u8005\u65c1\u7684\u6295\u7968\u4e0e\u8c03\u67e5\u63d0\u793a\u3002");
+        table.put("The product tag and shopping buttons near a reel's author.",
+                "Reels \u4f5c\u8005\u65c1\u7684\u5546\u54c1\u6807\u7b7e\u4e0e\u8d2d\u7269\u6309\u94ae\u3002");
+        table.put("The red dots and counts for new messages and notifications take the color you picked. Restart Instagram to see the change.",
+                "\u65b0\u6d88\u606f\u548c\u901a\u77e5\u7684\u7ea2\u70b9\u4e0e\u6570\u5b57\u4f1a\u6539\u7528\u4f60\u9009\u62e9\u7684\u989c\u8272\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("The report isn't saved yet. Try again in a moment.",
+                "\u76ee\u524d\u8fd8\u65e0\u6cd5\u4fdd\u5b58\u8bca\u65ad\u62a5\u544a\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002");
+        table.put("The rings are %1$s of the size Instagram picks for your screen.",
+                "\u5149\u5708\u5c3a\u5bf8\u4e3a Instagram \u4f9d\u5c4f\u5e55\u9009\u62e9\u5c3a\u5bf8\u7684 %1$s\u3002");
+        table.put("The rings are the size Instagram picks for your screen.",
+                "\u5149\u5708\u4f7f\u7528 Instagram \u4f9d\u5c4f\u5e55\u9009\u62e9\u7684\u5c3a\u5bf8\u3002");
+        table.put("The row of stories at the top of Home keeps only the accounts the choice below names, by Instagram's verified badge. Your own story stays. Turn it off to see every story.",
+                "\u9996\u9875\u9876\u7aef\u7684\u5feb\u62cd\u6a2a\u5e45\u53ea\u4fdd\u7559\u4e0b\u65b9\u9009\u9879\u6307\u5b9a\u7684\u8d26\u6237\uff0c\u4f9d\u636e Instagram \u7684\u9a8c\u8bc1\u5fbd\u7ae0\u5224\u65ad\u3002\u4f60\u81ea\u5df1\u7684\u5feb\u62cd\u4f1a\u4fdd\u7559\u3002\u5173\u95ed\u5373\u53ef\u67e5\u770b\u6240\u6709\u5feb\u62cd\u3002");
+        table.put("The rows of suggested reels between posts in your home feed. A reel someone you follow posts stays.",
+                "\u9690\u85cf\u52a8\u6001\u9996\u9875\u5e16\u5b50\u4e4b\u95f4\u7684\u63a8\u8350 Reels \u680f\u3002\u5df2\u5173\u6ce8\u8d26\u6237\u53d1\u5e03\u7684 Reel \u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.",
+                "\u5728\u7167\u7247\u5e16\u5b50\u4e0e\u76ee\u524d\u663e\u793a\u7167\u7247\u7684\u8f6e\u64ad\u5e16\u5b50\u4e2d\u52a0\u5165\u76f8\u540c\u7684\u201c\u4e0b\u8f7d\u201d\u9009\u9879\u3002\u4ee5 Instagram \u63d0\u4f9b\u7684\u6700\u5927\u5c3a\u5bf8\u4fdd\u5b58\u3002");
+        table.put("The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.",
+                "\u8981\u6c42\u4f60\u540c\u6b65\u8054\u7cfb\u4eba\u5e76\u6253\u5f00\u5b9a\u4f4d\u670d\u52a1\u7684\u753b\u9762\uff0c\u4e0d\u4f1a\u518d\u4e8e\u6bcf\u6b21\u542f\u52a8 Instagram \u65f6\u6253\u5f00\u3002\u5176\u4ed6\u753b\u9762\u90fd\u4e0d\u4f1a\u7565\u8fc7\u3002");
+        table.put("The search terms Instagram suggests near a reel's author.",
+                "Instagram \u5728 Reels \u4f5c\u8005\u65c1\u63a8\u8350\u7684\u641c\u7d22\u5b57\u8bcd\u3002");
+        table.put("The sounds you hid with the music icon. Uncheck one to see its reels again.",
+                "\u4f60\u901a\u8fc7\u97f3\u4e50\u56fe\u6807\u9690\u85cf\u7684\u97f3\u9891\u3002\u53d6\u6d88\u52fe\u9009\u5373\u53ef\u91cd\u65b0\u663e\u793a\u4f7f\u7528\u8be5\u97f3\u9891\u7684 Reels\u3002");
+        table.put("The status bar only",
+                "\u4ec5\u72b6\u6001\u680f");
+        table.put("The tab bar keeps Instagram's order.",
+                "\u6807\u7b7e\u680f\u7ef4\u6301 Instagram \u539f\u672c\u7684\u987a\u5e8f\u3002");
+        table.put("The top of Home goes back to your header text, or to Instagram's logo.",
+                "\u9996\u9875\u9876\u7aef\u4f1a\u6062\u590d\u4e3a\u4f60\u7684\u6587\u5b57\uff0c\u6216 Instagram \u6807\u5fd7\u3002");
+        table.put("The top of Home says %1$s.",
+                "\u9996\u9875\u9876\u7aef\u663e\u793a\u201c%1$s\u201d\u3002");
+        table.put("The top of Home shows %1$s. Tap to pick another.",
+                "\u9996\u9875\u9876\u7aef\u663e\u793a %1$s\u3002\u70b9\u51fb\u5373\u53ef\u9009\u62e9\u5176\u4ed6\u56fe\u7247\u3002");
+        table.put("The video playing while Instagram is in the background, with buttons to pause or stop it",
+                "Instagram \u5728\u80cc\u666f\u65f6\u6b63\u5728\u64ad\u653e\u7684\u89c6\u9891\uff0c\u9644\u6709\u6682\u505c\u6216\u505c\u6b62\u6309\u94ae");
+        table.put("The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, and tap or press Back to close it.",
+                "\u653e\u5f00\u624b\u6307\u540e\u4ecd\u7ef4\u6301\u653e\u5927\u3002\u62d6\u52a8\u53ef\u67e5\u770b\u5176\u4ed6\u533a\u57df\uff0c\u53cc\u6307\u53ef\u5728 1 \u81f3 4 \u500d\u95f4\u7f29\u653e\uff0c\u70b9\u51fb\u6216\u6309\u8fd4\u56de\u5373\u53ef\u5173\u95ed\u3002");
+        table.put("Their bio changed",
+                "\u4e2a\u4eba\u7b80\u4ecb\u5df2\u53d8\u66f4");
+        table.put("There's no diagnostic data to clear.",
+                "\u6ca1\u6709\u53ef\u6e05\u9664\u7684\u8bca\u65ad\u6570\u636e\u3002");
+        table.put("There's no diagnostic data to put back.",
+                "\u6ca1\u6709\u53ef\u8fd8\u539f\u7684\u8bca\u65ad\u6570\u636e\u3002");
+        table.put("There's no file picker. Your settings haven't changed.",
+                "\u8fd9\u652f\u624b\u673a\u6ca1\u6709\u6587\u4ef6\u9009\u62e9\u5668\u3002\u4f60\u7684\u8bbe\u7f6e\u672a\u53d8\u66f4\u3002");
+        table.put("These settings are locked. Ask to unlock first.",
+                "\u8fd9\u4e9b\u8bbe\u7f6e\u5df2\u9501\u5b9a\uff0c\u8bf7\u5148\u8bf7\u6c42\u89e3\u9501\u3002");
+        table.put("These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.",
+                "\u8fd9\u4e9b\u8bbe\u7f6e\u5df2\u9501\u5b9a\u3002\u70b9\u51fb\u5f00\u59cb\u7b49\u5f85 %1$s\uff0c\u4e4b\u540e\u4f1a\u5f00\u653e\u8bbe\u7f6e 10 \u5206\u949f\u3002");
+        table.put("These settings open at %1$s, for 10 minutes.",
+                "\u8fd9\u4e9b\u8bbe\u7f6e\u5c06\u4e8e %1$s \u5f00\u653e 10 \u5206\u949f\u3002");
+        table.put("These settings open at %1$s, for 10 minutes. Tap to stop the wait.",
+                "\u8fd9\u4e9b\u8bbe\u7f6e\u5c06\u4e8e %1$s \u5f00\u653e 10 \u5206\u949f\u3002\u70b9\u51fb\u53ef\u53d6\u6d88\u7b49\u5f85\u3002");
+        table.put("They lock again at %1$s. Tap to lock them now or turn the lock off.",
+                "\u5c06\u4e8e %1$s \u91cd\u65b0\u9501\u5b9a\u3002\u70b9\u51fb\u53ef\u7acb\u5373\u9501\u5b9a\u6216\u7981\u7528\u9501\u5b9a\u529f\u80fd\u3002");
+        table.put("Thicker story progress bar",
+                "\u8f83\u7c97\u7684\u5feb\u62cd\u8fdb\u5ea6\u6761");
+    }
+
+    private static void fillZh29(Map<String, String> table) {
+        table.put("Thickness",
+                "\u7c97\u7ec6");
+        table.put("Thin line",
+                "\u7ec6\u7ebf");
+        table.put("This button needs Search on your tab bar.",
+                "\u641c\u7d22\u4e0d\u5728\u6807\u7b7e\u680f\u4e0a\uff0c\u56e0\u6b64\u6b64\u6309\u94ae\u65e0\u6cd5\u5728\u8fd9\u91cc\u6253\u5f00\u641c\u7d22\u3002");
+        table.put("This chat is locked",
+                "\u6b64\u804a\u5929\u5df2\u9501\u5b9a");
+        table.put("This chat uses the setting",
+                "\u6b64\u804a\u5929\u4f9d\u7167\u8bbe\u7f6e");
+        table.put("This launcher can't add it.",
+                "\u8fd9\u4e2a\u542f\u52a8\u5668\u65e0\u6cd5\u52a0\u5165\u3002");
+        table.put("This phone has no fingerprint or face unlock to use.",
+                "\u8fd9\u652f\u624b\u673a\u6ca1\u6709\u53ef\u7528\u7684\u6307\u7eb9\u6216\u8138\u90e8\u89e3\u9501\u3002");
+        table.put("This story plays once",
+                "\u8fd9\u5219\u5feb\u62cd\u53ea\u64ad\u653e\u4e00\u6b21");
+        table.put("This video has no file another player can open",
+                "\u6b64\u89c6\u9891\u6ca1\u6709\u5176\u4ed6\u64ad\u653e\u5668\u53ef\u6253\u5f00\u7684\u6587\u4ef6");
+        table.put("This video plays once",
+                "\u8fd9\u90e8\u89c6\u9891\u53ea\u64ad\u653e\u4e00\u6b21");
+        table.put("Threads",
+                "Threads");
+        table.put("Three fingers",
+                "\u4e09\u6307");
+        table.put("Three times as thick",
+                "\u4e09\u500d\u7c97");
+        table.put("Time away before swiping comes back",
+                "\u6062\u590d\u6ed1\u52a8\u524d\u7684\u79bb\u5f00\u65f6\u95f4");
+        table.put("Time for a break",
+                "\u8be5\u4f11\u606f\u4e00\u4e0b\u4e86");
+        table.put("Time for a break. Home, Reels and Explore open again in %1$s.",
+                "\u8be5\u4f11\u606f\u4e00\u4e0b\u4e86\u3002\u9996\u9875\u3001Reels \u4e0e\u63a2\u7d22\u5c06\u5728 %1$s \u540e\u91cd\u65b0\u5f00\u653e\u3002");
+        table.put("Time left",
+                "\u5269\u4f59\u65f6\u95f4");
+        table.put("Time posted",
+                "\u53d1\u5e03\u65f6\u95f4");
+        table.put("Tint intensity",
+                "\u67d3\u8272\u5f3a\u5ea6");
+        table.put("To add someone, tap Add to Stories priority in their story's menu.",
+                "\u82e5\u8981\u52a0\u5165\u67d0\u4eba\uff0c\u8bf7\u5728\u5bf9\u65b9\u5feb\u62cd\u7684\u83dc\u5355\u4e2d\u70b9\u51fb\u201c\u52a0\u5165\u5feb\u62cd\u4f18\u5148\u7ea7\u201d\u3002");
+        table.put("To loop one story, tap Loop this story in its menu.",
+                "\u82e5\u8981\u91cd\u590d\u64ad\u653e\u67d0\u4e00\u5219\u5feb\u62cd\uff0c\u8bf7\u5728\u5b83\u7684\u83dc\u5355\u4e2d\u70b9\u51fb\u201c\u91cd\u590d\u64ad\u653e\u8fd9\u5219\u5feb\u62cd\u201d\u3002");
+        table.put("To loop one video anyway, tap Loop this video in its menu.",
+                "\u82e5\u4ecd\u60f3\u91cd\u590d\u64ad\u653e\u67d0\u4e00\u90e8\u89c6\u9891\uff0c\u8bf7\u5728\u5b83\u7684\u83dc\u5355\u4e2d\u70b9\u51fb\u201c\u91cd\u590d\u64ad\u653e\u8fd9\u90e8\u89c6\u9891\u201d\u3002");
+        table.put("To make dark mode pure black instead of dark gray, which can save battery on an OLED screen, pick Pure black dark mode in Morphe Manager the next time you patch Instagram.",
+                "\u60f3\u8ba9\u6df1\u8272\u6a21\u5f0f\u53d8\u6210\u7eaf\u9ed1\u800c\u4e0d\u662f\u6df1\u7070\uff08\u5728 OLED \u5c4f\u5e55\u4e0a\u53ef\u4ee5\u7701\u7535\uff09\uff0c\u4e0b\u6b21\u4fee\u8865 Instagram \u65f6\uff0c\u8bf7\u5728 Morphe Manager \u4e2d\u9009\u53d6 AMOLED \u7eaf\u9ed1\u6a21\u5f0f\u3002");
+        table.put("Too many tries. Wait %1$d seconds.",
+                "\u5c1d\u8bd5\u6b21\u6570\u8fc7\u591a\uff0c\u8bf7\u7b49\u5f85 %1$d \u79d2\u3002");
+        table.put("Top bar, @1",
+                "\u9876\u680f\uff0c@1");
+        table.put("Top bar, @1 mention",
+                "\u9876\u680f\uff0c@1 \u4e2a\u63d0\u53ca");
+        table.put("Try again, or go back to Instagram.",
+                "\u8bf7\u518d\u8bd5\u4e00\u6b21\uff0c\u6216\u8fd4\u56de Instagram\u3002");
+        table.put("Try another word. Settings only appear for patches included in this install.",
+                "\u8bf7\u5c1d\u8bd5\u5176\u4ed6\u5b57\u8bcd\u3002\u4ec5\u4f1a\u663e\u793a\u6b64\u5b89\u88c5\u7248\u672c\u5305\u542b\u7684\u8865\u4e01\u8bbe\u7f6e\u3002");
+        table.put("Turn Ghost mode on or off with a tab long press",
+                "\u957f\u6309\u6807\u7b7e\u9875\u5207\u6362\u5e7d\u7075\u6a21\u5f0f");
+        table.put("Turn it back on in HushGram settings.",
+                "\u8bf7\u5230 HushGram \u8bbe\u7f6e\u91cd\u65b0\u6253\u5f00\u3002");
+        table.put("Turn off HDR brightness boosts",
+                "\u7981\u7528 HDR \u4eae\u5ea6\u63d0\u5347");
+        table.put("Turn off Hide the Search tab and restart.",
+                "\u82e5\u8981\u5728\u6b64\u6253\u5f00\u641c\u7d22\uff0c\u8bf7\u5173\u95ed\u201c\u9690\u85cf\u641c\u7d22\u6807\u7b7e\u9875\u201d\u5e76\u91cd\u65b0\u542f\u52a8\u3002");
+        table.put("Turn off double tap to like",
+                "\u7981\u7528\u53cc\u51fb\u70b9\u8d5e");
+        table.put("Turn on %1$s to use this slider.",
+                "\u8bf7\u542f\u7528\u201c%1$s\u201d\u4ee5\u4f7f\u7528\u6b64\u6ed1\u6746\u3002");
+        table.put("Turn on Change the like animation to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u66f4\u6539\u2018\u70b9\u8d5e\u2019\u52a8\u753b\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Default playback quality to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u9ed8\u8ba4\u64ad\u653e\u753b\u8d28\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u5168\u5c4f\u5e55 Reels\u201d\u3001\u201c\u5168\u5c4f\u5e55\u9996\u9875\u201d\u6216\u201c\u5168\u5c4f\u5e55\u6d88\u606f\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.",
+                "\u5728 Reel \u542f\u7528 Instagram \u7684\u6e05\u723d\u6a21\u5f0f\u540e\uff0c\u540e\u7eed Reels \u4e5f\u4f1a\u4ee5\u6b64\u6a21\u5f0f\u6253\u5f00\u3002\u624b\u52a8\u79bb\u5f00\u6e05\u723d\u6a21\u5f0f\u540e\uff0c\u540e\u7eed Reels \u4f1a\u91cd\u65b0\u663e\u793a\u6309\u94ae\u3002");
+        table.put("Turn on Page dots on a pill to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u80f6\u56ca\u9875\u9762\u5706\u70b9\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on See who a story mentions to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u67e5\u770b\u5feb\u62cd\u63d0\u53ca\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Seek bar on feed videos or its button to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u52a8\u6001\u89c6\u9891\u62d6\u52a8\u6761\u201d\u6216\u5176\u6309\u94ae\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Seek bar on stories to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u5feb\u62cd\u62d6\u52a8\u6761\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Show a story's exact time to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u663e\u793a\u5feb\u62cd\u7684\u786e\u5207\u65f6\u95f4\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Show if a profile follows you to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u663e\u793a\u8d26\u6237\u662f\u5426\u5df2\u5173\u6ce8\u4f60\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Show it as a chip to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u4ee5\u6807\u7b7e\u663e\u793a\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Show the Messages tab and restart.",
+                "\u82e5\u8981\u5728\u6b64\u6253\u5f00\u6d88\u606f\uff0c\u8bf7\u542f\u7528\u201c\u663e\u793a\u6d88\u606f\u6807\u7b7e\u9875\u201d\u5e76\u91cd\u65b0\u542f\u52a8\u3002");
+        table.put("Turn on Start Home on Following to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u9996\u9875\u9ed8\u8ba4\u663e\u793a\u5df2\u5173\u6ce8\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Story ring size to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u5feb\u62cd\u5149\u5708\u5c3a\u5bf8\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn on Tap to play to use this choice.",
+                "\u8bf7\u542f\u7528\u201c\u70b9\u51fb\u64ad\u653e\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
+        table.put("Turn the lock off",
+                "\u7981\u7528\u9501\u5b9a");
+        table.put("Turns Instagram's blue, on Follow buttons, links and the like, into the color you pick below. Restart Instagram to see the change.",
+                "\u5c06 Instagram \u5173\u6ce8\u6309\u94ae\u3001\u94fe\u63a5\u7b49\u5904\u7684\u84dd\u8272\u6539\u4e3a\u4e0b\u65b9\u9009\u62e9\u7684\u989c\u8272\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Turns the switches that keep what you do to yourself on or off in one go, like View stories anonymously and Hide that you're typing. Each one keeps its own switch.",
+                "\u4e00\u6b21\u6253\u5f00\u6216\u5173\u95ed\u9690\u85cf\u4f60\u6d3b\u52a8\u7684\u5f00\u5173\uff0c\u4f8b\u5982\u201c\u533f\u540d\u89c2\u770b\u5feb\u62cd\u201d\u4e0e\u201c\u9690\u85cf\u2018\u6b63\u5728\u8f93\u5165\u2026\u2019\u72b6\u6001\u201d\u3002\u6bcf\u9879\u529f\u80fd\u4ecd\u4fdd\u7559\u72ec\u7acb\u5f00\u5173\u3002");
+        table.put("Twice as thick",
+                "\u4e24\u500d\u7c97");
+        table.put("Two fingers",
+                "\u4e24\u6307");
+        table.put("Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.",
+                "\u7528\u4e24\u6307\u653e\u5927\u6b63\u5728\u64ad\u653e\u7684 Reels\uff0c\u5c31\u50cf\u653e\u5927\u7167\u7247\u4e00\u6837\u3002\u653e\u5f00\u624b\u6307\u5c31\u4f1a\u6062\u590d\u539f\u72b6\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.",
+                "\u5728\u6807\u7b7e\u680f\u6216\u9996\u9875\u9876\u7aef\u7684\u6d88\u606f\u6309\u94ae\u4e0a\u5feb\u901f\u70b9\u4e24\u4e0b\uff0c\u5c31\u4f1a\u6253\u5f00\u4f60\u9690\u85cf\u7684\u804a\u5929\u3002\u6253\u5f00\u9501\u5b9a\u65f6\u4f1a\u5148\u8981\u6c42\u89e3\u9501\u3002\u70b9\u4e00\u4e0b\u5219\u7167\u5e38\u6253\u5f00\u6d88\u606f\u3002");
+        table.put("Under a name in your messages and in a chat, the exact time they were last on, like Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.",
+                "\u5728\u6d88\u606f\u4e0e\u804a\u5929\u7684\u540d\u79f0\u4e0b\u65b9\uff0c\u4ee5\u786e\u5207\u7684\u6700\u540e\u4e0a\u7ebf\u65f6\u95f4\u53d6\u4ee3\u591a\u4e45\u4ee5\u524d\u4e0a\u7ebf\uff0c\u4f8b\u5982\u4ee5\u201c\u4e0b\u5348 3:42 \u4e0a\u7ebf\u201d\u53d6\u4ee3\u201c3 \u5c0f\u65f6\u524d\u4e0a\u7ebf\u201d\u3002\u201c\u76ee\u524d\u5728\u5728\u7ebf\u201d\u7ef4\u6301\u539f\u6837\u3002");
+        table.put("Under the counts",
+                "\u5404\u9879\u6570\u91cf\u4e0b\u65b9");
+        table.put("Under the name, 1 mention",
+                "\u540d\u79f0\u4e0b\u65b9\uff0c1 \u4e2a\u63d0\u53ca");
+        table.put("Undo cleared positions",
+                "\u590d\u539f\u6e05\u9664\u64ad\u653e\u4f4d\u7f6e");
+    }
+
+    private static void fillZh30(Map<String, String> table) {
+        table.put("Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.",
+                "\u672a\u80fd\u5b8c\u6574\u590d\u539f\u8bbe\u7f6e\uff0c\u8bf7\u786e\u8ba4\u663e\u793a\u7684\u503c\u3002\u590d\u539f\u673a\u4f1a\u5df2\u4f7f\u7528\u3002");
+        table.put("Undo has expired.",
+                "\u590d\u539f\u671f\u9650\u5df2\u8fc7\u3002");
+        table.put("Undo is available until %1$s.",
+                "\u53ef\u5728 %1$s \u524d\u590d\u539f\u3002");
+        table.put("Undo is available until %1$s. Restarting Instagram discards Undo.",
+                "\u53ef\u5728 %1$s \u524d\u590d\u539f\u3002\u91cd\u65b0\u542f\u52a8 Instagram \u540e\u5c06\u65e0\u6cd5\u590d\u539f\u3002");
+        table.put("Undo settings import",
+                "\u590d\u539f\u8bbe\u7f6e\u5bfc\u5165");
+        table.put("Unfollow alerts",
+                "\u53d6\u6d88\u5173\u6ce8\u901a\u77e5");
+        table.put("Unfollower list cleared.",
+                "\u5df2\u6e05\u9664\u53d6\u6d88\u7c89\u4e1d\u540d\u5355\u3002");
+        table.put("Unlock",
+                "\u89e3\u9501");
+        table.put("Unlock Instagram",
+                "\u89e3\u9501 Instagram");
+        table.put("Unlock Saved",
+                "\u89e3\u9501\u201c\u5df2\u6536\u85cf\u201d");
+        table.put("Unlock asked",
+                "\u5df2\u8bf7\u6c42\u89e3\u9501");
+        table.put("Unlock this chat",
+                "\u89e3\u9501\u6b64\u804a\u5929");
+        table.put("Unlock with",
+                "\u89e3\u9501\u65b9\u5f0f");
+        table.put("Unlock your messages",
+                "\u89e3\u9501\u4f60\u7684\u6d88\u606f");
+        table.put("Unmute all",
+                "\u5168\u90e8\u53d6\u6d88\u9759\u97f3");
+        table.put("Up to %1$s",
+                "\u6700\u9ad8 %1$s");
+        table.put("Up to 30 letters, numbers, dots and underscores",
+                "\u7528\u6237\u540d\u6700\u591a\u53ef\u542b 30 \u4e2a\u5b57\u6bcd\u3001\u6570\u5b57\u3001\u53e5\u70b9\u4e0e\u4e0b\u5212\u7ebf");
+        table.put("Updates",
+                "\u66f4\u65b0");
+        table.put("Updating remembered positions...",
+                "\u6b63\u5728\u66f4\u65b0\u8bb0\u4f4f\u7684\u64ad\u653e\u4f4d\u7f6e\u2026");
+        table.put("Upload quality applies to",
+                "\u4e0a\u4f20\u753b\u8d28\u5e94\u7528\u8303\u56f4");
+        table.put("Upload stories at full quality",
+                "\u4ee5\u5b8c\u6574\u753b\u8d28\u4e0a\u4f20\u5feb\u62cd");
+        table.put("Use 4 to 8 digits.",
+                "\u8bf7\u4f7f\u7528 4 \u81f3 8 \u4f4d\u6570\u5b57\u3002");
+        table.put("Use Choose a folder for a path or an SD card.",
+                "\u8def\u5f84\u6216 SD \u5361\u8bf7\u4f7f\u7528\u201c\u9009\u62e9\u6587\u4ef6\u5939\u201d\u3002");
+        table.put("Use Movies and Pictures",
+                "\u4f7f\u7528 Movies \u548c Pictures");
+        table.put("Use the HushGram setting",
+                "\u4f7f\u7528 HushGram \u8bbe\u7f6e");
+        table.put("Use the highest refresh rate",
+                "\u4f7f\u7528\u6700\u9ad8\u66f4\u65b0\u7387");
+        table.put("Used to be @%s",
+                "\u4ee5\u524d\u662f @%s");
+        table.put("Username",
+                "\u7528\u6237\u540d");
+        table.put("Username copied",
+                "\u5df2\u590d\u5236\u7528\u6237\u540d");
+        table.put("Usernames, one on each line. A leading @ and capital letters don't matter.",
+                "\u7528\u6237\u540d\uff0c\u6bcf\u884c\u4e00\u4e2a\u3002\u5f00\u5934\u7684 @ \u548c\u5927\u5c0f\u5199\u90fd\u6ca1\u6709\u5f71\u54cd\u3002");
+        table.put("Usernames, one on each line. The first line goes first. A leading @ and capital letters don't matter.",
+                "\u7528\u6237\u540d\uff0c\u6bcf\u884c\u4e00\u4e2a\u3002\u7b2c\u4e00\u884c\u6392\u5728\u6700\u524d\u9762\u3002\u5f00\u5934\u7684 @ \u548c\u5927\u5c0f\u5199\u90fd\u4e0d\u5f71\u54cd\u3002");
+        table.put("Version",
+                "\u7248\u672c");
+        table.put("Version %1$s for Instagram %2$s",
+                "\u7248\u672c %1$s\uff0c\u9002\u7528\u4e8e Instagram %2$s");
+        table.put("Version warnings",
+                "\u7248\u672c\u8b66\u544a");
+        table.put("Video bitrate",
+                "\u89c6\u9891\u6bd4\u7279\u7387");
+        table.put("Video frame rate",
+                "\u89c6\u9891\u5f71\u683c\u7387");
+        table.put("Video resolution",
+                "\u89c6\u9891\u5206\u8fa8\u7387");
+        table.put("Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the difference viewers see is small. Photo stories already go up larger than Instagram keeps.",
+                "\u89c6\u9891\u5feb\u62cd\u4f1a\u4ee5 1080p \u4e0e\u8f83\u9ad8\u6bd4\u7279\u7387\u4e0a\u4f20\uff0c\u7b49\u540c\u542f\u7528 Instagram \u7684\u201c\u4ee5\u6700\u9ad8\u6e05\u4e0a\u4f20\u201d\u3002Instagram \u670d\u52a1\u5668\u4ecd\u4f1a\u5c06\u89c6\u9891\u7f29\u5c0f\u4e3a 720p\uff0c\u56e0\u6b64\u89c2\u4f17\u770b\u5230\u7684\u5dee\u5f02\u4e0d\u5927\u3002\u7167\u7247\u5feb\u62cd\u7684\u4e0a\u4f20\u5c3a\u5bf8\u539f\u672c\u5c31\u5927\u4e8e Instagram \u4fdd\u7559\u7684\u5c3a\u5bf8\u3002");
+        table.put("Videos and photos use %1$s. Unknown codes are left out.",
+                "\u89c6\u9891\u548c\u7167\u7247\u4f7f\u7528 %1$s\u3002\u672a\u77e5\u7684\u4ee3\u7801\u4f1a\u7701\u7565\u3002");
+        table.put("Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.",
+                "\u8d85\u8fc7\u4e24\u5206\u949f\u7684\u89c6\u9891\u4e0e Reels \u4f1a\u4ece\u4e0a\u6b21\u79bb\u5f00\u7684\u4f4d\u7f6e\u7ee7\u7eed\u64ad\u653e\u3002\u53ef\u62d6\u52a8\u8fdb\u5ea6\u6761\u6539\u4ece\u5176\u4ed6\u4f4d\u7f6e\u5f00\u59cb\u3002\u76f4\u64ad\u4e0e\u5e7f\u544a\u4ecd\u4f1a\u7167\u5e38\u64ad\u653e\u3002");
+        table.put("Videos are named %1$s. Photos are named %2$s followed by the date and time.",
+                "\u89c6\u9891\u6587\u4ef6\u540d\u4e3a %1$s\u3002\u7167\u7247\u4ee5 %2$s \u52a0\u4e0a\u65e5\u671f\u4e0e\u65f6\u95f4\u547d\u540d\u3002");
+        table.put("Videos go to %1$s and photos to %2$s.",
+                "\u89c6\u9891\u4fdd\u5b58\u81f3 %1$s\uff0c\u7167\u7247\u4fdd\u5b58\u81f3 %2$s\u3002");
+        table.put("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.",
+                "\u9996\u9875\u89c6\u9891\u4f1a\u6253\u5f00\u58f0\u97f3\u64ad\u653e\uff0c\u7b49\u540c\u70b9\u51fb\u89c6\u9891\u7684\u5587\u53ed\u6309\u94ae\u3002\u5c06\u5176\u4e2d\u4e00\u90e8\u9759\u97f3\u540e\uff0c\u4e4b\u540e\u7684\u89c6\u9891\u4e5f\u4f1a\u4fdd\u6301\u9759\u97f3\u3002\u4ecd\u53d7\u624b\u673a\u94c3\u58f0\u4e0e\u97f3\u91cf\u8bbe\u7f6e\u5f71\u54cd\uff0c\u56e0\u6b64\u9759\u97f3\u6216\u97f3\u91cf\u8c03\u4f4e\u65f6\u4ecd\u4e0d\u4f1a\u51fa\u58f0\u3002");
+        table.put("Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.",
+                "\u6bcf\u90e8\u89c6\u9891\u7686\u4ee5 Instagram \u63d0\u4f9b\u3001\u4e0d\u8d85\u8fc7 %1$s \u7684\u6700\u4f73\u753b\u8d28\u64ad\u653e\uff1b\u82e5\u65e0\u7b26\u5408\u9879\u76ee\uff0c\u5219\u4f7f\u7528\u6700\u63a5\u8fd1\u4e14\u8f83\u9ad8\u7684\u753b\u8d28\u3002");
+        table.put("Videos play at the highest quality Instagram offers for each.",
+                "\u6bcf\u90e8\u89c6\u9891\u7686\u4ee5 Instagram \u63d0\u4f9b\u7684\u6700\u9ad8\u6e05\u64ad\u653e\u3002");
+        table.put("Videos play at the lowest quality Instagram offers for each.",
+                "\u6bcf\u90e8\u89c6\u9891\u7686\u4ee5 Instagram \u63d0\u4f9b\u7684\u6700\u4f4e\u753b\u8d28\u64ad\u653e\u3002");
+        table.put("Videos wait for your tap where the choice below says. Feed videos show a play button, as they do when you use less mobile data.",
+                "\u4e0b\u65b9\u9009\u62e9\u7684\u4f4d\u7f6e\u4f1a\u7b49\u5f85\u4f60\u70b9\u51fb\u624d\u64ad\u653e\u89c6\u9891\u3002\u52a8\u6001\u9996\u9875\u89c6\u9891\u4f1a\u663e\u793a\u64ad\u653e\u6309\u94ae\uff0c\u5982\u540c\u542f\u7528\u8282\u7701\u79fb\u52a8\u6570\u636e\u65f6\u4e00\u6837\u3002");
+        table.put("Videos, reels and stories play at the quality below, starting with the next one you open. When your connection can't keep up, a video drops to the next lower quality.",
+                "\u4ece\u4e0b\u4e00\u90e8\u6253\u5f00\u7684\u89c6\u9891\u5f00\u59cb\uff0c\u89c6\u9891\u3001Reels \u548c\u5feb\u62cd\u4f1a\u4ee5\u4e0b\u65b9\u753b\u8d28\u64ad\u653e\u3002\u8fde\u63a5\u901f\u5ea6\u8ddf\u4e0d\u4e0a\u65f6\uff0c\u89c6\u9891\u4f1a\u964d\u5230\u4f4e\u4e00\u7ea7\u7684\u753b\u8d28\u3002");
+        table.put("View DM photos and videos anonymously",
+                "\u533f\u540d\u67e5\u770b\u6d88\u606f\u7167\u7247\u4e0e\u89c6\u9891");
+        table.put("View live anonymously",
+                "\u533f\u540d\u89c2\u770b\u76f4\u64ad");
+        table.put("View once message",
+                "\u9650\u770b\u4e00\u6b21\u7684\u6d88\u606f");
+        table.put("View profile picture",
+                "\u67e5\u770b\u5934\u50cf");
+        table.put("View stories anonymously",
+                "\u533f\u540d\u89c2\u770b\u5feb\u62cd");
+        table.put("Viewing history",
+                "\u6d4f\u89c8\u7eaa\u5f55");
+        table.put("Viewing history cleared.",
+                "\u5df2\u6e05\u9664\u6d4f\u89c8\u7eaa\u5f55\u3002");
+        table.put("Viewing, sound and the stories tray.",
+                "\u89c2\u770b\u3001\u97f3\u6548\u4e0e\u5feb\u62cd\u680f\u3002");
+        table.put("Voice message",
+                "\u8bed\u97f3\u9891\u606f");
+        table.put("Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.",
+                "\u97f3\u91cf\u52a0\u952e\u4ecd\u4f1a\u63d0\u9ad8\u624b\u673a\u97f3\u91cf\uff0c\u4f46\u5df2\u9759\u97f3\u7684 Reel \u4f1a\u7ef4\u6301\u9759\u97f3\uff0c\u76f4\u5230\u4f60\u53d6\u6d88\u9759\u97f3\u3002");
+        table.put("Wait after auto scroll",
+                "\u81ea\u52a8\u5377\u52a8\u540e\u7b49\u5f85\u70b9\u51fb");
+        table.put("Wait for a tap to find it",
+                "\u70b9\u51fb\u540e\u624d\u5bfb\u627e");
+    }
+
+    private static void fillZh31(Map<String, String> table) {
+        table.put("Wait stopped. These settings stay locked.",
+                "\u5df2\u53d6\u6d88\u7b49\u5f85\u3002\u8fd9\u4e9b\u8bbe\u7f6e\u4ecd\u7ef4\u6301\u9501\u5b9a\u3002");
+        table.put("Was @%1$s, %2$s",
+                "\u66fe\u4e3a @%1$s\uff0c%2$s");
+        table.put("Watch again in the feed",
+                "\u5728\u52a8\u6001\u4e2d\u518d\u770b\u4e00\u6b21");
+        table.put("Watch on TV",
+                "\u5728\u7535\u89c6\u4e0a\u89c2\u770b");
+        table.put("Wave",
+                "\u6ce2\u6d6a");
+        table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Ads and Meta's own sites (Instagram, Facebook, Messenger, Threads) still open in the app.",
+                "\u70b9\u51fb\u7684\u7f51\u9875\u94fe\u63a5\u4f1a\u5728\u60ef\u7528\u6d4f\u89c8\u5668\u6253\u5f00\uff0c\u7565\u8fc7 Instagram \u7684\u70b9\u51fb\u8ddf\u8e2a\u5668\u3002\u5e7f\u544a\u4e0e Meta \u81ea\u5bb6\u7f51\u7ad9\uff08Instagram\u3001Facebook\u3001Messenger\u3001Threads\uff09\u4ecd\u5728\u5e94\u7528\u7a0b\u5e8f\u5185\u6253\u5f00\u3002");
+        table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
+                "\u4ece\u641c\u7d22\u6253\u5f00\u7684\u5185\u5bb9\u4e0d\u4f1a\u52a0\u5165\u6700\u8fd1\u641c\u7d22\uff0c\u5e94\u7528\u7a0b\u5e8f\u4e0e Instagram \u7aef\u7686\u9002\u7528\u3002\u65e2\u6709\u641c\u7d22\u8bb0\u5f55\u4f1a\u4fdd\u7559\uff0c\u76f4\u5230\u4f60\u6e05\u9664\u3002");
+        table.put("WhatsApp",
+                "WhatsApp");
+        table.put("WhatsApp status",
+                "WhatsApp \u72b6\u6001");
+        table.put("When For you brings an account only suggested posts, page after page, Home opens on Following for that account. A feed you pick at the top of Home stays picked. Restart Instagram to see the change.",
+                "\u82e5\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u5bf9\u67d0\u4e2a\u8d26\u6237\u4e00\u9875\u63a5\u4e00\u9875\u53ea\u663e\u793a\u63a8\u8350\u5e16\u5b50\uff0c\u8be5\u8d26\u6237\u7684\u9996\u9875\u4f1a\u6539\u4e3a\u6253\u5f00\u201c\u5df2\u5173\u6ce8\u201d\u3002\u4f60\u5728\u9996\u9875\u9876\u7aef\u9009\u62e9\u7684\u52a8\u6001\u4f1a\u7ef4\u6301\u4e0d\u53d8\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("When Instagram has more than 500 MB of saved photos and videos, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.",
+                "Instagram \u4fdd\u5b58\u7684\u7167\u7247\u4e0e\u89c6\u9891\u8d85\u8fc7 500 MB \u65f6\uff0c\u4f1a\u5728\u79bb\u5f00\u5e94\u7528\u7a0b\u5e8f\u65f6\u5220\u9664\u7167\u7247\uff0c\u5e76\u4e8e\u4e0b\u6b21\u542f\u52a8\u65f6\u5220\u9664\u89c6\u9891\u3002\u767b\u5f55\u72b6\u6001\u3001\u8349\u7a3f\u4e0e\u8bbe\u7f6e\u4ecd\u4f1a\u4fdd\u7559\u3002");
+        table.put("When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.",
+                "\u8bc4\u8bba\u542b\u6709 GIF \u6216\u8d34\u56fe\u65f6\uff0c\u5176\u83dc\u5355\u4f1a\u663e\u793a\u540d\u79f0\u3002\u70b9\u4e00\u4e0b\u540d\u79f0\u5373\u53ef\u590d\u5236\u3002");
+        table.put("When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.",
+                "\u8bc4\u8bba\u542b\u6709 GIF \u65f6\uff0c\u5176\u83dc\u5355\u4f1a\u591a\u51fa GIF \u56de\u590d\uff0c\u5c06\u540c\u4e00\u4e2a GIF \u4ee5\u52a8\u753b\u5f62\u5f0f\u4f5c\u4e3a\u4f60\u7684\u56de\u590d\u4f20\u56de\u3002");
+        table.put("When a comment starts with @names, like most replies do, Copy leaves them out. The comment in Instagram stays the same.",
+                "\u82e5\u8bc4\u8bba\u4ee5 @\u540d\u79f0 \u5f00\u5934\uff08\u591a\u6570\u56de\u590d\u7686\u5982\u6b64\uff09\uff0c\u590d\u5236\u65f6\u4f1a\u5c06\u5176\u7565\u8fc7\u3002Instagram \u4e2d\u7684\u8bc4\u8bba\u4e0d\u4f1a\u6539\u53d8\u3002");
+        table.put("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.",
+                "Reel \u7ed3\u675f\u540e\u4f1a\u5207\u6362\u81f3\u4e0b\u4e00\u5219\uff0c\u800c\u975e\u91cd\u64ad\u3002\u4f7f\u7528 Instagram \u672c\u8eab\u7684\u81ea\u52a8\u5377\u52a8\uff0c\u5373\u4f7f\u8d26\u6237\u672a\u63d0\u4f9b\u6b64\u529f\u80fd\u4e5f\u9002\u7528\u3002\u542f\u7528\u671f\u95f4\uff0cInstagram \u7684\u201c\u81ea\u52a8\u5377\u52a8\u201d\u5f00\u5173\u65e0\u6cd5\u5c06\u5176\u5173\u95ed\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
+        table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
+                "\u52a8\u6001\u4e2d\u7684 Reels \u64ad\u5b8c\u65f6\uff0c\u201c\u518d\u770b\u4e00\u6b21\u201d\u4f1a\u76f4\u63a5\u5728\u539f\u5904\u91cd\u64ad\uff0c\u4e0d\u4f1a\u6253\u5f00 Reels.");
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "\u82e5\u7b2c\u4e00\u4e2a\u753b\u9762\u6ca1\u6709\u8be5 Reel\uff0c\u4e3b\u9875\u4f1a\u663e\u793a\u201c\u5bfb\u627e Reel\u201d\u6309\u94ae\uff0c\u800c\u975e\u81ea\u52a8\u5377\u52a8\u3002");
+        table.put("Where the mention pill goes",
+                "\u63d0\u53ca\u6807\u7b7e\u7684\u4f4d\u7f6e");
+        table.put("Where videos wait",
+                "\u7b49\u5f85\u70b9\u51fb\u7684\u4f4d\u7f6e");
+        table.put("While you swipe through a chat's reels, a banner says when the other person sent a message after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe through a chat's reels on.",
+                "\u5728\u804a\u5929\u7684 Reels \u4e4b\u95f4\u6ed1\u52a8\u65f6\uff0c\u82e5\u5bf9\u65b9\u5728\u753b\u9762\u4e0a\u7684 Reel \u4e4b\u540e\u4f20\u4e86\u6d88\u606f\uff0c\u4f1a\u51fa\u73b0\u6a2a\u5e45\u63d0\u793a\u3002\u70b9\u4e00\u4e0b\u5373\u53ef\u56de\u5230\u804a\u5929\u7684\u90a3\u5219\u6d88\u606f\u3002\u9700\u6253\u5f00\u201c\u5728\u804a\u5929\u7684 Reels \u4e4b\u95f4\u6ed1\u52a8\u201d\u624d\u4f1a\u751f\u6548\u3002");
+        table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
+                "\u533f\u540d\u89c2\u770b\u65f6\uff0c\u5df2\u770b\u8fc7\u7684\u5feb\u62cd\u4f1a\u53d8\u6210\u7070\u8272\u5e76\u79fb\u5230\u680f\u672b\u7aef\uff0c\u4ec5\u5728\u8fd9\u652f\u624b\u673a\u4e0a\u751f\u6548\u3002Instagram \u4ecd\u4e0d\u4f1a\u5f97\u77e5\u4f60\u5df2\u89c2\u770b\u3002");
+        table.put("Who can call you",
+                "\u8c01\u53ef\u4ee5\u6253\u7ed9\u4f60");
+        table.put("Who stopped following you, after you open your Followers list",
+                "\u4f60\u6253\u5f00\u7c89\u4e1d\u6e05\u5355\u540e\uff0c\u8c01\u53d6\u6d88\u4e86\u5173\u6ce8\u4f60");
+        table.put("Who unfollowed you",
+                "\u8c01\u53d6\u6d88\u5173\u6ce8\u4e86\u4f60");
+        table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
+                "Wi-Fi \u4e0d\u53d7\u5f71\u54cd\u3002\u5173\u95ed\u6b64\u9009\u9879\u53ef\u5728\u6240\u6709\u7f51\u7edc\u8282\u7701\u6570\u636e\u3002");
+        table.put("Wide",
+                "\u5bbd");
+        table.put("With Expandable categories on, a tap opens a category on a page of its own. Back takes you to the list.",
+                "\u6253\u5f00\u201c\u53ef\u5c55\u5f00\u7684\u5206\u7c7b\u201d\u65f6\uff0c\u70b9\u51fb\u5206\u7c7b\u4f1a\u5728\u72ec\u7acb\u9875\u9762\u6253\u5f00\u3002\u6309\u8fd4\u56de\u5373\u53ef\u56de\u5230\u6e05\u5355\u3002");
+        table.put("With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up or changing tab brings it back to full size. Hide the tab bar as you scroll takes over when it's on. Restart Instagram after changing it.",
+                "\u5173\u95ed\u6db2\u6001\u73bb\u7483\u5916\u89c2\u65f6\uff0c\u5411\u4e0b\u5377\u52a8\u6e05\u5355\u4f1a\u8ba9\u80f6\u56ca\u53d8\u5c0f\uff0c\u5411\u4e0a\u5377\u52a8\u6216\u5207\u6362\u6807\u7b7e\u9875\u5c31\u4f1a\u6062\u590d\u5b8c\u6574\u5927\u5c0f\u3002\u6253\u5f00\u5377\u52a8\u65f6\u9690\u85cf\u6807\u7b7e\u680f\u65f6\uff0c\u4ee5\u8be5\u8bbe\u7f6e\u4e3a\u51c6\u3002\u53d8\u66f4\u540e\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram\u3002");
+        table.put("With Name saves by account and post time on, only a save that doesn't know who posted or when is named this way.",
+                "\u6253\u5f00\u201c\u6309\u8d26\u6237\u4e0e\u53d1\u5e03\u65f6\u95f4\u547d\u540d\u201d\u65f6\uff0c\u53ea\u6709\u4e0d\u77e5\u9053\u662f\u8c01\u6216\u4f55\u65f6\u53d1\u5e03\u7684\u4fdd\u5b58\u9879\u76ee\u624d\u4f1a\u7528\u8fd9\u4e2a\u540d\u79f0\u3002");
+        table.put("With Stop Reels scrolling on, reels you open from Search, Explore, a hashtag or a place still move on when you swipe.",
+                "\u6253\u5f00\u201c\u7981\u7528 Reels \u5377\u52a8\u201d\u65f6\uff0c\u4ece\u641c\u7d22\u3001\u63a2\u7d22\u3001\u8bdd\u9898\u6807\u7b7e\u6216\u5730\u70b9\u6253\u5f00\u7684 Reels \u6ed1\u52a8\u65f6\u4ecd\u4f1a\u5207\u6362\u3002");
+        table.put("With Stop Reels scrolling on, reels you open from a profile still move on when you swipe.",
+                "\u6253\u5f00\u201c\u7981\u7528 Reels \u5377\u52a8\u201d\u65f6\uff0c\u4ece\u4e3b\u9875\u6253\u5f00\u7684 Reels \u6ed1\u52a8\u65f6\u4ecd\u4f1a\u5207\u6362\u3002");
+        table.put("With Stop Reels scrolling on, reels you open from a song or audio page still move on when you swipe.",
+                "\u6253\u5f00\u201c\u7981\u7528 Reels \u5377\u52a8\u201d\u65f6\uff0c\u4ece\u6b4c\u66f2\u6216\u97f3\u9891\u9875\u9762\u6253\u5f00\u7684 Reels \u6ed1\u52a8\u65f6\u4ecd\u4f1a\u5207\u6362\u3002");
+        table.put("With a large font or display size, the reply box and buttons at the bottom of a story sit in the space under it instead of covering the story.",
+                "\u5b57\u4f53\u6216\u663e\u793a\u5927\u5c0f\u8f83\u5927\u65f6\uff0c\u5feb\u62cd\u5e95\u90e8\u7684\u56de\u590d\u6846\u548c\u6309\u94ae\u4f1a\u653e\u5728\u4e0b\u65b9\u7684\u7a7a\u767d\u5904\uff0c\u800c\u4e0d\u4f1a\u906e\u4f4f\u5feb\u62cd\u3002");
+        table.put("Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.",
+                "\u5728\u9996\u9875\u9876\u7aef\u663e\u793a\u4f60\u81ea\u5df1\u7684\u6587\u5b57\uff0c\u53d6\u4ee3 Instagram \u6807\u5fd7\u3002\u6700\u591a %1$d \u4e2a\u5b57\u7b26\u3002\u7559\u7a7a\u5373\u53ef\u4fdd\u7559\u6807\u5fd7\u3002");
+        table.put("Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.",
+                "\u4ee5\u9017\u53f7\u6216\u6362\u884c\u5206\u9694\u5b57\u8bcd\u6216\u8bcd\u7ec4\u3002\u4e0d\u533a\u5206\u5927\u5c0f\u5199\uff0c\u4e5f\u53ef\u4f7f\u7528\u8bdd\u9898\u6807\u7b7e\u3002");
+        table.put("Write a message",
+                "\u8f93\u5165\u6d88\u606f");
+        table.put("Writes the account that posted, the post date and a link to the post into a saved photo or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 videos only, and only what the save knows. The picture and the sound are unchanged.",
+                "\u5c06\u53d1\u5e16\u8d26\u6237\u3001\u5e16\u5b50\u65e5\u671f\u53ca\u5e16\u5b50\u94fe\u63a5\u5199\u5165\u4fdd\u5b58\u7684\u7167\u7247\u6216\u89c6\u9891\uff0c\u4e5f\u5c31\u662f\u76f8\u518c\u6216 exiftool \u53ef\u8bfb\u53d6\u7684 EXIF \u6216 MP4 \u6807\u7b7e\u3002\u4ec5\u9002\u7528\u4e8e JPEG \u7167\u7247\u548c MP4 \u89c6\u9891\uff0c\u4e14\u53ea\u4f1a\u5199\u5165\u4fdd\u5b58\u65f6\u53ef\u53d6\u5f97\u7684\u4fe1\u606f\u3002\u753b\u9762\u548c\u58f0\u97f3\u672c\u8eab\u4e0d\u4f1a\u6539\u53d8\u3002");
+        table.put("Wrong PIN. Try again.",
+                "PIN \u7801\u9519\u8bef\uff0c\u8bf7\u518d\u8bd5\u4e00\u6b21\u3002");
+        table.put("X",
+                "X");
+        table.put("You",
+                "\u4f60");
+        table.put("You cleared the remembered playback positions.",
+                "\u4f60\u5df2\u6e05\u9664\u8bb0\u4f4f\u7684\u64ad\u653e\u4f4d\u7f6e\u3002");
+        table.put("You paused HushGram.",
+                "\u4f60\u5df2\u6682\u505c HushGram\u3002");
+        table.put("Your call list",
+                "\u4f60\u7684\u901a\u8bdd\u540d\u5355");
+        table.put("Your fingerprint, face or screen lock unlocks your messages.",
+                "\u4f7f\u7528\u6307\u7eb9\u3001\u8138\u90e8\u6216\u5c4f\u5e55\u9501\u5b9a\u89e3\u9501\u6d88\u606f\u3002");
+        table.put("Your fonts in story text",
+                "\u5feb\u62cd\u6587\u5b57\u7684\u81ea\u8ba2\u5b57\u4f53");
+        table.put("Your inbox and chats stay covered until your fingerprint, face or screen lock says it's you. Message notifications say only that a message came.",
+                "\u6536\u4ef6\u5323\u4e0e\u804a\u5929\u4f1a\u88ab\u906e\u4f4f\uff0c\u76f4\u5230\u901a\u8fc7\u6307\u7eb9\u3001\u8138\u90e8\u6216\u5c4f\u5e55\u9501\u5b9a\u9a8c\u8bc1\u8eab\u5206\u3002\u6d88\u606f\u901a\u77e5\u53ea\u4f1a\u663e\u793a\u6536\u5230\u65b0\u6d88\u606f\u3002");
+        table.put("Your messages are locked",
+                "\u4f60\u7684\u6d88\u606f\u5df2\u9501\u5b9a");
+        table.put("Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.",
+                "\u624b\u673a\u76ee\u524d\u4e0d\u5141\u8bb8 HushGram \u4f7f\u7528\u4f60\u7684\u6307\u7eb9\u6216\u8138\u90e8\u3002\u8bf7\u68c0\u67e5\u624b\u673a\u7684\u6307\u7eb9\u548c\u8138\u90e8\u8bbe\u7f6e\u3002");
+        table.put("Your phone's emoji",
+                "\u624b\u673a\u7684\u8868\u60c5\u7b26\u53f7");
+        table.put("Your phone's emoji, or Google's with the switch above on. You can also download a free emoji pack or pick a color emoji font file.",
+                "\u4f7f\u7528\u624b\u673a\u7684\u8868\u60c5\u7b26\u53f7\uff0c\u6253\u5f00\u4e0a\u65b9\u5f00\u5173\u65f6\u5219\u4f7f\u7528 Google \u7684\u8868\u60c5\u7b26\u53f7\u3002\u4f60\u4e5f\u53ef\u4ee5\u4e0b\u8f7d\u514d\u8d39\u7684\u8868\u60c5\u7b26\u53f7\u5957\u4ef6\uff0c\u6216\u9009\u62e9\u5f69\u8272\u8868\u60c5\u7b26\u53f7\u5b57\u5e93\u6848\u3002");
+        table.put("Your phone's font",
+                "\u624b\u673a\u5b57\u4f53");
+        table.put("Your saved profiles",
+                "\u4f60\u4fdd\u5b58\u7684\u4e3b\u9875");
+        table.put("Your story fonts",
+                "\u4f60\u7684\u5feb\u62cd\u5b57\u4f53");
+        table.put("Your version, the source code and licenses.",
+                "\u67e5\u770b\u7248\u672c\u3001\u6e90\u4ee3\u7801\u4e0e\u6388\u6743\u6761\u6b3e\u3002");
+        table.put("Your words",
+                "\u4f60\u7684\u6587\u5b57");
+        table.put("Zoomed photo",
+                "\u653e\u5927\u7684\u7167\u7247");
+        table.put("the home screen icon you picked",
+                "\u4f60\u9009\u62e9\u7684\u4e3b\u753b\u9762\u56fe\u6807");
+        table.put("the pure black dark mode",
+                "\u7eaf\u9ed1\u6df1\u8272\u6a21\u5f0f");
+        table.put("the raised version code",
+                "\u63d0\u9ad8\u7248\u672c\u53f7\u7801");
+        table.put("the re-signed build fix",
+                "\u91cd\u65b0\u7b7e\u7f72\u7248\u672c\u4fee\u6b63");
+    }
+
+    private static void fillZh32(Map<String, String> table) {
+        table.put("the removed advertising ID permissions",
+                "\u5df2\u79fb\u9664\u7684\u5e7f\u544a ID \u6743\u9650");
+        table.put("the start-up fix for x86 devices",
+                "x86 \u8bbe\u5907\u542f\u52a8\u4fee\u6b63");
+        table.put("this sound",
+                "\u6b64\u97f3\u9891");
     }
 
     private static Map<String, String> buildZh_rTW() {

@@ -8,6 +8,7 @@ Every HushGram release, newest first.
 
 * `Ask before a refresh` also asks when you tap Home, Reels or Explore while you're already on it, since that tap scrolls back to the top and reloads too. Cancel leaves the list where it was. Asked for in #655.
 * HushGram's own settings screen uses the font you pick in `Change the font` too, headings and switch labels included. Asked for in #166.
+* HushGram speaks Simplified Chinese. Phones set to Simplified Chinese, or to Chinese for China or Singapore, get it instead of English. It's built from the Traditional Chinese table and uses Instagram's own mainland names, like 快拍 and 帖子. Asked for in #659.
 
 ### Bug Fixes
 

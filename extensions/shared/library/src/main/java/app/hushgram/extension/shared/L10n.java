@@ -334,7 +334,8 @@ public final class L10n {
                 boolean traditionalRegion = country.equalsIgnoreCase("TW") || country.equalsIgnoreCase("HK")
                         || country.equalsIgnoreCase("MO");
                 // An explicit script wins over the region: zh-Hant-CN is Traditional, while
-                // zh-Hans-TW must not pick Taiwan's table. Bare zh, CN and SG keep their fallback.
+                // zh-Hans-TW must not pick Taiwan's table. Bare zh, CN and SG fall to the "zh"
+                // table below, which is Simplified.
                 if (script.equalsIgnoreCase("Hant") || (script.isEmpty() && traditionalRegion)) {
                     if (!tags.contains("zh-rtw")) tags.add("zh-rtw");
                 } else if (script.equalsIgnoreCase("Hans")) {

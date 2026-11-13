@@ -42,7 +42,7 @@ public class L10nTest {
 
     @Test
     public void everyLanguageTheBundleCarriesHasATableWithTheKey() {
-        assertEquals(Arrays.asList("de", "es", "in", "it", "ko", "pt-rbr", "th", "tr", "vi", "zh-rtw"), Arrays.asList(L10nTranslations.LANGUAGES));
+        assertEquals(Arrays.asList("de", "es", "in", "it", "ko", "pt-rbr", "th", "tr", "vi", "zh", "zh-rtw"), Arrays.asList(L10nTranslations.LANGUAGES));
         for (String language : L10nTranslations.LANGUAGES) {
             Map<String, String> table = L10nTranslations.of(language);
             assertNotNull(language, table);
@@ -94,18 +94,41 @@ public class L10nTest {
         assertEquals(translated, L10n.t(in(Locale.TRADITIONAL_CHINESE), KEY));
     }
 
+    /** #659: Simplified Chinese, and Chinese with no script or a mainland region, read Simplified. */
     @Test
-    public void simplifiedAndUnspecifiedChineseNeverTakeTheTraditionalTableByAccident() {
+    public void simplifiedAndUnspecifiedChineseUseTheSimplifiedTable() {
+        String translated = table("zh").get(KEY);
+        assertEquals("隐藏广告", translated);
         for (String tag : Arrays.asList("zh", "zh-CN", "zh-SG", "zh-Hans", "zh-Hans-CN", "zh-Hans-TW", "zh-Hans-HK")) {
             Context chinese = in(Locale.forLanguageTag(tag));
-            assertEquals(tag, KEY, L10n.t(chinese, KEY));
-            assertEquals(tag, Locale.ENGLISH, L10n.textLocale(chinese));
+            assertEquals(tag, translated, L10n.t(chinese, KEY));
+            assertEquals(tag, Locale.CHINESE, L10n.textLocale(chinese));
+            assertEquals(tag, "已导入 2 项设置。", L10n.f(chinese, "Imported %1$d settings.", 2));
+            assertEquals(tag, "unknown setting", L10n.t(chinese, "unknown setting"));
         }
-        assertEquals(KEY, L10n.t(in(Locale.SIMPLIFIED_CHINESE), KEY));
+        assertEquals(translated, L10n.t(in(Locale.SIMPLIFIED_CHINESE), KEY));
+        assertEquals(translated, L10n.t(in(Locale.SIMPLIFIED_CHINESE, Locale.GERMANY), KEY));
+        assertEquals(translated, L10n.t(in(Locale.SIMPLIFIED_CHINESE, Locale.TAIWAN), KEY));
+        // Chinese as a later choice behind a language with no table reads Simplified too.
+        assertEquals(translated, L10n.t(in(Locale.JAPAN, Locale.CHINA), KEY));
         assertEquals(table("zh-rtw").get(KEY), L10n.t(in(Locale.FRANCE, Locale.TAIWAN), KEY));
+        assertEquals(table("zh-rtw").get(KEY), L10n.t(in(Locale.TAIWAN, Locale.SIMPLIFIED_CHINESE), KEY));
         assertEquals(KEY, L10n.t(in(Locale.US, Locale.TAIWAN), KEY));
-        assertEquals(table("de").get(KEY), L10n.t(in(Locale.SIMPLIFIED_CHINESE, Locale.GERMANY), KEY));
-        assertEquals(table("zh-rtw").get(KEY), L10n.t(in(Locale.SIMPLIFIED_CHINESE, Locale.TAIWAN), KEY));
+    }
+
+    /** The two tables name Instagram's screens the way Instagram does on each side of the strait. */
+    @Test
+    public void theSimplifiedTableUsesInstagramsMainlandLabels() {
+        Map<String, String> simplified = table("zh");
+        assertEquals(table("zh-rtw").keySet(), simplified.keySet());
+        assertEquals("隐藏精选快拍", simplified.get("Hide highlights"));
+        assertEquals("隐藏 Reels 标签页", simplified.get("Hide the Reels tab"));
+        for (Map.Entry<String, String> row : simplified.entrySet()) {
+            String text = row.getValue();
+            for (String taiwan : Arrays.asList("限时动态", "贴文", "个人档案", "追踪中", "帐号", "帐户", "「", "」")) {
+                assertFalse(row.getKey() + " keeps Taiwan's " + taiwan + ": " + text, text.contains(taiwan));
+            }
+        }
     }
 
     @Test
@@ -189,7 +212,7 @@ public class L10nTest {
     public void englishAndEveryLanguageWithNoTableReadTheEnglish() {
         assertEquals(KEY, L10n.t(in(Locale.US), KEY));
         assertEquals(KEY, L10n.t(in(Locale.FRANCE), KEY));
-        assertEquals(KEY, L10n.t(in(Locale.JAPAN, Locale.CHINA), KEY));
+        assertEquals(KEY, L10n.t(in(Locale.JAPAN, Locale.FRANCE), KEY));
         // A string nobody translated is its own English, never an empty label.
         assertEquals("Not a key of any table", L10n.t(in(Locale.GERMANY), "Not a key of any table"));
         assertEquals("", L10n.t(in(Locale.GERMANY), ""));
