@@ -932,6 +932,8 @@ public final class GlassTabBar {
     static final String COUNT_SHEETS_LIFTED = "Sheets kept above the navigation bar";
     /** Counted each time the bar, left showing by Instagram over a story, is hidden for it (#224). */
     static final String COUNT_STORY_ASIDE = "Bar hidden over a story";
+    /** Counted each time the window is painted black behind a story on top, as Instagram has it without the glass (#666). */
+    static final String COUNT_STORY_BLACK = "Window black behind a story";
     /** Counted each time the floating pill, left showing by Instagram over a chat, is hidden for it (#632). */
     static final String COUNT_CHAT_ASIDE = "Bar hidden over a chat";
     /** Counted once for each bar whose Search tab the liquid look puts in a circle of its own (#65). */
@@ -1009,6 +1011,7 @@ public final class GlassTabBar {
             }
             Glass glass = new Glass((ViewGroup) found);
             applied.put(found, new WeakReference<>(glass));
+            glass.window = new WeakReference<>(activity.getWindow());
             glass.watchScrolling(activity.getWindow());
             glass.watchSlides(activity.getWindow());
             HookStatus.invoked(FamilyNames.GLASS_TAB_BAR);
@@ -1479,6 +1482,19 @@ public final class GlassTabBar {
     }
 
     /**
+     * Whether a window's decor, whose background is [worn], wears [drawable]: as it is, or wrapped, as a
+     * decor that keeps its background off insets does.
+     */
+    static boolean wears(@Nullable Drawable worn, Drawable drawable) {
+        for (int i = 0; i < 4 && worn != null; i++) {
+            if (worn == drawable) return true;
+            if (!(worn instanceof android.graphics.drawable.DrawableWrapper)) return false;
+            worn = ((android.graphics.drawable.DrawableWrapper) worn).getDrawable();
+        }
+        return false;
+    }
+
+    /**
      * Whether [bar] lies wholly to one side of its window, as when Instagram moves its main screens, the bar
      * with them, aside for the story camera (#646). It still counts as shown then, but isn't on the screen.
      */
@@ -1576,6 +1592,13 @@ public final class GlassTabBar {
         private final ShownOnTop chat = new ShownOnTop(CHAT_ROOT);
         /** Whether this hid the bar over a story or a chat, so this shows it again, and only then (#224). */
         private boolean steppedAside;
+        /**
+         * The bar's activity window, whose background shows above and below a story (#666), the black this
+         * put there while a story shows on top, and the background it replaced.
+         */
+        @Nullable private WeakReference<Window> window;
+        @Nullable private Drawable storyBlack;
+        @Nullable private Drawable beforeStory;
         /**
          * Hides the bar while a list scrolls down, with that switch on, and on Reels after the wait picked
          * for it (#170). Null with the switch off and the wait on Never.
@@ -2079,6 +2102,7 @@ public final class GlassTabBar {
          */
         private void stepAside() {
             boolean overAStory = !HushgramPause.isPaused() && overAStory();
+            blackBehind(overAStory);
             if (overAStory || (floating && !HushgramPause.isPaused() && overAChat())) {
                 if (bar.getVisibility() == View.VISIBLE) {
                     bar.setVisibility(View.INVISIBLE);
@@ -2095,6 +2119,35 @@ public final class GlassTabBar {
             if (!steppedAside) return;
             steppedAside = false;
             if (bar.getVisibility() == View.INVISIBLE) bar.setVisibility(View.VISIBLE);
+        }
+
+        /**
+         * Paints the window black behind a story on top, as Instagram has it without the glass, and puts the
+         * window's own background back once the story goes (#666). With the glass on, the light theme's
+         * window background showed in the bands under the status bar and the gesture bar, and with Ambient
+         * light in stories the glow there sat on white, so the clock's white icons were lost. A background
+         * Instagram sets while the story shows is painted over again and is the one put back; one it sets
+         * after is left as it is.
+         */
+        private void blackBehind(boolean overAStory) {
+            Window shown = window == null ? null : window.get();
+            if (shown == null) return;
+            View decor = shown.peekDecorView();
+            if (decor == null) return;
+            Drawable current = decor.getBackground();
+            boolean ours = storyBlack != null && wears(current, storyBlack);
+            if (overAStory) {
+                if (ours) return;
+                beforeStory = current;
+                storyBlack = new ColorDrawable(Color.BLACK);
+                shown.setBackgroundDrawable(storyBlack);
+                HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_STORY_BLACK);
+            } else if (storyBlack != null) {
+                Drawable before = beforeStory;
+                storyBlack = null;
+                beforeStory = null;
+                if (ours) shown.setBackgroundDrawable(before);
+            }
         }
 
         /**
@@ -2645,6 +2698,7 @@ public final class GlassTabBar {
         @Override public void onViewDetachedFromWindow(@NonNull View view) {
             if (scrollHide != null) scrollHide.restoreNow();
             showAgain();
+            blackBehind(false);
             bar.getViewTreeObserver().removeOnPreDrawListener(this);
             // A catch-up waiting in the queue would hold this bar after it's gone; the next frame
             // after it comes back arranges another.
@@ -2662,6 +2716,7 @@ public final class GlassTabBar {
             scaling = null;
             if (shrinking != null) shrinking.cancel();
             if (!liquid) scaleTo(1f);
+            blackBehind(false);
             pill.discard();
         }
 

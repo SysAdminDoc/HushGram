@@ -699,6 +699,99 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #666: with the glass on, the bands above and below a story showed the light theme's white window
+     * background. While a story shows on top the window is black, as Instagram has it without the glass,
+     * and the window's own background comes back once the story goes, unless Instagram set another since.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aStoryOnTopHasTheWindowBlackBehindIt() {
+        GlassTabBar.resetForTests();
+        HookStatus.clear();
+        int storyId = 0x7f0b0123;
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        Integer previous;
+        synchronized (ids) { previous = ids.put(GlassTabBar.STORY_ROOT, storyId); }
+        try (GlassHost host = new GlassHost(Color.WHITE, true, GlassHeight.STANDARD, false, false)) {
+            int full = ViewGroup.LayoutParams.MATCH_PARENT;
+            Window window = host.activity.getWindow();
+            View decor = window.getDecorView();
+            ColorDrawable white = new ColorDrawable(Color.WHITE);
+            window.setBackgroundDrawable(white);
+            host.controller.pause().resume();
+            host.frame();
+            assertSame("no story", white, decor.getBackground());
+
+            FrameLayout content = new FrameLayout(host.activity);
+            host.root.addView(content, 0, new FrameLayout.LayoutParams(full, full));
+            FrameLayout story = new FrameLayout(host.activity);
+            story.setId(storyId);
+            content.addView(story, new FrameLayout.LayoutParams(full, full));
+            for (int i = 0; i < 4; i++) host.frame();
+            assertBlack("behind the story", decor);
+
+            // A profile opened from the story covers it, and the window has its own background again.
+            View profile = new View(host.activity);
+            content.addView(profile, new FrameLayout.LayoutParams(full, full));
+            host.frame();
+            assertSame("a screen over the story", white, decor.getBackground());
+            content.removeView(profile);
+            host.frame();
+            assertBlack("back on the story", decor);
+
+            // Instagram setting its background while the story shows is painted over, and is what comes back.
+            ColorDrawable themed = new ColorDrawable(0xfffafafa);
+            window.setBackgroundDrawable(themed);
+            host.frame();
+            assertBlack("Instagram's change under the story", decor);
+            content.removeView(story);
+            host.frame();
+            assertSame("the story went", themed, decor.getBackground());
+
+            // One Instagram sets as the story goes stands.
+            content.addView(story);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertBlack("the next story", decor);
+            ColorDrawable later = new ColorDrawable(0xfff0f0f0);
+            window.setBackgroundDrawable(later);
+            content.removeView(story);
+            host.frame();
+            assertSame("Instagram's own since", later, decor.getBackground());
+
+            // HushGram paused leaves the window as Instagram has it.
+            content.addView(story);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertBlack("before the pause", decor);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            host.frame();
+            assertSame("paused", later, decor.getBackground());
+            PauseForTests.resume();
+            host.frame();
+            assertBlack("resumed", decor);
+
+            // The bar coming off its window puts the background back with it.
+            host.root.removeView(host.bar);
+            assertSame("the bar went", later, decor.getBackground());
+            host.root.addView(host.bar);
+
+            String report = String.join("\n", HookStatus.report());
+            assertTrue(report, report.contains(GlassTabBar.COUNT_STORY_BLACK));
+        } finally {
+            PauseForTests.resume();
+            synchronized (ids) {
+                if (previous == null) ids.remove(GlassTabBar.STORY_ROOT);
+                else ids.put(GlassTabBar.STORY_ROOT, previous);
+            }
+        }
+    }
+
+    private static void assertBlack(String where, View decor) {
+        Drawable background = decor.getBackground();
+        assertTrue(where + ": " + background, background instanceof ColorDrawable);
+        assertEquals(where, Color.BLACK, ((ColorDrawable) background).getColor());
+    }
+
+    /**
      * #632: on Android 17 the floating pill stayed over an open chat's reply box. While a chat shows on
      * top in the bar's window the floating pill steps aside, as over a story, and shows again once the
      * chat goes. A docked bar keeps its place, since Instagram lays the chat's box out above it.

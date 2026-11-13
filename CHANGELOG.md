@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Bug Fixes
+
+* With `Glass tab bar` on and Instagram in light mode, the strips above and below a story are black again, the way they are without the glass. They showed white, and with `Ambient light in stories` on the glow sat on white and hid the clock. Reported in #666.
+
 ## 0.0.20 (2026-11-12)
 
 ### Features
