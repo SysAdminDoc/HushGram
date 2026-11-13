@@ -176,6 +176,23 @@ function Test-WalkSettingsVisible {
             $_.GetAttribute('class') -ceq 'android.widget.ListView' }).Count -eq 1
 }
 
+function Test-WalkCategoryPage {
+    param([xml]$Document, [string]$Package, [string]$Title)
+    # With categories on (hushgram_category_pages, the default) a category opens as its own page, and the bar
+    # beside Back carries the category's name where the overview carries HushGram's. Back leaves that page.
+    $nodes = @(Get-WalkVisibleNodes -Document $Document | Where-Object { $_.GetAttribute('package') -ceq $Package })
+    $backs = @($nodes | Where-Object { $_.GetAttribute('content-desc') -ceq 'Back' -and $_.GetAttribute('clickable') -ceq 'true' })
+    if ($backs.Count -ne 1) { return $false }
+    $bar = [regex]::Match($backs[0].GetAttribute('bounds'), '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$')
+    if (-not $bar.Success) { return $false }
+    $barTop = [int]$bar.Groups[2].Value; $barBottom = [int]$bar.Groups[4].Value
+    @($nodes | Where-Object {
+        $titleBounds = [regex]::Match($_.GetAttribute('bounds'), '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$')
+        if ($_.GetAttribute('text') -cne $Title -or -not $titleBounds.Success) { return $false }
+        $middle = ([int]$titleBounds.Groups[2].Value + [int]$titleBounds.Groups[4].Value) / 2
+        $middle -ge $barTop -and $middle -le $barBottom }).Count -eq 1
+}
+
 function Get-WalkCaptureActionArea {
     param($Capture, [string]$Package, [string]$ResourceId, [string]$Title, [switch]$Scroll)
     $arguments=@{ Package=$Package; ResourceId=$ResourceId; Title=$Title; Scroll=$Scroll }
@@ -466,7 +483,15 @@ function Invoke-WalkApp {
                         page=($pages -and $destination.page); anchors=$destination.anchors; headings=$destination.headings }
                     $found = Find-WalkSettingsSection $navigationDestination
                     Add-WalkObservation $destination $found.Capture
-                    if ($found.Expanded) {
+                    if ($found.Expanded -and (Test-WalkCategoryPage $found.Capture.ParsedXml $Package $destination.title)) {
+                        # The category opened as its own page. Back returns to the category list, as a person leaves it.
+                        [void](Invoke-WalkAdb @('shell','input','keyevent','KEYCODE_BACK'))
+                        Start-Sleep -Milliseconds 600
+                        $left = Read-WalkSettingsCapture
+                        if (Test-WalkCategoryPage $left.ParsedXml $Package $destination.title) {
+                            throw "The settings page '$($destination.title)' stayed open after Back."
+                        }
+                    } elseif ($found.Expanded) {
                         # Fold it again from a verified heading, so a still-open section can't lend its rows to a later one.
                         $heading = (Get-WalkSettledArea $found.Capture $destination.title).Area
                         if ($null -eq $heading) { throw "The settings section '$($destination.title)' could not be folded. Its heading was not steady on screen." }
