@@ -526,6 +526,24 @@
       },
       "anchors": [
         {
+          "title": "About this account button",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Save profile picture"
+            ]
+          }
+        },
+        {
+          "title": "Keep profile history",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Save profile picture"
+            ]
+          }
+        },
+        {
           "title": "Show if a profile follows you",
           "when": {
             "op": "any",
