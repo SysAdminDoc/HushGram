@@ -22,6 +22,7 @@ import org.robolectric.shadows.ShadowToast;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
@@ -76,30 +77,27 @@ public class HiddenChatsMenuTest {
     }
 
     @Test
-    public void aChatsMenuGetsTheRowOnceAtTheEnd() {
+    public void theMenuBuilderGetsTheRowOnceAfterItsOwn() {
         List<Object> rows = new ArrayList<>(Arrays.asList(Menu.MUTE, Menu.DELETE));
 
-        HiddenChatsMenu.shown(rows, Menu.class, new Key(ALICE), "Alice", ON);
-        HiddenChatsMenu.shown(rows, Menu.class, new Key(ALICE), "Alice", ON);
+        HiddenChatsMenu.offer(rows, Menu.class, ON);
+        HiddenChatsMenu.offer(rows, Menu.class, ON);
 
         assertEquals(Arrays.asList(Menu.MUTE, Menu.DELETE, Menu.DETAILS), rows);
         assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
     }
 
     @Test
-    public void noRowWithoutAChatSwitchedOffOrInABuildWithoutIt() {
+    public void noRowSwitchedOffOrInABuildWithoutIt() {
         List<Object> rows = new ArrayList<>(Arrays.asList(Menu.MUTE, Menu.DELETE));
 
-        HiddenChatsMenu.shown(rows, Menu.class, null, "Alice", ON);
-        HiddenChatsMenu.shown(rows, Menu.class, new Key(null), "Alice", ON);
-        HiddenChatsMenu.shown(rows, Menu.class, new Key(""), "Alice", ON);
-        HiddenChatsMenu.shown(rows, Menu.class, new Key(ALICE), "Alice", OFF);
-        HiddenChatsMenu.shown(rows, Menu.MUTE, new Key(ALICE), "Alice", ON);
-        HiddenChatsMenu.shown(null, Menu.class, new Key(ALICE), "Alice", ON);
+        HiddenChatsMenu.offer(rows, Menu.class, OFF);
+        HiddenChatsMenu.offer(rows, Menu.MUTE, ON);
+        HiddenChatsMenu.offer(null, Menu.class, ON);
         assertEquals(Arrays.asList(Menu.MUTE, Menu.DELETE), rows);
 
         List<Object> bare = new ArrayList<>(Arrays.asList(Bare.MUTE, Bare.DELETE));
-        HiddenChatsMenu.shown(bare, Bare.class, new Key(ALICE), "Alice", ON);
+        HiddenChatsMenu.offer(bare, Bare.class, ON);
         assertEquals(Arrays.asList(Bare.MUTE, Bare.DELETE), bare);
         assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
     }
@@ -108,12 +106,13 @@ public class HiddenChatsMenuTest {
     public void theRealEntryFollowsTheDoubleTapSwitch() {
         List<Object> rows = new ArrayList<>(Arrays.asList(Menu.MUTE));
         Settings.DOUBLE_TAP_HIDDEN_CHATS.save(false);
-        HiddenChatsMenu.shown(rows, Menu.class, new Key(ALICE), "Alice");
+        HiddenChatsMenu.offer(rows, Menu.class);
         assertEquals("off, so Instagram's menu as it was", Arrays.asList(Menu.MUTE), rows);
         assertFalse(HiddenChatsMenu.tap(Menu.DETAILS, new Key(ALICE)));
 
         Settings.DOUBLE_TAP_HIDDEN_CHATS.save(true);
-        HiddenChatsMenu.shown(rows, Menu.class, new Key(ALICE), "Alice");
+        HiddenChatsMenu.offer(rows, Menu.class);
+        HiddenChatsMenu.shown(new Key(ALICE), "Alice");
         assertEquals(Arrays.asList(Menu.MUTE, Menu.DETAILS), rows);
         String[] labels = {"Mute", "[DEBUG] Thread info"};
         HiddenChatsMenu.label(rows, labels);
@@ -125,7 +124,8 @@ public class HiddenChatsMenuTest {
     @Test
     public void theRowReadsHideChatThenUnhideChatAndTheOthersKeepTheirs() {
         List<Object> rows = new ArrayList<>(Arrays.asList(Menu.MUTE, Menu.DELETE));
-        HiddenChatsMenu.shown(rows, Menu.class, new Key(ALICE), "Alice", ON);
+        HiddenChatsMenu.offer(rows, Menu.class, ON);
+        HiddenChatsMenu.shown(new Key(ALICE), "Alice");
         String[] labels = {"Mute", "Delete", "[DEBUG] Thread info"};
 
         HiddenChatsMenu.label(rows, labels, ON);
@@ -145,7 +145,7 @@ public class HiddenChatsMenuTest {
 
     @Test
     public void tappingHidesTheChatUnderTheNameOverItsMenu() {
-        HiddenChatsMenu.shown(new ArrayList<>(), Menu.class, new Key(ALICE), " Alice ", ON);
+        HiddenChatsMenu.shown(new Key(ALICE), " Alice ");
 
         assertTrue("taken from Instagram", HiddenChatsMenu.tap(Menu.DETAILS, new Key(ALICE), ON));
 
@@ -160,7 +160,7 @@ public class HiddenChatsMenuTest {
 
     @Test
     public void anotherChatsMenuNameIsNeverBorrowed() {
-        HiddenChatsMenu.shown(new ArrayList<>(), Menu.class, new Key(BOB), "Bob", ON);
+        HiddenChatsMenu.shown(new Key(BOB), "Bob");
 
         assertTrue(HiddenChatsMenu.tap(Menu.DETAILS, new Key(ALICE), ON));
 
@@ -175,14 +175,14 @@ public class HiddenChatsMenuTest {
         HiddenChats.add(BOB, "Bob");
         HiddenChats.reveal();
 
-        HiddenChatsMenu.shown(new ArrayList<>(), Menu.class, new Key(ALICE), "Alice", ON);
+        HiddenChatsMenu.shown(new Key(ALICE), "Alice");
         assertTrue(HiddenChatsMenu.tap(Menu.DETAILS, new Key(ALICE), ON));
         assertFalse(HiddenChats.savedListed(ChatAccounts.active(), ALICE));
         String toast = toast();
         assertTrue(toast, toast.contains("Alice") && toast.endsWith(" is shown again"));
         assertTrue("Bob is still hidden, so the hidden chats still show", HiddenChats.revealed());
 
-        HiddenChatsMenu.shown(new ArrayList<>(), Menu.class, new Key(BOB), "Bob", ON);
+        HiddenChatsMenu.shown(new Key(BOB), "Bob");
         assertTrue(HiddenChatsMenu.tap(Menu.DETAILS, new Key(BOB), ON));
         assertTrue(HiddenChats.saved(ChatAccounts.active()).isEmpty());
         assertFalse("nothing left to show, so the inbox is back", HiddenChats.revealed());
@@ -205,19 +205,28 @@ public class HiddenChatsMenuTest {
     }
 
     @Test
-    public void aKeyThatCantBeReadLeavesTheMenuAsItWas() {
+    public void aKeyThatCantBeReadIsReportedAndBorrowsNoEarlierName() {
+        HiddenChatsMenu.shown(new Key(ALICE), "Alice");
         HiddenChatsMenu.reader = key -> {
             throw new IllegalStateException("moved");
         };
-        List<Object> rows = new ArrayList<>(Arrays.asList(Menu.MUTE));
 
-        HiddenChatsMenu.shown(rows, Menu.class, new Key(ALICE), "Alice", ON);
+        HiddenChatsMenu.shown(new Key(BOB), "Bob");
 
-        assertEquals(Arrays.asList(Menu.MUTE), rows);
         String missing = HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString();
-        assertTrue(missing, missing.contains("'hide chat row'"));
+        assertTrue(missing, missing.contains("'hide chat menu'"));
         assertTrue(HiddenChatsMenu.tap(Menu.DETAILS, new Key(ALICE), ON));
         assertEquals("Couldn't save the chat.", toast());
+        assertTrue(HiddenChats.saved(ChatAccounts.active()).isEmpty());
+    }
+
+    /** Instagram hands the open menu a read-only copy of the rows, so the row can't go in there (#661). */
+    @Test
+    public void aReadOnlyListIsReportedNotThrown() {
+        HiddenChatsMenu.offer(Collections.unmodifiableList(new ArrayList<>(Arrays.asList(Menu.MUTE))), Menu.class, ON);
+
+        String missing = HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString();
+        assertTrue(missing, missing.contains("'hide chat row'"));
     }
 
     private static String toast() {

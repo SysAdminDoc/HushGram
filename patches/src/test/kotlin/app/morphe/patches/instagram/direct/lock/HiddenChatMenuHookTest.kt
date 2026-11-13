@@ -12,6 +12,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.preview.DEBUG_LABEL
 import app.morphe.patches.instagram.direct.preview.NativePreviewChatsTest.Companion.previewClasses
 import app.morphe.patches.instagram.direct.preview.PREVIEW_LABEL
+import app.morphe.patches.instagram.direct.preview.PREVIEW_OFFER
 import app.morphe.patches.instagram.direct.preview.PREVIEW_OPEN
 import app.morphe.patches.instagram.direct.preview.findPreview
 import app.morphe.patches.instagram.direct.preview.writePreview
@@ -38,8 +39,9 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Hide chat in a chat's long press menu (#661) on each build's own dex: the menu hands its rows, the
- * chat's key and the name over it to the extension first thing, the label hook runs on every path
+ * Hide chat in a chat's long press menu (#661) on each build's own dex: the menu builder hands its own
+ * list of rows to the extension first thing, the menu hands over the chat's key and the name over it
+ * first thing, the label hook runs on every path
  * into the labels' return, the tap hook answers before Instagram's own code, and the key reader gets
  * a body that reads the key's own id field.
  */
@@ -56,8 +58,9 @@ class HiddenChatMenuHookTest {
         } catch (failure: PatchException) {
             throw AssertionError("$name: ${failure.message}", failure)
         }
+        assertEquals(LIST, found.builder.parameterTypes[found.builderRows].toString())
+        assertEquals("$name: with Preview chats not in yet, the offer goes in first thing", 0, found.builderAt)
         val show = found.show.parameterTypes.map(Any::toString)
-        assertEquals(LIST, show[found.showRows])
         assertEquals(THREAD_KEY, show[found.showKey])
         assertEquals(STRING, show[found.showTitle])
         assertEquals(found.menu, found.action.parameterTypes[found.chosen].toString())
@@ -65,18 +68,25 @@ class HiddenChatMenuHookTest {
         assertEquals(THREAD_KEY, found.idField.definingClass)
         assertEquals(STRING, found.idField.type)
         assertTrue("$name: the hooks' invoke registers fit four bits",
-            (found.showLocals + found.actionLocals).all { it in 0..15 })
+            (found.builderLocals + found.showLocals + found.actionLocals).all { it in 0..15 })
 
+        val builderBefore = found.builder.visualCode().filter { it.opcode != Opcode.NOP }.map(::text)
         val showBefore = found.show.visualCode().filter { it.opcode != Opcode.NOP }.map(::text)
         val labelsBefore = found.labels.visualCode().count { it.opcode != Opcode.NOP }
         val actionBefore = found.action.visualCode().filter { it.opcode != Opcode.NOP }.map(::text)
         hookHiddenChatMenu(found)
 
+        // The row goes into the builder's own list: the menu is later handed a read-only copy.
+        val built = found.builder.visualCode()
+        assertEquals(found.menu, (built[0].visualReference() as TypeReference).type)
+        assertEquals(MENU_OFFER, built[2].visualReference().toString())
+        assertEquals("$name: the builder's own code follows untouched", builderBefore,
+            built.drop(3).filter { it.opcode != Opcode.NOP }.map(::text))
+
         val shown = found.show.visualCode()
-        assertEquals(found.menu, (shown[0].visualReference() as TypeReference).type)
-        assertEquals(MENU_SHOWN, shown[4].visualReference().toString())
+        assertEquals(MENU_SHOWN, shown[2].visualReference().toString())
         assertEquals("$name: the menu's own code follows untouched", showBefore,
-            shown.drop(5).filter { it.opcode != Opcode.NOP }.map(::text))
+            shown.drop(3).filter { it.opcode != Opcode.NOP }.map(::text))
 
         val labels = found.labels.visualCode()
         assertEquals("$name: the labels get one call", labelsBefore + 1, labels.count { it.opcode != Opcode.NOP })
@@ -105,7 +115,11 @@ class HiddenChatMenuHookTest {
         assertEquals(Opcode.RETURN_OBJECT, reader[2].opcode)
     }
 
-    /** Preview chats hooks the same label return and tap handler, and the two apply in either order. */
+    /**
+     * Preview chats hooks the same builder, label return and tap handler, and the two apply in either
+     * order. Its offer stays the builder's first call (its start-call contract), Hide chat's straight
+     * after it.
+     */
     @Test fun previewChatsAndHideChatShareTheMenuInEitherOrder() = fixtures { bundle ->
         for (previewFirst in listOf(true, false)) {
             val order = "${bundle.parentFile.name}, " + if (previewFirst) "Preview chats first" else "Hide chat first"
@@ -114,6 +128,15 @@ class HiddenChatMenuHookTest {
             val found = context.findHiddenChatMenu()
             hookHiddenChatMenu(found)
             if (!previewFirst) writePreview(context.findPreview())
+
+            val built = found.builder.visualCode()
+            val calls = built.indices.filter { built[it].visualReference() is MethodReference }
+            assertEquals(order, PREVIEW_OFFER, built[calls[0]].visualReference().toString())
+            assertEquals(order, MENU_OFFER, built[calls[1]].visualReference().toString())
+            assertEquals("$order: Preview's offer is first thing", 2, calls[0])
+            assertEquals("$order: Hide chat's offer straight after it", 5, calls[1])
+            assertEquals(order, 1, built.count { it.visualReference()?.toString() == MENU_OFFER })
+            assertEquals(order, 1, built.count { it.visualReference()?.toString() == PREVIEW_OFFER })
 
             val labels = found.labels.visualCode()
             assertEquals(order, 1, labels.count { it.visualReference()?.toString() == MENU_LABEL })

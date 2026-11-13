@@ -152,22 +152,7 @@ internal fun BytecodePatchContext.findPreview(): PreviewTargets {
     val menu = menuInit.definingClass
     if (!loadsString(menuInit, DEBUG_ROW)) refuse("the chat menu enum has no $DEBUG_ROW row")
 
-    // The builder: the one static method taking the chat's capabilities and one list of rows that
-    // adds Mark as unread to that list. Its class has a second builder for the rows after it, and
-    // every menu Instagram builds asks this one first.
-    val unread = menuConstant(menuInit, MARK_AS_UNREAD)
-    val builderRef = methods.filter { method ->
-        val parameters = method.parameters()
-        if (!method.static() || method.returnType != "V" || parameters.count { it == LIST } != 1 ||
-            parameters.count { it == CAPABILITIES } != 1
-        ) return@filter false
-        val code = method.code()
-        code.indices.any { at ->
-            code[at].opcode == Opcode.SGET_OBJECT && code[at].field()?.toString() == unread &&
-                code.getOrNull(at + 1)?.call()?.key() == LIST_ADD
-        }
-    }.one("chat menu builder offering Mark as unread")
-    val builder = mutableMethod(builderRef)
+    val builder = mutableMethod(chatMenuBuilder(PREVIEW_CHATS_PATCH, menuInit, methods))
     val rows = builder.parameters().indexOf(LIST)
     if (0 in builder.jumpTargets()) refuse("a jump reaches the start of the chat menu builder")
     val builderLocals = builder.freeLocalsAt(PREVIEW_CHATS_PATCH, 0, 2)
@@ -286,14 +271,38 @@ private fun BytecodePatchContext.senderCall(): SenderCall = classesLoadingString
     }
 }.distinctBy { it.getter.key() + it.send.key() }.one("Instagram's inbox composer send")
 
+/**
+ * The builder of a chat's long press menu: the one static method taking the chat's capabilities and
+ * one list of rows that adds Mark as unread to that list. Its class has a second builder for the rows
+ * after it, and every menu Instagram builds asks this one first. A row the patches add goes in here,
+ * while the list is still the builder's own: the menu itself is later handed a read-only copy, kept
+ * with the chat's row in the inbox (#661). [patch] names who refuses.
+ */
+internal fun chatMenuBuilder(patch: String, menuInit: Method, methods: List<Method>): Method {
+    val unread = menuConstant(patch, menuInit, MARK_AS_UNREAD)
+    val builders = methods.filter { method ->
+        val parameters = method.parameters()
+        if (!method.static() || method.returnType != "V" || parameters.count { it == LIST } != 1 ||
+            parameters.count { it == CAPABILITIES } != 1
+        ) return@filter false
+        val code = method.code()
+        code.indices.any { at ->
+            code[at].opcode == Opcode.SGET_OBJECT && code[at].field()?.toString() == unread &&
+                code.getOrNull(at + 1)?.call()?.key() == LIST_ADD
+        }
+    }.distinctBy { it.key() }
+    return builders.singleOrNull()
+        ?: throw PatchException("$patch: expected one chat menu builder offering Mark as unread, found ${builders.size}")
+}
+
 /** The field the menu enum's initializer stores its [name] row in. */
-private fun menuConstant(init: Method, name: String): String {
+private fun menuConstant(patch: String, init: Method, name: String): String {
     val code = init.code()
     val named = code.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == name }
-    if (named < 0) refuse("the chat menu enum has no $name row")
+    if (named < 0) throw PatchException("$patch: the chat menu enum has no $name row")
     val stored = (named + 1 until code.size).firstOrNull { at ->
         code[at].opcode == Opcode.SPUT_OBJECT && code[at].field()?.let { it.definingClass == init.definingClass && it.type == init.definingClass } == true
-    } ?: refuse("the chat menu enum never stores its $name row")
+    } ?: throw PatchException("$patch: the chat menu enum never stores its $name row")
     return code[stored].field().toString()
 }
 

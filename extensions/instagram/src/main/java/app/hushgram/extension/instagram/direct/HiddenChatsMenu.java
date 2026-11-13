@@ -18,15 +18,18 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * ({@link HiddenChatsTap}) is on, since that's how hidden chats come back into view.
  *
  * <p>The row is Instagram's own Details row of the menu, which the release app has among its menu
- * actions and never offers. The patch hands the menu's rows here as it opens, with the chat's key and
- * the name at the top of the menu, relabels the row and takes its tap. A chat the inbox shows by
- * itself while hidden chats are showing reads Unhide chat, any other Hide chat.
+ * actions and never offers. The patch hands the menu builder's list of rows here, the one Preview
+ * chats offers its row in: by the time the menu opens it's handed a read-only copy kept with the
+ * chat's row in the inbox. As the menu opens the patch hands over the chat's key and the name at the
+ * top of the menu, then relabels the row and takes its tap. A chat the inbox shows by itself while
+ * hidden chats are showing reads Unhide chat, any other Hide chat.
  */
 public final class HiddenChatsMenu {
     /** The menu row borrowed: Instagram builds it but nothing in the release app shows it. */
     static final String ROW = "DETAILS";
 
     static final String OFFER = "hide chat row";
+    static final String SHOWN = "hide chat menu";
     static final String LABEL = "hide chat label";
     static final String TAP = "hide chat tap";
 
@@ -53,24 +56,35 @@ public final class HiddenChatsMenu {
     }
 
     /**
-     * Called first as a chat's long press menu opens, with its rows, the class of Instagram's menu
-     * actions, the chat's key and the name over the menu. Adds the row at the end, once.
+     * Called first as Instagram builds a chat's long press menu, with the builder's own list of rows
+     * and the class of Instagram's menu actions. Adds the row after any already there, once.
      */
-    public static void shown(List<Object> rows, Object menu, Object key, String title) {
-        shown(rows, menu, key, title, HiddenChatsMenu::switchedOn);
+    public static void offer(List<Object> rows, Object menu) {
+        offer(rows, menu, HiddenChatsMenu::switchedOn);
     }
 
-    static void shown(List<Object> rows, Object menu, Object key, String title, BooleanSupplier on) {
+    static void offer(List<Object> rows, Object menu, BooleanSupplier on) {
         try {
-            String id = key == null ? null : reader.id(key);
-            menuId = id;
-            menuName = title;
-            if (rows == null || !(menu instanceof Class) || id == null || id.isEmpty() || !on.getAsBoolean()) return;
+            if (rows == null || !(menu instanceof Class) || !on.getAsBoolean()) return;
             HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
             Object row = row((Class<?>) menu);
             if (row != null && !rows.contains(row)) rows.add(row);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, OFFER, t);
+        }
+    }
+
+    /**
+     * Called first as a chat's long press menu opens, with the chat's key and the name over the menu,
+     * so the row reads right for that chat and a tap saves it under that name.
+     */
+    public static void shown(Object key, String title) {
+        try {
+            menuId = null;
+            menuName = title;
+            menuId = key == null ? null : reader.id(key);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, SHOWN, t);
         }
     }
 
