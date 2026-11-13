@@ -116,6 +116,13 @@ public final class AccentTheme {
     /** What's counted each time Home's newer header takes the picked icon color for its buttons. */
     static final String HEADER_ICONS = "Home header icons given the accent color";
 
+    /** What's counted each time a tab's icon is told a color and takes the picked one instead (#663). */
+    static final String TAB_ICONS = "Tab icons given the accent color";
+
+    /** Instagram's link on a dark screen and on a light one, which {@link AccentColor#swap} turns into the picked color's. */
+    private static final int LINK_ON_DARK = 0xff85a1ff;
+    private static final int LINK_ON_LIGHT = 0xff3143e3;
+
     /** What's counted each time the story rings take the picked color, with Story rings in the accent color on. */
     static final String RINGS = "themes given accent story rings";
 
@@ -414,6 +421,37 @@ public final class AccentTheme {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "header icon", failure);
         }
+    }
+
+    /**
+     * Injected at the start of the method each of Instagram's tab buttons recolors its icon with, for
+     * the color it's told to use, [color] (#663). Opening Reels tells every tab a white for the black
+     * bar and leaving it tells them the theme's text color, and neither is the icon color the theme
+     * holds, so with Icons in the accent color on the bar went white on Reels and stayed white after.
+     * Answers the picked color's link shade for a dark screen when [color] reads light and its shade
+     * for a light screen when it reads dark, the shades the icon styles hold, with [color]'s alpha.
+     * Answers [color] with the switch off, HushGram paused or anything thrown.
+     */
+    public static int tabIcons(int color) {
+        try {
+            AccentHue hue = AccentColor.picked();
+            if (hue == null || !Settings.ACCENT_ICONS.get()) return color;
+            int shade = AccentColor.swap(readsLight(color) ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+            int icons = (color & 0xff000000) | (shade & 0xffffff);
+            if (icons != color) HookStatus.counted(FamilyNames.ACCENT_COLOR, TAB_ICONS);
+            return icons;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "tab icons", failure);
+            return color;
+        }
+    }
+
+    /** {@link #tabIcons(int)} for the color a tab is told to use while it isn't selected, which comes boxed. Null stays null. */
+    @Nullable
+    public static Integer tabIcons(@Nullable Integer color) {
+        if (color == null) return null;
+        int icons = tabIcons(color.intValue());
+        return icons == color ? color : Integer.valueOf(icons);
     }
 
     /**

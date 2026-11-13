@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * With `Glass tab bar` on and Instagram in light mode, the strips above and below a story are black again, the way they are without the glass. They showed white, and with `Ambient light in stories` on the glow sat on white and hid the clock. Reported in #666.
+* With `Accent color` and `Icons in the accent color` on, the tab bar icons keep the picked color on Reels and after you leave it. They turned white on Reels and stayed white back on Home. Reported in #663.
 
 ## 0.0.20 (2026-11-12)
 

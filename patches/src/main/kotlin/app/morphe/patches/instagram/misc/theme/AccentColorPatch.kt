@@ -110,6 +110,7 @@ val accentColorPatch = bytecodePatch(
         swapComposePalettes(palettes)
         swapComposeSurfaces()
         tintHeaderIcons()
+        tintTabIcons()
         dropLikedHeartOutline()
         enableStatus("accentColor")
     }

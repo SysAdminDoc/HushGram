@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.ResourcePatchContext
 import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
@@ -1022,6 +1023,68 @@ internal fun BytecodePatchContext.tintHeaderIcons() {
     for (site in findHeaderIconDrawables().sortedByDescending { it.index }) {
         site.method.addInstructions(site.index + 1, "invoke-static { v${site.context}, v${site.drawable} }, $HEADER_ICON")
     }
+}
+
+/** The image view Instagram's tab buttons draw their icon in, tinted one color selected and one not. */
+internal const val TAB_ICON_VIEW = "Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;"
+
+/** The extension's answer to the color a tab button is told to tint its icon with (#663). */
+internal const val TAB_ICONS = "$ACCENT_THEME->tabIcons(I)I"
+
+/** The same for the color it's told for its icon while not selected, which comes boxed (#663). */
+internal const val TAB_ICONS_BOXED = "$ACCENT_THEME->tabIcons(Ljava/lang/Integer;)Ljava/lang/Integer;"
+
+private val TAB_ICON_PARAMETERS = listOf("I", "Ljava/lang/Integer;")
+
+/**
+ * The method a tab button recolors its icon with (#663): the instance (int, Integer)V that hands the
+ * int to [TAB_ICON_VIEW]'s setActiveColor and the Integer's value to its setNormalColor (`LX/02a0;->A0A`
+ * on 386014758). Opening Reels calls it on every tab with a color resource made for the black bar, and
+ * leaving Reels with the theme's text color, so neither the icon style nor the color reads reach the
+ * icons, and they went white on Reels with Icons in the accent color on. Answers null with a warning
+ * when there's no one such method or something jumps onto its start.
+ */
+internal fun BytecodePatchContext.findTabIconColors(): MutableMethod? {
+    val found = classesCalling(TAB_ICON_VIEW, "setNormalColor").flatMap { type ->
+        type.methods.filter { it.recolorsTabIcon() }.map { type.type to it }
+    }
+    if (found.size != 1) {
+        patchLog.warning("$PATCH: ${found.size} methods recolor a tab's icon, not one, so the tab bar keeps Instagram's colors on Reels")
+        return null
+    }
+    for (needed in listOf(TAB_ICONS, TAB_ICONS_BOXED)) {
+        if (extensionMethod(needed) == null) refuse("the extension has no public static $needed")
+    }
+    val (type, method) = found.single()
+    if (0 in method.jumpTargets()) {
+        patchLog.warning("$PATCH: ${method.where()} jumps onto its own start, so the tab bar keeps Instagram's colors on Reels")
+        return null
+    }
+    return mutableClassDefBy(type).methods.single { it.name == method.name && it.recolorsTabIcon() }
+}
+
+private fun Method.recolorsTabIcon(): Boolean =
+    !AccessFlags.STATIC.isSet(accessFlags) && returnType == "V" && parameterTypes.map(Any::toString) == TAB_ICON_PARAMETERS &&
+        code().any { it.calls(TAB_ICON_VIEW, "setActiveColor") } && code().any { it.calls(TAB_ICON_VIEW, "setNormalColor") }
+
+/**
+ * Hands both colors a tab button is told to tint its icon with to the extension at the start of
+ * [findTabIconColors]'s method and takes its answers instead, so the tab bar keeps the picked icon
+ * color on Reels and after it (#663). Leaves the tabs as they are when there's no such method.
+ */
+internal fun BytecodePatchContext.tintTabIcons() {
+    val method = findTabIconColors() ?: return
+    val color = method.parameterRegisterNumber(0)
+    val normal = method.parameterRegisterNumber(1)
+    method.addInstructions(
+        0,
+        """
+            invoke-static/range { v$color .. v$color }, $TAB_ICONS
+            move-result v$color
+            invoke-static/range { v$normal .. v$normal }, $TAB_ICONS_BOXED
+            move-result-object v$normal
+        """,
+    )
 }
 
 private fun BytecodePatchContext.extensionMethod(signature: String): Method? =
