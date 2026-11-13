@@ -24,7 +24,7 @@ HushGram is a set of [Morphe](https://morphe.software) patches for Instagram on 
 
 Most switches start off, so a freshly patched Instagram looks like Instagram until you turn something on. It's the Instagram member of a small family. [Hushfacebook](https://github.com/SysAdminDoc/Hushfacebook) does the same job for Facebook, and HushGram is built on its foundation.
 
-The latest release is [v0.0.19](https://github.com/SysAdminDoc/HushGram/releases/tag/v0.0.19), with 154 patches. Add it to Morphe Manager with [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram).
+The latest release is [v0.0.20](https://github.com/SysAdminDoc/HushGram/releases/tag/v0.0.20), with 175 patches. Add it to Morphe Manager with [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram).
 
 What changed in each version is in the [changelog](CHANGELOG.md).
 
