@@ -59,6 +59,8 @@ final class ViewHider {
     private final String[] names;
     /** Names counted wherever they are, scope or not. See {@link #anywhere}. */
     private String[] anywhere = new String[0];
+    /** Whether a hit inside the scope hides the scope's child holding it. See {@link #holders}. */
+    private boolean holders;
     private final ResourceIdCache ids = new ResourceIdCache();
     private final WeakHashMap<Activity, Session> sessions = new WeakHashMap<>();
     private volatile boolean registered;
@@ -78,6 +80,17 @@ final class ViewHider {
      */
     ViewHider anywhere(String... more) {
         this.anywhere = more;
+        return this;
+    }
+
+    /**
+     * A hit inside the scope hides the scope's direct child holding it instead, for a row Litho
+     * draws: the id sits on a view inside the tappable one, which would stay behind as an invisible
+     * button. A child hidden this way is let go, and shown as it was, once the view of that id is no
+     * longer in it, since Litho hands its views on to other parts of a row.
+     */
+    ViewHider holders() {
+        this.holders = true;
         return this;
     }
 
@@ -166,10 +179,30 @@ final class ViewHider {
         return ids.resolve(activity.getResources(), Utils.resourcePackage(activity), name, false);
     }
 
+    /**
+     * A view hidden, and for a holder the id of the view in it that was hit, with the visibility it
+     * had. [inner] is {@link View#NO_ID} for a view hidden itself.
+     */
+    private static final class Held {
+        final WeakReference<View> view;
+        final int inner;
+        final int before;
+
+        Held(View view, int inner) {
+            this.view = new WeakReference<>(view);
+            this.inner = inner;
+            this.before = view.getVisibility();
+        }
+
+        boolean holds(View at) {
+            return inner == View.NO_ID || at.findViewById(inner) != null;
+        }
+    }
+
     /** One activity's place in the shared frame watcher, and the views hidden in its window. */
     private final class Session implements ViewWatcher.Member {
         private final WeakReference<Activity> activity;
-        private final List<WeakReference<View>> hidden = new ArrayList<>();
+        private final List<Held> hidden = new ArrayList<>();
 
         Session(Activity activity) {
             this.activity = new WeakReference<>(activity);
@@ -206,10 +239,15 @@ final class ViewHider {
                     return false;
                 }
                 boolean changed = false;
-                for (Iterator<WeakReference<View>> each = hidden.iterator(); each.hasNext(); ) {
-                    View view = each.next().get();
+                for (Iterator<Held> each = hidden.iterator(); each.hasNext(); ) {
+                    Held held = each.next();
+                    View view = held.view.get();
                     if (view == null) {
                         each.remove();
+                    } else if (!held.holds(view)) {
+                        each.remove();
+                        view.setVisibility(held.before);
+                        changed = true;
                     } else if (view.getVisibility() != View.GONE) {
                         view.setVisibility(View.GONE);
                         changed = true;
@@ -255,28 +293,38 @@ final class ViewHider {
                 HookStatus.recoveredViewId(family, scope);
             }
             if (wanted.isEmpty() && everywhere.isEmpty()) return false;
-            return walk(owner.getWindow().getDecorView(), scope == null, within, wanted, everywhere, new int[] {MAX_VIEWS});
+            return walk(owner.getWindow().getDecorView(), scope == null, null, within, wanted, everywhere,
+                    new int[] {MAX_VIEWS});
         }
 
-        private boolean walk(View view, boolean inside, int within, Set<Integer> wanted, Set<Integer> everywhere,
-                int[] budget) {
+        /** [top] is the scope's child [view] sits in, kept only with {@link #holders} on. */
+        private boolean walk(View view, boolean inside, @Nullable View top, int within, Set<Integer> wanted,
+                Set<Integer> everywhere, int[] budget) {
             if (budget[0]-- <= 0) return false;
             boolean found = false;
             int id = view.getId();
+            boolean scopeView = false;
             if (id != View.NO_ID) {
-                if (id == within) inside = true;
-                if (((inside && wanted.contains(id)) || everywhere.contains(id)) && !(view instanceof ViewStub)
-                        && view.getVisibility() != View.GONE) {
-                    hidden.add(new WeakReference<>(view));
-                    view.setVisibility(View.GONE);
-                    HookStatus.counted(family, counted);
-                    found = true;
+                if (id == within) {
+                    inside = true;
+                    scopeView = true;
+                }
+                if (((inside && wanted.contains(id)) || everywhere.contains(id)) && !(view instanceof ViewStub)) {
+                    View target = top != null ? top : view;
+                    if (target.getVisibility() != View.GONE) {
+                        hidden.add(new Held(target, target == view ? View.NO_ID : id));
+                        target.setVisibility(View.GONE);
+                        HookStatus.counted(family, counted);
+                        found = true;
+                    }
                 }
             }
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
                 for (int i = 0; i < group.getChildCount(); i++) {
-                    found |= walk(group.getChildAt(i), inside, within, wanted, everywhere, budget);
+                    View child = group.getChildAt(i);
+                    found |= walk(child, inside, holders && scopeView ? child : top, within, wanted, everywhere,
+                            budget);
                 }
             }
             return found;

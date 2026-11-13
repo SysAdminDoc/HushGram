@@ -59,6 +59,7 @@ public class FeedSaveRowTest {
     private Activity activity;
     private LinearLayout screen;
     private View save;
+    private FrameLayout likeHost;
     private View like;
     private View likeCount;
     private View savedElsewhere;
@@ -88,13 +89,17 @@ public class FeedSaveRowTest {
         screen = new LinearLayout(activity);
         LinearLayout buttons = new LinearLayout(activity);
         buttons.setId(buttonsId);
+        // As Litho draws it on 454: the heart's id sits on a view inside the tappable one, which has none.
+        likeHost = new FrameLayout(activity);
+        likeHost.setClickable(true);
         like = new View(activity);
         like.setId(likeId);
+        likeHost.addView(like);
         likeCount = new View(activity);
         likeCount.setId(likeCountId);
         save = new View(activity);
         save.setId(saveId);
-        buttons.addView(like);
+        buttons.addView(likeHost);
         buttons.addView(likeCount);
         buttons.addView(save);
         savedElsewhere = new View(activity);
@@ -378,13 +383,14 @@ public class FeedSaveRowTest {
 
         assertTrue(screen.getViewTreeObserver().dispatchOnPreDraw());
         assertEquals(View.GONE, save.getVisibility());
-        assertEquals("Like stays", View.VISIBLE, like.getVisibility());
+        assertEquals("Like stays", View.VISIBLE, likeHost.getVisibility());
         assertEquals("a Save button outside a feed post stays", View.VISIBLE, savedElsewhere.getVisibility());
     }
 
     /**
-     * Hide the Like button (#668) takes the heart and its count out of a feed post's buttons, leaves
-     * Save and a Like button anywhere else, and with its switch off or HushGram paused never listens.
+     * Hide the Like button (#668) takes the heart, with the tappable view holding it, and its count
+     * out of a feed post's buttons, leaves Save and a Like button anywhere else, and with its switch
+     * off or HushGram paused never listens.
      */
     @Test
     public void theLikeButtonAndItsCountLeaveOnlyAFeedPostsButtons() {
@@ -405,12 +411,58 @@ public class FeedSaveRowTest {
 
         FeedSaveRow.likeHider().watch(activity);
         assertTrue(screen.getViewTreeObserver().dispatchOnPreDraw());
-        assertEquals(View.GONE, like.getVisibility());
+        assertEquals("the tappable view goes, not just the heart in it", View.GONE, likeHost.getVisibility());
         assertEquals(View.GONE, likeCount.getVisibility());
         assertEquals("Save stays", View.VISIBLE, save.getVisibility());
         assertEquals("a Like button outside a feed post stays", View.VISIBLE, likedElsewhere.getVisibility());
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, report.contains(FeedSaveRow.COUNT_LIKE_HIDDEN));
         assertFalse(report, report.contains(FeedSaveRow.COUNT_HIDDEN));
+    }
+
+    /**
+     * Litho hands a tappable view on to another part of the row once it's rebound. Once the heart
+     * is no longer in the one hidden, it shows again, so another button never goes missing with it.
+     */
+    @Test
+    public void aLikeHostLithoHandsOnShowsAgain() {
+        Settings.HIDE_FEED_LIKE_BUTTON.save(true);
+        FeedSaveRow.likeHider().watch(activity);
+        assertTrue(screen.getViewTreeObserver().dispatchOnPreDraw());
+        assertEquals(View.GONE, likeHost.getVisibility());
+
+        likeHost.removeView(like);
+        likeHost.addView(new View(activity));
+        assertTrue(screen.getViewTreeObserver().dispatchOnPreDraw());
+
+        assertEquals(View.VISIBLE, likeHost.getVisibility());
+    }
+
+    /**
+     * The like count (#668) goes through the row's state as Instagram builds it: left out while Hide
+     * the Like button is on, Instagram's own answer with it off, HushGram paused or the switch
+     * unreadable.
+     */
+    @Test
+    public void theLikeCountIsLeftOutOfTheRowWhileTheSwitchIsOn() {
+        assertTrue("off to start", FeedSaveRow.likeCountState(1));
+        assertFalse("Instagram's own no stays", FeedSaveRow.likeCountState(0));
+
+        Settings.HIDE_FEED_LIKE_BUTTON.save(true);
+        assertFalse(FeedSaveRow.likeCountState(1));
+        assertFalse(FeedSaveRow.likeCountState(0));
+        assertTrue(String.join("\n", HookStatus.report()).contains(FeedSaveRow.COUNT_LIKE_COUNT_OFF));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("paused", FeedSaveRow.likeCountState(1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        assertTrue("a switch that throws", FeedSaveRow.likeCountState(true, () -> {
+            throw new IllegalStateException("broken switch");
+        }));
+        String missing = HookStatus.missing(FamilyNames.FEED_SAVE).toString();
+        assertTrue(missing, missing.contains(FeedSaveRow.HOOK));
     }
 }

@@ -2029,6 +2029,10 @@ shared-call Lapp/hushgram/extension/instagram/share/RepostButton;->eligible(Ljav
 # CommentsButton.feedState right before the constructor stores each. No rule, for the same
 # reason: it's called twice there. HideCommentsHookTest checks on the 450 fixture that both land
 # right before their write, with Hide the Repost button's hooks in the same constructor.
+# Hide the Like button (#668), under Save in the post menu, passes the same state's like count flag
+# through FeedSaveRow.likeCountState right before the constructor stores it. No rule, like the
+# Comment and Repost hooks beside it in that constructor. FeedLikeCountHookTest checks on every 454
+# build that it lands right before its write, with the comment and Repost hooks in place too.
 # Hide Reply on comments (#619), under Hide comments: the composable drawing the line under a
 # comment (0IEk.A04 on 454, the static one of the two methods holding the Reply button's tag below)
 # asks CommentReply.hidden in front of the Reply button and in front of the reply icon newer

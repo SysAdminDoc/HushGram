@@ -38,7 +38,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * account is. Instagram's menu handles a tap on either itself, so it saves to the same place the
  * button does and shows its usual confirmation. Whether the post is saved is read the way
  * Instagram's older menu reads it. The button is hidden by {@link ViewHider}, only inside a feed
- * post's row of buttons, and so are the Like button and its count with their own switch (#668).
+ * post's row of buttons, and so is the Like button with its own switch (#668). The like count goes
+ * through {@link #likeCountState} as the row's state is built, so Instagram leaves it out.
  *
  * <p>Instagram's builder adds its own Save or Unsave row to some posts' menus, suggested posts
  * among them, after the spot the row goes in. The short menu used to drop that one, but it keeps
@@ -66,9 +67,15 @@ public final class FeedSaveRow {
     private static final ViewHider HIDER = new ViewHider(FamilyNames.FEED_SAVE, "feed save button", COUNT_HIDDEN,
             () -> Settings.HIDE_FEED_SAVE_BUTTON.get(), BUTTONS, SAVE_BUTTON);
 
-    /** Hide the Like button (#668): the heart and its count, only inside a feed post's row of buttons. */
+    /**
+     * Hide the Like button (#668): the heart and its count, only inside a feed post's row of buttons.
+     * Instagram's ids sit on views inside the tappable one, so the row's child holding them goes,
+     * and the heart can't be tapped where it was.
+     */
     private static final ViewHider LIKE_HIDER = new ViewHider(FamilyNames.FEED_SAVE, "feed like button",
-            COUNT_LIKE_HIDDEN, () -> Settings.HIDE_FEED_LIKE_BUTTON.get(), BUTTONS, LIKE_BUTTON, LIKE_COUNT);
+            COUNT_LIKE_HIDDEN, () -> Settings.HIDE_FEED_LIKE_BUTTON.get(), BUTTONS, LIKE_BUTTON, LIKE_COUNT)
+            .holders();
+    static final String COUNT_LIKE_COUNT_OFF = "feed like counts left out";
 
     private FeedSaveRow() {
     }
@@ -107,6 +114,28 @@ public final class FeedSaveRow {
     public static void switchChanged(@Nullable Activity activity) {
         HIDER.switchChanged(activity);
         LIKE_HIDER.switchChanged(activity);
+    }
+
+    /**
+     * Injected right before Feed's action-row state stores whether its row shows the like count,
+     * handed over as an int that reads any non-zero as yes (#668). Answers no while Hide the Like
+     * button is on, so the row is laid out without the count, and Instagram's own answer otherwise.
+     * Never throws.
+     */
+    public static boolean likeCountState(int shown) {
+        return likeCountState(shown != 0, () -> Utils.settingsReady() && Settings.HIDE_FEED_LIKE_BUTTON.get());
+    }
+
+    static boolean likeCountState(boolean shown, BooleanSupplier hide) {
+        try {
+            HookStatus.invoked(FamilyNames.FEED_SAVE);
+            if (!shown || !hide.getAsBoolean()) return shown;
+            HookStatus.counted(FamilyNames.FEED_SAVE, COUNT_LIKE_COUNT_OFF);
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SAVE, HOOK, failure);
+            return shown;
+        }
     }
 
     /** Whether the row may show: its switch is on, settings are ready and HushGram isn't paused. */

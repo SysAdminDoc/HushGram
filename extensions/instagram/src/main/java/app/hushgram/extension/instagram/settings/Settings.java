@@ -2775,8 +2775,9 @@ public class Settings extends BaseSettings {
 
     /**
      * The Like button and the like count under a feed post (#668,
-     * {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). Read before each frame of a resumed
-     * screen, so it needs no restart. Off to start.
+     * {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). The button is read before each frame
+     * of a resumed screen and the count as Feed builds a post's row, so it needs no restart. Off to
+     * start.
      */
     public static final BooleanSetting HIDE_FEED_LIKE_BUTTON =
             new BooleanSetting("hushgram_hide_feed_like_button", FALSE);

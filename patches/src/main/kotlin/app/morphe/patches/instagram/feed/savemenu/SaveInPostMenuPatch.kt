@@ -17,10 +17,17 @@ import app.morphe.patches.instagram.download.video.FeedMenu
 import app.morphe.patches.instagram.download.video.downloadRow
 import app.morphe.patches.instagram.download.video.findFeedMenu
 import app.morphe.patches.instagram.download.video.mutable
+import app.morphe.patches.instagram.feed.FeedStateWrite
+import app.morphe.patches.instagram.feed.feedRowState
+import app.morphe.patches.instagram.feed.flagWrites
+import app.morphe.patches.instagram.feed.isToString
+import app.morphe.patches.instagram.feed.prepareFlagWrites
+import app.morphe.patches.instagram.feed.printedFlag
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesTouching
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -40,6 +47,10 @@ internal const val SAVE_ROW = "$EXTENSION_PACKAGE/feed/FeedSaveRow;"
 internal const val OFFER_SAVE = "$SAVE_ROW->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V"
 internal const val ALLOW_SAVE = "$SAVE_ROW->allow(Ljava/util/List;)Ljava/util/List;"
 internal const val SETTLE_SAVE = "$SAVE_ROW->settle(Ljava/lang/Object;)V"
+internal const val LIKE_COUNT_STATE = "$SAVE_ROW->likeCountState(I)Z"
+
+/** The label Feed's action-row state prints whether the row shows the like count under (#668). */
+internal const val LIKE_COUNT_LABEL = ", shouldShowLikeCountInUfi="
 
 /** Instagram's own Save and Unsave options, which its feed menu handles a tap on itself. */
 internal const val SAVE_OPTION = "$OPTION->SAVE:$OPTION"
@@ -211,6 +222,35 @@ internal fun BytecodePatchContext.findFeedSaveRow(): FeedSaveRowHooks {
     )
 }
 
+/**
+ * Feed's action-row state prints whether the row shows the like count after [LIKE_COUNT_LABEL], a
+ * final boolean of its own its constructors set, and the like button's component draws no count
+ * when it's false. Every write of it, found here and changed only when the answer is called, goes
+ * through [LIKE_COUNT_STATE], so a state built while Hide the Like button is on lays the row out
+ * with no count at all (#668). Hidden as a view instead, the count left its space and its tap.
+ */
+internal fun BytecodePatchContext.findFeedLikeCount(): FeedLikeCount {
+    val state = feedRowState(PATCH, LIKE_COUNT_LABEL)
+    val flag = state.methods.single { it.isToString() }.printedFlag(PATCH, state.type, LIKE_COUNT_LABEL)
+    val writes = flagWrites(PATCH, mutableClassDefBy(state.type), flag).ifEmpty {
+        refuse("${state.type}'s constructor never sets what it prints as \"$LIKE_COUNT_LABEL\"")
+    }
+    return FeedLikeCount(state.type, writes, prepareFlagWrites(PATCH, state.type, "like count", writes, LIKE_COUNT_STATE))
+}
+
+/** The like count flag's writes in Feed's action-row state of [type], hooked when [write] is called. */
+internal class FeedLikeCount(val type: String, val writes: List<FeedStateWrite>, private val change: () -> Unit) {
+    fun write() = change()
+}
+
+/** [findFeedLikeCount], or null with a warning, so Save and the Like button's switch still go in. */
+internal fun BytecodePatchContext.findFeedLikeCountOrWarn(): FeedLikeCount? = try {
+    findFeedLikeCount()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in leaving the like count beside a hidden Like button.")
+    null
+}
+
 private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
 
 private fun Instruction.staticCall(): MethodReference? =
@@ -227,7 +267,8 @@ private fun Instruction.firstArgument(): Int? = when (this) {
  * Save, or Remove from saved on a post you saved, in the menu behind a feed post's three dots (#569):
  * Instagram's own options, which its menu already handles, added where anyone else's rows start and
  * kept by the short menu. The same patch lets the extension take the Save button off feed posts,
- * and the Like button with its count (#668). In the default selection with every switch off.
+ * and the Like button with its count (#668), the count through the row's own state so the row is
+ * laid out without it. In the default selection with every switch off.
  */
 @Suppress("unused")
 val saveInPostMenuPatch = bytecodePatch(
@@ -241,7 +282,10 @@ val saveInPostMenuPatch = bytecodePatch(
 
     execute {
         requireStatusMethod(FEED_SAVE_STATUS)
-        findFeedSaveRow().write()
+        val row = findFeedSaveRow()
+        val likeCount = findFeedLikeCountOrWarn()
+        row.write()
+        likeCount?.write()
         enableStatus(FEED_SAVE_STATUS)
     }
 }
