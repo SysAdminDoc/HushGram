@@ -2097,6 +2097,14 @@ shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->apply(Landroid/
 # and Redex renames its fields, so the rule names the constructor alone. Left out, the heart stays
 # white with Icons in the accent color on (#8). AccentThemeTest checks every 453 build.
 single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->headerIcons(Landroid/content/Context;I)I in <init>
+# Opening Reels tells each tab button a white made for the black bar, and leaving it the theme's text
+# color, through the one method (int, Integer)V that hands them to the tab icon view's setActiveColor
+# and setNormalColor (02a0.A0A on 386014758). Accent color hands both to AccentTheme.tabIcons first
+# thing, the int then the Integer. The method loads no strings, so the rules name its two calls. Left
+# out, the tab bar goes white on Reels and stays white after (#663). AccentThemeTest checks every build.
+start-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(I)I in instance (ILjava/lang/Integer;)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setActiveColor(I)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setNormalColor(I)V
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(I)I in instance (ILjava/lang/Integer;)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setActiveColor(I)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setNormalColor(I)V
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(Ljava/lang/Integer;)Ljava/lang/Integer; in instance (ILjava/lang/Integer;)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setActiveColor(I)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setNormalColor(I)V
 # The like button's heart (03o7 on 454's 386014760) draws its line heart under the filled one, so
 # Accent color hands that one draw call to LikedHeart.outline with the liked progress, which leaves
 # the line heart out once a post is liked. Left out, a liked heart in the accent color keeps a light
