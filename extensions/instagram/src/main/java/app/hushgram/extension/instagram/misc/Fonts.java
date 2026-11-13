@@ -6,6 +6,8 @@ package app.hushgram.extension.instagram.misc;
 
 import android.content.Context;
 import android.graphics.Typeface;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -286,6 +288,41 @@ public final class Fonts {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FONT, "text view", failure);
         }
+    }
+
+    /**
+     * Puts every TextView in [root] that isn't in the chosen font yet in it, at the weight and slant
+     * it has, so HushGram's own screen follows the font picked for Instagram's text. Answers how
+     * many it changed: none with Instagram's font chosen or the settings not read yet. It isn't a
+     * hook, so the font's hook count leaves it out. Never throws.
+     */
+    public static int under(@Nullable View root) {
+        try {
+            if (root == null || !Utils.settingsReady()) return 0;
+            Typeface base = chosen();
+            return base == null ? 0 : restyle(root, base);
+        } catch (Throwable failure) {
+            Exception logged = failure instanceof Exception ? (Exception) failure : new Exception(failure);
+            Logger.printInfo(() -> "Font: HushGram's screen didn't take it", logged);
+            return 0;
+        }
+    }
+
+    private static int restyle(View view, Typeface base) {
+        int changed = 0;
+        if (view instanceof TextView) {
+            TextView text = (TextView) view;
+            Typeface current = text.getTypeface();
+            if (current == null || !OURS.contains(current)) {
+                text.setTypeface(styled(base, current));
+                changed++;
+            }
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) changed += restyle(group.getChildAt(i), base);
+        }
+        return changed;
     }
 
     /** [base] at the weight and slant of [like], or regular and upright without one. */

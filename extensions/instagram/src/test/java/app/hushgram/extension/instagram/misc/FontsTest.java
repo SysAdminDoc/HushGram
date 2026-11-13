@@ -126,6 +126,56 @@ public class FontsTest {
                 HookStatus.report());
     }
 
+    /**
+     * HushGram's screen takes the chosen font on every text view in it, nested ones included, at the
+     * weight and slant each has, and a second pass changes nothing. It isn't a hook, so nothing's
+     * counted for it.
+     */
+    @Test
+    public void hushgramsScreenTakesTheChosenFont() {
+        Settings.FONT.save(FontChoice.FILE);
+        keepAFont();
+        android.widget.LinearLayout screen = new android.widget.LinearLayout(RuntimeEnvironment.getApplication());
+        android.widget.FrameLayout row = new android.widget.FrameLayout(RuntimeEnvironment.getApplication());
+        TextView title = view(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        TextView summary = view(null);
+        TextView heading = view(Typeface.create(Typeface.MONOSPACE, 700, true));
+        row.addView(title);
+        row.addView(summary);
+        screen.addView(row);
+        screen.addView(heading);
+        screen.addView(new android.view.View(RuntimeEnvironment.getApplication()));
+
+        assertEquals(3, Fonts.under(screen));
+        assertSame(Typeface.create(Typeface.SERIF, 500, false), title.getTypeface());
+        assertSame(Typeface.create(Typeface.SERIF, 400, false), summary.getTypeface());
+        assertSame(Typeface.create(Typeface.SERIF, 700, true), heading.getTypeface());
+        assertEquals("a second pass changes nothing", 0, Fonts.under(screen));
+        TextView added = view(Typeface.DEFAULT_BOLD);
+        row.addView(added);
+        assertEquals("a row added later takes it too", 1, Fonts.under(screen));
+        assertSame(Typeface.create(Typeface.SERIF, 700, false), added.getTypeface());
+        assertEquals(List.of(), HookStatus.report());
+    }
+
+    /** With Instagram's font chosen, HushGram's screen keeps the fonts it has. */
+    @Test
+    public void hushgramsScreenKeepsItsFontsWithInstagramsChosen() {
+        android.widget.FrameLayout screen = new android.widget.FrameLayout(RuntimeEnvironment.getApplication());
+        Typeface medium = Typeface.create("sans-serif-medium", Typeface.NORMAL);
+        TextView title = view(medium);
+        screen.addView(title);
+        assertEquals(0, Fonts.under(screen));
+        assertSame(medium, title.getTypeface());
+        assertEquals(0, Fonts.under(null));
+    }
+
+    /** A kept font file the test loader reads as the serif font. */
+    private static void keepAFont() {
+        keep(TRUE_TYPE);
+        Fonts.loader = file -> file.isFile() ? Typeface.SERIF : null;
+    }
+
     /** A picked file that loads is the font, read once for the process. */
     @Test
     public void aPickedFileIsTheFont() throws Exception {

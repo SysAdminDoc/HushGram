@@ -33,6 +33,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import app.hushgram.extension.instagram.direct.MessagesLock;
+import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 
@@ -64,6 +65,9 @@ public final class SettingsDialog extends DialogFragment {
     private Window lockWindow;
     private ViewTreeObserver.OnPreDrawListener lockDraw;
     private ViewTreeObserver.OnWindowFocusChangeListener lockFocus;
+    /** The picked font's check on this dialog's window while it's started. */
+    private Window fontWindow;
+    private FontDraw fontDraw;
 
     /**
      * The screen, expanding the section whose row has the key [page]. Null or a key no row
@@ -351,13 +355,70 @@ public final class SettingsDialog extends DialogFragment {
     public void onStart() {
         super.onStart();
         watchLock();
+        watchFont();
         ShortcutCover.offOnceDrawn(getDialog());
     }
 
     @Override
     public void onStop() {
         unwatchLock();
+        unwatchFont();
         super.onStop();
+    }
+
+    /**
+     * With the font patch in the build, this screen's text follows the font picked for Instagram's
+     * (the #166 thread): each frame first puts any text not in it yet in it, rows scrolled in and
+     * pages opened later included.
+     */
+    private void watchFont() {
+        Dialog dialog = getDialog();
+        Window window = dialog == null ? null : dialog.getWindow();
+        if (window == null || fontDraw != null || !PatchFamily.FONT.inBuild()) return;
+        try {
+            FontDraw draw = new FontDraw(window.getDecorView());
+            window.getDecorView().getViewTreeObserver().addOnPreDrawListener(draw);
+            fontDraw = draw;
+            fontWindow = window;
+        } catch (Exception failure) {
+            Logger.printException(() -> "Settings: could not follow the picked font", failure);
+        }
+    }
+
+    private void unwatchFont() {
+        Window window = fontWindow;
+        FontDraw draw = fontDraw;
+        fontWindow = null;
+        fontDraw = null;
+        if (window == null || draw == null) return;
+        try {
+            ViewTreeObserver observer = window.getDecorView().getViewTreeObserver();
+            if (observer.isAlive()) observer.removeOnPreDrawListener(draw);
+        } catch (Exception failure) {
+            Logger.printException(() -> "Settings: could not stop following the picked font", failure);
+        }
+    }
+
+    /**
+     * Puts the text under [root] in the picked font before a frame draws. A frame that changed some
+     * is held back, so the text measures in its new font before it shows, but never two in a row,
+     * so a view that keeps putting its own font back can't stop the screen drawing.
+     */
+    static final class FontDraw implements ViewTreeObserver.OnPreDrawListener {
+        private final View root;
+        private boolean heldBack;
+
+        FontDraw(View root) {
+            this.root = root;
+        }
+
+        @Override
+        public boolean onPreDraw() {
+            boolean changed = Fonts.under(root) > 0;
+            boolean draw = !changed || heldBack;
+            heldBack = !draw;
+            return draw;
+        }
     }
 
     /**
