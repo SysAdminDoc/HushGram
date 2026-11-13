@@ -12,6 +12,7 @@ Every HushGram release, newest first.
 * HushGram speaks Simplified Chinese. Phones set to Simplified Chinese, or to Chinese for China or Singapore, get it instead of English. It's built from the Traditional Chinese table and uses Instagram's own mainland names, like 快拍 and 帖子. Asked for in #659.
 * `Double-tap Messages for hidden chats` now shows your hidden chats right in your inbox after your screen lock or PIN, and two more quick taps on Messages hide them again. Long press a chat for Hide chat or Unhide chat. Asked for in #661.
 * A new switch, `Hide You may also like in search` under Explore, takes the You may also like posts off the bottom of search results. Accounts and the posts you searched for stay. Asked for in #657.
+* `Play only the reel you opened` under Reels keeps a reel you open from a post on Home, a suggested reels row or a message on screen. Swiping, pulling down and auto scroll won't move it on, so it plays again when it ends, and the Reels tab scrolls as usual. With `Swipe through a chat's reels` on, a chat's reels still swipe. Asked for in #656.
 
 ### Bug Fixes
 

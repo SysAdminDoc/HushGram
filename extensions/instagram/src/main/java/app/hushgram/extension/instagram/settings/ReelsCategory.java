@@ -314,6 +314,11 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.REEL_SCROLL_FROM_AUDIO, L10n.t("Still scroll reels from a song page"),
                     L10n.t("With Stop Reels scrolling on, reels you open from a song or audio page still move on "
                             + "when you swipe.")));
+            reels.add(toggle(context, Settings.PLAY_ONE_REEL, L10n.t("Play only the reel you opened"),
+                    L10n.t("A reel you open from a post on Home, a suggested reels row or a message plays on its own. "
+                            + "Swiping, pulling down and auto scroll won't move on to another reel, so it plays again "
+                            + "when it ends. The Reels tab scrolls as usual. With Swipe through a chat's reels on, a "
+                            + "chat's reels still swipe.")));
             reels.add(toggle(context, Settings.REEL_CAP, L10n.t("Stop after a set number of reels"),
                     L10n.t("After the reels you pick below, swiping in Reels stops until Instagram has been in the "
                             + "background for the time you pick. A reel you open from a message or a post still "

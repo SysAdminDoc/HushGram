@@ -3513,6 +3513,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_scroll_from_audio", FALSE, parent(STOP_REELS_SCROLLING));
 
     /**
+     * A reel opened from a post on Home, a chat or a suggested reels unit on Home plays alone: no
+     * swipe, pull or auto scroll moves that viewer on, while the Reels tab scrolls as before (#656,
+     * {@link app.hushgram.extension.instagram.reels.ReelScrolling}). A chat's viewer keeps its swipe
+     * while {@link #SWIPE_CHAT_REELS} is on. Read as each viewer opens and at each auto scroll check,
+     * so no restart. Off to start.
+     */
+    public static final BooleanSetting PLAY_ONE_REEL =
+            new BooleanSetting("hushgram_play_one_reel", FALSE);
+
+    /**
      * A left swipe on a reel opens its creator's profile ({@link app.hushgram.extension.instagram.reels.SwipeToProfile}),
      * as older Instagram builds did. The swipe setup reads it once to build the profile panel, so a
      * change takes a restart. Off to start.

@@ -2600,6 +2600,15 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/la
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/lang/Object;)I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onInterceptTouchEvent
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/lang/Object;)I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/lang/Object;)I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
+# Play only the reel you opened (#656) puts ReelScrolling.autoScroll first in the Reels auto scroller's
+# check of whether to move on (06JW.A07 on 454, the one static method holding the marker below), with
+# the viewer's source read from the scroller (06JW.A0E). Every move the scroller makes on its own,
+# Instagram's auto scroll and Move on when a reel ends alike, asks that check first; on a 0 it answers
+# false. Ahead of the call sit only a move and a field read. Left out, those viewers auto scroll as
+# before; twice or elsewhere, it isn't the hook the patch wrote. AutoScrollCheckHookTest checks on the
+# 454 fixtures where it lands.
+start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->autoScroll(Ljava/lang/Object;)I in static (L*;)Z pooled holding android_purge_26_q2_ClipsAutoScroller_shouldScrollToNextReel
+once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->autoScroll(Ljava/lang/Object;)I in static (L*;)Z pooled holding android_purge_26_q2_ClipsAutoScroller_shouldScrollToNextReel
 # Swipe left to open the profile hands the answer of the Reels viewer's last swipe gate to
 # SwipeToProfile.allow right after it is read, in the one method holding the marker below (05PF.A00
 # on 452). Left out, the switch does nothing; twice or elsewhere, it isn't the hook the patch wrote.

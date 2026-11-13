@@ -46,6 +46,7 @@ public class ReelScrollingSettingsTest {
         Settings.REEL_SCROLL_FROM_PROFILE.resetToDefault();
         Settings.REEL_SCROLL_FROM_SEARCH.resetToDefault();
         Settings.REEL_SCROLL_FROM_AUDIO.resetToDefault();
+        Settings.PLAY_ONE_REEL.resetToDefault();
         Settings.REEL_CAP.resetToDefault();
         Settings.REEL_CAP_COUNT.resetToDefault();
         Settings.REEL_CAP_BREAK.resetToDefault();
@@ -62,6 +63,7 @@ public class ReelScrollingSettingsTest {
         Settings.REEL_SCROLL_FROM_PROFILE.resetToDefault();
         Settings.REEL_SCROLL_FROM_SEARCH.resetToDefault();
         Settings.REEL_SCROLL_FROM_AUDIO.resetToDefault();
+        Settings.PLAY_ONE_REEL.resetToDefault();
         Settings.REEL_CAP.resetToDefault();
         Settings.REEL_CAP_COUNT.resetToDefault();
         Settings.REEL_CAP_BREAK.resetToDefault();
@@ -88,7 +90,8 @@ public class ReelScrollingSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.STOP_REELS_SCROLLING.get());
         assertEquals(java.util.Arrays.asList(Settings.STOP_REELS_SCROLLING, Settings.REEL_SCROLL_FROM_PROFILE,
-                Settings.REEL_SCROLL_FROM_SEARCH, Settings.REEL_SCROLL_FROM_AUDIO, Settings.REEL_CAP), PatchFamily.REEL_SCROLLING.switches);
+                Settings.REEL_SCROLL_FROM_SEARCH, Settings.REEL_SCROLL_FROM_AUDIO, Settings.PLAY_ONE_REEL, Settings.REEL_CAP),
+                PatchFamily.REEL_SCROLLING.switches);
         SwitchPreference cap = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REEL_CAP.key);
         assertNotNull(cap);
         assertEquals("Stop after a set number of reels", cap.getTitle().toString());
@@ -136,6 +139,45 @@ public class ReelScrollingSettingsTest {
         }
         Settings.STOP_REELS_SCROLLING.save(true);
         for (BooleanSetting setting : kept) assertTrue(setting.isAvailable());
+    }
+
+    /**
+     * Play only the reel you opened (#656) is its own switch right after the three viewers kept
+     * scrolling: off to start, usable with Stop Reels scrolling off, read as each viewer opens with no
+     * restart, off while paused, and kept in a backup.
+     */
+    @Test public void playOnlyTheReelYouOpenedIsItsOwnSwitchAfterTheThree() throws Exception {
+        open(true);
+        SwitchPreference stop = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.STOP_REELS_SCROLLING.key);
+        PreferenceGroup reels = stop.getParent();
+        int under = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            if (Settings.STOP_REELS_SCROLLING.key.equals(reels.getPreference(i).getKey())) under = i;
+        }
+        SwitchPreference row = (SwitchPreference) reels.getPreference(under + 4);
+        assertEquals(Settings.PLAY_ONE_REEL.key, row.getKey());
+        assertEquals("Play only the reel you opened", row.getTitle().toString());
+        assertTrue(String.valueOf(row.getSummary()), String.valueOf(row.getSummary()).contains("The Reels tab scrolls as usual."));
+        assertFalse(row.isChecked());
+        assertEquals(Boolean.FALSE, Settings.PLAY_ONE_REEL.defaultValue);
+        assertFalse(Settings.PLAY_ONE_REEL.get());
+        assertFalse("read as each viewer opens", Settings.PLAY_ONE_REEL.rebootApp);
+        assertFalse(Settings.STOP_REELS_SCROLLING.get());
+        assertTrue("works without the stop", Settings.PLAY_ONE_REEL.isAvailable());
+        assertTrue(row.isEnabled());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.PLAY_ONE_REEL.key));
+
+        row.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(Settings.PLAY_ONE_REEL.savedValue());
+        assertTrue(Settings.PLAY_ONE_REEL.get());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.PLAY_ONE_REEL.get());
+        assertTrue(Settings.PLAY_ONE_REEL.savedValue());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue(Settings.PLAY_ONE_REEL.get());
     }
 
     /**

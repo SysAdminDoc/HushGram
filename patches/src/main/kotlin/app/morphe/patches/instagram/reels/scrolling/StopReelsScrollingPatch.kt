@@ -74,7 +74,9 @@ private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 val stopReelsScrollingPatch = bytecodePatch(
     name = "Stop Reels scrolling",
     description = "Stops a swipe in Reels from moving to the next reel, so you stay on the one you opened, with " +
-        "switches that leave reels from a profile, Search and Explore or a song page free to scroll. Another " +
+        "switches that leave reels from a profile, Search and Explore or a song page free to scroll. Play only " +
+        "the reel you opened does the same, auto scroll included, for reels you open from a post on Home, a " +
+        "suggested reels row or a message, and leaves the Reels tab alone. Another " +
         "switch stops swiping after as many reels as you pick, for as long as you pick, and Take a " +
         "scroll break covers Home, Reels and Explore for 5 minutes after the time you pick. Starts off. Turn " +
         "it on in HushGram settings > Reels.",
@@ -88,8 +90,10 @@ val stopReelsScrollingPatch = bytecodePatch(
         requireStatusMethod("reelScrolling")
         val site = findReelsScrolling()
         val pages = findPageStores()
+        val autoScroll = findAutoScrollCheck()
         stopReelsScrolling(site)
         reportPages(pages)
+        holdAutoScroll(autoScroll)
         enableStatus("reelScrolling")
     }
 }

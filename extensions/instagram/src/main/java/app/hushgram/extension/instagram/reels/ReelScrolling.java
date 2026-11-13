@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -50,6 +51,16 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * keep their names through the build, and a pager from a source you picked scrolls and pulls as
  * Instagram has it. The reel count below still covers them, since that stop is its own.
  *
+ * <p>Play only the reel you opened (#656) works the other way round, on its own: a viewer opened
+ * from a post on Home (a source starting {@link #FROM_HOME}), from a chat ({@link #FROM_CHAT}) or from
+ * a suggested reels unit on Home ({@link #FROM_SUGGESTED}) is held the same way, its pager's input
+ * off and its pull-down layout out of the way, whether or not Stop Reels scrolling is on, while the
+ * Reels tab and every other viewer scroll as Instagram has them. A chat's viewer is left out while
+ * Swipe through a chat's reels is on, since that switch is there to swipe through them. Instagram's
+ * auto scroll moves the pager itself, so its check of whether to move on from a reel asks
+ * {@link #autoScroll} first with the viewer's source, and a 0 keeps it on the reel, which then
+ * loops. That check is the one every move on runs through, Move on when a reel ends included.
+ *
  * <p>Stop after a set number of reels: each store of a Reels pager's current page reaches
  * {@link #page}. The first page a pager stores this session is where it starts, and each page past
  * the furthest one it has reached since is one more reel, so going back to a reel and forward again,
@@ -71,6 +82,7 @@ public final class ReelScrolling {
     static final String INPUT = "pager input";
     static final String PULL = "pull to refresh";
     static final String PAGE = "page change";
+    static final String AUTO_SCROLL = "auto scroll";
 
     /** What's counted each time a session reaches the cap. */
     static final String CAPPED = "stopped after the cap";
@@ -121,13 +133,29 @@ public final class ReelScrolling {
             "SONG", "AUDIO_PAGE_CHAIN", "AUDIO_NETEGO_PAGE", "AUDIO_PAGE_IN_CREATION", "MIFU_USE_AUDIO",
             "PRIME_AUDIO_PIVOT", "SAVED_AUDIO_NOTIFICATION"));
 
+    /**
+     * How a viewer's source starts when it was opened from a post on Home: Instagram names the feed
+     * it was in after it, FEED_TIMELINE_FOLLOWING or FEED_TIMELINE_POST_TAP for instance.
+     */
+    static final String FROM_HOME = "FEED_TIMELINE";
+
+    /** A viewer's source when it was opened from a chat. */
+    static final String FROM_CHAT = "DIRECT";
+
+    /** A viewer's source when it was opened from one of the suggested reels units Home shows between posts. */
+    private static final Set<String> FROM_SUGGESTED = new HashSet<>(Arrays.asList(
+            "CLIPS_NETEGO", "CLIPS_SUGGESTED_FEED_CONTEXTUAL_CHAIN", "CLIPS_TRENDING_IN_FEED_UNIT",
+            "CLIPS_MUSIC_DROPS_NETEGO", "CLIPS_QUICK_PROMOTION_IN_FEED_UNIT", "CLIPS_BASEL_NETEGO",
+            "QUEST_AQP_NETEGO", "RBM_AQP_NETEGO", "WEARABLES_RETENTION_RIFU_NETEGO"));
+
     private ReelScrolling() {
     }
 
     /**
      * Injected right after the Reels viewer keeps its pager, with the viewer's source. Remembers the
      * pager and answers 0, turn its input off now, while the switch is on and that source isn't let
-     * through, and 1, leave it, otherwise or when anything goes wrong. Never throws.
+     * through or Play only the reel you opened covers it, and 1, leave it, otherwise or when anything
+     * goes wrong. Never throws.
      */
     public static int pager(Object pager, Object source) {
         return pager(pager, source, () -> switchedOn(pager));
@@ -137,7 +165,7 @@ public final class ReelScrolling {
         try {
             HookStatus.invoked(FamilyNames.REEL_SCROLLING);
             if (pager == null) return 1;
-            PAGERS.put(pager, source instanceof Enum ? ((Enum<?>) source).name() : null);
+            PAGERS.put(pager, nameOf(source));
             settle(ReelScrolling::capOn);
             if (!on.getAsBoolean()) return 1;
             Logger.printDebug(() -> "Reels scrolling: a Reels pager's swipes are off");
@@ -172,8 +200,8 @@ public final class ReelScrolling {
     /**
      * Injected first thing in both touch handlers of the pull-down layout around the Reels viewer,
      * with the layout. Answers 0, let the touch go by, while the switch is on and the layout doesn't
-     * hold a pager from a source that's let through, and 1, handle it as before, otherwise or when
-     * anything goes wrong. Never throws.
+     * hold a pager from a source that's let through, or while Play only the reel you opened covers a
+     * pager it holds, and 1, handle it as before, otherwise or when anything goes wrong. Never throws.
      */
     public static int pull(Object layout) {
         return pull(layout, () -> pullStopped(layout));
@@ -186,6 +214,26 @@ public final class ReelScrolling {
             return on.getAsBoolean() ? 0 : 1;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_SCROLLING, PULL, failure);
+            return 1;
+        }
+    }
+
+    /**
+     * Injected first thing in the Reels auto scroller's check of whether to move on from the reel on
+     * screen, with the source of the viewer it scrolls. Answers 0, stay on this reel, while Play only
+     * the reel you opened covers that viewer, and 1, let Instagram decide, otherwise or when anything
+     * goes wrong. Never throws.
+     */
+    public static int autoScroll(Object source) {
+        return autoScroll(source, () -> Utils.settingsReady() && single(nameOf(source)));
+    }
+
+    static int autoScroll(Object source, BooleanSupplier held) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_SCROLLING);
+            return held.getAsBoolean() ? 0 : 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SCROLLING, AUTO_SCROLL, failure);
             return 1;
         }
     }
@@ -337,9 +385,30 @@ public final class ReelScrolling {
         return stopped(pager) || (Utils.settingsReady() && capped && Settings.REEL_CAP.get());
     }
 
-    /** Whether Stop Reels scrolling is holding this pager: it's on, and no switch lets its viewer's source through. */
+    /**
+     * Whether a switch holds this pager still for good: Stop Reels scrolling is on and no switch lets
+     * its viewer's source through, or Play only the reel you opened covers that source.
+     */
     private static boolean stopped(Object pager) {
-        return Utils.settingsReady() && Settings.STOP_REELS_SCROLLING.get() && !letThrough(PAGERS.get(pager));
+        if (!Utils.settingsReady()) return false;
+        String source = PAGERS.get(pager);
+        return (Settings.STOP_REELS_SCROLLING.get() && !letThrough(source)) || single(source);
+    }
+
+    /**
+     * Whether Play only the reel you opened covers a viewer opened from this source: a post on Home,
+     * a suggested reels unit there, or a chat while Swipe through a chat's reels is off. Asked once
+     * the settings are ready.
+     */
+    private static boolean single(String source) {
+        if (source == null || !Settings.PLAY_ONE_REEL.get()) return false;
+        if (FROM_CHAT.equals(source)) return !Settings.SWIPE_CHAT_REELS.get();
+        return source.startsWith(FROM_HOME) || FROM_SUGGESTED.contains(source);
+    }
+
+    /** The name of a viewer's source, whose constants keep their names through the build, or null. */
+    private static String nameOf(Object source) {
+        return source instanceof Enum ? ((Enum<?>) source).name() : null;
     }
 
     private static boolean letThrough(String source) {
@@ -352,14 +421,15 @@ public final class ReelScrolling {
     private static boolean pullStopped(Object layout) {
         if (!Utils.settingsReady()) return false;
         if (capped && Settings.REEL_CAP.get()) return true;
-        return Settings.STOP_REELS_SCROLLING.get() && !holdsPagerLetThrough(layout);
+        if (Settings.STOP_REELS_SCROLLING.get() && !holdsPager(layout, ReelScrolling::letThrough)) return true;
+        return Settings.PLAY_ONE_REEL.get() && holdsPager(layout, ReelScrolling::single);
     }
 
-    /** Whether a pager whose source is let through sits somewhere inside this pull-down layout. */
-    private static boolean holdsPagerLetThrough(Object layout) {
+    /** Whether a pager whose viewer's source [which] picks sits somewhere inside this pull-down layout. */
+    private static boolean holdsPager(Object layout, Predicate<String> which) {
         synchronized (PAGERS) {
             for (Map.Entry<Object, String> known : PAGERS.entrySet()) {
-                if (!letThrough(known.getValue()) || !(known.getKey() instanceof View)) continue;
+                if (!which.test(known.getValue()) || !(known.getKey() instanceof View)) continue;
                 for (ViewParent up = ((View) known.getKey()).getParent(); up != null; up = up.getParent()) {
                     if (up == layout) return true;
                 }

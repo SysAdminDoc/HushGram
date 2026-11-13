@@ -42,7 +42,8 @@ public class ReelScrollingTest {
 
     /** Stands in for ClipsViewerSource, whose constants the hook reads by name. */
     private enum Source {
-        CLIPS_TAB, CLIPS_TAB_HOMECOMING, DIRECT, FEED_TIMELINE,
+        CLIPS_TAB, CLIPS_TAB_HOMECOMING, DIRECT, FEED_TIMELINE, FEED_TIMELINE_FOLLOWING, FEED_TIMELINE_POST_TAP,
+        CLIPS_NETEGO, CLIPS_TRENDING_IN_FEED_UNIT,
         PROFILE, SELF_PROFILE, FEED_CONTEXTUAL_PROFILE, REPOSTS_GRID, TAGGED_MEDIA_VIEWER,
         EXPLORE_POPULAR_MAJOR_UNIT, EXPLORE_VIDEO_CHAINING, SERP_TOP_CLIPS_UNIT, KEYWORD, HASHTAG, LOCATION,
         SONG, AUDIO_PAGE_CHAIN, AUDIO_NETEGO_PAGE,
@@ -63,6 +64,8 @@ public class ReelScrollingTest {
     @After
     public void restore() {
         Settings.STOP_REELS_SCROLLING.resetToDefault();
+        Settings.PLAY_ONE_REEL.resetToDefault();
+        Settings.SWIPE_CHAT_REELS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         ReelScrolling.forget();
@@ -213,6 +216,135 @@ public class ReelScrollingTest {
         for (String part : new String[] {ReelScrolling.PAGER, ReelScrolling.INPUT, ReelScrolling.PULL}) {
             assertTrue(missing, missing.contains("'" + part + "'"));
         }
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
+
+    /** Sources Play only the reel you opened covers among those above: posts on Home, a chat and two suggested units. */
+    private static java.util.List<Source> playedAlone() {
+        return java.util.Arrays.asList(Source.FEED_TIMELINE, Source.FEED_TIMELINE_FOLLOWING, Source.FEED_TIMELINE_POST_TAP,
+                Source.DIRECT, Source.CLIPS_NETEGO, Source.CLIPS_TRENDING_IN_FEED_UNIT);
+    }
+
+    /** On its own, Play only the reel you opened holds viewers from Home, a chat and a suggested unit, swipe and auto scroll both, and nothing else. */
+    @Test
+    public void playOneReelHoldsViewersFromHomeChatsAndSuggestedUnits() {
+        Settings.STOP_REELS_SCROLLING.save(false);
+        Settings.PLAY_ONE_REEL.save(true);
+        for (Source source : Source.values()) {
+            Object pager = new Object();
+            int expected = playedAlone().contains(source) ? 0 : 1;
+            assertEquals(source + " at setup", expected, ReelScrolling.pager(pager, source));
+            assertEquals(source + " turned back on", expected, ReelScrolling.userInput(pager, 1));
+            assertEquals(source + " turned off stays off", 0, ReelScrolling.userInput(pager, 0));
+            assertEquals(source + " auto scroll", expected, ReelScrolling.autoScroll(source));
+        }
+        assertEquals("a source that couldn't be read", 1, ReelScrolling.pager(new Object(), null));
+        assertEquals("a source that isn't one", 1, ReelScrolling.pager(new Object(), "FEED_TIMELINE"));
+        assertEquals("auto scroll with no source", 1, ReelScrolling.autoScroll(null));
+        assertEquals("auto scroll with a source that isn't one", 1, ReelScrolling.autoScroll("DIRECT"));
+        assertTrue(String.join("\n", HookStatus.report()), HookStatus.report().toString().contains(FamilyNames.REEL_SCROLLING));
+    }
+
+    /** With Stop Reels scrolling on too, its let-through switches still free their own viewers and Play only the reel you opened still holds its own. */
+    @Test
+    public void playOneReelHoldsItsOwnViewersBesideTheStop() {
+        Settings.PLAY_ONE_REEL.save(true);
+        Settings.REEL_SCROLL_FROM_PROFILE.save(true);
+        try {
+            assertEquals("the Reels tab, stopped as before", 0, ReelScrolling.pager(new Object(), Source.CLIPS_TAB));
+            assertEquals("a profile, let through", 1, ReelScrolling.pager(new Object(), Source.PROFILE));
+            assertEquals("a post on Home", 0, ReelScrolling.pager(new Object(), Source.FEED_TIMELINE));
+
+            Settings.STOP_REELS_SCROLLING.save(false);
+            assertEquals("the Reels tab, the stop off", 1, ReelScrolling.pager(new Object(), Source.CLIPS_TAB));
+            assertEquals("a post on Home, the stop off", 0, ReelScrolling.pager(new Object(), Source.FEED_TIMELINE));
+        } finally {
+            Settings.REEL_SCROLL_FROM_PROFILE.resetToDefault();
+        }
+    }
+
+    /** Auto scroll in the Reels tab, or from a profile or Search, moves on as Instagram decides, whichever switches are on. */
+    @Test
+    public void theReelsTabsAutoScrollIsLeftAlone() {
+        Settings.PLAY_ONE_REEL.save(true);
+        for (Source source : new Source[] {Source.CLIPS_TAB, Source.CLIPS_TAB_HOMECOMING, Source.PROFILE, Source.HASHTAG, Source.SONG}) {
+            assertEquals(source + " with the stop on", 1, ReelScrolling.autoScroll(source));
+        }
+        Settings.PLAY_ONE_REEL.save(false);
+        for (Source source : playedAlone()) {
+            assertEquals(source + " with Play only the reel you opened off", 1, ReelScrolling.autoScroll(source));
+        }
+    }
+
+    /** With Swipe through a chat's reels on, a chat's viewer keeps its swipe and auto scroll, and the rest stay held. */
+    @Test
+    public void aChatsReelsKeepTheirSwipeWhileSwipeThroughAChatsReelsIsOn() {
+        Settings.STOP_REELS_SCROLLING.save(false);
+        Settings.PLAY_ONE_REEL.save(true);
+        Settings.SWIPE_CHAT_REELS.save(true);
+        Object chat = new Object();
+        assertEquals("a chat's viewer at setup", 1, ReelScrolling.pager(chat, Source.DIRECT));
+        assertEquals("a chat's viewer turned back on", 1, ReelScrolling.userInput(chat, 1));
+        assertEquals("a chat's auto scroll", 1, ReelScrolling.autoScroll(Source.DIRECT));
+        assertEquals("a post on Home", 0, ReelScrolling.pager(new Object(), Source.FEED_TIMELINE));
+        assertEquals("a suggested unit's auto scroll", 0, ReelScrolling.autoScroll(Source.CLIPS_NETEGO));
+
+        Settings.SWIPE_CHAT_REELS.save(false);
+        assertEquals("switched off, the chat's viewer is held", 0, ReelScrolling.userInput(chat, 1));
+        assertEquals("switched off, a chat's auto scroll is held", 0, ReelScrolling.autoScroll(Source.DIRECT));
+    }
+
+    /** The pull-down layout around a viewer Play only the reel you opened holds lets touches by, and the Reels tab's pulls. */
+    @Test
+    public void playOneReelPullsOnlyAroundItsOwnViewers() {
+        Settings.STOP_REELS_SCROLLING.save(false);
+        Settings.PLAY_ONE_REEL.save(true);
+        FrameLayout tab = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout home = new FrameLayout(RuntimeEnvironment.getApplication());
+        ReelScrolling.pager(inside(tab), Source.CLIPS_TAB);
+        ReelScrolling.pager(inside(home), Source.FEED_TIMELINE_POST_TAP);
+        assertEquals("the Reels tab's layout", 1, ReelScrolling.pull(tab));
+        assertEquals("the layout around a post on Home's viewer", 0, ReelScrolling.pull(home));
+        assertEquals("no layout", 1, ReelScrolling.pull(null));
+
+        Settings.PLAY_ONE_REEL.save(false);
+        assertEquals("switched off, it pulls again", 1, ReelScrolling.pull(home));
+    }
+
+    /** The switch starts off, and off, paused or asked before the settings are read, those viewers scroll and auto scroll as before. */
+    @Test
+    public void playOneReelOffPausedAndUnreadyHoldsNothing() {
+        Settings.STOP_REELS_SCROLLING.save(false);
+        assertEquals(Boolean.FALSE, Settings.PLAY_ONE_REEL.defaultValue);
+        assertPlayedAloneFree("off");
+
+        Settings.PLAY_ONE_REEL.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertPlayedAloneFree("paused");
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertPlayedAloneFree("unready"));
+
+        assertEquals("on again", 0, ReelScrolling.autoScroll(Source.FEED_TIMELINE));
+    }
+
+    private void assertPlayedAloneFree(String what) {
+        for (Source source : playedAlone()) {
+            Object pager = new Object();
+            assertEquals(what + ": " + source + " at setup", 1, ReelScrolling.pager(pager, source));
+            assertEquals(what + ": " + source + " turned back on", 1, ReelScrolling.userInput(pager, 1));
+            assertEquals(what + ": " + source + " auto scroll", 1, ReelScrolling.autoScroll(source));
+        }
+    }
+
+    /** An auto scroll check that throws lets Instagram decide and says which hook threw. */
+    @Test
+    public void aThrowingAutoScrollCheckLetsInstagramDecideAndIsReported() {
+        assertEquals(1, ReelScrolling.autoScroll(Source.FEED_TIMELINE, THROWS));
+        String missing = HookStatus.missing(FamilyNames.REEL_SCROLLING).toString();
+        assertTrue(missing, missing.contains("'" + ReelScrolling.AUTO_SCROLL + "'"));
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
     }
 

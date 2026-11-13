@@ -305,6 +305,9 @@ Still scroll reels from Search and Explore	從搜尋和探索開啟的 Reels 仍
 With Stop Reels scrolling on, reels you open from Search, Explore, a hashtag or a place still move on when you swipe.	開啟「停用 Reels 捲動」時，從搜尋、探索、主題標籤或地點開啟的 Reels 滑動時仍會切換。
 Still scroll reels from a song page	從歌曲頁面開啟的 Reels 仍可捲動
 With Stop Reels scrolling on, reels you open from a song or audio page still move on when you swipe.	開啟「停用 Reels 捲動」時，從歌曲或音訊頁面開啟的 Reels 滑動時仍會切換。
+# context: Reels page, a switch of its own after the three above (#656). It names the Messages page switch Swipe through a chat's reels by its label.
+Play only the reel you opened	只播放你開啟的 Reel
+A reel you open from a post on Home, a suggested reels row or a message plays on its own. Swiping, pulling down and auto scroll won't move on to another reel, so it plays again when it ends. The Reels tab scrolls as usual. With Swipe through a chat's reels on, a chat's reels still swipe.	從首頁貼文、推薦 Reels 列或訊息開啟的 Reel 只會播放這一則。滑動、下拉和自動捲動都不會切換到其他 Reel，所以播完會重新播放。Reels 分頁照常捲動。開啟「在聊天室的 Reels 之間滑動」時，聊天室的 Reels 仍可滑動.
 A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	在 Reels 滑動不再切換至下一則，下拉也不會載入新影片。已開啟的 Reel 仍會播放。請重新啟動 Instagram 以套用變更。
 Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	將 Reel 鎖定為 2 倍速（按住邊緣後向下滑動），之後的 Reels 也會以 2 倍速播放。滑動解除鎖定，或按住邊緣後放開，即可恢復正常速度。
 Open links in external browser	在外部瀏覽器中開啟連結
