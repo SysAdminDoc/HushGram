@@ -253,9 +253,9 @@ final class MessagesCategory {
                 messages.addPreference(page.hiddenChatsRow(context));
                 messages.addPreference(toggle(context, Settings.DOUBLE_TAP_HIDDEN_CHATS,
                         L10n.t("Double-tap Messages for hidden chats"),
-                        L10n.t("Two quick taps on the Messages button, on the tab bar or at the top of Home, open "
-                                + "your hidden chats. While a lock is on, it asks for it first. One tap opens Messages "
-                                + "as usual.")));
+                        L10n.t("Two quick taps on the Messages button, on the tab bar or at the top of Home, show "
+                                + "your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them "
+                                + "again. Long press a chat to hide or unhide it. One tap opens Messages as usual.")));
                 messages.addPreference(page.pinnedChatsRow(context));
             }
         }

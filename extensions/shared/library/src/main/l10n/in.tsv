@@ -981,7 +981,12 @@ Chat %1$s	Obrolan %1$s
 Hidden chats	Chat tersembunyi
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Sembunyikan chat satu per satu. Chat yang disembunyikan hilang dari kotak masuk dan notifikasinya tidak muncul sampai kamu menampilkannya lagi di sini.
 Double-tap Messages for hidden chats	Ketuk dua kali Pesan untuk chat tersembunyi
-Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	Dua ketukan cepat pada tombol Pesan, di bilah tab atau di atas Beranda, membuka chat tersembunyi Anda. Saat kunci aktif, kunci itu diminta lebih dulu. Satu ketukan membuka Pesan seperti biasa.
+Two quick taps on the Messages button, on the tab bar or at the top of Home, show your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them again. Long press a chat to hide or unhide it. One tap opens Messages as usual.	Dua ketukan cepat pada tombol Pesan, di bilah tab atau di atas Beranda, menampilkan chat tersembunyi Anda di kotak masuk setelah kunci layar atau PIN. Dua ketukan lagi menyembunyikannya kembali. Tekan lama sebuah chat untuk menyembunyikan atau menampilkannya. Satu ketukan membuka Pesan seperti biasa.
+# context: Hide chat and Unhide chat in a chat's long press menu in the inbox (#661), and the toasts when two quick taps on Messages show the hidden chats in the inbox or hide them again
+Hide chat	Sembunyikan chat
+Unhide chat	Tampilkan chat
+Showing your hidden chats	Menampilkan chat tersembunyi
+Hidden chats locked again	Chat tersembunyi dikunci lagi
 Open a chat in Instagram, then come back here to hide it.	Buka chat di Instagram, lalu kembali ke sini untuk menyembunyikannya.
 Pinned chats	Chat yang disematkan
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	Menjaga chat pilihanmu tetap di atas kotak masuk. Sematan hanya tersimpan di ponsel ini, dan chat lain tetap mengikuti urutan Instagram.

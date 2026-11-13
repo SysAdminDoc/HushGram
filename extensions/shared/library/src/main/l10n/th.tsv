@@ -972,7 +972,12 @@ Chat %1$s	แชท %1$s
 Hidden chats	แชทที่ซ่อนอยู่
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	ซ่อนแชทแต่ละรายการ แชทที่ซ่อนไว้จะถูกนำออกจากกล่องข้อความของคุณ และการแจ้งเตือนจะไม่แสดงจนกว่าคุณจะเลือกแสดงอีกครั้งที่นี่
 Double-tap Messages for hidden chats	แตะข้อความสองครั้งสำหรับแชทที่ซ่อนอยู่
-Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	แตะปุ่มข้อความเร็วๆ สองครั้ง บนแถบแท็บหรือที่ด้านบนของหน้าหลัก เพื่อเปิดแชทที่ซ่อนอยู่ หากเปิดการล็อคไว้ ระบบจะขอปลดล็อคก่อน การแตะครั้งเดียวจะเปิดข้อความตามปกติ
+Two quick taps on the Messages button, on the tab bar or at the top of Home, show your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them again. Long press a chat to hide or unhide it. One tap opens Messages as usual.	แตะปุ่มข้อความเร็วๆ สองครั้ง บนแถบแท็บหรือที่ด้านบนของหน้าหลัก เพื่อแสดงแชทที่ซ่อนอยู่ในกล่องข้อความหลังปลดล็อคหน้าจอหรือใส่ PIN แตะอีกสองครั้งเพื่อซ่อนอีกครั้ง กดแชทค้างไว้เพื่อซ่อนหรือเลิกซ่อน การแตะครั้งเดียวจะเปิดข้อความตามปกติ
+# context: Hide chat and Unhide chat in a chat's long press menu in the inbox (#661), and the toasts when two quick taps on Messages show the hidden chats in the inbox or hide them again
+Hide chat	ซ่อนแชท
+Unhide chat	เลิกซ่อนแชท
+Showing your hidden chats	กำลังแสดงแชทที่ซ่อนอยู่
+Hidden chats locked again	ล็อคแชทที่ซ่อนอีกครั้งแล้ว
 Open a chat in Instagram, then come back here to hide it.	เปิดแชทใน Instagram แล้วกลับมาที่นี่เพื่อซ่อนแชท
 Pinned chats	แชทที่ปักหมุดไว้
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	ตรึงแชทที่คุณเลือกไว้ที่ด้านบนสุดของกล่องข้อความ การปักหมุดจะมีผลเฉพาะบนโทรศัพท์เครื่องนี้ ส่วนแชทอื่นๆ ทั้งหมดจะเรียงตามลำดับเดิมของ Instagram

@@ -981,7 +981,12 @@ Chat %1$s	Chat %1$s
 Hidden chats	Chats ocultos
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Oculta chats uno por uno. Un chat oculto sale de tu bandeja de entrada y sus notificaciones no aparecen hasta que lo vuelvas a mostrar aquí.
 Double-tap Messages for hidden chats	Doble toque en Mensajes para los chats ocultos
-Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	Dos toques rápidos en el botón de Mensajes, en la barra de pestañas o arriba en Inicio, abren tus chats ocultos. Si hay un bloqueo activado, primero lo pide. Un toque abre Mensajes como siempre.
+Two quick taps on the Messages button, on the tab bar or at the top of Home, show your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them again. Long press a chat to hide or unhide it. One tap opens Messages as usual.	Dos toques rápidos en el botón de Mensajes, en la barra de pestañas o arriba en Inicio, muestran tus chats ocultos en la bandeja tras el bloqueo de pantalla o el PIN. Otros dos toques los vuelven a ocultar. Mantén pulsado un chat para ocultarlo o mostrarlo. Un toque abre Mensajes como siempre.
+# context: Hide chat and Unhide chat in a chat's long press menu in the inbox (#661), and the toasts when two quick taps on Messages show the hidden chats in the inbox or hide them again
+Hide chat	Ocultar chat
+Unhide chat	Mostrar chat
+Showing your hidden chats	Mostrando tus chats ocultos
+Hidden chats locked again	Chats ocultos bloqueados de nuevo
 Open a chat in Instagram, then come back here to hide it.	Abre un chat en Instagram y vuelve aquí para ocultarlo.
 Pinned chats	Chats fijados
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	Mantiene los chats que elijas arriba en tu bandeja. Los fijados se quedan en este teléfono y el resto de chats sigue el orden de Instagram.

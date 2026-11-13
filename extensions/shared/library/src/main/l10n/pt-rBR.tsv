@@ -981,7 +981,12 @@ Chat %1$s	Conversa %1$s
 Hidden chats	Chats ocultos
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Oculte chats um por um. Um chat oculto sai da sua caixa de entrada e as notificações dele não aparecem até você mostrá-lo de novo aqui.
 Double-tap Messages for hidden chats	Toque duplo em Mensagens para as conversas ocultas
-Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	Dois toques rápidos no botão de Mensagens, na barra de abas ou no topo do Início, abrem suas conversas ocultas. Com um bloqueio ativado, ele é pedido primeiro. Um toque abre Mensagens como sempre.
+Two quick taps on the Messages button, on the tab bar or at the top of Home, show your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them again. Long press a chat to hide or unhide it. One tap opens Messages as usual.	Dois toques rápidos no botão de Mensagens, na barra de abas ou no topo do Início, mostram suas conversas ocultas na caixa de entrada depois do bloqueio de tela ou do PIN. Mais dois toques as ocultam de novo. Mantenha uma conversa pressionada para ocultá-la ou mostrá-la. Um toque abre Mensagens como sempre.
+# context: Hide chat and Unhide chat in a chat's long press menu in the inbox (#661), and the toasts when two quick taps on Messages show the hidden chats in the inbox or hide them again
+Hide chat	Ocultar conversa
+Unhide chat	Mostrar conversa
+Showing your hidden chats	Mostrando suas conversas ocultas
+Hidden chats locked again	Conversas ocultas bloqueadas de novo
 Open a chat in Instagram, then come back here to hide it.	Abra um chat no Instagram e volte aqui para ocultá-lo.
 Pinned chats	Conversas fixadas
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	Mantém as conversas que você escolher no topo da caixa de entrada. As fixações ficam só neste celular e as outras conversas seguem a ordem do Instagram.

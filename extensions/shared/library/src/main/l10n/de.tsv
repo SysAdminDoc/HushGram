@@ -981,7 +981,12 @@ Chat %1$s	Chat %1$s
 Hidden chats	Versteckte Chats
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Einzelne Chats verstecken. Ein versteckter Chat verschwindet aus deinem Posteingang und seine Benachrichtigungen erscheinen nicht, bis du ihn hier wieder anzeigst.
 Double-tap Messages for hidden chats	Doppeltippen auf Nachrichten für versteckte Chats
-Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	Zwei schnelle Tipps auf die Nachrichten-Schaltfläche, in der Tab-Leiste oder oben auf der Startseite, öffnen deine versteckten Chats. Ist eine Sperre an, wird zuerst danach gefragt. Ein Tipp öffnet Nachrichten wie gewohnt.
+Two quick taps on the Messages button, on the tab bar or at the top of Home, show your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them again. Long press a chat to hide or unhide it. One tap opens Messages as usual.	Zwei schnelle Tipps auf die Nachrichten-Schaltfläche, in der Tab-Leiste oder oben auf der Startseite, zeigen deine versteckten Chats im Posteingang, nach deiner Displaysperre oder PIN. Zwei weitere Tipps verstecken sie wieder. Halte einen Chat gedrückt, um ihn zu verstecken oder wieder anzuzeigen. Ein Tipp öffnet Nachrichten wie gewohnt.
+# context: Hide chat and Unhide chat in a chat's long press menu in the inbox (#661), and the toasts when two quick taps on Messages show the hidden chats in the inbox or hide them again
+Hide chat	Chat verstecken
+Unhide chat	Chat wieder anzeigen
+Showing your hidden chats	Versteckte Chats werden angezeigt
+Hidden chats locked again	Versteckte Chats wieder gesperrt
 Open a chat in Instagram, then come back here to hide it.	Öffne einen Chat in Instagram und komm dann hierher zurück, um ihn zu verstecken.
 Pinned chats	Angepinnte Chats
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	Hält die gewählten Chats oben in deinem Posteingang. Die Pins bleiben auf diesem Handy, alle anderen Chats behalten die Reihenfolge von Instagram.

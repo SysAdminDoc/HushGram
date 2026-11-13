@@ -47,6 +47,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * ({@link #changed}): each inbox that drew its rows is handed Instagram's own list again without the
  * chats hidden now, and draws them again.
  *
+ * <p>Double-tap Messages shows the hidden chats in the inbox by themselves, after the phone's lock
+ * or the PIN ({@link #reveal}), until the next double tap or until you leave Instagram ({@link
+ * #conceal}) (#661). Search, the folder counts, the unread badge and pushes leave them out all along.
+ *
  * <p>Nothing here throws into Instagram. A list that can't be read hides nothing, and a summary
  * whose id can't be read stays in the inbox.
  */
@@ -91,7 +95,31 @@ public final class HiddenChats {
 
     static volatile Redrawer redrawer = HiddenChats::redraw;
 
+    /** The inbox shows the hidden chats, and only them, until {@link #conceal}. */
+    private static volatile boolean revealed;
+
     private HiddenChats() {
+    }
+
+    // ---------------------------------------------------------------- shown by a double tap
+
+    /** The inbox shows the hidden chats now, by themselves. */
+    public static boolean revealed() {
+        return revealed;
+    }
+
+    /** The inbox shows the hidden chats by themselves, until {@link #conceal}. */
+    static void reveal() {
+        revealed = true;
+        changedSoon();
+    }
+
+    /** The inbox goes back to every chat but the hidden ones. False when they weren't shown. */
+    static boolean conceal() {
+        if (!revealed) return false;
+        revealed = false;
+        changedSoon();
+        return true;
     }
 
     /**
@@ -119,13 +147,29 @@ public final class HiddenChats {
             HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
             Set<String> hidden = ids();
             List<String> pins = PinnedChats.ids();
-            remember(holder, summaries, hidden, pins);
+            boolean shown = revealed && !hidden.isEmpty();
+            remember(holder, summaries, hidden, pins, shown);
             if (summaries == null || summaries.isEmpty()) return summaries;
-            return PinnedChats.first(without(summaries, hidden, LEFT_OUT), pins);
+            return PinnedChats.first(shown ? only(summaries, hidden) : without(summaries, hidden, LEFT_OUT), pins);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, FILTER, t);
             return summaries;
         }
+    }
+
+    /** A new list of the summaries whose chats are [hidden], in their order. */
+    private static List<Object> only(List<Object> summaries, Set<String> hidden) {
+        ArrayList<Object> kept = new ArrayList<>();
+        for (Object summary : summaries) {
+            String id = idOf(summary);
+            if (id != null && hidden.contains(id)) kept.add(summary);
+        }
+        return kept;
+    }
+
+    /** What an inbox draws from [summaries]: the hidden chats alone while [shown], else every other chat, pins first. */
+    private static List<Object> drawnRows(List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
+        return PinnedChats.first(shown ? only(summaries, hidden) : without(summaries, hidden, null), pins);
     }
 
     /**
@@ -211,12 +255,15 @@ public final class HiddenChats {
         final List<Object> summaries;
         Set<String> hidden;
         List<String> pins;
+        /** It drew the hidden chats by themselves. */
+        boolean shown;
 
-        Drawn(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins) {
+        Drawn(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
             this.holder = new WeakReference<>(holder);
             this.summaries = summaries;
             this.hidden = hidden;
             this.pins = pins;
+            this.shown = shown;
         }
     }
 
@@ -228,14 +275,14 @@ public final class HiddenChats {
      * what it had. A null list forgets the holder. Nothing is kept while HushGram is paused or its
      * settings aren't ready, so nothing is drawn again then either.
      */
-    private static void remember(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins) {
+    private static void remember(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
         if (holder == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
         synchronized (drawn) {
             for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                 Object kept = it.next().holder.get();
                 if (kept == null || kept == holder) it.remove();
             }
-            if (summaries != null) drawn.add(new Drawn(holder, summaries, hidden, pins));
+            if (summaries != null) drawn.add(new Drawn(holder, summaries, hidden, pins, shown));
         }
     }
 
@@ -256,6 +303,7 @@ public final class HiddenChats {
                 if (drawn.isEmpty()) return;
                 Set<String> now = ids();
                 List<String> nowPins = PinnedChats.ids();
+                boolean nowShown = revealed && !now.isEmpty();
                 for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                     Drawn one = it.next();
                     Object holder = one.holder.get();
@@ -263,11 +311,12 @@ public final class HiddenChats {
                         it.remove();
                         continue;
                     }
-                    if (one.hidden.equals(now) && one.pins.equals(nowPins)) continue;
-                    List<Object> before = PinnedChats.first(without(one.summaries, one.hidden, null), one.pins);
-                    List<Object> after = PinnedChats.first(without(one.summaries, now, null), nowPins);
+                    if (one.hidden.equals(now) && one.pins.equals(nowPins) && one.shown == nowShown) continue;
+                    List<Object> before = drawnRows(one.summaries, one.hidden, one.pins, one.shown);
+                    List<Object> after = drawnRows(one.summaries, now, nowPins, nowShown);
                     one.hidden = now;
                     one.pins = nowPins;
+                    one.shown = nowShown;
                     if (sameRows(before, after)) continue;
                     holders.add(holder);
                     lists.add(after);
@@ -667,6 +716,7 @@ public final class HiddenChats {
         searchReader = HiddenChats::targetThreadId;
         redrawer = HiddenChats::redraw;
         parsed = null;
+        revealed = false;
         synchronized (drawn) {
             drawn.clear();
         }

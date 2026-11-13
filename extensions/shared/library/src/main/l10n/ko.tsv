@@ -980,7 +980,12 @@ Chat %1$s	채팅 %1$s
 Hidden chats	숨긴 채팅
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	채팅을 하나씩 숨깁니다. 숨긴 채팅은 받은 메시지함에서 사라지고, 여기서 다시 표시하기 전까지 알림도 울리지 않습니다.
 Double-tap Messages for hidden chats	메시지를 두 번 탭해 숨긴 채팅 열기
-Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	탭 바나 홈 상단의 메시지 버튼을 빠르게 두 번 탭하면 숨긴 채팅이 열립니다. 잠금이 켜져 있으면 먼저 잠금을 확인합니다. 한 번 탭하면 평소처럼 메시지가 열립니다.
+Two quick taps on the Messages button, on the tab bar or at the top of Home, show your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them again. Long press a chat to hide or unhide it. One tap opens Messages as usual.	탭 바나 홈 상단의 메시지 버튼을 빠르게 두 번 탭하면 화면 잠금이나 PIN을 확인한 뒤 받은 메시지함에 숨긴 채팅이 표시됩니다. 다시 두 번 탭하면 다시 숨겨집니다. 채팅을 길게 누르면 숨기거나 다시 표시할 수 있습니다. 한 번 탭하면 평소처럼 메시지가 열립니다.
+# context: Hide chat and Unhide chat in a chat's long press menu in the inbox (#661), and the toasts when two quick taps on Messages show the hidden chats in the inbox or hide them again
+Hide chat	채팅 숨기기
+Unhide chat	채팅 숨기기 해제
+Showing your hidden chats	숨긴 채팅을 표시합니다
+Hidden chats locked again	숨긴 채팅을 다시 잠갔습니다
 Open a chat in Instagram, then come back here to hide it.	Instagram에서 채팅을 연 다음 이곳으로 돌아와 숨기세요.
 Pinned chats	고정한 채팅
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	고른 채팅을 받은 메시지함 맨 위에 둡니다. 고정은 이 휴대폰에만 저장되고, 나머지 채팅은 Instagram의 순서를 따릅니다.

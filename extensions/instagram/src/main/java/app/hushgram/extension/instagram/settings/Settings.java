@@ -851,9 +851,11 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_pinned_chats", "", false, false);
 
     /**
-     * Two quick taps on Messages' button, on the tab bar or at the top of Home, open the list of
-     * hidden chats over Instagram, after the phone's lock while a messages lock is on
-     * ({@link app.hushgram.extension.instagram.direct.HiddenChatsTap}, #358). Off to start.
+     * Two quick taps on Messages' button, on the tab bar or at the top of Home, show the hidden chats
+     * by themselves in the inbox after the phone's lock or the PIN, and two more hide them again
+     * ({@link app.hushgram.extension.instagram.direct.HiddenChatsTap}, #358, #661). It also puts Hide
+     * chat and Unhide chat in a chat's long press menu
+     * ({@link app.hushgram.extension.instagram.direct.HiddenChatsMenu}). Off to start.
      */
     public static final BooleanSetting DOUBLE_TAP_HIDDEN_CHATS =
             new BooleanSetting("hushgram_double_tap_hidden_chats", FALSE);

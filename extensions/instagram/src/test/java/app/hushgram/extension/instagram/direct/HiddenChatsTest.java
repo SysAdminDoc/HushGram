@@ -658,6 +658,49 @@ public class HiddenChatsTest {
         assertEquals(2, HiddenChats.keptForTests());
     }
 
+    @Test
+    public void revealingShowsTheHiddenChatsAloneAndConcealingPutsTheInboxBack() {
+        HiddenChats.add(ALICE, "Alice");
+        HiddenChats.add(BOB, "Bob");
+        Object inbox = new Object();
+        List<Object> instagrams = Collections.unmodifiableList(list("7", BOB, "8", ALICE));
+        assertEquals(Arrays.asList("7", "8"), ids(HiddenChats.inbox(inbox, instagrams)));
+        assertFalse(HiddenChats.revealed());
+
+        HiddenChats.reveal();
+
+        assertTrue(HiddenChats.revealed());
+        assertEquals("drawn again at once with the hidden chats alone", 1, redrawn.size());
+        assertSame(inbox, redrawn.get(0)[0]);
+        assertEquals("in Instagram's order", Arrays.asList(BOB, ALICE), ids(rows(0)));
+        assertEquals("the next list is the hidden chats too", Arrays.asList(ALICE), ids(HiddenChats.inbox(inbox, list("9", ALICE))));
+        assertEquals("Instagram's own list is untouched", Arrays.asList("7", BOB, "8", ALICE), ids(instagrams));
+
+        assertTrue(HiddenChats.conceal());
+
+        assertFalse(HiddenChats.revealed());
+        assertEquals(2, redrawn.size());
+        assertEquals("every other chat again", Arrays.asList("9"), ids(rows(1)));
+        assertFalse("nothing to conceal twice", HiddenChats.conceal());
+        assertEquals(2, redrawn.size());
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+    }
+
+    @Test
+    public void revealedWithNothingHiddenLeavesInstagramsListAndTheLockConcealsThem() {
+        List<Object> instagrams = list(ALICE, BOB);
+        HiddenChats.reveal();
+        assertSame("nothing hidden, so Instagram's own list", instagrams, HiddenChats.inbox(null, instagrams));
+
+        HiddenChats.add(ALICE, "Alice");
+        assertEquals(Arrays.asList(ALICE), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
+
+        MessagesLockForTests.leave();
+
+        assertFalse("leaving Instagram hides them again", HiddenChats.revealed());
+        assertEquals(Arrays.asList(BOB), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
+    }
+
     /** The list the inbox was asked to draw its rows from the [n]th time. */
     @SuppressWarnings("unchecked")
     private List<Object> rows(int n) {

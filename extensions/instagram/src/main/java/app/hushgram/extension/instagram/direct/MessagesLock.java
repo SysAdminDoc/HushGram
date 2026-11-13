@@ -361,6 +361,14 @@ public final class MessagesLock {
     }
 
     /**
+     * Runs [then] after the phone's lock or the PIN confirms it's you, every time and whether or not
+     * a messages lock is on: the hidden chats come back into the inbox through here (#661).
+     */
+    static void confirmRevealThen(Activity activity, Runnable then) {
+        ask(activity, then);
+    }
+
+    /**
      * Runs [then] after the HushGram PIN is entered, every time, when a PIN is what unlocks the
      * messages: a setting that weakens a lock (switching a lock off, changing the PIN or how to
      * unlock) never takes the shortcut of an open session, and never the phone's lock. With no PIN
@@ -652,6 +660,7 @@ public final class MessagesLock {
         }
         leftAt = 0;
         relock(askedAt == 0);
+        HiddenChats.conceal();
     }
 
     /** Away longer than Lock again allows: locked, even before Instagram comes back. */
@@ -660,6 +669,7 @@ public final class MessagesLock {
         if (!open || since == 0 || SystemClock.elapsedRealtime() - since < lockDelay()) return;
         leftAt = 0;
         relock(askedAt == 0);
+        HiddenChats.conceal();
     }
 
     /** The next look at the messages asks again, and what the shade shows of them goes now. */

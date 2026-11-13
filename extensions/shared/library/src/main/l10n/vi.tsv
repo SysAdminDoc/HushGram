@@ -964,7 +964,12 @@ Chat %1$s	Cuộc trò chuyện %1$s
 Hidden chats	Cuộc trò chuyện đã ẩn
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Ẩn từng cuộc trò chuyện. Cuộc trò chuyện đã ẩn rời khỏi hộp thư và thông báo của nó không hiện cho đến khi bạn hiện lại ở đây.
 Double-tap Messages for hidden chats	Nhấn đúp Tin nhắn để vào cuộc trò chuyện đã ẩn
-Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	Hai lần nhấn nhanh vào nút Tin nhắn, trên thanh tab hoặc ở đầu trang chủ, sẽ mở các cuộc trò chuyện đã ẩn. Khi đang bật khóa, sẽ yêu cầu khóa trước. Một lần nhấn vẫn mở Tin nhắn như thường.
+Two quick taps on the Messages button, on the tab bar or at the top of Home, show your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them again. Long press a chat to hide or unhide it. One tap opens Messages as usual.	Hai lần nhấn nhanh vào nút Tin nhắn, trên thanh tab hoặc ở đầu trang chủ, sẽ hiện các cuộc trò chuyện đã ẩn trong hộp thư sau khi mở khóa màn hình hoặc nhập PIN. Nhấn thêm hai lần để ẩn lại. Nhấn giữ một cuộc trò chuyện để ẩn hoặc bỏ ẩn. Một lần nhấn vẫn mở Tin nhắn như thường.
+# context: Hide chat and Unhide chat in a chat's long press menu in the inbox (#661), and the toasts when two quick taps on Messages show the hidden chats in the inbox or hide them again
+Hide chat	Ẩn cuộc trò chuyện
+Unhide chat	Bỏ ẩn cuộc trò chuyện
+Showing your hidden chats	Đang hiện cuộc trò chuyện đã ẩn
+Hidden chats locked again	Đã khóa lại cuộc trò chuyện ẩn
 Open a chat in Instagram, then come back here to hide it.	Hãy mở một cuộc trò chuyện trong Instagram rồi quay lại đây để ẩn.
 Pinned chats	Cuộc trò chuyện đã ghim
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	Giữ các cuộc trò chuyện bạn chọn ở đầu hộp thư. Các ghim ở lại trên điện thoại này và thứ tự của Instagram vẫn áp dụng cho mọi cuộc trò chuyện khác.

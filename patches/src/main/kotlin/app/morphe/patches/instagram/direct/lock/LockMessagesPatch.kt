@@ -95,6 +95,7 @@ val lockMessagesPatch = bytecodePatch(
         val search = findSearchTargets()
         val recents = findRecentTargets()
         val touch = findHiddenChatsTouch()
+        val menu = findHiddenChatMenuOrSkip()
         hideNotificationText(targets.notify)
         hideDirectPosts(posts)
         holdBanner(targets.banner)
@@ -104,6 +105,7 @@ val lockMessagesPatch = bytecodePatch(
         hideChatsFromSearch(search)
         hideChatsFromRecents(recents)
         hookHiddenChatsTouch(touch)
+        menu?.let(::hookHiddenChatMenu)
         enableStatus("messagesLock")
     }
 }

@@ -15,6 +15,7 @@ import java.util.function.Consumer;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.HushgramPreferenceFragment;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -26,8 +27,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * bar's {@link #DIRECT_TAB} or the {@link #HEADER_INBOX} at the top of Home, goes on to Instagram as
  * usual and opens Messages. A second tap close to it within the double-tap time is kept from
  * Instagram, down to its last event, since by then Messages is open and something else may sit under
- * the finger (the header button's spot is New message there). When that finger comes up, the list of
- * hidden chats opens over Instagram, after the phone's lock while a messages lock is on.
+ * the finger (the header button's spot is New message there). When that finger comes up, the inbox
+ * shows the hidden chats by themselves after the phone's lock or the PIN, and the next double tap
+ * hides them again ({@link #toggle}, #661).
  *
  * <p>Anything else is only read: a scroll, a long press, a second finger or a slow second tap goes to
  * Instagram exactly as it was. Main thread only.
@@ -173,15 +175,35 @@ public final class HiddenChatsTap {
         return x >= at[0] && x < at[0] + button.getWidth() && y >= at[1] && y < at[1] + button.getHeight();
     }
 
-    /** Opens the list once the touch is through, asking the lock first while one is on. */
+    /** Once the touch is through, {@link #toggle}. */
     private static void open(Activity activity) {
         activity.getWindow().getDecorView().post(() -> {
             try {
                 if (activity.isFinishing() || activity.isDestroyed()) return;
-                MessagesLock.confirmHiddenThen(activity, () -> HushgramPreferenceFragment.showHiddenChatsOver(activity));
+                toggle(activity);
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.MESSAGES_LOCK, "hidden chats tap", failure);
             }
+        });
+    }
+
+    /**
+     * The hidden chats leave the inbox again when it shows them (#661). Otherwise, with none hidden
+     * on the account in front, the list of hidden chats opens, which says how to hide one. With some,
+     * the inbox shows them by themselves once the phone's lock or the PIN says it's you.
+     */
+    static void toggle(Activity activity) {
+        if (HiddenChats.conceal()) {
+            Utils.showToastShort(L10n.t("Hidden chats locked again"));
+            return;
+        }
+        if (HiddenChats.saved().isEmpty()) {
+            MessagesLock.confirmHiddenThen(activity, () -> HushgramPreferenceFragment.showHiddenChatsOver(activity));
+            return;
+        }
+        MessagesLock.confirmRevealThen(activity, () -> {
+            HiddenChats.reveal();
+            Utils.showToastShort(L10n.t("Showing your hidden chats"));
         });
     }
 

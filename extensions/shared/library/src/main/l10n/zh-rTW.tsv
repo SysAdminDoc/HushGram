@@ -973,7 +973,12 @@ Chat %1$s	聊天 %1$s
 Hidden chats	已隱藏的聊天
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	隱藏個別聊天。隱藏的聊天會從收件匣移除，也不會發出通知，直到你在此重新顯示。
 Double-tap Messages for hidden chats	點兩下訊息開啟隱藏的聊天
-Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	在分頁列或首頁頂端的訊息按鈕上快速點兩下，就會開啟你隱藏的聊天。開啟鎖定時會先要求解鎖。點一下則照常開啟訊息。
+Two quick taps on the Messages button, on the tab bar or at the top of Home, show your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them again. Long press a chat to hide or unhide it. One tap opens Messages as usual.	在分頁列或首頁頂端的訊息按鈕上快速點兩下，通過螢幕鎖定或 PIN 後，收件匣會顯示你隱藏的聊天。再點兩下即可重新隱藏。長按聊天可以隱藏或取消隱藏。點一下則照常開啟訊息。
+# context: Hide chat and Unhide chat in a chat's long press menu in the inbox (#661), and the toasts when two quick taps on Messages show the hidden chats in the inbox or hide them again
+Hide chat	隱藏聊天
+Unhide chat	取消隱藏聊天
+Showing your hidden chats	正在顯示隱藏的聊天
+Hidden chats locked again	已重新鎖定隱藏的聊天
 Open a chat in Instagram, then come back here to hide it.	先在 Instagram 開啟聊天，再回到此處隱藏。
 Pinned chats	已釘選的聊天
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	把你挑選的聊天固定在收件匣最上方。釘選只存在這支手機上，其他聊天仍依 Instagram 的順序排列。

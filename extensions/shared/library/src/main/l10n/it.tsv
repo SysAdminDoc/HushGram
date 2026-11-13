@@ -981,7 +981,12 @@ Chat %1$s	Chat %1$s
 Hidden chats	Chat nascoste
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Nascondi singole chat. Una chat nascosta lascia la tua posta in arrivo e le sue notifiche non compaiono finché non la mostri di nuovo qui.
 Double-tap Messages for hidden chats	Doppio tocco su Messaggi per le chat nascoste
-Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	Due tocchi veloci sul pulsante Messaggi, nella barra delle schede o in cima alla Home, aprono le tue chat nascoste. Se è attivo un blocco, lo chiede prima. Un tocco apre Messaggi come al solito.
+Two quick taps on the Messages button, on the tab bar or at the top of Home, show your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them again. Long press a chat to hide or unhide it. One tap opens Messages as usual.	Due tocchi veloci sul pulsante Messaggi, nella barra delle schede o in cima alla Home, mostrano le tue chat nascoste nella posta in arrivo dopo il blocco schermo o il PIN. Altri due tocchi le nascondono di nuovo. Tieni premuta una chat per nasconderla o mostrarla. Un tocco apre Messaggi come al solito.
+# context: Hide chat and Unhide chat in a chat's long press menu in the inbox (#661), and the toasts when two quick taps on Messages show the hidden chats in the inbox or hide them again
+Hide chat	Nascondi chat
+Unhide chat	Mostra chat
+Showing your hidden chats	Chat nascoste visibili
+Hidden chats locked again	Chat nascoste di nuovo bloccate
 Open a chat in Instagram, then come back here to hide it.	Apri una chat in Instagram, poi torna qui per nasconderla.
 Pinned chats	Chat fissate
 Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	Tiene in alto nella posta in arrivo le chat che scegli. Le chat fissate restano su questo telefono e le altre seguono l'ordine di Instagram.
