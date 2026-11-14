@@ -20,6 +20,10 @@ Every HushGram release, newest first.
 * `Swipe left for Messages`, new under Feed, opens Messages when you swipe left across Home, the way Instagram used to. Carousels and the stories row still slide as before. It starts off. Asked for in #639.
 * `Hide links`, new with the other profile banner switches under Profiles, takes the row of links (a website or a business's links) from under the bio on other people's profiles. Yours keeps it. Asked for in #627.
 * `Send saved GIFs as GIFs`, new under Comments, posts a GIF you saved with `Save comment photo` as a GIF when you pick it from your gallery in a comment. Instagram sent it as a still. Asked for in #402.
+* `Hide Blend in chats` and `Hide the back button in chats`, new under Messages, take those buttons off a chat's top bar. Swiping back still leaves the chat. Asked for in #688.
+* `Top bar tint in chats` and `Message bar tint`, new under `Glass in chats`, set how dark each glass bar is, from 0% (blur only) to 150%. The tab bar keeps its own tint. Asked for in #688.
+* `Header text font` picks bold, regular, serif, script, monospace or your `Font` choice for the words on Home's header, and `Center the header text` puts them in the middle of the screen. Asked for in #688.
+* `Text size`, new under `Font`, sets Instagram's text anywhere from 70% to 200% of the phone's size, in any font. Asked for in #682.
 
 ### Bug Fixes
 
@@ -33,7 +37,7 @@ Every HushGram release, newest first.
 * With `See-through top bar` on, the frosted strip behind the status bar fades out into Home's feed once the top bar slides away. It ended in a hard line. Reported in #450.
 * With `Page dots on a pill` and `Peek at the next carousel page` on, the pill stays at one height under a square or tall carousel's pages. It jumped up whenever you swiped to a video. Reported in #450.
 * With `Glass tab bar` on, tapping a reel's More button or audio square right above the seek bar opens it again instead of seeking. Only a press on the bar itself goes to the seek bar now.
-* With `Keep playing in the background` on, a video story that ends while Instagram is in the background moves on to the next story and plays it. It used to stop there with nothing playing. Only one story plays at a time, and a story you paused stays paused. Reported in #497.
+* With `Keep playing in the background` on, a video story that ends while Instagram is hidden plays the next story instead of stopping. Only one story plays at a time, and one you paused stays paused. Reported in #497.
 * `Hide lives in Reels` also catches the lives Instagram adds to the Reels tab after a page has loaded, so they stop turning up between reels. Reported in #566.
 * Tapping Stop on the background playback notification lets the video's player go once. If Instagram let it go during Stop's pause, HushGram let it go a second time.
 * With `Keep playing in the background` on, a reel that hands over to the next one while Instagram is hidden lets go of the old player right away. The new one keeps playing.
@@ -44,6 +48,12 @@ Every HushGram release, newest first.
 * With a floating `Glass tab bar` and three-button navigation, the pill stays above the buttons when you come back to Instagram from another screen. It could sink down into the navigation bar and stay there.
 * Opening `Pause and diagnostics` on its own page no longer freezes Instagram. It hung whenever HushGram wasn't paused or locked.
 * With `Pure black` and `Classic colors` or `Backgrounds in the accent color` both on in dark mode, the rows in a post's Likes list match the sheet behind them. They stayed black. Reported in #639.
+* With `Lock your messages` on, `Double-tap Messages for hidden chats` works on the first try after Instagram starts. The lock dropped the second check, so the inbox opened with your hidden chats still hidden. Reported in #661.
+* With `Hide the search bar` and `Hide group buttons` both on, the share sheet no longer leaves an empty band between its handle and the people grid. Reported in #685.
+* With `Keep Home's top bar` on, the stories tray stays in the feed and scrolls away with your posts instead of sticking under the bar. Reported in #677.
+* `Seek bar shape` keeps its own size on a `Thicker story progress bar`, the story bar glides while a video plays instead of stepping, and Instagram's own reel bar takes the shape too. Reported in #689.
+* `Haptic strength` keeps growing past 150%, up to a long full-strength tap at 200%. Before, everything past 100% felt the same. Reported in #689.
+* New switches show their blue dot again, right before the "i" that holds their description. Reported in #689.
 
 ## 0.0.20 (2026-11-12)
 
