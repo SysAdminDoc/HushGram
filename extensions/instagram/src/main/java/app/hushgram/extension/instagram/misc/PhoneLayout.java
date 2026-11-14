@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.misc;
 
+import android.content.Context;
+
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -33,6 +35,12 @@ public final class PhoneLayout {
 
     /** The step a failed switch read is reported under. */
     static final String SWITCH = "switch read";
+
+    /** The feature Instagram checks for to decide the phone is a foldable. */
+    static final String HINGE_FEATURE = "android.hardware.sensor.hinge_angle";
+
+    /** Whether the phone has {@link #HINGE_FEATURE}, once read. */
+    private static volatile Boolean hinge;
 
     private static volatile boolean loggedWidth;
     private static volatile boolean loggedFoldable;
@@ -90,10 +98,31 @@ public final class PhoneLayout {
     }
 
     /**
-     * The switch, or the Glass tab bar: the glass is drawn on the tab bar along the bottom, and the big
-     * screen layout has only the rail down the side, so with the rail the glass never showed on a tablet (#582).
+     * The switch, or the Glass tab bar on a tablet: the glass is drawn on the tab bar along the bottom, and
+     * the big screen layout has only the rail down the side, so with the rail the glass never showed on a
+     * tablet (#582). A foldable keeps Instagram's big screen layout opened up, glass or not, since that's what
+     * it's unfolded for and the stretched phone layout looked broken there (#695). The switch still keeps the
+     * phone layout on a foldable too.
      */
     private static boolean switchedOn() {
-        return Utils.settingsReady() && (Settings.PHONE_LAYOUT.get() || Settings.GLASS_TAB_BAR.get());
+        if (!Utils.settingsReady()) return false;
+        if (Settings.PHONE_LAYOUT.get()) return true;
+        return Settings.GLASS_TAB_BAR.get() && !hinged();
+    }
+
+    /** Whether the phone has a hinge sensor, the way Instagram itself tells a foldable. Read once. */
+    private static boolean hinged() {
+        Boolean known = hinge;
+        if (known != null) return known;
+        Context context = Utils.getContext();
+        if (context == null) return false;
+        boolean read = context.getPackageManager().hasSystemFeature(HINGE_FEATURE);
+        hinge = read;
+        return read;
+    }
+
+    /** Lets a test give the phone a hinge, or take it away, after the first read. */
+    static void forgetHingeForTests() {
+        hinge = null;
     }
 }

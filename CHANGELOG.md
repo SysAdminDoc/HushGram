@@ -62,6 +62,7 @@ Every HushGram release, newest first.
 * New switches show their blue dot again, right before the "i" that holds their description. Reported in #689.
 * `Ambient light` now fills the black bands around a reel you open from a profile or the Reels tab, not just a strip as wide as the spread. Reported in #689.
 * `Find the reel you came from` works with `Keep the tab bar on a reel's profile` on. A profile opened on the tab never started the search, so the grid just stayed at the top. Reported in #693.
+* A foldable's inner screen gets Instagram's own big screen layout again with `Glass tab bar` on, instead of the phone layout stretched across it. Tablets keep the phone layout so the glass still shows. Turn on `Phone layout on big screens` if you'd rather have it on a fold too. Reported in #695.
 
 ## 0.0.20 (2026-11-12)
 

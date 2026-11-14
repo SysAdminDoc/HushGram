@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.misc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
 import org.junit.After;
 import org.junit.Before;
@@ -14,6 +15,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.util.function.BooleanSupplier;
@@ -41,11 +43,13 @@ public class PhoneLayoutTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.PHONE_LAYOUT.save(true);
+        PhoneLayout.forgetHingeForTests();
         HookStatus.clear();
     }
 
     @After
     public void restore() {
+        PhoneLayout.forgetHingeForTests();
         Settings.PHONE_LAYOUT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -81,6 +85,31 @@ public class PhoneLayoutTest {
         }
         assertEquals(1280, PhoneLayout.width(1280));
         assertTrue(PhoneLayout.foldable(1));
+    }
+
+    /**
+     * Opened up, a foldable keeps Instagram's big screen layout with the glass on, where the phone layout
+     * stretched across the inner screen (#695). The switch still keeps the phone layout there.
+     */
+    @Test
+    public void theGlassTabBarLeavesAFoldablesBigScreenLayout() {
+        Settings.PHONE_LAYOUT.resetToDefault();
+        Settings.GLASS_TAB_BAR.save(true);
+        shadowOf(RuntimeEnvironment.getApplication().getPackageManager())
+                .setSystemFeature(PhoneLayout.HINGE_FEATURE, true);
+        try {
+            assertEquals(673, PhoneLayout.width(673));
+            assertTrue(PhoneLayout.foldable(1));
+            assertEquals(411, PhoneLayout.width(411));
+
+            Settings.PHONE_LAYOUT.save(true);
+            assertEquals(PhoneLayout.PHONE_WIDTH, PhoneLayout.width(673));
+            assertFalse(PhoneLayout.foldable(1));
+        } finally {
+            Settings.GLASS_TAB_BAR.resetToDefault();
+        }
+        assertTrue(HookStatus.missing(FamilyNames.PHONE_LAYOUT).toString(),
+                HookStatus.missing(FamilyNames.PHONE_LAYOUT).isEmpty());
     }
 
     @Test
