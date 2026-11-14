@@ -30,7 +30,9 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
@@ -69,7 +71,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * (ProfileMediaTabFragment), from the patch's call first in its onResume, while the Reels tab leaves
  * it alone. The posts grid's arguments name which of the profile's grids it is but not whose, so the
  * first main posts grid resumed in the profile's activity is taken as the author's, and another one
- * resumed there later, a profile reached from it, is left alone. A video reel is looked for in the
+ * resumed there later, a profile reached from it, is left alone. 454 names a posts tile by nothing
+ * the search can match, so the patch also calls {@link #postsTileBound} first in the grid's tile
+ * binder, and while a photo reel is held each tile is named by its media's id (#689). A video reel is looked for in the
  * Reels tab alone, as before, and so is any reel while the media type can't be read.
  *
  * <p>A trial reel, which Instagram shows to people who don't follow its poster, isn't on the
@@ -116,6 +120,7 @@ public final class ReelOrigin {
     static final String OPENING = "profile opened from a reel";
     static final String RESUME = "reels tab resumed";
     static final String POSTS_RESUME = "posts grid resumed";
+    static final String TILE_BOUND = "posts tile bound";
     static final String LOOK = "looking for the reel";
     static final String WATCH = "profile screen watched";
     /** Counted when a reel's id is held, found in the grid, not found, and when the tab was left first. */
@@ -144,6 +149,8 @@ public final class ReelOrigin {
     static final String OTHER_PROFILE = "other profile's tab";
     /** Counted when the reel tapped is a trial reel, which isn't on the profile, so nothing is held. */
     static final String TRIAL = "trial reel, not looked for";
+    /** Counted when a posts tile is named by its media's id while a photo reel is held. */
+    static final String TILE_NAMED = "posts tile named";
     /** How many reels or posts Instagram pins to the top of a profile's grid at most, older ones as likely as not. */
     static final int PINNED_MAX = 3;
 
@@ -204,6 +211,10 @@ public final class ReelOrigin {
     private static Look looking;
     /** View's computeVerticalScrollOffset, read once. */
     private static Method scrollOffset;
+    /** The id of the media each posts tile was last bound to while a photo reel was held, by tile. */
+    private static final Map<View, String> TILE_IDS = new WeakHashMap<>();
+    /** Media's getId, read once. */
+    private static Method getId;
 
     private ReelOrigin() {
     }
@@ -359,6 +370,36 @@ public final class ReelOrigin {
     }
 
     /**
+     * Called first in the posts grid's tile binder with the tile and its media. While a photo reel
+     * is held, the tile is named by the media's id, since 454 gives a posts tile no name the search
+     * can match (#689); otherwise any name it had is dropped. Never throws.
+     */
+    public static void postsTileBound(Object tile, Object media) {
+        postsTileBound(tile, media, ReelOrigin::switchedOn);
+    }
+
+    static void postsTileBound(Object tile, Object media, BooleanSupplier on) {
+        try {
+            if (!(tile instanceof View)) return;
+            boolean wanted;
+            synchronized (LOCK) {
+                wanted = held != null && heldPhoto;
+            }
+            String id = wanted && media != null && on.getAsBoolean() ? mediaId(media) : null;
+            synchronized (TILE_IDS) {
+                if (id == null || id.isEmpty()) {
+                    TILE_IDS.remove(tile);
+                    return;
+                }
+                TILE_IDS.put((View) tile, id);
+            }
+            HookStatus.counted(FamilyNames.REEL_ORIGIN, TILE_NAMED);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_ORIGIN, TILE_BOUND, failure);
+        }
+    }
+
+    /**
      * Whether a photo reel held is to be looked for in [grid], the profile's first main posts grid,
      * so Profile posts as a list leaves the grid up instead of opening its first post. Never throws.
      */
@@ -418,6 +459,9 @@ public final class ReelOrigin {
             host = null;
             postsGrid = null;
             stopLooking();
+            synchronized (TILE_IDS) {
+                TILE_IDS.clear();
+            }
             if (watched != null) {
                 watched.unregisterActivityLifecycleCallbacks(WATCHER);
                 watched = null;
@@ -714,9 +758,21 @@ public final class ReelOrigin {
         }
     }
 
+    /**
+     * What [view] is named by: the transition name Instagram gives a Reels tile, or else the id of the
+     * media a posts tile was bound to while a photo reel was held, or null.
+     */
+    static String nameOf(View view) {
+        String name = view.getTransitionName();
+        if (name != null && !name.isEmpty()) return name;
+        synchronized (TILE_IDS) {
+            return TILE_IDS.get(view);
+        }
+    }
+
     /** The first view under [view] Instagram named for the reel, or null while none is bound. */
     static View tile(View view, String id) {
-        if (matches(view.getTransitionName(), id)) return view;
+        if (matches(nameOf(view), id)) return view;
         if (!(view instanceof ViewGroup)) return null;
         ViewGroup group = (ViewGroup) view;
         for (int i = 0; i < group.getChildCount(); i++) {
@@ -746,7 +802,7 @@ public final class ReelOrigin {
      */
     static int sortTiles(View view, String number, Set<String> older) {
         int newer = 0;
-        String name = view.getTransitionName();
+        String name = nameOf(view);
         String own = name == null || name.isEmpty() ? null : reelNumber(name);
         if (own != null) {
             if (olderThan(own, number)) {
@@ -787,7 +843,7 @@ public final class ReelOrigin {
 
     /** How many views under [view] Instagram named, its reels' tiles: none while only placeholders show. */
     static int named(View view) {
-        String name = view.getTransitionName();
+        String name = nameOf(view);
         int found = name == null || name.isEmpty() ? 0 : 1;
         if (!(view instanceof ViewGroup)) return found;
         ViewGroup group = (ViewGroup) view;
@@ -938,12 +994,15 @@ public final class ReelOrigin {
 
     /** The reel's id, the string Instagram names its grid tile by, or null after reporting it missing. */
     private static String mediaId(Object media) throws ReflectiveOperationException {
-        Method id;
-        try {
-            id = media.getClass().getMethod("getId");
-        } catch (NoSuchMethodException missing) {
-            HookStatus.missingMember(FamilyNames.REEL_ORIGIN, "method", media.getClass().getName(), "getId");
-            return null;
+        Method id = getId;
+        if (id == null || !id.getDeclaringClass().isInstance(media)) {
+            try {
+                id = media.getClass().getMethod("getId");
+            } catch (NoSuchMethodException missing) {
+                HookStatus.missingMember(FamilyNames.REEL_ORIGIN, "method", media.getClass().getName(), "getId");
+                return null;
+            }
+            getId = id;
         }
         Object value = id.invoke(media);
         return value instanceof String ? (String) value : null;

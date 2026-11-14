@@ -10,10 +10,12 @@ import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.assertGridHook
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.assertOpenHook
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.assertResumeHook
+import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.assertTileHook
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.code
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.reference
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.snapshot
@@ -52,7 +54,17 @@ class NativeFindReelOriginTest {
             val open = methods.single { OPEN_PROFILE in it.markers() }
             val resume = methods.single { TAB_RESUME in it.markers() }
             val gridResume = classes.getValue(POSTS_GRID).methods.single { it.name == "onResume" && it.parameterTypes.isEmpty() }
-            val hooked = setOf(open.toString(), resume.toString(), gridResume.toString())
+            // 454's posts tiles bear no transition name: the one method loading the tile's picture name
+            // binds a tile, and the media of the item it binds names it to the extension (#689).
+            val binders = methods.filter { context.loadsString(it, POSTS_TILE) }
+            assertEquals("$name: one method loads $POSTS_TILE, found $binders", 1, binders.size)
+            val tileBind = binders.single()
+            val itemMedia = tileBind.code().filter { it.opcode == Opcode.IGET_OBJECT }
+                .map { (it as ReferenceInstruction).reference as FieldReference }
+                .filter { it.type == MEDIA && it.definingClass in tileBind.parameterTypes.map(Any::toString) }
+                .map { it.toString() }.distinct()
+            assertEquals("$name: the binder reads the media of one item it binds", 1, itemMedia.size)
+            val hooked = setOf(open.toString(), resume.toString(), gridResume.toString(), tileBind.toString())
             val media = classes.getValue(open.parameterTypes.single().toString()).fields.single { it.type == MEDIA }
             context.hookReelOrigin()
 
@@ -64,6 +76,8 @@ class NativeFindReelOriginTest {
             // after its super.onResume(), leaving the first spot to Profile posts as a list (#225).
             assertGridHook(context.mutableClassDefBy(POSTS_GRID).methods.single { it.toString() == gridResume.toString() },
                 gridResume.code())
+            assertTileHook(context.mutableClassDefBy(tileBind.definingClass).methods.single { it.toString() == tileBind.toString() },
+                tileBind.code(), itemMedia.single())
             val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
             assertBridge(name, classes, stubs.single { it.name == "mediaType" }, "media_type", "Ljava/lang/Integer;")
             // A trial reel, kept off its poster's profile, is told by is_active_trial and not looked for.
@@ -179,7 +193,11 @@ class NativeFindReelOriginTest {
             assertNotNull("${bundle.name}: Media's trial getter is found", found.writeTrial)
             val open = found.openProfile.code()
             val resume = found.tabResume.code()
+            val tile = found.photoReels!!.tileBind
+            val bound = tile.method.code()
             context.hookReelOrigin()
+            assertTileHook(context.mutableClassDefBy(tile.method.definingClass).methods
+                .single { it.toString() == tile.method.toString() }, bound, tile.media.toString())
             assertOpenHook(context.mutableClassDefBy(found.openProfile.definingClass).methods
                 .single { it.toString() == found.openProfile.toString() }, open,
                 "${found.media.definingClass}->${found.media.name}:$MEDIA")
@@ -241,7 +259,12 @@ class NativeFindReelOriginTest {
             next = supers[POSTS_GRID]
             while (next != null && next in supers && gridChain.add(next)) next = supers[next]
             assertTrue("${bundle.name}: the posts grid is a Fragment", FRAGMENT in gridChain)
-            val types = marked + destinations + MEDIA + chain + gridChain + made.filter { it in supers }
+            // The posts tile binder, any pool it asks its string of, and the app's classes its methods take (#689).
+            val loading = FixtureDex.classesLoading(bundle, POSTS_TILE)
+            assertTrue("${bundle.name}: nothing loads $POSTS_TILE", loading.isNotEmpty())
+            val binders = loading.map { it.type } +
+                loading.flatMap { it.methods }.flatMap { it.parameterTypes.map(Any::toString) }.filter { it in supers }
+            val types = marked + destinations + MEDIA + chain + gridChain + made.filter { it in supers } + binders
             val classes = read(types)
             assertEquals(bundle.name, types.size, classes.size)
             return classes

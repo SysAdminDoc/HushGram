@@ -200,7 +200,7 @@ public class ReelOriginTest {
         }
 
         @Override public boolean requestRectangleOnScreen(Rect rectangle, boolean immediate) {
-            shown.add(getTransitionName());
+            shown.add(ReelOrigin.nameOf(this));
             return super.requestRectangleOnScreen(rectangle, immediate);
         }
     }
@@ -1031,6 +1031,69 @@ public class ReelOriginTest {
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(ReelOrigin.FOUND + " 2"));
         assertTrue(HookStatus.missing(FamilyNames.REEL_ORIGIN).toString(), HookStatus.missing(FamilyNames.REEL_ORIGIN).isEmpty());
+    }
+
+    /**
+     * 454 names a posts tile by its place alone, so the patch hands the extension each tile and its
+     * media as the grid binds it, and a photo reel is found by that (#689).
+     */
+    @Test
+    public void aPhotoReelIsFoundAmongPostsTilesNamedAsTheyBind() {
+        List<String> posts = reels(30, 9000);
+        posts.set(20, REEL);
+        ReelOrigin.opening(new Reel(REEL), ON, PHOTO);
+        openProfile(posts, null);
+        grid.binds = (tile, id) -> ReelOrigin.postsTileBound(tile, new Reel(id), ON);
+        grid.bind();
+        layout();
+        assertNull("no transition name", made.get(made.size() - 1).getTransitionName());
+
+        ReelOrigin.postsGridResumed(new PostsGrid(profile, grid, ReelOrigin.POSTS), ON, OFF);
+        idleSeconds(5);
+        assertEquals(HookStatus.report() + " drags " + grid.drags, List.of(REEL), shown);
+        assertFalse("dragged down to it", grid.drags.isEmpty());
+        assertNull("dropped once found", ReelOrigin.heldForTests());
+        assertNull("and the names with it", ReelOrigin.nameOf(made.get(made.size() - 1)));
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.TILE_NAMED));
+    }
+
+    /**
+     * A posts tile is named only while a photo reel is held and the switch is on, loses its name when
+     * bound to no media or to one without an id, and every name goes with the reel. Failures are
+     * reported and never thrown.
+     */
+    @Test
+    public void postsTilesAreNamedOnlyWhileAPhotoReelIsHeld() {
+        View tile = new View(RuntimeEnvironment.getApplication());
+        ReelOrigin.postsTileBound(tile, new Reel(REEL), ON);
+        assertNull("nothing held", ReelOrigin.nameOf(tile));
+        ReelOrigin.opening(new Reel(REEL), ON, VIDEO);
+        ReelOrigin.postsTileBound(tile, new Reel(REEL), ON);
+        assertNull("a video reel isn't looked for in the posts grid", ReelOrigin.nameOf(tile));
+
+        ReelOrigin.opening(new Reel(REEL), ON, PHOTO);
+        ReelOrigin.postsTileBound(tile, new Reel(REEL), OFF);
+        assertNull("switched off", ReelOrigin.nameOf(tile));
+        ReelOrigin.postsTileBound(tile, new Reel(REEL), ON);
+        assertEquals(REEL, ReelOrigin.nameOf(tile));
+        ReelOrigin.postsTileBound(tile, null, ON);
+        assertNull("bound to no media, the name goes", ReelOrigin.nameOf(tile));
+        ReelOrigin.postsTileBound(tile, new Reel(REEL), ON);
+        ReelOrigin.postsTileBound(tile, new Object(), ON);
+        assertNull("bound to a media without an id, the name goes", ReelOrigin.nameOf(tile));
+
+        ReelOrigin.postsTileBound(tile, new Reel(REEL), THROWS);
+        ReelOrigin.postsTileBound(new Object(), new Reel(REEL), ON);
+        ReelOrigin.postsTileBound(null, new Reel(REEL), ON);
+        String missing = HookStatus.missing(FamilyNames.REEL_ORIGIN).toString();
+        assertTrue(missing, missing.contains("'" + ReelOrigin.TILE_BOUND + "'"));
+        assertTrue(missing, missing.contains(Object.class.getName() + "#getId"));
+
+        ReelOrigin.postsTileBound(tile, new Reel(REEL), ON);
+        assertEquals(REEL, ReelOrigin.nameOf(tile));
+        ReelOrigin.forget();
+        assertNull("forgetting the reel drops the names", ReelOrigin.nameOf(tile));
     }
 
     /**

@@ -14,6 +14,7 @@ import com.instagram.ui.widget.spinner.SpinnerImageView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -58,6 +59,11 @@ public class RecyclerView extends LinearLayout {
     public int scrollState;
     /** Makes the view of a tile for a reel. */
     public Function<String, View> tiles;
+    /**
+     * When set, handed each tile and its reel as it binds in place of naming the tile by the reel, as
+     * 454's posts grid binds through the patch's hook and names its tiles by their place alone (#689).
+     */
+    public BiConsumer<View, String> binds;
     private int offset;
     private float lastY;
     private int pulled;
@@ -97,7 +103,11 @@ public class RecyclerView extends LinearLayout {
                     tile = new View(getContext());
                 } else {
                     tile = tiles.apply(reels.get(at));
-                    tile.setTransitionName(reels.get(at));
+                    if (binds == null) {
+                        tile.setTransitionName(reels.get(at));
+                    } else {
+                        binds.accept(tile, reels.get(at));
+                    }
                 }
                 line.addView(tile, new LinearLayout.LayoutParams(360, ROW));
             }

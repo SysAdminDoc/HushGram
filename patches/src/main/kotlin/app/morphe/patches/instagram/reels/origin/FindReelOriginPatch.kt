@@ -5,6 +5,7 @@
 package app.morphe.patches.instagram.reels.origin
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
@@ -44,7 +45,9 @@ val findReelOriginPatch = bytecodePatch(
  * Calls first in their methods but one, each reading only what it hands over. The profile opener hands the
  * reel's media, read from its one argument into v0, a local nothing has written yet. The Reels tab
  * hands itself from onResume. For photo reels the posts grid does too, just past its super call so
- * Profile posts as a list keeps the first spot, and the media type bridge's body is written. None returns anything, so no register or branch of Instagram's changes, and the
+ * Profile posts as a list keeps the first spot, the grid's tile binder hands each tile and its item's
+ * media, read into v0 and v1, locals nothing has written yet (#689), and the media type bridge's body
+ * is written. None returns anything, so no register or branch of Instagram's changes, and the
  * extension does its work after onResume has returned. The trial reel bridge's body is written too,
  * when Media's getter of it can be told.
  */
@@ -65,6 +68,18 @@ internal fun BytecodePatchContext.hookReelOrigin() {
         photos.writeMediaType()
         val grid = mutable(photos.gridResume)
         grid.addInstructions(grid.afterSuperResume(), "invoke-static/range { p0 .. p0 }, $GRID_RESUMED")
+        val tile = photos.tileBind
+        mutable(tile.method).addInstructionsWithLabels(
+            0,
+            """
+                move-object/from16 v0, p0
+                move-object/from16 v1, p${tile.item}
+                if-eqz v1, :bound
+                iget-object v1, v1, ${tile.media}
+                :bound
+                invoke-static { v0, v1 }, $TILE_BOUND
+            """,
+        )
     }
 }
 

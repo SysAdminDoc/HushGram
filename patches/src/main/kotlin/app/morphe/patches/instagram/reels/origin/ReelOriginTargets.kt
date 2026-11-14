@@ -9,7 +9,9 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.download.activeTrialBridge
 import app.morphe.patches.instagram.download.mediaTypeBridge
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.patchLog
@@ -30,6 +32,7 @@ internal const val REEL_ORIGIN = "$EXTENSION_PACKAGE/reels/ReelOrigin;"
 internal const val OPENING = "$REEL_ORIGIN->opening(Ljava/lang/Object;)V"
 internal const val TAB_RESUMED = "$REEL_ORIGIN->reelsTabResumed(Ljava/lang/Object;)V"
 internal const val GRID_RESUMED = "$REEL_ORIGIN->postsGridResumed(Ljava/lang/Object;)V"
+internal const val TILE_BOUND = "$REEL_ORIGIN->postsTileBound(Ljava/lang/Object;Ljava/lang/Object;)V"
 
 internal const val MEDIA = "Lcom/instagram/feed/media/Media;"
 internal const val FRAGMENT = "Landroidx/fragment/app/Fragment;"
@@ -59,6 +62,13 @@ internal const val POSTS_GRID = "Lcom/instagram/profile/fragment/ProfileMediaTab
 internal const val GRID_KEY = "ProfileMediaTabFragment.profile_tab_identifier"
 
 /**
+ * What the posts grid's tile binder names a tile's picture by, its place in the grid after it. 454
+ * names the tile by nothing the search can match, so the binder hands the extension the tile and its
+ * media instead (#689).
+ */
+internal const val POSTS_TILE = "profile_grid_item_"
+
+/**
  * What the patch writes into: the profile opener and the reel's media field it reads, the Reels
  * tab's onResume, for photo reels the posts grid's, and the step that writes the trial reel bridge,
  * each of the last two when it can be told.
@@ -71,8 +81,14 @@ internal class ReelOriginTargets(
     val writeTrial: (() -> Unit)?,
 )
 
-/** The posts grid's onResume, and the step that writes the media type bridge the extension reads. */
-internal class PhotoReelTargets(val gridResume: Method, val writeMediaType: () -> Unit)
+/**
+ * The posts grid's onResume, its tile binder, and the step that writes the media type bridge the
+ * extension reads.
+ */
+internal class PhotoReelTargets(val gridResume: Method, val tileBind: TileBind, val writeMediaType: () -> Unit)
+
+/** The posts grid's tile binder, the p register of the grid item it binds, and that item's Media field. */
+internal class TileBind(val method: Method, val item: Int, val media: FieldReference)
 
 private fun refuse(why: String): Nothing = throw PatchException("$REEL_ORIGIN_PATCH: $why")
 
@@ -170,9 +186,9 @@ private fun BytecodePatchContext.findTrialBridge(): (() -> Unit)? = try {
  * The posts grid's hook site and the media type bridge, proved the same way: the grid's own
  * onResume()V, still holding itself just past its one super.onResume(), in a Fragment that creates it
  * reading [GRID_KEY] and keeps its grid in one public RecyclerView field; the extension's
- * postsGridResumed; and Media's one getter of `media_type`. Photo reels alone need them, so a build
- * where any can't be told answers null, after the patch log says why, and the patch goes in
- * finding video reels alone.
+ * postsGridResumed; the grid's tile binder ([findTileBind]); and Media's one getter of `media_type`.
+ * Photo reels alone need them, so a build where any can't be told answers null, after the patch log
+ * says why, and the patch goes in finding video reels alone.
  */
 private fun BytecodePatchContext.findPhotoReelTargets(): PhotoReelTargets? = try {
     val grid = classDefByOrNull(POSTS_GRID) ?: refuse("no $POSTS_GRID")
@@ -190,10 +206,46 @@ private fun BytecodePatchContext.findPhotoReelTargets(): PhotoReelTargets? = try
         it.name == "postsGridResumed" && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;") &&
             AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
     } ?: refuse("extension has no public static postsGridResumed(Ljava/lang/Object;)V")
-    PhotoReelTargets(resume, mediaTypeBridge(REEL_ORIGIN_PATCH))
+    PhotoReelTargets(resume, findTileBind(), mediaTypeBridge(REEL_ORIGIN_PATCH))
 } catch (unknown: PatchException) {
     patchLog.warning("${unknown.message}. $REEL_ORIGIN_PATCH goes in finding video reels alone.")
     null
+}
+
+/**
+ * The posts grid's tile binder: the one method loading [POSTS_TILE], an instance method returning
+ * void, which reads one Media field of the grid item it binds, the one parameter of that field's
+ * class. Nothing jumps to its first instruction, and it has two locals for the hook to borrow there.
+ * The extension has postsTileBound.
+ */
+private fun BytecodePatchContext.findTileBind(): TileBind {
+    val binders = classesLoadingString(POSTS_TILE).flatMap { it.methods }.filter { loadsString(it, POSTS_TILE) }
+    val bind = binders.singleOrNull() ?: refuse(
+        "expected one method loading $POSTS_TILE, found " +
+            if (binders.isEmpty()) "none" else binders.joinToString { "${it.definingClass}->${it.name}" },
+    )
+    val binder = "${bind.definingClass}->${bind.name}"
+    if (AccessFlags.STATIC.isSet(bind.accessFlags) || bind.returnType != "V") refuse("$binder isn't an instance method returning void")
+    val code = bind.implementation?.instructions?.toList() ?: refuse("$binder has no body")
+    val parameters = bind.parameterTypes.map(Any::toString)
+    val reads = code.filter { it.opcode == Opcode.IGET_OBJECT }
+        .map { (it as ReferenceInstruction).reference as FieldReference }
+        .filter { it.type == MEDIA && parameters.count(it.definingClass::equals) == 1 }
+        .distinctBy { it.toString() }
+    val media = reads.singleOrNull()
+        ?: refuse("$binder doesn't read one $MEDIA of an item it binds, found ${reads.size}")
+    classDefByOrNull(media.definingClass)?.fields?.singleOrNull {
+        it.name == media.name && it.type == MEDIA && !AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("${media.definingClass} doesn't declare ${media.name}")
+    if (0 in bind.jumpTargets()) refuse("a jump or exception handler enters $binder at its first instruction")
+    if (bind.localRegisterCount() < 2) refuse("$binder has fewer than two local registers for the hook")
+    classDefByOrNull(REEL_ORIGIN)?.methods?.singleOrNull {
+        it.name == "postsTileBound" && it.returnType == "V" &&
+            it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;", "Ljava/lang/Object;") &&
+            AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("extension has no public static postsTileBound(Ljava/lang/Object;Ljava/lang/Object;)V")
+    val before = parameters.subList(0, parameters.indexOf(media.definingClass))
+    return TileBind(bind, 1 + before.sumOf { if (it == "J" || it == "D") 2 else 1 }, media)
 }
 
 /**
