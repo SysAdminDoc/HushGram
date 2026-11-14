@@ -29,6 +29,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import java.util.ArrayList;
@@ -68,11 +69,14 @@ public class NewRowDotsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
-        Settings.CATEGORY_PAGES.save(true);
-        // The one setting's page and title, read once from the long list.
+        locate(key());
+    }
+
+    /** Reads [key]'s page and title once from the long list, then starts again with nothing stored. */
+    private void locate(String key) {
         Settings.CATEGORY_PAGES.save(false);
         open();
-        Preference row = page.findPreference(key());
+        Preference row = page.findPreference(key);
         assertNotNull(row);
         categoryTitle = String.valueOf(((PreferenceCategory) row.getParent()).getTitle());
         rowTitle = String.valueOf(row.getTitle());
@@ -86,6 +90,7 @@ public class NewRowDotsTest {
     @After public void restore() {
         if (controller != null) controller.close();
         Settings.CATEGORY_PAGES.resetToDefault();
+        Settings.DESCRIPTIONS_BEHIND_INFO.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
         BaseSettings.PAUSED.resetToDefault();
         PatchFamily.inBuildForTests = null;
@@ -261,5 +266,70 @@ public class NewRowDotsTest {
             checked++;
         }
         assertEquals(1, checked);
+    }
+
+    /** The dotted row's view, measured and laid out at the screen's width. */
+    private View dottedRow() {
+        int width = controller.get().getResources().getDisplayMetrics().widthPixels;
+        View found = null;
+        for (View row : views()) if (dotted(row)) found = row;
+        assertNotNull("no dotted row", found);
+        found.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        found.layout(0, 0, width, found.getMeasuredHeight());
+        return found;
+    }
+
+    /**
+     * #689: with descriptions behind the "i" (on to start since #650), the "i" took the dot's place on
+     * every new switch, so a category's opener said something was new and its page showed no dot.
+     * The new switch shows both, the "i" still opens its description, and the visit after shows the
+     * "i" alone, on a reused row too.
+     */
+    @Test
+    // Real text widths, so the title is as wide as its words and the start of it is clear of the i.
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aNewSwitchWithItsDescriptionBehindTheInfoMarkKeepsItsDot() {
+        Settings.DESCRIPTIONS_BEHIND_INFO.resetToDefault();
+        assertTrue(Settings.DESCRIPTIONS_BEHIND_INFO.savedValue());
+        String key = Settings.HIDE_CHAT_BLEND.key;
+        locate(key);
+        forget(key);
+        assertEquals(Collections.singletonList(categoryTitle), dottedTitles());
+
+        enter();
+        assertEquals("the new switch keeps its dot", Collections.singletonList(rowTitle), dottedTitles());
+        View row = dottedRow();
+        TextView title = row.findViewById(android.R.id.title);
+        assertEquals("its description is behind the i", View.GONE,
+                row.findViewById(android.R.id.summary).getVisibility());
+        assertTrue(title.getContentDescription().toString().endsWith(", New"));
+        Drawable end = title.getCompoundDrawablesRelative()[2];
+        assertTrue("the dot and the i side by side: " + end, end instanceof DescriptionInfo.Beside);
+        DescriptionInfo.Beside both = (DescriptionInfo.Beside) end;
+        float density = controller.get().getResources().getDisplayMetrics().density;
+        assertEquals("the dot comes first, its usual size", Math.round(8 * density), both.first.getBounds().width());
+        assertTrue("then the i", both.second instanceof DescriptionInfo.Mark);
+        assertEquals(both.first.getBounds().width() + both.gap + both.second.getBounds().width(),
+                both.getBounds().width());
+        assertEquals("the dot sits as far from the title as on any new row", Math.round(8 * density),
+                title.getCompoundDrawablePadding());
+        int right = title.getWidth() - title.getPaddingRight();
+        assertTrue("a tap on the i still opens the description", DescriptionInfo.onMark(title, right - 1));
+        int reach = both.second.getBounds().width() + both.gap + Math.round(12 * density);
+        assertTrue("with as much room around it as on a row that isn't new",
+                DescriptionInfo.onMark(title, right - reach + 1));
+        assertTrue("the title is wider than its dot and i, " + title.getWidth(), title.getWidth() > 2 * reach);
+        assertFalse("the title before it still flips the switch",
+                DescriptionInfo.onMark(title, title.getPaddingLeft() + 1));
+
+        enter();
+        enter();
+        assertEquals("seen now", new ArrayList<String>(), dottedTitles());
+        View reused = page.findPreference(key).getView(row, list());
+        TextView again = reused.findViewById(android.R.id.title);
+        assertEquals(DescriptionInfo.TAG, again.getTag());
+        assertTrue("the i alone", again.getCompoundDrawablesRelative()[2] instanceof DescriptionInfo.Mark);
+        assertNull(again.getContentDescription());
     }
 }

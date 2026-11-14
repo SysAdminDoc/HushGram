@@ -48,9 +48,11 @@ final class DescriptionInfo {
         if (!wanted(row.getContext(), description)) {
             if (TAG.equals(title.getTag())) {
                 title.setCompoundDrawablesRelative(null, null, null, null);
-                title.setOnTouchListener(null);
                 title.setTag(null);
             }
+            // Also on a reused row the new-row dot was just painted on: the tap it kept would show
+            // the description of the row this view showed before.
+            title.setOnTouchListener(null);
             return;
         }
         // Android's own bind shows the summary again on the next bind, so hiding it here is undone
@@ -60,9 +62,15 @@ final class DescriptionInfo {
         int size = Math.max(dp(title, 16), Math.round(title.getTextSize()));
         Mark mark = new Mark(title.getCurrentTextColor(), size);
         mark.setBounds(0, 0, size, size);
-        title.setCompoundDrawablesRelative(null, null, mark, null);
-        title.setCompoundDrawablePadding(dp(title, 6));
-        title.setTag(TAG);
+        Drawable dot = title.getCompoundDrawablesRelative()[2];
+        if (dot != null && NewRowDots.TAG.equals(title.getTag())) {
+            // A new row keeps its dot, its spacing, its tag and its "New" label, with the "i" after.
+            title.setCompoundDrawablesRelative(null, null, new Beside(dot, mark, dp(title, 6)), null);
+        } else {
+            title.setCompoundDrawablesRelative(null, null, mark, null);
+            title.setCompoundDrawablePadding(dp(title, 6));
+            title.setTag(TAG);
+        }
         title.setOnTouchListener((view, event) -> {
             if (!onMark((TextView) view, event.getX())) return false;
             if (event.getActionMasked() == MotionEvent.ACTION_UP) show(view.getContext(), title.getText(), description);
@@ -79,9 +87,12 @@ final class DescriptionInfo {
 
     /** Whether [x] in [title] falls on its "i", with a finger's width of give before it. */
     static boolean onMark(TextView title, float x) {
-        Drawable mark = title.getCompoundDrawablesRelative()[2];
-        if (mark == null) return false;
-        int reach = mark.getBounds().width() + title.getCompoundDrawablePadding() + dp(title, 12);
+        Drawable end = title.getCompoundDrawablesRelative()[2];
+        if (end == null) return false;
+        // Beside a new row's dot, the "i" keeps the same room it has alone.
+        int reach = end instanceof Beside
+                ? ((Beside) end).second.getBounds().width() + ((Beside) end).gap + dp(title, 12)
+                : end.getBounds().width() + title.getCompoundDrawablePadding() + dp(title, 12);
         boolean rtl = title.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
         return rtl ? x <= title.getPaddingLeft() + reach : x >= title.getWidth() - title.getPaddingRight() - reach;
     }
@@ -99,6 +110,72 @@ final class DescriptionInfo {
     private static int dp(View view, int value) {
         return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
                 view.getResources().getDisplayMetrics()));
+    }
+
+    /**
+     * A new row's dot and its "i" side by side at the end of the title, the dot first (#689). Both
+     * share the title's one end slot, so the "i" alone used to take the dot's place.
+     */
+    static final class Beside extends Drawable {
+        final Drawable first;
+        final Drawable second;
+        final int gap;
+
+        Beside(Drawable first, Drawable second, int gap) {
+            this.first = first;
+            this.second = second;
+            this.gap = gap;
+            setBounds(0, 0, first.getBounds().width() + gap + second.getBounds().width(),
+                    Math.max(first.getBounds().height(), second.getBounds().height()));
+        }
+
+        @Override
+        public int getIntrinsicWidth() {
+            return getBounds().width();
+        }
+
+        @Override
+        public int getIntrinsicHeight() {
+            return getBounds().height();
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect bounds = getBounds();
+            // The title hands its reading direction on, so right to left puts the "i" on the left.
+            boolean rtl = getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            Drawable left = rtl ? second : first;
+            Drawable right = rtl ? first : second;
+            place(canvas, left, bounds.left, bounds);
+            place(canvas, right, bounds.right - right.getBounds().width(), bounds);
+        }
+
+        private static void place(Canvas canvas, Drawable drawable, int left, Rect bounds) {
+            Rect own = drawable.getBounds();
+            int saved = canvas.save();
+            canvas.translate(left - own.left, bounds.top + (bounds.height() - own.height()) / 2f - own.top);
+            drawable.draw(canvas);
+            canvas.restoreToCount(saved);
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+            first.setAlpha(alpha);
+            second.setAlpha(alpha);
+            invalidateSelf();
+        }
+
+        @Override
+        public void setColorFilter(@Nullable ColorFilter filter) {
+            first.setColorFilter(filter);
+            second.setColorFilter(filter);
+            invalidateSelf();
+        }
+
+        @Override
+        public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
+        }
     }
 
     /** A ring with an "i" in it, in the title's colour. */

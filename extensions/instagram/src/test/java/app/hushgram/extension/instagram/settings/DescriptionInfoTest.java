@@ -10,6 +10,11 @@ import static org.robolectric.Shadows.shadowOf;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.pm.ApplicationInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.SystemClock;
 import android.preference.SwitchPreference;
 import android.util.TypedValue;
@@ -203,6 +208,51 @@ public class DescriptionInfoTest {
         row.setSummary(null);
         View view = bind(row, null);
         assertNull(((TextView) view.findViewById(android.R.id.title)).getCompoundDrawablesRelative()[2]);
+    }
+
+    /**
+     * #689: a reused row that carried the "i" and now carries only a new row's dot, with no
+     * description to show, must not keep the old row's tap and show the old row's description.
+     */
+    @Test public void aReusedRowLeftWithOnlyTheNewRowDotShowsNoOldDescription() {
+        Settings.DESCRIPTIONS_BEHIND_INFO.save(true);
+        View view = bind(row(), null);
+        TextView title = view.findViewById(android.R.id.title);
+        // What the new-row dot leaves on the title just ahead of this bind.
+        GradientDrawable dot = new GradientDrawable();
+        dot.setBounds(0, 0, 8, 8);
+        title.setCompoundDrawablesRelative(null, null, dot, null);
+        title.setTag(NewRowDots.TAG);
+        DescriptionInfo.bind(view, null);
+        assertSame("the dot stays", dot, title.getCompoundDrawablesRelative()[2]);
+        assertEquals(NewRowDots.TAG, title.getTag());
+        press(title, title.getWidth() - 2);
+        assertNull("no description from the row this view showed before", ShadowAlertDialog.getLatestAlertDialog());
+    }
+
+    /** #689: the dot then the "i", left to right, and the other way round right to left. */
+    @Test public void theDotAndTheMarkSwapSidesRightToLeft() {
+        GradientDrawable dot = new GradientDrawable();
+        dot.setColor(Color.RED);
+        dot.setBounds(0, 0, 8, 8);
+        ColorDrawable mark = new ColorDrawable(Color.BLUE);
+        mark.setBounds(0, 0, 16, 16);
+        DescriptionInfo.Beside both = new DescriptionInfo.Beside(dot, mark, 6);
+        assertEquals(30, both.getBounds().width());
+        assertEquals(16, both.getBounds().height());
+
+        Bitmap drawn = Bitmap.createBitmap(30, 16, Bitmap.Config.ARGB_8888);
+        both.draw(new Canvas(drawn));
+        assertEquals("the dot first", Color.RED, drawn.getPixel(4, 8));
+        assertEquals("centred on the i", 0, Color.alpha(drawn.getPixel(4, 1)));
+        assertEquals("then the i", Color.BLUE, drawn.getPixel(25, 8));
+
+        both.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        drawn.eraseColor(Color.TRANSPARENT);
+        both.draw(new Canvas(drawn));
+        assertEquals("the i first", Color.BLUE, drawn.getPixel(4, 8));
+        assertEquals("then the dot", Color.RED, drawn.getPixel(26, 8));
+        assertEquals(0, Color.alpha(drawn.getPixel(19, 8)));
     }
 
     @Test public void theChoiceTravelsInABackup() {
