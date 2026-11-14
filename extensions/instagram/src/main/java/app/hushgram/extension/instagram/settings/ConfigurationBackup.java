@@ -183,7 +183,11 @@ public final class ConfigurationBackup {
         if (PatchFamily.SANITIZE_SHARING_LINKS.inBuild()) settings.put(Settings.SHARING_DOMAIN.key, Settings.SHARING_DOMAIN);
         if (PatchFamily.LIKE_ANIMATION.inBuild()) settings.put(Settings.LIKE_ANIMATION.key, Settings.LIKE_ANIMATION);
         if (PatchFamily.LIKE_ANIMATION.inBuild()) settings.put(Settings.GROW_LIKE_HEART.key, Settings.GROW_LIKE_HEART);
-        if (PatchFamily.HEADER_TEXT.inBuild()) settings.put(Settings.HEADER_TEXT.key, Settings.HEADER_TEXT);
+        if (PatchFamily.HEADER_TEXT.inBuild()) {
+            settings.put(Settings.HEADER_TEXT.key, Settings.HEADER_TEXT);
+            settings.put(Settings.HEADER_TEXT_FONT.key, Settings.HEADER_TEXT_FONT);
+            settings.put(Settings.HEADER_TEXT_CENTER.key, Settings.HEADER_TEXT_CENTER);
+        }
         if (PatchFamily.NOTIFICATION_GROUPS.inBuild()) {
             settings.put(Settings.GROUP_NOTIFICATIONS_BY_TYPE.key, Settings.GROUP_NOTIFICATIONS_BY_TYPE);
             settings.put(Settings.MUTED_NOTIFICATION_CHANNELS.key, Settings.MUTED_NOTIFICATION_CHANNELS);

@@ -889,6 +889,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.ACCENT_COLOR && (Settings.ACCENT_HUE.key.equals(key)
                             || Settings.ACCENT_CUSTOM.key.equals(key));
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
+                    belongs |= family == PatchFamily.HEADER_TEXT && (Settings.HEADER_TEXT_CENTER.key.equals(key)
+                            || Settings.HEADER_TEXT_FONT.key.equals(key));
                     belongs |= family == PatchFamily.EMOJI_STYLE && Settings.EMOJI_FONT.key.equals(key);
                     belongs |= family == PatchFamily.STORY_FONTS && STORY_FONTS_ROW.equals(key);
                     belongs |= family == PatchFamily.APP_ICON && Settings.APP_ICON.key.equals(key);
@@ -7133,6 +7135,34 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         field.setHint(L10n.t("Your words"));
         field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(HeaderText.MAX_LENGTH * 2)});
         row.setText(Settings.HEADER_TEXT.savedValue());
+        return row;
+    }
+
+    /**
+     * The font the Home header's words draw in (#688). Its values are the fonts' own names. Your font
+     * is offered only with the Change the font patch in the build, which picks it.
+     */
+    static ChoiceRow<HeaderText.Font> headerFontRow(Context context, boolean yourFont) {
+        HeaderText.Font[] all = HeaderText.Font.values();
+        HeaderText.Font[] fonts = yourFont ? all : Arrays.copyOf(all, all.length - 1);
+        String[] summaries = {
+                L10n.t("The bold font the words have always had."),
+                L10n.t("The phone's font at its regular weight."),
+                L10n.t("A bold font with serifs, like a newspaper's."),
+                L10n.t("Joined-up handwriting."),
+                L10n.t("Every letter the same width, like a typewriter."),
+                L10n.t("The font picked under Font, in bold. Bold while Instagram's own is picked there."),
+        };
+        String[] labels = {
+                L10n.t("Bold"),
+                L10n.t("Regular"),
+                L10n.t("Serif"),
+                L10n.t("Script"),
+                L10n.t("Monospace"),
+                L10n.t("Your font"),
+        };
+        ChoiceRow<HeaderText.Font> row = new ChoiceRow<>(context, Settings.HEADER_TEXT_FONT, fonts, summaries, null);
+        fill(row, Settings.HEADER_TEXT_FONT, fonts, Arrays.copyOf(labels, fonts.length), L10n.t("Header text font"));
         return row;
     }
 

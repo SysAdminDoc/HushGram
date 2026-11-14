@@ -1783,6 +1783,21 @@ Home header text	Texto arriba de Inicio
 # context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
 Your words	Tu texto
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Palabras tuyas arriba de Inicio, en lugar del logo de Instagram. Hasta %1$d caracteres. Déjalo en blanco para mantener el logo.
+Header text font	Fuente del texto de arriba
+The bold font the words have always had.	La fuente en negrita que el texto siempre ha tenido.
+The phone's font at its regular weight.	La fuente del teléfono con su grosor normal.
+A bold font with serifs, like a newspaper's.	Una fuente en negrita con serifas, como la de un periódico.
+Joined-up handwriting.	Letra manuscrita ligada.
+Every letter the same width, like a typewriter.	Todas las letras con el mismo ancho, como en una máquina de escribir.
+The font picked under Font, in bold. Bold while Instagram's own is picked there.	La fuente elegida en Fuente, en negrita. Negrita mientras allí esté elegida la de Instagram.
+Bold	Negrita
+Regular	Normal
+Serif	Con serifa
+Script	Manuscrita
+Monospace	Monoespaciada
+Your font	Tu fuente
+Center the header text	Centrar el texto de arriba
+Puts your words or picture in the middle of the top of Home instead of where Instagram puts its logo.	Pone tus palabras o tu imagen en el centro de la parte de arriba de Inicio, en lugar de donde Instagram pone su logo.
 Instagram's logo stays at the top of Home.	El logo de Instagram se queda arriba de Inicio.
 The top of Home says %1$s.	Arriba de Inicio dice %1$s.
 Home header picture	Imagen arriba de Inicio

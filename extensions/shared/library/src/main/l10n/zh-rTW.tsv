@@ -1786,6 +1786,21 @@ Home header text	首頁頂端文字
 # context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
 Your words	你的文字
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	在首頁頂端顯示你自己的文字，取代 Instagram 標誌。最多 %1$d 個字元。留空即可保留標誌。
+Header text font	頂端文字字型
+The bold font the words have always had.	文字一直以來使用的粗體字型。
+The phone's font at its regular weight.	手機的字型，一般粗細。
+A bold font with serifs, like a newspaper's.	有襯線的粗體字型，像報紙上的字。
+Joined-up handwriting.	連筆手寫體。
+Every letter the same width, like a typewriter.	每個字母寬度相同，像打字機。
+The font picked under Font, in bold. Bold while Instagram's own is picked there.	在「字型」中選的字型，粗體。那裡選的是 Instagram 自己的字型時，用粗體。
+Bold	粗體
+Regular	一般
+Serif	襯線
+Script	手寫體
+Monospace	等寬
+Your font	你的字型
+Center the header text	頂端文字置中
+Puts your words or picture in the middle of the top of Home instead of where Instagram puts its logo.	把你的文字或圖片放在首頁頂端正中間，而不是 Instagram 放標誌的位置。
 Instagram's logo stays at the top of Home.	首頁頂端保留 Instagram 標誌。
 The top of Home says %1$s.	首頁頂端顯示「%1$s」。
 Home header picture	首頁頂端圖片

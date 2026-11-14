@@ -1698,6 +1698,21 @@ Home header text	Chữ ở đầu trang chủ
 # context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
 Your words	Chữ của bạn
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Chữ của riêng bạn ở đầu trang chủ, thay cho logo Instagram. Tối đa %1$d ký tự. Để trống để giữ logo.
+Header text font	Phông chữ của chữ ở đầu trang
+The bold font the words have always had.	Phông chữ đậm mà chữ vẫn luôn dùng.
+The phone's font at its regular weight.	Phông chữ của điện thoại ở độ đậm thường.
+A bold font with serifs, like a newspaper's.	Phông chữ đậm có chân, giống chữ trên báo.
+Joined-up handwriting.	Chữ viết tay liền nét.
+Every letter the same width, like a typewriter.	Mọi chữ cái rộng như nhau, giống máy đánh chữ.
+The font picked under Font, in bold. Bold while Instagram's own is picked there.	Phông chữ đã chọn ở mục Phông chữ, in đậm. Là chữ đậm khi ở đó đang chọn phông của Instagram.
+Bold	Đậm
+Regular	Thường
+Serif	Có chân
+Script	Chữ viết tay
+Monospace	Đơn cách
+Your font	Phông chữ của bạn
+Center the header text	Căn giữa chữ ở đầu trang
+Puts your words or picture in the middle of the top of Home instead of where Instagram puts its logo.	Đặt chữ hoặc ảnh của bạn ở giữa đầu trang chủ thay vì chỗ Instagram đặt logo.
 Instagram's logo stays at the top of Home.	Logo Instagram vẫn ở đầu trang chủ.
 The top of Home says %1$s.	Đầu trang chủ ghi %1$s.
 Home header picture	Ảnh ở đầu trang chủ

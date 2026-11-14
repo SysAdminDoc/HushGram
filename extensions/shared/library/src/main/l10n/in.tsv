@@ -1783,6 +1783,21 @@ Home header text	Teks di atas Beranda
 # context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
 Your words	Teksmu
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Kata-katamu sendiri di bagian atas Beranda, sebagai pengganti logo Instagram. Hingga %1$d karakter. Biarkan kosong untuk tetap memakai logo.
+Header text font	Font teks di atas
+The bold font the words have always had.	Font tebal yang selama ini dipakai teksnya.
+The phone's font at its regular weight.	Font ponsel dengan ketebalan biasa.
+A bold font with serifs, like a newspaper's.	Font tebal berkait, seperti di koran.
+Joined-up handwriting.	Tulisan tangan bersambung.
+Every letter the same width, like a typewriter.	Setiap huruf sama lebarnya, seperti mesin ketik.
+The font picked under Font, in bold. Bold while Instagram's own is picked there.	Font yang dipilih di Font, dalam huruf tebal. Tebal selama font Instagram sendiri yang dipilih di sana.
+Bold	Tebal
+Regular	Biasa
+Serif	Berkait
+Script	Tulisan tangan
+Monospace	Monospace
+Your font	Fontmu
+Center the header text	Tengahkan teks di atas
+Puts your words or picture in the middle of the top of Home instead of where Instagram puts its logo.	Menaruh kata atau gambarmu di tengah bagian atas Beranda, bukan di tempat Instagram menaruh logonya.
 Instagram's logo stays at the top of Home.	Logo Instagram tetap di bagian atas Beranda.
 The top of Home says %1$s.	Bagian atas Beranda bertuliskan %1$s.
 Home header picture	Gambar di atas Beranda

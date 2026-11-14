@@ -8,6 +8,7 @@ package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -20,11 +21,13 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -67,6 +70,10 @@ public class HeaderTextTest {
         PauseForTests.resume();
         Settings.HEADER_TEXT.resetToDefault();
         Settings.HEADER_PICTURE.resetToDefault();
+        Settings.HEADER_TEXT_FONT.resetToDefault();
+        Settings.HEADER_TEXT_CENTER.resetToDefault();
+        Settings.FONT.resetToDefault();
+        FontsForTests.reset();
         HeaderPicture.forget();
         File picture = HeaderPicture.file(RuntimeEnvironment.getApplication());
         if (picture.exists()) assertTrue(picture.delete());
@@ -324,5 +331,135 @@ public class HeaderTextTest {
         Settings.HEADER_TEXT.save("Home");
         assertTrue(redraw(logo));
         assertTrue("no copy, so the words", logo.getDrawable() instanceof HeaderText.TextMark);
+    }
+
+    /** #688: a font of your own for the words, on the next draw. */
+    @Test
+    public void thePickedFontShowsOnTheNextDraw() {
+        assertEquals("the words start in the bold they always had", HeaderText.Font.BOLD, Settings.HEADER_TEXT_FONT.defaultValue);
+        Drawable[] stock = new Drawable[1];
+        ImageView logo = header(stock);
+        Settings.HEADER_TEXT.save("Hello world");
+        HeaderText.dress(logo);
+        HeaderText.TextMark bold = (HeaderText.TextMark) logo.getDrawable();
+        assertEquals(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD), bold.typeface());
+
+        Settings.HEADER_TEXT_FONT.save(HeaderText.Font.MONOSPACE);
+        assertTrue("that draw is skipped for one in the new font", redraw(logo));
+        HeaderText.TextMark mono = (HeaderText.TextMark) logo.getDrawable();
+        assertNotSame(bold, mono);
+        assertEquals("Hello world", mono.text);
+        assertEquals(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD), mono.typeface());
+        assertEquals("still the logo's height", 24, mono.getIntrinsicHeight());
+        assertNotEquals("the letters really are another font", bold.getIntrinsicWidth(), mono.getIntrinsicWidth());
+        assertFalse("then drawing goes on", redraw(logo));
+
+        assertEquals(Typeface.create(Typeface.SERIF, Typeface.BOLD), HeaderText.typeface(HeaderText.Font.SERIF));
+        assertEquals(Typeface.create("cursive", Typeface.BOLD), HeaderText.typeface(HeaderText.Font.SCRIPT));
+        assertEquals(Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL), HeaderText.typeface(HeaderText.Font.REGULAR));
+    }
+
+    @Test
+    public void yourFontIsTheOnePickedUnderFontInBold() {
+        FontsForTests.reset();
+        assertEquals("Instagram's own picked there, so the bold",
+                HeaderText.typeface(HeaderText.Font.BOLD), HeaderText.typeface(HeaderText.Font.YOUR_FONT));
+        FontsForTests.reset();
+        Settings.FONT.save(FontChoice.SYSTEM);
+        assertEquals("the phone's font, in bold", Typeface.create(Typeface.DEFAULT, 700, false),
+                HeaderText.typeface(HeaderText.Font.YOUR_FONT));
+    }
+
+    /** Home's bar as wide as the window, holding a title view at its start with the logo in it, laid out. */
+    private static FrameLayout bar(ImageView logo, FrameLayout title, int width) {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout window = new FrameLayout(context);
+        LinearLayout row = new LinearLayout(context);
+        title.addView(logo, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+        row.addView(title, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        window.addView(row, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT));
+        layOut(window, width);
+        return window;
+    }
+
+    private static void layOut(View window, int width) {
+        window.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(200, View.MeasureSpec.EXACTLY));
+        window.layout(0, 0, width, 200);
+    }
+
+    private static float middle(ImageView logo) {
+        return HeaderText.leftInRoot(logo) + logo.getWidth() / 2f;
+    }
+
+    /** #688: the words sit in the middle of the window, and go back where Instagram put them when that's off. */
+    @Test
+    public void centeringMovesTheMarkToTheMiddleAndBack() {
+        Drawable[] stock = new Drawable[1];
+        ImageView logo = header(stock);
+        FrameLayout title = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout window = bar(logo, title, 1080);
+        assertFalse("off to start", Settings.HEADER_TEXT_CENTER.defaultValue);
+        Settings.HEADER_TEXT.save("Home");
+        HeaderText.dress(logo);
+        layOut(window, 1080);
+        assertFalse(redraw(logo));
+        assertEquals("off, it stays where Instagram put its logo", 0f, title.getTranslationX(), 0f);
+        assertTrue("at the start of the bar", middle(logo) < 300);
+
+        Settings.HEADER_TEXT_CENTER.save(true);
+        assertFalse("a move needs no skipped draw", redraw(logo));
+        assertEquals("in the middle of the window", 540f, middle(logo), 1f);
+        assertEquals("the title view moved, inside the full width bar", 0f, logo.getTranslationX(), 0f);
+        float moved = title.getTranslationX();
+        assertTrue(moved > 0);
+        assertFalse(redraw(logo));
+        assertEquals("a second draw doesn't move it again", moved, title.getTranslationX(), 0f);
+
+        // Instagram moving its title view on its own is kept for when centering goes off.
+        title.setTranslationX(moved + 20);
+        redraw(logo);
+        assertEquals("back in the middle", 540f, middle(logo), 1f);
+        Settings.HEADER_TEXT_CENTER.save(false);
+        redraw(logo);
+        assertEquals("only the move made here is taken back", 20f, title.getTranslationX(), 0.5f);
+    }
+
+    @Test
+    public void blankWordsOrAButtonBesideTheLogoLeaveItWhereItIs() {
+        Drawable[] stock = new Drawable[1];
+        ImageView logo = header(stock);
+        FrameLayout title = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout window = bar(logo, title, 1080);
+        Settings.HEADER_TEXT_CENTER.save(true);
+        HeaderText.dress(logo);
+        redraw(logo);
+        assertEquals("Instagram's own logo isn't moved", 0f, title.getTranslationX(), 0f);
+
+        Settings.HEADER_TEXT.save("Home");
+        assertTrue(redraw(logo));
+        layOut(window, 1080);
+        redraw(logo);
+        assertEquals(540f, middle(logo), 1f);
+        Settings.HEADER_TEXT.save("");
+        assertTrue(redraw(logo));
+        layOut(window, 1080);
+        redraw(logo);
+        assertSame(stock[0], logo.getDrawable());
+        assertEquals("the logo back, and back where it was", 0f, title.getTranslationX(), 0f);
+
+        // A holder that also shows a button would move the button too, so nothing moves.
+        ImageView other = header(stock);
+        FrameLayout shared = new FrameLayout(RuntimeEnvironment.getApplication());
+        View button = new View(RuntimeEnvironment.getApplication());
+        shared.addView(button, new FrameLayout.LayoutParams(60, 60));
+        FrameLayout second = bar(other, shared, 1080);
+        Settings.HEADER_TEXT.save("Home");
+        HeaderText.dress(other);
+        layOut(second, 1080);
+        redraw(other);
+        assertNull(HeaderText.mover(other));
+        assertEquals(0f, shared.getTranslationX(), 0f);
+        assertEquals(0f, other.getTranslationX(), 0f);
     }
 }

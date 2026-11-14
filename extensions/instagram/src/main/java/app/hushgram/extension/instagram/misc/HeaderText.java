@@ -44,13 +44,47 @@ import app.hushgram.extension.shared.Utils;
  * the logo's height and takes the color Instagram gives its logo, so it follows dark mode. A picture
  * keeps its own colors and takes the place of the words when both are saved.
  *
- * <p>Each logo gets one {@link Keeper}, which reads the two settings before every draw, so a change
+ * <p>Each logo gets one {@link Keeper}, which reads the settings before every draw, so a change
  * shows the next time Home draws, with no restart, and blanking both puts Instagram's logo back.
- * Pause and every failure leave Instagram's logo alone.
+ * The words draw in the {@link Font} picked for them, and the mark can sit in the middle of the
+ * screen's width instead of where Instagram puts its logo (#688). Pause and every failure leave
+ * Instagram's logo alone.
  */
 public final class HeaderText {
     /** The most characters the header takes. */
     public static final int MAX_LENGTH = 30;
+
+    /**
+     * The font the words draw in (#688). Bold is the one they always had. The phone's serif, script
+     * and monospace fonts are Android's own, on every phone. Your font is the one picked under
+     * Font, in bold, and Bold while Instagram's own is picked there.
+     */
+    public enum Font {
+        BOLD, REGULAR, SERIF, SCRIPT, MONOSPACE, YOUR_FONT
+    }
+
+    /** What [font] draws in. */
+    static Typeface typeface(Font font) {
+        switch (font) {
+            case REGULAR:
+                return Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
+            case SERIF:
+                return Typeface.create(Typeface.SERIF, Typeface.BOLD);
+            case SCRIPT:
+                return Typeface.create("cursive", Typeface.BOLD);
+            case MONOSPACE:
+                return Typeface.create(Typeface.MONOSPACE, Typeface.BOLD);
+            case YOUR_FONT:
+                Typeface chosen = Fonts.chosen();
+                if (chosen != null) return Typeface.create(chosen, 700, false);
+                // Instagram's own is picked under Font, so the words keep their bold.
+            default:
+                return Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
+        }
+    }
+
+    /** How near the full width of the window a header row is, so moving the mark inside it can't cut it off. */
+    private static final float FULL_WIDTH_SHARE = 0.9f;
 
     /** The text's height when the logo gave none, in dp. */
     private static final int FALLBACK_HEIGHT_DP = 24;
@@ -203,13 +237,20 @@ public final class HeaderText {
             this.header = new WeakReference<>(image);
         }
 
+        @Nullable private Font seenFont;
+        /** The view moved to put the mark in the middle, held weakly, and how far it was moved. */
+        @Nullable private WeakReference<View> moved;
+        private float shift;
+
         @Override
         public boolean onPreDraw() {
             ImageView image = header.get();
             if (image == null) return true;
             try {
                 // This pass would draw what was there, so the next one draws the change.
-                return !refresh(image);
+                if (refresh(image)) return false;
+                center(image);
+                return true;
             } catch (Throwable failure) {
                 Logger.printException(() -> "Header text: could not keep the top of Home", failure);
                 return true;
@@ -222,8 +263,9 @@ public final class HeaderText {
             String text = Settings.HEADER_TEXT.get();
             String picture = Settings.HEADER_PICTURE.get();
             int pictures = HeaderPicture.revision();
+            Font font = Settings.HEADER_TEXT_FONT.get();
             // Identity checks only: a saved value is a new object, and this runs before every draw.
-            boolean same = text == seenText && picture == seenPicture && pictures == seenPictures;
+            boolean same = text == seenText && picture == seenPicture && pictures == seenPictures && font == seenFont;
             if (same && current == mark) return false;
             if (same && mark == null) return false;
             int previous = mark == null ? -1 : mark.getIntrinsicHeight();
@@ -235,7 +277,8 @@ public final class HeaderText {
             seenText = text;
             seenPicture = picture;
             seenPictures = pictures;
-            Drawable next = make(image, picture, text, previous);
+            seenFont = font;
+            Drawable next = make(image, picture, text, previous, font);
             if (next == null) {
                 if (mark == null) return false;
                 mark = null;
@@ -252,7 +295,7 @@ public final class HeaderText {
 
         /** The picture's mark, else the text's, else null for Instagram's logo. */
         @Nullable
-        private Drawable make(ImageView image, String picture, String text, int previous) {
+        private Drawable make(ImageView image, String picture, String text, int previous, Font font) {
             int height = height(image, original, previous);
             if (!picture.isEmpty()) {
                 Bitmap chosen = HeaderPicture.load(image.getContext());
@@ -260,8 +303,78 @@ public final class HeaderText {
             }
             String words = clean(text);
             if (words.isEmpty()) return null;
-            return new TextMark(words, height, maxWidth(image), primaryText(image.getContext()));
+            return new TextMark(words, height, maxWidth(image), primaryText(image.getContext()), typeface(font));
         }
+
+        /**
+         * With a mark in and centering on, moves the header's view holding it sideways so the mark's
+         * middle sits at the middle of the window. Without either, puts back what it moved. Answers
+         * whether anything moved. Instagram's own moves of that view are kept: only the shift added
+         * here is taken back.
+         */
+        boolean center(ImageView image) {
+            View before = moved == null ? null : moved.get();
+            View mover = mark != null && Settings.HEADER_TEXT_CENTER.get() ? mover(image) : null;
+            boolean changed = false;
+            if (before != mover) {
+                if (before != null && shift != 0) {
+                    before.setTranslationX(before.getTranslationX() - shift);
+                    changed = true;
+                }
+                moved = mover == null ? null : new WeakReference<>(mover);
+                shift = 0;
+            }
+            if (mover == null) return changed;
+            // Where the mark's middle would be without the shift added here.
+            float middle = leftInRoot(image) - shift + image.getWidth() / 2f;
+            float target = Math.round(image.getRootView().getWidth() / 2f - middle);
+            if (Math.abs(target - shift) < 0.5f) return changed;
+            mover.setTranslationX(mover.getTranslationX() + target - shift);
+            shift = target;
+            return true;
+        }
+    }
+
+    /**
+     * The view to move so [image] sits in the middle: the one under the first of its holders as wide
+     * as the window, so the move stays inside a row that can't cut the mark off. Null when [image]
+     * isn't laid out yet, nothing that wide holds it, or a holder on the way also shows something
+     * else, a button say, which would move with it.
+     */
+    @Nullable
+    static View mover(ImageView image) {
+        int window = image.getRootView().getWidth();
+        if (window <= 0 || image.getWidth() <= 0) return null;
+        View child = image;
+        for (android.view.ViewParent parent = image.getParent(); parent instanceof View; parent = parent.getParent()) {
+            View holder = (View) parent;
+            if (holder.getWidth() >= window * FULL_WIDTH_SHARE) return child;
+            if (showsOthers((android.view.ViewGroup) holder, child)) return null;
+            child = holder;
+        }
+        return null;
+    }
+
+    /** [view]'s left edge from the left of the view at the top of its tree, sideways moves and scrolls included. */
+    static float leftInRoot(View view) {
+        float left = 0;
+        View at = view;
+        while (true) {
+            left += at.getLeft() + at.getTranslationX();
+            android.view.ViewParent parent = at.getParent();
+            if (!(parent instanceof View)) return left;
+            at = (View) parent;
+            left -= at.getScrollX();
+        }
+    }
+
+    /** Whether [group] shows a child other than [kept]. */
+    private static boolean showsOthers(android.view.ViewGroup group, View kept) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View other = group.getChildAt(i);
+            if (other != kept && other.getVisibility() == View.VISIBLE && other.getWidth() > 0) return true;
+        }
+        return false;
     }
 
     /**
@@ -354,11 +467,15 @@ public final class HeaderText {
         private int alpha = 255;
 
         TextMark(String text, int height, int maxWidth, int themeColor) {
+            this(text, height, maxWidth, themeColor, HeaderText.typeface(Font.BOLD));
+        }
+
+        TextMark(String text, int height, int maxWidth, int themeColor, Typeface typeface) {
             this.text = text;
             this.height = height;
             this.themeColor = themeColor;
             this.color = themeColor;
-            paint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD));
+            paint.setTypeface(typeface);
             paint.setColor(themeColor);
             // The text and a capital letter together set the size, so short words without capitals
             // or with descenders still sit at the logo's height.
@@ -375,6 +492,11 @@ public final class HeaderText {
             inkTop = fitted.top;
             inkBottom = fitted.bottom;
             width = Math.max(1, ink.width());
+        }
+
+        /** The font the text draws in. */
+        Typeface typeface() {
+            return paint.getTypeface();
         }
 
         /** The text's ink with a capital H's, at the paint's size. */

@@ -68,6 +68,8 @@ public class HeaderTextSettingsTest {
         PauseForTests.resume();
         Settings.HEADER_TEXT.resetToDefault();
         Settings.HEADER_PICTURE.resetToDefault();
+        Settings.HEADER_TEXT_FONT.resetToDefault();
+        Settings.HEADER_TEXT_CENTER.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
         HeaderPicture.forget();
         File copy = copy();
@@ -133,6 +135,52 @@ public class HeaderTextSettingsTest {
         assertTrue("the words are backed up", ConfigurationBackup.eligible().containsKey(Settings.HEADER_TEXT.key));
         assertFalse("the picture's copy stays on this phone",
                 ConfigurationBackup.eligible().containsKey(Settings.HEADER_PICTURE.key));
+    }
+
+    /** #688: the font and centering rows follow the picture rows, start where the header always was, and are backed up. */
+    @Test public void theFontAndCenterRowsFollowThePictureRows() throws Exception {
+        open(EnumSet.of(PatchFamily.HEADER_TEXT));
+        Preference remove = find(HushgramPreferenceFragment.REMOVE_HEADER_PICTURE_KEY);
+        PreferenceGroup layout = (PreferenceGroup) remove.getParent();
+        int at = indexIn(layout, remove);
+        Preference font = find(Settings.HEADER_TEXT_FONT.key);
+        Preference center = find(Settings.HEADER_TEXT_CENTER.key);
+        assertEquals("the font right after the picture rows", at + 1, indexIn(layout, font));
+        assertEquals("then centering", at + 2, indexIn(layout, center));
+
+        assertTrue(font instanceof HushgramPreferenceFragment.ChoiceRow);
+        HushgramPreferenceFragment.ChoiceRow<?> fonts = (HushgramPreferenceFragment.ChoiceRow<?>) font;
+        assertEquals("Header text font", fonts.getTitle().toString());
+        java.util.List<String> entries = new java.util.ArrayList<>();
+        for (CharSequence entry : fonts.getEntries()) entries.add(entry.toString());
+        assertEquals("no picked font to follow without the font patch",
+                java.util.Arrays.asList("Bold", "Regular", "Serif", "Script", "Monospace"), entries);
+        assertEquals("BOLD", fonts.getValue());
+        assertEquals("The bold font the words have always had.", fonts.getSummary().toString());
+        fonts.setValue("SCRIPT");
+        ShadowLooper.idleMainLooper();
+        assertEquals(app.hushgram.extension.instagram.misc.HeaderText.Font.SCRIPT, Settings.HEADER_TEXT_FONT.savedValue());
+        assertEquals("Joined-up handwriting.", fonts.getSummary().toString());
+
+        assertEquals("Center the header text", center.getTitle().toString());
+        assertFalse("off to start, where Instagram puts its logo", Settings.HEADER_TEXT_CENTER.savedValue());
+        assertFalse("shows on the next draw, no restart", Settings.HEADER_TEXT_CENTER.rebootApp);
+        assertFalse(Settings.HEADER_TEXT_FONT.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HEADER_TEXT_FONT.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HEADER_TEXT_CENTER.key));
+    }
+
+    @Test public void withTheFontPatchTheHeaderCanTakeThePickedFont() throws Exception {
+        open(EnumSet.of(PatchFamily.HEADER_TEXT, PatchFamily.FONT));
+        HushgramPreferenceFragment.ChoiceRow<?> fonts = (HushgramPreferenceFragment.ChoiceRow<?>) find(Settings.HEADER_TEXT_FONT.key);
+        CharSequence[] entries = fonts.getEntries();
+        assertEquals(6, entries.length);
+        assertEquals("Your font", entries[5].toString());
+        fonts.setValue("YOUR_FONT");
+        ShadowLooper.idleMainLooper();
+        assertEquals(app.hushgram.extension.instagram.misc.HeaderText.Font.YOUR_FONT, Settings.HEADER_TEXT_FONT.savedValue());
+        assertEquals("The font picked under Font, in bold. Bold while Instagram's own is picked there.",
+                fonts.getSummary().toString());
     }
 
     @Test public void whatsTypedIsSavedAsOneShortLine() throws Exception {

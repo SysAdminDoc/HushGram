@@ -10,6 +10,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.accentHueRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.appIconRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.headerFontRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.headerTextRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.info;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
@@ -109,6 +110,10 @@ final class LayoutCategory {
                 layout.addPreference(mark(headerTextRow(context), SettingsIcons.WRITING));
                 layout.addPreference(mark(page.headerPictureRow(context), SettingsIcons.STORIES));
                 layout.addPreference(mark(page.removeHeaderPictureRow(context), SettingsIcons.DELETE));
+                layout.addPreference(mark(headerFontRow(context, build.contains(PatchFamily.FONT)), SettingsIcons.WRITING));
+                layout.addPreference(toggle(context, Settings.HEADER_TEXT_CENTER, L10n.t("Center the header text"),
+                        L10n.t("Puts your words or picture in the middle of the top of Home instead of where "
+                                + "Instagram puts its logo.")));
             }
             if (build.contains(PatchFamily.REFRESH_RATE)) {
                 layout.addPreference(mark(onFlip(toggle(context, Settings.HIGHEST_REFRESH_RATE, L10n.t("Use the highest refresh rate"),

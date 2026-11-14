@@ -1770,6 +1770,21 @@ Home header text	ข้อความส่วนหัวของหน้า
 # context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
 Your words	ข้อความของคุณ
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	ข้อความของคุณเองที่ด้านบนของหน้าหลักแทนที่โลโก้ของ Instagram สูงสุด %1$d ตัวอักษร เว้นว่างไว้เพื่อคงโลโก้เดิมไว้
+Header text font	แบบอักษรของข้อความส่วนหัว
+The bold font the words have always had.	แบบอักษรตัวหนาที่ข้อความใช้มาตลอด
+The phone's font at its regular weight.	แบบอักษรของโทรศัพท์ในน้ำหนักปกติ
+A bold font with serifs, like a newspaper's.	แบบอักษรตัวหนามีเชิง เหมือนในหนังสือพิมพ์
+Joined-up handwriting.	ลายมือเขียนแบบตัวต่อ
+Every letter the same width, like a typewriter.	ตัวอักษรทุกตัวกว้างเท่ากัน เหมือนเครื่องพิมพ์ดีด
+The font picked under Font, in bold. Bold while Instagram's own is picked there.	แบบอักษรที่เลือกไว้ใน แบบอักษร เป็นตัวหนา หากเลือกแบบอักษรของ Instagram ไว้ที่นั่นจะเป็นตัวหนา
+Bold	ตัวหนา
+Regular	ปกติ
+Serif	มีเชิง
+Script	ตัวเขียน
+Monospace	ความกว้างเท่ากัน
+Your font	แบบอักษรของคุณ
+Center the header text	จัดข้อความส่วนหัวไว้ตรงกลาง
+Puts your words or picture in the middle of the top of Home instead of where Instagram puts its logo.	วางข้อความหรือรูปภาพของคุณไว้ตรงกลางด้านบนของหน้าหลัก แทนตำแหน่งที่ Instagram วางโลโก้
 Instagram's logo stays at the top of Home.	โลโก้ของ Instagram จะยังคงอยู่ที่ด้านบนของหน้าหลัก
 The top of Home says %1$s.	ด้านบนของหน้าหลักจะแสดง %1$s
 Home header picture	รูปภาพส่วนหัวของหน้าหลัก

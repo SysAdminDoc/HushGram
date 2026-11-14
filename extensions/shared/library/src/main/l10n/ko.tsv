@@ -1782,6 +1782,21 @@ Home header text	홈 상단 문구
 # context: placeholder in the empty Home header text field, where the person types their own words for the top of Home
 Your words	원하는 문구
 Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Instagram 로고 대신 홈 상단에 표시할 나만의 문구입니다. 최대 %1$d자까지 입력할 수 있습니다. 비워 두면 로고가 유지됩니다.
+Header text font	상단 문구 글꼴
+The bold font the words have always had.	지금까지 쓰던 굵은 글꼴입니다.
+The phone's font at its regular weight.	휴대폰 글꼴을 보통 굵기로 씁니다.
+A bold font with serifs, like a newspaper's.	신문처럼 세리프가 있는 굵은 글꼴입니다.
+Joined-up handwriting.	이어 쓴 손글씨체입니다.
+Every letter the same width, like a typewriter.	타자기처럼 모든 글자의 폭이 같습니다.
+The font picked under Font, in bold. Bold while Instagram's own is picked there.	글꼴에서 고른 글꼴을 굵게 씁니다. 그곳에서 Instagram 기본 글꼴을 고른 동안에는 굵은 글꼴입니다.
+Bold	굵게
+Regular	보통
+Serif	세리프
+Script	손글씨체
+Monospace	고정폭
+Your font	내 글꼴
+Center the header text	상단 문구 가운데 정렬
+Puts your words or picture in the middle of the top of Home instead of where Instagram puts its logo.	내 문구나 사진을 Instagram 로고 자리 대신 홈 상단 가운데에 놓습니다.
 Instagram's logo stays at the top of Home.	홈 상단에 Instagram 로고가 유지됩니다.
 The top of Home says %1$s.	홈 상단에 %1$s 문구가 표시됩니다.
 Home header picture	홈 상단 이미지

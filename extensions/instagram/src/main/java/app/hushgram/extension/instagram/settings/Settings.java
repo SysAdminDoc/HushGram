@@ -2174,6 +2174,20 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_header_picture", "", false, false);
 
     /**
+     * Puts {@link #HEADER_TEXT}'s words, or the picture, in the middle of the top of Home instead of
+     * where Instagram puts its logo (#688). Read before each draw, so a change shows without a
+     * restart. Off to start.
+     */
+    public static final BooleanSetting HEADER_TEXT_CENTER = new BooleanSetting("hushgram_header_text_center", FALSE);
+
+    /**
+     * The font {@link #HEADER_TEXT}'s words draw in (#688). Read before each draw, so a change shows
+     * without a restart. Starts on the bold font the words always had.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.HeaderText.Font> HEADER_TEXT_FONT =
+            new EnumSetting<>("hushgram_header_text_font", app.hushgram.extension.instagram.misc.HeaderText.Font.BOLD);
+
+    /**
      * The font Instagram's text draws in: Instagram's own, the phone's, or a font file picked in
      * settings ({@link app.hushgram.extension.instagram.misc.Fonts}). Instagram keeps its fonts once
      * loaded, so a change shows after a restart. Starts on Instagram's own.
