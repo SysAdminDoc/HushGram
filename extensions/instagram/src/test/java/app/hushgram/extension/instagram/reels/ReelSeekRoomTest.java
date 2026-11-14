@@ -121,6 +121,24 @@ public class ReelSeekRoomTest {
         assertEquals(-STRIP, holder.getTranslationY(), 0f);
     }
 
+    /**
+     * Wiped while the bar was hidden, as on the way to the home screen, the lift is already gone: taking it
+     * back as well pushed the holder down into the strip, and the next look left the bar there (#694).
+     */
+    @Test
+    public void aLiftInstagramWipedWhileHiddenIsNotTakenBackAgain() {
+        look(WINDOW);
+        holder.setTranslationY(0f);
+
+        ReelSeekRoom.keep(holder, false, 0, 0, 0);
+        assertEquals(0f, holder.getTranslationY(), 0f);
+
+        look(WINDOW);
+        assertEquals(-STRIP, holder.getTranslationY(), 0f);
+        look(WINDOW - STRIP);
+        assertEquals(-STRIP, holder.getTranslationY(), 0f);
+    }
+
     /** Instagram's drag times sit beside the holder in this row, so the row has to go up with the bar (#567). */
     @Test
     public void aShortRowGoesUpInsteadOfTheHolder() {

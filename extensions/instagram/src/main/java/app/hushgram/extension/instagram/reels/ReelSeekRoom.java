@@ -125,12 +125,13 @@ final class ReelSeekRoom {
     static void keep(View holder, boolean ready, int bottom, int window, int strip) {
         Held held = HELD.get(holder);
         if (held == null) return;
+        // Instagram laid the holder out again and took the lift away with it, so there's none left to take
+        // back. Taking it back anyway pushed a hidden bar down into the strip, where it stayed (#694).
+        if (held.lift != 0 && holder.getTranslationY() != held.wrote) held.lift = 0;
         if (!ready) {
             if (held.lift != 0) move(holder, held, 0);
             return;
         }
-        // Instagram laid the holder out again and took the lift away with it.
-        if (held.lift != 0 && holder.getTranslationY() != held.wrote) held.lift = 0;
         move(holder, held, liftFor(bottom + held.lift, window, strip));
     }
 
