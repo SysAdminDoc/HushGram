@@ -123,6 +123,12 @@ public final class AccentTheme {
     private static final int LINK_ON_DARK = 0xff85a1ff;
     private static final int LINK_ON_LIGHT = 0xff3143e3;
 
+    /** Instagram's fill blue, which {@link AccentColor#swap} turns into the picked color's fill, the shade the badge styles hold. */
+    private static final int FILL = 0xff4a5df9;
+
+    /** What's counted each time a Compose badge, the Messages folder chip's unread dot, takes the picked color (#671). */
+    static final String COMPOSE_BADGES = "Compose badges given the accent color";
+
     /** What's counted each time the story rings take the picked color, with Story rings in the accent color on. */
     static final String RINGS = "themes given accent story rings";
 
@@ -330,6 +336,30 @@ public final class AccentTheme {
             return (long) (argb & 0xff000000 | surfaces[step] & 0xffffff) << 32;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose surface", failure);
+            return value;
+        }
+    }
+
+    /**
+     * Injected where the Messages inbox's folder chip (Primary, Requests) paints its unread dot, with
+     * the color Instagram's Compose palette holds for it, [value] (#671). Compose takes its colors from
+     * palettes written into the code, so the badge style {@link #apply} lays on the theme never reaches
+     * the dot. With Badges in the accent color on, answers the picked color's fill, the shade the badge
+     * styles hold, keeping [value]'s alpha when it's an sRGB color. Answers [value] with the switch off,
+     * HushGram paused or anything thrown.
+     */
+    public static long composeBadge(long value) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            if (hue == null || !Settings.ACCENT_BADGES.get()) return value;
+            // An sRGB Compose color holds its ARGB in the high 32 bits and nothing in the low ones.
+            int alpha = (value & 0xffffffffL) == 0 ? (int) (value >>> 32) & 0xff000000 : 0xff000000;
+            long badge = (long) (alpha | AccentColor.swap(FILL, hue) & 0xffffff) << 32;
+            if (badge != value) HookStatus.counted(FamilyNames.ACCENT_COLOR, COMPOSE_BADGES);
+            return badge;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose badge", failure);
             return value;
         }
     }

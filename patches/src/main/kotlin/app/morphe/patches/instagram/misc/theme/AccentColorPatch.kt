@@ -80,7 +80,8 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * such as the tab bar's, the extension lays on the picked color's (see [applyAccentTheme]). Instagram's own resources and color table stay as they are. Its Compose
  * screens, the bio and the Activity tab among them, read neither: their colors come from palettes
  * written into the code, and each accent blue a palette stores goes through the extension as the
- * palette is set up ([swapComposePalettes]).
+ * palette is set up ([swapComposePalettes]). The unread dot on the Messages folder chips reads a palette's
+ * badge red, which goes through the extension as it's painted ([tintChipDot]).
  *
  * A text color written into a layout's XML doesn't pass any of that either, which left the end of
  * Home's "Older posts" link blue (#187). The text views Instagram's layouts build hand the colors they
@@ -111,6 +112,7 @@ val accentColorPatch = bytecodePatch(
         swapComposeSurfaces()
         tintHeaderIcons()
         tintTabIcons()
+        tintChipDot()
         dropLikedHeartOutline()
         enableStatus("accentColor")
     }

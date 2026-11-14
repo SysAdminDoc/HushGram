@@ -420,6 +420,38 @@ public class AccentThemeTest {
     }
 
     /**
+     * The Messages folder chip's unread dot, which Compose paints red from a palette in the code, takes
+     * the picked color's fill with both switches on, alpha kept (#671). Either switch off or paused
+     * leaves it red, and a color outside sRGB comes back opaque in the fill.
+     */
+    @Test
+    public void theFolderChipsDotTakesThePickedFill() {
+        long red = (long) 0xffff3040 << 32;
+        long faded = (long) 0x80ff3040 << 32;
+        assertEquals("off", red, AccentTheme.composeBadge(red));
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertEquals("badges off", red, AccentTheme.composeBadge(red));
+        Settings.ACCENT_BADGES.save(true);
+
+        int fill = AccentColor.swap(0xff4a5df9, AccentHue.TEAL) & 0xffffff;
+        assertFalse("teal's fill isn't the red", fill == 0xff3040);
+        assertEquals("the dot", (long) (0xff000000 | fill) << 32, AccentTheme.composeBadge(red));
+        assertEquals("alpha kept", (long) (0x80000000 | fill) << 32, AccentTheme.composeBadge(faded));
+        assertEquals("outside sRGB", (long) (0xff000000 | fill) << 32, AccentTheme.composeBadge(red | 7));
+        assertEquals("already the fill, not counted", (long) (0xff000000 | fill) << 32,
+                AccentTheme.composeBadge((long) (0xff000000 | fill) << 32));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", red, AccentTheme.composeBadge(red));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.COMPOSE_BADGES + " 3"));
+    }
+
+    /**
      * Home's older header bakes the primary text color into each icon, so each one gets the theme's
      * icon color laid over it with both switches on (#8), and none with either off, paused, or no icon
      * attribute.
