@@ -290,7 +290,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** Lock these settings (#301), and the rows it greyed out while the settings are locked. */
     @Nullable Row settingsLock;
     private final Set<Preference> lockedRows = new HashSet<>();
-    private boolean lockHolds, showingLock;
+    private boolean lockHolds, showingLock, refolding;
     private final Handler lockRefresh = new Handler(Looper.getMainLooper());
     private final Runnable lockTick = this::showLock;
     /** The About section, whose rows stay open while the settings are locked. */
@@ -1876,9 +1876,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             showingLock = false;
         }
         // The lock can close on its own clock, and a save can stop while the page is away: refold.
-        if (recovery instanceof Heading && recovery.getParent() != null && categoryPages()
-                && searchQuery.trim().isEmpty() && ((Heading) recovery).collapsible == recoveryHeldOpen()) {
-            filterSettings();
+        // Only the list folds it. On its own page it never folds, so there is nothing to compare,
+        // and one refold settles it: a second pass would only spin.
+        if (!refolding && recovery instanceof Heading && recovery.getParent() != null && categoryPages()
+                && shownPage() == null && searchQuery.trim().isEmpty()
+                && ((Heading) recovery).collapsible == recoveryHeldOpen()) {
+            refolding = true;
+            try {
+                filterSettings();
+            } finally {
+                refolding = false;
+            }
         }
     }
 

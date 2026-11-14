@@ -733,6 +733,31 @@ public class CategoryPagesSettingsTest {
         assertFalse("and the next Back closes settings", page.closeCategory());
     }
 
+    /**
+     * Pause and diagnostics opens on its own page while nothing holds it open. Its page never folds
+     * it, so the lock's refold has nothing to change there, and Back folds it on the list again.
+     */
+    @Test public void pauseAndDiagnosticsOpensOnItsOwnPage() throws Exception {
+        Settings.CATEGORY_OWN_PAGE.save(true);
+        openDialog();
+        tap(categoryRow("Pause and diagnostics"));
+        layoutPage();
+        assertEquals(List.of("Pause and diagnostics"), shown(PreferenceCategory.class));
+        assertNotNull(page.getPreferenceScreen().findPreference(BaseSettings.PAUSED.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.LOCK_ROW_KEY));
+        assertEquals("Pause and diagnostics", toolbarTitle());
+
+        // The lock's minute tick while the page shows.
+        page.showLock();
+        layoutPage();
+        assertEquals(List.of("Pause and diagnostics"), shown(PreferenceCategory.class));
+
+        assertTrue("Back leaves the page", page.closeCategory());
+        layoutPage();
+        assertTrue("folded on the list again", categoryRow("Pause and diagnostics").collapsible);
+        assertEquals(List.of(), shown(PreferenceCategory.class));
+    }
+
     /** #642: a category's page has a chip for every category under Search, and a tap moves to that one. */
     @Test public void theChipsUnderSearchMoveBetweenCategoryPages() throws Exception {
         Settings.CATEGORY_OWN_PAGE.save(true);
