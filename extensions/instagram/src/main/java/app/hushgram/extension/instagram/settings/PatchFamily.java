@@ -111,7 +111,7 @@ public enum PatchFamily {
     CHAT_HISTORY(FamilyNames.CHAT_HISTORY, "chatHistory", null, Settings.JUMP_IN_CHAT, Settings.EXPORT_CHAT),
     PREVIEW_CHATS(FamilyNames.PREVIEW_CHATS, "previewChats", null, Settings.PREVIEW_CHATS),
     ASK_BEFORE_CALL(FamilyNames.ASK_BEFORE_CALL, "askBeforeCall", null, Settings.ASK_BEFORE_CALL,
-            Settings.HIDE_CALL_BUTTONS),
+            Settings.HIDE_CALL_BUTTONS, Settings.HIDE_CHAT_BLEND, Settings.HIDE_CHAT_BACK_BUTTON),
     CALL_BLOCKER(FamilyNames.CALL_BLOCKER, "callBlocker", null),
     KINDNESS_REMINDER(FamilyNames.KINDNESS_REMINDER, "kindnessReminder", null, Settings.HIDE_KINDNESS_REMINDER),
     MESSAGE_BOX(FamilyNames.MESSAGE_BOX, "messageBox", null),

@@ -1461,6 +1461,10 @@ Show all recent searches	Mostrar todas as pesquisas recentes
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Lista todas as pesquisas recentes abaixo da barra de pesquisa, e não só as primeiras. Ver tudo e o x de cada linha funcionam como antes.
 Hide the call buttons in chats	Ocultar os botões de chamada nas conversas
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	Tira os botões de chamada de voz e de vídeo do topo de uma conversa. O nome mantém o seu espaço. Se você desativar, eles voltam na próxima vez que abrir uma conversa.
+Hide Blend in chats	Ocultar o Blend nas conversas
+Takes the Blend button off the top of a chat. Turn it off and it's back the next time a chat opens.	Tira o botão do Blend do topo de uma conversa. Se você desativar, ele volta na próxima vez que abrir uma conversa.
+Hide the back button in chats	Ocultar o botão Voltar nas conversas
+Leaves the back arrow off the top left of a chat, and the picture and the name move over. Swipe back or use the phone's back button to leave the chat. Shows the next time a chat opens.	Tira a seta de voltar do canto superior esquerdo de uma conversa, e a foto e o nome passam para o lugar dela. Deslize para voltar ou use o botão Voltar do celular para sair da conversa. Vale a partir da próxima vez que abrir uma conversa.
 Hide the Community Standards reminder	Ocultar o lembrete dos Padrões da Comunidade
 Takes the banner reminding you to be respectful off the bottom of a chat.	Remove da parte de baixo da conversa o aviso que lembra você de ser respeitoso.
 Buttons in the message box	Botões da caixa de mensagem

@@ -1461,6 +1461,10 @@ Show all recent searches	Alle letzten Suchen anzeigen
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Zeigt unter der Suchleiste alle letzten Suchen, nicht nur die ersten paar. „Alle ansehen“ und das x an jeder Zeile funktionieren wie vorher.
 Hide the call buttons in chats	Anruf-Buttons in Chats ausblenden
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	Nimmt die Sprach- und Videoanruf-Buttons oben aus einem Chat. Der Name behält seinen Platz. Wenn du es ausschaltest, sind sie beim nächsten Öffnen eines Chats wieder da.
+Hide Blend in chats	Blend in Chats ausblenden
+Takes the Blend button off the top of a chat. Turn it off and it's back the next time a chat opens.	Nimmt den Blend-Button oben aus einem Chat. Wenn du es ausschaltest, ist er beim nächsten Öffnen eines Chats wieder da.
+Hide the back button in chats	Zurück-Button in Chats ausblenden
+Leaves the back arrow off the top left of a chat, and the picture and the name move over. Swipe back or use the phone's back button to leave the chat. Shows the next time a chat opens.	Lässt den Zurück-Pfeil oben links in einem Chat weg, Bild und Name rücken nach. Wische zurück oder nutze die Zurück-Taste des Handys, um den Chat zu verlassen. Gilt ab dem nächsten Öffnen eines Chats.
 Hide the Community Standards reminder	Community-Standards-Hinweis ausblenden
 Takes the banner reminding you to be respectful off the bottom of a chat.	Entfernt das Banner unten im Chat, das dich daran erinnert, respektvoll zu sein.
 Buttons in the message box	Schaltflächen im Nachrichtenfeld

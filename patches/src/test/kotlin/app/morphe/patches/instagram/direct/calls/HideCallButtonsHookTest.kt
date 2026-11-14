@@ -13,8 +13,11 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
@@ -34,7 +37,7 @@ class HideCallButtonsHookTest {
         val declared = ExtensionDex.classDef(CALL_BUTTONS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (method in listOf(BOUND.substringAfter("->"), "$KIND_OF_STUB(Ljava/lang/Object;)Ljava/lang/String;")) {
+        for (method in listOf(BOUND.substringAfter("->"), LEFT_BUTTON.substringAfter("->"), "$KIND_OF_STUB(Ljava/lang/Object;)Ljava/lang/String;")) {
             assertTrue("$method is not in the extension: $declared", method in declared)
         }
     }
@@ -81,12 +84,43 @@ class HideCallButtonsHookTest {
         }
         assertTrue("$label: no class binds a pill button", holders.isNotEmpty())
         val models = holders.flatMap { holder -> holder.methods.mapNotNull { it.parameterTypes.getOrNull(1)?.toString() } }.toSet()
-        val kept = holders + FixtureDex.classes(bundle, models).values +
+        // The header models: the classes, other than the button models, whose button model fields the binders read.
+        val headers = holders.flatMap { holder ->
+            holder.methods.flatMap { method ->
+                method.implementation?.instructions?.mapNotNull { instruction ->
+                    ((instruction as? ReferenceInstruction)?.reference as? FieldReference)
+                        ?.takeIf { instruction.opcode == Opcode.IGET_OBJECT && it.type in models && it.definingClass != holder.type }
+                        ?.definingClass
+                } ?: emptyList()
+            }
+        }.toSet() - models
+        val kept = holders + FixtureDex.classes(bundle, models + headers).values +
             FixtureDex.classesLoading(bundle, "VIDEO_CALL") + FixtureDex.classesLoading(bundle, "AUDIO_CALL")
         val context = PatchContexts.of(kept.distinctBy { it.type } + ExtensionDex.classDef(CALL_BUTTONS))
 
         val found = context.findCallButtons()
+        val stockHeader = found.header.implementation!!.instructions.toList()
         context.hideCallButtons()
+
+        // The header model's constructor hands its left button to the extension first and keeps the answer in its place.
+        val made = found.header.implementation!!.instructions.toList()
+        val left = found.header.implementation!!.registerCount -
+            (1 + found.header.parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }) + found.leftRegister
+        assertEquals("$label header: the call", Opcode.INVOKE_STATIC_RANGE, made[0].opcode)
+        assertEquals("$label header: the hook", LEFT_BUTTON, (made[0] as ReferenceInstruction).reference.toString())
+        assertEquals("$label header: the left button alone", 1, (made[0] as RegisterRangeInstruction).registerCount)
+        assertEquals("$label header: the left button", left, (made[0] as RegisterRangeInstruction).startRegister)
+        assertEquals("$label header: the answer", Opcode.MOVE_RESULT_OBJECT, made[1].opcode)
+        assertEquals("$label header: kept in place", left, (made[1] as OneRegisterInstruction).registerA)
+        assertEquals("$label header: cast back", Opcode.CHECK_CAST, made[2].opcode)
+        assertEquals("$label header: to the button model", found.model, (made[2] as ReferenceInstruction).reference.toString())
+        assertEquals("$label header: on the same register", left, (made[2] as OneRegisterInstruction).registerA)
+        assertEquals("$label header: the stock body follows", stockHeader.map { it.opcode }, made.drop(3).map { it.opcode })
+        // The register handed over is the one the constructor keeps in the field the binder reads.
+        val keeps = made.filter { it.opcode == Opcode.IPUT_OBJECT && (it as ReferenceInstruction).reference.toString().endsWith(":${found.model}") }
+        assertEquals("$label header: one button model kept", 1, keeps.size)
+        assertEquals("$label header: kept from the left button", left, (keeps.single() as TwoRegisterInstruction).registerA)
+        assertEquals("$label header: hooks", 1, made.count { (it as? ReferenceInstruction)?.reference?.toString() == LEFT_BUTTON })
 
         for ((what, binder) in listOf("pill" to found.pill, "icon" to found.icon)) {
             val code = binder.implementation!!.instructions.toList()

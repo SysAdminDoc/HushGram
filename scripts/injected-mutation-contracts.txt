@@ -2852,6 +2852,13 @@ start-call Lapp/hushgram/extension/instagram/direct/CallButtons;->bound(Landroid
 once-call Lapp/hushgram/extension/instagram/direct/CallButtons;->bound(Landroid/view/View;Ljava/lang/Object;)V in instance (Landroid/view/View;LX/*;)V holding Lcom/instagram/ui/widget/pulsingbutton/PulsingPillButton;->setButtonText(I)V Lcom/instagram/ui/widget/pulsingbutton/PulsingPillButton;->setButtonResource(I)V
 start-call Lapp/hushgram/extension/instagram/direct/CallButtons;->bound(Landroid/view/View;Ljava/lang/Object;)V in instance (Landroid/view/View;LX/*;I)V holding null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView Landroid/graphics/drawable/Drawable;->setLevel(I)Z Landroid/widget/ImageView;->setColorFilter(Landroid/graphics/ColorFilter;)V
 once-call Lapp/hushgram/extension/instagram/direct/CallButtons;->bound(Landroid/view/View;Ljava/lang/Object;)V in instance (Landroid/view/View;LX/*;I)V holding null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView Landroid/graphics/drawable/Drawable;->setLevel(I)Z Landroid/widget/ImageView;->setColorFilter(Landroid/graphics/ColorFilter;)V
+# Its back arrow switch (#688) hands the chat header model's left button to CallButtons.leftButton
+# first thing in that model's constructor (06Eo.<init> on 454, the one taking a button model once and
+# keeping it in the field the header's binder reads), and keeps the answer in place of it. Left out,
+# the arrow stays with the switch on; twice or elsewhere, it isn't the call the patch wrote.
+# HideCallButtonsHookTest checks the constructor on each declared build.
+start-call Lapp/hushgram/extension/instagram/direct/CallButtons;->leftButton(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;LX/*;LX/*;LX/*;LX/*;Ljava/lang/String;Ljava/util/List;IIIIIIIZZ)V holding Ljava/lang/Object;-><init>()V
+once-call Lapp/hushgram/extension/instagram/direct/CallButtons;->leftButton(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;LX/*;LX/*;LX/*;LX/*;Ljava/lang/String;Ljava/util/List;IIIIIIIZZ)V holding Ljava/lang/Object;-><init>()V
 # Ask before a like hands LikeConfirm.hold the Like button handler's own arguments first thing in it
 # (06zU.FdS on 450), the one instance (post, position, module, callback, index) method filing
 # like_media, and returns there while it answers true. Left out, the Like button never asks; twice or

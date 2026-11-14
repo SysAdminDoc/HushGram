@@ -1451,6 +1451,10 @@ Show all recent searches	แสดงการค้นหาล่าสุด�
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	แสดงรายการค้นหาล่าสุดทั้งหมดใต้แถบค้นหา ไม่ใช่แค่สองสามรายการแรก โดย "ดูทั้งหมด" และเครื่องหมาย x ในแต่ละแถวจะยังคงทำงานเหมือนเดิม
 Hide the call buttons in chats	ซ่อนปุ่มโทรในแชท
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	นำปุ่มโทรด้วยเสียงและวิดีโอคอลออกจากด้านบนของแชท โดยชื่อจะยังคงมีพื้นที่ตามเดิม หากปิดการตั้งค่านี้ ปุ่มจะกลับมาในครั้งต่อไปที่เปิดแชท
+Hide Blend in chats	ซ่อน Blend ในแชท
+Takes the Blend button off the top of a chat. Turn it off and it's back the next time a chat opens.	นำปุ่ม Blend ออกจากด้านบนของแชท หากปิดไว้ ปุ่มจะกลับมาเมื่อเปิดแชทครั้งถัดไป
+Hide the back button in chats	ซ่อนปุ่มย้อนกลับในแชท
+Leaves the back arrow off the top left of a chat, and the picture and the name move over. Swipe back or use the phone's back button to leave the chat. Shows the next time a chat opens.	นำลูกศรย้อนกลับออกจากมุมซ้ายบนของแชท แล้วรูปและชื่อจะเลื่อนมาแทนที่ ปัดย้อนกลับหรือใช้ปุ่มย้อนกลับของโทรศัพท์เพื่อออกจากแชท จะมีผลเมื่อเปิดแชทครั้งถัดไป
 Hide the Community Standards reminder	ซ่อนการแจ้งเตือนมาตรฐานชุมชน
 Takes the banner reminding you to be respectful off the bottom of a chat.	นำแบนเนอร์ที่เตือนให้คุณสุภาพออกจากด้านล่างของแชท
 Buttons in the message box	ปุ่มในกล่องข้อความ

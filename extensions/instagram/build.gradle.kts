@@ -291,7 +291,7 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.direct.CallButtonsTest" to listOf(
                 "withTheSwitchOnEveryCallKindGoesGone", "otherKindsAndOngoingCallsStay", "offToStartLeavesTheButtonsAlone",
                 "turningItOffOrPausingGivesTheButtonBackOnTheNextBind", "aViewInstagramHidSelfIsNotShownByTheSwitchOff",
-                "nothingThrowsIntoInstagram"
+                "nothingThrowsIntoInstagram", "blendGoesOnlyWithItsOwnSwitch", "theBackArrowIsLeftOutOnlyWithItsSwitchOn"
             ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.direct.InstantsTest" to listOf(
                 "withTheSwitchOnTheCheckAnswersNo[28]", "withTheSwitchOnTheCheckAnswersNo[37]",

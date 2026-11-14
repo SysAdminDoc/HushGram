@@ -1064,6 +1064,20 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_CALL_BUTTONS = new BooleanSetting("hushgram_hide_call_buttons", FALSE);
 
     /**
+     * The Blend buttons at the top of a chat are taken off the chat's header
+     * ({@link app.hushgram.extension.instagram.direct.CallButtons}, #688). Off to start.
+     */
+    public static final BooleanSetting HIDE_CHAT_BLEND = new BooleanSetting("hushgram_hide_chat_blend", FALSE);
+
+    /**
+     * The back arrow at the top left of a chat is left out, and the picture and the name move into
+     * its room ({@link app.hushgram.extension.instagram.direct.CallButtons}, #688). Swiping back and
+     * the phone's back button still leave the chat. Read as a chat's header is made, so a change
+     * shows the next time a chat opens. Off to start.
+     */
+    public static final BooleanSetting HIDE_CHAT_BACK_BUTTON = new BooleanSetting("hushgram_hide_chat_back_button", FALSE);
+
+    /**
      * The banner reminding you to be respectful stays off the bottom of a chat
      * ({@link app.hushgram.extension.instagram.direct.KindnessReminder}, #588). Off to start.
      */

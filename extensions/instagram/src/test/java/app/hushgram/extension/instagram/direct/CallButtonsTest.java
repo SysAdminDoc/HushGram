@@ -50,6 +50,8 @@ public class CallButtonsTest {
     @After
     public void restore() {
         Settings.HIDE_CALL_BUTTONS.resetToDefault();
+        Settings.HIDE_CHAT_BLEND.resetToDefault();
+        Settings.HIDE_CHAT_BACK_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         CallButtons.access = CallButtons.PATCHED;
@@ -136,5 +138,51 @@ public class CallButtonsTest {
         CallButtons.bound(null, "VIDEO_CALL");
         CallButtons.bound(view, null);
         assertEquals(View.VISIBLE, view.getVisibility());
+        Settings.HIDE_CHAT_BACK_BUTTON.save(true);
+        assertEquals("BACK", CallButtons.leftButton("BACK"));
+    }
+
+    @Test
+    public void blendGoesOnlyWithItsOwnSwitch() {
+        for (String kind : new String[]{"BLEND", "BLEND_ADD"}) {
+            View each = new View(RuntimeEnvironment.getApplication());
+            CallButtons.bound(each, kind);
+            assertEquals("the call switch alone keeps " + kind, View.VISIBLE, each.getVisibility());
+        }
+        Settings.HIDE_CALL_BUTTONS.save(false);
+        Settings.HIDE_CHAT_BLEND.save(true);
+        for (String kind : new String[]{"BLEND", "BLEND_ADD"}) {
+            View each = new View(RuntimeEnvironment.getApplication());
+            CallButtons.bound(each, kind);
+            assertEquals(kind, View.GONE, each.getVisibility());
+        }
+        CallButtons.bound(view, "VIDEO_CALL");
+        assertEquals("the Blend switch alone keeps the call buttons", View.VISIBLE, view.getVisibility());
+
+        CallButtons.bound(view, "BLEND");
+        assertEquals(View.GONE, view.getVisibility());
+        Settings.HIDE_CHAT_BLEND.save(false);
+        CallButtons.bound(view, "BLEND");
+        assertEquals("turned off, Blend is back on the next bind", View.VISIBLE, view.getVisibility());
+    }
+
+    @Test
+    public void theBackArrowIsLeftOutOnlyWithItsSwitchOn() {
+        assertEquals("off to start", "BACK", CallButtons.leftButton("BACK"));
+        Settings.HIDE_CHAT_BACK_BUTTON.save(true);
+        assertEquals(null, CallButtons.leftButton("BACK"));
+        assertEquals("a Cancel button stays", "CANCEL", CallButtons.leftButton("CANCEL"));
+        assertEquals(null, CallButtons.leftButton(null));
+        CallButtons.access = model -> null;
+        assertEquals("a model with no kind", "BACK", CallButtons.leftButton("BACK"));
+        CallButtons.access = BY_TEXT;
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", "BACK", CallButtons.leftButton("BACK"));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertEquals(null, CallButtons.leftButton("BACK"));
+        assertTrue(HookStatus.missing(FamilyNames.ASK_BEFORE_CALL).toString(), HookStatus.missing(FamilyNames.ASK_BEFORE_CALL).isEmpty());
     }
 }

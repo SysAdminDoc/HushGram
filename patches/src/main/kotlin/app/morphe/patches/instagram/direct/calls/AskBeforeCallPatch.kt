@@ -60,7 +60,11 @@ internal object ChatCallStartFingerprint : Fingerprint(
 
 internal const val CALL_BUTTONS = "$EXTENSION_PACKAGE/direct/CallButtons;"
 internal const val BOUND = "$CALL_BUTTONS->bound(Landroid/view/View;Ljava/lang/Object;)V"
+internal const val LEFT_BUTTON = "$CALL_BUTTONS->leftButton(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val KIND_OF_STUB = "kindOf"
+
+/** The name of the kind of the header's back arrow, which only the enum of the header's button kinds loads. */
+private const val BACK_KIND = "BACK"
 
 private const val VIEW = "Landroid/view/View;"
 private const val ENUM = "Ljava/lang/Enum;"
@@ -70,16 +74,16 @@ private const val PILL = "Lcom/instagram/ui/widget/pulsingbutton/PulsingPillButt
 private val HEADER_KINDS = listOf("VIDEO_CALL", "AUDIO_CALL")
 
 /**
- * A call started from a chat waits for a question while the switch is on, and the call buttons at
- * the top of a chat can be taken off with the second. Included in the default selection with both
- * switches off, so each is the user's pick.
+ * A call started from a chat waits for a question while the switch is on, and the call buttons, the
+ * Blend buttons and the back arrow at the top of a chat can each be taken off with the others (#217,
+ * #688). Included in the default selection with every switch off, so each is the user's pick.
  */
 @Suppress("unused")
 val askBeforeCallPatch = bytecodePatch(
     name = "Ask before a call",
     description = "Asks you to confirm before a call starts from a chat, so a stray tap on the call button " +
-        "doesn't ring anyone, and can take the call buttons off the top of a chat. Both start off. Turn them on in " +
-        "HushGram settings > Messages.",
+        "doesn't ring anyone, and can take the call buttons, Blend and the back arrow off the top of a chat. " +
+        "All start off. Turn them on in HushGram settings > Messages.",
     default = true,
 ) {
     category("Messages")
@@ -195,13 +199,18 @@ internal fun BytecodePatchContext.askBeforeCall(found: ChatCallTargets = findCha
     )
 }
 
-/** The chat header's two button binders, the model they read, its kind field, and the extension's stub. */
+/**
+ * The chat header's two button binders, the model they read, its kind field, the extension's stub,
+ * and the header model's constructor with the parameter register of its left button.
+ */
 internal class CallButtonTargets(
     val pill: MutableMethod,
     val icon: MutableMethod,
     val model: String,
     val kind: FieldReference,
     val kindOf: MutableMethod,
+    val header: MutableMethod,
+    val leftRegister: Int,
 )
 
 /**
@@ -209,7 +218,12 @@ internal class CallButtonTargets(
  * anything changes. The pill one is the only non-static method taking a view and a model that sets
  * a [PILL]'s text and icon. The icon one is the only method of its class taking that view, the same
  * model and a color. The model's kind is the one field of it holding an enum, which has to be the
- * enum that loads both [HEADER_KINDS] names. Fails when any of it isn't so.
+ * enum that loads both [HEADER_KINDS] names and [BACK_KIND].
+ *
+ * The back arrow is bound from the header model's left button: the one field of that model's type,
+ * in a class other than the binder and the model, that the binder reads. Its class has one
+ * constructor taking that model once, and the constructor keeps it in that field, with nothing
+ * jumping to its first instruction. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findCallButtons(): CallButtonTargets {
     val binders = classesCalling(PILL, "setButtonText").flatMap { holder ->
@@ -237,7 +251,7 @@ internal fun BytecodePatchContext.findCallButtons(): CallButtonTargets {
     }.distinct()
     val kind = kindFields.singleOrNull()
         ?: refuse("expected one enum field of $model read by $holder->${pillBinder.name}, found ${kindFields.size}")
-    for (name in HEADER_KINDS) {
+    for (name in HEADER_KINDS + BACK_KIND) {
         if (classesLoadingString(name).none { it.type == kind.type }) refuse("${kind.type} does not name $name")
     }
 
@@ -259,6 +273,39 @@ internal fun BytecodePatchContext.findCallButtons(): CallButtonTargets {
         it.name == KIND_OF_STUB && it.returnType == "Ljava/lang/String;" && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.parameterTypes.map(Any::toString) == listOf(OBJECT)
     } ?: refuse("$CALL_BUTTONS has no static String $KIND_OF_STUB(Object)")
+    if (extension.methods.none { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == LEFT_BUTTON &&
+            AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
+    ) refuse("the extension has no public static $LEFT_BUTTON")
+
+    val lefts = classDefBy(holder).methods.flatMap { method ->
+        method.implementation?.instructions?.mapNotNull { instruction ->
+            val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
+            field?.takeIf { instruction.opcode == Opcode.IGET_OBJECT && it.type == model && it.definingClass != holder && it.definingClass != model }
+        } ?: emptyList()
+    }.distinct()
+    val left = lefts.singleOrNull()
+        ?: refuse("expected one field of $model in a header model read by $holder, found ${lefts.size}")
+    val headerType = left.definingClass
+    val makers = classDefBy(headerType).methods.filter { method ->
+        method.name == "<init>" && method.parameterTypes.count { it.toString() == model } == 1
+    }
+    val maker = makers.singleOrNull()
+        ?: refuse("expected one constructor of $headerType taking $model, found ${makers.size}")
+    val parameters = maker.parameterTypes.map(Any::toString)
+    val at = parameters.indexOf(model)
+    // p0 is the model being made, and a long or a double before the left button takes two registers.
+    val leftRegister = 1 + parameters.take(at).sumOf { if (it == "J" || it == "D") 2 else 1 }
+    val firstParameter = maker.implementation!!.registerCount - (1 + parameters.sumOf { if (it == "J" || it == "D") 2 else 1 })
+    val kept = maker.implementation!!.instructions.any { instruction ->
+        instruction.opcode == Opcode.IPUT_OBJECT && (instruction as ReferenceInstruction).reference == left &&
+            (instruction as TwoRegisterInstruction).registerA == firstParameter + leftRegister
+    }
+    if (!kept) refuse("$headerType's constructor does not keep its $model in $left")
+    val header = mutableClassDefBy(headerType).methods.single {
+        it.name == "<init>" && it.parameterTypes.map(Any::toString) == parameters
+    }
+    if (0 in header.jumpTargets()) refuse("a jump or exception handler enters $headerType's constructor at its first instruction")
+    if (firstParameter + leftRegister > 255) refuse("$headerType's constructor keeps its $model above register 255")
 
     return CallButtonTargets(
         pill = mutableClassDefBy(holder).methods.single { it.name == pillBinder.name && it.parameterTypes.map(CharSequence::toString) == pillBinder.parameterTypes.map(CharSequence::toString) },
@@ -266,6 +313,8 @@ internal fun BytecodePatchContext.findCallButtons(): CallButtonTargets {
         model = model,
         kind = kind,
         kindOf = kindOf,
+        header = header,
+        leftRegister = leftRegister,
     )
 }
 
@@ -274,6 +323,10 @@ internal fun BytecodePatchContext.findCallButtons(): CallButtonTargets {
  * kind), then hands the view and the model to [BOUND] first thing in both binders. Each path returns
  * on its own: one return after the branch would merge the enum and the String into an Object, and
  * ART rejects the whole class for returning that from a String method.
+ *
+ * The header model's constructor hands its left button to [LEFT_BUTTON] first thing and keeps the
+ * answer, cast back to the model's type, in the same parameter register. Nothing before the call
+ * touches the model being made.
  */
 internal fun BytecodePatchContext.hideCallButtons(found: CallButtonTargets = findCallButtons()) {
     found.kindOf.addInstructions(
@@ -293,4 +346,13 @@ internal fun BytecodePatchContext.hideCallButtons(found: CallButtonTargets = fin
     for (binder in listOf(found.pill, found.icon)) {
         binder.addInstructions(0, "invoke-static/range { p1 .. p2 }, $BOUND")
     }
+    val left = "p${found.leftRegister}"
+    found.header.addInstructions(
+        0,
+        """
+            invoke-static/range { $left .. $left }, $LEFT_BUTTON
+            move-result-object $left
+            check-cast $left, ${found.model}
+        """,
+    )
 }

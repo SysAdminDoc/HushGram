@@ -200,6 +200,13 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.HIDE_CALL_BUTTONS, L10n.t("Hide the call buttons in chats"),
                         L10n.t("Takes the voice and video call buttons off the top of a chat. The name keeps its room. "
                                 + "Turn it off and they're back the next time a chat opens.")));
+                messages.addPreference(toggle(context, Settings.HIDE_CHAT_BLEND, L10n.t("Hide Blend in chats"),
+                        L10n.t("Takes the Blend button off the top of a chat. Turn it off and it's back the next time "
+                                + "a chat opens.")));
+                messages.addPreference(toggle(context, Settings.HIDE_CHAT_BACK_BUTTON, L10n.t("Hide the back button in chats"),
+                        L10n.t("Leaves the back arrow off the top left of a chat, and the picture and the name move "
+                                + "over. Swipe back or use the phone's back button to leave the chat. Shows the next "
+                                + "time a chat opens.")));
             }
             if (build.contains(PatchFamily.CALL_BLOCKER)) {
                 messages.addPreference(callBlockModeRow(context));

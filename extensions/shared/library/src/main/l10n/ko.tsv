@@ -1460,6 +1460,10 @@ Show all recent searches	최근 검색 모두 표시
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	검색창 아래에 처음 몇 개만이 아니라 최근 검색을 전부 보여 줍니다. 모두 보기와 각 줄의 x는 전과 똑같이 작동합니다.
 Hide the call buttons in chats	채팅에서 통화 버튼 숨기기
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	채팅 상단의 음성 통화 및 영상 통화 버튼을 없앱니다. 이름은 자리를 그대로 유지합니다. 끄면 다음에 채팅을 열 때 버튼이 다시 나타납니다.
+Hide Blend in chats	채팅에서 Blend 숨기기
+Takes the Blend button off the top of a chat. Turn it off and it's back the next time a chat opens.	채팅 상단의 Blend 버튼을 없앱니다. 끄면 다음에 채팅을 열 때 버튼이 다시 나타납니다.
+Hide the back button in chats	채팅에서 뒤로 버튼 숨기기
+Leaves the back arrow off the top left of a chat, and the picture and the name move over. Swipe back or use the phone's back button to leave the chat. Shows the next time a chat opens.	채팅 왼쪽 위의 뒤로 화살표를 없애고, 사진과 이름이 그 자리로 옮겨 갑니다. 채팅에서 나가려면 뒤로 스와이프하거나 휴대폰의 뒤로 버튼을 누르세요. 다음에 채팅을 열 때부터 적용됩니다.
 Hide the Community Standards reminder	커뮤니티 규정 알림 숨기기
 Takes the banner reminding you to be respectful off the bottom of a chat.	채팅 하단에 표시되는 서로 존중하라는 배너를 없앱니다.
 Buttons in the message box	메시지 입력창의 버튼

@@ -1447,6 +1447,10 @@ Show all recent searches	顯示所有最近搜尋
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	在搜尋列下方列出所有最近搜尋，而非僅前幾筆。「查看全部」與每列的 x 仍可照常使用。
 Hide the call buttons in chats	隱藏聊天中的通話按鈕
 Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	移除聊天頂端的語音與視訊通話按鈕，名稱仍保有顯示空間。關閉後，下次開啟聊天就會恢復。
+Hide Blend in chats	隱藏聊天中的 Blend
+Takes the Blend button off the top of a chat. Turn it off and it's back the next time a chat opens.	移除聊天頂端的 Blend 按鈕。關閉後，下次開啟聊天就會恢復。
+Hide the back button in chats	隱藏聊天中的返回按鈕
+Leaves the back arrow off the top left of a chat, and the picture and the name move over. Swipe back or use the phone's back button to leave the chat. Shows the next time a chat opens.	移除聊天左上角的返回箭頭，頭像與名稱會移到該處。向後滑動或使用手機的返回鍵即可離開聊天。下次開啟聊天時生效。
 Hide the Community Standards reminder	隱藏社群守則提醒
 Takes the banner reminding you to be respectful off the bottom of a chat.	移除聊天底部提醒你保持尊重的橫幅。
 Buttons in the message box	訊息輸入框按鈕
