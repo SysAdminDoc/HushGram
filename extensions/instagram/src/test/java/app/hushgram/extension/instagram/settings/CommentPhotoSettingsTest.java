@@ -48,9 +48,11 @@ public class CommentPhotoSettingsTest {
         PatchFamily.inBuildForTests = null;
         PatchFamily.commentGifReplyForTests = null;
         PatchFamily.commentGifNameForTests = null;
+        PatchFamily.commentGifPickForTests = null;
         Settings.SAVE_COMMENT_PHOTOS.resetToDefault();
         Settings.REPLY_WITH_COMMENT_GIFS.resetToDefault();
         Settings.SHOW_COMMENT_GIF_NAMES.resetToDefault();
+        Settings.SEND_SAVED_GIFS.resetToDefault();
         Settings.COPY_COMMENTS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -152,6 +154,32 @@ public class CommentPhotoSettingsTest {
         List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.COMMENT_PHOTO), false);
         assertTrue(report.toString(), report.contains("  Show a comment GIF's name: not in this build "
                 + "(the GIF's title or Copy username's row didn't match)"));
+    }
+    /** #402: sending a saved GIF as a GIF is Save's fourth switch, off to start, beside the GIF reply. */
+    @Test public void theSavedGifSwitchSitsWithSaveAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.COMMENT_PHOTO));
+        SwitchPreference photo = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SAVE_COMMENT_PHOTOS.key);
+        SwitchPreference saved = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SEND_SAVED_GIFS.key);
+        assertNotNull(saved);
+        assertEquals("Send saved GIFs as GIFs", saved.getTitle().toString());
+        assertSame(photo.getParent(), saved.getParent());
+        assertFalse(saved.isChecked());
+        assertFalse(Settings.SEND_SAVED_GIFS.get());
+        assertTrue(PatchFamily.COMMENT_PHOTO.switches.contains(Settings.SEND_SAVED_GIFS));
+        Settings.SEND_SAVED_GIFS.save(true);
+        assertFalse("Save stays its own switch", Settings.SAVE_COMMENT_PHOTOS.get());
+        assertFalse("the GIF reply stays its own switch", Settings.REPLY_WITH_COMMENT_GIFS.get());
+    }
+    /** A build whose gallery pick didn't match keeps Save and the report says what's missing. */
+    @Test public void aBuildWithoutTheGalleryPickKeepsSaveWithoutItsSwitch() throws Exception {
+        PatchFamily.commentGifPickForTests = false;
+        open(EnumSet.of(PatchFamily.COMMENT_PHOTO));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.SAVE_COMMENT_PHOTOS.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.REPLY_WITH_COMMENT_GIFS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.SEND_SAVED_GIFS.key));
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.COMMENT_PHOTO), false);
+        assertTrue(report.toString(), report.contains("  Send saved GIFs as GIFs: not in this build "
+                + "(the GIF send or the comment box's gallery pick didn't match)"));
     }
     /** Save comment photo without Copy comment has no row to put the name in, so it offers no switch. */
     @Test public void withoutCopyCommentTheGifNameIsNotOffered() throws Exception {

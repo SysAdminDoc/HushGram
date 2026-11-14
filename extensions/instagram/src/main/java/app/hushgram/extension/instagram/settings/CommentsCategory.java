@@ -54,6 +54,10 @@ final class CommentsCategory {
                     comments.addPreference(toggle(context, Settings.SHOW_COMMENT_GIF_NAMES, L10n.t("Show a comment GIF's name"),
                             L10n.t("When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.")));
                 }
+                if (PatchFamily.commentGifPickInBuild()) {
+                    comments.addPreference(toggle(context, Settings.SEND_SAVED_GIFS, L10n.t("Send saved GIFs as GIFs"),
+                            L10n.t("A comment GIF you saved with Save comment photo, picked from your gallery in the comment box, goes up right away as the same GIF, animated. Other pictures go up as before.")));
+                }
             }
             if (build.contains(PatchFamily.HIDE_COMMENTS)) {
                 comments.addPreference(toggle(context, Settings.HIDE_COMMENTS, L10n.t("Hide comments"),

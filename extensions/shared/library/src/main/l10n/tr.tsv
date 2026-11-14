@@ -520,6 +520,9 @@ Reply with a comment's GIF	Yorumun GIF'iyle yanıtla
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	Bir yorumda GIF varsa menüsüne, aynı GIF'i animasyonlu olarak yanıtın olarak gönderen bir GIF yanıtı eklenir.
 Show a comment GIF's name	Yorumdaki GIF'in adını göster
 When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.	Bir yorumda GIF veya çıkartma varsa menüsünde adı görünür. Kopyalamak için ada dokun.
+Send saved GIFs as GIFs	Kaydedilen GIF'leri GIF olarak gönder
+A comment GIF you saved with Save comment photo, picked from your gallery in the comment box, goes up right away as the same GIF, animated. Other pictures go up as before.	Yorum fotoğrafını kaydet ile kaydettiğin bir yorum GIF'ini yorum kutusunda galeriden seçersen, aynı GIF hareketli olarak hemen paylaşılır. Diğer resimler eskisi gibi yüklenir.
+Couldn't send this GIF	Bu GIF gönderilemedi
 GIF name	GIF adı
 GIF name copied	GIF adı kopyalandı
 Couldn't copy the GIF name	GIF adı kopyalanamadı

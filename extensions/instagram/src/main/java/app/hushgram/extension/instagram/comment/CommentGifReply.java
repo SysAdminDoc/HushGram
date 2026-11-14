@@ -20,8 +20,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 /**
  * A GIF reply in the selected comment's menu (#402): the GIF the comment carries, sent back as a reply
  * to it through Instagram's own Reply and GIF send, so it goes up animated like one picked in
- * Instagram's GIF search. A saved GIF picked from the gallery goes up as a still. It sits after
- * Save, and has its own switch.
+ * Instagram's GIF search. A GIF Save put in the gallery and picked there again goes up the same way
+ * through {@link CommentGifPick}. It sits after Save, and has its own switch.
  */
 public final class CommentGifReply {
     private CommentGifReply() {}

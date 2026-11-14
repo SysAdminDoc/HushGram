@@ -44,7 +44,7 @@ public class CommentPhotoTest {
     private final List<List<MediaSave.Rendition>> queued = new ArrayList<>();
     private final List<CommentPhotoDownload.Snapshot.Format> formats = new ArrayList<>();
     private final List<PostDetails> named = new ArrayList<>();
-    private final CommentPhoto.Save save = (context, snapshot, details) -> {
+    private final CommentPhoto.Save save = (context, snapshot, details, published) -> {
         queued.add(snapshot.sizes);
         formats.add(snapshot.format);
         named.add(details);
@@ -180,7 +180,7 @@ public class CommentPhotoTest {
         nativeRows.nullRow = false;
 
         List<?> rows = CommentPhoto.rows(stock, photo("selected"), context, nativeRows,
-                (ctx, snapshot, details) -> { throw new IllegalStateException("queue failed"); });
+                (ctx, snapshot, details, published) -> { throw new IllegalStateException("queue failed"); });
         assertNull(((Row) rows.get(1)).callback.invoke());
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertEquals("Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
@@ -446,6 +446,34 @@ public class CommentPhotoTest {
         assertEquals(3, nativeRows.created);
     }
 
+    private static CommentPhoto.PhotoAction action(List<?> rows) {
+        return (CommentPhoto.PhotoAction) ((Row) rows.get(rows.size() - 1)).callback;
+    }
+
+    /**
+     * A save kept as a GIF or WebP carries the comment's own GIF for Send saved GIFs as GIFs. A photo
+     * or an MP4 carries none, and a GIF that can't be read is still saved.
+     */
+    @Test public void aGifOrWebpSaveCarriesTheCommentsOwnGifAndAFailedReadStillSaves() {
+        Object model = new Object();
+        nativeRows.gifModel = model;
+        assertSame(model, action(CommentPhoto.rows(stock, gif("kept"), context, nativeRows, save)).gif);
+        CommentPhotoDownload.Snapshot webp = CommentPhotoDownload.gif(Collections.singletonList(new CommentPhotoDownload.GifFile(
+                null, "https://scontent.cdninstagram.com/kept.webp", null, 200, 150)));
+        assertEquals(CommentPhotoDownload.Snapshot.Format.WEBP, webp.format);
+        assertSame(model, action(CommentPhoto.rows(stock, webp, context, nativeRows, save)).gif);
+        CommentPhotoDownload.Snapshot mp4 = CommentPhotoDownload.gif(Collections.singletonList(new CommentPhotoDownload.GifFile(
+                null, null, "https://scontent.cdninstagram.com/kept.mp4", 200, 150)));
+        assertEquals(CommentPhotoDownload.Snapshot.Format.MP4, mp4.format);
+        assertNull(action(CommentPhoto.rows(stock, mp4, context, nativeRows, save)).gif);
+        assertNull(action(CommentPhoto.rows(stock, photo("still"), context, nativeRows, save)).gif);
+        nativeRows.failGif = true;
+        CommentPhoto.PhotoAction failed = action(CommentPhoto.rows(stock, gif("failed"), context, nativeRows, save));
+        assertNull(failed.gif);
+        assertNull(failed.invoke());
+        assertEquals("https://scontent.cdninstagram.com/failed.gif", queued.get(0).get(0).url);
+    }
+
     /** Without media_type the reads go on to the GIF and the video, never to the photo kind. */
     private static final List<String> UNTYPED_READS = Arrays.asList(
             "selected", "raw", "gif", "info", "media", "kind", "mediaGif", "videoVersions", "videoDuration");
@@ -621,8 +649,13 @@ public class CommentPhotoTest {
     static final class FakeNative implements CommentPhoto.NativeRows {
         int created;
         int inspected;
-        boolean fail, failRow, nullRow, failDetails;
+        boolean fail, failRow, nullRow, failDetails, failGif;
         PostDetails details = PostDetails.NONE;
+        Object gifModel;
+        public Object gif(Object comment) {
+            if (failGif) throw new IllegalStateException("native gif getter failed");
+            return gifModel;
+        }
         @SuppressWarnings("unchecked") public CommentPhotoDownload.Snapshot media(Object comment) {
             inspected++;
             if (fail) throw new IllegalStateException("native photo getter failed");

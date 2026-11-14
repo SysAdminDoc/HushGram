@@ -520,6 +520,9 @@ Reply with a comment's GIF	Trả lời bằng GIF của bình luận
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	Khi bình luận có GIF, menu của nó có mục trả lời bằng GIF, gửi lại đúng GIF đó làm câu trả lời của bạn, vẫn chuyển động.
 Show a comment GIF's name	Hiện tên GIF của bình luận
 When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.	Khi bình luận có GIF hoặc nhãn dán, menu của nó hiện tên của chúng. Chạm vào tên để sao chép.
+Send saved GIFs as GIFs	Gửi GIF đã lưu dưới dạng GIF
+A comment GIF you saved with Save comment photo, picked from your gallery in the comment box, goes up right away as the same GIF, animated. Other pictures go up as before.	GIF bình luận bạn đã lưu bằng Lưu ảnh trong bình luận, khi chọn từ Thư viện trong ô bình luận, sẽ được đăng ngay dưới dạng chính GIF đó, vẫn chuyển động. Các ảnh khác vẫn tải lên như trước.
+Couldn't send this GIF	Không gửi được GIF này
 GIF name	Tên GIF
 GIF name copied	Đã sao chép tên GIF
 Couldn't copy the GIF name	Không sao chép được tên GIF

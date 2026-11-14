@@ -517,6 +517,9 @@ Reply with a comment's GIF	ตอบกลับด้วย GIF ของคว
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	เมื่อความคิดเห็นมี GIF เมนูของความคิดเห็นนั้นจะมีตัวเลือก "ตอบกลับด้วย GIF" ซึ่งจะส่ง GIF นั้นกลับไปเป็นการตอบกลับของคุณแบบเคลื่อนไหว
 Show a comment GIF's name	แสดงชื่อ GIF ของความคิดเห็น
 When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.	เมื่อความคิดเห็นมี GIF หรือสติกเกอร์ เมนูจะแสดงชื่อของ GIF หรือสติกเกอร์นั้น แตะที่ชื่อเพื่อคัดลอก
+Send saved GIFs as GIFs	ส่ง GIF ที่บันทึกไว้เป็น GIF
+A comment GIF you saved with Save comment photo, picked from your gallery in the comment box, goes up right away as the same GIF, animated. Other pictures go up as before.	GIF ในความคิดเห็นที่คุณบันทึกด้วย "บันทึกรูปภาพในความคิดเห็น" เมื่อเลือกจากแกลเลอรีในช่องแสดงความคิดเห็น จะโพสต์ทันทีเป็น GIF เดิมที่ยังเคลื่อนไหว ส่วนรูปภาพอื่นจะอัปโหลดเหมือนเดิม
+Couldn't send this GIF	ไม่สามารถส่ง GIF นี้ได้
 GIF name	ชื่อ GIF
 GIF name copied	คัดลอกชื่อ GIF แล้ว
 Couldn't copy the GIF name	ไม่สามารถคัดลอกชื่อ GIF ได้

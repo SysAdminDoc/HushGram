@@ -269,6 +269,9 @@ class CommentPhotoHookTest {
                 // #402: Reply with a comment's GIF, labelled with the quick reply bar's own GIF button.
                 val gifReply = plan.gifReply ?: error("${bundle.name}: the comment screen's Reply or GIF send wasn't found")
                 GIF_BUTTONS[version]?.let { assertEquals("${bundle.name}: GIF button's icon and label", it, gifReply.icon to gifReply.label) }
+                // #402: the comment box's gallery pick, on the same screen the GIF reply sends from.
+                val gifPick = plan.gifPick ?: error("${bundle.name}: the comment box's gallery pick wasn't found")
+                assertEquals(gifReply.select.definingClass, gifPick.pick.definingClass)
                 // Who wrote the comment and when, for the save's name: read through the raw comment's
                 // interface, each proved on its tree-backed class by the key it reads.
                 val author = plan.author ?: error("${bundle.name}: the comment's author and time weren't found")
@@ -391,6 +394,39 @@ class CommentPhotoHookTest {
             assertEquals(name, Opcode.CHECK_CAST, images.single { it.name == name }.code().first().opcode)
         }
         assertGifReplyWiring(patch, plan)
+        assertGifPickWiring(patch, plan)
+    }
+
+    /**
+     * #402: the gallery pick hands over the picked path and the screen right after reading the path,
+     * leaves through its Unit return on a 1, and clearPick attaches nothing to that screen.
+     */
+    private fun assertGifPickWiring(patch: BytecodePatchContext, plan: CommentPhotoPlan) {
+        val clear = patch.mutableClassDefBy(GIF_REPLY_NATIVE).methods.single { it.name == "clearPick" }.code()
+        val pick = plan.gifPick
+        if (pick == null) {
+            assertTrue("clearPick stays a stub without the pick", clear.none { it.call() != null })
+            return
+        }
+        val code = patch.mutableClassDefBy(pick.method.definingClass).methods.single { it.matches(pick.method) }.code()
+        val hook = code.indices.single { code[it].call()?.toString() == GIF_PICKED }
+        assertEquals(pick.hookAt + 2, hook)
+        assertEquals(Opcode.IGET_OBJECT, code[pick.hookAt - 1].opcode)
+        assertEquals(STRING, code[pick.hookAt - 1].field()?.type)
+        val copies = code.subList(pick.hookAt, hook)
+        assertEquals(List(2) { Opcode.MOVE_OBJECT_FROM16 }, copies.map { it.opcode })
+        assertEquals(listOf(pick.path, pick.screen), copies.map { (it as TwoRegisterInstruction).registerB })
+        assertEquals(pick.spares, copies.map { (it as TwoRegisterInstruction).registerA })
+        assertEquals(pick.spares, code[hook].arguments())
+        assertEquals(listOf(Opcode.MOVE_RESULT, Opcode.IF_NEZ), code.subList(hook + 1, hook + 3).map { it.opcode })
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        val exit = addresses.indexOf(addresses[hook + 2] + (code[hook + 2] as OffsetInstruction).codeOffset)
+        assertEquals("a sent GIF leaves through the Unit return", "Lkotlin/Unit;", code[exit].field()?.definingClass)
+        assertEquals(Opcode.RETURN_OBJECT, code[exit + 1].opcode)
+        assertEquals(listOf("Lcom/instagram/common/gallery/Medium;"), pick.pick.parameters())
+        assertEquals(listOf(Opcode.CHECK_CAST, Opcode.CONST_4, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID), clear.map { it.opcode })
+        assertEquals(pick.pick.definingClass, (clear[0].reference() as TypeReference).type)
+        assertEquals(pick.pick.toString(), clear[2].call().toString())
     }
 
     private fun renderer(patch: BytecodePatchContext, surface: CommentSurface) =
@@ -453,7 +489,8 @@ class CommentPhotoHookTest {
     }
 
     private fun extension() = listOf(COMMENT_NATIVE, COPY_ROW, COMMENT_COPY, COMMENT_ACTIONS,
-        PHOTO_NATIVE, PHOTO_ROW, COMMENT_PHOTO, INSTAGRAM_MEDIA, GIF_REPLY_NATIVE, GIF_REPLY_ROW, COMMENT_GIF_REPLY)
+        PHOTO_NATIVE, PHOTO_ROW, COMMENT_PHOTO, INSTAGRAM_MEDIA, GIF_REPLY_NATIVE, GIF_REPLY_ROW, COMMENT_GIF_REPLY,
+        COMMENT_GIF_PICK)
         .map(ExtensionDex::classDef)
 
     /**
@@ -534,6 +571,8 @@ class CommentPhotoHookTest {
         load((screen.methods.flatMap { it.parameters() } + screen.fields.map { it.type }).filter { it.startsWith("L") })
         load(pool.getValue(GIPHY).methods.map { it.returnType }.filter { it.startsWith("L") })
         load(references(listOf(screen)))
+        // #402: the comment box's gallery pick, the lambda that makes its comment_image_ still.
+        add(FixtureDex.classesLoading(bundle, "comment_image_"))
         return pool.values.toList()
     }
 

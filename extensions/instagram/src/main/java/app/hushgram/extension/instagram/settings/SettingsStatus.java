@@ -445,6 +445,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Send saved GIFs as GIFs, Save comment photo's fourth switch, which needs the GIF reply's send. */
+    public static boolean commentGifPick() {
+        return false;
+    }
+
     /** Rewritten by the Save profile picture patch. */
     public static boolean profilePicture() {
         return false;

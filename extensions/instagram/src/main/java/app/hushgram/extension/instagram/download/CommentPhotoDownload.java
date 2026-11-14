@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -223,6 +224,14 @@ public final class CommentPhotoDownload {
      * says so. Never throws.
      */
     public static void save(Context context, Snapshot snapshot, PostDetails details) {
+        save(context, snapshot, details, null);
+    }
+
+    /**
+     * As above. A GIF or WebP, once it's in the gallery, is handed to [published] as the entry the
+     * save published, on the save's thread. Never for a photo or an MP4.
+     */
+    public static void save(Context context, Snapshot snapshot, PostDetails details, Consumer<String> published) {
         try {
             boolean started;
             if (snapshot == null) {
@@ -232,7 +241,7 @@ public final class CommentPhotoDownload {
             } else if (snapshot.format == Snapshot.Format.MP4) {
                 started = MediaSave.saveVideo(context, snapshot.sizes, null, details);
             } else {
-                started = MediaSave.savePictureBySize(context, snapshot.sizes, details);
+                started = MediaSave.savePictureBySize(context, snapshot.sizes, details, published);
             }
             if (!started) failed(context);
         } catch (Throwable t) {

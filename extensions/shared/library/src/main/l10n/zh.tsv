@@ -525,6 +525,9 @@ Reply with a comment's GIF	用评论的 GIF 回复
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	评论含有 GIF 时，其菜单会多出 GIF 回复，将同一个 GIF 以动画形式作为你的回复传回。
 Show a comment GIF's name	显示评论 GIF 的名称
 When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.	评论含有 GIF 或贴图时，其菜单会显示名称。点一下名称即可复制。
+Send saved GIFs as GIFs	将保存的 GIF 作为 GIF 发送
+A comment GIF you saved with Save comment photo, picked from your gallery in the comment box, goes up right away as the same GIF, animated. Other pictures go up as before.	用“保存评论照片”保存的评论 GIF，在评论输入框从相册选取时，会立即以同一个 GIF 动态发布。其他图片照常上传。
+Couldn't send this GIF	无法发送这个 GIF
 GIF name	GIF 名称
 GIF name copied	已复制 GIF 名称
 Couldn't copy the GIF name	无法复制 GIF 名称

@@ -493,6 +493,15 @@ public final class MediaSave {
      * @return whether a save started. Never throws.
      */
     public static boolean savePictureBySize(Context context, List<Rendition> renditions, PostDetails details) {
+        return savePictureBySize(context, renditions, details, null);
+    }
+
+    /**
+     * As above, then hands [published] the gallery entry the save published, on the save's own
+     * thread, once the file is there. Not called when the save fails or is cancelled.
+     */
+    public static boolean savePictureBySize(Context context, List<Rendition> renditions, PostDetails details,
+            Consumer<String> published) {
         try {
             Context safe = ready(context);
             if (safe == null) return false;
@@ -506,7 +515,7 @@ public final class MediaSave {
                 return false;
             }
             saving(false, chosen, found, null, Dash.SINGLE_FILE, null);
-            return startPicture(safe, details, fileJob(safe, chosen.url, Downloader.Kind.IMAGE)) != null;
+            return startPicture(safe, details, fileJob(safe, chosen.url, Downloader.Kind.IMAGE), published) != null;
         } catch (Throwable t) {
             failure(() -> "the picture save could not start", t);
             return false;
@@ -1559,11 +1568,21 @@ public final class MediaSave {
      * already saved keeps apart from the video and from a photo of the same post.
      */
     static Thread startPicture(Context application, PostDetails details, Job job) {
-        return start(application, false, false, details, DownloadHistory.Kind.PICTURE, job);
+        return startPicture(application, details, job, null);
+    }
+
+    /** As above, handing [published] the gallery entry once the picture is saved. */
+    static Thread startPicture(Context application, PostDetails details, Job job, Consumer<String> published) {
+        return start(application, false, false, details, DownloadHistory.Kind.PICTURE, job, published);
     }
 
     private static Thread start(Context application, boolean video, boolean audio, PostDetails details,
             DownloadHistory.Kind kind, Job job) {
+        return start(application, video, audio, details, kind, job, null);
+    }
+
+    private static Thread start(Context application, boolean video, boolean audio, PostDetails details,
+            DownloadHistory.Kind kind, Job job, Consumer<String> published) {
         final PostDetails known = details == null ? PostDetails.NONE : details;
         // Read on the tap, for the account in front now. Null with Skip what's already saved off,
         // or for a save that doesn't know the media's id: it's saved as it always was.
@@ -1589,6 +1608,7 @@ public final class MediaSave {
                     DownloadHistory.record(application, key, writer, known);
                     // A photo or a video, after the file is published: tag it with where it came from.
                     if (!audio) PostMetadata.tag(application, writer, known);
+                    if (published != null) published(published, writer.publishedItem());
                 }
                 Feedback.show(application, message(application, result.status, writer.savedLocation(), result.lower,
                         result.lowStorage),
@@ -1598,6 +1618,15 @@ public final class MediaSave {
                 DownloadHistory.release(key);
             }
         }, save -> {}, () -> {});
+    }
+
+    /** Hands [published] the saved [item]. What it does after the save can't fail the save. */
+    private static void published(Consumer<String> published, String item) {
+        try {
+            if (item != null) published.accept(item);
+        } catch (Throwable t) {
+            failure(() -> "after the save", t);
+        }
     }
 
     private interface Work { void run(SaveControl.Save save); }

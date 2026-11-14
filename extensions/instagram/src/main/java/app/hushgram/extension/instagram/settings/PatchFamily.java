@@ -214,7 +214,7 @@ public enum PatchFamily {
     COMMENT_COPY(FamilyNames.COMMENT_COPY, "commentCopy", null, Settings.COPY_COMMENTS, Settings.COPY_COMMENT_AUTHORS,
             Settings.COPY_COMMENTS_WITHOUT_MENTIONS, Settings.SELECT_TEXT),
     COMMENT_PHOTO(FamilyNames.COMMENT_PHOTO, "commentPhoto", null, Settings.SAVE_COMMENT_PHOTOS,
-            Settings.REPLY_WITH_COMMENT_GIFS, Settings.SHOW_COMMENT_GIF_NAMES),
+            Settings.REPLY_WITH_COMMENT_GIFS, Settings.SHOW_COMMENT_GIF_NAMES, Settings.SEND_SAVED_GIFS),
     PROFILE_PICTURE(FamilyNames.PROFILE_PICTURE, "profilePicture", null, Settings.SAVE_PROFILE_PICTURES,
             Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT, Settings.PROFILE_EXTRAS_BUTTON,
             Settings.ABOUT_ACCOUNT_BUTTON, Settings.PROFILE_HISTORY, Settings.SAVED_PROFILES),
@@ -422,6 +422,22 @@ public enum PatchFamily {
         return COMMENT_PHOTO.inBuild() && SettingsStatus.commentGifReply();
     }
 
+    /** Whether a test says this build sends saved GIFs as GIFs, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean commentGifPickForTests;
+
+    /**
+     * Whether a saved comment GIF picked from the gallery goes up as a GIF. It sends through the GIF
+     * reply's send and takes the comment box's gallery pick, so its switch isn't offered without both.
+     */
+    public static boolean commentGifPickInBuild() {
+        Boolean forced = commentGifPickForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(COMMENT_PHOTO);
+        return COMMENT_PHOTO.inBuild() && SettingsStatus.commentGifReply() && SettingsStatus.commentGifPick();
+    }
+
     /** Whether a test says this build shows a comment GIF's name, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean commentGifNameForTests;
@@ -607,6 +623,9 @@ public enum PatchFamily {
                 }
                 if (family == COMMENT_PHOTO && !commentGifNameInBuild()) {
                     lines.add("  Show a comment GIF's name: not in this build (the GIF's title or Copy username's row didn't match)");
+                }
+                if (family == COMMENT_PHOTO && !commentGifPickInBuild()) {
+                    lines.add("  Send saved GIFs as GIFs: not in this build (the GIF send or the comment box's gallery pick didn't match)");
                 }
                 if (family == PROFILE_BANNERS && !profileLinksInBuild()) {
                     lines.add("  Hide links: not in this build (the profile header's links row didn't match)");

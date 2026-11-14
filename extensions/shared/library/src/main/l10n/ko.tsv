@@ -521,6 +521,9 @@ Reply with a comment's GIF	댓글의 GIF로 답글 달기
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	댓글에 GIF가 있으면 메뉴에 GIF 답글이 추가되어 같은 GIF를 움직이는 그대로 답글로 보냅니다
 Show a comment GIF's name	댓글 GIF 이름 표시
 When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.	댓글에 GIF나 스티커가 있으면 메뉴에 그 이름이 표시됩니다. 이름을 탭하면 복사됩니다.
+Send saved GIFs as GIFs	저장한 GIF를 GIF로 보내기
+A comment GIF you saved with Save comment photo, picked from your gallery in the comment box, goes up right away as the same GIF, animated. Other pictures go up as before.	'댓글 사진 저장'으로 저장한 댓글 GIF를 댓글 입력창에서 갤러리로 고르면 같은 GIF가 움직이는 그대로 바로 올라갑니다. 다른 사진은 전처럼 올라갑니다.
+Couldn't send this GIF	이 GIF를 보내지 못했습니다
 GIF name	GIF 이름
 GIF name copied	GIF 이름을 복사했습니다
 Couldn't copy the GIF name	GIF 이름을 복사할 수 없습니다

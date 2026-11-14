@@ -520,6 +520,9 @@ Reply with a comment's GIF	Responder con el GIF de un comentario
 When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	Cuando un comentario tiene un GIF, su menú incluye una respuesta con GIF que envía ese mismo GIF como tu respuesta, animado.
 Show a comment GIF's name	Mostrar el nombre del GIF de un comentario
 When a comment has a GIF or sticker, its menu shows its name. Tap the name to copy it.	Cuando un comentario tiene un GIF o un sticker, su menú muestra su nombre. Toca el nombre para copiarlo.
+Send saved GIFs as GIFs	Enviar GIF guardados como GIF
+A comment GIF you saved with Save comment photo, picked from your gallery in the comment box, goes up right away as the same GIF, animated. Other pictures go up as before.	Si en el cuadro de comentarios eliges de tu galería un GIF de comentario que guardaste con «Guardar foto del comentario», se publica al instante como el mismo GIF, animado. Las demás imágenes se suben como antes.
+Couldn't send this GIF	No se pudo enviar este GIF
 GIF name	Nombre del GIF
 GIF name copied	Nombre del GIF copiado
 Couldn't copy the GIF name	No se pudo copiar el nombre del GIF

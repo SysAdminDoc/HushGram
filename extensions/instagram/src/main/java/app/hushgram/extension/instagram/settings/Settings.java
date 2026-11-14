@@ -2663,6 +2663,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_comment_gif_names", FALSE);
 
     /**
+     * A comment's GIF that Save comment photo put in the gallery, picked there in the comment box,
+     * goes up as that GIF, animated, and not as a still of it (#402). Off until enabled.
+     */
+    public static final BooleanSetting SEND_SAVED_GIFS =
+            new BooleanSetting("hushgram_send_saved_gifs", FALSE);
+
+    /**
      * The menu on someone's profile gets Save profile picture
      * ({@link app.hushgram.extension.instagram.download.ProfilePicture}). Off until enabled.
      */

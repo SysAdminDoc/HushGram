@@ -2272,6 +2272,13 @@ once-call Lapp/hushgram/extension/instagram/comment/CommentAuthor;->label(Landro
 # on the 453 fixture.
 once-call Lapp/hushgram/extension/instagram/comment/CommentGifReply;->selecting(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V in instance (Ljava/lang/String;Ljava/lang/String;FZ)V holding select_comment_screen_comment_select_tap_
 
+# Save comment photo's Send saved GIFs as GIFs (#402) hands CommentGifPick the picked file's path and
+# the comment screen right after the comment box's gallery pick reads the path (the lambda making the
+# comment_image_ still, 0ktp on 454), before it scales the file. Left out, a saved GIF goes up as a
+# still; twice or elsewhere, it isn't the hook the patch wrote. CommentPhotoHookTest checks where it
+# lands on the 454 fixture.
+once-call Lapp/hushgram/extension/instagram/comment/CommentGifPick;->picked(Ljava/lang/String;Ljava/lang/Object;)I in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding comment_image_
+
 # Hide suggested people on profiles hands the action row's show flag for its inline row of
 # suggestions to ProfileSuggestions right after the read, and the person-plus button to it right
 # after Instagram sets the button up, both in the one method loading the binder message below

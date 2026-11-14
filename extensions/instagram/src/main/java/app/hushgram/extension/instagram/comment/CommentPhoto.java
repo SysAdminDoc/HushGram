@@ -8,6 +8,7 @@ import android.content.Context;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Consumer;
 import kotlin.jvm.functions.Function0;
 import app.hushgram.extension.instagram.download.CommentPhotoDownload;
 import app.hushgram.extension.instagram.download.InstagramMedia;
@@ -28,10 +29,13 @@ public final class CommentPhoto {
         PostDetails details(Object comment);
         Object row(Object callback);
         Object callback(Object row);
+        /** [comment]'s own GIF, never a sticker, for Send saved GIFs as GIFs to keep, or null. */
+        default Object gif(Object comment) { return null; }
     }
 
     interface Save {
-        void save(Context context, CommentPhotoDownload.Snapshot snapshot, PostDetails details);
+        /** Saves [snapshot]. [published], when there is one, is handed a GIF's gallery entry once it's saved. */
+        void save(Context context, CommentPhotoDownload.Snapshot snapshot, PostDetails details, Consumer<String> published);
     }
 
     /** The native reads behind a comment's photo or GIF, one Instagram getter each, made in this order. */
@@ -110,6 +114,7 @@ public final class CommentPhoto {
         public PostDetails details(Object comment) { return CommentPhoto.details(comment, READS); }
         public Object row(Object callback) { return CommentPhotoNative.newRow(callback); }
         public Object callback(Object row) { return CommentPhotoNative.callback(row); }
+        public Object gif(Object comment) { return CommentPhoto.gif(comment, READS); }
     };
 
     private static final Save SAVE = CommentPhotoDownload::save;
@@ -143,7 +148,7 @@ public final class CommentPhoto {
                 return cleaned;
             }
             if (owned == 1 && snapshot.sameAs(existing.snapshot)) return rows;
-            Object photo = nativeRows.row(new PhotoAction(snapshot, details, context, save));
+            Object photo = nativeRows.row(new PhotoAction(snapshot, details, keptGif(nativeRows, comment, snapshot), context, save));
             if (photo == null) return rows;
             List<Object> augmented = new ArrayList<>(rows.size() + 1);
             for (Object row : rows) {
@@ -154,6 +159,21 @@ public final class CommentPhoto {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.COMMENT_PHOTO, "comment menu", failure);
             return rows;
+        }
+    }
+
+    /**
+     * [comment]'s own GIF when Save keeps it as a GIF or WebP picture, the kinds the comment box's
+     * gallery lists, or null. A failed read is null: the save still goes ahead.
+     */
+    private static Object keptGif(NativeRows nativeRows, Object comment, CommentPhotoDownload.Snapshot snapshot) {
+        if (snapshot.format != CommentPhotoDownload.Snapshot.Format.GIF
+                && snapshot.format != CommentPhotoDownload.Snapshot.Format.WEBP) return null;
+        try {
+            return nativeRows.gif(comment);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.COMMENT_PHOTO, "comment gif", failure);
+            return null;
         }
     }
 
@@ -343,24 +363,32 @@ public final class CommentPhoto {
         return Utils.settingsReady() && Settings.SAVE_COMMENT_PHOTOS.get();
     }
 
-    /** Holds only the copied photo sizes or GIF files, who wrote the comment and when, and the short-lived menu's context. */
+    /**
+     * Holds only the copied photo sizes or GIF files, who wrote the comment and when, the comment's
+     * own GIF when it's saved as a picture, and the short-lived menu's context.
+     */
     public static final class PhotoAction implements Function0<Object> {
         final CommentPhotoDownload.Snapshot snapshot;
         final PostDetails details;
+        final Object gif;
         final Context context;
         final Save save;
 
-        PhotoAction(CommentPhotoDownload.Snapshot snapshot, PostDetails details, Context context, Save save) {
+        PhotoAction(CommentPhotoDownload.Snapshot snapshot, PostDetails details, Object gif, Context context, Save save) {
             this.snapshot = snapshot;
             this.details = details;
+            this.gif = gif;
             this.context = context;
             this.save = save;
         }
 
-        /** Instagram ignores this result, then dismisses its menu using the stock callback. */
+        /**
+         * Instagram ignores this result, then dismisses its menu using the stock callback. A GIF's
+         * send model is kept once its file is saved, for Send saved GIFs as GIFs.
+         */
         @Override public Object invoke() {
             try {
-                if (enabled()) save.save(context, snapshot, details);
+                if (enabled()) save.save(context, snapshot, details, CommentGifPick.keeping(context, gif));
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.COMMENT_PHOTO, "save comment photo", failure);
                 CommentPhotoDownload.failed(context);

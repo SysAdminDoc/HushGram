@@ -29,4 +29,10 @@ public final class CommentGifReplyNative {
 
     /** Instagram's own GIF send on [screen], to whatever its comment box replies to. */
     public static void send(Object screen, Object activity, Object info) {}
+
+    /**
+     * Instagram's own end of a gallery pick on [screen] with nothing picked: the gallery closes and
+     * the comment box keeps no picture. Filled only where the pick itself is hooked too.
+     */
+    public static void clearPick(Object screen) {}
 }

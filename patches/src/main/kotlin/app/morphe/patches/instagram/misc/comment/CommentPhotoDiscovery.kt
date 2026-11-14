@@ -39,14 +39,15 @@ internal const val SAVE_ACTION = "SaveMedia"
  * comment's own media_comment_info, never its parent post, and the PHOTO kind's value. [gifModel]
  * reads the files of the comment's own GIF, when the build's GIF model could be told, and [gifReply]
  * sends a comment's GIF back as a reply, when the comment screen's Reply and GIF send could be.
- * [gifName] reads a GIF's or sticker's title, when that getter could be told.
+ * [gifName] reads a GIF's or sticker's title, when that getter could be told. [gifPick] sends a
+ * saved GIF picked in the comment box's gallery through the GIF reply's send, when that pick could be.
  */
 internal data class CommentPhotoPlan(
     val surface: CommentSurface, val gif: MethodReference, val info: MethodReference, val media: MethodReference,
     val kind: MethodReference, val mediaGif: MethodReference, val videoVersions: MethodReference,
     val videoDuration: MethodReference, val photo: Int, val icon: Int, val label: Int, val images: () -> Unit,
     val author: CommentAuthor? = null, val gifModel: CommentGifPlan? = null, val gifReply: GifReplyPlan? = null,
-    val gifName: MethodReference? = null,
+    val gifName: MethodReference? = null, val gifPick: GifPickPlan? = null,
 )
 
 /**
@@ -152,9 +153,11 @@ internal fun BytecodePatchContext.findCommentPhoto(): CommentPhotoPlan = discove
     PHOTO_READS.forEach { (name, shape) -> stub(PHOTO_NATIVE, name, shape.first, shape.second) }
     validateActionRow(PHOTO_ROW, PHOTO_NATIVE)
     val images = imageBridges(PHOTO_PATCH)
+    val author = commentAuthor(raw, pando, classes)
+    val gifModel = commentGifOrNull(classes)
+    val gifReply = gifReplyOrNull(surface, classes)
     CommentPhotoPlan(surface, gif, info, media, kind, mediaGif, videoVersions, videoDuration, photo, icon, label, images,
-        commentAuthor(raw, pando, classes), commentGifOrNull(classes), gifReplyOrNull(surface, classes),
-        commentGifNameOrNull(classes))
+        author, gifModel, gifReply, commentGifNameOrNull(classes), gifReply?.let { gifPickOrNull(it, classes) })
 }
 
 /**
@@ -244,6 +247,7 @@ internal fun BytecodePatchContext.applyCommentPhoto(plan: CommentPhotoPlan) = di
     """)
     applyActionRow(surface, PHOTO_ROW, PHOTO_NATIVE, plan.icon, plan.label)
     plan.gifReply?.let { applyGifReply(surface, it) }
+    plan.gifPick?.let { applyGifPick(it) }
     plan.images()
 }
 
