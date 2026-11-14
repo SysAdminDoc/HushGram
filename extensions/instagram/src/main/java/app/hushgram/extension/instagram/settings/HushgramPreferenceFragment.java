@@ -93,6 +93,7 @@ import java.util.regex.Pattern;
 import app.hushgram.extension.instagram.direct.CallBlockMode;
 import app.hushgram.extension.instagram.direct.ChatAccounts;
 import app.hushgram.extension.instagram.direct.ChatLocks;
+import app.hushgram.extension.instagram.direct.CollectionLocks;
 import app.hushgram.extension.instagram.direct.HiddenChats;
 import app.hushgram.extension.instagram.direct.PinnedChats;
 import app.hushgram.extension.instagram.direct.LockDelay;
@@ -231,6 +232,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String CLEAR_UNFOLLOWERS = "hushgram_clear_unfollowers";
     /** The row that lists the chats locked one at a time. */
     static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
+    /** The row that lists the Saved collections locked one at a time. */
+    static final String LOCKED_COLLECTIONS_ROW = "hushgram_locked_collections_row";
     /** The row that lists the chats hidden one at a time. */
     static final String HIDDEN_CHATS_ROW = "hushgram_hidden_chats_row";
     /** The row that lists the chats pinned to the top of the inbox. */
@@ -922,7 +925,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.CALL_BLOCK_DECLINE.key.equals(key));
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
-                            || HIDDEN_CHATS_ROW.equals(key) || PINNED_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
+                            || LOCKED_COLLECTIONS_ROW.equals(key) || HIDDEN_CHATS_ROW.equals(key) || PINNED_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
                             || CHANGE_PIN_ROW.equals(key));
                     belongs |= family == PatchFamily.RESUME_LONG_VIDEOS && row == clearPositions;
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.STORY_DOWNLOAD
@@ -3811,6 +3814,88 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         // Stays checked until the phone's lock says it's you, if anything is locked.
         setChecked(dialog, position, true);
         MessagesLock.confirmChatsThen(activity, unlock);
+    }
+
+    /** The row that opens the list of Saved collections locked one at a time (#678). */
+    Row lockedCollectionsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(LOCKED_COLLECTIONS_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Locked collections"));
+        row.setSummary(L10n.t("Lock single collections in Saved. A locked collection opens only once you unlock it the "
+                + "way Unlock with says. Saving a post to it never asks."));
+        row.setOnPreferenceClickListener(tapped -> {
+            showLockedCollections();
+            return true;
+        });
+        return row;
+    }
+
+    /**
+     * The locked collections of the account you're signed in to, each with a check, and the
+     * collection you opened last on it above them when it isn't on the list, as Locked chats lists
+     * chats. Unchecking one asks first while anything is locked.
+     */
+    private void showLockedCollections() {
+        Context context = getActivity();
+        if (context == null) return;
+        // The collection you open next is learned by name for this list, even with nothing locked.
+        CollectionLocks.lookForNames();
+        String account = ChatAccounts.active();
+        List<String> collections = new ArrayList<>(CollectionLocks.names(account));
+        String last = CollectionLocks.lastOpened(account);
+        int offered = last == null ? 0 : 1;
+        if (last != null) collections.add(0, last);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Locked collections"));
+        if (collections.isEmpty()) {
+            builder.setMessage(L10n.t("Open a collection in Saved, then come back here to lock it."));
+        } else {
+            CharSequence[] names = new CharSequence[collections.size()];
+            boolean[] locked = new boolean[collections.size()];
+            for (int i = 0; i < names.length; i++) {
+                boolean offer = i < offered;
+                names[i] = offer ? L10n.f("%1$s (opened last)", collections.get(i)) : collections.get(i);
+                locked[i] = !offer;
+            }
+            builder.setMultiChoiceItems(names, locked, (dialog, which, checked) ->
+                    lockCollection((AlertDialog) dialog, account, collections.get(which), which, checked));
+        }
+        show(builder.setPositiveButton(L10n.t("OK"), null));
+    }
+
+    private void lockCollection(AlertDialog dialog, String account, String name, int position, boolean lock) {
+        if (!allowMutation()) {
+            setChecked(dialog, position, !lock);
+            return;
+        }
+        if (lock) {
+            if (!CollectionLocks.add(account, name)) {
+                notSaved(dialog, position, false);
+                return;
+            }
+            Utils.showToastShort(L10n.f("%1$s is locked", L10n.isolate(name)));
+            return;
+        }
+        Runnable unlock = () -> {
+            if (!allowMutation()) {
+                setChecked(dialog, position, true);
+                return;
+            }
+            if (!CollectionLocks.remove(account, name)) {
+                notSaved(dialog, position, true);
+                return;
+            }
+            Utils.showToastShort(L10n.f("%1$s is unlocked", L10n.isolate(name)));
+            setChecked(dialog, position, false);
+        };
+        Activity activity = getActivity();
+        if (activity == null) {
+            setChecked(dialog, position, true);
+            return;
+        }
+        // Stays checked until the phone's lock says it's you, if anything is locked.
+        setChecked(dialog, position, true);
+        MessagesLock.confirmCollectionsThen(activity, unlock);
     }
 
     /** The row that opens the list of chats hidden one at a time. */

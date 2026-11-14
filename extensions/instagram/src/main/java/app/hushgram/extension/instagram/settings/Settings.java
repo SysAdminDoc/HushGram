@@ -849,6 +849,15 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_locked_chats", "", false, false);
 
     /**
+     * The Saved collections that stay locked one at a time (#678), each as the id of the account it
+     * was locked on and the name its page shows
+     * ({@link app.hushgram.extension.instagram.direct.CollectionLocks}), in the same lines as
+     * {@link #LOCKED_CHATS}. It isn't a switch, and a backup leaves it out like the locked chats.
+     */
+    public static final StringSetting LOCKED_COLLECTIONS =
+            new StringSetting("hushgram_locked_collections", "", false, false);
+
+    /**
      * The chats hidden one at a time ({@link app.hushgram.extension.instagram.direct.HiddenChats}),
      * in the same lines as {@link #LOCKED_CHATS}. A chat on the list is the switch. It isn't kept
      * while HushGram is paused, so a paused Instagram shows every chat again, and a backup leaves it
@@ -903,7 +912,7 @@ public class Settings extends BaseSettings {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
         Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_SAVED, LOCK_EACH_CHAT, LOCK_AGAIN, LOCKED_CHATS,
-                UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
+                LOCKED_COLLECTIONS, UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
     }
 
     /**

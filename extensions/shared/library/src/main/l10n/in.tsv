@@ -986,6 +986,12 @@ Unlock this chat	Buka kunci obrolan ini
 Locked chats	Obrolan terkunci
 Lock single chats. A locked chat opens only once you unlock it the way Unlock with says, and its notifications say only that a message came.	Kunci obrolan satu per satu. Obrolan yang terkunci baru terbuka setelah Anda membuka kuncinya dengan cara yang dipilih di Buka kunci dengan, dan notifikasinya hanya memberi tahu bahwa ada pesan masuk.
 Open a chat in Instagram, then come back here to lock it.	Buka obrolan di Instagram, lalu kembali ke sini untuk menguncinya.
+# context: Lock rows under Messages; a Saved collection is one of the folders Instagram's Saved keeps posts in. Unlock with is the row that picks the phone lock or a PIN (#678)
+This collection is locked	Koleksi ini terkunci
+Unlock this collection	Buka kunci koleksi ini
+Locked collections	Koleksi terkunci
+Lock single collections in Saved. A locked collection opens only once you unlock it the way Unlock with says. Saving a post to it never asks.	Kunci koleksi di Tersimpan satu per satu. Koleksi yang terkunci baru terbuka setelah Anda membuka kuncinya dengan cara yang dipilih di Buka kunci dengan. Menyimpan postingan ke koleksi itu tidak pernah meminta apa pun.
+Open a collection in Saved, then come back here to lock it.	Buka sebuah koleksi di Tersimpan, lalu kembali ke sini untuk menguncinya.
 %1$s (opened last)	%1$s (terakhir dibuka)
 %1$s is locked	%1$s terkunci
 %1$s is unlocked	%1$s sudah tidak terkunci

@@ -986,6 +986,12 @@ Unlock this chat	Desbloquear este chat
 Locked chats	Chats bloqueados
 Lock single chats. A locked chat opens only once you unlock it the way Unlock with says, and its notifications say only that a message came.	Bloquea chats sueltos. Un chat bloqueado solo se abre cuando lo desbloqueas como indica «Desbloquear con», y sus notificaciones solo dicen que llegó un mensaje.
 Open a chat in Instagram, then come back here to lock it.	Abre un chat en Instagram y vuelve aquí para bloquearlo.
+# context: Lock rows under Messages; a Saved collection is one of the folders Instagram's Saved keeps posts in. Unlock with is the row that picks the phone lock or a PIN (#678)
+This collection is locked	Esta colección está bloqueada
+Unlock this collection	Desbloquear esta colección
+Locked collections	Colecciones bloqueadas
+Lock single collections in Saved. A locked collection opens only once you unlock it the way Unlock with says. Saving a post to it never asks.	Bloquea colecciones sueltas de Guardado. Una colección bloqueada solo se abre cuando la desbloqueas como indica «Desbloquear con». Guardar una publicación en ella nunca lo pide.
+Open a collection in Saved, then come back here to lock it.	Abre una colección en Guardado y vuelve aquí para bloquearla.
 %1$s (opened last)	%1$s (el último que abriste)
 %1$s is locked	%1$s está bloqueado
 %1$s is unlocked	%1$s está desbloqueado

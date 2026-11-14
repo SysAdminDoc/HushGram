@@ -268,6 +268,7 @@ final class MessagesCategory {
                 messages.addPreference(unlockWithRow(context));
                 messages.addPreference(changePinRow(context));
                 messages.addPreference(page.lockedChatsRow(context));
+                messages.addPreference(page.lockedCollectionsRow(context));
                 messages.addPreference(page.hiddenChatsRow(context));
                 messages.addPreference(toggle(context, Settings.DOUBLE_TAP_HIDDEN_CHATS,
                         L10n.t("Double-tap Messages for hidden chats"),

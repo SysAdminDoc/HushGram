@@ -44,4 +44,14 @@ public final class MessagesLockForTests {
     public static void signOut() {
         ChatAccounts.resetForTests();
     }
+
+    /** The Saved collection called [name] showed, as its page's header names it. */
+    public static void collectionShown(String name) {
+        CollectionLocks.seen(name);
+    }
+
+    /** Whether the collection that shows next is looked for by name, with nothing on any list. */
+    public static boolean wantsCollectionName() {
+        return CollectionLocks.wantsName();
+    }
 }

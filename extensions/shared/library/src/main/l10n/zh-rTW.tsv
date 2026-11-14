@@ -976,6 +976,12 @@ Unlock this chat	解鎖此聊天
 Locked chats	已鎖定的聊天
 Lock single chats. A locked chat opens only once you unlock it the way Unlock with says, and its notifications say only that a message came.	鎖定個別聊天。已鎖定的聊天要依「解鎖方式」的設定解鎖後才會開啟；通知只會顯示收到新訊息。
 Open a chat in Instagram, then come back here to lock it.	先在 Instagram 開啟聊天，再回到此處鎖定。
+# context: Lock rows under Messages; a Saved collection is one of the folders Instagram's Saved keeps posts in. Unlock with is the row that picks the phone lock or a PIN (#678)
+This collection is locked	此珍藏分類已鎖定
+Unlock this collection	解鎖此珍藏分類
+Locked collections	已鎖定的珍藏分類
+Lock single collections in Saved. A locked collection opens only once you unlock it the way Unlock with says. Saving a post to it never asks.	鎖定「已儲存」中的個別珍藏分類。已鎖定的珍藏分類要依「解鎖方式」的設定解鎖後才會開啟。把貼文儲存到其中時一律不會詢問。
+Open a collection in Saved, then come back here to lock it.	先在「已儲存」打開珍藏分類，再回到此處鎖定。
 %1$s (opened last)	%1$s（最近開啟）
 %1$s is locked	已鎖定 %1$s
 %1$s is unlocked	已解鎖 %1$s

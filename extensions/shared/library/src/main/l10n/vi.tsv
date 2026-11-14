@@ -970,6 +970,12 @@ Unlock this chat	Mở khóa cuộc trò chuyện này
 Locked chats	Cuộc trò chuyện đã khóa
 Lock single chats. A locked chat opens only once you unlock it the way Unlock with says, and its notifications say only that a message came.	Khóa từng cuộc trò chuyện. Cuộc trò chuyện đã khóa chỉ mở sau khi bạn mở khóa theo cách đã chọn ở Mở khóa bằng, và thông báo của nó chỉ cho biết có tin nhắn đến.
 Open a chat in Instagram, then come back here to lock it.	Hãy mở một cuộc trò chuyện trong Instagram rồi quay lại đây để khóa.
+# context: Lock rows under Messages; a Saved collection is one of the folders Instagram's Saved keeps posts in. Unlock with is the row that picks the phone lock or a PIN (#678)
+This collection is locked	Bộ sưu tập này đã khóa
+Unlock this collection	Mở khóa bộ sưu tập này
+Locked collections	Bộ sưu tập đã khóa
+Lock single collections in Saved. A locked collection opens only once you unlock it the way Unlock with says. Saving a post to it never asks.	Khóa từng bộ sưu tập trong mục Đã lưu. Bộ sưu tập đã khóa chỉ mở sau khi bạn mở khóa theo cách đã chọn ở Mở khóa bằng. Lưu bài viết vào đó thì không bao giờ phải mở khóa.
+Open a collection in Saved, then come back here to lock it.	Mở một bộ sưu tập trong mục Đã lưu, rồi quay lại đây để khóa nó.
 %1$s (opened last)	%1$s (mở gần nhất)
 %1$s is locked	%1$s đã khóa
 %1$s is unlocked	%1$s đã mở khóa
