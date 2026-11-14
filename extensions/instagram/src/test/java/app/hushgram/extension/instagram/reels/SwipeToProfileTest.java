@@ -21,6 +21,7 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.FrameLayout;
+import android.widget.SeekBar;
 
 import org.junit.After;
 import org.junit.Before;
@@ -173,10 +174,12 @@ public class SwipeToProfileTest {
         SwipeToProfile.forgetSetUpForTests();
         SwipeToProfile.tabChanging(new FakePanels());
         HookStatus.clear();
+        reelIds(PAGER_ID, NAME_ID, ROW_ID, SCRUBBER_ID);
     }
 
     @After
     public void restore() {
+        reelIds(0, 0, 0, 0);
         SwipeToProfile.forgetSetUpForTests();
         Settings.REEL_SWIPE_TO_PROFILE.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -930,6 +933,243 @@ public class SwipeToProfileTest {
         assertTrue(dispatch(screen, MotionEvent.ACTION_UP, far, low, () -> true));
         ShadowLooper.idleMainLooper();
         assertEquals(1, screen.backs);
+    }
+
+    /** A left swipe on a reel outside the Reels tab taps its author's name, and the profile that opens closes with a right swipe. */
+    @Test
+    public void aLeftSwipeOnAReelOffTheReelsTabOpensItsProfile() {
+        ReelScreen reel = reelScreen(ReelScreen.class);
+        float y = videoY(reel);
+        float start = width(reel) - 20;
+
+        assertFalse(dispatch(reel, MotionEvent.ACTION_DOWN, start, y, () -> true));
+        assertTrue(dispatch(reel, MotionEvent.ACTION_MOVE, start - 2 * slop(), y, () -> true));
+        assertTrue(dispatch(reel, MotionEvent.ACTION_UP, start - width(reel) / 2f, y, () -> true));
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("the video got the start and a cancel", Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_CANCEL), reel.video.actions);
+        assertEquals(1, reel.nameTaps);
+        assertEquals(0, reel.rowTaps);
+
+        resumeProfile();
+        assertTrue("the profile it opened closes with a right swipe", swipesBack(screen(), () -> true));
+    }
+
+    /** A name that answers only a finger, as Instagram's does, gets a tap going down and up at its middle. */
+    @Test
+    public void theSwipeTapsANameThatOnlyAnswersAFinger() {
+        ReelScreen reel = reelScreen(ReelScreen.class);
+        List<float[]> lifts = new ArrayList<>();
+        reel.name.setOnClickListener(null);
+        reel.name.setOnTouchListener((view, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                reel.nameTaps++;
+                lifts.add(new float[] {event.getX(), event.getY()});
+            }
+            return true;
+        });
+        assertFalse("performClick does nothing on it", reel.name.performClick());
+
+        assertTrue(leftSwipeOpens(reel, videoY(reel), () -> true));
+        assertEquals(1, reel.nameTaps);
+        assertEquals(0, reel.rowTaps);
+        assertEquals(reel.name.getWidth() / 2f, lifts.get(0)[0], 0.01f);
+        assertEquals(reel.name.getHeight() / 2f, lifts.get(0)[1], 0.01f);
+    }
+
+    /** A carousel, a seek bar, a short, sideways-right or mostly up-and-down swipe, and the switch off leave a reel's touch to Instagram. */
+    @Test
+    public void whatTakesALeftSwipeItselfKeepsIt() {
+        ReelScreen reel = reelScreen(ReelScreen.class);
+        float y = videoY(reel);
+        float start = width(reel) - 20;
+
+        assertFalse("carousel", leftSwipeOpens(reel, centerY(reel.carousel), () -> true));
+        assertFalse("seek bar", leftSwipeOpens(reel, centerY(reel.seekBar), () -> true));
+        assertFalse("Instagram's seek bar", leftSwipeOpens(reel, centerY(reel.scrubber), () -> true));
+        assertFalse("off", leftSwipeOpens(reel, y, () -> false));
+
+        assertFalse(dispatch(reel, MotionEvent.ACTION_DOWN, start, y, () -> true));
+        assertFalse("mostly down", dispatch(reel, MotionEvent.ACTION_MOVE, start - slop(), y + slop(), () -> true));
+        assertFalse(dispatch(reel, MotionEvent.ACTION_UP, start - width(reel) / 2f, y, () -> true));
+
+        assertFalse(dispatch(reel, MotionEvent.ACTION_DOWN, 20, y, () -> true));
+        assertFalse("right", dispatch(reel, MotionEvent.ACTION_MOVE, 20 + 2 * slop(), y, () -> true));
+        assertFalse(dispatch(reel, MotionEvent.ACTION_UP, width(reel) - 20, y, () -> true));
+
+        assertFalse(dispatch(reel, MotionEvent.ACTION_DOWN, start, y, () -> true));
+        assertTrue(dispatch(reel, MotionEvent.ACTION_MOVE, start - 2 * slop(), y, () -> true));
+        float opensAt = Math.max(2 * slop(), width(reel) / 10f);
+        assertTrue("lifted just short of where it opens", dispatch(reel, MotionEvent.ACTION_UP, start - opensAt + 1, y, () -> true));
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(0, reel.nameTaps + reel.rowTaps);
+        assertTrue("the video beside them", leftSwipeOpens(reel, y, () -> true));
+    }
+
+    /** The author's row stands in for a name that takes no taps, and a reel showing neither keeps its touch. */
+    @Test
+    public void theAuthorsRowStandsInForTheName() {
+        ReelScreen reel = reelScreen(ReelScreen.class);
+        float y = videoY(reel);
+
+        reel.name.setClickable(false);
+        assertTrue(leftSwipeOpens(reel, y, () -> true));
+        assertEquals(1, reel.rowTaps);
+
+        reel.row.setVisibility(View.GONE);
+        float start = width(reel) - 20;
+        assertFalse(dispatch(reel, MotionEvent.ACTION_DOWN, start, y, () -> true));
+        assertFalse("nothing to open", dispatch(reel, MotionEvent.ACTION_MOVE, start - 2 * slop(), y, () -> true));
+        assertFalse(dispatch(reel, MotionEvent.ACTION_UP, start - width(reel) / 2f, y, () -> true));
+        ShadowLooper.idleMainLooper();
+        assertEquals(0, reel.nameTaps);
+        assertEquals(1, reel.rowTaps);
+    }
+
+    /** On the Reels tab the tabs' screen leaves the swipe to the profile panel; a reel in a screen over it still opens. */
+    @Test
+    public void onTheReelsTabTheTabsScreenLeavesTheSwipeToThePanel() {
+        SwipeToProfile.tabChanged(HOST, new FakePanels(), () -> true);
+        assertTrue(SwipeToProfile.reelsOpen(() -> true));
+
+        MainTabActivity tabs = reelScreen(MainTabActivity.class);
+        assertFalse(leftSwipeOpens(tabs, videoY(tabs), () -> true));
+        ReelScreen over = reelScreen(ReelScreen.class);
+        assertTrue(leftSwipeOpens(over, videoY(over), () -> true));
+
+        SwipeToProfile.tabChanging(new FakePanels());
+        assertTrue("off the Reels tab", leftSwipeOpens(tabs, videoY(tabs), () -> true));
+    }
+
+    /** A second finger, before the swipe is clear or after, never opens the profile. */
+    @Test
+    public void aSecondFingerNeverOpensTheProfile() {
+        ReelScreen reel = reelScreen(ReelScreen.class);
+        float y = videoY(reel);
+        int secondDown = MotionEvent.ACTION_POINTER_DOWN | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
+        int secondUp = MotionEvent.ACTION_POINTER_UP | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT);
+        float start = width(reel) - 20;
+        float far = start - width(reel) / 2f;
+
+        dispatch(reel, MotionEvent.ACTION_DOWN, 1, start, y, () -> true);
+        assertFalse(dispatch(reel, secondDown, 2, start, y, () -> true));
+        assertFalse(dispatch(reel, MotionEvent.ACTION_MOVE, 2, start - 2 * slop(), y, () -> true));
+        assertFalse(dispatch(reel, secondUp, 2, far, y, () -> true));
+        assertFalse(dispatch(reel, MotionEvent.ACTION_UP, 1, far, y, () -> true));
+
+        dispatch(reel, MotionEvent.ACTION_DOWN, 1, start, y, () -> true);
+        assertTrue(dispatch(reel, MotionEvent.ACTION_MOVE, 1, start - 2 * slop(), y, () -> true));
+        assertTrue(dispatch(reel, secondDown, 2, start - 2 * slop(), y, () -> true));
+        assertTrue(dispatch(reel, MotionEvent.ACTION_MOVE, 2, far, y, () -> true));
+        assertTrue(dispatch(reel, secondUp, 2, far, y, () -> true));
+        assertTrue(dispatch(reel, MotionEvent.ACTION_UP, 1, far, y, () -> true));
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(0, reel.nameTaps + reel.rowTaps);
+    }
+
+    private static final int PAGER_ID = 0x5e1001;
+    private static final int NAME_ID = 0x5e1002;
+    private static final int ROW_ID = 0x5e1003;
+    private static final int SCRUBBER_ID = 0x5e1004;
+
+    /** Gives Instagram's reel ids to the test's views, since a test app has none of Instagram's; 0 takes them away. */
+    private static void reelIds(int pager, int name, int row, int scrubber) {
+        FullScreenBars.idForTests(SwipeToProfile.REELS_PAGER, pager);
+        FullScreenBars.idForTests(SwipeToProfile.AUTHOR_NAME, name);
+        FullScreenBars.idForTests(SwipeToProfile.AUTHOR_ROW, row);
+        FullScreenBars.idForTests(SwipeToProfile.SEEK_BAR, scrubber);
+    }
+
+    /**
+     * A screen holding one reel as Instagram's reels viewer does: the up-and-down pager, its list and
+     * the reel's page. On the page, a video filling it that records each touch it's handed, the
+     * author's row across the top with the name in it, a carousel across the middle, and two seek
+     * bars along the bottom, a stock one under Instagram's.
+     */
+    public static class ReelScreen extends Activity {
+        Recorder video;
+        View row;
+        View name;
+        View carousel;
+        View scrubber;
+        View seekBar;
+        int nameTaps;
+        int rowTaps;
+
+        @Override
+        protected void onCreate(Bundle state) {
+            super.onCreate(state);
+            requestWindowFeature(Window.FEATURE_NO_TITLE);
+            FrameLayout root = new FrameLayout(this);
+            FrameLayout pager = new FrameLayout(this);
+            pager.setId(PAGER_ID);
+            FrameLayout list = new FrameLayout(this);
+            FrameLayout page = new FrameLayout(this);
+            int match = ViewGroup.LayoutParams.MATCH_PARENT;
+            root.addView(pager, new FrameLayout.LayoutParams(match, match));
+            pager.addView(list, new FrameLayout.LayoutParams(match, match));
+            list.addView(page, new FrameLayout.LayoutParams(match, match));
+
+            video = new Recorder(this);
+            page.addView(video, new FrameLayout.LayoutParams(match, match));
+            FrameLayout author = new FrameLayout(this);
+            author.setId(ROW_ID);
+            author.setOnClickListener(v -> rowTaps++);
+            row = author;
+            page.addView(author, new FrameLayout.LayoutParams(match, 60, Gravity.TOP));
+            name = new View(this);
+            name.setId(NAME_ID);
+            name.setOnClickListener(v -> nameTaps++);
+            author.addView(name, new FrameLayout.LayoutParams(120, match));
+            carousel = new Sideways(this);
+            page.addView(carousel, new FrameLayout.LayoutParams(match, 60, Gravity.CENTER_VERTICAL));
+            scrubber = new View(this);
+            scrubber.setId(SCRUBBER_ID);
+            FrameLayout.LayoutParams above = new FrameLayout.LayoutParams(match, 30, Gravity.BOTTOM);
+            above.bottomMargin = 30;
+            page.addView(scrubber, above);
+            seekBar = new SeekBar(this);
+            page.addView(seekBar, new FrameLayout.LayoutParams(match, 30, Gravity.BOTTOM));
+            setContentView(root);
+        }
+    }
+
+    /** The tabs' own screen, by its name, holding a reel as the Reels tab does. */
+    public static final class MainTabActivity extends ReelScreen {
+    }
+
+    private static <T extends ReelScreen> T reelScreen(Class<T> type) {
+        T reel = Robolectric.buildActivity(type).setup().get();
+        ShadowLooper.idleMainLooper();
+        return reel;
+    }
+
+    /** Down the video between the carousel and the seek bars, in the window's coordinates. */
+    private static float videoY(ReelScreen reel) {
+        int[] carousel = new int[2];
+        int[] scrubber = new int[2];
+        reel.carousel.getLocationInWindow(carousel);
+        reel.scrubber.getLocationInWindow(scrubber);
+        return (carousel[1] + reel.carousel.getHeight() + scrubber[1]) / 2f;
+    }
+
+    private static float centerY(View view) {
+        int[] at = new int[2];
+        view.getLocationInWindow(at);
+        return at[1] + view.getHeight() / 2f;
+    }
+
+    /** A lone finger's left swipe at {@code y}, lifted half the screen's width left of where it went down; whether it tapped the author. */
+    private static boolean leftSwipeOpens(ReelScreen reel, float y, BooleanSupplier on) {
+        int before = reel.nameTaps + reel.rowTaps;
+        float start = width(reel) - 20;
+        dispatch(reel, MotionEvent.ACTION_DOWN, start, y, on);
+        dispatch(reel, MotionEvent.ACTION_MOVE, start - 2 * slop(), y, on);
+        dispatch(reel, MotionEvent.ACTION_UP, start - width(reel) / 2f, y, on);
+        ShadowLooper.idleMainLooper();
+        return reel.nameTaps + reel.rowTaps > before;
     }
 
     /** A screen counting the Backs it gets: a header filling it that records each touch it's handed, and a strip along the bottom that can scroll sideways. */
