@@ -39,6 +39,9 @@ public class ChatReelRepliesTest {
     private final Object first = new Object();
     private final Object second = new Object();
     private final Object again = new Object();
+    /** Two chats' collectors. */
+    private final Object here = new Object();
+    private final Object there = new Object();
 
     @Before
     public void enable() {
@@ -84,8 +87,8 @@ public class ChatReelRepliesTest {
      */
     @Test
     public void aSwipedReelGetsItsOwnMessage() {
-        ChatReels.rememberReply("m1", "a1", first);
-        ChatReels.rememberReply("m2", "b2", second);
+        ChatReels.rememberReply(here, "m1", "a1", first);
+        ChatReels.rememberReply(here, "m2", "b2", second);
         assertSame("Instagram quoted the tapped message", second, ChatReels.reply("m2", "a1"));
         assertSame("Instagram hid the bar", second, ChatReels.reply("m2", null));
         assertNull("the tapped reel keeps Instagram's", ChatReels.reply("m1", "a1"));
@@ -94,65 +97,82 @@ public class ChatReelRepliesTest {
         assertNull("no media", ChatReels.reply(null, "a1"));
     }
 
-    /** A reel shared twice answers the message remembered last, unless Instagram's is one of its own. */
+    /**
+     * Instagram runs a chat's messages through the collector as the chat loads, before any tap, and
+     * only one of the opener's ways in runs them again (#658). The replies collected before the tap
+     * answer its viewer, and stay once the viewer, an activity of its own, closes and the chat's
+     * activity comes back, for a second tap in the same chat.
+     */
     @Test
-    public void aReelSharedTwiceAnswersItsLatestMessage() {
-        ChatReels.rememberReply("m2", "b2", second);
-        ChatReels.rememberReply("m2", "c3", again);
-        assertSame(again, ChatReels.reply("m2", "a1"));
-        assertNull("Instagram's is one of the reel's", ChatReels.reply("m2", "b2"));
-        ChatReels.rememberReply("m2", "b2", second);
-        assertSame("met again, last again", second, ChatReels.reply("m2", "a1"));
-        ChatReels.rememberReply("m2", "", first);
-        ChatReels.rememberReply("m2", null, first);
-        ChatReels.rememberReply(null, "d4", first);
-        assertSame("no message, nothing remembered", second, ChatReels.reply("m2", "a1"));
-    }
-
-    /** A new tap, in this chat or another, forgets the last one's messages until the opener adds the new ones. */
-    @Test
-    public void aNewTapStartsOver() {
-        ChatReels.rememberReply("m2", "b2", second);
-        ChatReels.tapped();
-        assertNull("the last chat's", ChatReels.reply("m2", "a1"));
-        ChatReels.rememberReply("m3", "c3", again);
-        assertSame(again, ChatReels.reply("m3", "a1"));
-        assertNull("forgotten for good", ChatReels.reply("m2", "a1"));
+    public void repliesCollectedBeforeTheTapAnswerTheViewer() {
+        ActivityController<Activity> chat = Robolectric.buildActivity(Activity.class).setup();
+        ChatReels.rememberReply(here, "m1", "a1", first);
+        ChatReels.rememberReply(here, "m2", "b2", second);
+        ChatReels.covered();
+        assertTrue(ChatReels.open("reply-tap", new View(chat.get())));
+        assertSame("collected as the chat loaded, before the tap", second, ChatReels.reply("m2", null));
+        assertSame("Instagram quoted the tapped message", second, ChatReels.reply("m2", "a1"));
+        chat.pause();
+        chat.resume();
+        assertTrue("a second tap in the same chat", ChatReels.open("reply-tap-again", new View(chat.get())));
+        assertSame("still answers", second, ChatReels.reply("m2", "a1"));
+        assertSame("with the bar hidden too", second, ChatReels.reply("m2", null));
     }
 
     /**
-     * The viewer is an activity of its own, so the tapped chat's activity coming back after it paused
-     * means the viewer closed, and its replies don't stay in memory until the next tap.
+     * Each chat keeps its own reels' messages, so a reel shared in two chats answers from the viewer's
+     * own chat, named by the message Instagram's info quotes, for the rest of that tap. A tap with
+     * nothing named yet answers from the chat collected from last.
      */
     @Test
-    public void theChatComingBackForgetsTheViewersReplies() {
-        ActivityController<Activity> chat = Robolectric.buildActivity(Activity.class).setup();
-        ActivityController<Activity> other = Robolectric.buildActivity(Activity.class).setup();
-        ChatReels.covered();
-        assertTrue(ChatReels.open("reply-tap", new View(chat.get())));
-        ChatReels.rememberReply("m2", "b2", second);
-        other.pause();
-        other.resume();
-        assertSame("another activity coming back", second, ChatReels.reply("m2", "a1"));
-        chat.pause();
-        assertSame("the viewer is up", second, ChatReels.reply("m2", "a1"));
-        chat.resume();
-        assertNull("the viewer closed", ChatReels.reply("m2", "a1"));
-        ChatReels.rememberReply("m2", "b2", second);
-        chat.pause();
-        chat.resume();
-        assertSame("only once per tap", second, ChatReels.reply("m2", "a1"));
+    public void eachChatAnswersItsOwnViewer() {
+        ChatReels.rememberReply(here, "m1", "a1", first);
+        ChatReels.rememberReply(here, "m2", "b2", second);
+        ChatReels.rememberReply(there, "m9", "z9", first);
+        ChatReels.rememberReply(there, "m2", "c3", again);
+        assertSame("Instagram's info names this chat", second, ChatReels.reply("m2", "a1"));
+        assertSame("and it stands for the rest of the tap", second, ChatReels.reply("m2", null));
+        assertSame("the other chat's viewer", again, ChatReels.reply("m2", "z9"));
+        ChatReels.tapped();
+        assertSame("a new tap, nothing named", again, ChatReels.reply("m2", null));
+        assertNull("the chat collected from last doesn't have it", ChatReels.reply("m1", null));
     }
 
-    /** Only so many reels, and so many messages of one reel, are kept. */
+    /** A reel shared twice answers the message remembered last, unless Instagram's is one of its own. */
+    @Test
+    public void aReelSharedTwiceAnswersItsLatestMessage() {
+        ChatReels.rememberReply(here, "m2", "b2", second);
+        ChatReels.rememberReply(here, "m2", "c3", again);
+        assertSame(again, ChatReels.reply("m2", "a1"));
+        assertNull("Instagram's is one of the reel's", ChatReels.reply("m2", "b2"));
+        ChatReels.rememberReply(here, "m2", "b2", second);
+        assertSame("met again, last again", second, ChatReels.reply("m2", "a1"));
+        ChatReels.rememberReply(here, "m2", "", first);
+        ChatReels.rememberReply(here, "m2", null, first);
+        ChatReels.rememberReply(here, null, "d4", first);
+        assertSame("no message, nothing remembered", second, ChatReels.reply("m2", "a1"));
+    }
+
+    /** Only so many chats, reels of one chat and messages of one reel are kept. */
     @Test
     public void onlySoManyAreKept() {
-        for (int i = 0; i <= ChatReels.REPLIES_KEPT; i++) ChatReels.rememberReply("m" + i, "a" + i, first);
+        for (int i = 0; i <= ChatReels.REPLIES_KEPT; i++) ChatReels.rememberReply(here, "m" + i, "a" + i, first);
         assertNull("the oldest reel", ChatReels.reply("m0", null));
         assertSame("the newest reel", first, ChatReels.reply("m" + ChatReels.REPLIES_KEPT, null));
-        for (int i = 0; i <= ChatReels.MESSAGES_KEPT; i++) ChatReels.rememberReply("x", "b" + i, i == 0 ? second : first);
+        for (int i = 0; i <= ChatReels.MESSAGES_KEPT; i++) ChatReels.rememberReply(here, "x", "b" + i, i == 0 ? second : first);
         assertSame("its oldest message is gone, so Instagram's no longer matches", first, ChatReels.reply("x", "b0"));
         assertNull("its newest", ChatReels.reply("x", "b" + ChatReels.MESSAGES_KEPT));
+
+        ChatReels.forgetReplies();
+        Object[] chats = new Object[ChatReels.CHATS_KEPT + 1];
+        for (int i = 0; i < chats.length; i++) {
+            chats[i] = new Object();
+            ChatReels.rememberReply(chats[i], "c" + i, "k" + i, first);
+            ChatReels.rememberReply(chats[i], "d" + i, "j" + i, second);
+        }
+        assertSame("the second oldest chat", second, ChatReels.reply("d1", "k1"));
+        assertNull("the oldest chat is gone", ChatReels.reply("d0", "k0"));
+        assertSame("the newest chat", second, ChatReels.reply("d" + ChatReels.CHATS_KEPT, "k" + ChatReels.CHATS_KEPT));
     }
 
     /**
@@ -162,7 +182,7 @@ public class ChatReelRepliesTest {
     @Test
     public void everythingElseKeepsInstagramsInfo() {
         Object instagram = new Object();
-        ChatReels.rememberReply("m2", "b2", second);
+        ChatReels.rememberReply(here, "m2", "b2", second);
         assertSame("the stub's empty adapter", instagram, ChatReels.replyTo(instagram, Source.DIRECT, new Object(), 0));
         assertSame("no adapter", instagram, ChatReels.replyTo(instagram, Source.DIRECT, null, 0));
         assertSame("no page", instagram, ChatReels.replyTo(instagram, Source.DIRECT, new Object(), -1));
@@ -182,8 +202,8 @@ public class ChatReelRepliesTest {
         PauseForTests.resume();
         SettingsContextRule.withoutContext(() -> assertSame("no context", instagram, ChatReels.replyInfo(instagram, Source.DIRECT, new Object())));
 
-        ChatReels.collected(new Object(), new Object());
-        ChatReels.collected(null, null);
+        ChatReels.collected(new Object(), new Object(), new Object());
+        ChatReels.collected(null, null, null);
         assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
     }
 

@@ -57,8 +57,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * open, so the viewers stack and Back has to close each one (#390).
  *
  * <p>The reply bar under a reel from a chat answers the message that shared it, but Instagram only
- * keeps the tapped reel's. {@link #collected(Object, Object)} remembers each message's reply info as
- * the opener adds the chat's messages, and {@link #replyTo(Object, Object, Object, int)} and
+ * keeps the tapped reel's. {@link #collected(Object, Object, Object)} remembers each message's reply
+ * info, chat by chat, as Instagram goes through the chat's messages, and {@link #replyTo(Object, Object, Object, int)} and
  * {@link #replyInfo(Object, Object, Object)} hand the bar the one for the reel on screen (#488).
  * {@link #received(Object, Object)} also hands each message to {@link ChatReelsNotice}, whose banner
  * says when the other person wrote after the reel on screen (#489).
@@ -85,18 +85,20 @@ public final class ChatReels {
     /** The application the activity watcher is registered on. */
     @Nullable private static Application watched;
 
-    /** How many reels of the chat last opened keep their messages for the reply bar at most. */
+    /** How many chats keep their reels' messages for the reply bar at most. */
+    static final int CHATS_KEPT = 4;
+    /** How many reels of one chat keep their messages for the reply bar at most. */
     static final int REPLIES_KEPT = 500;
     /** How many of one reel's messages are kept at most. */
     static final int MESSAGES_KEPT = 50;
-    /** The taps on media in a chat that went on to open, counted, so a new one starts the replies over. */
+    /** The taps on media in a chat that went on to open, counted. */
     private static volatile int taps;
-    /** The tap the remembered replies came after. Guarded by {@link #REPLIES}. */
-    private static int repliesTap = -1;
-    /** The reply info of each of a reel's messages in the chat, by the reel's media id and then the message, oldest first. */
-    private static final Map<String, Map<String, Object>> REPLIES = new Kept<>(REPLIES_KEPT);
-    /** The chat's activity the last tap's viewer opened over, or null. Main thread only. */
-    @Nullable private static Tapped tappedChat;
+    /** The chats whose messages' reply infos are remembered, the one collected from last at the end. */
+    private static final List<ChatReplies> CHATS = new ArrayList<>();
+    /** The chat the last tap's viewer answers from, once Instagram's info named it, or null. Guarded by {@link #CHATS}. */
+    @Nullable private static ChatReplies viewerChat;
+    /** The tap {@link #viewerChat} was named after. Guarded by {@link #CHATS}. */
+    private static int viewerTap = -1;
     /** Instagram's own answer to the chat reels test, a server test it reads once a session: yes chains a chat's reels without the switch. */
     private static volatile boolean instagramChains;
 
@@ -279,38 +281,55 @@ public final class ChatReels {
     /**
      * Remembers [info], the reply info Instagram just built for one of a chat's messages, the one in
      * [wrapper], so a reel swiped to from that chat gets the reply bar and reactions for its own message
-     * (#488). Instagram keeps only the tapped reel's info and asks for it by position, so past the first
-     * reel its bar hid and a reaction quoted the tapped message. Nothing while the chat's reels aren't
-     * chained (see {@link #chaining()}), HushGram is paused or the settings aren't ready, and nothing is
-     * ever sent. Never throws.
+     * (#488). [chat] is the chat's collector, which Instagram runs the chat's messages through as the
+     * chat loads, before any tap, and the opener runs again only one of its ways in (#658), so the
+     * replies are kept chat by chat rather than tap by tap. Instagram keeps only the tapped reel's info
+     * and asks for it by position, so past the first reel its bar hid and a reaction quoted the tapped
+     * message. Nothing while the chat's reels aren't chained (see {@link #chaining()}), HushGram is
+     * paused or the settings aren't ready, and nothing is ever sent. Never throws.
      */
-    public static void collected(@Nullable Object info, @Nullable Object wrapper) {
+    public static void collected(@Nullable Object info, @Nullable Object wrapper, @Nullable Object chat) {
         try {
             HookStatus.invoked(FamilyNames.CHAT_REELS);
-            if (info == null || wrapper == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
+            if (info == null || wrapper == null || chat == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
             if (!chaining()) return;
             Object reel = reel(wrapper);
-            if (reel != null) rememberReply(mediaId(reel), messageOf(info), info);
+            if (reel != null) rememberReply(chat, mediaId(reel), messageOf(info), info);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels reply", failure);
         }
     }
 
-    /** Remembers [info] as the reply info of [message], a message holding the reel [media], starting over after a new tap. */
-    static void rememberReply(@Nullable String media, @Nullable String message, Object info) {
+    /** Remembers [info] as the reply info of [message], a message in [chat] holding the reel [media]. */
+    static void rememberReply(Object chat, @Nullable String media, @Nullable String message, Object info) {
         if (media == null || message == null || message.isEmpty()) return;
-        synchronized (REPLIES) {
-            int tap = taps;
-            if (repliesTap != tap) {
-                REPLIES.clear();
-                repliesTap = tap;
-            }
-            Map<String, Object> messages = REPLIES.remove(media);
+        synchronized (CHATS) {
+            Map<String, Map<String, Object>> reels = chatOf(chat).reels;
+            Map<String, Object> messages = reels.remove(media);
             if (messages == null) messages = new Kept<>(MESSAGES_KEPT);
             messages.remove(message);
             messages.put(message, info);
-            REPLIES.put(media, messages);
+            reels.put(media, messages);
         }
+    }
+
+    /**
+     * [chat]'s remembered replies, new ones when it has none, moved to the end as the chat collected
+     * from last. Chats that are gone and the oldest past {@link #CHATS_KEPT} are let go. Guarded by
+     * {@link #CHATS}.
+     */
+    private static ChatReplies chatOf(Object chat) {
+        ChatReplies found = null;
+        for (int i = CHATS.size() - 1; i >= 0; i--) {
+            Object held = CHATS.get(i).chat.get();
+            if (held != null && held != chat) continue;
+            ChatReplies replies = CHATS.remove(i);
+            if (held != null) found = replies;
+        }
+        if (found == null) found = new ChatReplies(chat);
+        CHATS.add(found);
+        while (CHATS.size() > CHATS_KEPT) CHATS.remove(0);
+        return found;
     }
 
     /**
@@ -380,16 +399,16 @@ public final class ChatReels {
     }
 
     /**
-     * The reply info of a message in the chat holding the reel [media], the one remembered last, or null
-     * to keep Instagram's: when none is remembered since the last tap, or when [instagram], the message
-     * Instagram's info quotes, is one of them already.
+     * The reply info of a message holding the reel [media] in the viewer's chat (see
+     * {@link #viewersChat(String)}), the one remembered last, or null to keep Instagram's: when the chat
+     * has none, or when [instagram], the message Instagram's info quotes, is one of them already.
      */
     @Nullable
     static Object reply(@Nullable String media, @Nullable String instagram) {
         if (media == null) return null;
-        synchronized (REPLIES) {
-            if (repliesTap != taps) return null;
-            Map<String, Object> messages = REPLIES.get(media);
+        synchronized (CHATS) {
+            ChatReplies chat = viewersChat(instagram);
+            Map<String, Object> messages = chat == null ? null : chat.reels.get(media);
             if (messages == null || messages.isEmpty()) return null;
             if (instagram != null && messages.containsKey(instagram)) return null;
             Object last = null;
@@ -398,18 +417,53 @@ public final class ChatReels {
         }
     }
 
+    /**
+     * The chat the last tap's viewer answers from: the one holding [instagram], the message Instagram's
+     * own info quotes, which then stands for the rest of that tap, or else the one that stood earlier in
+     * the tap, or else the chat collected from last. Null with no chat remembered. Guarded by
+     * {@link #CHATS}.
+     */
+    @Nullable
+    private static ChatReplies viewersChat(@Nullable String instagram) {
+        int tap = taps;
+        if (instagram != null) {
+            for (int i = CHATS.size() - 1; i >= 0; i--) {
+                ChatReplies chat = CHATS.get(i);
+                if (!chat.holds(instagram)) continue;
+                viewerChat = chat;
+                viewerTap = tap;
+                return chat;
+            }
+        }
+        ChatReplies named = viewerChat;
+        if (named != null && viewerTap == tap && CHATS.contains(named)) return named;
+        return CHATS.isEmpty() ? null : CHATS.get(CHATS.size() - 1);
+    }
+
     /** Forgets every remembered reply, for tests. */
     static void forgetReplies() {
-        synchronized (REPLIES) {
-            REPLIES.clear();
-            repliesTap = -1;
+        synchronized (CHATS) {
+            CHATS.clear();
+            viewerChat = null;
+            viewerTap = -1;
         }
     }
 
-    /** Forgets the replies remembered after [tap], whose viewer closed, so they don't stay in memory until the next tap. */
-    static void viewerClosed(int tap) {
-        synchronized (REPLIES) {
-            if (repliesTap == tap) REPLIES.clear();
+    /** One chat's reply infos, by the reel's media id and then the message, oldest first, with the chat's collector held weakly. */
+    private static final class ChatReplies {
+        final WeakReference<Object> chat;
+        final Map<String, Map<String, Object>> reels = new Kept<>(REPLIES_KEPT);
+
+        ChatReplies(Object chat) {
+            this.chat = new WeakReference<>(chat);
+        }
+
+        /** Whether [message] is one of this chat's remembered messages. */
+        boolean holds(String message) {
+            for (Map<String, Object> messages : reels.values()) {
+                if (messages.containsKey(message)) return true;
+            }
+            return false;
         }
     }
 
@@ -527,8 +581,6 @@ public final class ChatReels {
             watched = (Application) app;
         }
         if (view == null) return;
-        Activity chat = ChatReelsExit.activityOf(view.getContext());
-        tappedChat = chat == null ? null : new Tapped(chat, taps);
         Cover cover = new Cover(message, view);
         view.addOnAttachStateChangeListener(cover);
         view.getViewTreeObserver().addOnWindowFocusChangeListener(cover);
@@ -566,40 +618,16 @@ public final class ChatReels {
         }
     }
 
-    /** The chat's activity a tap opened a viewer over, held weakly, and whether the viewer has covered it yet. */
-    private static final class Tapped {
-        final WeakReference<Activity> chat;
-        final int tap;
-        boolean covered;
-
-        Tapped(Activity chat, int tap) {
-            this.chat = new WeakReference<>(chat);
-            this.tap = tap;
-        }
-    }
-
     /**
-     * Clears a tap's open when any activity pauses. The viewer is an activity of its own, so the tapped
-     * chat's activity coming back after it paused means that viewer closed, and its replies go.
+     * Clears a tap's open when any activity pauses. The replies stay: Instagram goes through a chat's
+     * messages once as it loads, so a viewer closing and the next tap in the same chat still need them.
      */
     private static final class Watcher implements Application.ActivityLifecycleCallbacks {
         @Override public void onActivityPaused(@NonNull Activity activity) {
             covered();
-            Tapped tapped = tappedChat;
-            if (tapped != null && tapped.chat.get() == activity) tapped.covered = true;
         }
 
-        @Override public void onActivityResumed(@NonNull Activity activity) {
-            try {
-                Tapped tapped = tappedChat;
-                if (tapped == null || !tapped.covered || tapped.chat.get() != activity) return;
-                tappedChat = null;
-                viewerClosed(tapped.tap);
-            } catch (Throwable failure) {
-                HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels viewer closed", failure);
-            }
-        }
-
+        @Override public void onActivityResumed(@NonNull Activity activity) { }
         @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
         @Override public void onActivityStarted(@NonNull Activity activity) { }
         @Override public void onActivityStopped(@NonNull Activity activity) { }

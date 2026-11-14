@@ -180,7 +180,7 @@ class SwipedReelRepliesTest {
         assertEquals("$bar->source:$VIEWER_SOURCE", found.source)
         assertEquals("$bar->currentItem($bar)$item", found.currentItem)
         assertEquals("the info built", 1, found.built)
-        assertEquals("the collector's free local", 2, found.wrapper)
+        assertEquals("the collector's free locals", listOf(2, 3), listOf(found.wrapper, found.chat))
         assertEquals(1, found.hintInfo)
         assertEquals(listOf(0, 2, 3), found.hintFree)
         assertEquals(1, found.currentInfo)
@@ -189,13 +189,16 @@ class SwipedReelRepliesTest {
         context.giveSwipedReelsTheirReplies(collector, found)
 
         val collect = collector.collect.visualCode()
-        assertEquals("the collector: added", 10, collect.size)
+        assertEquals("the collector: added", 11, collect.size)
         val copy = collect[5] as TwoRegisterInstruction
         assertEquals(Opcode.MOVE_OBJECT_FROM16, collect[5].opcode)
-        assertEquals("the wrapper copied", listOf(2, 4), listOf(copy.registerA, copy.registerB))
-        assertEquals(COLLECTED, collect[6].text())
-        assertEquals("handed the info and the wrapper", listOf(1, 2), collect[6].arguments())
-        assertEquals("then Instagram's", Opcode.GOTO, collect[7].opcode)
+        assertEquals("the wrapper copied", listOf(2, 5), listOf(copy.registerA, copy.registerB))
+        val self = collect[6] as TwoRegisterInstruction
+        assertEquals(Opcode.MOVE_OBJECT_FROM16, collect[6].opcode)
+        assertEquals("the collector itself copied, one per chat (#658)", listOf(3, 4), listOf(self.registerA, self.registerB))
+        assertEquals(COLLECTED, collect[7].text())
+        assertEquals("handed the info, the wrapper and the collector", listOf(1, 2, 3), collect[7].arguments())
+        assertEquals("then Instagram's", Opcode.GOTO, collect[8].opcode)
 
         val hint = found.hint.visualCode()
         assertEquals(REPLY_TO, hint[8].text())
@@ -254,6 +257,9 @@ class SwipedReelRepliesTest {
         assertRefused("something in $owner->collect jumps to just after it builds a $info") {
             context().findReplyBar(collector(jumped = true))
         }
+        assertRefused("$owner->collect writes over this (v4)") {
+            context().findReplyBar(collector(thisSpoiled = true))
+        }
     }
 
     private fun assertRefused(expected: String, find: () -> Unit) {
@@ -273,8 +279,9 @@ class SwipedReelRepliesTest {
         if (this is RegisterRangeInstruction) List(registerCount) { startRegister + it } else arguments()
 
     /** Shaped like 453's 02YM.A01 where it builds a 0W3G: the info built, then a goto on to Instagram's use of it. */
-    private fun collector(itemType: String = item, jumped: Boolean = false, time: String = "Ljava/lang/String;"): ReelCollector {
-        val body = if (jumped) {
+    private fun collector(itemType: String = item, jumped: Boolean = false, time: String = "Ljava/lang/String;", thisSpoiled: Boolean = false): ReelCollector {
+        val spoil = if (thisSpoiled) "const/4 p0, 0x0\n" else ""
+        val body = spoil + if (jumped) {
             """
                 invoke-virtual {p1}, $wrapper->reel()$item
                 move-result-object v0
@@ -309,7 +316,7 @@ class SwipedReelRepliesTest {
             null,
         )
         return ReelCollector(
-            MutableMethod(method(owner, "collect", listOf(wrapper), "V", 3, final, body)),
+            MutableMethod(method(owner, "collect", listOf(wrapper), "V", 4, final, body)),
             ImmutableFieldReference(wrapper, "m", "Lfixture/Message;"),
             fields,
             ImmutableMethodReference(wrapper, "reel", emptyList(), item),

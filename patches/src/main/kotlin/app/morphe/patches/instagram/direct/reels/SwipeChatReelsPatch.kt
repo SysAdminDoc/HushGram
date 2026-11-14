@@ -145,7 +145,7 @@ internal const val REFRESH_NOT_ALLOWED = "refresh_not_allowed"
 internal const val CHAT_REELS_EXIT = "$EXTENSION_PACKAGE/direct/ChatReelsExit;"
 internal const val VIEWER = "$CHAT_REELS_EXIT->viewer(Ljava/lang/Object;Ljava/lang/Object;)V"
 
-internal const val COLLECTED = "$CHAT_REELS->collected(Ljava/lang/Object;Ljava/lang/Object;)V"
+internal const val COLLECTED = "$CHAT_REELS->collected(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V"
 internal const val REPLY_TO = "$CHAT_REELS->replyTo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)Ljava/lang/Object;"
 internal const val REPLY_INFO = "$CHAT_REELS->replyInfo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
 
@@ -1067,7 +1067,7 @@ internal fun BytecodePatchContext.watchChatViewers(found: ChatViewers = findChat
  * the locals the hook borrows there, its reel on screen ([REPLY_CURRENT_ITEM]), the info class with its
  * constructor and message field, the controller's adapter field with the adapter's count and item at a
  * position, and the controller's [VIEWER_SOURCE] field. Also the collector's register holding the info it
- * just built and the local its hook borrows.
+ * just built and the two locals its hook borrows, for the message's wrapper and the collector itself.
  */
 internal class ReplyBar(
     val hint: MutableMethod,
@@ -1086,6 +1086,7 @@ internal class ReplyBar(
     val source: String,
     val built: Int,
     val wrapper: Int,
+    val chat: Int,
 )
 
 private val INFO_TESTS = setOf(Opcode.IF_EQZ, Opcode.IF_NEZ)
@@ -1127,7 +1128,7 @@ private fun virtualCalls(code: List<Instruction>) = code.mapNotNull { instructio
  * item comes from one virtual call on an adapter taking a position, next to one call of the adapter's
  * count, on one field of the controller, and the controller keeps one [VIEWER_SOURCE]. The info class
  * has one constructor, storing its first String, the message, in one field, and the collector builds
- * one with a free local after it where nothing jumps. Both reply methods test the info they cast where
+ * one with two free locals after it where nothing jumps. Both reply methods test the info they cast where
  * their two ways in meet, with free locals there. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findReelCollector()): ReplyBar {
@@ -1198,7 +1199,7 @@ internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findRe
     val built = builds.singleOrNull() ?: refuse("$where builds ${builds.size} $info, not one")
     if (built + 1 >= collectCode.size || built + 1 in collect.jumpTargets()) refuse("something in $where jumps to just after it builds a $info")
     val infoRegister = (collectCode[built] as FiveRegisterInstruction).registerC
-    val wrapper = collect.freeLocalsAt(PATCH, built + 1, 1, except = listOf(infoRegister)).single()
+    val (wrapper, chat) = collect.freeLocalsAt(PATCH, built + 1, 2, except = listOf(infoRegister))
 
     val hintJoin = replyJoin(hint, info) ?: refuse("$controller->${hint.name} has no one place its ways to a $info meet")
     val hintInfo = replyRegister(hint, hintJoin)
@@ -1206,9 +1207,10 @@ internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findRe
     val currentJoin = replyJoin(current, info) ?: refuse("$controller->${current.name} has no one place its ways to a $info meet")
     val currentInfo = replyRegister(current, currentJoin)
     val currentFree = current.freeLocalsAt(PATCH, currentJoin, 2, except = listOf(currentInfo))
-    // Each hook reads a parameter where it goes in: the collector's message wrapper, the hint's
-    // controller and page, and the reply info's controller. Nothing before may write over them.
+    // Each hook reads a parameter where it goes in: the collector's message wrapper and the collector,
+    // the hint's controller and page, and the reply info's controller. Nothing before may write over them.
     collect.requireParameterIntact(PATCH, 0, listOf(built + 1))
+    collect.requireThisIntact(PATCH, listOf(built + 1))
     hint.requireThisIntact(PATCH, listOf(hintJoin))
     hint.requireParameterIntact(PATCH, 0, listOf(hintJoin))
     current.requireParameterIntact(PATCH, 0, listOf(currentJoin))
@@ -1217,15 +1219,16 @@ internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findRe
     fun mutableOf(method: Method) = mutable.single { it.name == method.name && takes(it) == takes(method) }
     return ReplyBar(
         mutableOf(hint), hintInfo, hintFree, mutableOf(current), currentInfo, currentFree, replyCall(currentItem),
-        info, initCall, message, adapter, count, item, "$controller->${source.name}:$VIEWER_SOURCE", infoRegister, wrapper,
+        info, initCall, message, adapter, count, item, "$controller->${source.name}:$VIEWER_SOURCE", infoRegister, wrapper, chat,
     )
 }
 
 /**
  * Gives each reel swiped to from a chat the reply bar and reactions for its own message there (#488).
  * Instagram keeps the reply info of the reel tapped and asks for it by position, so past the first reel
- * the bar hid, and a quick reaction or a reply typed on another reel quoted the tapped one. The collector
- * hands each info it builds to the extension with its message's wrapper through [COLLECTED], and the
+ * the bar hid, and a quick reaction or a reply typed on another reel quoted the tapped one. The collector,
+ * one per chat that goes through the chat's messages as it loads (#658), hands each info it builds to
+ * the extension with its message's wrapper and itself through [COLLECTED], and the
  * hint update and the reply info ask [REPLY_TO] and [REPLY_INFO] with Instagram's info, the viewer's
  * source and the reel on screen, and take what comes back. Nothing is sent: the bar only gets the message
  * a reply would quote. Also writes the extension's bridges reading an info's message and an adapter's
@@ -1241,7 +1244,8 @@ internal fun BytecodePatchContext.giveSwipedReelsTheirReplies(collector: ReelCol
         built + 1,
         """
             move-object/from16 v${found.wrapper}, p1
-            invoke-static { v${found.built}, v${found.wrapper} }, $COLLECTED
+            move-object/from16 v${found.chat}, p0
+            invoke-static { v${found.built}, v${found.wrapper}, v${found.chat} }, $COLLECTED
         """,
     )
 

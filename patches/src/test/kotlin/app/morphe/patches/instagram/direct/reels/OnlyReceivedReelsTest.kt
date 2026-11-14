@@ -361,7 +361,7 @@ class OnlyReceivedReelsTest {
         // Each info the collector builds goes to the extension, and the bar asks it twice (#488).
         context.giveSwipedReelsTheirReplies(found, replies)
         val replied = found.collect.implementation!!.instructions.toList()
-        assertEquals("$name: added for the reply bar", before + 8, replied.count { it.opcode != Opcode.NOP })
+        assertEquals("$name: added for the reply bar", before + 9, replied.count { it.opcode != Opcode.NOP })
         assertEquals("$name: infos handed over", 1, replied.count { it.text() == COLLECTED })
         val all = classes.keys.flatMap { type -> context.mutableClassDefBy(type).methods }
         for (hook in listOf(REPLY_TO, REPLY_INFO)) {
