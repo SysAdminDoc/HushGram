@@ -11,11 +11,18 @@ import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
+import android.graphics.SurfaceTexture;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.PixelCopy;
+import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -23,6 +30,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.function.Consumer;
 
 import app.hushgram.extension.instagram.reels.ReelBlurBars;
 
@@ -45,8 +53,23 @@ final class ReelFrames {
     /** Reads a video's frame. Swapped in tests, since a stand-in video has no surface. */
     static volatile ReelBlurBars.FrameSource source = ReelBlurBars.TEXTURE;
 
+    /**
+     * Copies a video's newest frame into a bitmap without holding up the main thread, and answers on it.
+     * Swapped in tests; null where there's no such copy and {@link #source} is read instead.
+     */
+    interface Copier {
+        void copy(TextureView video, Bitmap into, Consumer<Boolean> done);
+    }
+
+    static volatile @Nullable Copier copier = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            ? ReelFrames::copyLatest : null;
+
+    /** After this many copies in a row come back empty, a video is read the old way, which holds the main thread. */
+    static final int MOST_MISSES = 3;
+
     private static final Paint CLEAR = new Paint();
     private static final Paint FRAME = new Paint(Paint.FILTER_BITMAP_FLAG);
+    @Nullable private static Handler main;
 
     static {
         CLEAR.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
@@ -56,6 +79,9 @@ final class ReelFrames {
         @Nullable Bitmap shown;
         @Nullable Bitmap spare;
         long copiedAt;
+        /** A copy is on its way into {@link #spare}, which nothing else writes or draws until it lands. */
+        boolean copying;
+        int misses;
     }
 
     private final WeakHashMap<View, Map<TextureView, Held>> viewers = new WeakHashMap<>();
@@ -63,6 +89,11 @@ final class ReelFrames {
     /**
      * Copies each video in [viewer] that crosses the strip of [parent] from [top], [tall] high and is due
      * for one, and lets go of the rest. Says whether any video crosses the strip.
+     *
+     * <p>On Android 14 and newer the copy is read from the video's own surface and lands a little later, so
+     * the next recording after it has it. Before, {@link TextureView#getBitmap} held the main thread while
+     * the GPU copied the frame, eight times a second, up to 28 ms each, and Reels stuttered under the
+     * glass (#672). A video whose surface gives nothing back {@link #MOST_MISSES} times in a row is read that way.
      */
     boolean copy(View viewer, ViewGroup parent, float top, float tall, long now) {
         Map<TextureView, Held> held = viewers.get(viewer);
@@ -78,9 +109,15 @@ final class ReelFrames {
             Held frames = held.get(video);
             if (frames == null) frames = new Held();
             kept.put(video, frames);
-            if (frames.shown != null && now - frames.copiedAt < COPY_EVERY_MS) continue;
-            Bitmap copy = source.frame(video, frames.spare, Math.max(2, video.getWidth() / SCALE),
-                    Math.max(2, video.getHeight() / SCALE));
+            if (frames.copying || (frames.shown != null && now - frames.copiedAt < COPY_EVERY_MS)) continue;
+            int width = Math.max(2, video.getWidth() / SCALE);
+            int height = Math.max(2, video.getHeight() / SCALE);
+            Copier later = copier;
+            if (later != null && frames.misses < MOST_MISSES) {
+                copyLater(later, video, frames, width, height, now);
+                continue;
+            }
+            Bitmap copy = source.frame(video, frames.spare, width, height);
             if (copy == null) continue;
             frames.spare = frames.shown;
             frames.shown = copy;
@@ -89,6 +126,56 @@ final class ReelFrames {
         held.clear();
         held.putAll(kept);
         return !kept.isEmpty();
+    }
+
+    private static void copyLater(Copier later, TextureView video, Held frames, int width, int height, long now) {
+        Bitmap into = frames.spare;
+        if (into == null || into.isRecycled() || into.getWidth() != width || into.getHeight() != height) {
+            into = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            frames.spare = into;
+        }
+        Bitmap target = into;
+        frames.copying = true;
+        frames.copiedAt = now;
+        // A video let go of meanwhile has its copy land in a holder nothing reads anymore.
+        later.copy(video, target, copied -> {
+            frames.copying = false;
+            if (!copied) {
+                frames.misses++;
+                return;
+            }
+            frames.misses = 0;
+            frames.spare = frames.shown;
+            frames.shown = target;
+        });
+    }
+
+    /**
+     * The newest frame the video's player handed its surface, scaled into [into] on the render thread. The
+     * main thread goes on meanwhile; [done] hears on it whether the copy worked.
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private static void copyLatest(TextureView video, Bitmap into, Consumer<Boolean> done) {
+        SurfaceTexture texture = video.getSurfaceTexture();
+        if (texture == null || texture.isReleased()) {
+            done.accept(false);
+            return;
+        }
+        Handler answer = main;
+        if (answer == null) main = answer = new Handler(Looper.getMainLooper());
+        // A second handle on the same queue of frames: it reads the last one queued, and connects to nothing,
+        // so letting go of it leaves the player's own handle as it was.
+        Surface surface = new Surface(texture);
+        try {
+            PixelCopy.request(PixelCopy.Request.Builder.ofSurface(surface).setDestinationBitmap(into).build(),
+                    answer::post, result -> {
+                        surface.release();
+                        done.accept(result.getStatus() == PixelCopy.SUCCESS);
+                    });
+        } catch (RuntimeException refused) {
+            surface.release();
+            done.accept(false);
+        }
     }
 
     /**

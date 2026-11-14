@@ -3052,6 +3052,9 @@ public final class GlassTabBar {
             /** A real frame permits at most three automatic captures, including one after a rest. */
             private int catchUpsLeft = BLUR_TRIES;
             private final Runnable catchUp;
+            /** How many frames have asked for a recording, and how many had when the waiting catch-up was arranged. */
+            private int framesSeen;
+            private int framesAtCatchUp;
 
             private void catchUp() {
                 catchUpPending = false;
@@ -3060,17 +3063,29 @@ public final class GlassTabBar {
                     retrySoon();
                     return;
                 }
+                if (framesSeen != framesAtCatchUp) {
+                    // The screen is still drawing, and its frames record the glass when it's due. Recording here
+                    // and asking for a frame of its own added a frame between theirs, a third more on Reels (#672).
+                    // This waits until they stop, and then the last one is caught up.
+                    arrangeCatchUp(RECORD_EVERY_MS + 4);
+                    return;
+                }
                 catchUpsLeft--;
                 recordBackdrop();
                 // A permanent failure must not request frames that renew its own retry budget.
                 if (recorded) bar.invalidate();
             }
 
+            private void arrangeCatchUp(long delay) {
+                catchUpPending = true;
+                framesAtCatchUp = framesSeen;
+                bar.postDelayed(catchUp, delay);
+            }
+
             /** One bounded recovery chain, with a single wake at the end of any failure rest. */
             void retrySoon() {
                 if (catchUpPending || catchUpsLeft <= 0 || !bar.isAttachedToWindow() || HushgramPause.isPaused()) return;
-                catchUpPending = true;
-                bar.postDelayed(catchUp, Math.max(RECORD_EVERY_MS, tries.waitLeft(SystemClock.uptimeMillis())));
+                arrangeCatchUp(Math.max(RECORD_EVERY_MS, tries.waitLeft(SystemClock.uptimeMillis())));
             }
 
             /** Drops a catch-up still waiting, so the next frame can arrange a new one. */
@@ -3103,9 +3118,10 @@ public final class GlassTabBar {
             private final SurfaceFrames frames = new SurfaceFrames(DOWNSAMPLE);
             /** Copies of the reels playing behind a floating pill, drawn where the viewers were left out (#583). */
             private final ReelFrames reelFrames = new ReelFrames();
-            /** Where the last recording's strip started and how tall it was, in the bar's parent. */
+            /** Where the last recording's strip started and how tall it was, in the bar's parent, and its blur's reach. */
             private float stripTop;
             private float stripTall;
+            private float stripPad;
             /** Whether a frame has been copied since a SurfaceView last came under the bar, for the report's count. */
             private boolean videoCopied;
             private final Runnable frameLanded = () -> {
@@ -3147,29 +3163,36 @@ public final class GlassTabBar {
             /** Records the backdrop if it's been long enough and this frame isn't late, or arranges to once it can. */
             void recordIfDue() {
                 catchUpsLeft = BLUR_TRIES;
+                framesSeen++;
                 long now = SystemClock.uptimeMillis();
                 long since = now - lastRecorded;
                 // The animation clock holds the frame's start while it lays out and draws, so this is how far in we are.
                 long inFrame = now - AnimationUtils.currentAnimationTimeMillis();
                 if (shouldRecord(recorded, since, inFrame) || surfaceAppeared()) {
                     lastRecorded = now;
+                    // This frame catches the glass up, so a catch-up still waiting would only record it again a
+                    // few milliseconds later and draw a frame of its own for it (#672).
+                    cancelCatchUp();
                     recordBackdrop();
                     copyReels(now);
                 } else if (!catchUpPending) {
-                    catchUpPending = true;
-                    bar.postDelayed(catchUp, Math.max(RECORD_EVERY_MS - since, 0) + 4);
+                    arrangeCatchUp(Math.max(RECORD_EVERY_MS - since, 0) + 4);
                 }
             }
 
             /**
              * Copies the reel behind a floating pill for the next recording ({@link ReelFrames}). A playing
              * reel draws a frame of its own every time, so this runs off those and never asks for one. It's
-             * not done while drawing, which a TextureView's copy doesn't allow.
+             * not done while drawing, which a TextureView's copy doesn't allow. Only a reel behind the pill
+             * itself is copied: one that only reaches the blur's edge above it, as Reels does with Run Reels
+             * behind off, cost a copy eight times a second for a few blurred rows (#672).
              */
             private void copyReels(long now) {
                 if (!floating || !recorded || skipped.isEmpty() || !(bar.getParent() instanceof ViewGroup)) return;
                 ViewGroup parent = (ViewGroup) bar.getParent();
-                for (View viewer : skipped) reelFrames.copy(viewer, parent, stripTop, stripTall, now);
+                float top = stripTop + stripPad;
+                float tall = Math.max(0f, stripTall - 2 * stripPad);
+                for (View viewer : skipped) reelFrames.copy(viewer, parent, top, tall, now);
             }
 
             /** Each SurfaceView under the bar, and the views down to it, that the last recording left out. */
@@ -3220,7 +3243,12 @@ public final class GlassTabBar {
                     cancelCatchUp();
                     return;
                 }
-                if (tries.resting(SystemClock.uptimeMillis())) return;
+                if (tries.resting(SystemClock.uptimeMillis())) {
+                    // A frame drops the catch-up it finds before it records, so the wake at the end of the rest
+                    // is arranged again here, and a still screen still gets its blur back.
+                    retrySoon();
+                    return;
+                }
                 if (!(bar.getParent() instanceof ViewGroup) || !pillBounds(area)) return;
                 ViewGroup parent = (ViewGroup) bar.getParent();
                 int barIndex = parent.indexOfChild(bar);
@@ -3290,6 +3318,7 @@ public final class GlassTabBar {
                         reelFrames.keepOnly(skipped);
                         stripTop = top;
                         stripTall = tall;
+                        stripPad = pad;
                         leftOutDraw = drawUnderBar(recording, base, parent, barIndex, top, tall, leftOut, skipped,
                                 frames::frameOf, reelFrames);
                     } finally {

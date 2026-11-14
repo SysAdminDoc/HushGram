@@ -22,6 +22,7 @@ Every HushGram release, newest first.
 * Tapping a comment someone shared with you in a chat opens the reel it was on, not another reel that loaded first. It's part of `Open reel links on that reel`. Reported in #662.
 * When Instagram itself lets you swipe through the reels a chat shared, with `Swipe through a chat's reels` off, a reply or reaction now goes to the reel you're watching, not the one you tapped. Reported in #662.
 * With `Glass tab bar` off and `Slide across the tabs` on, dragging a reel's seek bar along its lower edge seeks again. That part of the seek bar sits over the top of the tab bar, and the drag used to slide across the tabs and open one instead. Reported in #526.
+* The glass tab bar costs a lot less on Reels, so videos stutter less and the phone runs cooler. It used to ask for extra frames of its own between the reel's, and copying the reel behind the pill held up the screen each time. On Android 14 and newer that copy now happens off to the side, and only a reel actually behind the pill gets copied. Reported in #672.
 
 ## 0.0.20 (2026-11-12)
 

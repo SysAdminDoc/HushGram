@@ -2689,6 +2689,9 @@ public class GlassTabBarTest {
         assertEquals("no copy yet: the place stays clear, not the bar's colour", 0, before.getPixel(50, 170));
 
         ReelBlurBars.FrameSource original = ReelFrames.source;
+        ReelFrames.Copier originalCopier = ReelFrames.copier;
+        // The copy that holds the main thread: before Android 14, and for a video whose surface gives nothing back.
+        ReelFrames.copier = null;
         Map<View, Integer> asked = new HashMap<>();
         ReelFrames.source = (from, reuse, width, height) -> {
             asked.merge(from, 1, Integer::sum);
@@ -2719,6 +2722,198 @@ public class GlassTabBarTest {
             viewer.setTranslationY(0);
         } finally {
             ReelFrames.source = original;
+            ReelFrames.copier = originalCopier;
+        }
+    }
+
+    /**
+     * #672: on Android 14 the reel's copy is read from its surface and lands later, so the main thread never
+     * waits on the GPU for it. One copy is on its way at a time, into a bitmap the glass isn't drawing, and a
+     * video whose surface keeps giving nothing back is read the old way.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 34)
+    public void onAndroid14AReelIsCopiedWithoutHoldingTheMainThread() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout parent = new FrameLayout(context);
+        FrameLayout viewer = new FrameLayout(context);
+        TextureView video = new TextureView(context);
+        viewer.addView(video);
+        parent.addView(viewer);
+        parent.addView(new View(context));
+        parent.layout(0, 0, 100, 200);
+        viewer.layout(0, 0, 100, 200);
+        video.layout(0, 80, 100, 200);
+        Set<View> paths = new HashSet<>();
+        Set<View> skipped = new HashSet<>();
+        assertTrue(GlassTabBar.leaveOut(viewer, parent, paths, skipped));
+        ReelFrames reels = new ReelFrames();
+
+        ReelBlurBars.FrameSource originalSource = ReelFrames.source;
+        ReelFrames.Copier originalCopier = ReelFrames.copier;
+        assertNotNull("Android 14 copies from the video's surface", originalCopier);
+        java.util.List<Bitmap> into = new java.util.ArrayList<>();
+        java.util.List<java.util.function.Consumer<Boolean>> landing = new java.util.ArrayList<>();
+        AtomicInteger heldTheMainThread = new AtomicInteger();
+        ReelFrames.copier = (from, bitmap, done) -> {
+            assertSame(video, from);
+            into.add(bitmap);
+            landing.add(done);
+        };
+        ReelFrames.source = (from, reuse, width, height) -> {
+            heldTheMainThread.incrementAndGet();
+            Bitmap frame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            frame.eraseColor(Color.BLUE);
+            return frame;
+        };
+        try {
+            long now = 1000L;
+            assertTrue(reels.copy(viewer, parent, 150, 50, now));
+            assertEquals("one copy asked for", 1, into.size());
+            assertEquals(100 / ReelFrames.SCALE, into.get(0).getWidth());
+            assertEquals(120 / ReelFrames.SCALE, into.get(0).getHeight());
+            assertEquals("the main thread never waited on the GPU", 0, heldTheMainThread.get());
+            assertEquals("not landed yet, the place stays clear", 0, glass(parent, paths, skipped, reels).getPixel(50, 170));
+
+            reels.copy(viewer, parent, 150, 50, now + 3 * ReelFrames.COPY_EVERY_MS);
+            assertEquals("one copy on its way at a time", 1, into.size());
+            into.get(0).eraseColor(Color.YELLOW);
+            landing.get(0).accept(true);
+            assertEquals("the landed copy fills the video's place", Color.YELLOW,
+                    glass(parent, paths, skipped, reels).getPixel(50, 170));
+
+            for (int miss = 0; miss < ReelFrames.MOST_MISSES; miss++) {
+                now += ReelFrames.COPY_EVERY_MS;
+                reels.copy(viewer, parent, 150, 50, now);
+                assertEquals(2 + miss, into.size());
+                assertTrue("the next copy never writes the one being drawn", into.get(into.size() - 1) != into.get(0));
+                landing.get(landing.size() - 1).accept(false);
+                assertEquals("a copy that comes back empty keeps the last one", Color.YELLOW,
+                        glass(parent, paths, skipped, reels).getPixel(50, 170));
+            }
+            assertEquals(0, heldTheMainThread.get());
+            now += ReelFrames.COPY_EVERY_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("after that many misses the surface isn't asked again", 1 + ReelFrames.MOST_MISSES, into.size());
+            assertEquals("and the video is read the old way", 1, heldTheMainThread.get());
+            assertEquals(Color.BLUE, glass(parent, paths, skipped, reels).getPixel(50, 170));
+        } finally {
+            ReelFrames.source = originalSource;
+            ReelFrames.copier = originalCopier;
+        }
+    }
+
+    private static Bitmap glass(ViewGroup parent, Set<View> paths, Set<View> skipped, ReelFrames reels) {
+        Bitmap drawn = Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888);
+        GlassTabBar.drawUnderBar(new Canvas(drawn), Color.BLACK, parent, 1, 150, 50, paths, skipped, null, reels);
+        return drawn;
+    }
+
+    /**
+     * #672: only a reel behind the pill itself is copied. With Run Reels behind off, Reels stops its viewer
+     * above the pill, inside the blur's reach, and copying it there cost a copy eight times a second for a
+     * few blurred rows.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void onlyAReelBehindThePillItselfIsCopied() {
+        GlassTabBar.animationsOnForTests = false;
+        ReelBlurBars.FrameSource original = ReelFrames.source;
+        AtomicInteger copies = new AtomicInteger();
+        ReelFrames.source = (from, reuse, width, height) -> {
+            copies.incrementAndGet();
+            return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        };
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+            FrameLayout viewer = new FrameLayout(host.activity);
+            TextureView video = new TextureView(host.activity);
+            viewer.addView(video);
+            host.root.addView(viewer, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            GlassTabBar.apply(host.activity);
+            host.frame();
+            Object pill = host.bar.getBackground();
+            assertTrue("no backdrop recorded", (boolean) ReflectionHelpers.getField(pill, "recorded"));
+            ReflectionHelpers.callInstanceMethod(pill, "cancelCatchUp");
+            float top = ReflectionHelpers.getField(pill, "stripTop");
+            float pad = ReflectionHelpers.getField(pill, "stripPad");
+            assertTrue("the blur reaches past the pill", pad > 2);
+            Set<View> skipped = ReflectionHelpers.getField(pill, "skipped");
+            skipped.add(viewer);
+            int width = host.root.getWidth();
+
+            int abovePill = (int) Math.floor(top + pad) - 1;
+            viewer.layout(0, 0, width, abovePill);
+            video.layout(0, 0, width, abovePill);
+            ReflectionHelpers.callInstanceMethod(pill, "copyReels", ReflectionHelpers.ClassParameter.from(long.class, 1000L));
+            assertEquals("a reel only in the blur's reach isn't copied", 0, copies.get());
+
+            int intoPill = (int) Math.ceil(top + pad) + 10;
+            viewer.layout(0, 0, width, intoPill);
+            video.layout(0, 0, width, intoPill);
+            ReflectionHelpers.callInstanceMethod(pill, "copyReels", ReflectionHelpers.ClassParameter.from(long.class, 2000L));
+            assertEquals("one behind the pill is", 1, copies.get());
+        } finally {
+            ReelFrames.source = original;
+        }
+    }
+
+    /**
+     * #672: on Reels the screen draws for every frame of the video, and the glass records under the bar with
+     * those frames. A catch-up a frame had arranged recorded again a few milliseconds after the next frame
+     * already had, and asked for a frame of its own: a third more frames than Reels drew, and the phone ran
+     * warm. A frame that records drops the catch-up, and one that finds frames still coming waits for them
+     * to stop and asks for nothing until then.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aCatchUpWaitsForFramesToStopAndAFrameThatRecordsDropsIt() {
+        GlassTabBar.animationsOnForTests = false;
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+            Object[] pill = {null};
+            AtomicInteger captures = new AtomicInteger();
+            View feed = new View(host.activity) {
+                @Override public void draw(Canvas canvas) {
+                    if (pill[0] != null && (boolean) ReflectionHelpers.getField(pill[0], "drawingBackdrop")) captures.incrementAndGet();
+                    super.draw(canvas);
+                }
+            };
+            host.root.addView(feed, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            GlassTabBar.apply(host.activity);
+            host.frame();
+            ShadowLooper.idleMainLooper(GlassTabBar.RESEARCH_MS * (GlassTabBar.MISS_REDRAWS + 1), java.util.concurrent.TimeUnit.MILLISECONDS);
+            pill[0] = host.bar.getBackground();
+            assertTrue("no backdrop recorded", (boolean) ReflectionHelpers.getField(pill[0], "recorded"));
+            ReflectionHelpers.callInstanceMethod(pill[0], "cancelCatchUp");
+            AtomicInteger askedForFrames = new AtomicInteger();
+            host.barInvalidated = askedForFrames::incrementAndGet;
+
+            arrangeCatchUp(pill[0]);
+            int before = captures.get();
+            ShadowLooper.idleMainLooper(GlassTabBar.RECORD_EVERY_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
+            ReflectionHelpers.callInstanceMethod(pill[0], "recordIfDue");
+            assertEquals("the due frame recorded", before + 1, captures.get());
+            assertFalse("and dropped the catch-up", (boolean) ReflectionHelpers.getField(pill[0], "catchUpPending"));
+            ShadowLooper.idleMainLooper(GlassTabBar.MAX_STALE_MS, java.util.concurrent.TimeUnit.MILLISECONDS);
+            assertEquals("nothing recorded it again", before + 1, captures.get());
+            assertEquals("or asked for a frame", 0, askedForFrames.get());
+
+            arrangeCatchUp(pill[0]);
+            before = captures.get();
+            for (int i = 0; i < 3; i++) {
+                ShadowLooper.idleMainLooper(10, java.util.concurrent.TimeUnit.MILLISECONDS);
+                ReflectionHelpers.callInstanceMethod(pill[0], "recordIfDue");
+            }
+            // Past the time the catch-up was arranged for.
+            ShadowLooper.idleMainLooper(10, java.util.concurrent.TimeUnit.MILLISECONDS);
+            assertEquals("frames still coming, the catch-up recorded nothing", before, captures.get());
+            assertEquals("and asked for no frame of its own", 0, askedForFrames.get());
+            assertTrue("it waits for them to stop", (boolean) ReflectionHelpers.getField(pill[0], "catchUpPending"));
+            ShadowLooper.idleMainLooper(GlassTabBar.RECORD_EVERY_MS + 4, java.util.concurrent.TimeUnit.MILLISECONDS);
+            assertEquals("they stopped, and the last one is caught up", before + 1, captures.get());
+            assertEquals("with one frame to show it", 1, askedForFrames.get());
         }
     }
 
