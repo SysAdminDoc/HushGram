@@ -203,5 +203,91 @@ public class LiveReelsTest {
         assertNull(LiveReels.livePreview(live()));
         List<Clip> items = Arrays.asList(live(), reel());
         assertSame(items, LiveReels.page(items, REELS_TAB));
+        assertNull(LiveReels.added(null, REELS_TAB, 3));
+        assertSame(items, LiveReels.added(items, REELS_TAB, 3));
+    }
+
+    private List<?> added(List<?> items, String module, int held) {
+        return LiveReels.added(items, module, held, preview, LiveReels::switchedOn);
+    }
+
+    /** A list the viewer's data source adds loses its lives and keeps the rest in order, counted on its own route. */
+    @Test
+    public void livesAddedToTheViewerAreTakenOut() {
+        Clip first = reel();
+        Clip second = reel();
+        List<Object> items = Arrays.asList(live(), first, null, live(), second);
+
+        List<?> kept = added(items, REELS_TAB, 0);
+
+        assertEquals(Arrays.asList(first, null, second), kept);
+        assertNotSame(items, kept);
+        assertEquals(5, items.size());
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("Lives added to Reels: 1 lists, 5 items, 2 removed"));
+        assertTrue(report, report.contains("live 2"));
+    }
+
+    /** A list of only lives stays whole while the viewer holds nothing, and goes once it holds something. */
+    @Test
+    public void aListOfOnlyLivesGoesOnceTheViewerHoldsItems() {
+        List<Clip> items = Arrays.asList(live(), live());
+
+        assertSame(items, added(items, REELS_TAB, 0));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("first list kept whole 1"));
+
+        List<?> kept = added(items, REELS_TAB, 4);
+        assertTrue(String.valueOf(kept), kept.isEmpty());
+        assertNotSame(items, kept);
+        assertEquals("the list handed in is left as it was", 2, items.size());
+        report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("2 removed"));
+    }
+
+    /** A viewer the user opened, an empty list, or a list without lives comes back as the same list. */
+    @Test
+    public void addedListsOutsideTheFilterStayTheSameList() {
+        List<Clip> items = Arrays.asList(live(), reel());
+        assertSame(items, added(items, "clips_viewer_clips_profile", 5));
+        assertSame(items, added(items, null, 5));
+        assertEquals(0, reads.get());
+
+        List<Clip> none = Collections.emptyList();
+        assertSame(none, added(none, REELS_TAB, 5));
+        List<Object> reels = Arrays.asList(reel(), "a card", reel());
+        assertSame(reels, added(reels, REELS_TAB, 5));
+    }
+
+    /** Off, paused or before the settings are read, an added list comes back as it came. */
+    @Test
+    public void addedListsStayWhenOffPausedOrUnready() {
+        List<Clip> items = Arrays.asList(live(), live());
+
+        Settings.HIDE_LIVE_REELS.save(false);
+        assertSame(items, added(items, REELS_TAB, 5));
+        Settings.HIDE_LIVE_REELS.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame(items, added(items, REELS_TAB, 5));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertSame(items, added(items, REELS_TAB, 5)));
+        assertEquals("an item was read while the switch was off", 0, reads.get());
+    }
+
+    /** A throwing reader leaves the added list as it came and names the add hook. */
+    @Test
+    public void aThrowingReaderKeepsTheAddedListAndIsReported() {
+        List<Clip> items = Arrays.asList(live(), reel());
+
+        assertSame(items, LiveReels.added(items, REELS_TAB, 5, item -> {
+            throw new IllegalStateException("broken item");
+        }, LiveReels::switchedOn));
+
+        String missing = HookStatus.missing(FamilyNames.LIVE_REELS).toString();
+        assertTrue(missing, missing.contains("reels items added"));
     }
 }

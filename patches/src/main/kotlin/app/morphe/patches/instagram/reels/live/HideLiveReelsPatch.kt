@@ -4,14 +4,18 @@
  */
 package app.morphe.patches.instagram.reels.live
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -38,6 +42,16 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 private const val PATCH = "Hide lives in Reels"
 internal const val LIVE_REELS = "$EXTENSION_PACKAGE/reels/LiveReels;"
 internal const val LIVE_PAGE_FILTER = "$LIVE_REELS->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List;"
+internal const val LIVE_ADDED_FILTER = "$LIVE_REELS->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List;"
+
+/**
+ * The markers of the Reels viewer's data source's two ways a list joins its items: added at the end
+ * (a page, an ad fetch, a refresh) or inserted at a position (a chain, items the server places).
+ */
+internal const val REELS_ADD_ITEMS = "ClipsStandaloneAdapterDataSource_addItems"
+internal const val REELS_INSERT_ITEMS = "ClipsStandaloneAdapterDataSource_insertItemsGranular"
+
+private const val GET_MODULE_NAME = "getModuleName"
 
 /**
  * The marker of the method that works out what a live preview in Reels shows. It asks the Reels
@@ -317,6 +331,116 @@ internal fun BytecodePatchContext.fillLivePreview(itemType: String, live: LivePr
     )
 }
 
+/**
+ * Where the Reels viewer's data source, [dataSource], takes a list into its items: [inserts], each
+ * method's descriptor with the index of its List parameter, its [moduleField], the viewer's module
+ * name, and [size], how many items it holds.
+ */
+internal class ReelsItemInserts(
+    val dataSource: String,
+    val moduleField: FieldReference,
+    val size: MethodReference,
+    val inserts: List<Pair<String, Int>>,
+)
+
+/**
+ * Finds [ReelsItemInserts]: the one method marked [REELS_ADD_ITEMS], an instance (List)V, and the one
+ * marked [REELS_INSERT_ITEMS], an instance (int, List)Z, on the same class. That class keeps what its
+ * viewer's getModuleName answered in one String field in its constructor, which nothing else writes,
+ * and answers its own size()I. Each method needs three locals for the hook and nothing jumping to its
+ * first instruction.
+ */
+internal fun BytecodePatchContext.findReelsItemInserts(): ReelsItemInserts {
+    fun marked(name: String): Method {
+        val found = typesMarked(name).sorted().flatMap { type -> classDefBy(type).methods.filter { name in it.markers() } }
+        return found.singleOrNull() ?: refuse("expected one method marked $name, found ${found.size}")
+    }
+    val add = marked(REELS_ADD_ITEMS)
+    val insert = marked(REELS_INSERT_ITEMS)
+    val shapes = listOf(add to (listOf(LIST) to "V"), insert to (listOf("I", LIST) to "Z"))
+    for ((method, shape) in shapes) {
+        val (parameters, returns) = shape
+        if (AccessFlags.STATIC.isSet(method.accessFlags) || method.implementation == null ||
+            method.parameterTypes.map(Any::toString) != parameters || method.returnType != returns
+        ) refuse("expected ${method.describe()} to be an instance method taking $parameters and answering $returns")
+    }
+    val dataSource = add.definingClass
+    if (insert.definingClass != dataSource) refuse("${add.describe()} and ${insert.describe()} aren't on one class")
+    val source = classDefBy(dataSource)
+
+    val kept = source.methods.filter { it.name == "<init>" }.flatMap { constructor ->
+        val code = constructor.implementation?.instructions?.toList().orEmpty()
+        val self = constructor.localRegisterCount()
+        val targets = constructor.jumpTargets()
+        code.indices.mapNotNull { at ->
+            val field = (code[at] as? ReferenceInstruction)?.reference as? FieldReference ?: return@mapNotNull null
+            if (code[at].opcode != Opcode.IPUT_OBJECT || field.definingClass != dataSource || field.type != STRING) return@mapNotNull null
+            val write = code[at] as TwoRegisterInstruction
+            if (write.registerB != self || at < 2 || at in targets || at - 1 in targets) return@mapNotNull null
+            val result = code[at - 1].takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } as? OneRegisterInstruction
+            val called = (code[at - 2] as? ReferenceInstruction)?.reference as? MethodReference
+            if (result?.registerA != write.registerA || called == null || called.name != GET_MODULE_NAME ||
+                called.parameterTypes.isNotEmpty() || called.returnType != STRING
+            ) return@mapNotNull null
+            field
+        }
+    }.distinctBy { it.toString() }
+    val moduleField = kept.singleOrNull()
+        ?: refuse("expected $dataSource's constructor to keep one module name from $GET_MODULE_NAME, found ${kept.map { it.name }}")
+    val writers = source.methods.filter { method ->
+        method.implementation?.instructions?.any { instruction ->
+            val written = (instruction as? ReferenceInstruction)?.reference as? FieldReference
+            instruction.opcode == Opcode.IPUT_OBJECT && written?.definingClass == dataSource && written.name == moduleField.name
+        } == true
+    }
+    val outside = classesAccessing(dataSource, moduleField.name, Opcode.IPUT_OBJECT).map { it.type }.filter { it != dataSource }
+    if (writers.any { it.name != "<init>" } || outside.isNotEmpty()) {
+        refuse("$moduleField is written by ${writers.filter { it.name != "<init>" }.map { it.describe() } + outside}, not only $dataSource's constructor")
+    }
+
+    val size = source.methods.firstOrNull {
+        it.name == "size" && it.parameterTypes.isEmpty() && it.returnType == "I" &&
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+    } ?: refuse("$dataSource doesn't answer its own size()I")
+
+    val inserts = shapes.map { (method, _) ->
+        if (method.localRegisterCount() < 3) refuse("${method.describe()} has ${method.localRegisterCount()} local register(s), needs 3")
+        if (0 in method.jumpTargets()) refuse("${method.describe()} jumps back to its first instruction")
+        if ((method.implementation?.registerCount ?: 0) > 256) refuse("${method.describe()} has more registers than the hook can name")
+        "${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}" to method.parameterTypes.map(Any::toString).indexOf(LIST)
+    }
+    if (classDefByOrNull(LIVE_REELS)?.methods?.none { it.isStaticStub("added", listOf(LIST, STRING, "I"), LIST) } != false) {
+        refuse("the extension has no static added(List, String, int)List")
+    }
+    return ReelsItemInserts(dataSource, moduleField, size, inserts)
+}
+
+/**
+ * Hands the list each of [sites]' inserts takes to [LIVE_ADDED_FILTER] first thing, with the data
+ * source's module name and size, and puts the list it answers in the parameter's place. Nothing jumps
+ * to the first instruction and the locals hold nothing yet, so the hook borrows v0 to v2.
+ */
+internal fun BytecodePatchContext.filterReelsItemInserts(sites: ReelsItemInserts) {
+    val methods = mutableClassDefBy(sites.dataSource).methods
+    for ((descriptor, listIndex) in sites.inserts) {
+        val method = methods.single { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == descriptor }
+        val list = method.parameterRegister(listIndex)
+        method.addInstructions(
+            0,
+            """
+                move-object/from16 v0, p0
+                invoke-virtual { v0 }, ${sites.size}
+                move-result v1
+                iget-object v0, v0, ${sites.moduleField}
+                move-object/from16 v2, $list
+                invoke-static { v2, v0, v1 }, $LIVE_ADDED_FILTER
+                move-result-object v2
+                move-object/from16 $list, v2
+            """,
+        )
+    }
+}
+
 private fun Method.describe() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
 /** The registers an invoke passes, the receiver first. */
@@ -345,7 +469,9 @@ val hideLiveReelsPatch = bytecodePatch(
         requireStatusMethod("liveReels")
         val page = findReelsPage(PATCH)
         val live = findLivePreviewKey(page.itemType)
+        val inserts = findReelsItemInserts()
         hideLiveReels(page, live)
+        filterReelsItemInserts(inserts)
         enableStatus("liveReels")
     }
 }

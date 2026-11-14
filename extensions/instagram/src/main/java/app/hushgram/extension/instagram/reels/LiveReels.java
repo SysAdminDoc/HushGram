@@ -30,19 +30,29 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * unit it came from) are filtered. A viewer opened on something the user chose keeps its pages as
  * they came.
  *
- * <p>A page where every item is a live keeps every item, so the viewer always has something to
- * show, and the report counts it. Off, paused, before the settings are read, or when anything
- * throws, the page comes back as it came, the same list.
+ * <p>A page where every item is a live keeps every item there, since the fetcher may read an empty
+ * page as the end of the Reels, and the report counts it. Every list then reaches the viewer's items
+ * through its data source's add or insert, a page included and lists that never came through that
+ * callback too, and the patch hands each to {@link #added} with the viewer's module name and how many
+ * items the viewer already holds. There a list of only lives goes whole too, unless the viewer holds
+ * nothing yet. Off, paused, before the settings are read, or when anything throws, a list comes back
+ * as it came, the same list.
  */
 public final class LiveReels {
     /** The diagnostic counter route: the pages seen, and the lives taken out of them. */
     static final String ROUTE = "Lives in Reels";
+
+    /** The diagnostic counter route for the lists the viewer's data source adds to its items. */
+    static final String ADDED_ROUTE = "Lives added to Reels";
 
     /** The kind counted for a live taken out. */
     static final String LIVE = "live";
 
     /** The kind counted for a page left whole because every item in it was a live. */
     static final String PAGE_KEPT = "page kept whole";
+
+    /** The kind counted for a list of only lives kept because the viewer held nothing yet. */
+    static final String FIRST_KEPT = "first list kept whole";
 
     /** Every viewer Explore opens on a tile starts its module name with this. */
     static final String EXPLORE = "clips_viewer_explore";
@@ -61,12 +71,36 @@ public final class LiveReels {
     }
 
     static List<?> page(List<?> items, String module, Function<Object, Object> preview, BooleanSupplier on) {
+        return without(items, module, false, ROUTE, PAGE_KEPT, "reels page", preview, on);
+    }
+
+    /**
+     * Injected first thing in the Reels viewer's data source where it adds a list to its items or
+     * inserts one among them, with the viewer's module name and [held], how many items it holds
+     * already. Answers a new list without the live previews while the switch is on and the viewer is
+     * one {@link #page} filters, a list of only lives included unless the viewer holds nothing yet,
+     * and [items] itself otherwise. Never throws.
+     */
+    public static List<?> added(List<?> items, String module, int held) {
+        return added(items, module, held, LiveReels::livePreview, LiveReels::switchedOn);
+    }
+
+    static List<?> added(List<?> items, String module, int held, Function<Object, Object> preview, BooleanSupplier on) {
+        return without(items, module, held > 0, ADDED_ROUTE, FIRST_KEPT, "reels items added", preview, on);
+    }
+
+    /**
+     * [items] without the lives [preview] finds, counted under [route]. A list of only lives comes
+     * back whole, counted as [keptWhole], unless [allMayGo]. [where] names the hook when it throws.
+     */
+    private static List<?> without(List<?> items, String module, boolean allMayGo, String route, String keptWhole,
+            String where, Function<Object, Object> preview, BooleanSupplier on) {
         if (items == null) return null;
         try {
             HookStatus.invoked(FamilyNames.LIVE_REELS);
             if (!filtered(module)) return items;
             int size = items.size();
-            FeedFilterCounters.sawList(ROUTE, size);
+            FeedFilterCounters.sawList(route, size);
             if (size == 0 || !on.getAsBoolean()) return items;
 
             boolean[] live = new boolean[size];
@@ -80,9 +114,9 @@ public final class LiveReels {
             }
             // A list that changed size while it was read isn't one this can rebuild.
             if (at != size || lives == 0) return items;
-            if (lives == size) {
-                FeedFilterCounters.sawKind(ROUTE, PAGE_KEPT);
-                Logger.printDebug(() -> "Lives in Reels: kept a page of " + size + " lives");
+            if (lives == size && !allMayGo) {
+                FeedFilterCounters.sawKind(route, keptWhole);
+                Logger.printDebug(() -> route + ": kept a list of " + size + " lives");
                 return items;
             }
 
@@ -91,12 +125,12 @@ public final class LiveReels {
             for (Object item : items) {
                 if (!live[at++]) kept.add(item);
             }
-            FeedFilterCounters.removed(ROUTE, lives, LIVE);
+            FeedFilterCounters.removed(route, lives, LIVE);
             int taken = lives;
-            Logger.printDebug(() -> "Lives in Reels: took " + taken + " of " + size + " items out");
+            Logger.printDebug(() -> route + ": took " + taken + " of " + size + " items out");
             return kept;
         } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.LIVE_REELS, "reels page", failure);
+            HookStatus.threw(FamilyNames.LIVE_REELS, where, failure);
             return items;
         }
     }
