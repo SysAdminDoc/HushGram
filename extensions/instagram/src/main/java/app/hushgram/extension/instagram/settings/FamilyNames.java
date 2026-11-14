@@ -134,6 +134,7 @@ public final class FamilyNames {
     public static final String ACTIVITY_BUBBLES = "Hide activity bubbles";
     public static final String HIDE_CAPTIONS = "Hide captions";
     public static final String FEED_AUDIO_ICON = "Hide the audio icon on posts";
+    public static final String FEED_AUTO_SCROLL = "Auto scroll in Home";
     public static final String HOME_TOP_BAR = "Keep Home's top bar";
     public static final String REEL_DECLUTTER = "Clean up Reels";
     public static final String KEEP_REELS_TOP_BAR = "Keep the Reels top bar";

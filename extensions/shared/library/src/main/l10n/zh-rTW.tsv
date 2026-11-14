@@ -2227,3 +2227,6 @@ Haptic strength	觸覺回饋強度
 Tap sound on the tab bar	分頁列觸控音效
 A click each time the highlight moves to another tab, even with the phone's touch sounds off. Silent and vibrate mode keep it quiet.	每當標示移到另一個分頁時發出點擊聲，即使手機的觸控音效已關閉也會播放。靜音和震動模式下不會發出聲音。
 Tap sound volume	觸控音效音量
+Auto scroll in Home	首頁自動捲動
+Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	首頁會自動移到下一則貼文。影片播完就移動，相片或輪播貼文則在「每則貼文的時間」後移動。觸碰螢幕即可暫停。
+Time on each post	每則貼文的時間

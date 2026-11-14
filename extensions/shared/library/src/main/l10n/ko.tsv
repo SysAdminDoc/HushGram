@@ -2223,3 +2223,6 @@ Haptic strength	햅틱 강도
 Tap sound on the tab bar	탭 바 터치음
 A click each time the highlight moves to another tab, even with the phone's touch sounds off. Silent and vibrate mode keep it quiet.	하이라이트가 다른 탭으로 옮겨갈 때마다 딸깍 소리가 납니다. 휴대전화의 터치음이 꺼져 있어도 들리며, 무음 및 진동 모드에서는 소리가 나지 않습니다.
 Tap sound volume	터치음 음량
+Auto scroll in Home	홈 자동 스크롤
+Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	홈이 저절로 다음 게시물로 넘어갑니다. 동영상은 끝나면, 사진이나 캐러셀은 게시물당 시간이 지나면 넘어갑니다. 화면을 터치하면 멈춥니다.
+Time on each post	게시물당 시간

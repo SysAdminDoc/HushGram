@@ -540,6 +540,22 @@ public class Settings extends BaseSettings {
                     .withRange(5, 30);
 
     /**
+     * Home moves on to the next post by itself: a video post when its video starts over or ends, any
+     * other post after {@link #FEED_AUTO_SCROLL_SECONDS}, and a touch holds it (#660,
+     * {@link app.hushgram.extension.instagram.feed.FeedAutoScroll}). Off to start.
+     */
+    public static final BooleanSetting FEED_AUTO_SCROLL =
+            new BooleanSetting("hushgram_feed_auto_scroll", FALSE);
+
+    /**
+     * Under {@link #FEED_AUTO_SCROLL}: how many seconds a photo or carousel stays before Home moves on,
+     * from a slider (#660). Read at each post, so a change shows without a restart.
+     */
+    public static final IntegerSetting FEED_AUTO_SCROLL_SECONDS =
+            new IntegerSetting("hushgram_feed_auto_scroll_seconds", 6, false, parent(FEED_AUTO_SCROLL))
+                    .withRange(3, 30);
+
+    /**
      * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
      * place of Instagram's own long press there ({@link app.hushgram.extension.instagram.feed.LongPressZoom}).
      * Off to start.

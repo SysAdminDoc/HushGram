@@ -1083,6 +1083,21 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.FeedAudioIconSettingsTest" to listOf(
                 "missingPatchHasNoSwitch", "aloneItStillGetsFeed", "switchStartsOffUnderFeedAndHonorsPause"
             ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.feed.FeedAutoScrollTest" to listOf(
+                "theSwitchStartsOffAndNeedsNoRestart", "aPhotoMovesOnOnceItSatStillForTheTimePicked",
+                "aVideoPostWaitsForItsVideo", "theHeadersSayWhichPostIsShownAndWhereTheNextStarts",
+                "aMoveGoesToTheNextHeaderOrMostOfAScreen", "onlyWhatDrawsCountsAsCovering", "offTheHooksOnlyCount",
+                "pausedAndUnreadyReadAsOff", "aTouchHoldsUntilTheFingerLifts", "aPhotoPostMovesOnToTheNextHeader",
+                "aLongerTimeWaitsLonger", "aVideoPostMovesOnWhenItsVideoStartsOverOrEnds",
+                "withTapToPlayAnUntouchedVideoWaitsTheTimePicked", "somethingOverHomeHoldsIt",
+                "withoutTheFocusNothingMoves", "turningItOnNeedsNoRestart", "theLastPostStays",
+                "withoutTheHeaderIdNothingMoves", "aListIsTakenOnceAndLetGoWhenItLeavesTheWindow",
+                "aHiddenWindowHoldsIt"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.FeedAutoScrollSettingsTest" to listOf(
+                "missingPatchHasNoSwitch", "aloneItStillGetsFeed", "switchStartsOffUnderFeed",
+                "timeOnEachPostSitsUnderTheSwitch"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.feed.HomeTopBarTest" to listOf(
                 "theSwitchStartsOffAndAsksForARestart", "offToStartHandsOverInstagramsList",
                 "onHandsOverNothingPutsASlidHeaderBackAndCounts", "pausedAndUnreadyReadAsOff",

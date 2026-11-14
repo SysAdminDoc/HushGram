@@ -12,6 +12,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.cornerSizeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.favoritesTabRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedAutoScrollTimeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSeekBarLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSkipLengthRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.homeSwipeRow;
@@ -69,12 +70,14 @@ final class FeedCategory {
         boolean watchAgain = build.contains(PatchFamily.WATCH_AGAIN);
         boolean hideCaptions = build.contains(PatchFamily.HIDE_CAPTIONS);
         boolean feedAudioIcon = build.contains(PatchFamily.FEED_AUDIO_ICON);
+        boolean feedAutoScroll = build.contains(PatchFamily.FEED_AUTO_SCROLL);
         boolean homeTopBar = build.contains(PatchFamily.HOME_TOP_BAR);
         boolean activityBubbles = build.contains(PatchFamily.ACTIVITY_BUBBLES);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedHoldFast || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
-                || fullScreen || feedFollow || editsLabel || feedSave || watchAgain || hideCaptions || feedAudioIcon || homeTopBar || activityBubbles
+                || fullScreen || feedFollow || editsLabel || feedSave || watchAgain || hideCaptions || feedAudioIcon || feedAutoScroll || homeTopBar
+                || activityBubbles
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -370,6 +373,12 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.HIDE_FEED_AUDIO_ICON, L10n.t("Hide the audio icon on posts"),
                     L10n.t("Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on "
                             + "or off. Posts already on screen change when they load again.")));
+        }
+        if (feedAutoScroll) {
+            feed.addPreference(toggle(context, Settings.FEED_AUTO_SCROLL, L10n.t("Auto scroll in Home"),
+                    L10n.t("Moves Home on to the next post by itself. A video moves on when it ends, a photo or "
+                            + "carousel after Time on each post. Touch the screen to hold it.")));
+            feed.addPreference(feedAutoScrollTimeRow(context));
         }
     }
 }

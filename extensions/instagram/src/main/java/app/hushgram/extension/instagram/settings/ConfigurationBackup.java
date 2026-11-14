@@ -235,6 +235,9 @@ public final class ConfigurationBackup {
         if (PatchFamily.REEL_DOUBLE_TAP_SKIP.inBuild()) {
             settings.put(Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key, Settings.DOUBLE_TAP_SKIP_REELS_SECONDS);
         }
+        if (PatchFamily.FEED_AUTO_SCROLL.inBuild()) {
+            settings.put(Settings.FEED_AUTO_SCROLL_SECONDS.key, Settings.FEED_AUTO_SCROLL_SECONDS);
+        }
         if (PatchFamily.STORY_SEEK_BAR.inBuild()) {
             settings.put(Settings.STORY_SEEK_BAR_LOOK.key, Settings.STORY_SEEK_BAR_LOOK);
             settings.put(Settings.STORY_SEEK_BAR_POSITION.key, Settings.STORY_SEEK_BAR_POSITION);

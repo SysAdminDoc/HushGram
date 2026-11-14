@@ -2224,3 +2224,6 @@ Haptic strength	Intensidad de la vibración
 Tap sound on the tab bar	Sonido al tocar en la barra de pestañas
 A click each time the highlight moves to another tab, even with the phone's touch sounds off. Silent and vibrate mode keep it quiet.	Un clic cada vez que el resaltado pasa a otra pestaña, aunque los sonidos táctiles del teléfono estén desactivados. En modo silencio o vibración no suena.
 Tap sound volume	Volumen del sonido al tocar
+Auto scroll in Home	Desplazamiento automático en Inicio
+Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	Inicio pasa solo a la siguiente publicación. Un video pasa cuando termina, y una foto o un carrusel después de Tiempo en cada publicación. Toca la pantalla para pausarlo.
+Time on each post	Tiempo en cada publicación

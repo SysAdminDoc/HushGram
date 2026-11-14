@@ -2227,3 +2227,6 @@ Haptic strength	触觉回馈强度
 Tap sound on the tab bar	标签栏触摸音效
 A click each time the highlight moves to another tab, even with the phone's touch sounds off. Silent and vibrate mode keep it quiet.	每当标示移到另一个标签页时发出点击声，即使手机的触摸音效已关闭也会播放。静音和震动模式下不会发出声音。
 Tap sound volume	触摸音效音量
+Auto scroll in Home	首页自动卷动
+Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	首页会自动移到下一条帖子。视频播完就移动，照片或轮播帖子则在“每条帖子的时间”后移动。触摸屏幕即可暂停。
+Time on each post	每条帖子的时间

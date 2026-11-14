@@ -2224,3 +2224,6 @@ Haptic strength	Intensità del feedback aptico
 Tap sound on the tab bar	Suono al tocco sulla barra delle schede
 A click each time the highlight moves to another tab, even with the phone's touch sounds off. Silent and vibrate mode keep it quiet.	Un clic ogni volta che l'evidenziazione passa a un'altra scheda, anche con i suoni al tocco del telefono disattivati. In modalità silenziosa e vibrazione resta muto.
 Tap sound volume	Volume del suono al tocco
+Auto scroll in Home	Scorrimento automatico nella Home
+Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	La Home passa da sola al post successivo. Un video passa quando finisce, una foto o un carosello dopo Tempo su ogni post. Tocca lo schermo per fermarlo.
+Time on each post	Tempo su ogni post

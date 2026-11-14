@@ -14,6 +14,7 @@ Every HushGram release, newest first.
 * A new switch, `Hide You may also like in search` under Explore, takes the You may also like posts off the bottom of search results. Accounts and the posts you searched for stay. Asked for in #657.
 * `Play only the reel you opened` under Reels keeps a reel you open from a Home post, a suggested reels row or a message on screen, so it loops instead of moving on. The Reels tab scrolls as usual. Asked for in #656.
 * `Glass top bar in chats`, new under `Glass in chats` in Messages, takes the frosted band off a chat's top bar while the round glass buttons and message bar keep theirs. It starts on. Asked for in #670.
+* `Auto scroll in Home` under Feed moves Home to the next post by itself, when a video ends or after the time you pick for photos and carousels. Touching the screen holds it. Asked for in #660.
 
 ### Bug Fixes
 

@@ -3323,6 +3323,26 @@ first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->view(Ljava/la
 first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->sheet(Ljava/lang/Object;)Ljava/util/Map; outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->scrubberSheet(Ljava/lang/Object;)Ljava/util/Map; outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->seekTo(Ljava/lang/Object;IZ)Z outside Lapp/hushgram/extension/
+# Auto scroll in Home (#660): the feed video player (07jT on 454's 386014758, the class holding its
+# persistent cover report) hands itself and the count to FeedAutoScroll.looped first thing in Foo,
+# its one instance (int) void method, which IgVideoPlayerImpl calls on its listener when a video
+# starts over, and itself to FeedAutoScroll.ended first thing in FLO, its no-argument void method
+# walking its listeners, which IgVideoPlayerImpl calls when a video ends. Home's list
+# (MainFeedRecyclerView, the one class calling both RecyclerView.onInterceptTouchEvent and
+# Math.signum) hands itself to FeedAutoScroll.attach before the return of each of its three
+# constructors, and every screen's touch is offered to FeedAutoScroll.touch in
+# IgFragmentActivity.dispatchTouchEvent, first or right after Tap to play's TapClock. Left out, the
+# switch shows but Home never moves on, a video post waits out the time cap, or a finger doesn't
+# hold it; later or twice, it isn't the call the patch wrote. FeedAutoScrollHookTest checks each on
+# every build.
+start-call Lapp/hushgram/extension/instagram/feed/FeedAutoScroll;->looped(Ljava/lang/Object;I)V in instance (I)V pooled class-holding IgFeedVideoPlayer:\sPersistent\sVisible\sCover\sImage
+once-call Lapp/hushgram/extension/instagram/feed/FeedAutoScroll;->looped(Ljava/lang/Object;I)V in instance (I)V pooled class-holding IgFeedVideoPlayer:\sPersistent\sVisible\sCover\sImage
+start-call Lapp/hushgram/extension/instagram/feed/FeedAutoScroll;->ended(Ljava/lang/Object;)V in instance ()V calling instance Ljava/util/Iterator;->hasNext()Z pooled class-holding IgFeedVideoPlayer:\sPersistent\sVisible\sCover\sImage
+once-call Lapp/hushgram/extension/instagram/feed/FeedAutoScroll;->ended(Ljava/lang/Object;)V in instance ()V calling instance Ljava/util/Iterator;->hasNext()Z pooled class-holding IgFeedVideoPlayer:\sPersistent\sVisible\sCover\sImage
+once-call Lapp/hushgram/extension/instagram/feed/FeedAutoScroll;->attach(Landroid/view/View;)V in instance (Landroid/content/Context;)V class-holding Landroidx/recyclerview/widget/RecyclerView;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z Ljava/lang/Math;->signum(D)D
+once-call Lapp/hushgram/extension/instagram/feed/FeedAutoScroll;->attach(Landroid/view/View;)V in instance (Landroid/content/Context;Landroid/util/AttributeSet;)V class-holding Landroidx/recyclerview/widget/RecyclerView;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z Ljava/lang/Math;->signum(D)D
+once-call Lapp/hushgram/extension/instagram/feed/FeedAutoScroll;->attach(Landroid/view/View;)V in instance (Landroid/content/Context;Landroid/util/AttributeSet;I)V class-holding Landroidx/recyclerview/widget/RecyclerView;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z Ljava/lang/Math;->signum(D)D
+once-call Lapp/hushgram/extension/instagram/feed/FeedAutoScroll;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # The seek bar shape on story progress segments (#630): the story bar's onDraw, the one (Canvas)
 # void method of SegmentedProgressBar that calls another of its (Canvas) methods, asks
 # SeekShapes.storyBar first thing, and each of the bar's ten Canvas.drawRoundRect calls on 454 is

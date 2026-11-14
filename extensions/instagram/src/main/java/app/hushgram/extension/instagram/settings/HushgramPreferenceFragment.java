@@ -852,6 +852,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOUBLE_TAP_SKIP
                             && Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key.equals(key);
+                    belongs |= family == PatchFamily.FEED_AUTO_SCROLL && Settings.FEED_AUTO_SCROLL_SECONDS.key.equals(key);
                     belongs |= family == PatchFamily.STORY_SEEK_BAR && (Settings.STORY_SEEK_BAR_LOOK.key.equals(key)
                             || Settings.STORY_SEEK_BAR_POSITION.key.equals(key));
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
@@ -5263,6 +5264,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         SliderRow row = new SliderRow(context, Settings.FEED_DOUBLE_TAP_SKIP_SECONDS, 5, L10n.t("%1$d seconds"));
         row.setTitle(L10n.t("Skip length"));
         row.setText(String.valueOf(Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.savedValue()));
+        return row;
+    }
+
+    /** How long a photo or carousel stays before Home moves on, from a slider in seconds under Auto scroll in Home (#660). */
+    static SliderRow feedAutoScrollTimeRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.FEED_AUTO_SCROLL_SECONDS, 1, L10n.t("%1$d seconds"));
+        row.setTitle(L10n.t("Time on each post"));
+        row.setText(String.valueOf(Settings.FEED_AUTO_SCROLL_SECONDS.savedValue()));
         return row;
     }
 

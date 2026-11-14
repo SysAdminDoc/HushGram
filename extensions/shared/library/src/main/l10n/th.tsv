@@ -2221,3 +2221,6 @@ Haptic strength	ความแรงของการสั่นตอบส�
 Tap sound on the tab bar	เสียงแตะบนแถบแท็บ
 A click each time the highlight moves to another tab, even with the phone's touch sounds off. Silent and vibrate mode keep it quiet.	เสียงคลิกทุกครั้งที่ไฮไลต์ย้ายไปยังแท็บอื่น แม้ปิดเสียงสัมผัสของโทรศัพท์ไว้ก็ตาม โหมดปิดเสียงและโหมดสั่นจะไม่มีเสียงนี้
 Tap sound volume	ระดับเสียงแตะ
+Auto scroll in Home	เลื่อนอัตโนมัติในหน้าหลัก
+Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	หน้าหลักจะเลื่อนไปยังโพสต์ถัดไปเอง วิดีโอจะเลื่อนเมื่อเล่นจบ ส่วนรูปภาพหรือโพสต์ภาพหมุนจะเลื่อนหลังจากเวลาในแต่ละโพสต์ แตะหน้าจอค้างไว้เพื่อหยุด
+Time on each post	เวลาในแต่ละโพสต์
