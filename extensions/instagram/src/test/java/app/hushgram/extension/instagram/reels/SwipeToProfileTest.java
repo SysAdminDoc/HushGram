@@ -1033,10 +1033,12 @@ public class SwipeToProfileTest {
         SwipeToProfile.tabChanged(HOST, new FakePanels(), () -> true);
         assertTrue(SwipeToProfile.reelsOpen(() -> true));
 
-        MainTabActivity tabs = reelScreen(MainTabActivity.class);
+        InstagramMainActivity tabs = reelScreen(InstagramMainActivity.class);
         assertFalse(leftSwipeOpens(tabs, videoY(tabs), () -> true));
         ReelScreen over = reelScreen(ReelScreen.class);
         assertTrue(leftSwipeOpens(over, videoY(over), () -> true));
+        MainTabActivity alias = reelScreen(MainTabActivity.class);
+        assertTrue("the alias's name is no tabs' screen", leftSwipeOpens(alias, videoY(alias), () -> true));
 
         SwipeToProfile.tabChanging(new FakePanels());
         assertTrue("off the Reels tab", leftSwipeOpens(tabs, videoY(tabs), () -> true));
@@ -1136,7 +1138,11 @@ public class SwipeToProfileTest {
         }
     }
 
-    /** The tabs' own screen, by its name, holding a reel as the Reels tab does. */
+    /** The tabs' own screen, by its class's name in Instagram, holding a reel as the Reels tab does. */
+    public static final class InstagramMainActivity extends ReelScreen {
+    }
+
+    /** A screen named as the manifest's launcher alias of the tabs' screen, which no real screen is. */
     public static final class MainTabActivity extends ReelScreen {
     }
 

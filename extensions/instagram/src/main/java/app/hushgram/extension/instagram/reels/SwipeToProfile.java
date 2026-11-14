@@ -100,8 +100,11 @@ public final class SwipeToProfile {
     static final String AUTHOR_ROW = "clips_author_info_component";
     static final String SEEK_BAR = "scrubber";
 
-    /** The screen holding Instagram's tabs, where the Reels tab's own viewer lives. */
-    private static final String MAIN_TABS = "MainTabActivity";
+    /**
+     * The screen holding Instagram's tabs, where the Reels tab's own viewer lives, by its class's
+     * name. The manifest's MainTabActivity is only a launcher alias of it.
+     */
+    static final String MAIN_TABS = "InstagramMainActivity";
 
     /** How soon after a left swipe on a reel the profile it opens has to show to count as opened by it. */
     static final long OPENS_WITHIN_MS = 5000;
