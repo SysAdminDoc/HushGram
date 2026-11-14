@@ -222,6 +222,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_dont_send_reel_watch_history", FALSE);
 
     /**
+     * Reels holds the screen awake while a reel plays, and stops once a reel has finished or the
+     * viewer sits paused, so the phone's own inactivity timeout can sleep it
+     * ({@link app.hushgram.extension.instagram.reels.ReelScreenAwake}). On to start.
+     */
+    public static final BooleanSetting LET_SCREEN_SLEEP_AFTER_REEL =
+            new BooleanSetting("hushgram_let_screen_sleep_after_reel", TRUE);
+
+    /**
      * A story whose photo timer ran out or whose video ended stays on screen until you tap or
      * swipe, instead of the viewer moving on by itself. Off to start.
      */

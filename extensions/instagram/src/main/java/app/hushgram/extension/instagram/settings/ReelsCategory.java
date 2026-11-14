@@ -189,6 +189,13 @@ final class ReelsCategory {
                     L10n.t("Stops telling Instagram which reels you watched or how far you got. Instagram uses that "
                             + "to pick your Reels. Watched reels may come back.")));
         }
+        if (build.contains(PatchFamily.SCREEN_SLEEP_AFTER_REEL)) {
+            reels.add(toggle(context, Settings.LET_SCREEN_SLEEP_AFTER_REEL,
+                    L10n.t("Let the screen sleep after a reel"),
+                    L10n.t("A playing reel keeps the screen on. A few seconds after playback stops the "
+                            + "display dims, then sleeps on your usual screen timeout. Needs auto scroll off, "
+                            + "or reels keep playing and the screen stays awake.")));
+        }
         if (build.contains(PatchFamily.REEL_DOWNLOAD)) {
             reels.add(toggle(context, Settings.DOWNLOAD_REELS, L10n.t("Download on reels"),
                     L10n.t("Adds Download to every reel's more menu, saved at your download quality. Off or paused, "
