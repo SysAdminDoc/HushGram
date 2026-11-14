@@ -148,6 +148,12 @@ public final class BackgroundPlay {
      */
     private static boolean pausedOnPurpose;
     /**
+     * Whether the service's last check saw the held video playing. Playing on two checks in a row
+     * ends a Pause Instagram overrode, as when the audio focus came back, which its start may read
+     * as playing only after its own check.
+     */
+    private static boolean playedOnLastTick;
+    /**
      * The story players whose start is parked in this session and that haven't played since, the
      * first to get ready first. Every story player Instagram binds while hidden parks its start, the
      * ones it gets ready ahead included, so the first of these is the next story in the viewer's
@@ -272,14 +278,18 @@ public final class BackgroundPlay {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
             if (player == null) return;
             boolean ours;
-            int line;
+            WeakReference<Object> place;
             synchronized (LOCK) {
                 remember(player);
-                line = unwait(player);
                 ours = phase != Phase.IDLE;
+                // A story keeps its place in line until its start is read: the held one's check,
+                // posted before it, still sees it waiting and plays it first. Only that place goes
+                // then, so a start it parks again meanwhile still waits.
+                place = ours ? placeOf(player) : null;
+                if (!ours) unwait(player);
             }
             // Read once Instagram's start is done: a start another patch holds back plays nothing.
-            if (ours) Utils.runOnMainThread(() -> afterStart(player, line));
+            if (ours) Utils.runOnMainThread(() -> afterStart(player, place, true));
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "player start", t);
         }
@@ -351,6 +361,11 @@ public final class BackgroundPlay {
             if (now - takenAt < TAKEOVER_SETTLE_MS) return false;
         }
         if (ready.isEmpty()) return false;
+        for (Object player : ready) {
+            // A waiting story whose start played is read once that start is done, and takes over
+            // then: none plays beside it.
+            if (player != current && isPlaying(player)) return false;
+        }
         Object next = null;
         if (ready.contains(current)) {
             if (!isPlaying(current)) next = current;
@@ -400,6 +415,15 @@ public final class BackgroundPlay {
         yielded = new WeakReference<>(player);
     }
 
+    /**
+     * Marks the session paused on purpose. The service's next check that sees the held video playing
+     * still counts as a first one, since a pause can land a moment late. Under {@link #LOCK}.
+     */
+    private static void pauseOnPurposeLocked() {
+        pausedOnPurpose = true;
+        playedOnLastTick = false;
+    }
+
     /** Forgets the waiting stories and the one taking over. Under {@link #LOCK}. */
     private static void clearStoriesLocked() {
         waiting.clear();
@@ -428,6 +452,33 @@ public final class BackgroundPlay {
             it.remove();
         }
         return line;
+    }
+
+    /** [player]'s place in {@link #waiting}, or null. Under {@link #LOCK}. */
+    @Nullable
+    private static WeakReference<Object> placeOf(Object player) {
+        for (WeakReference<Object> reference : waiting) {
+            if (reference.get() == player) return reference;
+        }
+        return null;
+    }
+
+    /**
+     * Takes [place], one of the {@link #waiting} entries, out of line, and answers where it was
+     * among the players still there, or -1 when it's gone already. Under {@link #LOCK}.
+     */
+    private static int takeOut(@Nullable WeakReference<Object> place) {
+        if (place == null) return -1;
+        int index = 0;
+        for (Iterator<WeakReference<Object>> it = waiting.iterator(); it.hasNext(); ) {
+            WeakReference<Object> reference = it.next();
+            if (reference == place) {
+                it.remove();
+                return index;
+            }
+            if (reference.get() != null) index++;
+        }
+        return -1;
     }
 
     /**
@@ -501,7 +552,7 @@ public final class BackgroundPlay {
                     // The sound came back too late to play it again: it stays paused, as after
                     // the notification's Pause, so no waiting story plays either. The stall clock
                     // starts over, so the story playing again isn't taken for one that stalled.
-                    if (!unmuted) pausedOnPurpose = true;
+                    if (!unmuted) pauseOnPurposeLocked();
                     mutedAt = NONE;
                     pausedSince = NONE;
                 }
@@ -545,7 +596,7 @@ public final class BackgroundPlay {
             if (!on()) return endBeforePause(player, "the switch is off");
             if (reason != null && reason.toLowerCase(Locale.ROOT).contains("focus")) {
                 synchronized (LOCK) {
-                    pausedOnPurpose = true;
+                    pauseOnPurposeLocked();
                 }
                 log(() -> "let a pause for the audio focus through (" + reason + ")");
                 return false;
@@ -623,7 +674,7 @@ public final class BackgroundPlay {
         Object claimed;
         synchronized (LOCK) {
             mutedAt = NONE;
-            pausedOnPurpose = true;
+            pauseOnPurposeLocked();
             claimed = taker != null ? taker.get() : null;
         }
         pauseThrough(player);
@@ -686,8 +737,13 @@ public final class BackgroundPlay {
         long now = SystemClock.uptimeMillis();
         boolean tooLong;
         synchronized (LOCK) {
-            if (playing) pausedSince = NONE;
-            else if (pausedSince == NONE) pausedSince = now;
+            if (playing) {
+                pausedSince = NONE;
+                if (playedOnLastTick) pausedOnPurpose = false;
+            } else if (pausedSince == NONE) {
+                pausedSince = now;
+            }
+            playedOnLastTick = playing;
             tooLong = !playing && now - pausedSince >= PAUSED_LIMIT_MS;
         }
         if (tooLong) {
@@ -882,6 +938,7 @@ public final class BackgroundPlay {
             mutedAt = NONE;
             pausedSince = NONE;
             pausedOnPurpose = false;
+            playedOnLastTick = false;
             ending.addAll(releases);
             releases.clear();
             releasedWhileEnding.clear();
@@ -970,21 +1027,24 @@ public final class BackgroundPlay {
     // ---- Helpers ----
 
     private static void afterStart(Object player) {
-        afterStart(player, -1);
+        afterStart(player, null, false);
     }
 
     /**
-     * What a start of [player] means for the session, once Instagram's start is done, with where in
-     * line [player] waited before it, or -1.
+     * What a start of [player] means for the session, once Instagram's start is done. With
+     * [fromStart], the start hook's own read, which takes [place], where [player] waited as it
+     * started, out of line and keeps where that was.
      */
-    private static void afterStart(Object player, int line) {
+    private static void afterStart(Object player, @Nullable WeakReference<Object> place, boolean fromStart) {
         Object current;
         Object claimed;
         Activity screen;
         boolean onPurpose;
         boolean gaveUp;
         boolean wasYielded;
+        int line;
         synchronized (LOCK) {
+            line = fromStart ? takeOut(place) : -1;
             if (phase != Phase.BACKGROUND) return;
             current = heldLocked();
             claimed = taker != null ? taker.get() : null;
@@ -1033,7 +1093,8 @@ public final class BackgroundPlay {
         synchronized (LOCK) {
             if (player == heldLocked()) {
                 pausedSince = NONE;
-                pausedOnPurpose = false;
+                // A start another patch held back plays nothing, so a Pause still stands.
+                if (plays) pausedOnPurpose = false;
                 movedOff = false;
                 Object pending = taker != null ? taker.get() : null;
                 if (pending == player) {
@@ -1288,6 +1349,7 @@ public final class BackgroundPlay {
             pausedSince = NONE;
             passing = false;
             pausedOnPurpose = false;
+            playedOnLastTick = false;
             releases.clear();
             ending.clear();
             releasedWhileEnding.clear();

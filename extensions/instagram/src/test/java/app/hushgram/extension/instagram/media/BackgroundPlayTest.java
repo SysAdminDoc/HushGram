@@ -437,6 +437,126 @@ public class BackgroundPlayTest {
     }
 
     /**
+     * #497: the next story's start lands between the held one's pause and the check that pause
+     * posted, and plays nothing. The story keeps its place in line until that start is read, so
+     * the check plays it ahead of the one bound after it.
+     */
+    @Test
+    public void aStartThatPlaysNothingBeforeTheHeldOnesCheckKeepsItsTurn() {
+        background(player);
+        idle();
+        players.playing.remove(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        BackgroundPlay.storyPrepared(third, new Object());
+        idle();
+        assertEquals("the held one may only be loading", List.of(), players.played);
+
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        BackgroundPlay.started(other);
+        idle();
+        assertEquals("the first in line goes first", List.of(other), players.played);
+        assertTrue(players.playing.contains(other));
+        assertFalse(players.playing.contains(third));
+    }
+
+    /**
+     * After Pause in the notification, a start of the held story that plays nothing, as one Tap to
+     * play holds back, leaves the Pause standing: once the held one counts as stalled, no waiting
+     * story plays.
+     */
+    @Test
+    public void aHeldStartThatPlaysNothingLeavesPauseStanding() {
+        background(player);
+        idle();
+        BackgroundPlay.pauseFromNotification();
+        assertFalse(players.playing.contains(player));
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+
+        BackgroundPlay.started(player);
+        idle();
+        BackgroundPlay.pausedSinceForTests(SystemClock.uptimeMillis() - BackgroundPlay.STALLED_MS);
+        BackgroundPlay.tick();
+        idle();
+        assertEquals("nothing plays while paused", List.of(), players.played);
+    }
+
+    /** The held story's start that played nothing parks again before it's read: it still waits its turn. */
+    @Test
+    public void aStartParkedAgainBeforeItsReadStillWaits() {
+        background(player);
+        idle();
+        players.playing.remove(player);
+
+        BackgroundPlay.started(player);
+        BackgroundPlay.storyPrepared(player, new Object());
+        idle();
+        assertEquals("its parked start plays", List.of(player), players.played);
+    }
+
+    /**
+     * After a pause for the audio focus, Instagram starts the held story again itself, and it reads
+     * as playing only after its start was read: two checks that see it playing end that pause.
+     */
+    @Test
+    public void aHeldStoryPlayingAgainOnItsOwnEndsAPause() {
+        background(player);
+        idle();
+        assertFalse(BackgroundPlay.hold(player, "audio_focus_loss"));
+        players.playing.remove(player);
+        BackgroundPlay.started(player);
+        idle();
+        players.playing.add(player);
+        BackgroundPlay.tick();
+        BackgroundPlay.tick();
+
+        players.playing.remove(player);
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("the next story plays", List.of(other), players.played);
+    }
+
+    /** A Pause that lands a moment late still stands through the one check that sees the video playing. */
+    @Test
+    public void aPauseThatLandsLateStillStands() {
+        background(player);
+        idle();
+        BackgroundPlay.tick();
+        BackgroundPlay.pauseFromNotification();
+        players.playing.add(player);
+        BackgroundPlay.tick();
+
+        players.playing.remove(player);
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("nothing plays while paused", List.of(), players.played);
+    }
+
+    /**
+     * A waiting story whose start plays before the held one's check runs takes over once its start
+     * is read, and the check plays none beside it.
+     */
+    @Test
+    public void aWaitingStoryThatStartsPlayingKeepsTheRestWaiting() {
+        background(player);
+        idle();
+        players.playing.remove(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        BackgroundPlay.storyPrepared(third, new Object());
+        idle();
+
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        players.playing.add(other);
+        BackgroundPlay.started(other);
+        idle();
+        assertEquals("none started beside it", List.of(), players.played);
+        assertFalse(players.playing.contains(third));
+        assertTrue("the hold moved to it", BackgroundPlay.hold(other, "fragment_paused"));
+    }
+
+    /**
      * Stories ready while the held one still plays wait for their turn, the first ready first. The
      * service's check doesn't start one while the held story may only be loading; once Instagram
      * pauses the held one in the background, the viewer has moved on and the first waiting one plays.
