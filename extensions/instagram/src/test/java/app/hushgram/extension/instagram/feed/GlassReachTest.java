@@ -251,16 +251,52 @@ public class GlassReachTest {
         assertEquals("the band goes", 0, slid[1]);
     }
 
+    /** The strip behind the clock fades out under it, with no hard edge and no hairline (#450). */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void aHollowHeadersStripFadesOutUnderTheClock() {
+        View logo = logoInHeader();
+        glaze();
+        logo.setAlpha(0f);
+        frame();
+        assertTrue(GlassTopBar.hollow(header));
+        int fade = Math.round(GlassTopBar.STRIP_FADE * header.getResources().getDisplayMetrics().density);
+
+        Bitmap drawn = drawn(0);
+        int middle = drawn.getPixel(WIDE / 2, STATUS / 2);
+        int edge = drawn.getPixel(WIDE / 2, STATUS - 1);
+        int over = drawn.getPixel(WIDE / 2, STATUS - 3);
+        assertNotEquals(0, Color.alpha(middle));
+        assertEquals("whole down to the clock's bottom", Color.alpha(middle), Color.alpha(edge));
+        assertEquals("no hairline along it", Color.red(over), Color.red(edge), 3);
+        int halfway = Color.alpha(drawn.getPixel(WIDE / 2, STATUS + fade / 2));
+        assertTrue("fading under it: " + halfway + " of " + Color.alpha(middle),
+                halfway > Color.alpha(middle) / 4 && halfway < Color.alpha(middle) * 3 / 4);
+        assertEquals("gone where the fade ends", 0, Color.alpha(drawn.getPixel(WIDE / 2, STATUS + fade)));
+
+        // Slid up past its own height, the backdrop is still recorded down to where the fade ends.
+        header.setTranslationY(-HEADER - 30f);
+        frame();
+        assertArrayEquals(new int[] {0, 30 + fade}, GlassTopBar.reach(header));
+    }
+
     /** The glass's alpha halfway down the strip and halfway down the header at rest, with the header slid by [moved]. */
     private int[] drawnAcross(int moved) {
+        Bitmap bitmap = drawn(moved);
+        return new int[] {Color.alpha(bitmap.getPixel(WIDE / 2, STATUS / 2)),
+                Color.alpha(bitmap.getPixel(WIDE / 2, STATUS + HEADER / 2 + moved))};
+    }
+
+    /** The glass from the window's top down past the header at rest, with the header slid by [moved]. */
+    private Bitmap drawn(int moved) {
         Bitmap bitmap = Bitmap.createBitmap(WIDE, STATUS + HEADER, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         canvas.translate(0, STATUS + moved);
         Drawable frost = header.getBackground();
         frost.setBounds(0, 0, WIDE, HEADER);
         frost.draw(canvas);
-        return new int[] {Color.alpha(bitmap.getPixel(WIDE / 2, STATUS / 2)),
-                Color.alpha(bitmap.getPixel(WIDE / 2, STATUS + HEADER / 2 + moved))};
+        return bitmap;
     }
 
     /** A logo two views deep in the header, the way Instagram's sits. */

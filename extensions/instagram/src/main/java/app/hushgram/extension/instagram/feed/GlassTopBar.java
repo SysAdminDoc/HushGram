@@ -14,6 +14,8 @@ import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.RenderEffect;
@@ -81,6 +83,8 @@ public final class GlassTopBar {
     static final int HAIRLINE_LIGHT = 0x1f000000;
     /** How deep under the header a view as wide as it is has its background taken off. */
     private static final int CLEAR_DEPTH = 3;
+    /** How far the strip behind the status bar fades out below it, with no edge or hairline, in dp (#450). */
+    static final float STRIP_FADE = 24;
     /** How many parents up from the header the one drawing the feed before it is looked for. */
     static final int HOST_DEPTH = 6;
     /** How many parents up from a message box the view drawing what's under it is looked for. */
@@ -349,10 +353,14 @@ public final class GlassTopBar {
         /** How far the glass reaches past the header's top and bottom edges, to cover the status bar. */
         int above;
         int below;
-        /** Whether Home's header has nothing showing, and where the status bar is measured from its top edge. */
+        /**
+         * Whether Home's header has nothing showing, where the status bar is measured from its top edge, and how far
+         * the strip behind it fades out below it (#450).
+         */
         boolean hollow;
         int stripTop;
         int stripBottom;
+        int fade;
         private boolean describedHollow;
         private int describedCovers = -1;
 
@@ -495,6 +503,9 @@ public final class GlassTopBar {
             hollow = showsNothing(header);
             stripTop = -top;
             stripBottom = gap - top;
+            fade = Math.round(STRIP_FADE * header.getResources().getDisplayMetrics().density);
+            // The backdrop is recorded down to where the strip's fade ends, past a header slid away above it.
+            if (hollow) below = Math.max(below, stripBottom + fade - header.getHeight());
             if (hollow && !describedHollow) {
                 describedHollow = true;
                 Logger.printDebug(() -> "Top bar glass: the header shows nothing, at " + top + ", holding " + children(header));
@@ -766,6 +777,10 @@ public final class GlassTopBar {
         private int sheenTop = Integer.MIN_VALUE;
         private int sheenBottom;
         private boolean sheenDark;
+        /** Keeps what's under it as much as its gradient is opaque: the strip's fade (#450). */
+        private final Paint fader = new Paint();
+        private int fadeFrom = Integer.MIN_VALUE;
+        private int fadeTo;
         /** Whether the last draw put the sheen on. Read by tests. */
         boolean sheened;
 
@@ -774,6 +789,7 @@ public final class GlassTopBar {
             this.hairline = Math.max(1, Math.round(density / 2f));
             rim.setStyle(Paint.Style.STROKE);
             rim.setStrokeWidth(Math.max(1f, density / 2f));
+            fader.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
         }
 
         @Override
@@ -786,8 +802,27 @@ public final class GlassTopBar {
             }
             int base = glass.base;
             // Past the header's edges over the status bar: nothing clips a background's own node there.
-            if (glass.hollow) area.set(bounds.left, bounds.top + glass.stripTop, bounds.right, bounds.top + glass.stripBottom);
-            else area.set(bounds.left, bounds.top - glass.above, bounds.right, bounds.bottom + glass.below);
+            boolean hollow = glass.hollow;
+            if (hollow) {
+                area.set(bounds.left, bounds.top + glass.stripTop, bounds.right, bounds.top + glass.stripBottom + glass.fade);
+            } else {
+                area.set(bounds.left, bounds.top - glass.above, bounds.right, bounds.bottom + glass.below);
+            }
+            // The strip alone fades out under the status bar, so it's drawn in a layer the fade can thin (#450).
+            int layer = hollow ? canvas.saveLayer(area.left, area.top, area.right, area.bottom, null) : -1;
+            try {
+                drawGlass(canvas, bounds, base);
+                if (hollow) fadeOut(canvas, area.bottom - glass.fade);
+            } finally {
+                if (layer >= 0) canvas.restoreToCount(layer);
+            }
+            if (!glass.lined || hollow) return;
+            paint.setColor(hairline(base));
+            canvas.drawRect(area.left, area.bottom - hairline, area.right, area.bottom, paint);
+        }
+
+        /** The blur over [area], its rim bend and the tint and sheen over it. */
+        private void drawGlass(Canvas canvas, Rect bounds, int base) {
             boolean blurred = glass.drawBackdrop(canvas, area);
             // Every header follows the glass tab bar's pill: its rim bend, measured on the header, and its sheen.
             boolean likeTabBar = GlassTabBar.onNow();
@@ -801,9 +836,16 @@ public final class GlassTopBar {
                 keepSheen(GlassTabBar.isDark(base));
                 canvas.drawRect(area, sheen);
             }
-            if (!glass.lined) return;
-            paint.setColor(hairline(base));
-            canvas.drawRect(area.left, area.bottom - hairline, area.right, area.bottom, paint);
+        }
+
+        /** Thins what's drawn in [area] from whole at [from] to nothing at its bottom. */
+        private void fadeOut(Canvas canvas, int from) {
+            if (fadeFrom != from || fadeTo != area.bottom) {
+                fadeFrom = from;
+                fadeTo = area.bottom;
+                fader.setShader(new LinearGradient(0, from, 0, area.bottom, Color.BLACK, Color.TRANSPARENT, Shader.TileMode.CLAMP));
+            }
+            canvas.drawRect(area.left, from, area.right, area.bottom, fader);
         }
 
         /**
