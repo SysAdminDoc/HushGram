@@ -272,13 +272,14 @@ public final class BackgroundPlay {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
             if (player == null) return;
             boolean ours;
+            int line;
             synchronized (LOCK) {
                 remember(player);
-                unwait(player);
+                line = unwait(player);
                 ours = phase != Phase.IDLE;
             }
             // Read once Instagram's start is done: a start another patch holds back plays nothing.
-            if (ours) Utils.runOnMainThread(() -> afterStart(player));
+            if (ours) Utils.runOnMainThread(() -> afterStart(player, line));
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "player start", t);
         }
@@ -410,9 +411,32 @@ public final class BackgroundPlay {
         screenStopping = false;
     }
 
-    /** Takes [player] and any player gone out of {@link #waiting}. Under {@link #LOCK}. */
-    private static void unwait(Object player) {
-        remove(waiting, player);
+    /**
+     * Takes [player] and any player gone out of {@link #waiting}, and answers where in line [player]
+     * was, or -1. Under {@link #LOCK}.
+     */
+    private static int unwait(Object player) {
+        int line = -1;
+        int index = 0;
+        for (Iterator<WeakReference<Object>> it = waiting.iterator(); it.hasNext(); ) {
+            Object seen = it.next().get();
+            if (seen != null && seen != player) {
+                index++;
+                continue;
+            }
+            if (seen == player && line < 0) line = index;
+            it.remove();
+        }
+        return line;
+    }
+
+    /**
+     * Puts [player] back in {@link #waiting} at [line], or at its end when the line got shorter: a
+     * start that played nothing, or was paused, doesn't take a story out of its turn. Under {@link #LOCK}.
+     */
+    private static void backInLine(Object player, int line) {
+        unwait(player);
+        waiting.add(Math.min(Math.max(0, line), waiting.size()), new WeakReference<>(player));
     }
 
     /** Takes [player] and any player gone out of [list]. Under {@link #LOCK}. */
@@ -946,6 +970,14 @@ public final class BackgroundPlay {
     // ---- Helpers ----
 
     private static void afterStart(Object player) {
+        afterStart(player, -1);
+    }
+
+    /**
+     * What a start of [player] means for the session, once Instagram's start is done, with where in
+     * line [player] waited before it, or -1.
+     */
+    private static void afterStart(Object player, int line) {
         Object current;
         Object claimed;
         Activity screen;
@@ -962,7 +994,10 @@ public final class BackgroundPlay {
             gaveUp = holds(gaveWay, player);
             wasYielded = yielded != null && yielded.get() == player;
         }
-        if (player != current && isPlaying(player)) {
+        boolean plays = isPlaying(player);
+        // A story taking over, or one sent back first in line, keeps the front of the line.
+        int turn = player == claimed || wasYielded ? 0 : line;
+        if (player != current && plays) {
             boolean currentPlays = current != null && isPlaying(current);
             boolean anotherPlays = currentPlays || (claimed != null && claimed != player && isPlaying(claimed));
             if (currentPlays && !onPurpose && (player == claimed || wasYielded)) {
@@ -978,11 +1013,21 @@ public final class BackgroundPlay {
             if (onPurpose || (gaveUp && anotherPlays)) {
                 // A start that came after Pause or during a mute, or late from a story that gave
                 // way to the one playing: one story at a time, and none while paused on purpose.
+                // A story that was waiting keeps its turn.
+                synchronized (LOCK) {
+                    if (phase == Phase.BACKGROUND && turn >= 0 && player != heldLocked()) backInLine(player, turn);
+                }
                 log(() -> "a video started in the background after Pause or beside the one playing, so it's paused");
                 pauseOther(player);
                 return;
             }
             if (!currentPlays) takeOver(player, current, screen);
+        } else if (player != current && player != claimed && turn >= 0) {
+            // A start another patch held back plays nothing, so the story still waits its turn. The
+            // one taking over has its own time to start, and gives way after it.
+            synchronized (LOCK) {
+                if (phase == Phase.BACKGROUND && player != heldLocked()) backInLine(player, turn);
+            }
         }
         Object stale = null;
         synchronized (LOCK) {
@@ -991,13 +1036,15 @@ public final class BackgroundPlay {
                 pausedOnPurpose = false;
                 movedOff = false;
                 Object pending = taker != null ? taker.get() : null;
-                if (pending != null && pending != player) {
+                if (pending == player) {
+                    taker = null;
+                    takenAt = NONE;
+                } else if (pending != null && plays) {
                     // It played again before the story taking over from it started: that one waits.
+                    // A start that played nothing leaves the story taking over to go on.
                     yieldLocked(pending);
                     stale = pending;
                 }
-                taker = null;
-                takenAt = NONE;
             }
         }
         if (stale != null) {
@@ -1031,8 +1078,13 @@ public final class BackgroundPlay {
             }
             pauseOld = current != null && !oldReleased;
             unwait(player);
-            if (current != null) unwait(current);
             remove(gaveWay, player);
+            if (current != null) {
+                unwait(current);
+                // A start the old one still had coming, as one only slow to load, is paused while another plays.
+                remove(gaveWay, current);
+                gaveWay.add(new WeakReference<>(current));
+            }
             gaveUp = taker != null ? taker.get() : null;
             if (gaveUp == player || gaveUp == current) gaveUp = null;
             if (gaveUp != null) gaveWay.add(new WeakReference<>(gaveUp));

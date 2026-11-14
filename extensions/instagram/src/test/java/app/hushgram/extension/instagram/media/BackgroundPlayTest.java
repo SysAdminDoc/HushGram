@@ -866,6 +866,131 @@ public class BackgroundPlayTest {
     }
 
     /**
+     * #497: a late start of the video the session moved on from, one that was only slow to load, is
+     * paused while the one that took over plays. Once that one stops, a start of the old one takes over.
+     */
+    @Test
+    public void aLateStartOfTheVideoMovedOnFromIsPausedWhileTheNewOnePlays() {
+        background(player);
+        idle();
+        players.playing.remove(player);
+        BackgroundPlay.started(other);
+        players.playing.add(other);
+        idle();
+        assertEquals("the one it moved on from is paused", List.of(player), players.pausedPlayers);
+
+        players.playing.add(player);
+        BackgroundPlay.started(player);
+        idle();
+        assertEquals("its late start is paused too", List.of(player, player), players.pausedPlayers);
+        assertFalse(players.playing.contains(player));
+        assertTrue(players.playing.contains(other));
+
+        players.playing.remove(other);
+        players.playing.add(player);
+        BackgroundPlay.started(player);
+        idle();
+        assertTrue("it takes over once the other stops", BackgroundPlay.hold(player, "fragment_paused"));
+    }
+
+    /**
+     * #497: the story sent back in line starts late while Pause in the notification holds the
+     * session. It's paused and keeps its turn, so after Play it plays once the held one stops.
+     */
+    @Test
+    public void aWaitingStoryStartingAfterPauseKeepsItsTurn() {
+        players.startsOnPlay = true;
+        background(player);
+        idle();
+        players.playing.remove(player);
+        players.stuck.add(other);
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        players.playing.add(player);
+        BackgroundPlay.started(player);
+        idle();
+        assertEquals("sent back in line", List.of(other), players.pausedPlayers);
+
+        BackgroundPlay.pauseFromNotification();
+        players.stuck.remove(other);
+        players.playing.add(other);
+        BackgroundPlay.started(other);
+        idle();
+        assertFalse("nothing plays while paused", players.playing.contains(other));
+
+        BackgroundPlay.playFromNotification();
+        idle();
+        assertTrue(players.playing.contains(player));
+        assertFalse(players.playing.contains(other));
+
+        players.playing.remove(player);
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        idle();
+        assertEquals("its turn comes once the held one stops", List.of(other, player, other), players.played);
+        assertTrue(players.playing.contains(other));
+    }
+
+    /**
+     * #497: a late start of the story sent back in line that plays nothing, as one Tap to play holds
+     * back, leaves it waiting first in line, so it still plays once the held one stops.
+     */
+    @Test
+    public void aWaitingStoryWhoseStartPlaysNothingKeepsItsTurn() {
+        players.startsOnPlay = true;
+        background(player);
+        idle();
+        players.playing.remove(player);
+        players.stuck.add(other);
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        players.playing.add(player);
+        BackgroundPlay.started(player);
+        idle();
+        assertEquals(List.of(other), players.pausedPlayers);
+
+        BackgroundPlay.started(other);
+        idle();
+        assertEquals("nothing else is paused", List.of(other), players.pausedPlayers);
+
+        players.stuck.remove(other);
+        players.playing.remove(player);
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        idle();
+        assertEquals("its turn comes once the held one stops", List.of(other, other), players.played);
+        assertTrue(players.playing.contains(other));
+    }
+
+    /**
+     * #497: a start of the held story that plays nothing, as one Tap to play holds back, isn't the
+     * held one playing again: the story taking over from it isn't paused, and takes over once it starts.
+     */
+    @Test
+    public void aHeldStartThatPlaysNothingLeavesTheStoryTakingOverToGoOn() {
+        players.startsOnPlay = true;
+        background(player);
+        idle();
+        players.playing.remove(player);
+        players.stuck.add(other);
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals(List.of(other), players.played);
+
+        BackgroundPlay.started(player);
+        idle();
+        assertEquals("the one taking over isn't paused", List.of(), players.pausedPlayers);
+
+        players.stuck.remove(other);
+        players.playing.add(other);
+        BackgroundPlay.started(other);
+        idle();
+        assertTrue(players.playing.contains(other));
+        assertTrue("it takes the session over", BackgroundPlay.hold(other, "fragment_paused"));
+    }
+
+    /**
      * #497: Play in the notification, once Instagram had moved off the held story, plays the story
      * after it, and that's a tap, so Tap to play lets its start through.
      */
