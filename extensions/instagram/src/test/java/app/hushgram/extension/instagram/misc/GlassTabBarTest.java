@@ -59,6 +59,7 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.util.ReflectionHelpers;
 
+import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelBlurBars;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -507,6 +508,59 @@ public class GlassTabBarTest {
                 other.pause().stop().destroy();
             }
         }
+    }
+
+    /**
+     * A floating pill back in front after another window had the navigation bar's height given through
+     * keeps the bar's room under itself as its activity resumes, and when Instagram's next insets pass
+     * offers back the 0 the resume put in its copy. That 0 read as no navigation bar, and the pill sat in
+     * the three-button bar with no lift (S25, 2026-11-11). A sheet over it and the Reels viewers keep the
+     * bar's room too, and the real height Instagram offers next is still answered 0.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aPillBackInFrontKeepsTheNavigationBarsRoomWhenInstagramOffersBackItsZero() throws Exception {
+        GlassTabBar.resetForTests();
+        resetFullScreenHeights();
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int nav = host.dp(24);
+            host.controller.pause().resume();
+            host.frame();
+            int height = host.bar.getLayoutParams().height;
+            assertEquals("shown in front", 0, FullScreenBars.navBarHeight(nav));
+            host.frame();
+            assertEquals("the pill makes room for the bar", height + nav, host.bar.getLayoutParams().height);
+
+            host.controller.pause();
+            ActivityController<Activity> other = Robolectric.buildActivity(Activity.class).setup();
+            try {
+                assertEquals("another window gets the height", nav, FullScreenBars.navBarHeight(nav));
+            } finally {
+                other.pause().stop().destroy();
+            }
+            host.controller.resume();
+            host.frame();
+            assertEquals("back in front, before any pass", height + nav, host.bar.getLayoutParams().height);
+
+            assertEquals("Instagram keeps the pill's 0", 0, FullScreenBars.navBarHeight(0));
+            host.frame();
+            assertEquals("the pill keeps the bar's room", height + nav, host.bar.getLayoutParams().height);
+            assertEquals("a sheet stops above the bar", nav, GlassTabBar.cameraNavBarHeight(0));
+            assertEquals("a Reels viewer stops above the slot and the bar", 100 + nav, GlassTabBar.reelsMargin(100));
+
+            assertEquals("the real height again", 0, FullScreenBars.navBarHeight(nav));
+            host.frame();
+            assertEquals(height + nav, host.bar.getLayoutParams().height);
+        } finally {
+            resetFullScreenHeights();
+        }
+    }
+
+    /** FullScreenBars starts and ends with nothing offered, taken or kept, telling the patch's listeners. */
+    private static void resetFullScreenHeights() throws Exception {
+        Class<?> teller = Class.forName("app.hushgram.extension.instagram.reels.FullScreenBars$Teller");
+        ReflectionHelpers.callStaticMethod(FullScreenBars.class, "resetHeightsForTests",
+                ReflectionHelpers.ClassParameter.from(teller, null));
     }
 
     /**

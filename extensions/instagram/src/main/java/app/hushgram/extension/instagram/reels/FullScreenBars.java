@@ -388,7 +388,16 @@ public final class FullScreenBars {
         if (!keys) offered = height;
         int kept = keys ? offered : hiddenBarHeight(height, false);
         try {
-            kept = keys ? GlassTabBar.navBarHeightOverTheKeyboard(kept) : GlassTabBar.navBarHeight(kept, hiddenNavHeight(height));
+            int hidden = keys ? 0 : hiddenNavHeight(height);
+            if (keys) {
+                kept = GlassTabBar.navBarHeightOverTheKeyboard(kept);
+            } else if (height == 0 && hidden == 0 && navTaken && navOffered > 0) {
+                // The 0 offered back is the one HushGram answered for the pill, not a missing bar, so
+                // Instagram keeps it and the pill keeps the bar's room under itself.
+                GlassTabBar.navBarHeightTaken(navOffered, false);
+            } else {
+                kept = GlassTabBar.navBarHeight(kept, hidden);
+            }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height", failure);
         }
@@ -720,6 +729,8 @@ public final class FullScreenBars {
             keepNavBarHeight(0);
             navTaken = true;
             keptNav = 0;
+            // The window it came back from may have had the height given through, which left the pill no room.
+            GlassTabBar.navBarHeightTaken(navOffered, hiddenNavHeight(0) > 0);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height again", failure);
         }

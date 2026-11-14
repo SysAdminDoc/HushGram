@@ -1076,6 +1076,21 @@ public final class GlassTabBar {
     }
 
     /**
+     * Called through FullScreenBars while Instagram's copy of the navigation bar's height holds a 0
+     * HushGram answered for a floating pill: as the pill's activity resumes and the 0 goes back in
+     * ({@link FullScreenBars#takeNavBarHeight}), and when Instagram's next pass offers that 0 back. The
+     * pill keeps [height] of room under itself, and sheets the same over the bar (none over a bar
+     * HushGram's full screen hides, [hidden]), as when {@link #navBarHeight} answered 0 for [height]. Read
+     * as no navigation bar, that 0 left the pill sitting in the three-button bar.
+     */
+    public static void navBarHeightTaken(int height, boolean hidden) {
+        if (height <= 0) return;
+        navTaken = height;
+        sheetRoom = hidden ? 0 : height;
+        navGiven = 0;
+    }
+
+    /**
      * Called through FullScreenBars in place of {@link #navBarHeight} while the keyboard shows. Instagram
      * lifts a text box above the keyboard by the keyboard's height less the navigation bar's, then pads
      * it by the height it keeps, so [height] goes through as it came (#209). A sheet over a floating pill
