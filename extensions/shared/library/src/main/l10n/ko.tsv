@@ -1736,6 +1736,8 @@ Couldn't read that picture.	사진을 읽을 수 없습니다.
 This launcher can't add it.	이 런처는 추가할 수 없습니다.
 Glass in chats	채팅 유리 효과
 Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	채팅 상단 바와 메시지 입력 바에 반투명 유리 효과를 주고 뒤로가기, 통화, 영상 버튼을 둥근 유리 원 위에 올립니다. 다음에 채팅을 열 때부터 적용됩니다. 흐림 효과는 Android 12 이상이 필요합니다.
+Glass top bar in chats	채팅 상단 바 유리 효과
+Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	끄면 채팅 상단 바가 Instagram 기본 모습 그대로 남고 뒤에 반투명 유리 띠가 생기지 않습니다. 둥근 유리 버튼과 유리 메시지 입력 바는 그대로 유지됩니다.
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	조회수가 적은 릴스 숨기기
 Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	조회수나 좋아요 수가 아래 숫자보다 적은 릴스를 릴스 탭에서 숨깁니다. 팔로우하는 계정의 릴스, 받은 릴스, 숫자가 없는 릴스는 그대로 재생됩니다.

@@ -60,7 +60,7 @@ public class GlassChatSettingsTest {
         Utils.awaitBackgroundTasksForTests();
     }
     private static BooleanSetting[] all() {
-        return new BooleanSetting[]{Settings.GLASS_CHAT, Settings.GLASS_STORY_REPLY_BOX};
+        return new BooleanSetting[]{Settings.GLASS_CHAT, Settings.GLASS_CHAT_TOP_BAR, Settings.GLASS_STORY_REPLY_BOX};
     }
     private static void resetAll() {
         for (BooleanSetting each : all()) each.resetToDefault();
@@ -69,10 +69,12 @@ public class GlassChatSettingsTest {
         open(false);
         for (BooleanSetting each : all()) assertNull(page.getPreferenceScreen().findPreference(each.key));
     }
-    @Test public void theSwitchesSitUnderMessagesAndStoriesAndStartOff() throws Exception {
+    /** The top bar's glass (#670) sits under Glass in chats and starts on, so turning Glass in chats on looks as before. */
+    @Test public void theSwitchesSitUnderMessagesAndStories() throws Exception {
         open(true);
-        String[] titles = {"Glass in chats", "Glass reply box on stories"};
-        String[] sections = {"Messages", "Stories"};
+        String[] titles = {"Glass in chats", "Glass top bar in chats", "Glass reply box on stories"};
+        String[] sections = {"Messages", "Messages", "Stories"};
+        boolean[] starts = {false, true, false};
         BooleanSetting[] switches = all();
         for (int i = 0; i < switches.length; i++) {
             SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(switches[i].key);
@@ -81,12 +83,13 @@ public class GlassChatSettingsTest {
             PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
             assertNotNull(section);
             assertEquals(sections[i], section.getTitle().toString());
-            assertFalse(row.isChecked());
-            assertFalse(switches[i].get());
+            assertEquals(titles[i], starts[i], row.isChecked());
+            assertEquals(titles[i], starts[i], switches[i].get());
             assertTrue(ConfigurationBackup.eligible().containsKey(switches[i].key));
-            row.setChecked(true);
-            assertTrue(switches[i].get());
+            row.setChecked(!starts[i]);
+            assertEquals(titles[i], !starts[i], switches[i].get());
         }
+        assertEquals(Collections.singletonList(Settings.GLASS_CHAT), Settings.GLASS_CHAT_TOP_BAR.getParentSettings());
         assertEquals(java.util.Arrays.asList(switches), PatchFamily.GLASS_CHAT.switches);
     }
     private static PreferenceCategory categoryHolding(PreferenceGroup group, Preference row) {

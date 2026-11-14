@@ -13,6 +13,7 @@ Every HushGram release, newest first.
 * `Double-tap Messages for hidden chats` now shows your hidden chats right in your inbox after your screen lock or PIN, and two more quick taps on Messages hide them again. Long press a chat for Hide chat or Unhide chat. Asked for in #661.
 * A new switch, `Hide You may also like in search` under Explore, takes the You may also like posts off the bottom of search results. Accounts and the posts you searched for stay. Asked for in #657.
 * `Play only the reel you opened` under Reels keeps a reel you open from a post on Home, a suggested reels row or a message on screen. Swiping, pulling down and auto scroll won't move it on, so it plays again when it ends, and the Reels tab scrolls as usual. With `Swipe through a chat's reels` on, a chat's reels still swipe. Asked for in #656.
+* `Glass top bar in chats`, new under `Glass in chats` in Messages, takes the frosted band off a chat's top bar. The round glass buttons and the glass message bar stay. It starts on, so nothing changes until you turn it off. Asked for in #670.
 
 ### Bug Fixes
 

@@ -1724,6 +1724,8 @@ Couldn't read that picture.	ไม่สามารถอ่านรูปภ�
 This launcher can't add it.	ลอนเชอร์นี้ไม่สามารถเพิ่มได้
 Glass in chats	เอฟเฟกต์กระจกในแชท
 Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	เพิ่มเอฟเฟกต์กระจกฝ้าที่แถบด้านบนและแถบข้อความของแชท และวางปุ่มย้อนกลับ โทร และวิดีโอคอลบนวงกลมกระจกมน จะแสดงขึ้นในครั้งถัดไปที่คุณเปิดแชท ต้องใช้ Android 12 ขึ้นไปสำหรับเอฟเฟกต์เบลอ
+Glass top bar in chats	กระจกที่แถบด้านบนของแชท
+Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	ปิดเพื่อให้แถบด้านบนของแชทเป็นแบบที่ Instagram แสดงตามปกติ โดยไม่มีแถบกระจกฝ้าด้านหลัง ปุ่มกระจกทรงกลมและแถบข้อความกระจกยังคงอยู่
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	ซ่อนรีลส์ที่มียอดดูน้อย
 Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	ละเว้นรีลส์ในแท็บรีลส์ที่มียอดดูหรือยอดถูกใจน้อยกว่าจำนวนด้านล่างนี้ โดยรีลส์จากบัญชีที่คุณติดตาม รีลส์ที่ส่งถึงคุณ และรีลส์ที่ไม่มีจำนวนนับจะยังคงเล่นตามปกติ

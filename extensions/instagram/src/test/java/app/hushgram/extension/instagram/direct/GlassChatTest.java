@@ -131,6 +131,7 @@ public class GlassChatTest {
 
     private static void resetAll() {
         Settings.GLASS_CHAT.resetToDefault();
+        Settings.GLASS_CHAT_TOP_BAR.resetToDefault();
         Settings.GLASS_STORY_REPLY_BOX.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -225,6 +226,39 @@ public class GlassChatTest {
     public void theSwitchesStartOff() {
         assertEquals(Boolean.FALSE, Settings.GLASS_CHAT.defaultValue);
         assertEquals(Boolean.FALSE, Settings.GLASS_STORY_REPLY_BOX.defaultValue);
+        assertEquals("the top bar's glass comes with Glass in chats", Boolean.TRUE, Settings.GLASS_CHAT_TOP_BAR.defaultValue);
+    }
+
+    /**
+     * #670: with the top bar's glass off, the header keeps Instagram's own fill while the round buttons and the
+     * message bar keep their glass, and turning it back on brings the header's glass back.
+     */
+    @Test
+    public void theTopBarSwitchLeavesTheButtonsAndMessageBarTheirGlass() {
+        Drawable fill = new ColorDrawable(Color.BLACK);
+        header.setBackground(fill);
+        Settings.GLASS_CHAT.save(true);
+        Settings.GLASS_CHAT_TOP_BAR.save(false);
+        ImageView pill = messageBar();
+        frame();
+
+        assertFalse("no glass band behind the top bar", GlassTopBar.showing(header));
+        assertSame("Instagram's own fill stays", fill, header.getBackground());
+        assertTrue(hasDisc(back));
+        assertTrue(hasDisc(call));
+        assertTrue(hasDisc(video));
+        assertTrue(GlassTopBar.boxShowing(pill));
+
+        Settings.GLASS_CHAT_TOP_BAR.save(true);
+        frame();
+        assertTrue(GlassTopBar.showing(header));
+
+        Settings.GLASS_CHAT_TOP_BAR.save(false);
+        frame();
+        assertFalse(GlassTopBar.showing(header));
+        assertSame(fill, header.getBackground());
+        assertTrue(hasDisc(back));
+        assertTrue(GlassTopBar.boxShowing(pill));
     }
 
     /**

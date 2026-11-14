@@ -1019,6 +1019,12 @@ public class Settings extends BaseSettings {
      * ({@link app.hushgram.extension.instagram.direct.GlassChat}, #449). Off to start.
      */
     public static final BooleanSetting GLASS_CHAT = new BooleanSetting("hushgram_glass_chat", FALSE);
+    /**
+     * With Glass in chats on, the chat's top bar takes the frosted glass too. Off leaves the top bar as
+     * Instagram draws it while the round buttons and the message bar keep theirs (#670). On to start.
+     */
+    public static final BooleanSetting GLASS_CHAT_TOP_BAR =
+            new BooleanSetting("hushgram_glass_chat_top_bar", TRUE, parent(GLASS_CHAT));
     /** The Send message box on other people's stories takes the same glass, as a pill (#391). Off to start. */
     public static final BooleanSetting GLASS_STORY_REPLY_BOX = new BooleanSetting("hushgram_glass_story_reply_box", FALSE);
 

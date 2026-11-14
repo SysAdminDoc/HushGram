@@ -150,6 +150,11 @@ public final class GlassChat {
         return Utils.settingsReady() && Settings.GLASS_CHAT.get();
     }
 
+    /** Whether the top bar's glass is wanted now: the round buttons and the message bar keep theirs without it (#670). */
+    static boolean topBarOn() {
+        return on() && Settings.GLASS_CHAT_TOP_BAR.get();
+    }
+
     /** Whether the glass on the stories' reply box is wanted now. */
     static boolean storiesOn() {
         return Utils.settingsReady() && Settings.GLASS_STORY_REPLY_BOX.get();
@@ -313,7 +318,7 @@ public final class GlassChat {
     }
 
     private static void dress(View container, Activity activity) {
-        GlassTopBar.glazeChat(container, GlassChat::on);
+        GlassTopBar.glazeChat(container, GlassChat::topBarOn);
         GlassTopBar.glazeBox(messageBox(activity), id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT);
         boolean night = (container.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
