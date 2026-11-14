@@ -193,7 +193,8 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.LET_SCREEN_SLEEP_AFTER_REEL,
                     L10n.t("Let the screen sleep after a reel"),
                     L10n.t("A playing reel keeps the screen on. A few seconds after playback stops the "
-                            + "display dims, then sleeps on your usual screen timeout.")));
+                            + "display dims, then sleeps on your usual screen timeout. Needs auto scroll off, "
+                            + "or reels keep playing and the screen stays awake.")));
         }
         if (build.contains(PatchFamily.REEL_DOWNLOAD)) {
             reels.add(toggle(context, Settings.DOWNLOAD_REELS, L10n.t("Download on reels"),

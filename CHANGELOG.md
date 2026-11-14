@@ -6,7 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
-* `Let the screen sleep after a reel` under Reels keeps the screen on while a reel is playing, then dims and lets your phone's own screen timeout sleep the display once playback stops. Starts on.
+* `Let the screen sleep after a reel` under Reels keeps the screen on while a reel is playing, then dims and lets your phone's own screen timeout sleep the display once playback stops. Auto scroll in Reels has to be off, since reels that keep playing keep the screen awake. Starts on.
 * New switches take the Like button off reels and off posts in your feed, and the Comment button off reels, each with the count under it. Double tap still likes. They're `Hide the Like button on reels` and `Hide the Comment button on reels` under Reels, and `Hide the Like button` under Feed. Asked for in #668.
 * `Ask before a refresh` also asks when you tap Home, Reels or Explore while you're already on it, since that tap scrolls back to the top and reloads too. Cancel leaves the list where it was. Asked for in #655.
 * HushGram's own settings screen uses the font you pick in `Change the font` too, headings and switch labels included. Asked for in #166.

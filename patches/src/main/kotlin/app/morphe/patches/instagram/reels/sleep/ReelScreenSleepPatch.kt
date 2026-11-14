@@ -46,8 +46,9 @@ internal const val PLAYBACK_STATE = "$EXTENSION_PACKAGE/reels/ReelScreenAwake;->
 val letScreenSleepAfterReelPatch = bytecodePatch(
     name = "Let the screen sleep after a reel",
     description = "Keeps the screen awake while a reel is playing, then lets the phone's own screen timeout " +
-        "sleep the display once playback stops, with a short dimmed pause first. On to start. Turn it off " +
-        "in HushGram settings > Reels.",
+        "sleep the display once playback stops, with a short dimmed pause first. Auto scroll in Reels has " +
+        "to be off, since reels that keep playing keep the screen awake. On to start. Turn it off in " +
+        "HushGram settings > Reels.",
 ) {
     category("Fixes")
     dependsOn(settingsPatch)
