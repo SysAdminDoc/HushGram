@@ -8,6 +8,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -20,6 +21,7 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -287,6 +289,67 @@ public class SeekShapesTest {
         assertTrue(screen.getClipChildren());
     }
 
+    /**
+     * #450: a bar dropped with its reel, never going back to standard, doesn't keep the view it shared
+     * open: once the other bar is back on standard, that view clips again.
+     */
+    @Test
+    @Config(qualifiers = "xxhdpi")
+    public void aDroppedBarLeavesTheViewItSharedToClipAgain() {
+        FrameLayout screen = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout host = new FrameLayout(RuntimeEnvironment.getApplication());
+        SeekBar first = reelBar(host, new FrameLayout(RuntimeEnvironment.getApplication()));
+        SeekBar second = reelBar(host, new FrameLayout(RuntimeEnvironment.getApplication()));
+        screen.addView(host, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 600));
+        lay(screen);
+        SeekShapes.apply(first, SeekShape.WAVE, OverlayLook.SOLID, true);
+        SeekShapes.apply(second, SeekShape.WAVE, OverlayLook.SOLID, true);
+        assertFalse(host.getClipChildren());
+
+        WeakReference<SeekBar> dropped = new WeakReference<>(first);
+        host.removeViewAt(0);
+        first = null;
+        for (int i = 0; i < 50 && dropped.get() != null; i++) {
+            System.gc();
+            System.runFinalization();
+        }
+        assertNull("the first reel's bar is gone", dropped.get());
+
+        SeekShapes.apply(second, SeekShape.STANDARD, OverlayLook.SOLID, true);
+        assertTrue("no bar needs the shared view now", host.getClipChildren());
+    }
+
+    /** #450: a view opened only for a bar that's gone since clips again once another bar makes its room. */
+    @Test
+    @Config(qualifiers = "xxhdpi")
+    public void aViewOpenedOnlyForAGoneBarClipsAgain() {
+        FrameLayout screen = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout host = new FrameLayout(RuntimeEnvironment.getApplication());
+        SeekBar first = reelBar(host, new FrameLayout(RuntimeEnvironment.getApplication()));
+        screen.addView(host, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 600));
+        lay(screen);
+        SeekShapes.apply(first, SeekShape.WAVE, OverlayLook.SOLID, true);
+        assertFalse(host.getClipChildren());
+
+        WeakReference<SeekBar> dropped = new WeakReference<>(first);
+        host.removeViewAt(0);
+        first = null;
+        for (int i = 0; i < 50 && dropped.get() != null; i++) {
+            System.gc();
+            System.runFinalization();
+        }
+        assertNull("the reel's bar is gone", dropped.get());
+
+        FrameLayout otherScreen = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout otherHost = new FrameLayout(RuntimeEnvironment.getApplication());
+        SeekBar next = reelBar(otherHost, new FrameLayout(RuntimeEnvironment.getApplication()));
+        otherScreen.addView(otherHost, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 600));
+        lay(otherScreen);
+        SeekShapes.apply(next, SeekShape.WAVE, OverlayLook.SOLID, true);
+        assertTrue("no bar needs the old view now", host.getClipChildren());
+        assertFalse("the new bar has its room", otherHost.getClipChildren());
+    }
+
     /** #450: a view Instagram already lets draw past its edges is left that way when the bar goes back to standard. */
     @Test
     @Config(qualifiers = "xxhdpi")
@@ -323,6 +386,39 @@ public class SeekShapesTest {
         assertFalse("the bar's frame lets it draw past", frame.getClipChildren());
         assertTrue("the pager still clips its pages", pager.getClipChildren());
         assertTrue(pager.getClipToPadding());
+    }
+
+    /**
+     * #450: a reels pager holding one reel can't scroll yet, so the walk opens it, and once the next reel
+     * loads and it can, the next tick gives it its clipping back and keeps the bar's frame open.
+     */
+    @Test
+    @Config(qualifiers = "xxhdpi")
+    public void aPagerThatStartsScrollingLaterClipsAgain() {
+        boolean[] more = {false};
+        FrameLayout pager = new FrameLayout(RuntimeEnvironment.getApplication()) {
+            @Override
+            public boolean canScrollVertically(int direction) {
+                return more[0] && direction > 0;
+            }
+        };
+        FrameLayout frame = new FrameLayout(RuntimeEnvironment.getApplication());
+        SeekBar reel = reelBar(pager, frame);
+        lay(pager);
+
+        SeekShapes.apply(reel, SeekShape.WAVE, OverlayLook.SOLID, true);
+        assertFalse("one reel: the pager doesn't scroll, so it lets the bar draw past", pager.getClipChildren());
+
+        more[0] = true;
+        SeekShapes.apply(reel, SeekShape.WAVE, OverlayLook.SOLID, true);
+        assertTrue("the next reel loaded: the pager clips its pages again", pager.getClipChildren());
+        assertFalse("the bar's frame still lets it draw past", frame.getClipChildren());
+
+        SeekShapes.apply(reel, SeekShape.WAVE, OverlayLook.SOLID, true);
+        assertTrue("and stays that way", pager.getClipChildren());
+        SeekShapes.apply(reel, SeekShape.STANDARD, OverlayLook.SOLID, true);
+        assertTrue(frame.getClipChildren());
+        assertTrue(pager.getClipChildren());
     }
 
     /** #450: a bar with the room for its shape leaves the views round it as they were. */

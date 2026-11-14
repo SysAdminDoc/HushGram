@@ -18,6 +18,7 @@ import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -90,18 +91,35 @@ public final class SeekShapes {
     private static final Map<SeekBar, Room> ROOM = new WeakHashMap<>();
 
     /**
-     * What HushGram turned off on a view a shaped bar draws past, and how many bars need it so. Two bars
+     * What HushGram turned off on a view a shaped bar draws past, and the bars that need it so. Two bars
      * can share a view, which clips again only once neither needs the room, and only what HushGram
-     * turned off is turned back on.
+     * turned off is turned back on. The bars are held weakly, so one dropped without going back to
+     * standard doesn't keep the view open for good.
      */
     private static final class Opened {
         final boolean children;
         final boolean padding;
-        int bars;
+        final ArrayList<WeakReference<SeekBar>> bars = new ArrayList<>(2);
 
         Opened(boolean children, boolean padding) {
             this.children = children;
             this.padding = padding;
+        }
+
+        void add(SeekBar bar) {
+            for (WeakReference<SeekBar> held : bars) {
+                if (held.get() == bar) return;
+            }
+            bars.add(new WeakReference<>(bar));
+        }
+
+        /** Takes [bar] off, with every bar that's gone. True when no bar needs the room any more. */
+        boolean without(SeekBar bar) {
+            for (int i = bars.size() - 1; i >= 0; i--) {
+                SeekBar held = bars.get(i).get();
+                if (held == null || held == bar) bars.remove(i);
+            }
+            return bars.isEmpty();
         }
     }
 
@@ -178,8 +196,9 @@ public final class SeekShapes {
         ViewParent parent = bar.getParent();
         Room room = ROOM.get(bar);
         if (room != null && room.parent.get() == parent && room.top == bar.getTop() && room.height == height
-                && room.above == above && room.below == below) return;
-        if (room != null) giveRoomBack(room);
+                && room.above == above && room.below == below && !scrollsNow(room)) return;
+        if (room != null) giveRoomBack(room, bar);
+        clipForGoneBars();
         if (above == 0 && below == 0) {
             ROOM.remove(bar);
             return;
@@ -195,7 +214,7 @@ public final class SeekShapes {
         while ((above > 0 || below > 0) && room.views.size() < ROOM_REACH && child.getParent() instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) child.getParent();
             if (scrolls(group)) break;
-            open(group);
+            open(group, bar);
             room.views.add(new WeakReference<>(group));
             above -= child.getTop();
             below -= group.getHeight() - child.getBottom();
@@ -209,8 +228,21 @@ public final class SeekShapes {
                 || group.canScrollHorizontally(1) || group.canScrollHorizontally(-1);
     }
 
-    /** Lets [group] draw its children past its edges and padding for one more bar. */
-    private static void open(ViewGroup group) {
+    /**
+     * Whether a view [room] was opened in scrolls now. A reels pager holding one reel can't scroll when
+     * the walk passes it, and can once the next reel loads, so each tick looks again and the walk then
+     * stops before it.
+     */
+    private static boolean scrollsNow(Room room) {
+        for (WeakReference<ViewGroup> held : room.views) {
+            ViewGroup group = held.get();
+            if (group != null && scrolls(group)) return true;
+        }
+        return false;
+    }
+
+    /** Lets [group] draw its children past its edges and padding for [bar] too. */
+    private static void open(ViewGroup group, SeekBar bar) {
         Opened opened = OPENED.get(group);
         if (opened == null) {
             boolean children = group.getClipChildren();
@@ -220,20 +252,38 @@ public final class SeekShapes {
             if (children) group.setClipChildren(false);
             if (padding) group.setClipToPadding(false);
         }
-        opened.bars++;
+        opened.add(bar);
     }
 
-    /** Gives the views a bar was let draw past their clipping back, each once no other bar needs it. */
-    private static void giveRoomBack(Room room) {
+    /** Gives the views [bar] was let draw past their clipping back, each once no other bar needs it. */
+    private static void giveRoomBack(Room room, SeekBar bar) {
         for (WeakReference<ViewGroup> held : room.views) {
             ViewGroup group = held.get();
             Opened opened = group == null ? null : OPENED.get(group);
-            if (opened == null || --opened.bars > 0) continue;
+            if (opened == null || !opened.without(bar)) continue;
             OPENED.remove(group);
-            if (opened.children && !group.getClipChildren()) group.setClipChildren(true);
-            if (opened.padding && !group.getClipToPadding()) group.setClipToPadding(true);
+            clipAgain(group, opened);
         }
         room.views.clear();
+    }
+
+    /**
+     * Clips the views again that only bars gone since needed open: a reel dropped without its bar
+     * going back to standard took its room along. Looked at whenever a bar makes new room.
+     */
+    private static void clipForGoneBars() {
+        for (Iterator<Map.Entry<ViewGroup, Opened>> it = OPENED.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<ViewGroup, Opened> entry = it.next();
+            if (!entry.getValue().without(null)) continue;
+            it.remove();
+            clipAgain(entry.getKey(), entry.getValue());
+        }
+    }
+
+    /** Turns back on what HushGram turned off on [group]. */
+    private static void clipAgain(ViewGroup group, Opened opened) {
+        if (opened.children && !group.getClipChildren()) group.setClipChildren(true);
+        if (opened.padding && !group.getClipToPadding()) group.setClipToPadding(true);
     }
 
     /**
@@ -306,7 +356,7 @@ public final class SeekShapes {
     /** Gives [bar] back what a shape replaced, and the views round it their clipping, and does nothing to a bar with no shape on it. */
     public static void restore(SeekBar bar) {
         Room room = ROOM.remove(bar);
-        if (room != null) giveRoomBack(room);
+        if (room != null) giveRoomBack(room, bar);
         Stock stock = STOCK.remove(bar);
         if (stock == null) return;
         if (bar.getProgressDrawable() instanceof SeekShapeDrawable) bar.setProgressDrawable(stock.progress);
