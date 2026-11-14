@@ -3506,7 +3506,8 @@ public final class GlassTabBar {
      * <p>Haptic strength (#640) moves each style off its own tick, as {@link #plan} works out: lighter is the
      * built-in tick, a weaker pulse or a smaller primitive, and stronger is the built-in heavy click, a harder
      * and then longer pulse, or the click primitive. A motor that runs at only one strength can only be made
-     * stronger by running it longer, so above 100% it plays a pulse of {@link #PULSE_MS} times the strength.
+     * stronger by running it longer, so above 100% it plays a pulse of {@link #PULSE_MS} times the strength
+     * squared. Past {@link #STRONG_FROM} every style plays that pulse at full strength (#689).
      */
     static final class Haptics {
         /** How much of the phone's tick primitive the light tick plays. */
@@ -3514,8 +3515,13 @@ public final class GlassTabBar {
         /** The short pulse: how long, and how hard of 255. */
         static final int SHORT_MS = 4;
         static final int SHORT_AMPLITUDE = 170;
-        /** At 100% strength, how long the pulse is on a motor that runs at only one strength. */
+        /**
+         * At 100% strength, how long the pulse is on a motor that runs at only one strength. Above 100% it grows
+         * with the square of the strength, to 60 ms at 200%, long enough for a coin motor to be clearly felt.
+         */
         static final int PULSE_MS = 15;
+        /** Past this strength every style plays the growing full-strength pulse, whatever the motor. */
+        static final int STRONG_FROM = 150;
         static final long MIN_TICK_GAP_MS = 35;
         private static final int TICK_PRIMITIVE = 1;
         private static final int CLICK_PRIMITIVE = 2;
@@ -3585,8 +3591,11 @@ public final class GlassTabBar {
         static Plan plan(HapticStyle style, int percent, int sdk, boolean amplitudeControl,
                          boolean tickPrimitive, boolean clickPrimitive) {
             float strength = percent / 100f;
-            if (!amplitudeControl && percent > 100) {
-                return Plan.pulse(Math.round(PULSE_MS * strength), android.os.VibrationEffect.DEFAULT_AMPLITUDE);
+            // Past the built-in heavy click (#689): it played the same from 101% to 200%, and on some phones it's
+            // barely felt, so the rest of the slider goes into a full-strength pulse that keeps growing.
+            if (percent > 100 && (!amplitudeControl || percent > STRONG_FROM)) {
+                return Plan.pulse(Math.round(PULSE_MS * strength * strength),
+                        amplitudeControl ? 255 : android.os.VibrationEffect.DEFAULT_AMPLITUDE);
             }
             if (style == HapticStyle.SYSTEM && sdk >= Build.VERSION_CODES.Q) {
                 return Plan.effect(percent < 100 ? android.os.VibrationEffect.EFFECT_TICK

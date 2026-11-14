@@ -2413,10 +2413,10 @@ public class GlassTabBarTest {
         plan = GlassTabBar.Haptics.plan(HapticStyle.FULL, 100, t, true, true, true);
         assertEquals(tick, plan.primitive);
         assertEquals(1f, plan.scale, 0.001f);
-        plan = GlassTabBar.Haptics.plan(HapticStyle.FULL, 200, t, true, true, true);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.FULL, 150, t, true, true, true);
         assertEquals("a full tick made stronger is the click primitive", click, plan.primitive);
-        assertEquals(1f, plan.scale, 0.001f);
-        plan = GlassTabBar.Haptics.plan(HapticStyle.FULL, 200, t, true, true, false);
+        assertEquals(0.75f, plan.scale, 0.001f);
+        plan = GlassTabBar.Haptics.plan(HapticStyle.FULL, 150, t, true, true, false);
         assertEquals("without the click primitive the tick stays at its top", tick, plan.primitive);
         assertEquals(1f, plan.scale, 0.001f);
 
@@ -2432,16 +2432,50 @@ public class GlassTabBarTest {
             assertEquals(style.name(), -1, stronger.effect);
             assertEquals(style.name(), -1, stronger.primitive);
             assertEquals(style.name(), android.os.VibrationEffect.DEFAULT_AMPLITUDE, stronger.amplitude);
-            assertEquals(style.name(), Math.round(GlassTabBar.Haptics.PULSE_MS * 1.5f), stronger.ms);
-            assertEquals(style.name(), GlassTabBar.Haptics.PULSE_MS * 2, strongest.ms);
+            assertEquals(style.name(), Math.round(GlassTabBar.Haptics.PULSE_MS * 1.5f * 1.5f), stronger.ms);
+            assertEquals(style.name(), GlassTabBar.Haptics.PULSE_MS * 4, strongest.ms);
         }
-        assertTrue("long enough for a coin motor to spin up", GlassTabBar.Haptics.PULSE_MS * 2 >= 25);
+        assertTrue("long enough for a coin motor to spin up", GlassTabBar.Haptics.PULSE_MS * 4 >= 50);
 
         // Android 10, before primitives, still plays the built-in tick, heavier when stronger.
         plan = GlassTabBar.Haptics.plan(HapticStyle.SOFT, 100, q, true, false, false);
         assertEquals(android.os.VibrationEffect.EFFECT_TICK, plan.effect);
         plan = GlassTabBar.Haptics.plan(HapticStyle.SOFT, 150, q, true, false, false);
         assertEquals(android.os.VibrationEffect.EFFECT_HEAVY_CLICK, plan.effect);
+    }
+
+    /**
+     * #689: 200% was still barely felt on some phones. Everything past 100% played the one built-in heavy click
+     * (or the click primitive at its top), so 125% to 200% felt the same, and a phone's heavy click can be weak.
+     * Past 150% every style plays a full-strength pulse that keeps growing to the top of the slider, on any motor.
+     */
+    @Test
+    public void hapticStrengthKeepsGrowingToTheTopOfTheSlider() {
+        int t = android.os.Build.VERSION_CODES.TIRAMISU;
+        for (HapticStyle style : HapticStyle.values()) {
+            for (boolean amplitude : new boolean[] {true, false}) {
+                for (boolean primitives : new boolean[] {true, false}) {
+                    String what = style + " amplitude=" + amplitude + " primitives=" + primitives;
+                    GlassTabBar.Haptics.Plan high = GlassTabBar.Haptics.plan(style, 175, t, amplitude, primitives, primitives);
+                    GlassTabBar.Haptics.Plan top = GlassTabBar.Haptics.plan(style, 200, t, amplitude, primitives, primitives);
+                    assertEquals(what, -1, top.effect);
+                    assertEquals(what, -1, top.primitive);
+                    assertEquals(what, amplitude ? 255 : android.os.VibrationEffect.DEFAULT_AMPLITUDE, top.amplitude);
+                    assertEquals(what, -1, high.effect);
+                    assertTrue(what + " grows from " + high.ms + " to " + top.ms, top.ms > high.ms);
+                    assertTrue(what + " clearly felt, even on a coin motor: " + top.ms, top.ms >= 50);
+                    assertTrue(what + " still a tap, not a buzz: " + top.ms, top.ms <= 80);
+                }
+            }
+        }
+        assertEquals("up to 150% the crisp heavy click stays", android.os.VibrationEffect.EFFECT_HEAVY_CLICK,
+                GlassTabBar.Haptics.plan(HapticStyle.SYSTEM, 150, t, true, false, false).effect);
+        int last = 0;
+        for (int percent = 125; percent <= 200; percent += 25) {
+            int ms = GlassTabBar.Haptics.plan(HapticStyle.SYSTEM, percent, t, false, false, false).ms;
+            assertTrue("one strength motors get longer at every step: " + percent + "% is " + ms + " ms", ms > last);
+            last = ms;
+        }
     }
 
     /** #640: the click's volume follows the slider on a curve, 70% close to the phone's own click and 100% full. */
