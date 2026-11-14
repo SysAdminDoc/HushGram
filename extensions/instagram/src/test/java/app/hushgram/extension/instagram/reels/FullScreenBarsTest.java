@@ -728,6 +728,79 @@ public class FullScreenBarsTest {
         }
     }
 
+    /** A window left with no navigation bar at its foot owes no height for one: the next window opens in the same half. */
+    @Test public void aWindowWithNoNavigationBarOwesNoHeightForOne() {
+        List<String> told = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
+        FullScreenBars.registeredForTests(true);
+        try {
+            Settings.FULL_SCREEN_REELS.save(true);
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, "reels");
+            heights(75, 135);
+            showViewer(W, H);
+            assertTrue(watch().isHidden());
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(Arrays.asList("reels 75 135", "reels 0 0"), told);
+
+            FullScreenBars.navBarForTests(0);
+            assertArrayEquals("only the status bar's height is owed", new int[] {75, 0}, FullScreenBars.heightsToGiveBack());
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
+    /**
+     * #633: where the phone reports no bar, a reel's seek bar keeps clear of the hidden bar's height,
+     * unless the window has no bar at its foot at all, like the top half of a split screen.
+     */
+    @Test public void aWindowWithNoNavigationBarKeepsNoRoomForAHiddenOne() {
+        ReflectionHelpers.callStaticMethod(app.hushgram.extension.instagram.misc.BottomSpace.class, "forgetGuess");
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        assertTrue(watch().isHidden());
+        assertEquals(0, FullScreenBars.navBarHeight(63));
+        assertEquals("a window that can't say keeps the hidden bar's room", 63, FullScreenBars.unreportedNavHeight());
+
+        FullScreenBars.navBarForTests(0);
+        assertEquals("no bar at its foot, no room kept", 0, FullScreenBars.unreportedNavHeight());
+    }
+
+    /**
+     * A window just made isn't attached as it first resumes, and GlassTabBar names it in front before
+     * this class hears the resume. The window it opened over answers for its bar: over one with no
+     * bar at its foot, nothing is owed for a bar.
+     */
+    @Test public void aWindowNotYetAttachedTakesTheBarOfTheOneItOpenedOver() {
+        FullScreenBars.registeredForTests(true);
+        ActivityController<Activity> made = Robolectric.buildActivity(Activity.class).create();
+        try {
+            Settings.FULL_SCREEN_REELS.save(true);
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, "reels");
+            heights(75, 135);
+            showViewer(W, H);
+            assertTrue(watch().isHidden());
+
+            FullScreenBars.windowsOwnNavBarForTests();
+            android.view.WindowInsets insets = activity.getWindow().getDecorView().getRootWindowInsets();
+            assertNotNull("the window left is attached", insets);
+            int bottom = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    ? insets.getInsetsIgnoringVisibility(android.view.WindowInsets.Type.navigationBars()).bottom
+                    : insets.getStableInsetBottom();
+            assertEquals("the test window has no bar at its foot", 0, bottom);
+            assertNull("the new one isn't attached yet", made.get().getWindow().getDecorView().getRootWindowInsets());
+            ReflectionHelpers.callStaticMethod(GlassTabBar.class, "nowInFront",
+                    ReflectionHelpers.ClassParameter.from(Activity.class, made.get()));
+            assertArrayEquals("the window it opened over has no bar", new int[] {75, 0}, FullScreenBars.heightsToGiveBack());
+        } finally {
+            made.destroy();
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
     /**
      * #203: with Full screen Home on, the first tab opened from Home (Messages, Profile) was built
      * while Home had the bars hidden, so it heard 0 and drew under the status bar until the next

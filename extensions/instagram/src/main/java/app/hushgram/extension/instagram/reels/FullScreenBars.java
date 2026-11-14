@@ -436,10 +436,12 @@ public final class FullScreenBars {
      * How tall the navigation bar is taken to be where the phone reports none at the window's foot, as a
      * Samsung does with its gesture hint hidden, though a swipe up from there still leaves the app (#633):
      * the system's standard height Instagram looked up in its place ({@link BottomSpace#guessedHeight}),
-     * or the one it last offered while HushGram hides the bar. 0 on a phone with no navigation bar.
+     * or the one it last offered while HushGram hides the bar, unless the window has no bar at its foot.
+     * 0 on a phone with no navigation bar.
      */
     public static int unreportedNavHeight() {
-        return Math.max(BottomSpace.guessedHeight(), hiddenNavHeight(0));
+        int hidden = navBarInFront() == 0 ? 0 : hiddenNavHeight(0);
+        return Math.max(BottomSpace.guessedHeight(), hidden);
     }
 
     /**
@@ -485,28 +487,38 @@ public final class FullScreenBars {
      * can't say. 0 where no bar sits under the window: the top half of a split screen, a pop-up window,
      * a bar on the side, or a Samsung with its gesture hint hidden. GlassTabBar hears an activity resume
      * ahead of this class, so its activity in front comes first: as the pill's activity comes back
-     * ({@link #takeNavBarHeight}), {@link #resumed} still names the window just left.
+     * ({@link #takeNavBarHeight}), {@link #resumed} still names the window just left. A window just
+     * made isn't attached yet as it first resumes, so the one it opened over, in the same half of a
+     * split screen, answers for it.
      */
-    @SuppressWarnings("deprecation")
     private static int navBarInFront() {
         try {
-            Activity activity = GlassTabBar.activityInFront();
-            if (activity == null) activity = resumed.get();
+            Activity front = GlassTabBar.activityInFront();
+            Activity last = resumed.get();
             if (testNavBar != WINDOWS_OWN) {
+                Activity activity = front != null ? front : last;
                 Activity only = testNavBarWindow == null ? null : testNavBarWindow.get();
                 return testNavBarWindow == null || activity == only ? testNavBar : 0;
             }
-            Window window = activity == null ? null : activity.getWindow();
-            WindowInsets insets = window == null ? null : window.getDecorView().getRootWindowInsets();
-            if (insets == null) return -1;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                return insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars()).bottom;
-            }
-            return insets.getStableInsetBottom();
+            int bar = navBarAt(front);
+            if (bar < 0 && last != front) bar = navBarAt(last);
+            return bar;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar in front", failure);
             return -1;
         }
+    }
+
+    /** The navigation bar's height at the foot of [activity]'s window, or -1 while it isn't attached. */
+    @SuppressWarnings("deprecation")
+    private static int navBarAt(@Nullable Activity activity) {
+        Window window = activity == null ? null : activity.getWindow();
+        WindowInsets insets = window == null ? null : window.getDecorView().getRootWindowInsets();
+        if (insets == null) return -1;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars()).bottom;
+        }
+        return insets.getStableInsetBottom();
     }
 
     /** How the keyboard is looked for: the front window's insets outside tests. */
@@ -775,9 +787,12 @@ public final class FullScreenBars {
         }
     }
 
-    /** The status bar's and the navigation bar's heights owed back, 0 for one not answered 0. Owed once. */
+    /**
+     * The status bar's and the navigation bar's heights owed back, 0 for one not answered 0. Owed once.
+     * A window with no bar at its foot owes none: the next window opens in the same half of the screen.
+     */
     static int[] heightsToGiveBack() {
-        int[] heights = {statusTaken ? statusOffered : 0, navTaken ? navOffered : 0};
+        int[] heights = {statusTaken ? statusOffered : 0, navTaken && navBarInFront() != 0 ? navOffered : 0};
         statusTaken = false;
         navTaken = false;
         return heights;
@@ -812,6 +827,12 @@ public final class FullScreenBars {
     static void navBarForTests(Activity window, int height) {
         testNavBar = height;
         testNavBarWindow = new WeakReference<>(window);
+    }
+
+    /** Tests read each window's own insets, as a phone does. */
+    static void windowsOwnNavBarForTests() {
+        testNavBar = WINDOWS_OWN;
+        testNavBarWindow = null;
     }
 
     /** Tests give the window a camera cutout [top] pixels tall, since a test window has none. */
