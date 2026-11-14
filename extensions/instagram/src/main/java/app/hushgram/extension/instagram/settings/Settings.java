@@ -2103,6 +2103,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_accent_backgrounds", FALSE, true, parent(ACCENT_COLOR));
 
     /**
+     * Instagram's older look (#639, {@link app.hushgram.extension.instagram.misc.AccentTheme}): dark mode
+     * turns navy with charcoal panels, light mode off-white. Story and reel viewers keep theirs. Works
+     * with Accent color on or off and wins over its backgrounds and Pure black. A change shows after a
+     * restart. Off to start.
+     */
+    public static final BooleanSetting CLASSIC_COLORS =
+            new BooleanSetting("hushgram_classic_colors", FALSE, true);
+
+    /**
      * HushGram's logo on the screen Android shows while Instagram starts, on Android 13 and newer
      * ({@link app.hushgram.extension.instagram.misc.LaunchScreen}). Android keeps the answer, so a
      * change shows from the next start. Off to start.

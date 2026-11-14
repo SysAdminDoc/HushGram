@@ -82,6 +82,10 @@ final class LayoutCategory {
                         L10n.t("Screens, panels, cards and menus take a dark or light shade of the color you picked. "
                                 + "Story and reel viewers keep their own background. Wins over Pure black dark mode. "
                                 + "Restart Instagram to see the change.")));
+                layout.addPreference(toggle(context, Settings.CLASSIC_COLORS, L10n.t("Classic colors"),
+                        L10n.t("Dark mode turns navy blue with charcoal gray panels, and light mode turns off-white. "
+                                + "Story and reel viewers keep their own background. Wins over Pure black dark mode and "
+                                + "Backgrounds in the accent color. Restart Instagram to see the change.")));
             }
             // Pure black is set when you patch and stays out of the default selection, so a build
             // without it says where to get it (#267, #359).

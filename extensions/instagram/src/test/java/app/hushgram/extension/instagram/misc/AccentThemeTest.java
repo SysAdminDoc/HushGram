@@ -58,6 +58,7 @@ public class AccentThemeTest {
         Settings.ACCENT_RINGS.resetToDefault();
         Settings.ACCENT_RINGS_SOLID.resetToDefault();
         Settings.ACCENT_BACKGROUNDS.resetToDefault();
+        Settings.CLASSIC_COLORS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -335,6 +336,118 @@ public class AccentThemeTest {
         AccentTheme.apply(bare, "igds_color_link");
         assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
                 + AccentTheme.BACKGROUNDS_MISSING + " 1"), HookStatus.report());
+    }
+
+    /**
+     * Classic colors' style goes on with Accent color off, in the theme's own shade, and after the picked
+     * color's backgrounds when both are on, so it wins over them (#639).
+     */
+    @Test
+    public void theClassicStyleGoesOnWithItsSwitchInTheThemesShade() {
+        assertEquals("HushGramClassicBackgrounds_light", AccentTheme.classicStyle(false));
+        assertEquals("HushGramClassicBackgrounds_dark", AccentTheme.classicStyle(true));
+        List<String> asked = new ArrayList<>();
+        Ids ids = (name, type) -> {
+            if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
+            if (type.equals("style") && (name.startsWith("HushGramClassicBackgrounds_") || name.startsWith("HushGramAccentBackgrounds_"))) {
+                asked.add(name);
+                return android.R.style.TextAppearance_Small;
+            }
+            if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+            if (type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE)) return android.R.attr.colorBackground;
+            return type.equals("attr") ? 0x7f990005 : 0;
+        };
+        Context light = new ContextThemeWrapper(themed(THEMED + ".classic.light", ids), android.R.style.Theme_Material_Light);
+        AccentTheme.apply(light, "igds_color_link");
+        assertEquals("off", List.of(), asked);
+        assertEquals(List.of(), HookStatus.report());
+
+        Settings.CLASSIC_COLORS.save(true);
+        AccentTheme.apply(light, "igds_color_link");
+        assertEquals("with Accent color off", List.of(AccentTheme.classicStyle(false)), asked);
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.CLASSIC + " 1"),
+                HookStatus.report());
+
+        asked.clear();
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_BACKGROUNDS.save(true);
+        HookStatus.clear();
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".classic.dark", ids), android.R.style.Theme_Material);
+        AccentTheme.apply(dark, "igds_color_link");
+        assertEquals("the classic style goes on last", List.of(AccentTheme.backgroundStyle(AccentHue.TEAL, true),
+                AccentTheme.classicStyle(true)), asked);
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
+                + AccentTheme.BACKGROUNDS + " 1, " + AccentTheme.CLASSIC + " 1"), HookStatus.report());
+    }
+
+    /**
+     * Classic colors lays nothing on a theme painting no solid background of its own, says so on a build
+     * without its styles, and looks nothing up while HushGram is paused (#639).
+     */
+    @Test
+    public void theClassicStyleKeepsAViewersBackgroundAndStaysOffWhilePaused() {
+        Settings.CLASSIC_COLORS.save(true);
+        Context viewer = new ContextThemeWrapper(themed(THEMED + ".classic.viewer", (name, type) -> {
+            if (type.equals("style") && name.startsWith("HushGramClassicBackgrounds_")) return android.R.style.TextAppearance_Small;
+            if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+            return type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE) ? android.R.attr.windowFrame : 0;
+        }), android.R.style.Theme_Material);
+        AccentTheme.apply(viewer, null);
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.BACKGROUNDS_KEPT + " 1"),
+                HookStatus.report());
+
+        HookStatus.clear();
+        AccentTheme.apply(themed(THEMED + ".classic.missing", (name, type) -> 0), null);
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.CLASSIC_MISSING + " 1"),
+                HookStatus.report());
+
+        HookStatus.clear();
+        List<String> asked = new ArrayList<>();
+        Context light = new ContextThemeWrapper(themed(THEMED + ".classic.paused", (name, type) -> {
+            asked.add(type + "/" + name);
+            if (type.equals("style")) return android.R.style.TextAppearance_Small;
+            if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+            return type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE) ? android.R.attr.colorBackground : 0;
+        }), android.R.style.Theme_Material_Light);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        AccentTheme.apply(light, null);
+        assertEquals(List.of(), asked);
+        assertEquals(List.of(), HookStatus.report());
+
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        AccentTheme.apply(light, null);
+        assertTrue("resumed, " + asked, asked.contains("style/" + AccentTheme.classicStyle(false)));
+    }
+
+    /**
+     * With Accent color off, Classic colors on a dark theme hands that theme's surfaces to Compose's
+     * dark grays, so the message list and search field match the page around them (#639, #577).
+     */
+    @Test
+    public void classicColorsHandsADarkThemesSurfacesToCompose() {
+        Settings.CLASSIC_COLORS.save(true);
+        AccentTheme.darkSurfacesForTests(null);
+        try {
+            Context dark = new ContextThemeWrapper(themed(THEMED + ".classic.compose", (name, type) -> {
+                if (type.equals("style") && name.startsWith("HushGramClassicBackgrounds_")) return android.R.style.TextAppearance_Small;
+                if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+                return type.equals("attr") && name.startsWith("igds_color_") ? android.R.attr.colorBackground : 0;
+            }), android.R.style.Theme_Material);
+            long raised = (long) 0xff191c1f << 32;
+            assertEquals("before a classic theme is seen", raised, AccentTheme.composeSurface(raised));
+
+            AccentTheme.apply(dark, null);
+
+            TypedValue page = new TypedValue();
+            assertTrue(dark.getTheme().resolveAttribute(android.R.attr.colorBackground, page, true));
+            assertTrue("a page color unlike Compose's own", (page.data & 0xffffff) != 0x191c1f);
+            assertEquals((long) (0xff000000 | page.data & 0xffffff) << 32, AccentTheme.composeSurface(raised));
+        } finally {
+            AccentTheme.darkSurfacesForTests(null);
+        }
     }
 
     /** An attribute the theme doesn't hold, one holding a size or one that isn't opaque isn't a background of its own (#187). */

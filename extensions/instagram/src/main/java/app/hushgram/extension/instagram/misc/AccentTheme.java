@@ -76,6 +76,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * a dark theme or a light one, and text stays readable on it as it is. A viewer's theme keeps its own
  * (see {@link #paintsItsOwnBackground}). Laid on at run time, it wins over Pure black dark mode.
  *
+ * <p>With {@link Settings#CLASSIC_COLORS} on, whatever the accent switches say, the classic style goes
+ * on last (#639): Instagram's older look, a navy screen with charcoal panels on a dark theme and an
+ * off-white one on a light theme. It sets the same attributes as the accent backgrounds, so it wins over
+ * them and over Pure black, and a viewer's theme keeps its own the same way. Compose's dark grays take
+ * its shades through {@link #composeSurface} as they take the accent backgrounds'.
+ *
  * <p>Home's newer header tints its heart and Create buttons with a color it reads from the primary text
  * color's resource as it's built, so no attribute reaches them. With Icons in the accent color on, the
  * patch hands that color to {@link #headerIcons} as the header keeps it, which answers the icon color the
@@ -83,7 +89,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * patch hands each icon to {@link #headerIcon}, which lays the theme's icon color over it.
  *
  * <p>Fails open: with the switch off, Instagram blue picked, HushGram paused, the resources missing or
- * anything thrown, the theme stays Instagram's. A change shows on screens opened after a restart.
+ * anything thrown, the theme stays Instagram's. Classic colors fails apart from the accent color, with
+ * its own switch. A change shows on screens opened after a restart.
  */
 public final class AccentTheme {
     /** What's counted each time the picked color goes onto a theme. */
@@ -144,6 +151,12 @@ public final class AccentTheme {
     /** What's counted when Backgrounds in the accent color is on but the patch added no background style, so backgrounds stay. */
     static final String BACKGROUNDS_MISSING = "themes left with Instagram's backgrounds, the background styles are missing";
 
+    /** What's counted each time a theme takes Instagram's older look, with Classic colors on (#639). */
+    static final String CLASSIC = "themes given classic colors";
+
+    /** What's counted when Classic colors is on but the patch added no classic style, so backgrounds stay. */
+    static final String CLASSIC_MISSING = "themes left with Instagram's backgrounds, the classic styles are missing";
+
     /** The theme attribute Instagram's icons read, the patch's ICON_ATTRIBUTE. */
     static final String ICON_ATTRIBUTE = "igds_color_primary_icon";
 
@@ -201,97 +214,141 @@ public final class AccentTheme {
         apply(context, listed, null);
     }
 
-    /** {@link #apply(Context)} with the attributes and the custom colors the patch listed. */
+    /**
+     * {@link #apply(Context)} with the attributes and the custom colors the patch listed: the picked
+     * color's styles, then Classic colors', each failing on its own.
+     */
     static void apply(Context context, @Nullable String listed, @Nullable String customNames) {
+        if (context == null) return;
+        boolean invoked = false;
         try {
             AccentHue hue = AccentColor.picked();
-            if (hue == null || context == null) return;
-            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
-            Resources resources = context.getResources();
-            Resources.Theme theme = context.getTheme();
-            String app = Utils.resourcePackage(context);
-            int palette = id(resources, paletteStyle(hue), "style", app);
-            if (palette == 0 || listed == null || listed.isEmpty()) {
-                HookStatus.counted(FamilyNames.ACCENT_COLOR, MISSING);
-                return;
-            }
-            // The custom styles hold stand-ins until the typed color's table is in the assets, so
-            // without it (Android 10 and older, or no names) the theme stays and the hooks do the rest.
-            if (hue == AccentHue.CUSTOM && !CustomAccent.load(context, customNames)) {
-                HookStatus.counted(FamilyNames.ACCENT_COLOR, CUSTOM_KEPT);
-                return;
-            }
-            boolean wallpaper = hue == AccentHue.WALLPAPER;
-            if (wallpaper) MaterialYou.read(context);
-            List<Integer> styles = new ArrayList<>();
-            TypedValue value = new TypedValue();
-            for (String attribute : listed.split(" ")) {
-                int attr = attribute.startsWith("android:")
-                        ? id(resources, attribute.substring("android:".length()), "attr", "android")
-                        : id(resources, attribute, "attr", app);
-                if (attr == 0 || !theme.resolveAttribute(attr, value, true)) continue;
-                // Material You's palette has opaque shades only, so a see-through blue keeps its
-                // attribute and the color hooks swap it as it's read.
-                if (wallpaper && value.data >>> 24 != 0xff) continue;
-                String style = styleFor(attribute, value);
-                int styleId = style == null ? 0 : id(resources, style, "style", app);
-                if (styleId != 0) styles.add(styleId);
-            }
-            if (styles.isEmpty()) {
-                HookStatus.counted(FamilyNames.ACCENT_COLOR, NO_BLUE);
-                Logger.printDebug(() -> "Accent color: no accent blue on " + context.getClass().getName() + "'s theme, "
-                        + held(resources, theme, listed, app));
-            } else {
-                theme.applyStyle(palette, true);
-                for (int style : styles) theme.applyStyle(style, true);
-                HookStatus.counted(FamilyNames.ACCENT_COLOR, APPLIED);
-                Logger.printDebug(() -> "Accent color: " + styles.size() + " styles on " + context.getClass().getName() + "'s theme");
-            }
-            if (Settings.ACCENT_BADGES.get()) {
-                int badges = id(resources, badgeStyle(hue), "style", app);
-                if (badges == 0) {
-                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES_MISSING);
-                } else {
-                    theme.applyStyle(badges, true);
-                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES);
-                }
-            }
-            if (Settings.ACCENT_ICONS.get()) {
-                int attr = id(resources, ICON_ATTRIBUTE, "attr", app);
-                int icons = attr == 0 ? 0 : id(resources, iconStyle(hue, dark(context, theme, attr)), "style", app);
-                if (icons == 0) {
-                    HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS_MISSING);
-                } else {
-                    theme.applyStyle(icons, true);
-                    HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS);
-                }
-            }
-            if (Settings.ACCENT_RINGS.get()) {
-                int rings = id(resources, Settings.ACCENT_RINGS_SOLID.get() ? solidRingStyle(hue) : ringStyle(hue), "style", app);
-                if (rings == 0) {
-                    HookStatus.counted(FamilyNames.ACCENT_COLOR, RINGS_MISSING);
-                } else {
-                    theme.applyStyle(rings, true);
-                    HookStatus.counted(FamilyNames.ACCENT_COLOR, RINGS);
-                }
-            }
-            if (Settings.ACCENT_BACKGROUNDS.get()) {
-                int attr = id(resources, BACKGROUND_ATTRIBUTE, "attr", app);
-                int icon = id(resources, ICON_ATTRIBUTE, "attr", app);
-                boolean dark = icon != 0 && dark(context, theme, icon);
-                int backgrounds = attr == 0 || icon == 0 ? 0 : id(resources, backgroundStyle(hue, dark), "style", app);
-                if (backgrounds == 0) {
-                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS_MISSING);
-                } else if (!paintsItsOwnBackground(theme, attr)) {
-                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS_KEPT);
-                } else {
-                    theme.applyStyle(backgrounds, true);
-                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS);
-                    if (dark) rememberSurfaces(resources, theme, app);
-                }
+            if (hue != null) {
+                HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+                invoked = true;
+                applyAccent(context, hue, listed, customNames);
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme", failure);
+        }
+        try {
+            if (Utils.settingsReady() && Settings.CLASSIC_COLORS.get()) {
+                if (!invoked) HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+                applyClassic(context);
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "classic colors", failure);
+        }
+    }
+
+    /**
+     * Lays Instagram's older look onto [context]'s theme with Classic colors on (#639): the classic
+     * style for a dark theme or a light one, after the picked color's backgrounds so it wins over them,
+     * unless the theme is a viewer's or a see-through one.
+     */
+    private static void applyClassic(Context context) {
+        Resources resources = context.getResources();
+        Resources.Theme theme = context.getTheme();
+        String app = Utils.resourcePackage(context);
+        int attr = id(resources, BACKGROUND_ATTRIBUTE, "attr", app);
+        int icon = id(resources, ICON_ATTRIBUTE, "attr", app);
+        boolean dark = icon != 0 && dark(context, theme, icon);
+        int classic = attr == 0 || icon == 0 ? 0 : id(resources, classicStyle(dark), "style", app);
+        if (classic == 0) {
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, CLASSIC_MISSING);
+        } else if (!paintsItsOwnBackground(theme, attr)) {
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS_KEPT);
+        } else {
+            theme.applyStyle(classic, true);
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, CLASSIC);
+            if (dark) rememberSurfaces(resources, theme, app);
+        }
+    }
+
+    /** Lays [hue]'s styles onto [context]'s theme, for the attributes and the custom colors the patch listed. */
+    private static void applyAccent(Context context, AccentHue hue, @Nullable String listed, @Nullable String customNames) {
+        Resources resources = context.getResources();
+        Resources.Theme theme = context.getTheme();
+        String app = Utils.resourcePackage(context);
+        int palette = id(resources, paletteStyle(hue), "style", app);
+        if (palette == 0 || listed == null || listed.isEmpty()) {
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, MISSING);
+            return;
+        }
+        // The custom styles hold stand-ins until the typed color's table is in the assets, so
+        // without it (Android 10 and older, or no names) the theme stays and the hooks do the rest.
+        if (hue == AccentHue.CUSTOM && !CustomAccent.load(context, customNames)) {
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, CUSTOM_KEPT);
+            return;
+        }
+        boolean wallpaper = hue == AccentHue.WALLPAPER;
+        if (wallpaper) MaterialYou.read(context);
+        List<Integer> styles = new ArrayList<>();
+        TypedValue value = new TypedValue();
+        for (String attribute : listed.split(" ")) {
+            int attr = attribute.startsWith("android:")
+                    ? id(resources, attribute.substring("android:".length()), "attr", "android")
+                    : id(resources, attribute, "attr", app);
+            if (attr == 0 || !theme.resolveAttribute(attr, value, true)) continue;
+            // Material You's palette has opaque shades only, so a see-through blue keeps its
+            // attribute and the color hooks swap it as it's read.
+            if (wallpaper && value.data >>> 24 != 0xff) continue;
+            String style = styleFor(attribute, value);
+            int styleId = style == null ? 0 : id(resources, style, "style", app);
+            if (styleId != 0) styles.add(styleId);
+        }
+        if (styles.isEmpty()) {
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, NO_BLUE);
+            Logger.printDebug(() -> "Accent color: no accent blue on " + context.getClass().getName() + "'s theme, "
+                    + held(resources, theme, listed, app));
+        } else {
+            theme.applyStyle(palette, true);
+            for (int style : styles) theme.applyStyle(style, true);
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, APPLIED);
+            Logger.printDebug(() -> "Accent color: " + styles.size() + " styles on " + context.getClass().getName() + "'s theme");
+        }
+        if (Settings.ACCENT_BADGES.get()) {
+            int badges = id(resources, badgeStyle(hue), "style", app);
+            if (badges == 0) {
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES_MISSING);
+            } else {
+                theme.applyStyle(badges, true);
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES);
+            }
+        }
+        if (Settings.ACCENT_ICONS.get()) {
+            int attr = id(resources, ICON_ATTRIBUTE, "attr", app);
+            int icons = attr == 0 ? 0 : id(resources, iconStyle(hue, dark(context, theme, attr)), "style", app);
+            if (icons == 0) {
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS_MISSING);
+            } else {
+                theme.applyStyle(icons, true);
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS);
+            }
+        }
+        if (Settings.ACCENT_RINGS.get()) {
+            int rings = id(resources, Settings.ACCENT_RINGS_SOLID.get() ? solidRingStyle(hue) : ringStyle(hue), "style", app);
+            if (rings == 0) {
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, RINGS_MISSING);
+            } else {
+                theme.applyStyle(rings, true);
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, RINGS);
+            }
+        }
+        if (Settings.ACCENT_BACKGROUNDS.get()) {
+            int attr = id(resources, BACKGROUND_ATTRIBUTE, "attr", app);
+            int icon = id(resources, ICON_ATTRIBUTE, "attr", app);
+            boolean dark = icon != 0 && dark(context, theme, icon);
+            int backgrounds = attr == 0 || icon == 0 ? 0 : id(resources, backgroundStyle(hue, dark), "style", app);
+            if (backgrounds == 0) {
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS_MISSING);
+            } else if (!paintsItsOwnBackground(theme, attr)) {
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS_KEPT);
+            } else {
+                theme.applyStyle(backgrounds, true);
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS);
+                if (dark) rememberSurfaces(resources, theme, app);
+            }
         }
     }
 
@@ -319,7 +376,7 @@ public final class AccentTheme {
      * Injected at the end of the set-up of Instagram's Compose palettes, once for each gray a dark
      * screen paints itself with (#577). Compose screens such as the message list take those from the
      * code, not the theme, so {@link #apply} alone leaves their rows and search field near-black under
-     * a colored page. With Backgrounds in the accent color on and a dark theme seen, answers [value] as
+     * a colored page. With Classic colors or Backgrounds in the accent color on and a dark theme seen, answers [value] as
      * the same shade the theme's own backgrounds hold, keeping the alpha, and [value] itself for any
      * other color. Light themes stay, since those grays are their text. Never throws.
      */
@@ -364,15 +421,20 @@ public final class AccentTheme {
         }
     }
 
-    /** The shades {@link #rememberSurfaces} kept, while Backgrounds in the accent color is painting with them, or null. */
+    /**
+     * The shades {@link #rememberSurfaces} kept, while Classic colors or Backgrounds in the accent color
+     * is painting with them, or null.
+     */
     @Nullable
     private static int[] paintedSurfaces() {
         int[] surfaces = darkSurfaces;
-        return surfaces == null || AccentColor.picked() == null || !Settings.ACCENT_BACKGROUNDS.get() ? null : surfaces;
+        if (surfaces == null) return null;
+        if (Utils.settingsReady() && Settings.CLASSIC_COLORS.get()) return surfaces;
+        return AccentColor.picked() == null || !Settings.ACCENT_BACKGROUNDS.get() ? null : surfaces;
     }
 
     /**
-     * Whether Backgrounds in the accent color is painting a dark theme's surfaces. Pure black's fills ask
+     * Whether Classic colors or Backgrounds in the accent color is painting a dark theme's surfaces. Pure black's fills ask
      * first: Material You's neutral shades are gray enough to pass for Instagram's own dark gray, and
      * would otherwise go black on a colored page (#577).
      */
@@ -557,6 +619,11 @@ public final class AccentTheme {
     /** The style pointing Instagram's background attributes at [hue]'s shades for a dark theme or a light one (#187). */
     static String backgroundStyle(AccentHue hue, boolean dark) {
         return "HushGramAccentBackgrounds_" + hue.name() + (dark ? "_dark" : "_light");
+    }
+
+    /** The style pointing Instagram's background attributes at its older look for a dark theme or a light one (#639). */
+    static String classicStyle(boolean dark) {
+        return dark ? "HushGramClassicBackgrounds_dark" : "HushGramClassicBackgrounds_light";
     }
 
     /**

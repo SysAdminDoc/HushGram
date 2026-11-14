@@ -58,6 +58,7 @@ public class ComposeSurfaceTest {
         Settings.ACCENT_COLOR.resetToDefault();
         Settings.ACCENT_HUE.resetToDefault();
         Settings.ACCENT_BACKGROUNDS.resetToDefault();
+        Settings.CLASSIC_COLORS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         AccentTheme.darkSurfacesForTests(null);
@@ -103,6 +104,19 @@ public class ComposeSurfaceTest {
     @Test public void pausedStays() {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertEquals(compose(0xff0c1014), AccentTheme.composeSurface(compose(0xff0c1014)));
+    }
+
+    /** Classic colors paints the Compose grays with Accent color off, and stays off while paused (#639). */
+    @Test public void classicColorsPaintWithTheAccentOff() {
+        Settings.ACCENT_COLOR.save(false);
+        Settings.ACCENT_BACKGROUNDS.save(false);
+        assertEquals("both off", compose(0xff0c1014), AccentTheme.composeSurface(compose(0xff0c1014)));
+        Settings.CLASSIC_COLORS.save(true);
+        assertEquals(compose(BASE), AccentTheme.composeSurface(compose(0xff0c1014)));
+        assertEquals(compose(RAISED), AccentTheme.composeSurface(compose(0xff191c1f)));
+        assertEquals(0xff000000 | RAISED, AccentTheme.raisedSurface(0xff000000));
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", compose(0xff0c1014), AccentTheme.composeSurface(compose(0xff0c1014)));
     }
 
     /** Material You's neutral 700 reads as a dark gray to Pure black, which blackened the note on a colored page. */

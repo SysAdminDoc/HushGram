@@ -437,7 +437,73 @@ class AccentThemeTest {
         assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_red_background_light_top"))
     }
 
-    /** Text stays Instagram's color, so every color's backgrounds have to leave that text easy to read on them (#187). */
+    /**
+     * With Instagram's background attribute declared, Classic colors gets the older look's shade for each
+     * step, navy and charcoal on a dark theme and off-white on a light one, and a style for each theme (#639).
+     */
+    @Test
+    fun theClassicStylesPaintEachSurfaceInTheOlderLook() {
+        val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
+        val attrs = declaring(listOf("igds_color_primary_background", "igds_color_elevated_background", "igds_color_secondary_background"))
+        val colors = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+
+        val values = colors.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals("#ff101b2d", values["hushgram_classic_background_dark_base"])
+        assertEquals("#ff262626", values["hushgram_classic_background_dark_raised"])
+        assertEquals("#ff363636", values["hushgram_classic_background_dark_top"])
+        assertEquals("#fffafafa", values["hushgram_classic_background_light_base"])
+        assertEquals("#ffffffff", values["hushgram_classic_background_light_raised"])
+        assertEquals("#ffefefef", values["hushgram_classic_background_light_top"])
+        val classic = styleItems(styles, "HushGramClassicBackgrounds_")
+        assertEquals(listOf("HushGramClassicBackgrounds_light", "HushGramClassicBackgrounds_dark"), classic.keys.toList())
+        assertEquals(
+            listOf(
+                "igds_color_primary_background" to "@color/hushgram_classic_background_dark_base",
+                "igds_color_elevated_background" to "@color/hushgram_classic_background_dark_raised",
+                "igds_color_secondary_background" to "@color/hushgram_classic_background_dark_top",
+            ),
+            classic["HushGramClassicBackgrounds_dark"],
+        )
+
+        val withDark = parse("<resources />")
+        addAccentResources(
+            uses,
+            declaring(listOf("igds_color_primary_background", "igds_color_elevated_background_dark")),
+            parse("<resources />"),
+            withDark,
+        )
+        val dark = styleItems(withDark, "HushGramClassicBackgrounds_")
+        assertEquals(
+            "the dark style takes the always-dark surface",
+            "@color/hushgram_classic_background_dark_raised",
+            dark.getValue("HushGramClassicBackgrounds_dark").toMap()["igds_color_elevated_background_dark"],
+        )
+        assertEquals(
+            "the light style leaves Instagram's dark gray for the pills on it",
+            listOf("igds_color_primary_background" to "@color/hushgram_classic_background_light_base"),
+            dark["HushGramClassicBackgrounds_light"],
+        )
+        val accent = styleItems(withDark, "HushGramAccentBackgrounds_")
+        assertTrue("the accent has background styles", accent.isNotEmpty())
+        assertTrue(
+            "nor do the accent's light backgrounds",
+            accent.filterKeys { it.endsWith("_light") }.values.none { items -> items.any { it.first.endsWith("_dark") } },
+        )
+
+        val noPrimary = parse("<resources />")
+        addAccentResources(uses, declaring(listOf("igds_color_elevated_background")), parse("<resources />"), noPrimary)
+        assertTrue("a theme that can't say what its screens are gets none", styleItems(noPrimary, "HushGramClassicBackgrounds_").isEmpty())
+
+        val taken = parse("<resources><style name=\"HushGramClassicBackgrounds_dark\" /></resources>")
+        val fresh = declaring(listOf("igds_color_primary_background"))
+        val again = assertThrows(PatchException::class.java) { addAccentResources(uses, fresh, parse("<resources />"), taken) }
+        assertTrue(again.message, again.message!!.contains("already have a HushGramClassicBackgrounds_dark"))
+    }
+
+    /** Text stays Instagram's color, so every color's backgrounds have to leave that text easy to read on them (#187, #639). */
     @Test
     fun instagramsTextStaysReadableOnEveryBackground() {
         for (palette in ACCENT_PALETTES) {
@@ -447,6 +513,12 @@ class AccentThemeTest {
                 val light = contrast(0x0c1014, palette.background(IconTheme.LIGHT, step))
                 assertTrue("${palette.name} $step on a light theme: $light", light >= 7.0)
             }
+        }
+        for (step in BackgroundStep.entries) {
+            val dark = contrast(0xf5f5f5, classicBackground(IconTheme.DARK, step))
+            assertTrue("classic $step on a dark theme: $dark", dark >= 7.0)
+            val light = contrast(0x0c1014, classicBackground(IconTheme.LIGHT, step))
+            assertTrue("classic $step on a light theme: $light", light >= 7.0)
         }
     }
 
