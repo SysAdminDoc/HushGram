@@ -100,6 +100,12 @@ public class FullScreenBarsTest {
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         // A height taken here for the pill would otherwise reach the next class's tests.
         ReflectionHelpers.callStaticMethod(GlassTabBar.class, "resetForTests");
+        // So would a watcher a test stood in for, the window it resumed, a guess and a test bar, even
+        // where the test stopped before its own finally.
+        FullScreenBars.registeredForTests(false);
+        FullScreenBars.nowResumed(null);
+        FullScreenBars.resetHeightsForTests(null);
+        ReflectionHelpers.callStaticMethod(app.hushgram.extension.instagram.misc.BottomSpace.class, "forgetGuess");
     }
 
     private View tab(int id) {
