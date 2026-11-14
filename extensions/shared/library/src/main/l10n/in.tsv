@@ -2059,6 +2059,9 @@ No call rings your phone. Callers just get no answer.	Tidak ada panggilan yang b
 Only people on your list ring your phone. Anyone else gets no answer.	Hanya orang di daftarmu yang membuat ponselmu berdering. Yang lain tidak mendapat jawaban.
 People on your list don't ring your phone. Everyone else still does.	Orang di daftarmu tidak membuat ponselmu berdering. Yang lain tetap bisa.
 Everyone can ring your phone, as usual.	Semua orang bisa meneleponmu seperti biasa.
+# context: Messages switch under Call blocker's rows; Decline is the button on Instagram's own incoming call notification, Who can call you is the row above (#578)
+Decline calls that don't ring	Tolak panggilan yang tidak berdering
+Calls kept quiet by Who can call you are also declined, the same as tapping Decline, instead of being left unanswered.	Panggilan yang dibungkam oleh Siapa yang bisa meneleponmu juga ditolak, sama seperti mengetuk Tolak, alih-alih dibiarkan tidak terjawab.
 # context: Seek bar shape and preview (#567, #586, #592)
 Seek bar shape	Bentuk bilah geser
 Thin line	Garis tipis

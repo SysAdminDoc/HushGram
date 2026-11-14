@@ -2059,6 +2059,9 @@ No call rings your phone. Callers just get no answer.	Nessuna chiamata fa squill
 Only people on your list ring your phone. Anyone else gets no answer.	Solo le persone nella tua lista fanno squillare il telefono. Gli altri non ricevono risposta.
 People on your list don't ring your phone. Everyone else still does.	Le persone nella tua lista non fanno squillare il telefono. Gli altri sì.
 Everyone can ring your phone, as usual.	Tutti possono chiamarti, come sempre.
+# context: Messages switch under Call blocker's rows; Decline is the button on Instagram's own incoming call notification, Who can call you is the row above (#578)
+Decline calls that don't ring	Rifiuta le chiamate che non squillano
+Calls kept quiet by Who can call you are also declined, the same as tapping Decline, instead of being left unanswered.	Le chiamate silenziate da Chi può chiamarti vengono anche rifiutate, come toccando Rifiuta, invece di restare senza risposta.
 # context: Seek bar shape and preview (#567, #586, #592)
 Seek bar shape	Forma della barra di scorrimento
 Thin line	Linea sottile

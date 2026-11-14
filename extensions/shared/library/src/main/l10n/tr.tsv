@@ -2059,6 +2059,9 @@ No call rings your phone. Callers just get no answer.	Hiçbir arama telefonunu �
 Only people on your list ring your phone. Anyone else gets no answer.	Telefonunu yalnızca listendeki kişiler çaldırır. Diğerleri yanıt alamaz.
 People on your list don't ring your phone. Everyone else still does.	Listendeki kişiler telefonunu çaldırmaz. Diğerleri çaldırmaya devam eder.
 Everyone can ring your phone, as usual.	Herkes seni her zamanki gibi arayabilir.
+# context: Messages switch under Call blocker's rows; Decline is the button on Instagram's own incoming call notification, Who can call you is the row above (#578)
+Decline calls that don't ring	Çalmayan aramaları reddet
+Calls kept quiet by Who can call you are also declined, the same as tapping Decline, instead of being left unanswered.	Seni kimler arayabilir seçeneğinin sessiz tuttuğu aramalar da yanıtsız bırakılmak yerine Reddet'e dokunulmuş gibi reddedilir.
 # context: Seek bar shape and preview (#567, #586, #592)
 Seek bar shape	Arama çubuğu şekli
 Thin line	İnce çizgi

@@ -1974,6 +1974,9 @@ No call rings your phone. Callers just get no answer.	Không cuộc gọi nào �
 Only people on your list ring your phone. Anyone else gets no answer.	Chỉ những người trong danh sách mới làm điện thoại đổ chuông. Người khác không nhận được trả lời.
 People on your list don't ring your phone. Everyone else still does.	Những người trong danh sách không làm điện thoại đổ chuông. Người khác vẫn gọi được.
 Everyone can ring your phone, as usual.	Mọi người có thể gọi cho bạn như bình thường.
+# context: Messages switch under Call blocker's rows; Decline is the button on Instagram's own incoming call notification, Who can call you is the row above (#578)
+Decline calls that don't ring	Từ chối cuộc gọi không đổ chuông
+Calls kept quiet by Who can call you are also declined, the same as tapping Decline, instead of being left unanswered.	Cuộc gọi bị Ai có thể gọi cho bạn giữ im lặng cũng bị từ chối, giống như khi nhấn Từ chối, thay vì bị bỏ không trả lời.
 # context: Seek bar shape and preview (#567, #586, #592)
 Seek bar shape	Hình dạng thanh tua
 Thin line	Đường mảnh

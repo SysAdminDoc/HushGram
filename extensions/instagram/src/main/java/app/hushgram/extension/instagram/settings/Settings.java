@@ -1119,6 +1119,22 @@ public class Settings extends BaseSettings {
             });
 
     /**
+     * A call {@link #CALL_BLOCK_MODE} keeps from ringing is declined too, through Instagram's own
+     * Decline, instead of being left unanswered (#578). Off to start, and only in use for a choice
+     * other than Everyone.
+     */
+    public static final BooleanSetting CALL_BLOCK_DECLINE =
+            new BooleanSetting("hushgram_call_block_decline", FALSE, new Setting.Availability() {
+                @Override public boolean isAvailable() {
+                    return CALL_BLOCK_MODE.savedValue() != app.hushgram.extension.instagram.direct.CallBlockMode.EVERYONE;
+                }
+
+                @Override public List<Setting<?>> getParentSettings() {
+                    return Collections.singletonList(CALL_BLOCK_MODE);
+                }
+            });
+
+    /**
      * The Like button under a post, on a reel or beside a comment asks before it likes or unlikes
      * ({@link app.hushgram.extension.instagram.feed.LikeConfirm}). A double tap isn't asked about.
      * Off to start.

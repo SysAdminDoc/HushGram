@@ -2062,6 +2062,9 @@ No call rings your phone. Callers just get no answer.	没有任何来电会响�
 Only people on your list ring your phone. Anyone else gets no answer.	只有名单上的人来电才会响。其他人得不到回应。
 People on your list don't ring your phone. Everyone else still does.	名单上的人来电不会响。其他人照常会响。
 Everyone can ring your phone, as usual.	所有人都能像平常一样打给你。
+# context: Messages switch under Call blocker's rows; Decline is the button on Instagram's own incoming call notification, Who can call you is the row above (#578)
+Decline calls that don't ring	拒绝不会响的来电
+Calls kept quiet by Who can call you are also declined, the same as tapping Decline, instead of being left unanswered.	被“谁可以打给你”设为不响的来电也会被拒绝，就像点按“拒绝”一样，而不是放着不接。
 # context: Seek bar shape and preview (#567, #586, #592)
 Seek bar shape	拖动条形状
 Thin line	细线

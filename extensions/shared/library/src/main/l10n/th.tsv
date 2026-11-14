@@ -2057,6 +2057,9 @@ No call rings your phone. Callers just get no answer.	ไม่มีสาย�
 Only people on your list ring your phone. Anyone else gets no answer.	เฉพาะคนในรายชื่อของคุณเท่านั้นที่โทรเข้าได้ คนอื่นจะไม่ได้รับการตอบรับ
 People on your list don't ring your phone. Everyone else still does.	คนในรายชื่อของคุณจะโทรเข้าไม่ได้ คนอื่นยังโทรเข้าได้ตามปกติ
 Everyone can ring your phone, as usual.	ทุกคนโทรหาคุณได้ตามปกติ
+# context: Messages switch under Call blocker's rows; Decline is the button on Instagram's own incoming call notification, Who can call you is the row above (#578)
+Decline calls that don't ring	ปฏิเสธสายที่ไม่ดังขึ้น
+Calls kept quiet by Who can call you are also declined, the same as tapping Decline, instead of being left unanswered.	สายที่ "ใครโทรหาคุณได้บ้าง" ทำให้ไม่ดังขึ้นจะถูกปฏิเสธด้วย เหมือนกับการแตะปฏิเสธ แทนที่จะปล่อยไว้โดยไม่มีการรับสาย
 Seek bar shape	รูปทรงแถบเลื่อนเวลา
 Thin line	เส้นบาง
 Rounded	ทรงมน

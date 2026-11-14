@@ -9,6 +9,7 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.preference.ListPreference;
 import android.preference.Preference;
+import android.preference.SwitchPreference;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -43,6 +44,7 @@ public class CallBlockerSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.CALL_BLOCK_MODE.resetToDefault();
         Settings.CALL_BLOCK_ACCOUNTS.resetToDefault();
+        Settings.CALL_BLOCK_DECLINE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -55,6 +57,7 @@ public class CallBlockerSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.CALL_BLOCK_MODE.resetToDefault();
         Settings.CALL_BLOCK_ACCOUNTS.resetToDefault();
+        Settings.CALL_BLOCK_DECLINE.resetToDefault();
     }
 
     private void open(boolean installed) {
@@ -72,6 +75,27 @@ public class CallBlockerSettingsTest {
         open(false);
         assertNull(row(Settings.CALL_BLOCK_MODE.key));
         assertNull(row(Settings.CALL_BLOCK_ACCOUNTS.key));
+        assertNull(row(Settings.CALL_BLOCK_DECLINE.key));
+    }
+
+    @Test public void declineStartsOffAndRestsUntilAChoiceKeepsCallsQuiet() {
+        open(true);
+        SwitchPreference decline = (SwitchPreference) row(Settings.CALL_BLOCK_DECLINE.key);
+        assertNotNull(decline);
+        assertFalse(decline.isChecked());
+        assertFalse(Settings.CALL_BLOCK_DECLINE.get());
+        assertEquals("Decline calls that don't ring", decline.getTitle().toString());
+        assertFalse("Everyone keeps no call quiet", decline.isEnabled());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CALL_BLOCK_DECLINE.key));
+
+        for (CallBlockMode mode : new CallBlockMode[]{CallBlockMode.NOBODY, CallBlockMode.ONLY_LIST, CallBlockMode.EXCEPT_LIST}) {
+            Settings.CALL_BLOCK_MODE.save(mode);
+            page.updatePreferenceAvailability(decline, Settings.CALL_BLOCK_DECLINE);
+            assertTrue(mode.name(), decline.isEnabled());
+        }
+        Settings.CALL_BLOCK_MODE.save(CallBlockMode.EVERYONE);
+        page.updatePreferenceAvailability(decline, Settings.CALL_BLOCK_DECLINE);
+        assertFalse(decline.isEnabled());
     }
 
     @Test public void everyoneToStartAndSaved() {

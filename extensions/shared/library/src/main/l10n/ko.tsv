@@ -2058,6 +2058,9 @@ No call rings your phone. Callers just get no answer.	어떤 전화도 울리지
 Only people on your list ring your phone. Anyone else gets no answer.	목록에 있는 사람의 전화만 울립니다. 다른 사람은 응답을 받지 못합니다.
 People on your list don't ring your phone. Everyone else still does.	목록에 있는 사람의 전화는 울리지 않습니다. 다른 사람의 전화는 그대로 울립니다.
 Everyone can ring your phone, as usual.	평소처럼 누구나 전화할 수 있습니다.
+# context: Messages switch under Call blocker's rows; Decline is the button on Instagram's own incoming call notification, Who can call you is the row above (#578)
+Decline calls that don't ring	울리지 않는 전화 거절
+Calls kept quiet by Who can call you are also declined, the same as tapping Decline, instead of being left unanswered.	‘전화할 수 있는 사람’ 설정으로 울리지 않는 전화는 응답 없이 남겨지지 않고, 거절을 누른 것처럼 거절됩니다.
 # context: Seek bar shape and preview (#567, #586, #592)
 Seek bar shape	탐색 막대 모양
 Thin line	가는 선

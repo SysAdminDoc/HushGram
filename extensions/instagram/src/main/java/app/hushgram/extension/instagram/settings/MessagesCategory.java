@@ -212,6 +212,9 @@ final class MessagesCategory {
             if (build.contains(PatchFamily.CALL_BLOCKER)) {
                 messages.addPreference(callBlockModeRow(context));
                 messages.addPreference(callBlockAccountsRow(context));
+                messages.addPreference(toggle(context, Settings.CALL_BLOCK_DECLINE, L10n.t("Decline calls that don't ring"),
+                        L10n.t("Calls kept quiet by Who can call you are also declined, the same as tapping Decline, "
+                                + "instead of being left unanswered.")));
             }
             if (build.contains(PatchFamily.KINDNESS_REMINDER)) {
                 messages.addPreference(toggle(context, Settings.HIDE_KINDNESS_REMINDER, L10n.t("Hide the Community Standards reminder"),
