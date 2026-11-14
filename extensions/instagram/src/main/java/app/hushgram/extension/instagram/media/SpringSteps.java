@@ -12,9 +12,11 @@ import android.view.Choreographer;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -45,15 +47,29 @@ final class SpringSteps {
     static final long KEEP_MS = 3_000;
 
     /**
-     * The longest a spring system is stepped on starts made from steps. One that keeps setting itself
-     * off, or two that keep setting each other off, stop here, rather than waking the phone every frame
-     * for the whole session. A start from outside a step, like the viewer moving to the next story,
-     * begins a new run.
+     * The longest a spring system is stepped on starts made from frames, a step's or one the screen
+     * gives Instagram's own looper. One that keeps setting itself off, or two that keep setting each
+     * other off, stop here, rather than waking the phone every frame for the whole session. A start from
+     * outside any frame, like the viewer moving to the next story, begins a new run.
      */
     static final long RUN_MS = 10_000;
 
-    /** Each spring system's frame callback, with when its steps stop and when this run of them began. */
-    private static final Map<Choreographer.FrameCallback, long[]> kept = new WeakHashMap<>();
+    /** Each spring system's frame callback, with when its steps stop. */
+    private static final Map<Choreographer.FrameCallback, Long> kept = new WeakHashMap<>();
+
+    /**
+     * When each spring system's run began, for the whole session. It outlives the steps, so a system
+     * that keeps setting itself off on the screen's frames carries on its run once its steps have
+     * stopped, rather than beginning a new one on the next frame.
+     */
+    private static final Map<Choreographer.FrameCallback, Long> runs = new WeakHashMap<>();
+
+    /**
+     * The class names of the frame callbacks seen. One's doFrame on the stack, outside a step, is a
+     * frame the screen gave Instagram's own looper. On 454 that's the shared lambda class 08lR, so
+     * another frame it runs counts too, which only happens while the screen gives frames anyway.
+     */
+    private static final Set<String> loopers = new HashSet<>();
     private static final Runnable STEP = SpringSteps::step;
     @Nullable
     private static Handler handler;
@@ -67,34 +83,44 @@ final class SpringSteps {
     }
 
     /**
-     * Steps [frames] from now until {@link #KEEP_MS} after this call. A start made from a step, of its
-     * own system or another, carries on the run of the system being stepped, the later one if [frames]
-     * has a run of its own, and goes no further than {@link #RUN_MS} into it; any other begins a new run.
+     * Steps [frames] from now until {@link #KEEP_MS} after this call, and no further than
+     * {@link #RUN_MS} into its run. A start made from a step, of its own system or another, carries on
+     * the run of the system being stepped, the later one if [frames] has a run of its own. One made from
+     * a frame the screen gives Instagram's own looper carries on [frames]' own run, so a system that
+     * keeps setting itself off there stops being stepped once that run is over. Any other begins a new run.
      */
     static void keep(Choreographer.FrameCallback frames) {
         long now = SystemClock.uptimeMillis();
-        long[] run = kept.get(frames);
-        if (steppingRun == NOT_STEPPING) {
-            if (run == null) kept.put(frames, new long[] {now + KEEP_MS, now});
-            else {
-                run[0] = now + KEEP_MS;
-                run[1] = now;
-            }
-        } else {
-            long began = run == null ? steppingRun : Math.max(run[1], steppingRun);
-            long until = Math.min(now + KEEP_MS, began + RUN_MS);
-            if (run == null) kept.put(frames, new long[] {until, began});
-            else {
-                run[0] = until;
-                run[1] = began;
-            }
-        }
+        loopers.add(frames.getClass().getName());
+        Long last = runs.get(frames);
+        long began;
+        if (steppingRun != NOT_STEPPING) began = last == null ? steppingRun : Math.max(last, steppingRun);
+        else if (last != null && inScreenFrame()) began = last;
+        else began = now;
+        runs.put(frames, began);
+        long until = Math.min(now + KEEP_MS, began + RUN_MS);
+        // Past its run: the steps it had, if any, are already due to stop.
+        if (until <= now) return;
+        kept.put(frames, until);
         post();
+    }
+
+    /**
+     * Whether a frame the screen gives one of Instagram's spring loopers is under way: the doFrame of a
+     * frame callback seen before is on the stack, and no step is (the caller asks outside one). Only a
+     * start whose system has a run asks, so a first start costs nothing.
+     */
+    private static boolean inScreenFrame() {
+        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
+            if ("doFrame".equals(element.getMethodName()) && loopers.contains(element.getClassName())) return true;
+        }
+        return false;
     }
 
     /** Stops stepping, as the session ends. */
     static void stop() {
         kept.clear();
+        runs.clear();
         if (posted) {
             posted = false;
             handler().removeCallbacks(STEP);
@@ -114,9 +140,9 @@ final class SpringSteps {
         }
         long now = SystemClock.uptimeMillis();
         List<Choreographer.FrameCallback> due = new ArrayList<>(kept.size());
-        for (Iterator<Map.Entry<Choreographer.FrameCallback, long[]>> it = kept.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<Choreographer.FrameCallback, long[]> entry = it.next();
-            if (entry.getValue()[0] <= now) it.remove();
+        for (Iterator<Map.Entry<Choreographer.FrameCallback, Long>> it = kept.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<Choreographer.FrameCallback, Long> entry = it.next();
+            if (entry.getValue() <= now) it.remove();
             else due.add(entry.getKey());
         }
         // A step can set another spring off, which comes back through keep: the copy is walked. While
@@ -125,11 +151,11 @@ final class SpringSteps {
         Choreographer choreographer = Choreographer.getInstance();
         for (Choreographer.FrameCallback frames : due) {
             if (!BackgroundPlay.active()) break;
-            long[] run = kept.get(frames);
-            if (run == null) continue;
+            if (!kept.containsKey(frames)) continue;
+            Long began = runs.get(frames);
             try {
                 choreographer.removeFrameCallback(frames);
-                steppingRun = run[1];
+                steppingRun = began != null ? began : now;
                 try {
                     frames.doFrame(System.nanoTime());
                 } finally {

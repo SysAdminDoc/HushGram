@@ -907,6 +907,32 @@ public class BackgroundPlayTest {
     }
 
     /**
+     * A spring that sets itself off again on each frame the screen gives Instagram's own looper, as on
+     * a phone that still sends a hidden app frames, stops being stepped {@link SpringSteps#RUN_MS}
+     * after the last start made outside any frame, and stays stopped while those frames go on.
+     */
+    @Test
+    public void aSpringThatKeepsSettingItselfOffOnTheScreensFramesStopsAfterARun() {
+        background(player);
+        Frames frames = new Frames();
+        frames.onStep = () -> BackgroundPlay.springMoving(frames);
+
+        BackgroundPlay.springMoving(frames);
+        screenFrames(frames, 4_000);
+        // The viewer moves on to the next story: a start from outside any frame begins a new run.
+        BackgroundPlay.springMoving(frames);
+        screenFrames(frames, SpringSteps.RUN_MS - 500);
+        assertEquals("still stepped inside the new run", 1, SpringSteps.keptForTests());
+        screenFrames(frames, 1_000);
+        int stepped = SpringSteps.stepsForTests;
+        screenFrames(frames, 2_000);
+
+        assertEquals("no steps past the run while the screen's frames go on", stepped, SpringSteps.stepsForTests);
+        assertEquals(0, SpringSteps.keptForTests());
+        assertEquals(BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
+    }
+
+    /**
      * A step that throws still ends as a step, so the next start from outside one begins a new run
      * rather than taking on the run of the system that threw.
      */
@@ -991,6 +1017,14 @@ public class BackgroundPlayTest {
 
     private static void idleFor(long ms) {
         shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(ms));
+    }
+
+    /** For [ms], a frame every 100 ms from the screen to [frames], run as Instagram's own looper runs it. */
+    private static void screenFrames(Frames frames, long ms) {
+        for (long passed = 0; passed < ms; passed += 100) {
+            frames.doFrame(System.nanoTime());
+            idleFor(100);
+        }
     }
 
     /** A spring system's frame callback that counts its steps, and runs [onStep] on each. */
