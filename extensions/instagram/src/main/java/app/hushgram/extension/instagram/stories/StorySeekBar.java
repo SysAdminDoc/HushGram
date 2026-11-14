@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.stories;
 
 import android.os.Build;
+import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,7 +37,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * on screen and goes. While it's resumed, a seek bar sits over the bottom of the viewer, just above
  * the row along the story's bottom ({@link #FOOTER}) when that's showing, under any sheet opened over
  * the story, and every {@link #TICK_MS} it shows
- * where the story's video is. A photo has no length, so the bar hides for it. Dragging pauses the
+ * where the story's video is, following a playing one every frame in between. A photo has no length,
+ * so the bar hides for it. Dragging pauses the
  * story the way a press and hold does; letting go moves the video to that point and plays on, and
  * Instagram's own segment along the top follows the video. A live story's player refuses a seek, so
  * letting go there only plays on.
@@ -76,8 +78,18 @@ public final class StorySeekBar {
     /** What the bar sits above: the highest of these on screen. */
     private static final String[] ANCHORS = {FOOTER, SELF_TOOLBAR, COMPOSER, COMMENT_LINE};
 
-    /** How often the bar catches up with the video. */
+    /** How often the bar catches up with the video, finds its place and takes the look chosen. */
     static final long TICK_MS = 250;
+
+    /**
+     * While the video plays the bar also follows it every frame (#689), and when the player reports
+     * its position in steps the bar glides on from the last one for up to this long, in ms. A position
+     * that doesn't move for longer is a paused video, and the bar settles where it is.
+     */
+    static final long GLIDE_MS = 150;
+
+    /** The fastest the bar takes a story's video to play, in ms of video a ms, past any speed there is. */
+    static final float FASTEST = 4f;
 
     /** What the pause tells Instagram, the reason a press and hold gives. */
     static final String PAUSE_REASON = "long_pressed";
@@ -208,6 +220,13 @@ public final class StorySeekBar {
         final WeakReference<View>[] anchors = new WeakReference[ANCHORS.length];
         boolean dragging;
         boolean removed;
+        /** The player's position when it last moved, or -1 before it's known, the time of that, and how fast it moved then. */
+        int known = -1;
+        long knownAt;
+        float rate;
+        /** Whether a frame is coming that follows the video. */
+        boolean framing;
+        final Runnable frame = this::frame;
 
         Overlay(Object viewer) {
             this.viewer = new WeakReference<>(viewer);
@@ -253,15 +272,67 @@ public final class StorySeekBar {
             seek.shape(SeekShapes.wanted(), false);
             if (!dragging) {
                 if (seek.getMax() != duration) seek.setMax(duration);
-                int position = player.position(owner);
-                seek.setProgress(Math.max(0, Math.min(duration, position)));
+                follow(seek, player.position(owner), duration);
             }
             place(owner, seek);
             if (seek.getVisibility() != View.VISIBLE) seek.setVisibility(View.VISIBLE);
         }
 
+        /**
+         * Puts the bar where the video is at [position] (#689). A position that moved on since the
+         * last one sets how fast the video plays, and while it plays a frame after this follows it
+         * again. Between the player's new positions the bar glides on at that speed for up to
+         * {@link #GLIDE_MS}; a position standing still longer than that is a paused video, so the bar
+         * settles on it and stops following frames until a tick sees the video move.
+         */
+        private void follow(SeekBar seek, int position, int duration) {
+            long now = SystemClock.uptimeMillis();
+            int at = Math.max(0, Math.min(duration, position));
+            if (at != known) {
+                float moved = known >= 0 && now > knownAt ? (at - known) / (float) (now - knownAt) : 0f;
+                rate = moved > 0f ? Math.min(moved, FASTEST) : 0f;
+                known = at;
+                knownAt = now;
+                if (seek.getProgress() != at) seek.setProgress(at);
+            } else if (rate <= 0f || now - knownAt > GLIDE_MS) {
+                rate = 0f;
+                if (seek.getProgress() != at) seek.setProgress(at);
+            } else {
+                int ahead = Math.min(duration, at + Math.round(rate * (now - knownAt)));
+                if (ahead > seek.getProgress()) seek.setProgress(ahead);
+            }
+            if (rate > 0f && !framing) {
+                framing = true;
+                seek.postOnAnimation(frame);
+            }
+        }
+
+        /** One frame of following a playing video. */
+        private void frame() {
+            framing = false;
+            SeekBar seek = bar;
+            Object owner = viewer.get();
+            if (removed || dragging || seek == null || owner == null || rate <= 0f
+                    || seek.getVisibility() != View.VISIBLE) {
+                return;
+            }
+            try {
+                follow(seek, player.position(owner), seek.getMax());
+            } catch (Throwable failure) {
+                rate = 0f;
+                HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
+            }
+        }
+
+        /** Forgets where the video was, so a jump a drag made isn't taken for its speed. */
+        private void forget() {
+            known = -1;
+            rate = 0f;
+        }
+
         /** Hides the bar, and plays the story on if it hid under a finger mid-drag. */
         private void hide(Object owner) {
+            forget();
             if (bar != null && bar.getVisibility() != View.GONE) bar.setVisibility(View.GONE);
             if (dragging) {
                 dragging = false;
@@ -404,6 +475,7 @@ public final class StorySeekBar {
         public void onStartTrackingTouch(SeekBar seek) {
             Object owner = viewer.get();
             if (owner == null || !wanted()) return;
+            forget();
             try {
                 dragging = player.pause(owner, PAUSE_REASON);
             } catch (Throwable failure) {
@@ -421,6 +493,7 @@ public final class StorySeekBar {
             Object owner = viewer.get();
             if (owner == null || !dragging) return;
             dragging = false;
+            forget();
             try {
                 if (player.seekTo(owner, seek.getProgress())) {
                     HookStatus.counted(FamilyNames.STORY_SEEK_BAR, COUNT_SEEKS);

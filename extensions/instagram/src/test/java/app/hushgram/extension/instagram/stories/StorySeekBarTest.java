@@ -29,6 +29,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowChoreographer;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -162,6 +163,41 @@ public class StorySeekBarTest {
         assertEquals(Gravity.BOTTOM, params.gravity);
         assertEquals("just above the 120 pixel Send message box", 120, params.bottomMargin);
         assertTrue(player.calls.isEmpty());
+    }
+
+    /**
+     * #689: the bar caught up with the video only once a tick, so on a playing video it jumped a
+     * quarter of a second at a time. While the video plays it moves every frame, gliding on from the
+     * player's last new position when that comes in steps, and it settles where a paused video is.
+     */
+    @Test
+    public void aPlayingVideosBarMovesBetweenTicksAndSettlesWhenItPauses() {
+        // Unpaused, Robolectric runs each frame at once and moves the clock on a frame, so a whole
+        // glide would pass inside one idle. Paused, frames come when the clock reaches them.
+        ShadowChoreographer.setPaused(true);
+        try {
+            Settings.STORY_SEEK_BAR.save(true);
+            StorySeekBar.resumed(viewer);
+            SeekBar bar = bar();
+            assertEquals(3000, bar.getProgress());
+            player.position = 3250;
+            // A millisecond at a time up to the tick, so the glide is timed from the moment it read 3250.
+            for (int waited = 0; waited <= StorySeekBar.TICK_MS && bar.getProgress() == 3000; waited++) {
+                shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1));
+            }
+            assertEquals("the tick takes the new position", 3250, bar.getProgress());
+
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100));
+            int glided = bar.getProgress();
+            assertTrue("it moves on between ticks at the video's pace: " + glided, glided > 3290 && glided <= 3350);
+
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(StorySeekBar.TICK_MS));
+            assertEquals("a paused video's bar goes back to where it stopped", 3250, bar.getProgress());
+            tick();
+            assertEquals(3250, bar.getProgress());
+        } finally {
+            ShadowChoreographer.setPaused(false);
+        }
     }
 
     /**
