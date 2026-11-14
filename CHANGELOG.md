@@ -6,24 +6,24 @@ Every HushGram release, newest first.
 
 ### Features
 
-* New switches take the Like button off reels and off posts in your feed, and the Comment button off reels, each with the count under it. Double tap still likes. They're `Hide the Like button on reels` and `Hide the Comment button on reels` under Reels, and `Hide the Like button` under Feed. Asked for in #668.
+* `Hide the Like button on reels` and `Hide the Comment button on reels` under Reels, and `Hide the Like button` under Feed, take those buttons and their counts away. Double tap still likes. Asked for in #668.
 * `Ask before a refresh` also asks when you tap Home, Reels or Explore while you're already on it, since that tap scrolls back to the top and reloads too. Cancel leaves the list where it was. Asked for in #655.
 * HushGram's own settings screen uses the font you pick in `Change the font` too, headings and switch labels included. Asked for in #166.
 * HushGram speaks Simplified Chinese. Phones set to Simplified Chinese, or to Chinese for China or Singapore, get it instead of English. It's built from the Traditional Chinese table and uses Instagram's own mainland names, like 快拍 and 帖子. Asked for in #659.
 * `Double-tap Messages for hidden chats` now shows your hidden chats right in your inbox after your screen lock or PIN, and two more quick taps on Messages hide them again. Long press a chat for Hide chat or Unhide chat. Asked for in #661.
 * A new switch, `Hide You may also like in search` under Explore, takes the You may also like posts off the bottom of search results. Accounts and the posts you searched for stay. Asked for in #657.
-* `Play only the reel you opened` under Reels keeps a reel you open from a post on Home, a suggested reels row or a message on screen. Swiping, pulling down and auto scroll won't move it on, so it plays again when it ends, and the Reels tab scrolls as usual. With `Swipe through a chat's reels` on, a chat's reels still swipe. Asked for in #656.
-* `Glass top bar in chats`, new under `Glass in chats` in Messages, takes the frosted band off a chat's top bar. The round glass buttons and the glass message bar stay. It starts on, so nothing changes until you turn it off. Asked for in #670.
+* `Play only the reel you opened` under Reels keeps a reel you open from a Home post, a suggested reels row or a message on screen, so it loops instead of moving on. The Reels tab scrolls as usual. Asked for in #656.
+* `Glass top bar in chats`, new under `Glass in chats` in Messages, takes the frosted band off a chat's top bar while the round glass buttons and message bar keep theirs. It starts on. Asked for in #670.
 
 ### Bug Fixes
 
 * `Copy link` in the share sheet uses your `Sharing domain` again. The copied link had its tracking bits removed but still pointed at instagram.com. Reported in #667.
-* In light mode the strips above and below a story are black instead of white, so the clock and the navigation buttons show again. That goes for stories opened from a profile too. With `Ambient light in stories` on, the glow there sits on black as well. Reported in #666.
+* In light mode the strips above and below a story, from a profile too, are black instead of white, so the clock and navigation buttons show again. `Ambient light in stories` glows on black there too. Reported in #666.
 * With `Accent color` and `Icons in the accent color` on, the tab bar icons keep the picked color on Reels and after you leave it. They turned white on Reels and stayed white back on Home. Reported in #663.
 * Tapping a comment someone shared with you in a chat opens the reel it was on, not another reel that loaded first. It's part of `Open reel links on that reel`. Reported in #662.
 * When Instagram itself lets you swipe through the reels a chat shared, with `Swipe through a chat's reels` off, a reply or reaction now goes to the reel you're watching, not the one you tapped. Reported in #662.
-* With `Glass tab bar` off and `Slide across the tabs` on, dragging a reel's seek bar along its lower edge seeks again. That part of the seek bar sits over the top of the tab bar, and the drag used to slide across the tabs and open one instead. Reported in #526.
-* The glass tab bar costs a lot less on Reels, so videos stutter less and the phone runs cooler. It used to ask for extra frames of its own between the reel's, and copying the reel behind the pill held up the screen each time. On Android 14 and newer that copy now happens off to the side, and only a reel actually behind the pill gets copied. Reported in #672.
+* With `Glass tab bar` off and `Slide across the tabs` on, dragging along the lower edge of a reel's seek bar seeks again. That edge sits over the tab bar, so the drag used to slide across the tabs instead. Reported in #526.
+* The glass tab bar costs less on Reels. It stopped asking for frames of its own between the reel's, and on Android 14 and newer copying the reel behind the pill no longer holds up the screen. Reported in #672.
 * With `Badges in the accent color` on, the unread dot on the Primary and Requests chips at the top of Messages takes your accent color too. It kept Instagram's own color there. Reported in #671.
 
 ## 0.0.20 (2026-11-12)
