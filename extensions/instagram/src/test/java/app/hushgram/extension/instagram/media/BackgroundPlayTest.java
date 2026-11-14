@@ -522,24 +522,83 @@ public class BackgroundPlayTest {
         assertEquals(0, SpringSteps.keptForTests());
     }
 
-    /** A step that throws is dropped and reported; the other springs keep going. */
+    /**
+     * A step that throws is dropped and reported, and its frame goes back to the screen, so the system
+     * isn't left started with no frame coming. The other springs keep going.
+     */
     @Test
     public void aThrowingStepIsDropped() {
         background(player);
         Frames frames = new Frames();
         int[] thrown = {0};
+        int[] screenFrames = {0};
         BackgroundPlay.springMoving((android.view.Choreographer.FrameCallback) time -> {
-            thrown[0]++;
-            throw new IllegalStateException("test");
+            if (thrown[0] == 0) {
+                thrown[0]++;
+                throw new IllegalStateException("test");
+            }
+            screenFrames[0]++;
         });
         BackgroundPlay.springMoving(frames);
         idleFor(100);
 
-        assertEquals("dropped after its first throw", 1, thrown[0]);
+        assertEquals("stepped once, then dropped", 1, thrown[0]);
+        assertEquals("its frame went back to the screen, once", 1, screenFrames[0]);
         assertTrue(frames.steps >= 5);
         assertEquals(1, SpringSteps.keptForTests());
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, report.contains("spring step"));
+    }
+
+    /** A looper like Rebound's, which asks the screen for its next frame last, keeps moving on the screen's frames after a step throws. */
+    @Test
+    public void aLooperWhoseStepThrowsStillGetsFrames() {
+        background(player);
+        SpringLooper looper = new SpringLooper();
+        looper.throwNext = true;
+
+        BackgroundPlay.springMoving(looper);
+        idleFor(100);
+
+        assertEquals(0, SpringSteps.keptForTests());
+        assertEquals("the screen's frames carry it on to rest", SpringLooper.REST_AFTER, looper.steps);
+    }
+
+    /** A spring that sets itself off again on each step stops being stepped after {@link SpringSteps#RUN_MS}. */
+    @Test
+    public void aSpringThatKeepsSettingItselfOffStopsAfterARun() {
+        background(player);
+        Frames frames = new Frames();
+        frames.onStep = () -> BackgroundPlay.springMoving(frames);
+
+        BackgroundPlay.springMoving(frames);
+        idleFor(SpringSteps.RUN_MS - 500);
+        assertEquals("still stepped past the keep", 1, SpringSteps.keptForTests());
+        idleFor(1_000);
+        int stepped = frames.steps;
+        idleFor(500);
+
+        assertEquals("no steps past the run", stepped, frames.steps);
+        assertEquals(0, SpringSteps.keptForTests());
+        assertEquals(BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
+    }
+
+    /** A step that ends the session is the last one: the other springs aren't stepped after it. */
+    @Test
+    public void aStepThatEndsTheSessionIsTheLast() {
+        background(player);
+        Frames first = new Frames();
+        Frames second = new Frames();
+        first.onStep = () -> BackgroundPlay.resumed(screen);
+        second.onStep = first.onStep;
+
+        BackgroundPlay.springMoving(first);
+        BackgroundPlay.springMoving(second);
+        idleFor(100);
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(1, first.steps + second.steps);
+        assertEquals(0, SpringSteps.keptForTests());
     }
 
     /** No hook throws into Instagram, whatever it's handed. */
@@ -585,13 +644,36 @@ public class BackgroundPlayTest {
         shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(ms));
     }
 
-    /** A spring system's frame callback that counts its steps. */
+    /** A spring system's frame callback that counts its steps, and runs [onStep] on each. */
     private static final class Frames implements android.view.Choreographer.FrameCallback {
         int steps;
+        Runnable onStep;
 
         @Override
         public void doFrame(long frameTimeNanos) {
             steps++;
+            if (onStep != null) onStep.run();
+        }
+    }
+
+    /**
+     * A started spring looper the way Rebound runs one: a step asks the screen for the next frame last,
+     * until its springs come to rest after {@link #REST_AFTER} steps. Robolectric's screen frames can come
+     * with no time passing, so one that never rested would keep idleFor from ever returning.
+     */
+    private static final class SpringLooper implements android.view.Choreographer.FrameCallback {
+        static final int REST_AFTER = 5;
+        int steps;
+        boolean throwNext;
+
+        @Override
+        public void doFrame(long frameTimeNanos) {
+            steps++;
+            if (throwNext) {
+                throwNext = false;
+                throw new IllegalStateException("test");
+            }
+            if (steps < REST_AFTER) android.view.Choreographer.getInstance().postFrameCallback(this);
         }
     }
 
