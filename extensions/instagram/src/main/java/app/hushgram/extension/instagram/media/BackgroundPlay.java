@@ -53,9 +53,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * {@link SpringSteps} gives it those while Instagram is hidden ({@link #springMoving}). The next
  * story's player then parks its start, since the hidden screen has it paused. Every story player
  * bound while hidden does, the ones got ready ahead included, so {@link #storyPrepared} queues them
- * and {@link #nextStory} plays one at a time, the first ready first, once the held one stopped; the
- * service's check retries, since a story ready early gets no second callback. A session paused on
- * purpose plays none.
+ * and {@link #nextStory} plays one at a time, the first ready first, once Instagram moved off the
+ * held one or it stalled; the service's check retries, since a story ready early gets no second
+ * callback. The story it moves on from is paused, so a held one that was only loading doesn't play
+ * beside it. A session paused on purpose plays none.
  *
  * <p>Everything else stops it as before. Coming back to the same screen ends the session with the
  * video still playing. Another Instagram screen opening over it pauses it, as Instagram would have.
@@ -163,9 +164,19 @@ public final class BackgroundPlay {
     /**
      * True once Instagram asked the held player to pause or stop in the background since it last
      * started: the viewer moved off its story. Until then a held story that isn't playing may only be
-     * loading, so the service's regular check leaves the waiting stories alone.
+     * loading, so the waiting stories are left alone.
      */
     private static boolean movedOff;
+    /**
+     * The story players played to take over that gave way to another before they started. One that
+     * starts late while another story plays is paused, so two never play at once.
+     */
+    private static final ArrayList<WeakReference<Object>> gaveWay = new ArrayList<>();
+    /**
+     * True while the screen a session plays from stops: its fragments stop after the stop callback,
+     * and the pause or stop they give the held player isn't the viewer moving off its story.
+     */
+    private static boolean screenStopping;
     /**
      * The releases Instagram asked for on the held player. They go through when the session ends, or
      * on their own player as another video takes over from it, so they only ever hold the held one's.
@@ -271,19 +282,20 @@ public final class BackgroundPlay {
      * Right before the story player's prepared callback returns, once its video is ready, with
      * [parked], the start it left for its resume because the player is paused, or null when it
      * started. In a session Instagram's screen is hidden, so the story the viewer moved on to after
-     * the held one ended is paused that way; it plays through the play stub, which resumes it.
+     * the held one ended is paused that way; it plays through the play stub, which resumes it. One
+     * ready as Instagram leaves, before its screen stopped, waits its turn the same way.
      */
     public static void storyPrepared(Object player, @Nullable Object parked) {
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
             if (player == null || parked == null) return;
             synchronized (LOCK) {
-                if (phase != Phase.BACKGROUND) return;
+                if (phase == Phase.IDLE) return;
                 unwait(player);
                 waiting.add(new WeakReference<>(player));
             }
             // Posted, so the resume runs on the main thread once the callback is done.
-            Utils.runOnMainThread(() -> nextStory(false));
+            Utils.runOnMainThread(BackgroundPlay::nextStory);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "story prepared", t);
         }
@@ -292,20 +304,20 @@ public final class BackgroundPlay {
     /**
      * Plays the story whose turn it is among the {@link #waiting} ones, unless something paused the
      * session on purpose (the notification's Pause, a lost audio focus, or a mute): the held player's
-     * own parked start, or, once the held story stopped, the first waiting player of its kind. Only
-     * one takes over at a time; the rest wait for the hold to move to it, and the next of them
-     * takes over once that story stops in turn. [tick] is the service's regular check, which only
-     * acts once Instagram moved off the held story ({@link #movedOff}) or it hasn't played for
-     * {@link #STALLED_MS}: until then it may only be loading.
+     * own parked start, or, once Instagram moved off the held story ({@link #movedOff}) or it hasn't
+     * played for {@link #STALLED_MS}, the first waiting player of its kind. Until then the held one
+     * may only be loading. Only one takes over at a time; the rest wait for the hold to move to it,
+     * and the next of them takes over once that story stops in turn. One that never started gives
+     * way after {@link #TAKEOVER_SETTLE_MS} and is paused. True when it played one.
      */
-    private static void nextStory(boolean tick) {
+    private static boolean nextStory() {
         Object current;
         Object claimed;
         boolean offStory;
         List<Object> ready = new ArrayList<>();
         long now = SystemClock.uptimeMillis();
         synchronized (LOCK) {
-            if (phase != Phase.BACKGROUND || pausedOnPurpose || mutedAt != NONE) return;
+            if (phase != Phase.BACKGROUND || pausedOnPurpose || mutedAt != NONE) return false;
             current = heldLocked();
             offStory = movedOff || (pausedSince != NONE && now - pausedSince >= STALLED_MS);
             for (Iterator<WeakReference<Object>> it = waiting.iterator(); it.hasNext(); ) {
@@ -315,22 +327,22 @@ public final class BackgroundPlay {
             }
             claimed = taker != null ? taker.get() : null;
         }
-        if (current == null || !on()) return;
+        if (current == null || !on()) return false;
         if (claimed != null && claimed != current) {
             // It plays, so the hold moves to it if its own start didn't move it.
             if (isPlaying(claimed)) {
                 afterStart(claimed);
-                return;
+                return false;
             }
             // One story is taking over already: none plays beside it, the held one's own start
             // included, until it's had its time to start.
-            if (now - takenAt < TAKEOVER_SETTLE_MS) return;
+            if (now - takenAt < TAKEOVER_SETTLE_MS) return false;
         }
-        if (ready.isEmpty() || (tick && !offStory)) return;
+        if (ready.isEmpty()) return false;
         Object next = null;
         if (ready.contains(current)) {
             if (!isPlaying(current)) next = current;
-        } else if (!isPlaying(current)) {
+        } else if (offStory && !isPlaying(current)) {
             for (Object player : ready) {
                 if (player.getClass() == current.getClass() && !isPlaying(player)) {
                     next = player;
@@ -338,34 +350,55 @@ public final class BackgroundPlay {
                 }
             }
         }
-        if (next == null) return;
+        if (next == null) return false;
+        Object gaveUp;
         synchronized (LOCK) {
-            if (phase != Phase.BACKGROUND || heldLocked() != current || pausedOnPurpose || mutedAt != NONE) return;
+            if (phase != Phase.BACKGROUND || heldLocked() != current || pausedOnPurpose || mutedAt != NONE) return false;
             unwait(next);
-            if (next != current) {
-                taker = new WeakReference<>(next);
-                takenAt = now;
-            }
+            remove(gaveWay, next);
+            gaveUp = taker != null ? taker.get() : null;
+            if (gaveUp == next || gaveUp == current) gaveUp = null;
+            if (gaveUp != null) gaveWay.add(new WeakReference<>(gaveUp));
+            taker = next != current ? new WeakReference<>(next) : null;
+            takenAt = next != current ? now : NONE;
         }
+        // The one that never started is paused, so a start it still has coming parks again.
+        if (gaveUp != null) pauseOther(gaveUp);
         HookStatus.counted(FamilyNames.BACKGROUND_PLAY, "stories started in the background");
         log(() -> "the next story was ready in the background, so it plays");
         playThrough(next);
+        return true;
     }
 
     /** Forgets the waiting stories and the one taking over. Under {@link #LOCK}. */
     private static void clearStoriesLocked() {
         waiting.clear();
+        gaveWay.clear();
         taker = null;
         takenAt = NONE;
         movedOff = false;
+        screenStopping = false;
     }
 
     /** Takes [player] and any player gone out of {@link #waiting}. Under {@link #LOCK}. */
     private static void unwait(Object player) {
-        for (Iterator<WeakReference<Object>> it = waiting.iterator(); it.hasNext(); ) {
+        remove(waiting, player);
+    }
+
+    /** Takes [player] and any player gone out of [list]. Under {@link #LOCK}. */
+    private static void remove(List<WeakReference<Object>> list, Object player) {
+        for (Iterator<WeakReference<Object>> it = list.iterator(); it.hasNext(); ) {
             Object seen = it.next().get();
             if (seen == null || seen == player) it.remove();
         }
+    }
+
+    /** Whether [list] holds [player]. Under {@link #LOCK}. */
+    private static boolean holds(List<WeakReference<Object>> list, Object player) {
+        for (WeakReference<Object> reference : list) {
+            if (reference.get() == player) return true;
+        }
+        return false;
     }
 
     /**
@@ -408,8 +441,16 @@ public final class BackgroundPlay {
                 if (phase != Phase.BACKGROUND || player != heldLocked()) return;
                 muted = volume <= 0f && mutedAt == NONE;
                 unmuted = volume > 0f && mutedAt != NONE && now - mutedAt <= MUTE_RESUME_MS;
-                if (muted) mutedAt = now;
-                else if (volume > 0f) mutedAt = NONE;
+                if (muted) {
+                    mutedAt = now;
+                } else if (volume > 0f && mutedAt != NONE) {
+                    // The sound came back too late to play it again: it stays paused, as after
+                    // the notification's Pause, so no waiting story plays either. The stall clock
+                    // starts over, so the story playing again isn't taken for one that stalled.
+                    if (!unmuted) pausedOnPurpose = true;
+                    mutedAt = NONE;
+                    pausedSince = NONE;
+                }
             }
             // Never from inside the player's own setVolume: the pause or play goes in after it.
             if (muted) {
@@ -458,10 +499,18 @@ public final class BackgroundPlay {
             if (screen != null && inPictureInPicture(screen)) {
                 return endBeforePause(player, "Instagram went to picture in picture");
             }
+            boolean moved;
             synchronized (LOCK) {
-                // The pause as you leave isn't the viewer moving on; one once the screen is hidden is.
-                if (phase == Phase.BACKGROUND && player == heldLocked()) movedOff = true;
+                // The pauses as you leave and as the screen stops aren't the viewer moving on; one
+                // once the screen is hidden is. Its own parked start is then a story it moved off.
+                moved = phase == Phase.BACKGROUND && player == heldLocked() && !screenStopping && !movedOff;
+                if (moved) {
+                    movedOff = true;
+                    unwait(player);
+                }
             }
+            // The story the viewer moved on to may be waiting already, with no callback to come.
+            if (moved) Utils.runOnMainThread(BackgroundPlay::nextStory);
             HookStatus.counted(FamilyNames.BACKGROUND_PLAY, KEPT);
             log(() -> "kept the video playing through Instagram's " + (reason == null ? "pause" : "\"" + reason + "\""));
             return true;
@@ -513,27 +562,45 @@ public final class BackgroundPlay {
 
     // ---- The notification's buttons, called by the service on the main thread ----
 
+    /** Pauses the held video, and the story taking over from it if one is on its way. */
     static void pauseFromNotification() {
         Object player = held();
         if (player == null) return;
+        Object claimed;
         synchronized (LOCK) {
             mutedAt = NONE;
             pausedOnPurpose = true;
+            claimed = taker != null ? taker.get() : null;
         }
         pauseThrough(player);
+        if (claimed != null && claimed != player) pauseOther(claimed);
     }
 
+    /**
+     * Plays the story that was taking over when Pause came, the next waiting one when Instagram had
+     * moved off the held story, or else the held video.
+     */
     static void playFromNotification() {
         Object player = held();
         if (player == null) return;
+        Object claimed;
+        boolean moved;
         synchronized (LOCK) {
             // A story's lost audio focus mutes it rather than pausing it, and Play ends either.
             mutedAt = NONE;
             pausedOnPurpose = false;
+            // It gets its time to start before it counts as stalled.
+            pausedSince = NONE;
+            claimed = taker != null ? taker.get() : null;
+            if (claimed == player) claimed = null;
+            if (claimed != null) takenAt = SystemClock.uptimeMillis();
+            moved = movedOff;
         }
+        if (claimed == null && moved && nextStory()) return;
+        Object playing = claimed != null ? claimed : player;
         // Tap to play holds back a start nobody tapped, and the button is a tap.
-        TapToPlay.tappedFromNotification(engineOf(player));
-        playThrough(player);
+        TapToPlay.tappedFromNotification(engineOf(playing));
+        playThrough(playing);
     }
 
     static void stopFromNotification() {
@@ -574,7 +641,7 @@ public final class BackgroundPlay {
             return;
         }
         // A story ready while the held one played gets no second callback once its turn comes.
-        if (!playing) nextStory(true);
+        if (!playing) nextStory();
     }
 
     /** True while the service has a session to show. */
@@ -672,7 +739,14 @@ public final class BackgroundPlay {
         synchronized (LOCK) {
             if (phase != Phase.LEAVING) return;
             phase = Phase.BACKGROUND;
+            screenStopping = true;
         }
+        // The screen's fragments stop once this callback returns, in the same pass of the main thread.
+        Utils.runOnMainThread(() -> {
+            synchronized (LOCK) {
+                screenStopping = false;
+            }
+        });
         try {
             if (serviceForTests) serviceStartsForTests++;
             else BackgroundPlayService.start(screen.getApplicationContext());
@@ -729,8 +803,9 @@ public final class BackgroundPlay {
     }
 
     /**
-     * Ends the session, pausing the held video first when [pause], lets each release Instagram asked
-     * for go through on its own player, and takes the notification down.
+     * Ends the session, pausing the held video and any story taking over from it first when
+     * [pause], lets each release Instagram asked for go through on its own player, and takes the
+     * notification down.
      */
     static void end(boolean pause, String why) {
         finish(pause, why);
@@ -739,11 +814,13 @@ public final class BackgroundPlay {
     /** Ends the session as {@link #end} does, and returns each player it released meanwhile. */
     private static List<Object> finish(boolean pause, String why) {
         Object player;
+        Object claimed;
         boolean wasBackground;
         synchronized (LOCK) {
             if (phase == Phase.IDLE) return new ArrayList<>();
             wasBackground = phase == Phase.BACKGROUND;
             player = heldLocked();
+            claimed = taker != null ? taker.get() : null;
             phase = Phase.IDLE;
             held = null;
             leavingScreen = null;
@@ -761,6 +838,7 @@ public final class BackgroundPlay {
         try {
             Utils.runOnMainThreadNowOrLater(SpringSteps::stop);
             if (pause && player != null) pauseThrough(player);
+            if (pause && claimed != null && claimed != player) pauseOther(claimed);
             while (true) {
                 Release next;
                 synchronized (LOCK) {
@@ -839,30 +917,29 @@ public final class BackgroundPlay {
 
     private static void afterStart(Object player) {
         Object current;
+        Object claimed;
         Activity screen;
+        boolean onPurpose;
+        boolean gaveUp;
         synchronized (LOCK) {
             if (phase != Phase.BACKGROUND) return;
             current = heldLocked();
+            claimed = taker != null ? taker.get() : null;
             screen = leavingScreen != null ? leavingScreen.get() : null;
+            onPurpose = pausedOnPurpose;
+            gaveUp = holds(gaveWay, player);
         }
-        if (player != current && isPlaying(player) && (current == null || !isPlaying(current))) {
-            // The reel moved on by itself: the one playing now is the one to keep.
-            List<Release> replaced = new ArrayList<>();
-            synchronized (LOCK) {
-                if (phase != Phase.BACKGROUND || screen == null) return;
-                held = new WeakReference<>(player);
-                for (Iterator<Release> it = releases.iterator(); it.hasNext(); ) {
-                    Release release = it.next();
-                    if (release.player != player) {
-                        replaced.add(release);
-                        it.remove();
-                    }
-                }
+        if (player != current && isPlaying(player)) {
+            boolean currentPlays = current != null && isPlaying(current);
+            boolean anotherPlays = currentPlays || (claimed != null && claimed != player && isPlaying(claimed));
+            if (onPurpose || (gaveUp && anotherPlays)) {
+                // A start that came after Pause, or late from a story that gave way to the one
+                // playing: one story at a time, and none while paused on purpose.
+                log(() -> "a video started in the background after Pause or beside the one playing, so it's paused");
+                pauseOther(player);
+                return;
             }
-            log(() -> "another video took over in the background");
-            // Those releases were held only to keep the old one playing, so they go now and its
-            // decoder with them. Not passing: a pause or release it brings on the new one stays held.
-            for (Release release : replaced) releaseReplaced(release.player, release.reason);
+            if (!currentPlays) takeOver(player, current, screen);
         }
         synchronized (LOCK) {
             if (player == heldLocked()) {
@@ -873,6 +950,48 @@ public final class BackgroundPlay {
             }
         }
         BackgroundPlayService.refresh();
+    }
+
+    /**
+     * Moves the hold from [current], which stopped, to [player], which plays: the reel or story moved
+     * on by itself. The old one is paused, unless a release held for it lets it go now, so one that
+     * was only loading doesn't play on beside it, and a story still taking over gives way and is
+     * paused too. Neither plays again from the waiting stories.
+     */
+    private static void takeOver(Object player, @Nullable Object current, @Nullable Activity screen) {
+        List<Release> replaced = new ArrayList<>();
+        boolean pauseOld;
+        Object gaveUp;
+        synchronized (LOCK) {
+            if (phase != Phase.BACKGROUND || screen == null || heldLocked() != current) return;
+            held = new WeakReference<>(player);
+            boolean oldReleased = false;
+            for (Iterator<Release> it = releases.iterator(); it.hasNext(); ) {
+                Release release = it.next();
+                if (release.player != player) {
+                    replaced.add(release);
+                    if (release.player == current) oldReleased = true;
+                    it.remove();
+                }
+            }
+            pauseOld = current != null && !oldReleased;
+            unwait(player);
+            if (current != null) unwait(current);
+            remove(gaveWay, player);
+            gaveUp = taker != null ? taker.get() : null;
+            if (gaveUp == player || gaveUp == current) gaveUp = null;
+            if (gaveUp != null) gaveWay.add(new WeakReference<>(gaveUp));
+            taker = null;
+            takenAt = NONE;
+        }
+        log(() -> "another video took over in the background");
+        // Not passing: neither is the held player any more, and a pause or release one of them
+        // brings on the new one stays held.
+        if (pauseOld) pauseOther(current);
+        if (gaveUp != null) pauseOther(gaveUp);
+        // Those releases were held only to keep the old one playing, so they go now and its
+        // decoder with them.
+        for (Release release : replaced) releaseReplaced(release.player, release.reason);
     }
 
     /** The player that started most lately and plays with sound now, or null. */
@@ -937,6 +1056,20 @@ public final class BackgroundPlay {
             synchronized (LOCK) {
                 passing = false;
             }
+        }
+    }
+
+    /**
+     * Pauses [player], one that isn't the held player, through Instagram's own pause. Not passing,
+     * so a pause or release it brings on the held one stays held.
+     */
+    private static void pauseOther(Object player) {
+        try {
+            Control control = controlForTests;
+            if (control != null) control.pause(player);
+            else pause(player);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "other pause", t);
         }
     }
 
