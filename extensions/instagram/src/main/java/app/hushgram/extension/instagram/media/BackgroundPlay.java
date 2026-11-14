@@ -18,7 +18,9 @@ import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -124,10 +126,11 @@ public final class BackgroundPlay {
     private static long pausedSince = NONE;
     /** True while this class pauses or releases the held player itself, so that call goes through. */
     private static boolean passing;
-    /** Whether Instagram asked to release the held player during the session, and its reason. */
-    private static boolean releaseHeld;
-    @Nullable
-    private static String releaseReason;
+    /**
+     * The releases Instagram asked for during the session, each on the player it was asked for. They
+     * go through when the session ends, on that player even after another video took over.
+     */
+    private static final ArrayList<Release> releases = new ArrayList<>();
     private static boolean watching;
 
     private BackgroundPlay() {
@@ -307,14 +310,19 @@ public final class BackgroundPlay {
      * At the top of IgVideoPlayerImpl's release, with Instagram's reason. True, and the release
      * returns at once, only for the held player while the switch is on: the Reels viewer lets its
      * player go as its screen stops, which used to end the session there (#497). The release goes
-     * through when the session ends.
+     * through when the session ends, on this player even if another video takes over meanwhile. A
+     * release asked again for a player that was held before goes through now, and only once.
      */
     public static boolean releasing(Object player, @Nullable String reason) {
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
             Activity screen;
             synchronized (LOCK) {
-                if (passing || phase == Phase.IDLE || player == null || player != heldLocked()) return false;
+                if (passing || phase == Phase.IDLE || player == null) return false;
+                if (player != heldLocked()) {
+                    forget(player);
+                    return false;
+                }
                 screen = leavingScreen != null ? leavingScreen.get() : null;
             }
             if (!on()) {
@@ -327,8 +335,8 @@ public final class BackgroundPlay {
             }
             synchronized (LOCK) {
                 if (phase == Phase.IDLE || player != heldLocked()) return false;
-                releaseHeld = true;
-                releaseReason = reason;
+                forget(player);
+                releases.add(new Release(player, reason));
             }
             HookStatus.counted(FamilyNames.BACKGROUND_PLAY, KEPT);
             log(() -> "kept the video playing through Instagram's release" + (reason == null ? "" : " (\"" + reason + "\")"));
@@ -506,7 +514,7 @@ public final class BackgroundPlay {
     static void restarted(Activity screen) {
         boolean ours;
         synchronized (LOCK) {
-            ours = phase != Phase.IDLE && releaseHeld && leavingScreen != null && leavingScreen.get() == screen;
+            ours = phase != Phase.IDLE && !releases.isEmpty() && leavingScreen != null && leavingScreen.get() == screen;
         }
         if (ours) end(false, "Instagram came back");
     }
@@ -543,33 +551,49 @@ public final class BackgroundPlay {
     }
 
     /**
-     * Ends the session, pausing the held video first when [pause], lets a release Instagram asked
-     * for go through, and takes the notification down.
+     * Ends the session, pausing the held video first when [pause], lets each release Instagram asked
+     * for go through on its own player, and takes the notification down.
      */
     static void end(boolean pause, String why) {
         Object player;
         boolean wasBackground;
-        boolean release;
-        String reason;
+        List<Release> letGo;
         synchronized (LOCK) {
             if (phase == Phase.IDLE) return;
             wasBackground = phase == Phase.BACKGROUND;
             player = heldLocked();
-            release = releaseHeld;
-            reason = releaseReason;
+            letGo = new ArrayList<>(releases);
             phase = Phase.IDLE;
             held = null;
             leavingScreen = null;
             mutedAt = NONE;
             pausedSince = NONE;
-            releaseHeld = false;
-            releaseReason = null;
+            releases.clear();
         }
         Utils.runOnMainThreadNowOrLater(SpringSteps::stop);
         if (pause && player != null) pauseThrough(player);
-        if (release && player != null) releaseThrough(player, reason);
+        for (Release release : letGo) releaseThrough(release.player, release.reason);
         if (wasBackground && !serviceForTests) BackgroundPlayService.finish();
-        log(() -> "background playback ended: " + why + (release ? ", and Instagram's release went through" : ""));
+        log(() -> "background playback ended: " + why + (letGo.isEmpty() ? "" : ", and Instagram's release went through"));
+    }
+
+    /** Drops the release held for [player], if any. Under LOCK. */
+    private static void forget(Object player) {
+        for (Iterator<Release> it = releases.iterator(); it.hasNext(); ) {
+            if (it.next().player == player) it.remove();
+        }
+    }
+
+    /** A release Instagram asked for during a session, kept until it ends. */
+    private static final class Release {
+        final Object player;
+        @Nullable
+        final String reason;
+
+        Release(Object player, @Nullable String reason) {
+            this.player = player;
+            this.reason = reason;
+        }
     }
 
     // ---- Helpers ----
@@ -750,8 +774,7 @@ public final class BackgroundPlay {
             mutedAt = NONE;
             pausedSince = NONE;
             passing = false;
-            releaseHeld = false;
-            releaseReason = null;
+            releases.clear();
         }
         SpringSteps.resetForTests();
         // Each test has an application of its own to watch.

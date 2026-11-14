@@ -44,6 +44,7 @@ public class BackgroundPlayTest {
 
     private final Object player = new Object();
     private final Object other = new Object();
+    private final Object third = new Object();
     private final Players players = new Players();
     private ActivityController<Screen> controller;
     private Screen screen;
@@ -374,6 +375,64 @@ public class BackgroundPlayTest {
         assertTrue(BackgroundPlay.hold(other, "fragment_paused"));
     }
 
+    /**
+     * A release held for a reel that the next one then took over from goes through on the old reel
+     * when you come back, and the new one, on screen now, keeps playing.
+     */
+    @Test
+    public void aHeldReleaseStaysWithItsReelAfterTheNextTakesOver() {
+        background(player);
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
+        players.playing.remove(player);
+        BackgroundPlay.started(other);
+        players.playing.add(other);
+        idle();
+
+        BackgroundPlay.restarted(screen);
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(List.of(player), players.released);
+        assertEquals(List.of("release fragment_stopped"), players.calls);
+        assertTrue("the reel on screen keeps playing", players.playing.contains(other));
+    }
+
+    /**
+     * With two reels each held in turn, Stop pauses the one playing and lets both releases through,
+     * each on its own player. Instagram asking the old one's release again lets it through then, once.
+     */
+    @Test
+    public void eachHeldReleaseGoesThroughOnItsOwnPlayer() {
+        background(player);
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
+        players.playing.remove(player);
+        BackgroundPlay.started(other);
+        players.playing.add(other);
+        idle();
+        assertTrue(BackgroundPlay.releasing(other, "fragment_destroyed"));
+
+        BackgroundPlay.stopFromNotification();
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(List.of(player, other), players.released);
+        assertEquals(List.of("pause", "release fragment_stopped", "release fragment_destroyed"), players.calls);
+
+        players.calls.clear();
+        players.released.clear();
+        background(third);
+        assertTrue(BackgroundPlay.releasing(third, "fragment_stopped"));
+        players.playing.remove(third);
+        BackgroundPlay.started(player);
+        players.playing.add(player);
+        idle();
+        assertFalse("a release asked again for the old one goes through now", BackgroundPlay.releasing(third, "destroy"));
+
+        BackgroundPlay.stopFromNotification();
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals("not released a second time", List.of(), players.released);
+        assertEquals(List.of("pause"), players.calls);
+    }
+
     /** A session left paused for the limit ends by itself; a playing one doesn't. */
     @Test
     public void aLongPauseEnds() {
@@ -693,6 +752,7 @@ public class BackgroundPlayTest {
         final List<String> calls = new ArrayList<>();
         final List<Boolean> heldOwnPause = new ArrayList<>();
         final List<Boolean> heldOwnRelease = new ArrayList<>();
+        final List<Object> released = new ArrayList<>();
 
         @Override
         public boolean playing(Object player) {
@@ -703,6 +763,7 @@ public class BackgroundPlayTest {
         public void release(Object player, String reason) {
             heldOwnRelease.add(BackgroundPlay.releasing(player, reason));
             playing.remove(player);
+            released.add(player);
             calls.add("release " + reason);
         }
 
