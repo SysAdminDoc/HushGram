@@ -66,7 +66,8 @@ import app.hushgram.extension.shared.settings.IntegerSetting;
  * is paused or the header leaves the window. It fails open: anything thrown puts Instagram's header back.
  *
  * <p>On Home the feed is also taken behind the status bar and the glass reaches up over it (#462), see
- * {@link GlassReach}. While the glass tab bar is on, every header, Home's and a chat's, takes the pill's sheen
+ * {@link GlassReach}. In a chat the messages run on under the header and up behind the status bar the same way
+ * (#684), see {@link ChatReach}, and come out from under it through a soft edge ({@link Edge}). While the glass tab bar is on, every header, Home's and a chat's, takes the pill's sheen
  * too, and its rim bend along the bottom edge while the pill's bends (#513).
  *
  * <p>A message box, a chat's message bar or the reply box on a story, takes the same glass as a pill (#391),
@@ -121,9 +122,24 @@ public final class GlassTopBar {
      * off by [on], whatever the header does.
      */
     public static void glazeChat(@Nullable View header, BooleanSupplier on) {
+        glazeChat(header, 0, 0, on);
+    }
+
+    /**
+     * {@link #glazeChat(View, BooleanSupplier)}, with the messages running on under the glass and up behind the
+     * status bar (#684): the list with the id [list], in the view beside the header with the id [messages]. See
+     * {@link ChatReach}. Either id 0 leaves the messages where Instagram has them.
+     */
+    public static void glazeChat(@Nullable View header, int messages, int list, BooleanSupplier on) {
         try {
-            if (header == null || !on.getAsBoolean()) return;
-            attach(header, on, FamilyNames.GLASS_CHAT, Settings.GLASS_CHAT_TOP_BAR_OPACITY);
+            if (header == null || !on.getAsBoolean() || !GLAZED.add(header)) return;
+            Glass glass = new Glass(header, on, FamilyNames.GLASS_CHAT, 0, false, Settings.GLASS_CHAT_TOP_BAR_OPACITY);
+            // Below Android 12 there's no blur, so messages under the header would only be hidden.
+            if (messages != 0 && list != 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                glass.chat = new ChatReach(messages, list);
+            }
+            listen(glass);
+            HookStatus.counted(FamilyNames.GLASS_CHAT, COUNT_GLAZED);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);
         }
@@ -272,6 +288,12 @@ public final class GlassTopBar {
         return background instanceof Frost && ((Frost) background).glass.recorded;
     }
 
+    /** How many times [header]'s glass recorded a chat's messages into its backdrop (#684). */
+    static int messagesRecorded(View header) {
+        Drawable background = header.getBackground();
+        return background instanceof Frost ? ((Frost) background).glass.messagesRecorded : 0;
+    }
+
     /** How many times [header]'s glass asked for the tab bar's rim bend along its bottom edge (#513). */
     static int bends(View header) {
         Drawable background = header.getBackground();
@@ -347,6 +369,16 @@ public final class GlassTopBar {
         int base = Color.BLACK;
         /** Takes Home's feed behind the status bar (#462). Null for a chat's header. */
         @Nullable private final GlassReach reach;
+        /** Runs a chat's messages on under its header and behind the status bar (#684). Null elsewhere. */
+        @Nullable ChatReach chat;
+        /** The view holding a chat's messages while they run on under the glass, with its soft edge on it. */
+        @Nullable View banded;
+        @Nullable private Edge edge;
+        private final Set<View> leftOutMessages = new HashSet<>();
+        /** Whether the backdrop is being recorded now, when the soft edge mustn't draw itself into it. */
+        boolean drawingBackdrop;
+        /** How many times the messages were recorded into the backdrop. Read by tests. */
+        int messagesRecorded;
         /** Whether the hairline runs along the bottom: Home's header has it, a chat's runs on into the messages (#537). */
         final boolean lined;
         /** For a message box, the id of the view drawing what's under it (#391). 0 for a header. */
@@ -499,7 +531,10 @@ public final class GlassTopBar {
             boolean wasHollow = hollow;
             reachUnder(host);
             // A header sliding only moves its node, and how far the glass reaches is drawn into that node.
-            if (above != wasAbove || below != wasBelow || hollow != wasHollow) frost.invalidateSelf();
+            if (above != wasAbove || below != wasBelow || hollow != wasHollow) {
+                frost.invalidateSelf();
+                if (edge != null) edge.invalidateSelf();
+            }
         }
 
         /** Takes the feed behind the status bar, then works out how far the glass reaches over it. */
@@ -507,6 +542,19 @@ public final class GlassTopBar {
             above = 0;
             below = 0;
             hollow = false;
+            ChatReach messages = chat;
+            if (messages != null) {
+                if (host == null || !(host.getParent() instanceof ViewGroup)) {
+                    messages.retreat();
+                    band(null);
+                    return;
+                }
+                ViewGroup source = (ViewGroup) host.getParent();
+                // A chat's header never slides: the glass covers it and the status bar above it, no more.
+                above = messages.reach(header, source, source.indexOfChild(host));
+                band(messages.messages());
+                return;
+            }
             if (reach == null || host == null || !(host.getParent() instanceof ViewGroup)) return;
             ViewGroup source = (ViewGroup) host.getParent();
             int gap = reach.reach(header, source, source.indexOfChild(host));
@@ -532,6 +580,26 @@ public final class GlassTopBar {
                 describedHollow = true;
                 Logger.printDebug(() -> "Top bar glass: the header shows nothing, at " + top + ", holding " + children(header));
             }
+        }
+
+        /**
+         * Puts the soft edge on [messages], the view holding a chat's messages run on under the glass, and takes it
+         * off the one that had it. A view with a foreground of Instagram's own is left without.
+         */
+        private void band(@Nullable View messages) {
+            View was = banded;
+            if (was == messages) return;
+            if (was != null && edge != null && was.getForeground() == edge) was.setForeground(null);
+            banded = null;
+            if (messages == null || messages.getForeground() != null) return;
+            if (edge == null) edge = new Edge(this);
+            messages.setForeground(edge);
+            banded = messages;
+        }
+
+        /** How far the soft edge under a chat's header fades out, in pixels. */
+        int edgeFade() {
+            return Math.round(STRIP_FADE * header.getResources().getDisplayMetrics().density);
         }
 
         /**
@@ -602,6 +670,8 @@ public final class GlassTopBar {
             cleared.clear();
             original = null;
             if (reach != null) reach.retreat();
+            if (chat != null) chat.retreat();
+            band(null);
             above = 0;
             below = 0;
             hollow = false;
@@ -650,7 +720,9 @@ public final class GlassTopBar {
             }
             int blurDp = Settings.GLASS_TAB_BAR_BLUR_RADIUS.get();
             int up = above;
-            int down = below;
+            View messages = banded instanceof ViewGroup && banded.getParent() == source ? banded : null;
+            // A chat's messages are recorded down to where the soft edge over them fades out.
+            int down = messages == null ? below : below + Math.max(0, Math.round(messages.getY() - y - height)) + edgeFade();
             boolean same = recorded && x == lastX && y == lastY && width == lastWidth && height == lastHeight
                     && blurDp == nodeBlurDp && up == nodeAbove && down == nodeBelow;
             if (same && now - recordedAt < GlassTabBar.RECORD_EVERY_MS) return;
@@ -696,9 +768,11 @@ public final class GlassTopBar {
                         Throwable leftOutDraw = GlassTabBar.drawLeavingOutSurfaces(recording, sibling, leftOut, 0);
                         if (leftOutDraw != null) HookStatus.threw(family, HOOK + " view", leftOutDraw);
                     }
+                    if (messages != null) recordMessages(recording, (ViewGroup) messages);
                 } finally {
                     backdrop.endRecording();
                 }
+                if (edge != null && !same) edge.invalidateSelf();
                 nodePad = pad;
                 nodeAbove = up;
                 nodeBelow = down;
@@ -713,6 +787,23 @@ public final class GlassTopBar {
                 // A recording cut short isn't shown: the bar draws its plain tint until one works.
                 recorded = false;
                 if (tries.failed(now)) HookStatus.threw(family, HOOK, failure);
+            }
+        }
+
+        /**
+         * Records a chat's [messages], drawn after the header, running on under it (#684). They're drawn whole,
+         * past the clip that keeps them below the header on screen, and without the soft edge over them, which
+         * draws this backdrop itself.
+         */
+        private void recordMessages(Canvas recording, ViewGroup messages) {
+            drawingBackdrop = true;
+            try {
+                if (GlassTabBar.surfacePaths(messages, messages.getChildCount(), leftOutMessages)) leftOutMessages.add(messages);
+                Throwable failed = GlassTabBar.drawLeavingOutSurfaces(recording, messages, leftOutMessages, 0);
+                if (failed != null) HookStatus.threw(family, HOOK + " view", failed);
+                messagesRecorded++;
+            } finally {
+                drawingBackdrop = false;
             }
         }
 
@@ -922,6 +1013,75 @@ public final class GlassTopBar {
         @Override public int getOpacity() {
             return PixelFormat.TRANSLUCENT;
         }
+    }
+
+    /**
+     * The soft edge under a chat's header (#684), the foreground of the view holding the messages: the header's
+     * glass carried on over the top of the messages and faded out over {@link #STRIP_FADE}, so they come out of
+     * the blur and don't meet it at a hard line. Instagram draws the messages after the header, so only a
+     * foreground of theirs gets over them.
+     */
+    static final class Edge extends Drawable {
+        private final Glass glass;
+        private final Paint paint = new Paint();
+        private final Paint fader = new Paint();
+        private final Rect strip = new Rect();
+        private int fadeFor = -1;
+        /** How many times the edge drew. Read by tests. */
+        int draws;
+
+        Edge(Glass glass) {
+            this.glass = glass;
+            fader.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Glass owner = glass;
+            View messages = owner.banded;
+            // Drawn into the backdrop, the edge would draw the backdrop into itself.
+            if (owner.drawingBackdrop || !owner.on || !owner.recorded || messages == null || Float.isNaN(owner.lastX)) return;
+            Rect bounds = getBounds();
+            int fade = Math.min(owner.edgeFade(), bounds.height());
+            if (bounds.isEmpty() || fade <= 0) return;
+            // Where the messages' top is under the header, in the header's own coordinates the backdrop is drawn in.
+            int dx = Math.round(messages.getX() - owner.lastX);
+            int dy = Math.round(messages.getY() - owner.lastY);
+            int layer = canvas.saveLayer(bounds.left, bounds.top, bounds.right, bounds.top + fade, null);
+            try {
+                int saved = canvas.save();
+                try {
+                    canvas.translate(bounds.left - dx, bounds.top - dy);
+                    strip.set(dx, dy, dx + bounds.width(), dy + fade);
+                    boolean blurred = owner.drawBackdrop(canvas, strip);
+                    paint.setColor(GlassTabBar.tint(owner.base, blurred, owner.tintScale()));
+                    canvas.drawRect(strip, paint);
+                } finally {
+                    canvas.restoreToCount(saved);
+                }
+                if (fadeFor != fade) {
+                    fadeFor = fade;
+                    fader.setShader(new LinearGradient(0, 0, 0, fade, Color.BLACK, Color.TRANSPARENT, Shader.TileMode.CLAMP));
+                }
+                canvas.translate(bounds.left, bounds.top);
+                canvas.drawRect(0, 0, bounds.width(), fade, fader);
+            } finally {
+                canvas.restoreToCount(layer);
+            }
+            draws++;
+        }
+
+        @Override public void setAlpha(int alpha) { }
+        @Override public void setColorFilter(@Nullable ColorFilter colorFilter) { }
+        @Override public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
+        }
+    }
+
+    /** How many times the soft edge over [messages] drew, or -1 when it has none (#684). */
+    static int edgeDraws(View messages) {
+        Drawable foreground = messages.getForeground();
+        return foreground instanceof Edge ? ((Edge) foreground).draws : -1;
     }
 
     /** The hairline's colour along the bottom of a bar tinted from [base]. */

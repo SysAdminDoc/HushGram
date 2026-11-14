@@ -12,7 +12,10 @@ import android.view.WindowInsets;
 import androidx.annotation.Nullable;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.function.ToIntFunction;
 
 /**
@@ -42,8 +45,15 @@ final class GlassReach {
     /** The status bar's height over [view]'s window. Swapped in tests. */
     static ToIntFunction<View> insets = GlassReach::statusBar;
 
-    /** The parents told not to clip, with whether they clipped their children and their padding. */
-    private final Map<ViewGroup, boolean[]> unclipped = new HashMap<>();
+    /**
+     * Every parent a reach told not to clip, Home's or a chat's, with how many reaches hold it and whether it
+     * clipped its children and its padding before the first. Both reaches share parents near the window's
+     * top, so the one letting go first mustn't clip them again under the other.
+     */
+    private static final Map<ViewGroup, int[]> HELD = new WeakHashMap<>();
+
+    /** The parents this reach told not to clip. */
+    private final Set<ViewGroup> unclipped = new HashSet<>();
     /** The feed views pulled up, with their own top margin. */
     private final Map<View, Integer> pulled = new HashMap<>();
     /** The lists padded, with their own top padding and whether they clipped to it. */
@@ -73,7 +83,7 @@ final class GlassReach {
         if (gap > 0) {
             if (holds(header, source)) {
                 // A parent can get its clip back, from Instagram or a layout it sets again.
-                for (ViewGroup group : unclipped.keySet()) {
+                for (ViewGroup group : unclipped) {
                     if (group.getClipChildren()) group.setClipChildren(false);
                 }
                 return gap;
@@ -246,10 +256,28 @@ final class GlassReach {
     }
 
     private void unclip(ViewGroup group) {
-        if (unclipped.containsKey(group)) return;
-        unclipped.put(group, new boolean[] {group.getClipChildren(), group.getClipToPadding()});
+        if (unclipped.add(group)) stopClipping(group);
+    }
+
+    /** Tells [group] not to clip its children, nor its padding when it has some, for one more reach. */
+    static void stopClipping(ViewGroup group) {
+        int[] held = HELD.get(group);
+        if (held == null) {
+            HELD.put(group, new int[] {1, group.getClipChildren() ? 1 : 0, group.getClipToPadding() ? 1 : 0});
+        } else {
+            held[0]++;
+        }
         group.setClipChildren(false);
         if (group.getPaddingTop() > 0) group.setClipToPadding(false);
+    }
+
+    /** One reach lets go of [group], which clips as it did once no reach holds it. */
+    static void clipAgain(ViewGroup group) {
+        int[] held = HELD.get(group);
+        if (held == null || --held[0] > 0) return;
+        HELD.remove(group);
+        group.setClipChildren(held[1] == 1);
+        group.setClipToPadding(held[2] == 1);
     }
 
     private void pad(View list, int status) {
@@ -302,10 +330,7 @@ final class GlassReach {
             list.setPadding(list.getPaddingLeft(), (Integer) entry.getValue()[0], list.getPaddingRight(), list.getPaddingBottom());
             if (list instanceof ViewGroup) ((ViewGroup) list).setClipToPadding((Boolean) entry.getValue()[1]);
         }
-        for (Map.Entry<ViewGroup, boolean[]> entry : unclipped.entrySet()) {
-            entry.getKey().setClipChildren(entry.getValue()[0]);
-            entry.getKey().setClipToPadding(entry.getValue()[1]);
-        }
+        for (ViewGroup group : unclipped) clipAgain(group);
         pulled.clear();
         padded.clear();
         unclipped.clear();

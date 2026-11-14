@@ -74,6 +74,8 @@ public final class GlassChat {
     /** The message bar's pill, and the view drawing the messages before the bar. */
     static final String MESSAGE_BOX = "blurred_text_area_background";
     static final String MESSAGES = "direct_thread_content_below_action_bar";
+    /** The list of messages in it, run on under the header's glass (#684). */
+    static final String MESSAGE_LIST = "message_list";
     /** The story viewer, one person's page in it, which draws the story first, and the page's reply box. */
     static final String STORY_VIEWER = "reel_viewer_root";
     static final String STORY_PAGE = "reel_view_group";
@@ -318,7 +320,7 @@ public final class GlassChat {
     }
 
     private static void dress(View container, Activity activity) {
-        GlassTopBar.glazeChat(container, GlassChat::topBarOn);
+        GlassTopBar.glazeChat(container, id(activity, MESSAGES), id(activity, MESSAGE_LIST), GlassChat::topBarOn);
         GlassTopBar.glazeBox(messageBox(activity), id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT,
                 Settings.GLASS_CHAT_BOX_OPACITY);
         boolean night = (container.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
