@@ -9,6 +9,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.view.View;
+import android.view.ViewStub;
+import android.widget.FrameLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -68,6 +70,60 @@ public class ShareSheetTest {
         box.setVisibility(View.VISIBLE);
         box.layout(0, 0, 688, 90);
         assertEquals(View.VISIBLE, box.getVisibility());
+    }
+
+    /**
+     * With both switches on, the row the bar sits in holds nothing else the sheet will build, so the
+     * row goes too instead of leaving an empty band at the top of the sheet, and stays gone when the
+     * sheet shows it again (#685).
+     */
+    @Test
+    public void bothSwitchesTakeTheEmptySearchRowAway() {
+        Settings.HIDE_SHARE_SHEET_SEARCH.save(true);
+        FrameLayout row = searchRow();
+        ShareSheet.searchBox(row.getChildAt(0));
+        assertEquals(View.GONE, row.getVisibility());
+
+        row.setVisibility(View.VISIBLE);
+        row.layout(0, 0, 688, 132);
+        assertEquals(View.GONE, row.getVisibility());
+    }
+
+    /** With the group switch off, the sheet still builds the New group button into the row later, so it stays (#685). */
+    @Test
+    public void theSearchRowStaysForTheGroupButton() {
+        Settings.HIDE_SHARE_SHEET_GROUP.save(false);
+        Settings.HIDE_SHARE_SHEET_SEARCH.save(true);
+        FrameLayout row = searchRow();
+        ShareSheet.searchBox(row.getChildAt(0));
+        assertEquals(View.GONE, row.getChildAt(0).getVisibility());
+        assertEquals(View.VISIBLE, row.getVisibility());
+    }
+
+    /** A row that still shows something stays, and so does any row once the search switch is off (#685). */
+    @Test
+    public void aRowThatStillShowsSomethingStays() {
+        Settings.HIDE_SHARE_SHEET_SEARCH.save(true);
+        FrameLayout row = searchRow();
+        View extra = new View(RuntimeEnvironment.getApplication());
+        row.addView(extra);
+        ShareSheet.searchBox(row.getChildAt(0));
+        assertEquals(View.VISIBLE, row.getVisibility());
+
+        row.removeView(extra);
+        Settings.HIDE_SHARE_SHEET_SEARCH.save(false);
+        ShareSheet.searchBox(row.getChildAt(0));
+        row.layout(0, 0, 688, 132);
+        assertEquals(View.VISIBLE, row.getVisibility());
+    }
+
+    /** The sheet's search row: the bar, then the New group and debug stubs, which start out gone. */
+    private static FrameLayout searchRow() {
+        FrameLayout row = new FrameLayout(RuntimeEnvironment.getApplication());
+        row.addView(new View(RuntimeEnvironment.getApplication()));
+        row.addView(new ViewStub(RuntimeEnvironment.getApplication()));
+        row.addView(new ViewStub(RuntimeEnvironment.getApplication()));
+        return row;
     }
 
     /** The group switch alone leaves the search bar, and a missing bar is no trouble. */

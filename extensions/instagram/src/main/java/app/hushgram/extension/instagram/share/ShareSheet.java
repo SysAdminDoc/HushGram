@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.share;
 
 import android.view.View;
+import android.view.ViewGroup;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -66,6 +67,12 @@ public final class ShareSheet {
             box.removeOnLayoutChangeListener(KEEP_HIDDEN);
             box.addOnLayoutChangeListener(KEEP_HIDDEN);
             Logger.printDebug(() -> "Share sheet: hid the search bar");
+            if (box.getParent() instanceof ViewGroup) {
+                ViewGroup row = (ViewGroup) box.getParent();
+                row.removeOnLayoutChangeListener(KEEP_ROW_HIDDEN);
+                row.addOnLayoutChangeListener(KEEP_ROW_HIDDEN);
+                hideEmptyRow(row);
+            }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SHARE_SHEET, "search bar", failure);
         }
@@ -85,6 +92,33 @@ public final class ShareSheet {
                     HookStatus.threw(FamilyNames.SHARE_SHEET, "search bar", failure);
                 }
             };
+
+    /** Takes the empty search row away again whenever the sheet lays it out (#685). */
+    private static final View.OnLayoutChangeListener KEEP_ROW_HIDDEN =
+            (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                try {
+                    if (view instanceof ViewGroup) hideEmptyRow((ViewGroup) view);
+                } catch (Throwable failure) {
+                    HookStatus.threw(FamilyNames.SHARE_SHEET, "search row", failure);
+                }
+            };
+
+    /**
+     * The search bar sits in a row of its own with the New group button and its stub, and the row
+     * keeps its height once the bar is gone, which left an empty band across the top of the sheet
+     * (#685). With Hide group buttons on too, nothing else is ever built in that row, so the row goes
+     * as well. With the group switch off the row stays for the button, which the sheet builds into it
+     * later, and a row that still shows anything is left alone.
+     */
+    private static void hideEmptyRow(ViewGroup row) {
+        if (row.getVisibility() == View.GONE || !Settings.HIDE_SHARE_SHEET_SEARCH.get()
+                || !Settings.HIDE_SHARE_SHEET_GROUP.get()) return;
+        for (int i = 0; i < row.getChildCount(); i++) {
+            if (row.getChildAt(i).getVisibility() != View.GONE) return;
+        }
+        row.setVisibility(View.GONE);
+        Logger.printDebug(() -> "Share sheet: hid the empty search row");
+    }
 
     /**
      * True while Hide group buttons is on, and false before the settings are ready or when anything goes
