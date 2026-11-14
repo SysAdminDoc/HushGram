@@ -74,6 +74,7 @@ public class ReelFillTest {
         Settings.GLASS_TAB_BAR_REELS_BEHIND.resetToDefault();
         ReelFill.SHARED_REELS.clear();
         ReelFill.SHARED_FRAMES.clear();
+        ReelFill.FITTED_WIDTHS.clear();
     }
 
     /** #618: a 1080x2340 phone, taller than 9:16, where a reel 1080 wide is 1920 tall. */
@@ -403,5 +404,114 @@ public class ReelFillTest {
         assertTrue("doesn't need Full screen Reels", ReelFill.fit());
         Settings.FIT_REEL_SCREEN.save(false);
         assertFalse(ReelFill.fit());
+    }
+
+    /** #681: a 2:3 tablet's reel viewer, 1080x1620 with 1545 under the status bar, like the Xiaomi Pad 7's. */
+    private static final int TABLET_WIDTH = 1080;
+    private static final int TABLET_HEIGHT = 1545;
+
+    /** How wide a 9:16 reel is at that height: 1545 x 9 / 16, rounded. */
+    private static final int REEL_AT_TABLET_HEIGHT = 869;
+
+    /** What the reel binder leaves a phone's 9:16 reel at once it fits it to the width. */
+    private static final int REEL_AT_PHONE_WIDTH = 1920;
+
+    /** A 9:16 reel's own size, as its post gives it. */
+    private static final Integer REEL_WIDE = 1080;
+    private static final Integer REEL_TALL = 1920;
+
+    /**
+     * A reel's cover and video in its viewer as the binder sized them on that tablet: the viewer's
+     * height, the video given the viewer's width, the cover left at the width its layout gives it.
+     */
+    private static View[] reelViews() {
+        FrameLayout viewer = new FrameLayout(RuntimeEnvironment.getApplication());
+        View cover = new View(viewer.getContext());
+        View video = new FrameLayout(viewer.getContext());
+        viewer.addView(cover, new FrameLayout.LayoutParams(MATCH_PARENT, TABLET_HEIGHT));
+        viewer.addView(video, new FrameLayout.LayoutParams(TABLET_WIDTH, TABLET_HEIGHT));
+        return new View[] {cover, video};
+    }
+
+    private static void sizeAs(View[] views, int height) {
+        for (View view : views) view.getLayoutParams().height = height;
+    }
+
+    /**
+     * #681: Instagram fits a reel only to the viewer's width, so a 9:16 reel kept a 2:3 tablet's whole
+     * viewer and was cut at the top and the bottom. A view wider than its post at the height Instagram
+     * gave it is narrowed to the post's shape. A post that fills the width, a phone's 9:16 reel or a
+     * square one, keeps its width, and so does anything with no shape or no room.
+     */
+    @Test
+    public void aReelNarrowerThanItsViewerIsNarrowedToItsShape() {
+        assertEquals(REEL_AT_TABLET_HEIGHT, ReelFill.fittedWidth(TABLET_WIDTH, TABLET_HEIGHT, ReelFill.REEL_SHAPE));
+        assertEquals("a 4:5 post on the tablet is fit to the width", ReelFill.NO_FIT, ReelFill.fittedWidth(TABLET_WIDTH, 1350, 0.8f));
+        assertEquals("a phone's reel fits its width", ReelFill.NO_FIT,
+                ReelFill.fittedWidth(PHONE_WIDTH, REEL_AT_PHONE_WIDTH, ReelFill.REEL_SHAPE));
+        assertEquals("a square post fit to the width", ReelFill.NO_FIT, ReelFill.fittedWidth(TABLET_WIDTH, TABLET_WIDTH, 1f));
+        assertEquals("a square post with room above and below", ReelFill.NO_FIT, ReelFill.fittedWidth(TABLET_WIDTH, TABLET_HEIGHT, 1f));
+        assertEquals("no shape", ReelFill.NO_FIT, ReelFill.fittedWidth(TABLET_WIDTH, TABLET_HEIGHT, 0f));
+        assertEquals("a bad shape", ReelFill.NO_FIT, ReelFill.fittedWidth(TABLET_WIDTH, TABLET_HEIGHT, Float.NaN));
+        assertEquals("a negative one", ReelFill.NO_FIT, ReelFill.fittedWidth(TABLET_WIDTH, TABLET_HEIGHT, -ReelFill.REEL_SHAPE));
+        assertEquals("no width", ReelFill.NO_FIT, ReelFill.fittedWidth(0, TABLET_HEIGHT, ReelFill.REEL_SHAPE));
+        assertEquals("a height the parent sets", ReelFill.NO_FIT, ReelFill.fittedWidth(TABLET_WIDTH, MATCH_PARENT, ReelFill.REEL_SHAPE));
+
+        assertEquals("a post's shape is its width over its height", ReelFill.REEL_SHAPE, ReelFill.shapeOf(REEL_WIDE, REEL_TALL), 0f);
+        assertTrue("no width", Float.isNaN(ReelFill.shapeOf(null, REEL_TALL)));
+        assertTrue("no height", Float.isNaN(ReelFill.shapeOf(REEL_WIDE, null)));
+        assertTrue("a zero height", Float.isNaN(ReelFill.shapeOf(REEL_WIDE, 0)));
+        assertTrue("a negative width", Float.isNaN(ReelFill.shapeOf(-1, REEL_TALL)));
+        assertEquals("which leaves the view alone", ReelFill.NO_FIT,
+                ReelFill.fittedWidth(TABLET_WIDTH, TABLET_HEIGHT, ReelFill.shapeOf(REEL_WIDE, 0)));
+    }
+
+    /**
+     * #681: with Show the whole reel on, the binder hands over the cover and the video after sizing
+     * them, and both come down to the reel's width at their height. A view the binder reuses for a post
+     * that fills the width gets its own width back, and so does every view once the switch is off,
+     * after which the binder stops asking.
+     */
+    @Test
+    public void showTheWholeReelNarrowsTheCoverAndTheVideoAndGivesTheirWidthsBack() {
+        View[] views = reelViews();
+        assertFalse("off to start", ReelFill.fitVideo());
+        ReelFill.fitBox(views, REEL_WIDE, REEL_TALL, TABLET_WIDTH);
+        assertEquals("off leaves the cover", MATCH_PARENT, views[0].getLayoutParams().width);
+        assertEquals("and the video", TABLET_WIDTH, views[1].getLayoutParams().width);
+
+        Settings.FIT_REEL_SCREEN.save(true);
+        assertTrue(ReelFill.fitVideo());
+        ReelFill.fitBox(views, REEL_WIDE, REEL_TALL, TABLET_WIDTH);
+        for (View view : views) {
+            assertEquals("a 9:16 reel's width", REEL_AT_TABLET_HEIGHT, view.getLayoutParams().width);
+            assertEquals("as tall as Instagram made it", TABLET_HEIGHT, view.getLayoutParams().height);
+        }
+
+        // The next reel the views show is square, and the binder fits it to the width.
+        views[1].getLayoutParams().width = TABLET_WIDTH;
+        sizeAs(views, TABLET_WIDTH);
+        ReelFill.fitBox(views, 1080, 1080, TABLET_WIDTH);
+        assertEquals("the cover gets its width back", MATCH_PARENT, views[0].getLayoutParams().width);
+        assertEquals("the video keeps the binder's", TABLET_WIDTH, views[1].getLayoutParams().width);
+
+        sizeAs(views, TABLET_HEIGHT);
+        ReelFill.fitBox(views, REEL_WIDE, REEL_TALL, TABLET_WIDTH);
+        assertEquals(REEL_AT_TABLET_HEIGHT, views[0].getLayoutParams().width);
+        // A post with no size of its own is left as Instagram sized it, and gives the widths back.
+        ReelFill.fitBox(views, null, REEL_TALL, TABLET_WIDTH);
+        assertEquals("no size gives the cover's width back", MATCH_PARENT, views[0].getLayoutParams().width);
+        ReelFill.fitBox(views, REEL_WIDE, REEL_TALL, TABLET_WIDTH);
+        Settings.FIT_REEL_SCREEN.save(false);
+        assertTrue("asks while a view has its width to get back", ReelFill.fitVideo());
+        ReelFill.fitBox(views, REEL_WIDE, REEL_TALL, TABLET_WIDTH);
+        assertEquals("the cover's width back", MATCH_PARENT, views[0].getLayoutParams().width);
+        assertEquals("the video's", TABLET_WIDTH, views[1].getLayoutParams().width);
+        assertFalse("then stops asking", ReelFill.fitVideo());
+
+        Settings.FIT_REEL_SCREEN.save(true);
+        ReelFill.fitBox(null, REEL_WIDE, REEL_TALL, TABLET_WIDTH);
+        ReelFill.fitBox(new View[] {null, new View(RuntimeEnvironment.getApplication())}, REEL_WIDE, REEL_TALL, TABLET_WIDTH);
+        assertTrue("nothing to size is left alone", ReelFill.FITTED_WIDTHS.isEmpty());
     }
 }

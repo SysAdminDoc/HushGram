@@ -3360,6 +3360,13 @@ single-call Lapp/hushgram/extension/instagram/feed/AmbientLight;->cornerRadius(L
 # out, a 16:10 cover screen keeps reels in a 9:16 column with black sides; twice or elsewhere, it
 # isn't the check the patch wrote.
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->wide(F)Z in instance (LX/*;)LX/*; pooled holding android_purge_26_q2_ClipsItemInsetsComponent_render
+# Show the whole reel on a screen wider than a reel (#681): the reel video binder (0Bni.invoke on 454,
+# the bridge naming both purge flags below) asks ReelFill.fitVideo right before it sets its views'
+# gravity, and on a yes hands the cover and the video, the post's width and height and the viewer's
+# width to ReelFill.fitBox, which narrows them to the reel's shape. Left out, a 2:3 tablet still cuts
+# a 9:16 reel at the top and the bottom; twice or elsewhere, it isn't the code the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fitVideo()Z in instance (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding android_purge_26_q3_SimpleVideoLayoutClipsComponent_setViewWidth android_purge_26_q3_SimpleVideoLayoutClipsComponent_setMediaGravity
+once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fitBox([Landroid/view/View;Ljava/lang/Integer;Ljava/lang/Integer;I)V in instance (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding android_purge_26_q3_SimpleVideoLayoutClipsComponent_setViewWidth android_purge_26_q3_SimpleVideoLayoutClipsComponent_setMediaGravity
 
 # Tap a feed video to pause it (#137) asks FeedTapPause.tapped first thing in the feed's tap handler,
 # the one instance (View, Media, five objects, int, boolean) void method that loads the handler's

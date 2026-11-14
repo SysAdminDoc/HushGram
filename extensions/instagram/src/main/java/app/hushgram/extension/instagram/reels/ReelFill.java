@@ -121,6 +121,98 @@ public final class ReelFill {
         }
     }
 
+    /** What a reel's cover and video narrowed to the reel's shape are counted under. */
+    static final String COUNT_FITTED_VIDEO = "reel videos kept to their shape";
+
+    /** What {@link #fittedWidth} answers for a view left at the width it has. */
+    static final int NO_FIT = -1;
+
+    /**
+     * The width each view narrowed by {@link #fitBox} had before, to give back when the view shows a
+     * post that fills the width or Show the whole reel goes off. Weak, so a view Instagram lets go of
+     * isn't kept.
+     */
+    static final Map<View, Integer> FITTED_WIDTHS = Collections.synchronizedMap(new WeakHashMap<>());
+
+    private static volatile boolean loggedFittedVideo;
+
+    /**
+     * Asked by the reel video binder right before it sets its cover's and video's gravity (#681).
+     * True while Show the whole reel is on, or while a view still has a width to get back, so that
+     * {@link #fitBox} sees every bind it needs. False leaves the binder as Instagram wrote it, and so
+     * does anything that throws.
+     */
+    public static boolean fitVideo() {
+        try {
+            return (Utils.settingsReady() && Settings.FIT_REEL_SCREEN.get()) || !FITTED_WIDTHS.isEmpty();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "reel video fit", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Handed the reel binder's cover and video once it has sized them, the post's own width and
+     * height, and the viewer's width the binder gave the video. Instagram fits a reel only to that
+     * width, so a reel narrower than the viewer kept the viewer's whole box and was cut at the top and
+     * the bottom. With Show the whole reel on, a view wider than the post at its height is narrowed to
+     * the post's shape and the binder's gravity centers it. A view that needs no narrowing, or every
+     * view once the switch is off, gets back the width it had.
+     */
+    public static void fitBox(View[] views, Integer postWidth, Integer postHeight, int width) {
+        try {
+            if (views == null) return;
+            boolean fit = Utils.settingsReady() && Settings.FIT_REEL_SCREEN.get();
+            float shape = shapeOf(postWidth, postHeight);
+            boolean narrowed = false;
+            for (View view : views) {
+                if (view == null) continue;
+                ViewGroup.LayoutParams params = view.getLayoutParams();
+                if (params == null) continue;
+                int target = fit ? fittedWidth(width, params.height, shape) : NO_FIT;
+                if (target == NO_FIT) {
+                    Integer original = FITTED_WIDTHS.remove(view);
+                    if (original != null && original != params.width) {
+                        params.width = original;
+                        view.setLayoutParams(params);
+                    }
+                    continue;
+                }
+                if (!FITTED_WIDTHS.containsKey(view)) FITTED_WIDTHS.put(view, params.width);
+                if (params.width != target) {
+                    params.width = target;
+                    view.setLayoutParams(params);
+                }
+                narrowed = true;
+            }
+            if (!narrowed) return;
+            HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_FITTED_VIDEO);
+            if (!loggedFittedVideo) {
+                loggedFittedVideo = true;
+                Logger.printDebug(() -> "Reel video kept to its shape: " + postWidth + "x" + postHeight + " in a viewer " + width + " wide");
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "reel video box", failure);
+        }
+    }
+
+    /** A post's shape, width over height, or NaN when either size is missing or not above zero. */
+    static float shapeOf(Integer width, Integer height) {
+        if (width == null || height == null || width <= 0 || height <= 0) return Float.NaN;
+        return width / (float) height;
+    }
+
+    /**
+     * How wide a view of the given height shows a post of the given shape whole: the height times the
+     * shape, when that's narrower than the viewer's width. {@link #NO_FIT} when the post fills the
+     * width at that height, or there's no width, height or shape to go on.
+     */
+    static int fittedWidth(int width, int height, float shape) {
+        if (width <= 0 || height <= 0 || !(shape > 0f) || Float.isInfinite(shape)) return NO_FIT;
+        int fitted = Math.round(height * shape);
+        return fitted > 0 && fitted < width ? fitted : NO_FIT;
+    }
+
     /**
      * Asked as Instagram decides whether a reel fills the viewer, with the viewer's ClipsViewerSource
      * and how far the viewer's shape is from the reel's in percent. True when Full screen Reels and

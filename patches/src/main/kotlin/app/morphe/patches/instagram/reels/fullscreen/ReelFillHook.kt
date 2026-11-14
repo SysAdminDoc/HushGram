@@ -17,9 +17,11 @@ import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
+import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -145,6 +147,160 @@ internal fun BytecodePatchContext.fitReelScreen() {
             return v0
         """,
         ExternalLabel("instagram", decision.getInstruction(0)),
+    )
+}
+
+/** The purge flag Instagram's reel video binder names where it sets the video view's width. */
+internal const val REEL_VIEW_WIDTH = "android_purge_26_q3_SimpleVideoLayoutClipsComponent_setViewWidth"
+
+/** The one it names next, where it sets the cover's and the video's gravity in the viewer. */
+internal const val REEL_MEDIA_GRAVITY = "android_purge_26_q3_SimpleVideoLayoutClipsComponent_setMediaGravity"
+
+/** The purge flag Instagram's reel sizing names where it reads a post's shape, its width over its height. */
+internal const val POST_WIDTH = "original_width"
+internal const val POST_HEIGHT = "original_height"
+
+internal const val REEL_FILL = "$EXTENSION_PACKAGE/reels/ReelFill;"
+internal const val FIT_VIDEO_HOOK = "$REEL_FILL->fitVideo()Z"
+internal const val FIT_BOX_HOOK = "$REEL_FILL->fitBox([Landroid/view/View;Ljava/lang/Integer;Ljava/lang/Integer;I)V"
+
+private const val POST = "Lcom/instagram/feed/media/Media;"
+private const val VIEW_ARRAY = "[Landroid/view/View;"
+private const val LAYOUT_WIDTH = "Landroid/view/ViewGroup\$LayoutParams;->width:I"
+
+/**
+ * Where the reel video binder sets its views' gravity: the [gravity] const-string naming
+ * [REEL_MEDIA_GRAVITY], the register holding the [views] array (the cover and the video) it sets it
+ * on, the register holding the viewer's [width] that it gave the video view, and the binder's [post]
+ * field.
+ */
+internal data class ReelVideoBox(val gravity: Int, val views: Int, val width: Int, val post: FieldReference)
+
+/**
+ * Finds the pieces of [ReelVideoBox] in the reel video binder [bind] (0Bni.invoke on 454). The views
+ * are the array a filled-new-array of [VIEW_ARRAY] makes right before the gravity's name. The width
+ * is what the one `LayoutParams.width` store after [REEL_VIEW_WIDTH] writes, copied there from a
+ * register written once, before it, and never again.
+ */
+internal fun findReelVideoBox(bind: Method): ReelVideoBox {
+    val code = bind.implementation?.instructions?.toList().orEmpty()
+    fun named(string: String): Int {
+        val at = code.indices.filter { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == string }
+        return at.singleOrNull()
+            ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder names \"$string\" ${at.size} times, not once")
+    }
+    val gravity = named(REEL_MEDIA_GRAVITY)
+    val widthNamed = named(REEL_VIEW_WIDTH)
+    val made = code.getOrNull(gravity - 2)
+    val result = code.getOrNull(gravity - 1)
+    if ((made?.opcode != Opcode.FILLED_NEW_ARRAY && made?.opcode != Opcode.FILLED_NEW_ARRAY_RANGE) ||
+        (made as ReferenceInstruction).reference.toString() != VIEW_ARRAY || result?.opcode != Opcode.MOVE_RESULT_OBJECT
+    ) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder makes no array of views right before naming its gravity")
+    }
+    val views = (result as OneRegisterInstruction).registerA
+    val stores = (widthNamed until gravity).filter {
+        code[it].opcode == Opcode.IPUT && (code[it] as ReferenceInstruction).reference.toString() == LAYOUT_WIDTH
+    }
+    val store = stores.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder stores ${stores.size} widths after \"$REEL_VIEW_WIDTH\", not one")
+    val value = (code[store] as TwoRegisterInstruction).registerA
+    val copy = (store - 1 downTo widthNamed).firstOrNull { (code[it] as? OneRegisterInstruction)?.registerA == value && code[it].opcode.setsRegister() }
+        ?.takeIf { code[it].opcode == Opcode.MOVE || code[it].opcode == Opcode.MOVE_FROM16 || code[it].opcode == Opcode.MOVE_16 }
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder's width doesn't come from a move")
+    val width = (code[copy] as TwoRegisterInstruction).registerB
+    val writes = code.indices.filter {
+        val written = (code[it] as? OneRegisterInstruction)?.registerA
+        code[it].opcode.setsRegister() && written != null &&
+            (written == width || (code[it].opcode.setsWideRegister() && written + 1 == width))
+    }
+    if (writes.size != 1 || writes.single() >= copy) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder writes its width's v$width at ${writes.joinToString()}, not once before it")
+    }
+    val posts = code.mapNotNull { instruction ->
+        if (instruction.opcode != Opcode.IGET_OBJECT) return@mapNotNull null
+        ((instruction as ReferenceInstruction).reference as FieldReference).takeIf { it.definingClass == bind.definingClass && it.type == POST }
+    }.distinctBy { it.toString() }
+    val post = posts.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder reads ${posts.size} posts of its own, not one")
+    return ReelVideoBox(gravity, views, width, post)
+}
+
+/**
+ * A post's own getter for one of its sizes (Media.A6Z for [POST_WIDTH] and A6X for [POST_HEIGHT] on
+ * 454): the one instance method on the post taking nothing and answering an Integer that opens with
+ * the size's name. Instagram's binder reads the post's shape through its clips model instead, which a
+ * post doesn't implement itself, so the hook asks the post for both sizes and divides them.
+ */
+internal fun BytecodePatchContext.findPostSize(size: String): MethodReference {
+    val post = classDefByOrNull(POST) ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: no $POST")
+    val found = post.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.isEmpty() &&
+            method.returnType == "Ljava/lang/Integer;" && loadsString(method, size)
+    }
+    return found.singleOrNull()?.let { ImmutableMethodReference(it.definingClass, it.name, it.parameterTypes, it.returnType) }
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: expected one getter on $POST naming \"$size\", found ${found.size}")
+}
+
+/**
+ * Show the whole reel on a screen wider than a reel (#681). Instagram fits a reel only to the
+ * viewer's width: its binder shortens the cover and the video for a post wider than the viewer, but
+ * a post narrower than the viewer, a 9:16 reel on a 2:3 tablet, keeps the viewer's whole size, and
+ * the video view fills itself and cuts the picture at the top and the bottom. With the crop decision
+ * answering fit that's still what happened. So right before the binder sets the two views' gravity,
+ * once it has sized them, it asks [FIT_VIDEO_HOOK], and a yes hands the views, the post's width and
+ * height ([findPostSize]) and the viewer's width to [FIT_BOX_HOOK], which narrows a view wider than
+ * the post at its height. The gravity then centers it. `this` still holds the binder there, three
+ * locals up to v15 are free (four when the array sits past v15), and nothing jumps to the gravity's
+ * name.
+ */
+internal fun BytecodePatchContext.fitReelVideo() {
+    val binds = classesLoadingString(REEL_MEDIA_GRAVITY).flatMap { it.methods }.filter { method ->
+        loadsString(method, REEL_MEDIA_GRAVITY) && loadsString(method, REEL_VIEW_WIDTH)
+    }
+    val found = binds.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: expected one method naming \"$REEL_MEDIA_GRAVITY\" and \"$REEL_VIEW_WIDTH\", found ${binds.size}")
+    val types = found.parameterTypes.map(CharSequence::toString)
+    val bind = mutableClassDefBy(found.definingClass).methods.single {
+        it.name == found.name && it.returnType == found.returnType && it.parameterTypes.map(CharSequence::toString) == types
+    }
+    if (AccessFlags.STATIC.isSet(bind.accessFlags)) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder is static, so it holds no post")
+    }
+    val box = findReelVideoBox(bind)
+    val postWidth = findPostSize(POST_WIDTH)
+    val postHeight = findPostSize(POST_HEIGHT)
+    if (box.gravity in bind.jumpTargets()) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: something jumps to the reel video binder's \"$REEL_MEDIA_GRAVITY\"")
+    }
+    bind.requireThisIntact(FULL_SCREEN_BARS_PATCH, listOf(box.gravity))
+    val wide = box.views > 15
+    val self = bind.localRegisterCount()
+    // The code reads these after it has written a borrowed register.
+    val read = listOf(self, box.width, box.views)
+    val free = bind.freeLocalsAt(FULL_SCREEN_BARS_PATCH, box.gravity, if (wide) 4 else 3, except = read)
+    val post = free[0]
+    val across = free[1]
+    val width = free[2]
+    val views = if (wide) free[3] else box.views
+    bind.addInstructionsWithLabels(
+        box.gravity,
+        """
+            invoke-static { }, $FIT_VIDEO_HOOK
+            move-result v$post
+            if-eqz v$post, :instagram
+            move-object/from16 v$post, v$self
+            iget-object v$post, v$post, ${box.post.definingClass}->${box.post.name}:${box.post.type}
+            if-eqz v$post, :instagram
+            invoke-virtual { v$post }, $postWidth
+            move-result-object v$across
+            invoke-virtual { v$post }, $postHeight
+            move-result-object v$post
+            move/from16 v$width, v${box.width}
+            ${if (wide) "move-object/from16 v$views, v${box.views}" else ""}
+            invoke-static { v$views, v$across, v$post, v$width }, $FIT_BOX_HOOK
+        """,
+        ExternalLabel("instagram", bind.getInstruction(box.gravity)),
     )
 }
 

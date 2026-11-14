@@ -100,7 +100,8 @@ internal val barHeightsPatch = bytecodePatch {
  * first ([barHeightsPatch]), which answers 0 while it has the bars hidden. In the default selection with
  * both switches off. The story viewer's layout asks too ([fillStoryScreen], #436), and so do its item
  * binder and whole-screen layout ([layStoriesOutAsTheyBind], #618), and the reel item layout on a
- * screen wider than 9:16 ([fillWideReelScreen], #491).
+ * screen wider than 9:16 ([fillWideReelScreen], #491). Show the whole reel also narrows a reel's cover
+ * and video to the post's shape on a screen wider than the reel ([fitReelVideo], #681).
  */
 @Suppress("unused")
 val fullScreenBarsPatch = bytecodePatch(
@@ -120,6 +121,7 @@ val fullScreenBarsPatch = bytecodePatch(
         fillReelScreen()
         fillWideReelScreen()
         fitReelScreen()
+        fitReelVideo()
         fillStoryScreen()
         layStoriesOutAsTheyBind()
         enableStatus("fullScreenBars")

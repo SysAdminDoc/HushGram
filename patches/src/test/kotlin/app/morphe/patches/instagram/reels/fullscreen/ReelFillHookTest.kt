@@ -38,7 +38,7 @@ import java.io.File
 class ReelFillHookTest {
     @Test
     fun theHookIsInTheExtension() {
-        for (hook in listOf(FILL_HOOK, FIT_HOOK, STORY_HOOK, WIDE_HOOK, STORY_BOUND_HOOK, STORY_FRAME_HOOK)) {
+        for (hook in listOf(FILL_HOOK, FIT_HOOK, FIT_VIDEO_HOOK, FIT_BOX_HOOK, STORY_HOOK, WIDE_HOOK, STORY_BOUND_HOOK, STORY_FRAME_HOOK)) {
             val method = ExtensionDex.classDef(hook.substringBefore("->")).methods.single {
                 "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook.substringAfter("->")
             }
@@ -66,6 +66,107 @@ class ReelFillHookTest {
      */
     @Test
     fun eachDeclaredBuildGivesWideScreensTheWholeWidth() = eachDeclaredBundle(::fillsWideScreens)
+
+    /**
+     * #681: right before the reel video binder sets the cover's and the video's gravity, it asks
+     * ReelFill.fitVideo, and a yes hands those views, the binder's post's own width and height (its
+     * getters naming original_width and original_height) and the width the binder gave the video to
+     * ReelFill.fitBox. A no, or no post, goes straight on to Instagram's gravity.
+     */
+    @Test
+    fun eachDeclaredBuildNarrowsAReelToItsShape() = eachDeclaredBundle(::narrowsTheReel)
+
+    private fun narrowsTheReel(bundle: File, label: String) {
+        val loading = FixtureDex.classesLoading(bundle, REEL_MEDIA_GRAVITY)
+        val posts = FixtureDex.classes(bundle, setOf(POST_TYPE)).values
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, (loading + posts).distinctBy { it.type }))
+        val bind = loading.map { it.type }.toSet().flatMap { context.mutableClassDefBy(it).methods }.single {
+            context.loadsString(it, REEL_MEDIA_GRAVITY) && context.loadsString(it, REEL_VIEW_WIDTH)
+        }
+        val before = bind.code()
+        val gravity = before.indices.single { before[it].string() == REEL_MEDIA_GRAVITY }
+        assertEquals("$label: the views made right before", "[Landroid/view/View;", before[gravity - 2].referenceText())
+        assertEquals("$label: into a register", Opcode.MOVE_RESULT_OBJECT, before[gravity - 1].opcode)
+        val views = (before[gravity - 1] as OneRegisterInstruction).registerA
+        val named = before.indices.single { before[it].string() == REEL_VIEW_WIDTH }
+        val store = (named until gravity).single { before[it].referenceText() == "Landroid/view/ViewGroup\$LayoutParams;->width:I" }
+        val stored = (before[store] as TwoRegisterInstruction).registerA
+        val copied = (store - 1 downTo named).first { (before[it] as? OneRegisterInstruction)?.registerA == stored }
+        assertEquals("$label: the video's width copied in", Opcode.MOVE_FROM16, before[copied].opcode)
+        val width = (before[copied] as TwoRegisterInstruction).registerB
+        fun getter(size: String) = posts.single().methods.single {
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/Integer;" &&
+                it.code().firstOrNull()?.string() == size
+        }.toReference().toString()
+        val postWidth = getter("original_width")
+        val postHeight = getter("original_height")
+        val self = bind.implementation!!.registerCount - 1 - bind.parameterTypes.size
+        val native = NeutralNativePath(bind)
+
+        context.fitReelVideo()
+
+        val code = bind.code()
+        val wide = views > 15
+        val added = if (wide) 13 else 12
+        assertEquals("$label: $added instructions added", before.count { it.opcode != Opcode.NOP } + added, code.count { it.opcode != Opcode.NOP })
+        assertEquals("$label: one ask", 1, code.count { it.referenceText() == FIT_VIDEO_HOOK })
+        assertEquals("$label: one hand-over", 1, code.count { it.referenceText() == FIT_BOX_HOOK })
+        assertEquals("$label: asked in front of the gravity", FIT_VIDEO_HOOK, code[gravity].referenceText())
+        assertEquals("$label: an invoke-static", Opcode.INVOKE_STATIC, code[gravity].opcode)
+        assertEquals("$label: with nothing", 0, (code[gravity] as FiveRegisterInstruction).registerCount)
+        assertEquals("$label: the answer", Opcode.MOVE_RESULT, code[gravity + 1].opcode)
+        val held = (code[gravity + 1] as OneRegisterInstruction).registerA
+        assertTrue("$label: in a local an invoke names", held <= 15)
+        assertEquals("$label: a no goes on", Opcode.IF_EQZ, code[gravity + 2].opcode)
+        assertEquals("$label: on the answer", held, (code[gravity + 2] as OneRegisterInstruction).registerA)
+        assertEquals("$label: the binder", Opcode.MOVE_OBJECT_FROM16, code[gravity + 3].opcode)
+        assertEquals("$label: out of this", held to self, (code[gravity + 3] as TwoRegisterInstruction).let { it.registerA to it.registerB })
+        assertEquals("$label: its post", Opcode.IGET_OBJECT, code[gravity + 4].opcode)
+        val post = (code[gravity + 4] as ReferenceInstruction).reference as com.android.tools.smali.dexlib2.iface.reference.FieldReference
+        assertEquals("$label: a post", POST_TYPE, post.type)
+        assertEquals("$label: of the binder's own", bind.definingClass, post.definingClass)
+        assertTrue("$label: the one the binder reads", before.any { it.referenceText() == post.toString() })
+        assertEquals("$label: off the binder", held to held, (code[gravity + 4] as TwoRegisterInstruction).let { it.registerA to it.registerB })
+        assertEquals("$label: no post goes on", Opcode.IF_EQZ, code[gravity + 5].opcode)
+        assertEquals("$label: on the post", held, (code[gravity + 5] as OneRegisterInstruction).registerA)
+        assertEquals("$label: the post's width", postWidth, code[gravity + 6].referenceText())
+        assertEquals("$label: asked of the post", Opcode.INVOKE_VIRTUAL, code[gravity + 6].opcode)
+        assertEquals("$label: the post alone", listOf(held), (code[gravity + 6] as FiveRegisterInstruction).let {
+            listOf(it.registerC).take(it.registerCount)
+        })
+        assertEquals("$label: kept", Opcode.MOVE_RESULT_OBJECT, code[gravity + 7].opcode)
+        val across = (code[gravity + 7] as OneRegisterInstruction).registerA
+        assertTrue("$label: in another local an invoke names", across <= 15 && across != held)
+        assertEquals("$label: the post's height", postHeight, code[gravity + 8].referenceText())
+        assertEquals("$label: asked of the post too", Opcode.INVOKE_VIRTUAL, code[gravity + 8].opcode)
+        assertEquals("$label: the post alone again", listOf(held), (code[gravity + 8] as FiveRegisterInstruction).let {
+            listOf(it.registerC).take(it.registerCount)
+        })
+        assertEquals("$label: over the post", Opcode.MOVE_RESULT_OBJECT, code[gravity + 9].opcode)
+        assertEquals("$label: in its local", held, (code[gravity + 9] as OneRegisterInstruction).registerA)
+        assertEquals("$label: the width", Opcode.MOVE_FROM16, code[gravity + 10].opcode)
+        val widthCopy = (code[gravity + 10] as TwoRegisterInstruction).registerA
+        assertEquals("$label: the video's", width, (code[gravity + 10] as TwoRegisterInstruction).registerB)
+        assertTrue("$label: in a third local an invoke names", widthCopy <= 15 && widthCopy != held && widthCopy != across)
+        var hand = gravity + 11
+        val arrayIn = if (wide) {
+            assertEquals("$label: the views copied", Opcode.MOVE_OBJECT_FROM16, code[hand].opcode)
+            assertEquals("$label: from their array", views, (code[hand] as TwoRegisterInstruction).registerB)
+            (code[hand++] as TwoRegisterInstruction).registerA
+        } else {
+            views
+        }
+        assertEquals("$label: then handed over", FIT_BOX_HOOK, code[hand].referenceText())
+        assertEquals("$label: an invoke-static", Opcode.INVOKE_STATIC, code[hand].opcode)
+        assertEquals("$label: with the views, the post's width and height and the video's width", listOf(arrayIn, across, held, widthCopy),
+            (code[hand] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF).take(it.registerCount) })
+        if (wide) assertTrue("$label: the views in a fourth local", arrayIn <= 15 && arrayIn !in setOf(held, across, widthCopy))
+        assertEquals("$label: then Instagram's gravity", REEL_MEDIA_GRAVITY, code[hand + 1].string())
+        val flow = ControlFlow.of(bind)
+        assertEquals("$label: a no reaches the gravity", hand + 1, flow.normal[gravity + 2].first())
+        assertEquals("$label: and no post", hand + 1, flow.normal[gravity + 5].first())
+        native.assertPreserved(label, bind, (gravity..hand).toSet())
+    }
 
     private fun fillsWideScreens(bundle: File, label: String) {
         val loading = FixtureDex.classesLoading(bundle, REEL_INSETS)
@@ -373,4 +474,8 @@ class ReelFillHookTest {
         ((this as? ReferenceInstruction)?.reference as? com.android.tools.smali.dexlib2.iface.reference.StringReference)?.string
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
+
+    private companion object {
+        const val POST_TYPE = "Lcom/instagram/feed/media/Media;"
+    }
 }
