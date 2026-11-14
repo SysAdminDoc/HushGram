@@ -504,6 +504,12 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentBu
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentButton()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; calling instance LX/*;-><init>(Landroid/graphics/ColorFilter;Lcom/instagram/common/session/UserSession;*)V class-holding android_purge_26_q2_ClipsUfiComponent_createLikeButtonComponent
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentCount()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; holding ufi_count
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentCount()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; holding ufi_count
+# Hide the pause icon on reels asks first thing in the pause-and-mute component's builders of a paused
+# reel's big pause icon and its sound button, each holding its marker (#686).
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hidePauseIcon()Z in instance (*)L*; holding android_purge_26_q3_PauseAndMuteComponent_createPauseIcon
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hidePauseIcon()Z in instance (*)L*; holding android_purge_26_q3_PauseAndMuteComponent_createPauseIcon
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hidePauseSoundButton()Z in instance (*)L*; holding android_purge_26_q3_PauseAndMuteComponent_createMuteButton
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hidePauseSoundButton()Z in instance (*)L*; holding android_purge_26_q3_PauseAndMuteComponent_createMuteButton
 # Hide the Friends tab on Reels hands friendsTab(View) the Friends tab's view right after the method
 # that builds the Reels top tabs gives the tab its icon and reads the tab's view back (#300). That
 # method is the one taking the TabLayout first that loads the Friends tab icon and takes the tabs'

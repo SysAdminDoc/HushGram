@@ -1211,6 +1211,8 @@ At once	立即
 Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	点击视频、双击点赞，以及保存与下载不算触碰操作，因此按钮会维持淡化。
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	已关闭。可在未触碰画面时淡化 Reel 按钮，避免 OLED 屏幕烙印。
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	移除 Reel 旁按钮栏中的保存按钮与下方数量。动态首页帖子的保存按钮仍会保留。
+Hide the pause icon on reels	隐藏 Reels 上的暂停图标
+A paused reel shows just its frame, without the big pause icon and the sound button over it. Tap the reel to play it again.	暂停的 Reel 只显示画面，不会再盖上大大的暂停图标和声音按钮。点一下 Reel 即可继续播放。
 Keep clear mode on	保持清爽模式
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	在 Reel 启用 Instagram 的清爽模式后，后续 Reels 也会以此模式打开。手动离开清爽模式后，后续 Reels 会重新显示按钮。
 # context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name

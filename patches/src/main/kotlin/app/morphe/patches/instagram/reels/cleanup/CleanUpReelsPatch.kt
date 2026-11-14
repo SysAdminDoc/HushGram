@@ -46,12 +46,12 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 private const val PATCH = "Clean up Reels"
 
 /**
- * Takes thirteen things off the Reels viewer, each behind its own switch: the Follow button beside a
+ * Takes fourteen things off the Reels viewer, each behind its own switch: the Follow button beside a
  * reel's author, the pills that prompt you to make something or promote something, and friends'
  * activity with the comment preview, and the Add comment bar under a reel opened from a profile's
  * reposts, and the same bar under every reel, the Reels tab's included, the reply bar under a reel
  * opened from a chat, the Like, Comment and Save buttons in a reel's button column (each with its
- * count, #668), the Reels tab's top bar, the
+ * count, #668), the big pause icon and sound button of a paused reel (#686), the Reels tab's top bar, the
  * Create (+) and Your algorithm buttons in the top bar of reels, and the Friends tab beside Reels.
  * The patch is in the default selection and every switch starts off. Friends' activity covers the
  * floating bubbles and the Liked by or Followed by line with its faces. See ReelParts.kt for each
@@ -85,7 +85,7 @@ val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban " +
         "Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Like, Comment and Save buttons, the " +
-        "Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons, and a story's, while you aren't " +
+        "pause icon on a paused reel, the Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons, and a story's, while you aren't " +
         "touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels, and can start every reel in it. " +
         "Starts off. Turn it on in HushGram settings > Reels.",
 ) {
@@ -157,7 +157,11 @@ internal fun BytecodePatchContext.hideReelParts() {
     likes.forEach { (part, method) -> requireUfiBuilder(part.marker, method, ufi) }
     val (commentButton, commentCount) = commentBuilders(markedClasses.getValue(ufi), holding(COMMENT_BUTTON_RENDER).definingClass)
     val ufiParts = likes + mapOf(COMMENT_BUTTON to commentButton, COMMENT_COUNT to commentCount)
-    val everyMethod = (methods.values + saves.values + ufiParts.values + productCta + bubbles + socialContext).map { "${it.definingClass}->${it.name}" }
+    // The big pause icon and the sound button of a paused reel (#686).
+    val pauses = PAUSE_PARTS.associateWith { holding(it.marker) }
+    requirePauseBuilders(pauses)
+    val everyMethod = (methods.values + saves.values + ufiParts.values + pauses.values + productCta + bubbles + socialContext)
+        .map { "${it.definingClass}->${it.name}" }
     if (everyMethod.toSet().size != everyMethod.size) throw PatchException("$PATCH: two parts are held by one method: $everyMethod")
     val renders = methods.filterKeys { !it.check }.values
     val shapes = renders.map { it.parameterTypes.single().toString() to it.returnType }.toSet()
@@ -168,14 +172,14 @@ internal fun BytecodePatchContext.hideReelParts() {
     val replyBar = directReplyBar(holding(DIRECT_REPLY_BAR_SHOW), holding(DIRECT_REPLY_BAR_HIDE), holding(DIRECT_REPLY_BAR_CREATED))
     // The reply bar's hooks go in further down their methods, at places worked out before anything
     // changes, so neither method may be one another part writes into.
-    val written = (methods.values + saves.values + ufiParts.values + productCta + bubbles + socialContext + bar.show + bar.created + bar.unVanish.method)
+    val written = (methods.values + saves.values + ufiParts.values + pauses.values + productCta + bubbles + socialContext + bar.show + bar.created + bar.unVanish.method)
         .map { it.signature() }
     val replyBarMethods = listOf(replyBar.show, replyBar.created).map { it.signature() }
     if (replyBarMethods.toSet().size != replyBarMethods.size || replyBarMethods.any { it in written }) {
         throw PatchException("$PATCH: the direct reply bar's show or onViewCreated is a method another part changes: $replyBarMethods")
     }
 
-    (methods + saves + ufiParts + (PRODUCT_CTA to productCta)).forEach { (part, found) ->
+    (methods + saves + ufiParts + pauses + (PRODUCT_CTA to productCta)).forEach { (part, found) ->
         val method = mutable(found)
         method.requireLocals(PATCH, 1)
         val answer = if (part.check) "return v0" else "return-object v0"
@@ -680,6 +684,26 @@ private fun requireUfiBuilder(what: String, method: Method, ufi: String) {
         else -> null
     } ?: return
     throw PatchException("$PATCH: ${method.definingClass}->${method.name}, building the $what part, $problem")
+}
+
+/**
+ * The pause icon's and the sound button's builders (#686) are instance methods of one component with a
+ * body, both taking the component scope first and answering the component or nothing.
+ */
+private fun requirePauseBuilders(builders: Map<ReelPart, Method>) {
+    val owners = builders.values.map { it.definingClass }.toSet()
+    val scopes = builders.values.map { it.parameterTypes.firstOrNull()?.toString() }.toSet()
+    builders.forEach { (part, method) ->
+        val problem = when {
+            owners.size != 1 -> "is not in the same component as the other paused reel builder: $owners"
+            method.implementation == null -> "has no body"
+            AccessFlags.STATIC.isSet(method.accessFlags) || !method.returnType.startsWith("L") ->
+                "is not an instance builder answering a component"
+            scopes.size != 1 || scopes.single() == null -> "doesn't take the same component scope first as the other: $scopes"
+            else -> null
+        } ?: return@forEach
+        throw PatchException("$PATCH: ${method.definingClass}->${method.name}, holding the ${part.marker} marker, $problem")
+    }
 }
 
 /**

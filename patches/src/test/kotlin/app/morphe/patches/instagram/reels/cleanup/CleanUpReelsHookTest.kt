@@ -53,7 +53,7 @@ class CleanUpReelsHookTest {
         for (hook in listOf(
             HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR, HIDE_EVERY_COMMENT_BAR,
             HIDE_SAVE_BUTTON, HIDE_SAVE_COUNT, HIDE_DIRECT_REPLY_BAR, KEEP_COMMENT_BAR_SPACE,
-            HIDE_LIKE_BUTTON, HIDE_LIKE_COUNT, HIDE_COMMENT_BUTTON, HIDE_COMMENT_COUNT,
+            HIDE_LIKE_BUTTON, HIDE_LIKE_COUNT, HIDE_COMMENT_BUTTON, HIDE_COMMENT_COUNT, HIDE_PAUSE_ICON, HIDE_PAUSE_SOUND_BUTTON,
         )) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
@@ -85,7 +85,11 @@ class CleanUpReelsHookTest {
         assertEquals("the Comment button's render was touched", 3,
             context.mutableClassDefBy(owner(COMMENT_BUTTON_RENDER)).methods.single().instructions().size)
         assertGuardFirst(PRODUCT_CTA.marker, PRODUCT_CTA, context.mutableClassDefBy(owner(PRODUCT_CTA.marker)).methods.single())
-        val legacy = context.mutableClassDefBy(owner("ClipsFollowButtonComponentLegacy_render")).methods.single()
+        // A paused reel's big pause icon and sound button (#686); the component's render stays as it was.
+        val pause = context.mutableClassDefBy(PAUSE).methods
+        PAUSE_PARTS.zip(listOf("A01", "A0B")).forEach { (part, name) -> assertGuardFirst(part.marker, part, pause.single { it.name == name }) }
+        assertEquals("the pause component's render was touched", 3, pause.single { it.name == "A0q" }.instructions().size)
+        val legacy =context.mutableClassDefBy(owner("ClipsFollowButtonComponentLegacy_render")).methods.single()
         assertEquals("the Legacy Follow button was touched", 3, legacy.instructions().size)
         assertBubblesGuarded("stand-in", context.mutableClassDefBy(BUBBLES).methods.single(), "$NO_BUBBLES->A00:$NO_BUBBLES")
         assertLineGuarded("stand-in", context.mutableClassDefBy(VIEW_UTIL).methods.single(), 4, "$LINE->type:$LINE_TYPE")
@@ -246,6 +250,23 @@ class CleanUpReelsHookTest {
         }
     }
 
+    /**
+     * The pause icon's and the sound button's builders have to be found once each, as instance
+     * builders of one component taking the same scope first (#686).
+     */
+    @Test
+    fun aPausedReelBuilderItCantFindFailsThePatch() {
+        for ((case, classes, expected) in listOf(
+            Triple("no pause icon", classes(leaveOut = PAUSE_PARTS[0].marker), PAUSE_PARTS[0].marker),
+            Triple("static pause icon", classes(pauseShape = "static icon"), "is not an instance builder"),
+            Triple("sound button elsewhere", classes(pauseShape = "apart"), "not in the same component"),
+            Triple("another scope", classes(pauseShape = "scope"), "same component scope"),
+        )) {
+            val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).hideReelParts() }
+            assertTrue("$case: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
     @Test
     fun aMarkerInTwoMethodsFailsThePatch() {
         val copy = render("Lfixture/Copy;", "ClipsFollowButtonComponent_render")
@@ -391,6 +412,20 @@ class CleanUpReelsHookTest {
         val productAfter = after(productBefore)
         assertEquals("$label: ${PRODUCT_CTA.marker} size", productBefore.instructions().size + 5, productAfter.instructions().size)
         assertGuardFirst("$label: ${PRODUCT_CTA.marker}", PRODUCT_CTA, productAfter)
+        // A paused reel's big pause icon and sound button (#686): one instance builder each in one
+        // component, guarded first, growing by the guard alone, and asked by nothing else.
+        val pauseBuilders = PAUSE_PARTS.map { part -> classes.flatMap { it.methods }.single { part.marker in it.markers() } }
+        assertEquals("$label: the paused reel builders' component", 1, pauseBuilders.map { it.definingClass }.toSet().size)
+        PAUSE_PARTS.zip(pauseBuilders).forEach { (part, before) ->
+            assertFalse("$label: ${part.marker} is static", AccessFlags.STATIC.isSet(before.accessFlags))
+            val pauseAfter = after(before)
+            assertEquals("$label: ${part.marker} size", before.instructions().size + 5, pauseAfter.instructions().size)
+            assertGuardFirst("$label: ${part.marker}", part, pauseAfter)
+            val askers = classes.flatMap { context.mutableClassDefBy(it.type).methods.toList() }
+                .filter { method -> method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == part.hook } }
+            assertEquals("$label: who asks ${part.hook}", listOf("${before.definingClass}->${before.name}"),
+                askers.map { "${it.definingClass}->${it.name}" })
+        }
         // The in-viewer comment bar's render is guarded by the switch for all reels, nothing else.
         val inViewer = after(classes.flatMap { it.methods }.single { COMMENT_BAR_PARTS.single().marker in it.markers() })
         assertEquals("$label: the in-viewer bar's hook", HIDE_EVERY_COMMENT_BAR, (inViewer.instructions()[0] as ReferenceInstruction).reference.toString())
@@ -688,6 +723,7 @@ class CleanUpReelsHookTest {
         replyBar: String = "ok",
         productCtaLabel: String = "Ljava/lang/String;",
         ufiShape: String = "ok",
+        pauseShape: String = "ok",
     ): List<ClassDef> {
         val renders = (REEL_PARTS.filter { !it.check }.map { it.marker } + "ClipsFollowButtonComponentLegacy_render" + COMMENT_BUTTON_RENDER)
             .filter { it != leaveOut }
@@ -756,8 +792,28 @@ class CleanUpReelsHookTest {
                 static = false,
             ),
         )
-        return renders + saves + checks + productCta + bubbles + lineCheck + lineType + line + commentBar(barSource, barStores, barThisReused, barHide) +
-            unVanish(unVanish) + replyBar(replyBar)
+        return renders + saves + checks + productCta + pauseComponent(pauseShape, leaveOut) + bubbles + lineCheck + lineType + line +
+            commentBar(barSource, barStores, barThisReused, barHide) + unVanish(unVanish) + replyBar(replyBar)
+    }
+
+    /**
+     * The pause-and-mute component shaped like Instagram 454's (#686): the pause icon's builder
+     * taking the scope, the sound button's taking the scope and a flag, each a private instance
+     * method loading its marker first, and the render that calls both. [shape] breaks one of them.
+     */
+    private fun pauseComponent(shape: String, leaveOut: String?): List<ClassDef> {
+        val nothing = "const/4 v0, 0x0\nreturn-object v0"
+        fun builder(type: String, part: ReelPart, name: String, parameters: List<String>, static: Boolean = false) =
+            method(type, name, parameters, component, 6, "const-string v0, \"android_purge_26_q3_${part.marker}\"\n$nothing", static = static)
+        val icon = builder(PAUSE, PAUSE_PARTS[0], "A01", listOf(if (shape == "scope") "Lfixture/OtherScope;" else scope), static = shape == "static icon")
+        val sound = builder(if (shape == "apart") "Lfixture/MuteButton;" else PAUSE, PAUSE_PARTS[1], "A0B", listOf(scope, "Z"))
+        val render = method(
+            PAUSE, "A0q", listOf("Lfixture/Composer;"), component, 4,
+            "const-string v0, \"android_purge_26_q3_PauseAndMuteComponent_render\"\n$nothing", static = false,
+        )
+        val own = listOfNotNull(icon.takeIf { PAUSE_PARTS[0].marker != leaveOut }, sound.takeIf { shape != "apart" }, render)
+        val apart = if (shape == "apart") listOf(classOf("Lfixture/MuteButton;", "Ljava/lang/Object;", sound)) else emptyList()
+        return listOf(classOf(PAUSE, "Lfixture/KComponent;", *own.toTypedArray())) + apart
     }
 
     /**
@@ -1044,6 +1100,7 @@ class CleanUpReelsHookTest {
 
     private companion object {
         const val UFI = "Lfixture/ClipsUfiComponent;"
+        const val PAUSE = "Lfixture/PauseAndMuteComponent;"
         const val BUBBLES = "Lfixture/FloatingBubblesUseCase;"
         const val BUBBLES_STATE = "Lfixture/BubblesState;"
         const val NO_BUBBLES = "Lfixture/NoBubbles;"

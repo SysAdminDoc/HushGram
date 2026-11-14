@@ -41,6 +41,7 @@ public class ReelLikeCommentButtonsSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_REEL_LIKE_BUTTON.resetToDefault();
         Settings.HIDE_REEL_COMMENT_BUTTON.resetToDefault();
+        Settings.HIDE_REEL_PAUSE_ICON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -52,6 +53,7 @@ public class ReelLikeCommentButtonsSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_REEL_LIKE_BUTTON.resetToDefault();
         Settings.HIDE_REEL_COMMENT_BUTTON.resetToDefault();
+        Settings.HIDE_REEL_PAUSE_ICON.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(EnumSet<PatchFamily> build) throws Exception {
@@ -85,9 +87,15 @@ public class ReelLikeCommentButtonsSettingsTest {
         assertRow(Settings.HIDE_REEL_LIKE_BUTTON, "Hide the Like button on reels", "Double tap still likes a reel.", 2);
         assertRow(Settings.HIDE_REEL_COMMENT_BUTTON, "Hide the Comment button on reels", "has its own switch.", 1);
     }
+    /** Hide the pause icon on reels (#686) comes right after the Save button's switch. */
+    @Test public void thePauseIconSwitchFollowsTheSaveSwitchAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        assertRow(Settings.HIDE_REEL_PAUSE_ICON, "Hide the pause icon on reels", "Tap the reel to play it again.", -1);
+    }
     @Test public void withoutCleanUpReelsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REEL_LIKE_BUTTON.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REEL_COMMENT_BUTTON.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REEL_PAUSE_ICON.key));
     }
 }

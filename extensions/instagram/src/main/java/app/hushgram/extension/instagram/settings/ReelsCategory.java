@@ -152,6 +152,9 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_REEL_SAVE_BUTTON, L10n.t("Hide the Save button on reels"),
                     L10n.t("Takes the Save button out of the column of buttons beside a reel, and the count under it. "
                             + "Posts in your feed keep theirs.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_PAUSE_ICON, L10n.t("Hide the pause icon on reels"),
+                    L10n.t("A paused reel shows just its frame, without the big pause icon and the sound button over "
+                            + "it. Tap the reel to play it again.")));
             reels.add(burnInGuardRow(context));
             reels.add(burnInWaitRow(context));
             reels.add(toggle(context, Settings.BURN_IN_STAY_DIM, L10n.t("Stay dim when I tap"),

@@ -66,6 +66,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       {@link #hideCommentCount} the same way, first thing in the column's builders of the Like
  *       button, the like count, the Comment button and the comment count (#668). The column adds
  *       only what each hands it, so an empty answer leaves no gap.
+ *   <li>{@link #hidePauseIcon} and {@link #hidePauseSoundButton} first thing in the pause-and-mute
+ *       component's builders of the big pause icon and the sound button a paused reel shows (#686).
+ *       Its render adds only what each hands it, so the paused reel shows just its frame, and a tap
+ *       still plays it again.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with a switch
@@ -117,6 +121,8 @@ public final class ReelDeclutter {
     static final String COUNT_LIKE_COUNT_HIDDEN = "reel like counts hidden";
     static final String COUNT_COMMENT_HIDDEN = "reel Comment buttons hidden";
     static final String COUNT_COMMENT_COUNT_HIDDEN = "reel comment counts hidden";
+    static final String COUNT_PAUSE_ICON_HIDDEN = "paused reel icons hidden";
+    static final String COUNT_PAUSE_SOUND_HIDDEN = "paused reel sound buttons hidden";
     static final String COUNT_REPLY_BAR_HIDDEN = "chat reel reply bars kept hidden";
     static final String COUNT_COMMENT_BAR_SPACE_KEPT = "hidden comment bars that kept their space";
 
@@ -195,6 +201,20 @@ public final class ReelDeclutter {
     public static boolean hideCommentCount() {
         boolean hide = hide(Settings.HIDE_REEL_COMMENT_BUTTON, "comment count");
         if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_COMMENT_COUNT_HIDDEN);
+        return hide;
+    }
+
+    /** True leaves the big pause icon off a paused reel. Never throws. */
+    public static boolean hidePauseIcon() {
+        boolean hide = hide(Settings.HIDE_REEL_PAUSE_ICON, "pause icon");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_PAUSE_ICON_HIDDEN);
+        return hide;
+    }
+
+    /** True leaves the sound button beside a paused reel's pause icon off. Never throws. */
+    public static boolean hidePauseSoundButton() {
+        boolean hide = hide(Settings.HIDE_REEL_PAUSE_ICON, "paused reel sound button");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_PAUSE_SOUND_HIDDEN);
         return hide;
     }
 

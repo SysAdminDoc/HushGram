@@ -23,6 +23,8 @@ internal const val HIDE_COMMENT_COUNT = "$DECLUTTER->hideCommentCount()Z"
 internal const val HIDE_COMMENT_BAR = "$DECLUTTER->hideCommentBar(Ljava/lang/Object;)Z"
 internal const val KEEP_COMMENT_BAR_SPACE = "$DECLUTTER->keepCommentBarSpace(Landroid/view/View;Ljava/lang/Object;)V"
 internal const val HIDE_DIRECT_REPLY_BAR = "$DECLUTTER->hideDirectReplyBar(Ljava/lang/Object;)Z"
+internal const val HIDE_PAUSE_ICON = "$DECLUTTER->hidePauseIcon()Z"
+internal const val HIDE_PAUSE_SOUND_BUTTON = "$DECLUTTER->hidePauseSoundButton()Z"
 
 /**
  * A part of the Reels viewer the patch hides: the method whose marker ends in [marker], and the
@@ -102,6 +104,19 @@ internal val SAVE_PARTS = listOf(
 internal val LIKE_PARTS = listOf(
     ReelPart("ClipsUfiComponent_createLikeButtonComponent", HIDE_LIKE_BUTTON),
     ReelPart("ClipsUfiComponent_createLikeCountComponent", HIDE_LIKE_COUNT),
+)
+
+/**
+ * The big pause icon a paused reel shows, and the sound button beside it (#686). On Instagram 454
+ * the pause-and-mute component builds each in a private method of its own, marked like the clips UFI
+ * builders, and its render adds what they answer to a list that skips an empty answer, so a paused
+ * reel then shows just its frame. The render also hides the reel's buttons while paused, which stays.
+ * The sound button's builder is called from two places, before or after the icon, and both answer
+ * through it. Each takes the component scope, the sound one a flag too, and is an instance method.
+ */
+internal val PAUSE_PARTS = listOf(
+    ReelPart("PauseAndMuteComponent_createPauseIcon", HIDE_PAUSE_ICON),
+    ReelPart("PauseAndMuteComponent_createMuteButton", HIDE_PAUSE_SOUND_BUTTON),
 )
 
 /**
@@ -195,6 +210,6 @@ internal const val CHAT_SOURCE = "DIRECT"
 internal const val CLIPS_VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
 internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + SAVE_PARTS.map { it.marker } + LIKE_PARTS.map { it.marker } +
-    COMMENT_BUTTON_RENDER + PRODUCT_CTA.marker + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
+    PAUSE_PARTS.map { it.marker } + COMMENT_BUTTON_RENDER + PRODUCT_CTA.marker + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
     COMMENT_BAR_SHOW + COMMENT_BAR_HIDE + COMMENT_BAR_CREATED + COMMENT_BAR_UNVANISH +
     DIRECT_REPLY_BAR_SHOW + DIRECT_REPLY_BAR_HIDE + DIRECT_REPLY_BAR_CREATED

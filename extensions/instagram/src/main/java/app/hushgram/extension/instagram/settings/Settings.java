@@ -3135,6 +3135,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_comment_button", FALSE);
 
     /**
+     * The big pause icon a paused reel shows in its middle, and the sound button beside it. The
+     * paused reel shows just its frame, and a tap still plays it. Off to start (#686).
+     */
+    public static final BooleanSetting HIDE_REEL_PAUSE_ICON =
+            new BooleanSetting("hushgram_hide_reel_pause_icon", FALSE);
+
+    /**
      * Instagram's clear mode, once you turn it on for a reel, stays on for the next reels you swipe
      * to, until you leave it yourself (#138,
      * {@link app.hushgram.extension.instagram.reels.ReelClearMode}). Read at each turn-on and each

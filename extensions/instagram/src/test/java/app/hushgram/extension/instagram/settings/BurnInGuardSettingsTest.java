@@ -82,10 +82,10 @@ public class BurnInGuardSettingsTest {
         int guard = -1;
         for (int i = 0; i < reels.getPreferenceCount(); i++) {
             String key = reels.getPreference(i).getKey();
-            if (Settings.HIDE_REEL_SAVE_BUTTON.key.equals(key)) save = i;
+            if (Settings.HIDE_REEL_PAUSE_ICON.key.equals(key)) save = i;
             if (Settings.BURN_IN_GUARD.key.equals(key)) guard = i;
         }
-        assertEquals("right after Hide the Save button on reels", save + 1, guard);
+        assertEquals("right after Hide the pause icon on reels", save + 1, guard);
 
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : row.getEntries()) entries.add(entry.toString());
