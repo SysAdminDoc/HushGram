@@ -2134,6 +2134,13 @@ Was @%1$s, %2$s	War @%1$s, %2$s
 # context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
 Old profile picture, %s	Altes Profilbild, %s
 Old bio, %s	Alter Steckbrief, %s
+# context: long-press menu items on an old picture's row on the Profile changes page; View opens it full screen, Save puts it in the gallery (#611)
+View picture	Bild ansehen
+Save picture	Bild speichern
+# context: a line on a Profile changes row; %1$s and %2$s are dates like Nov 3, 2026, the first and last day the old value was seen (#611)
+Seen from %1$s to %2$s	Gesehen vom %1$s bis %2$s
+# context: the same line when both days are one date; %s is a date like Nov 3, 2026 (#611)
+Seen on %s	Gesehen am %s
 Clear profile history	Profilverlauf löschen
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	Vergisst alle Benutzernamen, Steckbriefe und Bilder in der Liste, für alle deine Konten. Der Schalter bleibt, wie er ist.
 Profile history cleared.	Profilverlauf gelöscht.

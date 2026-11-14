@@ -56,6 +56,9 @@ import app.hushgram.extension.shared.ui.Dim;
  * servers only, into the saves' work folder, read into memory and deleted at once, so nothing is
  * left behind. Closing the screen stops a fetch that's still running. The diagnostic report counts
  * how wide the picture shown was, in pixels, never anything about the account.
+ *
+ * <p>The profile history's page opens an old picture in it too, from the copy kept on the phone
+ * ({@link #openKept}), with a Save of that copy.
  */
 final class ProfilePictureViewer {
     private ProfilePictureViewer() {
@@ -104,19 +107,55 @@ final class ProfilePictureViewer {
      * Never throws.
      */
     static boolean open(Context context, List<MediaSave.Rendition> sizes, String owner, ProfilePicture.Save save) {
+        MediaSave.Rendition chosen = largest(sizes);
+        if (chosen == null) return false;
+        String url = chosen.url;
+        return open(context, activity -> new Screen(activity, sizes, owner, save),
+                (application, watch) -> load(application, url, watch));
+    }
+
+    /** Finds a picture already on the phone, off the main thread. Null when there's none. */
+    interface Source {
+        @Nullable File file();
+    }
+
+    /** What the screen's Save does. False says Download failed. */
+    interface Saver {
+        boolean save(Activity activity);
+    }
+
+    /**
+     * Opens the viewer on a picture kept on the phone, the file [source] finds, read off the main
+     * thread, over the screen [context] belongs to. [saver] is what Save does. Answers whether the
+     * viewer opened. Never throws.
+     */
+    static boolean openKept(Context context, Source source, Saver saver) {
+        return open(context, activity -> new Screen(activity, saver), (application, watch) -> {
+            try {
+                File file = source.file();
+                return file == null ? null : read(file);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.PROFILE_PICTURE, "load kept profile picture", failure);
+                return null;
+            }
+        });
+    }
+
+    private interface Loader {
+        @Nullable Picture load(Context application, Watch watch);
+    }
+
+    private static boolean open(Context context, java.util.function.Function<Activity, Screen> make, Loader loader) {
         try {
             Activity activity = activityOf(context);
             if (activity == null) activity = Utils.getActivity();
             if (activity == null || activity.isFinishing() || activity.isDestroyed()) return false;
-            MediaSave.Rendition chosen = largest(sizes);
-            if (chosen == null) return false;
             Context application = activity.getApplicationContext();
-            Screen screen = new Screen(activity, sizes, owner, save);
+            Screen screen = make.apply(activity);
             screen.dialog.show();
             Watch watch = screen.watch;
-            String url = chosen.url;
             boolean queued = Utils.runOnBackgroundThread(() -> {
-                Picture picture = load(application, url, watch);
+                Picture picture = loader.load(application, watch);
                 Utils.runOnMainThread(() -> screen.shown(picture));
             });
             if (!queued) {
@@ -161,20 +200,26 @@ final class ProfilePictureViewer {
             Downloader.Result fetched = DashSave.fetchWork(url, Downloader.Kind.IMAGE, file,
                     MediaSave.policyFor(application), MAX_BYTES, progress);
             if (!fetched.ok()) return null;
-            BitmapFactory.Options bounds = new BitmapFactory.Options();
-            bounds.inJustDecodeBounds = true;
-            PictureFetch.decodeFile(file, bounds);
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight, MAX_SIDE);
-            Bitmap bitmap = PictureFetch.decodeFile(file, options);
-            return bitmap == null ? null : new Picture(bitmap, bounds.outWidth);
+            return read(file);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_PICTURE, "load profile picture", failure);
             return null;
         } finally {
             DashSave.discard(file);
         }
+    }
+
+    /** [file] read as a picture, at a power of two below its size past {@link #MAX_SIDE}. Null when it isn't one. */
+    @Nullable
+    static Picture read(File file) throws java.io.IOException {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        PictureFetch.decodeFile(file, bounds);
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight, MAX_SIDE);
+        Bitmap bitmap = PictureFetch.decodeFile(file, options);
+        return bitmap == null ? null : new Picture(bitmap, bounds.outWidth);
     }
 
     /** The smallest power of two that brings a [width] by [height] picture's longer side to [most] or under. */
@@ -255,7 +300,12 @@ final class ProfilePictureViewer {
         private final Activity activity;
         private final LinearLayout loading;
 
-        Screen(Activity activity, List<MediaSave.Rendition> sizes, String owner, ProfilePicture.Save saver) {
+        Screen(Activity activity, List<MediaSave.Rendition> sizes, String owner, ProfilePicture.Save save) {
+            // With View profile picture switched off since it opened, Save does nothing.
+            this(activity, at -> !ProfilePicture.viewing() || save.photo(at, sizes, PostDetails.profilePicture(owner)));
+        }
+
+        Screen(Activity activity, Saver saver) {
             this.activity = activity;
             dialog = new Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
             LinearLayout root = new LinearLayout(activity);
@@ -307,8 +357,8 @@ final class ProfilePictureViewer {
             save.setEnabled(false);
             save.setOnClickListener(view -> {
                 try {
-                    if (!save.isEnabled() || !ProfilePicture.viewing()) return;
-                    if (!saver.photo(activity, sizes, PostDetails.profilePicture(owner))) ProfilePicture.failed(activity);
+                    if (!save.isEnabled()) return;
+                    if (!saver.save(activity)) ProfilePicture.failed(activity);
                 } catch (Throwable failure) {
                     HookStatus.threw(FamilyNames.PROFILE_PICTURE, "save from viewer", failure);
                     ProfilePicture.failed(activity);

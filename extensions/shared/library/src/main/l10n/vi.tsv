@@ -2049,6 +2049,13 @@ Was @%1$s, %2$s	Từng là @%1$s, %2$s
 # context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
 Old profile picture, %s	Ảnh đại diện cũ, %s
 Old bio, %s	Tiểu sử cũ, %s
+# context: long-press menu items on an old picture's row on the Profile changes page; View opens it full screen, Save puts it in the gallery (#611)
+View picture	Xem ảnh
+Save picture	Lưu ảnh
+# context: a line on a Profile changes row; %1$s and %2$s are dates like Nov 3, 2026, the first and last day the old value was seen (#611)
+Seen from %1$s to %2$s	Thấy từ %1$s đến %2$s
+# context: the same line when both days are one date; %s is a date like Nov 3, 2026 (#611)
+Seen on %s	Thấy vào %s
 Clear profile history	Xóa lịch sử trang cá nhân
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	Quên mọi tên người dùng, tiểu sử và ảnh trong danh sách, cho mọi tài khoản của bạn. Công tắc giữ nguyên.
 Profile history cleared.	Đã xóa lịch sử trang cá nhân.

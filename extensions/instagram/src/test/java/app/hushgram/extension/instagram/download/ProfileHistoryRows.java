@@ -16,10 +16,17 @@ public final class ProfileHistoryRows {
         ProfileHistory.record(context, id, username, bio, picture, time);
     }
 
-    /** Has every picture fetch answer [bitmap]. Answers what puts the real fetch back. */
+    /** Has every picture fetch answer [bitmap] as a PNG, or fail for null. Answers what puts the real fetch back. */
     public static Runnable fetchAnswering(Bitmap bitmap) {
         ProfileHistory.Fetch original = ProfileHistory.fetch;
-        ProfileHistory.fetch = (context, url, size) -> bitmap;
+        ProfileHistory.fetch = (context, url, into) -> {
+            if (bitmap == null) return false;
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(into)) {
+                return bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+            } catch (java.io.IOException failure) {
+                return false;
+            }
+        };
         return () -> ProfileHistory.fetch = original;
     }
 

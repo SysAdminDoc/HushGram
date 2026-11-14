@@ -2137,6 +2137,13 @@ Was @%1$s, %2$s	曾为 @%1$s，%2$s
 # context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
 Old profile picture, %s	旧的头像，%s
 Old bio, %s	旧的个人简介，%s
+# context: long-press menu items on an old picture's row on the Profile changes page; View opens it full screen, Save puts it in the gallery (#611)
+View picture	查看图片
+Save picture	保存图片
+# context: a line on a Profile changes row; %1$s and %2$s are dates like Nov 3, 2026, the first and last day the old value was seen (#611)
+Seen from %1$s to %2$s	于 %1$s 至 %2$s 期间看到
+# context: the same line when both days are one date; %s is a date like Nov 3, 2026 (#611)
+Seen on %s	于 %s 看到
 Clear profile history	清除主页纪录
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	清除清单中所有的用户名、个人简介和照片，涵盖你的所有账户。开关维持原状。
 Profile history cleared.	已清除主页纪录。

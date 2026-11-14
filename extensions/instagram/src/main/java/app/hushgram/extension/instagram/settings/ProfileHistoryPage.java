@@ -58,8 +58,9 @@ import app.hushgram.extension.shared.ui.Dim;
 
 /**
  * The profile history's own page (#611): a search box and every username, bio and picture an
- * account was seen to replace, the newest change first. Tapping a row opens that account's
- * profile by the username it has now.
+ * account was seen to replace, the newest change first, with the dates each was seen between.
+ * Tapping a row opens that account's profile by the username it has now. Tapping an old picture's
+ * circle opens it full screen, and its long press saves it to the gallery too.
  */
 @SuppressWarnings("deprecation") // Preference is what the settings page builds on.
 final class ProfileHistoryPage {
@@ -217,12 +218,21 @@ final class ProfileHistoryPage {
 
     static final int COPY_USERNAME = 1;
     static final int COPY_BIO = 2;
+    static final int VIEW_PICTURE = 3;
+    static final int SAVE_PICTURE = 4;
 
-    /** What a long press on [change] offers: copying the old username or the old bio. Nothing for a picture. */
+    /**
+     * What a long press on [change] offers: copying the old username or the old bio, or viewing the
+     * old picture full screen and saving it to the gallery.
+     */
     static void fill(Menu menu, ProfileHistory.Past change) {
         if (change.entry.field == Field.USERNAME) menu.add(Menu.NONE, COPY_USERNAME, Menu.NONE, L10n.t("Copy username"));
         if (change.entry.field == Field.BIO && !change.entry.value.isEmpty()) {
             menu.add(Menu.NONE, COPY_BIO, Menu.NONE, L10n.t("Copy bio"));
+        }
+        if (change.entry.field == Field.PICTURE) {
+            menu.add(Menu.NONE, VIEW_PICTURE, Menu.NONE, L10n.t("View picture"));
+            menu.add(Menu.NONE, SAVE_PICTURE, Menu.NONE, L10n.t("Save picture"));
         }
     }
 
@@ -237,6 +247,15 @@ final class ProfileHistoryPage {
 
     /** Does what the long press menu's [id] says for [change]. */
     boolean pick(int id, ProfileHistory.Past change) {
+        // Each says for itself when it can't.
+        if (id == VIEW_PICTURE) {
+            ProfileHistory.viewPicture(dialog.getContext(), change);
+            return true;
+        }
+        if (id == SAVE_PICTURE) {
+            ProfileHistory.savePicture(dialog.getContext(), change);
+            return true;
+        }
         if (id != COPY_USERNAME && id != COPY_BIO) return false;
         Utils.setClipboard(dialog.getContext(), "Instagram", change.entry.value);
         Utils.showToastShort(L10n.t("Copied"));
@@ -327,13 +346,41 @@ final class ProfileHistoryPage {
             LinearLayout row = reused instanceof LinearLayout ? (LinearLayout) reused : make();
             ProfileHistory.Past change = shown.get(position);
             String what = HushgramPreferenceFragment.profileChangeLabel(change, System.currentTimeMillis());
+            String seen = dates(context, change);
+            if (!seen.isEmpty()) what += "\n" + seen;
             // An old bio shows under its line, a few lines of it at most.
             if (change.entry.field == Field.BIO && !change.entry.value.isEmpty()) what += "\n" + change.entry.value;
             LinearLayout words = (LinearLayout) row.getChildAt(1);
             ((TextView) words.getChildAt(0)).setText("@" + change.username);
             ((TextView) words.getChildAt(1)).setText(what);
-            show((ImageView) row.getChildAt(0), change);
+            ImageView picture = (ImageView) row.getChildAt(0);
+            show(picture, change);
+            // An old picture opens full screen from its circle. The long press offers it too.
+            if (change.entry.field == Field.PICTURE) {
+                picture.setOnClickListener(v -> ProfileHistory.viewPicture(context, change));
+                picture.setContentDescription(L10n.t(context, "View picture"));
+                picture.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+            } else {
+                picture.setOnClickListener(null);
+                picture.setClickable(false);
+                picture.setContentDescription(null);
+                // The words beside it say what the row is.
+                picture.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            }
             return row;
+        }
+
+        /**
+         * The dates [change]'s value was seen between, from its first sighting to the visit that
+         * found it replaced, or the one date when that was the same day. Empty without a first time.
+         */
+        static String dates(Context context, ProfileHistory.Past change) {
+            if (change.entry.time <= 0) return "";
+            int flags = android.text.format.DateUtils.FORMAT_SHOW_DATE | android.text.format.DateUtils.FORMAT_SHOW_YEAR
+                    | android.text.format.DateUtils.FORMAT_ABBREV_MONTH;
+            String from = android.text.format.DateUtils.formatDateTime(context, change.entry.time, flags);
+            String to = android.text.format.DateUtils.formatDateTime(context, change.until, flags);
+            return from.equals(to) ? L10n.f("Seen on %s", to) : L10n.f("Seen from %1$s to %2$s", from, to);
         }
 
         /**
@@ -380,8 +427,6 @@ final class ProfileHistoryPage {
             row.setBackground(ripple(palette));
 
             ImageView picture = new ImageView(context);
-            // The words beside it say what the row is.
-            picture.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             GradientDrawable well = new GradientDrawable();
             well.setColor(palette.card);
             // Round, like the profile pictures it holds.
@@ -403,7 +448,7 @@ final class ProfileHistoryPage {
             TextView what = new TextView(context);
             what.setTextColor(palette.summary);
             what.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-            what.setMaxLines(4);
+            what.setMaxLines(5);
             what.setEllipsize(TextUtils.TruncateAt.END);
             words.addView(what);
             row.addView(words, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));

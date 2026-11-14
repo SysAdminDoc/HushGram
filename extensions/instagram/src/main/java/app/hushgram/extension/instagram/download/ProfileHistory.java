@@ -14,16 +14,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -39,8 +40,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>It reads only what Instagram loaded to show the profile, so a private account shows up only
  * when you can see it. Nothing is fetched in the background and nothing is sent anywhere. Each
- * picture is copied at {@link #PICTURE_PX} across when it's first seen, since Instagram's address
- * for an old picture stops working once it's replaced. The list holds at most {@link #MAX_ACCOUNTS}
+ * picture is copied when it's first seen, since Instagram's address for an old picture stops
+ * working once it's replaced: the largest size the profile loaded, its full size one when Instagram
+ * has it, kept byte for byte as it came. A copy kept smaller is replaced on a later visit that
+ * comes with the full size. The list holds at most {@link #MAX_ACCOUNTS}
  * accounts and {@link #MAX_PER_FIELD} of each kind per account, in one small file in the app's own
  * storage, and it's left out of the settings backup.
  */
@@ -117,7 +120,14 @@ public final class ProfileHistory {
         /** Null when this build can't read bios, so a bio is never taken for an empty one. */
         @Nullable String bio(Object user);
 
+        /** The picture the profile shows. Its file name is what tells one picture from the next. */
         @Nullable String picture(Object user);
+
+        /** The same picture's full size address, or null when Instagram didn't load one. */
+        @Nullable String fullPicture(Object user);
+
+        /** The full size picture's width in pixels, or 0 when it isn't known. */
+        int fullPictureWidth(Object user);
     }
 
     static final Reads PATCHED = new Reads() {
@@ -137,16 +147,33 @@ public final class ProfileHistory {
             Object shown = InstagramMedia.profilePicture(user);
             return shown == null ? null : InstagramMedia.candidateUrl(shown);
         }
+
+        @Override public String fullPicture(Object user) {
+            Object full = InstagramMedia.fullSizeProfilePicture(user);
+            return full == null ? null : InstagramMedia.profilePictureUrl(full);
+        }
+
+        @Override public int fullPictureWidth(Object user) {
+            Object full = InstagramMedia.fullSizeProfilePicture(user);
+            return full == null ? 0 : InstagramMedia.profilePictureWidth(full);
+        }
     };
 
     static Reads reads = PATCHED;
 
-    /** Fetches a picture. {@link PictureFetch}; tests swap it. */
+    /** Fetches a picture into a file as it came. {@link PictureFetch#fetchInto}; tests swap it. */
     interface Fetch {
-        @Nullable Bitmap fetch(Context context, String url, int size);
+        boolean fetch(Context context, String url, File into);
     }
 
-    static Fetch fetch = PictureFetch::fetch;
+    static Fetch fetch = PictureFetch::fetchInto;
+
+    /** Starts a save to the gallery. {@link MediaSave#startPicture}; tests swap it. */
+    interface Gallery {
+        void save(Context application, PostDetails details, MediaSave.Job job);
+    }
+
+    static Gallery gallery = MediaSave::startPicture;
 
     /** Shows a toast. {@link Utils#showToastLong}; tests swap it. */
     interface Say {
@@ -157,7 +184,6 @@ public final class ProfileHistory {
 
     static final int MAX_ACCOUNTS = 1000;
     static final int MAX_PER_FIELD = 20;
-    static final int PICTURE_PX = 320;
 
     private static final String DIRECTORY = "hushgram-profiles";
     private static final String FILE = "history.json";
@@ -194,11 +220,13 @@ public final class ProfileHistory {
             // an empty one isn't taken for a change.
             String bio = trimmed(reads.bio(user));
             String url = trimmed(reads.picture(user));
+            String full = url.isEmpty() ? "" : trimmed(reads.fullPicture(user));
+            int fullWidth = full.isEmpty() ? 0 : reads.fullPictureWidth(user);
             Context context = Utils.getContext();
             if (context == null) return;
             long now = System.currentTimeMillis();
             Runnable note = () -> {
-                String told = record(context, id, username, bio.isEmpty() ? null : bio, url, now);
+                String told = record(context, id, username, bio.isEmpty() ? null : bio, url, full, fullWidth, now);
                 if (told != null) say.say(told);
             };
             if (!Utils.runOnBackgroundThread(note)) HookStatus.counted(FAMILY, NOT_NOTED);
@@ -217,9 +245,20 @@ public final class ProfileHistory {
      */
     @Nullable
     static String record(Context context, String id, String username, @Nullable String bio, String url, long now) {
+        return record(context, id, username, bio, url, "", 0, now);
+    }
+
+    /**
+     * As above, with the shown picture's full size address [full], [fullWidth] pixels across, empty
+     * when Instagram didn't load one. That's the copy kept when there is one.
+     */
+    @Nullable
+    static String record(Context context, String id, String username, @Nullable String bio, String url,
+            String full, int fullWidth, long now) {
         Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
         String picture = pictureName(url);
         List<Field> changed = new ArrayList<>();
+        boolean added = false;
         String before;
         Entry shown = null;
         boolean first;
@@ -232,13 +271,25 @@ public final class ProfileHistory {
                 ACCOUNTS.put(id, account);
             }
             before = account.username();
-            if (add(account, Field.USERNAME, username, "", now)) changed.add(Field.USERNAME);
-            if (bio != null && add(account, Field.BIO, bio, "", now)) changed.add(Field.BIO);
+            // A bio or a picture seen for the first time on a later visit, say after one reached from a
+            // post that came with neither, is kept but never told as a change: there's nothing older.
+            boolean hadBio = account.latest(Field.BIO) != null, hadPicture = account.latest(Field.PICTURE) != null;
+            if (add(account, Field.USERNAME, username, "", now)) {
+                added = true;
+                changed.add(Field.USERNAME);
+            }
+            if (bio != null && add(account, Field.BIO, bio, "", now)) {
+                added = true;
+                if (hadBio) changed.add(Field.BIO);
+            }
             if (!picture.isEmpty()) {
-                if (add(account, Field.PICTURE, picture, url, now)) changed.add(Field.PICTURE);
+                if (add(account, Field.PICTURE, picture, url, now)) {
+                    added = true;
+                    if (hadPicture) changed.add(Field.PICTURE);
+                }
                 shown = account.latest(Field.PICTURE);
             }
-            if (!changed.isEmpty()) {
+            if (added) {
                 while (ACCOUNTS.size() > MAX_ACCOUNTS) {
                     String oldest = ACCOUNTS.keySet().iterator().next();
                     forgetPictures(application, ACCOUNTS.remove(oldest));
@@ -246,10 +297,54 @@ public final class ProfileHistory {
                 save(application);
             }
         }
-        // The copy is made the first time the picture is seen, and again on a later visit when that
-        // fetch failed, while its address still works.
-        if (shown != null && !pictureFile(application, id, shown).isFile()) picture(application, id, shown, PICTURE_PX);
+        if (shown != null) keepPicture(application, id, shown, url, full, fullWidth);
         return first || changed.isEmpty() ? null : told(changed, before);
+    }
+
+    /**
+     * Copies [entry]'s picture, the one the profile shows now, from [full] when Instagram loaded its
+     * full size, else from [url]: the first time it's seen, again on a later visit when that fetch
+     * failed while its address still works, and once a process when the copy kept is narrower than
+     * [fullWidth], as one first seen from a post at the shown size is. Blocks on the network.
+     */
+    private static void keepPicture(Context application, String id, Entry entry, String url, String full, int fullWidth) {
+        File kept = pictureFile(application, id, entry);
+        int have = kept.isFile() ? PictureFetch.width(kept) : 0;
+        if (have > 0) {
+            if (full.isEmpty() || fullWidth <= have || !UPGRADES.add(kept.getName() + "@" + fullWidth)) return;
+            fetchInto(application, id, entry, full, kept, have);
+            return;
+        }
+        if (!full.isEmpty() && fetchInto(application, id, entry, full, kept, 0)) return;
+        if (!url.isEmpty() && !url.equals(full)) fetchInto(application, id, entry, url, kept, 0);
+    }
+
+    /** The kept copies tried at a larger size in this process, by file and width, so each is tried once. */
+    private static final Set<String> UPGRADES = Collections.synchronizedSet(new HashSet<>());
+
+    /**
+     * Fetches [source] and keeps it as [entry]'s copy [kept] when it's a picture wider than [have]
+     * pixels and the entry is still in the list. Answers whether it was kept.
+     */
+    private static boolean fetchInto(Context application, String id, Entry entry, String source, File kept, int have) {
+        File folder = kept.getParentFile();
+        if (folder == null || (!folder.mkdirs() && !folder.isDirectory())) return false;
+        File part = null;
+        try {
+            part = File.createTempFile(kept.getName(), ".part", folder);
+            if (!fetch.fetch(application, source, part) || PictureFetch.width(part) <= have) return false;
+            synchronized (LOCK) {
+                Account account = ACCOUNTS.get(id);
+                if (account == null || !account.entries.contains(entry)) return false;
+                Files.move(part.toPath(), kept.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                return true;
+            }
+        } catch (IOException | RuntimeException failure) {
+            Logger.printDebug(() -> "A profile history picture wasn't kept: " + failure);
+            return false;
+        } finally {
+            if (part != null && part.exists() && !part.delete()) Logger.printDebug(() -> "A profile history work file stayed");
+        }
     }
 
     /** Adds [value] as [account]'s newest [field] unless it's already that. Answers whether it was added. */
@@ -340,6 +435,7 @@ public final class ProfileHistory {
             try {
                 File file = file(application);
                 ACCOUNTS.clear();
+                UPGRADES.clear();
                 loadedFrom = file;
                 File work = new File(file.getParentFile(), FILE + ".tmp");
                 if (work.exists() && !work.delete()) return false;
@@ -379,33 +475,74 @@ public final class ProfileHistory {
     public static Bitmap picture(Context context, String id, Entry entry, int size) {
         try {
             Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
-            File kept = pictureFile(application, id, entry);
-            if (kept.isFile()) {
-                Bitmap bitmap = PictureFetch.decode(kept, size);
-                if (bitmap != null) return bitmap;
-            }
-            if (entry.url.isEmpty()) return null;
-            Bitmap fetched = fetch.fetch(application, entry.url, Math.max(size, PICTURE_PX));
-            if (fetched == null) return null;
-            synchronized (LOCK) {
-                Account account = ACCOUNTS.get(id);
-                if (account != null && account.entries.contains(entry)) keep(kept, fetched);
-            }
-            return fetched;
+            File kept = keptPicture(application, id, entry);
+            return kept == null ? null : PictureFetch.decode(kept, size);
         } catch (Throwable failure) {
             Logger.printDebug(() -> "A profile history picture wasn't shown: " + failure);
             return null;
         }
     }
 
-    private static void keep(File file, Bitmap bitmap) throws IOException {
-        File folder = file.getParentFile();
-        if (!folder.mkdirs() && !folder.isDirectory()) return;
-        File work = new File(folder, file.getName() + ".tmp");
-        try (FileOutputStream out = new FileOutputStream(work)) {
-            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)) return;
+    /**
+     * The file holding [entry]'s copy, fetched from its address first when there's none yet. Null
+     * when there's none. Blocks on the network.
+     */
+    @Nullable
+    private static File keptPicture(Context application, String id, Entry entry) {
+        File kept = pictureFile(application, id, entry);
+        if (kept.isFile() && PictureFetch.width(kept) > 0) return kept;
+        if (entry.url.isEmpty()) return null;
+        return fetchInto(application, id, entry, entry.url, kept, 0) ? kept : null;
+    }
+
+    /**
+     * Opens [change]'s old picture full screen from the copy kept on this phone, over the screen
+     * [context] belongs to, with a Save that puts that copy in the gallery as it is. Says so when it
+     * can't open. Answers whether it opened. Never throws.
+     */
+    public static boolean viewPicture(Context context, Past change) {
+        try {
+            if (context == null || change.entry.field != Field.PICTURE) return false;
+            Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+            if (ProfilePictureViewer.openKept(context, () -> keptPicture(application, change.id, change.entry), activity -> {
+                // The save says for itself when it fails.
+                savePicture(activity, change);
+                return true;
+            })) {
+                return true;
+            }
+            ProfilePictureViewer.notOpened(context);
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "view profile history picture", failure);
+            ProfilePictureViewer.notOpened(context);
+            return false;
         }
-        Files.move(work.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    /**
+     * Saves [change]'s old picture to the gallery from the copy kept on this phone, byte for byte,
+     * the way a profile picture save names and files it. Says Download failed when there's no copy.
+     * Answers whether the save started. Never throws.
+     */
+    public static boolean savePicture(Context context, Past change) {
+        try {
+            if (context == null || change.entry.field != Field.PICTURE) return false;
+            Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+            File kept = pictureFile(application, change.id, change.entry);
+            String mime = kept.isFile() ? PictureFetch.mime(kept) : null;
+            if (mime == null) {
+                ProfilePicture.failed(application);
+                return false;
+            }
+            gallery.save(application, PostDetails.profilePicture(change.username),
+                    (writer, progress) -> Downloader.publish(kept, mime, writer, progress));
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "save profile history picture", failure);
+            ProfilePicture.failed(context);
+            return false;
+        }
     }
 
     private static void forgetPictures(Context application, @Nullable Account account) {
@@ -484,8 +621,10 @@ public final class ProfileHistory {
             ACCOUNTS.clear();
             loadedFrom = null;
         }
+        UPGRADES.clear();
         reads = PATCHED;
-        fetch = PictureFetch::fetch;
+        fetch = PictureFetch::fetchInto;
+        gallery = MediaSave::startPicture;
         say = Utils::showToastLong;
     }
 }

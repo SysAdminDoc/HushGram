@@ -2134,6 +2134,13 @@ Was @%1$s, %2$s	Dulu @%1$s, %2$s
 # context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
 Old profile picture, %s	Foto profil lama, %s
 Old bio, %s	Bio lama, %s
+# context: long-press menu items on an old picture's row on the Profile changes page; View opens it full screen, Save puts it in the gallery (#611)
+View picture	Lihat foto
+Save picture	Simpan foto
+# context: a line on a Profile changes row; %1$s and %2$s are dates like Nov 3, 2026, the first and last day the old value was seen (#611)
+Seen from %1$s to %2$s	Terlihat dari %1$s hingga %2$s
+# context: the same line when both days are one date; %s is a date like Nov 3, 2026 (#611)
+Seen on %s	Terlihat pada %s
 Clear profile history	Hapus riwayat profil
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	Melupakan semua nama pengguna, bio, dan foto di daftar, untuk semua akunmu. Pengaturan sakelar tidak berubah.
 Profile history cleared.	Riwayat profil dihapus.

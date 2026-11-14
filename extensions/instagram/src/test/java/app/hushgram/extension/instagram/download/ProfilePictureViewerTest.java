@@ -322,6 +322,41 @@ public class ProfilePictureViewerTest {
                 + ": invoked 0, 0 found, 0 missing. Counted: picture not opened 1"), HookStatus.report());
     }
 
+    /** #611: an old picture kept on the phone opens from its file, and Save is the caller's own. */
+    @Test public void aKeptPictureOpensFromItsFileWithItsOwnSave() throws Exception {
+        File kept = new File(application.getCacheDir(), "kept-picture.jpg");
+        java.nio.file.Files.write(kept.toPath(), jpeg(120, 80));
+        List<Activity> saves = new ArrayList<>();
+        assertTrue(ProfilePictureViewer.openKept(activity.get(), () -> kept, saves::add));
+        settle();
+        Dialog dialog = ShadowDialog.getLatestDialog();
+        assertTrue(dialog.isShowing());
+        assertEquals(Collections.singletonList(FamilyNames.PROFILE_PICTURE
+                + ": invoked 0, 0 found, 0 missing. Counted: viewed under 1080 px wide 1"), HookStatus.report());
+        labeled(dialog.getWindow().getDecorView(), "Save").performClick();
+        assertEquals(1, saves.size());
+        assertTrue("the profile's own save isn't asked", saved.isEmpty());
+        assertTrue("the kept copy stays", kept.delete());
+    }
+
+    @Test public void aKeptPictureThatsGoneClosesAndSaysSo() throws Exception {
+        assertTrue(ProfilePictureViewer.openKept(activity.get(), () -> null, at -> true));
+        settle();
+        assertFalse(ShadowDialog.getLatestDialog().isShowing());
+        assertEquals("Couldn't open the picture", ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test public void aKeptPicturesFailedSaveSaysDownloadFailed() throws Exception {
+        File kept = new File(application.getCacheDir(), "kept-picture.jpg");
+        java.nio.file.Files.write(kept.toPath(), jpeg(120, 80));
+        assertTrue(ProfilePictureViewer.openKept(activity.get(), () -> kept, at -> false));
+        settle();
+        labeled(ShadowDialog.getLatestDialog().getWindow().getDecorView(), "Save").performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals("Download failed", ShadowToast.getTextOfLatestToast());
+        assertTrue(kept.delete());
+    }
+
     @Test public void loadReadsThePictureAndLeavesNoWorkFile() {
         server.serve("/full.jpg", "image/jpeg", jpeg(120, 80));
         ProfilePictureViewer.Picture picture =

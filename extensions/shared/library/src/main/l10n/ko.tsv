@@ -2133,6 +2133,13 @@ Was @%1$s, %2$s	이전 이름 @%1$s, %2$s
 # context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
 Old profile picture, %s	이전 프로필 사진, %s
 Old bio, %s	이전 소개, %s
+# context: long-press menu items on an old picture's row on the Profile changes page; View opens it full screen, Save puts it in the gallery (#611)
+View picture	사진 보기
+Save picture	사진 저장
+# context: a line on a Profile changes row; %1$s and %2$s are dates like Nov 3, 2026, the first and last day the old value was seen (#611)
+Seen from %1$s to %2$s	%1$s부터 %2$s까지 확인됨
+# context: the same line when both days are one date; %s is a date like Nov 3, 2026 (#611)
+Seen on %s	%s에 확인됨
 Clear profile history	프로필 기록 지우기
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	목록에 있는 모든 사용자 이름, 소개, 사진을 모든 계정에 대해 지웁니다. 스위치는 그대로 유지됩니다.
 Profile history cleared.	프로필 기록을 지웠습니다.

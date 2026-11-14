@@ -13,6 +13,8 @@ import androidx.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 import app.hushgram.extension.shared.Logger;
 
@@ -56,6 +58,60 @@ public final class PictureFetch {
         } finally {
             DashSave.discard(file);
         }
+    }
+
+    /**
+     * Fetches the picture at [url] into [into] byte for byte as the server sent it, replacing what
+     * [into] held, so a copy kept from it is the size it came at and never compressed again.
+     * Answers whether [into] holds it now. Blocks on the network: call it on a worker thread.
+     * Never throws.
+     */
+    public static boolean fetchInto(Context context, String url, File into) {
+        File file = null;
+        try {
+            Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+            File folder = DashSave.workFolder(application);
+            if (folder == null) return false;
+            file = File.createTempFile("image", ".part", folder);
+            Downloader.Result fetched = DashSave.fetchWork(url, Downloader.Kind.IMAGE, file,
+                    MediaSave.policyFor(application), MAX_BYTES, Downloader.SILENT);
+            if (!fetched.ok()) {
+                Logger.printDebug(() -> "A picture wasn't fetched: " + fetched.reason);
+                return false;
+            }
+            if (width(file) <= 0) return false;
+            Files.move(file.toPath(), into.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (Throwable failure) {
+            Logger.printDebug(() -> "A picture wasn't fetched: " + failure);
+            return false;
+        } finally {
+            DashSave.discard(file);
+        }
+    }
+
+    /** [file]'s width in pixels as a picture, or 0 when it isn't one or can't be read. Never throws. */
+    static int width(File file) {
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            decodeFile(file, bounds);
+            return bounds.outHeight > 0 ? Math.max(bounds.outWidth, 0) : 0;
+        } catch (IOException | RuntimeException failure) {
+            return 0;
+        }
+    }
+
+    /** The kind of picture [file] holds by its first bytes, or null when it doesn't start like one. */
+    @Nullable
+    static String mime(File file) throws IOException {
+        byte[] head = new byte[64];
+        int length = 0;
+        try (FileInputStream in = new FileInputStream(file)) {
+            int read;
+            while (length < head.length && (read = in.read(head, length, head.length - length)) > 0) length += read;
+        }
+        return length == 0 ? null : Downloader.sniff(Downloader.Kind.IMAGE, head, length);
     }
 
     /** [file] decoded at the smallest power-of-two step that's still [size] pixels across. */

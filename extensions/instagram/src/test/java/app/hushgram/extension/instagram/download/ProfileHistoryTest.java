@@ -4,27 +4,42 @@
  */
 package app.hushgram.extension.instagram.download;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.provider.MediaStore;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
+import org.robolectric.shadows.ShadowToast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import app.hushgram.extension.instagram.download.ProfileHistory.Field;
@@ -35,9 +50,11 @@ import app.hushgram.extension.shared.Utils;
 /**
  * Profile history (#590, #611): off until switched on, silent the first time a profile is seen,
  * a toast naming what changed after that, old values listed newest change first, each picture
- * copied while its address still works, kept in one file, and cleared on request.
+ * copied while its address still works, at the full size Instagram loaded when it loaded one,
+ * kept in one file, saved to the gallery as it was kept, and cleared on request.
  */
 @RunWith(RobolectricTestRunner.class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = 30)
 public class ProfileHistoryTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
@@ -47,6 +64,17 @@ public class ProfileHistoryTest {
     private final AtomicInteger fetches = new AtomicInteger();
     /** What the fake profile shows: id, username, bio, picture address. */
     private final String[] shown = {"", "", "", ""};
+    /** The full size picture the fake profile loaded, and its width, when it loaded one. */
+    private String fullShown = "";
+    private int fullWidthShown;
+    /** Each address the fake fetch was asked for, in order. */
+    private final List<String> asked = new ArrayList<>();
+    /** How wide a picture each address answers with, 4 pixels for any other. */
+    private final Map<String, Integer> widths = new HashMap<>();
+    /** Addresses whose fetch fails. */
+    private final Set<String> failing = new HashSet<>();
+    /** The bytes each address answered with last. */
+    private final Map<String, byte[]> sent = new HashMap<>();
 
     @Before public void setUp() {
         context = RuntimeEnvironment.getApplication();
@@ -80,12 +108,37 @@ public class ProfileHistoryTest {
             @Override public String picture(Object user) {
                 return shown[3];
             }
+
+            @Override public String fullPicture(Object user) {
+                return fullShown;
+            }
+
+            @Override public int fullPictureWidth(Object user) {
+                return fullWidthShown;
+            }
         };
         ProfileHistory.say = told::add;
-        ProfileHistory.fetch = (c, url, size) -> {
+        ProfileHistory.fetch = (c, url, into) -> {
             fetches.incrementAndGet();
-            return pictures ? Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888) : null;
+            asked.add(url);
+            if (!pictures || failing.contains(url)) return false;
+            Integer side = widths.get(url);
+            Bitmap picture = Bitmap.createBitmap(side == null ? 4 : side, side == null ? 4 : side, Bitmap.Config.ARGB_8888);
+            picture.eraseColor(0xff336699);
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            assertTrue(picture.compress(Bitmap.CompressFormat.PNG, 100, bytes));
+            sent.put(url, bytes.toByteArray());
+            try {
+                Files.write(into.toPath(), bytes.toByteArray());
+                return true;
+            } catch (java.io.IOException failure) {
+                return false;
+            }
         };
+    }
+
+    private File kept(String id) {
+        return ProfileHistory.pictureFile(context, id, ProfileHistory.account(context, id).latest(Field.PICTURE));
     }
 
     private void show(String id, String username, String bio, String picture) {
@@ -206,5 +259,122 @@ public class ProfileHistoryTest {
         assertEquals(0, ProfileHistory.count(context));
         ProfileHistory.forgetForTests();
         assertEquals(0, ProfileHistory.count(context));
+    }
+
+    /**
+     * #611: a profile first reached from a post can come with no bio and no picture. The ones its own
+     * page shows next have nothing older, so they're no change: no toast, and nothing on the page.
+     */
+    @Test public void aBioOrPictureFirstSeenOnALaterVisitIsNoChange() {
+        assertNull(ProfileHistory.record(context, "10", "ivy", null, "", 1_000L));
+        assertNull("a bio where none was seen yet", ProfileHistory.record(context, "10", "ivy", "hi", "", 2_000L));
+        assertNull("a picture where none was seen yet",
+                ProfileHistory.record(context, "10", "ivy", "hi", "https://cdn.example/i1.jpg", 3_000L));
+        assertTrue(ProfileHistory.past(context).isEmpty());
+        assertEquals("Their bio changed", ProfileHistory.record(context, "10", "ivy", "bye", "https://cdn.example/i1.jpg", 4_000L));
+        assertEquals("New profile picture", ProfileHistory.record(context, "10", "ivy", "bye", "https://cdn.example/i2.jpg", 5_000L));
+        assertEquals(2, ProfileHistory.past(context).size());
+    }
+
+    /** #611: with the full size loaded, that's the copy kept, byte for byte, and never the size shown. */
+    @Test public void theFullSizeIsKeptAsItCameRatherThanTheSizeShown() throws Exception {
+        Settings.PROFILE_HISTORY.save(true);
+        String small = "https://cdn.example/v/k_n.jpg?stp=s150x150&oh=1";
+        String full = "https://cdn.example/v/k_n.jpg?oh=2";
+        widths.put(small, 150);
+        widths.put(full, 640);
+        show("12", "kim", "", small);
+        fullShown = full;
+        fullWidthShown = 640;
+        open();
+        assertEquals(Collections.singletonList(full), asked);
+        assertEquals(640, PictureFetch.width(kept("12")));
+        assertArrayEquals("as it came, never compressed again", sent.get(full), Files.readAllBytes(kept("12").toPath()));
+        open();
+        assertEquals("a full size copy isn't fetched again", 1, fetches.get());
+        assertTrue(told.isEmpty());
+    }
+
+    /**
+     * #611: a copy kept at the size shown, from a profile reached from a post, is replaced by the
+     * full size once a later visit loads it. A width the answer doesn't have is tried once a process.
+     */
+    @Test public void aSmallerCopyIsReplacedOnceTheFullSizeTurnsUp() throws Exception {
+        String small = "https://cdn.example/v/m_n.jpg?stp=s150x150&oh=1";
+        String other = "https://cdn.example/v/m_n.jpg?stp=s320x320&oh=2";
+        String full = "https://cdn.example/v/m_n.jpg?oh=3";
+        widths.put(small, 150);
+        widths.put(full, 640);
+        assertNull(ProfileHistory.record(context, "13", "max", null, small, "", 0, 1_000L));
+        assertEquals(150, PictureFetch.width(kept("13")));
+        assertNull("the same picture at its full size is no change",
+                ProfileHistory.record(context, "13", "max", null, other, full, 640, 2_000L));
+        assertEquals(Arrays.asList(small, full), asked);
+        assertEquals(640, PictureFetch.width(kept("13")));
+        assertArrayEquals(sent.get(full), Files.readAllBytes(kept("13").toPath()));
+        ProfileHistory.record(context, "13", "max", null, other, full, 640, 3_000L);
+        assertEquals("a copy as wide as the full size isn't fetched again", 2, fetches.get());
+
+        ProfileHistory.record(context, "13", "max", null, other, full, 1080, 4_000L);
+        assertEquals(3, fetches.get());
+        assertEquals("an answer no wider than the copy doesn't replace it", 640, PictureFetch.width(kept("13")));
+        ProfileHistory.record(context, "13", "max", null, other, full, 1080, 5_000L);
+        assertEquals("tried once a process", 3, fetches.get());
+        assertTrue(ProfileHistory.past(context).isEmpty());
+        File[] left = ProfileHistory.pictures(context).listFiles((folder, name) -> name.endsWith(".part"));
+        assertEquals("no work file stays", 0, left == null ? 0 : left.length);
+    }
+
+    /** #611: when the full size can't be fetched, the size shown is kept, as before. */
+    @Test public void aFullSizeThatFailsFallsBackToTheSizeShown() {
+        String small = "https://cdn.example/v/n_n.jpg?stp=s150x150";
+        String full = "https://cdn.example/v/n_n.jpg";
+        widths.put(small, 150);
+        failing.add(full);
+        ProfileHistory.record(context, "14", "nia", null, small, full, 640, 1_000L);
+        assertEquals(Arrays.asList(full, small), asked);
+        assertEquals(150, PictureFetch.width(kept("14")));
+        ProfileHistory.record(context, "14", "nia", null, small, full, 640, 2_000L);
+        ProfileHistory.record(context, "14", "nia", null, small, full, 640, 3_000L);
+        assertEquals("the full size is tried again once a process", Arrays.asList(full, small, full), asked);
+        assertEquals(150, PictureFetch.width(kept("14")));
+    }
+
+    /** #611: Save picture puts the copy kept in the gallery byte for byte, named as a profile picture. */
+    @Test public void anOldPictureSavesTheCopyKeptAsItIs() throws Exception {
+        context.getApplicationInfo().targetSdkVersion = 37;
+        MediaSaveTest.Gallery rows = Robolectric.setupContentProvider(MediaSaveTest.Gallery.class, MediaStore.AUTHORITY);
+        ByteArrayOutputStream published = new ByteArrayOutputStream();
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(
+                ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, 1), published);
+        widths.put("https://cdn.example/s1.jpg", 64);
+        ProfileHistory.record(context, "15", "oli", null, "https://cdn.example/s1.jpg", 1_000L);
+        ProfileHistory.record(context, "15", "oli", null, "https://cdn.example/s2.jpg", 2_000L);
+        List<ProfileHistory.Past> past = ProfileHistory.past(context);
+        assertEquals(1, past.size());
+        List<PostDetails> named = new ArrayList<>();
+        List<MediaSave.Job> jobs = new ArrayList<>();
+        ProfileHistory.gallery = (application, details, job) -> {
+            named.add(details);
+            jobs.add(job);
+        };
+        assertTrue(ProfileHistory.savePicture(context, past.get(0)));
+        assertEquals(1, jobs.size());
+        assertEquals("the username it has now names it", "oli", named.get(0).owner);
+        assertTrue(named.get(0).profile);
+        Downloader.Result result = jobs.get(0).run(new MediaStoreWriter(context, false, named.get(0)), Downloader.SILENT);
+        assertTrue(result.toString(), result.ok());
+        assertEquals(1, rows.inserts.size());
+        ContentValues row = rows.rows.get(1L);
+        assertEquals("image/png", row.getAsString(MediaStore.MediaColumns.MIME_TYPE));
+        assertArrayEquals(sent.get("https://cdn.example/s1.jpg"), published.toByteArray());
+        assertTrue("the copy stays for the page", ProfileHistory.pictureFile(context, "15", past.get(0).entry).isFile());
+
+        // With no copy kept there's nothing to save, and it says so.
+        assertTrue(ProfileHistory.pictureFile(context, "15", past.get(0).entry).delete());
+        assertFalse(ProfileHistory.savePicture(context, past.get(0)));
+        assertEquals(1, jobs.size());
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertEquals("Download failed", ShadowToast.getTextOfLatestToast());
     }
 }

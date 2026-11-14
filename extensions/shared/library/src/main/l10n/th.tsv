@@ -2131,6 +2131,13 @@ Was @%1$s, %2$s	เคยเป็น @%1$s %2$s
 # context: a row on the Profile changes page; %s is Android's relative time of the change, like 2 days ago (#611)
 Old profile picture, %s	รูปโปรไฟล์เดิม %s
 Old bio, %s	ประวัติเดิม %s
+# context: long-press menu items on an old picture's row on the Profile changes page; View opens it full screen, Save puts it in the gallery (#611)
+View picture	ดูรูปภาพ
+Save picture	บันทึกรูปภาพ
+# context: a line on a Profile changes row; %1$s and %2$s are dates like Nov 3, 2026, the first and last day the old value was seen (#611)
+Seen from %1$s to %2$s	เห็นตั้งแต่ %1$s ถึง %2$s
+# context: the same line when both days are one date; %s is a date like Nov 3, 2026 (#611)
+Seen on %s	เห็นเมื่อ %s
 Clear profile history	ล้างประวัติโปรไฟล์
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	ลบชื่อผู้ใช้ ประวัติ และรูปทั้งหมดในรายการสำหรับทุกบัญชีของคุณ โดยสวิตช์จะยังคงอยู่ในสถานะเดิม
 Profile history cleared.	ล้างประวัติโปรไฟล์แล้ว
