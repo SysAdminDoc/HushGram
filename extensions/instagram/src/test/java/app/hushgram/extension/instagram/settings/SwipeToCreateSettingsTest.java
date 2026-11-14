@@ -45,7 +45,9 @@ public class SwipeToCreateSettingsTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
+        PatchFamily.homeLeftSwipeForTests = null;
         Settings.STOP_SWIPE_TO_CREATE.resetToDefault();
+        Settings.SWIPE_LEFT_MESSAGES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -108,5 +110,15 @@ public class SwipeToCreateSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.SWIPE_LEFT_MESSAGES.get());
+    }
+    /** A build whose touch hook didn't go in keeps Stop swipe to create and offers no left swipe that does nothing. */
+    @Test public void aBuildWithoutTheLeftSwipeKeepsStopSwipeWithoutIt() throws Exception {
+        PatchFamily.homeLeftSwipeForTests = false;
+        open(true);
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.STOP_SWIPE_TO_CREATE.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.SWIPE_LEFT_MESSAGES.key));
+        java.util.List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.SWIPE_TO_CREATE), false);
+        assertTrue(report.toString(), report.contains("  Swipe left for Messages: not in this build "
+                + "(the screens' touch dispatch didn't match)"));
     }
 }

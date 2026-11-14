@@ -394,6 +394,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Swipe left for Messages, Stop swipe to create's second switch, which a build can lack. */
+    public static boolean homeLeftSwipe() {
+        return false;
+    }
+
     public static boolean fullResolution() {
         return false;
     }

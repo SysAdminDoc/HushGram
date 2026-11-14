@@ -407,6 +407,22 @@ public enum PatchFamily {
         return COMMENT_COPY.inBuild() && SettingsStatus.commentAuthor();
     }
 
+    /** Whether a test says this build opens Messages on a left swipe, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean homeLeftSwipeForTests;
+
+    /**
+     * Whether this build opens Messages on a left swipe across Home. Stop swipe to create goes in
+     * without it when the screens' touch dispatch has moved, so its second switch isn't offered then.
+     */
+    public static boolean homeLeftSwipeInBuild() {
+        Boolean forced = homeLeftSwipeForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(SWIPE_TO_CREATE);
+        return SWIPE_TO_CREATE.inBuild() && SettingsStatus.homeLeftSwipe();
+    }
+
     /** Whether a test says this build replies with a comment's GIF, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean commentGifReplyForTests;
@@ -618,6 +634,9 @@ public enum PatchFamily {
                 }
                 if (family == FOLLOWING_FEED && !favoritesFeedInBuild()) {
                     lines.add("  Favorites from the tab bar: not in this build (Home's feed switch or the tab bar didn't match)");
+                }
+                if (family == SWIPE_TO_CREATE && !homeLeftSwipeInBuild()) {
+                    lines.add("  Swipe left for Messages: not in this build (the screens' touch dispatch didn't match)");
                 }
                 if (family == COMMENT_PHOTO && !commentGifReplyInBuild()) {
                     lines.add("  Reply with a comment's GIF: not in this build (the comment screen's Reply or GIF send didn't match)");

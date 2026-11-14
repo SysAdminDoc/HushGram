@@ -20,6 +20,7 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
@@ -92,12 +93,28 @@ val stopSwipeToCreatePatch = bytecodePatch(
 
     execute {
         requireStatusMethod("swipeToCreate")
+        requireStatusMethod(HOME_LEFT_SWIPE_STATUS)
         val site = findSwipeToCreate()
-        val touch = findHomeLeftSwipeTouch()
+        val touch = findHomeLeftSwipeTouchOrWarn()
         stopSwipeToCreate(site)
-        hookHomeLeftSwipe(touch)
+        if (touch != null) hookHomeLeftSwipe(touch)
         enableStatus("swipeToCreate")
+        if (touch != null) enableStatus(HOME_LEFT_SWIPE_STATUS)
     }
+}
+
+/** The status method that offers Swipe left for Messages, on only when its touch hook went in. */
+internal const val HOME_LEFT_SWIPE_STATUS = "homeLeftSwipe"
+
+/**
+ * [findHomeLeftSwipeTouch], or null with a warning when the screens' touch dispatch has moved, so the
+ * camera stop still goes in and only Swipe left for Messages stays out.
+ */
+internal fun BytecodePatchContext.findHomeLeftSwipeTouchOrWarn(): MutableMethod? = try {
+    findHomeLeftSwipeTouch()
+} catch (moved: PatchException) {
+    patchLog.warning("${moved.message}. $PATCH goes in without Swipe left for Messages.")
+    null
 }
 
 /**

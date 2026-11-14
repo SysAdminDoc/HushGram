@@ -37,6 +37,8 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -168,6 +170,21 @@ class HomeLeftSwipeHookTest {
     @Test
     fun noActivityFailsThePatch() = refuses("this build has no") {
         PatchContexts.of(emptyList()).findHomeLeftSwipeTouch()
+    }
+
+    /** A build whose touch dispatch moved leaves the swipe out and keeps the patch going, for its camera stop. */
+    @Test
+    fun aMovedTouchDispatchLeavesOnlyTheSwipeOut() {
+        assertNull(PatchContexts.of(emptyList()).findHomeLeftSwipeTouchOrWarn())
+        assertNull(PatchContexts.of(listOf(activity(locals = 0))).findHomeLeftSwipeTouchOrWarn())
+        assertNotNull(PatchContexts.of(listOf(activity())).findHomeLeftSwipeTouchOrWarn())
+    }
+
+    /** The swipe's own status method is in the extension, so its switch is offered only when the hook went in. */
+    @Test
+    fun theSwipeHasItsOwnStatusMethod() {
+        val status = ExtensionDex.classDef(SETTINGS_STATUS).methods.map { it.name }
+        assertTrue(status.toString(), HOME_LEFT_SWIPE_STATUS in status)
     }
 
     private fun refuses(detail: String, run: () -> Unit) {
