@@ -19,19 +19,23 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.instagram.reels.partnership.fillStub
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21t
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -49,6 +53,9 @@ internal const val HOLD = "$BACKGROUND_PLAY->hold(Ljava/lang/Object;Ljava/lang/S
 /** Asked with the player and the reason before each release; yes keeps the player until the session ends. */
 internal const val RELEASING = "$BACKGROUND_PLAY->releasing(Ljava/lang/Object;Ljava/lang/String;)Z"
 internal const val STARTED_PLAYING = "$BACKGROUND_PLAY->started(Ljava/lang/Object;)V"
+
+/** Told by the story player each time its video is ready, with the start it parked while paused, or null. */
+internal const val STORY_PREPARED = "$BACKGROUND_PLAY->storyPrepared(Ljava/lang/Object;Ljava/lang/Object;)V"
 internal const val VOLUME = "$BACKGROUND_PLAY->volume(Ljava/lang/Object;F)V"
 internal const val LEAVING = "$BACKGROUND_PLAY->leaving(Landroid/app/Activity;)V"
 
@@ -71,6 +78,7 @@ private const val AUDIO_FOCUS_LISTENER = "Landroid/media/AudioManager\$OnAudioFo
 
 private const val STRING = "Ljava/lang/String;"
 private const val OBJECT = "Ljava/lang/Object;"
+private const val RUNNABLE = "Ljava/lang/Runnable;"
 
 /**
  * A resource patch, so Manager decodes the manifest and writes the edited copy back. Declared
@@ -100,7 +108,9 @@ internal val backgroundPlayServicePatch = resourcePatch {
  * start again. Audio focus, a mute, coming back or the notification's Stop all end the session.
  * A story that ends in the background slides to the next one on a spring, which only moves on the
  * screen's frames, so the spring system tells the extension each time one sets off, and it steps
- * the system by hand while Instagram is hidden: see [keepSpringsMoving].
+ * the system by hand while Instagram is hidden: see [keepSpringsMoving]. The next story's player is
+ * paused then, as Instagram's screen is, so its prepared callback parks the start instead of
+ * running it. That callback tells the extension what it parked, and the extension resumes it.
  * The notification's Pause and Play reach either player through stubs this patch fills. The
  * manifest gets the service, and the foreground service permissions when Instagram doesn't ask
  * for them already.
@@ -161,7 +171,9 @@ internal class BackgroundPlaySites(
  * none of its methods: [pause] (String) and [resume] (String, boolean), [start], its static
  * (player, String, boolean, boolean) start, the volume setter [setVolume] (float, int), [engine],
  * its engine field, and [playing], the two engine fields and the no-argument boolean its pause
- * reads to know whether the video plays.
+ * reads to know whether the video plays. [prepared] is the callback the engine calls once the
+ * video is ready, and [parked] the Runnable field it keeps the start in while the player is paused,
+ * which the resume runs.
  */
 internal class StoryPlayerSites(
     val type: String,
@@ -171,6 +183,8 @@ internal class StoryPlayerSites(
     val setVolume: Method,
     val engine: String,
     val playing: List<String>,
+    val prepared: Method,
+    val parked: String,
 )
 
 /**
@@ -262,7 +276,9 @@ internal fun BytecodePatchContext.findBackgroundPlaySites(): BackgroundPlaySites
  * method, its resume the one (String, boolean) loading [FRAGMENT_RESUMED], its start the one static
  * (player, String, boolean, boolean) loading [RESUME] and calling an engine (String, boolean)
  * method, and its volume setter the one (float, int) calling an engine (float) method. Whether it
- * plays is the engine field, two fields and a no-argument boolean its pause reads in a row.
+ * plays is the engine field, two fields and a no-argument boolean its pause reads in a row. Its
+ * prepared callback is the one instance (engine) method that keeps a new runnable whose run()
+ * calls the start in a Runnable field of the player, and runs it from there ([parkedStart]).
  */
 internal fun BytecodePatchContext.findStoryPlayer(player: String, engineType: String): StoryPlayerSites {
     val candidates = classesLoadingString(FRAGMENT_RESUMED).filter { story ->
@@ -294,6 +310,10 @@ internal fun BytecodePatchContext.findStoryPlayer(player: String, engineType: St
     val setVolume = instance.single("a story volume setter (float, int) setting the engine's", type) {
         it.takes("F", "I") && it.returnType == "V" && it.callsEngine("F")
     }
+    val prepared = instance.single("a story prepared callback ($engineType) keeping a start in a Runnable field", type) {
+        it.takes(engineType) && it.returnType == "V" && parkedStart(it, type, start) != null
+    }
+    val parked = parkedStart(prepared, type, start)!!
     val playing = storyPlaying(pause, engine, engineType)
 
     val hidden = mutableListOf<String>()
@@ -313,7 +333,45 @@ internal fun BytecodePatchContext.findStoryPlayer(player: String, engineType: St
     }
     if (hidden.isNotEmpty()) throw PatchException("$PATCH: the extension can't reach ${hidden.distinct().joinToString()}, not public")
 
-    return StoryPlayerSites(type, pause, resume, start, setVolume, engine, playing)
+    return StoryPlayerSites(type, pause, resume, start, setVolume, engine, playing, prepared, parked)
+}
+
+/**
+ * The Runnable field of [type] that [method] keeps a new runnable in and runs that same runnable
+ * from, when the runnable's run() calls [start] (checked where its class is among the classes
+ * patched): the story player's prepared callback, which skips the run and leaves the start in the
+ * field while the player is paused. Null for any other method.
+ */
+private fun BytecodePatchContext.parkedStart(method: Method, type: String, start: Method): String? {
+    val code = method.code()
+    val self = method.localRegisterCount()
+    for ((at, instruction) in code.withIndex()) {
+        if (instruction.opcode != Opcode.NEW_INSTANCE) continue
+        val made = (instruction as OneRegisterInstruction).registerA
+        val runnable = (instruction as ReferenceInstruction).reference.toString()
+        val rest = code.drop(at + 1)
+        val kept = rest.firstOrNull { next ->
+            next.opcode == Opcode.IPUT_OBJECT && (next as TwoRegisterInstruction).registerA == made && next.registerB == self
+        }?.fieldReference()?.takeIf { it.definingClass == type && it.type == RUNNABLE } ?: continue
+        val runs = rest.any { next ->
+            val call = next.methodReference()
+            (next.opcode == Opcode.INVOKE_VIRTUAL || next.opcode == Opcode.INVOKE_INTERFACE) && call != null &&
+                call.name == "run" && call.parameterTypes.isEmpty() && call.returnType == "V" &&
+                (next as FiveRegisterInstruction).registerCount == 1 && next.registerC == made
+        }
+        if (!runs) continue
+        val run = classDefByOrNull(runnable)?.methods?.firstOrNull { it.name == "run" && it.parameterTypes.isEmpty() && it.returnType == "V" }
+        if (run != null && run.code().none { it.methodReference()?.key() == start.key() }) continue
+        return kept.key()
+    }
+    return null
+}
+
+/** Whether a try block covers instruction [index] of this method. */
+private fun Method.insideTry(index: Int): Boolean {
+    val implementation = implementation ?: return false
+    val address = implementation.instructions.take(index).sumOf { it.codeUnits }
+    return implementation.tryBlocks.any { address >= it.startCodeAddress && address < it.startCodeAddress + it.codeUnitCount }
 }
 
 /**
@@ -348,7 +406,8 @@ private fun storyPlaying(pause: Method, engine: String, engineType: String): Lis
  * Puts the hooks in, each first in its method after the hooks other patches put first there: the
  * pauses and the stop return at once when [HOLD] says to, the release when [RELEASING] does,
  * playInternal and the story start tell [STARTED_PLAYING], the volume setters tell [VOLUME] what
- * they were asked for, and the activity's leave hint tells [LEAVING]. Then fills the extension's
+ * they were asked for, the activity's leave hint tells [LEAVING], and the story player's prepared
+ * callback tells [STORY_PREPARED] as it returns ([tellPrepared]). Then fills the extension's
  * stubs, which ask whether a player plays, pause, play and release it, and read its engine.
  *
  * Resume long videos puts its stopped hook first in the pause and the stop, and Tap to play its
@@ -377,6 +436,7 @@ internal fun BytecodePatchContext.keepPlayingInBackground(sites: BackgroundPlayS
     mutable(sites.setVolume).addAfterLeadingHooks("invoke-static/range { p0 .. p1 }, $VOLUME")
     mutable(story.setVolume).addAfterLeadingHooks("invoke-static/range { p0 .. p1 }, $VOLUME")
     mutable(sites.leaveHint).addAfterLeadingHooks("invoke-static/range { p0 .. p0 }, $LEAVING")
+    tellPrepared(story)
 
     val player = sites.player
     val (outer, inner, asked) = story.playing
@@ -479,6 +539,37 @@ internal fun BytecodePatchContext.keepPlayingInBackground(sites: BackgroundPlayS
             return-object v0
         """,
     )
+}
+
+/**
+ * Has the story player's prepared callback tell [STORY_PREPARED] right before each of its returns,
+ * with the player and what its [StoryPlayerSites.parked] field holds then. The returns come after
+ * the callback lets go of its lock, outside every try block, and a jump onto one runs the call too.
+ */
+private fun BytecodePatchContext.tellPrepared(story: StoryPlayerSites) {
+    val prepared = story.prepared
+    val returns = prepared.code().withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.map { it.index }
+    if (returns.isEmpty()) throw PatchException("$PATCH: the story prepared callback ${prepared.key()} has no return-void")
+    val covered = returns.filter { prepared.insideTry(it) }
+    if (covered.isNotEmpty()) {
+        throw PatchException("$PATCH: the story prepared callback ${prepared.key()} returns inside a try block at $covered")
+    }
+    prepared.requireThisIntact(PATCH, returns)
+    mutable(prepared).apply {
+        requireLocals(PATCH, 2)
+        val now = implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.map { it.index }
+        if (now != returns) throw PatchException("$PATCH: another patch changed the story prepared callback ${prepared.key()}")
+        for (at in returns.reversed()) {
+            addInstructionsAtControlFlowLabel(
+                at,
+                """
+                    move-object/from16 v0, p0
+                    iget-object v1, v0, ${story.parked}
+                    invoke-static { v0, v1 }, $STORY_PREPARED
+                """,
+            )
+        }
+    }
 }
 
 /**

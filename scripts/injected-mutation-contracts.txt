@@ -1759,6 +1759,11 @@ once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/
 start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling instance LX/*;->*(F)V holding LX/*;->*:Lcom/instagram/model/reels/ReelItem;
 once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling instance LX/*;->*(F)V holding LX/*;->*:Lcom/instagram/model/reels/ReelItem;
 single-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->leaving(Landroid/app/Activity;)V in onUserLeaveHint
+# The story player's prepared callback (09Yv.G3G on 454), the one (engine) method keeping a new
+# runnable in a Runnable field that reads a ReelItem field and hands it to a (ReelItem, boolean)
+# call, tells storyPrepared() once, right before its one return and past its lock. Left out, the
+# next story parks its start while Instagram is hidden and nothing plays after a story ends.
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->storyPrepared(Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;)V holding LX/*;->*:Ljava/lang/Runnable; LX/*;->*:Lcom/instagram/model/reels/ReelItem; LX/*;->*(Lcom/instagram/model/reels/ReelItem;Z)V
 # Rebound's spring system activate (02iJ.A03 on 454's 386014758), the one instance (String) method
 # loading " does not reference a registered spring", calls springMoving exactly once, the patch
 # handing it the looper's frame callback and skipping the call while the system has no looper yet,

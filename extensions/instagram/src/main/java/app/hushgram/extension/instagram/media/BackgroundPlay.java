@@ -50,7 +50,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>A video story that ends in the background moves on to the next story, which takes over as the
  * held player: the slide between them is a spring that only moves on the screen's frames, and
- * {@link SpringSteps} gives it those while Instagram is hidden ({@link #springMoving}).
+ * {@link SpringSteps} gives it those while Instagram is hidden ({@link #springMoving}). The next
+ * story's player then parks its start, since the hidden screen has it paused, and
+ * {@link #storyPrepared} resumes it unless the session was paused on purpose.
  *
  * <p>Everything else stops it as before. Coming back to the same screen ends the session with the
  * video still playing. Another Instagram screen opening over it pauses it, as Instagram would have.
@@ -127,6 +129,11 @@ public final class BackgroundPlay {
     private static long pausedSince = NONE;
     /** True while this class pauses or releases the held player itself, so that call goes through. */
     private static boolean passing;
+    /**
+     * True once the notification's Pause or a lost audio focus paused the held video, until Play or
+     * Instagram starts it again, so a story that gets ready meanwhile stays paused too.
+     */
+    private static boolean pausedOnPurpose;
     /**
      * The releases Instagram asked for on the held player. They go through when the session ends, or
      * on their own player as another video takes over from it, so they only ever hold the held one's.
@@ -228,6 +235,45 @@ public final class BackgroundPlay {
     }
 
     /**
+     * Right before the story player's prepared callback returns, once its video is ready, with
+     * [parked], the start it left for its resume because the player is paused, or null when it
+     * started. In a session Instagram's screen is hidden, so the story the viewer moved on to after
+     * the held one ended is paused that way; it plays through the play stub, which resumes it.
+     */
+    public static void storyPrepared(Object player, @Nullable Object parked) {
+        try {
+            HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
+            if (player == null || parked == null) return;
+            synchronized (LOCK) {
+                if (phase != Phase.BACKGROUND) return;
+            }
+            // Posted, so the resume runs on the main thread once the callback is done.
+            Utils.runOnMainThread(() -> resumeParked(player));
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "story prepared", t);
+        }
+    }
+
+    /**
+     * Plays [player], a story player whose start is parked, when it's the held one or another of its
+     * kind taking over from a held one that stopped, and nothing paused the session on purpose: the
+     * notification's Pause, a lost audio focus, or a mute.
+     */
+    private static void resumeParked(Object player) {
+        Object current;
+        synchronized (LOCK) {
+            if (phase != Phase.BACKGROUND || pausedOnPurpose || mutedAt != NONE) return;
+            current = heldLocked();
+        }
+        if (current == null || !on()) return;
+        if (player != current && (current.getClass() != player.getClass() || isPlaying(current))) return;
+        if (isPlaying(player)) return;
+        HookStatus.counted(FamilyNames.BACKGROUND_PLAY, "stories started in the background");
+        log(() -> "the next story was ready in the background, so it plays");
+        playThrough(player);
+    }
+
+    /**
      * At the top of the spring system's activate, which runs each time one of Instagram's springs
      * sets off, with [frames], that system's frame callback. In a session it's stepped while
      * Instagram is hidden ({@link SpringSteps}), so the story viewer's slide to the next story ends
@@ -308,6 +354,9 @@ public final class BackgroundPlay {
             }
             if (!on()) return endBeforePause(player, "the switch is off");
             if (reason != null && reason.toLowerCase(Locale.ROOT).contains("focus")) {
+                synchronized (LOCK) {
+                    pausedOnPurpose = true;
+                }
                 log(() -> "let a pause for the audio focus through (" + reason + ")");
                 return false;
             }
@@ -370,6 +419,7 @@ public final class BackgroundPlay {
         if (player == null) return;
         synchronized (LOCK) {
             mutedAt = NONE;
+            pausedOnPurpose = true;
         }
         pauseThrough(player);
     }
@@ -377,6 +427,9 @@ public final class BackgroundPlay {
     static void playFromNotification() {
         Object player = held();
         if (player == null) return;
+        synchronized (LOCK) {
+            pausedOnPurpose = false;
+        }
         // Tap to play holds back a start nobody tapped, and the button is a tap.
         TapToPlay.tappedFromNotification(engineOf(player));
         playThrough(player);
@@ -589,6 +642,7 @@ public final class BackgroundPlay {
             leavingScreen = null;
             mutedAt = NONE;
             pausedSince = NONE;
+            pausedOnPurpose = false;
             ending.addAll(releases);
             releases.clear();
             releasedWhileEnding.clear();
@@ -703,7 +757,10 @@ public final class BackgroundPlay {
             for (Release release : replaced) releaseReplaced(release.player, release.reason);
         }
         synchronized (LOCK) {
-            if (player == heldLocked()) pausedSince = NONE;
+            if (player == heldLocked()) {
+                pausedSince = NONE;
+                pausedOnPurpose = false;
+            }
         }
         BackgroundPlayService.refresh();
     }
@@ -876,6 +933,7 @@ public final class BackgroundPlay {
             mutedAt = NONE;
             pausedSince = NONE;
             passing = false;
+            pausedOnPurpose = false;
             releases.clear();
             ending.clear();
             releasedWhileEnding.clear();

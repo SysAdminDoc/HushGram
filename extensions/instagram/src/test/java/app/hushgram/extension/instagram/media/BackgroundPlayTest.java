@@ -378,6 +378,110 @@ public class BackgroundPlayTest {
     }
 
     /**
+     * A story that ended in the background hands the viewer to the next one, whose player parks its
+     * start since the hidden screen has it paused: the parked start plays, and once it starts it
+     * takes the session over. The held player's own parked start plays too.
+     */
+    @Test
+    public void aStoryReadyInTheBackgroundPlays() {
+        background(player);
+        players.playing.remove(player);
+
+        BackgroundPlay.storyPrepared(other, new Object());
+        assertTrue("posted, not run inside Instagram's callback", players.calls.isEmpty());
+        idle();
+        assertEquals(List.of("play"), players.calls);
+        assertTrue(players.playing.contains(other));
+
+        BackgroundPlay.started(other);
+        idle();
+        assertTrue("the next story holds the session", BackgroundPlay.hold(other, "fragment_paused"));
+
+        players.playing.remove(other);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("the held one's own parked start", List.of("play", "play"), players.calls);
+    }
+
+    /**
+     * A story getting ready plays nothing with no start parked, outside a session or before
+     * Instagram is hidden, while the held video still plays, when it's another kind of player, when
+     * it already plays, or with the switch off.
+     */
+    @Test
+    public void aStoryReadyIsLeftAloneOutsideAStoppedSession() {
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        leaveWith(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("not before Instagram is hidden", List.of(), players.calls);
+
+        BackgroundPlay.stopped(screen);
+        BackgroundPlay.storyPrepared(other, null);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("nothing parked, or the held one still plays", List.of(), players.calls);
+
+        players.playing.remove(player);
+        BackgroundPlay.storyPrepared(new StringBuilder(), new Object());
+        players.playing.add(third);
+        BackgroundPlay.storyPrepared(third, new Object());
+        idle();
+        assertEquals("another kind of player, or one already playing", List.of(), players.calls);
+
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("the switch is off", List.of(), players.calls);
+    }
+
+    /**
+     * The notification's Pause, a lost audio focus or a mute keeps a story that gets ready
+     * meanwhile paused. Play, or Instagram starting the held video again, lets the next one play.
+     */
+    @Test
+    public void aStoryReadyStaysPausedAfterAPauseOnPurpose() {
+        background(player);
+        BackgroundPlay.pauseFromNotification();
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("the notification's Pause", List.of("pause"), players.calls);
+        BackgroundPlay.playFromNotification();
+        players.playing.remove(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("after Play", List.of("pause", "play", "play"), players.calls);
+        BackgroundPlay.end(false, "test");
+
+        players.calls.clear();
+        players.playing.clear();
+        background(player);
+        assertFalse(BackgroundPlay.hold(player, "audio_focus_loss"));
+        players.playing.remove(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("a lost audio focus", List.of(), players.calls);
+        BackgroundPlay.started(player);
+        players.playing.add(player);
+        idle();
+        players.playing.remove(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("once Instagram plays it again", List.of("play"), players.calls);
+        BackgroundPlay.end(false, "test");
+
+        players.calls.clear();
+        players.playing.clear();
+        background(player);
+        BackgroundPlay.volume(player, 0f);
+        idle();
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("a mute", List.of("pause"), players.calls);
+    }
+
+    /**
      * A release held for a reel goes through on that reel as the next one takes over in the
      * background, so its decoder doesn't wait for the session's end. The new one, the reel on screen
      * when you come back, keeps playing, and coming back releases nothing a second time.
@@ -1029,6 +1133,8 @@ public class BackgroundPlayTest {
         BackgroundPlay.springMoving(null);
         BackgroundPlay.springMoving(new Object());
         BackgroundPlay.started(null);
+        BackgroundPlay.storyPrepared(null, null);
+        BackgroundPlay.storyPrepared(null, new Object());
         BackgroundPlay.volume(null, 1f);
         assertFalse(BackgroundPlay.releasing(null, null));
         BackgroundPlay.restarted(null);
