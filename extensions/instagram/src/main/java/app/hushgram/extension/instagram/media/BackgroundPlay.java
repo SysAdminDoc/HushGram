@@ -281,7 +281,8 @@ public final class BackgroundPlay {
      * At the top of IgVideoPlayerImpl's pause and stop, after Resume long videos' hook, and of the
      * story player's pause, with Instagram's reason. True, and the pause or stop returns at once,
      * only for the player held as you left, while the switch is on. A pause for the audio focus
-     * always goes through.
+     * always goes through. A pause that ends the session also returns at once when that end let
+     * the player's held release through, since the player is gone by then.
      */
     public static boolean hold(Object player, @Nullable String reason) {
         try {
@@ -292,17 +293,13 @@ public final class BackgroundPlay {
                 if (passing || phase == Phase.IDLE || player == null || player != heldLocked()) return false;
                 screen = leavingScreen != null ? leavingScreen.get() : null;
             }
-            if (!on()) {
-                end(false, "the switch is off");
-                return false;
-            }
+            if (!on()) return endBeforePause(player, "the switch is off");
             if (reason != null && reason.toLowerCase(Locale.ROOT).contains("focus")) {
                 log(() -> "let a pause for the audio focus through (" + reason + ")");
                 return false;
             }
             if (screen != null && inPictureInPicture(screen)) {
-                end(false, "Instagram went to picture in picture");
-                return false;
+                return endBeforePause(player, "Instagram went to picture in picture");
             }
             HookStatus.counted(FamilyNames.BACKGROUND_PLAY, KEPT);
             log(() -> "kept the video playing through Instagram's " + (reason == null ? "pause" : "\"" + reason + "\""));
@@ -335,11 +332,11 @@ public final class BackgroundPlay {
                 screen = leavingScreen != null ? leavingScreen.get() : null;
             }
             if (!on()) {
-                end(false, "the switch is off");
+                endLettingGo(player, "the switch is off");
                 return false;
             }
             if (screen != null && inPictureInPicture(screen)) {
-                end(false, "Instagram went to picture in picture");
+                endLettingGo(player, "Instagram went to picture in picture");
                 return false;
             }
             synchronized (LOCK) {
@@ -595,6 +592,30 @@ public final class BackgroundPlay {
         log(() -> "background playback ended: " + why + (released ? ", and Instagram's release went through" : ""));
     }
 
+    /**
+     * Ends the session as Instagram's own release of [player] goes through, dropping the release held
+     * for it earlier so the end doesn't release it as well.
+     */
+    private static void endLettingGo(Object player, String why) {
+        synchronized (LOCK) {
+            forget(player);
+        }
+        end(false, why);
+    }
+
+    /**
+     * Ends the session as Instagram pauses [player]. True when the end let a release held for it
+     * through: the player is gone then, so its pause returns at once.
+     */
+    private static boolean endBeforePause(Object player, String why) {
+        boolean letGo;
+        synchronized (LOCK) {
+            letGo = holds(releases, player);
+        }
+        end(false, why);
+        return letGo;
+    }
+
     /** Drops the release held for [player], if any, in the session and in one that is ending. Under LOCK. */
     private static void forget(Object player) {
         drop(releases, player);
@@ -605,6 +626,13 @@ public final class BackgroundPlay {
         for (Iterator<Release> it = list.iterator(); it.hasNext(); ) {
             if (it.next().player == player) it.remove();
         }
+    }
+
+    private static boolean holds(List<Release> list, Object player) {
+        for (Release release : list) {
+            if (release.player == player) return true;
+        }
+        return false;
     }
 
     /** A release Instagram asked for during a session, kept until it ends. */

@@ -474,6 +474,78 @@ public class BackgroundPlayTest {
         assertEquals(List.of("pause", "release fragment_stopped", "release along"), players.calls);
     }
 
+    /**
+     * Instagram asking the held player's release again once the switch is off, or once it went to
+     * picture in picture, ends the session with that release as the only one.
+     */
+    @Test
+    public void aReleaseThatEndsTheSessionIsTheOnlyOne() {
+        background(player);
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
+
+        players.release(player, "destroy");
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals("released once", List.of(player), players.released);
+        assertEquals(List.of("release destroy"), players.calls);
+
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(true);
+        players.calls.clear();
+        players.released.clear();
+        background(other);
+        assertTrue(BackgroundPlay.releasing(other, "fragment_stopped"));
+        screen.pip = true;
+
+        players.release(other, "destroy");
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals("released once in picture in picture", List.of(other), players.released);
+        assertEquals(List.of("release destroy"), players.calls);
+    }
+
+    /**
+     * A pause that ends the session on a held player whose release the end lets through returns at
+     * once, and a pause on a player with no release held still goes through.
+     */
+    @Test
+    public void aPauseThatEndsTheSessionSkipsAReleasedPlayer() {
+        background(player);
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
+
+        players.pause(player);
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(List.of(player), players.released);
+        assertEquals("no pause on the released player", List.of("release fragment_stopped"), players.calls);
+
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(true);
+        players.calls.clear();
+        players.released.clear();
+        background(other);
+        assertTrue(BackgroundPlay.releasing(other, "fragment_stopped"));
+        screen.pip = true;
+
+        players.pause(other);
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(List.of(other), players.released);
+        assertEquals("no pause in picture in picture either", List.of("release fragment_stopped"), players.calls);
+
+        screen.pip = false;
+        players.calls.clear();
+        players.released.clear();
+        background(third);
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
+
+        players.pause(third);
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(List.of(), players.released);
+        assertEquals("a player with nothing held is paused", List.of("pause"), players.calls);
+    }
+
     /** A session left paused for the limit ends by itself; a playing one doesn't. */
     @Test
     public void aLongPauseEnds() {
