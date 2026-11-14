@@ -10,6 +10,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.callBlockModeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.changePinRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.chatGlassTintRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.lockDelayRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.lockToggle;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
@@ -237,6 +238,10 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.GLASS_CHAT_TOP_BAR, L10n.t("Glass top bar in chats"),
                         L10n.t("Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. "
                                 + "The round glass buttons and the glass message bar stay.")));
+                messages.addPreference(chatGlassTintRow(context, Settings.GLASS_CHAT_TOP_BAR_OPACITY,
+                        L10n.t("Top bar tint in chats")));
+                messages.addPreference(chatGlassTintRow(context, Settings.GLASS_CHAT_BOX_OPACITY,
+                        L10n.t("Message bar tint")));
             }
             if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
                 messages.addPreference(toggle(context, Settings.FULL_SCREEN_MESSAGES, L10n.t("Full screen Messages"),

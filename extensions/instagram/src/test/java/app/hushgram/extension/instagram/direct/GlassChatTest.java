@@ -133,6 +133,8 @@ public class GlassChatTest {
         Settings.GLASS_CHAT.resetToDefault();
         Settings.GLASS_CHAT_TOP_BAR.resetToDefault();
         Settings.GLASS_STORY_REPLY_BOX.resetToDefault();
+        Settings.GLASS_CHAT_TOP_BAR_OPACITY.resetToDefault();
+        Settings.GLASS_CHAT_BOX_OPACITY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -368,6 +370,44 @@ public class GlassChatTest {
         int edge = bitmap.getPixel(150, 1);
         assertTrue("the outline over the glass: " + Integer.toHexString(edge) + " against " + Integer.toHexString(middle),
                 Color.red(edge) > Color.red(middle) + 60);
+    }
+
+    /**
+     * #688: a chat's top bar and message bar each follow their own tint slider, down to clear at 0%, and a
+     * story's reply box, which has no slider, keeps the standard look.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void theTintSlidersReachTheChatsTopBarAndMessageBarOnly() {
+        Settings.GLASS_CHAT.save(true);
+        Settings.GLASS_STORY_REPLY_BOX.save(true);
+        ImageView pill = messageBar();
+        FrameLayout box = storyBox(storyViewer());
+        layout();
+        frame();
+        assertTrue(GlassTopBar.showing(header));
+        assertTrue(GlassTopBar.boxShowing(pill));
+        assertTrue(GlassTopBar.boxShowing(box));
+        int story = middleAlpha(box.getBackground());
+        assertTrue(middleAlpha(header.getBackground()) > 0);
+        assertTrue(middleAlpha(pill.getForeground()) > 0);
+        assertTrue(story > 0);
+
+        Settings.GLASS_CHAT_TOP_BAR_OPACITY.save(0);
+        assertEquals("the top bar is clear", 0, middleAlpha(header.getBackground()));
+        assertTrue("the message bar keeps its tint", middleAlpha(pill.getForeground()) > 0);
+
+        Settings.GLASS_CHAT_BOX_OPACITY.save(0);
+        assertEquals("the message bar is clear", 0, middleAlpha(pill.getForeground()));
+        assertEquals("a story's reply box has no slider of its own", story, middleAlpha(box.getBackground()));
+    }
+
+    private static int middleAlpha(Drawable glass) {
+        Bitmap bitmap = Bitmap.createBitmap(300, 100, Bitmap.Config.ARGB_8888);
+        glass.setBounds(0, 0, 300, 100);
+        glass.draw(new Canvas(bitmap));
+        return Color.alpha(bitmap.getPixel(150, 50));
     }
 
     @Test

@@ -866,6 +866,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.GLASS_TAB_BAR_BLUR_RADIUS.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
                             || Settings.GLASS_TAB_BAR_CORNERS.key.equals(key) || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
+                    belongs |= family == PatchFamily.GLASS_CHAT && (Settings.GLASS_CHAT_TOP_BAR_OPACITY.key.equals(key)
+                            || Settings.GLASS_CHAT_BOX_OPACITY.key.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.HOLD_TO_DOWNLOAD.key.equals(key)
                             || Settings.HOLD_FINGERS.key.equals(key) || Settings.HOLD_TIME.key.equals(key)
                             || Settings.FEED_DOWNLOAD_BUTTON.key.equals(key) || Settings.FEED_DOWNLOAD_ALL_PAGES.key.equals(key)
@@ -5304,6 +5306,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_OPACITY, 5, L10n.t("%1$d%%"));
         row.setTitle(L10n.t("Tint intensity"));
         row.setText(String.valueOf(Settings.GLASS_TAB_BAR_OPACITY.savedValue()));
+        return row;
+    }
+
+    /** How strong the tint of a chat's glass top bar or message bar is, from a slider in percent of its own look (#688). */
+    static SliderRow chatGlassTintRow(Context context, IntegerSetting setting, String title) {
+        SliderRow row = new SliderRow(context, setting, 5, L10n.t("%1$d%%"));
+        row.setTitle(title);
+        row.setText(String.valueOf(setting.savedValue()));
         return row;
     }
 

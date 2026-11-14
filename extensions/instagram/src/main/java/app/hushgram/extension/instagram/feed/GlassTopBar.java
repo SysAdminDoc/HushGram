@@ -49,6 +49,7 @@ import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.IntegerSetting;
 
 /**
  * Helper for the See-through top bar switch (#418): Home's header shows the feed blurred under it,
@@ -107,7 +108,7 @@ public final class GlassTopBar {
         try {
             if (views == null || !on.getAsBoolean()) return;
             for (Object view : views) {
-                if (view instanceof View) attach((View) view, GlassTopBar::switchedOn, FamilyNames.HOME_TOP_BAR);
+                if (view instanceof View) attach((View) view, GlassTopBar::switchedOn, FamilyNames.HOME_TOP_BAR, null);
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.HOME_TOP_BAR, HOOK, failure);
@@ -115,13 +116,14 @@ public final class GlassTopBar {
     }
 
     /**
-     * Gives a chat's header the same glass while [on] says so (#449). Never throws. Done once per
-     * header: the glass puts itself on and takes itself off by [on], whatever the header does.
+     * Gives a chat's header the same glass while [on] says so (#449), its tint under the chat top bar's
+     * own slider too (#688). Never throws. Done once per header: the glass puts itself on and takes itself
+     * off by [on], whatever the header does.
      */
     public static void glazeChat(@Nullable View header, BooleanSupplier on) {
         try {
             if (header == null || !on.getAsBoolean()) return;
-            attach(header, on, FamilyNames.GLASS_CHAT);
+            attach(header, on, FamilyNames.GLASS_CHAT, Settings.GLASS_CHAT_TOP_BAR_OPACITY);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);
         }
@@ -136,18 +138,24 @@ public final class GlassTopBar {
      * whole picture lose their fill while it's on. Never throws. Done once per box.
      */
     public static void glazeBox(@Nullable View box, int source, boolean dark, BooleanSupplier on, String family) {
+        glazeBox(box, source, dark, on, family, null);
+    }
+
+    /** {@link #glazeBox(View, int, boolean, BooleanSupplier, String)} with the tint under [tintSlider] too (#688). */
+    public static void glazeBox(@Nullable View box, int source, boolean dark, BooleanSupplier on, String family,
+                                @Nullable IntegerSetting tintSlider) {
         try {
             if (box == null || source == 0 || !on.getAsBoolean() || under(box, source) == null || !GLAZED.add(box)) return;
-            listen(new Glass(box, on, family, source, dark));
+            listen(new Glass(box, on, family, source, dark, tintSlider));
             HookStatus.counted(family, COUNT_BOXES);
         } catch (Throwable failure) {
             HookStatus.threw(family, HOOK, failure);
         }
     }
 
-    private static void attach(View header, BooleanSupplier on, String family) {
+    private static void attach(View header, BooleanSupplier on, String family, @Nullable IntegerSetting tintSlider) {
         if (!GLAZED.add(header)) return;
-        listen(new Glass(header, on, family, 0, false));
+        listen(new Glass(header, on, family, 0, false, tintSlider));
         HookStatus.counted(family, COUNT_GLAZED);
     }
 
@@ -325,6 +333,8 @@ public final class GlassTopBar {
         /** Whether the glass is wanted now, and the family the report counts it under. */
         private final BooleanSupplier enabled;
         private final String family;
+        /** A slider of this glass's own over its tint, in percent, or null for the tab bar's alone (#688). */
+        @Nullable private final IntegerSetting tintSlider;
         @Nullable private ViewTreeObserver observer;
         /** Instagram's latest background on the header, put back when the glass comes off. */
         @Nullable private Drawable original;
@@ -376,10 +386,12 @@ public final class GlassTopBar {
         private int lastWidth;
         private int lastHeight;
 
-        Glass(View header, BooleanSupplier enabled, String family, int sourceId, boolean dark) {
+        Glass(View header, BooleanSupplier enabled, String family, int sourceId, boolean dark,
+              @Nullable IntegerSetting tintSlider) {
             this.header = header;
             this.enabled = enabled;
             this.family = family;
+            this.tintSlider = tintSlider;
             this.sourceId = sourceId;
             this.dark = dark;
             this.over = sourceId != 0 && !(header instanceof ViewGroup);
@@ -393,6 +405,16 @@ public final class GlassTopBar {
         @Nullable
         View host() {
             return sourceId == 0 ? GlassTopBar.host(header) : under(header, sourceId);
+        }
+
+        /**
+         * How strong the tint is, as a share of the standard one: the tab bar's opacity slider, which every glass
+         * follows, times this glass's own slider when it has one. Read as it draws, so a move shows at once.
+         */
+        float tintScale() {
+            float scale = GlassTabBar.opacityScale();
+            IntegerSetting slider = tintSlider;
+            return slider == null ? scale : scale * slider.get() / 100f;
         }
 
         /** The background a message box had, drawn over its glass, or null when there's none to keep. */
@@ -829,7 +851,7 @@ public final class GlassTopBar {
             if (blurred && likeTabBar && GlassTabBar.bendsNow()) {
                 glass.bend(canvas, area, Math.min(area.height(), bounds.height()));
             }
-            paint.setColor(GlassTabBar.tint(base, blurred, GlassTabBar.opacityScale()));
+            paint.setColor(GlassTabBar.tint(base, blurred, glass.tintScale()));
             canvas.drawRect(area, paint);
             sheened = likeTabBar;
             if (likeTabBar) {
@@ -864,7 +886,7 @@ public final class GlassTopBar {
                 boolean blurred = glass.drawBackdrop(canvas, bounds);
                 boolean likeTabBar = GlassTabBar.onNow();
                 if (blurred && likeTabBar && GlassTabBar.bendsNow()) glass.bendPill(canvas, bounds);
-                paint.setColor(GlassTabBar.tint(glass.base, blurred, GlassTabBar.opacityScale()));
+                paint.setColor(GlassTabBar.tint(glass.base, blurred, glass.tintScale()));
                 canvas.drawRect(bounds, paint);
                 sheened = likeTabBar;
                 if (likeTabBar) {

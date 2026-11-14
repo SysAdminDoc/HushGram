@@ -1041,6 +1041,19 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting GLASS_CHAT_TOP_BAR =
             new BooleanSetting("hushgram_glass_chat_top_bar", TRUE, parent(GLASS_CHAT));
+    /**
+     * Under {@link #GLASS_CHAT_TOP_BAR}: how strong the tint of a chat's top bar glass is, in percent of the
+     * look it has always had, from a slider (#688). Lower is clearer and shows more of the chat's theme. It
+     * goes over the glass tab bar's Tint intensity, which every glass follows. Read as the glass draws, so a
+     * change shows at once.
+     */
+    public static final IntegerSetting GLASS_CHAT_TOP_BAR_OPACITY =
+            new IntegerSetting("hushgram_glass_chat_top_bar_opacity_percent", 100, false, parent(GLASS_CHAT_TOP_BAR))
+                    .withRange(0, 150);
+    /** Under {@link #GLASS_CHAT}: the same for a chat's message bar (#688). */
+    public static final IntegerSetting GLASS_CHAT_BOX_OPACITY =
+            new IntegerSetting("hushgram_glass_chat_box_opacity_percent", 100, false, parent(GLASS_CHAT))
+                    .withRange(0, 150);
     /** The Send message box on other people's stories takes the same glass, as a pill (#391). Off to start. */
     public static final BooleanSetting GLASS_STORY_REPLY_BOX = new BooleanSetting("hushgram_glass_story_reply_box", FALSE);
 

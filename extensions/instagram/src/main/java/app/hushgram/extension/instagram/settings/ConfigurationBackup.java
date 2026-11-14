@@ -267,6 +267,10 @@ public final class ConfigurationBackup {
             settings.put(Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_LIFT);
             settings.put(Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.GLASS_TAB_BAR_REELS_HIDE);
         }
+        if (PatchFamily.GLASS_CHAT.inBuild()) {
+            settings.put(Settings.GLASS_CHAT_TOP_BAR_OPACITY.key, Settings.GLASS_CHAT_TOP_BAR_OPACITY);
+            settings.put(Settings.GLASS_CHAT_BOX_OPACITY.key, Settings.GLASS_CHAT_BOX_OPACITY);
+        }
         if (PatchFamily.SHARE_SHEET.inBuild()) {
             settings.put(Settings.HIDDEN_SHARE_SHEET_BUTTONS.key, Settings.HIDDEN_SHARE_SHEET_BUTTONS);
         }

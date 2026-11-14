@@ -319,7 +319,8 @@ public final class GlassChat {
 
     private static void dress(View container, Activity activity) {
         GlassTopBar.glazeChat(container, GlassChat::topBarOn);
-        GlassTopBar.glazeBox(messageBox(activity), id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT);
+        GlassTopBar.glazeBox(messageBox(activity), id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT,
+                Settings.GLASS_CHAT_BOX_OPACITY);
         boolean night = (container.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
         float density = container.getResources().getDisplayMetrics().density;
