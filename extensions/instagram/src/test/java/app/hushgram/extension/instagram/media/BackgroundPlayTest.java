@@ -25,8 +25,10 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -448,6 +450,28 @@ public class BackgroundPlayTest {
         assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
         assertEquals("released once", List.of(player), players.released);
         assertEquals(List.of("release paused", "pause"), players.calls);
+    }
+
+    /**
+     * Instagram letting a second held player go while the first held release goes through, as one
+     * screen's players go together, releases it then, and the session's end doesn't release it again.
+     */
+    @Test
+    public void aHeldPlayerLetGoWhileAnotherGoesThroughIsReleasedOnce() {
+        background(player);
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
+        players.playing.remove(player);
+        BackgroundPlay.started(other);
+        players.playing.add(other);
+        idle();
+        assertTrue(BackgroundPlay.releasing(other, "fragment_destroyed"));
+        players.releasesWith.put(player, other);
+
+        BackgroundPlay.stopFromNotification();
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals("each released once", List.of(player, other), players.released);
+        assertEquals(List.of("pause", "release fragment_stopped", "release along"), players.calls);
     }
 
     /** A session left paused for the limit ends by itself; a playing one doesn't. */
@@ -889,23 +913,32 @@ public class BackgroundPlayTest {
         final List<Object> released = new ArrayList<>();
         /** Whether a pause lets the player go too, as Instagram's can while its screen is going away. */
         boolean releaseOnPause;
+        /** For a player, another Instagram lets go along with it, as one screen's players go together. */
+        final Map<Object, Object> releasesWith = new HashMap<>();
 
         @Override
         public boolean playing(Object player) {
             return playing.contains(player);
         }
 
+        /** Asks the hook first and, like the patched release, returns at once when it holds it. */
         @Override
         public void release(Object player, String reason) {
-            heldOwnRelease.add(BackgroundPlay.releasing(player, reason));
+            boolean heldIt = BackgroundPlay.releasing(player, reason);
+            heldOwnRelease.add(heldIt);
+            if (heldIt) return;
             playing.remove(player);
             released.add(player);
             calls.add("release " + reason);
+            Object along = releasesWith.remove(player);
+            if (along != null) release(along, "along");
         }
 
         @Override
         public void pause(Object player) {
-            heldOwnPause.add(BackgroundPlay.hold(player, BackgroundPlay.PAUSE_REASON));
+            boolean heldIt = BackgroundPlay.hold(player, BackgroundPlay.PAUSE_REASON);
+            heldOwnPause.add(heldIt);
+            if (heldIt) return;
             if (releaseOnPause) release(player, "paused");
             playing.remove(player);
             calls.add("pause");
