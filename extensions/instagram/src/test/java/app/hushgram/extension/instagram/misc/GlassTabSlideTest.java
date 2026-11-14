@@ -441,8 +441,9 @@ public class GlassTabSlideTest {
     }
 
     /**
-     * #526 as the phone has it: the strip's own gate (#452) hands a plain press over a tab to the tab, so
-     * the drags the bar routes go through as presses from the bar, and Instagram's seek gets all of them.
+     * #526: the drags the bar routes go through as presses from the bar, and Instagram's seek gets all of
+     * them. That holds even where the strip's own gate (#452) would hand a plain press to a tab under it,
+     * as it does here, since this bar doesn't carry the id of Instagram's tab bar.
      */
     @Test public void theStripsGateLetsTheSeekHaveTheBarsDrags() {
         BaseSettings.PAUSED.save(false);
@@ -458,7 +459,7 @@ public class GlassTabSlideTest {
         MotionEvent plain = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, middle(1), 46f, 0);
         strip.dispatchTouchEvent(plain);
         plain.recycle();
-        assertTrue("handed over plainly, the gate gives the press to the tab under it", seek.isEmpty());
+        assertTrue("handed over plainly, the gate gives the press to the tab under this bar", seek.isEmpty());
 
         assertTrue(touch(MotionEvent.ACTION_DOWN, middle(1), 14));
         assertTrue(touch(MotionEvent.ACTION_MOVE, middle(3), 16));

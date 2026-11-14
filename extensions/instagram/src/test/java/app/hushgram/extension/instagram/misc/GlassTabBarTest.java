@@ -3645,6 +3645,7 @@ public class GlassTabBarTest {
             assertTrue(GlassTabBar.onTheStrip(strip, bar, 0, 27));
             assertFalse("past the strip's bottom edge", GlassTabBar.onTheStrip(strip, bar, 300, 28));
             assertFalse("the tabs' row", GlassTabBar.onTheStrip(strip, bar, 300, 90));
+            assertFalse("on the strip but above the bar, where the reel's buttons are", GlassTabBar.onTheStrip(strip, bar, 300, -40));
             assertFalse("no strip found", GlassTabBar.onTheStrip(null, bar, 300, 10));
             strip.setVisibility(View.GONE);
             layOut(root);
