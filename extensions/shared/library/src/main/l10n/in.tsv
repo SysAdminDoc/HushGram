@@ -2227,3 +2227,7 @@ Tap sound volume	Volume suara ketuk
 Auto scroll in Home	Gulir otomatis di Beranda
 Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	Beranda pindah sendiri ke postingan berikutnya. Video pindah saat selesai, foto atau carousel setelah Waktu di tiap postingan. Sentuh layar untuk menahannya.
 Time on each post	Waktu di tiap postingan
+# context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
+Control the reel above comments	Kontrol reel di atas komentar
+# context: Summary of Control the reel above comments (#665)
+With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	Saat komentar reel terbuka, ketuk reel di atasnya untuk menjeda atau memutarnya, atau tahan untuk memutarnya pada 2x. Komentar tetap terbuka.

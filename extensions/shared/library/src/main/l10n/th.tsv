@@ -2224,3 +2224,7 @@ Tap sound volume	ระดับเสียงแตะ
 Auto scroll in Home	เลื่อนอัตโนมัติในหน้าหลัก
 Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	หน้าหลักจะเลื่อนไปยังโพสต์ถัดไปเอง วิดีโอจะเลื่อนเมื่อเล่นจบ ส่วนรูปภาพหรือโพสต์ภาพหมุนจะเลื่อนหลังจากเวลาในแต่ละโพสต์ แตะหน้าจอค้างไว้เพื่อหยุด
 Time on each post	เวลาในแต่ละโพสต์
+# context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
+Control the reel above comments	ควบคุมรีลส์เหนือความคิดเห็น
+# context: Summary of Control the reel above comments (#665)
+With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	ขณะเปิดความคิดเห็นของรีลส์ แตะรีลส์ด้านบนเพื่อหยุดชั่วคราวหรือเล่น หรือกดค้างไว้เพื่อเล่นที่ 2x ความคิดเห็นจะยังเปิดอยู่

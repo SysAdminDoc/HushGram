@@ -2230,3 +2230,7 @@ Tap sound volume	触摸音效音量
 Auto scroll in Home	首页自动卷动
 Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	首页会自动移到下一条帖子。视频播完就移动，照片或轮播帖子则在“每条帖子的时间”后移动。触摸屏幕即可暂停。
 Time on each post	每条帖子的时间
+# context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
+Control the reel above comments	控制评论上方的 Reel
+# context: Summary of Control the reel above comments (#665)
+With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	Reel 的评论打开时，点一下上方的 Reel 即可暂停或播放，长按则以 2 倍速播放。评论会保持打开.

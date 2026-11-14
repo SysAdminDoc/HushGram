@@ -1962,6 +1962,21 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->linkedReelIn(Ljava
 # lands on every declared build.
 once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->sharedCommentOpened(Ljava/lang/String;)V in instance (*)V pooled holding comment_id media_type clips glimmer
 #
+# Control the reel above comments (#665) tells the extension which manager's comments sheet is moving
+# first thing in the watch-and-comment manager's onBottomSheetHeightChanged, the one method holding
+# its marker (0I0l.FDB on 454's 386014758). Left out, a tap on the reel above open comments closes
+# them as before; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/reels/ReelAboveComments;->sheetMoved(Ljava/lang/Object;)V in instance (I)V pooled holding android_purge_26_q3_WatchAndCommentViewManager_onBottomSheetHeightChanged
+once-call Lapp/hushgram/extension/instagram/reels/ReelAboveComments;->sheetMoved(Ljava/lang/Object;)V in instance (I)V pooled holding android_purge_26_q3_WatchAndCommentViewManager_onBottomSheetHeightChanged
+# Each answer of the manager's onBottomSheetSingleTapConfirmed (0I0l.FDN) goes through ReelAboveComments.tapped
+# right before it's returned, at both of its returns. Left out at one, a tap there closes the
+# comments as before. ReelAboveCommentsHookTest checks every return on every declared build.
+once-call Lapp/hushgram/extension/instagram/reels/ReelAboveComments;->tapped(ILjava/lang/Object;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z sites 2 pooled holding android_purge_26_q3_WatchAndCommentViewManager_onBottomSheetSingleTapConfirmed
+# IgFragmentActivity.dispatchTouchEvent hands it every touch, first or right after Tap to play's
+# TapClock, where a hold on the reel above the comments is read. Left out, a hold on that reel does
+# nothing.
+once-call Lapp/hushgram/extension/instagram/reels/ReelAboveComments;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
+#
 # Open links in external browser asks the extension right after the in-app browser's own super
 # call, in onCreate and in onNewIntent. Both call the one redirect, so each rule is shared-call:
 # once in its method and in no other method holding its strings. On 449 only the browser's

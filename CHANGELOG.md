@@ -15,6 +15,7 @@ Every HushGram release, newest first.
 * `Play only the reel you opened` under Reels keeps a reel you open from a Home post, a suggested reels row or a message on screen, so it loops instead of moving on. The Reels tab scrolls as usual. Asked for in #656.
 * `Glass top bar in chats`, new under `Glass in chats` in Messages, takes the frosted band off a chat's top bar while the round glass buttons and message bar keep theirs. It starts on. Asked for in #670.
 * `Auto scroll in Home` under Feed moves Home to the next post by itself, when a video ends or after the time you pick for photos and carousels. Touching the screen holds it. Asked for in #660.
+* A new switch, `Control the reel above comments` under Reels, lets you tap the reel above open comments to pause or play it, or hold it for 2x. The comments stay open. Starts off. Asked for in #665.
 
 ### Bug Fixes
 

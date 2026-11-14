@@ -578,6 +578,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Control the reel above comments patch. */
+    public static boolean reelAboveComments() {
+        return false;
+    }
+
     /** Rewritten by the Open reel links on that reel patch. */
     public static boolean reelLinks() {
         return false;

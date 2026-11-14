@@ -806,6 +806,46 @@
       "options": []
     },
     {
+      "name": "Control the reel above comments",
+      "description": "With a reel's comments open, a tap on the reel above them pauses or plays it and a hold plays it at 2x, and the comments stay open. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Fixes",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Copy comment",
       "description": "Adds Copy and Copy username to the menu you get on a comment, so you can copy its text or the commenter's username. Starts off. Turn it on in HushGram settings > Comments.",
       "category": "Interaction",

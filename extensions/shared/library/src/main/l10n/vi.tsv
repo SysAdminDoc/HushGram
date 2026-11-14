@@ -2142,3 +2142,7 @@ Tap sound volume	Âm lượng âm thanh chạm
 Auto scroll in Home	Tự động cuộn ở Trang chủ
 Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	Trang chủ tự chuyển sang bài viết tiếp theo. Video chuyển khi phát xong, ảnh hoặc bài nhiều trang chuyển sau Thời gian mỗi bài viết. Chạm vào màn hình để giữ lại.
 Time on each post	Thời gian mỗi bài viết
+# context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
+Control the reel above comments	Điều khiển reel phía trên bình luận
+# context: Summary of Control the reel above comments (#665)
+With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	Khi bình luận của reel đang mở, chạm vào reel phía trên để tạm dừng hoặc phát, hoặc giữ để phát ở tốc độ 2x. Bình luận vẫn mở.

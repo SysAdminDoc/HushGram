@@ -316,7 +316,8 @@
           "Swipe left to open the profile",
           "Keep the tab bar on a reel's profile",
           "Find the reel you came from",
-          "Open reel links on that reel"
+          "Open reel links on that reel",
+          "Control the reel above comments"
         ]
       },
       "anchors": [

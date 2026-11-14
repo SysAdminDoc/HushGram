@@ -2227,3 +2227,7 @@ Tap sound volume	Volumen del sonido al tocar
 Auto scroll in Home	Desplazamiento automático en Inicio
 Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	Inicio pasa solo a la siguiente publicación. Un video pasa cuando termina, y una foto o un carrusel después de Tiempo en cada publicación. Toca la pantalla para pausarlo.
 Time on each post	Tiempo en cada publicación
+# context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
+Control the reel above comments	Controlar el reel sobre los comentarios
+# context: Summary of Control the reel above comments (#665)
+With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	Con los comentarios de un reel abiertos, toca el reel de arriba para pausarlo o reproducirlo, o mantenlo presionado para reproducirlo a 2x. Los comentarios siguen abiertos.

@@ -3395,6 +3395,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_reel_speed", TRUE);
 
     /**
+     * With a reel's comments open, a tap on the reel above them pauses or plays it and a hold plays it
+     * at 2x while held, and the comments stay open (#665, {@link app.hushgram.extension.instagram.reels.ReelAboveComments}).
+     * Read each time. Off to start.
+     */
+    public static final BooleanSetting REEL_ABOVE_COMMENTS =
+            new BooleanSetting("hushgram_reel_above_comments", FALSE);
+
+    /**
      * A Reels viewer opened from a link skips the reels Instagram kept on the phone, so the linked
      * reel is the first one it shows (#606, {@link app.hushgram.extension.instagram.reels.ReelLinks}).
      * Read as each viewer sets up. Starts on.

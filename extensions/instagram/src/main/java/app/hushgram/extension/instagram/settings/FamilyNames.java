@@ -149,6 +149,7 @@ public final class FamilyNames {
     public static final String CAPTION_WORD_REELS = "Hide reels by caption words";
     public static final String LOW_VIEW_REELS = "Hide reels with few views";
     public static final String KEEP_REEL_SPEED = "Keep the reel speed";
+    public static final String REEL_ABOVE_COMMENTS = "Control the reel above comments";
     public static final String REEL_LINKS = "Open reel links on that reel";
     public static final String REEL_POST_TIME = "Show a reel's exact time";
     public static final String REEL_SEEK_BAR = "Keep a seek bar on Reels";

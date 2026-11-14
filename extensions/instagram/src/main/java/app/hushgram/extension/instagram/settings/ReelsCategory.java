@@ -238,6 +238,11 @@ final class ReelsCategory {
                     L10n.t("Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. "
                             + "Slide the lock off, or hold the edge and let go, to go back to normal speed.")));
         }
+        if (build.contains(PatchFamily.REEL_ABOVE_COMMENTS)) {
+            reels.add(toggle(context, Settings.REEL_ABOVE_COMMENTS, L10n.t("Control the reel above comments"),
+                    L10n.t("With a reel's comments open, tap the reel above them to pause or play it, "
+                            + "or hold it to play at 2x. The comments stay open.")));
+        }
         if (build.contains(PatchFamily.REEL_LINKS)) {
             reels.add(toggle(context, Settings.OPEN_REEL_LINKS_FIRST, L10n.t("Open reel links on that reel"),
                     L10n.t("A reel link opens on the reel it points to. Instagram doesn't play another reel "
