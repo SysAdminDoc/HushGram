@@ -135,6 +135,14 @@ public final class BackgroundPlay {
      */
     private static boolean pausedOnPurpose;
     /**
+     * The held story player another one's parked start was played for, once its story stopped, so
+     * only one story takes over from it: every story player Instagram binds while hidden parks its
+     * start, the ones it gets ready ahead included, and each says so before the first one's start
+     * moves the hold.
+     */
+    @Nullable
+    private static WeakReference<Object> tookOverFrom;
+    /**
      * The releases Instagram asked for on the held player. They go through when the session ends, or
      * on their own player as another video takes over from it, so they only ever hold the held one's.
      */
@@ -257,7 +265,8 @@ public final class BackgroundPlay {
     /**
      * Plays [player], a story player whose start is parked, when it's the held one or another of its
      * kind taking over from a held one that stopped, and nothing paused the session on purpose: the
-     * notification's Pause, a lost audio focus, or a mute.
+     * notification's Pause, a lost audio focus, or a mute. Only the first to get ready takes over
+     * from a held one; the rest wait for the hold to move to it.
      */
     private static void resumeParked(Object player) {
         Object current;
@@ -266,8 +275,16 @@ public final class BackgroundPlay {
             current = heldLocked();
         }
         if (current == null || !on()) return;
-        if (player != current && (current.getClass() != player.getClass() || isPlaying(current))) return;
+        boolean takeover = player != current;
+        if (takeover && (current.getClass() != player.getClass() || isPlaying(current))) return;
         if (isPlaying(player)) return;
+        if (takeover) {
+            synchronized (LOCK) {
+                if (phase != Phase.BACKGROUND || heldLocked() != current) return;
+                if (tookOverFrom != null && tookOverFrom.get() == current) return;
+                tookOverFrom = new WeakReference<>(current);
+            }
+        }
         HookStatus.counted(FamilyNames.BACKGROUND_PLAY, "stories started in the background");
         log(() -> "the next story was ready in the background, so it plays");
         playThrough(player);
@@ -428,6 +445,8 @@ public final class BackgroundPlay {
         Object player = held();
         if (player == null) return;
         synchronized (LOCK) {
+            // A story's lost audio focus mutes it rather than pausing it, and Play ends either.
+            mutedAt = NONE;
             pausedOnPurpose = false;
         }
         // Tap to play holds back a start nobody tapped, and the button is a tap.
@@ -520,6 +539,7 @@ public final class BackgroundPlay {
             phase = Phase.LEAVING;
             held = new WeakReference<>(player);
             leavingScreen = new WeakReference<>(screen);
+            tookOverFrom = null;
             mutedAt = NONE;
             pausedSince = NONE;
         }
@@ -640,6 +660,7 @@ public final class BackgroundPlay {
             phase = Phase.IDLE;
             held = null;
             leavingScreen = null;
+            tookOverFrom = null;
             mutedAt = NONE;
             pausedSince = NONE;
             pausedOnPurpose = false;
@@ -930,6 +951,7 @@ public final class BackgroundPlay {
             held = null;
             leavingScreen = null;
             resumedScreen = null;
+            tookOverFrom = null;
             mutedAt = NONE;
             pausedSince = NONE;
             passing = false;

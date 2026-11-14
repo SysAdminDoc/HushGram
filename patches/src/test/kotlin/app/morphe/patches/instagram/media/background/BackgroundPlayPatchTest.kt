@@ -222,6 +222,7 @@ class BackgroundPlayPatchTest {
             Variant(story = false) to "expected one story player",
             Variant(hiddenClock = true) to "can't reach $clock->A0a()Z",
             Variant(parkedStarts = false) to "expected a story prepared callback",
+            Variant(knownStart = false) to "expected a story prepared callback",
         )) {
             val context = PatchContexts.of(classes(variant))
             try {
@@ -264,12 +265,17 @@ class BackgroundPlayPatchTest {
         // withStringPools carries the pools Redex moved the reasons into.
         val sliced = (FixtureDex.withStringPools(bundle, players + stories) + activities + ExtensionDex.classDef(BACKGROUND_PLAY))
             .distinctBy { it.type }
-        // The engine's classes the story player's playing check reads, so their access is checked too,
-        // and the runnables the prepared callback makes, so its run() is checked to call the start.
-        val found = PatchContexts.of(sliced).findBackgroundPlaySites().story
+        // The runnables the story players make where they keep one in a Runnable field, so the prepared
+        // callback's run() is checked to call the start, then the engine's classes its playing check
+        // reads, so their access is checked too.
+        val kept = stories.flatMap { it.methods }
+            .filter { method -> method.code().any { it.opcode == Opcode.IPUT_OBJECT && (it as ReferenceInstruction).reference.toString().endsWith(":$runnable") } }
+            .flatMap { method -> method.code().filter { it.opcode == Opcode.NEW_INSTANCE }.mapNotNull { it.referenceText() } }
+            .toSet()
+        val runnables = FixtureDex.classes(bundle, kept).values
+        val found = PatchContexts.of((sliced + runnables).distinctBy { it.type }).findBackgroundPlaySites().story
         val engine = FixtureDex.classes(bundle, found.playing.map { it.substringBefore("->") }.toSet()).values
         val made = found.prepared.code().filter { it.opcode == Opcode.NEW_INSTANCE }.mapNotNull { it.referenceText() }.toSet()
-        val runnables = FixtureDex.classes(bundle, made).values
         val context = PatchContexts.of((sliced + engine + runnables).distinctBy { it.type })
         val sites = context.findBackgroundPlaySites()
         val story = sites.story
@@ -279,7 +285,7 @@ class BackgroundPlayPatchTest {
         assertEquals(
             "$label: one runnable the prepared callback makes starts the story",
             1,
-            runnables.count { runnable -> runnable.methods.any { it.name == "run" && it.code().any { call -> call.referenceText() == start } } },
+            runnables.filter { it.type in made }.count { runnable -> runnable.methods.any { it.name == "run" && it.code().any { call -> call.referenceText() == start } } },
         )
         assertEquals("$label: the same prepared callback with them", found.prepared.name, story.prepared.name)
         if ("386014758" in label) {
@@ -337,6 +343,8 @@ class BackgroundPlayPatchTest {
         val story: Boolean = true,
         val hiddenClock: Boolean = false,
         val parkedStarts: Boolean = true,
+        /** Whether the class of the runnable the prepared callback keeps is among the classes patched. */
+        val knownStart: Boolean = true,
     )
 
     private fun classes(v: Variant = Variant()): List<ClassDef> {
@@ -422,7 +430,7 @@ class BackgroundPlayPatchTest {
             classDef(player, methods, fields),
             classDef(activity, if (v.leaveHint) listOf(leave) else emptyList(), superclass = "Landroid/app/Activity;"),
             ExtensionDex.classDef(BACKGROUND_PLAY),
-        ) + engineClasses(v) + if (v.story) listOf(storyPlayer(), storyStart(v)) else emptyList()
+        ) + engineClasses(v) + if (!v.story) emptyList() else if (v.knownStart) listOf(storyPlayer(), storyStart(v)) else listOf(storyPlayer())
     }
 
     /**

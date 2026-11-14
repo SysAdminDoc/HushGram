@@ -404,6 +404,51 @@ public class BackgroundPlayTest {
     }
 
     /**
+     * Instagram binds the story after the next one ahead of time, and its player parks its start
+     * too: only the first story ready takes over from the held one that ended. Once that one holds
+     * the session and ends in turn, the one after it takes over.
+     */
+    @Test
+    public void onlyOneStoryTakesOverAHeldOneThatEnded() {
+        background(player);
+        players.playing.remove(player);
+
+        BackgroundPlay.storyPrepared(other, new Object());
+        BackgroundPlay.storyPrepared(third, new Object());
+        idle();
+        assertEquals(List.of("play"), players.calls);
+        assertTrue(players.playing.contains(other));
+        assertFalse("the one bound ahead stays parked", players.playing.contains(third));
+
+        BackgroundPlay.started(other);
+        idle();
+        players.playing.remove(other);
+        BackgroundPlay.storyPrepared(third, new Object());
+        idle();
+        assertEquals("the one after takes over from the next", List.of("play", "play"), players.calls);
+        assertTrue(players.playing.contains(third));
+    }
+
+    /**
+     * A story that loses audio focus is muted rather than paused, through its volume: Play from the
+     * notification ends that mute, so the next story that gets ready plays.
+     */
+    @Test
+    public void playFromTheNotificationEndsAMuteForTheNextStory() {
+        background(player);
+        BackgroundPlay.volume(player, 0f);
+        idle();
+        assertEquals(List.of("pause"), players.calls);
+
+        BackgroundPlay.playFromNotification();
+        assertEquals(List.of("pause", "play"), players.calls);
+        players.playing.remove(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals("the next story plays", List.of("pause", "play", "play"), players.calls);
+    }
+
+    /**
      * A story getting ready plays nothing with no start parked, outside a session or before
      * Instagram is hidden, while the held video still plays, when it's another kind of player, when
      * it already plays, or with the switch off.
@@ -413,15 +458,21 @@ public class BackgroundPlayTest {
         BackgroundPlay.storyPrepared(other, new Object());
         idle();
         leaveWith(player);
+        players.playing.remove(player);
         BackgroundPlay.storyPrepared(other, new Object());
         idle();
         assertEquals("not before Instagram is hidden", List.of(), players.calls);
 
+        players.playing.add(player);
         BackgroundPlay.stopped(screen);
+        players.playing.remove(player);
         BackgroundPlay.storyPrepared(other, null);
+        idle();
+        assertEquals("nothing parked", List.of(), players.calls);
+        players.playing.add(player);
         BackgroundPlay.storyPrepared(other, new Object());
         idle();
-        assertEquals("nothing parked, or the held one still plays", List.of(), players.calls);
+        assertEquals("the held one still plays", List.of(), players.calls);
 
         players.playing.remove(player);
         BackgroundPlay.storyPrepared(new StringBuilder(), new Object());

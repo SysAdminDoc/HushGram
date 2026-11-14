@@ -338,9 +338,9 @@ internal fun BytecodePatchContext.findStoryPlayer(player: String, engineType: St
 
 /**
  * The Runnable field of [type] that [method] keeps a new runnable in and runs that same runnable
- * from, when the runnable's run() calls [start] (checked where its class is among the classes
- * patched): the story player's prepared callback, which skips the run and leaves the start in the
- * field while the player is paused. Null for any other method.
+ * from, when the runnable's run() calls [start]: the story player's prepared callback, which skips
+ * the run and leaves the start in the field while the player is paused. Null for any other method,
+ * and for a runnable whose class isn't among the classes patched, since its run() can't be read.
  */
 private fun BytecodePatchContext.parkedStart(method: Method, type: String, start: Method): String? {
     val code = method.code()
@@ -361,7 +361,7 @@ private fun BytecodePatchContext.parkedStart(method: Method, type: String, start
         }
         if (!runs) continue
         val run = classDefByOrNull(runnable)?.methods?.firstOrNull { it.name == "run" && it.parameterTypes.isEmpty() && it.returnType == "V" }
-        if (run != null && run.code().none { it.methodReference()?.key() == start.key() }) continue
+        if (run == null || run.code().none { it.methodReference()?.key() == start.key() }) continue
         return kept.key()
     }
     return null
