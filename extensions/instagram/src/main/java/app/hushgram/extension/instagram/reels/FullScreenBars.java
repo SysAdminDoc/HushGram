@@ -436,12 +436,13 @@ public final class FullScreenBars {
      * How tall the navigation bar is taken to be where the phone reports none at the window's foot, as a
      * Samsung does with its gesture hint hidden, though a swipe up from there still leaves the app (#633):
      * the system's standard height Instagram looked up in its place ({@link BottomSpace#guessedHeight}),
-     * or the one it last offered while HushGram hides the bar, unless the window has no bar at its foot.
-     * 0 on a phone with no navigation bar.
+     * or the one it last offered while HushGram hides the bar. 0 on a phone with no navigation bar. Only a
+     * window that reports no bar asks, and the front window's insets can't tell that Samsung from the top
+     * half of a split screen, so they don't decide here: the hidden bar's height is the lift when "Remove
+     * the empty space at the bottom" is left out and Instagram's guess is 0.
      */
     public static int unreportedNavHeight() {
-        int hidden = navBarInFront() == 0 ? 0 : hiddenNavHeight(0);
-        return Math.max(BottomSpace.guessedHeight(), hidden);
+        return Math.max(BottomSpace.guessedHeight(), hiddenNavHeight(0));
     }
 
     /**
@@ -789,10 +790,12 @@ public final class FullScreenBars {
 
     /**
      * The status bar's and the navigation bar's heights owed back, 0 for one not answered 0. Owed once.
-     * A window with no bar at its foot owes none: the next window opens in the same half of the screen.
+     * Owed even where the window reports no bar: a Samsung with its gesture hint hidden reports none
+     * while Instagram keeps its guessed height, and a chat built on 0 there sat lower than Instagram
+     * puts it (#196). What comes back is only what Instagram itself offered.
      */
     static int[] heightsToGiveBack() {
-        int[] heights = {statusTaken ? statusOffered : 0, navTaken && navBarInFront() != 0 ? navOffered : 0};
+        int[] heights = {statusTaken ? statusOffered : 0, navTaken ? navOffered : 0};
         statusTaken = false;
         navTaken = false;
         return heights;
