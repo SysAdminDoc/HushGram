@@ -505,6 +505,53 @@ public class BackgroundPlayTest {
     }
 
     /**
+     * With the switch off, Instagram releasing the player that took over ends the session, and the
+     * earlier player's held release lets it go along: that was its release, so Instagram's own call
+     * returns at once rather than releasing it a second time.
+     */
+    @Test
+    public void aReleaseThatEndsTheSessionSkipsAPlayerTheEndLetGoAlong() {
+        background(player);
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
+        players.playing.remove(player);
+        BackgroundPlay.started(other);
+        players.playing.add(other);
+        idle();
+        assertTrue(BackgroundPlay.releasing(other, "fragment_destroyed"));
+        players.releasesWith.put(player, other);
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
+
+        players.release(other, "destroy");
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals("each released once", List.of(player, other), players.released);
+        assertEquals(List.of("release fragment_stopped", "release along"), players.calls);
+    }
+
+    /**
+     * With the switch off, Instagram pausing the player that took over ends the session, and the
+     * earlier player's held release lets it go along: the pause returns at once, as nothing is left
+     * to pause.
+     */
+    @Test
+    public void aPauseThatEndsTheSessionSkipsAPlayerTheEndLetGoAlong() {
+        background(player);
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
+        players.playing.remove(player);
+        BackgroundPlay.started(other);
+        players.playing.add(other);
+        idle();
+        players.releasesWith.put(player, other);
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
+
+        players.pause(other);
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(List.of(player, other), players.released);
+        assertEquals("no pause on the released player", List.of("release fragment_stopped", "release along"), players.calls);
+    }
+
+    /**
      * A pause that ends the session on a held player whose release the end lets through returns at
      * once, and a pause on a player with no release held still goes through.
      */

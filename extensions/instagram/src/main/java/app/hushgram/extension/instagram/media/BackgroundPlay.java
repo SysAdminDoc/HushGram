@@ -138,6 +138,12 @@ public final class BackgroundPlay {
      * second time.
      */
     private static final ArrayList<Release> ending = new ArrayList<>();
+    /**
+     * Each player released while a session ends: the releases it lets through and any Instagram asks
+     * for meanwhile, as one player's release lets another go along. Only kept while {@link #endingNow}.
+     */
+    private static final ArrayList<Object> releasedWhileEnding = new ArrayList<>();
+    private static boolean endingNow;
     private static boolean watching;
 
     private BackgroundPlay() {
@@ -327,17 +333,14 @@ public final class BackgroundPlay {
                 // session ends, is the only one that player gets, so none waits for the session's end.
                 if (phase == Phase.IDLE || passing || player != heldLocked()) {
                     forget(player);
+                    if (endingNow) releasedWhileEnding.add(player);
                     return false;
                 }
                 screen = leavingScreen != null ? leavingScreen.get() : null;
             }
-            if (!on()) {
-                endLettingGo(player, "the switch is off");
-                return false;
-            }
+            if (!on()) return endLettingGo(player, "the switch is off");
             if (screen != null && inPictureInPicture(screen)) {
-                endLettingGo(player, "Instagram went to picture in picture");
-                return false;
+                return endLettingGo(player, "Instagram went to picture in picture");
             }
             synchronized (LOCK) {
                 if (phase == Phase.IDLE || player != heldLocked()) return false;
@@ -561,10 +564,15 @@ public final class BackgroundPlay {
      * for go through on its own player, and takes the notification down.
      */
     static void end(boolean pause, String why) {
+        finish(pause, why);
+    }
+
+    /** Ends the session as {@link #end} does, and returns each player it released meanwhile. */
+    private static List<Object> finish(boolean pause, String why) {
         Object player;
         boolean wasBackground;
         synchronized (LOCK) {
-            if (phase == Phase.IDLE) return;
+            if (phase == Phase.IDLE) return new ArrayList<>();
             wasBackground = phase == Phase.BACKGROUND;
             player = heldLocked();
             phase = Phase.IDLE;
@@ -574,46 +582,62 @@ public final class BackgroundPlay {
             pausedSince = NONE;
             ending.addAll(releases);
             releases.clear();
+            releasedWhileEnding.clear();
+            endingNow = true;
         }
-        Utils.runOnMainThreadNowOrLater(SpringSteps::stop);
-        if (pause && player != null) pauseThrough(player);
         boolean letGo = false;
-        while (true) {
-            Release next;
-            synchronized (LOCK) {
-                if (ending.isEmpty()) break;
-                next = ending.remove(0);
+        List<Object> released;
+        try {
+            Utils.runOnMainThreadNowOrLater(SpringSteps::stop);
+            if (pause && player != null) pauseThrough(player);
+            while (true) {
+                Release next;
+                synchronized (LOCK) {
+                    if (ending.isEmpty()) break;
+                    next = ending.remove(0);
+                    releasedWhileEnding.add(next.player);
+                }
+                releaseThrough(next.player, next.reason);
+                letGo = true;
             }
-            releaseThrough(next.player, next.reason);
-            letGo = true;
+        } finally {
+            synchronized (LOCK) {
+                endingNow = false;
+                released = new ArrayList<>(releasedWhileEnding);
+                releasedWhileEnding.clear();
+            }
         }
         if (wasBackground && !serviceForTests) BackgroundPlayService.finish();
-        boolean released = letGo;
-        log(() -> "background playback ended: " + why + (released ? ", and Instagram's release went through" : ""));
+        boolean releaseWent = letGo;
+        log(() -> "background playback ended: " + why + (releaseWent ? ", and Instagram's release went through" : ""));
+        return released;
     }
 
     /**
-     * Ends the session as Instagram's own release of [player] goes through, dropping the release held
-     * for it earlier so the end doesn't release it as well.
+     * Ends the session as Instagram releases [player], dropping the release held for it earlier so
+     * the end doesn't release it as well. True when the end released it all the same, as another
+     * player's release let it go along: Instagram's own release then returns at once.
      */
-    private static void endLettingGo(Object player, String why) {
+    private static boolean endLettingGo(Object player, String why) {
         synchronized (LOCK) {
             forget(player);
         }
-        end(false, why);
+        return releasedIn(finish(false, why), player);
     }
 
     /**
-     * Ends the session as Instagram pauses [player]. True when the end let a release held for it
-     * through: the player is gone then, so its pause returns at once.
+     * Ends the session as Instagram pauses [player]. True when the end released it, through the
+     * release held for it or along with another: the player is gone then, so its pause returns at once.
      */
     private static boolean endBeforePause(Object player, String why) {
-        boolean letGo;
-        synchronized (LOCK) {
-            letGo = holds(releases, player);
+        return releasedIn(finish(false, why), player);
+    }
+
+    private static boolean releasedIn(List<Object> released, Object player) {
+        for (Object gone : released) {
+            if (gone == player) return true;
         }
-        end(false, why);
-        return letGo;
+        return false;
     }
 
     /** Drops the release held for [player], if any, in the session and in one that is ending. Under LOCK. */
@@ -626,13 +650,6 @@ public final class BackgroundPlay {
         for (Iterator<Release> it = list.iterator(); it.hasNext(); ) {
             if (it.next().player == player) it.remove();
         }
-    }
-
-    private static boolean holds(List<Release> list, Object player) {
-        for (Release release : list) {
-            if (release.player == player) return true;
-        }
-        return false;
     }
 
     /** A release Instagram asked for during a session, kept until it ends. */
@@ -827,6 +844,8 @@ public final class BackgroundPlay {
             passing = false;
             releases.clear();
             ending.clear();
+            releasedWhileEnding.clear();
+            endingNow = false;
         }
         SpringSteps.resetForTests();
         // Each test has an application of its own to watch.
