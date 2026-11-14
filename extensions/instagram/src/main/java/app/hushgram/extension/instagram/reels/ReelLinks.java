@@ -51,9 +51,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>A comment shared in a chat is a link too (#662). Tapping it on a reel opens a Reels viewer from
  * the chat ({@link #FROM_CHAT}) with only the reel's id, which loads the reel the way a link's viewer
- * does, so the same chunk can land first and play a stranger's reel. The patch tells
+ * does, so the same chunk can land first and play a stranger's reel. It also builds the viewer with
+ * the cached reels in front, like a link's, which plays a stranger's reel even when no chunk comes
+ * (a report showed neither hook below it running). The patch tells
  * {@link #sharedCommentOpened(String)} as the tap reads what the comment was on, and the next chat
- * viewer within {@link #COMMENT_MILLIS} holds its chunks like a link's.
+ * viewer within {@link #COMMENT_MILLIS} skips the cached reels and holds its chunks like a link's.
  */
 public final class ReelLinks {
     /** What {@link HookStatus} counts: a viewer opened from a link that skipped the cached reels. */
@@ -124,19 +126,23 @@ public final class ReelLinks {
 
     /**
      * Asked as a Reels viewer decides whether to put Instagram's cached reels in front, with where
-     * it was opened from. 1 skips them: the viewer was opened from a link, the switch is on, HushGram
-     * isn't paused and the settings are ready. 0 for every other source, a source that isn't an enum,
-     * and anything that throws. Never throws.
+     * it was opened from. 1 skips them: the viewer was opened from a link, or from a chat within
+     * {@link #COMMENT_MILLIS} of a shared comment's tap (#662), the switch is on, HushGram isn't paused
+     * and the settings are ready. The tap stays for {@link #holdsReels}. 0 for every other source, a
+     * source that isn't an enum, and anything that throws. Never throws.
      */
     public static int skipsCachedReels(Object source) {
         try {
             HookStatus.invoked(FamilyNames.REEL_LINKS);
             if (!(source instanceof Enum)) return 0;
             String name = ((Enum<?>) source).name();
-            if (!name.equals(FROM_LINK) && !name.equals(FROM_LINK_PRIME)) return 0;
+            boolean link = name.equals(FROM_LINK) || name.equals(FROM_LINK_PRIME);
+            boolean comment = !link && name.equals(FROM_CHAT) && commentTapRecent();
+            if (!link && !comment) return 0;
             if (!Utils.settingsReady() || !Settings.OPEN_REEL_LINKS_FIRST.get()) return 0;
             HookStatus.counted(FamilyNames.REEL_LINKS, SKIPPED);
-            Logger.printDebug(() -> "Reels viewer opened from " + name + ": cached reels skipped");
+            String from = comment ? "a shared comment" : name;
+            Logger.printDebug(() -> "Reels viewer opened from " + from + ": cached reels skipped");
             return 1;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_LINKS, VIEWER, failure);
@@ -245,9 +251,15 @@ public final class ReelLinks {
 
     /** Whether a shared comment was tapped within {@link #COMMENT_MILLIS}, forgetting it so only one viewer counts as its. */
     private static boolean takeCommentTap() {
+        boolean recent = commentTapRecent();
+        commentTapped = NO_COMMENT;
+        return recent;
+    }
+
+    /** Whether a shared comment was tapped within {@link #COMMENT_MILLIS}, keeping the tap. */
+    private static boolean commentTapRecent() {
         long tapped = commentTapped;
         if (tapped == NO_COMMENT) return false;
-        commentTapped = NO_COMMENT;
         long since = SystemClock.uptimeMillis() - tapped;
         return since >= 0 && since <= COMMENT_MILLIS;
     }

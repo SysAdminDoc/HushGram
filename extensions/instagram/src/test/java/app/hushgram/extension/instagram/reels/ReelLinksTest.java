@@ -269,6 +269,35 @@ public class ReelLinksTest {
     }
 
     /**
+     * A report showed a shared comment's chat viewer playing a stranger's reel with no chunk and no
+     * insert at all: Instagram had put its cached reels in front (#662). That viewer skips them like a
+     * link's, and the tap is still there for its chunks after.
+     */
+    @Test
+    public void aSharedCommentsViewerSkipsTheCachedReels() {
+        assertEquals("a chat with no comment tapped", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+        ReelLinks.sharedCommentOpened("photo");
+        assertEquals("a comment on a post", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+
+        ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
+        assertEquals("the Reels tab right after the tap", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.CLIPS_TAB));
+        assertEquals("the comment's chat viewer", 1, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+        Adapter viewer = new Adapter(ClipsViewerSource.DIRECT);
+        assertEquals("its chunk still waits for the reel", 1, chunk(viewer, "a"));
+        assertEquals("the chunk spent the tap", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+
+        ReelLinks.sharedCommentOpened(ReelLinks.ON_GLIMMER);
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(ReelLinks.COMMENT_MILLIS + 1, TimeUnit.MILLISECONDS);
+        assertEquals("too long after the tap", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+
+        Settings.OPEN_REEL_LINKS_FIRST.save(false);
+        ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
+        assertEquals("off", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+        String report = report();
+        assertTrue(report, report.contains(ReelLinks.SKIPPED + " 1"));
+    }
+
+    /**
      * Never held for a shared comment: a chat viewer with no comment tapped, a comment on something
      * that isn't a reel, another viewer, a viewer too long after the tap, one whose reel went in
      * first (which spends the tap), and the switch off.

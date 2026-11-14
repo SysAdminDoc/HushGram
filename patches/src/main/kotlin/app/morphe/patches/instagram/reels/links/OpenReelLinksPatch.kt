@@ -98,8 +98,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * adapter's insert starts, which for a link's viewer is the linked reel going in.
  *
  * A comment shared in a chat is a link too (#662): tapping one on a reel opens a viewer from the chat
- * with only the reel's id, and the same chunk can land first. The patch tells the extension as the
- * tap reads what the comment was on, and the next chat viewer holds its chunks like a link's.
+ * with only the reel's id, built with the kept reels in front like a link's, and the same chunk can
+ * land first. The patch tells the extension as the tap reads what the comment was on, and the next
+ * chat viewer skips the kept reels and holds its chunks like a link's.
  *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
