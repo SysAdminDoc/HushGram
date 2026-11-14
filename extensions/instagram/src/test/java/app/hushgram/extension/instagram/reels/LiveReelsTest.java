@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.junit.After;
 import org.junit.Before;
@@ -41,11 +42,20 @@ public class LiveReelsTest {
     /** A Reels item; a live one carries a live preview part, as Instagram's item does. */
     static final class Clip {
         final Object preview;
+        final boolean loading;
 
         Clip(Object preview) {
+            this(preview, false);
+        }
+
+        Clip(Object preview, boolean loading) {
             this.preview = preview;
+            this.loading = loading;
         }
     }
+
+    /** Tells the placeholder Instagram puts at the end of a list the way the patch-filled stub does. */
+    private static final Predicate<Object> PLACEHOLDER = item -> item instanceof Clip && ((Clip) item).loading;
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
@@ -78,7 +88,7 @@ public class LiveReelsTest {
     private static final String REELS_TAB = "clips_viewer_clips_tab";
 
     private List<?> page(List<?> items, String module) {
-        return LiveReels.page(items, module, preview, LiveReels::switchedOn);
+        return LiveReels.page(items, module, preview, PLACEHOLDER, LiveReels::switchedOn);
     }
 
     private static Clip reel() {
@@ -87,6 +97,10 @@ public class LiveReelsTest {
 
     private static Clip live() {
         return new Clip(new Object());
+    }
+
+    private static Clip placeholder() {
+        return new Clip(null, true);
     }
 
     /** On, the lives in a Reels tab page go and the reels around them stay, in order, in a new list. */
@@ -187,8 +201,8 @@ public class LiveReelsTest {
 
         assertSame(items, LiveReels.page(items, REELS_TAB, item -> {
             throw new IllegalStateException("broken item");
-        }, LiveReels::switchedOn));
-        assertSame(items, LiveReels.page(items, REELS_TAB, preview, () -> {
+        }, PLACEHOLDER, LiveReels::switchedOn));
+        assertSame(items, LiveReels.page(items, REELS_TAB, preview, PLACEHOLDER, () -> {
             throw new IllegalStateException("broken switch");
         }));
 
@@ -201,6 +215,7 @@ public class LiveReelsTest {
     public void nullAndUnpatchedPagesStay() {
         assertNull(LiveReels.page(null, REELS_TAB));
         assertNull(LiveReels.livePreview(live()));
+        assertFalse(LiveReels.placeholder(placeholder()));
         List<Clip> items = Arrays.asList(live(), reel());
         assertSame(items, LiveReels.page(items, REELS_TAB));
         assertNull(LiveReels.added(null, REELS_TAB, 3));
@@ -208,7 +223,33 @@ public class LiveReelsTest {
     }
 
     private List<?> added(List<?> items, String module, int held) {
-        return LiveReels.added(items, module, held, preview, LiveReels::switchedOn);
+        return LiveReels.added(items, module, held, preview, PLACEHOLDER, LiveReels::switchedOn);
+    }
+
+    /**
+     * Instagram adds its placeholder to the end of the first list it hands an empty viewer, so a first
+     * list of lives and that placeholder stays whole and the viewer has a live to start on rather than
+     * the placeholder alone. Once the viewer holds items the lives go and the placeholder stays.
+     */
+    @Test
+    public void aFirstListOfLivesAndThePlaceholderIsKeptWhole() {
+        Clip loading = placeholder();
+        List<Clip> items = Arrays.asList(live(), live(), loading);
+
+        assertSame(items, added(items, REELS_TAB, 0));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("first list kept whole 1"));
+        assertSame("a page with one is kept whole the same way", items, page(items, REELS_TAB));
+
+        assertEquals(Collections.singletonList(loading), added(items, REELS_TAB, 4));
+
+        Clip reel = reel();
+        assertEquals("a reel among them is enough to start on", Arrays.asList(reel, loading),
+                added(Arrays.asList(live(), reel, loading), REELS_TAB, 0));
+        List<Clip> alone = Collections.singletonList(loading);
+        assertSame("the placeholder alone isn't touched", alone, added(alone, REELS_TAB, 0));
+        assertEquals("a null isn't a placeholder", Collections.singletonList(null),
+                added(Arrays.asList(live(), null), REELS_TAB, 0));
     }
 
     /** A list the viewer's data source adds loses its lives and keeps the rest in order, counted on its own route. */
@@ -285,6 +326,10 @@ public class LiveReelsTest {
 
         assertSame(items, LiveReels.added(items, REELS_TAB, 5, item -> {
             throw new IllegalStateException("broken item");
+        }, PLACEHOLDER, LiveReels::switchedOn));
+        List<Clip> loading = Arrays.asList(live(), placeholder());
+        assertSame(loading, LiveReels.added(loading, REELS_TAB, 0, preview, item -> {
+            throw new IllegalStateException("broken placeholder check");
         }, LiveReels::switchedOn));
 
         String missing = HookStatus.missing(FamilyNames.LIVE_REELS).toString();

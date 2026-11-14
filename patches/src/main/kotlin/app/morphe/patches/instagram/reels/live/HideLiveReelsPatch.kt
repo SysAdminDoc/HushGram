@@ -54,6 +54,12 @@ internal const val REELS_INSERT_ITEMS = "ClipsStandaloneAdapterDataSource_insert
 private const val GET_MODULE_NAME = "getModuleName"
 
 /**
+ * The marker Instagram's Reels adapter loads where it may put a placeholder at the end of a list it
+ * adds, for the next page to show in once it's loaded, and checks whether its last item already is one.
+ */
+internal const val REELS_PLACEHOLDER = "ClipsViewerAdapter_maybeReturnGhostClipsItem"
+
+/**
  * The marker of the method that works out what a live preview in Reels shows. It asks the Reels
  * item for its live preview part first, by that part's key, and stops when there isn't one.
  */
@@ -332,6 +338,88 @@ internal fun BytecodePatchContext.fillLivePreview(itemType: String, live: LivePr
 }
 
 /**
+ * How a Reels item is told for the placeholder Instagram's adapter puts at the end of a list it adds
+ * while the next page loads: its [kind], read off the item, is the one the static [placeholder] holds.
+ */
+internal class ReelsPlaceholder(val kind: FieldReference, val placeholder: FieldReference)
+
+/**
+ * Finds [ReelsPlaceholder] in the methods marked [REELS_PLACEHOLDER], where the adapter checks
+ * whether its last item is the placeholder already: a field of the Reels item ([itemType]) read,
+ * straight followed by a static of that field's type read off that type, the two compared at once,
+ * with nothing jumping in between. Every such compare there has to agree, and the fields and the
+ * classes holding them have to be public so the extension's stub can reach them.
+ */
+internal fun BytecodePatchContext.findReelsPlaceholder(itemType: String): ReelsPlaceholder {
+    val marked = typesMarked(REELS_PLACEHOLDER).sorted()
+        .flatMap { type -> classDefBy(type).methods.filter { REELS_PLACEHOLDER in it.markers() } }
+    if (marked.isEmpty()) refuse("expected a method marked $REELS_PLACEHOLDER, found none")
+    val found = LinkedHashMap<String, ReelsPlaceholder>()
+    for (method in marked) {
+        val code = method.implementation?.instructions?.toList().orEmpty()
+        val targets = method.jumpTargets()
+        for (at in 0 until code.size - 2) {
+            if (code[at].opcode != Opcode.IGET_OBJECT || code[at + 1].opcode != Opcode.SGET_OBJECT) continue
+            val compare = code[at + 2]
+            if (compare.opcode != Opcode.IF_EQ && compare.opcode != Opcode.IF_NE) continue
+            if (at + 1 in targets || at + 2 in targets) continue
+            val kind = (code[at] as ReferenceInstruction).reference as? FieldReference ?: continue
+            val placeholder = (code[at + 1] as ReferenceInstruction).reference as? FieldReference ?: continue
+            if (kind.definingClass != itemType || placeholder.definingClass != kind.type || placeholder.type != kind.type) continue
+            val read = (code[at] as TwoRegisterInstruction).registerA
+            val held = (code[at + 1] as OneRegisterInstruction).registerA
+            val compared = compare as TwoRegisterInstruction
+            if (read == held || setOf(compared.registerA, compared.registerB) != setOf(read, held)) continue
+            found["$kind $placeholder"] = ReelsPlaceholder(kind, placeholder)
+        }
+    }
+    val check = found.values.singleOrNull() ?: refuse(
+        if (found.isEmpty()) "${marked.map { it.describe() }} don't compare a Reels item's ($itemType) kind with a placeholder's"
+        else "the methods marked $REELS_PLACEHOLDER tell the placeholder in more than one way: ${found.keys}",
+    )
+
+    val item = classDefBy(itemType)
+    val kind = item.fields.firstOrNull { it.name == check.kind.name && it.type == check.kind.type }
+        ?: refuse("${check.kind} isn't declared by $itemType")
+    if (!AccessFlags.PUBLIC.isSet(item.accessFlags) || !AccessFlags.PUBLIC.isSet(kind.accessFlags) ||
+        AccessFlags.STATIC.isSet(kind.accessFlags)
+    ) refuse("${check.kind} isn't a public field the extension can read")
+    val holder = classDefByOrNull(check.placeholder.definingClass) ?: refuse("${check.placeholder.definingClass} isn't a class of the app")
+    val placeholder = holder.fields.firstOrNull { it.name == check.placeholder.name && it.type == check.placeholder.type }
+        ?: refuse("${check.placeholder} isn't in the app")
+    if (!AccessFlags.PUBLIC.isSet(holder.accessFlags) || !AccessFlags.PUBLIC.isSet(placeholder.accessFlags) ||
+        !AccessFlags.STATIC.isSet(placeholder.accessFlags)
+    ) refuse("${check.placeholder} isn't a public static field the extension can read")
+    if (classDefByOrNull(LIVE_REELS)?.methods?.none { it.isStaticStub("placeholder", listOf(OBJECT), "Z") } != false) {
+        refuse("the extension has no static placeholder(Object)boolean to fill")
+    }
+    return check
+}
+
+/**
+ * Fills the extension's placeholder(Object)boolean stub for Reels items of [itemType]: true when the
+ * item's kind is the placeholder's, the compare Instagram's adapter makes, and false for anything else.
+ */
+internal fun BytecodePatchContext.fillReelsPlaceholder(itemType: String, check: ReelsPlaceholder) {
+    fillStub(
+        LIVE_REELS, "placeholder", "Z", 3,
+        """
+            instance-of v0, p0, $itemType
+            if-eqz v0, :no
+            check-cast p0, $itemType
+            iget-object v0, p0, ${check.kind}
+            sget-object v1, ${check.placeholder}
+            if-ne v0, v1, :no
+            const/4 v0, 0x1
+            return v0
+            :no
+            const/4 v0, 0x0
+            return v0
+        """,
+    )
+}
+
+/**
  * Where the Reels viewer's data source, [dataSource], takes a list into its items: [inserts], each
  * method's descriptor with the index of its List parameter, its [moduleField], the viewer's module
  * name, and [size], how many items it holds.
@@ -470,7 +558,9 @@ val hideLiveReelsPatch = bytecodePatch(
         val page = findReelsPage(PATCH)
         val live = findLivePreviewKey(page.itemType)
         val inserts = findReelsItemInserts()
+        val placeholder = findReelsPlaceholder(page.itemType)
         hideLiveReels(page, live)
+        fillReelsPlaceholder(page.itemType, placeholder)
         filterReelsItemInserts(inserts)
         enableStatus("liveReels")
     }

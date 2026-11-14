@@ -57,6 +57,8 @@ class HideLiveReelsHookTest {
     private val listType = "Ljava/util/List;"
     private val dataSource = "Lfixture/ClipsDataSource;"
     private val viewer = "Lfixture/ClipsViewer;"
+    private val kindType = "Lfixture/ClipsItemKind;"
+    private val adapter = "Lfixture/ClipsViewerAdapter;"
 
     /** The page filter and the stub the patch fills are in the LiveReels the bundle ships, public and static. */
     @Test
@@ -65,7 +67,7 @@ class HideLiveReelsHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         val hooks = listOf(LIVE_PAGE_FILTER, LIVE_ADDED_FILTER).map { it.substringAfter("->") }
-        for (wanted in hooks + "livePreview(Ljava/lang/Object;)Ljava/lang/Object;") {
+        for (wanted in hooks + "livePreview(Ljava/lang/Object;)Ljava/lang/Object;" + "placeholder(Ljava/lang/Object;)Z") {
             assertTrue("$wanted is not in the extension: $declared", wanted in declared)
         }
     }
@@ -188,6 +190,96 @@ class HideLiveReelsHookTest {
             checked++
         }
         assertEquals("every build of 454 is read", Fixtures.BUILDS, checked)
+    }
+
+    /**
+     * The placeholder is told the way the adapter tells it: the item's kind read and compared with
+     * the static placeholder kind straight after. A compare of another field, or one a jump lands in
+     * the middle of, doesn't count, and the stub answers true only for an item of that kind.
+     */
+    @Test
+    fun thePlaceholderIsToldTheWayTheAdapterTellsItAndTheStubIsFilled() {
+        val context = PatchContexts.of(placeholderClasses())
+
+        val found = context.findReelsPlaceholder(item)
+        context.fillReelsPlaceholder(item, found)
+
+        assertEquals("$item->kind:$kindType", found.kind.toString())
+        assertEquals("$kindType->PLACEHOLDER:$kindType", found.placeholder.toString())
+        assertPlaceholderStubFilled("the stand-in", context, item, found)
+    }
+
+    /** An adapter the patch can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun anAdapterThePatchCantReadFailsBeforeAnythingChanges() {
+        val cases = listOf(
+            placeholderClasses(marked = false) to "expected a method marked $REELS_PLACEHOLDER, found none",
+            placeholderClasses(compares = false) to "don't compare a Reels item's ($item) kind with a placeholder's",
+            placeholderClasses(twoWays = true) to "tell the placeholder in more than one way",
+            placeholderClasses(kindPublic = false) to "$item->kind:$kindType isn't a public field the extension can read",
+            placeholderClasses(placeholderPublic = false) to "$kindType->PLACEHOLDER:$kindType isn't a public static field the extension can read",
+            placeholderClasses(extension = false) to "the extension has no static placeholder(Object)boolean to fill",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.findReelsPlaceholder(item) }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    /**
+     * On the declared build and each other build of 454, the adapter's placeholder compare reads a
+     * field of the item the Reels converter answers, and the stub is filled with it.
+     */
+    @Test
+    fun eachBuildFindsThePlaceholder() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        var checked = 0
+        for (bundle in bundles) {
+            val converter = FixtureDex.classesHolding(bundle, TO_CLIPS_ITEM).flatMap { it.methods }
+                .single { method -> method.code().any { it.string() == TO_CLIPS_ITEM } }
+            val itemType = converter.returnType
+            val marked = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                if (dex.stringSection.none { it.endsWith("_$REELS_PLACEHOLDER") }) return@forEach
+                for (classDef in dex.classes) {
+                    if (classDef.methods.any { REELS_PLACEHOLDER in it.markers() }) marked += ImmutableClassDef.of(classDef)
+                }
+            }
+            val read = marked.flatMap { it.methods }.filter { REELS_PLACEHOLDER in it.markers() }
+                .flatMap { it.code() }.mapNotNull { it.reference() as? FieldReference }
+            val types = read.map { it.definingClass } + read.map { it.type } + itemType
+            val kept = (marked + FixtureDex.classes(bundle, types.toSet()).values).distinctBy { it.type } +
+                ExtensionDex.classDef(LIVE_REELS)
+            val context = PatchContexts.of(kept)
+
+            val found = context.findReelsPlaceholder(itemType)
+            context.fillReelsPlaceholder(itemType, found)
+
+            assertEquals("${bundle.name}: the kind is the item's", itemType, found.kind.definingClass)
+            assertEquals("${bundle.name}: the placeholder is a kind", found.kind.type, found.placeholder.type)
+            assertPlaceholderStubFilled(bundle.name, context, itemType, found)
+            checked++
+        }
+        assertEquals("every build of 454 is read", Fixtures.BUILDS, checked)
+    }
+
+    private fun assertPlaceholderStubFilled(what: String, context: BytecodePatchContext, itemType: String, found: ReelsPlaceholder) {
+        val stub = context.mutableClassDefBy(LIVE_REELS).methods.single { it.name == "placeholder" }
+        assertEquals("$what: the stub's registers", 3, stub.implementation!!.registerCount)
+        assertEquals(
+            "$what: the stub",
+            listOf(
+                Opcode.INSTANCE_OF to itemType, Opcode.IF_EQZ to null, Opcode.CHECK_CAST to itemType,
+                Opcode.IGET_OBJECT to found.kind.toString(), Opcode.SGET_OBJECT to found.placeholder.toString(),
+                Opcode.IF_NE to null, Opcode.CONST_4 to null, Opcode.RETURN to null, Opcode.CONST_4 to null, Opcode.RETURN to null,
+            ),
+            stub.code().map { it.opcode to it.referenceText() },
+        )
+        val answers = stub.code().filter { it.opcode == Opcode.CONST_4 }.map { (it as NarrowLiteralInstruction).narrowLiteral }
+        assertEquals("$what: true for the placeholder, false for the rest", listOf(1, 0), answers)
     }
 
     /** The data source's add and insert hand their list to the extension first thing, with its module name and size. */
@@ -500,6 +592,70 @@ class HideLiveReelsHookTest {
             listOf(classDef(dataSource, methods + insert))
         }
         return classes + if (extension) listOf(ExtensionDex.classDef(LIVE_REELS)) else emptyList()
+    }
+
+    /**
+     * The Reels adapter shaped like 454's: the item with its kind, the kind with the placeholder and
+     * another of its values as statics, and the adapter whose marked method asks the last item it
+     * holds whether it's the placeholder, compares another field first, and has a compare a jump
+     * lands in the middle of; and the extension.
+     */
+    private fun placeholderClasses(
+        marked: Boolean = true,
+        compares: Boolean = true,
+        twoWays: Boolean = false,
+        kindPublic: Boolean = true,
+        placeholderPublic: Boolean = true,
+        extension: Boolean = true,
+    ): List<ClassDef> {
+        val itemClass = ImmutableClassDef(
+            item, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, objectType, null, null, null,
+            listOf(
+                ImmutableField(item, "kind", kindType, if (kindPublic) AccessFlags.PUBLIC.value else AccessFlags.PRIVATE.value, null, null, null),
+                ImmutableField(item, "label", stringType, AccessFlags.PUBLIC.value, null, null, null),
+            ),
+            null,
+        )
+        val kindClass = ImmutableClassDef(
+            kindType, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, objectType, null, null, null,
+            listOf("PLACEHOLDER", "REEL").map { name ->
+                val access = (if (placeholderPublic || name != "PLACEHOLDER") AccessFlags.PUBLIC.value else AccessFlags.PRIVATE.value) or
+                    AccessFlags.STATIC.value or AccessFlags.FINAL.value
+                ImmutableField(kindType, name, kindType, access, null, null, null)
+            },
+            null,
+        )
+        val adds = method(adapter, "addClipsItems", listOf(item), "V", 3, body = buildString {
+            if (marked) appendLine("const-string v0, \"android_purge_26_q2_$REELS_PLACEHOLDER\"")
+            // Another field's compare with a static of its own type isn't the kind's.
+            appendLine("iget-object v1, p1, $item->label:$stringType")
+            appendLine("sget-object v0, $adapter->LABEL:$stringType")
+            appendLine("if-eq v1, v0, :label")
+            appendLine(":label")
+            // A compare a jump lands in the middle of isn't straight code.
+            appendLine("iget-object v1, p1, $item->kind:$kindType")
+            appendLine(":middle")
+            appendLine("sget-object v0, $kindType->REEL:$kindType")
+            appendLine("if-eq v1, v0, :middle")
+            if (compares) {
+                appendLine("iget-object v1, p1, $item->kind:$kindType")
+                appendLine("sget-object v0, $kindType->PLACEHOLDER:$kindType")
+                appendLine("if-ne v1, v0, :add")
+            }
+            if (twoWays) {
+                appendLine("iget-object v2, p1, $item->kind:$kindType")
+                appendLine("sget-object v0, $kindType->REEL:$kindType")
+                appendLine("if-eq v0, v2, :add")
+            }
+            appendLine(":add")
+            appendLine("return-void")
+        })
+        val adapterClass = ImmutableClassDef(
+            adapter, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, objectType, null, null, null,
+            listOf(ImmutableField(adapter, "LABEL", stringType, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, null)),
+            listOf(adds),
+        )
+        return listOf(itemClass, kindClass, adapterClass) + if (extension) listOf(ExtensionDex.classDef(LIVE_REELS)) else emptyList()
     }
 
     private fun method(
