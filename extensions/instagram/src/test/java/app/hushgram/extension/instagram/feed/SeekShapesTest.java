@@ -246,6 +246,85 @@ public class SeekShapesTest {
         assertTrue(screen.getClipChildren());
     }
 
+    /** A reel's 28 px bar along the bottom of a 45 px frame, as Instagram lays it out, in [parent]. */
+    private static SeekBar reelBar(FrameLayout parent, FrameLayout frame) {
+        frame.setPadding(0, 6, 0, 0);
+        SeekBar reel = new SeekBar(RuntimeEnvironment.getApplication());
+        reel.setPadding(0, 24, 0, 0);
+        frame.addView(reel, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 28, Gravity.BOTTOM));
+        parent.addView(frame, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 45, Gravity.BOTTOM));
+        return reel;
+    }
+
+    /**
+     * #450: two bars sharing the view round them both need it to let them draw past. The first bar back
+     * on standard leaves it open for the second, and it clips again once neither needs it.
+     */
+    @Test
+    @Config(qualifiers = "xxhdpi")
+    public void aViewTwoBarsShareClipsAgainOnlyOnceNeitherNeedsIt() {
+        FrameLayout screen = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout host = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout firstFrame = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout secondFrame = new FrameLayout(RuntimeEnvironment.getApplication());
+        SeekBar first = reelBar(host, firstFrame);
+        SeekBar second = reelBar(host, secondFrame);
+        screen.addView(host, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 600));
+        lay(screen);
+
+        SeekShapes.apply(first, SeekShape.WAVE, OverlayLook.SOLID, true);
+        SeekShapes.apply(second, SeekShape.WAVE, OverlayLook.SOLID, true);
+        assertFalse(host.getClipChildren());
+
+        SeekShapes.apply(first, SeekShape.STANDARD, OverlayLook.SOLID, true);
+        assertTrue("the first bar's own frame clips again", firstFrame.getClipChildren());
+        assertFalse("the second bar still needs the shared view", host.getClipChildren());
+        assertFalse(secondFrame.getClipChildren());
+
+        SeekShapes.apply(second, SeekShape.STANDARD, OverlayLook.SOLID, true);
+        assertTrue("neither needs it now", host.getClipChildren());
+        assertTrue(secondFrame.getClipChildren());
+        assertTrue(screen.getClipChildren());
+    }
+
+    /** #450: a view Instagram already lets draw past its edges is left that way when the bar goes back to standard. */
+    @Test
+    @Config(qualifiers = "xxhdpi")
+    public void aViewInstagramLeftOpenStaysOpen() {
+        FrameLayout screen = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout host = new FrameLayout(RuntimeEnvironment.getApplication());
+        host.setClipChildren(false);
+        SeekBar reel = reelBar(host, new FrameLayout(RuntimeEnvironment.getApplication()));
+        screen.addView(host, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 600));
+        lay(screen);
+
+        SeekShapes.apply(reel, SeekShape.WAVE, OverlayLook.SOLID, true);
+        SeekShapes.apply(reel, SeekShape.STANDARD, OverlayLook.SOLID, true);
+
+        assertFalse("Instagram's own choice stands", host.getClipChildren());
+    }
+
+    /** #450: the walk stops before a view that scrolls, like the reels' pager, so its pages keep their edges. */
+    @Test
+    @Config(qualifiers = "xxhdpi")
+    public void theWalkStopsBeforeAViewThatScrolls() {
+        FrameLayout pager = new FrameLayout(RuntimeEnvironment.getApplication()) {
+            @Override
+            public boolean canScrollVertically(int direction) {
+                return true;
+            }
+        };
+        FrameLayout frame = new FrameLayout(RuntimeEnvironment.getApplication());
+        SeekBar reel = reelBar(pager, frame);
+        lay(pager);
+
+        SeekShapes.apply(reel, SeekShape.WAVE, OverlayLook.SOLID, true);
+
+        assertFalse("the bar's frame lets it draw past", frame.getClipChildren());
+        assertTrue("the pager still clips its pages", pager.getClipChildren());
+        assertTrue(pager.getClipToPadding());
+    }
+
     /** #450: a bar with the room for its shape leaves the views round it as they were. */
     @Test
     @Config(qualifiers = "xxhdpi")
