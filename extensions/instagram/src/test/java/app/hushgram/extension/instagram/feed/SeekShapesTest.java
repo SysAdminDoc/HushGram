@@ -15,6 +15,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
@@ -197,6 +198,74 @@ public class SeekShapesTest {
         SeekShapes.chatVideo(bar);
         assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.WAVE, false));
         assertEquals("not moved to the edge", 16, bar.getPaddingLeft());
+    }
+
+    /**
+     * #450: a reel's bar is 28 px in a 45 px frame on a phone, so the wave's tall handle needs the frame
+     * and the view round it to let it draw past their edges, no further up, and standard clips again.
+     */
+    @Test
+    @Config(qualifiers = "xxhdpi")
+    public void aShortBarLetsTheWaveDrawPastItAndGivesTheClippingBack() {
+        FrameLayout screen = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout host = new FrameLayout(RuntimeEnvironment.getApplication());
+        FrameLayout frame = new FrameLayout(RuntimeEnvironment.getApplication());
+        frame.setPadding(0, 6, 0, 0);
+        SeekBar reel = new SeekBar(RuntimeEnvironment.getApplication());
+        // Instagram pads its track down to the bar's bottom.
+        reel.setPadding(0, 24, 0, 0);
+        frame.addView(reel, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 28, Gravity.BOTTOM));
+        host.addView(frame, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 45, Gravity.BOTTOM));
+        screen.addView(host, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 600));
+        lay(screen);
+
+        SeekShapes.apply(reel, SeekShape.WAVE, OverlayLook.SOLID, true);
+        SeekShapeDrawable wave = (SeekShapeDrawable) reel.getProgressDrawable();
+        int top = reel.getPaddingTop() + wave.getBounds().top - wave.spill()[0];
+        assertTrue("the shape reaches above the frame: " + top, reel.getTop() + top < 0);
+        assertFalse("the frame lets it draw past its edges", frame.getClipChildren());
+        assertFalse("and past its padding", frame.getClipToPadding());
+        assertFalse("so does the view round the frame", host.getClipChildren());
+        assertTrue("which has the room, so nothing further up changes", screen.getClipChildren());
+        assertTrue(host.getClipToPadding());
+
+        SeekShapes.apply(reel, SeekShape.WAVE, OverlayLook.SOLID, true);
+        assertFalse("the next tick keeps it", host.getClipChildren());
+
+        // A taller frame has the room itself, so the view round it clips again.
+        frame.getLayoutParams().height = 120;
+        lay(screen);
+        SeekShapes.apply(reel, SeekShape.WAVE, OverlayLook.SOLID, true);
+        assertFalse(frame.getClipChildren());
+        assertTrue(host.getClipChildren());
+
+        SeekShapes.apply(reel, SeekShape.STANDARD, OverlayLook.SOLID, true);
+        assertTrue("standard clips again", frame.getClipChildren());
+        assertTrue(frame.getClipToPadding());
+        assertTrue(host.getClipChildren());
+        assertTrue(screen.getClipChildren());
+    }
+
+    /** #450: a bar with the room for its shape leaves the views round it as they were. */
+    @Test
+    @Config(qualifiers = "xxhdpi")
+    public void aBarWithRoomLeavesTheClippingAlone() {
+        FrameLayout frame = new FrameLayout(RuntimeEnvironment.getApplication());
+        SeekBar tall = new SeekBar(RuntimeEnvironment.getApplication());
+        frame.addView(tall, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 96, Gravity.BOTTOM));
+        lay(frame);
+        for (SeekShape shape : new SeekShape[] {SeekShape.LINE, SeekShape.ROUNDED, SeekShape.EXPRESSIVE, SeekShape.WAVE}) {
+            SeekShapes.apply(tall, shape, OverlayLook.SOLID, true);
+            assertTrue(shape + " fits", frame.getClipChildren());
+            SeekShapes.apply(tall, shape, OverlayLook.SOLID, false);
+            assertTrue(shape + " fits in the middle", frame.getClipChildren());
+        }
+    }
+
+    private static void lay(View root) {
+        root.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 1080, 600);
     }
 
     @Test

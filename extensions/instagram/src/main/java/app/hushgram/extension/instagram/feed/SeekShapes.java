@@ -69,6 +69,24 @@ public final class SeekShapes {
 
     private static final Map<SeekBar, Stock> STOCK = new WeakHashMap<>();
 
+    /** At most this many views round a shaped bar stop clipping it, its parent first. */
+    static final int ROOM_REACH = 4;
+
+    /** The views a shaped bar was let draw past, with their clipping before, and the bar's place then. */
+    private static final class Room {
+        final ViewGroup[] views = new ViewGroup[ROOM_REACH];
+        final boolean[] clipped = new boolean[ROOM_REACH];
+        final boolean[] padded = new boolean[ROOM_REACH];
+        int count;
+        @Nullable ViewParent parent;
+        int top;
+        int height;
+        int above;
+        int below;
+    }
+
+    private static final Map<SeekBar, Room> ROOM = new WeakHashMap<>();
+
     static final String STORY_HOOK = "story progress shape";
     static final String CHAT_HOOK = "chat video seek bar shape";
 
@@ -104,11 +122,13 @@ public final class SeekShapes {
         Drawable now = bar.getProgressDrawable();
         if (now instanceof SeekShapeDrawable && ((SeekShapeDrawable) now).draws(shape, flush)) {
             ((SeekShapeDrawable) now).colors(played, rest);
+            makeRoom(bar, (SeekShapeDrawable) now);
             return;
         }
         if (!STOCK.containsKey(bar)) STOCK.put(bar, new Stock(bar));
         float density = bar.getResources().getDisplayMetrics().density;
-        bar.setProgressDrawable(new SeekShapeDrawable(shape, flush, density, played, rest));
+        SeekShapeDrawable drawn = new SeekShapeDrawable(shape, flush, density, played, rest);
+        bar.setProgressDrawable(drawn);
         if (!(bar.getThumb() instanceof NoHandle)) bar.setThumb(new NoHandle());
         bar.setThumbOffset(0);
         boolean edgeToEdge = flush && shape == SeekShape.LINE;
@@ -116,6 +136,64 @@ public final class SeekShapes {
         int left = edgeToEdge || stock == null ? 0 : stock.paddingLeft;
         int right = edgeToEdge || stock == null ? 0 : stock.paddingRight;
         bar.setPadding(left, bar.getPaddingTop(), right, bar.getPaddingBottom());
+        makeRoom(bar, drawn);
+    }
+
+    /**
+     * Lets [bar] draw [shape] past its own edges (#450). A reel's bar is a few pixels high, so the
+     * views round it cut the top off the wave and the tall handle. Its parent stops clipping, then
+     * each view above that until one has the room, at most {@link #ROOM_REACH} of them, and a view
+     * whose padding would cut it stops clipping to its padding too. Called on every tick, so it does
+     * nothing while the bar stays where it was; once it moved, changed size or needs other room, the
+     * old views get their clipping back first. Waits for the bar's first layout.
+     */
+    private static void makeRoom(SeekBar bar, SeekShapeDrawable shape) {
+        int height = bar.getHeight();
+        if (height <= 0 || shape.getBounds().isEmpty()) return;
+        int[] spill = shape.spill();
+        // ProgressBar draws its track moved down by its top padding.
+        int above = Math.max(0, spill[0] - bar.getPaddingTop() - shape.getBounds().top);
+        int below = Math.max(0, bar.getPaddingTop() + shape.getBounds().bottom + spill[1] - height);
+        ViewParent parent = bar.getParent();
+        Room room = ROOM.get(bar);
+        if (room != null && room.parent == parent && room.top == bar.getTop() && room.height == height
+                && room.above == above && room.below == below) return;
+        if (room != null) giveRoomBack(room);
+        if (above == 0 && below == 0) {
+            ROOM.remove(bar);
+            return;
+        }
+        if (room == null) room = new Room();
+        room.parent = parent;
+        room.top = bar.getTop();
+        room.height = height;
+        room.above = above;
+        room.below = below;
+        ROOM.put(bar, room);
+        View child = bar;
+        while ((above > 0 || below > 0) && room.count < ROOM_REACH && child.getParent() instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) child.getParent();
+            room.views[room.count] = group;
+            room.clipped[room.count] = group.getClipChildren();
+            room.padded[room.count] = group.getClipToPadding();
+            room.count++;
+            if (group.getClipChildren()) group.setClipChildren(false);
+            if (group.getClipToPadding() && (group.getPaddingTop() > 0 || group.getPaddingBottom() > 0)) group.setClipToPadding(false);
+            above -= child.getTop();
+            below -= group.getHeight() - child.getBottom();
+            child = group;
+        }
+    }
+
+    /** Gives the views a bar was let draw past their clipping back. */
+    private static void giveRoomBack(Room room) {
+        for (int i = 0; i < room.count; i++) {
+            ViewGroup group = room.views[i];
+            if (group.getClipChildren() != room.clipped[i]) group.setClipChildren(room.clipped[i]);
+            if (group.getClipToPadding() != room.padded[i]) group.setClipToPadding(room.padded[i]);
+            room.views[i] = null;
+        }
+        room.count = 0;
     }
 
     /**
@@ -181,10 +259,13 @@ public final class SeekShapes {
         storyShape = SeekShape.STANDARD;
         storyDensity = 1f;
         UNCLIPPED.clear();
+        ROOM.clear();
     }
 
-    /** Gives [bar] back what a shape replaced, and does nothing to a bar with no shape on it. */
+    /** Gives [bar] back what a shape replaced, and the views round it their clipping, and does nothing to a bar with no shape on it. */
     public static void restore(SeekBar bar) {
+        Room room = ROOM.remove(bar);
+        if (room != null) giveRoomBack(room);
         Stock stock = STOCK.remove(bar);
         if (stock == null) return;
         if (bar.getProgressDrawable() instanceof SeekShapeDrawable) bar.setProgressDrawable(stock.progress);

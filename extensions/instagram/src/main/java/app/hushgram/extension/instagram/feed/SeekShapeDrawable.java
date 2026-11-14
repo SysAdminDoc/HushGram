@@ -45,6 +45,8 @@ final class SeekShapeDrawable extends Drawable {
     private static final float WAVE_SWING_DP = 3f, WAVE_LENGTH_DP = 24f;
 
     private static final long SPRING_MS = 280;
+    /** How hard the spring overshoots when it's held, and how far that takes it at most: about 1.19 of the way for this tension. */
+    private static final float HELD_TENSION = 2.5f, FURTHEST = 1.2f;
 
     final SeekShape shape;
     final boolean flush;
@@ -82,6 +84,11 @@ final class SeekShapeDrawable extends Drawable {
     /** How thick the track is now, in pixels. */
     @VisibleForTesting
     float thickness() {
+        return thicknessAt(expansion);
+    }
+
+    /** How thick the track is with the spring at [spring], 0 at rest and 1 held, in pixels. */
+    private float thicknessAt(float spring) {
         float at;
         float heldAt;
         switch (shape) {
@@ -101,12 +108,29 @@ final class SeekShapeDrawable extends Drawable {
                 at = LINE_DP;
                 heldAt = LINE_HELD_DP;
         }
-        return (at + (heldAt - at) * expansion) * density;
+        return (at + (heldAt - at) * spring) * density;
     }
 
-    /** How far the shape reaches above and below its middle, in pixels. */
+    /** How far the shape reaches above and below its middle, in pixels: a tall handle's furthest, so on the edge it never dips under it mid-spring. */
     private float reach() {
-        return shape.tallHandle() ? HANDLE_TALL_DP * HANDLE_GROWTH * density / 2f : thickness() / 2f;
+        return shape.tallHandle() ? HANDLE_TALL_DP * (1f + (HANDLE_GROWTH - 1f) * FURTHEST) * density / 2f : thickness() / 2f;
+    }
+
+    /**
+     * How far past its bounds' top [0] and bottom [1] this can draw, in whole pixels, held and at the
+     * spring's furthest included (#450). A SeekBar lays its track out a few pixels high when it's
+     * short, as a reel's is, so a tall handle or a wave reaches past the bar itself.
+     */
+    int[] spill() {
+        Rect bounds = getBounds();
+        float thick = thicknessAt(FURTHEST);
+        float half = shape == SeekShape.WAVE ? WAVE_SWING_DP * density + thick / 2f : thick / 2f;
+        if (shape.tallHandle()) half = Math.max(half, reach());
+        float middle = !flush ? bounds.exactCenterY() : bounds.bottom - (shape.tallHandle() ? reach() : thick / 2f);
+        // Less than a hundredth of a pixel is rounding, not drawing.
+        return new int[] {
+                (int) Math.ceil(Math.max(0f, bounds.top - (middle - half) - 0.01f)),
+                (int) Math.ceil(Math.max(0f, middle + half - bounds.bottom - 0.01f))};
     }
 
     /** Where the played part ends, for a level. */
@@ -284,7 +308,7 @@ final class SeekShapeDrawable extends Drawable {
         if (spring != null) spring.cancel();
         ValueAnimator animator = ValueAnimator.ofFloat(expansion, to);
         animator.setDuration(SPRING_MS);
-        animator.setInterpolator(new OvershootInterpolator(to > 0f ? 2.5f : 0f));
+        animator.setInterpolator(new OvershootInterpolator(to > 0f ? HELD_TENSION : 0f));
         animator.addUpdateListener(update -> {
             expansion = (float) update.getAnimatedValue();
             invalidateSelf();

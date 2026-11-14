@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -104,6 +105,41 @@ public class SeekShapeDrawableTest {
         Bitmap bitmap = drawn(drawable(SeekShape.WAVE, true, HALF));
         assertEquals("the handle reaches near the bottom", PLAYED, bitmap.getPixel(100, 58));
         assertEquals("and stops above it, with room to grow", NOTHING, bitmap.getPixel(100, 62));
+    }
+
+    /**
+     * #450: how far past a track only 2 dp high each shape can draw, held and mid-spring included. The
+     * spring goes 1.2 of the way at most, so the tall handle is 16 dp grown by a quarter of that, 20.8 dp.
+     */
+    @Test
+    public void aShortTrackKnowsHowFarTheShapeReachesPastIt() {
+        SeekShapeDrawable wave = new SeekShapeDrawable(SeekShape.WAVE, true, 2f, PLAYED, REST);
+        wave.setBounds(0, 60, 200, 64);
+        assertArrayEquals("on the edge all of the handle's 41.6 px sit above the bottom", new int[] {38, 0}, wave.spill());
+
+        SeekShapeDrawable rounded = new SeekShapeDrawable(SeekShape.ROUNDED, false, 2f, PLAYED, REST);
+        rounded.setBounds(0, 60, 200, 64);
+        // Held it's 12 dp, 26.4 px at the spring's furthest, round a middle 2 px from each edge.
+        assertArrayEquals(new int[] {12, 12}, rounded.spill());
+
+        assertArrayEquals("a track with the room spills nothing", new int[] {0, 0}, drawable(SeekShape.WAVE, true, HALF).spill());
+        assertArrayEquals(new int[] {0, 0}, drawable(SeekShape.LINE, true, HALF).spill());
+    }
+
+    /** #450: held and at the spring's furthest, the tall handle on the edge still ends at the bottom. */
+    @Test
+    public void aTallHandleOnTheEdgeNeverDipsUnderIt() {
+        SeekShapeDrawable wave = drawable(SeekShape.WAVE, true, HALF);
+        wave.setState(new int[] {android.R.attr.state_pressed});
+        boolean drewAtTheBottom = false;
+        for (int frame = 0; frame < 30; frame++) {
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(10));
+            Bitmap bitmap = Bitmap.createBitmap(200, 80, Bitmap.Config.ARGB_8888);
+            wave.draw(new Canvas(bitmap));
+            for (int y = 64; y < 80; y++) assertEquals("nothing under the edge at " + y, NOTHING, bitmap.getPixel(100, y));
+            drewAtTheBottom |= bitmap.getPixel(100, 63) != NOTHING;
+        }
+        assertTrue("the held handle reaches the edge", drewAtTheBottom);
     }
 
     @Test
