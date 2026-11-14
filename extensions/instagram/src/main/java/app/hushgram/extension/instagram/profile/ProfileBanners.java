@@ -32,6 +32,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * your profile. The Muse banner is left to Hide Meta AI on your profile, which already drops it
  * before it gets here.
  *
+ * <p>The row of links under a bio (a website, or a business's links) isn't one of those banners. The
+ * header reads it on its own, and the patch hands it to {@link #links} as it's read, with the
+ * header, so Hide links can take it away on other people's profiles too.
+ *
  * <p>The hook fails open: with every switch off, HushGram paused, the settings not read yet, a
  * profile or account it can't tell apart, a banner whose kind it can't read or anything thrown, the
  * list goes through as it came.
@@ -39,6 +43,9 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
 public final class ProfileBanners {
     /** What's counted for each banner left out of a profile. */
     static final String LEFT_OUT = "Profile banners left out";
+
+    /** What's counted each time a profile's row of links is left out. */
+    static final String LINKS_LEFT_OUT = "Profile links left out";
 
     /** The kind Instagram gives the Muse banner, which Hide Meta AI on your profile handles. */
     static final String MUSE = "MUSE";
@@ -49,7 +56,36 @@ public final class ProfileBanners {
     /** Reads the signed-in account's user ID from the session. The patch fills {@link #viewerId}. */
     static volatile Function<Object, String> viewerReader = ProfileBanners::viewerId;
 
+    /** Reads the profile's user ID from the header. The patch fills {@link #linksProfileId}. */
+    static volatile Function<Object, String> linksProfileReader = ProfileBanners::linksProfileId;
+
+    /** Reads the signed-in account's user ID from the header. The patch fills {@link #linksViewerId}. */
+    static volatile Function<Object, String> linksViewerReader = ProfileBanners::linksViewerId;
+
     private ProfileBanners() {
+    }
+
+    /**
+     * Injected where a profile's header reads its row of links. Answers [links] itself, or null,
+     * which the header draws as a profile with no links, when Hide links is on and [header] is
+     * someone else's profile. Never throws, and never waits for the settings.
+     */
+    public static Object links(Object links, Object header) {
+        try {
+            HookStatus.invoked(FamilyNames.PROFILE_BANNERS);
+            if (links == null || !Utils.settingsReady() || !Settings.HIDE_PROFILE_LINKS.get()) return links;
+            String profile = read(linksProfileReader, header);
+            String viewer = read(linksViewerReader, header);
+            // A profile or account it can't read might be yours, so the links stay.
+            if (profile == null || profile.isEmpty() || viewer == null || viewer.isEmpty() || viewer.equals(profile)) {
+                return links;
+            }
+            HookStatus.counted(FamilyNames.PROFILE_BANNERS, LINKS_LEFT_OUT);
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_BANNERS, "profile links", failure);
+            return links;
+        }
     }
 
     /**
@@ -147,6 +183,22 @@ public final class ProfileBanners {
      * null unpatched, which keeps every banner.
      */
     public static String viewerId(Object session) {
+        return null;
+    }
+
+    /**
+     * The user ID of the profile a header shows. A stub: the patch writes its body, which reads it
+     * through the header's view model. Answers null unpatched, which keeps the links.
+     */
+    public static String linksProfileId(Object header) {
+        return null;
+    }
+
+    /**
+     * The user ID of the account signed in, from a profile's header. A stub: the patch writes its
+     * body. Answers null unpatched, which keeps the links.
+     */
+    public static String linksViewerId(Object header) {
         return null;
     }
 }

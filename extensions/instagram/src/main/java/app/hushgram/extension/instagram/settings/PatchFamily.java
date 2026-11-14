@@ -207,7 +207,8 @@ public enum PatchFamily {
     PROFILE_NOTES(FamilyNames.PROFILE_NOTES, "profileNotes", null, Settings.HIDE_PROFILE_NOTES),
     PROFILE_BANNERS(FamilyNames.PROFILE_BANNERS, "profileBanners", null, Settings.HIDE_PROFILE_THREADS_BADGE,
             Settings.HIDE_PROFILE_FACEBOOK_LINKS, Settings.HIDE_PROFILE_WHATSAPP_LINK, Settings.HIDE_PROFILE_SONG,
-            Settings.HIDE_PROFILE_INTERESTS, Settings.HIDE_PROFILE_CHANNEL_BANNER, Settings.HIDE_OTHER_PROFILE_BANNERS),
+            Settings.HIDE_PROFILE_INTERESTS, Settings.HIDE_PROFILE_CHANNEL_BANNER, Settings.HIDE_OTHER_PROFILE_BANNERS,
+            Settings.HIDE_PROFILE_LINKS),
     PROFILE_POSTS_LIST(FamilyNames.PROFILE_POSTS_LIST, "profilePostsList", null, Settings.PROFILE_POSTS_LIST),
     PROFILE_GRID_JUMP(FamilyNames.PROFILE_GRID_JUMP, "profileGridJump", null, Settings.PROFILE_GRID_JUMP),
     COMMENT_COPY(FamilyNames.COMMENT_COPY, "commentCopy", null, Settings.COPY_COMMENTS, Settings.COPY_COMMENT_AUTHORS,
@@ -356,6 +357,22 @@ public enum PatchFamily {
         Set<PatchFamily> families = inBuildForTests;
         if (families != null) return families.contains(FRIENDSHIP_STATUS);
         return FRIENDSHIP_STATUS.inBuild() && SettingsStatus.followingListMark();
+    }
+
+    /** Whether a test says this build hides a profile's links, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean profileLinksForTests;
+
+    /**
+     * Whether this build hides the row of links on a profile. Hide profile banners goes in without it
+     * when the header's links row has moved, so its switch isn't offered then.
+     */
+    public static boolean profileLinksInBuild() {
+        Boolean forced = profileLinksForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(PROFILE_BANNERS);
+        return PROFILE_BANNERS.inBuild() && SettingsStatus.profileLinks();
     }
 
     /** Whether a test says this build keeps Recent unfollowers, instead of asking {@link SettingsStatus}. */
@@ -590,6 +607,9 @@ public enum PatchFamily {
                 }
                 if (family == COMMENT_PHOTO && !commentGifNameInBuild()) {
                     lines.add("  Show a comment GIF's name: not in this build (the GIF's title or Copy username's row didn't match)");
+                }
+                if (family == PROFILE_BANNERS && !profileLinksInBuild()) {
+                    lines.add("  Hide links: not in this build (the profile header's links row didn't match)");
                 }
                 if (family == FRIENDSHIP_STATUS && !followingListMarkInBuild()) {
                     lines.add("  Mark who doesn't follow you back: not in this build (Instagram's follow list didn't match)");

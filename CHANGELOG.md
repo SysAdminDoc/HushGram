@@ -16,6 +16,7 @@ Every HushGram release, newest first.
 * `Glass top bar in chats`, new under `Glass in chats` in Messages, takes the frosted band off a chat's top bar while the round glass buttons and message bar keep theirs. It starts on. Asked for in #670.
 * `Auto scroll in Home` under Feed moves Home to the next post by itself, when a video ends or after the time you pick for photos and carousels. Touching the screen holds it. Asked for in #660.
 * A new switch, `Control the reel above comments` under Reels, lets you tap the reel above open comments to pause or play it, or hold it for 2x. The comments stay open. Starts off. Asked for in #665.
+* `Hide links`, new with the other profile banner switches under Profiles, takes the row of links (a website or a business's links) from under the bio on other people's profiles. Yours keeps it. Asked for in #627.
 
 ### Bug Fixes
 

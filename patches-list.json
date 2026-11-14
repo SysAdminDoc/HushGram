@@ -2411,7 +2411,7 @@
     },
     {
       "name": "Hide profile banners",
-      "description": "Adds switches that take the Threads badge, Facebook and WhatsApp links, the profile song, interests, channel invites and other banners from under the bio on other people's profiles. Each starts off. Turn them on in HushGram settings > Profiles.",
+      "description": "Adds switches that take the Threads badge, Facebook and WhatsApp links, the profile song, interests, channel invites, the row of links and other banners from under the bio on other people's profiles. Each starts off. Turn them on in HushGram settings > Profiles.",
       "category": "Profiles",
       "use": true,
       "dependencies": [

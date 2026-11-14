@@ -364,6 +364,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Hide links, the profile banners patch's switch for the row of links, which a build can lack. */
+    public static boolean profileLinks() {
+        return false;
+    }
+
     public static boolean profilePostsList() {
         return false;
     }

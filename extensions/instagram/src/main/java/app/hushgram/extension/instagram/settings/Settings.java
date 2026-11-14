@@ -2479,6 +2479,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_other_profile_banners", FALSE);
 
     /**
+     * The row of links under the bio on other people's profiles (a website, or a business's links),
+     * yours kept ({@link app.hushgram.extension.instagram.profile.ProfileBanners#links}, #627). Read
+     * each time Instagram draws a profile's header. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_LINKS =
+            new BooleanSetting("hushgram_hide_profile_links", FALSE);
+
+    /**
      * Opening someone's profile goes on to their posts as a scrolling list, the one Instagram opens for a
      * tapped post, with the grid one Back away ({@link app.hushgram.extension.instagram.profile.PostsList}).
      * Read each time a posts tab comes up, so a change shows on the next profile opened. Off to start.

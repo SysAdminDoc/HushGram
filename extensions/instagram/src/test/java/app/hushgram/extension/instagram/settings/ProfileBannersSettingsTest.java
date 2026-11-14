@@ -39,7 +39,7 @@ public class ProfileBannersSettingsTest {
     private static List<BooleanSetting> switches() {
         return Arrays.asList(Settings.HIDE_PROFILE_THREADS_BADGE, Settings.HIDE_PROFILE_FACEBOOK_LINKS,
                 Settings.HIDE_PROFILE_WHATSAPP_LINK, Settings.HIDE_PROFILE_SONG, Settings.HIDE_PROFILE_INTERESTS,
-                Settings.HIDE_PROFILE_CHANNEL_BANNER, Settings.HIDE_OTHER_PROFILE_BANNERS);
+                Settings.HIDE_PROFILE_CHANNEL_BANNER, Settings.HIDE_OTHER_PROFILE_BANNERS, Settings.HIDE_PROFILE_LINKS);
     }
 
     @Before public void prepare() {
@@ -54,6 +54,7 @@ public class ProfileBannersSettingsTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
+        PatchFamily.profileLinksForTests = null;
         for (BooleanSetting setting : switches()) setting.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -69,7 +70,7 @@ public class ProfileBannersSettingsTest {
     @Test public void theSwitchesSitTogetherUnderProfilesAndStartOff() throws Exception {
         open(EnumSet.of(PatchFamily.PROFILE_BANNERS));
         String[] titles = {"Hide the Threads badge", "Hide Facebook links", "Hide the WhatsApp link", "Hide the profile song",
-                "Hide interests", "Hide channel invites", "Hide the other profile banners"};
+                "Hide interests", "Hide channel invites", "Hide the other profile banners", "Hide links"};
         PreferenceGroup group = null;
         int previous = -1;
         for (int i = 0; i < titles.length; i++) {
@@ -88,6 +89,18 @@ public class ProfileBannersSettingsTest {
             assertTrue(setting.key, PatchFamily.PROFILE_BANNERS.switches.contains(setting));
             assertTrue(setting.key, ConfigurationBackup.eligible().containsKey(setting.key));
         }
+    }
+    /** A build whose links row didn't match keeps the banner switches and offers no Hide links (#627). */
+    @Test public void aBuildWithoutTheLinksHookHasNoHideLinks() throws Exception {
+        PatchFamily.profileLinksForTests = false;
+        open(EnumSet.of(PatchFamily.PROFILE_BANNERS));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_PROFILE_LINKS.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_OTHER_PROFILE_BANNERS.key));
+        List<String> lines = PatchFamily.reportLines(EnumSet.of(PatchFamily.PROFILE_BANNERS), false);
+        assertTrue(lines.toString(), lines.contains("  Hide links: not in this build (the profile header's links row didn't match)"));
+        PatchFamily.profileLinksForTests = true;
+        lines = PatchFamily.reportLines(EnumSet.of(PatchFamily.PROFILE_BANNERS), false);
+        assertFalse(lines.toString(), lines.toString().contains("Hide links"));
     }
     @Test public void missingPatchHasNoSwitches() throws Exception {
         open(EnumSet.of(PatchFamily.PROFILE_NOTES));

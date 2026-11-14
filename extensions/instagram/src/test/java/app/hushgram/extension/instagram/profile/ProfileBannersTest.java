@@ -65,21 +65,38 @@ public class ProfileBannersTest {
         }
     }
 
+    /** The profile screen's header, as far as the test's links readers are concerned. */
+    private static final class Header {
+        final String profile;
+        final String viewer;
+
+        Header(String profile, String viewer) {
+            this.profile = profile;
+            this.viewer = viewer;
+        }
+    }
+
     private Function<Object, String> typeReader;
     private Function<Object, String> viewerReader;
+    private Function<Object, String> linksProfileReader;
+    private Function<Object, String> linksViewerReader;
 
     private static List<BooleanSetting> switches() {
         return Arrays.asList(Settings.HIDE_PROFILE_THREADS_BADGE, Settings.HIDE_PROFILE_FACEBOOK_LINKS,
                 Settings.HIDE_PROFILE_WHATSAPP_LINK, Settings.HIDE_PROFILE_SONG, Settings.HIDE_PROFILE_INTERESTS,
-                Settings.HIDE_PROFILE_CHANNEL_BANNER, Settings.HIDE_OTHER_PROFILE_BANNERS);
+                Settings.HIDE_PROFILE_CHANNEL_BANNER, Settings.HIDE_OTHER_PROFILE_BANNERS, Settings.HIDE_PROFILE_LINKS);
     }
 
     @Before
     public void start() {
         typeReader = ProfileBanners.typeReader;
         viewerReader = ProfileBanners.viewerReader;
+        linksProfileReader = ProfileBanners.linksProfileReader;
+        linksViewerReader = ProfileBanners.linksViewerReader;
         ProfileBanners.typeReader = banner -> ((Banner) banner).type;
         ProfileBanners.viewerReader = session -> ((Session) session).userId;
+        ProfileBanners.linksProfileReader = header -> ((Header) header).profile;
+        ProfileBanners.linksViewerReader = header -> ((Header) header).viewer;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         for (BooleanSetting setting : switches()) setting.resetToDefault();
@@ -90,6 +107,8 @@ public class ProfileBannersTest {
     public void restore() {
         ProfileBanners.typeReader = typeReader;
         ProfileBanners.viewerReader = viewerReader;
+        ProfileBanners.linksProfileReader = linksProfileReader;
+        ProfileBanners.linksViewerReader = linksViewerReader;
         for (BooleanSetting setting : switches()) setting.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -211,5 +230,62 @@ public class ProfileBannersTest {
                 assertSame("pause undecided", row, ProfileBanners.filter(row, THEM, new Session(ME))));
 
         assertEquals("back on", Arrays.asList("MUSE"), kinds(ProfileBanners.filter(row, THEM, new Session(ME))));
+    }
+
+    /** Off, the links row goes through as Instagram read it; on, someone else's has none to draw (#627). */
+    @Test
+    public void hideLinksTakesTheRowOffSomeoneElsesProfile() {
+        Object links = new Object();
+        assertFalse(Settings.HIDE_PROFILE_LINKS.get());
+        assertSame("off", links, ProfileBanners.links(links, new Header(THEM, ME)));
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("Counted"));
+
+        Settings.HIDE_PROFILE_LINKS.save(true);
+        assertNull("someone else's", ProfileBanners.links(links, new Header(THEM, ME)));
+        assertNull("no links stays none", ProfileBanners.links(null, new Header(THEM, ME)));
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains("Counted: " + ProfileBanners.LINKS_LEFT_OUT + " 1"));
+        assertTrue(HookStatus.missing(FamilyNames.PROFILE_BANNERS).toString(), HookStatus.missing(FamilyNames.PROFILE_BANNERS).isEmpty());
+    }
+
+    /** Your own profile, and a profile or account it can't read, keep their links with the switch on. */
+    @Test
+    public void yourOwnProfileKeepsItsLinks() {
+        Settings.HIDE_PROFILE_LINKS.save(true);
+        Object links = new Object();
+        assertSame("yours", links, ProfileBanners.links(links, new Header(ME, ME)));
+        assertSame("no profile", links, ProfileBanners.links(links, new Header(null, ME)));
+        assertSame("empty profile", links, ProfileBanners.links(links, new Header("", ME)));
+        assertSame("no viewer", links, ProfileBanners.links(links, new Header(THEM, null)));
+        assertSame("no header", links, ProfileBanners.links(links, null));
+        ProfileBanners.linksViewerReader = header -> {
+            throw new IllegalStateException("logged out");
+        };
+        assertSame("unreadable viewer", links, ProfileBanners.links(links, new Header(THEM, ME)));
+        ProfileBanners.linksProfileReader = header -> {
+            throw new ClassCastException("moved");
+        };
+        assertSame("unreadable profile", links, ProfileBanners.links(links, new Header(THEM, ME)));
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("Counted"));
+    }
+
+    /** Paused, or before the settings are read, the links stay. */
+    @Test
+    public void pausedAndUnreadyKeepTheLinks() {
+        Settings.HIDE_PROFILE_LINKS.save(true);
+        Object links = new Object();
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", links, ProfileBanners.links(links, new Header(THEM, ME)));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() ->
+                assertSame("no context", links, ProfileBanners.links(links, new Header(THEM, ME))));
+        SettingsContextRule.beforeThePauseIsDecided(() ->
+                assertSame("pause undecided", links, ProfileBanners.links(links, new Header(THEM, ME))));
+
+        assertNull("back on", ProfileBanners.links(links, new Header(THEM, ME)));
     }
 }

@@ -2143,6 +2143,10 @@ Takes the invite to someone's broadcast channel from under their bio. Yours keep
 Hide the other profile banners	Andere Profilbanner ausblenden
 # context: Profiles > summary of Hide the other profile banners (#627)
 Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	Entfernt die übrigen Banner unter dem Steckbrief auf den Profilen anderer, etwa Events, Spendenaktionen, Schulen und Öffnungszeiten. Deins behält sie.
+# context: Profiles > title of the switch that hides the row of links (a website, a business's links) under the bio on other people's profiles (#627)
+Hide links	Links ausblenden
+# context: Profiles > summary of Hide links (#627)
+Takes the row of links, like a website or a business's links, from under the bio on other people's profiles. Yours keeps it.	Entfernt die Reihe mit Links, etwa eine Website oder die Links eines Unternehmens, unter dem Steckbrief auf den Profilen anderer. Deins behält sie.
 # context: the row HushGram adds to the menu on someone's profile; it puts the account on the Saved profiles list (#629)
 Save profile	Profil speichern
 # context: toast after Save profile; %s is the account's username (#629)

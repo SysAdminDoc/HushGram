@@ -2143,6 +2143,10 @@ Takes the invite to someone's broadcast channel from under their bio. Yours keep
 Hide the other profile banners	Sembunyikan banner profil lainnya
 # context: Profiles > summary of Hide the other profile banners (#627)
 Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	Menghapus banner lain di bawah bio dari profil orang lain, seperti acara, penggalangan dana, sekolah, dan jam buka. Profilmu tetap memilikinya.
+# context: Profiles > title of the switch that hides the row of links (a website, a business's links) under the bio on other people's profiles (#627)
+Hide links	Sembunyikan tautan
+# context: Profiles > summary of Hide links (#627)
+Takes the row of links, like a website or a business's links, from under the bio on other people's profiles. Yours keeps it.	Menghapus baris tautan, seperti situs web atau tautan bisnis, dari bawah bio di profil orang lain. Profilmu tetap memilikinya.
 # context: the row HushGram adds to the menu on someone's profile; it puts the account on the Saved profiles list (#629)
 Save profile	Simpan profil
 # context: toast after Save profile; %s is the account's username (#629)

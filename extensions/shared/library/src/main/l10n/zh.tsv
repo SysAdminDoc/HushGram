@@ -2146,6 +2146,10 @@ Takes the invite to someone's broadcast channel from under their bio. Yours keep
 Hide the other profile banners	隐藏其他主页横幅
 # context: Profiles > summary of Hide the other profile banners (#627)
 Takes the rest of the banners under the bio off other people's profiles, like events, fundraisers, schools and business hours. Yours keeps them.	移除他人主页中个人简介下方的其余横幅，例如活动、募款、学校与营业时间。你自己的主页仍会保留。
+# context: Profiles > title of the switch that hides the row of links (a website, a business's links) under the bio on other people's profiles (#627)
+Hide links	隐藏链接
+# context: Profiles > summary of Hide links (#627)
+Takes the row of links, like a website or a business's links, from under the bio on other people's profiles. Yours keeps it.	移除他人主页中个人简介下方的链接行，例如网站或商家的链接。你自己的主页仍会保留。
 # context: the row HushGram adds to the menu on someone's profile; it puts the account on the Saved profiles list (#629)
 Save profile	保存主页
 # context: toast after Save profile; %s is the account's username (#629)

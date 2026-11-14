@@ -5,19 +5,33 @@
 package app.morphe.patches.instagram.profile.banners
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.metaai.MuseBannerBuilder
 import app.morphe.patches.instagram.metaai.findMuseBannerBuilder
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.patchLog
+import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.profile.friendship.ProfileUser
+import app.morphe.patches.instagram.profile.friendship.USER
+import app.morphe.patches.instagram.profile.friendship.VIEW_MODEL
+import app.morphe.patches.instagram.profile.friendship.findProfileUser
+import app.morphe.patches.instagram.profile.friendship.instanceFields
+import app.morphe.patches.instagram.stories.seen.hashedIdGetters
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -45,6 +59,15 @@ internal const val VIEWER_ID_STUB = "viewerId"
 /** The signed-in session and its user ID getter, both names Instagram keeps. */
 internal const val BANNER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val GET_USER_ID = "getUserId"
+
+/** The trace section Instagram names the classic binder of a profile's links row with. */
+internal const val BIND_LINKS = "ProfileLinksViewBinder.bindLinksButton"
+internal const val FILTER_LINKS = "$PROFILE_BANNERS->links(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
+internal const val PROFILE_LINKS_STATUS = "profileLinks"
+
+/** The extension's stubs for Hide links: the profile's user ID and the signed-in one, each from the header. */
+internal const val LINKS_PROFILE_ID_STUB = "linksProfileId"
+internal const val LINKS_VIEWER_ID_STUB = "linksViewerId"
 
 private const val LIST = "Ljava/util/List;"
 private const val STRING = "Ljava/lang/String;"
@@ -81,13 +104,17 @@ internal class BannerRow(
  * Only the list the header draws the row from changes. The extension leaves out the kinds whose
  * switches are on and keeps the rest in their order, so nothing is left blank. Your own profile and
  * Edit featured keep every banner.
+ *
+ * The row of links under the bio (a website, or a business's links) is read on its own, so Hide
+ * links hooks where the header reads it (see [findProfileLinks]). A build where that has moved goes
+ * in with the banner switches only, and settings don't offer Hide links.
  */
 @Suppress("unused")
 val hideProfileBannersPatch = bytecodePatch(
     name = "Hide profile banners",
     description = "Adds switches that take the Threads badge, Facebook and WhatsApp links, the profile song, interests, " +
-        "channel invites and other banners from under the bio on other people's profiles. Each starts off. Turn them " +
-        "on in HushGram settings > Profiles.",
+        "channel invites, the row of links and other banners from under the bio on other people's profiles. Each " +
+        "starts off. Turn them on in HushGram settings > Profiles.",
     default = true,
 ) {
     category("Profiles")
@@ -96,10 +123,16 @@ val hideProfileBannersPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("profileBanners")
+        requireStatusMethod(PROFILE_LINKS_STATUS)
         val muse = museBuilder()
         val kind = findBannerKind(muse)
         val row = findBannerRow(muse)
+        val links = profileLinksOrWarn()
         hideProfileBanners(kind, row)
+        if (links != null) {
+            hideProfileLinks(links)
+            enableStatus(PROFILE_LINKS_STATUS)
+        }
         enableStatus("profileBanners")
     }
 }
@@ -302,11 +335,6 @@ private fun rowEnding(method: Method): Triple<Int, Int, Int>? {
  * one wrapped. One free local below v16 carries the session.
  */
 internal fun BytecodePatchContext.hideProfileBanners(kind: BannerKind, row: BannerRow) {
-    val stubs = mutableClassDefBy(PROFILE_BANNERS).methods
-    fun stub(name: String) = stubs.singleOrNull {
-        it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == STRING &&
-            it.parameterTypes.map(CharSequence::toString) == listOf(OBJECT)
-    } ?: refuse("$PROFILE_BANNERS has no static $name(Object)String")
     stub(BANNER_TYPE_STUB).addInstructions(
         0,
         """
@@ -336,6 +364,204 @@ internal fun BytecodePatchContext.hideProfileBanners(kind: BannerKind, row: Bann
             iget-object v$session, v${row.holder}, ${field.definingClass}->${field.name}:${field.type}
             invoke-static { v${row.list}, v${row.profileId}, v$session }, $FILTER_BANNERS
             move-result-object v${row.list}
+        """,
+    )
+}
+
+/** The extension's static [name](Object)String stub, to be filled. */
+private fun BytecodePatchContext.stub(name: String) = mutableClassDefBy(PROFILE_BANNERS).methods.singleOrNull {
+    it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == STRING &&
+        it.parameterTypes.map(CharSequence::toString) == listOf(OBJECT)
+} ?: refuse("$PROFILE_BANNERS has no static $name(Object)String")
+
+/**
+ * Where a profile's header reads its row of links for drawing: the method, the index of the
+ * instance-of asking whether the header has links, the register holding them and the field they're
+ * read from, and the header parameter with its fields of the view model and the signed-in session,
+ * the view model's way to the profile's user, and the user model's getter of its ID.
+ */
+internal class ProfileLinks(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val returnType: String,
+    val at: Int,
+    val links: Int,
+    val field: FieldReference,
+    val header: Int,
+    val headerType: String,
+    val viewModel: String,
+    val session: String,
+    val user: ProfileUser,
+    val userId: String,
+)
+
+/**
+ * The row of links under a bio (a website, or a business's links) is one field of the header's
+ * data, and the header draws it in Compose whenever there are any: the classic binder, the one
+ * method naming its trace section [BIND_LINKS], only runs for a profile with none, and it fails on a
+ * missing value, so it's no place to take them away. That binder says which field and which kind of
+ * links to look for: the first instance-of after the section's name asks it of a register last
+ * written by reading the field. The one place outside the binder reading that field straight into an
+ * instance-of of the same kind is where the Compose header decides whether to draw the row, and an
+ * empty answer there draws none.
+ *
+ * The hook goes in front of that instance-of and reads the method's one parameter whose class keeps
+ * one [VIEW_MODEL] and one [BANNER_SESSION], the profile screen's header, from which the stubs read
+ * the profile's user ID (through [findProfileUser] and the user model's ID getter that hashCode()
+ * asks) and the signed-in one.
+ *
+ * Fails when any of it isn't there, isn't one, or doesn't fit the hook, since that's an update this
+ * patch hasn't seen.
+ */
+internal fun BytecodePatchContext.findProfileLinks(): ProfileLinks {
+    val (field, model) = findLinksField()
+
+    // The binder itself asks the same question, and is never the Compose row.
+    val readers = classesAccessing(field.definingClass, field.name, Opcode.IGET_OBJECT).flatMap { classDef ->
+        classDef.methods.filterNot { loadsString(it, BIND_LINKS) }.flatMap { method -> linksReadsIn(method, field, model).map { method to it } }
+    }
+    val (method, at) = readers.singleOrNull()
+        ?: refuse("expected one place reading ${field.definingClass}->${field.name} into an instance-of $model, found ${readers.size}")
+    return profileLinksAt(method, at, field)
+}
+
+/** The field of the header's data keeping its links, and the kind of links the binder asks it for. */
+internal fun BytecodePatchContext.findLinksField(): Pair<FieldReference, String> {
+    val reads = classesLoadingString(BIND_LINKS).flatMap { classDef ->
+        classDef.methods.filter { loadsString(it, BIND_LINKS) }.mapNotNull { binder ->
+            val code = binder.code()
+            val named = code.indices.firstOrNull { stringLoadedAt(code, it) == BIND_LINKS } ?: return@mapNotNull null
+            val asked = (named + 1 until code.size).firstOrNull { code[it].opcode == Opcode.INSTANCE_OF } ?: return@mapNotNull null
+            val read = uncastWrite(code, asked, (code[asked] as TwoRegisterInstruction).registerB) ?: return@mapNotNull null
+            val field = code[read].fieldReference()?.takeIf { code[read].opcode == Opcode.IGET_OBJECT } ?: return@mapNotNull null
+            field to ((code[asked] as ReferenceInstruction).reference as TypeReference).type
+        }
+    }.distinctBy { (field, model) -> "${field.definingClass}->${field.name}:${field.type} $model" }
+    return reads.singleOrNull()
+        ?: refuse("expected the method loading $BIND_LINKS to ask one field what its links are, found ${reads.size}")
+}
+
+/** The indexes in [method] of each instance-of asking whether what was just read from [field] is a [model]. */
+internal fun linksReadsIn(method: Method, field: FieldReference, model: String): List<Int> {
+    val code = method.code()
+    return code.indices.filter { at ->
+        val get = code[at]
+        val ask = code.getOrNull(at + 1)
+        val read = get.fieldReference()
+        get.opcode == Opcode.IGET_OBJECT && read != null && read.definingClass == field.definingClass && read.name == field.name &&
+            ask?.opcode == Opcode.INSTANCE_OF && (ask as TwoRegisterInstruction).registerB == (get as TwoRegisterInstruction).registerA &&
+            ((ask as ReferenceInstruction).reference as TypeReference).type == model
+    }.map { it + 1 }
+}
+
+/** The hook's place in [method] at the instance-of [at] asking about [field]'s links, checked against everything it needs. */
+private fun BytecodePatchContext.profileLinksAt(method: Method, at: Int, field: FieldReference): ProfileLinks {
+    val where = "${method.definingClass}->${method.name}"
+    val code = method.code()
+    val links = (code[at] as TwoRegisterInstruction).registerB
+    if (links > 15) refuse("$where keeps the profile's links in v$links, past v15")
+    if (at in method.jumpTargets()) refuse("$where jumps onto the instance-of asking for the profile's links")
+
+    val headers = method.parameterTypes.withIndex().mapNotNull { (index, parameter) ->
+        val classDef = classDefByOrNull(parameter.toString()) ?: return@mapNotNull null
+        val viewModel = classDef.instanceFields(VIEW_MODEL).singleOrNull() ?: return@mapNotNull null
+        val session = classDef.instanceFields(BANNER_SESSION).singleOrNull() ?: return@mapNotNull null
+        Triple(index, classDef, viewModel to session)
+    }
+    val (index, headerClass, kept) = headers.singleOrNull()
+        ?: refuse("expected one parameter of $where keeping a $VIEW_MODEL and a $BANNER_SESSION, found ${headers.size}")
+    method.requireParameterIntact(PATCH, index, listOf(at))
+
+    val user = findProfileUser(::refuse)
+    val userClass = classDefByOrNull(USER) ?: refuse("$USER isn't in this build")
+    val hashCode = userClass.methods.singleOrNull {
+        it.name == "hashCode" && it.parameterTypes.isEmpty() && it.returnType == "I" && !AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("$USER has no hashCode()")
+    val idGetters = hashedIdGetters(userClass.methods, hashCode)
+    val userId = idGetters.singleOrNull()
+        ?: refuse("expected $USER's hashCode() to ask one getter of its ID, found $idGetters")
+    userClass.methods.singleOrNull {
+        it.name == userId && it.parameterTypes.isEmpty() && it.returnType == STRING &&
+            AccessFlags.PUBLIC.isSet(it.accessFlags) && !AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("$USER->$userId() isn't a public getter, so the extension can't ask it")
+    // The stubs reach these from the extension, outside Instagram's packages.
+    val viewModelClass = classDefByOrNull(VIEW_MODEL) ?: refuse("$VIEW_MODEL isn't in this build")
+    val sessionClass = classDefByOrNull(BANNER_SESSION) ?: refuse("$BANNER_SESSION isn't in this build")
+    listOf(headerClass, viewModelClass, userClass, sessionClass).forEach { reachable ->
+        if (!AccessFlags.PUBLIC.isSet(reachable.accessFlags)) refuse("${reachable.type} isn't public, so the extension can't reach it")
+    }
+
+    fun FieldReference.smali() = "$definingClass->$name:$type"
+    return ProfileLinks(
+        method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType,
+        at, links, field, method.parameterRegisterNumber(index), headerClass.type,
+        kept.first.smali(), kept.second.smali(), user, userId,
+    )
+}
+
+/**
+ * [findProfileLinks], or null with a warning when the links row has moved. Hide profile banners then
+ * goes in with its banner switches only, and settings don't offer Hide links.
+ */
+internal fun BytecodePatchContext.profileLinksOrWarn(): ProfileLinks? = try {
+    findProfileLinks()
+} catch (moved: PatchException) {
+    patchLog.warning("${moved.message}. $PATCH goes in without Hide links.")
+    null
+}
+
+/**
+ * Fills the two Hide links stubs, the profile's user ID and the signed-in one, each read from the
+ * header, and hands the links to [FILTER_LINKS] with the header right before the instance-of asks
+ * about them. What the extension answers is cast back to the field's type and asked instead, so a
+ * null draws no row. One free local below v16 carries the header.
+ */
+internal fun BytecodePatchContext.hideProfileLinks(found: ProfileLinks) {
+    // Each way out returns on its own, as FriendshipStatusPatch's stubs do: joined at one return, what
+    // p0 held on each path merges, and ART can reject the class for it.
+    stub(LINKS_PROFILE_ID_STUB).addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${found.headerType}
+            iget-object p0, p0, ${found.viewModel}
+            if-eqz p0, :none
+            ${found.user.load("p0")}
+            if-eqz p0, :none
+            invoke-virtual { p0 }, $USER->${found.userId}()$STRING
+            move-result-object p0
+            return-object p0
+            :none
+            const/4 p0, 0x0
+            return-object p0
+        """,
+    )
+    stub(LINKS_VIEWER_ID_STUB).addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${found.headerType}
+            iget-object p0, p0, ${found.session}
+            if-eqz p0, :none
+            invoke-virtual { p0 }, $BANNER_SESSION->$GET_USER_ID()$STRING
+            move-result-object p0
+            return-object p0
+            :none
+            const/4 p0, 0x0
+            return-object p0
+        """,
+    )
+
+    val method = mutableClassDefBy(found.type).methods.single {
+        it.name == found.name && it.returnType == found.returnType && it.parameterTypes.map(CharSequence::toString) == found.parameters
+    }
+    val header = method.freeLocalsAt(PATCH, found.at, 1, except = listOf(found.links)).single()
+    method.addInstructions(
+        found.at,
+        """
+            move-object/from16 v$header, v${found.header}
+            invoke-static { v${found.links}, v$header }, $FILTER_LINKS
+            move-result-object v${found.links}
+            check-cast v${found.links}, ${found.field.type}
         """,
     )
 }
@@ -370,3 +596,13 @@ private fun Instruction.calls(builder: MuseBannerBuilder): Boolean {
 /** The last instruction before [before] that writes [register], or null. */
 private fun lastWrite(code: List<Instruction>, before: Int, register: Int): Int? =
     (before - 1 downTo 0).firstOrNull { code[it].writes(register) }
+
+/**
+ * Like [lastWrite], looking past any check-cast of [register] itself to the write that put the value
+ * there. Some 454 builds cast the links before the binder asks about them.
+ */
+private fun uncastWrite(code: List<Instruction>, before: Int, register: Int): Int? {
+    var at = lastWrite(code, before, register) ?: return null
+    while (code[at].opcode == Opcode.CHECK_CAST) at = lastWrite(code, at, register) ?: return null
+    return at
+}

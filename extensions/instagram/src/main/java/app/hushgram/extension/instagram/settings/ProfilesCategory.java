@@ -196,6 +196,11 @@ final class ProfilesCategory {
                         L10n.t("Hide the other profile banners"),
                         L10n.t("Takes the rest of the banners under the bio off other people's profiles, like events, "
                                 + "fundraisers, schools and business hours. Yours keeps them.")));
+                if (PatchFamily.profileLinksInBuild()) {
+                    profiles.addPreference(toggle(context, Settings.HIDE_PROFILE_LINKS, L10n.t("Hide links"),
+                            L10n.t("Takes the row of links, like a website or a business's links, from under the bio "
+                                    + "on other people's profiles. Yours keeps it.")));
+                }
             }
             if (build.contains(PatchFamily.PROFILE_POSTS_LIST)) {
                 profiles.addPreference(toggle(context, Settings.PROFILE_POSTS_LIST, L10n.t("Show profile posts as a list"),

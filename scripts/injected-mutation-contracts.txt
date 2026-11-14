@@ -1192,6 +1192,11 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->dropsPromotion(Ljava
 # profile's user ID and the signed-in session, right before the header wraps that row. The method
 # is found as the one calling the Muse item's method above, and holds no string of its own, so no
 # rule here either. HideProfileBannersHookTest proves the hook on every Instagram fixture.
+# Its Hide links hands ProfileBanners.links the row of links the Compose header reads, with the
+# header, right before it asks whether there are any (0HlS.A00 on 386014758, the static method
+# naming ProfileUserInfoComposable.kt:40), so a null answer draws no row. Left out, the links stay
+# with the switch on; twice or elsewhere, it isn't the filter the patch wrote.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileBanners;->links(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in static (LX/*;LX/*;LX/*;LX/*;LX/*;LX/*;LX/*;LX/*;Ljava/lang/String;II)V pooled holding com.instagram.profile.header.feature.userinfo.ui.compose.ProfileUserInfo\s(ProfileUserInfoComposable.kt:40)
 #
 # Hide the Explore grid asks the extension once, at the return of the topical Explore page's JSON
 # parser, the one method loading "sectional_items" and "session_paging_token" (451's 385713109 and
