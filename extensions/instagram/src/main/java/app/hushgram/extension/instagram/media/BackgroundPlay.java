@@ -792,7 +792,7 @@ public final class BackgroundPlay {
             if (control != null) control.release(player, reason);
             else release(player, reason);
         } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "release", t);
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "replaced player release", t);
         }
     }
 
