@@ -511,6 +511,30 @@ public final class AmbientLight {
     }
 
     /**
+     * A photo reel's picture under [view] in the reel's [frame]: the first photo that shows with a
+     * picture of its own, nine tenths of the frame's width and a fifth of its height or more, so the
+     * profile picture, the song's cover and the buttons over the reel are passed by.
+     */
+    @Nullable
+    static ImageView reelPhotoIn(View view, View frame, int[] budget) {
+        if (budget[0]-- <= 0 || view.getVisibility() != View.VISIBLE) return null;
+        if (view instanceof ImageView) {
+            Drawable picture = ((ImageView) view).getDrawable();
+            boolean big = view.getWidth() >= frame.getWidth() * 0.9f && view.getHeight() >= frame.getHeight() / 5;
+            return big && picture != null && picture.getIntrinsicWidth() > 0 && picture.getIntrinsicHeight() > 0
+                    ? (ImageView) view : null;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                ImageView found = reelPhotoIn(group.getChildAt(i), frame, budget);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Lights the picture in a story's [frame]: its video if it has one showing, else its photo. A
      * picture that took its place (the next story, a photo giving way to a video) puts the old
      * one's light out.
@@ -842,7 +866,9 @@ public final class AmbientLight {
             boolean story = light.kind == Kind.STORY;
             if (stage == null || !media.isAttachedToWindow() || !stage.isAttachedToWindow() || !under(media, stage)
                     || (light.host != null && (host == null || !host.isAttachedToWindow() || !under(stage, host)))
-                    || (story ? !stories || !media.isShown() : !feed || (light.kind == Kind.REEL && blurred))) {
+                    || (story ? !stories || !media.isShown() : !feed || (light.kind == Kind.REEL && blurred))
+                    // A photo reel's picture hidden for its video keeps no glow of its own.
+                    || (light.kind == Kind.REEL && media instanceof ImageView && !media.isShown())) {
                 drop(media, light);
                 continue;
             }
@@ -899,7 +925,7 @@ public final class AmbientLight {
         light.asking = true;
         try {
             if (!light.inView.isEmpty()) {
-                // A letterboxed story photo: copy the picture, not the black bands of its view.
+                // A letterboxed story or reel photo: copy the picture, not the black bands of its view.
                 media.getLocationInWindow(where);
                 aim.set(light.inView);
                 aim.offset(where[0], where[1]);
@@ -1319,7 +1345,7 @@ public final class AmbientLight {
                     content.set(0, 0, media.getWidth(), media.getHeight());
                     transform.mapRect(content);
                     content.round(at);
-                } else if (story && media instanceof ImageView && ((ImageView) media).getDrawable() != null
+                } else if ((story || kind == Kind.REEL) && media instanceof ImageView && ((ImageView) media).getDrawable() != null
                         && ((ImageView) media).getDrawable().getIntrinsicWidth() > 0
                         && ((ImageView) media).getDrawable().getIntrinsicHeight() > 0) {
                     // A photo letterboxed inside its own view: where the drawable lands, padding included.
@@ -1352,10 +1378,12 @@ public final class AmbientLight {
             int reach = Math.round(Settings.AMBIENT_LIGHT_SPREAD.get().dp * stage.getResources().getDisplayMetrics().density);
             // A story's bands can be deeper than the glow reaches, so the glow reaches the edge of the
             // host, or of the stage without one. Both draw it the same way, so it runs on unbroken. A
-            // reel's reaches the host's edges too, past the tab bar, which draws the host's glow.
+            // reel's reaches the host's edges too, past the tab bar, which draws the host's glow, and a
+            // reel with no host fills its stage's bands the same way, so a reel opened from a profile or
+            // the Reels tab glows like one opened from a link (#689).
             if ((story || kind == Kind.REEL) && !onHost.isEmpty()) {
                 reach = Math.max(reach, farthest(onHost, band));
-            } else if (story && !at.isEmpty()) {
+            } else if ((story || kind == Kind.REEL) && !at.isEmpty()) {
                 reach = Math.max(reach, farthest(at, stage));
             }
             int cut = -1;
@@ -1977,16 +2005,30 @@ public final class AmbientLight {
                 return;
             }
             if (frame != 0 && view.getId() == frame) {
-                if (reels) {
-                    TextureView video = videoIn(view, budget);
-                    if (video != null) light(owner, video, Kind.REEL, null, reelStageOf(video, view));
-                }
+                if (reels) lightReel(owner, view, budget);
                 return;
             }
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
                 for (int i = 0; i < group.getChildCount(); i++) walk(owner, group.getChildAt(i), frame, storyFrame, reels, budget);
             }
+        }
+
+        /**
+         * Lights the reel in [frame]: its video, or with none showing a photo reel's picture, which
+         * Instagram shows in a photo view of its own and which stayed dark (#689). A picture that took
+         * the other's place, a video starting over its cover, puts the old one's light out.
+         */
+        private void lightReel(Activity owner, View frame, int[] budget) {
+            View media = videoIn(frame, budget);
+            if (media == null) media = reelPhotoIn(frame, frame, budget);
+            View stale = null;
+            for (Map.Entry<View, Light> entry : lights.entrySet()) {
+                View lit = entry.getKey();
+                if (lit != null && lit != media && entry.getValue().kind == Kind.REEL && under(lit, frame)) stale = lit;
+            }
+            if (stale != null) drop(stale, lights.get(stale));
+            if (media != null) light(owner, media, Kind.REEL, null, reelStageOf(media, frame));
         }
 
         /** The first video under [view] that shows. */

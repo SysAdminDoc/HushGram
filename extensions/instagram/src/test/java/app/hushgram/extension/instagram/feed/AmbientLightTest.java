@@ -28,6 +28,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import com.instagram.ui.widget.framelayout.MediaFrameLayout;
@@ -619,6 +620,48 @@ public class AmbientLightTest {
     }
 
     /**
+     * A reel page spanning the window, as a reel opened from a profile shows under its title bar, has
+     * no host past its stage. It fills the bands round the video like one opened from a link, where
+     * the spread alone left a thin glow round it (#689).
+     */
+    @Test
+    public void aReelWithNoHostFillsItsBandsWhateverTheSpread() {
+        Settings.AMBIENT_LIGHT_SPREAD.save(AmbientSpread.NARROW);
+        FrameLayout page = new FrameLayout(activity);
+        activity.setContentView(page);
+        root = page;
+        if (activity.getActionBar() != null) activity.getActionBar().hide();
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        FrameLayout container = new FrameLayout(activity);
+        TextureView video = new TextureView(activity);
+        container.addView(video, match());
+        frame.addView(container, match());
+        page.addView(frame, match());
+        shadowOf(Looper.getMainLooper()).idle();
+        int width = page.getWidth(), height = page.getHeight();
+        assertEquals("the page spans the window", activity.getWindow().getDecorView().getHeight(), height);
+        Matrix scale = new Matrix();
+        scale.setScale(1f, 0.5f, width / 2f, height / 2f);
+        video.setTransform(scale);
+
+        on();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertTrue("no host round this reel", AmbientLight.hostLitForTests(video).isEmpty());
+        assertEquals(new Rect(0, Math.round(height / 4f), width, Math.round(height * 3 / 4f)), AmbientLight.litRectForTests(video));
+        Bitmap drawn = background(page);
+        // Half again Narrow's reach above the video, past where its glow ended.
+        int past = AmbientSpread.NARROW.dp * 3 / 2;
+        assertTrue("the bands are deeper than that", height / 4 > past + 4);
+        int far = drawn.getPixel(width / 2, height / 4 - past);
+        assertTrue("the band glows far from the video: " + hex(far), Color.alpha(far) > 20 && Color.blue(far) > 20);
+        int below = drawn.getPixel(width / 2, height * 3 / 4 + past);
+        assertTrue("and below it: " + hex(below), Color.alpha(below) > 20 && Color.red(below) > 20);
+    }
+
+    /**
      * A reel opened from a link fills the window, in a page the size of its frame. Rounded corners on
      * Reels clips the frame to the video, so a glow on the frame or inside it never showed (#580).
      */
@@ -667,6 +710,79 @@ public class AmbientLightTest {
         Bitmap drawn = Bitmap.createBitmap(WIDTH, REEL, Bitmap.Config.ARGB_8888);
         ((View) video.getParent()).getBackground().draw(new Canvas(drawn));
         assertEquals(0, Color.alpha(drawn.getPixel(WIDTH / 2, 2)));
+    }
+
+    /**
+     * A photo reel: the reel's frame holding the profile picture over the reel and the photo, whose
+     * picture is half the frame's height, letterboxed in its middle.
+     */
+    private ImageView photoReel() {
+        FrameLayout reelRoot = new FrameLayout(activity);
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        FrameLayout container = new FrameLayout(activity);
+        ImageView avatar = new ImageView(activity);
+        avatar.setImageBitmap(Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888));
+        container.addView(avatar, new FrameLayout.LayoutParams(32, 32));
+        ImageView photo = new ImageView(activity);
+        photo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        photo.setImageBitmap(Bitmap.createBitmap(WIDTH, REEL / 2, Bitmap.Config.ARGB_8888));
+        container.addView(photo, match());
+        frame.addView(container, match());
+        reelRoot.addView(frame, new FrameLayout.LayoutParams(WIDTH, REEL));
+        activity.setContentView(reelRoot);
+        root = reelRoot;
+        shadowOf(Looper.getMainLooper()).idle();
+        return photo;
+    }
+
+    /** A photo reel has no video to light, and it stayed dark (#689). Its picture glows in the bands round it. */
+    @Test
+    public void aPhotoReelGlowsInTheBandsAroundItsPicture() {
+        ImageView photo = photoReel();
+
+        on();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertEquals(new Rect(0, REEL / 4, WIDTH, REEL * 3 / 4), AmbientLight.litRectForTests(photo));
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        ViewGroup container = (ViewGroup) photo.getParent();
+        assertTrue(String.valueOf(container.getBackground()), container.getBackground() instanceof AmbientLight.Glow);
+        Bitmap drawn = Bitmap.createBitmap(WIDTH, REEL, Bitmap.Config.ARGB_8888);
+        container.getBackground().draw(new Canvas(drawn));
+        int band = drawn.getPixel(WIDTH / 2, REEL / 4 - 4);
+        assertTrue("the band above shows the photo's top: " + hex(band), Color.blue(band) > 80 && Color.alpha(band) > 80);
+        int under = drawn.getPixel(WIDTH / 2, REEL * 3 / 4 + 4);
+        assertTrue("the band below its bottom: " + hex(under), Color.red(under) > 80 && Color.alpha(under) > 80);
+        assertEquals("nothing behind the photo", 0, Color.alpha(drawn.getPixel(WIDTH / 2, REEL / 2)));
+    }
+
+    /** A video starting over the photo it showed first takes the glow, and the photo's goes out. */
+    @Test
+    public void aVideoStartingOverItsCoverTakesTheGlow() {
+        ImageView cover = photoReel();
+        ViewGroup container = (ViewGroup) cover.getParent();
+        TextureView video = new TextureView(activity);
+        video.setVisibility(View.GONE);
+        container.addView(video, match());
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+        assertNotNull("the cover glows while the video loads", AmbientLight.litRectForTests(cover));
+
+        video.setVisibility(View.VISIBLE);
+        shadowOf(Looper.getMainLooper()).idle();
+        relayout();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertNotNull(AmbientLight.litRectForTests(video));
+        assertNull("the cover's light is out", AmbientLight.litRectForTests(cover));
+
+        cover.setVisibility(View.GONE);
+        video.setVisibility(View.GONE);
+        shadowOf(Looper.getMainLooper()).idle();
+        relayout();
+        assertEquals("nothing shows, nothing glows", 0, AmbientLight.litForTests());
     }
 
     private static FrameLayout.LayoutParams match() {
