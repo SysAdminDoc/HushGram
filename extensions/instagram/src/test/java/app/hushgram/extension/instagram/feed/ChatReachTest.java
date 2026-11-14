@@ -101,6 +101,11 @@ public class ChatReachTest {
      * in [around], itself in the view holding the messages.
      */
     private void build(FrameLayout around, int below) {
+        build(new FrameLayout(activity), around, below);
+    }
+
+    /** {@link #build(FrameLayout, int)}, with [holding] between the view holding the messages and [around]. */
+    private void build(FrameLayout holding, FrameLayout around, int below) {
         screen = new FrameLayout(activity);
         panel = new FrameLayout(activity);
         source = new FrameLayout(activity);
@@ -109,7 +114,7 @@ public class ChatReachTest {
         header.addView(new View(activity), new FrameLayout.LayoutParams(100, 100));
         messages = new FrameLayout(activity);
         messages.setId(View.generateViewId());
-        holder = new FrameLayout(activity);
+        holder = holding;
         refresh = around;
         list = new FrameLayout(activity);
         list.setId(View.generateViewId());
@@ -333,6 +338,64 @@ public class ChatReachTest {
         int half = Color.alpha(bitmap.getPixel(50, fade / 2));
         assertTrue("half way out half way down: " + half, half > tint / 4 && half < tint * 3 / 4);
         assertEquals("gone below it", 0, Color.alpha(bitmap.getPixel(50, fade + 2)));
+    }
+
+    /**
+     * A parent between the view holding the messages and the list cutting what it holds to its own bounds, as a
+     * clip rectangle, an outline or an alpha layer does on a phone: the glass still has the messages that run
+     * on above it, under the header and behind the status bar, and the ones below.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aParentCuttingToItsBoundsLeavesTheMessagesInTheGlass() {
+        build(new Cutting(activity), new FrameLayout(activity), HEADER);
+        View row = new View(activity);
+        row.setBackgroundColor(Color.RED);
+        FrameLayout.LayoutParams fromTop = new FrameLayout.LayoutParams(MATCH, STATUS + HEADER + 100);
+        list.addView(row, fromTop);
+        glaze();
+        // The oldest message, scrolled up to the window's top.
+        fromTop.topMargin = -list.getPaddingTop();
+        row.setLayoutParams(fromTop);
+        frame();
+        assertEquals(0, windowTop(row));
+
+        Bitmap glass = Bitmap.createBitmap(WIDE, TALL, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(glass);
+        // Where the header's parent is in the window: the glass records in its coordinates.
+        canvas.translate(0, windowTop(source));
+        assertTrue(GlassTopBar.recordMessages(header, canvas));
+        assertEquals("behind the status bar", Color.RED, glass.getPixel(WIDE / 2, STATUS / 2));
+        assertEquals("under the header", Color.RED, glass.getPixel(WIDE / 2, STATUS + HEADER / 2));
+        assertEquals("below it", Color.RED, glass.getPixel(WIDE / 2, STATUS + HEADER + 50));
+        assertEquals("the oldest message's end", 0, Color.alpha(glass.getPixel(WIDE / 2, STATUS + HEADER + 150)));
+        String report = HookStatus.report().toString();
+        assertFalse(report, report.contains(GlassTopBar.HOOK));
+    }
+
+    @Test
+    public void theDebugLogNamesWhatCutsTheMessagesShort() {
+        assertEquals("nothing", ChatReach.cuts(list, messages));
+        holder.setClipBounds(new Rect(0, 0, 10, 20));
+        refresh.setAlpha(0.5f);
+        String cuts = ChatReach.cuts(list, messages);
+        assertTrue(cuts, cuts.contains("clip [0,0][10,20]"));
+        assertTrue(cuts, cuts.contains("alpha 0.5"));
+    }
+
+    /** A FrameLayout cutting what it holds to its own bounds. */
+    private static final class Cutting extends FrameLayout {
+        Cutting(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void dispatchDraw(Canvas canvas) {
+            int saved = canvas.save();
+            canvas.clipRect(0, 0, getWidth(), getHeight());
+            super.dispatchDraw(canvas);
+            canvas.restoreToCount(saved);
+        }
     }
 
     /** A FrameLayout laying its children out at its top whatever their margins. */

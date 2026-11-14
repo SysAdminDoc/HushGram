@@ -294,6 +294,19 @@ public final class GlassTopBar {
         return background instanceof Frost ? ((Frost) background).glass.messagesRecorded : 0;
     }
 
+    /**
+     * Draws [header]'s chat messages into [canvas], at their place in the header's parent, as its glass records
+     * them, and says whether it has any (#684).
+     */
+    static boolean recordMessages(View header, Canvas canvas) {
+        Drawable background = header.getBackground();
+        if (!(background instanceof Frost)) return false;
+        Glass glass = ((Frost) background).glass;
+        if (!(glass.banded instanceof ViewGroup)) return false;
+        glass.recordMessages(canvas, (ViewGroup) glass.banded);
+        return true;
+    }
+
     /** How many times [header]'s glass asked for the tab bar's rim bend along its bottom edge (#513). */
     static int bends(View header) {
         Drawable background = header.getBackground();
@@ -791,14 +804,19 @@ public final class GlassTopBar {
         }
 
         /**
-         * Records a chat's [messages], drawn after the header, running on under it (#684). They're drawn whole,
-         * past the clip that keeps them below the header on screen, and without the soft edge over them, which
-         * draws this backdrop itself.
+         * Records a chat's [messages], drawn after the header, running on under it (#684). They're drawn past
+         * the clip that keeps them below the header on screen, and without the soft edge over them, which draws
+         * this backdrop itself. The views down to the list are drawn piece by piece and the list whole
+         * ({@link ChatReach#pathTo}), so none of them cuts it off at the messages' top.
          */
         private void recordMessages(Canvas recording, ViewGroup messages) {
             drawingBackdrop = true;
             try {
-                if (GlassTabBar.surfacePaths(messages, messages.getChildCount(), leftOutMessages)) leftOutMessages.add(messages);
+                GlassTabBar.surfacePaths(messages, messages.getChildCount(), leftOutMessages);
+                leftOutMessages.add(messages);
+                ChatReach reach = chat;
+                View list = reach == null ? null : reach.list();
+                if (list != null) ChatReach.pathTo(list, messages, leftOutMessages);
                 Throwable failed = GlassTabBar.drawLeavingOutSurfaces(recording, messages, leftOutMessages, 0);
                 if (failed != null) HookStatus.threw(family, HOOK + " view", failed);
                 messagesRecorded++;

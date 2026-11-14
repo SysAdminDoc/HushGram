@@ -15,6 +15,7 @@ import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import app.hushgram.extension.shared.Logger;
 
@@ -78,6 +79,45 @@ final class ChatReach {
         return pulled == null ? null : messages;
     }
 
+    /** The message list while it runs on under the header, else null. */
+    @Nullable
+    View list() {
+        return pulled == null ? null : list;
+    }
+
+    /**
+     * Puts each view from [list]'s parent up to [content], [content] too, in [into]. The glass draws those piece by
+     * piece and the list in them whole, so what runs on above [content]'s top is in it. Drawn whole, a parent
+     * cuts what it holds to its own bounds, whatever its clipChildren says, when it has a clip rectangle, an
+     * outline that clips or an alpha layer: on a phone the glass showed the messages from the header's bottom
+     * edge down only.
+     */
+    static void pathTo(View list, View content, Set<View> into) {
+        ViewParent up = list.getParent();
+        for (int depth = 0; up instanceof ViewGroup && depth < DEPTH; depth++) {
+            into.add((View) up);
+            if (up == content) return;
+            up = up.getParent();
+        }
+    }
+
+    /** Whatever from [list]'s parent up to [content] cuts what it holds to its own bounds, for the debug log. */
+    static String cuts(View list, View content) {
+        StringBuilder found = new StringBuilder();
+        ViewParent up = list.getParent();
+        for (int depth = 0; up instanceof ViewGroup && depth < DEPTH; depth++) {
+            View view = (View) up;
+            String cut = (view.getClipBounds() != null ? " clip " + view.getClipBounds().toShortString() : "")
+                    + (view.getClipToOutline() ? " outline" : "")
+                    + (view.getLayerType() != View.LAYER_TYPE_NONE ? " layer " + view.getLayerType() : "")
+                    + (view.getAlpha() < 1f ? " alpha " + view.getAlpha() : "");
+            if (!cut.isEmpty()) found.append(view.getClass().getSimpleName()).append(cut).append(", ");
+            if (up == content) break;
+            up = up.getParent();
+        }
+        return found.length() == 0 ? "nothing" : found.toString();
+    }
+
     /**
      * Runs the messages, in the view after [index] in [source] with the messages' id, on under [header], or
      * keeps them there, and says how far above the header the glass reaches: the status bar's height, or 0.
@@ -108,6 +148,7 @@ final class ChatReach {
         }
         View top = belowStatus ? frameAbove(header, status) : null;
         int up = contentTop - (top != null ? 0 : headerTop);
+        String cut = described ? "" : cuts(found, content);
         unclipBetween(pull, content);
         if (top != null) unclipBetween(header, top);
         ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) pull.getLayoutParams();
@@ -128,7 +169,7 @@ final class ChatReach {
         if (!described) {
             described = true;
             Logger.printDebug(() -> "Chat glass: messages pulled up " + up + " on " + pull.getClass().getSimpleName()
-                    + ", behind the status bar " + gap);
+                    + ", behind the status bar " + gap + ", cut short by " + cut);
         }
         return gap;
     }
