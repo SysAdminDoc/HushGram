@@ -34,6 +34,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.util.ReflectionHelpers;
 
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -97,6 +98,8 @@ public class FullScreenBarsTest {
         Settings.FULL_SCREEN_HIDES.resetToDefault();
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
+        // A height taken here for the pill would otherwise reach the next class's tests.
+        ReflectionHelpers.callStaticMethod(GlassTabBar.class, "resetForTests");
     }
 
     private View tab(int id) {

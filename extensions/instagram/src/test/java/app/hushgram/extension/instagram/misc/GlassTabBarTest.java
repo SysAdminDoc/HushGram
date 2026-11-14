@@ -524,6 +524,7 @@ public class GlassTabBarTest {
         resetFullScreenHeights();
         try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
             int nav = host.dp(24);
+            navBarAtTheFoot(nav);
             host.controller.pause().resume();
             host.frame();
             int height = host.bar.getLayoutParams().height;
@@ -556,11 +557,52 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * A floating pill whose window is left with no navigation bar at its foot, as the top half of a
+     * split screen is, gives up the bar's room when Instagram then offers 0 (as it does with `Remove the
+     * empty space at the bottom` on) rather than floating that high over nothing, and comes back in
+     * front with none.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aPillWhoseWindowLosesTheNavigationBarGivesUpItsRoom() throws Exception {
+        GlassTabBar.resetForTests();
+        resetFullScreenHeights();
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int nav = host.dp(24);
+            navBarAtTheFoot(nav);
+            host.controller.pause().resume();
+            host.frame();
+            int height = host.bar.getLayoutParams().height;
+            assertEquals("shown in front", 0, FullScreenBars.navBarHeight(nav));
+            host.frame();
+            assertEquals("the pill makes room for the bar", height + nav, host.bar.getLayoutParams().height);
+
+            navBarAtTheFoot(0);
+            assertEquals(0, FullScreenBars.navBarHeight(0));
+            host.frame();
+            assertEquals("no bar, no room", height, host.bar.getLayoutParams().height);
+            assertEquals("a sheet goes down to the foot", 0, GlassTabBar.cameraNavBarHeight(0));
+
+            host.controller.pause().resume();
+            host.frame();
+            assertEquals("back in front with no room", height, host.bar.getLayoutParams().height);
+        } finally {
+            resetFullScreenHeights();
+        }
+    }
+
     /** FullScreenBars starts and ends with nothing offered, taken or kept, telling the patch's listeners. */
     private static void resetFullScreenHeights() throws Exception {
         Class<?> teller = Class.forName("app.hushgram.extension.instagram.reels.FullScreenBars$Teller");
         ReflectionHelpers.callStaticMethod(FullScreenBars.class, "resetHeightsForTests",
                 ReflectionHelpers.ClassParameter.from(teller, null));
+    }
+
+    /** Gives the front window a navigation bar [height] pixels tall at its foot, 0 for none. */
+    private static void navBarAtTheFoot(int height) {
+        ReflectionHelpers.callStaticMethod(FullScreenBars.class, "navBarForTests",
+                ReflectionHelpers.ClassParameter.from(int.class, height));
     }
 
     /**
