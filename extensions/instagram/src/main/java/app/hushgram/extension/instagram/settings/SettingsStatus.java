@@ -377,6 +377,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Sort reels on profiles patch. */
+    public static boolean profileReelSort() {
+        return false;
+    }
+
     public static boolean homeFeed() {
         return false;
     }

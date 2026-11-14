@@ -457,6 +457,9 @@ Puts a calendar on a profile's top bar. Pick a day and the posts grid goes back 
 Open the profile's posts first	請先開啟個人檔案的貼文
 Still loading, try again	仍在載入，請再試一次
 Going to that date	正在前往該日期
+# context: Profiles settings; Reels is the reels tab on a profile, Latest and Most viewed are the two sorts Instagram's arrow next to it offers (#679)
+Sort reels on profiles	排序個人檔案的 Reels
+Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.	在每個個人檔案的 Reels 旁顯示箭頭，即使 Instagram 拿掉了這個選項，也能依「最新」或「最多觀看次數」排序。
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	隱藏 Instagram 在 Reels 之間插入的推薦用戶與創作者卡片。每則 Reel 仍會播放。
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	隱藏標示「付費合作夥伴」或 Instagram 標記為加強推廣的 Reels。廣告另有獨立開關。
 Turn on Start Home on Following to use this choice.	請啟用「首頁預設顯示追蹤中」以使用此選項。

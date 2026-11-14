@@ -452,6 +452,9 @@ Puts a calendar on a profile's top bar. Pick a day and the posts grid goes back 
 Open the profile's posts first	Abre primero las publicaciones
 Still loading, try again	Aún cargando, inténtalo otra vez
 Going to that date	Yendo a esa fecha
+# context: Profiles settings; Reels is the reels tab on a profile, Latest and Most viewed are the two sorts Instagram's arrow next to it offers (#679)
+Sort reels on profiles	Ordenar reels en perfiles
+Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.	Pone la flecha junto a Reels en cada perfil para que puedas ordenarlos por Más recientes o Más vistos donde Instagram quitó la opción.
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	Las tarjetas de personas y creadores para seguir que Instagram pone entre los reels. Todos los reels se siguen reproduciendo.
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	Omite los reels con la etiqueta Colaboración pagada y los que Instagram marca como promocionados. Los anuncios tienen su propio interruptor.
 Turn on Start Home on Following to use this choice.	Activa «Abrir Inicio en Seguidos» para usar esta opción.

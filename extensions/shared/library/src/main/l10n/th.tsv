@@ -449,6 +449,9 @@ Puts a calendar on a profile's top bar. Pick a day and the posts grid goes back 
 Open the profile's posts first	เปิดโพสต์ของโปรไฟล์ก่อน
 Still loading, try again	กำลังโหลด โปรดลองอีกครั้ง
 Going to that date	กำลังไปยังวันที่ดังกล่าว
+# context: Profiles settings; Reels is the reels tab on a profile, Latest and Most viewed are the two sorts Instagram's arrow next to it offers (#679)
+Sort reels on profiles	จัดเรียงรีลในโปรไฟล์
+Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.	แสดงลูกศรข้าง Reels ในทุกโปรไฟล์ เพื่อให้คุณจัดเรียงตามล่าสุดหรือมีผู้ดูมากที่สุดได้ แม้ในโปรไฟล์ที่ Instagram นำตัวเลือกนี้ออกไปแล้ว
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	การ์ดแนะนำบุคคลและครีเอเตอร์ให้ติดตามที่ Instagram แทรกไว้ระหว่างรีลส์ ทั้งนี้ทุกรีลส์จะยังคงเล่นได้ตามปกติ
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	เว้นรีลส์ที่มีป้ายกำกับ "ความร่วมมือที่ได้รับค่าตอบแทน" และรีลส์ที่ Instagram ระบุว่าได้รับการโปรโมต ทั้งนี้โฆษณาจะมีสวิตช์แยกต่างหาก
 Turn on Start Home on Following to use this choice.	เปิดใช้งาน "เปิดหน้าหลักที่กำลังติดตาม" เพื่อใช้ตัวเลือกนี้

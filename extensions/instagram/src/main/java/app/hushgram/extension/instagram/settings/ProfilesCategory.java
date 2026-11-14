@@ -41,7 +41,7 @@ final class ProfilesCategory {
                 || build.contains(PatchFamily.PROFILE_PICTURE)
                 || build.contains(PatchFamily.PROFILE_TABS)
                 || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)
-                || build.contains(PatchFamily.PROFILE_GRID_JUMP)
+                || build.contains(PatchFamily.PROFILE_GRID_JUMP) || build.contains(PatchFamily.PROFILE_REEL_SORT)
                 || build.contains(PatchFamily.ASK_BEFORE_FOLLOW)) {
             PreferenceCategory profiles = category(screen, L10n.t("Profiles"), SettingsIcons.PERSON,
                     L10n.t("See who follows you back, and clear extras off profiles."));
@@ -211,6 +211,11 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.PROFILE_GRID_JUMP, L10n.t("Jump a profile's posts to a date"),
                         L10n.t("Puts a calendar on a profile's top bar. Pick a day and the posts grid goes back to "
                                 + "that day. Pull down for the newest again.")));
+            }
+            if (build.contains(PatchFamily.PROFILE_REEL_SORT)) {
+                profiles.addPreference(toggle(context, Settings.PROFILE_REEL_SORT, L10n.t("Sort reels on profiles"),
+                        L10n.t("Puts the arrow next to Reels on every profile, so you can sort them by Latest or "
+                                + "Most viewed where Instagram took the choice away.")));
             }
         }
     }

@@ -2587,6 +2587,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_profile_grid_jump", FALSE);
 
     /**
+     * The arrow next to Reels on a profile, with Latest and Most viewed, on profiles Instagram doesn't
+     * offer it for (#679, {@link app.hushgram.extension.instagram.profile.ReelSort}). Read each time the
+     * Reels tab comes up or its title is tapped, so no restart. Off to start.
+     */
+    public static final BooleanSetting PROFILE_REEL_SORT =
+            new BooleanSetting("hushgram_profile_reel_sort", FALSE);
+
+    /**
      * A sideways swipe on Home that would open the camera
      * ({@link app.hushgram.extension.instagram.feed.SwipeToCreate}). Read at each step of a swipe,
      * so a change shows on the next one. Off to start.

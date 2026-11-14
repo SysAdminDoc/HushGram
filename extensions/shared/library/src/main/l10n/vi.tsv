@@ -452,6 +452,9 @@ Puts a calendar on a profile's top bar. Pick a day and the posts grid goes back 
 Open the profile's posts first	Hãy mở bài viết trước
 Still loading, try again	Vẫn đang tải, hãy thử lại
 Going to that date	Đang đến ngày đó
+# context: Profiles settings; Reels is the reels tab on a profile, Latest and Most viewed are the two sorts Instagram's arrow next to it offers (#679)
+Sort reels on profiles	Sắp xếp thước phim trên trang cá nhân
+Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.	Đặt mũi tên cạnh Reels trên mọi trang cá nhân để bạn sắp xếp theo Mới nhất hoặc Xem nhiều nhất, kể cả ở nơi Instagram đã bỏ lựa chọn này.
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	Các thẻ người và nhà sáng tạo để theo dõi mà Instagram chèn giữa các reel. Mọi reel vẫn phát.
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	Bỏ các reel có nhãn Hợp tác trả phí và reel Instagram đánh dấu là được quảng bá. Quảng cáo có công tắc riêng.
 Turn on Start Home on Following to use this choice.	Hãy bật Mở trang chủ ở Đang theo dõi để dùng lựa chọn này.
