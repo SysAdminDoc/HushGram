@@ -1755,6 +1755,11 @@ once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/
 start-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling instance LX/*;->*(F)V holding LX/*;->*:Lcom/instagram/model/reels/ReelItem;
 once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->volume(Ljava/lang/Object;F)V in instance (FI)V calling instance LX/*;->*(F)V holding LX/*;->*:Lcom/instagram/model/reels/ReelItem;
 single-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->leaving(Landroid/app/Activity;)V in onUserLeaveHint
+# Rebound's spring system activate (02iJ.A03 on 454's 386014758), the one instance (String) method
+# loading " does not reference a registered spring", hands springMoving its looper's frame callback
+# once, behind a check for no looper, so the story viewer's slide to the next story moves while
+# Instagram is hidden. Left out, a video story ending in the background leaves nothing playing.
+once-call Lapp/hushgram/extension/instagram/media/BackgroundPlay;->springMoving(Ljava/lang/Object;)V in instance (Ljava/lang/String;)V pooled holding \sdoes\snot\sreference\sa\sregistered\sspring
 # Its Picture in picture for reels switch (#572) asks ReelsPip.on first in Instagram's two reels
 # picture in picture checks and answers yes on a yes: the server check (04EI.A0B on 454's 386014758)
 # and the check of Instagram's own switch (084m.A09), each the one static (UserSession, boolean)

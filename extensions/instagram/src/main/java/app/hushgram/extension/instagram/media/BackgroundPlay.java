@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.SystemClock;
+import android.view.Choreographer;
 
 import androidx.annotation.Nullable;
 
@@ -43,6 +44,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * held too ({@link #releasing}) and goes through when the session ends: when you come back, before
  * the screen's fragments start and take a player again, so Instagram sees the same order it would
  * have without this.
+ *
+ * <p>A video story that ends in the background moves on to the next story, which takes over as the
+ * held player: the slide between them is a spring that only moves on the screen's frames, and
+ * {@link SpringSteps} gives it those while Instagram is hidden ({@link #springMoving}).
  *
  * <p>Everything else stops it as before. Coming back to the same screen ends the session with the
  * video still playing. Another Instagram screen opening over it pauses it, as Instagram would have.
@@ -202,6 +207,27 @@ public final class BackgroundPlay {
             if (ours) Utils.runOnMainThread(() -> afterStart(player));
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "player start", t);
+        }
+    }
+
+    /**
+     * At the top of the spring system's activate, which runs each time one of Instagram's springs
+     * sets off, with [frames], that system's frame callback. In a session it's stepped while
+     * Instagram is hidden ({@link SpringSteps}), so the story viewer's slide to the next story ends
+     * and that story plays.
+     */
+    public static void springMoving(@Nullable Object frames) {
+        try {
+            HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
+            if (!(frames instanceof Choreographer.FrameCallback) || !keepsSprings()) return;
+            Choreographer.FrameCallback callback = (Choreographer.FrameCallback) frames;
+            Utils.runOnMainThreadNowOrLater(() -> {
+                if (!keepsSprings()) return;
+                SpringSteps.keep(callback);
+                if (active()) HookStatus.counted(FamilyNames.BACKGROUND_PLAY, "springs stepped in the background");
+            });
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "spring", t);
         }
     }
 
@@ -387,6 +413,14 @@ public final class BackgroundPlay {
         }
     }
 
+    /** Whether a spring that sets off now gets stepped: a session is under way and the switch is on. */
+    static boolean keepsSprings() {
+        synchronized (LOCK) {
+            if (phase == Phase.IDLE) return false;
+        }
+        return on();
+    }
+
     // ---- The session ----
 
     /**
@@ -531,6 +565,7 @@ public final class BackgroundPlay {
             releaseHeld = false;
             releaseReason = null;
         }
+        Utils.runOnMainThreadNowOrLater(SpringSteps::stop);
         if (pause && player != null) pauseThrough(player);
         if (release && player != null) releaseThrough(player, reason);
         if (wasBackground && !serviceForTests) BackgroundPlayService.finish();
@@ -718,6 +753,7 @@ public final class BackgroundPlay {
             releaseHeld = false;
             releaseReason = null;
         }
+        SpringSteps.resetForTests();
         // Each test has an application of its own to watch.
         watching = false;
         controlForTests = null;

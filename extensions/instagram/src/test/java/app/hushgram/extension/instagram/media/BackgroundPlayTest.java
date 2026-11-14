@@ -452,9 +452,101 @@ public class BackgroundPlayTest {
         assertFalse(BackgroundPlay.hold(player, "fragment_paused"));
     }
 
+    /**
+     * A spring that sets off in the background is stepped about once a frame, so a story's slide to
+     * the next one ends with Instagram hidden, and for {@link SpringSteps#KEEP_MS} only.
+     */
+    @Test
+    public void aSpringInTheBackgroundGetsFrames() {
+        background(player);
+        Frames frames = new Frames();
+
+        BackgroundPlay.springMoving(frames);
+        idleFor(100);
+
+        assertTrue("stepped about every 16 ms: " + frames.steps, frames.steps >= 5 && frames.steps <= 7);
+        idleFor(SpringSteps.KEEP_MS);
+        int stepped = frames.steps;
+        idleFor(500);
+        assertEquals("no steps past the keep", stepped, frames.steps);
+        assertEquals(0, SpringSteps.keptForTests());
+        assertEquals(BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
+    }
+
+    /** With no session, or the switch off, a spring is Instagram's alone. */
+    @Test
+    public void aSpringOutsideASessionIsLeftAlone() {
+        Frames frames = new Frames();
+        BackgroundPlay.springMoving(frames);
+        idleFor(100);
+        assertEquals(0, frames.steps);
+
+        background(player);
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
+        BackgroundPlay.springMoving(frames);
+        idleFor(100);
+        assertEquals(0, frames.steps);
+        assertEquals(0, SpringSteps.keptForTests());
+    }
+
+    /** While Instagram is still leaving it still draws, so the steps wait for it to be hidden. */
+    @Test
+    public void aSpringSetOffAsYouLeaveIsSteppedOnceHidden() {
+        leaveWith(player);
+        Frames frames = new Frames();
+        BackgroundPlay.springMoving(frames);
+        idleFor(100);
+        assertEquals("the screen's own frames step it", 0, frames.steps);
+
+        BackgroundPlay.stopped(screen);
+        idleFor(100);
+        assertTrue(String.valueOf(frames.steps), frames.steps >= 5);
+    }
+
+    /** Coming back ends the steps with the session: the screen's frames take over. */
+    @Test
+    public void comingBackStopsTheSteps() {
+        background(player);
+        Frames frames = new Frames();
+        BackgroundPlay.springMoving(frames);
+        idleFor(50);
+        assertTrue(frames.steps > 0);
+
+        BackgroundPlay.resumed(screen);
+        idle();
+        int stepped = frames.steps;
+        idleFor(200);
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals(stepped, frames.steps);
+        assertEquals(0, SpringSteps.keptForTests());
+    }
+
+    /** A step that throws is dropped and reported; the other springs keep going. */
+    @Test
+    public void aThrowingStepIsDropped() {
+        background(player);
+        Frames frames = new Frames();
+        int[] thrown = {0};
+        BackgroundPlay.springMoving((android.view.Choreographer.FrameCallback) time -> {
+            thrown[0]++;
+            throw new IllegalStateException("test");
+        });
+        BackgroundPlay.springMoving(frames);
+        idleFor(100);
+
+        assertEquals("dropped after its first throw", 1, thrown[0]);
+        assertTrue(frames.steps >= 5);
+        assertEquals(1, SpringSteps.keptForTests());
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains("spring step"));
+    }
+
     /** No hook throws into Instagram, whatever it's handed. */
     @Test
     public void nullsAreHarmless() {
+        BackgroundPlay.springMoving(null);
+        BackgroundPlay.springMoving(new Object());
         BackgroundPlay.started(null);
         BackgroundPlay.volume(null, 1f);
         assertFalse(BackgroundPlay.releasing(null, null));
@@ -487,6 +579,20 @@ public class BackgroundPlayTest {
 
     private static void idle() {
         shadowOf(Looper.getMainLooper()).idle();
+    }
+
+    private static void idleFor(long ms) {
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(ms));
+    }
+
+    /** A spring system's frame callback that counts its steps. */
+    private static final class Frames implements android.view.Choreographer.FrameCallback {
+        int steps;
+
+        @Override
+        public void doFrame(long frameTimeNanos) {
+            steps++;
+        }
     }
 
     /** A screen the test can put in picture in picture. */

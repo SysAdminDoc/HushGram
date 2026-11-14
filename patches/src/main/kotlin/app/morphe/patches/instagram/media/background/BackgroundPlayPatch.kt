@@ -98,6 +98,9 @@ internal val backgroundPlayServicePatch = resourcePatch {
  * first and return without doing anything when it says to hold. The release asks too, and a held
  * one goes through when the session ends, which coming back to Instagram does before its screens
  * start again. Audio focus, a mute, coming back or the notification's Stop all end the session.
+ * A story that ends in the background slides to the next one on a spring, which only moves on the
+ * screen's frames, so the spring system tells the extension each time one sets off, and it steps
+ * the system by hand while Instagram is hidden: see [keepSpringsMoving].
  * The notification's Pause and Play reach either player through stubs this patch fills. The
  * manifest gets the service, and the foreground service permissions when Instagram doesn't ask
  * for them already.
@@ -124,7 +127,9 @@ val backgroundPlayPatch = bytecodePatch(
         val sites = findBackgroundPlaySites()
         val pip = findReelsPipChecks(PATCH)
         val stories = findStoriesPip(PATCH)
+        val springs = findSpringActivate(PATCH)
         keepPlayingInBackground(sites)
+        keepSpringsMoving(PATCH, springs)
         allowReelsPip(PATCH, pip)
         keepStoriesInPip(PATCH, stories)
         enableStatus("backgroundPlay")
