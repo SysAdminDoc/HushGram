@@ -61,6 +61,7 @@ Every HushGram release, newest first.
 * `Haptic strength` keeps growing past 150%, up to a long full-strength tap at 200%. Before, everything past 100% felt the same. Reported in #689.
 * New switches show their blue dot again, right before the "i" that holds their description. Reported in #689.
 * `Ambient light` now fills the black bands around a reel you open from a profile or the Reels tab, not just a strip as wide as the spread. Reported in #689.
+* `Find the reel you came from` works with `Keep the tab bar on a reel's profile` on. A profile opened on the tab never started the search, so the grid just stayed at the top. Reported in #693.
 
 ## 0.0.20 (2026-11-12)
 

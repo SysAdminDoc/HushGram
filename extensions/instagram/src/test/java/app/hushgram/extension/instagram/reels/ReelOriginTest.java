@@ -29,6 +29,8 @@ import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.instagram.profile.fragment.UserDetailFragment;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -111,6 +113,8 @@ public class ReelOriginTest {
         public RecyclerView grid;
         public String gridKey = "profile_clips";
         public boolean resumed = true;
+        /** The fragment the tab sits in, a profile's screen or none. */
+        Object parent;
         private final Activity activity;
         private final Bundle arguments = new Bundle();
 
@@ -132,6 +136,10 @@ public class ReelOriginTest {
         public boolean isResumed() {
             return resumed;
         }
+
+        public Object getParentFragment() {
+            return parent;
+        }
     }
 
     /**
@@ -141,6 +149,7 @@ public class ReelOriginTest {
     public static final class PostsGrid {
         public RecyclerView recyclerView;
         public boolean resumed = true;
+        Object parent;
         private final Activity activity;
         private final Bundle arguments = new Bundle();
 
@@ -162,6 +171,17 @@ public class ReelOriginTest {
         public boolean isResumed() {
             return resumed;
         }
+
+        public Object getParentFragment() {
+            return parent;
+        }
+    }
+
+    /** [grid] as it sits in [screen], a profile's screen. */
+    private static <T> T in(Object screen, T grid) {
+        if (grid instanceof Tab) ((Tab) grid).parent = screen;
+        else ((PostsGrid) grid).parent = screen;
+        return grid;
     }
 
     /** A tab with two grids, which the extension can't tell apart. */
@@ -1001,6 +1021,92 @@ public class ReelOriginTest {
         ReelOrigin.reelsTabResumed(new Tab(late, grid, AUTHOR), ON);
         idleSeconds(6);
         assertTrue(shown.isEmpty());
+    }
+
+    /**
+     * With Keep the tab bar on a reel's profile on, the profile goes onto the tab the reel plays on,
+     * in the activity already there, and no activity is created, so the reel was never looked for
+     * (#693). Told so, that activity is the profile's, and only the profile's own screen is looked in.
+     */
+    @Test
+    public void aProfileOnTheTabIsLookedInWithinItsOwnScreen() {
+        openProfile(List.of("3000_7", REEL, "2900_7"), null);
+        ReelOrigin.opening(new Reel(REEL), ON);
+        UserDetailFragment screen = new UserDetailFragment();
+        Tab tab = in(screen, new Tab(profile, grid, AUTHOR));
+        ReelOrigin.reelsTabResumed(tab, ON);
+        idleSeconds(1);
+        assertTrue("no activity came, and nobody said the profile went on the tab", shown.isEmpty());
+
+        ReelOrigin.profileOnTab(profile);
+        tab.resumed = false;
+        ReelOrigin.reelsTabResumed(tab, ON);
+        idleSeconds(1);
+        ReelOrigin.reelsTabResumed(in(new UserDetailFragment(), new Tab(profile, grid, AUTHOR)), ON);
+        idleSeconds(2);
+        assertTrue("the profile's tab was left, and the second is another screen's", shown.isEmpty());
+        assertEquals(REEL, ReelOrigin.heldForTests());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.OTHER_PROFILE + " 1"));
+
+        tab.resumed = true;
+        ReelOrigin.reelsTabResumed(tab, ON);
+        idleSeconds(2);
+        assertEquals("back in the profile's screen, it's found", List.of(REEL), shown);
+        assertNull(ReelOrigin.heldForTests());
+        assertTrue(HookStatus.missing(FamilyNames.REEL_ORIGIN).toString(), HookStatus.missing(FamilyNames.REEL_ORIGIN).isEmpty());
+    }
+
+    /**
+     * A photo reel on a profile pushed onto the tab is looked for in that profile's posts grid, and
+     * Profile posts as a list leaves only that grid up for it (#693).
+     */
+    @Test
+    public void aPhotoReelOnAProfileOnTheTabIsLookedForInItsOwnPostsGrid() {
+        openProfile(List.of("3000_7", REEL, "2900_7"), null);
+        ReelOrigin.opening(new Reel(REEL), ON, PHOTO);
+        ReelOrigin.profileOnTab(profile);
+        PostsGrid author = in(new UserDetailFragment(), new PostsGrid(profile, grid, ReelOrigin.POSTS));
+        PostsGrid another = in(new UserDetailFragment(), new PostsGrid(profile, grid, ReelOrigin.POSTS));
+        assertTrue(ReelOrigin.searchesPosts(author, ON));
+
+        author.resumed = false;
+        ReelOrigin.postsGridResumed(author, ON, OFF);
+        idleSeconds(1);
+        assertFalse("another screen's grid isn't searched", ReelOrigin.searchesPosts(another, ON));
+        assertTrue(ReelOrigin.searchesPosts(author, ON));
+        ReelOrigin.postsGridResumed(another, ON, OFF);
+        idleSeconds(2);
+        assertTrue(shown.isEmpty());
+
+        author.resumed = true;
+        ReelOrigin.postsGridResumed(author, ON, OFF);
+        idleSeconds(2);
+        assertEquals(List.of(REEL), shown);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.OTHER_PROFILE + " 1"));
+    }
+
+    /**
+     * Told the profile went onto the tab, nothing changes unless a reel was tapped moments before:
+     * nothing held, or held too long ago, and the activity isn't taken.
+     */
+    @Test
+    public void aProfileOnTheTabWithNoReelJustTappedTakesNothing() {
+        openProfile(List.of(REEL), null);
+        ReelOrigin.profileOnTab(profile);
+        ReelOrigin.profileOnTab(null);
+        ReelOrigin.profileOnTab(new Object());
+        assertNull(ReelOrigin.heldForTests());
+
+        ReelOrigin.opening(new Reel(REEL), ON);
+        idleSeconds(6);
+        ReelOrigin.profileOnTab(profile);
+        assertNull("tapped too long ago, so it's dropped", ReelOrigin.heldForTests());
+        ReelOrigin.reelsTabResumed(in(new UserDetailFragment(), new Tab(profile, grid, AUTHOR)), ON);
+        idleSeconds(2);
+        assertTrue(shown.isEmpty());
+        assertTrue(HookStatus.missing(FamilyNames.REEL_ORIGIN).toString(), HookStatus.missing(FamilyNames.REEL_ORIGIN).isEmpty());
     }
 
     /**

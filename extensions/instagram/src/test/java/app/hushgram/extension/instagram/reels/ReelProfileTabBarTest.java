@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.reels;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -106,6 +107,26 @@ public class ReelProfileTabBarTest {
         assertFalse(ReelProfileTabBar.open(activity, BAR, factory, session, config, (on, from, as, what) -> {
             throw new IllegalStateException("state already saved");
         }));
+    }
+
+    /**
+     * No activity is created for a profile put on the tab, so Find the reel you came from is told the
+     * reel's own screen is the profile's (#693), and nothing when the push failed.
+     */
+    @Test
+    public void aProfileOnTheTabIsWhereFindTheReelLooks() {
+        try {
+            ReelOrigin.opening(new ReelOriginTest.Reel("3100_7"), () -> true);
+            assertFalse(ReelProfileTabBar.open(activity, BAR, factory, session, config, (on, from, as, what) -> {
+                throw new IllegalStateException("state already saved");
+            }));
+            assertNull(ReelOrigin.hostForTests());
+
+            assertTrue(open(BAR));
+            assertSame(activity, ReelOrigin.hostForTests());
+        } finally {
+            ReelOrigin.forget();
+        }
     }
 
     @Test

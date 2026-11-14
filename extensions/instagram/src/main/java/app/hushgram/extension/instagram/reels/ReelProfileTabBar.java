@@ -57,6 +57,7 @@ public final class ReelProfileTabBar {
             if (!Settings.REEL_PROFILE_TAB_BAR.get()) return false;
             if (activity.isFinishing() || activity.isDestroyed() || activity.findViewById(bar) == null) return false;
             push.onTheTab(activity, factory, session, config);
+            ReelOrigin.profileOnTab(activity);
             Logger.printDebug(() -> "ReelProfileTabBar: opened the profile on the tab");
             return true;
         } catch (Throwable t) {
