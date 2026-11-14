@@ -1384,7 +1384,7 @@ once-call Lapp/hushgram/extension/instagram/feed/FullResolution;->photo(Ljava/la
 # in the floating tray helper's show, the one method holding "floating_tray_overlay_container" and
 # "show_tray_fail_reason", which moves the tray over the feed on a return to Home without building
 # its row (#88, #357). The show asks a string pool for those two on 454's 386014759, and the patch finds
-# it either way. Each guard is written once. It passes each item the stories tray response's parser reads through
+# it either way. Keep Home's top bar names the same floating tray guard (#677). Each guard is written once. It passes each item the stories tray response's parser reads through
 # filter() once, in the one unsafeParseFromJson holding "tray", "story_ranking_token" and
 # "remaining_reel_ids_to_fetch", and the ids of the reels that parser reads under
 # "remaining_reel_ids_to_fetch" through remaining() once, so Stop loading stories and highlights empties both.

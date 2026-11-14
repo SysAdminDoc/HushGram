@@ -96,6 +96,19 @@ internal val MADE_REELS = listOf(
     "EMPTY_STORY_STATE_REEL",
 )
 
+/**
+ * Asks [FLOAT_TRAY] first thing in the floating tray's show. It has no switch of its own: Hide suggested stories
+ * names it for its tray switches (#357), and Keep Home's top bar names it because a kept header never slides the
+ * floating tray away (#677). Declared before the patches naming it, which read it as they're built.
+ */
+internal val floatingTrayGuardPatch = bytecodePatch {
+    dependsOn(settingsPatch, instagramExtensionPatch)
+
+    execute {
+        guardTray(findFloatingTrayShow(), FLOAT_TRAY)
+    }
+}
+
 @Suppress("unused")
 val hideSuggestedStoriesPatch = bytecodePatch(
     name = "Hide suggested stories",
@@ -104,13 +117,12 @@ val hideSuggestedStoriesPatch = bytecodePatch(
         "Turn it off in HushGram settings > Stories.",
 ) {
     category("Stories")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, floatingTrayGuardPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {
         requireStatusMethod("storiesTray")
         guardTray(findTrayRowBuild())
-        guardTray(findFloatingTrayShow(), FLOAT_TRAY)
         val parse = findTrayItemParse()
         val netegoCheck = findStoryNetegoCheck()
         val midcards = findStoryMidcards()

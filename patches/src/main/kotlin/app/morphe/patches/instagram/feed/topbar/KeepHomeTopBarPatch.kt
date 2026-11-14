@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.stories.tray.floatingTrayGuardPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -54,8 +55,11 @@ private const val LIST = "Ljava/util/List;"
  * switch on the controller gets an empty list, which is how Instagram itself leaves it when Home
  * lets go. The controller also fades the header's logo and buttons by how far it slid, so the
  * patch runs each of its slide steps through the extension too, which holds it at the top while
- * it has that empty list (#513). The patch switches the status method on, and the settings screen
- * then offers the switch. In the default selection with its switch off.
+ * it has that empty list (#513). Instagram slides its floating stories tray away by that same
+ * controller, so the patch names the floating tray guard too, and with the switch on the tray stays
+ * in its row in the feed and no longer sticks under a kept header (#677). The patch switches the
+ * status method on, and the settings screen then offers the switch. In the default selection with
+ * its switch off.
  */
 @Suppress("unused")
 val keepHomeTopBarPatch = bytecodePatch(
@@ -64,7 +68,7 @@ val keepHomeTopBarPatch = bytecodePatch(
         "A second switch shows your feed blurred under them. Both start off. Turn them on in HushGram settings > Feed.",
 ) {
     category("Feed")
-    dependsOn(settingsPatch, instagramExtensionPatch, videoSurfacePatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, videoSurfacePatch, floatingTrayGuardPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {

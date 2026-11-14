@@ -188,6 +188,23 @@ public class StoriesTrayTest {
         assertFalse(StoriesTray.keepTrayOutOfOverlay());
     }
 
+    /**
+     * #677: Instagram slides the floating tray away with the header's own scroll, which Keep Home's top bar holds
+     * still, so the tray stuck under the bar. While that switch is on the tray stays in its row, and it still shows.
+     */
+    @Test
+    public void aKeptTopBarKeepsTheTrayInTheFeed() {
+        assertFalse(Settings.KEEP_HOME_TOP_BAR.get());
+        Settings.KEEP_HOME_TOP_BAR.save(true);
+        try {
+            assertTrue(StoriesTray.keepTrayOutOfOverlay());
+            assertFalse("keeping the top bar doesn't hide the tray's row", StoriesTray.hideTray());
+        } finally {
+            Settings.KEEP_HOME_TOP_BAR.save(false);
+        }
+        assertFalse(StoriesTray.keepTrayOutOfOverlay());
+    }
+
     /** A tray item's owner, standing in for Instagram's User. */
     static final class Owner {
         final String id;
