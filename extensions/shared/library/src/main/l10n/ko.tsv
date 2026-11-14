@@ -1303,6 +1303,7 @@ Hide the reply bar on reels from chats	채팅에서 연 릴스의 답장 창 숨
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	채팅에서 연 릴스 아래의 답장 입력란과 반응, 더하기 버튼입니다. 채팅의 메시지 입력란은 그대로 남습니다.
 # context: Layout list title; it picks the font Instagram's text draws in
 Font	글꼴
+Text size	글자 크기
 # context: the three choices in the Font list
 Instagram's font	Instagram 글꼴
 Your phone's font	휴대전화 글꼴

@@ -2196,6 +2196,15 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_font", app.hushgram.extension.instagram.misc.FontChoice.INSTAGRAM, true);
 
     /**
+     * How big Instagram's text draws, in percent of the size the phone's own font size setting gives
+     * it, with the Change the font patch in the build ({@link
+     * app.hushgram.extension.instagram.misc.TextSize}, #682). Any font, Instagram's own included.
+     * Shows after a restart. Starts at 100, which changes nothing.
+     */
+    public static final IntegerSetting TEXT_SIZE =
+            new IntegerSetting("hushgram_text_size_percent", 100, true).withRange(70, 200);
+
+    /**
      * The icon on the home screen and in the app drawer: Instagram's own, HushGram's, or Instagram's
      * glyph on black, on plum or in black on white ({@link app.hushgram.extension.instagram.misc.AppIcon},
      * #284, #353). It

@@ -282,7 +282,10 @@ public final class ConfigurationBackup {
             settings.put(Settings.ACCENT_HUE.key, Settings.ACCENT_HUE);
             settings.put(Settings.ACCENT_CUSTOM.key, Settings.ACCENT_CUSTOM);
         }
-        if (PatchFamily.FONT.inBuild()) settings.put(Settings.FONT.key, Settings.FONT);
+        if (PatchFamily.FONT.inBuild()) {
+            settings.put(Settings.FONT.key, Settings.FONT);
+            settings.put(Settings.TEXT_SIZE.key, Settings.TEXT_SIZE);
+        }
         if (PatchFamily.EMOJI_STYLE.inBuild()) settings.put(Settings.EMOJI_FONT.key, Settings.EMOJI_FONT);
         if (PatchFamily.APP_ICON.inBuild()) settings.put(Settings.APP_ICON.key, Settings.APP_ICON);
         if (PatchFamily.SETTINGS_ROWS.inBuild()) settings.put(Settings.HIDDEN_SETTINGS_ROWS.key, Settings.HIDDEN_SETTINGS_ROWS);

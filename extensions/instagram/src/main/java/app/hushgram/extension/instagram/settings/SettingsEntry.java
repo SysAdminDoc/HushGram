@@ -70,6 +70,7 @@ import app.hushgram.extension.instagram.misc.SavedFastScroll;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
 import app.hushgram.extension.instagram.misc.HeaderText;
 import app.hushgram.extension.instagram.misc.AppIcon;
+import app.hushgram.extension.instagram.misc.TextSize;
 import app.hushgram.extension.instagram.profile.ProfileTitle;
 import app.hushgram.extension.instagram.stories.StoryProgressBar;
 import app.hushgram.extension.shared.L10n;
@@ -190,6 +191,7 @@ public final class SettingsEntry {
         MuseCard.install(context);
         LaunchScreen.install(context);
         AppIcon.install(context);
+        TextSize.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
         if (SettingsStatus.backgroundPlay()) BackgroundPlay.watch(context);
         // A save Android stopped halfway left a pending gallery row, a work file or a notification.

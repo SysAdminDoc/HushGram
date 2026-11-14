@@ -1295,6 +1295,7 @@ Hide the reply bar on reels from chats	ซ่อนแถบตอบกลั�
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	กล่อง "ตอบกลับ..." ใต้รีลส์ที่คุณเปิดจากแชท รวมถึงการแสดงความรู้สึกและปุ่มบวก โดยกล่องข้อความของแชทเองจะยังคงอยู่
 # context: Layout list title; it picks the font Instagram's text draws in
 Font	แบบอักษร
+Text size	ขนาดข้อความ
 # context: the three choices in the Font list
 Instagram's font	แบบอักษรของ Instagram
 Your phone's font	แบบอักษรของโทรศัพท์คุณ

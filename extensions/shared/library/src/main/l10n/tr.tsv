@@ -1304,6 +1304,7 @@ Hide the reply bar on reels from chats	Sohbetlerden açılan reels'te yanıt çu
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Bir sohbetten açtığın reels'in altındaki yanıt kutusu, tepkileri ve artı düğmesiyle birlikte. Sohbetin kendi mesaj kutusu kalır.
 # context: Layout list title; it picks the font Instagram's text draws in
 Font	Yazı tipi
+Text size	Yazı boyutu
 # context: the three choices in the Font list
 Instagram's font	Instagram'ın yazı tipi
 Your phone's font	Telefonunun yazı tipi

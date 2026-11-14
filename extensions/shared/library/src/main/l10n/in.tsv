@@ -1304,6 +1304,7 @@ Hide the reply bar on reels from chats	Sembunyikan bilah balasan di reel dari ch
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Kotak balasan di bawah reel yang kamu buka dari chat, beserta reaksi dan tombol plusnya. Kotak pesan di chat itu sendiri tetap ada.
 # context: Layout list title; it picks the font Instagram's text draws in
 Font	Font
+Text size	Ukuran teks
 # context: the three choices in the Font list
 Instagram's font	Font Instagram
 Your phone's font	Font ponselmu

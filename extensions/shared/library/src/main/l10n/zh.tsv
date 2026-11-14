@@ -1290,6 +1290,7 @@ Hide the reply bar on reels from chats	隐藏从聊天打开的 Reels 回复栏
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	隐藏从聊天打开的 Reel 下方的回复框、心情回应与加号按钮。聊天本身的消息输入框仍会保留。
 # context: Layout list title; it picks the font Instagram's text draws in
 Font	字体
+Text size	文字大小
 # context: the three choices in the Font list
 Instagram's font	Instagram 字体
 Your phone's font	手机字体

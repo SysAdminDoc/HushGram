@@ -888,7 +888,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || HIDDEN_SOUNDS_ROW.equals(key));
                     belongs |= family == PatchFamily.ACCENT_COLOR && (Settings.ACCENT_HUE.key.equals(key)
                             || Settings.ACCENT_CUSTOM.key.equals(key));
-                    belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
+                    belongs |= family == PatchFamily.FONT && (Settings.FONT.key.equals(key)
+                            || Settings.TEXT_SIZE.key.equals(key));
                     belongs |= family == PatchFamily.HEADER_TEXT && (Settings.HEADER_TEXT_CENTER.key.equals(key)
                             || Settings.HEADER_TEXT_FONT.key.equals(key));
                     belongs |= family == PatchFamily.EMOJI_STYLE && Settings.EMOJI_FONT.key.equals(key);
@@ -5340,6 +5341,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         SliderRow row = new SliderRow(context, Settings.REEL_CAP_BREAK, 5, L10n.t("%1$d minutes in the background"));
         row.setTitle(L10n.t("Time away before swiping comes back"));
         row.setText(String.valueOf(Settings.REEL_CAP_BREAK.savedValue()));
+        return row;
+    }
+
+    /** How big Instagram's text draws, from a slider in percent of the phone's own text size (#682). */
+    static SliderRow textSizeRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.TEXT_SIZE, 5, L10n.t("%1$d%%"));
+        row.setTitle(L10n.t("Text size"));
+        row.setText(String.valueOf(Settings.TEXT_SIZE.savedValue()));
         return row;
     }
 

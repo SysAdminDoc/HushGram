@@ -15,6 +15,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.info;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.textSizeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
 import android.content.Context;
@@ -54,7 +55,10 @@ final class LayoutCategory {
             }
             // Rows whose key words name no icon get one that says what they change, not the
             // category's grid on every other row.
-            if (build.contains(PatchFamily.FONT)) layout.addPreference(mark(page.fontRow(context), SettingsIcons.WRITING));
+            if (build.contains(PatchFamily.FONT)) {
+                layout.addPreference(mark(page.fontRow(context), SettingsIcons.WRITING));
+                layout.addPreference(mark(textSizeRow(context), SettingsIcons.WRITING));
+            }
             if (build.contains(PatchFamily.EMOJI_STYLE)) {
                 layout.addPreference(toggle(context, Settings.NOTO_EMOJI, L10n.t("Google's emoji everywhere"),
                         L10n.t("Shows every emoji in Google's style instead of your phone's own. Restart Instagram "

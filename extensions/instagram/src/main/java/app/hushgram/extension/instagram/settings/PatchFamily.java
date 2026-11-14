@@ -795,7 +795,7 @@ public enum PatchFamily {
     List<Setting<?>> choices() {
         switch (this) {
             case FONT:
-                return Collections.singletonList(Settings.FONT);
+                return Arrays.asList(Settings.FONT, Settings.TEXT_SIZE);
             case EMOJI_STYLE:
                 return Collections.singletonList(Settings.EMOJI_FONT);
             case MESSAGE_BOX:

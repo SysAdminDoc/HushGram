@@ -1304,6 +1304,7 @@ Hide the reply bar on reels from chats	Ocultar la barra de respuesta en los reel
 The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	El cuadro de respuesta bajo un reel que abres desde un chat, con sus reacciones y el botón más. El cuadro de mensajes del propio chat se queda.
 # context: Layout list title; it picks the font Instagram's text draws in
 Font	Fuente
+Text size	Tamaño del texto
 # context: the three choices in the Font list
 Instagram's font	Fuente de Instagram
 Your phone's font	Fuente de tu teléfono
