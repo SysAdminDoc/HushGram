@@ -29,8 +29,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * starts once that spring comes to rest. A spring moves one step on each frame of the screen, and a
  * hidden app gets no frames, so a video story that ends in the background left the viewer stuck
  * between two stories with nothing playing. While a session is in the background, this runs each
- * spring system that set off since it began a frame at a time on the main thread, for
- * {@link #KEEP_MS} after its last start, and {@link #RUN_MS} at most in a row.
+ * spring system that set off since it began, or in the {@link #KEEP_MS} before, a frame at a time on
+ * the main thread, for {@link #KEEP_MS} after its last start, and {@link #RUN_MS} at most in a row.
  *
  * <p>Each step goes to the spring system's own frame callback. It times itself by the clock, rests
  * by itself, and does nothing once every spring rests, so a step past the end costs a call. A step
@@ -70,6 +70,9 @@ final class SpringSteps {
      * another frame it runs counts too, which only happens while the screen gives frames anyway.
      */
     private static final Set<String> loopers = new HashSet<>();
+
+    /** When each spring system last set off with no session, so one still moving as a session begins is stepped too. */
+    private static final Map<Choreographer.FrameCallback, Long> lately = new WeakHashMap<>();
     private static final Runnable STEP = SpringSteps::step;
     @Nullable
     private static Handler handler;
@@ -115,6 +118,26 @@ final class SpringSteps {
             if ("doFrame".equals(element.getMethodName()) && loopers.contains(element.getClassName())) return true;
         }
         return false;
+    }
+
+    /** Notes that [frames] set off with no session under way. */
+    static void saw(Choreographer.FrameCallback frames) {
+        lately.put(frames, SystemClock.uptimeMillis());
+    }
+
+    /**
+     * As a session begins, steps each spring system that set off in the last {@link #KEEP_MS}, as a
+     * start made now. A slide you set off just before leaving is still moving, and once Instagram is
+     * hidden it gets no frames to end on; one that has come to rest costs a call a step.
+     */
+    static void carryOn() {
+        long now = SystemClock.uptimeMillis();
+        List<Choreographer.FrameCallback> moving = new ArrayList<>(lately.size());
+        for (Map.Entry<Choreographer.FrameCallback, Long> entry : lately.entrySet()) {
+            if (entry.getValue() > now - KEEP_MS) moving.add(entry.getKey());
+        }
+        lately.clear();
+        for (Choreographer.FrameCallback frames : moving) keep(frames);
     }
 
     /** Stops stepping, as the session ends. */
@@ -189,6 +212,8 @@ final class SpringSteps {
     /** Clears everything, for tests. */
     static void resetForTests() {
         stop();
+        lately.clear();
+        loopers.clear();
         handler = null;
         steppingRun = NOT_STEPPING;
         stepsForTests = 0;

@@ -231,13 +231,19 @@ public final class BackgroundPlay {
      * At the top of the spring system's activate, which runs each time one of Instagram's springs
      * sets off, with [frames], that system's frame callback. In a session it's stepped while
      * Instagram is hidden ({@link SpringSteps}), so the story viewer's slide to the next story ends
-     * and that story plays.
+     * and that story plays. With no session it's only noted, so a slide still moving as you leave is
+     * stepped too.
      */
     public static void springMoving(@Nullable Object frames) {
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
-            if (!(frames instanceof Choreographer.FrameCallback) || !keepsSprings()) return;
+            if (!(frames instanceof Choreographer.FrameCallback)) return;
             Choreographer.FrameCallback callback = (Choreographer.FrameCallback) frames;
+            if (!keepsSprings()) {
+                // Instagram's springs set off on the main thread; one that doesn't isn't noted.
+                if (phase() == Phase.IDLE && on() && Utils.isCurrentlyOnMainThread()) SpringSteps.saw(callback);
+                return;
+            }
             Utils.runOnMainThreadNowOrLater(() -> {
                 if (!keepsSprings()) return;
                 SpringSteps.keep(callback);
@@ -465,6 +471,8 @@ public final class BackgroundPlay {
             pausedSince = NONE;
         }
         log(() -> why + ", so the video playing with sound is kept going");
+        // A slide set off just before still moves, and is stepped once Instagram is hidden.
+        Utils.runOnMainThreadNowOrLater(SpringSteps::carryOn);
         Utils.runOnMainThreadDelayed(() -> watchdog(screen), WATCHDOG_MS);
     }
 

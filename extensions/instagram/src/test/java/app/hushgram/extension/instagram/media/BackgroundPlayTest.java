@@ -737,6 +737,53 @@ public class BackgroundPlayTest {
         assertTrue(String.valueOf(frames.steps), frames.steps >= 5);
     }
 
+    /**
+     * A slide that set off with Instagram on screen and still moves as you leave is stepped once
+     * Instagram is hidden, so it ends and the next story plays.
+     */
+    @Test
+    public void aSpringMovingAsYouLeaveIsSteppedOnceHidden() {
+        Frames frames = new Frames();
+        BackgroundPlay.springMoving(frames);
+        idleFor(100);
+        assertEquals("on screen, Instagram's own frames move it", 0, frames.steps);
+
+        background(player);
+        idleFor(100);
+
+        assertTrue("stepped once hidden: " + frames.steps, frames.steps >= 5);
+        idleFor(SpringSteps.KEEP_MS);
+        assertEquals(0, SpringSteps.keptForTests());
+    }
+
+    /** One that set off more than {@link SpringSteps#KEEP_MS} before you left has come to rest, and isn't stepped. */
+    @Test
+    public void aSpringSetOffLongBeforeYouLeftIsLeftAlone() {
+        Frames frames = new Frames();
+        BackgroundPlay.springMoving(frames);
+        idleFor(SpringSteps.KEEP_MS + 100);
+
+        background(player);
+        idleFor(100);
+
+        assertEquals(0, frames.steps);
+        assertEquals(0, SpringSteps.keptForTests());
+    }
+
+    /** With the switch off, a spring that set off before you left is Instagram's alone. */
+    @Test
+    public void aSpringSetOffWithTheSwitchOffIsntCarriedOn() {
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
+        Frames frames = new Frames();
+        BackgroundPlay.springMoving(frames);
+        Settings.KEEP_PLAYING_IN_BACKGROUND.save(true);
+
+        background(player);
+        idleFor(100);
+
+        assertEquals(0, frames.steps);
+    }
+
     /** Coming back ends the steps with the session: the screen's frames take over. */
     @Test
     public void comingBackStopsTheSteps() {
