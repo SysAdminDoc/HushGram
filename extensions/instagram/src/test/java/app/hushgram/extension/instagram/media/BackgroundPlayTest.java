@@ -422,11 +422,118 @@ public class BackgroundPlayTest {
 
         BackgroundPlay.started(other);
         idle();
+        // Its callback came long ago, so the service's check plays it once the viewer moves on.
         players.playing.remove(other);
-        BackgroundPlay.storyPrepared(third, new Object());
-        idle();
+        assertTrue(BackgroundPlay.hold(other, "fragment_paused"));
+        BackgroundPlay.tick();
         assertEquals("the one after takes over from the next", List.of("play", "play"), players.calls);
         assertTrue(players.playing.contains(third));
+    }
+
+    /**
+     * Stories ready while the held one still plays wait for their turn, the first ready first. The
+     * service's check doesn't start one while the held story may only be loading; once Instagram
+     * pauses the held one in the background, the viewer has moved on and the first waiting one plays.
+     */
+    @Test
+    public void aStoryReadyWhileTheHeldOnePlaysWaitsForItsTurn() {
+        background(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        BackgroundPlay.storyPrepared(third, new Object());
+        idle();
+        assertEquals("the held one still plays", List.of(), players.calls);
+
+        players.playing.remove(player);
+        BackgroundPlay.tick();
+        assertEquals("it may only be loading", List.of(), players.calls);
+
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        BackgroundPlay.tick();
+        assertEquals(List.of("play"), players.calls);
+        assertTrue("the first ready goes first", players.playing.contains(other));
+        assertFalse(players.playing.contains(third));
+        BackgroundPlay.tick();
+        assertEquals("one at a time", List.of("play"), players.calls);
+    }
+
+    /** A held story that hasn't played for a while hands over at the check with no pause from Instagram. */
+    @Test
+    public void aStalledStoryHandsOverToTheWaitingOne() {
+        background(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        players.playing.remove(player);
+        BackgroundPlay.tick();
+        assertEquals(List.of(), players.calls);
+
+        BackgroundPlay.pausedSinceForTests(SystemClock.uptimeMillis() - BackgroundPlay.STALLED_MS);
+        BackgroundPlay.tick();
+        assertEquals(List.of("play"), players.calls);
+        assertTrue(players.playing.contains(other));
+    }
+
+    /**
+     * A story played to take over that doesn't start keeps the others waiting for the settle time,
+     * then the next waiting one takes over.
+     */
+    @Test
+    public void aTakerThatNeverStartsGivesWayAfterTheSettleTime() {
+        background(player);
+        players.playing.remove(player);
+        players.stuck.add(other);
+        BackgroundPlay.storyPrepared(other, new Object());
+        BackgroundPlay.storyPrepared(third, new Object());
+        idle();
+        assertEquals("only one takes over", List.of("play"), players.calls);
+        assertTrue(BackgroundPlay.hold(player, "fragment_paused"));
+        BackgroundPlay.tick();
+        assertEquals("it still has time to start", List.of("play"), players.calls);
+
+        idleFor(BackgroundPlay.TAKEOVER_SETTLE_MS);
+        BackgroundPlay.tick();
+        assertEquals(List.of("play", "play"), players.calls);
+        assertTrue(players.playing.contains(third));
+    }
+
+    /**
+     * While the story taking over plays and before its start moved the hold, the held one's own
+     * parked start doesn't play beside it: the hold moves to the one playing.
+     */
+    @Test
+    public void theHeldStoryDoesntPlayBesideTheOneTakingOver() {
+        background(player);
+        players.playing.remove(player);
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals(List.of("play"), players.calls);
+
+        BackgroundPlay.storyPrepared(player, new Object());
+        idle();
+        assertEquals(List.of("play"), players.calls);
+        assertTrue("the one playing holds the session", BackgroundPlay.hold(other, "fragment_paused"));
+        assertFalse(BackgroundPlay.hold(player, "fragment_paused"));
+    }
+
+    /**
+     * Pause in the notification, then Play on a story that had ended: it doesn't start again, so the
+     * story that got ready meanwhile plays at the check.
+     */
+    @Test
+    public void playAfterPauseMovesOnFromAStoryThatEnded() {
+        background(player);
+        BackgroundPlay.pauseFromNotification();
+        BackgroundPlay.tick();
+        BackgroundPlay.storyPrepared(other, new Object());
+        idle();
+        assertEquals(List.of("pause"), players.calls);
+
+        players.stuck.add(player);
+        BackgroundPlay.playFromNotification();
+        assertEquals(List.of("pause", "play"), players.calls);
+        BackgroundPlay.pausedSinceForTests(SystemClock.uptimeMillis() - BackgroundPlay.STALLED_MS);
+        BackgroundPlay.tick();
+        assertEquals(List.of("pause", "play", "play"), players.calls);
+        assertTrue(players.playing.contains(other));
     }
 
     /**
@@ -473,7 +580,10 @@ public class BackgroundPlayTest {
         BackgroundPlay.storyPrepared(other, new Object());
         idle();
         assertEquals("the held one still plays", List.of(), players.calls);
+        BackgroundPlay.end(false, "test");
 
+        background(player);
+        players.calls.clear();
         players.playing.remove(player);
         BackgroundPlay.storyPrepared(new StringBuilder(), new Object());
         players.playing.add(third);
@@ -1316,9 +1426,12 @@ public class BackgroundPlayTest {
             calls.add("pause");
         }
 
+        /** Players whose play does nothing, as a story that ended or never loaded. */
+        final Set<Object> stuck = new HashSet<>();
+
         @Override
         public void play(Object player) {
-            playing.add(player);
+            if (!stuck.contains(player)) playing.add(player);
             calls.add("play");
         }
     }
