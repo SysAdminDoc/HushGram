@@ -75,8 +75,8 @@ public final class ConfigurationBackup {
      */
     public static final int MAX_WORDS_TEXT = 4096;
     /**
-     * The settings' own 2,048 values, and room for every saved profile's fields, a few more than
-     * this build writes. The only array is the profiles.
+     * Four values for each setting, which takes three (its entry, type and value), and room for
+     * every saved profile's fields, a few more than this build writes. The only array is the profiles.
      */
     private static final SettingsJson.Limits LIMITS = new SettingsJson.Limits(4,
             4 * MAX_ENTRIES + 8 * SavedProfiles.MAX_PROFILES, MAX_WORDS_TEXT, SavedProfiles.MAX_PROFILES, MAX_BYTES);

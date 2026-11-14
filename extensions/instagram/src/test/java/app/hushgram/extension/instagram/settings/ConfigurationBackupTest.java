@@ -329,6 +329,12 @@ public class ConfigurationBackupTest {
         }
     }
 
+    // A full build passed 512 settings with Sort reels on profiles (#679), and every export threw.
+    @Test public void aFullBuildExportsWithRoomToGrow() throws Exception {
+        assertTrue(ConfigurationBackup.eligible().size() > 512);
+        assertNotNull(ConfigurationBackup.export());
+    }
+
     @Test public void byteAndEntryBoundsRejectOversizeAndAcceptExactlyTheCapsEntries() throws Exception {
         assertEquals(1024, ConfigurationBackup.MAX_ENTRIES);
         StringBuilder entries = new StringBuilder();
