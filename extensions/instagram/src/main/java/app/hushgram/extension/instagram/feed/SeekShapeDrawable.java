@@ -226,11 +226,29 @@ final class SeekShapeDrawable extends Drawable {
      * long as [rect] and as thick as the shape's track at rest, around [rect]'s middle, in [paint].
      * A thin line has square ends, the others round ones. The wave draws an opaque segment, the part
      * played, as a wavy line whose waves follow on from one segment to the next, and the others flat.
-     * Segments have no handle, so the expressive shape draws its rounded track. [box] and [wave] are
-     * the caller's to reuse; [rect] and [paint] are left as they were.
+     * Segments have no handle, so the expressive shape draws its rounded track. A bar its view
+     * stretches [stretch] times taller (#689) has the canvas squeezed back about [rect]'s middle, so
+     * the shape keeps its own size there. [box] and [wave] are the caller's to reuse; [rect], [paint]
+     * and the canvas are left as they were.
      */
-    static void segment(Canvas canvas, RectF rect, Paint paint, SeekShape shape, float density, RectF box, Path wave) {
+    static void segment(Canvas canvas, RectF rect, Paint paint, SeekShape shape, float density, float stretch,
+            RectF box, Path wave) {
         if (!(rect.right > rect.left)) return;
+        if (!(stretch > 0f) || stretch == 1f || Float.isInfinite(stretch)) {
+            segmentAt(canvas, rect, paint, shape, density, box, wave);
+            return;
+        }
+        int saved = canvas.save();
+        try {
+            canvas.scale(1f, 1f / stretch, rect.centerX(), rect.centerY());
+            segmentAt(canvas, rect, paint, shape, density, box, wave);
+        } finally {
+            canvas.restoreToCount(saved);
+        }
+    }
+
+    private static void segmentAt(Canvas canvas, RectF rect, Paint paint, SeekShape shape, float density, RectF box,
+            Path wave) {
         float thick;
         switch (shape) {
             case ROUNDED:

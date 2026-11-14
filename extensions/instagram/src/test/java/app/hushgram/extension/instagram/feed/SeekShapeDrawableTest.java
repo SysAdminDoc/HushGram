@@ -175,7 +175,7 @@ public class SeekShapeDrawableTest {
     private static Bitmap segment(SeekShape shape, Paint paint) {
         Bitmap bitmap = Bitmap.createBitmap(200, 64, Bitmap.Config.ARGB_8888);
         RectF rect = new RectF(20, 31, 180, 33);
-        SeekShapeDrawable.segment(new Canvas(bitmap), rect, paint, shape, 2f, new RectF(), new Path());
+        SeekShapeDrawable.segment(new Canvas(bitmap), rect, paint, shape, 2f, 1f, new RectF(), new Path());
         assertEquals("Instagram's rectangle is left as it was", new RectF(20, 31, 180, 33), rect);
         return bitmap;
     }

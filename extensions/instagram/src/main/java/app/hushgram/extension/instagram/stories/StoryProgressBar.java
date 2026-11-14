@@ -9,6 +9,7 @@ import android.app.Application;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 
 import androidx.annotation.Nullable;
 
@@ -135,6 +136,25 @@ public final class StoryProgressBar {
         return first;
     }
 
+    /**
+     * How many times thicker [bar] is drawn for this switch (#689): its own stretch, or that of the
+     * view just round it if that's the one stretched, and 1 when neither is. A seek bar shape draws
+     * its segments at its own size and undoes this. Main thread only, as the stretching is.
+     */
+    public static float stretchOf(View bar) {
+        View view = bar;
+        for (int depth = 0; depth < 3 && view != null && !stretched.isEmpty(); depth++) {
+            Float original = stretched.get(view);
+            if (original != null) {
+                float scale = original == 0f ? 0f : view.getScaleY() / original;
+                return scale > 0f && !Float.isInfinite(scale) ? scale : 1f;
+            }
+            ViewParent parent = view.getParent();
+            view = parent instanceof View ? (View) parent : null;
+        }
+        return 1f;
+    }
+
     /** Gives every bar stretched back the scale Instagram had given it. */
     private static void putBack() {
         if (stretched.isEmpty()) return;
@@ -152,6 +172,11 @@ public final class StoryProgressBar {
 
     static int stretchedForTests() {
         return stretched.size();
+    }
+
+    /** Stretches [bar] as a frame with the switch on would, for tests outside this package. */
+    public static void stretchForTests(View bar, float scale) {
+        stretch(bar, scale);
     }
 
     public static boolean listeningForTests(Activity activity) {

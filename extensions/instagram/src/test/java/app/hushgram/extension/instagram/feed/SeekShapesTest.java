@@ -12,7 +12,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
@@ -33,8 +35,10 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.stories.StoryProgressBar;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
@@ -59,6 +63,7 @@ public class SeekShapesTest {
         PauseForTests.resume();
         Settings.SEEK_BAR_SHAPE.resetToDefault();
         SeekShapes.resetForTests();
+        StoryProgressBar.resetForTests();
     }
 
     @Test
@@ -187,6 +192,56 @@ public class SeekShapesTest {
         assertTrue("the header clips again", header.getClipChildren());
         SeekShapes.storySegment(canvas, rect, 2f, 3f, paint);
         assertArrayEquals(new float[] {10, 20, 110, 24, 2, 3}, canvas.rects.get(2), 0f);
+    }
+
+    /**
+     * #689: Thicker story progress bar stretches the bar's view, and with it every segment a shape
+     * draws, so a bar three times thicker drew the wave three times as tall, over the name under it.
+     * A shape draws its segments at its own size however far the bar is stretched.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers = "xxhdpi")
+    public void aShapeKeepsItsOwnSizeOnAThickerStoryBar() {
+        FrameLayout header = new FrameLayout(RuntimeEnvironment.getApplication());
+        View progress = new View(RuntimeEnvironment.getApplication());
+        header.addView(progress);
+        for (SeekShape shape : new SeekShape[] {SeekShape.WAVE, SeekShape.ROUNDED, SeekShape.LINE}) {
+            Settings.SEEK_BAR_SHAPE.save(shape);
+            int plain = drawnHeight(progress);
+            StoryProgressBar.stretchForTests(progress, 3f);
+            assertEquals(3f, progress.getScaleY(), 0f);
+            int thicker = drawnHeight(progress);
+            StoryProgressBar.resetForTests();
+            progress.setScaleY(1f);
+            assertTrue(shape + " draws something: " + plain, plain > 0);
+            assertEquals(shape + " keeps its own size on a thicker bar", plain, thicker, 2);
+        }
+    }
+
+    /**
+     * How many rows of pixels a story segment covers, drawn 160 px long around y 100 on a canvas the
+     * bar's view stretches about that middle, as a view's vertical scale does before its onDraw.
+     */
+    private static int drawnHeight(View progress) {
+        SeekShapes.storyBar(progress);
+        Bitmap bitmap = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.scale(1f, progress.getScaleY(), 0f, 100f);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(0xFFFFFFFF);
+        SeekShapes.storySegment(canvas, new RectF(20, 99, 180, 101), 2f, 2f, paint);
+        int top = -1;
+        int bottom = -1;
+        for (int y = 0; y < bitmap.getHeight(); y++) {
+            for (int x = 0; x < bitmap.getWidth(); x++) {
+                if (Color.alpha(bitmap.getPixel(x, y)) < 0x80) continue;
+                if (top < 0) top = y;
+                bottom = y;
+                break;
+            }
+        }
+        return top < 0 ? 0 : bottom - top + 1;
     }
 
     /** #630: the seek bar of a video opened from a chat takes the shape once Instagram has built it, and standard leaves it alone. */

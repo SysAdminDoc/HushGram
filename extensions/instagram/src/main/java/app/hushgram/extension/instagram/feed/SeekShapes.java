@@ -24,6 +24,7 @@ import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.stories.StoryProgressBar;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -131,6 +132,8 @@ public final class SeekShapes {
     /** The shape the story progress bar drawing now takes, read at the top of its onDraw, and the screen's density. */
     private static SeekShape storyShape = SeekShape.STANDARD;
     private static float storyDensity = 1f;
+    /** How many times thicker Thicker story progress bar draws the bar this frame, which a shape undoes (#689). */
+    private static float storyStretch = 1f;
     private static final RectF SEGMENT = new RectF();
     private static final Path SEGMENT_WAVE = new Path();
     /** Each header a story progress bar draws past, with whether it clipped its children before. */
@@ -290,12 +293,14 @@ public final class SeekShapes {
      * First thing in the story progress bar's onDraw (#630): reads the shape its segments take this
      * frame and, while it isn't {@link SeekShape#STANDARD}, lets [bar] draw past its few pixels of
      * height into the header around it, which a thicker shape needs. Back on standard the header
-     * clips again as it did. Never throws.
+     * clips again as it did. A shape keeps its own size on a bar Thicker story progress bar
+     * stretches (#689), so it reads that stretch too. Never throws.
      */
     public static void storyBar(View bar) {
         try {
             SeekShape shape = wanted();
             storyDensity = bar.getResources().getDisplayMetrics().density;
+            storyStretch = shape == SeekShape.STANDARD ? 1f : StoryProgressBar.stretchOf(bar);
             storyShape = shape;
             ViewParent parent = bar.getParent();
             if (!(parent instanceof ViewGroup)) return;
@@ -322,7 +327,7 @@ public final class SeekShapes {
         SeekShape shape = storyShape;
         if (shape != SeekShape.STANDARD) {
             try {
-                SeekShapeDrawable.segment(canvas, rect, paint, shape, storyDensity, SEGMENT, SEGMENT_WAVE);
+                SeekShapeDrawable.segment(canvas, rect, paint, shape, storyDensity, storyStretch, SEGMENT, SEGMENT_WAVE);
                 return;
             } catch (Throwable failure) {
                 storyShape = SeekShape.STANDARD;
@@ -348,6 +353,7 @@ public final class SeekShapes {
     static void resetForTests() {
         storyShape = SeekShape.STANDARD;
         storyDensity = 1f;
+        storyStretch = 1f;
         UNCLIPPED.clear();
         ROOM.clear();
         OPENED.clear();
