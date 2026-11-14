@@ -181,6 +181,11 @@ public final class MessagesLock {
     private static long askedAt;
     /** The screen the open ask belongs to. Its dialog goes with it without a word when it's destroyed. */
     private static WeakReference<Activity> askedBy = new WeakReference<>(null);
+    /**
+     * What else was asked for while that ask was up, each with the screen that asked: they run once it
+     * says it's you, and go on a cancel (#661). Main thread only, as every ask is.
+     */
+    private static final ArrayList<Runnable> joined = new ArrayList<>();
     private static boolean askedThisTime;
     /** The settings' own cover asked since the lock came back, so a cancel isn't asked again at once. */
     private static boolean settingsAsked;
@@ -1192,8 +1197,22 @@ public final class MessagesLock {
 
     private static void ask(Activity activity, Runnable then) {
         long now = SystemClock.elapsedRealtime();
-        if (askedAt != 0 && now - askedAt < ASK_TIMEOUT_MS) return;
+        if (askedAt != 0 && now - askedAt < ASK_TIMEOUT_MS) {
+            // One ask at a time. What's asked for meanwhile waits on its answer rather than being
+            // dropped: a double tap on Messages lands as the locked inbox's cover asks, and the
+            // hidden chats came back only on a second try (#661).
+            if (then != null) {
+                // Held weakly, as askedBy is: an ask nobody answers mustn't keep a closed screen.
+                WeakReference<Activity> screen = new WeakReference<>(activity);
+                joined.add(() -> {
+                    Activity asker = screen.get();
+                    if (asker != null && !asker.isDestroyed()) then.run();
+                });
+            }
+            return;
+        }
         askedAt = now;
+        joined.clear();
         askedBy = new WeakReference<>(activity);
         // The chat on screen as the ask comes up, or the one opening under it. The phone's own check
         // takes the front, and the chat is no longer current by the time it answers.
@@ -1207,12 +1226,19 @@ public final class MessagesLock {
                 open = true;
                 openFor = chat != null ? chat : INBOX_LIST;
                 ThreadSeen.unlocked(account, chat);
+                List<Runnable> waiting = new ArrayList<>(joined);
+                joined.clear();
                 // What follows (a settings change, a new PIN) belongs to the screen that asked. Turned
                 // while the phone's check was up, that screen is gone and its dialog can't show.
                 if (then != null && !activity.isDestroyed()) then.run();
-            }, () -> askedAt = 0);
+                for (Runnable one : waiting) one.run();
+            }, () -> {
+                askedAt = 0;
+                joined.clear();
+            });
         } catch (Throwable t) {
             askedAt = 0;
+            joined.clear();
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, ASK, t);
         }
     }
@@ -1508,6 +1534,7 @@ public final class MessagesLock {
         started = 0;
         askedAt = 0;
         askedBy = new WeakReference<>(null);
+        joined.clear();
         askedThisTime = false;
         settingsAsked = false;
         savedCovered = false;

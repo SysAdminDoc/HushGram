@@ -110,6 +110,9 @@ public class MessagesLockTest {
         Settings.LOCK_EACH_CHAT.resetToDefault();
         Settings.LOCK_AGAIN.resetToDefault();
         Settings.LOCKED_CHATS.resetToDefault();
+        // A chat hidden here stays out of every later class's lists in this sandbox otherwise.
+        Settings.HIDDEN_CHATS.resetToDefault();
+        HiddenChats.resetForTests();
         Settings.UNLOCK_WITH.resetToDefault();
         Settings.LOCK_PIN.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -1420,6 +1423,52 @@ public class MessagesLockTest {
         assertFalse(MessagesLock.locked());
         ChatLocks.opened(alice);
         assertTrue(MessagesLock.locked());
+    }
+
+    /**
+     * Back in Instagram with the messages locked, the first tap on Messages opens the inbox and its
+     * cover asks, and the second tap lands while that ask is up. The hidden chats show once it says
+     * it's you, from the one ask, and a cancel shows nothing (#661).
+     */
+    @Test
+    public void aDoubleTapAsTheInboxCoverAsksShowsTheHiddenChatsOnceItsYou() {
+        try {
+            HiddenChats.add(ALICE, "Alice");
+            Activity inbox = inbox().get();
+            MessagesLock.check(inbox);
+            assertEquals("the cover asks", 1, asks.size());
+
+            HiddenChatsTap.toggle(inbox);
+            assertEquals("one ask on screen, not two", 1, asks.size());
+            assertFalse(HiddenChats.revealed());
+
+            asks.get(0)[1].run();
+            ShadowLooper.idleMainLooper();
+            assertFalse("cancelled, nothing shows", HiddenChats.revealed());
+            assertTrue(MessagesLock.locked());
+
+            MessagesLock.relock(true);
+            MessagesLock.check(inbox);
+            assertEquals(2, asks.size());
+            HiddenChatsTap.toggle(inbox);
+            asks.get(1)[0].run();
+            ShadowLooper.idleMainLooper();
+            assertFalse(MessagesLock.locked());
+            assertTrue("the double tap waited on the cover's ask", HiddenChats.revealed());
+            assertEquals("Showing your hidden chats", ShadowToast.getTextOfLatestToast());
+            assertEquals(2, asks.size());
+
+            // The cancelled double tap's wait went with its ask: a later yes shows nothing of it.
+            HiddenChatsTap.toggle(inbox);
+            assertFalse(HiddenChats.revealed());
+            MessagesLock.relock(true);
+            MessagesLock.check(inbox);
+            asks.get(2)[0].run();
+            ShadowLooper.idleMainLooper();
+            assertFalse(HiddenChats.revealed());
+        } finally {
+            HiddenChats.resetForTests();
+        }
     }
 
     @Test
