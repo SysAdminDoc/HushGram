@@ -45,7 +45,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The Reels viewer a feed video opens in lets its player go as its screen stops. That release is
  * held too ({@link #releasing}) and goes through when the session ends: when you come back, before
  * the screen's fragments start and take a player again, so Instagram sees the same order it would
- * have without this.
+ * have without this. When another video takes over from the held one, its release goes through
+ * then, so the old player gives its decoder back while the new one plays on.
  *
  * <p>A video story that ends in the background moves on to the next story, which takes over as the
  * held player: the slide between them is a spring that only moves on the screen's frames, and
@@ -127,8 +128,8 @@ public final class BackgroundPlay {
     /** True while this class pauses or releases the held player itself, so that call goes through. */
     private static boolean passing;
     /**
-     * The releases Instagram asked for during the session, each on the player it was asked for. They
-     * go through when the session ends, on that player even after another video took over.
+     * The releases Instagram asked for on the held player. They go through when the session ends, or
+     * on their own player as another video takes over from it, so they only ever hold the held one's.
      */
     private static final ArrayList<Release> releases = new ArrayList<>();
     /**
@@ -320,8 +321,8 @@ public final class BackgroundPlay {
      * At the top of IgVideoPlayerImpl's release, with Instagram's reason. True, and the release
      * returns at once, only for the held player while the switch is on: the Reels viewer lets its
      * player go as its screen stops, which used to end the session there (#497). The release goes
-     * through when the session ends, on this player even if another video takes over meanwhile. A
-     * release asked again for a player that was held before goes through now, and only once.
+     * through when the session ends, or on this player as soon as another video takes over from it.
+     * A release asked again for a player that was held before goes through now.
      */
     public static boolean releasing(Object player, @Nullable String reason) {
         try {
@@ -676,11 +677,22 @@ public final class BackgroundPlay {
         }
         if (player != current && isPlaying(player) && (current == null || !isPlaying(current))) {
             // The reel moved on by itself: the one playing now is the one to keep.
+            List<Release> replaced = new ArrayList<>();
             synchronized (LOCK) {
                 if (phase != Phase.BACKGROUND || screen == null) return;
                 held = new WeakReference<>(player);
+                for (Iterator<Release> it = releases.iterator(); it.hasNext(); ) {
+                    Release release = it.next();
+                    if (release.player != player) {
+                        replaced.add(release);
+                        it.remove();
+                    }
+                }
             }
             log(() -> "another video took over in the background");
+            // Those releases were held only to keep the old one playing, so they go now and its
+            // decoder with them. Not passing: a pause or release it brings on the new one stays held.
+            for (Release release : replaced) releaseReplaced(release.player, release.reason);
         }
         synchronized (LOCK) {
             if (player == heldLocked()) pausedSince = NONE;
@@ -767,6 +779,20 @@ public final class BackgroundPlay {
             synchronized (LOCK) {
                 passing = false;
             }
+        }
+    }
+
+    /**
+     * Lets a held release go on [player] once another video holds the session. It isn't the held
+     * player any more, so its own release and stop go through without {@link #passing}.
+     */
+    private static void releaseReplaced(Object player, @Nullable String reason) {
+        try {
+            Control control = controlForTests;
+            if (control != null) control.release(player, reason);
+            else release(player, reason);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "release", t);
         }
     }
 

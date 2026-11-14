@@ -378,19 +378,28 @@ public class BackgroundPlayTest {
     }
 
     /**
-     * A release held for a reel that the next one then took over from goes through on the old reel
-     * when you come back, and the new one, on screen now, keeps playing.
+     * A release held for a reel goes through on that reel as the next one takes over in the
+     * background, so its decoder doesn't wait for the session's end. The new one, the reel on screen
+     * when you come back, keeps playing, and coming back releases nothing a second time.
      */
     @Test
-    public void aHeldReleaseStaysWithItsReelAfterTheNextTakesOver() {
+    public void aReplacedReelIsReleasedAsTheNextTakesOver() {
         background(player);
         assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
         players.playing.remove(player);
         BackgroundPlay.started(other);
         players.playing.add(other);
+
         idle();
 
+        assertEquals(BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
+        assertEquals("released as the next took over", List.of(player), players.released);
+        assertEquals(List.of("release fragment_stopped"), players.calls);
+        assertTrue(players.playing.contains(other));
+
         BackgroundPlay.restarted(screen);
+        assertEquals("nothing held, so the screen starts in the session", BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
+        BackgroundPlay.resumed(screen);
 
         assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
         assertEquals(List.of(player), players.released);
@@ -399,8 +408,9 @@ public class BackgroundPlayTest {
     }
 
     /**
-     * With two reels each held in turn, Stop pauses the one playing and lets both releases through,
-     * each on its own player. Instagram asking the old one's release again lets it through then, once.
+     * With two reels each held in turn, the first one's release goes through as the second takes
+     * over, and Stop pauses the second and lets its own release through. Instagram asking a replaced
+     * one's release again lets it through then, and Stop releases nothing more.
      */
     @Test
     public void eachHeldReleaseGoesThroughOnItsOwnPlayer() {
@@ -416,7 +426,7 @@ public class BackgroundPlayTest {
 
         assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
         assertEquals(List.of(player, other), players.released);
-        assertEquals(List.of("pause", "release fragment_stopped", "release fragment_destroyed"), players.calls);
+        assertEquals(List.of("release fragment_stopped", "pause", "release fragment_destroyed"), players.calls);
 
         players.calls.clear();
         players.released.clear();
@@ -426,13 +436,14 @@ public class BackgroundPlayTest {
         BackgroundPlay.started(player);
         players.playing.add(player);
         idle();
+        assertEquals(List.of(third), players.released);
         assertFalse("a release asked again for the old one goes through now", BackgroundPlay.releasing(third, "destroy"));
 
         BackgroundPlay.stopFromNotification();
 
         assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
-        assertEquals("not released a second time", List.of(), players.released);
-        assertEquals(List.of("pause"), players.calls);
+        assertEquals("not released by the end", List.of(third), players.released);
+        assertEquals(List.of("release fragment_stopped", "pause"), players.calls);
     }
 
     /**
@@ -453,25 +464,30 @@ public class BackgroundPlayTest {
     }
 
     /**
-     * Instagram letting a second held player go while the first held release goes through, as one
-     * screen's players go together, releases it then, and the session's end doesn't release it again.
+     * Instagram letting the new held player go while the replaced one's release goes through, as one
+     * screen's players go together, holds that release too: the new one plays on, and the session's
+     * end pauses it and releases it once.
      */
     @Test
-    public void aHeldPlayerLetGoWhileAnotherGoesThroughIsReleasedOnce() {
+    public void aHeldPlayerLetGoWhileTheReplacedOneGoesThroughKeepsPlaying() {
         background(player);
         assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
         players.playing.remove(player);
         BackgroundPlay.started(other);
         players.playing.add(other);
-        idle();
-        assertTrue(BackgroundPlay.releasing(other, "fragment_destroyed"));
         players.releasesWith.put(player, other);
+
+        idle();
+
+        assertEquals(BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
+        assertEquals(List.of(player), players.released);
+        assertTrue("the new one plays on", players.playing.contains(other));
 
         BackgroundPlay.stopFromNotification();
 
         assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
         assertEquals("each released once", List.of(player, other), players.released);
-        assertEquals(List.of("pause", "release fragment_stopped", "release along"), players.calls);
+        assertEquals(List.of("release fragment_stopped", "pause", "release along"), players.calls);
     }
 
     /**
@@ -505,43 +521,42 @@ public class BackgroundPlayTest {
     }
 
     /**
-     * With the switch off, Instagram releasing the player that took over ends the session, and the
-     * earlier player's held release lets it go along: that was its release, so Instagram's own call
-     * returns at once rather than releasing it a second time.
+     * With the switch off, Instagram releasing the player that took over ends the session. The
+     * release held for it, the one its replaced player's release brought on, is dropped, so
+     * Instagram's own call is the only release it gets.
      */
     @Test
-    public void aReleaseThatEndsTheSessionSkipsAPlayerTheEndLetGoAlong() {
+    public void aReleaseThatEndsTheSessionDropsTheOneTheReplacedPlayerBroughtOn() {
         background(player);
         assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
         players.playing.remove(player);
         BackgroundPlay.started(other);
         players.playing.add(other);
-        idle();
-        assertTrue(BackgroundPlay.releasing(other, "fragment_destroyed"));
         players.releasesWith.put(player, other);
+        idle();
         Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
 
         players.release(other, "destroy");
 
         assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
         assertEquals("each released once", List.of(player, other), players.released);
-        assertEquals(List.of("release fragment_stopped", "release along"), players.calls);
+        assertEquals(List.of("release fragment_stopped", "release destroy"), players.calls);
     }
 
     /**
      * With the switch off, Instagram pausing the player that took over ends the session, and the
-     * earlier player's held release lets it go along: the pause returns at once, as nothing is left
-     * to pause.
+     * release its replaced player's release brought on goes through: the pause returns at once, as
+     * nothing is left to pause.
      */
     @Test
-    public void aPauseThatEndsTheSessionSkipsAPlayerTheEndLetGoAlong() {
+    public void aPauseThatEndsTheSessionSkipsAPlayerTheEndReleased() {
         background(player);
         assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
         players.playing.remove(player);
         BackgroundPlay.started(other);
         players.playing.add(other);
-        idle();
         players.releasesWith.put(player, other);
+        idle();
         Settings.KEEP_PLAYING_IN_BACKGROUND.save(false);
 
         players.pause(other);
