@@ -173,6 +173,12 @@ public final class BackgroundPlay {
      */
     private static final ArrayList<WeakReference<Object>> gaveWay = new ArrayList<>();
     /**
+     * The story that was taking over when the held one played again. It's paused and waits first in
+     * line, and a start it still had coming while the held one plays is paused back into line.
+     */
+    @Nullable
+    private static WeakReference<Object> yielded;
+    /**
      * True while the screen a session plays from stops: its fragments stop after the stop callback,
      * and the pause or stop they give the held player isn't the viewer moving off its story.
      */
@@ -311,6 +317,11 @@ public final class BackgroundPlay {
      * way after {@link #TAKEOVER_SETTLE_MS} and is paused. True when it played one.
      */
     private static boolean nextStory() {
+        return nextStory(false);
+    }
+
+    /** {@link #nextStory()}, with [tapped] true for the notification's Play, which Tap to play lets through. */
+    private static boolean nextStory(boolean tapped) {
         Object current;
         Object claimed;
         boolean offStory;
@@ -356,6 +367,7 @@ public final class BackgroundPlay {
             if (phase != Phase.BACKGROUND || heldLocked() != current || pausedOnPurpose || mutedAt != NONE) return false;
             unwait(next);
             remove(gaveWay, next);
+            if (yielded != null && yielded.get() == next) yielded = null;
             gaveUp = taker != null ? taker.get() : null;
             if (gaveUp == next || gaveUp == current) gaveUp = null;
             if (gaveUp != null) gaveWay.add(new WeakReference<>(gaveUp));
@@ -366,8 +378,25 @@ public final class BackgroundPlay {
         if (gaveUp != null) pauseOther(gaveUp);
         HookStatus.counted(FamilyNames.BACKGROUND_PLAY, "stories started in the background");
         log(() -> "the next story was ready in the background, so it plays");
+        // Tap to play holds back a start nobody tapped, and Play is a tap.
+        if (tapped) TapToPlay.tappedFromNotification(engineOf(next));
         playThrough(next);
         return true;
+    }
+
+    /**
+     * Puts [player], the story taking over, first in line again, because the held one plays: it's
+     * no longer taking over, and its own turn comes once the held one stops. Under {@link #LOCK}.
+     */
+    private static void yieldLocked(Object player) {
+        unwait(player);
+        waiting.add(0, new WeakReference<>(player));
+        remove(gaveWay, player);
+        if (taker != null && taker.get() == player) {
+            taker = null;
+            takenAt = NONE;
+        }
+        yielded = new WeakReference<>(player);
     }
 
     /** Forgets the waiting stories and the one taking over. Under {@link #LOCK}. */
@@ -376,6 +405,7 @@ public final class BackgroundPlay {
         gaveWay.clear();
         taker = null;
         takenAt = NONE;
+        yielded = null;
         movedOff = false;
         screenStopping = false;
     }
@@ -596,7 +626,7 @@ public final class BackgroundPlay {
             if (claimed != null) takenAt = SystemClock.uptimeMillis();
             moved = movedOff;
         }
-        if (claimed == null && moved && nextStory()) return;
+        if (claimed == null && moved && nextStory(true)) return;
         Object playing = claimed != null ? claimed : player;
         // Tap to play holds back a start nobody tapped, and the button is a tap.
         TapToPlay.tappedFromNotification(engineOf(playing));
@@ -921,33 +951,58 @@ public final class BackgroundPlay {
         Activity screen;
         boolean onPurpose;
         boolean gaveUp;
+        boolean wasYielded;
         synchronized (LOCK) {
             if (phase != Phase.BACKGROUND) return;
             current = heldLocked();
             claimed = taker != null ? taker.get() : null;
             screen = leavingScreen != null ? leavingScreen.get() : null;
-            onPurpose = pausedOnPurpose;
+            // A mute pauses the held video too, so nothing takes over from it meanwhile.
+            onPurpose = pausedOnPurpose || mutedAt != NONE;
             gaveUp = holds(gaveWay, player);
+            wasYielded = yielded != null && yielded.get() == player;
         }
         if (player != current && isPlaying(player)) {
             boolean currentPlays = current != null && isPlaying(current);
             boolean anotherPlays = currentPlays || (claimed != null && claimed != player && isPlaying(claimed));
+            if (currentPlays && !onPurpose && (player == claimed || wasYielded)) {
+                // The held story plays again, so the one taking over from it waits its turn.
+                synchronized (LOCK) {
+                    if (phase != Phase.BACKGROUND || heldLocked() != current) return;
+                    yieldLocked(player);
+                }
+                log(() -> "a story started beside the held one playing again, so it waits its turn");
+                pauseOther(player);
+                return;
+            }
             if (onPurpose || (gaveUp && anotherPlays)) {
-                // A start that came after Pause, or late from a story that gave way to the one
-                // playing: one story at a time, and none while paused on purpose.
+                // A start that came after Pause or during a mute, or late from a story that gave
+                // way to the one playing: one story at a time, and none while paused on purpose.
                 log(() -> "a video started in the background after Pause or beside the one playing, so it's paused");
                 pauseOther(player);
                 return;
             }
             if (!currentPlays) takeOver(player, current, screen);
         }
+        Object stale = null;
         synchronized (LOCK) {
             if (player == heldLocked()) {
                 pausedSince = NONE;
                 pausedOnPurpose = false;
                 movedOff = false;
-                if (taker != null && taker.get() == player) taker = null;
+                Object pending = taker != null ? taker.get() : null;
+                if (pending != null && pending != player) {
+                    // It played again before the story taking over from it started: that one waits.
+                    yieldLocked(pending);
+                    stale = pending;
+                }
+                taker = null;
+                takenAt = NONE;
             }
+        }
+        if (stale != null) {
+            log(() -> "the held story played again, so the one taking over waits its turn");
+            pauseOther(stale);
         }
         BackgroundPlayService.refresh();
     }
@@ -983,6 +1038,9 @@ public final class BackgroundPlay {
             if (gaveUp != null) gaveWay.add(new WeakReference<>(gaveUp));
             taker = null;
             takenAt = NONE;
+            yielded = null;
+            // A mute was the old video's.
+            mutedAt = NONE;
         }
         log(() -> "another video took over in the background");
         // Not passing: neither is the held player any more, and a pause or release one of them
