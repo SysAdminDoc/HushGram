@@ -47,8 +47,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the settings not read yet or anything thrown, the touch goes on as it came. Main thread only.
  */
 public final class HomeLeftSwipe {
-    /** The tabs' own screen, by the name Instagram keeps for it. */
-    static final String MAIN_TABS = "MainTabActivity";
+    /**
+     * The tabs' own screen, by its class's name. The manifest's MainTabActivity is only a launcher
+     * alias of it, so no screen ever has that name.
+     */
+    static final String MAIN_TABS = "InstagramMainActivity";
 
     /** Home's list, by the name it keeps in Instagram. */
     static final String HOME_LIST = "MainFeedRecyclerView";
@@ -59,6 +62,9 @@ public final class HomeLeftSwipe {
 
     /** Messages' button at the top of Home, on the bar layout that has one there. */
     static final String HEADER_INBOX = "action_bar_inbox_button";
+
+    /** A video's seek bar, by its id in Instagram. */
+    static final String SCRUBBER = "scrubber";
 
     /** What a swipe that opened Messages is counted under. */
     static final String COUNT_OPENED = "Swipe left on Home opened Messages";
@@ -198,7 +204,8 @@ public final class HomeLeftSwipe {
 
     /**
      * Home's list under (x, y) in {@code view}'s coordinates, shown, with {@code at} set to the point
-     * in the list's coordinates. Null when the point isn't on it.
+     * in the list's coordinates. Null when the point isn't on it, or when something drawn over the
+     * list there takes the touch first, a sheet or a button, as Android would hand it the touch.
      */
     @Nullable
     static View homeListUnder(View view, float x, float y, float[] at) {
@@ -220,13 +227,24 @@ public final class HomeLeftSwipe {
             if (childX < 0 || childX >= child.getWidth() || childY < 0 || childY >= child.getHeight()) continue;
             View home = homeListUnder(child, childX, childY, at);
             if (home != null) return home;
+            if (anyUnder(child, childX, childY, HomeLeftSwipe::takesTouch)) return null;
         }
         return null;
     }
 
-    /** Whether a view takes a left swipe itself: it scrolls that way, or it's a seek bar. */
+    /** Whether a view over Home's list would take a touch going down on it before the list does. */
+    private static boolean takesTouch(View view) {
+        return view.isClickable() || view.isLongClickable() || takesLeftSwipe(view);
+    }
+
+    /**
+     * Whether a view takes a left swipe itself: it scrolls that way, or it's a seek bar, Android's
+     * or Instagram's own scrubber by its id.
+     */
     private static boolean takesLeftSwipe(View view) {
-        return view.canScrollHorizontally(1) || view instanceof AbsSeekBar;
+        if (view.canScrollHorizontally(1) || view instanceof AbsSeekBar) return true;
+        int id = view.getId();
+        return id != View.NO_ID && id == ids.of(view.getContext(), SCRUBBER);
     }
 
     /** Whether {@code view}, or a shown view under (x, y) in its coordinates, passes {@code test}. */

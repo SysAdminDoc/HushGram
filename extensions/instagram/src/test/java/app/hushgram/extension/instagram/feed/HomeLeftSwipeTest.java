@@ -54,6 +54,7 @@ public class HomeLeftSwipeTest {
     private static final int FEED_TAB_ID = 0x7f0b0002;
     private static final int DIRECT_TAB_ID = 0x7f0b0003;
     private static final int HEADER_INBOX_ID = 0x7f0b0004;
+    private static final int SCRUBBER_ID = 0x7f0b0005;
 
     /** What the patched dispatch asks with: the switch, as the test sets it. */
     static BooleanSupplier on = () -> true;
@@ -180,12 +181,16 @@ public class HomeLeftSwipeTest {
         }
     }
 
-    /** The tabs' own screen, by its name. */
-    public static final class MainTabActivity extends TabsScreen {
+    /** The tabs' own screen, by its class's name in Instagram. */
+    public static final class InstagramMainActivity extends TabsScreen {
     }
 
     /** Another of Instagram's screens with the same views on it. */
     public static final class ProfileActivity extends TabsScreen {
+    }
+
+    /** A screen named as the manifest's launcher alias of the tabs' screen, which no real screen is. */
+    public static final class MainTabActivity extends TabsScreen {
     }
 
     private static <T extends TabsScreen> T screen(Class<T> type) {
@@ -227,7 +232,7 @@ public class HomeLeftSwipeTest {
     /** A left swipe across a post opens Messages through its tab, and the post gets a cancel, never a lift. */
     @Test
     public void aLeftSwipeAcrossHomeOpensMessages() {
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         float far = -openDistance(screen) - 10;
 
         swipe(screen, centerOf(screen.post), -slop(screen) - 2, far / 2, far);
@@ -246,7 +251,7 @@ public class HomeLeftSwipeTest {
     /** A carousel that can still go left keeps the swipe, every step of it, and Messages stays shut. */
     @Test
     public void aCarouselKeepsItsSwipe() {
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         float far = -openDistance(screen) - 10;
 
         swipe(screen, centerOf(screen.carousel), -slop(screen) - 2, far);
@@ -259,7 +264,7 @@ public class HomeLeftSwipeTest {
     /** A video's seek bar keeps the swipe too. */
     @Test
     public void aSeekBarKeepsItsSwipe() {
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         swipe(screen, centerOf(screen.seekBar), -slop(screen) - 2, -openDistance(screen) - 10);
         assertEquals(0, screen.messagesClicks);
     }
@@ -267,7 +272,7 @@ public class HomeLeftSwipeTest {
     /** Up and down, or to the right, the touch is Instagram's from start to end. */
     @Test
     public void aScrollOrARightSwipeIsLeftAlone() {
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         float[] from = centerOf(screen.post);
         long down = 1000;
         screen.dispatchTouchEvent(MotionEvent.obtain(down, down, MotionEvent.ACTION_DOWN, from[0], from[1], 0));
@@ -286,7 +291,7 @@ public class HomeLeftSwipeTest {
     /** A swipe taken but lifted short of the mark opens nothing, and the post still never sees a lift. */
     @Test
     public void aShortSwipeOpensNothing() {
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         swipe(screen, centerOf(screen.post), -slop(screen) - 2);
         assertEquals(0, screen.messagesClicks);
         assertFalse(screen.post.actions.contains(MotionEvent.ACTION_UP));
@@ -295,7 +300,7 @@ public class HomeLeftSwipeTest {
     /** A second finger on a swipe swallows the rest of the touch and opens nothing. */
     @Test
     public void aSecondFingerSwallowsTheSwipe() {
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         float[] from = centerOf(screen.post);
         float far = from[0] - openDistance(screen) - 10;
         long down = 1000;
@@ -314,20 +319,69 @@ public class HomeLeftSwipeTest {
     /** With another tab picked, the swipe is the tabs' own. */
     @Test
     public void anotherTabLeavesTheSwipeAlone() {
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         screen.feedTab.setSelected(false);
         swipe(screen, centerOf(screen.post), -slop(screen) - 2, -openDistance(screen) - 10);
         assertEquals(0, screen.messagesClicks);
         assertTrue(screen.post.actions.contains(MotionEvent.ACTION_UP));
     }
 
-    /** On any other screen nothing is taken. */
+    /** On any other screen nothing is taken, one named as the launcher alias included. */
     @Test
     public void anotherScreenLeavesTheSwipeAlone() {
-        ProfileActivity screen = screen(ProfileActivity.class);
-        swipe(screen, centerOf(screen.post), -slop(screen) - 2, -openDistance(screen) - 10);
-        assertEquals(0, screen.messagesClicks);
-        assertTrue(screen.post.actions.contains(MotionEvent.ACTION_UP));
+        for (Class<? extends TabsScreen> type : List.of(ProfileActivity.class, MainTabActivity.class)) {
+            TabsScreen screen = screen(type);
+            swipe(screen, centerOf(screen.post), -slop(screen) - 2, -openDistance(screen) - 10);
+            assertEquals(type.getSimpleName(), 0, screen.messagesClicks);
+            assertTrue(type.getSimpleName(), screen.post.actions.contains(MotionEvent.ACTION_UP));
+        }
+    }
+
+    /**
+     * A sheet drawn over Home, the comments say, takes a touch going down on it before the list, so
+     * its swipe stays its own. A view over the list that takes no touch leaves the swipe to HushGram.
+     */
+    @Test
+    public void aSheetOverHomeKeepsItsSwipe() {
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
+        FrameLayout root = (FrameLayout) screen.list.getParent();
+        Recorder sheet = new Recorder(screen);
+        sheet.setClickable(true);
+        root.addView(sheet, 1, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120, Gravity.CENTER));
+        ShadowLooper.idleMainLooper();
+
+        swipe(screen, centerOf(sheet), -slop(screen) - 2, -openDistance(screen) - 10);
+
+        assertEquals("Messages stayed shut", 0, screen.messagesClicks);
+        assertEquals("the sheet got the whole swipe",
+            List.of(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP), sheet.actions);
+        assertEquals(HomeLeftSwipe.IDLE, HomeLeftSwipe.stateForTests());
+
+        root.removeView(sheet);
+        View glow = new View(screen);
+        root.addView(glow, 1, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120, Gravity.CENTER));
+        ShadowLooper.idleMainLooper();
+        swipe(screen, centerOf(glow), -slop(screen) - 2, -openDistance(screen) - 10);
+        assertEquals("a view taking no touch leaves the swipe", 1, screen.messagesClicks);
+    }
+
+    /** Instagram's own scrubber, found by its id, keeps the swipe like a seek bar does. */
+    @Test
+    public void aScrubberKeepsItsSwipe() {
+        ids.put(HomeLeftSwipe.SCRUBBER, SCRUBBER_ID);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
+        Recorder scrubber = new Recorder(screen);
+        scrubber.setId(SCRUBBER_ID);
+        screen.list.addView(scrubber, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 30, Gravity.CENTER));
+        ShadowLooper.idleMainLooper();
+
+        swipe(screen, centerOf(scrubber), -slop(screen) - 2, -openDistance(screen) - 10);
+        assertEquals("the scrubber kept it", 0, screen.messagesClicks);
+        assertTrue(scrubber.actions.contains(MotionEvent.ACTION_UP));
+
+        scrubber.setId(SCRUBBER_ID + 1);
+        swipe(screen, centerOf(scrubber), -slop(screen) - 2, -openDistance(screen) - 10);
+        assertEquals("by its id alone", 1, screen.messagesClicks);
     }
 
     /** Off, nothing is taken, and the switch starts off. */
@@ -335,7 +389,7 @@ public class HomeLeftSwipeTest {
     public void offLeavesTheSwipeAlone() {
         assertEquals(Boolean.FALSE, Settings.SWIPE_LEFT_MESSAGES.defaultValue);
         on = () -> false;
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         swipe(screen, centerOf(screen.post), -slop(screen) - 2, -openDistance(screen) - 10);
         assertEquals(0, screen.messagesClicks);
         assertTrue(screen.post.actions.contains(MotionEvent.ACTION_UP));
@@ -344,7 +398,7 @@ public class HomeLeftSwipeTest {
     /** The real switch: off by default, on when saved, and paused HushGram reads it as off. */
     @Test
     public void theSettingDecidesAndPauseTurnsItOff() {
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         float[] from = centerOf(screen.post);
         MotionEvent down = MotionEvent.obtain(1000, 1000, MotionEvent.ACTION_DOWN, from[0], from[1], 0);
 
@@ -365,7 +419,7 @@ public class HomeLeftSwipeTest {
     @Test
     public void withNoMessagesTabTheHeaderInboxOpensIt() {
         ids.put(HomeLeftSwipe.DIRECT_TAB, 0);
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         swipe(screen, centerOf(screen.post), -slop(screen) - 2, -openDistance(screen) - 10);
         assertEquals(0, screen.messagesClicks);
         assertEquals(1, screen.inboxClicks);
@@ -377,7 +431,7 @@ public class HomeLeftSwipeTest {
         on = () -> {
             throw new IllegalStateException("settings went away");
         };
-        MainTabActivity screen = screen(MainTabActivity.class);
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
         swipe(screen, centerOf(screen.post), -slop(screen) - 2, -openDistance(screen) - 10);
         assertEquals(0, screen.messagesClicks);
         assertTrue(screen.post.actions.contains(MotionEvent.ACTION_UP));
@@ -389,6 +443,6 @@ public class HomeLeftSwipeTest {
     @Test
     public void nothingToReadIsLeftAlone() {
         assertFalse(HomeLeftSwipe.touch(null, MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 0, 0, 0)));
-        assertFalse(HomeLeftSwipe.touch(screen(MainTabActivity.class), null));
+        assertFalse(HomeLeftSwipe.touch(screen(InstagramMainActivity.class), null));
     }
 }

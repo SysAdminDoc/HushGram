@@ -5,13 +5,18 @@
 package app.morphe.patches.instagram.feed.swipecreate
 
 import app.morphe.ExtensionDex
+import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.lock.HIDDEN_CHATS_TAP
 import app.morphe.patches.instagram.direct.lock.findHiddenChatsTouch
 import app.morphe.patches.instagram.direct.lock.hookHiddenChatsTouch
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
+import app.morphe.patches.instagram.misc.extension.SETTINGS_STATUS
+import app.morphe.patches.instagram.reels.swipeprofile.SWIPE_TO_PROFILE
+import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
@@ -127,6 +132,32 @@ class HomeLeftSwipeHookTest {
         assertEquals("the swipe falls through to the double tap", 4, (code[2] as BuilderOffsetInstruction).target.location.index)
         assertEquals(HIDDEN_CHATS_TAP, code[4].referenceText())
         assertEquals(Opcode.CONST_STRING, code[8].opcode)
+    }
+
+    /**
+     * The tabs' screen the swipe arms on, and the one Swipe left to open the profile leaves to the
+     * Reels tab's panel, is named as a class every declared build has. The manifest's MainTabActivity
+     * is a launcher alias with no class behind it, so no screen ever comes by that name.
+     */
+    @Test
+    fun theTabsScreenIsNamedAsAClassInEveryBuild() {
+        val names = setOf(
+            ExtensionDex.stringConstant(HOME_LEFT_SWIPE.substringBefore("->"), "MAIN_TABS"),
+            ExtensionDex.stringConstant(SWIPE_TO_PROFILE, "MAIN_TABS"),
+        )
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val builds = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        assertTrue("no fixture of a declared build", builds.isNotEmpty())
+        for (build in builds) {
+            val found = mutableSetOf<String>()
+            FixtureDex.forEach(build) { dex ->
+                for (classDef in dex.classes) {
+                    val simple = classDef.type.substringAfterLast('/').removeSuffix(";")
+                    if (simple in names) found += simple
+                }
+            }
+            assertEquals(build.name, names, found)
+        }
     }
 
     @Test
