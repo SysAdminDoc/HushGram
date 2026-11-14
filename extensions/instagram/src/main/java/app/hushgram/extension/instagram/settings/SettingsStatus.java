@@ -760,6 +760,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Sent follow requests patch. */
+    public static boolean sentRequests() {
+        return false;
+    }
+
     /** Rewritten by the Skip the collections tray patch. */
     public static boolean saveTray() {
         return false;

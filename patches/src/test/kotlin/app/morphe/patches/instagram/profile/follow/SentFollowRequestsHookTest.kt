@@ -1,0 +1,248 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.morphe.patches.instagram.profile.follow
+
+import app.morphe.ExtensionDex
+import app.morphe.Fixtures
+import app.morphe.PatchContexts
+import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.download.IMAGE_URL
+import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
+import app.morphe.patches.instagram.download.USER
+import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableExceptionHandler
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableTryBlock
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+
+/**
+ * Sent follow requests (#690): on every build of the declared version, each object return of the
+ * follow button helper's status read hands SentRequests.seen the session, the account and the
+ * status, right before it returns, with any branch to that return passing through the call too.
+ * The extension's stubs reach the account's field tree, its string fields and the session's
+ * account, and the picture bridges are written. A full User is one of the trees an account holds.
+ */
+class SentFollowRequestsHookTest {
+    @Test
+    fun theHookIsInTheExtension() {
+        val declared = ExtensionDex.classDef(SENT_REQUESTS).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$SENT_SEEN is not in the extension: $declared", SENT_SEEN in declared)
+    }
+
+    @Test
+    fun aBuildWithoutTheFollowButtonFailsBeforeAnythingChanges() {
+        val refused = assertThrows(PatchException::class.java) {
+            PatchContexts.of(listOf(ExtensionDex.classDef(SENT_REQUESTS))).findSentRequests()
+        }
+        assertTrue(refused.message, refused.message!!.contains(FOLLOW_BUTTON_BASE))
+    }
+
+    @Test
+    fun eachDeclaredBuildHandsOverEveryStatus() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        var checked = 0
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                builds(bundle, bundle.name)
+                checked++
+            }
+        }
+        assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same checks on every other build of the version, each compiled on its own. */
+    @Test
+    fun eachOtherBuildHandsThemOverToo() {
+        val others = Fixtures.otherBuilds()
+        assertEquals(Fixtures.OTHER_BUILDS, others.size)
+        for (base in others) builds(base, base.parentFile.name)
+    }
+
+    /** A return inside a try block would have the hook throw into Instagram's handler, so it stops the patch. */
+    @Test
+    fun aReturnInATryBlockStopsThePatch() {
+        val bundle = Fixtures.files { it.extension == "apks" && it.name.contains("-${Fixtures.VERSION}-") }.first()
+        val sliced = slice(bundle)
+        val status = sliced.status
+        val implementation = status.implementation!!
+        val code = implementation.instructions.toList()
+        val last = code.indexOfLast { it.opcode == Opcode.RETURN_OBJECT }
+        val address = code.take(last).sumOf { it.codeUnits }
+        val covered = ImmutableMethod(
+            status.definingClass, status.name, status.parameters, status.returnType, status.accessFlags,
+            status.annotations, status.hiddenApiRestrictions,
+            ImmutableMethodImplementation(
+                implementation.registerCount, implementation.instructions,
+                implementation.tryBlocks + ImmutableTryBlock(address, code[last].codeUnits, listOf(ImmutableExceptionHandler(null, 0))),
+                implementation.debugItems,
+            ),
+        )
+        val helper = sliced.classes.getValue(status.definingClass)
+        val changed = ImmutableClassDef(
+            helper.type, helper.accessFlags, helper.superclass, helper.interfaces, helper.sourceFile, helper.annotations,
+            helper.fields, helper.methods.map { if (it == status) covered else it },
+        )
+        val context = PatchContexts.of(sliced.classes.values.map { if (it.type == helper.type) changed else it } + extension())
+        val refused = assertThrows(PatchException::class.java) { context.findSentRequests() }
+        assertTrue(refused.message, refused.message!!.contains("try block"))
+    }
+
+    private class Slice(val classes: Map<String, ClassDef>, val status: Method)
+
+    private fun extension() = listOf(ExtensionDex.classDef(SENT_REQUESTS), ExtensionDex.classDef(INSTAGRAM_MEDIA))
+
+    /**
+     * Slices the build to what the patch reads: FollowButtonBase, its helper and the types its
+     * (session, account) methods take and answer, the status enum with its string pools, the account
+     * model with the classes it extends and their fields' types, the session, and the full account
+     * model and picture types the bridges read. Answers the status read as the contract picks it: the
+     * helper's one (session, account) method loading the "id" hash and both status field hashes.
+     */
+    private fun slice(bundle: File): Slice {
+        val have = LinkedHashMap<String, ClassDef>()
+        fun load(types: Set<String>) {
+            val wanted = types.filter { it !in have && it.startsWith("L") && !it.startsWith("Ljava/") }.toSet()
+            if (wanted.isNotEmpty()) have.putAll(FixtureDex.classes(bundle, wanted))
+        }
+        load(setOf(FOLLOW_BUTTON_BASE, USER_SESSION, USER, IMAGE_URL))
+        val helperType = have.getValue(FOLLOW_BUTTON_BASE).methods.single { it.name == "getHelper" && it.parameterTypes.isEmpty() }.returnType
+        load(setOf(helperType))
+        val helper = have.getValue(helperType)
+        val status = helper.methods.single { method ->
+            val types = method.parameterTypes.map(Any::toString)
+            !AccessFlags.STATIC.isSet(method.accessFlags) && types.size == 2 && types[0] == USER_SESSION &&
+                CONTRACT_LITERALS.all { literal -> method.implementation?.instructions?.any { it.loads(literal) } == true }
+        }
+        val user = status.parameterTypes[1].toString()
+        val statuses = helper.methods.filter { it.parameterTypes.map(Any::toString) == listOf(USER_SESSION, user) }.map { it.returnType }
+        load(statuses.toSet() + helper.fields.map { it.type })
+        var at: String? = user
+        while (at != null && at != "Ljava/lang/Object;") {
+            load(setOf(at))
+            val classDef = have[at] ?: break
+            load(classDef.fields.map { it.type }.toSet())
+            at = classDef.superclass
+        }
+        val pooled = FixtureDex.withStringPools(bundle, statuses.mapNotNull { have[it] })
+        val classes = LinkedHashMap<String, ClassDef>()
+        for (classDef in have.values + pooled) classes.putIfAbsent(classDef.type, classDef)
+        return Slice(classes, status)
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val sliced = slice(bundle)
+        val stock = sliced.status
+        val context = PatchContexts.of(sliced.classes.values + extension())
+        val found = runCatching { context.findSentRequests() }.getOrElse { throw AssertionError("$label: ${it.message}", it) }
+        assertEquals("$label: the status read the contract picks", stock.name, found.status.name)
+        val stockCode = stock.implementation!!.instructions.toList()
+        val returns = stockCode.count { it.opcode == Opcode.RETURN_OBJECT }
+        assertEquals(label, returns, found.returns.size)
+
+        val bridged = { context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+            .filter { it.instructions().firstOrNull()?.opcode == Opcode.CHECK_CAST }.map { it.name }.toSet() }
+        assertFalse("$label: nothing is written while it looks", "profilePicture" in bridged())
+        sentRequests(found)
+
+        val registers = stock.implementation!!.registerCount
+        val session = registers - 2
+        val model = registers - 1
+        val code = found.status.instructions()
+        assertEquals("$label: once at each return", returns, code.count { it.calls(SENT_SEEN) })
+        for ((index, instruction) in code.withIndex()) {
+            if (!instruction.calls(SENT_SEEN)) continue
+            val call = instruction as FiveRegisterInstruction
+            val back = code[index + 1]
+            assertEquals("$label: right before a return", Opcode.RETURN_OBJECT, back.opcode)
+            assertEquals(label, 3, call.registerCount)
+            assertEquals("$label: the session", session, call.registerC)
+            assertEquals("$label: the account", model, call.registerD)
+            assertEquals("$label: what it returns", (back as OneRegisterInstruction).registerA, call.registerE)
+        }
+        for (branch in code.filterIsInstance<BuilderOffsetInstruction>()) {
+            val target = branch.target.location.index
+            assertFalse("$label: a branch skips the hook onto a return", code[target].opcode == Opcode.RETURN_OBJECT &&
+                code.getOrNull(target - 1)?.calls(SENT_SEEN) == true)
+        }
+        fun kinds(of: List<Instruction>) = of.map { kind(it.opcode) }.filter { it != Opcode.NOP }
+        assertEquals("$label: Instagram's own code is kept", kinds(stockCode), kinds(code.filterNot { it.calls(SENT_SEEN) }))
+
+        val tree = "${found.tree.definingClass}->${found.tree.name}:${found.tree.type}"
+        val treeOf = context.stub(TREE_OF_STUB)
+        assertEquals(label, listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT), treeOf.take(3).map { it.opcode })
+        assertEquals("$label: the stub reads the account's tree", tree, treeOf[1].referenced())
+        val fieldOf = context.stub(FIELD_OF_STUB)
+        assertEquals(label, tree, fieldOf[1].referenced())
+        assertEquals(label, Opcode.INVOKE_INTERFACE, fieldOf[3].opcode)
+        assertEquals("$label: through the getter the helper reads the username with",
+            "${found.stringGetter.definingClass}->${found.stringGetter.name}(I)Ljava/lang/String;", fieldOf[3].referenced())
+        val ownerOf = context.stub(OWNER_OF_STUB)
+        assertEquals("$label: the session's account", "$USER_SESSION->$SESSION_USER_ID:Ljava/lang/String;", ownerOf[1].referenced())
+        assertTrue("$label: the picture bridges", bridged().containsAll(listOf("profilePicture", "username", "candidateUrl")))
+
+        // The pictures and the Follow removal need the tree to be a full User, so User has to be one of its kinds.
+        assertTrue("$label: a User can be the account's tree", reaches(bundle, USER, found.tree.type))
+        println("$label: ${found.status.definingClass}->${found.status.name} hands over $returns statuses; account ${found.user}, " +
+            "tree $tree, getter ${found.stringGetter.definingClass}->${found.stringGetter.name}")
+    }
+
+    /** Whether [type] extends or implements [wanted], through any of its supertypes. */
+    private fun reaches(bundle: File, type: String, wanted: String): Boolean {
+        val seen = HashSet<String>()
+        var pending = setOf(type)
+        while (pending.isNotEmpty()) {
+            if (wanted in pending) return true
+            seen += pending
+            pending = FixtureDex.classes(bundle, pending).values
+                .flatMap { listOfNotNull(it.superclass) + it.interfaces }
+                .filter { it.startsWith("L") && !it.startsWith("Ljava/") && it !in seen }.toSet()
+        }
+        return false
+    }
+
+    private fun Instruction.loads(literal: Int) = (this as? NarrowLiteralInstruction)?.narrowLiteral == literal &&
+        (opcode == Opcode.CONST || opcode == Opcode.CONST_16 || opcode == Opcode.CONST_4 || opcode == Opcode.CONST_HIGH16)
+
+    /** An insert can push a branch past a plain goto's reach, and dexlib2 widens it. */
+    private fun kind(opcode: Opcode) = if (opcode == Opcode.GOTO_16 || opcode == Opcode.GOTO_32) Opcode.GOTO else opcode
+
+    private fun Instruction.calls(reference: String) = referencedOrNull() == reference
+
+    private fun Instruction.referencedOrNull(): String? = (this as? ReferenceInstruction)?.reference?.toString()
+
+    private fun Instruction.referenced(): String = referencedOrNull()!!
+
+    private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList() ?: emptyList()
+
+    private fun app.morphe.patcher.patch.BytecodePatchContext.stub(name: String): List<Instruction> =
+        mutableClassDefBy(SENT_REQUESTS).methods.single { it.name == name }.implementation!!.instructions.toList()
+
+    private companion object {
+        const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
+
+        /** What scripts/injected-mutation-contracts.txt picks the status read by: "id" and the two status fields' hashes. */
+        val CONTRACT_LITERALS = listOf(0xd1b, 0x46ae0f6e, 0xd973299e.toInt())
+    }
+}

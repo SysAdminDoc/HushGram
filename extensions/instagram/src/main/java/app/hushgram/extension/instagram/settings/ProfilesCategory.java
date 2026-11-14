@@ -7,9 +7,11 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_PROFILE_HISTORY;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_SENT_REQUESTS;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_UNFOLLOWERS;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearProfileHistory;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearSentRequests;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearUnfollowers;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.followerHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.followLabelPlaceRow;
@@ -17,6 +19,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.profileHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.savedProfilesRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.savedProfilesTabRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.sentRequestsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.unfollowersRow;
 
@@ -42,7 +45,7 @@ final class ProfilesCategory {
                 || build.contains(PatchFamily.PROFILE_TABS)
                 || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)
                 || build.contains(PatchFamily.PROFILE_GRID_JUMP) || build.contains(PatchFamily.PROFILE_REEL_SORT)
-                || build.contains(PatchFamily.ASK_BEFORE_FOLLOW)) {
+                || build.contains(PatchFamily.ASK_BEFORE_FOLLOW) || build.contains(PatchFamily.SENT_FOLLOW_REQUESTS)) {
             PreferenceCategory profiles = category(screen, L10n.t("Profiles"), SettingsIcons.PERSON,
                     L10n.t("See who follows you back, and clear extras off profiles."));
             if (build.contains(PatchFamily.PROFILE_PICTURE)) {
@@ -120,6 +123,26 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.ASK_BEFORE_FOLLOW, L10n.t("Ask before a follow"),
                         L10n.t("Asks before a Follow or Follow back button follows someone or sends them a request, so a "
                                 + "stray tap on a profile or in a Followers or Following list doesn't do it for you.")));
+            }
+            if (build.contains(PatchFamily.SENT_FOLLOW_REQUESTS)) {
+                profiles.addPreference(toggle(context, Settings.SENT_FOLLOW_REQUESTS, L10n.t("Sent follow requests"),
+                        L10n.t("Keeps a list of the accounts you've asked to follow that haven't let you in yet, from what "
+                                + "their follow buttons show while this is on. Nothing extra is asked of Instagram, and "
+                                + "the list stays on your phone.")));
+                Preference sentRequests = sentRequestsRow(context);
+                profiles.addPreference(sentRequests);
+                Row clearSentRequests = new Row(context);
+                clearSentRequests.setKey(CLEAR_SENT_REQUESTS);
+                clearSentRequests.setPersistent(false);
+                clearSentRequests.actsAtOnce = true;
+                clearSentRequests.setTitle(L10n.t("Clear sent requests"));
+                clearSentRequests.setSummary(L10n.t("Forgets every request on the list, for all your accounts. The "
+                        + "requests stay sent on Instagram."));
+                clearSentRequests.setOnPreferenceClickListener(p -> {
+                    clearSentRequests(p, sentRequests);
+                    return true;
+                });
+                profiles.addPreference(mark(clearSentRequests, SettingsIcons.DELETE));
             }
             if (build.contains(PatchFamily.PROFILE_SUGGESTIONS)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_PROFILE_SUGGESTIONS, L10n.t("Hide suggested people"),

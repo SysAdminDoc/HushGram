@@ -2255,6 +2255,28 @@ Follow @%1$s?	要追蹤 @%1$s 嗎？
 Follow this account?	要追蹤這個帳號嗎？
 # context: The question's confirm button; Instagram's own Follow button label (#631)
 Follow	追蹤
+# context: Profiles > title of the switch that lists the follow requests you sent that are still waiting, and of its page (#690)
+Sent follow requests	已送出的追蹤要求
+# context: Profiles > summary of Sent follow requests; a follow button is Instagram's Follow, Requested or Following button (#690)
+Keeps a list of the accounts you've asked to follow that haven't let you in yet, from what their follow buttons show while this is on. Nothing extra is asked of Instagram, and the list stays on your phone.	記錄你已要求追蹤但對方尚未接受的帳號，依據此功能開啟時其追蹤按鈕顯示的狀態。不會向 Instagram 額外要求資料，名單也只保留在手機上。
+# context: Profiles > title of the row that opens the list of sent follow requests still waiting (#690)
+Your sent requests	你送出的要求
+# context: Profiles > summary of Your sent requests while the list is empty; Sent follow requests is the switch's title (#690)
+No requests waiting. With Sent follow requests on, a request you send, or one whose follow button you see, shows up here.	沒有等待中的要求。開啟「已送出的追蹤要求」後，你送出的要求，或你在追蹤按鈕上看到的要求，都會顯示在這裡。
+# context: Profiles > title of the row that forgets the sent follow requests list (#690)
+Clear sent requests	清除送出的要求
+# context: Profiles > summary of Clear sent requests; the requests themselves aren't cancelled (#690)
+Forgets every request on the list, for all your accounts. The requests stay sent on Instagram.	清除所有帳號名單上的所有要求。要求在 Instagram 上仍維持送出。
+# context: Toast after Clear sent requests; two lines of 28 characters at most (#690)
+Sent requests cleared.	已清除送出的要求。
+# context: Toast when Clear sent requests fails; two lines of 28 characters at most (#690)
+Couldn't clear the sent requests. Try again.	無法清除送出的要求，請再試一次。
+# context: Hint at the top of the Sent follow requests page; Instagram's Requested button cancels a request and asks first (#690)
+Tap an account to open its profile, where its follow button cancels the request. Instagram asks before it does.	點按帳號即可開啟其個人檔案，在那裡用追蹤按鈕取消要求。Instagram 會先詢問你。
+# context: Long-press menu item on the Sent follow requests page; takes the account off HushGram's list only (#690)
+Remove from the list	從名單移除
+# context: Toast after Remove from the list; %s is the account's username; two lines of 28 characters at most (#690)
+Removed @%s from the list	已將 @%s 從名單移除
 # context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
 Open reel links on that reel	在連結指向的 Reel 開啟 Reels 連結
 A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	Reels 連結會開啟它指向的 Reel。該 Reel 載入時，Instagram 不會先播放存在你手機上的其他 Reel。

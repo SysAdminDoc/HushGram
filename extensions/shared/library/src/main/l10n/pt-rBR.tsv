@@ -2252,6 +2252,28 @@ Follow @%1$s?	Seguir @%1$s?
 Follow this account?	Seguir esta conta?
 # context: The question's confirm button; Instagram's own Follow button label (#631)
 Follow	Seguir
+# context: Profiles > title of the switch that lists the follow requests you sent that are still waiting, and of its page (#690)
+Sent follow requests	Solicitações para seguir enviadas
+# context: Profiles > summary of Sent follow requests; a follow button is Instagram's Follow, Requested or Following button (#690)
+Keeps a list of the accounts you've asked to follow that haven't let you in yet, from what their follow buttons show while this is on. Nothing extra is asked of Instagram, and the list stays on your phone.	Mantém uma lista das contas que você pediu para seguir e que ainda não te aceitaram, pelo que os botões de seguir delas mostram enquanto isto está ativado. Nada a mais é pedido ao Instagram, e a lista fica no seu celular.
+# context: Profiles > title of the row that opens the list of sent follow requests still waiting (#690)
+Your sent requests	Suas solicitações enviadas
+# context: Profiles > summary of Your sent requests while the list is empty; Sent follow requests is the switch's title (#690)
+No requests waiting. With Sent follow requests on, a request you send, or one whose follow button you see, shows up here.	Nenhuma solicitação pendente. Com Solicitações para seguir enviadas ativado, cada solicitação que você envia, ou cujo botão de seguir você vê, aparece aqui.
+# context: Profiles > title of the row that forgets the sent follow requests list (#690)
+Clear sent requests	Limpar solicitações enviadas
+# context: Profiles > summary of Clear sent requests; the requests themselves aren't cancelled (#690)
+Forgets every request on the list, for all your accounts. The requests stay sent on Instagram.	Esquece todas as solicitações da lista, em todas as suas contas. No Instagram, as solicitações continuam enviadas.
+# context: Toast after Clear sent requests; two lines of 28 characters at most (#690)
+Sent requests cleared.	Solicitações enviadas limpas.
+# context: Toast when Clear sent requests fails; two lines of 28 characters at most (#690)
+Couldn't clear the sent requests. Try again.	Não foi possível limpar a lista. Tente de novo.
+# context: Hint at the top of the Sent follow requests page; Instagram's Requested button cancels a request and asks first (#690)
+Tap an account to open its profile, where its follow button cancels the request. Instagram asks before it does.	Toque em uma conta para abrir o perfil dela, onde o botão de seguir cancela a solicitação. O Instagram pergunta antes.
+# context: Long-press menu item on the Sent follow requests page; takes the account off HushGram's list only (#690)
+Remove from the list	Remover da lista
+# context: Toast after Remove from the list; %s is the account's username; two lines of 28 characters at most (#690)
+Removed @%s from the list	@%s removido da lista
 # context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
 Open reel links on that reel	Abrir links de reels no próprio reel
 A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	Um link de reel abre o reel para o qual aponta. O Instagram não reproduz outro reel guardado no seu celular enquanto esse carrega.

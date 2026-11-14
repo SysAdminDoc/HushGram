@@ -165,6 +165,7 @@ import app.hushgram.extension.instagram.reels.TabBarLayoutChoice;
 import app.hushgram.extension.instagram.reels.TabOrder;
 import app.hushgram.extension.instagram.download.DownloadHistory;
 import app.hushgram.extension.instagram.profile.Unfollowers;
+import app.hushgram.extension.instagram.profile.SentRequests;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.PostDetails;
 import app.hushgram.extension.instagram.download.HoldFingers;
@@ -230,6 +231,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String CLEAR_PROFILE_HISTORY = "hushgram_clear_profile_history";
     static final String SAVED_PROFILES_ROW = "hushgram_saved_profiles_row";
     static final String CLEAR_UNFOLLOWERS = "hushgram_clear_unfollowers";
+    /** The row listing the follow requests still waiting, and the row that forgets them. */
+    static final String SENT_REQUESTS_ROW = "hushgram_sent_requests_row";
+    static final String CLEAR_SENT_REQUESTS = "hushgram_clear_sent_requests";
     /** The row that lists the chats locked one at a time. */
     static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
     /** The row that lists the Saved collections locked one at a time. */
@@ -942,6 +946,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.PROFILE_PICTURE
                             && (PROFILE_HISTORY_ROW.equals(key) || CLEAR_PROFILE_HISTORY.equals(key)
                             || SAVED_PROFILES_ROW.equals(key) || Settings.SAVED_PROFILES_TAB_TARGET.key.equals(key));
+                    belongs |= family == PatchFamily.SENT_FOLLOW_REQUESTS
+                            && (SENT_REQUESTS_ROW.equals(key) || CLEAR_SENT_REQUESTS.equals(key));
                     belongs |= family == PatchFamily.FOLLOWING_FEED && Settings.FAVORITES_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.RESTORE_TRUST && L10n.t("Instagram accepts this build").equals(row.getTitle());
                     belongs |= family == PatchFamily.REMOVE_AD_ID && L10n.t("Advertising ID removed").equals(row.getTitle());
@@ -1965,6 +1971,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /** Whether the Saved profiles page may change its list now, an account or a folder. The settings lock holds it too. */
     static boolean savedProfilesChangeAllowed(Preference row) {
+        return allowMutation(row, false);
+    }
+
+    /** Whether the Sent follow requests page may take an account off its list now. The settings lock holds it, as it holds Clear. */
+    static boolean sentRequestsChangeAllowed(Preference row) {
         return allowMutation(row, false);
     }
 
@@ -4889,6 +4900,76 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         text.append(L10n.f("Tap to see all %1$d, or search them.", profiles.size()));
         return text.toString().trim();
+    }
+
+    /** How many of the newest waiting requests the settings row names. Its page has them all. */
+    static final int SENT_REQUESTS_SHOWN = 3;
+
+    /**
+     * The row naming the newest follow requests still waiting, for the account signed in. Read off
+     * the main thread, so it says so until it's read. Tapping it opens them all on a page.
+     */
+    static Preference sentRequestsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(SENT_REQUESTS_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Your sent requests"));
+        row.setSummary(L10n.t("Reading the list…"));
+        row.setOnPreferenceClickListener(tapped -> {
+            SentRequestsPage.open(tapped.getContext(), tapped);
+            return true;
+        });
+        readSentRequests(row);
+        return mark(row, SettingsIcons.PERSON);
+    }
+
+    /** Names the newest waiting requests on [row], read off the main thread. */
+    static void readSentRequests(Preference row) {
+        if (!Utils.runOnBackgroundThread(() -> {
+            String summary = sentRequestsSummary(SentRequests.all(SentRequests.shownOwner()));
+            Utils.runOnMainThread(() -> row.setSummary(summary));
+        })) {
+            row.setSummary(sentRequestsSummary(SentRequests.all(SentRequests.shownOwner())));
+        }
+    }
+
+    /** What the Your sent requests row says for [requests], newest first. */
+    static String sentRequestsSummary(List<SentRequests.Request> requests) {
+        if (requests.isEmpty()) {
+            return L10n.t("No requests waiting. With Sent follow requests on, a request you send, or one whose "
+                    + "follow button you see, shows up here.");
+        }
+        StringBuilder text = new StringBuilder();
+        int shown = 0;
+        for (SentRequests.Request request : requests) {
+            if (shown == SENT_REQUESTS_SHOWN) break;
+            text.append('@').append(request.username).append('\n');
+            shown++;
+        }
+        text.append(L10n.f("Tap to see all %1$d, or search them.", requests.size()));
+        return text.toString().trim();
+    }
+
+    /** Forgets every account's waiting requests off the main thread, says so, and empties [list]. */
+    static void clearSentRequests(Preference row, Preference list) {
+        if (!allowMutation(row, true)) return;
+        if (!Utils.runOnBackgroundThread(() -> {
+            if (!asyncChangesAllowed()) {
+                Utils.showToastLong(heldMessage());
+                return;
+            }
+            boolean cleared = SentRequests.clear();
+            Utils.runOnMainThread(() -> {
+                if (cleared) {
+                    Utils.showToastShort(L10n.t("Sent requests cleared."));
+                    list.setSummary(sentRequestsSummary(java.util.Collections.emptyList()));
+                } else {
+                    Utils.showToastLong(L10n.t("Couldn't clear the sent requests. Try again."));
+                }
+            });
+        })) {
+            Utils.showToastLong(L10n.t("Couldn't clear the sent requests. Try again."));
+        }
     }
 
     /** Forgets the profile history off the main thread, says so, and empties [list]. */

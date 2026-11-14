@@ -525,7 +525,8 @@
           "Profile posts as a list",
           "Jump a profile's posts to a date",
           "Sort reels on profiles",
-          "Ask before a follow"
+          "Ask before a follow",
+          "Sent follow requests"
         ]
       },
       "anchors": [

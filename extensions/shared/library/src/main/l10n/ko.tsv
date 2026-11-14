@@ -2251,6 +2251,28 @@ Follow @%1$s?	@%1$s님을 팔로우할까요?
 Follow this account?	이 계정을 팔로우할까요?
 # context: The question's confirm button; Instagram's own Follow button label (#631)
 Follow	팔로우
+# context: Profiles > title of the switch that lists the follow requests you sent that are still waiting, and of its page (#690)
+Sent follow requests	보낸 팔로우 요청
+# context: Profiles > summary of Sent follow requests; a follow button is Instagram's Follow, Requested or Following button (#690)
+Keeps a list of the accounts you've asked to follow that haven't let you in yet, from what their follow buttons show while this is on. Nothing extra is asked of Instagram, and the list stays on your phone.	팔로우를 요청했지만 아직 수락하지 않은 계정의 목록을, 이 기능이 켜져 있는 동안 팔로우 버튼에 표시된 내용으로 보관합니다. Instagram에 따로 요청하지 않으며 목록은 휴대폰에만 저장됩니다.
+# context: Profiles > title of the row that opens the list of sent follow requests still waiting (#690)
+Your sent requests	내가 보낸 요청
+# context: Profiles > summary of Your sent requests while the list is empty; Sent follow requests is the switch's title (#690)
+No requests waiting. With Sent follow requests on, a request you send, or one whose follow button you see, shows up here.	대기 중인 요청이 없습니다. ‘보낸 팔로우 요청’을 켜면 보낸 요청이나 팔로우 버튼에 보이는 요청이 여기에 표시됩니다.
+# context: Profiles > title of the row that forgets the sent follow requests list (#690)
+Clear sent requests	보낸 요청 지우기
+# context: Profiles > summary of Clear sent requests; the requests themselves aren't cancelled (#690)
+Forgets every request on the list, for all your accounts. The requests stay sent on Instagram.	모든 계정에서 목록의 요청을 모두 지웁니다. Instagram에 보낸 요청은 그대로 남습니다.
+# context: Toast after Clear sent requests; two lines of 28 characters at most (#690)
+Sent requests cleared.	보낸 요청을 지웠습니다.
+# context: Toast when Clear sent requests fails; two lines of 28 characters at most (#690)
+Couldn't clear the sent requests. Try again.	보낸 요청을 지우지 못했습니다. 다시 시도하세요.
+# context: Hint at the top of the Sent follow requests page; Instagram's Requested button cancels a request and asks first (#690)
+Tap an account to open its profile, where its follow button cancels the request. Instagram asks before it does.	계정을 누르면 프로필이 열리고, 거기서 팔로우 버튼으로 요청을 취소할 수 있습니다. Instagram이 취소 전에 확인합니다.
+# context: Long-press menu item on the Sent follow requests page; takes the account off HushGram's list only (#690)
+Remove from the list	목록에서 삭제
+# context: Toast after Remove from the list; %s is the account's username; two lines of 28 characters at most (#690)
+Removed @%s from the list	@%s 님을 목록에서 삭제했습니다
 # context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
 Open reel links on that reel	릴스 링크를 해당 릴스로 열기
 A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	릴스 링크를 열면 링크가 가리키는 릴스가 열립니다. 그 릴스를 불러오는 동안 Instagram이 휴대폰에 저장해 둔 다른 릴스를 재생하지 않습니다.

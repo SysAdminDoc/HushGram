@@ -206,13 +206,13 @@ internal fun BytecodePatchContext.findFollowButton(): FollowButtonTargets {
 }
 
 /** Whether [type] is an enum whose own code loads [NOT_FOLLOWING]. */
-private fun BytecodePatchContext.isFollowStatus(type: String): Boolean {
+internal fun BytecodePatchContext.isFollowStatus(type: String): Boolean {
     val classDef = classDefByOrNull(type) ?: return false
     return classDef.superclass == "Ljava/lang/Enum;" && classDef.methods.any { loadsString(it, NOT_FOLLOWING) }
 }
 
 /** The fields of [type] and of the classes it extends inside the app. */
-private fun BytecodePatchContext.userFields(type: String): List<Field> {
+internal fun BytecodePatchContext.userFields(type: String): List<Field> {
     val fields = mutableListOf<Field>()
     var at: String? = type
     while (at != null) {
@@ -224,7 +224,7 @@ private fun BytecodePatchContext.userFields(type: String): List<Field> {
 }
 
 /** The (int) string getters [method] calls on an interface right after loading "username".hashCode(). */
-private fun usernameReads(method: Method): List<MethodReference> {
+internal fun usernameReads(method: Method): List<MethodReference> {
     val code = method.implementation?.instructions?.toList() ?: return emptyList()
     val username = "username".hashCode()
     return code.zipWithNext().mapNotNull { (load, call) ->
