@@ -592,6 +592,46 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * A floating pill coming back in front reads its own window's navigation bar, though FullScreenBars
+     * still names the window just left as it hears the resume after GlassTabBar does. Read from that
+     * window, which had no bar at its foot (a landscape chat with the bar on the side), the resume gave
+     * the pill no room until the next pass.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aPillBackInFrontReadsItsOwnWindowsNavigationBar() throws Exception {
+        GlassTabBar.resetForTests();
+        resetFullScreenHeights();
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int nav = host.dp(24);
+            ReflectionHelpers.callStaticMethod(FullScreenBars.class, "navBarForTests",
+                    ReflectionHelpers.ClassParameter.from(Activity.class, host.controller.get()),
+                    ReflectionHelpers.ClassParameter.from(int.class, nav));
+            host.controller.pause().resume();
+            host.frame();
+            int height = host.bar.getLayoutParams().height;
+            assertEquals("shown in front", 0, FullScreenBars.navBarHeight(nav));
+            host.frame();
+            assertEquals("the pill makes room for the bar", height + nav, host.bar.getLayoutParams().height);
+
+            host.controller.pause();
+            ActivityController<Activity> other = Robolectric.buildActivity(Activity.class).setup();
+            try {
+                assertEquals("another window gets the height", nav, FullScreenBars.navBarHeight(nav));
+                ReflectionHelpers.callStaticMethod(FullScreenBars.class, "nowResumed",
+                        ReflectionHelpers.ClassParameter.from(Activity.class, other.get()));
+            } finally {
+                other.pause().stop().destroy();
+            }
+            host.controller.resume();
+            host.frame();
+            assertEquals("back in front, its own bar read", height + nav, host.bar.getLayoutParams().height);
+        } finally {
+            resetFullScreenHeights();
+        }
+    }
+
     /** FullScreenBars starts and ends with nothing offered, taken or kept, telling the patch's listeners. */
     private static void resetFullScreenHeights() throws Exception {
         Class<?> teller = Class.forName("app.hushgram.extension.instagram.reels.FullScreenBars$Teller");

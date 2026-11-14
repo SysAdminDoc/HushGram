@@ -686,6 +686,49 @@ public class FullScreenBarsTest {
     }
 
     /**
+     * A window left with no navigation bar at its foot, like the top half of a split screen, gets no
+     * height for one: the height Instagram offered before doesn't stand in for its 0 with the keyboard
+     * up, and the bars coming back give only the status bar's height back.
+     */
+    @Test public void aWindowWithNoNavigationBarGetsNoHeightForOne() {
+        List<String> told = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
+        FullScreenBars.registeredForTests(true);
+        boolean[] up = {false};
+        FullScreenBars.keyboardForTests(() -> up[0]);
+        try {
+            Settings.FULL_SCREEN_REELS.save(true);
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, "profile");
+            heights(75, 135);
+            showViewer(W, H);
+            FullScreenBars.Session session = watch();
+            assertTrue(session.isHidden());
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(Arrays.asList("profile 75 135", "profile 0 0"), told);
+
+            FullScreenBars.navBarForTests(0);
+            up[0] = true;
+            assertEquals(0, FullScreenBars.barHeight(0));
+            assertEquals("nothing stands in for the 0 with the keyboard up", 0, FullScreenBars.navBarHeight(0));
+            session.watchKeyboard();
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals("the keyboard gives no height back", 2, told.size());
+            up[0] = false;
+
+            root.removeView(viewer);
+            layout();
+            session.evaluate();
+            assertFalse(session.isHidden());
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals("only the status bar's height comes back", "profile 75 0", told.get(told.size() - 1));
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
+    /**
      * #203: with Full screen Home on, the first tab opened from Home (Messages, Profile) was built
      * while Home had the bars hidden, so it heard 0 and drew under the status bar until the next
      * switch. Its kept listener hears the real heights once the bars come back.
