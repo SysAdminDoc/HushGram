@@ -66,7 +66,7 @@ final class GlassTabSlide {
         /** Puts the highlight's middle at [x], in the bar's own pixels, or sends it back to the selected tab for NaN. */
         void follow(float x);
 
-        /** A reel's seek bar touch strip when [x], [y], in the bar's own pixels, are on it, else null. */
+        /** A reel's seek bar touch strip when [x], [y], in the bar's own pixels, are on it and on the bar too, else null. */
         @Nullable
         View stripAt(float x, float y);
     }
