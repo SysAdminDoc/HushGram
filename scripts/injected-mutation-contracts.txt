@@ -2726,6 +2726,12 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->reelsTabResumed(L
 # twice or elsewhere, it isn't the hook the patch wrote. NativeFindReelOriginTest checks on the three
 # 452 builds where it lands.
 once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->postsGridResumed(Ljava/lang/Object;)V in instance ()V calling instance LX/*;->onResume()V class-holding ProfileMediaTabFragment.profile_tab_identifier
+# 454's posts tiles carry no transition name (#689), so it also hands each tile and its media to
+# ReelOrigin.postsTileBound at the top of the tile binder, the one method loading the tile name prefix
+# below (0Fjr.A01 on 386014758). A null check comes before the call, so it's no start-call. Left out, a
+# photo reel is never found among the posts; twice or elsewhere, it isn't the hook the patch wrote.
+# NativeFindReelOriginTest checks on the ten 454 builds where it lands.
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->postsTileBound(Ljava/lang/Object;Ljava/lang/Object;)V in instance (*)V pooled holding profile_grid_item_
 # Blur the bars around Reels hands ReelBlurBars.pager the Reels pager (AndroidX's ViewPager2, whose pages
 # each hold the reel's TextureView) right after the viewer's pager setup stores it (04QD.HRh on 452),
 # the same method Stop Reels scrolling finds by the trace name of the pager's setup. Left out, the switch does nothing;
