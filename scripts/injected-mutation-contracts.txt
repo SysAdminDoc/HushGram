@@ -23,7 +23,7 @@
 # a shape (and any run in the method's name). static counts an invoke-static alone, instance any
 # other invoke, and neither word any invoke. A once-call or shared-call rule's method calls the hook
 # once, or with sites <n> (2 or more) exactly n times, for a filter put on each of several reads in
-# one method. Where start-call and shared-call look for the hook in the other methods holding the
+# one method, or with sites returns once right before each return-object, however many it has. Where start-call and shared-call look for the hook in the other methods holding the
 # strings, and once-call in every other method of Instagram's, they leave out a method another rule
 # for the same hook picks, so two rules told apart only by calling each hold their own method, and a
 # hook the patch puts in several methods gets a once-call for each.
@@ -1587,8 +1587,9 @@ once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->allow(Ljava/ut
 # SaveInPostMenuHookTest checks both on every build of 454. Left out, the menu has no Save row.
 # The builder adds Instagram's own Save to some posts after that spot, so its rows are settled
 # before the return, where the added row comes back out. Left out, those posts show Save twice.
+# arm64's builder has one return; the other ABIs merge it into a switch with 9 to 22, each settled.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
-once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->settle(Ljava/lang/Object;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
+once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->settle(Ljava/lang/Object;)V in (*)Ljava/lang/Object; sites returns pooled holding cns_client_event
 once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->allow(Ljava/util/List;)Ljava/util/List; in static (Z)Ljava/util/List; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->WHY_AM_I_SEEING_THIS:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->REPORT:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
 # Hide Made with Edits (#570) hands the label kinds list to EditsLabel.labels in the constructor of
 # the feed header's label state, right before it's stored (the one constructor of that 22-value
@@ -3169,9 +3170,11 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->resolut
 # cap (0MiN.A00 on 454) answered, with the clip's width, right after the cap. Left out, 2160p uploads at 1440.
 once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->renderWidth(II)I in static (Landroid/content/Context;Lcom/instagram/common/session/UserSession;LX/*;IZZZZ)LX/*; calling static LX/*;->*(Landroid/content/Context;IZZZ)I holding const:0x438 const:0x5a0
 # Its Photo quality choice (#37) hands StoryUploadQuality.photoQuality the JPEG quality first in the static
-# factory (0BWX.A02 on 454) of the class that calls Bitmap.compress with it. Left out, Photo quality does nothing.
-start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in static (Landroid/graphics/Bitmap;LX/*;II)LX/*; class-holding Landroid/graphics/Bitmap;->compress(Landroid/graphics/Bitmap$CompressFormat;ILjava/io/OutputStream;)Z
-once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in static (Landroid/graphics/Bitmap;LX/*;II)LX/*; class-holding Landroid/graphics/Bitmap;->compress(Landroid/graphics/Bitmap$CompressFormat;ILjava/io/OutputStream;)Z
+# factory (0BWX.A02 on 454) of the class that compresses with it. Left out, Photo quality does nothing.
+# That class calls Bitmap.compress on arm64 and Redex's outlined copy (0BQC.A1b) on armeabi-v7a, so the
+# rule names the string its save holds on every ABI.
+start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in static (Landroid/graphics/Bitmap;LX/*;II)LX/*; class-holding SavePhotoUtil_save_jpeg_error
+once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in static (Landroid/graphics/Bitmap;LX/*;II)LX/*; class-holding SavePhotoUtil_save_jpeg_error
 # Its Photo size choice (#37) hands StoryUploadQuality.photoTier each of the 3072, 4096 and 8192 flags
 # first in Instagram's photo size step (0D3B.A01 on 454), the instance method loading the aspect ratio
 # error, so three calls. Fewer calls leave a size Photo size can't turn on.

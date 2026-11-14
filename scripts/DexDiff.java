@@ -260,7 +260,9 @@ public class DexDiff {
      *       that would go, and before "holding" or "class-holding": its method calls the method
      *       reference exactly n times, 2 or more, rather than once. For a filter the patch puts on
      *       each of several reads in one method, as Hide the home feed does on both helper reads in
-     *       the read of Home's store.
+     *       the read of Home's store. "sites returns" holds it to once right before each
+     *       return-object instead, for a hook on a method's result whose count of returns differs
+     *       between builds.
      *   <li>Any of those five with "pooled" right before "holding" or "class-holding": a method
      *       also loads a string when it asks a static (int)String pool of shared strings for it, the
      *       number put in the call's one register by the instruction just before the invoke-static.
@@ -326,7 +328,10 @@ public class DexDiff {
         final String call;
         /** The same rules: whether that call is an invoke-static, or null when the rule doesn't say. */
         final Boolean callStatic;
-        /** once-call and shared-call: how many times its method calls the callee, 1 unless the rule says "sites". */
+        /**
+         * once-call and shared-call: how many times its method calls the callee, 1 unless the rule says
+         * "sites", or {@link #SITES_RETURNS} for once right before each of its return-object instructions.
+         */
         final int sites;
         /** The same rules: whether asking a string pool for one of its strings counts as loading it ("pooled"). */
         final boolean pooled;
@@ -391,7 +396,8 @@ public class DexDiff {
                 if (lackStatic != null) b.append(lackStatic ? "static " : "instance ");
                 b.append(lack);
             }
-            if (sites != 1) b.append(" sites ").append(sites);
+            if (sites == SITES_RETURNS) b.append(" sites returns");
+            else if (sites != 1) b.append(" sites ").append(sites);
             if (pooled) b.append(" pooled");
             List<String> written = new ArrayList<>();
             for (String s : strings) written.add(escape(s));
@@ -543,8 +549,13 @@ public class DexDiff {
         if (at < parts.length && parts[at].equals("sites")) {
             at++;
             if (!kind.equals("once-call") && !kind.equals("shared-call")) return null;
-            if (at >= parts.length || !parts[at].matches("[2-9]|[1-9][0-9]")) return null;
-            sites = Integer.parseInt(parts[at++]);
+            if (at < parts.length && parts[at].equals("returns")) {
+                sites = SITES_RETURNS;
+                at++;
+            } else {
+                if (at >= parts.length || !parts[at].matches("[2-9]|[1-9][0-9]")) return null;
+                sites = Integer.parseInt(parts[at++]);
+            }
         }
         boolean pooled = at < parts.length && parts[at].equals("pooled");
         if (pooled) at++;
@@ -574,7 +585,7 @@ public class DexDiff {
                 if (picked == null) {
                     throw new IllegalArgumentException("Invalid contract line " + lineNumber + ": expected " + form
                             + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>] [lacking [static|instance] <method reference>]"
-                            + (form.startsWith("once-call") || form.startsWith("shared-call") ? " [sites <2 or more>]" : "")
+                            + (form.startsWith("once-call") || form.startsWith("shared-call") ? " [sites <2 or more>|returns]" : "")
                             + " [pooled] holding or class-holding <string> [<string> ...]");
                 }
                 contracts.add(picked);
@@ -601,7 +612,7 @@ public class DexDiff {
                         + " sole-call <method reference> replacing <method reference>,"
                         + " once-call <method reference> or shared-call <method reference>, each then"
                         + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>] [lacking [static|instance] <method reference>]"
-                        + " [sites <2 or more>, once-call and shared-call only] [pooled] holding or class-holding <string> [<string> ...]");
+                        + " [sites <2 or more>|returns, once-call and shared-call only] [pooled] holding or class-holding <string> [<string> ...]");
             }
             String kind = firstCallTyped ? TYPED_FIRST_CALL : firstCallOutside ? OUTSIDE_FIRST_CALL : parts[0];
             contracts.add(new Contract(kind, parts[1], parts[3]));
@@ -2047,6 +2058,15 @@ public class DexDiff {
             } else {
                 System.out.println("[diff] " + rule + ": first in " + only.method);
             }
+        } else if (contract.sites == SITES_RETURNS) {
+            String missed = beforeEachReturn(body, sites);
+            if (missed != null) {
+                System.out.println("[diff] " + rule + ": " + sites.size() + " call sites in " + only.method + ", " + missed);
+                findings.add("contract: " + contract.callee + " has " + sites.size() + (sites.size() == 1 ? " call site" : " call sites")
+                        + " in " + only.method + ", and must be called once right before each return-object: " + missed);
+            } else {
+                System.out.println("[diff] " + rule + ": before each of " + sites.size() + " return-object in " + only.method);
+            }
         } else if (sites.size() != contract.sites) {
             System.out.println("[diff] " + rule + ": " + sites.size() + " call sites in " + only.method);
             findings.add("contract: " + contract.callee + " has " + sites.size() + (sites.size() == 1 ? " call site" : " call sites")
@@ -2208,6 +2228,32 @@ public class DexDiff {
         List<Instruction> body = new ArrayList<>();
         if (m.getImplementation() != null) for (Instruction i : m.getImplementation().getInstructions()) body.add(i);
         return body;
+    }
+
+    /**
+     * A once-call or shared-call rule's "sites returns": the hook goes in once right before each
+     * return-object of its method, however many Redex leaves there. Save in the post menu's settle
+     * call sits before the one return of 454 arm64's feed menu builder, and before each of 9 to 22
+     * where the other ABIs merged that builder into a switch.
+     */
+    static final int SITES_RETURNS = -1;
+
+    /**
+     * Why the calls at [sites] aren't each right before a return-object of [body], one per return,
+     * or null when they are.
+     */
+    static String beforeEachReturn(List<Instruction> body, List<Integer> sites) {
+        int returns = 0;
+        List<Integer> bare = new ArrayList<>();
+        for (int k = 0; k < body.size(); k++) {
+            if (body.get(k).getOpcode() != Opcode.RETURN_OBJECT) continue;
+            returns++;
+            if (!sites.contains(k - 1)) bare.add(k);
+        }
+        if (returns == 0) return "it has no return-object";
+        if (!bare.isEmpty()) return bare.size() + " of its " + returns + " return-object without the call right before, at " + bare;
+        if (sites.size() != returns) return sites.size() - returns + " more than its " + returns + " return-object";
+        return null;
     }
 
     /** The index in [body] of each invoke of [callee]. */
