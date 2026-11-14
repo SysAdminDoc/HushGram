@@ -4,6 +4,13 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import android.app.Activity;
+import android.view.View;
+import android.widget.FrameLayout;
+
+import androidx.annotation.Nullable;
+
+import app.hushgram.extension.instagram.feed.FeedDoubleTapSkip;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -20,6 +27,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * longer than the skip gets no skip. The patch answers the yes or no through {@link #skip(int)},
  * the seconds through {@link #seconds(float)} and the strips through {@link #edge(float)}, with a
  * double version of each number for the builds that read them as doubles.
+ *
+ * <p>Instagram shows nothing when it skips. Right after a skip the gesture navigator hands the way it
+ * went, its FORWARD or BACKWARD, to {@link #skipped(Object)}, and while Show the skip arrows is on
+ * the feed's arrows flash on that side of the screen with the seconds under them (#691).
  */
 public final class ReelSkip {
     /**
@@ -29,8 +40,54 @@ public final class ReelSkip {
     static final float EDGE = 1f / 3f;
 
     private static final String HOOK = "reel double tap skip flag";
+    private static final String ARROWS_HOOK = "reel double tap skip arrows";
+    static final String COUNT_ARROWS = "reel skip arrows shown";
+
+    /** The way a skip went that the debug log has named, once a run. */
+    private static volatile boolean loggedOther;
 
     private ReelSkip() {
+    }
+
+    /**
+     * After a double tap skipped a reel, {@code direction} being the way it went: while the switch and
+     * Show the skip arrows are on, the feed's arrows flash on that side of the screen, over the reel,
+     * with the seconds Skip length moves under them. Instagram calls it on the main thread, from the
+     * double tap. Never throws.
+     */
+    public static void skipped(@Nullable Object direction) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DOUBLE_TAP_SKIP);
+            if (!on() || !Settings.REEL_SKIP_ARROWS.get()) return;
+            int side = side(direction);
+            if (side == 0) {
+                if (!loggedOther) {
+                    loggedOther = true;
+                    Logger.printInfo(() -> "Reel double tap skip: no side for " + direction);
+                }
+                return;
+            }
+            Activity activity = Utils.getActivity();
+            View content = activity == null ? null : activity.findViewById(android.R.id.content);
+            if (!(content instanceof FrameLayout)) return;
+            FeedDoubleTapSkip.flash((FrameLayout) content, side, Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.get());
+            HookStatus.counted(FamilyNames.REEL_DOUBLE_TAP_SKIP, COUNT_ARROWS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DOUBLE_TAP_SKIP, ARROWS_HOOK, failure);
+        }
+    }
+
+    /**
+     * -1 for a skip back, which a double tap on the left strip makes, 1 for one ahead, from the
+     * right strip, and 0 for anything else. Instagram's way is an enum whose constants keep their
+     * names, FORWARD and BACKWARD, through Redex.
+     */
+    static int side(@Nullable Object direction) {
+        if (!(direction instanceof Enum)) return 0;
+        String name = ((Enum<?>) direction).name();
+        if ("BACKWARD".equals(name)) return -1;
+        if ("FORWARD".equals(name)) return 1;
+        return 0;
     }
 
     /**

@@ -51,7 +51,8 @@ public class ModifierSwitchReportTest {
                 PatchFamily.GLASS_TAB_BAR, PatchFamily.COMMENT_COPY, PatchFamily.DOUBLE_TAP_LIKE, PatchFamily.ACCENT_COLOR,
                 PatchFamily.FULL_SCREEN_BARS, PatchFamily.LIKE_ANIMATION, PatchFamily.STORY_MENTIONS,
                 PatchFamily.CHAT_REELS, PatchFamily.FRIENDSHIP_STATUS, PatchFamily.PROFILE_PICTURE,
-                PatchFamily.REEL_SCROLLING, PatchFamily.REEL_DECLUTTER, PatchFamily.LAUNCH_SCREEN, PatchFamily.GLASS_CHAT),
+                PatchFamily.REEL_SCROLLING, PatchFamily.REEL_DECLUTTER, PatchFamily.LAUNCH_SCREEN, PatchFamily.GLASS_CHAT,
+                PatchFamily.REEL_DOUBLE_TAP_SKIP),
                 nested);
 
         for (PatchFamily family : nested) {

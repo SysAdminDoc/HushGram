@@ -4053,6 +4053,13 @@ public class Settings extends BaseSettings {
                     .withRange(5, 30);
 
     /**
+     * Under {@link #DOUBLE_TAP_SKIP_REELS}: a pair of arrows flashes on the side a double tap skipped
+     * to, with the seconds under them, the way feed videos show it. On to start (#691).
+     */
+    public static final BooleanSetting REEL_SKIP_ARROWS =
+            new BooleanSetting("hushgram_double_tap_skip_reels_arrows", TRUE, parent(DOUBLE_TAP_SKIP_REELS));
+
+    /**
      * Keeps the "2x" label off a reel while a held finger plays it faster
      * ({@link app.hushgram.extension.instagram.reels.FastPlayLabel}). The speed-up still works.
      * Off to start (#552).

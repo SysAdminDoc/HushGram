@@ -285,6 +285,9 @@ final class ReelsCategory {
                             + "as Skip length says. A double tap in the middle still likes it. Reels no longer than that "
                             + "don't skip.")));
             reels.add(reelSkipLengthRow(context));
+            reels.add(toggle(context, Settings.REEL_SKIP_ARROWS, L10n.t("Show the skip arrows"),
+                    L10n.t("Two arrows flash on the side you double tapped, with the seconds skipped under them, "
+                            + "like on feed videos.")));
         }
         if (build.contains(PatchFamily.HIDE_REEL_2X_POPUP)) {
             reels.add(toggle(context, Settings.HIDE_REEL_2X_POPUP, L10n.t("Hide the 2x popup"),

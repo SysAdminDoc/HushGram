@@ -3101,6 +3101,11 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelZoom;->zoom(I)Z in (*)Ljav
 # every 454 build that each read there is answered once.
 once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skip(I)Z holding android_purge_26_q3_DoubleTapToSkipUseCase_getUiState const:0x811254000164c9
 shared-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->secondsDouble(D)D holding android_purge_26_q3_DoubleTapToSkipUseCase_getUiState const:0x84125400020474
+# The navigator answers which way a double tap skipped, BACKWARD or FORWARD, right after it seeks, in the method
+# tracing ClipsGestureNavigator_doubleTapToSkipDirection (0DXI.invoke on 454's 386014758). Each of the two ways goes
+# to ReelSkip.skipped just before the navigator reads it, so the arrows flash on that side (#691). Left out, a skip
+# shows nothing.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skipped(Ljava/lang/Object;)V sites 2 pooled holding android_purge_26_q3_ClipsGestureNavigator_doubleTapToSkipDirection
 # Hide the 2x popup on Reels hands the "2x" label a reel's fast play part builds to FastPlayLabel.label
 # where the part's draw returns it (0Bcw.A0q on 454's 386014758, returning 0Bcw.A00's answer) (#552).
 # Left out, the label shows with the switch on; twice or elsewhere, it isn't the filter the patch wrote.
