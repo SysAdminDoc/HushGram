@@ -46,9 +46,9 @@ val saveCommentPhotoPatch = bytecodePatch(
         "sticker, saving the largest size Instagram sent. A GIF or sticker is saved as a .gif in Pictures/Instagram, " +
         "taken from Instagram's own copy, not Giphy. If Instagram lists only an animated WebP or an MP4 for it, " +
         "you get that file instead, and an MP4 goes in Movies/Instagram like a video. It can also add a GIF " +
-        "reply to a comment with a GIF, sending that same GIF back as your reply, show a comment GIF's or " +
-        "sticker's name in that menu, or send a GIF you saved this way as a GIF when you pick it from your " +
-        "gallery in the comment box. Starts off. Turn it on in HushGram settings > Comments.",
+        "reply to a comment with a GIF, sending that same GIF back as your reply, or show a comment GIF's or " +
+        "sticker's name in that menu. A GIF it saved, picked again from your gallery in a comment, goes up " +
+        "animated instead of as a still. Starts off. Turn it on in HushGram settings > Comments.",
     default = true,
 ) {
     category("Downloads")

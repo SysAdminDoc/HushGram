@@ -26,9 +26,10 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 val glassChatPatch = bytecodePatch(
     name = "Glass in chats",
     description = "Gives a chat's top bar and message bar frosted glass that blurs the messages under them " +
-        "(Android 12 and newer) and puts the back, call and video buttons on round glass circles. A second " +
-        "switch gives the reply box on other people's stories the same glass. Starts off. Turn them on in " +
-        "HushGram settings > Messages and Stories.",
+        "(Android 12 and newer) and puts the back, call and video buttons on round glass circles. " +
+        "`Glass top bar in chats` under it leaves the top bar plain while the buttons and message bar keep " +
+        "their glass. Another switch gives the reply box on other people's stories the same glass. Starts off. " +
+        "Turn them on in HushGram settings > Messages and Stories.",
 ) {
     category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch, videoSurfacePatch)
