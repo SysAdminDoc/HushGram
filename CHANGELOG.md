@@ -29,6 +29,7 @@ Every HushGram release, newest first.
 * With `Glass tab bar` off and `Slide across the tabs` on, dragging along the lower edge of a reel's seek bar seeks again. That edge sits over the tab bar, so the drag used to slide across the tabs instead. Reported in #526.
 * The glass tab bar costs less on Reels. It stopped asking for frames of its own between the reel's, and on Android 14 and newer copying the reel behind the pill no longer holds up the screen. Reported in #672.
 * With `Badges in the accent color` on, the unread dot on the Primary and Requests chips at the top of Messages takes your accent color too. It kept Instagram's own color there. Reported in #671.
+* With `Burn-in guard` set to `Dim when idle and shift`, the thin strip the screen leaves when it moves a step is black now. In light mode it showed as a white line along an edge. Reported in #669.
 
 ## 0.0.20 (2026-11-12)
 

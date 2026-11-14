@@ -9,6 +9,12 @@ package app.hushgram.extension.instagram.reels;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -67,7 +73,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>The shift moves the window's content around a small square, {@link #STEP_DP} at a time, every
  * {@link #SHIFT_EVERY_MS}. It's one view's translation, the content frame's, which Instagram doesn't
- * animate, where each control's would be fought over with Instagram's own animations.
+ * animate, where each control's would be fought over with Instagram's own animations. The strips a step
+ * leaves bare are painted black over the decor ({@link Gap}), since the window under the content takes
+ * Instagram's theme and showed white there in light mode (#669).
  *
  * <p>Stories (#479), with Dim stories too on ({@link #stories}): while the story viewer fills the
  * window with no reel drawn over it, its progress bar, header (with HushGram's eye, Download and speed
@@ -186,6 +194,8 @@ public final class BurnInGuard {
     private static final Map<View, float[]> DIMMED = new WeakHashMap<>();
     /** Content views this class moved: the [x, y] they had, then the [x, y] written here. */
     private static final Map<View, float[]> MOVED = new WeakHashMap<>();
+    /** Decor views whose overlay holds the black over what the shift left bare (#669). */
+    private static final Map<View, Gap> GAPS = new WeakHashMap<>();
     private static final Runnable TICK = BurnInGuard::tick;
     private static final Focus FOCUS = new Focus();
     private static final Layout LAYOUT = new Layout();
@@ -559,6 +569,7 @@ public final class BurnInGuard {
         // peekDecorView, so an activity that never made its views doesn't get them made here as it leaves.
         Window window = activity.getWindow();
         View decor = window == null ? null : window.peekDecorView();
+        if (decor != null && !shifting) bare(decor);
         View content = decor == null ? null : decor.findViewById(android.R.id.content);
         if (content == null) return;
         float[] held = MOVED.get(content);
@@ -584,10 +595,90 @@ public final class BurnInGuard {
         float step = STEP_DP * content.getResources().getDisplayMetrics().density;
         held[2] = held[0] + at[0] * step;
         held[3] = held[1] + at[1] * step;
+        cover(decor, content, held);
         if (x == held[2] && y == held[3]) return;
         content.setTranslationX(held[2]);
         content.setTranslationY(held[3]);
         HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_SHIFTED);
+    }
+
+    /**
+     * Puts black over the strips the shift leaves bare (#669), from where the content was before it to
+     * where it is now. Reels and stories are black screens, but the window under them takes Instagram's
+     * theme, so in light mode a step to one side showed a white line down the other.
+     */
+    private static void cover(View decor, View content, float[] held) {
+        float dx = held[2] - held[0];
+        float dy = held[3] - held[1];
+        if (dx == 0f && dy == 0f) {
+            bare(decor);
+            return;
+        }
+        Gap gap = GAPS.get(decor);
+        if (gap == null || gap.content.get() != content) {
+            bare(decor);
+            gap = new Gap(content);
+            GAPS.put(decor, gap);
+            decor.getOverlay().add(gap);
+        }
+        gap.setBounds(0, 0, decor.getWidth(), decor.getHeight());
+        if (gap.baseX != held[0] || gap.baseY != held[1] || gap.dx != dx || gap.dy != dy) {
+            gap.baseX = held[0];
+            gap.baseY = held[1];
+            gap.dx = dx;
+            gap.dy = dy;
+            gap.invalidateSelf();
+        }
+    }
+
+    /** Takes the black {@link #cover} put on [decor] off again. */
+    private static void bare(View decor) {
+        Gap gap = GAPS.remove(decor);
+        if (gap != null) decor.getOverlay().remove(gap);
+    }
+
+    /** The black over the strips the shift left bare, drawn over the decor in its overlay (#669). */
+    static final class Gap extends Drawable {
+        final WeakReference<View> content;
+        /** The translation the content had before the shift, and the shift on top of it. */
+        float baseX, baseY, dx, dy;
+        private final Paint paint = new Paint();
+        private final int[] at = new int[2];
+        private final int[] decorAt = new int[2];
+
+        Gap(View content) {
+            this.content = new WeakReference<>(content);
+            paint.setColor(Color.BLACK);
+        }
+
+        @Override public void draw(@NonNull Canvas canvas) {
+            View view = content.get();
+            if (view == null) return;
+            view.getLocationInWindow(at);
+            View root = view.getRootView();
+            root.getLocationInWindow(decorAt);
+            // Where the content would be without the shift, in the decor's own coordinates.
+            float left = at[0] - decorAt[0] - view.getTranslationX() + baseX;
+            float top = at[1] - decorAt[1] - view.getTranslationY() + baseY;
+            float right = left + view.getWidth();
+            float bottom = top + view.getHeight();
+            // A step is rarely whole pixels (2 dp is 5.25 px at 2.625), so each strip reaches to the
+            // next whole pixel and no half-lit seam is left between it and the content.
+            if (dx > 0f) canvas.drawRect(left, top, (float) Math.ceil(left + dx), bottom, paint);
+            else if (dx < 0f) canvas.drawRect((float) Math.floor(right + dx), top, right, bottom, paint);
+            if (dy > 0f) canvas.drawRect(left, top, right, (float) Math.ceil(top + dy), paint);
+            else if (dy < 0f) canvas.drawRect(left, (float) Math.floor(bottom + dy), right, bottom, paint);
+        }
+
+        @Override public void setAlpha(int alpha) {
+        }
+
+        @Override public void setColorFilter(@Nullable ColorFilter filter) {
+        }
+
+        @Override public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
+        }
     }
 
     private static void schedule(long next) {
@@ -944,6 +1035,7 @@ public final class BurnInGuard {
         LAYOUT.lastLook = Long.MIN_VALUE / 2;
         DIMMED.clear();
         MOVED.clear();
+        GAPS.clear();
         WRAPPED.clear();
     }
 }
