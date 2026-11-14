@@ -1266,6 +1266,9 @@ Under a name in your messages and in a chat, the exact time they were last on, l
 Active at %1$s	Aktif pukul %1$s
 Active yesterday at %1$s	Aktif kemarin pukul %1$s
 Active %1$s at %2$s	Aktif %1$s pukul %2$s
+# context: Messages settings; Active now is Instagram's presence label under a name in your messages and in a chat, shown for six and a half minutes after someone leaves (#683)
+Shorter Active now	Aktif sekarang lebih singkat
+Someone shows as Active now for one minute after they leave, like on the website, instead of six and a half. Restart Instagram to see the change.	Seseorang tampil Aktif sekarang selama satu menit setelah keluar, seperti di situs web, bukan enam setengah menit. Mulai ulang Instagram untuk melihat perubahannya.
 Rounded corners on posts	Sudut membulat pada kiriman
 Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	Membulatkan sudut foto, video, dan halaman carousel pada kiriman di Beranda dan Mengikuti. Kiriman yang kamu gulir setelah perubahan akan menampilkannya. Cerita, profil, dan Jelajahi tetap seperti semula.
 Corner size	Ukuran sudut

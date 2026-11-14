@@ -98,6 +98,7 @@ public enum PatchFamily {
     TYPING(FamilyNames.TYPING, "typing", null, Settings.HIDE_TYPING),
     ACTIVE_STATUS(FamilyNames.ACTIVE_STATUS, "activeStatus", null, Settings.HIDE_ACTIVE_STATUS),
     LAST_ACTIVE(FamilyNames.LAST_ACTIVE, "lastActive", null, Settings.SHOW_LAST_ACTIVE),
+    SHORT_ACTIVE_NOW(FamilyNames.SHORT_ACTIVE_NOW, "shortActiveNow", null, Settings.SHORT_ACTIVE_NOW),
     MESSAGES_LOCK(FamilyNames.MESSAGES_LOCK, "messagesLock", null, Settings.LOCK_MESSAGES, Settings.LOCK_APP,
             Settings.LOCK_SAVED, Settings.LOCK_EACH_CHAT, Settings.DOUBLE_TAP_HIDDEN_CHATS),
     SCREENSHOT_REPORTS(FamilyNames.SCREENSHOT_REPORTS, "screenshotReports", null, Settings.HIDE_SCREENSHOTS),

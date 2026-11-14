@@ -811,6 +811,11 @@ shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Ob
 # The call sits after the method's two Active now checks, which are why Active now stays Instagram's. Left
 # out, the text stays relative; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/direct/LastActive;->exact(J)Ljava/lang/String; in instance (Landroid/content/res/Resources;Ljava/util/List;)Ljava/lang/String; holding const:0x2760 const:0x1e0
+# Shorter Active now hands ActiveNow.window() the Active now limit, TimeUnit.SECONDS.toMillis(390), in
+# the static initializer of the same presence class, right before it's stored in the static final long
+# that class's text method compares against. Left out, Active now lasts Instagram's six and a half
+# minutes; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/direct/ActiveNow;->window(J)J in static ()V calling instance Ljava/util/concurrent/TimeUnit;->toMillis(J)J class-holding const:0x2760 const:0x1e0
 # Loop a story answers the read of Instagram's own story loop flag through loop(), right after it
 # in the story viewer's private check of whether a story item plays again. The check holds no
 # string, so the rule names one only the viewer holds, and of the viewer's instance methods taking

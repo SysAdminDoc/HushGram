@@ -36,6 +36,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.DM_MEDIA_SEEN)
                 || build.contains(PatchFamily.ACTIVE_STATUS)
                 || build.contains(PatchFamily.LAST_ACTIVE)
+                || build.contains(PatchFamily.SHORT_ACTIVE_NOW)
                 || build.contains(PatchFamily.MESSAGES_LOCK)
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
                 || build.contains(PatchFamily.BLEND_VISITS)
@@ -140,6 +141,11 @@ final class MessagesCategory {
                         L10n.t("Show when someone was last active"),
                         L10n.t("Under a name in your messages and in a chat, the exact time they were last on, like "
                                 + "Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.")));
+            }
+            if (build.contains(PatchFamily.SHORT_ACTIVE_NOW)) {
+                messages.addPreference(toggle(context, Settings.SHORT_ACTIVE_NOW, L10n.t("Shorter Active now"),
+                        L10n.t("Someone shows as Active now for one minute after they leave, like on the website, "
+                                + "instead of six and a half. Restart Instagram to see the change.")));
             }
             if (build.contains(PatchFamily.SCREENSHOT_REPORTS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_SCREENSHOTS, L10n.t("Don't report screenshots"),

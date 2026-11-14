@@ -1252,6 +1252,9 @@ Under a name in your messages and in a chat, the exact time they were last on, l
 Active at %1$s	%1$s 上線
 Active yesterday at %1$s	昨天 %1$s 上線
 Active %1$s at %2$s	%1$s %2$s 上線
+# context: Messages settings; Active now is Instagram's presence label under a name in your messages and in a chat, shown for six and a half minutes after someone leaves (#683)
+Shorter Active now	縮短「目前在線上」
+Someone shows as Active now for one minute after they leave, like on the website, instead of six and a half. Restart Instagram to see the change.	對方離開後只會顯示「目前在線上」一分鐘，和網頁版一樣，而不是六分半鐘。請重新啟動 Instagram 以套用變更。
 Rounded corners on posts	貼文圓角
 Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	將首頁與追蹤中貼文的照片、影片與輪播頁面改為圓角。變更後捲動到的貼文才會顯示。限時動態、個人檔案與探索不變。
 Corner size	圓角大小

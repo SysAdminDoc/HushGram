@@ -1266,6 +1266,9 @@ Under a name in your messages and in a chat, the exact time they were last on, l
 Active at %1$s	Aktiv um %1$s
 Active yesterday at %1$s	Gestern aktiv um %1$s
 Active %1$s at %2$s	Aktiv am %1$s um %2$s
+# context: Messages settings; Active now is Instagram's presence label under a name in your messages and in a chat, shown for six and a half minutes after someone leaves (#683)
+Shorter Active now	Jetzt aktiv kürzer anzeigen
+Someone shows as Active now for one minute after they leave, like on the website, instead of six and a half. Restart Instagram to see the change.	Jemand wird nach dem Verlassen nur noch eine Minute lang als Jetzt aktiv angezeigt, wie auf der Website, statt sechseinhalb. Starte Instagram neu, um die Änderung zu sehen.
 Rounded corners on posts	Abgerundete Ecken bei Beiträgen
 Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	Rundet die Ecken von Foto, Video und Karussell-Seiten eines Beitrags auf der Startseite und in „Gefolgt“ ab. Beiträge, zu denen du nach einer Änderung scrollst, zeigen sie. Stories, Profile und Entdecken bleiben wie sie waren.
 Corner size	Eckengröße

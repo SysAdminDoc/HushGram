@@ -61,6 +61,7 @@ public final class FamilyNames {
     public static final String TYPING = "Hide that you're typing";
     public static final String ACTIVE_STATUS = "Hide your active status";
     public static final String LAST_ACTIVE = "Show when someone was last active";
+    public static final String SHORT_ACTIVE_NOW = "Shorter Active now";
     public static final String MESSAGES_LOCK = "Lock your messages";
     public static final String STORIES_TRAY = "Hide suggested stories";
     public static final String STORY_RING = "Story ring size";

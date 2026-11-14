@@ -232,6 +232,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Shorter Active now patch. */
+    public static boolean shortActiveNow() {
+        return false;
+    }
+
     public static boolean shareSheet() {
         return false;
     }

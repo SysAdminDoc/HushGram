@@ -5363,6 +5363,46 @@
       "options": []
     },
     {
+      "name": "Shorter Active now",
+      "description": "Someone shows as Active now for one minute after they leave, like on the website, instead of six and a half. Starts off. Turn it on in HushGram settings > Messages.",
+      "category": "Fixes",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Show a post's exact time",
       "description": "Shows the date and time a post went up, like Oct 2, 3:45 PM, instead of how long ago. It does the same for comments. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Feed",

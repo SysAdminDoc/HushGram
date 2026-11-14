@@ -806,6 +806,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SHOW_LAST_ACTIVE = new BooleanSetting("hushgram_show_last_active", FALSE);
 
     /**
+     * Someone drops off Active now a minute after Instagram last saw them, as on the website,
+     * instead of six and a half ({@link app.hushgram.extension.instagram.direct.ActiveNow}).
+     * Instagram reads the limit once per process, so a change needs a restart. Off to start.
+     */
+    public static final BooleanSetting SHORT_ACTIVE_NOW = new BooleanSetting("hushgram_short_active_now", FALSE, true);
+
+    /**
      * Your inbox and chats stay covered until the phone's lock says it's you, and message
      * notifications say only that a message came
      * ({@link app.hushgram.extension.instagram.direct.MessagesLock}). Off to start.

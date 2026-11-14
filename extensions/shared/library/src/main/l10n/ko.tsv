@@ -1265,6 +1265,9 @@ Under a name in your messages and in a chat, the exact time they were last on, l
 Active at %1$s	%1$s에 활동
 Active yesterday at %1$s	어제 %1$s에 활동
 Active %1$s at %2$s	%1$s %2$s에 활동
+# context: Messages settings; Active now is Instagram's presence label under a name in your messages and in a chat, shown for six and a half minutes after someone leaves (#683)
+Shorter Active now	지금 활동 중 짧게 표시
+Someone shows as Active now for one minute after they leave, like on the website, instead of six and a half. Restart Instagram to see the change.	웹사이트처럼 상대가 나간 뒤 6분 30초가 아니라 1분 동안만 지금 활동 중으로 표시됩니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Rounded corners on posts	게시물 모서리 둥글게
 Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	홈과 팔로잉에서 게시물의 사진, 동영상, 캐러셀 페이지 모서리를 둥글게 만듭니다. 변경한 뒤에 스크롤해서 보는 게시물부터 적용됩니다. 스토리, 프로필, 탐색은 그대로입니다.
 Corner size	모서리 크기

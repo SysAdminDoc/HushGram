@@ -1266,6 +1266,9 @@ Under a name in your messages and in a chat, the exact time they were last on, l
 Active at %1$s	%1$s'de aktifti
 Active yesterday at %1$s	Dün %1$s'de aktifti
 Active %1$s at %2$s	%1$s %2$s'de aktifti
+# context: Messages settings; Active now is Instagram's presence label under a name in your messages and in a chat, shown for six and a half minutes after someone leaves (#683)
+Shorter Active now	Daha kısa Şu an aktif
+Someone shows as Active now for one minute after they leave, like on the website, instead of six and a half. Restart Instagram to see the change.	Biri çıktıktan sonra, web sitesindeki gibi altı buçuk dakika yerine bir dakika boyunca Şu an aktif görünür. Değişikliği görmek için Instagram'ı yeniden başlat.
 Rounded corners on posts	Gönderilerde yuvarlak köşeler
 Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	Ana Sayfa ve Takip Edilenler'de bir gönderinin fotoğraf, video ve kaydırmalı albüm sayfalarının köşelerini yuvarlar. Bir değişiklikten sonra kaydırdığın gönderilerde görünür. Hikayeler, profiller ve Keşfet olduğu gibi kalır.
 Corner size	Köşe boyutu
