@@ -24,6 +24,12 @@ Every HushGram release, newest first.
 * `Top bar tint in chats` and `Message bar tint`, new under `Glass in chats`, set how dark each glass bar is, from 0% (blur only) to 150%. The tab bar keeps its own tint. Asked for in #688.
 * `Header text font` picks bold, regular, serif, script, monospace or your `Font` choice for the words on Home's header, and `Center the header text` puts them in the middle of the screen. Asked for in #688.
 * `Text size`, new under `Font`, sets Instagram's text anywhere from 70% to 200% of the phone's size, in any font. Asked for in #682.
+* `Profile history` keeps each profile picture at full size. Old pictures open full screen from its page, a long press saves one to your gallery, and every row says when its old value was seen. Asked for in #611.
+* `Decline calls that don't ring`, new under Call blocker, declines a call `Who can call you` keeps quiet, the same as tapping Decline, so it doesn't keep ringing on their end. Starts off. Asked for in #578.
+* `Locked collections` under Messages locks single collections in Saved with the same unlock as your other locks. The rest of Saved stays open, and saving a post to a locked one never asks. Asked for in #678.
+* `Sort reels on profiles`, new under Profiles, puts the arrow next to Reels on every profile so you can sort by Latest or Most viewed where Instagram took that away. Starts off. Asked for in #679.
+* `Shorter Active now`, new under Messages, drops Active now a minute after someone leaves, like the website, instead of six and a half minutes. Restart Instagram after turning it on. Starts off. Asked for in #683.
+* `Sent follow requests`, new under Profiles, keeps a list of the accounts you've asked to follow that haven't let you in. Tap one to open the profile, where Instagram's Requested button cancels it. Starts off. Asked for in #690.
 
 ### Bug Fixes
 
@@ -54,6 +60,7 @@ Every HushGram release, newest first.
 * `Seek bar shape` keeps its own size on a `Thicker story progress bar`, the story bar glides while a video plays instead of stepping, and Instagram's own reel bar takes the shape too. Reported in #689.
 * `Haptic strength` keeps growing past 150%, up to a long full-strength tap at 200%. Before, everything past 100% felt the same. Reported in #689.
 * New switches show their blue dot again, right before the "i" that holds their description. Reported in #689.
+* `Ambient light` now fills the black bands around a reel you open from a profile or the Reels tab, not just a strip as wide as the spread. Reported in #689.
 
 ## 0.0.20 (2026-11-12)
 
