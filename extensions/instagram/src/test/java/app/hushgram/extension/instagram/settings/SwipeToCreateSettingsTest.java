@@ -68,7 +68,7 @@ public class SwipeToCreateSettingsTest {
         assertEquals("Stop swipe to create", row.getTitle().toString());
         assertFalse(row.isChecked());
         assertFalse(Settings.STOP_SWIPE_TO_CREATE.get());
-        assertEquals(java.util.Collections.singletonList(Settings.STOP_SWIPE_TO_CREATE), PatchFamily.SWIPE_TO_CREATE.switches);
+        assertEquals(java.util.Arrays.asList(Settings.STOP_SWIPE_TO_CREATE, Settings.SWIPE_LEFT_MESSAGES), PatchFamily.SWIPE_TO_CREATE.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STOP_SWIPE_TO_CREATE.key));
 
         Settings.STOP_SWIPE_TO_CREATE.save(true);
@@ -81,5 +81,32 @@ public class SwipeToCreateSettingsTest {
         PauseForTests.resume();
         assertTrue(Settings.STOP_SWIPE_TO_CREATE.get());
         assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+    }
+    @Test public void missingPatchHasNoLeftSwipeSwitch() throws Exception {
+        open(false);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.SWIPE_LEFT_MESSAGES.key));
+    }
+    @Test public void leftSwipeSwitchSitsUnderStopSwipeStartsOffAndHonorsPause() throws Exception {
+        open(true);
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SWIPE_LEFT_MESSAGES.key);
+        assertNotNull(row);
+        assertEquals("Swipe left for Messages", row.getTitle().toString());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().startsWith("Swiping left on Home opens Messages"));
+        assertFalse(row.isChecked());
+        assertFalse(Settings.SWIPE_LEFT_MESSAGES.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SWIPE_LEFT_MESSAGES.key));
+        android.preference.Preference stop = page.getPreferenceScreen().findPreference(Settings.STOP_SWIPE_TO_CREATE.key);
+        assertSame("both in one group", stop.getParent(), row.getParent());
+        assertTrue("after Stop swipe to create", stop.getOrder() < row.getOrder());
+
+        Settings.SWIPE_LEFT_MESSAGES.save(true);
+        assertTrue(Settings.SWIPE_LEFT_MESSAGES.get());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.SWIPE_LEFT_MESSAGES.get());
+        assertTrue(Settings.SWIPE_LEFT_MESSAGES.savedValue());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue(Settings.SWIPE_LEFT_MESSAGES.get());
     }
 }

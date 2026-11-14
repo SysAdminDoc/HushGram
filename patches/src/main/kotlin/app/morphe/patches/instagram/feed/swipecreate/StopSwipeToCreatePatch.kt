@@ -9,7 +9,10 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
+import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
@@ -66,16 +69,21 @@ internal const val DRAG = "swipe"
 private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 private const val STRING = "Ljava/lang/String;"
 
+/** Swipe left for Messages (#639): handed every touch, true keeps it from Instagram's views. */
+internal const val HOME_LEFT_SWIPE = "$EXTENSION_PACKAGE/feed/HomeLeftSwipe;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z"
+
 /**
- * Stops a sideways swipe on Home from opening the camera. Included in the default selection with
- * its switch initially off, so turning the swipe off is the user's pick. The + button and every
- * other way into the camera still open it.
+ * Stops a sideways swipe on Home from opening the camera, and lets a swipe left on Home open
+ * Messages the way Instagram used to. Included in the default selection with both switches
+ * initially off, so either is the user's pick. The + button and every other way into the camera
+ * still open it.
  */
 @Suppress("unused")
 val stopSwipeToCreatePatch = bytecodePatch(
     name = "Stop swipe to create",
-    description = "Stops a sideways swipe on Home from opening the camera. The + button still opens it. Starts " +
-        "off. Turn it on in HushGram settings > Feed.",
+    description = "Stops a sideways swipe on Home from opening the camera. The + button still opens it. It can also " +
+        "open Messages when you swipe left on Home, like Instagram used to. Both start off. Turn them on in " +
+        "HushGram settings > Feed.",
     default = true,
 ) {
     category("Feed")
@@ -84,9 +92,51 @@ val stopSwipeToCreatePatch = bytecodePatch(
 
     execute {
         requireStatusMethod("swipeToCreate")
-        stopSwipeToCreate(findSwipeToCreate())
+        val site = findSwipeToCreate()
+        val touch = findHomeLeftSwipeTouch()
+        stopSwipeToCreate(site)
+        hookHomeLeftSwipe(touch)
         enableStatus("swipeToCreate")
     }
+}
+
+/**
+ * IgFragmentActivity's own dispatchTouchEvent, which every touch on an Instagram screen passes
+ * through before any of its views, Home's feed and its carousels included. The hook's answer goes
+ * in the method's first local, which is written before it's read.
+ */
+internal fun BytecodePatchContext.findHomeLeftSwipeTouch(): MutableMethod {
+    val activity = classDefByOrNull(FRAGMENT_ACTIVITY) ?: refuse("this build has no $FRAGMENT_ACTIVITY")
+    val touches = activity.methods.filter {
+        it.name == "dispatchTouchEvent" && it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == listOf(MOTION_EVENT) &&
+            it.implementation != null
+    }
+    val touch = touches.singleOrNull() ?: refuse("expected $FRAGMENT_ACTIVITY to have one dispatchTouchEvent of its own, found ${touches.size}")
+    if (touch.localRegisterCount() < 1) refuse("$FRAGMENT_ACTIVITY->dispatchTouchEvent has no local register for the hook's answer")
+    return mutableClassDefBy(FRAGMENT_ACTIVITY).methods.single {
+        it.name == touch.name && it.parameterTypes.map(CharSequence::toString) == listOf(MOTION_EVENT)
+    }
+}
+
+/**
+ * First thing in [touch], hands the activity and the event to [HOME_LEFT_SWIPE]. When it answers
+ * true the touch belongs to a swipe left on Home and is answered as handled, so no view gets it.
+ * Otherwise the code after it runs as it was. Tap to play reads every touch here too and is held
+ * first, so when its call is already in, this one goes right after it.
+ */
+internal fun hookHomeLeftSwipe(touch: MutableMethod) {
+    val first = (touch.getInstruction(0) as? ReferenceInstruction)?.reference as? MethodReference
+    val at = if (first != null && "${first.definingClass}->${first.name}(${first.parameterTypes.joinToString("")})${first.returnType}" == TAP_CLOCK) 1 else 0
+    touch.addInstructionsWithLabels(
+        at,
+        """
+            invoke-static/range { p0 .. p1 }, $HOME_LEFT_SWIPE
+            move-result v0
+            if-eqz v0, :instagram
+            return v0
+        """,
+        ExternalLabel("instagram", touch.getInstruction(at)),
+    )
 }
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")

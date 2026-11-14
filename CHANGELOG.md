@@ -17,6 +17,7 @@ Every HushGram release, newest first.
 * `Auto scroll in Home` under Feed moves Home to the next post by itself, when a video ends or after the time you pick for photos and carousels. Touching the screen holds it. Asked for in #660.
 * A new switch, `Control the reel above comments` under Reels, lets you tap the reel above open comments to pause or play it, or hold it for 2x. The comments stay open. Starts off. Asked for in #665.
 * A new switch, `Classic colors` under Layout, turns dark mode navy blue with charcoal gray panels and light mode off-white, like Instagram's older look. Story and reel viewers keep their own. Asked for in #639.
+* `Swipe left for Messages`, new under Feed, opens Messages when you swipe left across Home, the way Instagram used to. Carousels and the stories row still slide as before. It starts off. Asked for in #639.
 * `Hide links`, new with the other profile banner switches under Profiles, takes the row of links (a website or a business's links) from under the bio on other people's profiles. Yours keeps it. Asked for in #627.
 * `Send saved GIFs as GIFs`, new under Comments, posts a GIF you saved with `Save comment photo` as a GIF when you pick it from your gallery in a comment. Instagram sent it as a still. Asked for in #402.
 

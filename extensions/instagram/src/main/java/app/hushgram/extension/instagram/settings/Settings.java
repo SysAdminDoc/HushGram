@@ -2527,6 +2527,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_home_swipe_opens", app.hushgram.extension.instagram.feed.HomeSwipe.CAMERA);
 
     /**
+     * A swipe left on Home opening Messages, as Instagram used to
+     * ({@link app.hushgram.extension.instagram.feed.HomeLeftSwipe}, #639). Read as each touch goes
+     * down, so a change shows on the next swipe. Off to start.
+     */
+    public static final BooleanSetting SWIPE_LEFT_MESSAGES =
+            new BooleanSetting("hushgram_swipe_left_messages", FALSE);
+
+    /**
      * A sideways swipe between the main tabs
      * ({@link app.hushgram.extension.instagram.feed.TabSwipe}). Read at each touch, so a change
      * shows on the next swipe. Off to start.

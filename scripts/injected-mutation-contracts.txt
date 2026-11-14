@@ -252,6 +252,10 @@ first-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->redraw(Ljava/l
 # first or right after Tap to play's TapClock, and keeps the second tap of a double tap on Messages
 # from Instagram. Left out, the switch shows but a double tap only opens Messages (#358).
 once-call Lapp/hushgram/extension/instagram/direct/HiddenChatsTap;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
+# Swipe left for Messages (Stop swipe to create) reads every touch in the same method, first or right
+# after Tap to play's TapClock, and keeps a left swipe on Home from the tabs' pager. Left out, the
+# switch shows but the swipe only moves to the next tab (#639). HomeLeftSwipeHookTest proves the hook.
+once-call Lapp/hushgram/extension/instagram/feed/HomeLeftSwipe;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # Hide chat and Unhide chat in a chat's long press menu (HiddenChatsMenu offer, shown, label and tap,
 # #661) have no rule: the patch leaves the row out with a warning when a build's menu has moved, so a
 # required call would fail a build the patch handles. HiddenChatMenuHookTest proves the four hooks,

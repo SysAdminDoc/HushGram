@@ -175,6 +175,9 @@ final class FeedCategory {
                     L10n.t("A sideways swipe on Home no longer opens the camera. The + button and every other way "
                             + "into the camera still work.")));
             feed.addPreference(homeSwipeRow(context));
+            feed.addPreference(toggle(context, Settings.SWIPE_LEFT_MESSAGES, L10n.t("Swipe left for Messages"),
+                    L10n.t("Swiping left on Home opens Messages, like Instagram used to. Carousels and the stories "
+                            + "row still slide as before.")));
         }
         if (tabSwipe) {
             feed.addPreference(toggle(context, Settings.STOP_TAB_SWIPING, L10n.t("Stop swiping between tabs"),

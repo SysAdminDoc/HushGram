@@ -6244,7 +6244,7 @@
     },
     {
       "name": "Stop swipe to create",
-      "description": "Stops a sideways swipe on Home from opening the camera. The + button still opens it. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Stops a sideways swipe on Home from opening the camera. The + button still opens it. It can also open Messages when you swipe left on Home, like Instagram used to. Both start off. Turn them on in HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [
