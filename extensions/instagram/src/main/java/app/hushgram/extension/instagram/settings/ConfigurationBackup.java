@@ -60,7 +60,11 @@ import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragm
 public final class ConfigurationBackup {
     /** Room for a full Saved profiles list beside the settings. */
     public static final int MAX_BYTES = 1024 * 1024;
-    public static final int MAX_ENTRIES = 512;
+    /**
+     * Bounds a file's entries, well past the settings a build with every patch has, which passed 512 as
+     * the settings grew and made every export from such a build fail.
+     */
+    public static final int MAX_ENTRIES = 1024;
     static final String PROFILES = "profiles";
     public static final long UNDO_WINDOW_MS = 10_000;
     /** The ordinary text bound. Selection and blocked-word lists have the larger bound below. */
@@ -75,7 +79,7 @@ public final class ConfigurationBackup {
      * this build writes. The only array is the profiles.
      */
     private static final SettingsJson.Limits LIMITS = new SettingsJson.Limits(4,
-            2048 + 8 * SavedProfiles.MAX_PROFILES, MAX_WORDS_TEXT, SavedProfiles.MAX_PROFILES, MAX_BYTES);
+            4 * MAX_ENTRIES + 8 * SavedProfiles.MAX_PROFILES, MAX_WORDS_TEXT, SavedProfiles.MAX_PROFILES, MAX_BYTES);
     /**
      * Guards the Undo state below. It's a lock of its own, never the class's: an import holds the class
      * lock from its validation through its disk commit, and the page reads whether Undo is on offer, and

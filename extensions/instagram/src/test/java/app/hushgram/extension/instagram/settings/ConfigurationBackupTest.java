@@ -111,6 +111,19 @@ public class ConfigurationBackupTest {
         assertFalse(Settings.HIDE_ADS.savedValue());
     }
 
+    /**
+     * With every patch in the build, the backup holds every setting there is and still has room under the
+     * entry cap for the ones to come, so exporting never fails as the settings grow.
+     */
+    @Test public void aFullBuildsBackupHoldsEverySettingWithRoomToGrow() throws Exception {
+        int settings = ConfigurationBackup.eligible().size();
+        assertTrue(settings + " settings against a cap of " + ConfigurationBackup.MAX_ENTRIES,
+                settings + 128 <= ConfigurationBackup.MAX_ENTRIES);
+        JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
+        assertEquals(settings, values.length());
+        assertNotNull("the file it wrote opens again", ConfigurationBackup.restore(ConfigurationBackup.export()));
+    }
+
     @Test public void exportUsesSavedChoicesAndOnlyInstalledControls() throws Exception {
         Settings.HIDE_ADS.save(true);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
@@ -316,13 +329,14 @@ public class ConfigurationBackupTest {
         }
     }
 
-    @Test public void byteAndEntryBoundsRejectOversizeAndAcceptExactly512Entries() throws Exception {
+    @Test public void byteAndEntryBoundsRejectOversizeAndAcceptExactlyTheCapsEntries() throws Exception {
+        assertEquals(1024, ConfigurationBackup.MAX_ENTRIES);
         StringBuilder entries = new StringBuilder();
-        for (int i = 0; i < 512; i++) {
+        for (int i = 0; i < ConfigurationBackup.MAX_ENTRIES; i++) {
             if (i != 0) entries.append(',');
             entries.append(entry("future_" + i, "boolean", false));
         }
-        assertEquals(512, ConfigurationBackup.restore(file(entries.toString())).skipped);
+        assertEquals(ConfigurationBackup.MAX_ENTRIES, ConfigurationBackup.restore(file(entries.toString())).skipped);
         rejected(file(entries + "," + entry("extra", "boolean", true)));
         rejected(new byte[ConfigurationBackup.MAX_BYTES + 1]);
         assertEquals(ConfigurationBackup.MAX_BYTES, ConfigurationBackup.read(
