@@ -39,6 +39,7 @@ Every HushGram release, newest first.
 * `Swipe left to open the profile` works on reels opened outside the Reels tab, like from someone's profile, so hiding the Reels tab doesn't turn it off. A right swipe closes the profile. Reported in #596.
 * With a floating `Glass tab bar` and three-button navigation, the pill stays above the buttons when you come back to Instagram from another screen. It could sink down into the navigation bar and stay there.
 * Opening `Pause and diagnostics` on its own page no longer freezes Instagram. It hung whenever HushGram wasn't paused or locked.
+* With `Pure black` and `Classic colors` or `Backgrounds in the accent color` both on in dark mode, the rows in a post's Likes list match the sheet behind them. They stayed black. Reported in #639.
 
 ## 0.0.20 (2026-11-12)
 

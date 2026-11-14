@@ -137,6 +137,27 @@ internal const val ROW_DRAWABLE = "elevated_bg_simple_row_dark"
 internal const val ROW_BACKGROUND = "igds_color_elevated_background_dark"
 
 /**
+ * HushGram's own attribute [ROW_DRAWABLE] fills with in place of [ROW_BACKGROUND], so a theme can give
+ * a Likes row a color of its own. Pure black sets it to [PURE_BLACK_COLOR] in every style that sets
+ * [ROW_BACKGROUND], so any theme that resolved that attribute resolves this one, and the dark
+ * background styles of Classic colors and Backgrounds in the accent color set it to their raised
+ * shade, the sheet's (#639). It ends in `_dark` so their light styles leave it alone, as they leave
+ * Instagram's.
+ */
+internal const val ROW_ATTRIBUTE = "hushgram_row_background_dark"
+
+/** Declares [ROW_ATTRIBUTE] in a decoded values/attrs.xml unless it's there, and answers whether it added it. */
+internal fun declareRowAttribute(attrs: Document): Boolean {
+    val list = attrs.documentElement.getElementsByTagName("attr")
+    if ((0 until list.length).any { (list.item(it) as Element).getAttribute("name") == ROW_ATTRIBUTE }) return false
+    attrs.documentElement.appendChild(attrs.createElement("attr").apply {
+        setAttribute("name", ROW_ATTRIBUTE)
+        setAttribute("format", "color")
+    })
+    return true
+}
+
+/**
  * The color [INSTAGRAM_LAUNCH_THEME] gives Android 12's launch screen, the backdrop of its icon and
  * the bars, #ff1a1a1a in the dark theme on 453 (#410). The splash Instagram draws itself after it
  * already takes bds_black in the dark theme.
@@ -229,16 +250,37 @@ private fun blackenAttribute(styles: Document, attribute: String, names: List<St
 }
 
 /**
- * Points whatever in one decoded [ROW_DRAWABLE] fills with [ROW_BACKGROUND] at [PURE_BLACK_COLOR],
- * and answers how many it changed. A pressed row keeps its gray, so a press still shows.
+ * Points whatever in one decoded [ROW_DRAWABLE] fills with [ROW_BACKGROUND] at [ROW_ATTRIBUTE], and
+ * answers how many it changed. A pressed row keeps its gray, so a press still shows.
  */
-internal fun blackenRow(row: Document): Int {
+internal fun routeRow(row: Document): Int {
     val solids = row.getElementsByTagName("solid")
     val gray = (0 until solids.length).map { solids.item(it) as Element }.filter { solid ->
         solid.getAttribute("android:color").trim().removePrefix("?").removePrefix("attr/") == ROW_BACKGROUND
     }
-    gray.forEach { it.setAttribute("android:color", PURE_BLACK_COLOR) }
+    gray.forEach { it.setAttribute("android:color", "?attr/$ROW_ATTRIBUTE") }
     return gray.size
+}
+
+/**
+ * Gives [ROW_ATTRIBUTE] [PURE_BLACK_COLOR] in each style of one decoded styles.xml that sets
+ * [ROW_BACKGROUND] and not [ROW_ATTRIBUTE], and answers the styles it changed. When the accent patch
+ * ran first, its dark styles set both and keep their shade.
+ */
+internal fun blackenRowStyles(styles: Document): List<String> {
+    val list = styles.getElementsByTagName("style")
+    val changed = mutableListOf<String>()
+    for (style in (0 until list.length).map { list.item(it) as Element }) {
+        val items = style.getElementsByTagName("item")
+        val names = (0 until items.length).map { (items.item(it) as Element).getAttribute("name").substringAfter(':') }
+        if (ROW_BACKGROUND !in names || ROW_ATTRIBUTE in names) continue
+        style.appendChild(styles.createElement("item").apply {
+            setAttribute("name", ROW_ATTRIBUTE)
+            textContent = PURE_BLACK_COLOR
+        })
+        changed += style.getAttribute("name")
+    }
+    return changed
 }
 
 /**
@@ -290,20 +332,23 @@ internal fun BytecodePatchContext.blackenLiterals(): List<String> {
  * Writes pure black into the decoded styles: the backgrounds [blackenStyles] owns, the sheets
  * [blackenSheets] owns, the story viewer [blackenStories] owns, the held-message menu
  * [blackenMenus] owns, the comments theme [blackenComments] owns and the dark launch screen
- * [blackenLaunchScreen] owns, then into the row [blackenRow] owns. Only that row's file, the styles
- * files that name [PRISM_BLACK_COLOR] and the night ones naming [SPLASH_BACKGROUND_COLOR] are
- * opened: document() writes its file back, and the
+ * [blackenLaunchScreen] owns, and into the Likes row's own attribute [blackenRowStyles] owns, which
+ * the row [routeRow] owns fills with from then on. Only that row's file, values/attrs.xml, the styles
+ * files that name [PRISM_BLACK_COLOR] or [ROW_BACKGROUND] and the night ones naming
+ * [SPLASH_BACKGROUND_COLOR] are opened: document() writes its file back, and the
  * patcher re-encodes every file written. The sheets' and stories' styles sit in the file the
  * palettes are in.
  */
 internal fun ResourcePatchContext.blackenThemes() {
     // Patcher 2.0 decodes only the files a patch asks for.
-    decode("res/values*/colors.xml", "res/values*/styles.xml", "res/drawable*/$ROW_DRAWABLE.xml")
+    decode("res/values*/colors.xml", "res/values*/styles.xml", "res/values/attrs.xml", "res/drawable*/$ROW_DRAWABLE.xml")
     var rows = 0
     get("res").listFiles { file -> file.isDirectory && File(file, "$ROW_DRAWABLE.xml").isFile }.orEmpty().forEach { directory ->
-        document("res/${directory.name}/$ROW_DRAWABLE.xml").use { rows += blackenRow(it) }
+        document("res/${directory.name}/$ROW_DRAWABLE.xml").use { rows += routeRow(it) }
     }
     if (rows == 0) throw PatchException("$PATCH: $ROW_DRAWABLE no longer fills with $ROW_BACKGROUND")
+    if (!get("res/values/attrs.xml").isFile) throw PatchException("$PATCH: there's no values/attrs.xml to declare $ROW_ATTRIBUTE in")
+    document("res/values/attrs.xml").use { declareRowAttribute(it) }
     val values = get("res").listFiles { file -> file.isDirectory && file.name.startsWith("values") }.orEmpty()
     val colors = File(get("res"), "values/colors.xml")
     // 449 stores it as an RGB color, which decodes without the alpha.
@@ -318,13 +363,15 @@ internal fun ResourcePatchContext.blackenThemes() {
     val menus = mutableListOf<String>()
     val comments = mutableListOf<String>()
     val launchScreens = mutableListOf<String>()
+    val rowStyles = mutableListOf<String>()
     values.forEach { directory ->
         val file = File(directory, "styles.xml")
         if (!file.isFile) return@forEach
         val text = file.readText()
         val palettes = PRISM_BLACK_COLOR in text
         val launch = isNightValues(directory.name) && SPLASH_BACKGROUND_COLOR in text
-        if (!palettes && !launch) return@forEach
+        val row = ROW_BACKGROUND in text
+        if (!palettes && !launch && !row) return@forEach
         document("res/${directory.name}/styles.xml").use { styles ->
             if (palettes) {
                 backgrounds += blackenStyles(styles)
@@ -333,9 +380,11 @@ internal fun ResourcePatchContext.blackenThemes() {
                 menus += blackenMenus(styles)
                 comments += blackenComments(styles)
             }
+            if (row) rowStyles += blackenRowStyles(styles)
             if (launch && blackenLaunchScreen(styles) > 0) launchScreens += directory.name
         }
     }
+    if (rowStyles.isEmpty()) throw PatchException("$PATCH: no style sets $ROW_BACKGROUND for $ROW_ATTRIBUTE to follow")
     val missing = DARK_PALETTES - backgrounds.toSet()
     if (missing.isNotEmpty()) {
         throw PatchException("$PATCH: ${missing.joinToString()} no longer set a background to $PRISM_BLACK_COLOR")

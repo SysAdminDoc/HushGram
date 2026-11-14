@@ -324,14 +324,15 @@ internal const val BACKGROUND_ATTRIBUTE = "igds_color_primary_background"
  * The attributes the background styles set, each with its step (#187). Instagram's other backgrounds
  * mostly point at these. The media, Reels and story loading backgrounds aren't here, so a story or a
  * reel still plays over black. Neither are the see-through ones (toasts, blurs), which already show
- * what's behind them.
+ * what's behind them. [ROW_ATTRIBUTE] is HushGram's, the one Pure black leaves a Likes row filling with.
  */
 internal val BACKGROUND_ATTRIBUTES: Map<String, BackgroundStep> = linkedMapOf(
     BACKGROUND_ATTRIBUTE to BackgroundStep.BASE,
     "status_bar_background" to BackgroundStep.BASE,
     "igds_color_cta_banner_background" to BackgroundStep.BASE,
     "igds_color_elevated_background" to BackgroundStep.RAISED,
-    "igds_color_elevated_background_dark" to BackgroundStep.RAISED,
+    ROW_BACKGROUND to BackgroundStep.RAISED,
+    ROW_ATTRIBUTE to BackgroundStep.RAISED,
     "igds_color_prism_card_background" to BackgroundStep.RAISED,
     "igds_color_generic_xma_background_color" to BackgroundStep.RAISED,
     "igds_color_secondary_background" to BackgroundStep.TOP,
@@ -413,9 +414,15 @@ private fun <T> declaredOf(table: Map<String, T>, attrs: Document): Map<String, 
 /** The ring attributes [attrs] declares. */
 private fun ringAttributes(attrs: Document): Map<String, AccentRole> = declaredOf(RING_ATTRIBUTES, attrs)
 
-/** The background attributes [attrs] declares, or none without [BACKGROUND_ATTRIBUTE]. */
-private fun backgroundAttributes(attrs: Document): Map<String, BackgroundStep> =
-    declaredOf(BACKGROUND_ATTRIBUTES, attrs).takeIf { BACKGROUND_ATTRIBUTE in it }.orEmpty()
+/**
+ * The background attributes [attrs] declares, or none without [BACKGROUND_ATTRIBUTE]. [ROW_ATTRIBUTE]
+ * counts wherever [ROW_BACKGROUND] is declared, since [declareRowAttribute] adds it then (#639).
+ */
+private fun backgroundAttributes(attrs: Document): Map<String, BackgroundStep> {
+    val declared = attrs.children("attr").mapTo(HashSet()) { it.getAttribute("name") }
+    if (ROW_BACKGROUND in declared) declared += ROW_ATTRIBUTE
+    return BACKGROUND_ATTRIBUTES.filterKeys { it in declared }.takeIf { BACKGROUND_ATTRIBUTE in it }.orEmpty()
+}
 
 private fun Document.children(tag: String): List<Element> {
     val list = documentElement.getElementsByTagName(tag)
@@ -545,6 +552,7 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
             backgroundSteps.map { classicColor(theme, it) } + classicStyle(theme)
         } else emptyList())
     adding.firstOrNull { it in taken }?.let { refuse("the resources already have a $it") }
+    if (ROW_ATTRIBUTE in backgrounds) declareRowAttribute(attrs)
 
     for (shade in shades) {
         attrs.documentElement.appendChild(attrs.createElement("attr").apply {
@@ -684,6 +692,7 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
             backgroundSteps.map { backgroundColor(WALLPAPER, theme, it) } + backgroundStyle(WALLPAPER, theme)
         } else emptyList())
     adding.firstOrNull { it in taken }?.let { refuse("the resources already have a $it") }
+    if (ROW_ATTRIBUTE in backgrounds) declareRowAttribute(attrs)
 
     fun color(name: String, fallback: Int, system: String) {
         colors.documentElement.appendChild(colors.createElement("color").apply {
