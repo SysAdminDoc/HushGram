@@ -49,6 +49,9 @@ public class StoryDownloadButtonTest {
     private Activity activity;
     private int rowId;
     private int menuId;
+    private int footerId;
+    private int likeId;
+    private final AtomicBoolean thumb = new AtomicBoolean(false);
 
     /** A story's view holder: its header root, with the row of buttons and the three-dot menu in it. */
     private final class Header {
@@ -63,6 +66,28 @@ public class StoryDownloadButtonTest {
             row.addView(other);
             row.addView(menu);
             root.addView(row);
+        }
+    }
+
+    /**
+     * A story's view holder with Instagram's bottom row too (#647): the toolbar under the story, and
+     * in it the row with Like and Share at the end.
+     */
+    private final class Footed {
+        final Header header = new Header();
+        final LinearLayout toolbar = new LinearLayout(activity);
+        final LinearLayout row = new LinearLayout(activity);
+        final FrameLayout like = new FrameLayout(activity);
+        final ImageView share = new ImageView(activity);
+
+        Footed() {
+            row.setId(footerId);
+            like.setId(likeId);
+            row.addView(like);
+            row.addView(share);
+            toolbar.addView(new View(activity));
+            toolbar.addView(row);
+            header.root.addView(toolbar);
         }
     }
 
@@ -96,6 +121,11 @@ public class StoryDownloadButtonTest {
         menuId = View.generateViewId();
         StoryDownloadButton.putIdForTests(activity, StoryDownloadButton.CONTAINER, rowId);
         StoryDownloadButton.putIdForTests(activity, StoryDownloadButton.MENU, menuId);
+        StoryButtonRows.resetForTests();
+        footerId = View.generateViewId();
+        likeId = View.generateViewId();
+        StoryButtonRows.putIdForTests(activity, StoryButtonRows.FOOTER, footerId);
+        StoryButtonRows.putIdForTests(activity, StoryButtonRows.LIKE, likeId);
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -104,7 +134,10 @@ public class StoryDownloadButtonTest {
     @After
     public void restore() {
         StoryDownloadButton.resetForTests();
+        StoryButtonRows.resetForTests();
         Settings.DOWNLOAD_BUTTON_ON_STORIES.resetToDefault();
+        Settings.MARK_STORIES_SEEN.resetToDefault();
+        Settings.STORY_BUTTONS_BY_THUMB.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -113,6 +146,115 @@ public class StoryDownloadButtonTest {
 
     private void bind(Item item, Header header) {
         StoryDownloadButton.bind(item, header, reader, switches, saved::add);
+    }
+
+    private void bind(Item item, Footed story) {
+        StoryDownloadButton.bind(item, story.header, reader, switches, thumb::get, saved::add);
+    }
+
+    /** Runs what's posted on the main thread, as the next frame would once Instagram's bind is done. */
+    private static void afterTheBind() {
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle();
+    }
+
+    /** By the thumb (#647), the button goes before Like in the bottom row, Like and Share keep the edge, and a tap still saves. */
+    @Test
+    public void byTheThumbItGoesBeforeLikeAndStillSaves() {
+        Footed story = new Footed();
+        Object media = new Object();
+        thumb.set(true);
+        bind(new Item(media), story);
+        ImageView button = StoryDownloadButton.find(story.row);
+        assertNotNull(button);
+        assertNull("not in the header too", StoryDownloadButton.find(story.header.row));
+        assertEquals(0, story.row.indexOfChild(button));
+        assertSame(story.like, story.row.getChildAt(1));
+        assertSame(story.share, story.row.getChildAt(2));
+        float density = activity.getResources().getDisplayMetrics().density;
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) button.getLayoutParams();
+        assertEquals(Math.round(48 * density), params.width);
+        assertEquals(Math.round(40 * density), params.height + params.topMargin + params.bottomMargin);
+        bind(new Item(media), story);
+        assertEquals(3, story.row.getChildCount());
+        button.performClick();
+        assertEquals(1, saved.size());
+        assertSame(media, saved.get(0));
+    }
+
+    /** Turned off, the same button goes back before the three dots, and turned on again it comes back down. */
+    @Test
+    public void theSwitchMovesTheSameButtonBetweenTheRows() {
+        Footed story = new Footed();
+        thumb.set(true);
+        bind(new Item(new Object()), story);
+        ImageView button = StoryDownloadButton.find(story.row);
+        thumb.set(false);
+        bind(new Item(new Object()), story);
+        assertSame(button, StoryDownloadButton.find(story.header.row));
+        assertEquals(1, story.header.row.indexOfChild(button));
+        assertSame(story.header.menu, story.header.row.getChildAt(2));
+        assertEquals(2, story.row.getChildCount());
+        thumb.set(true);
+        bind(new Item(new Object()), story);
+        assertSame(button, StoryDownloadButton.find(story.row));
+        assertEquals(2, story.header.row.getChildCount());
+    }
+
+    /**
+     * A story whose bottom row is hidden when the button is bound keeps it at the top, and the look
+     * posted for after Instagram's bind follows the row Instagram shows or hides for the story.
+     */
+    @Test
+    public void theLookAfterTheBindFollowsTheBottomRow() {
+        Footed story = new Footed();
+        thumb.set(true);
+        story.toolbar.setVisibility(View.GONE);
+        bind(new Item(new Object()), story);
+        ImageView button = StoryDownloadButton.find(story.header.row);
+        assertNotNull("a hidden bottom row leaves it in the header", button);
+
+        // Instagram shows the row for this story after the hook ran.
+        story.toolbar.setVisibility(View.VISIBLE);
+        activity.setContentView(story.header.root);
+        afterTheBind();
+        assertSame(button, StoryDownloadButton.find(story.row));
+        assertEquals(0, story.row.indexOfChild(button));
+
+        // The next story has its row hidden by Instagram's bind, after the hook put the button below.
+        bind(new Item(new Object()), story);
+        story.toolbar.setVisibility(View.GONE);
+        afterTheBind();
+        assertSame(button, StoryDownloadButton.find(story.header.row));
+        assertEquals(2, story.row.getChildCount());
+    }
+
+    /** A story with no bottom row in its layout, as your own, keeps the button at the top. */
+    @Test
+    public void aStoryWithoutTheBottomRowKeepsItAtTheTop() {
+        Header header = new Header();
+        thumb.set(true);
+        StoryDownloadButton.bind(new Item(new Object()), header, reader, switches, thumb::get, saved::add);
+        assertNotNull(StoryDownloadButton.find(header.row));
+        assertTrue(String.join("\n", HookStatus.report()), HookStatus.missing(
+                app.hushgram.extension.instagram.settings.FamilyNames.STORY_DOWNLOAD).isEmpty());
+    }
+
+    /** The bottom row switch starts off, waits on a button to move, and reads off while paused. */
+    @Test
+    public void theBottomRowSwitchStartsOffAndWaitsOnAButton() {
+        assertEquals(Boolean.FALSE, Settings.STORY_BUTTONS_BY_THUMB.defaultValue);
+        assertEquals(false, StoryButtonRows.byThumb());
+        assertEquals(false, Settings.STORY_BUTTONS_BY_THUMB.isAvailable());
+        Settings.DOWNLOAD_BUTTON_ON_STORIES.save(true);
+        assertTrue(Settings.STORY_BUTTONS_BY_THUMB.isAvailable());
+        Settings.DOWNLOAD_BUTTON_ON_STORIES.save(false);
+        Settings.MARK_STORIES_SEEN.save(true);
+        assertTrue(Settings.STORY_BUTTONS_BY_THUMB.isAvailable());
+        Settings.STORY_BUTTONS_BY_THUMB.save(true);
+        assertTrue(StoryButtonRows.byThumb());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(false, StoryButtonRows.byThumb());
     }
 
     @Test

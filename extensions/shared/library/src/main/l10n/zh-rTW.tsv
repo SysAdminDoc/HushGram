@@ -1656,6 +1656,9 @@ Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, 
 # context: Stories settings: the same Lens button, in the story header beside the three dots (#303)
 Copy text button on stories	限時動態的複製文字按鈕
 Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	在限時動態頂端的三個點旁加入智慧鏡頭圖示。點擊後，Google 智慧鏡頭會開啟目前的畫面，讓你選取並複製其中的文字。
+# context: Stories settings switch (#647). It moves the Mark as seen and Download buttons from the top of a story to the bottom row, beside Instagram's own Like and Share buttons (use the app's labels).
+Story buttons at the bottom	限時動態按鈕移到下方
+Moves the Mark as seen and Download buttons to the bottom right of a story, next to Like and Share, where your thumb is. Stories without Like and Share keep them at the top.	將標記為已讀和下載按鈕移到限時動態右下角，放在讚和分享旁邊，拇指就按得到。沒有讚和分享的限時動態仍會放在頂端。
 # context: the spoken label of that Lens icon, for screen readers
 Copy text	複製文字
 # context: title of the share sheet offered when Google Lens isn't installed; the apps listed below it read the picture's text

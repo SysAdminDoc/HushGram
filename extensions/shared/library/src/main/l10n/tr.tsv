@@ -1653,6 +1653,9 @@ Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, 
 # context: Stories settings: the same Lens button, in the story header beside the three dots (#303)
 Copy text button on stories	Hikayelerde Metni kopyala düğmesi
 Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	Bir hikayenin üstüne, üç noktanın yanına Lens simgesi koyar. Dokunduğunda Google Lens ekranda görünenle açılır, böylece metni seçip kopyalayabilirsin.
+# context: Stories settings switch (#647). It moves the Mark as seen and Download buttons from the top of a story to the bottom row, beside Instagram's own Like and Share buttons (use the app's labels).
+Story buttons at the bottom	Hikaye düğmeleri altta
+Moves the Mark as seen and Download buttons to the bottom right of a story, next to Like and Share, where your thumb is. Stories without Like and Share keep them at the top.	Görüldü olarak işaretle ve İndir düğmelerini hikayenin sağ altına, Beğen ve Paylaş'ın yanına, başparmağının olduğu yere taşır. Beğen ve Paylaş olmayan hikayeler onları üstte tutar.
 # context: the spoken label of that Lens icon, for screen readers
 Copy text	Metni kopyala
 # context: title of the share sheet offered when Google Lens isn't installed; the apps listed below it read the picture's text

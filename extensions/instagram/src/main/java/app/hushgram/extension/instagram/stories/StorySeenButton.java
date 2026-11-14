@@ -40,7 +40,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Every story on screen goes through Instagram's story item binder, and the patch calls
  * {@link #bind} first thing in its toolbar bind with the account signed in, the story and its view
  * holder (451 has no header binder; its media bind and item bind call the toolbar bind instead).
- * The button goes in the row of buttons at the top end of the header, before the three-dot menu,
+ * The button goes in the row of buttons at the top end of the header, before the three-dot menu, or
+ * at the bottom right by Like and Share with Story buttons at the bottom on ({@link StoryButtonRows}),
  * and shows where the story stands ({@link StoryMarks}): an eye crossed out while it's held back, a
  * solid eye once it's marked, dimmed once it's been sent. A tap marks the story, or takes the mark
  * back before it goes. A story a batch already held back is sent straight away, through
@@ -131,26 +132,38 @@ public final class StorySeenButton {
 
     static void bind(@Nullable Object session, @Nullable Object item, @Nullable Object holder, Reader reader,
                      BooleanSupplier on, StoryMarks marks, Sender sender) {
+        bind(session, item, holder, reader, on, StoryButtonRows::byThumb, marks, sender);
+    }
+
+    /**
+     * As above, with [thumb] saying whether the button goes in the bottom row by Like and Share
+     * instead (#647, {@link StoryButtonRows}).
+     */
+    static void bind(@Nullable Object session, @Nullable Object item, @Nullable Object holder, Reader reader,
+                     BooleanSupplier on, BooleanSupplier thumb, StoryMarks marks, Sender sender) {
         try {
             HookStatus.invoked(FamilyNames.STORY_SEEN);
             boolean showing = on.getAsBoolean();
             if (!showing && !added) return;
             View root = holder == null ? null : reader.itemView(holder);
             if (root == null) return;
+            boolean low = showing && thumb.getAsBoolean();
             LinearLayout row = row(root, showing);
-            if (row == null) return;
-            ImageView button = find(row);
+            LinearLayout footer = StoryButtonRows.footer(root, FamilyNames.STORY_SEEN, low);
+            ImageView button = row == null ? null : find(row);
+            if (button == null && footer != null) button = find(footer);
             String story = showing && item != null ? StoryMarks.storyOf(reader.storyId(item)) : null;
             String account = story != null && session != null ? reader.account(session) : null;
             if (story == null || account == null) {
                 if (button != null) hide(button);
                 return;
             }
+            if (row == null && (!low || footer == null)) return;
             if (button == null) {
-                button = create(row.getContext(), on, marks, sender);
-                insert(row, button);
+                button = create(root.getContext(), on, marks, sender);
                 added = true;
             }
+            StoryButtonRows.place(button, root, row, footer, low, StorySeenButton::insert, true);
             button.setTag(new Bound(story, account, session));
             show(button, marks.state(account, story));
             button.setVisibility(View.VISIBLE);
@@ -234,7 +247,7 @@ public final class StorySeenButton {
     }
 
     /** Puts [button] before the three-dot menu, or its stub, or at the end when the row has neither. */
-    private static void insert(LinearLayout row, ImageView button) {
+    private static void insert(LinearLayout row, View button) {
         int at = row.getChildCount();
         int menu = id(row, MENU);
         int stub = id(row, MENU_STUB);

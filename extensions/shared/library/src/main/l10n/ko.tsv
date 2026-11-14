@@ -1652,6 +1652,9 @@ Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, 
 # context: Stories settings: the same Lens button, in the story header beside the three dots (#303)
 Copy text button on stories	스토리의 텍스트 복사 버튼
 Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	스토리 상단의 점 세 개 옆에 렌즈 아이콘을 추가합니다. 탭하면 지금 보이는 화면으로 Google 렌즈가 열려 텍스트를 선택하고 복사할 수 있습니다.
+# context: Stories settings switch (#647). It moves the Mark as seen and Download buttons from the top of a story to the bottom row, beside Instagram's own Like and Share buttons (use the app's labels).
+Story buttons at the bottom	스토리 버튼을 아래로
+Moves the Mark as seen and Download buttons to the bottom right of a story, next to Like and Share, where your thumb is. Stories without Like and Share keep them at the top.	읽음으로 표시 버튼과 다운로드 버튼을 스토리 오른쪽 아래, 좋아요와 공유 옆으로 옮겨 엄지로 누르기 쉽게 합니다. 좋아요와 공유가 없는 스토리에서는 위쪽에 그대로 둡니다.
 # context: the spoken label of that Lens icon, for screen readers
 Copy text	텍스트 복사
 # context: title of the share sheet offered when Google Lens isn't installed; the apps listed below it read the picture's text

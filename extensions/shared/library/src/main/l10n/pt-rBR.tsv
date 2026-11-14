@@ -1653,6 +1653,9 @@ Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, 
 # context: Stories settings: the same Lens button, in the story header beside the three dots (#303)
 Copy text button on stories	Botão Copiar texto nos stories
 Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	Coloca um ícone do Lens no topo de um story, ao lado dos três pontos. Toque nele e o Google Lens abre com o que está na tela, para você selecionar e copiar o texto.
+# context: Stories settings switch (#647). It moves the Mark as seen and Download buttons from the top of a story to the bottom row, beside Instagram's own Like and Share buttons (use the app's labels).
+Story buttons at the bottom	Botões dos stories embaixo
+Moves the Mark as seen and Download buttons to the bottom right of a story, next to Like and Share, where your thumb is. Stories without Like and Share keep them at the top.	Move os botões Marcar como visto e Baixar para o canto inferior direito do story, ao lado de Curtir e Compartilhar, onde fica o seu polegar. Stories sem Curtir e Compartilhar mantêm os botões no topo.
 # context: the spoken label of that Lens icon, for screen readers
 Copy text	Copiar texto
 # context: title of the share sheet offered when Google Lens isn't installed; the apps listed below it read the picture's text

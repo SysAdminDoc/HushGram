@@ -234,6 +234,11 @@ final class StoriesCategory {
                     L10n.t("Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens "
                             + "opens on what's showing, so you can select and copy its text.")));
         }
+        if (build.contains(PatchFamily.STORY_SEEN) || build.contains(PatchFamily.STORY_DOWNLOAD)) {
+            stories.add(toggle(context, Settings.STORY_BUTTONS_BY_THUMB, L10n.t("Story buttons at the bottom"),
+                    L10n.t("Moves the Mark as seen and Download buttons to the bottom right of a story, next to Like "
+                            + "and Share, where your thumb is. Stories without Like and Share keep them at the top.")));
+        }
         if (build.contains(PatchFamily.STORY_UPLOAD_QUALITY)) {
             stories.add(toggle(context, Settings.UPLOAD_STORIES_AT_FULL_QUALITY, L10n.t("Upload stories at full quality"),
                     L10n.t("Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at "

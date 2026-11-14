@@ -154,6 +154,7 @@ public class StorySeenButtonTest {
     @After
     public void restore() {
         StorySeenButton.resetForTests();
+        StoryButtonRows.resetForTests();
         Settings.VIEW_STORIES_ANONYMOUSLY.resetToDefault();
         Settings.MARK_STORIES_SEEN.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -204,6 +205,40 @@ public class StorySeenButtonTest {
         assertEquals(1, bare.row.indexOfChild(bare.button()));
         assertEquals(2, bare.row.getChildCount());
         assertTrue(HookStatus.missing(FamilyNames.STORY_SEEN).toString(), HookStatus.missing(FamilyNames.STORY_SEEN).isEmpty());
+    }
+
+    /** By the thumb (#647), the eye goes before Like in the bottom row, still marks, and goes back before the menu when that's off. */
+    @Test
+    public void byTheThumbTheEyeGoesBeforeLikeAndBackUpWhenOff() {
+        int footerId = View.generateViewId();
+        int likeId = View.generateViewId();
+        StoryButtonRows.putIdForTests(context, StoryButtonRows.FOOTER, footerId);
+        StoryButtonRows.putIdForTests(context, StoryButtonRows.LIKE, likeId);
+        Header header = new Header();
+        LinearLayout bottom = new LinearLayout(context);
+        bottom.setId(footerId);
+        View like = new View(context);
+        like.setId(likeId);
+        bottom.addView(like);
+        bottom.addView(new View(context));
+        header.root.addView(bottom);
+        AtomicBoolean thumb = new AtomicBoolean(true);
+        StorySeenButton.bind(session, new Object(), header, reader(STORY), switches, thumb::get, marks, sender);
+        assertNull(header.button());
+        assertEquals(3, bottom.getChildCount());
+        ImageView button = (ImageView) bottom.getChildAt(0);
+        assertTrue(button.getDrawable() instanceof StorySeenButton.Eye);
+        assertSame(like, bottom.getChildAt(1));
+        button.performClick();
+        assertEquals(StoryMarks.State.MARKED, drawn(button));
+        assertTrue(sends.isEmpty());
+
+        thumb.set(false);
+        StorySeenButton.bind(session, new Object(), header, reader(STORY), switches, thumb::get, marks, sender);
+        assertSame(button, header.button());
+        assertEquals(1, header.row.indexOfChild(button));
+        assertEquals(2, bottom.getChildCount());
+        assertEquals(StoryMarks.State.MARKED, drawn(button));
     }
 
     /** A tap marks the story and the eye turns solid; a second takes the mark back. Nothing is sent from the tap. */

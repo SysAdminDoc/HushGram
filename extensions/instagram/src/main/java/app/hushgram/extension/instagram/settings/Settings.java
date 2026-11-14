@@ -3797,6 +3797,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_text_button_on_stories", FALSE);
 
     /**
+     * The Mark as seen and Download buttons sit at the bottom right of a story, in the row with Like
+     * and Share, where a thumb reaches them, instead of in the header (#647,
+     * {@link app.hushgram.extension.instagram.stories.StoryButtonRows}). A story whose bottom row
+     * isn't showing keeps them in the header. Read on each story's bind. Off to start.
+     */
+    public static final BooleanSetting STORY_BUTTONS_BY_THUMB =
+            new BooleanSetting("hushgram_story_buttons_by_thumb", FALSE, parentsAny(MARK_STORIES_SEEN, DOWNLOAD_BUTTON_ON_STORIES));
+
+    /**
      * Download in the menu of anyone else's feed post with a video, saving it through the save
      * pipeline below. Instagram's own row is there only on your own posts, where Instagram's
      * server lets it show, and a tap on it saves the same way. Off to start.

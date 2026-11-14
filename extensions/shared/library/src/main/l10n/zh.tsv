@@ -1656,6 +1656,9 @@ Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, 
 # context: Stories settings: the same Lens button, in the story header beside the three dots (#303)
 Copy text button on stories	快拍的复制文字按钮
 Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	在快拍顶端的三个点旁加入智能镜头图标。点击后，Google 智能镜头会打开目前的画面，让你选取并复制其中的文字。
+# context: Stories settings switch (#647). It moves the Mark as seen and Download buttons from the top of a story to the bottom row, beside Instagram's own Like and Share buttons (use the app's labels).
+Story buttons at the bottom	快拍按钮移到下方
+Moves the Mark as seen and Download buttons to the bottom right of a story, next to Like and Share, where your thumb is. Stories without Like and Share keep them at the top.	将标记为已读和下载按钮移到快拍右下角，放在赞和分享旁边，拇指就按得到。没有赞和分享的快拍仍会放在顶端。
 # context: the spoken label of that Lens icon, for screen readers
 Copy text	复制文字
 # context: title of the share sheet offered when Google Lens isn't installed; the apps listed below it read the picture's text

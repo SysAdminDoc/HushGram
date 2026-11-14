@@ -95,4 +95,29 @@ public class StorySeenSettingsTest {
         assertTrue(Settings.MARK_STORIES_SEEN.get());
         assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
+
+    /**
+     * Story buttons at the bottom (#647) comes with either button's patch, after the Download rows,
+     * starts off, and rests until a button it moves is on.
+     */
+    @Test public void theBottomRowSwitchComesWithTheSeenButtonAndRestsUntilItsOn() throws Exception {
+        try {
+            open(false);
+            assertNull(page.getPreferenceScreen().findPreference(Settings.STORY_BUTTONS_BY_THUMB.key));
+            controller.close();
+            controller = null;
+
+            open(true);
+            SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.STORY_BUTTONS_BY_THUMB.key);
+            assertNotNull(row);
+            assertEquals("Story buttons at the bottom", row.getTitle().toString());
+            assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("bottom right"));
+            assertFalse(row.isChecked());
+            assertFalse("rests with Mark as seen button off", row.isEnabled());
+            Settings.MARK_STORIES_SEEN.save(true);
+            assertTrue(Settings.STORY_BUTTONS_BY_THUMB.isAvailable());
+        } finally {
+            Settings.STORY_BUTTONS_BY_THUMB.resetToDefault();
+        }
+    }
 }

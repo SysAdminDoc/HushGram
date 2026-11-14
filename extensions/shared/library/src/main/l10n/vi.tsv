@@ -1590,6 +1590,9 @@ Copy text button on reels	Nút chép văn bản trên reel
 Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	Đặt biểu tượng Lens cạnh reel. Nhấn vào đó và Google Lens mở trên nội dung đang hiện, để bạn chọn và sao chép văn bản.
 Copy text button on stories	Nút chép văn bản trên tin
 Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	Đặt biểu tượng Lens ở đầu tin, cạnh ba chấm. Nhấn vào đó và Google Lens mở trên nội dung đang hiện, để bạn chọn và sao chép văn bản.
+# context: Stories settings switch (#647). It moves the Mark as seen and Download buttons from the top of a story to the bottom row, beside Instagram's own Like and Share buttons (use the app's labels).
+Story buttons at the bottom	Nút tin ở dưới cùng
+Moves the Mark as seen and Download buttons to the bottom right of a story, next to Like and Share, where your thumb is. Stories without Like and Share keep them at the top.	Chuyển nút Đánh dấu đã xem và Tải xuống xuống góc dưới bên phải của tin, cạnh Thích và Chia sẻ, nơi ngón cái của bạn chạm tới. Tin không có Thích và Chia sẻ vẫn giữ chúng ở trên.
 Copy text	Sao chép văn bản
 Copy text with	Sao chép văn bản bằng
 Couldn't copy this screen	Không sao chép được màn hình này

@@ -41,7 +41,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The patch calls {@link #bind} first thing in the story item binder's toolbar bind with the
  * story and its view holder, as the Mark as seen button's hook does. The button goes in the row of
- * buttons at the top end of the header, before the three-dot menu. A tap runs the save the menu's
+ * buttons at the top end of the header, before the three-dot menu, or at the bottom right by Like
+ * and Share with Story buttons at the bottom on ({@link StoryButtonRows}). A tap runs the save the menu's
  * Download row runs ({@link StoryDownload#saveStory}) on the story's Media, read when the header
  * was bound.
  *
@@ -110,6 +111,15 @@ public final class StoryDownloadButton {
 
     static void bind(@Nullable Object item, @Nullable Object holder, Reader reader, BooleanSupplier on,
                      Consumer<Object> saver) {
+        bind(item, holder, reader, on, StoryButtonRows::byThumb, saver);
+    }
+
+    /**
+     * As above, with [thumb] saying whether the button goes in the bottom row by Like and Share
+     * instead (#647, {@link StoryButtonRows}).
+     */
+    static void bind(@Nullable Object item, @Nullable Object holder, Reader reader, BooleanSupplier on,
+                     BooleanSupplier thumb, Consumer<Object> saver) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
             if (item != null && ViewingHistory.on()) ViewingHistory.story(reader.media(item));
@@ -117,19 +127,22 @@ public final class StoryDownloadButton {
             if (!showing && !added) return;
             View root = holder == null ? null : reader.itemView(holder);
             if (root == null) return;
+            boolean low = showing && thumb.getAsBoolean();
             LinearLayout row = row(root, showing);
-            if (row == null) return;
-            ImageView button = find(row);
+            LinearLayout footer = StoryButtonRows.footer(root, FamilyNames.STORY_DOWNLOAD, low);
+            ImageView button = row == null ? null : find(row);
+            if (button == null && footer != null) button = find(footer);
             Object media = showing && item != null ? reader.media(item) : null;
             if (media == null) {
                 if (button != null) hide(button);
                 return;
             }
+            if (row == null && (!low || footer == null)) return;
             if (button == null) {
-                button = create(row.getContext(), on, saver);
-                insert(row, button);
+                button = create(root.getContext(), on, saver);
                 added = true;
             }
+            StoryButtonRows.place(button, root, row, footer, low, StoryDownloadButton::insert, true);
             button.setTag(new Bound(media));
             button.setVisibility(View.VISIBLE);
         } catch (Throwable failure) {
