@@ -477,6 +477,7 @@ public final class CarouselArrows {
         private float fadedAlpha = 1f;
         private final Rect bounds = new Rect();
         private final Rect barBounds = new Rect();
+        private final Rect pageBounds = new Rect();
 
         Arrows(View pager, FrameLayout host) {
             this.host = new WeakReference<>(host);
@@ -571,25 +572,59 @@ public final class CarouselArrows {
                 place(next, bounds.right - inset - TOUCH * density, top);
             }
             if (pill != null) {
-                float left = bounds.centerX() - pill.getLayoutParams().width / 2f;
+                float width = pill.getLayoutParams().width;
+                float left = bounds.centerX() - width / 2f;
                 float top = bounds.bottom - (PILL_MARGIN + PILL_HEIGHT) * density;
-                place(pill, left, Math.min(top, overBar(frame, pager, left, left + pill.getLayoutParams().width, density)));
+                // Peek shrinks the pages about their middles. A carousel tall enough has room under them for the
+                // pill, clear of a video's seek bar, so it sits at one height on photos and videos alike (#450).
+                float room = bounds.bottom - pageBottom(frame, pager);
+                if (room >= (PILL_HEIGHT + 2 * PILL_OVER_BAR) * density) {
+                    top = bounds.bottom - (room + PILL_HEIGHT * density) / 2;
+                }
+                place(pill, left, overBar(frame, pager, left, top, left + width, density));
                 pill.frost(SystemClock.uptimeMillis());
             }
         }
 
         /**
-         * Where the pill's top goes to sit above the feed seek bar on [pager]'s video, when that bar spans
-         * the pill from [left] to [right] (#471). The bar runs along the bottom of the video, where the
-         * pill sits, so it hid the bar's middle and its thumb. With no bar there, no limit.
+         * The bottom of [pager]'s page nearest its middle, as drawn, in [frame]'s coordinates. Peek shrinks
+         * each page about its middle, which leaves room under it. With no page laid out, the pager's bottom.
          */
-        private float overBar(FrameLayout frame, View pager, float left, float right, float density) {
+        private float pageBottom(FrameLayout frame, View pager) {
+            float bottom = bounds.bottom;
+            if (!(pager instanceof ViewGroup)) return bottom;
+            ViewGroup pages = (ViewGroup) pager;
+            float nearest = Float.MAX_VALUE;
+            for (int i = 0; i < pages.getChildCount(); i++) {
+                View page = pages.getChildAt(i);
+                if (page.getVisibility() != View.VISIBLE || page.getWidth() <= 0 || page.getHeight() <= 0) continue;
+                pageBounds.set(0, 0, page.getWidth(), page.getHeight());
+                AmbientLight.onto(page, frame, pageBounds);
+                float off = Math.abs(pageBounds.centerX() - bounds.centerX());
+                if (off < nearest) {
+                    nearest = off;
+                    bottom = pageBounds.bottom;
+                }
+            }
+            return bottom;
+        }
+
+        /**
+         * Where the pill's top goes, [top] unless the feed seek bar on [pager]'s video spans the pill from
+         * [left] to [right] and the pill there would cover it: then just above the bar (#471). The bar runs
+         * along the bottom of the video, where the pill sits without Peek, so it hid the bar's middle and its
+         * thumb. The bar is measured as drawn, since Peek shrinks it with its page, and a pill already under
+         * it stays put (#450).
+         */
+        private float overBar(FrameLayout frame, View pager, float left, float top, float right, float density) {
             View bar = FeedSeekBar.shownBar();
-            if (bar == null || !bar.isShown() || !within(bar, pager)) return Float.MAX_VALUE;
+            if (bar == null || !bar.isShown() || !within(bar, pager)) return top;
             barBounds.set(0, 0, bar.getWidth(), bar.getHeight());
-            frame.offsetDescendantRectToMyCoords(bar, barBounds);
-            if (barBounds.right <= left || barBounds.left >= right) return Float.MAX_VALUE;
-            return barBounds.top - (PILL_OVER_BAR + PILL_HEIGHT) * density;
+            AmbientLight.onto(bar, frame, barBounds);
+            if (barBounds.right <= left || barBounds.left >= right) return top;
+            float gap = PILL_OVER_BAR * density, height = PILL_HEIGHT * density;
+            if (top >= barBounds.bottom || top + height + gap <= barBounds.top) return top;
+            return barBounds.top - gap - height;
         }
 
         private static boolean within(View view, View ancestor) {

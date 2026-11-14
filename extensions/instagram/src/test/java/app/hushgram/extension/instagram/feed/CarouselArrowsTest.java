@@ -628,6 +628,53 @@ public class CarouselArrowsTest {
                 pill().getTop() + pill().getTranslationY(), 1f);
     }
 
+    /**
+     * #450: Peek shrinks each page about its middle, which leaves room under the pages. The pill sits in
+     * that room, so the seek bar on a video, drawn shrunk with its page, no longer lifts it, and it stays
+     * at one height on the carousel's photos and videos. It jumped up on every video page before.
+     */
+    @Test
+    public void underPeekThePillSitsBelowThePagesAtOneHeightOnPhotosAndVideos() {
+        float d = density();
+        float scale = (WIDTH - (CarouselPeek.INSET + CarouselPeek.GAP + CarouselPeek.PEEK) * d) / WIDTH;
+        for (int i = 0; i < pager.getChildCount(); i++) {
+            View page = pager.getChildAt(i);
+            page.setPivotX(CarouselPeek.INSET * d / (1 - scale));
+            page.setPivotY(HEIGHT / 2f);
+            page.setScaleX(scale);
+            page.setScaleY(scale);
+        }
+        FrameLayout photo = (FrameLayout) ((ViewGroup) ((ViewGroup) pager.getChildAt(0)).getChildAt(0)).getChildAt(0);
+        View cover = new View(activity);
+        photo.addView(cover, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        Object player = new Object();
+        FeedSeekBar.playerForTests(new FeedSeekBar.Player() {
+            @Override public View view(Object of) { return of == player ? cover : null; }
+            @Override public boolean seekTo(Object of, int positionMs) { return true; }
+            @Override public boolean pause(Object of) { return true; }
+            @Override public boolean play(Object of) { return true; }
+        });
+        Settings.FEED_SEEK_BAR.save(true);
+        FeedSeekBar.progress(player, 1000, 5000);
+        pillOn();
+        settle();
+
+        assertNotNull("a video page shows its seek bar", FeedSeekBar.shownBar());
+        float bottom = HEADER + HEIGHT;
+        float room = (1 - scale) * HEIGHT / 2;
+        float onVideo = pill().getTop() + pill().getTranslationY();
+        assertEquals("centered in the room under the pages", bottom - (room + CarouselArrows.PILL_HEIGHT * d) / 2, onVideo, 1f);
+        assertTrue("under the bar as drawn", onVideo >= bottom - room - 0.5f);
+        assertTrue("inside the carousel", onVideo + pill().getHeight() <= bottom + 0.5f);
+
+        Settings.FEED_SEEK_BAR.save(false);
+        FeedSeekBar.progress(player, 2000, 5000);
+        settle();
+        assertNull(FeedSeekBar.shownBar());
+        assertEquals("a photo page's pill sits where a video page's does", onVideo,
+                pill().getTop() + pill().getTranslationY(), 0f);
+    }
+
     @Test
     public void thePillFollowsTheCarouselsPage() {
         pillOn();

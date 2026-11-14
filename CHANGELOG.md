@@ -31,6 +31,7 @@ Every HushGram release, newest first.
 * With `Glass tab bar` off, dragging along the lower edge of a reel's seek bar seeks again. That edge sits over the tab bar, so the drag used to press a tab or slide across the tabs instead. Reported in #526.
 * With a `Seek bar shape` picked, a reel's seek bar shows the whole shape. The wave and the tall handle got cut off at the top and bottom, and so did the bar while you held it. Reported in #450.
 * With `See-through top bar` on, the frosted strip behind the status bar fades out into Home's feed once the top bar slides away. It ended in a hard line. Reported in #450.
+* With `Page dots on a pill` and `Peek at the next carousel page` on, the pill stays at one height under the pages. It jumped up whenever you swiped to a video. Reported in #450.
 * With `Glass tab bar` on, tapping a reel's More button or audio square right above the seek bar opens it again instead of seeking. Only a press on the bar itself goes to the seek bar now.
 * With `Keep playing in the background` on, a video story that ends while Instagram is in the background moves on to the next story and plays it. It used to stop there with nothing playing. Only one story plays at a time, and a story you paused stays paused. Reported in #497.
 * `Hide lives in Reels` also catches the lives Instagram adds to the Reels tab after a page has loaded, so they stop turning up between reels. Reported in #566.
