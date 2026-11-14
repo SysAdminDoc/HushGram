@@ -131,6 +131,13 @@ public final class BackgroundPlay {
      * go through when the session ends, on that player even after another video took over.
      */
     private static final ArrayList<Release> releases = new ArrayList<>();
+    /**
+     * The releases a session that is ending still lets through, while it passes its pause on.
+     * Instagram can release the player from inside that pause; that release goes through then and
+     * drops its entry here, so the player isn't released a second time.
+     */
+    @Nullable
+    private static List<Release> ending;
     private static boolean watching;
 
     private BackgroundPlay() {
@@ -318,8 +325,10 @@ public final class BackgroundPlay {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
             Activity screen;
             synchronized (LOCK) {
-                if (passing || phase == Phase.IDLE || player == null) return false;
-                if (player != heldLocked()) {
+                if (player == null) return false;
+                // A release going through now, ours, one asked while ours runs or one asked while a
+                // session ends, is the only one that player gets, so none waits for the session's end.
+                if (phase == Phase.IDLE || passing || player != heldLocked()) {
                     forget(player);
                     return false;
                 }
@@ -569,17 +578,26 @@ public final class BackgroundPlay {
             mutedAt = NONE;
             pausedSince = NONE;
             releases.clear();
+            ending = letGo;
         }
         Utils.runOnMainThreadNowOrLater(SpringSteps::stop);
         if (pause && player != null) pauseThrough(player);
+        synchronized (LOCK) {
+            if (ending == letGo) ending = null;
+        }
         for (Release release : letGo) releaseThrough(release.player, release.reason);
         if (wasBackground && !serviceForTests) BackgroundPlayService.finish();
         log(() -> "background playback ended: " + why + (letGo.isEmpty() ? "" : ", and Instagram's release went through"));
     }
 
-    /** Drops the release held for [player], if any. Under LOCK. */
+    /** Drops the release held for [player], if any, in the session and in one that is ending. Under LOCK. */
     private static void forget(Object player) {
-        for (Iterator<Release> it = releases.iterator(); it.hasNext(); ) {
+        drop(releases, player);
+        if (ending != null) drop(ending, player);
+    }
+
+    private static void drop(List<Release> list, Object player) {
+        for (Iterator<Release> it = list.iterator(); it.hasNext(); ) {
             if (it.next().player == player) it.remove();
         }
     }
@@ -775,6 +793,7 @@ public final class BackgroundPlay {
             pausedSince = NONE;
             passing = false;
             releases.clear();
+            ending = null;
         }
         SpringSteps.resetForTests();
         // Each test has an application of its own to watch.

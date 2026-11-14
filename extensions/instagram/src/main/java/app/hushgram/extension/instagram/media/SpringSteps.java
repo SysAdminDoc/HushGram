@@ -45,8 +45,10 @@ final class SpringSteps {
     static final long KEEP_MS = 3_000;
 
     /**
-     * The longest a spring system is stepped without a break of {@link #KEEP_MS}. One that sets itself
-     * off again as it moves stops here, rather than waking the phone every frame for the whole session.
+     * The longest a spring system is stepped on starts made from steps. One that keeps setting itself
+     * off, or two that keep setting each other off, stop here, rather than waking the phone every frame
+     * for the whole session. A start from outside a step, like the viewer moving to the next story,
+     * begins a new run.
      */
     static final long RUN_MS = 10_000;
 
@@ -56,17 +58,37 @@ final class SpringSteps {
     @Nullable
     private static Handler handler;
     private static boolean posted;
+    /** When the run of the system being stepped began, or {@link #NOT_STEPPING} between steps. */
+    private static long steppingRun = Long.MIN_VALUE;
+    private static final long NOT_STEPPING = Long.MIN_VALUE;
     static int stepsForTests;
 
     private SpringSteps() {
     }
 
-    /** Steps [frames] from now until {@link #KEEP_MS} after this call, or the end of its {@link #RUN_MS}. */
+    /**
+     * Steps [frames] from now until {@link #KEEP_MS} after this call. A start made from a step, of its
+     * own system or another, carries on the run of the system being stepped, the later one if [frames]
+     * has a run of its own, and goes no further than {@link #RUN_MS} into it; any other begins a new run.
+     */
     static void keep(Choreographer.FrameCallback frames) {
         long now = SystemClock.uptimeMillis();
         long[] run = kept.get(frames);
-        if (run == null) kept.put(frames, new long[] {now + KEEP_MS, now});
-        else run[0] = Math.min(now + KEEP_MS, run[1] + RUN_MS);
+        if (steppingRun == NOT_STEPPING) {
+            if (run == null) kept.put(frames, new long[] {now + KEEP_MS, now});
+            else {
+                run[0] = now + KEEP_MS;
+                run[1] = now;
+            }
+        } else {
+            long began = run == null ? steppingRun : Math.max(run[1], steppingRun);
+            long until = Math.min(now + KEEP_MS, began + RUN_MS);
+            if (run == null) kept.put(frames, new long[] {until, began});
+            else {
+                run[0] = until;
+                run[1] = began;
+            }
+        }
         post();
     }
 
@@ -103,9 +125,16 @@ final class SpringSteps {
         Choreographer choreographer = Choreographer.getInstance();
         for (Choreographer.FrameCallback frames : due) {
             if (!BackgroundPlay.active()) break;
+            long[] run = kept.get(frames);
+            if (run == null) continue;
             try {
                 choreographer.removeFrameCallback(frames);
-                frames.doFrame(System.nanoTime());
+                steppingRun = run[1];
+                try {
+                    frames.doFrame(System.nanoTime());
+                } finally {
+                    steppingRun = NOT_STEPPING;
+                }
                 stepsForTests++;
             } catch (Throwable t) {
                 kept.remove(frames);
@@ -135,6 +164,7 @@ final class SpringSteps {
     static void resetForTests() {
         stop();
         handler = null;
+        steppingRun = NOT_STEPPING;
         stepsForTests = 0;
     }
 }

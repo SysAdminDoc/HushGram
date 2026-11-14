@@ -433,6 +433,23 @@ public class BackgroundPlayTest {
         assertEquals(List.of("pause"), players.calls);
     }
 
+    /**
+     * A release Instagram asks for while one of ours goes through, here from inside the pause Stop
+     * passes on, goes through then, and the one held earlier for that player is dropped with it.
+     */
+    @Test
+    public void aReleaseAskedWhileOursGoesThroughIsTheOnlyOne() {
+        background(player);
+        assertTrue(BackgroundPlay.releasing(player, "fragment_stopped"));
+        players.releaseOnPause = true;
+
+        BackgroundPlay.stopFromNotification();
+
+        assertEquals(BackgroundPlay.Phase.IDLE, BackgroundPlay.phase());
+        assertEquals("released once", List.of(player), players.released);
+        assertEquals(List.of("release paused", "pause"), players.calls);
+    }
+
     /** A session left paused for the limit ends by itself; a playing one doesn't. */
     @Test
     public void aLongPauseEnds() {
@@ -642,6 +659,121 @@ public class BackgroundPlayTest {
         assertEquals(BackgroundPlay.Phase.BACKGROUND, BackgroundPlay.phase());
     }
 
+    /**
+     * Stories that end one after another set the viewer's springs off from outside a step, and each
+     * start begins a new run, so a slide set off just before a run would end still finishes.
+     */
+    @Test
+    public void aStartFromOutsideAStepBeginsANewRun() {
+        background(player);
+        Frames frames = new Frames();
+
+        BackgroundPlay.springMoving(frames);
+        for (int story = 0; story < 4; story++) {
+            idleFor(2_000);
+            BackgroundPlay.springMoving(frames);
+        }
+        idleFor(SpringSteps.RUN_MS - 8_000 - 200);
+        BackgroundPlay.springMoving(frames);
+        idleFor(400);
+        int stepped = frames.steps;
+        idleFor(100);
+
+        assertTrue("still stepped past the first run's end: " + stepped + " then " + frames.steps, frames.steps > stepped);
+        idleFor(SpringSteps.KEEP_MS);
+        assertEquals(0, SpringSteps.keptForTests());
+    }
+
+    /**
+     * A looper that asks the screen for its next frame and then throws gets that frame once, not twice,
+     * so its springs still come to rest on the step they would have.
+     */
+    @Test
+    public void aLooperThatPostsThenThrowsGetsOneFrame() {
+        background(player);
+        SpringLooper looper = new SpringLooper();
+        looper.throwNext = true;
+        looper.postBeforeThrow = true;
+
+        BackgroundPlay.springMoving(looper);
+        idleFor(100);
+
+        assertEquals(0, SpringSteps.keptForTests());
+        assertEquals("one frame a step, to rest", SpringLooper.REST_AFTER, looper.steps);
+    }
+
+    /**
+     * A start one system's step makes for another carries on the stepping system's run, so a spring
+     * whose own run began long ago still moves when a fresh slide sets it off (#497).
+     */
+    @Test
+    public void aStartFromAnotherSystemsStepTakesThatSystemsRun() {
+        background(player);
+        Frames old = new Frames();
+        boolean[] restarting = {true};
+        old.onStep = () -> {
+            if (restarting[0]) BackgroundPlay.springMoving(old);
+        };
+        BackgroundPlay.springMoving(old);
+        idleFor(SpringSteps.RUN_MS - 300);
+        restarting[0] = false;
+
+        Frames slide = new Frames();
+        slide.onStep = () -> {
+            if (slide.steps == 1) BackgroundPlay.springMoving(old);
+        };
+        BackgroundPlay.springMoving(slide);
+        idleFor(600);
+        int stepped = old.steps;
+        idleFor(100);
+
+        assertTrue("still stepped past its own run's end: " + stepped + " then " + old.steps, old.steps > stepped);
+    }
+
+    /** Two springs that keep setting each other off share one run, and stop after {@link SpringSteps#RUN_MS}. */
+    @Test
+    public void twoSpringsSettingEachOtherOffStopAfterARun() {
+        background(player);
+        Frames first = new Frames();
+        Frames second = new Frames();
+        first.onStep = () -> BackgroundPlay.springMoving(second);
+        second.onStep = () -> BackgroundPlay.springMoving(first);
+
+        BackgroundPlay.springMoving(first);
+        idleFor(SpringSteps.RUN_MS + 500);
+        int stepped = first.steps + second.steps;
+        idleFor(500);
+
+        assertEquals("no steps past the run", stepped, first.steps + second.steps);
+        assertEquals(0, SpringSteps.keptForTests());
+    }
+
+    /**
+     * A step that throws still ends as a step, so the next start from outside one begins a new run
+     * rather than taking on the run of the system that threw.
+     */
+    @Test
+    public void aStartAfterAThrowingStepBeginsANewRun() {
+        background(player);
+        Frames thrower = new Frames();
+        int[] throwOn = {-1};
+        thrower.onStep = () -> {
+            if (thrower.steps == throwOn[0]) throw new IllegalStateException("test");
+            if (throwOn[0] < 0) BackgroundPlay.springMoving(thrower);
+        };
+        BackgroundPlay.springMoving(thrower);
+        idleFor(SpringSteps.RUN_MS - 300);
+        throwOn[0] = thrower.steps + 1;
+        idleFor(450);
+        assertEquals(0, SpringSteps.keptForTests());
+
+        Frames slide = new Frames();
+        BackgroundPlay.springMoving(slide);
+        idleFor(100);
+
+        assertTrue("the slide was stepped: " + slide.steps, slide.steps > 0);
+    }
+
     /** A step that ends the session is the last one: the other springs aren't stepped after it. */
     @Test
     public void aStepThatEndsTheSessionIsTheLast() {
@@ -724,12 +856,14 @@ public class BackgroundPlayTest {
         static final int REST_AFTER = 5;
         int steps;
         boolean throwNext;
+        boolean postBeforeThrow;
 
         @Override
         public void doFrame(long frameTimeNanos) {
             steps++;
             if (throwNext) {
                 throwNext = false;
+                if (postBeforeThrow) android.view.Choreographer.getInstance().postFrameCallback(this);
                 throw new IllegalStateException("test");
             }
             if (steps < REST_AFTER) android.view.Choreographer.getInstance().postFrameCallback(this);
@@ -753,6 +887,8 @@ public class BackgroundPlayTest {
         final List<Boolean> heldOwnPause = new ArrayList<>();
         final List<Boolean> heldOwnRelease = new ArrayList<>();
         final List<Object> released = new ArrayList<>();
+        /** Whether a pause lets the player go too, as Instagram's can while its screen is going away. */
+        boolean releaseOnPause;
 
         @Override
         public boolean playing(Object player) {
@@ -770,6 +906,7 @@ public class BackgroundPlayTest {
         @Override
         public void pause(Object player) {
             heldOwnPause.add(BackgroundPlay.hold(player, BackgroundPlay.PAUSE_REASON));
+            if (releaseOnPause) release(player, "paused");
             playing.remove(player);
             calls.add("pause");
         }
