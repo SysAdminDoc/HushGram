@@ -49,7 +49,7 @@ class ReelSeekBarHookTest {
     /** The hooks the patch writes are in the ReelSeekBar and ReelSeekTouch the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, BIND_REEL, LISTEN, PHOTO_BAR_ON, PHOTO_REEL, PHOTO_ROW, PHOTO_PROGRESS, PHOTO_TOUCH_ONLY, SEEK_PREVIEW_ON, REMEMBER_REEL)) {
+        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, BIND_REEL, LISTEN, PHOTO_BAR_ON, PHOTO_REEL, PHOTO_ROW, PHOTO_PROGRESS, PHOTO_TOUCH_ONLY, PHOTO_STRIP, SEEK_PREVIEW_ON, REMEMBER_REEL)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -129,6 +129,13 @@ class ReelSeekBarHookTest {
             standIns().map { if (it.type == STRIP) strip(touchHead = "if-eqz p0, :answer", touchTail = "move-result v0\n:answer\nreturn v0") else it } to
                 "jumps to its return of the answer",
             standIns().map { if (it.type == STRIP) strip(touchHead = "move-object p0, v1") else it } to "writes over its controller",
+            standIns().map { if (it.type == STRIP) strip(lengthMarker = "nop") else it } to
+                "to load the $ATTACHED_BY_LENGTH marker once, found 0",
+            standIns().map { if (it.type == STRIP) strip(stripHead = "const-string v0, \"android_purge_26_q3_$ATTACHED_BY_LENGTH\"") else it } to
+                "to load the $ATTACHED_BY_LENGTH marker once, found 2",
+            standIns().map { if (it.type == STRIP) strip(stripHead = "if-nez v3, :length\nnop\n:length") else it } to
+                "jumps to its $ATTACHED_BY_LENGTH marker",
+            standIns().map { if (it.type == STRIP) strip(stripHead = "move-object p1, p0") else it } to "writes over parameter 0",
         )) {
             val context = PatchContexts.of(classes)
             val failure = assertThrows(PatchException::class.java) { context.findReelSeekBarSites() }
@@ -555,6 +562,27 @@ class ReelSeekBarHookTest {
         assertEquals("$what: the touch hook's answer", onTouch.answer, (touch[touchAt + 1] as OneRegisterInstruction).registerA)
         assertEquals("$what: the touch answer goes back", Opcode.RETURN, touch[touchAt + 2].opcode)
         assertEquals("$what: Instagram's touch answer goes in", onTouch.answer, touch[touchAt].arguments().first())
+
+        // The strip check answers yes itself for a photo with a song, and otherwise goes on to its length check (#10).
+        val onStrip = photo.strip
+        val stripFlow = ControlFlow.of(context.method(onStrip.method))
+        val strip = stripFlow.instructions
+        val length = strip.indexOfFirst {
+            ((it as? ReferenceInstruction)?.reference as? StringReference)?.string?.endsWith("_$ATTACHED_BY_LENGTH") == true
+        }
+        assertTrue("$what: the strip's switch comes first", strip[onStrip.at].calls(PHOTO_BAR_ON))
+        assertEquals("$what: the strip's switch test", Opcode.IF_EQZ, strip[onStrip.at + 2].opcode)
+        assertTrue("$what: off, the strip check goes by the length", length in stripFlow.normal[onStrip.at + 2])
+        assertEquals("$what: strip hooks", 1, strip.count { it.calls(PHOTO_STRIP) })
+        val stripAt = strip.indexOfFirst { it.calls(PHOTO_STRIP) }
+        val reelId = strip.indices.filter { it in onStrip.at until stripAt && strip[it].calls(photo.id) }
+        assertEquals("$what: the strip's reel asked its id", listOf(listOf(onStrip.item)), reelId.map { strip[it].arguments() })
+        val yes = (strip[stripAt + 1] as OneRegisterInstruction).registerA
+        assertEquals("$what: the strip hook's answer tested", Opcode.IF_EQZ, strip[stripAt + 2].opcode)
+        assertEquals("$what: of the answer", yes, (strip[stripAt + 2] as OneRegisterInstruction).registerA)
+        assertTrue("$what: a no goes by the length", length in stripFlow.normal[stripAt + 2])
+        assertEquals("$what: a yes is returned", Opcode.RETURN, strip[stripAt + 3].opcode)
+        assertEquals("$what: the yes itself", yes, (strip[stripAt + 3] as OneRegisterInstruction).registerA)
     }
 
     private fun Method.holdsMarkerOf(name: String): Boolean = implementation?.instructions?.any { instruction ->
@@ -569,7 +597,8 @@ class ReelSeekBarHookTest {
     private fun Method.holdsMarker(): Boolean = implementation?.instructions?.any { instruction ->
         val string = ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string
         string != null && string.startsWith("android_purge_") &&
-            listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP, PLAYER_PROGRESS, TOUCH_ONLY).any { string.endsWith("_$it") }
+            listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP, PLAYER_PROGRESS, TOUCH_ONLY, EXPANDED_TOUCH)
+                .any { string.endsWith("_$it") }
     } == true
 
     private fun Method.holdsString(text: String): Boolean = implementation?.instructions?.any {
@@ -846,6 +875,8 @@ class ReelSeekBarHookTest {
             touchHead: String = "",
             current: String = "invoke-static {p0}, $type->A07($type)$ITEM_TYPE",
             touchTail: String = "move-result v0\nreturn v0",
+            stripHead: String = "",
+            lengthMarker: String = "const-string v0, \"android_purge_26_q3_$ATTACHED_BY_LENGTH\"",
         ): ClassDef = classOf(
             type,
             method(
@@ -891,6 +922,30 @@ class ReelSeekBarHookTest {
                     invoke-static {v1, v2, v3, v0}, $UTIL->A0N(Ljava/lang/Object;JZ)Z
                     $touchTail
                 """,
+            ),
+            // Shaped like 454's LX/06OS->A1C under its marker: whether the reel gets the strip you drag from, past
+            // Instagram's own checks by its length, which letting go of a hold asks before showing the bar again.
+            method(
+                type, "A1C", listOf(ITEM_TYPE), "Z", 8,
+                """
+                    const/4 v3, 0x0
+                    const-string v0, "android_purge_26_q2_$EXPANDED_TOUCH"
+                    invoke-static {v0}, $CONFIGS->trace(Ljava/lang/String;)V
+                    iget-boolean v0, p0, $type->A0Q:Z
+                    if-nez v0, :no
+                    invoke-static {p0}, $type->A03($type)J
+                    move-result-wide v4
+                    $stripHead
+                    $lengthMarker
+                    invoke-static {v0}, $CONFIGS->trace(Ljava/lang/String;)V
+                    const-wide/16 v1, 0x0
+                    cmp-long v0, v4, v1
+                    if-lez v0, :no
+                    const/4 v3, 0x1
+                    :no
+                    return v3
+                """,
+                static = false,
             ),
         )
 

@@ -102,6 +102,23 @@ public class ReelPhotoSeekBarTest {
         assertTrue("not a kind at all", ReelSeekBar.photoTouchOnly(1, "PHOTO_WITH_MUSIC", "text"));
     }
 
+    /**
+     * Letting go of a hold on a reel shows its bar again only when the controller's check of the strip you drag
+     * from says yes, and it goes by the reel's length, 0 for a photo. A photo with a song is answered yes, and
+     * every other reel goes on to Instagram's own check.
+     */
+    @Test public void aPhotosBarComesBackAfterAHold() {
+        assertTrue(ReelSeekBar.photoStrip(Kind.PHOTO_WITH_MUSIC, "held"));
+        assertTrue("noted for its length and time", ReelSeekBar.photoShown("clips_scrubber_held"));
+        assertTrue("without an id too", ReelSeekBar.photoStrip(Kind.PHOTO_WITH_MUSIC, null));
+        assertFalse("a video reel", ReelSeekBar.photoStrip(Kind.CLIPS, "video"));
+        assertFalse(ReelSeekBar.photoStrip(Kind.PHOTO_WITHOUT_MUSIC, "silent"));
+        assertFalse(ReelSeekBar.photoStrip(Kind.CAROUSEL_WITH_MUSIC, "carousel"));
+        assertFalse("no kind", ReelSeekBar.photoStrip(null, null));
+        assertFalse("not a kind at all", ReelSeekBar.photoStrip("PHOTO_WITH_MUSIC", "text"));
+        assertFalse(ReelSeekBar.photoShown("clips_scrubber_video"));
+    }
+
     /** With no length, a photo counts as a short reel; other short reels keep Instagram's hidden kind on this switch alone. */
     @Test public void aPhotosRowIsNeverTheHiddenKindAndOtherReelsKeepTheirs() {
         ReelSeekBar.photoRow(Kind.PHOTO_WITH_MUSIC, "row");

@@ -259,6 +259,23 @@ public final class ReelSeekBar {
     }
 
     /**
+     * Injected where Instagram's Reels progress controller goes by a reel's length to decide whether the reel
+     * gets the strip you drag from, with the reel's kind and id, while {@link #photoBarOn}. Letting go of a hold
+     * on a reel shows its bar again only when that check says yes, and a photo's length is 0, so a hold hid a
+     * photo's bar until the next reel. Answers yes for a photo with a song, which the patch returns as the
+     * check's answer, and no to leave the check to Instagram.
+     */
+    public static boolean photoStrip(Object kind, String id) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_SEEK_BAR);
+            return note(kind, id);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "photo seek bar after a hold", failure);
+            return false;
+        }
+    }
+
+    /**
      * Injected first thing where Instagram works out a reel's seek bar row, with the reel's kind and
      * id, while {@link #photoBarOn}. Tells {@link #lazy}, a few lines later in that method on the
      * same thread, which reel it's answering for: with no length, a photo counts as a short reel, and
