@@ -31,7 +31,6 @@ private const val GALLERY_MEDIUM = "Lcom/instagram/common/gallery/Medium;"
 /** The name the comment box gives the still it makes of a picked picture. */
 private const val COMMENT_IMAGE = "comment_image_"
 private const val BITMAP = "Landroid/graphics/Bitmap;"
-private const val KOTLIN_UNIT = "Lkotlin/Unit;"
 private val pickGotos = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
 
 /**
@@ -100,12 +99,14 @@ private fun BytecodePatchContext.findGifPick(reply: GifReplyPlan, classes: Map<S
     }
     if (entersAround) refuse("gallery pick can reach its path read without casting its screen")
 
-    // Right after the attach, the pick goes to the Unit return every one of its cases shares.
+    // Right after the attach, the pick goes to the Unit return every one of its cases shares. Redex
+    // renames kotlin.Unit on some ABIs (LX/00h7;->A00 on 454's armeabi-v7a), so the Unit is known by
+    // its shape: a static field holding its own class, returned as it's read.
     if (code.getOrNull(pickAt + 1)?.opcode !in pickGotos) refuse("gallery pick doesn't leave right after it attaches")
     val exit = flow.normal[pickAt + 1].single()
     val unit = code[exit]
     val back = code.getOrNull(exit + 1)
-    if (unit.opcode != Opcode.SGET_OBJECT || unit.field()?.let { it.definingClass == KOTLIN_UNIT && it.name == "INSTANCE" } != true ||
+    if (unit.opcode != Opcode.SGET_OBJECT || unit.field()?.let { it.type == it.definingClass } != true ||
         back?.opcode != Opcode.RETURN_OBJECT || (back as OneRegisterInstruction).registerA != (unit as OneRegisterInstruction).registerA) {
         refuse("gallery pick leaves somewhere other than its Unit return")
     }

@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.PANDO_IMAGE_INFO
 import app.morphe.patches.instagram.download.USER
+import app.morphe.patches.instagram.misc.extension.PatchLogCapture
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -28,6 +29,8 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import java.io.File
 import org.junit.Assert.*
 import org.junit.Test
@@ -196,6 +199,44 @@ class CommentPhotoHookTest {
             checked += label
         }
         assertEquals(Fixtures.BUILDS, checked.distinct().size)
+    }
+
+    /**
+     * #402: every build has the gallery pick Send saved GIFs as GIFs hooks, Unit return included, even
+     * where Redex renamed kotlin.Unit (454's armeabi-v7a and x86 builds did). Only the comment screen and
+     * the comment_image_ lambda are read from each build.
+     */
+    @Test fun everyBuildHasTheGalleryPickTheGifHookProves() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        assertEquals("every 454 build", Fixtures.BUILDS, bundles.size)
+        for (bundle in bundles) {
+            val label = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
+            val native = (FixtureDex.classesHolding(bundle, COMMENT_SELECT) + FixtureDex.classesLoading(bundle, "comment_image_"))
+                .associateBy { it.type }.values
+            val select = native.flatMap { it.methods }.single { COMMENT_SELECT in it.strings() &&
+                it.parameters() == listOf(STRING, STRING, "F", "Z") && it.returnType == "V" }
+            val patch = PatchContexts.of(native + extension())
+            var found: GifPickPlan? = null
+            val warnings = PatchLogCapture.warnings {
+                found = discovering(PHOTO_PATCH) { patch.gifPickOrNull(pickReply(select), patch.classPool()) }
+            }
+            assertEquals(label, emptyList<String>(), warnings)
+            val pick = found ?: error("$label: the comment box's gallery pick wasn't found")
+            assertEquals(label, select.definingClass, pick.pick.definingClass)
+            discovering(PHOTO_PATCH) { patch.applyGifPick(pick) }
+            assertGifPickWiring(patch, pick)
+        }
+    }
+
+    /** A GIF reply on [select]'s screen. The gallery pick reads only that screen from it. */
+    private fun pickReply(select: MethodReference): GifReplyPlan {
+        val screen = select.definingClass
+        fun call(name: String) = ImmutableMethodReference(screen, name, emptyList(), "V")
+        return GifReplyPlan(ImmutableMethodReference.of(select), 0, emptyList(), emptyList(), call("reply"),
+            ImmutableFieldReference(screen, "composer", OBJECT), call("target"), call("toHelper"), call("toInfo"), false,
+            call("send"), 0, 0)
     }
 
     /**
@@ -394,16 +435,15 @@ class CommentPhotoHookTest {
             assertEquals(name, Opcode.CHECK_CAST, images.single { it.name == name }.code().first().opcode)
         }
         assertGifReplyWiring(patch, plan)
-        assertGifPickWiring(patch, plan)
+        assertGifPickWiring(patch, plan.gifPick)
     }
 
     /**
      * #402: the gallery pick hands over the picked path and the screen right after reading the path,
      * leaves through its Unit return on a 1, and clearPick attaches nothing to that screen.
      */
-    private fun assertGifPickWiring(patch: BytecodePatchContext, plan: CommentPhotoPlan) {
+    private fun assertGifPickWiring(patch: BytecodePatchContext, pick: GifPickPlan?) {
         val clear = patch.mutableClassDefBy(GIF_REPLY_NATIVE).methods.single { it.name == "clearPick" }.code()
-        val pick = plan.gifPick
         if (pick == null) {
             assertTrue("clearPick stays a stub without the pick", clear.none { it.call() != null })
             return
@@ -421,7 +461,10 @@ class CommentPhotoHookTest {
         assertEquals(listOf(Opcode.MOVE_RESULT, Opcode.IF_NEZ), code.subList(hook + 1, hook + 3).map { it.opcode })
         val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
         val exit = addresses.indexOf(addresses[hook + 2] + (code[hook + 2] as OffsetInstruction).codeOffset)
-        assertEquals("a sent GIF leaves through the Unit return", "Lkotlin/Unit;", code[exit].field()?.definingClass)
+        // kotlin.Unit, or what Redex renamed it to on this build: a static holding its own class.
+        assertEquals(Opcode.SGET_OBJECT, code[exit].opcode)
+        val unit = code[exit].field() ?: error("a sent GIF leaves through the Unit return")
+        assertEquals("a sent GIF leaves through the Unit return", unit.definingClass, unit.type)
         assertEquals(Opcode.RETURN_OBJECT, code[exit + 1].opcode)
         assertEquals(listOf("Lcom/instagram/common/gallery/Medium;"), pick.pick.parameters())
         assertEquals(listOf(Opcode.CHECK_CAST, Opcode.CONST_4, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID), clear.map { it.opcode })

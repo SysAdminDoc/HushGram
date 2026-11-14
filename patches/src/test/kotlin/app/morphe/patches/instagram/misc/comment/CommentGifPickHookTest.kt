@@ -151,6 +151,23 @@ class CommentGifPickHookTest {
         assertEquals(before, CommentWorld.snapshot(patch, untouched))
     }
 
+    /** 454's armeabi-v7a build reads its Unit as LX/00h7;->A00, a static holding its own class. */
+    @Test fun aUnitRedexRenamedIsStillThePicksReturn() {
+        val renamed = "sget-object v4, LX/00h7;->A00:LX/00h7;"
+        val patch = PatchContexts.of(world(pick.replace(unitExit, renamed)))
+        var plan: GifPickPlan? = null
+        val warnings = PatchLogCapture.warnings { plan = discovering(PHOTO_PATCH) { patch.gifPickOrNull(reply(), patch.classPool()) } }
+        assertEquals(emptyList<String>(), warnings)
+        val found = plan ?: error("the gallery pick wasn't found")
+        assertEquals(1, found.exit)
+        discovering(PHOTO_PATCH) { patch.applyGifPick(found) }
+        val code = invoke(patch).code()
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        assertEquals("a sent GIF leaves through the renamed Unit", addresses[found.exit],
+            addresses[found.hookAt + 4] + (code[found.hookAt + 4] as OffsetInstruction).codeOffset)
+        assertEquals("LX/00h7;->A00:LX/00h7;", code[found.exit].field().toString())
+    }
+
     /** Any shape the hook can't prove leaves the pick and both bridges as they were, and says why. */
     @Test fun aPickItCantProveIsLeftAloneAndTheLogSaysWhy() {
         val cases = listOf(
@@ -172,6 +189,10 @@ class CommentGifPickHookTest {
             Triple("a return after the attach", world(pick.replace("goto :exit", "$unitExit\nreturn-object v4")),
                 "gallery pick doesn't leave right after it attaches"),
             Triple("a null exit", world(pick.replace(unitExit, "const/4 v4, 0x0")),
+                "gallery pick leaves somewhere other than its Unit return"),
+            Triple("a static of another type", world(pick.replace(unitExit, "sget-object v4, Ltest/PickHolder;->A00:$OBJECT")),
+                "gallery pick leaves somewhere other than its Unit return"),
+            Triple("the Unit read but another register returned", world(pick.replace("return-object v4", "return-object v5")),
                 "gallery pick leaves somewhere other than its Unit return"),
         )
         for ((case, classes, why) in cases) {
