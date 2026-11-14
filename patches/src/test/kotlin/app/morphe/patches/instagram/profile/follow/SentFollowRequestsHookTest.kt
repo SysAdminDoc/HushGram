@@ -189,6 +189,30 @@ class SentFollowRequestsHookTest {
         fun kinds(of: List<Instruction>) = of.map { kind(it.opcode) }.filter { it != Opcode.NOP }
         assertEquals("$label: Instagram's own code is kept", kinds(stockCode), kinds(code.filterNot { it.calls(SENT_SEEN) }))
 
+        // A profile header's follow button asks the resolver the status read returns the answer of
+        // itself, and that answer goes over right after it comes back (#690).
+        val resolver = stockCode[stockCode.indexOfLast { it.opcode == Opcode.RETURN_OBJECT } - 2].referenced()
+        val header = found.header.method
+        val headerStock = sliced.classes.getValue(header.definingClass).methods.single { it.toString() == header.toString() }
+        assertTrue("$label: ${header.name} is static", AccessFlags.STATIC.isSet(headerStock.accessFlags))
+        val headerCode = header.instructions()
+        assertEquals("$label: once in ${header.name}", 1, headerCode.count { it.calls(SENT_SEEN) })
+        val at = headerCode.indexOfFirst { it.calls(SENT_SEEN) }
+        val answer = headerCode[at - 1]
+        assertEquals("$label: right after the answer is kept", Opcode.MOVE_RESULT_OBJECT, answer.opcode)
+        assertEquals("$label: the resolver's answer", resolver, headerCode[at - 2].referenced())
+        val types = headerStock.parameterTypes.map(Any::toString)
+        fun width(type: String) = if (type == "J" || type == "D") 2 else 1
+        val first = headerStock.implementation!!.registerCount - types.sumOf(::width)
+        fun register(type: String) = first + types.take(types.indexOf(type)).sumOf(::width)
+        val headerCall = headerCode[at] as FiveRegisterInstruction
+        assertEquals(label, 3, headerCall.registerCount)
+        assertEquals("$label: the header's session", register(USER_SESSION), headerCall.registerC)
+        assertEquals("$label: the header's account", register(found.user), headerCall.registerD)
+        assertEquals("$label: the header's answer", (answer as OneRegisterInstruction).registerA, headerCall.registerE)
+        assertEquals("$label: Instagram's own header code is kept", kinds(headerStock.instructions()),
+            kinds(headerCode.filterNot { it.calls(SENT_SEEN) }))
+
         val tree = "${found.tree.definingClass}->${found.tree.name}:${found.tree.type}"
         val treeOf = context.stub(TREE_OF_STUB)
         assertEquals(label, listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT), treeOf.take(3).map { it.opcode })
@@ -204,7 +228,7 @@ class SentFollowRequestsHookTest {
 
         // The pictures and the Follow removal need the tree to be a full User, so User has to be one of its kinds.
         assertTrue("$label: a User can be the account's tree", reaches(bundle, USER, found.tree.type))
-        println("$label: ${found.status.definingClass}->${found.status.name} hands over $returns statuses; account ${found.user}, " +
+        println("$label: ${found.status.definingClass}->${found.status.name} hands over $returns statuses, ${header.name} the header's; account ${found.user}, " +
             "tree $tree, getter ${found.stringGetter.definingClass}->${found.stringGetter.name}")
     }
 
