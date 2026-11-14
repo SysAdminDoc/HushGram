@@ -450,6 +450,45 @@ public class AccentThemeTest {
         }
     }
 
+    /**
+     * Classic colors on a light theme hands that theme's page to Compose's white, so the message list
+     * and its search field match the off-white View screens, and the dark grays a light screen writes
+     * its text with stay (#639).
+     */
+    @Test
+    public void classicColorsHandsALightThemesPageToCompose() {
+        Settings.CLASSIC_COLORS.save(true);
+        AccentTheme.darkSurfacesForTests(null);
+        AccentTheme.lightSurfacesForTests(null);
+        try {
+            Context light = new ContextThemeWrapper(themed(THEMED + ".classic.compose.light", (name, type) -> {
+                if (type.equals("style") && name.startsWith("HushGramClassicBackgrounds_")) return android.R.style.TextAppearance_Small;
+                if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+                if (type.equals("attr") && name.equals("igds_color_secondary_background")) return android.R.attr.colorForeground;
+                return type.equals("attr") && name.startsWith("igds_color_") ? android.R.attr.colorBackground : 0;
+            }), android.R.style.Theme_Material_Light);
+            long white = (long) 0xffffffff << 32;
+            long text = (long) 0xff0c1014 << 32;
+            assertEquals("before a classic theme is seen", white, AccentTheme.composeSurface(white));
+
+            AccentTheme.apply(light, null);
+
+            TypedValue page = new TypedValue();
+            assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorBackground, page, true));
+            TypedValue top = new TypedValue();
+            assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorForeground, top, true));
+            assertTrue("a page color unlike Compose's own", (page.data & 0xffffff) != 0xffffff);
+            assertTrue("a top shade unlike the page", (top.data & 0xffffff) != (page.data & 0xffffff));
+            assertEquals((long) (0xff000000 | page.data & 0xffffff) << 32, AccentTheme.composeSurface(white));
+            assertEquals("the search field takes the top shade", (long) (0xff000000 | top.data & 0xffffff) << 32,
+                    AccentTheme.composeSurface((long) 0xfff0f2f5 << 32));
+            assertEquals("the text", text, AccentTheme.composeSurface(text));
+        } finally {
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
     /** An attribute the theme doesn't hold, one holding a size or one that isn't opaque isn't a background of its own (#187). */
     @Test
     public void onlyASolidColorIsABackgroundOfItsOwn() {

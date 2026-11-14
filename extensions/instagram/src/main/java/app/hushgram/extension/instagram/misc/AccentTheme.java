@@ -80,7 +80,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * on last (#639): Instagram's older look, a navy screen with charcoal panels on a dark theme and an
  * off-white one on a light theme. It sets the same attributes as the accent backgrounds, so it wins over
  * them and over Pure black, and a viewer's theme keeps its own the same way. Compose's dark grays take
- * its shades through {@link #composeSurface} as they take the accent backgrounds'.
+ * its shades through {@link #composeSurface} as they take the accent backgrounds', and on a light theme
+ * so do Compose's white page and its search fields' gray.
  *
  * <p>Home's newer header tints its heart and Create buttons with a color it reads from the primary text
  * color's resource as it's built, so no attribute reaches them. With Icons in the accent color on, the
@@ -175,6 +176,10 @@ public final class AccentTheme {
     @Nullable
     private static volatile int[] darkSurfaces;
 
+    /** The shades {@link #SURFACE_ATTRIBUTES} last held on a light theme given Classic colors, or null for none yet. */
+    @Nullable
+    private static volatile int[] lightSurfaces;
+
     /** Resource numbers by type and name, 0 for none. They don't change while the app runs. */
     private static final Map<String, Integer> IDS = new HashMap<>();
 
@@ -261,7 +266,7 @@ public final class AccentTheme {
         } else {
             theme.applyStyle(classic, true);
             HookStatus.counted(FamilyNames.ACCENT_COLOR, CLASSIC);
-            if (dark) rememberSurfaces(resources, theme, app);
+            rememberSurfaces(resources, theme, app, dark);
         }
     }
 
@@ -347,13 +352,16 @@ public final class AccentTheme {
             } else {
                 theme.applyStyle(backgrounds, true);
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS);
-                if (dark) rememberSurfaces(resources, theme, app);
+                if (dark) rememberSurfaces(resources, theme, app, true);
             }
         }
     }
 
-    /** Keeps the shades [theme] now holds for {@link #SURFACE_ATTRIBUTES}, leaving the last ones if any can't be read. */
-    private static void rememberSurfaces(Resources resources, Resources.Theme theme, String app) {
+    /**
+     * Keeps the shades [theme] now holds for {@link #SURFACE_ATTRIBUTES} as a [dark] theme's or a light
+     * one's, leaving the last ones if any can't be read.
+     */
+    private static void rememberSurfaces(Resources resources, Resources.Theme theme, String app, boolean dark) {
         int[] surfaces = new int[SURFACE_ATTRIBUTES.length];
         TypedValue value = new TypedValue();
         for (int step = 0; step < surfaces.length; step++) {
@@ -364,31 +372,48 @@ public final class AccentTheme {
             }
             surfaces[step] = value.data;
         }
-        darkSurfaces = surfaces;
+        if (dark) {
+            darkSurfaces = surfaces;
+        } else {
+            lightSurfaces = surfaces;
+        }
     }
 
-    /** Sets what {@link #rememberSurfaces} keeps, for tests. */
+    /** Sets what {@link #rememberSurfaces} keeps for a dark theme, for tests. */
     static void darkSurfacesForTests(@Nullable int[] surfaces) {
         darkSurfaces = surfaces;
     }
 
+    /** Sets what {@link #rememberSurfaces} keeps for a light theme, for tests. */
+    static void lightSurfacesForTests(@Nullable int[] surfaces) {
+        lightSurfaces = surfaces;
+    }
+
     /**
      * Injected at the end of the set-up of Instagram's Compose palettes, once for each gray a dark
-     * screen paints itself with (#577). Compose screens such as the message list take those from the
-     * code, not the theme, so {@link #apply} alone leaves their rows and search field near-black under
-     * a colored page. With Classic colors or Backgrounds in the accent color on and a dark theme seen, answers [value] as
-     * the same shade the theme's own backgrounds hold, keeping the alpha, and [value] itself for any
-     * other color. Light themes stay, since those grays are their text. Never throws.
+     * screen paints itself with (#577) and each white or gray fill a light one does (#639). Compose
+     * screens such as the message list take those from the code, not the theme, so {@link #apply}
+     * alone leaves their rows and search field near-black under a colored page, or white beside an
+     * off-white one. With Classic colors or Backgrounds in the accent color on and a dark theme seen,
+     * answers a dark gray as the same shade the theme's own backgrounds hold, keeping the alpha. With
+     * Classic colors on and a light theme seen, does the same for the white page and the search
+     * field's gray. The white labels and icons Compose draws over colored fills and media share that
+     * field, so they take the page shade too (#fafafa against #ffffff, too slight to see). The light
+     * grays a dark screen writes its text with, and the dark ones a light screen does, aren't among
+     * either. Answers [value] itself for any other color. Never throws.
      */
     public static long composeSurface(long value) {
         try {
             HookStatus.invoked(FamilyNames.ACCENT_COLOR);
             if ((value & 0xffffffffL) != 0) return value;
-            int[] surfaces = paintedSurfaces();
-            if (surfaces == null) return value;
             int argb = (int) (value >>> 32);
             int step = surfaceStep(argb & 0xffffff);
-            if (step < 0) return value;
+            int[] surfaces = paintedSurfaces();
+            if (step < 0) {
+                step = lightStep(argb & 0xffffff);
+                surfaces = paintedLightSurfaces();
+            }
+            if (step < 0 || surfaces == null) return value;
             HookStatus.counted(FamilyNames.ACCENT_COLOR, SURFACES);
             return (long) (argb & 0xff000000 | surfaces[step] & 0xffffff) << 32;
         } catch (Throwable failure) {
@@ -433,6 +458,13 @@ public final class AccentTheme {
         return AccentColor.picked() == null || !Settings.ACCENT_BACKGROUNDS.get() ? null : surfaces;
     }
 
+    /** The shades {@link #rememberSurfaces} kept from a light theme, while Classic colors is painting with them, or null. */
+    @Nullable
+    private static int[] paintedLightSurfaces() {
+        int[] surfaces = lightSurfaces;
+        return surfaces != null && Utils.settingsReady() && Settings.CLASSIC_COLORS.get() ? surfaces : null;
+    }
+
     /**
      * Whether Classic colors or Backgrounds in the accent color is painting a dark theme's surfaces. Pure black's fills ask
      * first: Material You's neutral shades are gray enough to pass for Instagram's own dark gray, and
@@ -459,6 +491,22 @@ public final class AccentTheme {
             case 0x212328:
             case 0x25292e:
             case 0x2b3036:
+                return 2;
+            default:
+                return -1;
+        }
+    }
+
+    /**
+     * Which of {@link #SURFACE_ATTRIBUTES} a light fill of Instagram's stands for, or -1: the white page,
+     * and the gray its search fields take from either palette (#639).
+     */
+    private static int lightStep(int rgb) {
+        switch (rgb) {
+            case 0xffffff:
+                return 0;
+            case 0xf3f5f7:
+            case 0xf0f2f5:
                 return 2;
             default:
                 return -1;

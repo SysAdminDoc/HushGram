@@ -19,7 +19,9 @@ import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -30,7 +32,10 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Backgrounds in the accent color (#577): the Compose palettes' dark grays are repainted as their set-up ends. */
+/**
+ * Backgrounds in the accent color and Classic colors (#577, #639): the Compose palettes' dark grays and
+ * light fills are repainted as their set-up ends.
+ */
 class ComposeSurfacesTest {
     @Test
     fun theHookIsInTheExtension() {
@@ -90,6 +95,10 @@ class ComposeSurfacesTest {
 
     private fun builds(bundle: java.io.File, label: String) {
         val found = FixtureDex.classes(bundle, PALETTE_SURFACES.keys).values.map { ImmutableClassDef.of(it) }
+        val shades = storedShades(found)
+        for ((field, rgb) in LIGHT_FILLS) {
+            assertEquals("$label $field holds the shade AccentTheme.lightStep maps", rgb, shades[field])
+        }
         val hook = ImmutableClassDef.of(ExtensionDex.classDef(ACCENT_THEME))
         val context = PatchContexts.of(found + hook)
         context.requirePaletteSurfaces()
@@ -115,6 +124,35 @@ class ComposeSurfacesTest {
         }
     }
 
+    /**
+     * The RGB each palette's set-up stores as a constant, by `type->FIELD`: the last `const-wide` into the
+     * stored register, through the shift or the static (J)J that makes it a Compose color. A field
+     * copied from another one's isn't listed.
+     */
+    private fun storedShades(classes: List<ClassDef>): Map<String, Int> {
+        val shades = HashMap<String, Int>()
+        for (classDef in classes) {
+            val code = classDef.methods.singleOrNull { it.name == "<clinit>" }?.code().orEmpty()
+            val constants = HashMap<Int, Long>()
+            for (instruction in code) {
+                val written = (instruction as? OneRegisterInstruction)?.registerA
+                when {
+                    instruction.opcode in WIDE_CONSTANTS -> constants[written!!] = (instruction as WideLiteralInstruction).wideLiteral
+                    instruction.opcode == Opcode.SPUT_WIDE -> {
+                        val field = (instruction as ReferenceInstruction).reference as FieldReference
+                        constants[written!!]?.let { shades["${field.definingClass}->${field.name}"] = (it and 0xffffff).toInt() }
+                    }
+                    instruction.opcode == Opcode.SHL_LONG_2ADDR || instruction.opcode == Opcode.MOVE_RESULT_WIDE -> Unit
+                    written != null && instruction.opcode.setsRegister() -> {
+                        constants.remove(written)
+                        if (instruction.opcode.setsWideRegister()) constants.remove(written + 1)
+                    }
+                }
+            }
+        }
+        return shades
+    }
+
     private fun Instruction.fieldName(): String = ((this as ReferenceInstruction).reference as FieldReference).name
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
@@ -138,5 +176,16 @@ class ComposeSurfacesTest {
         )
         val held = fields.map { ImmutableField(type, it, "J", AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, null) }
         return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, held, listOf(setUp))
+    }
+
+    private companion object {
+        val WIDE_CONSTANTS = setOf(Opcode.CONST_WIDE, Opcode.CONST_WIDE_16, Opcode.CONST_WIDE_32)
+
+        /** The light fills Classic colors repaints, at the RGB each build stores them as (#639). */
+        val LIGHT_FILLS = mapOf(
+            "Lcom/instagram/compose/core/theme/BasePrismColors;->WHITE" to 0xffffff,
+            "Lcom/instagram/compose/core/theme/BasePrismColors;->GRAY_1" to 0xf3f5f7,
+            "Lcom/instagram/compose/core/theme/BasePrismColorsV2;->GRAY_0300" to 0xf0f2f5,
+        )
     }
 }

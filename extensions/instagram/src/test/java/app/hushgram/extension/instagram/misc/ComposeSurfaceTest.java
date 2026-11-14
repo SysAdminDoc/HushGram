@@ -30,13 +30,17 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Which of the Compose palettes' dark grays take the accent backgrounds' shades (#577). */
+/** Which of the Compose palettes' dark grays take the accent backgrounds' shades (#577), and which light fills Classic colors' (#639). */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
 public class ComposeSurfaceTest {
     private static final int BASE = 0xff112233;
     private static final int RAISED = 0xff223344;
     private static final int TOP = 0xff334455;
+    private static final int LIGHT_BASE = 0xfffafafa;
+    private static final int LIGHT_RAISED = 0xffffffff;
+    private static final int LIGHT_TOP = 0xffefefef;
+    private static final int WHITE = 0xffffffff;
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
@@ -62,6 +66,7 @@ public class ComposeSurfaceTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         AccentTheme.darkSurfacesForTests(null);
+        AccentTheme.lightSurfacesForTests(null);
         HookStatus.clear();
     }
 
@@ -160,5 +165,49 @@ public class ComposeSurfaceTest {
     @Test public void noDarkThemeSeenStays() {
         AccentTheme.darkSurfacesForTests(null);
         assertEquals(compose(0xff0c1014), AccentTheme.composeSurface(compose(0xff0c1014)));
+    }
+
+    /**
+     * Classic colors on a light theme paints Compose's white page and both palettes' search field gray
+     * in the theme's own shades, keeping the alpha, and leaves the light screens' dark text and the dark
+     * screens' light text alone (#639).
+     */
+    @Test public void classicColorsPaintALightThemesFills() {
+        Settings.ACCENT_COLOR.save(false);
+        Settings.ACCENT_BACKGROUNDS.save(false);
+        AccentTheme.darkSurfacesForTests(null);
+        AccentTheme.lightSurfacesForTests(new int[] {LIGHT_BASE, LIGHT_RAISED, LIGHT_TOP});
+        assertEquals("off", compose(WHITE), AccentTheme.composeSurface(compose(WHITE)));
+
+        Settings.CLASSIC_COLORS.save(true);
+        assertEquals(compose(LIGHT_BASE), AccentTheme.composeSurface(compose(WHITE)));
+        assertEquals(compose(LIGHT_TOP), AccentTheme.composeSurface(compose(0xfff3f5f7)));
+        assertEquals(compose(LIGHT_TOP), AccentTheme.composeSurface(compose(0xfff0f2f5)));
+        assertEquals("alpha", compose(0x80fafafa), AccentTheme.composeSurface(compose(0x80ffffff)));
+        assertEquals("a light screen's text", compose(0xff0c1014), AccentTheme.composeSurface(compose(0xff0c1014)));
+        assertEquals("a dark screen's text", compose(0xfff8f9f9), AccentTheme.composeSurface(compose(0xfff8f9f9)));
+        assertEquals("an already painted page", compose(LIGHT_BASE), AccentTheme.composeSurface(compose(LIGHT_BASE)));
+        long wideGamut = compose(WHITE) | 5;
+        assertEquals("outside sRGB", wideGamut, AccentTheme.composeSurface(wideGamut));
+
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", compose(WHITE), AccentTheme.composeSurface(compose(WHITE)));
+    }
+
+    /** With both themes' shades kept, each palette color takes its own theme's shade (#577, #639). */
+    @Test public void eachThemesColorsTakeTheirOwnShades() {
+        Settings.CLASSIC_COLORS.save(true);
+        AccentTheme.lightSurfacesForTests(new int[] {LIGHT_BASE, LIGHT_RAISED, LIGHT_TOP});
+        assertEquals(compose(BASE), AccentTheme.composeSurface(compose(0xff0c1014)));
+        assertEquals(compose(TOP), AccentTheme.composeSurface(compose(0xff2b3036)));
+        assertEquals(compose(LIGHT_BASE), AccentTheme.composeSurface(compose(WHITE)));
+        assertEquals(compose(LIGHT_TOP), AccentTheme.composeSurface(compose(0xfff0f2f5)));
+    }
+
+    /** The accent's light backgrounds alone leave Compose's white page as it is. */
+    @Test public void theAccentsLightBackgroundsLeaveTheWhitePage() {
+        AccentTheme.lightSurfacesForTests(new int[] {0xfff5f8ff, 0xffffffff, 0xffe8eeff});
+        assertEquals(compose(WHITE), AccentTheme.composeSurface(compose(WHITE)));
+        assertEquals(compose(0xfff0f2f5), AccentTheme.composeSurface(compose(0xfff0f2f5)));
     }
 }

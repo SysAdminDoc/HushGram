@@ -30,10 +30,15 @@ internal val NEEDED_PALETTE_BLUES = listOf(0x85a1ff, 0x4a5df9)
 
 internal const val SWAP_SURFACE = "$ACCENT_THEME->composeSurface(J)J"
 
-/** The fields holding the grays a dark Compose screen paints itself with, by palette (#577). */
+/**
+ * The fields holding the grays a dark Compose screen paints itself with (#577), then the white page and
+ * the search fields' gray a light one does (#639), by palette. The dark screens' text is in neither.
+ */
 internal val PALETTE_SURFACES = mapOf(
-    "Lcom/instagram/compose/core/theme/BasePrismColors;" to listOf("BLACK", "GRAY_8", "GRAY_9", "GRAY_10", "GRAY_1100"),
-    "Lcom/instagram/compose/core/theme/BasePrismColorsV2;" to listOf("GRAY_1300", "GRAY_1400", "GRAY_1500", "GRAY_1600"),
+    "Lcom/instagram/compose/core/theme/BasePrismColors;" to
+        listOf("BLACK", "GRAY_8", "GRAY_9", "GRAY_10", "GRAY_1100", "WHITE", "GRAY_1"),
+    "Lcom/instagram/compose/core/theme/BasePrismColorsV2;" to
+        listOf("GRAY_1300", "GRAY_1400", "GRAY_1500", "GRAY_1600", "WHITE", "GRAY_0200", "GRAY_0300"),
 )
 
 private val WIDE_CONSTS = setOf(Opcode.CONST_WIDE, Opcode.CONST_WIDE_32, Opcode.CONST_WIDE_16)
@@ -111,8 +116,8 @@ internal fun BytecodePatchContext.requirePaletteSurfaces() {
 }
 
 /**
- * Backgrounds in the accent color's Compose half (#577): the message list and other Compose screens
- * paint their rows from these palettes, so the theme styles never reach them. Each surface is read
+ * Backgrounds in the accent color's and Classic colors' Compose half (#577, #639): the message list and
+ * other Compose screens paint their rows from these palettes, so the theme styles never reach them. Each surface is read
  * back through AccentTheme.composeSurface and stored again as the set-up ends, after every store and
  * Pure black's rewrite. The registers are free there, right before the return.
  */
