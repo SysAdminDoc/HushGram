@@ -30,6 +30,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * other press goes to Instagram's listener as before. The strip isn't clickable, so once the gate
  * turns a press away, Android hands the whole gesture to the views under it.
  *
+ * <p>The strip also runs over the top of Instagram's tab bar, its sibling. Stock Instagram seeks from
+ * that band rather than opening a tab, so a press on the tab bar is never given away (#526).
+ *
  * <p>It holds whatever the patch's switch says, since it only gives back taps that were the
  * buttons' to begin with. Paused, before the settings are read, or when anything goes wrong, every
  * press goes to Instagram's listener.
@@ -37,6 +40,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 public final class ReelSeekTouch {
     /** Below this a view counts as faded out, the way Clean up Reels hides the buttons. */
     private static final float SEEN_ALPHA = 0.05f;
+    /** Instagram's tab bar, whose top the strip runs over. */
+    static final String TAB_BAR = "tab_bar";
+    /** The tab bar's id, looked up once, or -1 before that. Tests set their own, since a test app has none of Instagram's. */
+    static volatile int tabBarId = -1;
 
     private static volatile boolean loggedPass;
     /** Set while the glass tab bar hands the strip a press that went down over the bar. Main thread only. */
@@ -105,8 +112,8 @@ public final class ReelSeekTouch {
     /**
      * The button under the strip's own point ({@code x}, {@code y}) among the views beside the strip and
      * theirs: one that's shown, enabled and tappable, that the strip covers only part of. A view that
-     * takes in the whole strip, like the reel page, stays behind it, and a point on a seek bar stays the
-     * strip's. Every area is read in the same global coordinates, the strip's point moved there by the
+     * takes in the whole strip, like the reel page, stays behind it, and a point on a seek bar or on the tab
+     * bar stays the strip's. Every area is read in the same global coordinates, the strip's point moved there by the
      * strip's own offset.
      */
     static View buttonAt(View strip, float x, float y) {
@@ -122,6 +129,7 @@ public final class ReelSeekTouch {
         for (int i = group.getChildCount() - 1; i >= 0; i--) {
             View child = group.getChildAt(i);
             if (child == strip) continue;
+            if (onTheTabBar(child, pointX, pointY)) return null;
             View taker = taker(child, pointX, pointY);
             if (taker == null) continue;
             Rect area = new Rect();
@@ -130,6 +138,23 @@ public final class ReelSeekTouch {
             return button ? taker : null;
         }
         return null;
+    }
+
+    /** Whether {@code view} is Instagram's tab bar, shown, with the global point ({@code x}, {@code y}) on it. */
+    static boolean onTheTabBar(View view, int x, int y) {
+        int id = view.getId();
+        if (id == View.NO_ID || id != tabBarId(view.getContext()) || view.getVisibility() != View.VISIBLE) return false;
+        Rect area = new Rect();
+        return view.getGlobalVisibleRect(area) && area.contains(x, y);
+    }
+
+    private static int tabBarId(android.content.Context context) {
+        int id = tabBarId;
+        if (id == -1) {
+            id = context.getResources().getIdentifier(TAB_BAR, "id", Utils.resourcePackage(context));
+            tabBarId = id;
+        }
+        return id;
     }
 
     /**
