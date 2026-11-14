@@ -123,6 +123,11 @@ public final class AmbientLight {
 
     /** How many parents of a picture are asked whether they're its stage. */
     static final int STAGE_DEPTH = 16;
+    /**
+     * How many parents above a photo reel's stage are asked whether the picture leaves room in them.
+     * On 454 the reel's own view is one up. Past two, a full screen photo reaches the window's layout.
+     */
+    static final int PHOTO_STAGE_DEPTH = 2;
     /** The methods taking a Canvas that a view draws itself in. */
     private static final List<String> DRAWS = Arrays.asList("draw", "onDraw", "dispatchDraw", "onDrawForeground");
 
@@ -208,7 +213,7 @@ public final class AmbientLight {
     private static final Map<Class<?>, Boolean> frames = new WeakHashMap<>();
     private static final Runnable TICK = AmbientLight::tick;
     private static final Rect scratch = new Rect(), aim = new Rect();
-    private static final RectF mapped = new RectF();
+    private static final RectF mapped = new RectF(), picture = new RectF();
     private static final int[] where = new int[2];
     private static boolean ticking;
     private static volatile boolean registered;
@@ -363,6 +368,36 @@ public final class AmbientLight {
         ViewGroup parent = (ViewGroup) above;
         boolean sameSize = parent.getWidth() <= frame.getWidth() + ROUNDING && parent.getHeight() <= frame.getHeight() + ROUNDING;
         return sameSize ? parent : stage;
+    }
+
+    /**
+     * A photo reel's stage: [stage], or when [photo]'s picture fills it, the nearest of its next
+     * {@link #PHOTO_STAGE_DEPTH} parents the picture leaves room in. A photo reel's frame, and the
+     * view round it, are the photo's own size, so a glow on them never showed (#689).
+     */
+    @Nullable
+    static ViewGroup reelPhotoStageOf(ImageView photo, @Nullable ViewGroup stage) {
+        if (stage == null || !pictureFills(photo, stage)) return stage;
+        ViewParent parent = stage.getParent();
+        for (int i = 0; i < PHOTO_STAGE_DEPTH && parent instanceof ViewGroup; i++, parent = parent.getParent()) {
+            ViewGroup group = (ViewGroup) parent;
+            if (!pictureFills(photo, group)) return group;
+        }
+        return stage;
+    }
+
+    /** Whether [photo]'s picture, as drawn in its view, is at least {@link #FILLS} of [group] both ways. */
+    private static boolean pictureFills(ImageView photo, ViewGroup group) {
+        Drawable drawable = photo.getDrawable();
+        float width = photo.getWidth(), height = photo.getHeight();
+        if (drawable != null && drawable.getIntrinsicWidth() > 0 && drawable.getIntrinsicHeight() > 0
+                && photo.getScaleType() != ImageView.ScaleType.FIT_XY) {
+            picture.set(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
+            photo.getImageMatrix().mapRect(picture);
+            width = Math.min(width, picture.width());
+            height = Math.min(height, picture.height());
+        }
+        return width >= group.getWidth() * FILLS && height >= group.getHeight() * FILLS;
     }
 
     /**
@@ -2028,7 +2063,9 @@ public final class AmbientLight {
                 if (lit != null && lit != media && entry.getValue().kind == Kind.REEL && under(lit, frame)) stale = lit;
             }
             if (stale != null) drop(stale, lights.get(stale));
-            if (media != null) light(owner, media, Kind.REEL, null, reelStageOf(media, frame));
+            if (media == null) return;
+            ViewGroup stage = reelStageOf(media, frame);
+            light(owner, media, Kind.REEL, null, media instanceof ImageView ? reelPhotoStageOf((ImageView) media, stage) : stage);
         }
 
         /** The first video under [view] that shows. */

@@ -757,6 +757,74 @@ public class AmbientLightTest {
         assertEquals("nothing behind the photo", 0, Color.alpha(drawn.getPixel(WIDTH / 2, REEL / 2)));
     }
 
+    /**
+     * A photo reel as 454 lays it out: the reel's view, then the photo's own view centred in it, the
+     * frame the photo's size inside that, holding the photo cropped to fill it and an empty video
+     * container. [photoHeight] is the photo's height, [layers] the views of the reel's size round it.
+     */
+    private ImageView photoReel454(int photoHeight, int layers) {
+        FrameLayout reelRoot = new FrameLayout(activity);
+        FrameLayout outer = reelRoot;
+        for (int i = 0; i < layers; i++) {
+            FrameLayout layer = new FrameLayout(activity);
+            outer.addView(layer, i == 0 ? new FrameLayout.LayoutParams(WIDTH, REEL) : match());
+            outer = layer;
+        }
+        FrameLayout content = new FrameLayout(activity);
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        ImageView photo = new ImageView(activity);
+        photo.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        photo.setImageBitmap(Bitmap.createBitmap(WIDTH, photoHeight, Bitmap.Config.ARGB_8888));
+        frame.addView(photo, match());
+        frame.addView(new FrameLayout(activity), match());
+        content.addView(frame, match());
+        outer.addView(content, new FrameLayout.LayoutParams(WIDTH, photoHeight, Gravity.CENTER));
+        activity.setContentView(reelRoot);
+        root = reelRoot;
+        shadowOf(Looper.getMainLooper()).idle();
+        return photo;
+    }
+
+    /**
+     * A photo reel's frame, and the view round it, are the photo's size on 454, so a glow there had
+     * nowhere to show. The reel's own view takes it, and the bands above and below the photo glow (#689).
+     */
+    @Test
+    public void aPhotoReelSizedToItsPhotoGlowsOnTheReelAroundIt() {
+        ImageView photo = photoReel454(REEL / 2, 1);
+        ViewGroup content = (ViewGroup) photo.getParent().getParent();
+        ViewGroup reel = (ViewGroup) content.getParent();
+
+        on();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertTrue(String.valueOf(reel.getBackground()), reel.getBackground() instanceof AmbientLight.Glow);
+        assertNull("the photo's own view leaves the glow no room", content.getBackground());
+        assertEquals(new Rect(0, REEL / 4, WIDTH, REEL * 3 / 4), AmbientLight.litRectForTests(photo));
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        Bitmap drawn = background(reel);
+        int band = drawn.getPixel(WIDTH / 2, REEL / 4 - 4);
+        assertTrue("the band above shows the photo's top: " + hex(band), Color.blue(band) > 80 && Color.alpha(band) > 80);
+        int under = drawn.getPixel(WIDTH / 2, REEL * 3 / 4 + 4);
+        assertTrue("the band below its bottom: " + hex(under), Color.red(under) > 80 && Color.alpha(under) > 80);
+        assertEquals("nothing behind the photo", 0, Color.alpha(drawn.getPixel(WIDTH / 2, REEL / 2)));
+    }
+
+    /** A photo filling the reel has no band to glow in, and its stage stays inside the reel. */
+    @Test
+    public void aPhotoReelFillingTheReelHasNothingToGlowIn() {
+        ImageView photo = photoReel454(REEL, 3);
+        ViewGroup content = (ViewGroup) photo.getParent().getParent();
+
+        on();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertTrue(AmbientLight.litRectForTests(photo).isEmpty());
+        assertTrue(String.valueOf(content.getBackground()), content.getBackground() instanceof AmbientLight.Glow);
+        assertNull("the reel's outermost view wears no glow", root.getChildAt(0).getBackground());
+    }
+
     /** A video starting over the photo it showed first takes the glow, and the photo's goes out. */
     @Test
     public void aVideoStartingOverItsCoverTakesTheGlow() {
