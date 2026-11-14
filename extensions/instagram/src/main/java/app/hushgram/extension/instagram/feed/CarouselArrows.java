@@ -577,8 +577,10 @@ public final class CarouselArrows {
                 float top = bounds.bottom - (PILL_MARGIN + PILL_HEIGHT) * density;
                 // Peek shrinks the pages about their middles. A carousel tall enough has room under them for the
                 // pill, clear of a video's seek bar, so it sits at one height on photos and videos alike (#450).
+                // A pixel of slack covers the rounding in Peek's page width and in the drawn bounds, which leaves
+                // a square carousel's room a fraction short of the pill's. Half a pixel isn't enough at every density.
                 float room = bounds.bottom - pageBottom(frame, pager);
-                if (room >= (PILL_HEIGHT + 2 * PILL_OVER_BAR) * density) {
+                if (room + 1 >= (PILL_HEIGHT + 2 * PILL_OVER_BAR) * density) {
                     top = bounds.bottom - (room + PILL_HEIGHT * density) / 2;
                 }
                 place(pill, left, overBar(frame, pager, left, top, left + width, density));

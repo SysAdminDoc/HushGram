@@ -635,18 +635,44 @@ public class CarouselArrowsTest {
      */
     @Test
     public void underPeekThePillSitsBelowThePagesAtOneHeightOnPhotosAndVideos() {
+        pillUnderPeek(HEIGHT);
+    }
+
+    /**
+     * #450: a square carousel's room under its pages is just the pill's height plus its gaps, and the rounding
+     * in Peek's page width and the drawn bounds left it a fraction short at densities like tvdpi, 420 and 440
+     * dpi, so the pill went back over the pages and jumped above the seek bar on videos.
+     */
+    @Test
+    @Config(qualifiers = "tvdpi")
+    public void aSquareCarouselUnderPeekKeepsThePillUnderThePages() {
+        pager.getLayoutParams().height = WIDTH;
+        for (int i = 0; i < pager.getChildCount(); i++) pager.getChildAt(i).getLayoutParams().height = WIDTH;
+        column.getLayoutParams().height = HEADER + WIDTH;
+        root.getLayoutParams().height = HEADER + WIDTH;
+        root.requestLayout();
+        shadowOf(Looper.getMainLooper()).idle();
         float d = density();
-        float scale = (WIDTH - (CarouselPeek.INSET + CarouselPeek.GAP + CarouselPeek.PEEK) * d) / WIDTH;
+        float scale = Math.round(WIDTH - (CarouselPeek.INSET + CarouselPeek.GAP + CarouselPeek.PEEK) * d) / (float) WIDTH;
+        assertTrue("the room is a fraction short of the pill's at this density",
+                (1 - scale) * WIDTH / 2 < (CarouselArrows.PILL_HEIGHT + 2 * CarouselArrows.PILL_OVER_BAR) * d);
+        pillUnderPeek(WIDTH);
+    }
+
+    /** Peek's pages over a carousel [tall] pixels high: the pill sits in the room under them on a video and a photo alike. */
+    private void pillUnderPeek(int tall) {
+        float d = density();
+        float scale = Math.round(WIDTH - (CarouselPeek.INSET + CarouselPeek.GAP + CarouselPeek.PEEK) * d) / (float) WIDTH;
         for (int i = 0; i < pager.getChildCount(); i++) {
             View page = pager.getChildAt(i);
             page.setPivotX(CarouselPeek.INSET * d / (1 - scale));
-            page.setPivotY(HEIGHT / 2f);
+            page.setPivotY(tall / 2f);
             page.setScaleX(scale);
             page.setScaleY(scale);
         }
         FrameLayout photo = (FrameLayout) ((ViewGroup) ((ViewGroup) pager.getChildAt(0)).getChildAt(0)).getChildAt(0);
         View cover = new View(activity);
-        photo.addView(cover, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        photo.addView(cover, new FrameLayout.LayoutParams(WIDTH, tall));
         Object player = new Object();
         FeedSeekBar.playerForTests(new FeedSeekBar.Player() {
             @Override public View view(Object of) { return of == player ? cover : null; }
@@ -660,8 +686,8 @@ public class CarouselArrowsTest {
         settle();
 
         assertNotNull("a video page shows its seek bar", FeedSeekBar.shownBar());
-        float bottom = HEADER + HEIGHT;
-        float room = (1 - scale) * HEIGHT / 2;
+        float bottom = HEADER + tall;
+        float room = (1 - scale) * tall / 2;
         float onVideo = pill().getTop() + pill().getTranslationY();
         assertEquals("centered in the room under the pages", bottom - (room + CarouselArrows.PILL_HEIGHT * d) / 2, onVideo, 1f);
         assertTrue("under the bar as drawn", onVideo >= bottom - room - 0.5f);
