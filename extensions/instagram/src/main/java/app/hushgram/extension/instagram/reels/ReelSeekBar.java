@@ -170,9 +170,13 @@ public final class ReelSeekBar {
         return Utils.settingsReady() && !shaped() && (Settings.REEL_SEEK_THUMB.get() || styled());
     }
 
-    /** Whether a {@code SeekShape} draws the bar, which takes the place of the handle and the thicker track. */
+    /**
+     * Whether a {@code SeekShape} draws the bar, which takes the place of the handle and the thicker
+     * track. The shape is one choice for every seek bar, so Instagram's own bar under a long reel takes
+     * it with no seek bar switch on (#689). It gives no reel a bar Instagram wouldn't.
+     */
     static boolean shaped() {
-        return switchedOn() && SeekShapes.changed();
+        return Utils.settingsReady() && SeekShapes.changed();
     }
 
     /**

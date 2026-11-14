@@ -24,6 +24,7 @@ import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -115,6 +116,30 @@ public class ReelSeekThumbTest {
         assertSame(track, bar.getProgressDrawable());
         assertSame(original, bar.getThumb());
         assertEquals(3, bar.getThumbOffset());
+    }
+
+    /**
+     * #689: the shape is one choice for every seek bar, so Instagram's own bar under a long reel takes
+     * it with no Reels seek bar switch on. That adds no time label and gives short reels no bar, and
+     * Standard hands Instagram's bar back.
+     */
+    @Test public void instagramsOwnReelBarTakesTheShapeWithNoSeekBarSwitch() {
+        Drawable track = bar.getProgressDrawable();
+        Settings.REEL_SEEK_BAR.save(false);
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.WAVE);
+        refresh();
+        assertFalse(ReelSeekBar.switchedOn());
+        assertTrue(ReelSeekBar.shaped());
+        assertEquals("SeekShapeDrawable", bar.getProgressDrawable().getClass().getSimpleName());
+        TextView label = ReelTimeLabel.labelOf(bar);
+        assertTrue("no time label", label == null || label.getVisibility() != View.VISIBLE);
+        assertEquals("a short reel keeps Instagram's answer", 30L, ReelSeekBar.minSeconds(30L));
+
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.STANDARD);
+        refresh();
+        assertFalse(ReelSeekBar.shaped());
+        assertSame(track, bar.getProgressDrawable());
+        assertSame(original, bar.getThumb());
     }
 
     @Test public void defaultOffLeavesTheNativeDrawableAndOffset() {

@@ -3500,8 +3500,8 @@ public class Settings extends BaseSettings {
     /**
      * The shape of the seek bars on feed videos, stories and reels (#586, #592), one choice for all
      * of them, and of Instagram's own story progress segments and the seek bar of a video opened
-     * from a chat (#630). Those two are always there, so the choice needs no seek bar switch on.
-     * {@link SeekShape#STANDARD} to start, which leaves each bar as it's always been.
+     * from a chat (#630), and of the bar Instagram itself puts under a long reel (#689). Those need
+     * no seek bar switch on. {@link SeekShape#STANDARD} to start, which leaves each bar as it's always been.
      */
     public static final EnumSetting<SeekShape> SEEK_BAR_SHAPE =
             new EnumSetting<>("hushgram_seek_bar_shape", SeekShape.STANDARD);
