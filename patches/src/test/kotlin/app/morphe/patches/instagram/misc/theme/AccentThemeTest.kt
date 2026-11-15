@@ -538,6 +538,43 @@ class AccentThemeTest {
         assertTrue("the light styles still paint the page", light.all { items -> items.any { it.first == "igds_color_primary_background" } })
     }
 
+    /**
+     * A profile's Edit profile and Share profile buttons, and the other gray secondary buttons, take the
+     * top shade from every background style, dark and light, instead of Prism's grays (#187).
+     */
+    @Test
+    fun theSecondaryButtonsTakeTheTopShade() {
+        val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
+        val attrs = declaring(listOf("igds_color_primary_background") + SECONDARY_BUTTONS)
+        val colors = parse("<resources />")
+        val colorsV31 = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+        addWallpaperResources(uses, attrs, colors, colorsV31, styles)
+
+        val accent = styleItems(styles, "HushGramAccentBackgrounds_")
+        val classic = styleItems(styles, "HushGramClassicBackgrounds_")
+        assertEquals(2, SECONDARY_BUTTONS.size)
+        for (theme in IconTheme.values()) {
+            for (button in SECONDARY_BUTTONS) {
+                assertEquals(
+                    "$button, $theme",
+                    "@color/${backgroundColor(WALLPAPER, theme, BackgroundStep.TOP)}",
+                    accent.getValue(backgroundStyle(WALLPAPER, theme)).toMap()[button],
+                )
+                assertEquals(
+                    "@color/${backgroundColor("PURPLE", theme, BackgroundStep.TOP)}",
+                    accent.getValue(backgroundStyle("PURPLE", theme)).toMap()[button],
+                )
+                assertEquals(
+                    "@color/${classicColor(theme, BackgroundStep.TOP)}",
+                    classic.getValue(classicStyle(theme)).toMap()[button],
+                )
+            }
+        }
+    }
+
     /** Text stays Instagram's color, so every color's backgrounds have to leave that text easy to read on them (#187, #639). */
     @Test
     fun instagramsTextStaysReadableOnEveryBackground() {

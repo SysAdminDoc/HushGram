@@ -321,11 +321,23 @@ internal enum class BackgroundStep(val darkShare: Float, val lightShare: Float, 
 internal const val BACKGROUND_ATTRIBUTE = "igds_color_primary_background"
 
 /**
+ * The fills of Instagram's secondary buttons, read by its button component and its Compose screens: the
+ * plain one, and the one a button raised on a card or a profile's header takes, as Edit profile and
+ * Share profile do. They held Prism's grays over the backgrounds in the accent color (#187). Declared
+ * before [BACKGROUND_ATTRIBUTES], which is built from it.
+ */
+internal val SECONDARY_BUTTONS = listOf(
+    "igds_color_secondary_button_panavision",
+    "igds_color_secondary_button_elevated_panavision",
+)
+
+/**
  * The attributes the background styles set, each with its step (#187). Instagram's other backgrounds
  * mostly point at these. The media, Reels and story loading backgrounds aren't here, so a story or a
  * reel still plays over black. Neither are the see-through ones (toasts, blurs), which already show
  * what's behind them. [ROW_ATTRIBUTE] is HushGram's, the one Pure black leaves a Likes row filling with.
- * [REELS_TAB_BAR] is the tab bar's own color on the Reels tab.
+ * [REELS_TAB_BAR] is the tab bar's own color on the Reels tab. [SECONDARY_BUTTONS] fill gray buttons
+ * like a profile's Edit profile and Share profile.
  */
 internal val BACKGROUND_ATTRIBUTES: Map<String, BackgroundStep> = linkedMapOf(
     BACKGROUND_ATTRIBUTE to BackgroundStep.BASE,
@@ -342,7 +354,7 @@ internal val BACKGROUND_ATTRIBUTES: Map<String, BackgroundStep> = linkedMapOf(
     "igds_color_highlight_background" to BackgroundStep.TOP,
     "igds_color_elevated_highlight_background" to BackgroundStep.TOP,
     "igds_color_pill_background" to BackgroundStep.TOP,
-)
+) + SECONDARY_BUTTONS.associateWith { BackgroundStep.TOP }
 
 /**
  * The attribute the main screen paints its tab bar and the navigation bar with each time the Reels tab
