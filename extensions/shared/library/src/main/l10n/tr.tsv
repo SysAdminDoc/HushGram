@@ -1336,7 +1336,7 @@ Hide AI-labeled reels	Yapay zeka etiketli reel'leri gizle
 Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Instagram'ın kendi yapay zeka etiketini taşıyan reel'leri dışarıda bırakır. Bu etiketi olmayan bir reel, yapay zekayla yapılmış olsa bile kalır.
 # context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
 Save every page without asking	Tüm sayfaları sormadan kaydet
-On a carousel, the download icon saves all of its pages at once instead of asking.	Karuselde indirme simgesi sormak yerine tüm sayfaları tek seferde kaydeder.
+On a carousel, the download icon saves all of its pages at once instead of asking. A photo with music saves as a photo.	Karuselde indirme simgesi sormak yerine tüm sayfaları tek seferde kaydeder. Müzikli bir fotoğraf, fotoğraf olarak kaydedilir.
 # context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
 Hide reels by caption words	Açıklamadaki kelimelere göre reel'leri gizle
 Also on Home	Ana Sayfa'da da

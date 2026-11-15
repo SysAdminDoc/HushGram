@@ -464,7 +464,8 @@ public final class ReelDownloadButton {
      * What a tap does with the reel [column] shows now: the menu's Download, or for a photo with
      * music a choice of video or photo first, or with Ask what to save on a choice of the reel, its
      * cover and its sound ({@link #ask}). With Save every page without asking on, a carousel skips
-     * both and saves all its pages, as the feed's icon does (#190). A reel with nothing to save, or one tapped after
+     * both and saves all its pages, as the feed's icon does (#190), and a photo with music skips the
+     * choice and saves as a photo, the way a carousel with music does. A reel with nothing to save, or one tapped after
      * Download on reels went off, gets a short note. Off or paused, nothing. Never throws.
      */
     static void tap(View anchor, Object column, @Nullable Activity activity) {
@@ -475,9 +476,10 @@ public final class ReelDownloadButton {
                 if (switchedOn()) actions.nothing(contextOf(anchor, activity));
                 return;
             }
-            boolean everyPage = actions.carousel(media) && Settings.FEED_DOWNLOAD_ALL_PAGES.get();
+            boolean withoutAsking = Settings.FEED_DOWNLOAD_ALL_PAGES.get();
+            boolean everyPage = withoutAsking && actions.carousel(media);
             if (actions.music(media)) {
-                if (everyPage) {
+                if (withoutAsking) {
                     save(anchor, ReelDownload.PHOTO_OPTION, media, activity);
                     return;
                 }

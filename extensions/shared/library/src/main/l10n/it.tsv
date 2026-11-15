@@ -1336,7 +1336,7 @@ Hide AI-labeled reels	Nascondi i reel con etichetta IA
 Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Esclude i reel che portano l'etichetta IA di Instagram. Un reel senza quell'etichetta resta, anche se l'ha creato l'IA.
 # context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
 Save every page without asking	Salva tutte le pagine senza chiedere
-On a carousel, the download icon saves all of its pages at once instead of asking.	In un carosello, l'icona di download salva tutte le pagine in una volta invece di chiedere.
+On a carousel, the download icon saves all of its pages at once instead of asking. A photo with music saves as a photo.	In un carosello, l'icona di download salva tutte le pagine in una volta invece di chiedere. Una foto con musica viene salvata come foto.
 # context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
 Hide reels by caption words	Nascondi i reel in base alle parole della didascalia
 Also on Home	Anche nella Home

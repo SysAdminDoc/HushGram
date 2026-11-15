@@ -1327,7 +1327,7 @@ Hide AI-labeled reels	ซ่อนรีลส์ที่มีป้ายก�
 Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	ละเว้นรีลส์ที่มีป้ายกำกับ AI ของ Instagram โดยรีลส์ที่ไม่มีป้ายกำกับดังกล่าวจะยังคงอยู่ แม้ว่าจะสร้างโดย AI ก็ตาม
 # context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
 Save every page without asking	บันทึกทุกหน้าโดยไม่ต้องถาม
-On a carousel, the download icon saves all of its pages at once instead of asking.	ในโพสต์รูปภาพแบบเลื่อน ไอคอนดาวน์โหลดจะบันทึกทุกหน้าพร้อมกันในครั้งเดียวแทนที่จะถาม
+On a carousel, the download icon saves all of its pages at once instead of asking. A photo with music saves as a photo.	ในโพสต์รูปภาพแบบเลื่อน ไอคอนดาวน์โหลดจะบันทึกทุกหน้าพร้อมกันในครั้งเดียวแทนที่จะถาม รูปภาพที่มีเพลงจะบันทึกเป็นรูปภาพ
 # context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
 Hide reels by caption words	ซ่อนรีลส์ตามคำในคำบรรยาย
 Also on Home	บนหน้าหลักด้วยเช่นกัน

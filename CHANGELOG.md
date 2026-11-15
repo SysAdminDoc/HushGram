@@ -66,6 +66,7 @@ Every HushGram release, newest first.
 * A reel's seek bar stays clear of the navigation bar after you leave Instagram and come back. It could drop behind it and stay there. Reported in #694.
 * The blur in a floating `Glass tab bar` keeps up with the reel behind it on Android 14 and newer. It only took a new picture of the reel eight times a second, so it trailed the video. A paused reel isn't copied over and over anymore either. Reported in #583.
 * On a wide reel with `Blur reel bars` on, the blur under the clock and under the tab bar now matches the blurred bars around the reel. It used to show the whole video in a darker shade, so you could see a line where they met. Reported in #584.
+* `Save every page without asking` now covers a single photo with music in Reels and Explore too. The download icon saves the photo right away instead of asking video or photo. Asked for in #190.
 
 ## 0.0.20 (2026-11-12)
 

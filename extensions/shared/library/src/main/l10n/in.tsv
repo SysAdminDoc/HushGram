@@ -1336,7 +1336,7 @@ Hide AI-labeled reels	Sembunyikan reel berlabel AI
 Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Menghilangkan reel yang membawa label AI milik Instagram. Reel tanpa label itu tetap ada, meski dibuat dengan AI.
 # context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
 Save every page without asking	Simpan semua halaman tanpa bertanya
-On a carousel, the download icon saves all of its pages at once instead of asking.	Pada carousel, ikon unduh menyimpan semua halamannya sekaligus tanpa bertanya.
+On a carousel, the download icon saves all of its pages at once instead of asking. A photo with music saves as a photo.	Pada carousel, ikon unduh menyimpan semua halamannya sekaligus tanpa bertanya. Foto dengan musik disimpan sebagai foto.
 # context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
 Hide reels by caption words	Sembunyikan reel berdasarkan kata di keterangan
 Also on Home	Juga di Beranda

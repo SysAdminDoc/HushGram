@@ -1322,7 +1322,7 @@ Hide AI-labeled reels	隱藏標示為 AI 的 Reels
 Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	略過帶有 Instagram 原生 AI 標籤的 Reels。沒有該標籤的 Reel 仍會保留，即使內容由 AI 製作。
 # context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
 Save every page without asking	直接儲存所有頁面
-On a carousel, the download icon saves all of its pages at once instead of asking.	在輪播貼文點擊下載圖示時，直接儲存所有頁面，不再詢問。
+On a carousel, the download icon saves all of its pages at once instead of asking. A photo with music saves as a photo.	在輪播貼文點擊下載圖示時，直接儲存所有頁面，不再詢問。有音樂的照片會儲存為照片。
 # context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
 Hide reels by caption words	依說明文字隱藏 Reels
 Also on Home	同時套用至首頁

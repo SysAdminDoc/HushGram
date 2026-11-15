@@ -1336,7 +1336,7 @@ Hide AI-labeled reels	Reels mit KI-Label ausblenden
 Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Lässt Reels weg, die das eigene KI-Label von Instagram tragen. Ein Reel ohne dieses Label bleibt, auch wenn es mit KI gemacht wurde.
 # context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
 Save every page without asking	Alle Seiten ohne Nachfrage speichern
-On a carousel, the download icon saves all of its pages at once instead of asking.	Bei einem Karussell speichert das Download-Symbol alle Seiten auf einmal, statt nachzufragen.
+On a carousel, the download icon saves all of its pages at once instead of asking. A photo with music saves as a photo.	Bei einem Karussell speichert das Download-Symbol alle Seiten auf einmal, statt nachzufragen. Ein Foto mit Musik wird als Foto gespeichert.
 # context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
 Hide reels by caption words	Reels nach Wörtern in der Bildunterschrift ausblenden
 Also on Home	Auch auf der Startseite

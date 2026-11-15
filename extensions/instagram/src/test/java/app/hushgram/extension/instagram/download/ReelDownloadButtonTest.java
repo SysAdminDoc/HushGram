@@ -457,15 +457,27 @@ public class ReelDownloadButtonTest {
         assertEquals(Collections.singletonList("choose"), recorder.calls);
     }
 
-    /** A single photo with music isn't a carousel, so the switch leaves its choice alone. */
+    /** #190: a single photo with music in Reels or Explore skips the choice too and saves as a photo. */
     @Test
-    public void saveEveryPageLeavesASinglePhotoWithMusicAlone() {
+    public void saveEveryPageTakesASinglePhotoWithMusicAsAPhoto() {
         Settings.FEED_DOWNLOAD_ALL_PAGES.save(true);
         recorder.music.add("song");
         Column column = new Column(new Item(Kind.ORGANIC, "song"));
         ReelDownloadButton.litho(column, null, 120, 30);
         bridge.click.invoke(new View(activity));
-        assertEquals(Collections.singletonList("choose"), recorder.calls);
+        assertEquals(Collections.singletonList("save " + ReelDownload.PHOTO_OPTION + " song"), recorder.calls);
+    }
+
+    /** The switch leaves a single reel with no music to Ask what to save, since it has no pages to take. */
+    @Test
+    public void saveEveryPageStillLetsASingleReelAsk() {
+        Settings.FEED_DOWNLOAD_ALL_PAGES.save(true);
+        Settings.REEL_DOWNLOAD_BUTTON_ASKS.save(true);
+        recorder.covers.add("one");
+        Column column = new Column(new Item(Kind.ORGANIC, "one"));
+        ReelDownloadButton.litho(column, null, 120, 30);
+        bridge.click.invoke(new View(activity));
+        assertEquals(Collections.singletonList("pick"), recorder.calls);
     }
 
     /** Ask what to save doesn't stop a carousel either, and it goes the way a plain tap does. */

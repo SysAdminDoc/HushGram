@@ -62,7 +62,8 @@ final class DownloadsCategory {
                                 + "opening the menu. On a carousel it asks for this page or all of them. "
                                 + "Needs Download feed videos or photos.")));
                 downloads.addPreference(toggle(context, Settings.FEED_DOWNLOAD_ALL_PAGES, L10n.t("Save every page without asking"),
-                        L10n.t("On a carousel, the download icon saves all of its pages at once instead of asking.")));
+                        L10n.t("On a carousel, the download icon saves all of its pages at once instead of asking. "
+                                + "A photo with music saves as a photo.")));
                 if (build.contains(PatchFamily.REEL_DOWNLOAD)) {
                     downloads.addPreference(reelDownloadButtonRow(context));
                     downloads.addPreference(reelDownloadAsksRow(context));
