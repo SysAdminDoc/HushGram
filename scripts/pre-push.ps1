@@ -21,8 +21,7 @@
     doesn't parse stops it. When a pushed commit changes the build, the patches, the extension or a
     root file their tests read, the tip is checked out into a clean worktree and gets the full gate
     there: the unit tests, both lints, the catalog, the bundle, and every declared build patched
-    when HUSHGRAM_FIXTURE_DIR holds it. (The focused build Get-FocusedChecks plans was for everyday
-    pushes and is no longer reached.) A change to the verification scripts or their contract and
+    when HUSHGRAM_FIXTURE_DIR holds it. A change to the verification scripts or their contract and
     allowlist files counts as a build change too. The ledger's rules run when the ledger or its
     scripts move, and the injected-register, device helper, resource table and release tooling
     suites when their own files move.
@@ -211,209 +210,6 @@ function Invoke-Git {
     $output = Use-Utf8ConsoleOutput { & git -C $Root @gitArguments }
     if ($LASTEXITCODE -ne 0) { throw "git $($args -join ' ') failed with exit $LASTEXITCODE" }
     return $output
-}
-# The lines of the patch sources in -Commit that match the extended regex -Pattern, as path:line.
-# git grep exits 1 when nothing matches, which is an answer here rather than a failure.
-function Find-PatchSourceLines([string]$Commit, [string]$Pattern) {
-    $output = Use-Utf8ConsoleOutput { & git -C $Root -c core.quotepath=false grep -I -E -e $Pattern $Commit -- patches/src }
-    if ($LASTEXITCODE -gt 1) { throw "git grep failed with exit $LASTEXITCODE" }
-    foreach ($line in @($output)) { if ($line) { "$line".Substring($Commit.Length + 1) } }
-}
-# What an ordinary push builds and tests, from -Changed (the pushed paths), -Tracked (every file in
-# the pushed tip), -LedgerFiles (the files the tip's provenance.json names one by one) and
-# -FindPatchSources (Find-PatchSourceLines on the tip). Everything compiles and the catalog is
-# regenerated. Any shipped source runs the tests that scan every source (notices, provenance,
-# identities, return shapes, strings), the root files the patch tests read run the tests that read
-# them, and a file provenance.json names runs ProvenanceTest, which reads its header.
-# An extension source runs every runtime test, since tests anywhere import it, and the patch areas
-# whose sources or tests name its class, since those read the built extension (ExtensionDex) or
-# its source. A patch area's source runs that area's tests, and a main source or a test helper
-# there also runs every area that imports the area, and every area that imports those. A test class
-# runs its own area. A patch source outside the areas runs the tests in its folder.
-# An extension resource, a translation table or a runtime test helper runs every runtime test, and
-# a shared patch utility or a patch test helper outside the areas runs every patch test. A build
-# file, or any other file the build reads from extensions/ or patches/ outside the sources, runs
-# both. -Boundaries adds the Android boundary check, which reads every runtime test's results.
-# A file still in the tip with no test to run is Uncovered, and the push stops rather than going
-# out untested. Deleted files, the build scripts, the ledger and the gate's own scripts are left to
-# the compile and the suites the hook runs for them.
-function Get-FocusedChecks {
-    param([string[]]$Changed, [string[]]$Tracked, [bool]$Boundaries, [string[]]$LedgerFiles = @(),
-        [Parameter(Mandatory = $true)][scriptblock]$FindPatchSources)
-    $inTip = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
-    foreach ($trackedPath in $Tracked) { [void]$inTip.Add($trackedPath) }
-    $ledgerNamed = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
-    foreach ($ledgerPath in $LedgerFiles) { [void]$ledgerNamed.Add($ledgerPath) }
-    $testFiles = @($Tracked | Where-Object { $_ -cmatch '^(extensions/instagram/src/test/java|patches/src/test/(kotlin|java))/.+Test\.(java|kt)$' })
-    $runtimeRoots = @('extensions/instagram/src/test/java/')
-    $patchRoots = @('patches/src/test/kotlin/', 'patches/src/test/java/')
-    # The test classes in -Folder under the roots, by the name --tests takes. -Within takes subfolders too.
-    function Get-FolderTests([string[]]$Roots, [string]$Folder, [bool]$Within) {
-        foreach ($testFile in $testFiles) {
-            foreach ($testRoot in $Roots) {
-                if (-not $testFile.StartsWith("$testRoot$Folder/", [StringComparison]::Ordinal)) { continue }
-                if (-not $Within -and $testFile.Substring($testRoot.Length + $Folder.Length + 1).Contains('/')) { continue }
-                ($testFile.Substring($testRoot.Length) -replace '\.(java|kt)$', '').Replace('/', '.')
-            }
-        }
-    }
-    $readers = @{
-        'README.md' = @('app/morphe/ReadmePatchNamesTest')
-        'patches-list.json' = @('app/morphe/ReadmePatchNamesTest', 'app/morphe/DefaultSelectionPolicyTest',
-            'app/morphe/PatchCategoriesTest', 'app/morphe/util/CatalogDependencyTest', 'app/morphe/util/DefaultCatalogTest')
-        'NOTICE' = @('app/morphe/ProvenanceTest')
-        'provenance.json' = @('app/morphe/ProvenanceTest')
-        'patches/src/test/resources/obfuscated-identities.txt' = @('app/morphe/ObfuscatedIdentityTest')
-    }
-    $runtime = New-Object 'System.Collections.Generic.SortedSet[string]' ([StringComparer]::Ordinal)
-    $patchTests = New-Object 'System.Collections.Generic.SortedSet[string]' ([StringComparer]::Ordinal)
-    $uncovered = New-Object System.Collections.Generic.List[string]
-    $everyRuntimeTest = $Boundaries
-    $everyPatchTest = $false
-    $areaPattern = '^patches/src/(main|test)/(kotlin|java)/app/morphe/patches/instagram/([^/]+)/'
-    # Shared with the helpers below, which can't assign this function's variables.
-    $state = @{
-        Importers = $null
-        Followed = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
-        EveryPatchTest = $false
-    }
-    # The patch sources in the tip that import an Instagram area, by area, read once from their
-    # import lines. An area's own sources aren't listed as importing it.
-    function Get-AreaImporters([string]$Area) {
-        if ($null -eq $state.Importers) {
-            $state.Importers = @{}
-            foreach ($hit in @(& $FindPatchSources '^[[:space:]]*import[[:space:]]+app\.morphe\.patches\.instagram\.[a-z0-9_]+\.')) {
-                $at = $hit.IndexOf(':')
-                if ($hit.Substring($at + 1) -cnotmatch 'app\.morphe\.patches\.instagram\.([a-z0-9_]+)\.') { continue }
-                $imported = $Matches[1]
-                $importer = $hit.Substring(0, $at)
-                if ($importer -cmatch $areaPattern -and $Matches[3] -ceq $imported) { continue }
-                if (-not $state.Importers.ContainsKey($imported)) {
-                    $state.Importers[$imported] = New-Object 'System.Collections.Generic.SortedSet[string]' ([StringComparer]::Ordinal)
-                }
-                [void]$state.Importers[$imported].Add($importer)
-            }
-        }
-        if ($state.Importers.ContainsKey($Area)) { return @($state.Importers[$Area]) }
-        return @()
-    }
-    # What runs for a patch source that changed, or that names or imports one that did, and whether
-    # anything does. An area's source runs the area's tests. A main source or a test helper there
-    # also runs every area that imports the area, and every area that imports those; a test class
-    # stops at its own area. A patch utility, a shared patch or a test helper outside the areas is
-    # used by every patch's tests.
-    function Add-PatchSource([string]$Path) {
-        if ($Path -cmatch $areaPattern) {
-            $sourceArea = $Matches[3]
-            $covered = @(Get-FolderTests $patchRoots "app/morphe/patches/instagram/$sourceArea" $true).Count -gt 0
-            if ($covered) { [void]$patchTests.Add("app.morphe.patches.instagram.$sourceArea.*") }
-            if (($Path -cmatch '^patches/src/main/' -or $Path -cnotmatch 'Test\.(kt|java)$') -and $state.Followed.Add($sourceArea)) {
-                foreach ($importer in @(Get-AreaImporters $sourceArea)) {
-                    if (Add-PatchSource $importer) { $covered = $true }
-                }
-            }
-            return $covered
-        }
-        if ($Path -cmatch '^patches/src/(main|test)/(kotlin|java)/app/morphe/patches/instagram/[^/]+\.(kt|java)$') {
-            # Staged into every area's tests, so every area runs.
-            $covered = @(Get-FolderTests $patchRoots 'app/morphe/patches/instagram' $true).Count -gt 0
-            if ($covered) { [void]$patchTests.Add('app.morphe.patches.instagram.*') }
-            return $covered
-        }
-        if ($Path -cmatch '^patches/src/test/(kotlin|java)/(.+Test)\.(kt|java)$') {
-            [void]$patchTests.Add($Matches[2].Replace('/', '.'))
-            return $true
-        }
-        $state.EveryPatchTest = $true
-        return $true
-    }
-    foreach ($changedPath in $Changed) {
-        $kept = $inTip.Contains($changedPath)
-        $found = @()
-        # The tests that scan every shipped source: the patch tests at the root of app/morphe. A
-        # deleted source counts, since a notice or provenance rule can still name it.
-        if ($changedPath -cmatch '^(patches|extensions/.+)/src/main/') {
-            foreach ($class in @(Get-FolderTests $patchRoots 'app/morphe' $false)) { [void]$patchTests.Add($class) }
-        }
-        if ($ledgerNamed.Contains($changedPath)) {
-            foreach ($class in @(Get-FolderTests $patchRoots 'app/morphe' $false | Where-Object { $_ -ceq 'app.morphe.ProvenanceTest' })) {
-                [void]$patchTests.Add($class)
-            }
-        }
-        if ($readers.ContainsKey($changedPath)) {
-            $found = @(foreach ($reader in $readers[$changedPath]) {
-                Get-FolderTests $patchRoots ($reader -replace '/[^/]+$', '') $false | Where-Object { $_ -ceq $reader.Replace('/', '.') }
-            })
-            foreach ($class in $found) { [void]$patchTests.Add($class) }
-        } elseif ($changedPath -cmatch '^(build\.gradle\.kts|settings\.gradle\.kts|gradle\.properties|gradlew(\.bat)?|gradle/.+|patches/build\.gradle\.kts|patches/stub/.+|extensions/proguard-rules\.pro|extensions/.+/build\.gradle\.kts)$') {
-            # The build itself: every test runs on it.
-            $everyRuntimeTest = $true
-            $everyPatchTest = $true
-            continue
-        } elseif ($changedPath -cmatch '^extensions/instagram/src/test/java/.+\.java$' -and $changedPath -cnotmatch 'Test\.java$') {
-            # A helper or a stand-in for an Instagram or Android class, which tests anywhere may use.
-            $everyRuntimeTest = $true
-            continue
-        } elseif ($changedPath -cmatch '^extensions/.+/src/main/java/.+/([A-Za-z0-9_]+)\.java$') {
-            # Tests anywhere import an extension class, and the patches that call it are tested
-            # against the built extension, so every runtime test runs, and every patch source or
-            # test that names the class.
-            $everyRuntimeTest = $true
-            $named = New-Object 'System.Collections.Generic.SortedSet[string]' ([StringComparer]::Ordinal)
-            foreach ($hit in @(& $FindPatchSources ('(^|[^A-Za-z0-9_])' + $Matches[1] + '([^A-Za-z0-9_]|$)'))) {
-                [void]$named.Add($hit.Substring(0, $hit.IndexOf(':')))
-            }
-            foreach ($namer in $named) { [void](Add-PatchSource $namer) }
-            continue
-        } elseif ($changedPath -cmatch '^extensions/instagram/src/test/java/(.+)/[^/]+\.java$') {
-            $found = @(Get-FolderTests $runtimeRoots $Matches[1] $false)
-            foreach ($class in $found) { [void]$runtime.Add($class) }
-        } elseif ($changedPath -cmatch '^extensions/(shared/|instagram/src/)') {
-            $everyRuntimeTest = $true
-            continue
-        } elseif ($changedPath -cmatch '^patches/src/main/(kotlin|java)/app/morphe/(util|patches/shared)/' -or
-                ($changedPath -cmatch '^patches/src/test/(kotlin|java)/.+\.(kt|java)$' -and
-                 $changedPath -cnotmatch 'Test\.(kt|java)$' -and $changedPath -cnotmatch '/app/morphe/patches/instagram/')) {
-            # The patch utilities, the shared patches and the shared test helpers (fixtures, the
-            # extension dex, contexts) are used by every patch's tests.
-            $everyPatchTest = $true
-            continue
-        } elseif ($changedPath -cmatch '^patches/src/(main|test)/(kotlin|java)/app/morphe/patches/instagram/') {
-            if (Add-PatchSource $changedPath) { $found = @($changedPath) }
-        } elseif ($changedPath -cmatch '^patches/src/(main|test)/(kotlin|java)/(.+)/[^/]+\.(kt|java)$') {
-            $found = @(Get-FolderTests $patchRoots $Matches[3] $false)
-            foreach ($class in $found) { [void]$patchTests.Add($class) }
-        } elseif ($changedPath -cmatch '^patches/src/') {
-            # A source with no package, or a resource with no test known to read it.
-        } elseif ($changedPath -cmatch '^(extensions|patches)/') {
-            # Anything else the build reads from its own folders (rules, stubs, lint settings).
-            $everyRuntimeTest = $true
-            $everyPatchTest = $true
-            continue
-        } else {
-            continue
-        }
-        if ($found.Count -eq 0 -and $kept) { $uncovered.Add($changedPath) }
-    }
-    if ($state.EveryPatchTest) { $everyPatchTest = $true }
-    $tasks = New-Object System.Collections.Generic.List[string]
-    $tasks.AddRange([string[]]@('--console=plain', '--continue', ':patches:generatePatchesList', ':patches:testClasses',
-        ':extensions:instagram:compileDebugUnitTestJavaWithJavac'))
-    # Past this many classes the command line grows long and the whole suite is little slower.
-    if ($everyRuntimeTest -or $runtime.Count -gt 120) {
-        $tasks.Add(':extensions:instagram:testDebugUnitTest')
-        if ($Boundaries) { $tasks.Add(':extensions:instagram:verifyAndroidBoundaries') }
-    } elseif ($runtime.Count -gt 0) {
-        $tasks.Add(':extensions:instagram:testDebugUnitTest')
-        foreach ($class in $runtime) { $tasks.Add('--tests'); $tasks.Add($class) }
-    }
-    if ($everyPatchTest) {
-        $tasks.Add(':patches:test')
-    } elseif ($patchTests.Count -gt 0) {
-        $tasks.Add(':patches:test')
-        foreach ($class in $patchTests) { $tasks.Add('--tests'); $tasks.Add($class) }
-    }
-    [pscustomobject]@{ Tasks = $tasks.ToArray(); Uncovered = $uncovered.ToArray() }
 }
 
 $published = New-Object System.Collections.Generic.List[string]
@@ -653,12 +449,6 @@ if (@($changed | Where-Object {
     $suites += , @('scripts/test-walk-plan.ps1', 'checking settings coverage and visible destination content')
     $suites += , @('scripts/test-walk-producer.ps1', 'checking candidate reuse and walkthrough navigation')
 }
-if (@($changed | Where-Object {
-    $_ -in @('scripts/pre-push.ps1', 'scripts/test-push-gate.ps1', 'scripts/build-jobs.ps1', 'scripts/gate-evidence.ps1',
-        'scripts/common.ps1', 'scripts/patch-target.ps1', 'scripts/script-wiring.ps1')
-}).Count -gt 0) {
-    $suites += , @('scripts/test-push-gate.ps1', 'the push gate changed, running it end to end on stand-ins')
-}
 foreach ($suite in $suites) {
     $suiteScript = Join-Path $Root $suite[0]
     if (-not (Test-Path -LiteralPath $suiteScript -PathType Leaf)) {
@@ -795,26 +585,9 @@ if ($changed.Count -gt 0 -and @($changed | Where-Object { $script:GateIndexFiles
 
 $tip = $tips[$tips.Count - 1]
 # The full gate is for a release push, whose results the release scripts read back, or for a push
-# made with HUSHGRAM_FULL_GATE=1. Any other push builds once and runs the tests beside what changed.
-$focused = $env:HUSHGRAM_ALLOW_RELEASE -ne '1' -and $env:HUSHGRAM_FULL_GATE -ne '1'
-$focusedTasks = @()
-if ($focused) {
-    $checks = Get-FocusedChecks -Changed @($changed) -Boundaries $touchesAndroidBoundaries `
-        -Tracked @(Invoke-Git -c core.quotepath=false ls-tree -r --name-only $tip) -LedgerFiles @($provenanceNamed) `
-        -FindPatchSources { param([string]$Pattern) Find-PatchSourceLines -Commit $tip -Pattern $Pattern }
-    if ($checks.Uncovered.Count -gt 0) {
-        $checks.Uncovered | Select-Object -First 20 | ForEach-Object { Write-Host "  $_" }
-        Stop-Push ("no test covers $($checks.Uncovered.Count) changed file(s) above. Add a test beside each, or set " +
-            'HUSHGRAM_FULL_GATE=1 to run the full gate for this push.')
-    }
-    $focusedTasks = $checks.Tasks
-}
+# made with HUSHGRAM_FULL_GATE=1.
 $gate = Join-Path ([System.IO.Path]::GetTempPath()) ('hushgram-gate-' + [guid]::NewGuid().ToString('N').Substring(0, 12))
-if ($focused) {
-    Write-Step "building $($tip.Substring(0, 12)) in a clean worktree and running the tests beside what changed"
-} else {
-    Write-Step "building $($tip.Substring(0, 12)) in a clean worktree"
-}
+Write-Step "building $($tip.Substring(0, 12)) in a clean worktree"
 Invoke-Git worktree add --detach $gate $tip | Out-Null
 # The whole gate holds one slot in the machine's build queue, so another session's build can't
 # take the cores between its steps. Gradle, the boundary self-tests and the patch runs started
@@ -829,9 +602,8 @@ $gatePassed = $false
 $fixturesPatched = $false
 $fixtureRuns = New-Object System.Collections.Generic.List[object]
 try {
-    $gateJob = Enter-HeavyJob -Label "$(if ($focused) { 'focused' } else { 'gate' }) $($tip.Substring(0, 12))"
-    # A focused run keeps nothing: the release scripts read back only the full gate's results.
-    if (-not $focused) { $evidence = Start-GateEvidence -Commit $tip }
+    $gateJob = Enter-HeavyJob -Label "gate $($tip.Substring(0, 12))"
+    $evidence = Start-GateEvidence -Commit $tip
     $localProperties = Join-Path $Root 'local.properties'
     if (Test-Path -LiteralPath $localProperties) { Copy-Item -LiteralPath $localProperties -Destination $gate }
 
@@ -843,7 +615,7 @@ try {
     $fixtureApks = @()
     $otherBuilds = @()
     $fixtureFingerprint = $null
-    if (-not $focused -and $fixtures -and (Test-Path -LiteralPath $fixtures -PathType Container)) {
+    if ($fixtures -and (Test-Path -LiteralPath $fixtures -PathType Container)) {
         # Taken before anything is built: the patch tests read the whole folder.
         $fixtureFingerprint = Get-FixtureFingerprint -Folder $fixtures
         $desktop = Resolve-DesktopCli -Root $Root -Required
@@ -860,18 +632,11 @@ try {
     # Cheap checks first: the catalog, both lints and the runtime tests take a few minutes, and
     # :patches:test reads every fixture build for most of a quarter hour. v0.0.7's gates ran the
     # lot as one build, so a lint slip or a stale catalog surfaced after the patch tests.
-    if ($focused) {
-        # One build with --continue, so every compile error and failed test shows in the one run.
-        $gateStage = 'focused'
-        Invoke-GradleBuild -ProjectDir $gate -Tasks $focusedTasks
-        if ($LASTEXITCODE -ne 0) { Stop-Push 'the focused build failed: a compile error, a test beside the change or the catalog (all of them are above)' }
-    } else {
-        $gateStage = 'quick'
-        Invoke-GradleBuild -ProjectDir $gate -Tasks @('--console=plain', ':patches:generatePatchesList',
-            ':extensions:instagram:testDebugUnitTest', ':extensions:instagram:verifyAndroidBoundaries',
-            ':extensions:instagram:lint', ':extensions:shared:library:lint')
-        if ($LASTEXITCODE -ne 0) { Stop-Push 'the runtime tests, a lint or the catalog failed' }
-    }
+    $gateStage = 'quick'
+    Invoke-GradleBuild -ProjectDir $gate -Tasks @('--console=plain', ':patches:generatePatchesList',
+        ':extensions:instagram:testDebugUnitTest', ':extensions:instagram:verifyAndroidBoundaries',
+        ':extensions:instagram:lint', ':extensions:shared:library:lint')
+    if ($LASTEXITCODE -ne 0) { Stop-Push 'the runtime tests, a lint or the catalog failed' }
     if ((Get-Content -LiteralPath $catalog -Raw) -cne $before) {
         Stop-Push 'patches-list.json is stale: run :patches:generatePatchesList and commit it'
     }
@@ -880,12 +645,6 @@ try {
         $gateStage = 'boundaries'
         & pwsh -NoProfile -File (Join-Path $gate 'scripts/test-android-boundaries.ps1') -Root $gate
         if ($LASTEXITCODE -ne 0) { Stop-Push 'Android boundary gate self-tests failed' }
-    }
-
-    if ($focused) {
-        $gatePassed = $true
-        Write-Step 'the focused checks passed. A release push runs the full gate.'
-        exit 0
     }
 
     $gateStage = 'full'
