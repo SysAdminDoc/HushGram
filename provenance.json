@@ -557,6 +557,7 @@
         "patches/src/test/kotlin/app/morphe/patches/instagram/feed/savemenu/FeedLikeCountHookTest.kt",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/TextSize.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/TextSizeTest.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/feed/ChatReachTest.java",
         "scripts/gen-readme-patches.py"
       ],
       "origin": "original",
