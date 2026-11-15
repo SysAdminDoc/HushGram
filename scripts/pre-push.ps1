@@ -10,20 +10,22 @@
     Every push gets the commit checks: who committed each published commit, trailers or authors
     naming an AI tool, and tracked files that name the maintainer's machine or a phone. A tag, or
     a commit that adds or changes patches-bundle.json (the index Morphe Manager reads), is a
-    release, and a release needs HUSHGRAM_ALLOW_RELEASE=1 set for that one push. A push that moves
-    a PowerShell file has every tracked one parsed, and one that doesn't parse stops it.
+    release, and a release needs HUSHGRAM_ALLOW_RELEASE=1 set for that one push.
 
-    When a pushed commit changes the build, the patches, the extension or a root file their tests
-    read, the tip is checked out into a clean worktree and built there. An ordinary push gets one
-    build: everything compiles, the catalog is regenerated and compared, and the tests each change
-    can reach run with the checks that scan every source (Get-FocusedChecks says which), with every
-    failure shown. A changed file with no test to run stops the push before anything is built. A
-    release push (HUSHGRAM_ALLOW_RELEASE=1),
-    or any push made with HUSHGRAM_FULL_GATE=1, gets the full gate: the unit tests, both lints, the
-    catalog, the bundle, and every declared build patched when HUSHGRAM_FIXTURE_DIR holds it. A
-    change to the verification scripts or their contract and allowlist files counts as a build
-    change too. The ledger's rules run when the ledger or its scripts move, and the injected-register,
-    device helper, resource table and release tooling suites when their own files move.
+    Gates are for releases, so an everyday push stops once the commit checks pass and nothing is
+    parsed, built or tested. Everything below runs only for a release, for a push made with
+    HUSHGRAM_ALLOW_RELEASE=1 (a release's source push included), or for any push made with
+    HUSHGRAM_FULL_GATE=1.
+
+    On those pushes, one that moves a PowerShell file has every tracked one parsed, and one that
+    doesn't parse stops it. When a pushed commit changes the build, the patches, the extension or a
+    root file their tests read, the tip is checked out into a clean worktree and gets the full gate
+    there: the unit tests, both lints, the catalog, the bundle, and every declared build patched
+    when HUSHGRAM_FIXTURE_DIR holds it. (The focused build Get-FocusedChecks plans was for everyday
+    pushes and is no longer reached.) A change to the verification scripts or their contract and
+    allowlist files counts as a build change too. The ledger's rules run when the ledger or its
+    scripts move, and the injected-register, device helper, resource table and release tooling
+    suites when their own files move.
 
     The build waits for a slot in the machine's build queue and holds it to the end, and Gradle
     runs through the machine's wrapper (scripts/build-jobs.ps1 says how both are found). Without
@@ -39,7 +41,7 @@
     release check still runs, and a gate here that would patch the declared builds needs the kept
     run to have patched the same fixtures with the same desktop CLI.
 
-    A push that changes a published file (README.md, CHANGELOG.md, the catalog, the version, the
+    A gated push that changes a published file (README.md, CHANGELOG.md, the catalog, the version, the
     bug form, the index or the lists and scripts the release check reads) runs
     scripts/validate-release-facts.ps1 on the pushed tip: in place when the checkout is a clean
     copy of it, otherwise in a clean worktree. The index push that follows a release is held to the
@@ -456,6 +458,14 @@ if ($hits.Count -gt 0) {
     Stop-Push "$($hits.Count) line(s) name this machine or a phone"
 }
 Write-Step "$($published.Count) commit(s): committer, trailers and machine names are clean"
+
+# Gates are for releases. An everyday push ends here; the parse check, suites, release facts and
+# the clean-worktree build run for a release (a tag or patches-bundle.json), a push made with
+# HUSHGRAM_ALLOW_RELEASE=1, or one made with HUSHGRAM_FULL_GATE=1.
+if (-not $release -and $env:HUSHGRAM_ALLOW_RELEASE -ne '1' -and $env:HUSHGRAM_FULL_GATE -ne '1') {
+    Write-Step 'everyday push: commit checks passed; builds, suites and release facts run for a release push or with HUSHGRAM_FULL_GATE=1'
+    exit 0
+}
 
 # Every tracked PowerShell file parses, once a push moves one. Most of these scripts run only for a
 # release or with a phone, and no suite reads them all, so a syntax slip would otherwise turn up
