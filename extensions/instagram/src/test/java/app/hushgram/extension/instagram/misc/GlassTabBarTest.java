@@ -3633,6 +3633,81 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #450: a 1920 pixel reel centred in a 2260 pixel viewer that runs behind a 250 pixel slot sat 125
+     * pixels lower than in the 2010 pixel viewer stopped at the slot. A 250 margin puts it back. A reel
+     * with only 100 pixels to spare rises by those and no further, a reel filling the viewer or laid
+     * from the top stays, and a viewer stopped at the slot, or with no slot kept, gets no margin.
+     */
+    @Test
+    public void aReelBehindThePillSitsWhereTheSlotWouldPutIt() {
+        int centre = Gravity.CENTER;
+        assertEquals("half the slot, which lifts a centred view by all of it", 125, GlassTabBar.reelsMediaMargin(true, true, 250, 2260, 1920, centre));
+        assertEquals("only as far as the reel's top room", 50, GlassTabBar.reelsMediaMargin(true, true, 250, 2260, 2160, centre));
+        assertEquals("a reel that fills the viewer", 0, GlassTabBar.reelsMediaMargin(true, true, 250, 2260, 2260, centre));
+        assertEquals("a reel taller than the viewer", 0, GlassTabBar.reelsMediaMargin(true, true, 250, 2260, 2400, centre));
+        assertEquals("laid from the top", 0, GlassTabBar.reelsMediaMargin(true, true, 250, 2260, 1920, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        assertEquals(125, GlassTabBar.reelsMediaMargin(true, true, 250, 2260, 1920, Gravity.CENTER_VERTICAL));
+        assertEquals("a viewer stopped at the slot", 0, GlassTabBar.reelsMediaMargin(true, false, 250, 2010, 1920, centre));
+        assertEquals("no slot kept", 0, GlassTabBar.reelsMediaMargin(false, true, 250, 2260, 1920, centre));
+        assertEquals(0, GlassTabBar.reelsMediaMargin(true, true, 0, 2260, 1920, centre));
+        assertEquals(0, GlassTabBar.reelsMediaMargin(true, true, 250, 0, 1920, centre));
+        assertEquals(0, GlassTabBar.reelsMediaMargin(true, true, 250, 2260, 0, centre));
+    }
+
+    /**
+     * #450: in a 2260 pixel viewer behind a 250 pixel slot, a 1920 pixel reel's video and cover move up to
+     * 45 from the top, where a viewer stopped at the slot puts them, and the play button centred over them
+     * stays. With the reel no longer behind the pill they go back to 170, and the margin they had is theirs again.
+     */
+    @Test
+    public void aReelBehindThePillMovesItsVideoAndCoverOnly() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout viewer = new FrameLayout(context);
+        FrameLayout item = new FrameLayout(context);
+        viewer.addView(item, new FrameLayout.LayoutParams(1080, ViewGroup.LayoutParams.MATCH_PARENT));
+        ImageView cover = new ImageView(context);
+        item.addView(cover, new FrameLayout.LayoutParams(1080, 1920, Gravity.CENTER));
+        View video = new com.instagram.ui.simplevideolayout.SimpleVideoLayout(context);
+        item.addView(video, new FrameLayout.LayoutParams(1080, 1920, Gravity.CENTER));
+        ImageView play = new ImageView(context);
+        item.addView(play, new FrameLayout.LayoutParams(120, 120, Gravity.CENTER));
+        View inside = new com.instagram.ui.simplevideolayout.SimpleVideoLayout(context);
+        ((ViewGroup) video).addView(inside);
+        layOutReel(viewer);
+
+        java.util.List<View> media = new java.util.ArrayList<>();
+        GlassTabBar.reelMedia(viewer, media, 0);
+        assertEquals("the video and its cover, not the play button or inside the video",
+                java.util.Arrays.asList(video, cover), media);
+
+        Map<View, Integer> given = new HashMap<>();
+        for (View view : media) assertTrue(GlassTabBar.placeReelMedia(view, true, true, 250, given));
+        layOutReel(viewer);
+        assertEquals(45, video.getTop());
+        assertEquals(45, cover.getTop());
+        assertEquals("the play button stays", (2260 - 120) / 2, play.getTop());
+        assertFalse("nothing to change the next look", GlassTabBar.placeReelMedia(video, true, true, 250, given));
+
+        for (View view : media) assertTrue(GlassTabBar.placeReelMedia(view, true, false, 250, given));
+        layOutReel(viewer);
+        assertEquals(170, video.getTop());
+        assertEquals(0, ((FrameLayout.LayoutParams) video.getLayoutParams()).bottomMargin);
+        assertTrue(given.isEmpty());
+
+        ((FrameLayout.LayoutParams) cover.getLayoutParams()).bottomMargin = 10;
+        assertTrue(GlassTabBar.placeReelMedia(cover, true, true, 250, given));
+        assertEquals("Instagram's own margin kept under ours", 135, ((FrameLayout.LayoutParams) cover.getLayoutParams()).bottomMargin);
+        assertTrue(GlassTabBar.placeReelMedia(cover, false, true, 250, given));
+        assertEquals(10, ((FrameLayout.LayoutParams) cover.getLayoutParams()).bottomMargin);
+    }
+
+    private static void layOutReel(View view) {
+        view.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(2260, View.MeasureSpec.EXACTLY));
+        view.layout(0, 0, 1080, 2260);
+    }
+
+    /**
      * #450: a reel opened from a feed post on a 1600 pixel window with a 48 pixel navigation bar. Run down
      * to the window's foot, as with Instagram answered 0 or Full screen Reels hiding the bar, it reaches all
      * 48 into the bar; stopped above the bar, as where Instagram pads for it, not at all; part way, only

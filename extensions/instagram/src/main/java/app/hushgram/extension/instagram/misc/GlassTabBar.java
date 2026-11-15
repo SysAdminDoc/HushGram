@@ -300,6 +300,75 @@ public final class GlassTabBar {
     }
 
     /**
+     * The bottom margin a reel's video or cover gets so a reel running behind the pill sits where it would
+     * in a viewer stopped at the [slot] (#450). Instagram centres a reel shorter than its viewer, so a viewer
+     * run down behind the pill put the reel half the slot lower, with that much more black over it. A
+     * FrameLayout moves a centred child up by its whole bottom margin, so the margin is half the slot, cut
+     * to half the [room] the view's [height] leaves in its parent so the reel never rises past the viewer's
+     * top. 0 unless the slot is kept ([keep]), the reel runs behind ([behind]) and the view is centred top
+     * to bottom ([gravity]).
+     */
+    static int reelsMediaMargin(boolean keep, boolean behind, int slot, int room, int height, int gravity) {
+        if (!keep || !behind || slot <= 0 || height <= 0 || room <= 0) return 0;
+        if ((gravity & Gravity.VERTICAL_GRAVITY_MASK) != Gravity.CENTER_VERTICAL) return 0;
+        return Math.max(0, Math.min(slot, room - height)) / 2;
+    }
+
+    /** The class of a reel's video view, which Instagram's reel binder sizes and centres along with its cover. */
+    static final String REEL_VIDEO_LAYOUT = "com.instagram.ui.simplevideolayout.SimpleVideoLayout";
+
+    /**
+     * Puts in [media] each reel video under [view] ({@link #REEL_VIDEO_LAYOUT}) and the views beside it that
+     * Instagram sized with it, its cover: the same parent, the same set height and the same gravity. Doesn't
+     * look inside those.
+     */
+    static void reelMedia(View view, java.util.List<View> media, int depth) {
+        if (depth > 60 || view.getVisibility() == View.GONE) return;
+        if (REEL_VIDEO_LAYOUT.equals(view.getClass().getName())) {
+            media.add(view);
+            if (!(view.getParent() instanceof ViewGroup)
+                    || !(view.getLayoutParams() instanceof FrameLayout.LayoutParams)) return;
+            FrameLayout.LayoutParams video = (FrameLayout.LayoutParams) view.getLayoutParams();
+            ViewGroup parent = (ViewGroup) view.getParent();
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                View sibling = parent.getChildAt(i);
+                if (sibling == view || !(sibling.getLayoutParams() instanceof FrameLayout.LayoutParams)) continue;
+                FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) sibling.getLayoutParams();
+                if (params.height > 0 && params.height == video.height && params.gravity == video.gravity) {
+                    media.add(sibling);
+                }
+            }
+            return;
+        }
+        if (!(view instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) reelMedia(group.getChildAt(i), media, depth + 1);
+    }
+
+    /**
+     * Gives [view], a reel's video or cover, the bottom margin {@link #reelsMediaMargin} works out for its
+     * parent's room, on top of the margin it had before this gave it one, which [given] remembers. Says
+     * whether that changed it.
+     */
+    static boolean placeReelMedia(View view, boolean keep, boolean behind, int slot, Map<View, Integer> given) {
+        if (!(view.getLayoutParams() instanceof FrameLayout.LayoutParams) || !(view.getParent() instanceof View)) {
+            return false;
+        }
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) view.getLayoutParams();
+        View parent = (View) view.getParent();
+        Integer before = given.get(view);
+        int own = before != null ? before : params.bottomMargin;
+        int room = parent.getHeight() - parent.getPaddingTop() - parent.getPaddingBottom();
+        int margin = parent.getHeight() <= 0 ? 0 : reelsMediaMargin(keep, behind, slot, room, params.height, params.gravity);
+        if (margin == 0) given.remove(view);
+        else given.put(view, own);
+        if (params.bottomMargin == own + margin) return false;
+        params.bottomMargin = own + margin;
+        view.setLayoutParams(params);
+        return true;
+    }
+
+    /**
      * How far a view whose bottom is at [bottom] in a window [window] tall reaches into the navigation bar
      * [nav] tall at the window's foot: 0 for one that stops above it, never more than [nav].
      */
@@ -914,6 +983,8 @@ public final class GlassTabBar {
     static final String COUNT_REELS_LIFTED = "Reels viewer kept above the pill's slot";
     /** Counted each time a reel's caption, buttons or seek bar is raised clear of a footer laid over the reel (#260). */
     static final String COUNT_REEL_RAISED = "Reel's caption or seek bar raised over its footer";
+    /** What a reel's video or cover moved up to where the slot would put it, with the reel behind the pill, is counted under (#450). */
+    static final String COUNT_REEL_MEDIA_PLACED = "Reel behind the pill placed as over the slot";
     /** Counted each time a footer under a reel is laid over the reel instead of shrinking it (#260). */
     static final String COUNT_FOOTER_OVERLAID = "Footer laid over the reel";
     /**
@@ -1663,6 +1734,9 @@ public final class GlassTabBar {
         private final WeakHashMap<View, View> bands = new WeakHashMap<>();
         /** The footers laid over a reel's bottom (#260), each with the top margin it was given. */
         private final WeakHashMap<View, Integer> overlapped = new WeakHashMap<>();
+        /** The reel videos and covers moved up for a reel behind the pill (#450), each with the margin it had before. */
+        private final WeakHashMap<View, Integer> mediaMargins = new WeakHashMap<>();
+        private final java.util.ArrayList<View> media = new java.util.ArrayList<>();
         private final java.util.ArrayList<View> anchors = new java.util.ArrayList<>();
         private final java.util.ArrayList<View> footerViews = new java.util.ArrayList<>();
         private final java.util.Set<View> raisedNow = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
@@ -2322,6 +2396,17 @@ public final class GlassTabBar {
                 HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REELS_LIFTED);
                 movedForReels("lifted the Reels viewer", moved, wanted);
             }
+            media.clear();
+            for (View viewer : viewers) {
+                if (viewer != null && viewer.isAttachedToWindow()) reelMedia(viewer, media, 0);
+            }
+            for (View view : media) {
+                if (placeReelMedia(view, keep, behind, slot, mediaMargins)) {
+                    reelsMoved = true;
+                    HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REEL_MEDIA_PLACED);
+                }
+            }
+            media.clear();
         }
 
         /**
