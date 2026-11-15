@@ -77,6 +77,7 @@ Every HushGram release, newest first.
 * With `Backgrounds in the accent color` or `Classic colors` on, gray buttons like Edit profile and Share profile on your profile take a shade of the background color too. They kept Instagram's gray. Reported in #187.
 * With `Accent color` on, the verified badge on a profile takes your color too, along with other icons that get their blue from a layout. It stayed blue. Reported in #187.
 * With `Accent color` on in dark mode, the Older posts link above Home's suggested posts takes your color. It was still Instagram's light blue. Reported in #187.
+* `Full screen Messages` hides the bars on your list of chats again. Instagram's newer messages list wasn't recognized, so only an open chat went full screen. Reported in #187.
 
 ## 0.0.20 (2026-11-12)
 

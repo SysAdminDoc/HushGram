@@ -80,6 +80,11 @@ public final class FullScreenBars {
     /** Your messages' list of chats, and a chat's whole screen, as Instagram names them (#288). */
     static final String INBOX = "inbox_refreshable_thread_list_recyclerview";
     static final String CHAT = "thread_view_root";
+    /**
+     * Your messages' own top bar (#187). 454 draws the list of chats in Compose, so [INBOX] is never on
+     * screen there; the bar's parent is the whole messages screen.
+     */
+    static final String INBOX_BAR = "direct_inbox_action_bar";
 
     /** The viewer counts as showing when this share of the window is its own. */
     static final float FILL_SHARE = 0.8f;
@@ -187,7 +192,28 @@ public final class FullScreenBars {
      * swiped to from Home, or a chat in its own activity, the keyboard up or not.
      */
     static boolean messagesShowing(View decor) {
-        return anyCovers(decor, CHAT) || anyCovers(decor, INBOX);
+        return anyCovers(decor, CHAT) || anyCovers(decor, INBOX) || inboxBarCovers(decor);
+    }
+
+    /** Whether a showing [INBOX_BAR]'s parent, the screen it heads, covers [MESSAGES_SHARE] of [decor]. */
+    private static boolean inboxBarCovers(View decor) {
+        int id = id(decor.getContext(), INBOX_BAR);
+        if (id == 0 || decor.findViewById(id) == null) return false;
+        return barParentCovers(decor, id, decor);
+    }
+
+    private static boolean barParentCovers(View view, int id, View decor) {
+        if (view.getVisibility() != View.VISIBLE) return false;
+        if (view.getId() == id) {
+            Object parent = view.getParent();
+            return parent instanceof View && covers((View) parent, decor, MESSAGES_SHARE);
+        }
+        if (!(view instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (barParentCovers(group.getChildAt(i), id, decor)) return true;
+        }
+        return false;
     }
 
     /** Whether a view named [name] covers [MESSAGES_SHARE] of [decor]; a hidden one left behind doesn't hide another. */

@@ -48,7 +48,7 @@ public class FullScreenBarsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     private static final int VIEWER = 7101, BAR = 7102, REELS_TAB = 7103, HOME_TAB = 7104, OTHER_TAB = 7105,
-            INBOX = 7106, CHAT = 7107, TOP_BAR = 7108, SHEET_HOLDER = 7109, SHEET_CONTENT = 7110;
+            INBOX = 7106, CHAT = 7107, TOP_BAR = 7108, SHEET_HOLDER = 7109, SHEET_CONTENT = 7110, INBOX_BAR = 7111;
 
     /** The window's own size: a view is only on screen as far as the window goes. */
     private int W, H;
@@ -69,6 +69,7 @@ public class FullScreenBarsTest {
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         FullScreenBars.idForTests(FullScreenBars.INBOX, INBOX);
         FullScreenBars.idForTests(FullScreenBars.CHAT, CHAT);
+        FullScreenBars.idForTests(FullScreenBars.INBOX_BAR, INBOX_BAR);
         FullScreenBars.idForTests(FullScreenBars.VIEWER, VIEWER);
         FullScreenBars.idForTests(FullScreenBars.TAB_BAR, BAR);
         FullScreenBars.idForTests(FullScreenBars.REELS_TAB, REELS_TAB);
@@ -1022,6 +1023,32 @@ public class FullScreenBarsTest {
 
         messagesView(INBOX, W, H);
         assertEquals(FullScreenBars.Screen.MESSAGES, screen());
+    }
+
+    /** A screen headed by your messages' own top bar, with a Compose list below it and no list id. */
+    private FrameLayout composeInbox(int height) {
+        FrameLayout screen = new FrameLayout(activity);
+        View top = new View(activity);
+        top.setId(INBOX_BAR);
+        screen.addView(top, new FrameLayout.LayoutParams(W, H / 12));
+        root.addView(screen, new FrameLayout.LayoutParams(W, height));
+        layout();
+        return screen;
+    }
+
+    /** #187: 454's messages list is Compose, so its top bar names the screen; a sliver or a hidden one doesn't. */
+    @Test public void theComposeMessagesListCountsByItsTopBar() {
+        FrameLayout inbox = composeInbox(H);
+        assertEquals(FullScreenBars.Screen.MESSAGES, screen());
+        Settings.FULL_SCREEN_MESSAGES.save(true);
+        assertTrue(watch().isHidden());
+
+        inbox.setVisibility(View.GONE);
+        layout();
+        assertEquals("left behind out of sight", FullScreenBars.Screen.OTHER, screen());
+        root.removeView(inbox);
+        composeInbox(H / 4);
+        assertEquals("a sliver of it", FullScreenBars.Screen.OTHER, screen());
     }
 
     /** #288: a reel opened from a chat is Reels, and the Messages switch leaves it alone. */
