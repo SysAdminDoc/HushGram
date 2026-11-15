@@ -78,7 +78,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * under the tab bar, so the black behind the viewer showed there (#258). While a reel is in front, the
  * background that black comes from also paints the same copy into those two bands ({@link #drawBands}):
  * the reel's top mirrored up under the clock, darker under white icons and lighter under dark ones so
- * the clock stays readable, and the strip running on under the tab bar. That background is the one of the viewer's nearest parent that
+ * the clock stays readable, and the strip running on under the tab bar. Round a reel with bars, the
+ * band, the strip and the bars all show the bars' picture at the size and dimming the bars have, so they
+ * meet without a seam (#584). That background is the one of the viewer's nearest parent that
  * spans the window across both bands ({@link #bandsHost}): Instagram's swipe container, which fills the
  * window in black over the window root's own. It sits under the viewer and everything opened over it,
  * so a sheet or another screen covers it as it covered the black.
@@ -175,6 +177,12 @@ public final class ReelBlurBars {
      */
     @Nullable private static Controller stripOwner;
     @Nullable private static Bitmap stripFrame;
+    /**
+     * The size of the page whose bars show {@link #stripFrame} stretched to cover it, or 0 when the frame
+     * is a reel that fills its page ({@link #drawMirrored}). Set for the strip's owner, on the main thread.
+     */
+    private static int coverWidth;
+    private static int coverHeight;
     private static final Paint STRIP_PAINT = new Paint(Paint.FILTER_BITMAP_FLAG);
     private static final Paint STRIP_DIM = new Paint();
     private static final Paint STATUS_DIM = new Paint();
@@ -207,7 +215,8 @@ public final class ReelBlurBars {
     /**
      * Paints the strip under the tab bar, [left] to [right] and [top] to [bottom] in [canvas]'s
      * coordinates, as the reel on screen running on: its frame mirrored so the bottom row meets the
-     * strip's top edge, blurred, with the same black over it as the bars get (#197). Instagram's own bar
+     * strip's top edge, blurred, with the same black over it as the bars get (#197). Below a reel with
+     * bars it's the bars' picture that runs on ({@link #drawMirrored}). Instagram's own bar
      * draws it through its background ({@link StripDrawable}). Paints nothing and says false with the switch off, HushGram paused, no
      * reel in front or no frame yet, so the caller paints what it would have. Never throws.
      */
@@ -219,12 +228,9 @@ public final class ReelBlurBars {
                     || !owner.inFrontNow() || !owner.on.getAsBoolean()) {
                 return false;
             }
-            float scale = (right - left) / shown.getWidth();
             int saved = canvas.save();
             canvas.clipRect(left, top, right, bottom);
-            canvas.translate(left, top + shown.getHeight() * scale);
-            canvas.scale(scale, -scale);
-            canvas.drawBitmap(shown, 0, 0, STRIP_PAINT);
+            drawMirrored(canvas, shown, left, right, top, true);
             canvas.restoreToCount(saved);
             canvas.drawRect(left, top, right, bottom, STRIP_DIM);
             return true;
@@ -238,7 +244,9 @@ public final class ReelBlurBars {
      * Paints the bands under the system bars, within [left] to [right] and [top] to [bottom] of the
      * canvas of the view whose background they are: above {@link #bandTop} the reel's top mirrored upward with
      * {@link #STATUS_DIM_ALPHA} over it in the colour that keeps the window's status bar icons readable,
-     * and below {@link #bandBottom} the strip under the tab bar running on (#258). Paints nothing and
+     * and below {@link #bandBottom} the strip under the tab bar running on (#258). Above a reel with bars
+     * the bars' picture runs on instead, under the bars' own black when the icons are white, so the band
+     * and the bars read as one (#584). Paints nothing and
      * says false when {@link #drawStrip} would, or with neither band there. Never throws.
      */
     static boolean drawBands(Canvas canvas, float left, float top, float right, float bottom) {
@@ -249,26 +257,22 @@ public final class ReelBlurBars {
                     || !owner.inFrontNow() || !owner.on.getAsBoolean()) {
                 return false;
             }
-            float scale = (right - left) / shown.getWidth();
             boolean drew = false;
             if (bandTop > top) {
                 int saved = canvas.save();
                 canvas.clipRect(left, top, right, bandTop);
-                canvas.translate(left, bandTop);
-                canvas.scale(scale, -scale);
-                canvas.drawBitmap(shown, 0, 0, STRIP_PAINT);
+                drawMirrored(canvas, shown, left, right, bandTop, false);
                 canvas.restoreToCount(saved);
                 View host = bandsHost == null ? null : bandsHost.get();
                 boolean darkIcons = host != null && darkStatusIcons.test(host);
-                canvas.drawRect(left, top, right, bandTop, darkIcons ? STATUS_LIGHT : STATUS_DIM);
+                Paint over = darkIcons ? STATUS_LIGHT : coverWidth > 0 ? STRIP_DIM : STATUS_DIM;
+                canvas.drawRect(left, top, right, bandTop, over);
                 drew = true;
             }
             if (bandBottom < bottom) {
                 int saved = canvas.save();
                 canvas.clipRect(left, bandBottom, right, bottom);
-                canvas.translate(left, bandAnchor + shown.getHeight() * scale);
-                canvas.scale(scale, -scale);
-                canvas.drawBitmap(shown, 0, 0, STRIP_PAINT);
+                drawMirrored(canvas, shown, left, right, bandAnchor, true);
                 canvas.restoreToCount(saved);
                 canvas.drawRect(left, bandBottom, right, bottom, STRIP_DIM);
                 drew = true;
@@ -278,6 +282,33 @@ public final class ReelBlurBars {
             HookStatus.threw(FamilyNames.REEL_BLUR_BARS, DRAW_BANDS, failure);
             return false;
         }
+    }
+
+    /**
+     * Draws [shown] across [left] to [right], mirrored at [edge] so the row of the picture it carries on
+     * meets that edge: the bottom row going down from it when [below], the top row going up otherwise.
+     * A reel that fills its page is that picture at the width of the screen. A reel with bars has it in
+     * the bars, stretched to cover the page ({@link BackdropDrawable}), so it's drawn at that size and
+     * with the same middle cut out, and the bars' edge row meets the edge. Drawn at the screen's width,
+     * a wide reel's whole frame sat over the middle of it the bars show, in another place and size (#584).
+     */
+    private static void drawMirrored(Canvas canvas, Bitmap shown, float left, float right, float edge, boolean below) {
+        float columns = shown.getWidth();
+        float firstColumn = 0f;
+        float topRow = 0f;
+        float bottomRow = shown.getHeight();
+        if (coverWidth > 0 && coverHeight > 0) {
+            float cover = Math.max(coverWidth / (float) shown.getWidth(), coverHeight / (float) shown.getHeight());
+            columns = coverWidth / cover;
+            firstColumn = (shown.getWidth() - columns) / 2f;
+            float rows = coverHeight / cover;
+            topRow = (shown.getHeight() - rows) / 2f;
+            bottomRow = topRow + rows;
+        }
+        float scale = (right - left) / columns;
+        canvas.translate(left - firstColumn * scale, edge + (below ? bottomRow : topRow) * scale);
+        canvas.scale(scale, -scale);
+        canvas.drawBitmap(shown, 0, 0, STRIP_PAINT);
     }
 
     /** The system bars' insets on [decor]'s window while they show, or null before it has any. */
@@ -714,6 +745,8 @@ public final class ReelBlurBars {
             Bands bands = bands(group, bar);
             boolean wanted = bar != null || bands != null;
             Bitmap strip = null;
+            // The page whose bars show the strip's frame, or null when it's a reel that fills its page.
+            View stripPage = null;
             for (TextureView video : videos(group)) {
                 if (video.getWidth() <= 0 || video.getHeight() <= 0) continue;
                 ViewGroup container = containerOf(video, group);
@@ -731,13 +764,16 @@ public final class ReelBlurBars {
                 if (paint(video, container)) {
                     kept.add(container);
                     Backdrop backdrop = backdrops.get(container);
-                    if (strip == null && backdrop != null) strip = backdrop.blurred;
+                    if (strip == null && backdrop != null) {
+                        strip = backdrop.blurred;
+                        stripPage = container;
+                    }
                 }
             }
             for (View container : new ArrayList<>(backdrops.keySet())) {
                 if (!kept.contains(container)) release(container);
             }
-            showStrip(bar, bands, strip);
+            showStrip(bar, bands, strip, stripPage);
         }
 
         /**
@@ -805,16 +841,18 @@ public final class ReelBlurBars {
         }
 
         /**
-         * Shows [frame] in the strip under [bar] and in [bands], or takes this controller's strip away
-         * with no frame or neither place to show it.
+         * Shows [frame] in the strip under [bar] and in [bands], as the bars of [page] show it when it's a
+         * reel with bars, or takes this controller's strip away with no frame or neither place to show it.
          */
-        private void showStrip(@Nullable View bar, @Nullable Bands bands, @Nullable Bitmap frame) {
+        private void showStrip(@Nullable View bar, @Nullable Bands bands, @Nullable Bitmap frame, @Nullable View page) {
             if (frame == null || (bar == null && bands == null)) {
                 dropStrip();
                 return;
             }
             stripOwner = this;
             stripFrame = frame;
+            coverWidth = page == null ? 0 : page.getWidth();
+            coverHeight = page == null ? 0 : page.getHeight();
             if (bar != null) {
                 if (!wearsGlass.test(bar)) {
                     if (barBackground == null) barBackground = new StripDrawable();
@@ -848,6 +886,8 @@ public final class ReelBlurBars {
             if (stripOwner == this) {
                 stripOwner = null;
                 stripFrame = null;
+                coverWidth = 0;
+                coverHeight = 0;
                 if (bar != null) bar.invalidate();
                 dropBands();
                 ViewGroup group = pager.get();

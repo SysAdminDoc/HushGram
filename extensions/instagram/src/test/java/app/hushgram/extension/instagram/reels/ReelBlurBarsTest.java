@@ -397,6 +397,57 @@ public class ReelBlurBarsTest {
     }
 
     /**
+     * #584: round a wide reel the band under the clock and the bars under it are both blurred from the
+     * reel, but the band drew the whole frame across the screen and darker, while the bars show the
+     * middle of it stretched to cover the page, so the two met at a seam in another shade and picture.
+     * Here the frame's sides are blue and its middle red: the bars show only red, and so do the band and
+     * the strip under the tab bar now, the band in the bars' own shade.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aWideReelsBandAndStripCarryOnTheBarsPicture() {
+        ReelBlurBars.source = (view, reuse, width, height) -> {
+            asked++;
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            bitmap.eraseColor(Color.RED);
+            int side = width * 15 / 100;
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < side; x++) {
+                    bitmap.setPixel(x, y, Color.BLUE);
+                    bitmap.setPixel(width - 1 - x, y, Color.BLUE);
+                }
+            }
+            return bitmap;
+        };
+        View bar = underSystemBars();
+
+        ReelBlurBars.pager(pager);
+        advance(400);
+
+        assertTrue(backdropShows());
+        assertEquals("one copy for the bars, the strip and the bands", 1, asked);
+        Bitmap bars = Bitmap.createBitmap(page.getWidth(), page.getHeight(), Bitmap.Config.ARGB_8888);
+        page.getBackground().setBounds(0, 0, page.getWidth(), page.getHeight());
+        page.getBackground().draw(new android.graphics.Canvas(bars));
+        int barsTop = bars.getPixel(60, 4);
+        assertTrue("the bars show the frame's middle out to the screen's side: " + Integer.toHexString(barsTop),
+                Color.red(barsTop) > Color.blue(barsTop) + 40);
+
+        int band = windowBackground().getPixel(60, STATUS - 4);
+        assertTrue("the band under the clock carries on the bars' picture: " + Integer.toHexString(band),
+                Color.red(band) > Color.blue(band) + 40);
+        assertTrue("in the bars' own shade: band " + Integer.toHexString(band) + ", bars " + Integer.toHexString(barsTop),
+                Math.abs(Color.red(band) - Color.red(barsTop)) <= 16 && Math.abs(Color.blue(band) - Color.blue(barsTop)) <= 16);
+
+        Bitmap strip = Bitmap.createBitmap(WIDTH, 150, Bitmap.Config.ARGB_8888);
+        bar.getBackground().setBounds(0, 0, WIDTH, 150);
+        bar.getBackground().draw(new android.graphics.Canvas(strip));
+        int stripTop = strip.getPixel(60, 4);
+        assertTrue("the strip under the tab bar too: " + Integer.toHexString(stripTop),
+                Color.red(stripTop) > Color.blue(stripTop) + 40);
+    }
+
+    /**
      * The window root hands out its own inset round the background it was given, and wraps whatever it
      * gets back again, so a root holding one gets no bands. A plain layer the app set is no wrapper.
      */
