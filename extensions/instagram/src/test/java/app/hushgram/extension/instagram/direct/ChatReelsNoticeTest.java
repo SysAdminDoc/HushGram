@@ -64,6 +64,9 @@ public class ChatReelsNoticeTest {
     private Viewer activity;
     private FrameLayout root;
     private FrameLayout pager;
+    /** Two chats' collectors. */
+    private final Object here = new Object();
+    private final Object there = new Object();
 
     @Before
     public void setUp() {
@@ -75,6 +78,7 @@ public class ChatReelsNoticeTest {
         HookStatus.clear();
         ChatReelsExit.resetForTests();
         ChatReelsNotice.resetForTests();
+        ChatReels.forgetReplies();
         controller = Robolectric.buildActivity(Viewer.class).setup();
         activity = controller.get();
         root = new FrameLayout(activity);
@@ -86,6 +90,7 @@ public class ChatReelsNoticeTest {
     @After
     public void restore() {
         ChatReelsNotice.resetForTests();
+        ChatReels.forgetReplies();
         ChatReelsExit.resetForTests();
         Settings.SWIPE_CHAT_REELS.resetToDefault();
         Settings.MESSAGES_AFTER_CHAT_REELS.resetToDefault();
@@ -108,12 +113,20 @@ public class ChatReelsNoticeTest {
         shadowOf(Looper.getMainLooper()).idle();
     }
 
-    private static void reel(String id, long millis, boolean viewer, String media) {
-        ChatReelsNotice.remember(id, millis, viewer, true, media);
+    private void reel(String id, long millis, boolean viewer, String media) {
+        reel(here, id, millis, viewer, media);
     }
 
-    private static void text(String id, long millis, boolean viewer) {
-        ChatReelsNotice.remember(id, millis, viewer, false, null);
+    private static void reel(Object chat, String id, long millis, boolean viewer, String media) {
+        ChatReelsNotice.remember(chat, id, millis, viewer, true, media);
+    }
+
+    private void text(String id, long millis, boolean viewer) {
+        text(here, id, millis, viewer);
+    }
+
+    private static void text(Object chat, String id, long millis, boolean viewer) {
+        ChatReelsNotice.remember(chat, id, millis, viewer, false, null);
     }
 
     private static String after(String media) {
@@ -168,7 +181,7 @@ public class ChatReelsNoticeTest {
     }
 
     @Test
-    public void aMessageWithNoIdOrTimeIsLeftOutAndANewTapStartsOver() {
+    public void aMessageWithNoIdOrTimeIsLeftOut() {
         reel("r1", 1000, false, "A");
         text(null, 2000, false);
         text("", 2000, false);
@@ -176,10 +189,41 @@ public class ChatReelsNoticeTest {
         assertNull(after("A"));
         text("m1", 2000, false);
         assertEquals("m1", after("A"));
+    }
+
+    /**
+     * Each chat keeps its own messages, and the banner looks only in the viewer's chat: the one the
+     * reply bar's info named, or the chat noted from last while nothing names one.
+     */
+    @Test
+    public void eachChatKeepsItsOwnMessages() {
+        reel(here, "r1", 1000, false, "A");
+        text(here, "m1", 2000, false);
+        reel(there, "r9", 1000, false, "A");
+        text(there, "m9", 3000, false);
+        assertEquals("nothing named, the chat noted from last", "m9", after("A"));
+        ChatReels.rememberReply(here, "A", "r1", new Object());
+        ChatReels.rememberReply(there, "A", "r9", new Object());
+        ChatReels.reply("A", "r1");
+        assertEquals("the reply bar's info named this chat", "m1", after("A"));
+        ChatReels.reply("A", "r9");
+        assertEquals("and then the other", "m9", after("A"));
+        Object other = new Object();
+        ChatReels.rememberReply(other, "A", "x1", new Object());
+        ChatReels.reply("A", "x1");
+        assertNull("a viewer's chat with nothing noted", after("A"));
+    }
+
+    /**
+     * Instagram runs a chat's messages through the collector as the chat loads, before the tap that
+     * opens one of its reels (#658), so the notes taken then answer that tap's viewer.
+     */
+    @Test
+    public void notesTakenBeforeTheTapAnswerItsViewer() {
+        reel("r1", 1000, false, "A");
+        text("m1", 2000, false);
         ChatReels.tapped();
-        assertNull("the next tap's chat starts over", after("A"));
-        reel("r9", 1000, false, "A");
-        assertNull("the earlier chat's message is gone", after("A"));
+        assertEquals("noted as the chat loaded", "m1", after("A"));
     }
 
     /** Without the patch's bridges, a page hands nothing on: no banner, no failure. */
@@ -190,8 +234,9 @@ public class ChatReelsNoticeTest {
         ChatReelsNotice.page(null, 0);
         ChatReelsNotice.page(new Object(), -1);
         ChatReelsNotice.page(new Object(), 0);
-        ChatReelsNotice.note(null, null);
-        ChatReelsNotice.note(new Object(), new Object());
+        ChatReelsNotice.note(null, null, null);
+        ChatReelsNotice.note(new Object(), new Object(), null);
+        ChatReelsNotice.note(new Object(), new Object(), new Object());
         idle();
         assertNull(ChatReelsNotice.shownBanner());
         assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("chat reels message after"));

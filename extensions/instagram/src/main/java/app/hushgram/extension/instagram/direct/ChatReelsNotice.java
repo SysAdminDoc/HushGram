@@ -39,12 +39,12 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * Helper for "Messages after a reel", under Swipe through a chat's reels (#489).
  *
  * <p>Swiping through a chat's reels, the messages the other person wrote between them went by unseen.
- * The opener of a reel shared in a chat hands each of the chat's loaded messages to the collector
- * {@link ChatReels#received(Object, Object)} answers for, which hands them on to
- * {@link #note(Object, Object)}: each message's id, time, side and reel, kept until the next tap. As the
- * viewer selects a page, the patch calls {@link #page(Object, int)} from the reply bar's page select,
- * and a banner over the viewer says when the other person sent a message after the reel on screen,
- * before the chain's next reel. A tap on it goes Back to the chat and scrolls to that message when the
+ * Each chat's collector goes through its messages as the chat loads, before any tap, and again on one of
+ * the opener's ways in (#658). It asks {@link ChatReels#received(Object, Object, Object)}, which hands
+ * each message on to {@link #note(Object, Object, Object)}: its id, time, side and reel, kept chat by
+ * chat. As the viewer selects a page, the patch calls {@link #page(Object, int)} from the reply bar's
+ * page select, and a banner over the viewer says when the other person sent a message after the reel
+ * on screen, before the chain's next reel, in the chat the viewer was opened from. A tap on it goes Back to the chat and scrolls to that message when the
  * chat's list holds it, or just back to the chat. Nothing is ever sent.
  */
 public final class ChatReelsNotice {
@@ -84,14 +84,22 @@ public final class ChatReelsNotice {
         }
     }
 
-    /** The messages of the chat last opened, by id, in the order they came. */
-    private static final Map<String, Note> NOTES = new LinkedHashMap<String, Note>() {
-        @Override protected boolean removeEldestEntry(Map.Entry<String, Note> eldest) {
-            return size() > NOTES_KEPT;
+    /** One chat's messages, by id in the order they came, with the chat's collector held weakly. */
+    private static final class ChatNotes {
+        final WeakReference<Object> chat;
+        final Map<String, Note> notes = new LinkedHashMap<String, Note>() {
+            @Override protected boolean removeEldestEntry(Map.Entry<String, Note> eldest) {
+                return size() > NOTES_KEPT;
+            }
+        };
+
+        ChatNotes(Object chat) {
+            this.chat = new WeakReference<>(chat);
         }
-    };
-    /** The tap the notes came after. Guarded by {@link #NOTES}. */
-    private static int notesTap = -1;
+    }
+
+    /** The chats whose messages are noted, the one noted from last at the end. */
+    private static final List<ChatNotes> CHATS = new ArrayList<>();
 
     /** The bubble last tapped in a chat, whose list a tap on the banner goes back to. */
     @Nullable private static volatile WeakReference<View> bubble;
@@ -142,48 +150,77 @@ public final class ChatReelsNotice {
     }
 
     /**
-     * Notes [message], one of the chat's messages the opener is adding to the chain, with its wrapper
+     * Notes [message], one of the chat's messages its collector [chat] goes through, with its wrapper
      * [wrapper]: its id, time, whether the viewer sent it and the reel it holds. Nothing while the
      * switch is off, HushGram is paused or the settings aren't ready. Never throws.
      */
-    static void note(@Nullable Object message, @Nullable Object wrapper) {
+    static void note(@Nullable Object message, @Nullable Object wrapper, @Nullable Object chat) {
         try {
-            if (message == null || !on()) return;
+            if (message == null || chat == null || !on()) return;
             Object reel = wrapper == null ? null : ChatReels.reel(wrapper);
-            remember(ChatReels.itemId(message), ChatHistory.millis(timeOf(message)), ChatReels.sentByViewer(message),
+            remember(chat, ChatReels.itemId(message), ChatHistory.millis(timeOf(message)), ChatReels.sentByViewer(message),
                     reel != null, reel == null ? null : ChatReels.mediaId(reel));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.CHAT_REELS, FAILED, failure);
         }
     }
 
-    /** Keeps a message, starting over after a new tap. One with no id or time is left out. */
-    static void remember(@Nullable String id, long millis, boolean viewer, boolean reel, @Nullable String media) {
+    /** Keeps a message of [chat], a chat's collector. One with no id or time is left out. */
+    static void remember(Object chat, @Nullable String id, long millis, boolean viewer, boolean reel, @Nullable String media) {
         if (id == null || id.isEmpty() || millis <= 0) return;
-        synchronized (NOTES) {
-            int tap = ChatReels.tapCount();
-            if (notesTap != tap) {
-                NOTES.clear();
-                notesTap = tap;
-            }
-            NOTES.remove(id);
-            NOTES.put(id, new Note(id, millis, viewer, reel, media));
+        synchronized (CHATS) {
+            Map<String, Note> notes = notesOf(chat).notes;
+            notes.remove(id);
+            notes.put(id, new Note(id, millis, viewer, reel, media));
         }
+    }
+
+    /**
+     * [chat]'s notes, new ones when it has none, moved to the end as the chat noted from last. Chats
+     * that are gone and the oldest past {@link ChatReels#CHATS_KEPT} are let go. Guarded by {@link #CHATS}.
+     */
+    private static ChatNotes notesOf(Object chat) {
+        ChatNotes found = null;
+        for (int i = CHATS.size() - 1; i >= 0; i--) {
+            Object held = CHATS.get(i).chat.get();
+            if (held != null && held != chat) continue;
+            ChatNotes notes = CHATS.remove(i);
+            if (held != null) found = notes;
+        }
+        if (found == null) found = new ChatNotes(chat);
+        CHATS.add(found);
+        while (CHATS.size() > ChatReels.CHATS_KEPT) CHATS.remove(0);
+        return found;
+    }
+
+    /**
+     * The notes of the chat the viewer was opened from: the one {@link ChatReels#viewersChat()} names,
+     * or the chat noted from last when it names none. Null when that chat has none. Guarded by {@link #CHATS}.
+     */
+    @Nullable
+    private static ChatNotes viewersNotes(@Nullable Object viewers) {
+        if (viewers == null) return CHATS.isEmpty() ? null : CHATS.get(CHATS.size() - 1);
+        for (ChatNotes notes : CHATS) {
+            if (notes.chat.get() == viewers) return notes;
+        }
+        return null;
     }
 
     /**
      * The first message the other person sent after a message holding the reel [media] and before the
      * chain's next reel, or null. The chain holds every reel of the chat, except the viewer's own while
      * "Only received reels" is on, so those and the viewer's own messages don't end the stretch. A reel
-     * shared more than once is looked after at each share.
+     * shared more than once is looked after at each share. Only the viewer's own chat is looked in.
      */
     @Nullable
     static Note after(@Nullable String media) {
         if (media == null) return null;
+        Object viewers = ChatReels.viewersChat();
         List<Note> notes;
-        synchronized (NOTES) {
-            if (notesTap != ChatReels.tapCount() || NOTES.isEmpty()) return null;
-            notes = new ArrayList<>(NOTES.values());
+        synchronized (CHATS) {
+            ChatNotes chat = viewersNotes(viewers);
+            if (chat == null || chat.notes.isEmpty()) return null;
+            notes = new ArrayList<>(chat.notes.values());
         }
         Collections.sort(notes, (a, b) -> Long.compare(a.millis, b.millis));
         boolean onlyReceived = Settings.ONLY_RECEIVED_CHAT_REELS.get();
@@ -201,9 +238,8 @@ public final class ChatReelsNotice {
 
     /** Forgets every message, for tests. */
     static void forget() {
-        synchronized (NOTES) {
-            NOTES.clear();
-            notesTap = -1;
+        synchronized (CHATS) {
+            CHATS.clear();
         }
     }
 

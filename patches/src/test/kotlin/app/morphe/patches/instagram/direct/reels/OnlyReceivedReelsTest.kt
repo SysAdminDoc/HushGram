@@ -96,7 +96,7 @@ class OnlyReceivedReelsTest {
         val cases = listOf(
             context(collectors = 0) to "expected one method registering a chat's messages for the chain, found 0",
             context(collectors = 2) to "expected one method registering a chat's messages for the chain, found 2",
-            context(locals = 1) to "$where has fewer than two locals for the hook",
+            context(locals = 2) to "$where has fewer than three locals for the hook",
             context(entered = true) to "a jump or exception handler enters $where at its first instruction",
             context(held = 0) to "$wrapper holds 0 $base messages, not one",
             context(held = 2) to "$wrapper holds 2 $base messages, not one",
@@ -134,19 +134,25 @@ class OnlyReceivedReelsTest {
 
     private fun assertHooked(what: String, method: Method, before: Int) {
         val code = method.implementation!!.instructions.toList()
-        assertEquals("$what: added", before + 6, code.size)
+        assertEquals("$what: added", before + 7, code.size)
         assertEquals("$what: hooks", 1, code.count { it.text() == RECEIVED })
         assertEquals("$what: the wrapper copied", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
         assertEquals("$what: the message read", Opcode.IGET_OBJECT, code[1].opcode)
-        assertEquals("$what: the hook", RECEIVED, code[2].text())
+        assertEquals("$what: the collector copied", Opcode.MOVE_OBJECT_FROM16, code[2].opcode)
+        assertEquals("$what: the hook", RECEIVED, code[3].text())
         val wrapperCopy = (code[0] as TwoRegisterInstruction).registerA
         val messageRead = (code[1] as TwoRegisterInstruction)
+        val thisCopy = code[2] as TwoRegisterInstruction
         assertEquals("$what: the message read from the wrapper", wrapperCopy, messageRead.registerB)
-        val asks = code[2] as FiveRegisterInstruction
-        assertEquals("$what: handed the message and the wrapper", listOf(messageRead.registerA, wrapperCopy), listOf(asks.registerC, asks.registerD))
-        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[3].opcode)
-        assertEquals("$what: the test", Opcode.IF_NEZ, code[4].opcode)
-        assertEquals("$what: the drop", Opcode.RETURN_VOID, code[5].opcode)
+        val registers = method.implementation!!.registerCount
+        assertEquals("$what: the wrapper is p1", registers - 1, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the collector is p0, this", registers - 2, thisCopy.registerB)
+        val asks = code[3] as FiveRegisterInstruction
+        assertEquals("$what: handed the message, the wrapper and the collector", listOf(messageRead.registerA, wrapperCopy, thisCopy.registerA),
+            listOf(asks.registerC, asks.registerD, asks.registerE))
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[4].opcode)
+        assertEquals("$what: the test", Opcode.IF_NEZ, code[5].opcode)
+        assertEquals("$what: the drop", Opcode.RETURN_VOID, code[6].opcode)
     }
 
     /** The reel bridge asks the wrapper for its reel item; the media id bridge reads the item's Media and a null one answers null. */
@@ -174,7 +180,7 @@ class OnlyReceivedReelsTest {
      */
     private fun context(
         collectors: Int = 1,
-        locals: Int = 2,
+        locals: Int = 3,
         entered: Boolean = false,
         held: Int = 1,
         reels: Int = 1,
@@ -350,9 +356,9 @@ class OnlyReceivedReelsTest {
         val before = found.collect.implementation!!.instructions.count { it.opcode != Opcode.NOP }
         context.skipSentReels(found)
         val code = found.collect.implementation!!.instructions.toList()
-        assertEquals("$name: added", before + 6, code.count { it.opcode != Opcode.NOP })
+        assertEquals("$name: added", before + 7, code.count { it.opcode != Opcode.NOP })
         assertEquals("$name: hooks", 1, code.count { it.text() == RECEIVED })
-        assertEquals("$name: the hook goes first", RECEIVED, code[2].text())
+        assertEquals("$name: the hook goes first", RECEIVED, code[3].text())
         val hooked = classes.keys.flatMap { type -> context.mutableClassDefBy(type).methods }
             .count { m -> m.visualCode().any { it.text() == RECEIVED } }
         assertEquals("$name: methods hooked", 1, hooked)
@@ -361,7 +367,7 @@ class OnlyReceivedReelsTest {
         // Each info the collector builds goes to the extension, and the bar asks it twice (#488).
         context.giveSwipedReelsTheirReplies(found, replies)
         val replied = found.collect.implementation!!.instructions.toList()
-        assertEquals("$name: added for the reply bar", before + 9, replied.count { it.opcode != Opcode.NOP })
+        assertEquals("$name: added for the reply bar", before + 10, replied.count { it.opcode != Opcode.NOP })
         assertEquals("$name: infos handed over", 1, replied.count { it.text() == COLLECTED })
         val all = classes.keys.flatMap { type -> context.mutableClassDefBy(type).methods }
         for (hook in listOf(REPLY_TO, REPLY_INFO)) {

@@ -60,8 +60,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * keeps the tapped reel's. {@link #collected(Object, Object, Object)} remembers each message's reply
  * info, chat by chat, as Instagram goes through the chat's messages, and {@link #replyTo(Object, Object, Object, int)} and
  * {@link #replyInfo(Object, Object, Object)} hand the bar the one for the reel on screen (#488).
- * {@link #received(Object, Object)} also hands each message to {@link ChatReelsNotice}, whose banner
- * says when the other person wrote after the reel on screen (#489).
+ * {@link #received(Object, Object, Object)} also hands each message to {@link ChatReelsNotice}, chat by
+ * chat, whose banner says when the other person wrote after the reel on screen (#489).
  */
 public final class ChatReels {
     /** The name of Instagram's viewer source for a reel opened from a chat. */
@@ -146,15 +146,16 @@ public final class ChatReels {
      * just tapped (its id shows in the tapped message's text). Yes for any other message, with the
      * switch off, while HushGram is paused, before the settings are ready and on any failure. A sent
      * message's reel, read from [wrapper], the message's wrapper, is also remembered for
-     * {@link #leaveOutSent(List, Object)}, or forgotten when it's the one tapped. Never throws.
+     * {@link #leaveOutSent(List, Object)}, or forgotten when it's the one tapped. [chat], the chat's
+     * collector, keeps the message's note for {@link ChatReelsNotice} with that chat's. Never throws.
      */
-    public static boolean received(@Nullable Object message, @Nullable Object wrapper) {
+    public static boolean received(@Nullable Object message, @Nullable Object wrapper, @Nullable Object chat) {
         boolean sent;
         String id;
         try {
             HookStatus.invoked(FamilyNames.CHAT_REELS);
             if (message == null || !Utils.settingsReady() || HushgramPause.isPaused()) return true;
-            ChatReelsNotice.note(message, wrapper);
+            ChatReelsNotice.note(message, wrapper, chat);
             if (!Settings.ONLY_RECEIVED_CHAT_REELS.get()) return true;
             sent = sentByViewer(message);
             id = sent ? itemId(message) : null;
@@ -166,7 +167,7 @@ public final class ChatReels {
         return received(sent, id);
     }
 
-    /** The test behind {@link #received(Object, Object)}, for a message the viewer sent or not and its item id. */
+    /** The test behind {@link #received(Object, Object, Object)}, for a message the viewer sent or not and its item id. */
     static boolean received(boolean sent, @Nullable String id) {
         if (!sent || isTapped(id)) return true;
         HookStatus.counted(FamilyNames.CHAT_REELS, "sent reel left out of the chain");
@@ -198,7 +199,7 @@ public final class ChatReels {
      * page of them. A viewer opened from a chat pages the chat's reels from the server too, past the
      * opener, and merges each page in through its update or an insert rather than its add, so while
      * "Only received reels" is on the reels the viewer sent there, as remembered by
-     * {@link #received(Object, Object)}, are left out of the page whichever way it comes in. [items] for
+     * {@link #received(Object, Object, Object)}, are left out of the page whichever way it comes in. [items] for
      * any other viewer, with the switch off, while HushGram is paused, before the settings are ready and
      * on any failure. Never throws.
      */
@@ -440,6 +441,18 @@ public final class ChatReels {
         return CHATS.isEmpty() ? null : CHATS.get(CHATS.size() - 1);
     }
 
+    /**
+     * The collector of the chat the last tap's viewer answers from (see {@link #viewersChat(String)}),
+     * for {@link ChatReelsNotice}, or null with no chat remembered.
+     */
+    @Nullable
+    static Object viewersChat() {
+        synchronized (CHATS) {
+            ChatReplies chat = viewersChat(null);
+            return chat == null ? null : chat.chat.get();
+        }
+    }
+
     /** Forgets every remembered reply, for tests. */
     static void forgetReplies() {
         synchronized (CHATS) {
@@ -470,11 +483,6 @@ public final class ChatReels {
     /** Counts a tap on media in a chat that goes on to open, for tests and {@link #open(Object, View)}. */
     static void tapped() {
         taps++;
-    }
-
-    /** How many taps on media in a chat went on to open, so {@link ChatReelsNotice} starts over after a new one. */
-    static int tapCount() {
-        return taps;
     }
 
     /** Stub: the patch writes this, answering the message [info], a reply info, quotes. */

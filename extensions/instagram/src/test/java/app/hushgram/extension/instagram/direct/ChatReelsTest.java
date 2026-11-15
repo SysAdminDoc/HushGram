@@ -148,10 +148,10 @@ public class ChatReelsTest {
     @Test
     public void aSentReelLeavesTheChainOnlyWithOnlyReceivedOn() {
         assertFalse(Settings.ONLY_RECEIVED_CHAT_REELS.get());
-        assertTrue("off, an unsent message", ChatReels.received(new Object(), new Object()));
+        assertTrue("off, an unsent message", ChatReels.received(new Object(), new Object(), new Object()));
         Settings.ONLY_RECEIVED_CHAT_REELS.save(true);
-        assertTrue("on, a message the stub says wasn't sent", ChatReels.received(new Object(), new Object()));
-        assertTrue("null", ChatReels.received(null, null));
+        assertTrue("on, a message the stub says wasn't sent", ChatReels.received(new Object(), new Object(), new Object()));
+        assertTrue("null", ChatReels.received(null, null, null));
         assertTrue("a received reel", ChatReels.received(false, "a1"));
         assertFalse("a sent reel", ChatReels.received(true, "a1"));
         assertFalse("a sent reel with no id", ChatReels.received(true, null));
@@ -180,10 +180,10 @@ public class ChatReelsTest {
         Settings.ONLY_RECEIVED_CHAT_REELS.save(true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertTrue("paused", ChatReels.received(new Object(), new Object()));
+        assertTrue("paused", ChatReels.received(new Object(), new Object(), new Object()));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.received(new Object(), new Object())));
+        SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.received(new Object(), new Object(), new Object())));
     }
 
     /** A page of a chat's reels from the server, read by media id: the item itself here. */

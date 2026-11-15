@@ -56,7 +56,7 @@ private const val PATCH = "Swipe through a chat's reels"
 internal const val CHAT_REELS = "$EXTENSION_PACKAGE/direct/ChatReels;"
 internal const val CHAIN = "$CHAT_REELS->chain(I)Z"
 internal const val STOP = "$CHAT_REELS->stop()Z"
-internal const val RECEIVED = "$CHAT_REELS->received(Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val RECEIVED = "$CHAT_REELS->received(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val LEAVE_OUT_SENT = "$CHAT_REELS->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;"
 
 /** What a reel item holds and the id the extension keys a sent reel by. Redex keeps both names. */
@@ -279,7 +279,7 @@ private fun fieldsTouched(method: Method, opcode: Opcode, owner: String): Set<St
  * holding it has a constructor, handed the session first, that asks the chat reels test [read] and keeps
  * the answer in a flag; the method is the one instance method of that class taking one object and
  * returning nothing that reads such a flag. The object holds one field typed as a subclass of the
- * direct message class [fields] reads (the message itself), with two locals for the hook and nothing
+ * direct message class [fields] reads (the message itself), with three locals for the hook and nothing
  * jumping to the method's first instruction. The method asks the object, with nothing, for one reel
  * item: an object holding one [MEDIA], which has its `getId()`. Fails when any of it isn't so.
  */
@@ -299,7 +299,7 @@ internal fun BytecodePatchContext.findReelCollector(
     }
     val collector = collectors.singleOrNull() ?: refuse("expected one method registering a chat's messages for the chain, found ${collectors.size}")
     val where = "${collector.definingClass}->${collector.name}"
-    if (collector.localRegisterCount() < 2) refuse("$where has fewer than two locals for the hook")
+    if (collector.localRegisterCount() < 3) refuse("$where has fewer than three locals for the hook")
     if (0 in collector.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
 
     val wrapper = collector.parameterTypes.single().toString()
@@ -346,8 +346,9 @@ internal fun checkAddTakesReels(placeholders: Placeholders, collector: ReelColle
 }
 
 /**
- * Has the collector ask the extension through [RECEIVED] first, handing it the message and its wrapper,
- * and return on a no, so a message the extension turns away never joins the chain. Also writes the
+ * Has the collector ask the extension through [RECEIVED] first, handing it the message, its wrapper and
+ * itself, one collector per chat (#658), and return on a no, so a message the extension turns away never
+ * joins the chain. Also writes the
  * bodies of the extension's message bridges, `sentByViewer` and `itemId` from the fields the chat
  * history reads, `reel` from the wrapper's reel item and `mediaId` from an item's [MEDIA].
  */
@@ -358,7 +359,8 @@ internal fun BytecodePatchContext.skipSentReels(found: ReelCollector = findReelC
         """
             move-object/from16 v1, p1
             iget-object v0, v1, ${found.message.definingClass}->${found.message.name}:${found.message.type}
-            invoke-static { v0, v1 }, $RECEIVED
+            move-object/from16 v2, p0
+            invoke-static { v0, v1, v2 }, $RECEIVED
             move-result v0
             if-nez v0, :instagram
             return-void
