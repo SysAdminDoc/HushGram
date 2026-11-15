@@ -52,6 +52,7 @@ class AccentColorHookTest {
         assertTrue("$SWAP_LIST is not in the extension: $declared", SWAP_LIST in declared)
         assertTrue("$SWAP_VALUE is not in the extension: $declared", SWAP_VALUE in declared)
         assertTrue("$SWAP_TEXT is not in the extension: $declared", SWAP_TEXT in declared)
+        assertTrue("$SWAP_IMAGE is not in the extension: $declared", SWAP_IMAGE in declared)
     }
 
     @Test
@@ -468,6 +469,50 @@ class AccentColorHookTest {
 
             val builder = context.mutableClassDefBy(type).methods.single(isBuilder)
             assertTintsSwapped("$label $type->${builder.name}", builder, stock, builder.parameterRegisterNumber(0), builder.parameterRegisterNumber(1))
+        }
+    }
+
+    /**
+     * Every build of Instagram: each image view constructor that builds the view, the ones reading a
+     * layout among them, hands its view to the extension right before each return, so an android:tint
+     * from the layout is swapped too (#187). One only calling another of its own stays as it was.
+     */
+    @Test
+    fun everyBuildsImageViewConstructorsHandTheirViewOn() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val declared = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        assertTrue("no fixture of a declared build", declared.isNotEmpty())
+        for (bundle in declared + Fixtures.otherBuilds()) {
+            val label = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
+            val view = FixtureDex.classes(bundle, setOf(SIMPLE_IMAGE_VIEW)).getValue(SIMPLE_IMAGE_VIEW)
+            val context = PatchContexts.of(listOf(view))
+
+            context.swapImageViewTints()
+
+            val constructors = context.mutableClassDefBy(SIMPLE_IMAGE_VIEW).methods.filter { it.name == "<init>" }
+            val fromLayout = constructors.filter { it.parameterTypes.map(Any::toString).take(2) == listOf(CONTEXT, ATTRIBUTE_SET) }
+            assertTrue("$label: the layout constructors, ${constructors.map { it.parameterTypes }}", fromLayout.isNotEmpty())
+            for (constructor in constructors) {
+                val code = constructor.code()
+                val what = "$label ${constructor.parameterTypes}"
+                val passesOn = code.any {
+                    val called = (it as? ReferenceInstruction)?.reference as? MethodReference
+                    called != null && called.definingClass == SIMPLE_IMAGE_VIEW && called.name == "<init>"
+                }
+                val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == SWAP_IMAGE }
+                if (passesOn) {
+                    assertEquals("$what: it only passes on", 0, hooks.size)
+                    continue
+                }
+                assertEquals("$what: one for each return", code.count { it.opcode == Opcode.RETURN_VOID }, hooks.size)
+                for (at in hooks) {
+                    assertEquals("$what: the hook", Opcode.INVOKE_STATIC_RANGE, code[at].opcode)
+                    assertEquals("$what: the view it hands on", constructor.implementation!!.registerCount - constructor.parameterTypes.size - 1, (code[at] as RegisterRangeInstruction).startRegister)
+                    assertEquals("$what: the view alone", 1, (code[at] as RegisterRangeInstruction).registerCount)
+                    assertEquals("$what: right before the return", Opcode.RETURN_VOID, code[at + 1].opcode)
+                }
+            }
+            assertTrue("$label: a layout constructor hands its view on", fromLayout.any { it.hooks(SWAP_IMAGE).isNotEmpty() })
         }
     }
 

@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.misc;
 import android.content.res.ColorStateList;
 import android.os.Parcel;
 import android.util.TypedValue;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.Map;
@@ -167,6 +168,24 @@ public final class AccentColor {
             if (after != before) view.setTextColor(after);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "text view", failure);
+        }
+    }
+
+    /**
+     * Injected at the end of Instagram's image view constructors. A tint a layout gives an image view
+     * in its XML (android:tint) is read by the framework, as the verified badge on a profile's top bar
+     * has it, so it stayed blue (#187). Hands the view's tint to {@link #list}, and gives it the answer
+     * when that's a new list. Never throws.
+     */
+    public static void image(ImageView view) {
+        try {
+            if (view == null) return;
+            ColorStateList before = view.getImageTintList();
+            if (before == null) return;
+            ColorStateList after = list(before);
+            if (after != before) view.setImageTintList(after);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "image view", failure);
         }
     }
 

@@ -407,6 +407,32 @@ public class AccentColorTest {
         AccentColor.text(null);
     }
 
+    /** An image view tinted blue in its layout, as a profile's verified badge is, takes the color; no tint or a gray one stays (#187). */
+    @Test
+    public void anImageViewTintedBlueTakesTheColor() {
+        Settings.ACCENT_COLOR.save(true);
+        android.widget.ImageView view = new android.widget.ImageView(RuntimeEnvironment.getApplication());
+        AccentColor.image(view);
+        assertNull("no tint stays no tint", view.getImageTintList());
+
+        view.setImageTintList(ColorStateList.valueOf(BLUE));
+        AccentColor.image(view);
+        assertEquals(0xff7638fa, view.getImageTintList().getDefaultColor());
+
+        ColorStateList gray = new ColorStateList(new int[][] {DISABLED, {}}, new int[] {0x4d737373, 0xff737373});
+        view.setImageTintList(gray);
+        AccentColor.image(view);
+        assertSame(gray, view.getImageTintList());
+
+        Settings.ACCENT_COLOR.save(false);
+        ColorStateList blue = ColorStateList.valueOf(BLUE);
+        view.setImageTintList(blue);
+        AccentColor.image(view);
+        assertSame("the switch off leaves Instagram's blue", blue, view.getImageTintList());
+
+        AccentColor.image(null);
+    }
+
     /** Paused, not ready yet or Instagram blue picked: the stock blue, in a color and in a list. */
     @Test
     public void pausedUnreadyAndBlueLeaveInstagramsBlue() {
