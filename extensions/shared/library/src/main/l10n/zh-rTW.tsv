@@ -385,6 +385,8 @@ Hide Add Yours cards between stories	隱藏限時動態之間的「換你了」�
 Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	移除瀏覽限時動態時，Instagram 在中間插入的「換你了」卡片，例如「熱門換你了」與「加入熱門換你了」。限時動態本身仍會保留。
 Download feed photos	下載動態首頁照片
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	在照片貼文與目前顯示照片的輪播貼文中加入相同的「下載」選項。以 Instagram 提供的最大尺寸儲存。
+Save photos at full size	以完整尺寸儲存照片
+Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy Instagram shows. Grid pictures load larger too, which uses more data. Restart Instagram to see the change.	「下載動態首頁照片」會以照片發佈時的尺寸儲存，而不是 Instagram 顯示的 1080 像素副本。網格圖片也會以更大尺寸載入，會使用更多數據。請重新啟動 Instagram 以套用變更。
 the start-up fix for x86 devices	x86 裝置啟動修正
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	AMOLED 純黑模式

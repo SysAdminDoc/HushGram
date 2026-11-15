@@ -381,6 +381,8 @@ Hide Add Yours cards between stories	스토리 사이의 'Add Yours' 카드 숨�
 Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	넘겨 보는 스토리 사이에 인스타그램이 넣는 인기 'Add Yours'나 트렌드 'Add Yours' 참여 같은 'Add Yours' 카드를 숨깁니다. 스토리는 그대로 남습니다.
 Download feed photos	피드 사진 다운로드
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	사진 게시물과 사진이 포함된 캐러셀에도 동일한 다운로드 기능을 추가합니다. Instagram에서 제공하는 가장 큰 사이즈로 저장할 수 있습니다
+Save photos at full size	사진을 원본 크기로 저장
+Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy Instagram shows. Grid pictures load larger too, which uses more data. Restart Instagram to see the change.	피드 사진 다운로드가 Instagram이 보여 주는 1080픽셀 사본 대신 게시된 원래 크기로 사진을 저장합니다. 그리드 사진도 더 크게 불러오므로 데이터를 더 씁니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 the start-up fix for x86 devices	x86 기기에 대한 시작 문제 수정
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	순수 검정 어두운 모드

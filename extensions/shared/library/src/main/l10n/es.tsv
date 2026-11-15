@@ -380,6 +380,8 @@ Hide Add Yours cards between stories	Ocultar tarjetas de Te toca entre historias
 Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	Quita las tarjetas de Te toca, como las populares o las que son tendencia para unirte, que Instagram pone entre las historias que vas pasando. Las historias en sí se quedan.
 Download feed photos	Descargar fotos del feed
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	La misma opción Descargar en una publicación con foto y en un carrusel que muestra una foto. Guarda el tamaño más grande que tenga Instagram.
+Save photos at full size	Guardar fotos a tamaño completo
+Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy Instagram shows. Grid pictures load larger too, which uses more data. Restart Instagram to see the change.	Descargar fotos del feed guarda una foto al tamaño en que se publicó, no la copia de 1080 píxeles que muestra Instagram. Las fotos de la cuadrícula también cargan más grandes, lo que gasta más datos. Reinicia Instagram para ver el cambio.
 the start-up fix for x86 devices	el arreglo de inicio para dispositivos x86
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	Modo oscuro negro puro

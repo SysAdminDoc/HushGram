@@ -385,6 +385,8 @@ Hide Add Yours cards between stories	隐藏快拍之间的“换你了”卡片
 Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	移除浏览快拍时，Instagram 在中间插入的“换你了”卡片，例如“热门换你了”与“加入热门换你了”。快拍本身仍会保留。
 Download feed photos	下载动态首页照片
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	在照片帖子与目前显示照片的轮播帖子中加入相同的“下载”选项。以 Instagram 提供的最大尺寸保存。
+Save photos at full size	以完整尺寸保存照片
+Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy Instagram shows. Grid pictures load larger too, which uses more data. Restart Instagram to see the change.	“下载动态首页照片”会以照片发布时的尺寸保存，而不是 Instagram 显示的 1080 像素副本。网格图片也会以更大尺寸加载，会使用更多数据。请重新启动 Instagram 以应用变更。
 the start-up fix for x86 devices	x86 设备启动修正
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	AMOLED 纯黑模式

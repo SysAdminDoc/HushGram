@@ -380,6 +380,8 @@ Hide Add Yours cards between stories	Ocultar cards de Sua vez entre os stories
 Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	Tira os cards de Sua vez, como os populares ou os em alta para participar, que o Instagram coloca entre os stories que você passa. Os stories em si continuam.
 Download feed photos	Baixar fotos do feed
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	O mesmo Baixar em um post com foto e em um carrossel mostrando uma foto. Salva o maior tamanho que o Instagram tiver.
+Save photos at full size	Salvar fotos em tamanho real
+Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy Instagram shows. Grid pictures load larger too, which uses more data. Restart Instagram to see the change.	Baixar fotos do feed salva a foto no tamanho em que foi postada, e não a cópia de 1080 pixels que o Instagram mostra. As fotos da grade também carregam maiores, o que gasta mais dados. Reinicie o Instagram para ver a mudança.
 the start-up fix for x86 devices	a correção de inicialização para dispositivos x86
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	Modo escuro preto puro

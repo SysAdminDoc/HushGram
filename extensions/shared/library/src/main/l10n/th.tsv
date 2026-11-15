@@ -377,6 +377,8 @@ Hide Add Yours cards between stories	ซ่อนการ์ด "ตาคุ�
 Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	ไม่แสดงการ์ด "ตาคุณแล้ว" เช่น สติกเกอร์ตาคุณแล้วยอดนิยม และเข้าร่วมสติกเกอร์ตาคุณแล้วที่กำลังมาแรง ที่ Instagram แทรกไว้ระหว่างสตอรี่ที่คุณแตะดู โดยสตอรี่ยังคงแสดงตามปกติ
 Download feed photos	ดาวน์โหลดรูปภาพบนฟีด
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	ตัวเลือก "ดาวน์โหลด" แบบเดียวกันสำหรับโพสต์รูปภาพ และโพสต์แบบเลื่อนดูหลายรูป (Carousel) ที่กำลังแสดงรูปภาพ โดยจะบันทึกด้วยขนาดที่ใหญ่ที่สุดที่ Instagram มี
+Save photos at full size	บันทึกรูปภาพในขนาดเต็ม
+Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy Instagram shows. Grid pictures load larger too, which uses more data. Restart Instagram to see the change.	"ดาวน์โหลดรูปภาพบนฟีด" จะบันทึกรูปภาพในขนาดที่โพสต์ไว้ แทนสำเนา 1080 พิกเซลที่ Instagram แสดง รูปภาพในตารางจะโหลดใหญ่ขึ้นด้วย ซึ่งใช้ข้อมูลมากขึ้น โปรดรีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
 the start-up fix for x86 devices	การแก้ไขปัญหาการเริ่มต้นสำหรับอุปกรณ์ x86
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	โหมดมืดสีดำสนิท

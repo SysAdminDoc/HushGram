@@ -380,6 +380,8 @@ Hide Add Yours cards between stories	Nascondi le schede Tocca a te tra le storie
 Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	Esclude le schede Tocca a te, come quelle popolari o di tendenza a cui unirsi, che Instagram mette tra le storie che scorri. Le storie restano.
 Download feed photos	Scarica le foto del feed
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	Lo stesso Scarica su un post con foto, e su un carosello che mostra una foto. Salva la dimensione più grande che ha Instagram.
+Save photos at full size	Salva le foto a grandezza piena
+Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy Instagram shows. Grid pictures load larger too, which uses more data. Restart Instagram to see the change.	Scarica le foto del feed salva una foto alla grandezza con cui è stata pubblicata, non la copia da 1080 pixel che mostra Instagram. Anche le immagini della griglia si caricano più grandi, e questo usa più dati. Riavvia Instagram per vedere la modifica.
 the start-up fix for x86 devices	la correzione di avvio per i dispositivi x86
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	Modalità scura nero puro

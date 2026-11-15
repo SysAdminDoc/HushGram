@@ -56,10 +56,23 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * covers each of Explore's grid pictures, sent at 1440 pixels for a tile a quarter that wide, was
  * decoded whole, and Explore stuttered and held half again as much memory (#595). {@link #sampleSize} lets a
  * picture several times its view's size decode at a fraction of it, never smaller than the view.
+ *
+ * <p>Save photos at full size reports a screen {@link #ORIGINALS_WIDTH} pixels on its shorter side
+ * while Download feed photos is on, for a post photo's original: under that the server lists only
+ * sizes up to 1080, so Download saved a 3072 by 4096 photo at 1080 by 1440 (#500). Like Full size
+ * covers, it changes only the reported screen, and a picture larger than its view decodes smaller.
  */
 public final class LargerPhotos {
     /** The shorter side of the screen reported and the width asked for, in pixels. */
     static final int WIDTH = 1440;
+
+    /**
+     * The shorter side reported under Save photos at full size. Seen on the S22 (#500, 2026-11-14):
+     * reported at 1080 the server listed a carousel photo at 1080x1342 and 360x447, at 1440 at
+     * 1080x1342 and 480x596, and at 4320 at 3296x4095, its original, and 1080x1342. piko reports
+     * 2560 for the same reason, which lists originals and keeps grid pictures at 750.
+     */
+    static final int ORIGINALS_WIDTH = 2560;
 
     /**
      * The shorter side reported under Full size covers. The server sizes a reel cover or grid
@@ -152,14 +165,13 @@ public final class LargerPhotos {
 
     /**
      * Injected where Instagram's user agent puts the screen in, with the density, width and height
-     * it's about to write. While Full size covers is on and the shorter side is under
-     * {@link #COVER_WIDTH}, or Ask for larger photos is on and it's under {@link #WIDTH}, scales the
-     * density, width and height so the shorter side is that, keeping the screen's shape and its size
-     * in dp. Leaves the parts as they were otherwise, a density that isn't a whole number above 0
-     * included. Never throws.
+     * it's about to write. While the shorter side is under the width {@link #reported} answers,
+     * scales the density, width and height so the shorter side is that, keeping the screen's shape
+     * and its size in dp. Leaves the parts as they were otherwise, a density that isn't a whole
+     * number above 0 included. Never throws.
      */
     public static void screen(Object[] parts) {
-        screen(parts, LargerPhotos::switchedOn, LargerPhotos::coversOn);
+        screen(parts, LargerPhotos::switchedOn, LargerPhotos::coversOn, LargerPhotos::originalsOn);
     }
 
     static void screen(Object[] parts, BooleanSupplier on) {
@@ -167,6 +179,10 @@ public final class LargerPhotos {
     }
 
     static void screen(Object[] parts, BooleanSupplier on, BooleanSupplier covers) {
+        screen(parts, on, covers, () -> false);
+    }
+
+    static void screen(Object[] parts, BooleanSupplier on, BooleanSupplier covers, BooleanSupplier originals) {
         try {
             HookStatus.invoked(FamilyNames.FULL_RESOLUTION);
             if (parts == null || parts.length != 3 || !(parts[0] instanceof Integer)
@@ -179,7 +195,7 @@ public final class LargerPhotos {
             // More pixels at the old density is a bigger screen, and Explore's blocks follow it (#433).
             if (density <= 0) return;
             int shorter = Math.min(width, height);
-            int target = reported(shorter, on, covers);
+            int target = reported(shorter, on, covers, originals);
             if (target == shorter) return;
             parts[0] = scaled(density, shorter, target);
             parts[1] = scaled(width, shorter, target);
@@ -196,12 +212,18 @@ public final class LargerPhotos {
 
     /**
      * The shorter side reported for a screen whose own is [shorter]: {@link #COVER_WIDTH} under Full
-     * size covers, {@link #WIDTH} under Ask for larger photos, and the screen's own when it's already
-     * that wide or both are off. A switch is read only when its answer matters.
+     * size covers, {@link #ORIGINALS_WIDTH} under Save photos at full size, {@link #WIDTH} under Ask
+     * for larger photos, and the screen's own when it's already that wide or all three are off. A
+     * switch is read only when its answer matters.
      */
     static int reported(int shorter, BooleanSupplier on, BooleanSupplier covers) {
+        return reported(shorter, on, covers, () -> false);
+    }
+
+    static int reported(int shorter, BooleanSupplier on, BooleanSupplier covers, BooleanSupplier originals) {
         if (shorter <= 0 || shorter >= COVER_WIDTH) return shorter;
         if (covers.getAsBoolean()) return COVER_WIDTH;
+        if (shorter < ORIGINALS_WIDTH && originals.getAsBoolean()) return ORIGINALS_WIDTH;
         return shorter < WIDTH && on.getAsBoolean() ? WIDTH : shorter;
     }
 
@@ -209,7 +231,8 @@ public final class LargerPhotos {
      * Injected right after Instagram's image view reads the largest sample size a picture it's
      * showing may be decoded at, with the view, the picture's size as Instagram knows it and that
      * sample size, answering the one Instagram uses. Instagram asks for 1, every pixel. While Full
-     * size covers is on and the view is laid out, answers the largest power of two that still
+     * size covers or Save photos at full size has the screen reported larger and the view is laid
+     * out, answers the largest power of two that still
      * decodes the picture at least as wide and as tall as the view. Instagram's memory cache serves
      * a smaller decode only to a request that allows one, so the same picture opened full screen
      * comes whole, and Download cover saves it by its address. Never throws.
@@ -217,7 +240,7 @@ public final class LargerPhotos {
     public static int sampleSize(View view, Object url, int asked) {
         try {
             HookStatus.invoked(FamilyNames.FULL_RESOLUTION);
-            if (view == null || url == null || !coversOn()) return asked;
+            if (view == null || url == null || (!coversOn() && !originalsOn())) return asked;
             return sampleSize(view.getWidth(), view.getHeight(),
                     InstagramMedia.candidateWidth(url), InstagramMedia.candidateHeight(url), asked);
         } catch (Throwable failure) {
@@ -268,7 +291,8 @@ public final class LargerPhotos {
             if (context == null || !Utils.isMainProcess()) return;
             int natural = shorterSide();
             if (natural <= 0) return;
-            forgetSizedReplies(context.getCacheDir(), natural, reported(natural, LargerPhotos::switchedOn, LargerPhotos::coversOn));
+            forgetSizedReplies(context.getCacheDir(), natural, reported(natural, LargerPhotos::switchedOn,
+                    LargerPhotos::coversOn, LargerPhotos::originalsOn));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_RESOLUTION, START, failure);
         }
@@ -347,5 +371,10 @@ public final class LargerPhotos {
 
     private static boolean coversOn() {
         return Utils.settingsReady() && Settings.FULL_SIZE_COVERS.get();
+    }
+
+    /** Save photos at full size, which acts only while Download feed photos is on. */
+    static boolean originalsOn() {
+        return Utils.settingsReady() && Settings.DOWNLOAD_PHOTOS.get() && Settings.SAVE_PHOTOS_AT_FULL_SIZE.get();
     }
 }

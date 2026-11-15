@@ -380,6 +380,8 @@ Hide Add Yours cards between stories	„Du bist dran“-Karten zwischen Stories 
 Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	Lässt die „Du bist dran“-Karten weg, etwa beliebte oder angesagte Aufrufe zum Mitmachen, die Instagram zwischen die Stories setzt, durch die du tippst. Die Stories selbst bleiben.
 Download feed photos	Feed-Fotos herunterladen
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	Dasselbe „Herunterladen“ bei einem Foto-Beitrag und bei einem Karussell, das gerade ein Foto zeigt. Speichert die größte Version, die Instagram hat.
+Save photos at full size	Fotos in voller Größe speichern
+Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy Instagram shows. Grid pictures load larger too, which uses more data. Restart Instagram to see the change.	Feed-Fotos herunterladen speichert ein Foto in der Größe, in der es gepostet wurde, statt der 1080-Pixel-Kopie, die Instagram zeigt. Rasterbilder laden auch größer, was mehr Daten verbraucht. Starte Instagram neu, um die Änderung zu sehen.
 the start-up fix for x86 devices	der Startfix für x86-Geräte
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	Rein schwarzer Dunkelmodus

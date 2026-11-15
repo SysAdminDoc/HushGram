@@ -35,6 +35,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* `Download feed photos` saves a photo at the size it was posted, not the 1080 pixel copy. Instagram only lists a photo's original for a big enough screen, so `Save photos at full size`, new right under it, reports one. It starts on and takes effect once Instagram restarts. Reported in #500.
 * With `Swipe through a chat's reels` on, every reel you swipe to from a chat keeps its reply bar and reactions, answering its own message, and a second reel opened from the same chat does too. Reported in #658.
 * `Messages after a reel` points out what the other person wrote after a reel again, whichever way the chat's reel was opened. Reported in #658.
 * `Copy link` in the share sheet uses your `Sharing domain` again. The copied link had its tracking bits removed but still pointed at instagram.com. Reported in #667.

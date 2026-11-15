@@ -91,6 +91,7 @@ public class DownloadSettingsTest {
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
+        Settings.SAVE_PHOTOS_AT_FULL_SIZE.resetToDefault();
         Settings.DOWNLOAD_CHOOSE_PAGES.resetToDefault();
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
         Settings.FEED_DOWNLOAD_ALL_PAGES.resetToDefault();
@@ -697,6 +698,41 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.POST_DETAILS.key));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.POST_DETAILS.key));
+        }
+    }
+
+    /**
+     * Save photos at full size (#500) sits right under Download feed photos when the full resolution
+     * patch is in the build too, since that patch reports the larger screen the original needs. It
+     * starts on, waits for Download feed photos, asks for a restart and goes in a settings file. A
+     * build without either patch has no row.
+     */
+    @Test
+    public void savePhotosAtFullSizeSitsUnderDownloadFeedPhotos() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD, PatchFamily.FULL_RESOLUTION);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            List<Preference> rows = rowsOf(page);
+            int full = indexOfKey(rows, Settings.SAVE_PHOTOS_AT_FULL_SIZE.key);
+            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_PHOTOS.key) + 1, full);
+            assertEquals(full + 1, indexOfKey(rows, Settings.POST_DETAILS.key));
+            SwitchPreference row = (SwitchPreference) rows.get(full);
+            assertEquals("Save photos at full size", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()), String.valueOf(row.getSummary()).endsWith("Restart Instagram to see the change."));
+            assertTrue("it starts on", row.isChecked());
+            assertFalse("it waits for Download feed photos", row.isEnabled());
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_PHOTOS.key)).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(row.isEnabled());
+            assertTrue(Settings.SAVE_PHOTOS_AT_FULL_SIZE.rebootApp);
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SAVE_PHOTOS_AT_FULL_SIZE.key));
+        }
+        for (EnumSet<PatchFamily> build : Arrays.asList(EnumSet.of(PatchFamily.VIDEO_DOWNLOAD), EnumSet.of(PatchFamily.REEL_DOWNLOAD,
+                PatchFamily.FULL_RESOLUTION))) {
+            PatchFamily.inBuildForTests = build;
+            try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+                assertEquals(build.toString(), -1, indexOfKey(rowsOf(pageIn(controller)), Settings.SAVE_PHOTOS_AT_FULL_SIZE.key));
+            }
         }
     }
 

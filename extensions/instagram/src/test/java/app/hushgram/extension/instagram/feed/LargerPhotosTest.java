@@ -230,6 +230,63 @@ public class LargerPhotosTest {
         LargerPhotos.screen(null, ON);
     }
 
+    /**
+     * Save photos at full size reports a 2560 screen, wide enough for the server to list a post
+     * photo's original (#500: reported at 1440 it listed 1080 at most). Full size covers' 4320 wins
+     * over it, and it wins over Ask for larger photos' 1440.
+     */
+    @Test
+    public void saveAtFullSizeReportsAScreenWideEnoughForOriginals() {
+        Object[] phone = {420, 1080, 2340};
+        LargerPhotos.screen(phone, OFF, OFF, ON);
+        assertArrayEquals(new Object[] {995, 2560, 5546}, phone);
+        Object[] larger = {420, 1080, 2340};
+        LargerPhotos.screen(larger, ON, OFF, ON);
+        assertArrayEquals("over Ask for larger photos", new Object[] {995, 2560, 5546}, larger);
+        Object[] covers = {420, 1080, 2340};
+        LargerPhotos.screen(covers, OFF, ON, ON);
+        assertArrayEquals("under Full size covers", new Object[] {1680, 4320, 9360}, covers);
+        Object[] landscape = {320, 2560, 1600};
+        LargerPhotos.screen(landscape, OFF, OFF, ON);
+        assertArrayEquals(new Object[] {512, 4096, 2560}, landscape);
+        Object[] wide = {640, 2560, 3200};
+        LargerPhotos.screen(wide, ON, OFF, ON);
+        assertArrayEquals("already that wide", new Object[] {640, 2560, 3200}, wide);
+        // A switch whose answer can't change the side isn't read.
+        assertEquals(2560, LargerPhotos.reported(2560, THROWS, OFF, THROWS));
+        assertEquals(3000, LargerPhotos.reported(3000, THROWS, OFF, THROWS));
+        assertEquals(LargerPhotos.COVER_WIDTH, LargerPhotos.reported(1080, THROWS, ON, THROWS));
+        assertEquals("the three-switch form leaves it off", LargerPhotos.WIDTH, LargerPhotos.reported(1080, ON, OFF));
+    }
+
+    /** It acts only while Download feed photos is on, and a pause or its own switch turned off leaves the screen to the rest. */
+    @Test
+    public void saveAtFullSizeWaitsForDownloadFeedPhotos() {
+        try {
+            Object[] downloadsOff = {420, 1080, 2340};
+            LargerPhotos.screen(downloadsOff);
+            assertArrayEquals("Download feed photos starts off, so Ask for larger photos decides", new Object[] {560, 1440, 3120},
+                    downloadsOff);
+            Settings.DOWNLOAD_PHOTOS.save(true);
+            Object[] on = {420, 1080, 2340};
+            LargerPhotos.screen(on);
+            assertArrayEquals("it starts on", new Object[] {995, 2560, 5546}, on);
+            Settings.SAVE_PHOTOS_AT_FULL_SIZE.save(false);
+            Object[] switchedOff = {420, 1080, 2340};
+            LargerPhotos.screen(switchedOff);
+            assertArrayEquals(new Object[] {560, 1440, 3120}, switchedOff);
+            Settings.SAVE_PHOTOS_AT_FULL_SIZE.save(true);
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            Object[] paused = {420, 1080, 2340};
+            LargerPhotos.screen(paused);
+            assertArrayEquals(new Object[] {420, 1080, 2340}, paused);
+        } finally {
+            Settings.DOWNLOAD_PHOTOS.resetToDefault();
+            Settings.SAVE_PHOTOS_AT_FULL_SIZE.resetToDefault();
+        }
+    }
+
     @Test
     public void pausedAndUnreadyLeaveTheScreen() {
         BaseSettings.PAUSED.save(true);
@@ -262,13 +319,16 @@ public class LargerPhotosTest {
     @Test
     public void theReportedSideIsWhatTheScreenHookWrites() {
         BooleanSupplier[] switches = {ON, OFF};
-        for (int shorter : new int[] {0, 420, 720, 1080, 1439, 1440, 2000, 4319, 4320, 5000}) {
+        for (int shorter : new int[] {0, 420, 720, 1080, 1439, 1440, 2000, 2559, 2560, 4319, 4320, 5000}) {
             for (BooleanSupplier on : switches) {
                 for (BooleanSupplier covers : switches) {
-                    Object[] parts = {420, shorter, shorter * 2};
-                    LargerPhotos.screen(parts, on, covers);
-                    int written = Math.min((Integer) parts[1], (Integer) parts[2]);
-                    assertEquals(shorter + " " + on + " " + covers, written, LargerPhotos.reported(shorter, on, covers));
+                    for (BooleanSupplier originals : switches) {
+                        Object[] parts = {420, shorter, shorter * 2};
+                        LargerPhotos.screen(parts, on, covers, originals);
+                        int written = Math.min((Integer) parts[1], (Integer) parts[2]);
+                        assertEquals(shorter + " " + on + " " + covers + " " + originals, written,
+                                LargerPhotos.reported(shorter, on, covers, originals));
+                    }
                 }
             }
         }

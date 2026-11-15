@@ -50,6 +50,13 @@ final class DownloadsCategory {
                 downloads.addPreference(toggle(context, Settings.DOWNLOAD_PHOTOS, L10n.t("Download feed photos"),
                         L10n.t("The same Download on a photo post, and on a carousel showing a photo. Saves the largest "
                                 + "size Instagram has.")));
+                // The photo's original is listed only for a larger reported screen, which Full resolution photos' patch writes (#500).
+                if (build.contains(PatchFamily.FULL_RESOLUTION)) {
+                    downloads.addPreference(toggle(context, Settings.SAVE_PHOTOS_AT_FULL_SIZE, L10n.t("Save photos at full size"),
+                            L10n.t("Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy "
+                                    + "Instagram shows. Grid pictures load larger too, which uses more data. "
+                                    + "Restart Instagram to see the change.")));
+                }
                 downloads.addPreference(toggle(context, Settings.POST_DETAILS, L10n.t("Details in a post's menu"),
                         L10n.t("Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, "
                                 + "its media ID and the size Download saves, with buttons to copy the file link, "

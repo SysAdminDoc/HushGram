@@ -380,6 +380,8 @@ Hide Add Yours cards between stories	Hikayeler arasındaki Sıra sende kartları
 Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	Instagram'ın, dokunarak geçtiğin hikayelerin arasına koyduğu popüler ve trend Sıra sende kartlarını kaldırır. Hikayelerin kendisi kalır.
 Download feed photos	Akıştaki fotoğrafları indir
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	Aynı İndir seçeneği bir fotoğraf gönderisinde ve fotoğraf gösteren bir kaydırmalı gönderide de çıkar. Instagram'daki en büyük boyutu kaydeder.
+Save photos at full size	Fotoğrafları tam boyutta kaydet
+Download feed photos saves a photo at the size it was posted, not the 1080 pixel copy Instagram shows. Grid pictures load larger too, which uses more data. Restart Instagram to see the change.	Akıştaki fotoğrafları indir, bir fotoğrafı Instagram'ın gösterdiği 1080 piksellik kopya yerine paylaşıldığı boyutta kaydeder. Izgara resimleri de daha büyük yüklenir, bu da daha fazla veri kullanır. Değişikliği görmek için Instagram'ı yeniden başlat.
 the start-up fix for x86 devices	x86 cihazlar için açılış düzeltmesi
 # context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	Saf siyah karanlık mod

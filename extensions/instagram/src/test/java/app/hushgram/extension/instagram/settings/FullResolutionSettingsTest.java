@@ -77,7 +77,7 @@ public class FullResolutionSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.FULL_RESOLUTION_PHOTOS.get());
         assertEquals(java.util.Arrays.asList(Settings.FULL_RESOLUTION_PHOTOS, Settings.ASK_FOR_LARGER_PHOTOS,
-                Settings.FULL_SIZE_COVERS), PatchFamily.FULL_RESOLUTION.switches);
+                Settings.FULL_SIZE_COVERS, Settings.SAVE_PHOTOS_AT_FULL_SIZE), PatchFamily.FULL_RESOLUTION.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FULL_RESOLUTION_PHOTOS.key));
         SwitchPreference larger = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.ASK_FOR_LARGER_PHOTOS.key);
         assertNotNull(larger);

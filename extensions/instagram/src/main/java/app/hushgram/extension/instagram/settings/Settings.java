@@ -3821,6 +3821,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_photos", FALSE);
 
     /**
+     * While Download feed photos is on, Instagram reports a screen 2560 pixels on its shorter side,
+     * so the server lists each post photo's original and Download saves it whole (#500,
+     * {@link app.hushgram.extension.instagram.feed.LargerPhotos}). The reported screen changes after
+     * a restart, so the restart card comes up. On to start, under Download feed photos.
+     */
+    public static final BooleanSetting SAVE_PHOTOS_AT_FULL_SIZE =
+            new BooleanSetting("hushgram_save_photos_at_full_size", TRUE, true, parent(DOWNLOAD_PHOTOS));
+
+    /**
      * A feed post with a video, and a carousel showing one, gets Download cover in its menu, saving
      * the still picture Instagram shows before the video plays, as a reel's Download cover does
      * (#94). Under Download feed videos, which it needs. Starts off, so the menu stays as it was.
