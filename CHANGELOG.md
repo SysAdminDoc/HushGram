@@ -76,6 +76,7 @@ Every HushGram release, newest first.
 * With `Backgrounds in the accent color` or `Classic colors` on in dark mode, the tab bar on Reels and the navigation bar under it match your other pages instead of turning black. The floating `Glass tab bar` pill picks up the color there too. Reported in #187.
 * With `Backgrounds in the accent color` or `Classic colors` on, gray buttons like Edit profile and Share profile on your profile take a shade of the background color too. They kept Instagram's gray. Reported in #187.
 * With `Accent color` on, the verified badge on a profile takes your color too, along with other icons that get their blue from a layout. It stayed blue. Reported in #187.
+* With `Accent color` on in dark mode, the Older posts link above Home's suggested posts takes your color. It was still Instagram's light blue. Reported in #187.
 
 ## 0.0.20 (2026-11-12)
 

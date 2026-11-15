@@ -200,6 +200,9 @@ public final class AccentColor {
      * picks rather than a theme attribute. indigo_0800 (#5c77ff), indigo_0900 (#5465fe) and
      * indigo_1100 (#4150f7) fill badges, carousel dots and strong buttons, and indigo_000, _0100,
      * _050 and _0300 are a selected pill's pale backgrounds, held down or not.
+     *
+     * <p>Prism's indigo_02 (#7595ff) is the link on a dark screen too, Home's "Older posts" over its
+     * suggested posts (#187).
      */
     static Role role(int color) {
         switch (color & 0xffffff) {
@@ -220,6 +223,7 @@ public final class AccentColor {
             case 0x85a1ff:
             case 0x8593ff:
             case 0x708dff:
+            case 0x7595ff:
                 return Role.LINK_ON_DARK;
             case 0xe0f1ff:
             case 0xeff1ff:

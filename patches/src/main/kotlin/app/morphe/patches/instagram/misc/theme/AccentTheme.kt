@@ -84,6 +84,7 @@ internal val ACCENT_BLUES: Map<Int, AccentRole> = mapOf(
     0x232e67 to AccentRole.DIM,
     0x3143e3 to AccentRole.LINK_ON_LIGHT, 0x3849da to AccentRole.LINK_ON_LIGHT, 0x00376b to AccentRole.LINK_ON_LIGHT,
     0x85a1ff to AccentRole.LINK_ON_DARK, 0x8593ff to AccentRole.LINK_ON_DARK, 0x708dff to AccentRole.LINK_ON_DARK,
+    0x7595ff to AccentRole.LINK_ON_DARK,
     0xe0f1ff to AccentRole.PALE, 0xeff1ff to AccentRole.PALE, 0xebf1ff to AccentRole.PALE,
     0xdbdfff to AccentRole.PALE, 0xccddff to AccentRole.PALE,
 )
