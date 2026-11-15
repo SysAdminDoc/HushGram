@@ -3614,22 +3614,25 @@ public class GlassTabBarTest {
     /**
      * #372: with the switch on, the viewer fills the screen behind the pill and its caption, buttons and
      * seek bar are raised by the slot; off, today's layout. A slot not kept (bar hidden) has the viewer
-     * run to the window's bottom, so only the navigation bar's height is cleared (#450).
+     * run to the window's bottom, so only the navigation bar's height is cleared (#450). Over a kept slot
+     * the seek bar also keeps a gap above the pill, either way (#187).
      */
     @Test
     public void reelsBehindThePillRaiseTheControlsInsteadOfStoppingTheViewer() {
         assertFalse("off by default", Settings.GLASS_TAB_BAR_REELS_BEHIND.defaultValue);
         assertEquals(126, GlassTabBar.reelsViewerMargin(true, false, 126));
-        assertEquals(0, GlassTabBar.reelsBandLift(true, false, 126, 48));
+        assertEquals("only the gap over a viewer that stops at the slot", 8, GlassTabBar.reelsBandLift(true, false, 126, 48, 8));
         assertEquals(0, GlassTabBar.reelsViewerMargin(true, true, 126));
-        assertEquals(126, GlassTabBar.reelsBandLift(true, true, 126, 48));
-        assertEquals("no slot kept, only the navigation bar cleared", 48, GlassTabBar.reelsBandLift(false, true, 126, 48));
-        assertEquals(48, GlassTabBar.reelsBandLift(false, false, 126, 48));
-        assertEquals("Instagram pads for the navigation bar itself", 0, GlassTabBar.reelsBandLift(false, false, 126, 0));
+        assertEquals("the slot and the gap behind the pill", 134, GlassTabBar.reelsBandLift(true, true, 126, 48, 8));
+        assertEquals("no slot kept, only the navigation bar cleared", 48, GlassTabBar.reelsBandLift(false, true, 126, 48, 8));
+        assertEquals(48, GlassTabBar.reelsBandLift(false, false, 126, 48, 8));
+        assertEquals("Instagram pads for the navigation bar itself", 0, GlassTabBar.reelsBandLift(false, false, 126, 0, 8));
         assertEquals(0, GlassTabBar.reelsViewerMargin(false, true, 126));
         assertEquals(0, GlassTabBar.reelsViewerMargin(false, false, 126));
-        assertEquals(0, GlassTabBar.reelsBandLift(true, true, -5, 48));
-        assertEquals(0, GlassTabBar.reelsBandLift(false, true, 126, -5));
+        assertEquals(8, GlassTabBar.reelsBandLift(true, true, -5, 48, 8));
+        assertEquals(0, GlassTabBar.reelsBandLift(false, true, 126, -5, 8));
+        assertEquals(126, GlassTabBar.reelsBandLift(true, true, 126, 48, -3));
+        assertTrue("a gap you can see", GlassTabBar.REELS_GAP_DP >= 6);
     }
 
     /**
@@ -3722,8 +3725,8 @@ public class GlassTabBarTest {
         assertEquals("past the foot counts the bar only", 48, GlassTabBar.intoTheNavigationBar(1700, 1600, 48));
         assertEquals("no bar", 0, GlassTabBar.intoTheNavigationBar(1600, 1600, 0));
         assertEquals("no window yet", 0, GlassTabBar.intoTheNavigationBar(1600, 0, 48));
-        assertEquals(48, GlassTabBar.reelsBandLift(false, false, 126, GlassTabBar.intoTheNavigationBar(1600, 1600, 48)));
-        assertEquals(0, GlassTabBar.reelsBandLift(false, false, 126, GlassTabBar.intoTheNavigationBar(1552, 1600, 48)));
+        assertEquals(48, GlassTabBar.reelsBandLift(false, false, 126, GlassTabBar.intoTheNavigationBar(1600, 1600, 48), 8));
+        assertEquals(0, GlassTabBar.reelsBandLift(false, false, 126, GlassTabBar.intoTheNavigationBar(1552, 1600, 48), 8));
     }
 
     /**

@@ -291,12 +291,13 @@ public final class GlassTabBar {
      * when the reel runs behind it: the slot, while the slot is kept (#372). With no slot kept, as over a
      * reel opened from a feed post where Instagram hides its bar (#347), the viewer can run down over the
      * navigation bar, where nothing pads it, so the band clears [nav], how far the viewer reaches into
-     * that bar ({@link #intoTheNavigationBar}), and the seek bar stays off the gesture handle (#450). A
-     * viewer that stops at the slot needs no lift.
+     * that bar ({@link #intoTheNavigationBar}), and the seek bar stays off the gesture handle (#450).
+     * Over a kept slot the band also leaves [gap] ({@link #REELS_GAP_DP}) between the seek bar and the
+     * pill, which a viewer that stops at the slot otherwise put right on top of it (#187).
      */
-    static int reelsBandLift(boolean keep, boolean behind, int slot, int nav) {
+    static int reelsBandLift(boolean keep, boolean behind, int slot, int nav, int gap) {
         if (!keep) return Math.max(0, nav);
-        return behind ? Math.max(0, slot) : 0;
+        return (behind ? Math.max(0, slot) : 0) + Math.max(0, gap);
     }
 
     /**
@@ -918,6 +919,8 @@ public final class GlassTabBar {
      * and the bottom of that height.
      */
     static final int FIT_GAP_DP = 1;
+    /** The room a reel's seek bar keeps above the pill's slot on the Reels tab ({@link #reelsBandLift}, #187). */
+    static final int REELS_GAP_DP = 8;
     /**
      * Where the glass's blur slider starts (#391). Light enough that a post's thin white icons under the
      * pill still read as soft shapes. The 18 dp it started on before smeared them into a flat tint (#289).
@@ -2436,7 +2439,7 @@ public final class GlassTabBar {
                 reelAnchors(viewer, info, scrubber, footers, anchors, footerViews, 0);
                 int footer = 0;
                 for (View view : footerViews) footer += overlapFooter(view);
-                footer += reelsBandLift(reelsKept, reelsBehind, reelsSlot, reelsKept ? 0 : navUnder(viewer));
+                footer += reelsBandLift(reelsKept, reelsBehind, reelsSlot, reelsKept ? 0 : navUnder(viewer), dp(REELS_GAP_DP));
                 for (View anchor : anchors) {
                     View band = bands.get(anchor);
                     if (band == null || !holds(band, anchor)) {
