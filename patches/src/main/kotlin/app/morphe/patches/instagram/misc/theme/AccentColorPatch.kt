@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.misc.theme
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
@@ -14,8 +15,10 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.filterEveryReturn
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
@@ -85,7 +88,9 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  *
  * A text color written into a layout's XML doesn't pass any of that either, which left the end of
  * Home's "Older posts" link blue (#187). The text views Instagram's layouts build hand the colors they
- * were built with to the extension as they finish ([swapTextViewColors]).
+ * were built with to the extension as they finish ([swapTextViewColors]). An image view's tint written
+ * into a layout, as the verified badge on a profile has, goes through the extension as the view builds
+ * its color list ([swapImageTints]).
  */
 @Suppress("unused")
 val accentColorPatch = bytecodePatch(
@@ -109,6 +114,7 @@ val accentColorPatch = bytecodePatch(
         requirePaletteSurfaces()
         swapAccentColors()
         swapTextViewColors()
+        swapImageTints()
         applyAccentTheme(attributes)
         swapComposePalettes(palettes)
         swapComposeSurfaces()
@@ -269,6 +275,60 @@ internal fun BytecodePatchContext.swapTextViewColors() {
             constructor.addInstructionsAtControlFlowLabel(at, "invoke-static/range { p0 .. p0 }, $SWAP_TEXT")
         }
     }
+}
+
+/** The image view Instagram's layouts build icons and badges on, tinted with colors its XML names. */
+internal const val SIMPLE_IMAGE_VIEW = "Lcom/instagram/common/ui/base/IgSimpleImageView;"
+
+private val TINT_BUILDER_PARAMETERS = List(6) { "I" }
+
+/**
+ * The static [SIMPLE_IMAGE_VIEW]'s maybeSetColors builds its tint with, from its normal and active
+ * colors and three alphas (`LX/02bS;->A01` on 386014758). The view reads those colors from its XML
+ * through TypedArray, which no theme read sees, so the verified badge on a profile stayed blue (#187).
+ * Answers null with a warning when maybeSetColors calls no one such static or something jumps onto
+ * the static's start.
+ */
+internal fun BytecodePatchContext.findTintBuilder(): MutableMethod? {
+    val setColors = classDefByOrNull(SIMPLE_IMAGE_VIEW)?.methods?.singleOrNull { it.name == "maybeSetColors" && it.returnType == "V" }
+    val builders = setColors?.code().orEmpty().mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+        .filter { it.returnType == COLOR_STATE_LIST && it.parameterTypes.map(Any::toString) == TINT_BUILDER_PARAMETERS }
+        .distinctBy { "${it.definingClass}->${it.name}" }
+    val builder = builders.singleOrNull()?.let { called ->
+        classDefByOrNull(called.definingClass)?.methods?.singleOrNull {
+            it.name == called.name && AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null &&
+                it.returnType == COLOR_STATE_LIST && it.parameterTypes.map(Any::toString) == TINT_BUILDER_PARAMETERS
+        }
+    }
+    if (builder == null) {
+        patchLog.warning("$PATCH: found no one static building $SIMPLE_IMAGE_VIEW's tint, so badges tinted in a layout keep Instagram's blue")
+        return null
+    }
+    if (0 in builder.jumpTargets()) {
+        patchLog.warning("$PATCH: ${builder.where()} jumps onto its own start, so badges tinted in a layout keep Instagram's blue")
+        return null
+    }
+    return mutable(builder)
+}
+
+/**
+ * Hands the normal and active colors [findTintBuilder]'s static is given to AccentColor.color at its
+ * start and takes the answers instead, so an image view tinted with Instagram's blue in a layout takes
+ * the picked color (#187). The range form takes any register.
+ */
+internal fun BytecodePatchContext.swapImageTints() {
+    val builder = findTintBuilder() ?: return
+    val normal = builder.parameterRegisterNumber(0)
+    val active = builder.parameterRegisterNumber(1)
+    builder.addInstructions(
+        0,
+        """
+            invoke-static/range { v$normal .. v$normal }, $SWAP_COLOR
+            move-result v$normal
+            invoke-static/range { v$active .. v$active }, $SWAP_COLOR
+            move-result v$active
+        """,
+    )
 }
 
 private fun List<Instruction>.returnsVoid(): List<Int> = indices.filter { this[it].opcode == Opcode.RETURN_VOID }

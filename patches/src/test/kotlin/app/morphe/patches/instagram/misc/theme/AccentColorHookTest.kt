@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -410,6 +411,139 @@ class AccentColorHookTest {
         assertEquals("nothing changed in the class that was fine", 0, untouched.hooks(SWAP_TEXT).size)
     }
 
+    /**
+     * An image view tinted in its layout reads its colors through TypedArray, where no theme hook sees
+     * them, so the static it builds its tint with hands the normal and active colors to the extension
+     * at its start and takes the answers back (#187). No view, two builders or a jump onto the start
+     * leave it as it was.
+     */
+    @Test
+    fun theImageTintBuilderHandsItsColorsOn() {
+        val stock = tintBuilder().methods.single().code().map { it.opcode }
+        val context = PatchContexts.of(listOf(simpleImageView(), tintBuilder()))
+
+        context.swapImageTints()
+
+        val builder = context.mutableClassDefBy(TINT_BUILDER).methods.single()
+        // Two locals, then the normal color in v2 and the active one in v3.
+        assertTintsSwapped("the stand-in", builder, stock, normal = 2, active = 3)
+
+        for ((case, classes) in listOf(
+            "no image view" to listOf(tintBuilder()),
+            "two builders" to listOf(simpleImageView(builders = 2), tintBuilder()),
+            "a jump onto the start" to listOf(simpleImageView(), tintBuilder(jumpOnto = true)),
+        )) {
+            val untouched = PatchContexts.of(classes)
+            untouched.swapImageTints()
+            assertEquals("$case: no hook", 0, untouched.mutableClassDefBy(TINT_BUILDER).methods.sumOf { it.hooks(SWAP_COLOR).size })
+        }
+    }
+
+    /**
+     * Every build of Instagram: the image view's maybeSetColors calls one static building its tint, and
+     * that static hands both colors to the extension at its start, with Instagram's code after (#187).
+     */
+    @Test
+    fun everyBuildHandsItsImageTintColorsOn() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val declared = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        assertTrue("no fixture of a declared build", declared.isNotEmpty())
+        val others = Fixtures.otherBuilds()
+        assertEquals("the other builds", Fixtures.OTHER_BUILDS, others.size)
+        for (bundle in declared + others) {
+            val label = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
+            val view = FixtureDex.classes(bundle, setOf(SIMPLE_IMAGE_VIEW)).getValue(SIMPLE_IMAGE_VIEW)
+            val called = view.methods.single { it.name == "maybeSetColors" }.code()
+                .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+                .filter { it.returnType == LIST && it.parameterTypes.map(Any::toString) == List(6) { "I" } }
+                .distinctBy { it.name }
+            assertEquals("$label: one tint builder, $called", 1, called.size)
+            val type = called.single().definingClass
+            val owner = FixtureDex.classes(bundle, setOf(type)).getValue(type)
+            val isBuilder = { method: Method -> method.name == called.single().name && method.parameterTypes.map(Any::toString) == List(6) { "I" } }
+            val stock = owner.methods.single(isBuilder).code().map { it.opcode }
+            val context = PatchContexts.of(listOf(view, owner))
+
+            context.swapImageTints()
+
+            val builder = context.mutableClassDefBy(type).methods.single(isBuilder)
+            assertTintsSwapped("$label $type->${builder.name}", builder, stock, builder.parameterRegisterNumber(0), builder.parameterRegisterNumber(1))
+        }
+    }
+
+    private fun assertTintsSwapped(what: String, builder: Method, stock: List<Opcode>, normal: Int, active: Int) {
+        val code = builder.code()
+        assertEquals("$what: the hooks", listOf(SWAP_COLOR, SWAP_COLOR), code.take(4).mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() })
+        assertEquals(
+            "$what: the shape",
+            listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT, Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT),
+            code.take(4).map { it.opcode },
+        )
+        assertEquals(
+            "$what: each color handed over and written back",
+            listOf(normal, normal, active, active),
+            listOf(
+                (code[0] as RegisterRangeInstruction).startRegister, (code[1] as OneRegisterInstruction).registerA,
+                (code[2] as RegisterRangeInstruction).startRegister, (code[3] as OneRegisterInstruction).registerA,
+            ),
+        )
+        assertEquals("$what: one register each", listOf(1, 1), listOf((code[0] as RegisterRangeInstruction).registerCount, (code[2] as RegisterRangeInstruction).registerCount))
+        assertEquals("$what: Instagram's own code after", stock.filter { it != Opcode.NOP }, code.drop(4).map { it.opcode }.filter { it != Opcode.NOP })
+    }
+
+    /** IgSimpleImageView's maybeSetColors as 386014758 has it: both colors, three alphas, the tint built and set. */
+    private fun simpleImageView(builders: Int = 1): ClassDef = classOf(
+        SIMPLE_IMAGE_VIEW,
+        virtual(
+            SIMPLE_IMAGE_VIEW, "maybeSetColors", "V", 8, emptyList(),
+            """
+                const/4 v1, 0x0
+                const/4 v2, 0x0
+                const/4 v3, 0x0
+                const/4 v4, 0x0
+                const/4 v5, 0x0
+                const/16 v6, 0x4d
+            """ + (1..builders).joinToString("") { index ->
+                """
+                invoke-static/range {v1 .. v6}, $TINT_BUILDER->A0$index(IIIIII)$LIST
+                move-result-object v0
+                """
+            } + """
+                invoke-virtual {p0, v0}, Landroid/widget/ImageView;->setImageTintList($LIST)V
+                return-void
+            """,
+        ),
+    )
+
+    /** The static building the tint, two locals and the six ints, or one that branches back onto its start when [jumpOnto]. */
+    private fun tintBuilder(jumpOnto: Boolean = false): ClassDef = classOf(
+        TINT_BUILDER,
+        static(
+            TINT_BUILDER, "A01", LIST, 8,
+            if (jumpOnto) {
+                """
+                    :top
+                    const/4 v1, 0x0
+                    if-nez p0, :out
+                    const/4 p0, 0x1
+                    goto :top
+                    :out
+                    new-instance v0, $LIST
+                    invoke-direct {v0, v1, v1}, $LIST-><init>([[I[I)V
+                    return-object v0
+                """
+            } else {
+                """
+                    const/4 v1, 0x0
+                    new-instance v0, $LIST
+                    invoke-direct {v0, v1, v1}, $LIST-><init>([[I[I)V
+                    return-object v0
+                """
+            },
+            parameters = List(6) { "I" },
+        ),
+    )
+
     private fun textView(type: String): ClassDef = classOf(
         type,
         virtual(
@@ -456,6 +590,7 @@ class AccentColorHookTest {
 
     private companion object {
         const val LOADER = "Lfixture/ResourcesCompat;"
+        const val TINT_BUILDER = "Lfixture/Tint;"
         const val ATTRIBUTE_SET = "Landroid/util/AttributeSet;"
         const val THEMES = "Lfixture/Themes;"
         const val COLORS = "Lfixture/Colors;"

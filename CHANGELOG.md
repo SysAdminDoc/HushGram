@@ -75,6 +75,7 @@ Every HushGram release, newest first.
 * `Save every page without asking` now covers a single photo with music in Reels and Explore too. The download icon saves the photo right away instead of asking video or photo. Asked for in #190.
 * With `Backgrounds in the accent color` or `Classic colors` on in dark mode, the tab bar on Reels and the navigation bar under it match your other pages instead of turning black. The floating `Glass tab bar` pill picks up the color there too. Reported in #187.
 * With `Backgrounds in the accent color` or `Classic colors` on, gray buttons like Edit profile and Share profile on your profile take a shade of the background color too. They kept Instagram's gray. Reported in #187.
+* With `Accent color` on, the verified badge on a profile takes your color too, along with other icons that get their blue from a layout. It stayed blue. Reported in #187.
 
 ## 0.0.20 (2026-11-12)
 
