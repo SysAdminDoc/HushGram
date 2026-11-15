@@ -276,6 +276,51 @@ public class BurnInGuardTest {
         assertEquals("the Interested row back", 1f, interest.getAlpha(), 0f);
     }
 
+    /**
+     * The wavy bar cut flat on Reels while dimmed (#450, #586). The bar's holder lets it draw past its
+     * edges, but a dimmed view with overlapping rendering is drawn into a layer its own size, which cut
+     * the wave along the bar's top. Dimmed, such a bar takes the dim on each thing it draws; one its
+     * parent clips anyway is left alone, and a touch gives each its own way back.
+     */
+    @Test public void aSeekBarDrawingPastItsEdgesIsDimmedWithoutALayerTheSizeOfIt() {
+        BurnInGuard.idForTests("scrubber", 7304);
+        FrameLayout holder = new FrameLayout(activity);
+        holder.setClipChildren(false);
+        android.widget.SeekBar wavy = new android.widget.SeekBar(activity);
+        wavy.setId(7304);
+        holder.addView(wavy, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 28));
+        viewer.addView(holder, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 45));
+        FrameLayout clipping = new FrameLayout(activity);
+        android.widget.SeekBar flat = new android.widget.SeekBar(activity);
+        flat.setId(7304);
+        clipping.addView(flat, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 28));
+        viewer.addView(clipping, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 45));
+        layout();
+        assertTrue("a seek bar starts with overlapping rendering", wavy.getHasOverlappingRendering());
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        assertEquals("the bar dims", BurnInGuard.IDLE_LEVEL, wavy.getAlpha(), 0f);
+        assertFalse("and draws past its edges with no layer to cut it", wavy.getHasOverlappingRendering());
+        assertEquals("a clipped bar dims too", BurnInGuard.IDLE_LEVEL, flat.getAlpha(), 0f);
+        assertTrue("and keeps its layer, which cuts nothing its parent doesn't", flat.getHasOverlappingRendering());
+
+        tap();
+        assertEquals("the bar back", 1f, wavy.getAlpha(), 0f);
+        assertTrue("with its own rendering", wavy.getHasOverlappingRendering());
+
+        // The room made after the bar dimmed, as a reel bound while the controls are dimmed has it.
+        clipping.setClipChildren(true);
+        holder.setClipChildren(true);
+        after(IDLE + 100);
+        assertTrue("clipped, dimming changes nothing else", wavy.getHasOverlappingRendering());
+        holder.setClipChildren(false);
+        activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnPreDraw();
+        assertFalse("the next frame draws it whole", wavy.getHasOverlappingRendering());
+        tap();
+        assertTrue("and a touch gives it back", wavy.getHasOverlappingRendering());
+    }
+
     @Test public void aTouchBringsThemBackAndAHeldFingerKeepsThemUpUntilItLifts() {
         Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
         BurnInGuard.resumed(activity);

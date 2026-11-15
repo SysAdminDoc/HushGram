@@ -26,6 +26,7 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.Window;
+import android.widget.SeekBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -159,6 +160,9 @@ public final class BurnInGuard {
      */
     static final String STORY_ID = "reel_viewer_root";
 
+    /** A story's progress bar, which draws a seek bar shape past its few pixels of height (#630). */
+    static final String STORY_BAR_ID = "reel_viewer_progress_bar";
+
     /**
      * The ids of what dims on a story, as Instagram 453 names them (#479): the progress bar, the header
      * (picture, name, time and the row of buttons at its end, where HushGram's eye, Download and speed
@@ -166,7 +170,7 @@ public final class BurnInGuard {
      * one already dimmed is left alone, as on Reels.
      */
     static final String[] STORY_DIMMED_IDS = {
-            "reel_viewer_progress_bar", "reel_viewer_header_container", "reel_viewer_header",
+            STORY_BAR_ID, "reel_viewer_header_container", "reel_viewer_header",
             "reel_header_extras_container", "reel_viewer_message_composer_container", "reel_item_toolbar_container",
             "viewer_reel_item_toolbar_container", "self_reel_item_toolbar_container",
             "reel_item_toolbar_footer_container"
@@ -192,6 +196,8 @@ public final class BurnInGuard {
     private static final Map<Window, Boolean> WRAPPED = new WeakHashMap<>();
     /** Views this class dimmed: the alpha they had, then the alpha written here. */
     private static final Map<View, float[]> DIMMED = new WeakHashMap<>();
+    /** Dimmed bars that draw past their edges, and the overlapping rendering each had (see {@link #drawWhole}). */
+    private static final Map<View, Boolean> FLATTENED = new WeakHashMap<>();
     /** Content views this class moved: the [x, y] they had, then the [x, y] written here. */
     private static final Map<View, float[]> MOVED = new WeakHashMap<>();
     /** Decor views whose overlay holds the black over what the shift left bare (#669). */
@@ -551,11 +557,41 @@ public final class BurnInGuard {
             held[1] = alpha * IDLE_LEVEL;
         }
         if (alpha != held[1]) view.setAlpha(held[1]);
+        drawWhole(view);
+    }
+
+    /**
+     * Has [view] take its dim on each thing it draws when it's a seek bar or a story's progress bar
+     * whose parent lets it draw past its edges (#450, #586). A view below full alpha with overlapping
+     * rendering is drawn into a layer the size of the view, which cuts off whatever it draws past its
+     * edges, however its parents clip. A reel's bar is a few pixels high and the wave runs over and
+     * under it, so dimmed it was cut flat along the bar's top, the handle too. Where a bar draws over
+     * itself (the played part over the track) that part comes out a touch brighter while dimmed. The
+     * flag is put back as {@link View#getHasOverlappingRendering} read it, so it stays forced after:
+     * a bar's answer never changes. {@link #undim} gives it back.
+     */
+    private static void drawWhole(View view) {
+        if (FLATTENED.containsKey(view)) return;
+        ViewParent parent = view.getParent();
+        if (!(parent instanceof ViewGroup) || ((ViewGroup) parent).getClipChildren()) return;
+        if (!(view instanceof SeekBar)) {
+            int bar = id(view.getContext(), STORY_BAR_ID);
+            if (bar == 0 || view.getId() != bar) return;
+        }
+        FLATTENED.put(view, view.getHasOverlappingRendering());
+        view.forceHasOverlappingRendering(false);
     }
 
     /** Brings back each view dimmed here, if its alpha is still the one written here. */
     private static void undim() {
         dimming = false;
+        if (!FLATTENED.isEmpty()) {
+            for (Map.Entry<View, Boolean> entry : FLATTENED.entrySet()) {
+                View view = entry.getKey();
+                if (view != null) view.forceHasOverlappingRendering(entry.getValue());
+            }
+            FLATTENED.clear();
+        }
         if (DIMMED.isEmpty()) return;
         for (Map.Entry<View, float[]> entry : DIMMED.entrySet()) {
             View view = entry.getKey();
@@ -889,8 +925,11 @@ public final class BurnInGuard {
         if (DIMMED.isEmpty()) return;
         for (Map.Entry<View, float[]> entry : DIMMED.entrySet()) {
             View view = entry.getKey();
+            if (view == null) continue;
             // Already counted when it was first dimmed.
-            if (view != null && view.getAlpha() != entry.getValue()[1]) dim(view, COUNT_DIMMED);
+            if (view.getAlpha() != entry.getValue()[1]) dim(view, COUNT_DIMMED);
+            // A bar whose room was made after it dimmed.
+            else drawWhole(view);
         }
     }
 
@@ -1034,6 +1073,7 @@ public final class BurnInGuard {
         paused = false;
         LAYOUT.lastLook = Long.MIN_VALUE / 2;
         DIMMED.clear();
+        FLATTENED.clear();
         MOVED.clear();
         GAPS.clear();
         WRAPPED.clear();

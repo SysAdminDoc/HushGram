@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.reels;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -211,6 +212,28 @@ public class BurnInGuardStoryTest {
         assertStoryUp("a tap");
         after(IDLE + 100);
         assertStoryDimmed("the wait again after the tap");
+    }
+
+    /**
+     * A seek bar shape on stories (#630) draws the progress bar and HushGram's seek bar past their few
+     * pixels, their parents opened for it. Dimmed through a layer their own size it was cut (#450,
+     * #586), so while dimmed they take the dim on each thing they draw. The header, no bar, keeps its
+     * layer, and a tap gives the bars theirs back.
+     */
+    @Test public void aStorysBarsDrawingPastTheirEdgesDimWithoutALayer() {
+        story.setClipChildren(false);
+        root.setClipChildren(false);
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        assertStoryDimmed("idle");
+        assertFalse("the progress bar draws whole", progress.getHasOverlappingRendering());
+        assertFalse("the seek bar draws whole", seek.getHasOverlappingRendering());
+        assertTrue("the header isn't a bar", header.getHasOverlappingRendering());
+        tap();
+        assertStoryUp("a tap");
+        assertTrue("the progress bar's own back", progress.getHasOverlappingRendering());
+        assertTrue("the seek bar's own back", seek.getHasOverlappingRendering());
     }
 
     /** The row of header buttons, eye and all, dims on its own where it isn't inside the header (#479). */
