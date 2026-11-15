@@ -489,6 +489,51 @@ public class AccentThemeTest {
         }
     }
 
+    /**
+     * Meta's own menus, the account switcher among them: its blues take the picked fill on either
+     * screen, its dark grays the dark theme's shades with the accent backgrounds on, its white page and
+     * wash the light theme's with Classic colors on, and its text grays stay (#187).
+     */
+    @Test
+    public void metasMenuColorsTakeTheAccent() {
+        int[] dark = {0xff101820, 0xff182030, 0xff203040};
+        int[] light = {0xfffafafa, 0xfff0f0f0, 0xffe8e8e8};
+        AccentTheme.darkSurfacesForTests(dark);
+        AccentTheme.lightSurfacesForTests(light);
+        try {
+            assertEquals("the switch off", 0xff0064e0, AccentTheme.dspLight(0xff0064e0));
+            assertEquals("the switch off", 0xff1f1f20, AccentTheme.dspDark(0xff1f1f20));
+
+            Settings.ACCENT_COLOR.save(true);
+            Settings.ACCENT_HUE.save(AccentHue.PINK);
+            int fill = 0xff000000 | AccentHue.PINK.fill & 0xffffff;
+            assertEquals(fill, AccentTheme.dspLight(0xff0064e0));
+            assertEquals(fill, AccentTheme.dspDark(0xff0082fb));
+            assertEquals("the blue's own alpha", 0x80000000 | fill & 0xffffff, AccentTheme.dspDark(0x800082fb));
+            assertEquals("backgrounds off", 0xff1f1f20, AccentTheme.dspDark(0xff1f1f20));
+
+            Settings.ACCENT_BACKGROUNDS.save(true);
+            assertEquals("the menu", dark[1], AccentTheme.dspDark(0xff1f1f20));
+            assertEquals("the wash", dark[2], AccentTheme.dspDark(0xff28292b));
+            assertEquals("a scrim keeps its alpha", 0xb2000000 | dark[1] & 0xffffff, AccentTheme.dspDark(0xb21f1f20));
+            assertEquals("the light text gray", 0xffd1d3d5, AccentTheme.dspDark(0xffd1d3d5));
+            assertEquals("a dark gray on a light screen is text", 0xff28292b, AccentTheme.dspLight(0xff28292b));
+            assertEquals("a light page without Classic colors", 0xffffffff, AccentTheme.dspLight(0xffffffff));
+
+            Settings.CLASSIC_COLORS.save(true);
+            assertEquals(light[0], AccentTheme.dspLight(0xffffffff));
+            assertEquals(light[2], AccentTheme.dspLight(0xfff3f4f5));
+            assertEquals("the white page's share of a see-through white", 0x33000000 | light[0] & 0xffffff, AccentTheme.dspLight(0x33ffffff));
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertEquals("paused", 0xff0064e0, AccentTheme.dspLight(0xff0064e0));
+        } finally {
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
     /** An attribute the theme doesn't hold, one holding a size or one that isn't opaque isn't a background of its own (#187). */
     @Test
     public void onlyASolidColorIsABackgroundOfItsOwn() {

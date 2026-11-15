@@ -78,6 +78,7 @@ Every HushGram release, newest first.
 * With `Accent color` on, the verified badge on a profile takes your color too, along with other icons that get their blue from a layout. It stayed blue. Reported in #187.
 * With `Accent color` on in dark mode, the Older posts link above Home's suggested posts takes your color. It was still Instagram's light blue. Reported in #187.
 * `Full screen Messages` hides the bars on your list of chats again. Instagram's newer messages list wasn't recognized, so only an open chat went full screen. Reported in #187.
+* With `Accent color` on, the account switcher and Meta's other menus inside Instagram take your color instead of Meta's blue. With `Backgrounds in the accent color` or `Classic colors` on, their backgrounds match your pages too. Reported in #187.
 
 ## 0.0.20 (2026-11-12)
 

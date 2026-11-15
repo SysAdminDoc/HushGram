@@ -167,6 +167,9 @@ public final class AccentTheme {
     /** What's counted each time one of the Compose palettes' dark grays takes an accent background's shade. */
     static final String SURFACES = "Compose surfaces given accent backgrounds";
 
+    /** What's counted each time a color of Meta's own menus, the account switcher's among them, takes an accent shade (#187). */
+    static final String DSP = "Meta menu colors given the accent";
+
     /** The theme attributes holding the page, raised and top background shades, the patch's BACKGROUND_ATTRIBUTES steps. */
     private static final String[] SURFACE_ATTRIBUTES = {
             BACKGROUND_ATTRIBUTE, "igds_color_elevated_background", "igds_color_secondary_background",
@@ -419,6 +422,80 @@ public final class AccentTheme {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose surface", failure);
             return value;
+        }
+    }
+
+    /**
+     * Injected at the start of the constructor of Meta's design system color, with the color it keeps
+     * for a light screen. Meta's own menus in Instagram, the account switcher among them, build their
+     * colors from tables in the code and not from Instagram's theme, so they kept Meta's blue (#187).
+     * Answers Meta's blues as the picked color's fill, and with Classic colors on, Meta's white page
+     * and gray wash as the shades Instagram's light theme holds. Keeps the alpha. Answers [color] for
+     * any other color, with the switches off, HushGram paused or anything thrown.
+     */
+    public static int dspLight(int color) {
+        return dspColor(color, false);
+    }
+
+    /**
+     * The same as {@link #dspLight} for the color kept for a dark screen. With Classic colors or
+     * Backgrounds in the accent color on, Meta's dark grays (the menu's #1f1f20 and the raised ones)
+     * take the shades Instagram's dark theme holds, as {@link #composeSurface} gives Compose's.
+     */
+    public static int dspDark(int color) {
+        return dspColor(color, true);
+    }
+
+    private static int dspColor(int color, boolean dark) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            int rgb = color & 0xffffff;
+            if (rgb == META_BLUE_ON_LIGHT || rgb == META_BLUE_ON_DARK) {
+                AccentHue hue = AccentColor.picked();
+                if (hue == null) return color;
+                HookStatus.counted(FamilyNames.ACCENT_COLOR, DSP);
+                return color & 0xff000000 | AccentColor.swap(FILL, hue) & 0xffffff;
+            }
+            int step = dark ? dspDarkStep(rgb) : dspLightStep(rgb);
+            int[] surfaces = dark ? paintedSurfaces() : paintedLightSurfaces();
+            if (step < 0 || surfaces == null) return color;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, DSP);
+            return color & 0xff000000 | surfaces[step] & 0xffffff;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "Meta menu color", failure);
+            return color;
+        }
+    }
+
+    /** Meta's blue on a light screen and on a dark one. */
+    private static final int META_BLUE_ON_LIGHT = 0x0064e0, META_BLUE_ON_DARK = 0x0082fb;
+
+    /**
+     * Which of {@link #SURFACE_ATTRIBUTES} a dark gray of Meta's stands for, or -1: its menus' surface
+     * raised like Instagram's sheets, and the raised and wash grays over it. The light grays it writes
+     * text with aren't among them.
+     */
+    private static int dspDarkStep(int rgb) {
+        switch (rgb) {
+            case 0x1f1f20:
+                return 1;
+            case 0x323435:
+            case 0x28292b:
+                return 2;
+            default:
+                return -1;
+        }
+    }
+
+    /** Which of {@link #SURFACE_ATTRIBUTES} a light fill of Meta's stands for, or -1: the white page and the gray wash. */
+    private static int dspLightStep(int rgb) {
+        switch (rgb) {
+            case 0xffffff:
+                return 0;
+            case 0xf3f4f5:
+                return 2;
+            default:
+                return -1;
         }
     }
 
