@@ -64,6 +64,7 @@ Every HushGram release, newest first.
 * `Find the reel you came from` works with `Keep the tab bar on a reel's profile` on. A profile opened on the tab never started the search, so the grid just stayed at the top. Reported in #693.
 * A foldable's inner screen gets Instagram's own big screen layout again with `Glass tab bar` on, instead of the phone layout stretched across it. Tablets keep the phone layout so the glass still shows. Turn on `Phone layout on big screens` if you'd rather have it on a fold too. Reported in #695.
 * A reel's seek bar stays clear of the navigation bar after you leave Instagram and come back. It could drop behind it and stay there. Reported in #694.
+* The blur in a floating `Glass tab bar` keeps up with the reel behind it on Android 14 and newer. It only took a new picture of the reel eight times a second, so it trailed the video. A paused reel isn't copied over and over anymore either. Reported in #583.
 
 ## 0.0.20 (2026-11-12)
 

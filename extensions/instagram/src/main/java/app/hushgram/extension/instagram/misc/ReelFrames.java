@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.Consumer;
+import java.util.function.ToLongFunction;
 
 import app.hushgram.extension.instagram.reels.ReelBlurBars;
 
@@ -38,13 +39,22 @@ import app.hushgram.extension.instagram.reels.ReelBlurBars;
  * Small copies of the reels playing behind a floating pill, for the glass to blur where it left a Reels
  * viewer out (#583). Drawing the viewer again into the blur froze the reel on its cover while the sound
  * played on (#222), so the glass still never draws it, and with nothing in the viewer's place the pill was
- * clear over a reel. This asks the video for a copy instead, about {@link #COPY_EVERY_MS} apart, at
- * 1/{@link #SCALE} of its size, into the spare of two bitmaps so the one the last recording drew isn't the
- * one written. A place with no copy yet stays clear, the way it was. Main thread, never while drawing.
+ * clear over a reel. This asks the video for a copy instead, at 1/{@link #SCALE} of its size, into the spare
+ * of two bitmaps so the one the last recording drew isn't the one written, and only once the video has a
+ * new frame. A place with no copy yet stays clear, the way it was. Main thread, never while drawing.
  */
 final class ReelFrames {
-    /** The least time between two copies of one reel. A blur hides the steps. */
+    /**
+     * The least time between two copies of one reel read the old way, which holds the main thread while
+     * the GPU copies the frame (#672).
+     */
     static final long COPY_EVERY_MS = 125;
+    /**
+     * The least time between two copies of one reel read from its surface, which leave the main thread
+     * alone: one each time the glass records, so the blur keeps up with the reel. Eight copies a second
+     * stepped behind it (#583).
+     */
+    static final long COPY_LATER_EVERY_MS = GlassTabBar.RECORD_EVERY_MS;
     /** A copy is this many times smaller than the video on each side. */
     static final int SCALE = 8;
     /** How many views under a viewer are looked at for its videos. */
@@ -67,6 +77,12 @@ final class ReelFrames {
     /** After this many copies in a row come back empty, a video is read the old way, which holds the main thread. */
     static final int MOST_MISSES = 3;
 
+    /**
+     * When the frame a video shows was made, or 0 when that isn't known. A paused reel keeps its frame, so
+     * its copy isn't taken again. Swapped in tests, since a stand-in video has no surface.
+     */
+    static volatile ToLongFunction<TextureView> frameAt = ReelFrames::shownFrameAt;
+
     private static final Paint CLEAR = new Paint();
     private static final Paint FRAME = new Paint(Paint.FILTER_BITMAP_FLAG);
     @Nullable private static Handler main;
@@ -79,6 +95,8 @@ final class ReelFrames {
         @Nullable Bitmap shown;
         @Nullable Bitmap spare;
         long copiedAt;
+        /** When the frame in {@link #shown} was made ({@link #frameAt}), 0 when that isn't known. */
+        long frameMadeAt;
         /** A copy is on its way into {@link #spare}, which nothing else writes or draws until it lands. */
         boolean copying;
         int misses;
@@ -91,9 +109,11 @@ final class ReelFrames {
      * for one, and lets go of the rest. Says whether any video crosses the strip.
      *
      * <p>On Android 14 and newer the copy is read from the video's own surface and lands a little later, so
-     * the next recording after it has it. Before, {@link TextureView#getBitmap} held the main thread while
-     * the GPU copied the frame, eight times a second, up to 28 ms each, and Reels stuttered under the
-     * glass (#672). A video whose surface gives nothing back {@link #MOST_MISSES} times in a row is read that way.
+     * the next recording after it has it, and each recording asks for the next one ({@link #COPY_LATER_EVERY_MS}).
+     * Before, {@link TextureView#getBitmap} held the main thread while the GPU copied the frame, up to 28 ms
+     * each, and Reels stuttered under the glass (#672), so that copy is taken only {@link #COPY_EVERY_MS}
+     * apart. A video whose surface gives nothing back {@link #MOST_MISSES} times in a row is read that way.
+     * Either way a video still showing the frame copied last isn't copied again.
      */
     boolean copy(View viewer, ViewGroup parent, float top, float tall, long now) {
         Map<TextureView, Held> held = viewers.get(viewer);
@@ -109,12 +129,17 @@ final class ReelFrames {
             Held frames = held.get(video);
             if (frames == null) frames = new Held();
             kept.put(video, frames);
-            if (frames.copying || (frames.shown != null && now - frames.copiedAt < COPY_EVERY_MS)) continue;
+            if (frames.copying) continue;
+            Copier later = copier;
+            boolean fromSurface = later != null && frames.misses < MOST_MISSES;
+            long every = fromSurface ? COPY_LATER_EVERY_MS : COPY_EVERY_MS;
+            if (frames.shown != null && now - frames.copiedAt < every) continue;
+            long made = frameAt.applyAsLong(video);
+            if (frames.shown != null && made != 0 && made == frames.frameMadeAt) continue;
             int width = Math.max(2, video.getWidth() / SCALE);
             int height = Math.max(2, video.getHeight() / SCALE);
-            Copier later = copier;
-            if (later != null && frames.misses < MOST_MISSES) {
-                copyLater(later, video, frames, width, height, now);
+            if (fromSurface) {
+                copyLater(later, video, frames, width, height, now, made);
                 continue;
             }
             Bitmap copy = source.frame(video, frames.spare, width, height);
@@ -122,13 +147,15 @@ final class ReelFrames {
             frames.spare = frames.shown;
             frames.shown = copy;
             frames.copiedAt = now;
+            frames.frameMadeAt = made;
         }
         held.clear();
         held.putAll(kept);
         return !kept.isEmpty();
     }
 
-    private static void copyLater(Copier later, TextureView video, Held frames, int width, int height, long now) {
+    private static void copyLater(Copier later, TextureView video, Held frames, int width, int height, long now,
+            long made) {
         Bitmap into = frames.spare;
         if (into == null || into.isRecycled() || into.getWidth() != width || into.getHeight() != height) {
             into = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
@@ -147,7 +174,19 @@ final class ReelFrames {
             frames.misses = 0;
             frames.spare = frames.shown;
             frames.shown = target;
+            frames.frameMadeAt = made;
         });
+    }
+
+    /** {@link SurfaceTexture#getTimestamp} of the frame [video] shows, or 0 without a live surface. */
+    private static long shownFrameAt(TextureView video) {
+        SurfaceTexture texture = video.getSurfaceTexture();
+        if (texture == null || texture.isReleased()) return 0;
+        try {
+            return texture.getTimestamp();
+        } catch (RuntimeException gone) {
+            return 0;
+        }
     }
 
     /**

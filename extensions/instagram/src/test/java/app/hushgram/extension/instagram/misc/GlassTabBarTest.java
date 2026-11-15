@@ -2974,6 +2974,95 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #583: copied eight times a second, the blur under the pill stepped behind the reel. A copy from the
+     * surface leaves the main thread alone, so each recording asks for the next one, and a paused reel,
+     * still showing the frame copied last, isn't copied again either way.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 34)
+    public void theReelBehindThePillIsCopiedEachRecordingOnlyWhileItPlays() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout parent = new FrameLayout(context);
+        FrameLayout viewer = new FrameLayout(context);
+        TextureView video = new TextureView(context);
+        viewer.addView(video);
+        parent.addView(viewer);
+        parent.addView(new View(context));
+        parent.layout(0, 0, 100, 200);
+        viewer.layout(0, 0, 100, 200);
+        video.layout(0, 80, 100, 200);
+        Set<View> paths = new HashSet<>();
+        Set<View> skipped = new HashSet<>();
+        assertTrue(GlassTabBar.leaveOut(viewer, parent, paths, skipped));
+        ReelFrames reels = new ReelFrames();
+
+        ReelBlurBars.FrameSource originalSource = ReelFrames.source;
+        ReelFrames.Copier originalCopier = ReelFrames.copier;
+        java.util.function.ToLongFunction<TextureView> originalFrameAt = ReelFrames.frameAt;
+        long[] made = {1L};
+        ReelFrames.frameAt = from -> made[0];
+        java.util.List<java.util.function.Consumer<Boolean>> landing = new java.util.ArrayList<>();
+        ReelFrames.copier = (from, bitmap, done) -> landing.add(done);
+        AtomicInteger heldTheMainThread = new AtomicInteger();
+        ReelFrames.source = (from, reuse, width, height) -> {
+            heldTheMainThread.incrementAndGet();
+            return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        };
+        try {
+            long now = 1000L;
+            reels.copy(viewer, parent, 150, 50, now);
+            landing.get(0).accept(true);
+            assertTrue("the copy keeps up with the glass", ReelFrames.COPY_LATER_EVERY_MS <= GlassTabBar.RECORD_EVERY_MS);
+
+            made[0]++;
+            now += GlassTabBar.RECORD_EVERY_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("the next recording asks for the reel's next frame", 2, landing.size());
+            landing.get(1).accept(true);
+
+            now += GlassTabBar.RECORD_EVERY_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("a paused reel shows the frame copied last, so it isn't copied again", 2, landing.size());
+
+            made[0] = 0L;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("a video that doesn't say when its frame was made is copied as before", 3, landing.size());
+            landing.get(2).accept(false);
+            made[0] = 7L;
+            now += GlassTabBar.RECORD_EVERY_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals(4, landing.size());
+            landing.get(3).accept(false);
+            now += GlassTabBar.RECORD_EVERY_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("a copy that came back empty is asked for again on the same frame", 5, landing.size());
+            assertEquals(0, heldTheMainThread.get());
+
+            // The copy that holds the main thread: before Android 14, and for a video whose surface gives nothing back.
+            ReelFrames.copier = null;
+            ReelFrames reelsTheOldWay = new ReelFrames();
+            made[0] = 20L;
+            reelsTheOldWay.copy(viewer, parent, 150, 50, now);
+            assertEquals(1, heldTheMainThread.get());
+            now += GlassTabBar.RECORD_EVERY_MS;
+            made[0]++;
+            reelsTheOldWay.copy(viewer, parent, 150, 50, now);
+            assertEquals("read the old way, it's still taken only every so often (#672)", 1, heldTheMainThread.get());
+            now += ReelFrames.COPY_EVERY_MS;
+            reelsTheOldWay.copy(viewer, parent, 150, 50, now);
+            assertEquals(2, heldTheMainThread.get());
+            now += ReelFrames.COPY_EVERY_MS;
+            reelsTheOldWay.copy(viewer, parent, 150, 50, now);
+            assertEquals("and never for a paused reel", 2, heldTheMainThread.get());
+        } finally {
+            ReelFrames.source = originalSource;
+            ReelFrames.copier = originalCopier;
+            ReelFrames.frameAt = originalFrameAt;
+        }
+    }
+
     private static Bitmap glass(ViewGroup parent, Set<View> paths, Set<View> skipped, ReelFrames reels) {
         Bitmap drawn = Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888);
         GlassTabBar.drawUnderBar(new Canvas(drawn), Color.BLACK, parent, 1, 150, 50, paths, skipped, null, reels);
