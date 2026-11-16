@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.stories;
 
+import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,9 +25,11 @@ import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.ResourceIdCache;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.ViewWatcher;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 
@@ -53,6 +57,12 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * <p>The listener looks again only after a layout pass, which is when Instagram binds a new story
  * into the footer. With a switch off or HushGram paused it puts back what that switch hid, unless
  * Instagram has changed it since, and once none is on the viewer's next resume lets it go.
+ *
+ * <p>On 454 a story opened from a ring is first drawn as a copy of its first page, added straight
+ * to the activity's content for a few frames before the viewer exists, footer and all (#618). So
+ * while a switch is on each resumed activity also has {@link #OPENINGS} in its frames: after a
+ * layout it looks a few levels into each of the content's children for {@link #OPENING}, and gives
+ * a copy it finds a keeper of its own, run once right there so that very frame draws it hidden.
  */
 public final class StoryReplyBox {
     /** The story's footer on 453, and the Send message box in it. */
@@ -62,6 +72,13 @@ public final class StoryReplyBox {
     static final String OLD_BOX = "reel_viewer_message_composer_container";
 
     static final String HOOK = "story reply box";
+
+    /** The view holding a story's page, two levels under the copy a ring opens with. */
+    static final String OPENING = "reel_viewer_content_layout";
+    /** How far under one of the content's children {@link #OPENING} may sit for that child to be a copy. */
+    static final int OPENING_DEPTH = 3;
+    /** The most views looked at under one child, so the app's own big tree costs next to nothing. */
+    static final int OPENING_LOOK = 48;
 
     /**
      * A footer button with a switch of its own, by the ids it goes by in the footer. The first is
@@ -114,9 +131,109 @@ public final class StoryReplyBox {
     @Nullable
     private static Keeper current;
 
+    /** The keeper of each copy a ring opened with, by the copy. Main thread only. */
+    private static final Map<View, Keeper> openings = new WeakHashMap<>();
+
     private static volatile boolean logged;
+    private static volatile boolean registered;
 
     private StoryReplyBox() {
+    }
+
+    /** Called as the application starts. Does nothing in a build without the patch. */
+    public static void install(Context context) {
+        try {
+            if (registered || !SettingsStatus.storyReplyBox() || !(context instanceof Application)) return;
+            registered = true;
+            ViewWatcher.onResumeAndPause((Application) context, StoryReplyBox::watch, StoryReplyBox::unwatch);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_REPLY_BOX, HOOK + " start", failure);
+        }
+    }
+
+    /** Looks out for the copy a ring opens with in [activity] while a switch is on. Called as it resumes. */
+    static void watch(Activity activity) {
+        try {
+            if (anyOn()) ViewWatcher.join(activity, OPENINGS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_REPLY_BOX, HOOK, failure);
+        }
+    }
+
+    static void unwatch(Activity activity) {
+        try {
+            ViewWatcher.leave(activity, OPENINGS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_REPLY_BOX, HOOK, failure);
+        }
+    }
+
+    /**
+     * One of the four switches was flipped in HushGram settings. They open as a dialog over
+     * [activity], which stays resumed, so it decides again now. Posted, so it reads the value this
+     * change saves.
+     */
+    public static void switchChanged(@Nullable Activity activity) {
+        if (activity != null) Utils.runOnMainThread(() -> watch(activity));
+    }
+
+    /**
+     * In each watched activity's frames. Once the window was laid out, gives each new copy of a story
+     * on the content a keeper, and leaves once no switch is on. A listener added during a frame's
+     * pre-draw only hears the next frame, so the new keeper runs once here, and this frame waits
+     * when it moved a button.
+     */
+    static final ViewWatcher.Member OPENINGS = new ViewWatcher.Member() {
+        @Override
+        public boolean wanted() {
+            return anyOn();
+        }
+
+        @Override
+        public boolean preDraw(Activity owner, boolean laidOut) {
+            try {
+                if (!anyOn()) {
+                    ViewWatcher.leave(owner, this);
+                    return false;
+                }
+                return laidOut && keepOpenings(owner.findViewById(android.R.id.content));
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_REPLY_BOX, HOOK, failure);
+                return false;
+            }
+        }
+    };
+
+    /** Starts a keeper on each child of [content] that is a story's copy. Answers whether the frame should wait. */
+    static boolean keepOpenings(@Nullable View content) {
+        if (!(content instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) content;
+        int reel = id(content, OPENING);
+        report(reel, OPENING);
+        if (reel == 0) return false;
+        boolean wait = false;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (openings.containsKey(child) || !reaches(child, reel, OPENING_DEPTH, new int[] {OPENING_LOOK})) continue;
+            Keeper keeper = new Keeper(null, child);
+            openings.put(child, keeper);
+            child.addOnAttachStateChangeListener(keeper);
+            if (child.isAttachedToWindow()) keeper.listen(child);
+            wait |= !keeper.onPreDraw();
+        }
+        return wait;
+    }
+
+    /** Whether a view of [id] is [view] or at most [depth] levels under it, within [look] views. */
+    private static boolean reaches(View view, int id, int depth, int[] look) {
+        if (look[0]-- <= 0) return false;
+        if (view.getId() == id) return true;
+        if (depth == 0 || !(view instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (reaches(group.getChildAt(i), id, depth - 1, look)) return true;
+        }
+        return false;
     }
 
     /**
@@ -168,8 +285,12 @@ public final class StoryReplyBox {
         return Utils.settingsReady() && Settings.HIDE_STORY_REPLY_BOX.get();
     }
 
-    /** Whether the reply box or any footer button is kept off stories. */
+    /**
+     * Whether the reply box or any footer button is kept off stories. Asked as any activity resumes
+     * too, so it reads no switch before the settings are, which would break them for good.
+     */
     static boolean anyOn() {
+        if (!Utils.settingsReady()) return false;
         if (switchedOn()) return true;
         for (Button button : Button.ALL) {
             if (button.on()) return true;
@@ -213,7 +334,8 @@ public final class StoryReplyBox {
         /** Whether this keeper cancelled the last frame, so it never cancels two in a row. */
         private boolean cancelled;
 
-        Keeper(Object viewer, View root) {
+        /** [viewer] is null for the copy a ring opens with, which has none yet. */
+        Keeper(@Nullable Object viewer, View root) {
             this.viewer = new WeakReference<>(viewer);
             this.root = new WeakReference<>(root);
         }
@@ -432,14 +554,22 @@ public final class StoryReplyBox {
     static void resetForTests() {
         Keeper keeper = current;
         current = null;
-        if (keeper != null) {
-            keeper.stop();
-            View view = keeper.root.get();
-            if (view != null) view.removeOnAttachStateChangeListener(keeper);
-        }
+        if (keeper != null) forgetForTests(keeper);
+        for (Keeper opening : new ArrayList<>(openings.values())) forgetForTests(opening);
+        openings.clear();
         IDS.clear();
         reader = PATCHED;
         logged = false;
+    }
+
+    private static void forgetForTests(Keeper keeper) {
+        keeper.stop();
+        View view = keeper.root.get();
+        if (view != null) view.removeOnAttachStateChangeListener(keeper);
+    }
+
+    static int openingsForTests() {
+        return openings.size();
     }
 
     static void readerForTests(Reader stand) {

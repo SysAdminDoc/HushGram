@@ -44,6 +44,7 @@ import java.util.Set;
 
 import app.hushgram.extension.instagram.feed.AmbientLight;
 import app.hushgram.extension.instagram.stories.StoryProgressBar;
+import app.hushgram.extension.instagram.stories.StoryReplyBox;
 import app.hushgram.extension.shared.L10n;
 
 /** Builds the Stories category of HushGram settings. */
@@ -176,18 +177,18 @@ final class StoriesCategory {
                             + "Tap Send message to reply.")));
         }
         if (build.contains(PatchFamily.STORY_REPLY_BOX)) {
-            stories.add(toggle(context, Settings.HIDE_STORY_REPLY_BOX, L10n.t("Hide the reply box on stories"),
+            stories.add(onFlip(toggle(context, Settings.HIDE_STORY_REPLY_BOX, L10n.t("Hide the reply box on stories"),
                     L10n.t("Takes the Send message box off the bottom of other people's stories. The like and "
-                            + "share buttons next to it stay where they are.")));
-            stories.add(toggle(context, Settings.HIDE_STORY_LIKE_BUTTON, L10n.t("Hide the Like button on stories"),
+                            + "share buttons next to it stay where they are.")), StoryReplyBox::switchChanged));
+            stories.add(onFlip(toggle(context, Settings.HIDE_STORY_LIKE_BUTTON, L10n.t("Hide the Like button on stories"),
                     L10n.t("Takes the heart off the bottom of other people's stories, so nothing gets liked by "
-                            + "mistake. No empty space is left behind.")));
-            stories.add(toggle(context, Settings.HIDE_STORY_COMMENT_BUTTON, L10n.t("Hide the Comment button on stories"),
+                            + "mistake. No empty space is left behind.")), StoryReplyBox::switchChanged));
+            stories.add(onFlip(toggle(context, Settings.HIDE_STORY_COMMENT_BUTTON, L10n.t("Hide the Comment button on stories"),
                     L10n.t("Takes the Comment button off the bottom of other people's stories that have one. "
-                            + "No empty space is left behind.")));
-            stories.add(toggle(context, Settings.HIDE_STORY_SHARE_BUTTON, L10n.t("Hide the Share button on stories"),
+                            + "No empty space is left behind.")), StoryReplyBox::switchChanged));
+            stories.add(onFlip(toggle(context, Settings.HIDE_STORY_SHARE_BUTTON, L10n.t("Hide the Share button on stories"),
                     L10n.t("Takes the paper plane off the bottom of other people's stories. No empty space is "
-                            + "left behind.")));
+                            + "left behind.")), StoryReplyBox::switchChanged));
         }
         if (build.contains(PatchFamily.GLASS_CHAT)) {
             stories.add(toggle(context, Settings.GLASS_STORY_REPLY_BOX, L10n.t("Glass reply box on stories"),

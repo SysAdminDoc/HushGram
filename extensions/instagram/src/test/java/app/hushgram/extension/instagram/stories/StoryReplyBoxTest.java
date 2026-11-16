@@ -14,6 +14,7 @@ import android.app.Instrumentation;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.view.ViewTreeObserver;
 import android.widget.EditText;
@@ -34,6 +35,7 @@ import org.robolectric.util.ReflectionHelpers;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.ViewWatcher;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -117,6 +119,7 @@ public class StoryReplyBoxTest {
 
     @After
     public void restore() {
+        StoryReplyBox.unwatch(activity);
         StoryReplyBox.resetForTests();
         Settings.HIDE_STORY_REPLY_BOX.resetToDefault();
         resetButtonSwitches();
@@ -491,5 +494,74 @@ public class StoryReplyBoxTest {
         assertTrue(HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString(),
                 HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString().contains("toolbar_like_container"));
         assertEquals("a heart the build doesn't name stays", View.VISIBLE, like.getVisibility());
+    }
+
+    /**
+     * The copy of a story's first page 454 adds straight to the activity's content as a ring opens
+     * it, before the viewer exists: plain frames, then the page holding its footer [depth] levels down.
+     */
+    private FrameLayout copyOf(int pageId, LinearLayout pageFooter, int depth) {
+        LinearLayout page = new LinearLayout(activity);
+        page.setId(pageId);
+        page.addView(pageFooter, new LinearLayout.LayoutParams(720, 120));
+        View inner = page;
+        for (int level = 0; level < depth; level++) {
+            FrameLayout frame = new FrameLayout(activity);
+            frame.addView(inner);
+            inner = frame;
+        }
+        return (FrameLayout) inner;
+    }
+
+    private ViewGroup content() {
+        return activity.findViewById(android.R.id.content);
+    }
+
+    @Test
+    public void aCopyARingOpensWithIsHiddenFromItsFirstFrame() {
+        int pageId = View.generateViewId();
+        StoryReplyBox.putIdForTests(activity, StoryReplyBox.OPENING, pageId);
+        Settings.HIDE_STORY_REPLY_BOX.save(true);
+        Settings.HIDE_STORY_SHARE_BUTTON.save(true);
+        LinearLayout copyFooter = footer();
+        content().addView(copyOf(pageId, copyFooter, 2), new FrameLayout.LayoutParams(720, 1280));
+        assertTrue("the frame it was added in waits for the footer to close up",
+                StoryReplyBox.OPENINGS.preDraw(activity, true));
+        assertEquals("its box is hidden", View.INVISIBLE, copyFooter.getChildAt(0).getVisibility());
+        assertEquals("its plane is gone", View.GONE, copyFooter.getChildAt(3).getVisibility());
+        assertEquals("its heart stays", View.VISIBLE, copyFooter.getChildAt(1).getVisibility());
+        assertEquals(1, StoryReplyBox.openingsForTests());
+        assertFalse("a copy already kept isn't taken again", StoryReplyBox.OPENINGS.preDraw(activity, true));
+        assertEquals(1, StoryReplyBox.openingsForTests());
+        assertFalse("the next frame draws", frame());
+        copyFooter.getChildAt(3).setVisibility(View.VISIBLE);
+        assertTrue("its own keeper has the frames from here", frame());
+        assertEquals(View.GONE, copyFooter.getChildAt(3).getVisibility());
+        assertEquals("the viewer's footer is left to the viewer's keeper", View.VISIBLE, box.getVisibility());
+    }
+
+    @Test
+    public void aStoryPageDeepInTheAppsOwnTreeIsNoCopy() {
+        int pageId = View.generateViewId();
+        StoryReplyBox.putIdForTests(activity, StoryReplyBox.OPENING, pageId);
+        Settings.HIDE_STORY_SHARE_BUTTON.save(true);
+        LinearLayout deepFooter = footer();
+        content().addView(copyOf(pageId, deepFooter, StoryReplyBox.OPENING_DEPTH + 1),
+                new FrameLayout.LayoutParams(720, 1280));
+        assertFalse(StoryReplyBox.OPENINGS.preDraw(activity, true));
+        assertEquals(0, StoryReplyBox.openingsForTests());
+        assertEquals(View.VISIBLE, deepFooter.getChildAt(3).getVisibility());
+    }
+
+    @Test
+    public void onlyAnActivityResumedWithASwitchOnLooksForCopies() {
+        StoryReplyBox.watch(activity);
+        assertFalse("nothing on, nothing watched", ViewWatcher.joined(activity, StoryReplyBox.OPENINGS));
+        Settings.HIDE_STORY_LIKE_BUTTON.save(true);
+        StoryReplyBox.watch(activity);
+        assertTrue(ViewWatcher.joined(activity, StoryReplyBox.OPENINGS));
+        Settings.HIDE_STORY_LIKE_BUTTON.save(false);
+        assertFalse(StoryReplyBox.OPENINGS.preDraw(activity, true));
+        assertFalse("it leaves once every switch is off", ViewWatcher.joined(activity, StoryReplyBox.OPENINGS));
     }
 }
