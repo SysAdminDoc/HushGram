@@ -3031,6 +3031,10 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->muteInstead
 # pause when it says so (#554). Left out, Keep playing pauses like Instagram's own tap; twice or elsewhere, it isn't
 # the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepPlaying()Z in instance (Landroid/view/View;L*;L*;)V holding android_purge_26_q3_PauseAndMuteNavigator_togglePause
+# IgFragmentActivity.dispatchTouchEvent hands ReelTapAndVolume.touch every touch, first or right after Tap to play's
+# TapClock, so Keep playing can tell a tap on the play icon over a reel, which then pauses it (#554). Left out, that tap
+# keeps the reel playing like any other; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # The volume half asks ReelTapAndVolume.keepMuted in the Reels controller's volume runnable (the run()V that traces
 # ClipsVideoPlayerController_onVolumeAdjustedByUser), right after the marker call and past the stream adjustment, so
 # the key still does its work. Left out, the switch does nothing; twice or elsewhere, it isn't the hook the patch wrote.

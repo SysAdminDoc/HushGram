@@ -4,7 +4,17 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.Rect;
+import android.os.SystemClock;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import java.lang.ref.WeakReference;
 
@@ -12,6 +22,7 @@ import app.hushgram.extension.instagram.download.ReelMuteButton;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.ResourceIdCache;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -32,6 +43,12 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * sound of the reel on screen ({@link #toggle}) and the icon reads it the way the toggle does
  * ({@link #soundOn}).
  *
+ * <p>With Keep playing picked, a tap shows Instagram's play icon and sound button over the reel
+ * while it goes on playing. The sound button has a click of its own, but the play icon doesn't, so a
+ * tap on it reaches the reel's tap like a tap anywhere else (#554). The patch hands every touch to
+ * {@link #touch} first, which notes a finger that went down on the play icon shown under it and came
+ * up there, and {@link #keepPlaying} lets that one tap pause the reel.
+ *
  * <p>Every answer is Instagram's own while the choice is Instagram's default, HushGram is paused,
  * the settings aren't ready, or anything in here throws.
  */
@@ -40,6 +57,28 @@ public final class ReelTapAndVolume {
     static final String TAP_MUTED = "taps that muted";
     static final String TAP_PAUSED = "taps that paused";
     static final String TAP_KEPT_PLAYING = "taps that kept it playing";
+
+    /** What {@link HookStatus} counts with Keep playing picked: a tap on the play icon, left to pause the reel (#554). */
+    static final String TAP_ON_PLAY_ICON = "taps on the play icon that paused";
+
+    /** The view id of the play icon shown over a reel, which has no click of its own. */
+    static final String PLAY_ICON = "clips_pause_button";
+
+    /** How long after the finger came up on the play icon the reel's tap still counts as that tap. */
+    static final long TAP_FRESH_MS = 1000;
+
+    /** The touch hook's name in a failure report. */
+    static final String TOUCH = "reel touch";
+
+    private static final long NO_TAP = Long.MIN_VALUE;
+
+    private static final ResourceIdCache ids = new ResourceIdCache();
+
+    /** Where the play icon was on screen when the finger went down on it; empty when it went down elsewhere. Main thread. */
+    private static final Rect pressed = new Rect();
+
+    /** When the last finger came up on the play icon it went down on, in uptime, or {@link #NO_TAP}. Main thread. */
+    private static long iconTapUp = NO_TAP;
 
     /** What {@link HookStatus} counts for the volume keys: a volume up whose unmute was skipped. */
     static final String VOLUME_KEPT_MUTED = "volume ups kept muted";
@@ -126,9 +165,100 @@ public final class ReelTapAndVolume {
         return held == null ? null : held.get();
     }
 
-    /** Forgets the controller. For tests. */
+    /** Forgets the controller, the play icon's id and the last tap on it. For tests. */
     static void forget() {
         onScreen = null;
+        ids.clear();
+        pressed.setEmpty();
+        iconTapUp = NO_TAP;
+    }
+
+    @VisibleForTesting
+    static void idForTests(Context context, int id) {
+        ids.putForTests(Utils.resourcePackage(context), PLAY_ICON, id);
+    }
+
+    // ------------------------------------------------------------------ the play icon (#554)
+
+    /**
+     * The hook, in IgFragmentActivity.dispatchTouchEvent, first or right after Tap to play's: every
+     * touch on the activity. With Keep playing picked, it notes a finger that goes down on the play
+     * icon shown over a reel and comes up still on it. Never takes a touch away from Instagram and
+     * never throws.
+     */
+    public static void touch(@Nullable Activity activity, @Nullable MotionEvent event) {
+        try {
+            if (event == null) return;
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    iconTapUp = NO_TAP;
+                    pressed.setEmpty();
+                    if (activity != null && keepPlayingPicked()) playIconUnder(activity, event.getRawX(), event.getRawY(), pressed);
+                    break;
+                case MotionEvent.ACTION_UP:
+                    if (!pressed.isEmpty() && pressed.contains((int) event.getRawX(), (int) event.getRawY())) iconTapUp = event.getEventTime();
+                    pressed.setEmpty();
+                    break;
+                case MotionEvent.ACTION_POINTER_DOWN:
+                case MotionEvent.ACTION_CANCEL:
+                    // A second finger or a gesture taken over is no tap on the icon.
+                    pressed.setEmpty();
+                    break;
+                default:
+                    break;
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_TAP_AND_VOLUME, TOUCH, failure);
+        }
+    }
+
+    private static boolean keepPlayingPicked() {
+        return Utils.settingsReady() && Settings.REEL_TAP_CHOICE.get() == ReelTapChoice.KEEP_PLAYING;
+    }
+
+    /**
+     * Whether the reel's tap at [now] is the one that came up on the play icon, which it uses up. A
+     * tap counts for {@link #TAP_FRESH_MS}, long enough for Instagram to wait out a second tap first.
+     */
+    private static boolean onPlayIcon(long now) {
+        long up = iconTapUp;
+        iconTapUp = NO_TAP;
+        return up != NO_TAP && now >= up && now - up <= TAP_FRESH_MS;
+    }
+
+    /** Sets [out] to the screen bounds of a play icon shown at the screen point [x], [y], or leaves it empty. */
+    private static void playIconUnder(Activity activity, float x, float y, Rect out) {
+        int id = ids.resolve(activity.getResources(), Utils.resourcePackage(activity), PLAY_ICON, false);
+        if (id == 0) {
+            HookStatus.missingViewId(FamilyNames.REEL_TAP_AND_VOLUME, PLAY_ICON);
+            return;
+        }
+        Window window = activity.getWindow();
+        View root = window == null ? null : window.peekDecorView();
+        if (root != null) find(root, id, x, y, out, new int[2]);
+    }
+
+    /**
+     * Looks under [view] for a view [id] at the screen point [x], [y] and sets [out] to its bounds.
+     * A view hidden or see-through at any level, its own included, doesn't count, so neither does an
+     * icon Instagram keeps laid out while it isn't showing.
+     */
+    private static boolean find(View view, int id, float x, float y, Rect out, int[] at) {
+        if (view.getVisibility() != View.VISIBLE || view.getAlpha() <= 0f) return false;
+        if (view.getId() == id) {
+            view.getLocationOnScreen(at);
+            out.set(at[0], at[1], at[0] + view.getWidth(), at[1] + view.getHeight());
+            if (out.contains((int) x, (int) y)) return true;
+            out.setEmpty();
+            return false;
+        }
+        if (!(view instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) view;
+        // The last child draws on top, so it's the one under the finger.
+        for (int child = group.getChildCount() - 1; child >= 0; child--) {
+            if (find(group.getChildAt(child), id, x, y, out, at)) return true;
+        }
+        return false;
     }
 
     /**
@@ -159,12 +289,20 @@ public final class ReelTapAndVolume {
 
     /**
      * Asked on the same pause path after {@link #muteInsteadOfPause} said no. True means leave the
-     * playing reel as it is: the tap does nothing, so a stray touch doesn't stop it (#554). A paused
-     * reel never gets here, so a tap still plays it. Never throws.
+     * playing reel as it is: the tap does nothing, so a stray touch doesn't stop it (#554). A tap that
+     * went down and came up on the play icon shown over the reel still pauses it, since that's what
+     * the icon is for. A paused reel never gets here, so a tap still plays it. Never throws.
      */
     public static boolean keepPlaying() {
         try {
             if (!Utils.settingsReady() || Settings.REEL_TAP_CHOICE.get() != ReelTapChoice.KEEP_PLAYING) return false;
+            if (onPlayIcon(SystemClock.uptimeMillis())) {
+                HookStatus.counted(FamilyNames.REEL_TAP_AND_VOLUME, TAP_ON_PLAY_ICON);
+                Logger.printDebug(() -> "Reel tap: on the play icon, pausing");
+                // The reel is about to pause: Burn-in guard's Light when paused (#457) brings the controls back.
+                BurnInGuard.reelPaused();
+                return false;
+            }
             HookStatus.counted(FamilyNames.REEL_TAP_AND_VOLUME, TAP_KEPT_PLAYING);
             Logger.printDebug(() -> "Reel tap: kept playing");
             return true;

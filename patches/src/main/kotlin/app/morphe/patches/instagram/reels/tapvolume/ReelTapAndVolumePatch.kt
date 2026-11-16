@@ -14,8 +14,10 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.reel.rewriteStub
 import app.morphe.patches.instagram.media.taptoplay.CLIPS_PAUSE
+import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.FUNCTION0
 import app.morphe.patches.instagram.media.taptoplay.TOGGLE_PAUSE
+import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
@@ -49,6 +51,9 @@ private const val PATCH = "Control taps and volume on Reels"
 internal const val REEL_TAP_AND_VOLUME = "$EXTENSION_PACKAGE/reels/ReelTapAndVolume;"
 internal const val MUTE_INSTEAD_OF_PAUSE = "$REEL_TAP_AND_VOLUME->muteInsteadOfPause()Z"
 internal const val KEEP_PLAYING = "$REEL_TAP_AND_VOLUME->keepPlaying()Z"
+
+/** Every touch on IgFragmentActivity, for Keep playing's tap on the play icon over a reel (#554). */
+internal const val PLAY_ICON_TOUCH = "$REEL_TAP_AND_VOLUME->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)V"
 internal const val KEEP_MUTED = "$REEL_TAP_AND_VOLUME->keepMuted(II)Z"
 
 /** The speaker icon's (#608): the controller about to start a reel, and the icon's redraw. */
@@ -70,6 +75,8 @@ private const val BUTTON_REASON = -3
 
 private const val OBJECT = "Ljava/lang/Object;"
 
+private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
+
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
 /**
@@ -81,6 +88,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * whether to mute instead. A yes calls the Reels controller's audio toggle ([TOGGLE_AUDIO]), the
  * one the audio button calls, and returns, so the reel keeps playing with its sound turned off or on.
  * A no goes on to the pause as before, so Instagram's default and Pause are Instagram's own tap.
+ * Keep playing still lets a tap on the play icon over a reel pause it: every touch on
+ * IgFragmentActivity goes to the extension first, which notes one that lands on the icon (#554).
  *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
@@ -102,9 +111,11 @@ val reelTapAndVolumePatch = bytecodePatch(
         val tapSite = findReelTapSite()
         val volumeSite = findVolumeSite()
         val speakerSite = findSpeakerSite(tapSite, volumeSite)
+        val touch = findPlayIconTouch()
         applyReelTap(tapSite)
         applyKeepMuted(volumeSite)
         speakerSite?.let { applySpeaker(it) }
+        touch?.let { applyPlayIconTouch(it) }
         enableStatus("reelTapAndVolume")
     }
 }
@@ -721,6 +732,41 @@ internal fun BytecodePatchContext.applySpeaker(site: SpeakerSite) {
             return v1
         """,
     )
+}
+
+/**
+ * IgFragmentActivity's own dispatchTouchEvent, which every touch on the Reels viewer passes through
+ * first. Null with a warning when the build has no such method or something jumps to its start: the
+ * rest still goes in, and with Keep playing a tap on the play icon keeps the reel playing like any
+ * other tap.
+ */
+internal fun BytecodePatchContext.findPlayIconTouch(): Method? {
+    fun leftOut(why: String): Method? {
+        patchLog.warning("$PATCH: $why. With Keep playing, a tap on the play icon over a reel doesn't pause it in this build.")
+        return null
+    }
+    val activity = classDefByOrNull(FRAGMENT_ACTIVITY) ?: return leftOut("this build has no $FRAGMENT_ACTIVITY")
+    val touches = activity.methods.filter {
+        it.name == "dispatchTouchEvent" && it.returnType == "Z" && it.parameterTypes.map(Any::toString) == listOf(MOTION_EVENT) &&
+            it.implementation != null
+    }
+    val touch = touches.singleOrNull()
+        ?: return leftOut("expected $FRAGMENT_ACTIVITY to have one dispatchTouchEvent of its own, found ${touches.size}")
+    if (0 in touch.jumpTargets()) return leftOut("something in $FRAGMENT_ACTIVITY->dispatchTouchEvent jumps to its start")
+    return touch
+}
+
+/**
+ * The touch hook goes first in dispatchTouchEvent, or right after Tap to play's TapClock when that's
+ * already there, since TapClock has to stay first. It never answers, so the code after it sees every
+ * touch as before, and the range form names the activity and the event wherever they sit.
+ */
+internal fun BytecodePatchContext.applyPlayIconTouch(touch: Method) {
+    val method = mutable(touch)
+    val first = method.code().firstOrNull()?.methodReference()
+    val afterTapClock = first != null &&
+        "${first.definingClass}->${first.name}(${first.parameterTypes.joinToString("")})${first.returnType}" == TAP_CLOCK
+    method.addInstructions(if (afterTapClock) 1 else 0, "invoke-static/range { p0 .. p1 }, $PLAY_ICON_TOUCH")
 }
 
 private const val AUDIO_MANAGER = "Landroid/media/AudioManager;"

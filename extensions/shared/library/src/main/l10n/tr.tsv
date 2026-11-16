@@ -1079,7 +1079,7 @@ A tap on a reel pauses it, and another tap plays it again.	Bir reel'e dokunmak o
 A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.	Oynayan bir reel'e dokunmak sesini kapatır veya açar ve oynamaya devam ettirir. Duraklatılmış bir reel dokunuşla oynar.
 A tap on a reel does what Instagram does.	Bir reel'e dokunmak Instagram'ın yaptığını yapar.
 Keep playing	Oynamaya devam et
-A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.	Oynayan bir reel'e dokunmak hiçbir şey yapmaz, böylece yanlışlıkla bir dokunuş onu durdurmaz. Duraklatılmış bir reel dokunuşla oynar.
+A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.	Oynayan bir reel'e dokunmak hiçbir şey yapmaz, böylece yanlışlıkla bir dokunuş onu durdurmaz. Tam oynat simgesine dokunmak yine de duraklatır ve duraklatılmış bir reel dokunuşla oynar.
 Keep reels muted on the volume keys	Ses tuşlarında reel'leri sessiz tut
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	Sesi artırmak telefonun sesini yine yükseltir, ancak sessize alınmış bir reel siz açana kadar sessiz kalır.
 Start stories with sound	Hikayeleri sesli başlat

@@ -1069,7 +1069,7 @@ A tap on a reel pauses it, and another tap plays it again.	点击 Reel 即可暂
 A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.	点击播放中的 Reel 会切换静音并继续播放。已暂停的 Reel 仍会在点击后播放。
 A tap on a reel does what Instagram does.	点击 Reel 时使用 Instagram 原本的操作。
 Keep playing	继续播放
-A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.	点击播放中的 Reel 不会有任何反应，误触也不会让它停下。已暂停的 Reel 仍会在点击后播放。
+A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.	点击播放中的 Reel 不会有任何反应，误触也不会让它停下。直接点击播放图标仍会暂停，已暂停的 Reel 会在点击后播放.
 Keep reels muted on the volume keys	按音量键时保持 Reels 静音
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	音量加键仍会提高手机音量，但已静音的 Reel 会维持静音，直到你取消静音。
 Start stories with sound	快拍默认打开声音

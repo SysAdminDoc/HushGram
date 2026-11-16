@@ -326,8 +326,8 @@ public final class L10nTranslations {
                 "Wischen nach rechts auf der Startseite \u00f6ffnet %1$s. Die +-Taste \u00f6ffnet weiterhin die Kamera.");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "Wenn du bei der Story einer anderen Person nach oben wischst, \u00f6ffnen sich das Antwortfeld und seine Reaktionen nicht mehr. Tippe auf Nachricht senden, um zu antworten.");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "Ein Tipp auf ein laufendes Reel bewirkt nichts, damit eine versehentliche Ber\u00fchrung es nicht anh\u00e4lt. Ein pausiertes Reel spielt bei einem Tipp weiter.");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "Ein Tipp auf ein laufendes Reel bewirkt nichts, damit eine versehentliche Ber\u00fchrung es nicht anh\u00e4lt. Ein Tipp direkt auf das Wiedergabesymbol pausiert es trotzdem, und ein pausiertes Reel spielt bei einem Tipp weiter.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "Ein Tipp auf ein laufendes Reel schaltet den Ton aus oder an und l\u00e4sst es weiterlaufen. Ein pausiertes Reel spielt bei einem Tipp weiter.");
         table.put("A tap on a reel",
@@ -4489,8 +4489,8 @@ public final class L10nTranslations {
                 "Deslizar a la derecha en Inicio abre %1$s. El bot\u00f3n + sigue abriendo la c\u00e1mara.");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "Deslizar hacia arriba en la historia de otra persona ya no abre el cuadro de respuesta ni sus reacciones. Toca Enviar mensaje para responder.");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "Tocar un reel en reproducci\u00f3n no hace nada, as\u00ed un toque accidental no lo detiene. Un reel en pausa se reanuda al tocarlo.");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "Tocar un reel en reproducci\u00f3n no hace nada, as\u00ed un toque accidental no lo detiene. Tocar justo el icono de reproducir a\u00fan lo pausa, y un reel en pausa se reanuda al tocarlo.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "Tocar un reel en reproducci\u00f3n activa o desactiva su sonido y lo deja reproduci\u00e9ndose. Un reel en pausa se reanuda al tocarlo.");
         table.put("A tap on a reel",
@@ -8652,8 +8652,8 @@ public final class L10nTranslations {
                 "Geser ke kanan di Beranda membuka %1$s. Tombol + tetap membuka kamera.");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "Menggeser ke atas pada cerita orang lain tidak lagi membuka kotak balasan dan reaksinya. Ketuk Kirim pesan untuk membalas.");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "Mengetuk reel yang sedang diputar tidak melakukan apa pun, jadi sentuhan tak sengaja tidak menghentikannya. Reel yang dijeda tetap diputar saat diketuk.");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "Mengetuk reel yang sedang diputar tidak melakukan apa pun, jadi sentuhan tak sengaja tidak menghentikannya. Mengetuk tepat di ikon putar tetap menjedanya, dan reel yang dijeda diputar saat diketuk.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "Mengetuk reel yang sedang diputar mematikan atau menyalakan suaranya dan reel tetap diputar. Reel yang dijeda tetap diputar saat diketuk.");
         table.put("A tap on a reel",
@@ -12815,8 +12815,8 @@ public final class L10nTranslations {
                 "Scorrere a destra su Home apre %1$s. Il pulsante + apre ancora la fotocamera.");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "Scorrere verso l'alto sulla storia di qualcuno non apre pi\u00f9 la casella di risposta e le sue reazioni. Tocca Invia messaggio per rispondere.");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "Un tocco su un reel in riproduzione non fa nulla, cos\u00ec un tocco accidentale non lo ferma. Un reel in pausa riparte comunque con un tocco.");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "Un tocco su un reel in riproduzione non fa nulla, cos\u00ec un tocco accidentale non lo ferma. Un tocco proprio sull'icona di riproduzione lo mette comunque in pausa, e un reel in pausa riparte con un tocco.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "Un tocco su un reel in riproduzione attiva o disattiva il suo audio e lo lascia in riproduzione. Un reel in pausa riparte comunque con un tocco.");
         table.put("A tap on a reel",
@@ -16978,8 +16978,8 @@ public final class L10nTranslations {
                 "\ud648\uc5d0\uc11c \uc624\ub978\ucabd\uc73c\ub85c \uc2a4\uc640\uc774\ud504\ud558\uba74 %1$s \ud0ed\uc774 \uc5f4\ub9bd\ub2c8\ub2e4. + \ubc84\ud2bc\uc740 \uacc4\uc18d \uce74\uba54\ub77c\ub97c \uc5fd\ub2c8\ub2e4.");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "\ub2e4\ub978 \uc0ac\ub78c\uc758 \uc2a4\ud1a0\ub9ac\uc5d0\uc11c \uc704\ub85c \uc2a4\uc640\uc774\ud504\ud574\ub3c4 \ub354 \uc774\uc0c1 \ub2f5\uc7a5 \uc0c1\uc790\uc640 \ubc18\uc751\uc774 \uc5f4\ub9ac\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \ub2f5\uc7a5\ud558\ub824\uba74 \uba54\uc2dc\uc9c0 \ubcf4\ub0b4\uae30\ub97c \ub204\ub974\uc138\uc694.");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "\uc7ac\uc0dd \uc911\uc778 \ub9b4\uc2a4\ub97c \ud0ed\ud574\ub3c4 \uc544\ubb34 \uc77c\ub3c4 \uc77c\uc5b4\ub098\uc9c0 \uc54a\uc544 \uc2e4\uc218\ub85c \ub2ff\uc544\ub3c4 \uba48\ucd94\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \uc77c\uc2dc\uc815\uc9c0\ub41c \ub9b4\uc2a4\ub294 \ud0ed\ud558\uba74 \uc7ac\uc0dd\ub429\ub2c8\ub2e4.");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "\uc7ac\uc0dd \uc911\uc778 \ub9b4\uc2a4\ub97c \ud0ed\ud574\ub3c4 \uc544\ubb34 \uc77c\ub3c4 \uc77c\uc5b4\ub098\uc9c0 \uc54a\uc544 \uc2e4\uc218\ub85c \ub2ff\uc544\ub3c4 \uba48\ucd94\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \uc7ac\uc0dd \uc544\uc774\ucf58\uc744 \uc815\ud655\ud788 \ud0ed\ud558\uba74 \uc77c\uc2dc\uc815\uc9c0\ub418\uace0, \uc77c\uc2dc\uc815\uc9c0\ub41c \ub9b4\uc2a4\ub294 \ud0ed\ud558\uba74 \uc7ac\uc0dd\ub429\ub2c8\ub2e4.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "\uc7ac\uc0dd \uc911\uc778 \ub9b4\uc2a4\ub97c \ud0ed\ud558\uba74 \uc18c\ub9ac\uac00 \uaebc\uc9c0\uac70\ub098 \ucf1c\uc9c0\uace0 \uacc4\uc18d \uc7ac\uc0dd\ub429\ub2c8\ub2e4. \uc77c\uc2dc\uc815\uc9c0\ub41c \ub9b4\uc2a4\ub294 \ud0ed\ud558\uba74 \uc7ac\uc0dd\ub429\ub2c8\ub2e4.");
         table.put("A tap on a reel",
@@ -21141,8 +21141,8 @@ public final class L10nTranslations {
                 "Deslizar para a direita no In\u00edcio abre %1$s. O bot\u00e3o + continua abrindo a c\u00e2mera.");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "Deslizar para cima no story de algu\u00e9m n\u00e3o abre mais a caixa de resposta nem as rea\u00e7\u00f5es. Toque em Enviar mensagem para responder.");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "Tocar em um reel em reprodu\u00e7\u00e3o n\u00e3o faz nada, assim um toque sem querer n\u00e3o o para. Um reel pausado volta a tocar com um toque.");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "Tocar em um reel em reprodu\u00e7\u00e3o n\u00e3o faz nada, assim um toque sem querer n\u00e3o o para. Tocar bem no \u00edcone de reproduzir ainda o pausa, e um reel pausado volta a tocar com um toque.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "Tocar em um reel em reprodu\u00e7\u00e3o liga ou desliga o som e o mant\u00e9m tocando. Um reel pausado volta a tocar com um toque.");
         table.put("A tap on a reel",
@@ -25304,8 +25304,8 @@ public final class L10nTranslations {
                 "\u0e01\u0e32\u0e23\u0e1b\u0e31\u0e14\u0e02\u0e27\u0e32\u0e1a\u0e19\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01\u0e08\u0e30\u0e40\u0e1b\u0e34\u0e14 %1$s \u0e1b\u0e38\u0e48\u0e21 + \u0e22\u0e31\u0e07\u0e04\u0e07\u0e40\u0e1b\u0e34\u0e14\u0e01\u0e25\u0e49\u0e2d\u0e07");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "\u0e01\u0e32\u0e23\u0e1b\u0e31\u0e14\u0e02\u0e36\u0e49\u0e19\u0e1a\u0e19\u0e2a\u0e15\u0e2d\u0e23\u0e35\u0e48\u0e02\u0e2d\u0e07\u0e1c\u0e39\u0e49\u0e2d\u0e37\u0e48\u0e19\u0e08\u0e30\u0e44\u0e21\u0e48\u0e40\u0e1b\u0e47\u0e19\u0e01\u0e32\u0e23\u0e40\u0e1b\u0e34\u0e14\u0e01\u0e25\u0e48\u0e2d\u0e07\u0e15\u0e2d\u0e1a\u0e01\u0e25\u0e31\u0e1a\u0e41\u0e25\u0e30\u0e2d\u0e34\u0e42\u0e21\u0e08\u0e34\u0e41\u0e2a\u0e14\u0e07\u0e04\u0e27\u0e32\u0e21\u0e23\u0e39\u0e49\u0e2a\u0e36\u0e01\u0e2d\u0e35\u0e01\u0e15\u0e48\u0e2d\u0e44\u0e1b \u0e43\u0e2b\u0e49\u0e41\u0e15\u0e30 \"\u0e2a\u0e48\u0e07\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21\" \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e15\u0e2d\u0e1a\u0e01\u0e25\u0e31\u0e1a");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e17\u0e35\u0e48\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e17\u0e35\u0e48\u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e25\u0e48\u0e19\u0e2d\u0e22\u0e39\u0e48\u0e08\u0e30\u0e44\u0e21\u0e48\u0e40\u0e01\u0e34\u0e14\u0e2d\u0e30\u0e44\u0e23\u0e02\u0e36\u0e49\u0e19 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e44\u0e21\u0e48\u0e43\u0e2b\u0e49\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e42\u0e14\u0e22\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e15\u0e31\u0e49\u0e07\u0e43\u0e08\u0e2b\u0e22\u0e38\u0e14\u0e01\u0e32\u0e23\u0e40\u0e25\u0e48\u0e19 \u0e2a\u0e48\u0e27\u0e19\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e17\u0e35\u0e48\u0e2b\u0e22\u0e38\u0e14\u0e0a\u0e31\u0e48\u0e27\u0e04\u0e23\u0e32\u0e27\u0e2d\u0e22\u0e39\u0e48\u0e08\u0e30\u0e40\u0e25\u0e48\u0e19\u0e15\u0e48\u0e2d\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e41\u0e15\u0e30");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e17\u0e35\u0e48\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e17\u0e35\u0e48\u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e25\u0e48\u0e19\u0e2d\u0e22\u0e39\u0e48\u0e08\u0e30\u0e44\u0e21\u0e48\u0e40\u0e01\u0e34\u0e14\u0e2d\u0e30\u0e44\u0e23\u0e02\u0e36\u0e49\u0e19 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e44\u0e21\u0e48\u0e43\u0e2b\u0e49\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e42\u0e14\u0e22\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e15\u0e31\u0e49\u0e07\u0e43\u0e08\u0e2b\u0e22\u0e38\u0e14\u0e01\u0e32\u0e23\u0e40\u0e25\u0e48\u0e19 \u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e15\u0e23\u0e07\u0e44\u0e2d\u0e04\u0e2d\u0e19\u0e40\u0e25\u0e48\u0e19\u0e22\u0e31\u0e07\u0e04\u0e07\u0e2b\u0e22\u0e38\u0e14\u0e0a\u0e31\u0e48\u0e27\u0e04\u0e23\u0e32\u0e27\u0e44\u0e14\u0e49 \u0e2a\u0e48\u0e27\u0e19\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e17\u0e35\u0e48\u0e2b\u0e22\u0e38\u0e14\u0e0a\u0e31\u0e48\u0e27\u0e04\u0e23\u0e32\u0e27\u0e2d\u0e22\u0e39\u0e48\u0e08\u0e30\u0e40\u0e25\u0e48\u0e19\u0e15\u0e48\u0e2d\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e41\u0e15\u0e30");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e17\u0e35\u0e48\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e17\u0e35\u0e48\u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e25\u0e48\u0e19\u0e2d\u0e22\u0e39\u0e48\u0e08\u0e30\u0e40\u0e1b\u0e47\u0e19\u0e01\u0e32\u0e23\u0e1b\u0e34\u0e14\u0e2b\u0e23\u0e37\u0e2d\u0e40\u0e1b\u0e34\u0e14\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e41\u0e25\u0e30\u0e40\u0e25\u0e48\u0e19\u0e15\u0e48\u0e2d\u0e44\u0e1b \u0e2a\u0e48\u0e27\u0e19\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e17\u0e35\u0e48\u0e2b\u0e22\u0e38\u0e14\u0e0a\u0e31\u0e48\u0e27\u0e04\u0e23\u0e32\u0e27\u0e2d\u0e22\u0e39\u0e48\u0e08\u0e30\u0e40\u0e25\u0e48\u0e19\u0e15\u0e48\u0e2d\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e41\u0e15\u0e30");
         table.put("A tap on a reel",
@@ -29467,8 +29467,8 @@ public final class L10nTranslations {
                 "Ana sayfada sa\u011fa kayd\u0131rma %1$s sekmesini a\u00e7ar. + d\u00fc\u011fmesi kameray\u0131 a\u00e7maya devam eder.");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "Birinin hikayesinde yukar\u0131 kayd\u0131rmak art\u0131k yan\u0131t kutusunu ve tepkilerini a\u00e7maz. Yan\u0131tlamak i\u00e7in Mesaj g\u00f6nder'e dokunun.");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "Oynayan bir reel'e dokunmak hi\u00e7bir \u015fey yapmaz, b\u00f6ylece yanl\u0131\u015fl\u0131kla bir dokunu\u015f onu durdurmaz. Duraklat\u0131lm\u0131\u015f bir reel dokunu\u015fla oynar.");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "Oynayan bir reel'e dokunmak hi\u00e7bir \u015fey yapmaz, b\u00f6ylece yanl\u0131\u015fl\u0131kla bir dokunu\u015f onu durdurmaz. Tam oynat simgesine dokunmak yine de duraklat\u0131r ve duraklat\u0131lm\u0131\u015f bir reel dokunu\u015fla oynar.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "Oynayan bir reel'e dokunmak sesini kapat\u0131r veya a\u00e7ar ve oynamaya devam ettirir. Duraklat\u0131lm\u0131\u015f bir reel dokunu\u015fla oynar.");
         table.put("A tap on a reel",
@@ -33630,8 +33630,8 @@ public final class L10nTranslations {
                 "Vu\u1ed1t sang ph\u1ea3i tr\u00ean Trang ch\u1ee7 s\u1ebd m\u1edf %1$s. N\u00fat + v\u1eabn m\u1edf m\u00e1y \u1ea3nh.");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "Vu\u1ed1t l\u00ean tr\u00ean tin c\u1ee7a ai \u0111\u00f3 kh\u00f4ng c\u00f2n m\u1edf \u00f4 tr\u1ea3 l\u1eddi v\u00e0 c\u00e1c c\u1ea3m x\u00fac. H\u00e3y nh\u1ea5n G\u1eedi tin nh\u1eafn \u0111\u1ec3 tr\u1ea3 l\u1eddi.");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "Nh\u1ea5n v\u00e0o reel \u0111ang ph\u00e1t kh\u00f4ng l\u00e0m g\u00ec c\u1ea3, n\u00ean ch\u1ea1m nh\u1ea7m c\u0169ng kh\u00f4ng d\u1eebng n\u00f3. Reel \u0111ang t\u1ea1m d\u1eebng v\u1eabn ph\u00e1t khi nh\u1ea5n.");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "Nh\u1ea5n v\u00e0o reel \u0111ang ph\u00e1t kh\u00f4ng l\u00e0m g\u00ec c\u1ea3, n\u00ean ch\u1ea1m nh\u1ea7m c\u0169ng kh\u00f4ng d\u1eebng n\u00f3. Nh\u1ea5n \u0111\u00fang v\u00e0o bi\u1ec3u t\u01b0\u1ee3ng ph\u00e1t v\u1eabn t\u1ea1m d\u1eebng n\u00f3, v\u00e0 reel \u0111ang t\u1ea1m d\u1eebng s\u1ebd ph\u00e1t khi nh\u1ea5n.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "Nh\u1ea5n v\u00e0o reel \u0111ang ph\u00e1t s\u1ebd b\u1eadt ho\u1eb7c t\u1eaft ti\u1ebfng v\u00e0 reel v\u1eabn ph\u00e1t. Reel \u0111ang t\u1ea1m d\u1eebng v\u1eabn ph\u00e1t khi nh\u1ea5n.");
         table.put("A tap on a reel",
@@ -37793,8 +37793,8 @@ public final class L10nTranslations {
                 "\u5728\u9996\u9875\u5411\u53f3\u6ed1\u52a8\u4f1a\u6253\u5f00 %1$s\u3002+ \u6309\u94ae\u4ecd\u4f1a\u6253\u5f00\u76f8\u673a\u3002");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "\u5728\u4ed6\u4eba\u7684\u5feb\u62cd\u5411\u4e0a\u6ed1\u52a8\u4e0d\u518d\u6253\u5f00\u56de\u590d\u6846\u4e0e\u5fc3\u60c5\u56de\u5e94\u3002\u8bf7\u70b9\u51fb\u201c\u53d1\u9001\u6d88\u606f\u201d\u56de\u590d\u3002");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "\u70b9\u51fb\u64ad\u653e\u4e2d\u7684 Reel \u4e0d\u4f1a\u6709\u4efb\u4f55\u53cd\u5e94\uff0c\u8bef\u89e6\u4e5f\u4e0d\u4f1a\u8ba9\u5b83\u505c\u4e0b\u3002\u5df2\u6682\u505c\u7684 Reel \u4ecd\u4f1a\u5728\u70b9\u51fb\u540e\u64ad\u653e\u3002");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "\u70b9\u51fb\u64ad\u653e\u4e2d\u7684 Reel \u4e0d\u4f1a\u6709\u4efb\u4f55\u53cd\u5e94\uff0c\u8bef\u89e6\u4e5f\u4e0d\u4f1a\u8ba9\u5b83\u505c\u4e0b\u3002\u76f4\u63a5\u70b9\u51fb\u64ad\u653e\u56fe\u6807\u4ecd\u4f1a\u6682\u505c\uff0c\u5df2\u6682\u505c\u7684 Reel \u4f1a\u5728\u70b9\u51fb\u540e\u64ad\u653e.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "\u70b9\u51fb\u64ad\u653e\u4e2d\u7684 Reel \u4f1a\u5207\u6362\u9759\u97f3\u5e76\u7ee7\u7eed\u64ad\u653e\u3002\u5df2\u6682\u505c\u7684 Reel \u4ecd\u4f1a\u5728\u70b9\u51fb\u540e\u64ad\u653e\u3002");
         table.put("A tap on a reel",
@@ -41956,8 +41956,8 @@ public final class L10nTranslations {
                 "\u5728\u9996\u9801\u5411\u53f3\u6ed1\u52d5\u6703\u958b\u555f %1$s\u3002+ \u6309\u9215\u4ecd\u6703\u958b\u555f\u76f8\u6a5f\u3002");
         table.put("A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.",
                 "\u5728\u4ed6\u4eba\u7684\u9650\u6642\u52d5\u614b\u5411\u4e0a\u6ed1\u52d5\u4e0d\u518d\u958b\u555f\u56de\u8986\u6846\u8207\u5fc3\u60c5\u56de\u61c9\u3002\u8acb\u9ede\u64ca\u300c\u50b3\u9001\u8a0a\u606f\u300d\u56de\u8986\u3002");
-        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A reel that's paused still plays on a tap.",
-                "\u9ede\u64ca\u64ad\u653e\u4e2d\u7684 Reel \u4e0d\u6703\u6709\u4efb\u4f55\u53cd\u61c9\uff0c\u8aa4\u89f8\u4e5f\u4e0d\u6703\u8b93\u5b83\u505c\u4e0b\u3002\u5df2\u66ab\u505c\u7684 Reel \u4ecd\u6703\u5728\u9ede\u64ca\u5f8c\u64ad\u653e\u3002");
+        table.put("A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.",
+                "\u9ede\u64ca\u64ad\u653e\u4e2d\u7684 Reel \u4e0d\u6703\u6709\u4efb\u4f55\u53cd\u61c9\uff0c\u8aa4\u89f8\u4e5f\u4e0d\u6703\u8b93\u5b83\u505c\u4e0b\u3002\u76f4\u63a5\u9ede\u64ca\u64ad\u653e\u5716\u793a\u4ecd\u6703\u66ab\u505c\uff0c\u5df2\u66ab\u505c\u7684 Reel \u6703\u5728\u9ede\u64ca\u5f8c\u64ad\u653e.");
         table.put("A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.",
                 "\u9ede\u64ca\u64ad\u653e\u4e2d\u7684 Reel \u6703\u5207\u63db\u975c\u97f3\u4e26\u7e7c\u7e8c\u64ad\u653e\u3002\u5df2\u66ab\u505c\u7684 Reel \u4ecd\u6703\u5728\u9ede\u64ca\u5f8c\u64ad\u653e\u3002");
         table.put("A tap on a reel",

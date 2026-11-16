@@ -7,14 +7,18 @@ package app.morphe.patches.instagram.reels.tapvolume
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
+import app.morphe.patches.instagram.feed.ViewIdFixture
 import app.morphe.patches.instagram.media.taptoplay.CLIPS_PAUSE
+import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.TOGGLE_PAUSE
+import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.reels.speed.MAYBE_RESUME_PLAYER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -69,6 +73,7 @@ class ReelTapAndVolumeHookTest {
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$MUTE_INSTEAD_OF_PAUSE is not in the extension: $declared", MUTE_INSTEAD_OF_PAUSE.substringAfter("->") in declared)
         assertTrue("$KEEP_PLAYING is not in the extension: $declared", KEEP_PLAYING.substringAfter("->") in declared)
+        assertTrue("$PLAY_ICON_TOUCH is not in the extension: $declared", PLAY_ICON_TOUCH.substringAfter("->") in declared)
         // The speaker icon's (#608): the controller handed over, and the two stubs the patch fills.
         val speaker = listOf(SPEAKER_RESUMING.substringAfter("->"), "$TOGGLE_AUDIO_STUB($objectType)V", "$AUDIO_ON_STUB($objectType)I")
         for (signature in speaker) assertTrue("$signature is not in the extension: $declared", signature in declared)
@@ -199,6 +204,123 @@ class ReelTapAndVolumeHookTest {
             }
         }
     }
+
+    /**
+     * #554: the touch hook goes first in IgFragmentActivity's dispatchTouchEvent, handing over the
+     * activity and the event through the range form, and nothing else changes. With Tap to play's
+     * TapClock already first, it goes right after it, so TapClock stays first.
+     */
+    @Test
+    fun theTouchHookGoesFirstOrRightAfterTapClock() {
+        for (tapClock in listOf(false, true)) {
+            val what = if (tapClock) "after TapClock" else "alone"
+            val classes = listOf(activity(tapClock = tapClock))
+            val context = PatchContexts.of(classes)
+            val original = context.touch().code().map { it.describe() }
+            val touch = context.findPlayIconTouch()
+            assertNotNull(what, touch)
+            context.apply { applyPlayIconTouch(touch!!) }
+
+            val code = context.touch().code()
+            val at = if (tapClock) 1 else 0
+            if (tapClock) assertEquals("$what: TapClock stays first", TAP_CLOCK, code[0].referenceText())
+            assertEquals(what, PLAY_ICON_TOUCH, code[at].referenceText())
+            assertEquals("$what: this and the event", listOf(1, 2), code[at].arguments())
+            assertEquals("$what: only the hook is new", original, code.map { it.describe() }.filterIndexed { index, _ -> index != at })
+        }
+    }
+
+    /** A build without the touch, or one that jumps to its start, leaves the hook out, changing nothing, and the rest still goes in. */
+    @Test
+    fun aTouchThePatchCantHookIsLeftOut() {
+        val cases = listOf(
+            listOf(classDef("Lfixture/Other;", emptyList())) to "no IgFragmentActivity",
+            listOf(activity(withTouch = false)) to "no dispatchTouchEvent of its own",
+            listOf(activity(jumpsToStart = true)) to "a jump to its start",
+        )
+        for ((classes, what) in cases) {
+            val context = PatchContexts.of(classes)
+            assertEquals(what, null, context.findPlayIconTouch())
+            for (original in classes) {
+                val now = context.mutableClassDefBy(original.type).methods.associateBy { it.key() }
+                for (method in original.methods) {
+                    assertEquals("$what: ${original.type}->${method.name} changed", method.code().map { it.describe() }, now.getValue(method.key()).code().map { it.describe() })
+                }
+            }
+        }
+        // The tap's hook still goes in without it.
+        val context = PatchContexts.of(classes())
+        context.apply { applyReelTap(findReelTapSite()) }
+        assertTrue(context.tap().code().any { it.referenceText() == KEEP_PLAYING })
+    }
+
+    /**
+     * In every build IgFragmentActivity has its own dispatchTouchEvent with nothing jumping to its
+     * start, and the hook lands first, or right after TapClock, handing over this and the event.
+     */
+    @Test
+    fun eachDeclaredBuildHoldsItsTouch() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        assertEquals("every 452 build", Fixtures.BUILDS, bundles.size)
+        for (bundle in bundles) {
+            val name = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
+            for (tapClock in listOf(false, true)) {
+                val what = "$name (${if (tapClock) "after TapClock" else "alone"})"
+                val context = PatchContexts.of(FixtureDex.classes(bundle, setOf(FRAGMENT_ACTIVITY)).values)
+                val touch = context.findPlayIconTouch()
+                assertNotNull("$what: the touch", touch)
+                if (tapClock) context.touch().addInstructions(0, "invoke-static/range { p0 .. p1 }, $TAP_CLOCK")
+                val original = context.touch().code().map { it.describe() }
+                context.apply { applyPlayIconTouch(touch!!) }
+
+                val method = context.touch()
+                val code = method.code()
+                val at = if (tapClock) 1 else 0
+                val self = method.implementation!!.registerCount - 2
+                assertEquals("$what: the hook", PLAY_ICON_TOUCH, code[at].referenceText())
+                assertEquals("$what: this and the event", listOf(self, self + 1), code[at].arguments())
+                assertEquals("$what: only the hook is new", original, code.map { it.describe() }.filterIndexed { index, _ -> index != at })
+            }
+        }
+    }
+
+    /** Every build declares the play icon's view id by the name the extension finds it by. */
+    @Test
+    fun eachBuildDeclaresThePlayIconsId() {
+        val icon = ExtensionDex.stringConstant(REEL_TAP_AND_VOLUME, "PLAY_ICON")
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        assertEquals("every 452 build", Fixtures.BUILDS, bundles.size)
+        for (bundle in bundles) {
+            val name = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
+            assertEquals("$name: ids the build doesn't declare", emptyList<String>(), ViewIdFixture.missing(ViewIdFixture.resourceTable(bundle), listOf(icon)))
+        }
+    }
+
+    private fun BytecodePatchContext.touch(): MutableMethod =
+        mutableClassDefBy(FRAGMENT_ACTIVITY).methods.single {
+            it.name == "dispatchTouchEvent" && it.returnType == "Z" && it.parameterTypes.map(Any::toString) == listOf(motionEvent) &&
+                it.implementation != null
+        }
+
+    /** IgFragmentActivity, its dispatchTouchEvent calling the platform's, with TapClock first or a jump back to its start. */
+    private fun activity(withTouch: Boolean = true, tapClock: Boolean = false, jumpsToStart: Boolean = false): ClassDef {
+        val touch = method(FRAGMENT_ACTIVITY, "dispatchTouchEvent", listOf(motionEvent), "Z", 1, body = """
+            ${if (tapClock) "invoke-static/range { p0 .. p1 }, $TAP_CLOCK" else ""}
+            ${if (jumpsToStart) ":start" else ""}
+            invoke-super { p0, p1 }, Landroid/app/Activity;->dispatchTouchEvent($motionEvent)Z
+            move-result v0
+            ${if (jumpsToStart) "if-eqz v0, :start" else ""}
+            return v0
+        """)
+        val other = method(FRAGMENT_ACTIVITY, "onTouchEvent", listOf(motionEvent), "Z", 1, body = "const/4 v0, 0x0\nreturn v0")
+        return classDef(FRAGMENT_ACTIVITY, if (withTouch) listOf(touch, other) else listOf(other))
+    }
+
+    private val motionEvent = "Landroid/view/MotionEvent;"
 
     /** The volume hook is in the extension, public and static, and takes the direction as an int. */
     @Test

@@ -5397,7 +5397,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         + "A reel that's paused still plays on a tap.");
             case KEEP_PLAYING:
                 return L10n.t("A tap on a playing reel does nothing, so a stray touch doesn't stop it. "
-                        + "A reel that's paused still plays on a tap.");
+                        + "A tap right on the play icon still pauses it, and a paused reel plays on a tap.");
             default:
                 return L10n.t("A tap on a reel does what Instagram does.");
         }
