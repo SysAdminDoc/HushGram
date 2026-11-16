@@ -16,6 +16,7 @@ import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.HoldFingers;
 import app.hushgram.extension.instagram.download.HoldTime;
 import app.hushgram.extension.instagram.download.SaveFolder;
+import app.hushgram.extension.instagram.feed.FeedSeekShape;
 import app.hushgram.extension.instagram.feed.OverlayLook;
 import app.hushgram.extension.instagram.feed.SeekShape;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
@@ -3652,6 +3653,14 @@ public class Settings extends BaseSettings {
      */
     public static final EnumSetting<SeekShape> SEEK_BAR_SHAPE =
             new EnumSetting<>("hushgram_seek_bar_shape", SeekShape.STANDARD);
+
+    /**
+     * The shape of the seek bar on feed videos alone (#567): {@link FeedSeekShape#SAME} follows
+     * {@link #SEEK_BAR_SHAPE}, and any other choice gives feed videos their own, so the feed can draw
+     * the thin line while reels keep the standard bar. Read as the bar updates.
+     */
+    public static final EnumSetting<FeedSeekShape> FEED_SEEK_SHAPE =
+            new EnumSetting<>("hushgram_feed_seek_bar_shape", FeedSeekShape.SAME, parentsAny(FEED_SEEK_BAR, FEED_SEEK_BUTTON));
 
     /**
      * A card above the finger while a seek bar on a feed video, story or reel is dragged (#567, #592):

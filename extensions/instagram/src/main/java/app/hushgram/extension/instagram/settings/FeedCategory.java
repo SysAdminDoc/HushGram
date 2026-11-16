@@ -14,6 +14,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.favoritesTabRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedAutoScrollTimeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSeekBarLookRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSeekShapeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSkipLengthRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.homeSwipeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
@@ -267,6 +268,7 @@ final class FeedCategory {
                             + "It works with Seek bar on feed videos on or off.")));
             feed.addPreference(feedSeekBarLookRow(context));
             feed.addPreference(seekShapeRow(context));
+            feed.addPreference(feedSeekShapeRow(context));
             feed.addPreference(toggle(context, Settings.SEEK_PREVIEW, L10n.t("Preview while you drag a seek bar"),
                     L10n.t("Shows the time above your finger while you drag a seek bar on a feed video, story or reel, "
                             + "and a small picture of that moment when Instagram has one for the video.")));

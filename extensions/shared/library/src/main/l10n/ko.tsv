@@ -2344,3 +2344,19 @@ Ask for VP9 instead of AV1	AV1 대신 VP9 요청
 Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.	휴대폰에 AV1 디코더가 없다고 Instagram에 알려서 릴스와 스토리를 VP9 또는 H.264로 받습니다. 보기와 저장 모두 해당합니다. 다시 시작해야 적용됩니다.
 # context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
 Two arrows flash on the side you double tapped, with the seconds skipped under them.	두 번 탭한 쪽에 화살표 두 개가 잠깐 나타나고, 그 아래에 건너뛴 초가 표시됩니다.
+# context: Feed settings: choice under Seek bar shape that gives the seek bar on feed videos a shape of its own (#567)
+Feed seek bar shape	피드 탐색 막대 모양
+# context: Choice in Feed seek bar shape: feed videos follow the shape picked in Seek bar shape (#567)
+Same as Seek bar shape	탐색 막대 모양과 같게
+# context: Summary of Same as Seek bar shape in Feed seek bar shape (#567)
+Feed videos use the shape picked in Seek bar shape.	피드 동영상은 탐색 막대 모양에서 고른 모양을 사용합니다.
+# context: Summary of Standard in Feed seek bar shape (#567)
+The bar and round handle you know, on feed videos only.	익숙한 막대와 둥근 핸들이며, 피드 동영상에만 적용됩니다.
+# context: Summary of Thin line in Feed seek bar shape (#567)
+A thin line with no handle on the bottom edge of feed videos, which grows while you drag it.	피드 동영상 아래쪽 가장자리에 핸들 없는 가는 선이 표시되고, 드래그하는 동안 굵어집니다.
+# context: Summary of Rounded in Feed seek bar shape (#567)
+A thicker rounded bar with no handle, on feed videos only.	핸들 없는 더 두꺼운 둥근 막대이며, 피드 동영상에만 적용됩니다.
+# context: Summary of Expressive in Feed seek bar shape (#567)
+A rounded bar split by a tall handle, on feed videos only.	긴 핸들로 나뉜 둥근 막대이며, 피드 동영상에만 적용됩니다.
+# context: Summary of Wave in Feed seek bar shape (#567)
+A wavy line for the part played, with a tall handle, on feed videos only.	재생된 부분은 물결선으로 표시되고 긴 핸들이 있으며, 피드 동영상에만 적용됩니다.

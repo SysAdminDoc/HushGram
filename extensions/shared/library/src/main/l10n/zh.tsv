@@ -2348,3 +2348,19 @@ Ask for VP9 instead of AV1	改为请求 VP9 而非 AV1
 Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.	告诉 Instagram 你的手机没有 AV1 解码器，让 Reels 和快拍改以 VP9 或 H.264 发送，观看和保存都一样。需要重新启动。
 # context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
 Two arrows flash on the side you double tapped, with the seconds skipped under them.	在你点两下的那一侧闪现两个箭头，下方显示跳过的秒数.
+# context: Feed settings: choice under Seek bar shape that gives the seek bar on feed videos a shape of its own (#567)
+Feed seek bar shape	动态拖动条形状
+# context: Choice in Feed seek bar shape: feed videos follow the shape picked in Seek bar shape (#567)
+Same as Seek bar shape	与拖动条形状相同
+# context: Summary of Same as Seek bar shape in Feed seek bar shape (#567)
+Feed videos use the shape picked in Seek bar shape.	动态视频使用拖动条形状中选择的形状.
+# context: Summary of Standard in Feed seek bar shape (#567)
+The bar and round handle you know, on feed videos only.	您熟悉的拖动条与圆形拖动钮，只用于动态视频.
+# context: Summary of Thin line in Feed seek bar shape (#567)
+A thin line with no handle on the bottom edge of feed videos, which grows while you drag it.	动态视频下缘的细线，没有拖动钮，拖动时会变粗.
+# context: Summary of Rounded in Feed seek bar shape (#567)
+A thicker rounded bar with no handle, on feed videos only.	较粗的圆角拖动条，没有拖动钮，只用于动态视频.
+# context: Summary of Expressive in Feed seek bar shape (#567)
+A rounded bar split by a tall handle, on feed videos only.	由高拖动钮分隔的圆角拖动条，只用于动态视频.
+# context: Summary of Wave in Feed seek bar shape (#567)
+A wavy line for the part played, with a tall handle, on feed videos only.	已播放部分为波浪线，并附高拖动钮，只用于动态视频.

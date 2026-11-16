@@ -2260,3 +2260,19 @@ Ask for VP9 instead of AV1	Yêu cầu VP9 thay vì AV1
 Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.	Báo cho Instagram là điện thoại của bạn không có bộ giải mã AV1, nên reels và tin đến dưới dạng VP9 hoặc H.264, cả khi xem lẫn khi lưu. Cần khởi động lại.
 # context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
 Two arrows flash on the side you double tapped, with the seconds skipped under them.	Hai mũi tên hiện nhanh ở bên bạn nhấn đúp, kèm số giây đã tua bên dưới.
+# context: Feed settings: choice under Seek bar shape that gives the seek bar on feed videos a shape of its own (#567)
+Feed seek bar shape	Hình dạng thanh tua trên bảng feed
+# context: Choice in Feed seek bar shape: feed videos follow the shape picked in Seek bar shape (#567)
+Same as Seek bar shape	Giống Hình dạng thanh tua
+# context: Summary of Same as Seek bar shape in Feed seek bar shape (#567)
+Feed videos use the shape picked in Seek bar shape.	Video bảng feed dùng hình dạng đã chọn trong Hình dạng thanh tua.
+# context: Summary of Standard in Feed seek bar shape (#567)
+The bar and round handle you know, on feed videos only.	Thanh và nút tròn quen thuộc, chỉ trên video bảng feed.
+# context: Summary of Thin line in Feed seek bar shape (#567)
+A thin line with no handle on the bottom edge of feed videos, which grows while you drag it.	Một đường mảnh không có nút ở cạnh dưới video bảng feed, dày lên khi bạn kéo.
+# context: Summary of Rounded in Feed seek bar shape (#567)
+A thicker rounded bar with no handle, on feed videos only.	Một thanh bo tròn dày hơn, không có nút, chỉ trên video bảng feed.
+# context: Summary of Expressive in Feed seek bar shape (#567)
+A rounded bar split by a tall handle, on feed videos only.	Một thanh bo tròn được chia bởi một nút cao, chỉ trên video bảng feed.
+# context: Summary of Wave in Feed seek bar shape (#567)
+A wavy line for the part played, with a tall handle, on feed videos only.	Một đường lượn sóng cho phần đã phát, kèm một nút cao, chỉ trên video bảng feed.

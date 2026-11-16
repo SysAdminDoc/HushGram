@@ -147,6 +147,14 @@ public final class SeekShapes {
         return Utils.settingsReady() ? Settings.SEEK_BAR_SHAPE.get() : SeekShape.STANDARD;
     }
 
+    /**
+     * The shape of the seek bar on feed videos: {@link Settings#FEED_SEEK_SHAPE} when it picks one of
+     * its own (#567), otherwise {@link #wanted()}.
+     */
+    public static SeekShape feedWanted() {
+        return Utils.settingsReady() ? Settings.FEED_SEEK_SHAPE.get().or(Settings.SEEK_BAR_SHAPE.get()) : SeekShape.STANDARD;
+    }
+
     /** Whether a shape other than the standard one is chosen. */
     public static boolean changed() {
         return wanted() != SeekShape.STANDARD;

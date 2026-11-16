@@ -167,6 +167,7 @@ public class FeedSeekBarTest {
         Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
         Settings.FEED_SEEK_BAR_ON_EDGE.resetToDefault();
         Settings.SEEK_BAR_SHAPE.resetToDefault();
+        Settings.FEED_SEEK_SHAPE.resetToDefault();
         Settings.SEEK_PREVIEW.resetToDefault();
         HookStatus.clear();
     }
@@ -176,6 +177,7 @@ public class FeedSeekBarTest {
         FeedSeekBar.resetForTests();
         SeekPreview.resetForTests();
         Settings.SEEK_BAR_SHAPE.resetToDefault();
+        Settings.FEED_SEEK_SHAPE.resetToDefault();
         Settings.SEEK_PREVIEW.resetToDefault();
         TabSwipe.forgetForTests();
         Settings.FEED_SEEK_BAR.resetToDefault();
@@ -653,6 +655,35 @@ public class FeedSeekBarTest {
         tick();
         assertEquals(Math.round(FeedSeekBar.EDGE_TALL_DP * density), bar.getLayoutParams().height);
         assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.WAVE, true));
+    }
+
+    /** #567: Feed seek bar shape gives feed videos a thin line while every other bar stays standard, and Same follows it again. */
+    @Test
+    public void theFeedKeepsAShapeOfItsOwn() {
+        Settings.FEED_SEEK_BAR.save(true);
+        assertEquals(FeedSeekShape.SAME, Settings.FEED_SEEK_SHAPE.defaultValue);
+        Settings.FEED_SEEK_SHAPE.save(FeedSeekShape.LINE);
+        FeedSeekBar.progress(player, 3000, 15000);
+        tick();
+        SeekBar bar = bar();
+        float density = bar.getResources().getDisplayMetrics().density;
+        assertEquals(SeekShape.STANDARD, Settings.SEEK_BAR_SHAPE.get());
+        assertEquals("reels and stories keep the standard bar", SeekShape.STANDARD, SeekShapes.wanted());
+        assertTrue(((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.LINE, true));
+        assertEquals("the line lies on the edge", Math.round(FeedSeekBar.EDGE_MIN_DP * density), bar.getLayoutParams().height);
+
+        Settings.FEED_SEEK_SHAPE.save(FeedSeekShape.SAME);
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.ROUNDED);
+        FeedSeekBar.progress(player, 4000, 15000);
+        tick();
+        assertTrue("Same follows Seek bar shape", ((SeekShapeDrawable) bar.getProgressDrawable()).draws(SeekShape.ROUNDED, false));
+        assertEquals(Math.round(FeedSeekBar.HEIGHT_DP * density), bar.getLayoutParams().height);
+
+        Settings.FEED_SEEK_SHAPE.save(FeedSeekShape.STANDARD);
+        FeedSeekBar.progress(player, 5000, 15000);
+        tick();
+        assertFalse("Standard for the feed alone", bar.getProgressDrawable() instanceof SeekShapeDrawable);
+        assertEquals(SeekShape.ROUNDED, SeekShapes.wanted());
     }
 
     /** #567: dragging shows the time above the finger; the player moving on its own doesn't. */

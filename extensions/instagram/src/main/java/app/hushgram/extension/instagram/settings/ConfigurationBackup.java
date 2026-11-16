@@ -239,6 +239,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.FEED_SEEK_BAR.inBuild()) {
             settings.put(Settings.FEED_SEEK_BAR_LOOK.key, Settings.FEED_SEEK_BAR_LOOK);
             settings.put(Settings.SEEK_BAR_SHAPE.key, Settings.SEEK_BAR_SHAPE);
+            settings.put(Settings.FEED_SEEK_SHAPE.key, Settings.FEED_SEEK_SHAPE);
             settings.put(Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key, Settings.FEED_DOUBLE_TAP_SKIP_SECONDS);
         }
         if (PatchFamily.REEL_DOUBLE_TAP_SKIP.inBuild()) {

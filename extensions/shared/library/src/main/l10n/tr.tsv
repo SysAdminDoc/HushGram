@@ -2345,3 +2345,19 @@ Ask for VP9 instead of AV1	AV1 yerine VP9 iste
 Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.	Instagram'a telefonunda AV1 kod çözücü olmadığını söyler, böylece reels ve hikayeler hem izlemek hem kaydetmek için VP9 ya da H.264 olarak gelir. Yeniden başlatma gerekir.
 # context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
 Two arrows flash on the side you double tapped, with the seconds skipped under them.	Çift dokunduğun tarafta iki ok kısa bir süre görünür, altında atlanan saniyeler yazar.
+# context: Feed settings: choice under Seek bar shape that gives the seek bar on feed videos a shape of its own (#567)
+Feed seek bar shape	Akıştaki arama çubuğu şekli
+# context: Choice in Feed seek bar shape: feed videos follow the shape picked in Seek bar shape (#567)
+Same as Seek bar shape	Arama çubuğu şekli ile aynı
+# context: Summary of Same as Seek bar shape in Feed seek bar shape (#567)
+Feed videos use the shape picked in Seek bar shape.	Akış videoları, Arama çubuğu şekli içinde seçilen şekli kullanır.
+# context: Summary of Standard in Feed seek bar shape (#567)
+The bar and round handle you know, on feed videos only.	Bildiğiniz çubuk ve yuvarlak tutamaç, yalnızca akış videolarında.
+# context: Summary of Thin line in Feed seek bar shape (#567)
+A thin line with no handle on the bottom edge of feed videos, which grows while you drag it.	Akış videolarının alt kenarında, sürüklerken kalınlaşan tutamaçsız ince bir çizgi.
+# context: Summary of Rounded in Feed seek bar shape (#567)
+A thicker rounded bar with no handle, on feed videos only.	Tutamaçsız, daha kalın yuvarlatılmış bir çubuk, yalnızca akış videolarında.
+# context: Summary of Expressive in Feed seek bar shape (#567)
+A rounded bar split by a tall handle, on feed videos only.	Uzun bir tutamaçla bölünmüş yuvarlatılmış bir çubuk, yalnızca akış videolarında.
+# context: Summary of Wave in Feed seek bar shape (#567)
+A wavy line for the part played, with a tall handle, on feed videos only.	Oynatılan kısım için dalgalı bir çizgi ve uzun bir tutamaç, yalnızca akış videolarında.

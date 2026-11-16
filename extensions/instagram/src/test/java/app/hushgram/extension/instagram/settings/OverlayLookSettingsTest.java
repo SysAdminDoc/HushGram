@@ -35,6 +35,7 @@ import app.hushgram.extension.shared.settings.EnumSetting;
 import app.hushgram.extension.shared.settings.IntegerSetting;
 import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
+import app.hushgram.extension.instagram.feed.FeedSeekShape;
 import app.hushgram.extension.instagram.feed.OverlayLook;
 import app.hushgram.extension.instagram.feed.SeekShape;
 
@@ -80,6 +81,7 @@ public class OverlayLookSettingsTest {
         Settings.STORY_SEEK_BAR.resetToDefault();
         Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
         Settings.SEEK_BAR_SHAPE.resetToDefault();
+        Settings.FEED_SEEK_SHAPE.resetToDefault();
         Settings.FEED_DOUBLE_TAP_SKIP.resetToDefault();
         Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.resetToDefault();
         Settings.DOUBLE_TAP_SKIP_REELS.resetToDefault();
@@ -177,6 +179,39 @@ public class OverlayLookSettingsTest {
         assertEquals("A wavy line for the part played, with a tall handle.", String.valueOf(row.getSummary()));
         assertEquals("the choice is kept", SeekShape.WAVE, Settings.SEEK_BAR_SHAPE.savedValue());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SEEK_BAR_SHAPE.key));
+    }
+
+    /** #567: feed videos get a shape of their own right under Seek bar shape, the same one to start. */
+    @Test public void feedShapeSitsUnderSeekBarShapeAndStartsTheSame() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_SEEK_BAR));
+        Preference found = page.getPreferenceScreen().findPreference(Settings.FEED_SEEK_SHAPE.key);
+        assertTrue(found instanceof HushgramPreferenceFragment.ChoiceRow);
+        HushgramPreferenceFragment.ChoiceRow<?> row = (HushgramPreferenceFragment.ChoiceRow<?>) found;
+        PreferenceGroup group = (PreferenceGroup) row.getParent();
+        int shapeAt = -1;
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            if (Settings.SEEK_BAR_SHAPE.key.equals(group.getPreference(i).getKey())) shapeAt = i;
+        }
+        assertTrue(shapeAt >= 0);
+        assertEquals("right under Seek bar shape", row, group.getPreference(shapeAt + 1));
+        assertEquals("Feed seek bar shape", String.valueOf(row.getTitle()));
+        List<String> entries = new ArrayList<>();
+        for (CharSequence entry : row.getEntries()) entries.add(String.valueOf(entry));
+        assertEquals(Arrays.asList("Same as Seek bar shape", "Standard", "Thin line", "Rounded", "Expressive", "Wave"), entries);
+        assertEquals("SAME", row.getValue());
+        assertEquals("Turn on Seek bar on feed videos or its button to use this choice.", String.valueOf(row.getSummary()));
+
+        Settings.FEED_SEEK_BAR.save(true);
+        ShadowLooper.idleMainLooper();
+        row.showSummary();
+        assertEquals("Feed videos use the shape picked in Seek bar shape.", String.valueOf(row.getSummary()));
+        row.setValue("LINE");
+        ShadowLooper.idleMainLooper();
+        assertEquals(FeedSeekShape.LINE, Settings.FEED_SEEK_SHAPE.savedValue());
+        assertEquals("every other bar keeps its own", SeekShape.STANDARD, Settings.SEEK_BAR_SHAPE.savedValue());
+        assertEquals("A thin line with no handle on the bottom edge of feed videos, which grows while you drag it.",
+                String.valueOf(row.getSummary()));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FEED_SEEK_SHAPE.key));
     }
 
     private void open(EnumSet<PatchFamily> build) throws Exception {

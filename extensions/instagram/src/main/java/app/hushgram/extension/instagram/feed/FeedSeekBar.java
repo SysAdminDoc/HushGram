@@ -243,7 +243,7 @@ public final class FeedSeekBar {
             }
             GlassSeekBar seek = bar != null && bar.getParent() == frame ? bar : attach(frame, view);
             seek.look(Settings.FEED_SEEK_BAR_LOOK.get());
-            SeekShape shape = SeekShapes.wanted();
+            SeekShape shape = SeekShapes.feedWanted();
             seek.shape(shape, Settings.FEED_SEEK_BAR_ON_EDGE.get() || shape == SeekShape.LINE);
             fit(seek, ViewGroup.LayoutParams.MATCH_PARENT, barHeight(view, seek), 0);
             hiddenSince = -1;
@@ -542,7 +542,7 @@ public final class FeedSeekBar {
      * video's bottom edge and the rest of the video takes taps and scrolls as before (#567).
      */
     static int barHeight(View view, @Nullable SeekBar seek) {
-        SeekShape shape = SeekShapes.wanted();
+        SeekShape shape = SeekShapes.feedWanted();
         if (!Settings.FEED_SEEK_BAR_ON_EDGE.get() && shape != SeekShape.LINE) return dp(view, HEIGHT_DP);
         if (shape.tallHandle()) return dp(view, EDGE_TALL_DP);
         Drawable handle = seek != null ? seek.getThumb() : null;

@@ -110,6 +110,7 @@ import app.hushgram.extension.instagram.feed.AmbientSpeed;
 import app.hushgram.extension.instagram.feed.AmbientSpread;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
+import app.hushgram.extension.instagram.feed.FeedSeekShape;
 import app.hushgram.extension.instagram.feed.OverlayLook;
 import app.hushgram.extension.instagram.feed.SeekShape;
 import app.hushgram.extension.instagram.misc.CustomIcon;
@@ -856,6 +857,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.CAROUSEL_ARROWS && Settings.CAROUSEL_PILL_LOOK.key.equals(key);
                     belongs |= family == PatchFamily.FEED_SEEK_BAR && (Settings.FEED_SEEK_BAR_LOOK.key.equals(key)
                             || Settings.SEEK_BAR_SHAPE.key.equals(key)
+                            || Settings.FEED_SEEK_SHAPE.key.equals(key)
                             || Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOUBLE_TAP_SKIP
                             && Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key.equals(key);
@@ -6757,6 +6759,31 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 L10n.t("A wavy line for the part played, with a tall handle."),
         }, null);
         fill(row, Settings.SEEK_BAR_SHAPE, SeekShape.values(), new String[] {
+                L10n.t("Standard"),
+                L10n.t("Thin line"),
+                L10n.t("Rounded"),
+                L10n.t("Expressive"),
+                L10n.t("Wave"),
+        }, title);
+        return row;
+    }
+
+    /**
+     * The shape of the seek bar on feed videos alone (#567), right under Seek bar shape: the same as
+     * every other bar to start, or one of the shapes for the feed only. Its values are the choices' own names.
+     */
+    static ChoiceRow<FeedSeekShape> feedSeekShapeRow(Context context) {
+        String title = L10n.t("Feed seek bar shape");
+        ChoiceRow<FeedSeekShape> row = new ChoiceRow<>(context, Settings.FEED_SEEK_SHAPE, FeedSeekShape.values(), new String[] {
+                L10n.t("Feed videos use the shape picked in Seek bar shape."),
+                L10n.t("The bar and round handle you know, on feed videos only."),
+                L10n.t("A thin line with no handle on the bottom edge of feed videos, which grows while you drag it."),
+                L10n.t("A thicker rounded bar with no handle, on feed videos only."),
+                L10n.t("A rounded bar split by a tall handle, on feed videos only."),
+                L10n.t("A wavy line for the part played, with a tall handle, on feed videos only."),
+        }, L10n.t("Turn on Seek bar on feed videos or its button to use this choice."));
+        fill(row, Settings.FEED_SEEK_SHAPE, FeedSeekShape.values(), new String[] {
+                L10n.t("Same as Seek bar shape"),
                 L10n.t("Standard"),
                 L10n.t("Thin line"),
                 L10n.t("Rounded"),

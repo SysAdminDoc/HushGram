@@ -2342,3 +2342,19 @@ Ask for VP9 instead of AV1	ขอ VP9 แทน AV1
 Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.	บอก Instagram ว่าโทรศัพท์ของคุณไม่มีตัวถอดรหัส AV1 รีลและสตอรี่จึงมาเป็น VP9 หรือ H.264 ทั้งตอนดูและตอนบันทึก ต้องรีสตาร์ท
 # context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
 Two arrows flash on the side you double tapped, with the seconds skipped under them.	ลูกศรสองอันจะกะพริบที่ด้านที่คุณแตะสองครั้ง พร้อมจำนวนวินาทีที่ข้ามอยู่ด้านล่าง
+# context: Feed settings: choice under Seek bar shape that gives the seek bar on feed videos a shape of its own (#567)
+Feed seek bar shape	รูปทรงแถบเลื่อนเวลาในฟีด
+# context: Choice in Feed seek bar shape: feed videos follow the shape picked in Seek bar shape (#567)
+Same as Seek bar shape	เหมือนกับรูปทรงแถบเลื่อนเวลา
+# context: Summary of Same as Seek bar shape in Feed seek bar shape (#567)
+Feed videos use the shape picked in Seek bar shape.	วิดีโอในฟีดใช้รูปทรงที่เลือกไว้ในรูปทรงแถบเลื่อนเวลา
+# context: Summary of Standard in Feed seek bar shape (#567)
+The bar and round handle you know, on feed videos only.	แถบและปุ่มเลื่อนทรงกลมแบบที่คุณคุ้นเคย เฉพาะวิดีโอในฟีด
+# context: Summary of Thin line in Feed seek bar shape (#567)
+A thin line with no handle on the bottom edge of feed videos, which grows while you drag it.	เส้นบางที่ไม่มีปุ่มเลื่อนที่ขอบด้านล่างของวิดีโอในฟีด และจะขยายขึ้นขณะที่คุณลาก
+# context: Summary of Rounded in Feed seek bar shape (#567)
+A thicker rounded bar with no handle, on feed videos only.	แถบทรงมนที่หนาขึ้นและไม่มีปุ่มเลื่อน เฉพาะวิดีโอในฟีด
+# context: Summary of Expressive in Feed seek bar shape (#567)
+A rounded bar split by a tall handle, on feed videos only.	แถบทรงมนที่ถูกแบ่งด้วยปุ่มเลื่อนทรงสูง เฉพาะวิดีโอในฟีด
+# context: Summary of Wave in Feed seek bar shape (#567)
+A wavy line for the part played, with a tall handle, on feed videos only.	เส้นคลื่นแสดงส่วนที่เล่นไปแล้ว พร้อมปุ่มเลื่อนทรงสูง เฉพาะวิดีโอในฟีด

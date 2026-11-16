@@ -116,7 +116,8 @@ val feedSeekBarPatch = bytecodePatch(
         "it. One more lets a double tap on the left or right side of the video go back or ahead 10 seconds, " +
         "while the middle still likes the post, and the arrows it flashes can be turned off. Two more choose a " +
         "shape for every seek bar, story progress segments " +
-        "and videos in chats included, and show a preview above your finger while you drag one.",
+        "and videos in chats included, and show a preview above your finger while you drag one. Feed videos can " +
+        "also get a shape of their own.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, stopTabSwipingPatch)

@@ -43,6 +43,7 @@ Every HushGram release, newest first.
 * `Hide the speed lock message`, right under `Hide the 2x popup` in Reels, keeps Instagram's Locked at 2x speed message off a reel when you lock its speed, and the one it shows when the lock ends. The lock still works. Starts off. Asked for in #702 and #552.
 * `Remove hidden data from saved photos`, new under Downloads, takes Meta's FBMD tracking tag out of every photo you save, along with any camera, place or time details. The picture itself doesn't change, and `Add the source to saved photos and videos` still writes its tags after. Both switches now go into a settings backup too. Asked for in #699.
 * `Show the skip arrows` now sits under `Double tap to skip on feed videos` in Feed as well. Turn it off and a double tap still skips, with nothing flashing over the video. Asked for in #562.
+* `Feed seek bar shape`, right under `Seek bar shape` in Feed, gives feed videos a shape of their own, so the feed can have the thin line while reels and stories keep the standard bar. It starts on `Same as Seek bar shape`. Asked for in #567.
 
 ### Bug Fixes
 
