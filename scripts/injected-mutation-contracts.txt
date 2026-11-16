@@ -1551,12 +1551,20 @@ shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljav
 shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->labels([Ljava/lang/CharSequence;)[Ljava/lang/CharSequence; in static (*)[Ljava/lang/CharSequence; holding location_story_action_sheet story_highlight_action_sheet
 shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->labels([Ljava/lang/CharSequence;)[Ljava/lang/CharSequence; in static (*)[Ljava/lang/CharSequence; holding ReelOptionsOverflowHelper location_story_action_sheet
 # Each of the three builders above first tells the extension which menu it is building, from its
-# parameter of the menu's class, so a photo story with music can get its two rows. First, and once in each.
-start-call Lapp/hushgram/extension/instagram/download/StoryDownload;->building(Ljava/lang/Object;)V in static (LX/*;)[Ljava/lang/CharSequence; calling instance Lcom/instagram/model/reels/ReelItem;->*(Lcom/instagram/common/session/UserSession;)Z class-holding archive_highlight_option
+# parameter of the menu's class, so a photo story with music can get its two rows. Leave out menu
+# items tells its own extension the same menu first, so Report and Mute can go, and StoryDownload's
+# call comes right after it on the same register. Each once in each.
+start-call Lapp/hushgram/extension/instagram/feed/MenuItems;->storyMenu(Ljava/lang/Object;)V in static (LX/*;)[Ljava/lang/CharSequence; calling instance Lcom/instagram/model/reels/ReelItem;->*(Lcom/instagram/common/session/UserSession;)Z class-holding archive_highlight_option
+shared-call Lapp/hushgram/extension/instagram/feed/MenuItems;->storyMenu(Ljava/lang/Object;)V in static (LX/*;)[Ljava/lang/CharSequence; calling instance Lcom/instagram/model/reels/ReelItem;->*(Lcom/instagram/common/session/UserSession;)Z class-holding archive_highlight_option
+next-call Lapp/hushgram/extension/instagram/download/StoryDownload;->building(Ljava/lang/Object;)V after Lapp/hushgram/extension/instagram/feed/MenuItems;->storyMenu(Ljava/lang/Object;)V in static (LX/*;)[Ljava/lang/CharSequence; calling instance Lcom/instagram/model/reels/ReelItem;->*(Lcom/instagram/common/session/UserSession;)Z class-holding archive_highlight_option
 shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->building(Ljava/lang/Object;)V in static (LX/*;)[Ljava/lang/CharSequence; calling instance Lcom/instagram/model/reels/ReelItem;->*(Lcom/instagram/common/session/UserSession;)Z class-holding archive_highlight_option
-start-call Lapp/hushgram/extension/instagram/download/StoryDownload;->building(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding location_story_action_sheet story_highlight_action_sheet
+start-call Lapp/hushgram/extension/instagram/feed/MenuItems;->storyMenu(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding location_story_action_sheet story_highlight_action_sheet
+shared-call Lapp/hushgram/extension/instagram/feed/MenuItems;->storyMenu(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding location_story_action_sheet story_highlight_action_sheet
+next-call Lapp/hushgram/extension/instagram/download/StoryDownload;->building(Ljava/lang/Object;)V after Lapp/hushgram/extension/instagram/feed/MenuItems;->storyMenu(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding location_story_action_sheet story_highlight_action_sheet
 shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->building(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding location_story_action_sheet story_highlight_action_sheet
-start-call Lapp/hushgram/extension/instagram/download/StoryDownload;->building(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding ReelOptionsOverflowHelper location_story_action_sheet
+start-call Lapp/hushgram/extension/instagram/feed/MenuItems;->storyMenu(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding ReelOptionsOverflowHelper location_story_action_sheet
+shared-call Lapp/hushgram/extension/instagram/feed/MenuItems;->storyMenu(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding ReelOptionsOverflowHelper location_story_action_sheet
+next-call Lapp/hushgram/extension/instagram/download/StoryDownload;->building(Ljava/lang/Object;)V after Lapp/hushgram/extension/instagram/feed/MenuItems;->storyMenu(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding ReelOptionsOverflowHelper location_story_action_sheet
 shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->building(Ljava/lang/Object;)V in static (*)[Ljava/lang/CharSequence; holding ReelOptionsOverflowHelper location_story_action_sheet
 # Your own highlights' menus are built as a list (#339): the builder holding story_highlight_action_sheet
 # and itas-android, and the class's one static taking the menu alone and answering a list, picked by
@@ -1632,6 +1640,9 @@ once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->allow(Ljava/ut
 # arm64's builder has one return; the other ABIs merge it into a switch with 9 to 22, each settled.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in (*)Ljava/lang/Object; pooled holding cns_client_event
 once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->settle(Ljava/lang/Object;)V in (*)Ljava/lang/Object; sites returns pooled holding cns_client_event
+# Leave out menu items takes the rows named in its setting out of the same list after they're
+# settled, its call between settle's and each return. Left out, a left-out row stays in the menu.
+once-call Lapp/hushgram/extension/instagram/feed/MenuItems;->feedRows(Ljava/lang/Object;)V in (*)Ljava/lang/Object; sites returns pooled holding cns_client_event
 once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->allow(Ljava/util/List;)Ljava/util/List; in static (Z)Ljava/util/List; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->WHY_AM_I_SEEING_THIS:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->REPORT:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
 # Hide Made with Edits (#570) hands the label kinds list to EditsLabel.labels in the constructor of
 # the feed header's label state, right before it's stored (the one constructor of that 22-value

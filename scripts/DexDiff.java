@@ -2234,13 +2234,16 @@ public class DexDiff {
      * A once-call or shared-call rule's "sites returns": the hook goes in once right before each
      * return-object of its method, however many Redex leaves there. Save in the post menu's settle
      * call sits before the one return of 454 arm64's feed menu builder, and before each of 9 to 22
-     * where the other ABIs merged that builder into a switch.
+     * where the other ABIs merged that builder into a switch. Other hooks a later patch puts at the
+     * same returns may come between, as long as each is a static call into the extension answering
+     * nothing: Leave out menu items' feedRows follows settle there.
      */
     static final int SITES_RETURNS = -1;
 
     /**
      * Why the calls at [sites] aren't each right before a return-object of [body], one per return,
-     * or null when they are.
+     * or null when they are. A run of the extension's void static calls between one and its return
+     * still counts as right before.
      */
     static String beforeEachReturn(List<Instruction> body, List<Integer> sites) {
         int returns = 0;
@@ -2248,12 +2251,22 @@ public class DexDiff {
         for (int k = 0; k < body.size(); k++) {
             if (body.get(k).getOpcode() != Opcode.RETURN_OBJECT) continue;
             returns++;
-            if (!sites.contains(k - 1)) bare.add(k);
+            int before = k - 1;
+            while (before >= 0 && !sites.contains(before) && isExtensionVoidCall(body.get(before))) before--;
+            if (!sites.contains(before)) bare.add(k);
         }
         if (returns == 0) return "it has no return-object";
         if (!bare.isEmpty()) return bare.size() + " of its " + returns + " return-object without the call right before, at " + bare;
         if (sites.size() != returns) return sites.size() - returns + " more than its " + returns + " return-object";
         return null;
+    }
+
+    /** Whether [i] is an invoke-static of a HushGram extension method answering nothing. */
+    private static boolean isExtensionVoidCall(Instruction i) {
+        if (i.getOpcode() != Opcode.INVOKE_STATIC && i.getOpcode() != Opcode.INVOKE_STATIC_RANGE) return false;
+        if (!(i instanceof ReferenceInstruction) || !(((ReferenceInstruction) i).getReference() instanceof MethodReference)) return false;
+        MethodReference callee = (MethodReference) ((ReferenceInstruction) i).getReference();
+        return callee.getDefiningClass().startsWith("Lapp/hushgram/extension/") && callee.getReturnType().equals("V");
     }
 
     /** The index in [body] of each invoke of [callee]. */
