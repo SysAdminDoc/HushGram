@@ -131,6 +131,8 @@ public final class StorySeekBar {
     private static Player player = PATCHED;
     /** What tests say the system's bars cover at the window's bottom, in pixels, or -1 to read the window. */
     private static int systemBottomForTests = -1;
+    /** What tests say the swipe area covers at the window's bottom, in pixels, or -1 for just the bars. */
+    private static int swipeBottomForTests = -1;
     private static final ResourceIdCache ids = new ResourceIdCache();
     @Nullable private static Overlay current;
     private static volatile boolean logged;
@@ -196,6 +198,11 @@ public final class StorySeekBar {
     }
 
     @VisibleForTesting
+    static void swipeBottomForTests(int pixels) {
+        swipeBottomForTests = pixels;
+    }
+
+    @VisibleForTesting
     @Nullable
     static SeekBar barForTests() {
         Overlay overlay = current;
@@ -209,6 +216,7 @@ public final class StorySeekBar {
         current = null;
         player = PATCHED;
         systemBottomForTests = -1;
+        swipeBottomForTests = -1;
         ids.clear();
         logged = false;
     }
@@ -383,10 +391,11 @@ public final class StorySeekBar {
          * <p>Placed below (#636), the bar sits in the middle of the space between the lowest row's
          * bottom and the system's bars or swipe area, as tall as fits there up to {@link #HEIGHT_DP},
          * so it never covers the row. A row's bottom padding counts as free, since an edge-to-edge
-         * row pads itself clear of the swipe area. With less than {@link #BELOW_MIN_DP} free, the rows
-         * are lifted just enough to make that room, and the bar sits under them at that height.
-         * When the row is already under the system's bars or the keyboard, nothing is lifted and the
-         * bar stays above.
+         * row pads itself clear of the swipe area, and so does the strip under the row's box and
+         * buttons where it draws nothing. With less than {@link #BELOW_MIN_DP} free, the rows are
+         * lifted just enough to make that room above the swipe area, and the bar sits under them at
+         * that height. When the row's box is already under the system's bars or the keyboard,
+         * nothing is lifted and the bar stays above.
          */
         private void place(Object owner, SeekBar seek) {
             ViewGroup parent = (ViewGroup) seek.getParent();
@@ -412,7 +421,8 @@ public final class StorySeekBar {
                     if (ANCHORS[i].equals(COMMENT_LINE)) {
                         if (above * 2 > parent.getHeight()) continue;
                     } else {
-                        int below = Math.max(0, above - box.getHeight() + box.getPaddingBottom());
+                        int free = Math.max(box.getPaddingBottom(), emptyBelow(box));
+                        int below = Math.max(0, above - box.getHeight() + free);
                         under = under < 0 ? below : Math.min(under, below);
                     }
                     highest = Math.max(highest, above);
@@ -420,14 +430,17 @@ public final class StorySeekBar {
                 }
                 if (highest > 0) bottom = highest;
                 if (under >= 0 && Settings.STORY_SEEK_BAR_POSITION.get() == StorySeekBarPosition.BELOW) {
-                    int clear = seek.getRootView().getHeight() - systemBottom(seek);
-                    int covered = Math.max(0, frame[1] + parent.getHeight() - clear);
+                    int window = seek.getRootView().getHeight();
+                    int frameBottom = frame[1] + parent.getHeight();
+                    // The bars and keyboard hide what's under them; the swipe area only takes the drags.
+                    int hidden = Math.max(0, frameBottom - (window - systemBottom(seek, false)));
+                    int covered = Math.max(hidden, frameBottom - (window - systemBottom(seek, true)));
                     int room = under - covered;
                     int least = dp(seek, BELOW_MIN_DP);
                     if (room >= least) {
                         height = Math.min(height, room);
                         bottom = covered + (room - height) / 2;
-                    } else if (room >= 0) {
+                    } else if (under >= hidden) {
                         lift = least - room;
                         height = least;
                         bottom = covered;
@@ -616,18 +629,52 @@ public final class StorySeekBar {
         return Math.max(0, Math.min(at[0] + view.getWidth(), frame[0] + parent.getWidth()) - Math.max(at[0], frame[0]));
     }
 
-    /** How far up from the window's bottom the system's bars, swipe area and any keyboard reach, in pixels. */
+    /**
+     * How much of [row]'s bottom has nothing drawn in it, in pixels (#636): Instagram's Send message
+     * row keeps a strip under its box and buttons, which is room for the bar. Anything with a
+     * background counts as drawn whole, so a row with its own background, or with nothing drawn in
+     * it, gives 0.
+     */
+    static int emptyBelow(View row) {
+        int lowest = drawnBottom(row, 0, 0);
+        return lowest < 0 ? 0 : Math.max(0, row.getHeight() - lowest);
+    }
+
+    /** The lowest edge of what [view] draws, [top] pixels down from the row's top, or -1 for nothing. */
+    private static int drawnBottom(View view, int top, int depth) {
+        if (view.getVisibility() != View.VISIBLE || view.getWidth() <= 0 || view.getHeight() <= 0) return -1;
+        int bottom = top + view.getHeight();
+        if (!(view instanceof ViewGroup) || view.getBackground() != null || depth >= 16) return bottom;
+        ViewGroup group = (ViewGroup) view;
+        int lowest = -1;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            int at = top + child.getTop() + Math.round(child.getTranslationY());
+            lowest = Math.max(lowest, drawnBottom(child, at, depth + 1));
+        }
+        return lowest;
+    }
+
+    /**
+     * How far up from the window's bottom the system's bars and any keyboard reach, in pixels, and
+     * with [swipe] the swipe area along the bottom too, where a drag goes home instead of to the bar.
+     * On gesture navigation that area reaches well above the bar at the bottom (#636).
+     */
     @SuppressWarnings("deprecation")
-    private static int systemBottom(View view) {
-        if (systemBottomForTests >= 0) return systemBottomForTests;
+    private static int systemBottom(View view, boolean swipe) {
+        if (systemBottomForTests >= 0 || swipeBottomForTests >= 0) {
+            int bars = Math.max(0, systemBottomForTests);
+            return swipe ? Math.max(bars, swipeBottomForTests) : bars;
+        }
         WindowInsets insets = view.getRootWindowInsets();
         if (insets == null) return 0;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            return insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.mandatorySystemGestures()
-                    | WindowInsets.Type.ime()).bottom;
+            int types = WindowInsets.Type.systemBars() | WindowInsets.Type.ime();
+            if (swipe) types |= WindowInsets.Type.mandatorySystemGestures();
+            return insets.getInsets(types).bottom;
         }
         int bottom = insets.getSystemWindowInsetBottom();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (swipe && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             bottom = Math.max(bottom, insets.getMandatorySystemGestureInsets().bottom);
         }
         return bottom;

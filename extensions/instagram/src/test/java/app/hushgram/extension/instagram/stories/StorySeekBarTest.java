@@ -477,6 +477,87 @@ public class StorySeekBarTest {
         assertEquals(32, height(bar()));
     }
 
+    /**
+     * #636: the Send message row leaves a strip under its box and buttons with nothing drawn in it,
+     * and the bar takes that strip without lifting the row. A row with its own background is drawn
+     * down to its bottom, so it has no such strip.
+     */
+    @Test
+    public void belowUsesTheEmptyStripUnderTheRowsBox() {
+        LinearLayout footer = rowWithBoxOver(0);
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals("the 23 pixels under the box", 23, height(bar()));
+        assertEquals(0, margin(bar()));
+        assertEquals("nothing lifted", 0f, footer.getTranslationY(), 0f);
+
+        footer.setBackgroundColor(0xFF000000);
+        tick();
+        idle();
+        assertEquals("up the 16 pixels the bar needs", -16f, footer.getTranslationY(), 0f);
+        assertEquals(16, height(bar()));
+        assertEquals(0, margin(bar()));
+    }
+
+    /**
+     * #636: on gesture navigation the swipe area along the bottom reaches above the bar there, and a
+     * full-screen story's row sits right on that bar. The row goes up until the bar fits between its
+     * box and the swipe area. A keyboard over the box still sends the bar above.
+     */
+    @Test
+    public void belowLiftsTheRowClearOfTheSwipeArea() {
+        LinearLayout footer = rowWithBoxOver(0);
+        int pastFrame = pastFrame();
+        StorySeekBar.systemBottomForTests(pastFrame);
+        StorySeekBar.swipeBottomForTests(pastFrame + 48);
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals("up the 16 plus the 25 the swipe area takes past the 23 free", -41f, footer.getTranslationY(), 0f);
+        assertEquals(16, height(bar()));
+        assertEquals("right on the swipe area", 48, margin(bar()));
+        tick();
+        idle();
+        assertEquals("not lifted again on its own room", -41f, footer.getTranslationY(), 0f);
+        assertEquals(48, margin(bar()));
+
+        StorySeekBar.systemBottomForTests(pastFrame + 300);
+        StorySeekBar.swipeBottomForTests(pastFrame + 300);
+        tick();
+        idle();
+        assertEquals("a keyboard over the box puts it back", 0f, footer.getTranslationY(), 0f);
+        assertEquals("and the bar goes above the row", 181, margin(bar()));
+        assertEquals(32, height(bar()));
+    }
+
+    /**
+     * The Send message row as Instagram lays it out: a 135 pixel box 23 pixels down with nothing
+     * drawn in the 23 pixels under it, plus a stub that never inflated.
+     */
+    private LinearLayout rowWithBoxOver(int space) {
+        LinearLayout footer = (LinearLayout) rowOver(space);
+        FrameLayout box = new FrameLayout(activity);
+        box.addView(new View(activity), new FrameLayout.LayoutParams(200, 135));
+        LinearLayout.LayoutParams at = new LinearLayout.LayoutParams(200, 135);
+        at.topMargin = 23;
+        footer.addView(box, at);
+        View stub = new View(activity);
+        stub.setVisibility(View.GONE);
+        footer.addView(stub, new LinearLayout.LayoutParams(50, 181));
+        idle();
+        return footer;
+    }
+
+    /** How far the window reaches past the bottom of the bar's frame, in pixels. */
+    private int pastFrame() {
+        int[] frame = new int[2];
+        content.getLocationInWindow(frame);
+        return content.getRootView().getHeight() - frame[1] - content.getHeight();
+    }
+
     /** The 181 pixel row along a story's bottom on 453, [space] pixels over the viewer's bottom, with the old box's stub never inflated. */
     private View rowOver(int space) {
         viewerView.removeView(composer);
