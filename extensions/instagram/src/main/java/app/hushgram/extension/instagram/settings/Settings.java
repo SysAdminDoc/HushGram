@@ -1441,6 +1441,15 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_story_ring_color", StoryRingColor.INSTAGRAM, true, parent(STORY_RING));
 
     /**
+     * While {@link #STORY_RING} is on, the ring around a profile picture is drawn only in the stories
+     * row at the top of Home, and nowhere else: a post's header, comments, reels, profiles (#719,
+     * {@link app.hushgram.extension.instagram.stories.StoryRing#hides}). The pictures stay. Read as
+     * each ring draws, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_OTHER_STORY_RINGS =
+            new BooleanSetting("hushgram_hide_other_story_rings", FALSE, parent(STORY_RING));
+
+    /**
      * The progress bar along the top of a story is drawn {@link #STORY_BAR_THICKNESS} times as thick
      * ({@link app.hushgram.extension.instagram.stories.StoryProgressBar}, #360). Nothing Instagram
      * stores is written, so off or paused, the bar is Instagram's again at once. Off to start.

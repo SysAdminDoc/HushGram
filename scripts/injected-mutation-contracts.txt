@@ -2064,6 +2064,14 @@ start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I 
 once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I in static (Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;[F[F[F[III)Landroid/graphics/LinearGradient; holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
 start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I in instance ([F[F[F[III)V holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
 once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I in instance ([F[F[F[III)V holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
+# Hide rings outside the stories row (#719) asks StoryRing.hides first in the ring view's own
+# onDraw(Canvas), and returns before anything is drawn on a yes. The draw loads no string, so the
+# rules hold it by the two calls it makes that Redex leaves alone: it records into a Picture and
+# asks the ring for its current paint. Left out, every ring draws whatever the switch says; twice
+# or elsewhere, it isn't the guard the patch wrote. StoryRingDrawHookTest checks every declared
+# fixture.
+start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->hides(Landroid/view/View;)I in instance (Landroid/graphics/Canvas;)V holding Landroid/graphics/Picture;->beginRecording(II)Landroid/graphics/Canvas; Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->getCurrentPaint()Landroid/graphics/Paint;
+once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->hides(Landroid/view/View;)I in instance (Landroid/graphics/Canvas;)V holding Landroid/graphics/Picture;->beginRecording(II)Landroid/graphics/Canvas; Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->getCurrentPaint()Landroid/graphics/Paint;
 # Hide the Repost button answers FALSE first thing in the post model's getter of
 # enable_media_notes_production, the one instance method taking nothing and answering a Boolean
 # that loads the field's name (Media.A3o on 449). Its other hooks filter the reads of the field

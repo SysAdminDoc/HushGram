@@ -86,6 +86,9 @@ final class StoriesCategory {
                             + "change.")));
             stories.add(storyRingRow(context));
             stories.add(storyRingColorRow(context));
+            stories.add(toggle(context, Settings.HIDE_OTHER_STORY_RINGS, L10n.t("Hide rings outside the stories row"),
+                    L10n.t("Takes the story and live rings off profile pictures on posts, comments, reels and "
+                            + "profiles. The pictures stay, and so do the rings in the stories row.")));
         }
         if (build.contains(PatchFamily.SMOOTH_STORY_OPEN)) {
             stories.add(toggle(context, Settings.SMOOTH_STORY_OPEN, L10n.t("Smooth story opening"),

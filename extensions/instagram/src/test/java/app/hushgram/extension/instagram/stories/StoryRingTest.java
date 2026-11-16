@@ -12,6 +12,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+
+import org.robolectric.RuntimeEnvironment;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -56,6 +63,8 @@ public class StoryRingTest {
         Settings.STORY_RING.resetToDefault();
         Settings.STORY_RING_SCALE.resetToDefault();
         Settings.STORY_RING_COLOR.resetToDefault();
+        Settings.HIDE_OTHER_STORY_RINGS.resetToDefault();
+        StoryRing.trayId = 0;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -356,6 +365,118 @@ public class StoryRingTest {
 
     private static boolean isPink(int color) {
         return hue(color) >= 320 && hue(color) <= 350;
+    }
+
+    /** A stand-in for the id of Instagram's reels_tray_container, which the test's resources don't have. */
+    private static final int TRAY = 0x7f0b3a00;
+
+    /**
+     * The stories row as Instagram's view tree holds it on 454: the row's container, its list, an
+     * item, the avatar view, its inner frame and the avatar's container, with the ring six levels
+     * below the container.
+     */
+    private static View ringInTheRow() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout tray = new FrameLayout(context);
+        tray.setId(TRAY);
+        ViewGroup parent = tray;
+        for (int level = 0; level < 5; level++) {
+            FrameLayout child = new FrameLayout(context);
+            parent.addView(child);
+            parent = child;
+        }
+        View ring = new View(context);
+        parent.addView(ring);
+        return ring;
+    }
+
+    /** A post header's ring: inside a list and a header row, with no stories row above it. */
+    private static View ringOnAPost() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout list = new FrameLayout(context);
+        list.setId(0x7f0b0001);
+        FrameLayout header = new FrameLayout(context);
+        list.addView(header);
+        View ring = new View(context);
+        header.addView(ring);
+        return ring;
+    }
+
+    /** Off to start: every ring draws, in the row and everywhere else. */
+    @Test
+    public void hidingStartsOff() {
+        StoryRing.trayId = TRAY;
+        assertFalse(Settings.HIDE_OTHER_STORY_RINGS.get());
+        assertEquals(0, StoryRing.hides(ringOnAPost()));
+        assertEquals(0, StoryRing.hides(ringInTheRow()));
+    }
+
+    /** On, a ring outside the stories row skips its draw and a ring in the row keeps it (#719). */
+    @Test
+    public void onlyTheRowKeepsItsRings() {
+        StoryRing.trayId = TRAY;
+        Settings.HIDE_OTHER_STORY_RINGS.save(true);
+        assertEquals("a post's ring", 1, StoryRing.hides(ringOnAPost()));
+        assertEquals("a ring with no parent", 1, StoryRing.hides(new View(RuntimeEnvironment.getApplication())));
+        assertEquals("the row's ring", 0, StoryRing.hides(ringInTheRow()));
+    }
+
+    /** Only parents count, and only {@link StoryRing#TRAY_DEPTH} of them. */
+    @Test
+    public void theRowIsLookedForAboveTheRingOnly() {
+        Context context = RuntimeEnvironment.getApplication();
+        View self = new View(context);
+        self.setId(TRAY);
+        assertFalse("the ring's own id", StoryRing.inside(self, TRAY));
+
+        FrameLayout tray = new FrameLayout(context);
+        tray.setId(TRAY);
+        ViewGroup parent = tray;
+        for (int level = 1; level < StoryRing.TRAY_DEPTH; level++) {
+            FrameLayout child = new FrameLayout(context);
+            parent.addView(child);
+            parent = child;
+        }
+        View deepest = new View(context);
+        parent.addView(deepest);
+        assertTrue("the row's container as the last parent looked at", StoryRing.inside(deepest, TRAY));
+        FrameLayout further = new FrameLayout(context);
+        parent.removeView(deepest);
+        parent.addView(further);
+        further.addView(deepest);
+        assertFalse("one level past the depth", StoryRing.inside(deepest, TRAY));
+    }
+
+    /** The switch under Story ring size needs Story ring size on, and the pause and settings come first. */
+    @Test
+    public void everyRingDrawsWhileOffPausedOrNotReady() {
+        StoryRing.trayId = TRAY;
+        Settings.HIDE_OTHER_STORY_RINGS.save(true);
+        View post = ringOnAPost();
+
+        Settings.STORY_RING.save(false);
+        assertEquals("Story ring size off", 0, StoryRing.hides(post));
+        Settings.STORY_RING.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 0, StoryRing.hides(post));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertEquals("no context", 0, StoryRing.hides(post)));
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertEquals("before the pause is decided", 0, StoryRing.hides(post)));
+        assertEquals("no ring", 0, StoryRing.hides(null));
+        assertEquals("on again", 1, StoryRing.hides(post));
+    }
+
+    /** Without the row's id there's no telling the row from the rest, so every ring stays. */
+    @Test
+    public void everyRingDrawsWhenTheRowCantBeFound() {
+        StoryRing.trayId = 0;
+        Settings.HIDE_OTHER_STORY_RINGS.save(true);
+        assertEquals(0, StoryRing.hides(ringOnAPost()));
+        assertEquals(0, StoryRing.trayId);
     }
 
     /**

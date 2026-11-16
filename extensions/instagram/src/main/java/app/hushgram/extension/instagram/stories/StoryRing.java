@@ -4,6 +4,10 @@
  */
 package app.hushgram.extension.instagram.stories;
 
+import android.content.Context;
+import android.view.View;
+import android.view.ViewParent;
+
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -40,8 +44,17 @@ public final class StoryRing {
 
     private static final float[] INSTAGRAM_STOPS = {FIRST_STOP, SECOND_STOP, THIRD_STOP, FOURTH_STOP};
 
+    /** The view holding the stories row at the top of Home, under the name Instagram's resources give it. */
+    static final String TRAY = "reels_tray_container";
+    /** How many levels up from a ring to look for {@link #TRAY}. A ring in the row sits six below it. */
+    static final int TRAY_DEPTH = 12;
+
     private static volatile boolean logged;
     private static volatile boolean colorLogged;
+    private static volatile boolean hideLogged;
+    private static volatile boolean trayLogged;
+    /** {@link #TRAY}'s id once found, 0 until then. Tests set it, since their resources don't have it. */
+    static volatile int trayId;
 
     private StoryRing() {
     }
@@ -98,6 +111,66 @@ public final class StoryRing {
             HookStatus.threw(FamilyNames.STORY_RING, "ring color", failure);
             return colors;
         }
+    }
+
+    /**
+     * Injected first in the ring view's own draw (#719). Answers 1, so the ring draws nothing this
+     * frame, while Hide rings outside the stories row is on and [ring] sits anywhere but inside the
+     * stories row at the top of Home: a post's header, a comment, a reel, a profile. The picture
+     * inside the ring is a view of its own and stays. Answers 0, and Instagram draws the ring, in
+     * the stories row, while the switch is off or paused, before the settings are ready, when the
+     * row's id can't be found and when anything goes wrong. Never throws.
+     */
+    public static int hides(View ring) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_RING);
+            if (ring == null || !Utils.settingsReady() || !Settings.STORY_RING.get()
+                    || !Settings.HIDE_OTHER_STORY_RINGS.get()) {
+                return 0;
+            }
+            int tray = trayId(ring);
+            if (tray == 0) return 0;
+            if (inside(ring, tray)) return 0;
+            if (!hideLogged) {
+                hideLogged = true;
+                Logger.printDebug(() -> "Story ring size: hiding rings outside the stories row");
+            }
+            return 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_RING, "hide ring", failure);
+            return 0;
+        }
+    }
+
+    /**
+     * Whether a parent of [ring], no more than {@link #TRAY_DEPTH} levels up, has the id [tray]. A
+     * ring in the stories row is six levels below the row's container, and every other ring is
+     * under no such container at all.
+     */
+    static boolean inside(View ring, int tray) {
+        ViewParent parent = ring.getParent();
+        for (int level = 0; level < TRAY_DEPTH && parent instanceof View; level++) {
+            if (((View) parent).getId() == tray) return true;
+            parent = parent.getParent();
+        }
+        return false;
+    }
+
+    /** The id of the stories row's container, looked up once. 0 while it can't be found. */
+    private static int trayId(View ring) {
+        int known = trayId;
+        if (known != 0) return known;
+        Context context = ring.getContext();
+        known = context.getResources().getIdentifier(TRAY, "id", Utils.resourcePackage(context));
+        if (known == 0) {
+            if (!trayLogged) {
+                trayLogged = true;
+                Logger.printDebug(() -> "Story ring size: no " + TRAY + " id, so every ring stays");
+            }
+            return 0;
+        }
+        trayId = known;
+        return known;
     }
 
     /**
