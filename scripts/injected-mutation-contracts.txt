@@ -3228,6 +3228,11 @@ once-call Lapp/hushgram/extension/instagram/feed/CarouselPeek;->buffer(Ljava/lan
 # a hold on a reel never saves; twice or elsewhere, it isn't the call the patch wrote.
 start-call Lapp/hushgram/extension/instagram/download/HoldDownload;->reelTouch(Ljava/lang/Object;Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsItemGestureDetector_onTouch
 once-call Lapp/hushgram/extension/instagram/download/HoldDownload;->reelTouch(Ljava/lang/Object;Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsItemGestureDetector_onTouch
+# Ask for VP9 instead of AV1 (#546). The device status builder, the one static method returning a
+# map that loads hw_av1_dec and 10bit_hw_av1_dec, hands each of those two answers to
+# Vp9Video.hardwareAv1 right before it goes in the map. Left out, the server still sends AV1-only
+# video to a phone with an AV1 decoder; anywhere else, it isn't the hook.
+once-call Lapp/hushgram/extension/instagram/download/Vp9Video;->hardwareAv1(Ljava/lang/Object;)Ljava/lang/Object; in static (*)Ljava/util/Map; sites 2 pooled holding hw_av1_dec 10bit_hw_av1_dec
 # Pure black dark mode paints the comments sheet (#108). The bottom sheet host's (Context, Fragment,
 # int) set-up method, the one method holding the host's kept name, hands the host and its screen to
 # CommentsSheet.paint before each of its two returns. Its public (int, int) drag method, the one

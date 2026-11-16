@@ -578,6 +578,35 @@ public class DownloadSettingsTest {
     }
 
     /**
+     * With Ask for VP9 instead of AV1 in the build, its switch sits between Never save AV1 video and
+     * Never save HDR video, starts off and goes into a settings backup. Without it, no row (#546).
+     */
+    @Test
+    public void theVp9SwitchSitsUnderTheAv1One() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.VP9_VIDEO);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int noAv1 = indexOfKey(rows, Settings.DOWNLOAD_NO_AV1.key);
+            int vp9 = indexOfKey(rows, Settings.ASK_FOR_VP9.key);
+            assertEquals("the VP9 switch isn't right under the AV1 one", noAv1 + 1, vp9);
+            assertEquals("the HDR switch isn't right under the VP9 one", vp9 + 1, indexOfKey(rows, Settings.DOWNLOAD_NO_HDR.key));
+            Preference row = rows.get(vp9);
+            assertTrue(row instanceof SwitchPreference);
+            assertFalse(((SwitchPreference) row).isChecked());
+            assertEquals("Ask for VP9 instead of AV1", String.valueOf(row.getTitle()));
+            assertEquals("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, "
+                    + "both to watch and to save. Takes a restart.", String.valueOf(row.getSummary()));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ASK_FOR_VP9.key));
+        }
+
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals("a VP9 row without its patch", -1, indexOfKey(rowsOf(pageIn(controller)), Settings.ASK_FOR_VP9.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.ASK_FOR_VP9.key));
+        }
+    }
+
+    /**
      * The download quality's row offers every quality, says what the chosen one does, and a pick
      * reaches the setting the way the list's own dialog sends it. It sits above the folder.
      */

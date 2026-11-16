@@ -128,6 +128,11 @@ final class DownloadsCategory {
                     L10n.t("For phones that play AV1 badly. A video Instagram has at full size only as AV1 is saved "
                             + "as VP9 when it has one, or at its largest H.264 size. Convert to keep the full size "
                             + "then converts only VP9.")));
+            if (build.contains(PatchFamily.VP9_VIDEO)) {
+                downloads.addPreference(toggle(context, Settings.ASK_FOR_VP9, L10n.t("Ask for VP9 instead of AV1"),
+                        L10n.t("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or "
+                                + "H.264, both to watch and to save. Takes a restart.")));
+            }
             downloads.addPreference(toggle(context, Settings.DOWNLOAD_NO_HDR, L10n.t("Never save HDR video"),
                     L10n.t("For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram "
                             + "has at full size only in HDR is saved at its largest standard size instead.")));

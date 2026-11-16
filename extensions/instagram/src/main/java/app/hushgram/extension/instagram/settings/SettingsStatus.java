@@ -566,6 +566,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Ask for VP9 instead of AV1 patch. */
+    public static boolean vp9Video() {
+        return false;
+    }
+
     public static boolean doubleTapLike() {
         return false;
     }

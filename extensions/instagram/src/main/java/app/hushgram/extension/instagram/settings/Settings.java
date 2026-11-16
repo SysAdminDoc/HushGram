@@ -4362,6 +4362,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_no_av1", FALSE);
 
     /**
+     * Instagram's device status says the phone has no AV1 hardware decoder
+     * ({@link app.hushgram.extension.instagram.download.Vp9Video}), so reels and stories come as
+     * VP9 or H.264, to watch and to save (#546). The status is built once a run, so a change takes a
+     * restart. Off to start.
+     */
+    public static final BooleanSetting ASK_FOR_VP9 =
+            new BooleanSetting("hushgram_ask_for_vp9", FALSE, true);
+
+    /**
      * Passes HDR tracks over (#352), 10-bit ones included: a video Instagram has at full size only
      * in HDR is saved at its largest standard range size, so an app that plays HDR as SDR with a
      * yellow or green cast, Messenger among them, shows the save as the reel looked. A cover frame

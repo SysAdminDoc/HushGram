@@ -742,6 +742,15 @@
       },
       "anchors": [
         {
+          "title": "Ask for VP9 instead of AV1",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Ask for VP9 instead of AV1"
+            ]
+          }
+        },
+        {
           "title": "Download feed videos",
           "when": {
             "op": "any",
