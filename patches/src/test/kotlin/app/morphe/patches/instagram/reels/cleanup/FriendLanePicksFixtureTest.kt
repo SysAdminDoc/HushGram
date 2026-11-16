@@ -41,7 +41,8 @@ class FriendLanePicksFixtureTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         for (wanted in listOf(
-            FRIEND_PICKS_FILTER.substringAfter("->"), "media(Ljava/lang/Object;)Ljava/lang/Object;",
+            FRIEND_PICKS_FILTER.substringAfter("->"), FRIEND_PICKS_ADDED.substringAfter("->"),
+            "media(Ljava/lang/Object;)Ljava/lang/Object;",
             "socialContexts(Ljava/lang/Object;)Ljava/util/List;", "faces(Ljava/lang/Object;)Ljava/util/List;",
             "sourceUser(Ljava/lang/Object;)Ljava/lang/Object;", "topLikers(Ljava/lang/Object;)Ljava/util/List;",
             "username(Ljava/lang/Object;)Ljava/lang/String;",

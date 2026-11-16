@@ -15,6 +15,8 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.reels.cleanup.FRIEND_LANE_PICKS
+import app.morphe.patches.instagram.reels.cleanup.FRIEND_PICKS_ADDED
 import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -296,6 +298,33 @@ class HideLiveReelsHookTest {
         assertEquals("$dataSource->size()I", sites.size.toString())
         assertEquals(listOf("add($listType)V" to 0, "insert(I$listType)Z" to 1), sites.inserts)
         assertInsertsFiltered("the stand-in", stock.single { it.type == dataSource }, context, sites)
+    }
+
+    /**
+     * Clean up Reels hooks the same add and insert for the Friends tab picks (#503). Its hook lands
+     * ahead of this patch's, both read the list from the parameter, and a build whose extension lacks
+     * its filter is refused under its own name.
+     */
+    @Test
+    fun theFriendsTabPicksHookTheSameAddAndInsertAheadOfTheLives() {
+        val context = PatchContexts.of(dataSourceClasses() + ExtensionDex.classDef(FRIEND_LANE_PICKS))
+        context.filterReelsItemInserts(context.findReelsItemInserts())
+        val friends = context.findReelsItemInserts("Clean up Reels", FRIEND_LANE_PICKS)
+        context.filterReelsItemInserts(friends, FRIEND_PICKS_ADDED)
+
+        val patched = context.mutableClassDefBy(dataSource).methods
+        for ((descriptor, _) in friends.inserts) {
+            val code = patched.single { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == descriptor }.code()
+            assertEquals(
+                "$descriptor: the friends filter first, then the lives",
+                listOf(FRIEND_PICKS_ADDED, LIVE_ADDED_FILTER),
+                code.take(16).filter { it.opcode == Opcode.INVOKE_STATIC }.map { it.referenceText() },
+            )
+        }
+
+        val bare = PatchContexts.of(dataSourceClasses(extension = false))
+        val failure = assertThrows(PatchException::class.java) { bare.findReelsItemInserts("Clean up Reels", FRIEND_LANE_PICKS) }
+        assertEquals("Clean up Reels: the extension has no static added(List, String, int)List", failure.message)
     }
 
     /** A data source the patch can't read fails at patch time, saying what it found, before anything is written. */

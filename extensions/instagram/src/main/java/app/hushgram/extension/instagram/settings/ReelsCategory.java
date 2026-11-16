@@ -142,8 +142,7 @@ final class ReelsCategory {
                             + "it still comes from Instagram, so it can be empty. Hide the Friends tab wins.")));
             reels.add(toggle(context, Settings.PICK_FRIENDS_TAB, L10n.t("Hold the Friends tab to pick friends"),
                     L10n.t("Hold the Friends tab on Reels and pick from the friends it has shown you. It then keeps "
-                            + "only reels they liked or shared. A page with none of them keeps one reel so the next "
-                            + "page can load.")));
+                            + "only reels they liked or shared.")));
             reels.add(toggle(context, Settings.HIDE_REEL_LIKE_BUTTON, L10n.t("Hide the Like button on reels"),
                     L10n.t("Takes the heart out of the column of buttons beside a reel, and the like count under it. "
                             + "Double tap still likes a reel.")));

@@ -18,6 +18,8 @@ import app.morphe.patches.instagram.reels.partnership.fillReelsItemMedia
 import app.morphe.patches.instagram.reels.partnership.fillStub
 import app.morphe.patches.instagram.reels.partnership.filterReelsPage
 import app.morphe.patches.instagram.reels.partnership.isStaticStub
+import app.morphe.patches.instagram.reels.live.ReelsItemInserts
+import app.morphe.patches.instagram.reels.live.filterReelsItemInserts
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -28,6 +30,9 @@ private const val PATCH = "Clean up Reels"
 
 internal const val FRIEND_LANE_PICKS = "$EXTENSION_PACKAGE/reels/FriendLanePicks;"
 internal const val FRIEND_PICKS_FILTER = "$FRIEND_LANE_PICKS->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List;"
+
+/** Takes the reel a pick-less page kept back off the Friends tab once its viewer holds others (#503). */
+internal const val FRIEND_PICKS_ADDED = "$FRIEND_LANE_PICKS->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List;"
 
 /** What a post says about friends and it, the public interface over Instagram's two models of it. */
 internal const val SOCIAL_CONTEXT_INFO = "Lcom/instagram/api/schemas/SocialContextInfoIntf;"
@@ -152,8 +157,12 @@ internal fun BytecodePatchContext.fillFriendPicks(page: ReelsPageSites, reads: F
     fillStub(FRIEND_LANE_PICKS, "username", STRING, 1, reads.username)
 }
 
-/** Fills the stubs and hands each Reels page to [FRIEND_PICKS_FILTER] where the page and its fallback meet. */
-internal fun BytecodePatchContext.pickFriends(page: ReelsPageSites, reads: FriendPicksReads) {
+/**
+ * Fills the stubs and hands each Reels page to [FRIEND_PICKS_FILTER] where the page and its fallback
+ * meet, and each list the viewer's data source takes in to [FRIEND_PICKS_ADDED] first thing.
+ */
+internal fun BytecodePatchContext.pickFriends(page: ReelsPageSites, reads: FriendPicksReads, inserts: ReelsItemInserts) {
     fillFriendPicks(page, reads)
     filterReelsPage(page, FRIEND_PICKS_FILTER)
+    filterReelsItemInserts(inserts, FRIEND_PICKS_ADDED)
 }

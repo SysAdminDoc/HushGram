@@ -25,6 +25,7 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.live.findReelsItemInserts
 import app.morphe.patches.instagram.reels.partnership.findReelsPage
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
@@ -106,12 +107,13 @@ val cleanUpReelsPatch = bytecodePatch(
         val friendsRow = findFriendsRow()
         val friendPicks = findFriendPicks()
         val reelsPage = findReelsPage(PATCH)
+        val reelsInserts = findReelsItemInserts(PATCH, FRIEND_LANE_PICKS)
         val cameraButton = findCameraButton()
         hideReelParts()
         hideCameraButton(cameraButton)
         markFriendsTab(friendsTab)
         keepFriendsRow(friendsRow)
-        pickFriends(reelsPage, friendPicks)
+        pickFriends(reelsPage, friendPicks, reelsInserts)
         if (clearMode != null) {
             applyClearMode(clearMode)
             clearModeStubs.fill(clearMode)

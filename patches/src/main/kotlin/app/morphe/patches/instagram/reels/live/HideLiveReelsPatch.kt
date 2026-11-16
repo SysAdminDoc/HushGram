@@ -436,9 +436,10 @@ internal class ReelsItemInserts(
  * marked [REELS_INSERT_ITEMS], an instance (int, List)Z, on the same class. That class keeps what its
  * viewer's getModuleName answered in one String field in its constructor, which nothing else writes,
  * and answers its own size()I. Each method needs three locals for the hook and nothing jumping to its
- * first instruction.
+ * first instruction, and [extension] a static added(List, String, int)List. A failure names [patch].
  */
-internal fun BytecodePatchContext.findReelsItemInserts(): ReelsItemInserts {
+internal fun BytecodePatchContext.findReelsItemInserts(patch: String = PATCH, extension: String = LIVE_REELS): ReelsItemInserts {
+    fun refuse(detail: String): Nothing = throw PatchException("$patch: $detail")
     fun marked(name: String): Method {
         val found = typesMarked(name).sorted().flatMap { type -> classDefBy(type).methods.filter { name in it.markers() } }
         return found.singleOrNull() ?: refuse("expected one method marked $name, found ${found.size}")
@@ -497,18 +498,19 @@ internal fun BytecodePatchContext.findReelsItemInserts(): ReelsItemInserts {
         if ((method.implementation?.registerCount ?: 0) > 256) refuse("${method.describe()} has more registers than the hook can name")
         "${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}" to method.parameterTypes.map(Any::toString).indexOf(LIST)
     }
-    if (classDefByOrNull(LIVE_REELS)?.methods?.none { it.isStaticStub("added", listOf(LIST, STRING, "I"), LIST) } != false) {
+    if (classDefByOrNull(extension)?.methods?.none { it.isStaticStub("added", listOf(LIST, STRING, "I"), LIST) } != false) {
         refuse("the extension has no static added(List, String, int)List")
     }
     return ReelsItemInserts(dataSource, moduleField, size, inserts)
 }
 
 /**
- * Hands the list each of [sites]' inserts takes to [LIVE_ADDED_FILTER] first thing, with the data
- * source's module name and size, and puts the list it answers in the parameter's place. Nothing jumps
- * to the first instruction and the locals hold nothing yet, so the hook borrows v0 to v2.
+ * Hands the list each of [sites]' inserts takes to [filter] first thing, with the data source's
+ * module name and size, and puts the list it answers in the parameter's place. Nothing jumps to the
+ * first instruction and the locals hold nothing yet, so the hook borrows v0 to v2. A second patch's
+ * hook goes in ahead of the first, and both read the list from the parameter.
  */
-internal fun BytecodePatchContext.filterReelsItemInserts(sites: ReelsItemInserts) {
+internal fun BytecodePatchContext.filterReelsItemInserts(sites: ReelsItemInserts, filter: String = LIVE_ADDED_FILTER) {
     val methods = mutableClassDefBy(sites.dataSource).methods
     for ((descriptor, listIndex) in sites.inserts) {
         val method = methods.single { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == descriptor }
@@ -521,7 +523,7 @@ internal fun BytecodePatchContext.filterReelsItemInserts(sites: ReelsItemInserts
                 move-result v1
                 iget-object v0, v0, ${sites.moduleField}
                 move-object/from16 v2, $list
-                invoke-static { v2, v0, v1 }, $LIVE_ADDED_FILTER
+                invoke-static { v2, v0, v1 }, $filter
                 move-result-object v2
                 move-object/from16 $list, v2
             """,

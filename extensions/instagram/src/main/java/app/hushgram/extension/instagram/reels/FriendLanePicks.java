@@ -38,11 +38,14 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * An empty page isn't safe to hand back: Instagram stores an empty state for the Friends tab when
  * it gets one, and nothing scrolls to ask for the next page. So a page with none of the picks keeps
- * its first reel. A page that names nobody at all comes back as it was, since that means there's
- * nothing here to judge by.
+ * its first reel, and {@link #added} takes that reel off the viewer once it holds others. A page
+ * that names nobody at all comes back as it was, since that means there's nothing here to judge by.
  */
 public final class FriendLanePicks {
     static final String ROUTE = "Friends tab picks";
+
+    /** The diagnostic counter route for the lists the viewer's data source adds once it holds reels. */
+    static final String ADDED_ROUTE = "Friends tab picks added";
 
     /** The module name of the Friends tab's viewer, the only pages this filters. */
     static final String FRIENDS_LANE = "clips_viewer_friends_lane";
@@ -201,6 +204,84 @@ public final class FriendLanePicks {
             return kept;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "Friends tab picks", failure);
+            return items;
+        }
+    }
+
+    /**
+     * Injected first thing where the Reels viewer's data source adds a list to its items or inserts
+     * one among them, with the viewer's module name and [held], how many items it holds already.
+     * {@link #page} keeps one reel in a page without any of the picks, so the network side never gets
+     * an empty page, but with few picks most pages came down to that one reel, which showed between
+     * the picked ones and kept the tab from ever looking filtered (#503). Once the Friends tab's viewer
+     * holds more than one item, every reel none of the picks are on goes here, even when nothing else
+     * in the list stays. One item may be no more than the placeholder Instagram shows while a page
+     * loads, so the viewer always keeps a reel to stand on. Answers [items] itself for any other
+     * viewer, before that, when nothing's been picked, when no reel in the list names anyone, when
+     * nothing goes, when the switch is off or paused, or when anything goes wrong. Never throws.
+     */
+    public static List<?> added(List<?> items, String module, int held) {
+        return added(items, module, held, PATCHED);
+    }
+
+    static List<?> added(List<?> items, String module, int held, Reader reader) {
+        if (items == null) return null;
+        try {
+            if (held <= 1 || !FRIENDS_LANE.equals(module) || !on()) return items;
+            int size = items.size();
+            FeedFilterCounters.sawList(ADDED_ROUTE, size);
+            if (size == 0) return items;
+            Set<String> picks = picks();
+            if (picks.isEmpty()) return items;
+
+            boolean[] goes = new boolean[size];
+            int named = 0;
+            int going = 0;
+            int at = 0;
+            for (Object item : items) {
+                if (at >= size) return items;
+                Object media = item == null ? null : reader.media(item);
+                if (media != null) {
+                    boolean picked = false;
+                    boolean anyone = false;
+                    Collection<String> friends = reader.friends(media);
+                    if (friends != null) {
+                        for (String friend : friends) {
+                            String name = clean(friend);
+                            if (name == null) continue;
+                            anyone = true;
+                            remember(name);
+                            picked |= picks.contains(name);
+                        }
+                    }
+                    if (anyone) named++;
+                    if (!picked) {
+                        goes[at] = true;
+                        going++;
+                    }
+                }
+                at++;
+            }
+            // A list that changed size while it was read isn't one this can rebuild.
+            if (at != size || going == 0) return items;
+            if (named == 0) {
+                FeedFilterCounters.sawKind(ADDED_ROUTE, PAGE_KEPT);
+                return items;
+            }
+
+            List<Object> kept = new ArrayList<>(size - going);
+            at = 0;
+            for (Object item : items) {
+                if (!goes[at++]) kept.add(item);
+            }
+            FeedFilterCounters.removed(ADDED_ROUTE, going, NOT_PICKED);
+            for (int count = 0; count < going; count++) HookStatus.counted(FamilyNames.REEL_DECLUTTER, REMOVED);
+            int left = kept.size();
+            int removed = going;
+            Logger.printDebug(() -> "Friends tab picks: took " + removed + " of " + size + " added items out, " + left + " left");
+            return kept;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "Friends tab picks added", failure);
             return items;
         }
     }
