@@ -59,6 +59,10 @@ final class ProfilesCategory {
                         L10n.t("Remembers the username, bio and profile picture of each profile you open, on this phone "
                                 + "only, and tells you when one changed since your last visit. Pictures are copied from "
                                 + "Instagram's image servers. Turn it off and it stops at once.")));
+                profiles.addPreference(toggle(context, Settings.PROFILE_HISTORY_SAVE_PICTURES,
+                        L10n.t("Save changed pictures to the gallery"),
+                        L10n.t("When a profile you open has a new picture, puts the old picture and the new one in your "
+                                + "gallery, each once. Needs Keep profile history.")));
                 Preference profileChanges = profileHistoryRow(context);
                 profiles.addPreference(profileChanges);
                 Row clearProfileHistory = new Row(context);

@@ -2451,3 +2451,6 @@ This profile hasn't loaded its own answer yet, so this is only what Instagram ke
 # context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
 Other flags	기타 플래그
 Not sent for this profile	이 프로필에 대해 전송되지 않음
+# context: Profiles: switch under Keep profile history (#715)
+Save changed pictures to the gallery	바뀐 사진을 갤러리에 저장
+When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	연 프로필의 사진이 바뀌었으면 이전 사진과 새 사진을 갤러리에 한 번씩 저장합니다. 프로필 기록 남기기가 필요합니다.

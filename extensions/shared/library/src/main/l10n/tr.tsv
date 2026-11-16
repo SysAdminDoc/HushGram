@@ -2452,3 +2452,6 @@ This profile hasn't loaded its own answer yet, so this is only what Instagram ke
 # context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
 Other flags	Diğer işaretler
 Not sent for this profile	Bu profil için gönderilmeyenler
+# context: Profiles: switch under Keep profile history (#715)
+Save changed pictures to the gallery	Değişen fotoğrafları galeriye kaydet
+When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	Açtığın bir profilin yeni fotoğrafı varsa eski ve yeni fotoğrafı galerine birer kez kaydeder. Profil geçmişi tut gerekir.

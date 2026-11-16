@@ -2455,3 +2455,6 @@ This profile hasn't loaded its own answer yet, so this is only what Instagram ke
 # context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
 Other flags	其他標記
 Not sent for this profile	此個人檔案未傳送
+# context: Profiles: switch under Keep profile history (#715)
+Save changed pictures to the gallery	將更換的相片存到圖庫
+When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	你開啟的個人檔案換了新相片時，會將舊相片和新相片各存一次到你的圖庫。需要開啟「保留個人檔案紀錄」。

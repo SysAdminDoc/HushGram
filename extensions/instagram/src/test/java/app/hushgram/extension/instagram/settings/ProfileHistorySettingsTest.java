@@ -97,6 +97,37 @@ public class ProfileHistorySettingsTest {
         }
     }
 
+    /** #715: Save changed pictures sits right under Keep profile history, starts off and waits for it. */
+    @Test public void theGallerySwitchSitsUnderKeepProfileHistoryAndWaitsForIt() throws Exception {
+        assertFalse(Settings.PROFILE_HISTORY_SAVE_PICTURES.get());
+        assertTrue(PatchFamily.PROFILE_PICTURE.switches.contains(Settings.PROFILE_HISTORY_SAVE_PICTURES));
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PROFILE_PICTURE);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.PROFILE_HISTORY_SAVE_PICTURES.key));
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            SwitchPreference keep = (SwitchPreference) page.findPreference(Settings.PROFILE_HISTORY.key);
+            Preference save = page.findPreference(Settings.PROFILE_HISTORY_SAVE_PICTURES.key);
+            assertTrue(save instanceof SwitchPreference);
+            assertEquals("Save changed pictures to the gallery", String.valueOf(save.getTitle()));
+            assertEquals("When a profile you open has a new picture, puts the old picture and the new one in your "
+                    + "gallery, each once. Needs Keep profile history.", String.valueOf(save.getSummary()));
+            assertFalse(((SwitchPreference) save).isChecked());
+            android.preference.PreferenceGroup profiles = StoryTimeSettingsTest.sectionOf(page.getPreferenceScreen(), save);
+            assertEquals("Profiles", String.valueOf(profiles.getTitle()));
+            int at = -1;
+            for (int row = 0; row < profiles.getPreferenceCount(); row++) {
+                if (profiles.getPreference(row) == keep) at = row;
+            }
+            assertTrue("right under Keep profile history", at >= 0 && profiles.getPreference(at + 1) == save);
+            assertFalse("it waits for Keep profile history", save.isEnabled());
+            keep.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(save.isEnabled());
+        } finally {
+            Settings.PROFILE_HISTORY_SAVE_PICTURES.resetToDefault();
+        }
+    }
+
     @Test public void theRowReadsTheNewestChangesFirstAndNothingWhenEmpty() {
         long now = 10_000_000L;
         assertEquals("Nothing here yet. With Keep profile history on, the old usernames, bios and pictures "

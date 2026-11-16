@@ -2452,3 +2452,6 @@ This profile hasn't loaded its own answer yet, so this is only what Instagram ke
 # context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
 Other flags	Otros indicadores
 Not sent for this profile	No enviados para este perfil
+# context: Profiles: switch under Keep profile history (#715)
+Save changed pictures to the gallery	Guardar en la galería las fotos que cambian
+When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	Cuando un perfil que abres tiene una foto nueva, guarda la foto anterior y la nueva en tu galería, cada una una sola vez. Necesita Guardar un historial de perfiles.

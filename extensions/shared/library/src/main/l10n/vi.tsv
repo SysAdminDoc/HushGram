@@ -2367,3 +2367,6 @@ This profile hasn't loaded its own answer yet, so this is only what Instagram ke
 # context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
 Other flags	Cờ khác
 Not sent for this profile	Không được gửi cho trang cá nhân này
+# context: Profiles: switch under Keep profile history (#715)
+Save changed pictures to the gallery	Lưu ảnh đã đổi vào thư viện
+When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	Khi trang cá nhân bạn mở có ảnh mới, ảnh cũ và ảnh mới sẽ được lưu vào thư viện của bạn, mỗi ảnh một lần. Cần bật Giữ lịch sử trang cá nhân.

@@ -45,7 +45,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * has it, kept byte for byte as it came. A copy kept smaller is replaced on a later visit that
  * comes with the full size. The list holds at most {@link #MAX_ACCOUNTS}
  * accounts and {@link #MAX_PER_FIELD} of each kind per account, in one small file in the app's own
- * storage, and it's left out of the settings backup.
+ * storage, and it's left out of the settings backup. With its Save changed pictures switch on, a
+ * picture that changed puts the old copy and the new one in the gallery, each once (#715).
  */
 public final class ProfileHistory {
     /** What an entry keeps. */
@@ -59,6 +60,8 @@ public final class ProfileHistory {
         public final String value;
         /** The picture's address when it was seen, empty for the other fields. */
         public final String url;
+        /** Whether this picture went to the gallery by itself once (#715). Read and set under the lock. */
+        boolean inGallery;
 
         Entry(long time, Field field, String value, String url) {
             this.time = time;
@@ -261,6 +264,7 @@ public final class ProfileHistory {
         boolean added = false;
         String before;
         Entry shown = null;
+        Entry replaced = null;
         boolean first;
         synchronized (LOCK) {
             load(application);
@@ -283,9 +287,13 @@ public final class ProfileHistory {
                 if (hadBio) changed.add(Field.BIO);
             }
             if (!picture.isEmpty()) {
+                Entry had = account.latest(Field.PICTURE);
                 if (add(account, Field.PICTURE, picture, url, now)) {
                     added = true;
-                    if (hadPicture) changed.add(Field.PICTURE);
+                    if (hadPicture) {
+                        changed.add(Field.PICTURE);
+                        if (account.entries.contains(had)) replaced = had;
+                    }
                 }
                 shown = account.latest(Field.PICTURE);
             }
@@ -298,7 +306,65 @@ public final class ProfileHistory {
             }
         }
         if (shown != null) keepPicture(application, id, shown, url, full, fullWidth);
+        if (shown != null && changed.contains(Field.PICTURE) && savesPictures()) {
+            toGallery(application, id, username, replaced, shown);
+        }
         return first || changed.isEmpty() ? null : told(changed, before);
+    }
+
+    /** Whether a changed picture goes to the gallery by itself (#715). Off until the settings are ready. Never throws. */
+    static boolean savesPictures() {
+        try {
+            return Utils.settingsReady() && Settings.PROFILE_HISTORY_SAVE_PICTURES.get();
+        } catch (Throwable failure) {
+            return false;
+        }
+    }
+
+    /**
+     * Puts the kept copies of [pictures] in the gallery, the picture a profile had and the one it has
+     * now, each one once (#715): one already saved this way is left out, so the next change saves only
+     * its new picture. A copy that isn't kept yet is fetched first. Blocks on the network. Never throws.
+     */
+    private static void toGallery(Context application, String id, String username, Entry... pictures) {
+        for (Entry entry : pictures) {
+            if (entry == null) continue;
+            try {
+                synchronized (LOCK) {
+                    if (inGallery(id, entry)) continue;
+                }
+                File kept = keptPicture(application, id, entry);
+                String mime = kept == null ? null : PictureFetch.mime(kept);
+                if (mime == null) {
+                    Logger.printDebug(() -> "A changed profile picture has no copy for the gallery: " + entry.value);
+                    continue;
+                }
+                synchronized (LOCK) {
+                    Account account = ACCOUNTS.get(id);
+                    if (account == null || !account.entries.contains(entry) || inGallery(id, entry)) continue;
+                    entry.inGallery = true;
+                    save(application);
+                }
+                gallery.save(application, PostDetails.profilePicture(username),
+                        (writer, progress) -> Downloader.publish(kept, mime, writer, progress));
+            } catch (Throwable failure) {
+                Logger.printDebug(() -> "A changed profile picture wasn't saved to the gallery: " + failure);
+            }
+        }
+    }
+
+    /**
+     * Whether [entry]'s picture already went to the gallery, as itself or as an older entry for the
+     * same picture, one the account had before and went back to. Call it under the lock.
+     */
+    private static boolean inGallery(String id, Entry entry) {
+        if (entry.inGallery) return true;
+        Account account = ACCOUNTS.get(id);
+        if (account == null) return false;
+        for (Entry other : account.entries) {
+            if (other.inGallery && other.field == Field.PICTURE && other.value.equals(entry.value)) return true;
+        }
+        return false;
     }
 
     /**
@@ -575,7 +641,9 @@ public final class ProfileHistory {
                         Field field = Field.valueOf(entry.optString("field"));
                         String value = entry.optString("value");
                         if (field != Field.BIO && value.isEmpty()) continue;
-                        read.add(new Entry(entry.optLong("time"), field, value, entry.optString("url")));
+                        Entry kept = new Entry(entry.optLong("time"), field, value, entry.optString("url"));
+                        kept.inGallery = entry.optBoolean("gallery");
+                        read.add(kept);
                     } catch (IllegalArgumentException skip) {
                         // An entry that isn't one of ours is left out.
                     }
@@ -597,8 +665,10 @@ public final class ProfileHistory {
                 for (Map.Entry<String, Account> kept : ACCOUNTS.entrySet()) {
                     JSONArray entries = new JSONArray();
                     for (Entry entry : kept.getValue().entries) {
-                        entries.put(new JSONObject().put("time", entry.time).put("field", entry.field.name())
-                                .put("value", entry.value).put("url", entry.url));
+                        JSONObject row = new JSONObject().put("time", entry.time).put("field", entry.field.name())
+                                .put("value", entry.value).put("url", entry.url);
+                        if (entry.inGallery) row.put("gallery", true);
+                        entries.put(row);
                     }
                     accounts.put(new JSONObject().put("id", kept.getKey()).put("entries", entries));
                 }

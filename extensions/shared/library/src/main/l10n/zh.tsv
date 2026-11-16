@@ -2455,3 +2455,6 @@ This profile hasn't loaded its own answer yet, so this is only what Instagram ke
 # context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
 Other flags	其他标记
 Not sent for this profile	此主页未发送
+# context: Profiles: switch under Keep profile history (#715)
+Save changed pictures to the gallery	将更换的图片保存到相册
+When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	你打开的主页换了新图片时，会将旧图片和新图片各保存一次到你的相册。需要开启“保留主页纪录”。

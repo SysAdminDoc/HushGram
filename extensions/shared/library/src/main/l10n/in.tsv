@@ -2452,3 +2452,6 @@ This profile hasn't loaded its own answer yet, so this is only what Instagram ke
 # context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
 Other flags	Penanda lain
 Not sent for this profile	Tidak dikirim untuk profil ini
+# context: Profiles: switch under Keep profile history (#715)
+Save changed pictures to the gallery	Simpan foto yang berubah ke galeri
+When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	Saat profil yang kamu buka punya foto baru, foto lama dan foto barunya disimpan ke galeri kamu, masing-masing sekali. Perlu Simpan riwayat profil.

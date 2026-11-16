@@ -2449,3 +2449,6 @@ This profile hasn't loaded its own answer yet, so this is only what Instagram ke
 # context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
 Other flags	แฟล็กอื่นๆ
 Not sent for this profile	ไม่ได้ส่งมาสำหรับโปรไฟล์นี้
+# context: Profiles: switch under Keep profile history (#715)
+Save changed pictures to the gallery	บันทึกรูปที่เปลี่ยนลงในแกลเลอรี
+When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	เมื่อโปรไฟล์ที่คุณเปิดมีรูปใหม่ จะบันทึกรูปเก่าและรูปใหม่ลงในแกลเลอรีของคุณ รูปละครั้ง ต้องเปิดเก็บประวัติโปรไฟล์

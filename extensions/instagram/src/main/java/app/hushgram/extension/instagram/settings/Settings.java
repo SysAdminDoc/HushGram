@@ -4508,6 +4508,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_online_history", FALSE);
 
     /**
+     * With Keep profile history on, a profile whose picture changed since the last visit puts the
+     * old picture's kept copy and the new one in the gallery, each once, named like a Save profile
+     * picture (#715). Only pictures of profiles you open, and only when they change. Starts off.
+     */
+    public static final BooleanSetting PROFILE_HISTORY_SAVE_PICTURES =
+            new BooleanSetting("hushgram_profile_history_save_pictures", FALSE, parent(PROFILE_HISTORY));
+
+    /**
      * The name a saved video gets: {date}, {video_id}, {owner} and {posted} fill in per save, the
      * last three only when the save knows them, and the default is IG_VID_ and the date and time.
      * Photos keep their IG_IMG_ names. Cleaned like the folder wherever it's read

@@ -86,6 +86,7 @@ public class ProfileHistoryTest {
     @After public void tearDown() throws Exception {
         Utils.awaitBackgroundTasksForTests();
         Settings.PROFILE_HISTORY.resetToDefault();
+        Settings.PROFILE_HISTORY_SAVE_PICTURES.resetToDefault();
         ProfileHistory.clear(context);
         ProfileHistory.forgetForTests();
     }
@@ -376,5 +377,86 @@ public class ProfileHistoryTest {
         assertEquals(1, jobs.size());
         org.robolectric.shadows.ShadowLooper.idleMainLooper();
         assertEquals("Download failed", ShadowToast.getTextOfLatestToast());
+    }
+
+    /** Swaps in a gallery that keeps each save's name and job in [named] and [jobs]. */
+    private void galleryInto(List<PostDetails> named, List<MediaSave.Job> jobs) {
+        ProfileHistory.gallery = (application, details, job) -> {
+            named.add(details);
+            jobs.add(job);
+        };
+    }
+
+    /**
+     * #715: with Save changed pictures on, a new picture puts the old copy and the new one in the
+     * gallery, byte for byte and named as a profile picture, and the next change only the new one.
+     */
+    @Test public void aChangedPictureSavesTheOldAndTheNewCopyEachOnce() throws Exception {
+        context.getApplicationInfo().targetSdkVersion = 37;
+        MediaSaveTest.Gallery rows = Robolectric.setupContentProvider(MediaSaveTest.Gallery.class, MediaStore.AUTHORITY);
+        ByteArrayOutputStream first = new ByteArrayOutputStream(), second = new ByteArrayOutputStream();
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(
+                ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, 1), first);
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(
+                ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, 2), second);
+        String one = "https://cdn.example/p1.jpg", two = "https://cdn.example/p2.jpg", three = "https://cdn.example/p3.jpg";
+        widths.put(one, 48);
+        widths.put(two, 64);
+        List<PostDetails> named = new ArrayList<>();
+        List<MediaSave.Job> jobs = new ArrayList<>();
+        galleryInto(named, jobs);
+
+        Settings.PROFILE_HISTORY_SAVE_PICTURES.save(true);
+        assertNull(ProfileHistory.record(context, "16", "pia", "hi", one, 1_000L));
+        assertTrue("a first sighting has nothing that changed", jobs.isEmpty());
+        assertEquals("Their bio changed", ProfileHistory.record(context, "16", "pia", "bye", one, 2_000L));
+        assertEquals("Used to be @pia", ProfileHistory.record(context, "16", "pia.b", "bye", one, 3_000L));
+        assertTrue("only a picture that changed goes", jobs.isEmpty());
+
+        assertEquals("New profile picture", ProfileHistory.record(context, "16", "pia.b", "bye", two, 4_000L));
+        assertEquals("the old picture and the new one", 2, jobs.size());
+        for (int at = 0; at < 2; at++) {
+            assertEquals("the username it has now names it", "pia.b", named.get(at).owner);
+            assertTrue(named.get(at).profile);
+            Downloader.Result result = jobs.get(at).run(new MediaStoreWriter(context, false, named.get(at)), Downloader.SILENT);
+            assertTrue(result.toString(), result.ok());
+        }
+        assertEquals(2, rows.inserts.size());
+        assertArrayEquals("the old copy, as it was kept", sent.get(one), first.toByteArray());
+        assertArrayEquals("then the new one", sent.get(two), second.toByteArray());
+
+        assertEquals("New profile picture", ProfileHistory.record(context, "16", "pia.b", "bye", three, 5_000L));
+        assertEquals("only the new picture, the old one went already", 3, jobs.size());
+
+        // What went to the gallery stays noted across a restart, and a picture it goes back to isn't saved again.
+        ProfileHistory.forgetForTests();
+        swap(true);
+        galleryInto(named, jobs);
+        assertEquals("New profile picture", ProfileHistory.record(context, "16", "pia.b", "bye", two, 6_000L));
+        assertEquals(3, jobs.size());
+        assertNull(ProfileHistory.record(context, "16", "pia.b", "bye", two, 7_000L));
+        assertEquals(3, jobs.size());
+    }
+
+    /** #715: with the switch off, which is how it starts, a new picture goes nowhere but the history. */
+    @Test public void aChangedPictureStaysOutOfTheGalleryWithTheSwitchOff() throws Exception {
+        assertFalse(Settings.PROFILE_HISTORY_SAVE_PICTURES.get());
+        List<PostDetails> named = new ArrayList<>();
+        List<MediaSave.Job> jobs = new ArrayList<>();
+        galleryInto(named, jobs);
+        ProfileHistory.record(context, "17", "quin", null, "https://cdn.example/q1.jpg", 1_000L);
+        assertEquals("New profile picture",
+                ProfileHistory.record(context, "17", "quin", null, "https://cdn.example/q2.jpg", 2_000L));
+        assertTrue(jobs.isEmpty());
+
+        // Turned on later, the next change takes the picture that was replaced too, since none went yet.
+        Settings.PROFILE_HISTORY_SAVE_PICTURES.save(true);
+        // A copy that can't be had is left out, and the one that can still goes.
+        failing.add("https://cdn.example/q3.jpg");
+        assertEquals("New profile picture",
+                ProfileHistory.record(context, "17", "quin", null, "https://cdn.example/q3.jpg", 3_000L));
+        assertEquals(1, jobs.size());
+        assertFalse(ProfileHistory.pictureFile(context, "17",
+                ProfileHistory.account(context, "17").latest(Field.PICTURE)).isFile());
     }
 }
