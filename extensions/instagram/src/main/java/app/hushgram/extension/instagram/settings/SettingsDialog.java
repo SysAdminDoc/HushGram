@@ -13,6 +13,9 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -68,6 +71,9 @@ public final class SettingsDialog extends DialogFragment {
     /** The picked font's check on this dialog's window while it's started. */
     private Window fontWindow;
     private FontDraw fontDraw;
+    /** The audio focus this screen holds while it's started, so the feed behind it goes quiet. */
+    private AudioManager quietAudio;
+    private AudioFocusRequest quietFocus;
 
     /**
      * The screen, expanding the section whose row has the key [page]. Null or a key no row
@@ -356,6 +362,7 @@ public final class SettingsDialog extends DialogFragment {
         super.onStart();
         watchLock();
         watchFont();
+        quietFeed();
         ShortcutCover.offOnceDrawn(getDialog());
     }
 
@@ -363,7 +370,48 @@ public final class SettingsDialog extends DialogFragment {
     public void onStop() {
         unwatchLock();
         unwatchFont();
+        unquietFeed();
         super.onStop();
+    }
+
+    /**
+     * A feed video kept playing its sound under this screen (#725): it's a dialog, so the feed
+     * behind it never pauses. Holding the audio focus while the screen shows quiets Instagram's
+     * players the way a call or another app does, and their sound comes back when it closes.
+     */
+    private void quietFeed() {
+        if (quietFocus != null) return;
+        try {
+            Activity activity = getActivity();
+            AudioManager audio = activity == null ? null
+                    : activity.getApplicationContext().getSystemService(AudioManager.class);
+            if (audio == null) return;
+            AudioFocusRequest request = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                    .setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_UNKNOWN)
+                            .build())
+                    .setOnAudioFocusChangeListener(change -> { })
+                    .build();
+            if (audio.requestAudioFocus(request) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return;
+            quietAudio = audio;
+            quietFocus = request;
+        } catch (Exception ex) {
+            Logger.printException(() -> "Settings: could not quiet the feed", ex);
+        }
+    }
+
+    private void unquietFeed() {
+        AudioManager audio = quietAudio;
+        AudioFocusRequest request = quietFocus;
+        quietAudio = null;
+        quietFocus = null;
+        if (audio == null || request == null) return;
+        try {
+            audio.abandonAudioFocusRequest(request);
+        } catch (Exception ex) {
+            Logger.printException(() -> "Settings: could not give the sound back", ex);
+        }
     }
 
     /**

@@ -12,6 +12,8 @@ import android.os.Bundle;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Insets;
 import android.graphics.Rect;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
@@ -38,6 +40,7 @@ import org.robolectric.shadow.api.Shadow;
 import org.robolectric.util.ReflectionHelpers.ClassParameter;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowAlertDialog;
+import org.robolectric.shadows.ShadowAudioManager;
 
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -120,6 +123,34 @@ public class SettingsDialogBoundaryTest {
         root.dispatchApplyWindowInsets(new WindowInsets.Builder()
                 .setInsets(WindowInsets.Type.systemBars(), Insets.of(0, 24, 0, 30)).build());
         assertEquals("the keyboard closed", 30, root.getPaddingBottom());
+    }
+
+    /**
+     * A feed video kept playing its sound behind the open settings page (#725). The page takes
+     * a short audio focus while it's open, which Instagram's player answers by going quiet, and
+     * gives the same focus back when it closes.
+     */
+    @Test @Config(sdk = 37)
+    public void theFeedGoesQuietWhileThePageIsOpen() {
+        AudioManager audio = RuntimeEnvironment.getApplication().getSystemService(AudioManager.class);
+        ShadowAudioManager shadowAudio = Shadow.extract(audio);
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = new SettingsDialog();
+        dialog.show(controller.get().getFragmentManager(), "boundary_settings");
+        controller.get().getFragmentManager().executePendingTransactions();
+        ShadowLooper.idleMainLooper();
+        ShadowAudioManager.AudioFocusRequest asked = shadowAudio.getLastAudioFocusRequest();
+        if (asked == null || asked.audioFocusRequest == null) throw new AssertionError("the open page asked for no audio focus");
+        assertEquals(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT, asked.audioFocusRequest.getFocusGain());
+        assertEquals(AudioAttributes.USAGE_MEDIA, asked.audioFocusRequest.getAudioAttributes().getUsage());
+        assertNull("nothing given back while the page is open", shadowAudio.getLastAbandonedAudioFocusRequest());
+
+        dialog.dismissAllowingStateLoss();
+        controller.get().getFragmentManager().executePendingTransactions();
+        ShadowLooper.idleMainLooper();
+        assertSame("closing the page gives the sound back", asked.audioFocusRequest,
+                shadowAudio.getLastAbandonedAudioFocusRequest());
+        dialog = null;
     }
 
     @Test @Config(sdk = 28, qualifiers = "ar-rEG-ldrtl-w320dp-h640dp-xhdpi")
