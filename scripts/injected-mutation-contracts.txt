@@ -2163,8 +2163,8 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->defaultColors([I
 # Story ring size's guard when that one is in, so the guard above stays first in either order, and
 # the Compose default ring's array to AccentRings.composeColors (#528). Left out, every ring but the
 # few that read the theme keeps Instagram's gradient with the accent rings on. AccentRingsHookTest
-# checks every build.
-once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->colors([I[F)[I in static (Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;[F[F[F[III)Landroid/graphics/LinearGradient; holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
+# checks every build. On 455 the first maker is the spinner's instance builder, as in the rules above.
+once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->colors([I[F)[I in instance ([F[F[F[III)Landroid/graphics/LinearGradient; holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->colors([I[F)[I in instance ([F[F[F[III)V holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeColors([I)[I in static (LX/*;)LX/*; calling static LX/*;->*(Ljava/util/List;)[I holding Ljava/lang/Float;->floatToRawIntBits(F)I LX/*;->*(Ljava/lang/String;LX/*;LX/*;JJ)V
 # Hide the Repost button answers FALSE first thing in the post model's getter of
