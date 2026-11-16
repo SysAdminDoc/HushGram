@@ -54,9 +54,10 @@ internal const val MUSIC_CARD = "$EXTENSION_PACKAGE/stories/StoriesTray;->musicC
  * 451's 0x810cc0000146f1; its one static session check there is still asked by the code that
  * casts to the repository right after. 453 renumbered it again to 0x810c9b0001461a, still the one
  * static session check asked by the path that casts to the repository. 454 moved it to
- * 0x810c6600014620, read by 01hH.A00, which the same six places ask.
+ * 0x810c6600014620, read by 01hH.A00, which the same six places ask. 455 moved it to
+ * 0x810c56000145f8, read by 00bM.A00 on 386113969.
  */
-internal const val MUSIC_CARD_FLAG = 0x810c6600014620L
+internal const val MUSIC_CARD_FLAG = 0x810c56000145f8L
 
 /** The name only the music midcard repository's constructor holds, which it gives its base class. */
 internal const val MUSIC_CARD_REPOSITORY = "MusicMidcardRepository"

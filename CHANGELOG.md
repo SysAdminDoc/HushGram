@@ -60,6 +60,10 @@ Every HushGram release, newest first.
 * `Ring color` has a Custom choice now. Type a hex color in `Custom ring color` for one solid color, and add one in `Custom ring end color` if you want the ring to fade between the two. Saving the first color picks Custom for you. Asked for in #696.
 * On a photo story with music, the Download button at the top of the story asks whether you want the video or the photo, like the three-dot menu already does. Asked for in #726.
 
+### Improvements
+
+* HushGram now patches Instagram 455.0.0.51.72 instead of 454.0.0.54.77. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386113969. Its armeabi-v7a (386113968), x86 (386113970) and x86_64 (386113971) builds are declared too.
+
 ### Bug Fixes
 
 * In Turkish, German, Spanish and Portuguese, the seek bar rows called it a search bar. They now use the same word as `Keep a seek bar` in each language. Reported in #10.

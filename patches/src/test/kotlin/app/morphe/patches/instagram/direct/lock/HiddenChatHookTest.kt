@@ -411,7 +411,8 @@ class HiddenChatHookTest {
         val rows = found.rows.method.visualCode()
         val results = rows[0] as ReferenceInstruction
         assertEquals("$name: the row builder hands its results over first", HIDDEN_SEARCH_RESULTS, results.reference.toString())
-        assertEquals("$name: the third parameter", found.rows.method.parameterRegisterNumber(2), (results as RegisterRangeInstruction).startRegister)
+        val firstList = found.rows.method.parameterTypes.map(Any::toString).indexOf("Ljava/util/List;")
+        assertEquals("$name: the first list parameter", found.rows.method.parameterRegisterNumber(firstList), (results as RegisterRangeInstruction).startRegister)
         assertEquals("$name: the answer goes back where the list was", Opcode.MOVE_RESULT_OBJECT, rows[1].opcode)
         assertEquals((results as RegisterRangeInstruction).startRegister, (rows[1] as OneRegisterInstruction).registerA)
         assertEquals("$name: the row builder's own code follows", rowsBefore, rows.drop(2).map(::text))

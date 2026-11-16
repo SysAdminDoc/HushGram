@@ -140,7 +140,8 @@ class MuseButtonHookTest {
             .filter { it.parameterTypes.size == 8 && it.parameterTypes[6].toString() == "Ljava/util/List;" }
             .mapTo(HashSet()) { it.definingClass }
         val filler = FixtureDex.classes(bundle, fillers).values.toList()
-        val views = FixtureDex.classesHolding(bundle, MUSE_BUTTON_VIEW)
+        // 455 loads the view's name through a string pool (LX/0W6E on 386113969), so a plain holding check misses it.
+        val views = FixtureDex.classesLoading(bundle, MUSE_BUTTON_VIEW)
         val seed = (listOf(bar) + filler + FixtureDex.withStringPools(bundle, views)).distinctBy { it.type }
         val patch = PatchContexts.of(seed)
         val found = patch.findMuseButtonTest()

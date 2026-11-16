@@ -29,7 +29,7 @@ import org.junit.Assert.assertEquals
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 
-/** The builds of Instagram 453.0.0.57.79 the clone patch is held to, read straight from the fixture folder. */
+/** The builds of Instagram 455.0.0.51.72 the clone patch is held to, read straight from the fixture folder. */
 internal object CloneFixtures {
     private const val ANDROID = "http://schemas.android.com/apk/res/android"
 
@@ -160,6 +160,8 @@ internal object CloneFixtures {
                 if (asks) found[classDef.type] = ImmutableClassDef.of(classDef)
             }
         }
-        return found.values.toList()
+        // The patch also reads the strings next to a load, and those can be pooled too: the x86_64
+        // builds ask LX/0027;->A00 for Play's "package.name" key (386113918), so every pool asked comes along.
+        return FixtureDex.withStringPools(build, found.values)
     }
 }

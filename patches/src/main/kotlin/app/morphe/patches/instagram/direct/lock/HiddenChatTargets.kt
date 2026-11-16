@@ -511,14 +511,18 @@ internal const val SEE_ALL_SCREEN = "Linstagram/features/direct/inbox/fragment/D
 /**
  * The inbox search's row builder: the one instance call that takes the typed text, a second text,
  * the list of results and the list of sections, and names the chats' context lines in the same
- * method.
+ * method. 455 moves the second text to the end (`LX/0OrO;->A03(String, List, List, String)V` on
+ * 386113969); the results are still the first list.
  */
 internal object SearchRowsFingerprint : Fingerprint(
     returnType = "V",
-    parameters = listOf(STRING, STRING, LIST, LIST),
     filters = listOf(string("ibc_chats_context_lines")),
-    custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) },
+    custom = { method, _ ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameters() in SEARCH_ROWS_SHAPES
+    },
 )
+
+private val SEARCH_ROWS_SHAPES = listOf(listOf(STRING, STRING, LIST, LIST), listOf(STRING, LIST, LIST, STRING))
 
 /**
  * The See all screen's reader of the same results: it loads them from the search state and casts
@@ -680,7 +684,7 @@ internal fun BytecodePatchContext.findSearchTargets(): SearchTargets {
     """.trimIndent()
     requireSearchFilters()
     return SearchTargets(
-        SearchSite(rows, 0, rows.parameterRegister(2)),
+        SearchSite(rows, 0, rows.parameterRegister(rows.parameters().indexOf(LIST))),
         SearchSite(seeAll, cast + 1, "v$listRegister"),
         SummaryList(hitsMethod, returns.single(), hitsRegister),
         bridge,

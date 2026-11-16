@@ -224,6 +224,22 @@ internal object FixtureDex {
         return answered.filterValues { it == string }.keys
     }
 
+    /**
+     * Whether [method] loads [string], itself or by asking one of [classes]' static `(int)String` pools for it
+     * with a number loaded right before the call.
+     */
+    fun loads(method: Method, string: String, classes: Map<String, ClassDef>): Boolean {
+        if (holdsString(method, string)) return true
+        val code = method.implementation?.instructions?.toList() ?: return false
+        return code.indices.any { at ->
+            val pool = (code[at] as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
+            val number = code.getOrNull(at - 1) as? NarrowLiteralInstruction ?: return@any false
+            code[at].opcode == Opcode.INVOKE_STATIC && pool.parameterTypes.map(Any::toString) == listOf("I") &&
+                (number as OneRegisterInstruction).registerA == (code[at] as Instruction35c).registerC &&
+                classes[pool.definingClass]?.methods?.any { it.name == pool.name && number.narrowLiteral in poolNumbers(it, string) } == true
+        }
+    }
+
     /** Whether [method] loads exactly [string]. */
     private fun holdsString(method: Method, string: String): Boolean =
         method.implementation?.instructions?.any {

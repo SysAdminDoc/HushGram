@@ -288,18 +288,18 @@ class BackgroundPlayPatchTest {
             runnables.filter { it.type in made }.count { runnable -> runnable.methods.any { it.name == "run" && it.code().any { call -> call.referenceText() == start } } },
         )
         assertEquals("$label: the same prepared callback with them", found.prepared.name, story.prepared.name)
-        if ("386014758" in label) {
+        if ("386113969" in label) {
             assertEquals(
                 "$label: Instagram's names",
-                listOf("A0Z", "A0d", "A0a", "A0c", "A0o", "A0S", "${sites.player}->A0F:LX/04Ul;"),
+                listOf("A0a", "A0e", "A0b", "A0d", "A0p", "A0T", "${sites.player}->A0F:LX/04s8;"),
                 listOf(sites.pause.name, sites.stop.name, sites.release.name, sites.play.name, sites.isPlaying.name, sites.setVolume.name, sites.engine),
             )
             assertEquals(
                 "$label: the story player's names",
                 listOf(
-                    "LX/09Yv;", "Ggb", "Gzq", "A09", "A0H", "LX/09Yv;->A0E:LX/04Ul;",
-                    "LX/04Ul;->A07:LX/04Wi;", "LX/04Wi;->A0A:LX/04Wj;", "LX/04Wj;->A0a()Z",
-                    "G3G", "LX/09Yv;->A0M:Ljava/lang/Runnable;",
+                    "LX/0BBW;", "Gmj", "H6N", "A09", "A0H", "LX/0BBW;->A0E:LX/04s8;",
+                    "LX/04s8;->A07:LX/04u4;", "LX/04u4;->A0A:LX/04u5;", "LX/04u5;->A0a()Z",
+                    "G8b", "LX/0BBW;->A0M:Ljava/lang/Runnable;",
                 ),
                 listOf(story.type, story.pause.name, story.resume.name, story.start.name, story.setVolume.name, story.engine) +
                     story.playing + listOf(story.prepared.name, story.parked),

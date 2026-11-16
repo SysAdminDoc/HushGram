@@ -72,18 +72,19 @@ public final class Runner extends Instrumentation {
     // extension first in the write request's six-argument constructor.
     private static final String PRESENCE_MODEL = "com.facebook.presence.model.upi.";
     private static final String[] PRESENCE_STATUSES = {"ACTIVE", "IDLE", "OFFLINE", "DISABLED"};
-    // Each 453.0.0.57.79 build's view-once receipt names, found with DexProbe from the handler's
-    // endpoint and raven_media strings: the build, the visual and voice handlers, their shared
-    // method, the visual and voice mutations, the mutation base, its analytics extras and the
-    // completion interface. A set is used only once Instagram's own code agrees with it. The three
-    // declared builds come first; 385914503 and 385914518 carry 385914556's and 385914558's names.
+    // Each 455.0.0.51.72 build's view-once receipt names, found from the handler's endpoint and
+    // raven_media strings: the build, the visual and voice handlers, their shared method, the
+    // visual and voice mutations, the mutation base, its analytics extras and the completion
+    // interface. A set is used only once Instagram's own code agrees with it. The four declared
+    // builds come first. 386113916, 386113929 and 386113958 carry 386113969's names, 386113915 and
+    // 386113928 carry 386113968's, and 386113918 carries 386113971's.
     private static final String[][] VISUAL_NAMES = {
-            {"385914557", "X.05ek", "X.05en", "H2J", "X.0K8M", "X.0K8L", "X.0As6", "X.02nc", "X.0Vae"},
-            {"385914556", "X.05ob", "X.05oe", "H2W", "X.0GFt", "X.0GFs", "X.0BHF", "X.02su", "X.0Zhp"},
-            {"385914558", "X.05fr", "X.05fw", "H2a", "X.0L6u", "X.0L6s", "X.0AtC", "X.02oh", "X.0Uhp"},
-            {"385914517", "X.05ek", "X.05en", "H2J", "X.0K8L", "X.0K8A", "X.0As6", "X.02nc", "X.0VbG"},
-            {"385914546", "X.05ef", "X.05ej", "H28", "X.0L8b", "X.0L8N", "X.089W", "X.02mz", "X.0XAz"},
-            {"385914510", "X.05ph", "X.05pl", "H2b", "X.0GHA", "X.0GH2", "X.0B69", "X.02tt", "X.0a21"},
+            {"386113969", "X.05mi", "X.05mm", "HAM", "X.0Gxr", "X.0GxZ", "X.0Apf", "X.02ql", "X.0SrO"},
+            {"386113968", "X.05wb", "X.05we", "HAa", "X.0Cyh", "X.0Cyg", "X.0I46", "X.02vy", "X.0lfd"},
+            {"386113970", "X.05np", "X.05ns", "HAg", "X.0H2o", "X.0H2n", "X.0Aw4", "X.02rs", "X.0OSM"},
+            {"386113971", "X.05mi", "X.05mm", "HAM", "X.0Gqc", "X.0GqY", "X.0A4a", "X.02ql", "X.0Vml"},
+            {"386113922", "X.05wA", "X.05wc", "HAT", "X.0CwJ", "X.0CwA", "X.08zD", "X.02vw", "X.0Xlr"},
+            {"386113923", "X.05mg", "X.05mj", "HAH", "X.0JOJ", "X.0JOA", "X.0BFF", "X.02qj", "X.0Sbt"},
     };
     private static final String VISUAL_MUTATION = "send_visual_item_seen_marker";
     private static final String VOICE_MUTATION = "send_voice_item_seen_marker";

@@ -58,7 +58,7 @@ class StorySpeedHookTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 val sites = builds(bundle, bundle.name)
-                if (version == "454.0.0.54.77") {
+                if (version == "455.0.0.51.72") {
                     assertEquals("${bundle.name}: the player", "LX/0NuF;", sites.playerInterface)
                     assertEquals("${bundle.name}: the speed setter", "HOC", sites.setter)
                     assertEquals("${bundle.name}: the callback", "GaD", sites.playing)

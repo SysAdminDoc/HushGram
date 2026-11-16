@@ -70,13 +70,13 @@ internal const val THREAD_KEY = "Lcom/instagram/model/direct/DirectThreadKey;"
 internal const val MESSAGE_ID = "Lcom/instagram/model/direct/messageid/MessageIdentifier;"
 
 /**
- * The server flag behind Instagram's own chat reels test. On 454 it's read once, in a test taking
- * the session and answering it (LX/04Yq;->A00 on 386014758, an instance method of a singleton),
+ * The server flag behind Instagram's own chat reels test. On 455 it's read once, in a test taking
+ * the session and answering it (LX/01Wv;->A00 on 386113969),
  * which the opener of a reel shared in a chat asks before it hands the chat's other shared reels to
- * the Reels viewer, and which the chat and the Reels viewer ask too. 453's was 0x81153c00006fb6 and
- * 452.1's 0x81155f00006ed0.
+ * the Reels viewer, and which the chat and the Reels viewer ask too. 454's was 0x8114ef00007096,
+ * 453's 0x81153c00006fb6 and 452.1's 0x81155f00006ed0.
  */
-internal const val CHAT_REELS_FLAG = 0x8114ef00007096L
+internal const val CHAT_REELS_FLAG = 0x8114d60000718cL
 
 /**
  * The trace name of the Reels viewer's dual paging request (LX/0Dyz;->A03 on 385914557, LX/0Fit;->A03

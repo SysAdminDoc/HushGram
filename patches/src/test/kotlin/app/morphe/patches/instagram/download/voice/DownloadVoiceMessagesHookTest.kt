@@ -190,8 +190,8 @@ class DownloadVoiceMessagesHookTest {
                 val saver = context.mutableClassDefBy(found.saver.method.definingClass).methods.single {
                     it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
                 }
-                if (bundle.name == "instagram-454.0.0.54.77-386014758.apks") {
-                    // Where it lands on 454's declared build, read off the dex by hand.
+                if (bundle.name == "instagram-455.0.0.51.72-386113969.apks") {
+                    // Where it lands on 455's declared build, read off the dex by hand.
                     val at = builder.instructions().indexOfFirst { it.referenceText() == OFFER_VOICE }
                     assertEquals(
                         DECLARED_SITES,
@@ -265,19 +265,21 @@ class DownloadVoiceMessagesHookTest {
 
     private companion object {
         /**
-         * On 454.0.0.54.77's 386014758: the builder and the ask before the offer, the saver's entry and its
+         * On 455.0.0.51.72's 386113969: the builder and the ask before the offer, the saver's entry and its
          * first two reads, then the audio bridge's reads and the view mode bridge's. The builder is the
-         * static 0AHU.A0F, asking 0KaE.AZl about the message 03nI. The audio reads are the player GxB's
-         * own at 3755 and 3761 to 3765: 05s8's media, 0a5d.A00 and 06nc.A02 to its audio 00ru, then
-         * 00ru.A08 and its BWx.
+         * merged lambda 09o1's invoke, asking 0KdP.Aa0 about the message 03eU at 680 before it sets the
+         * register it hands the model's 04Jp.A10 at 690. The saver's entry is 0bik.A03, whose request
+         * 0XvU holds the message. The audio reads are the player H3h's own at 3614 to 3618, then 3608
+         * and 3610: 03Rr's media, 0gl8.A00 and 00XT.A01 to its audio 00cE, then 00cE.A08 and its BYC.
+         * The parser 05Xg keeps the view mode in 03Rr.A0D.
          */
         val DECLARED_SITES = listOf(
-            "LX/0AHU;->A0F", "LX/0KaE;->AZl(Lcom/instagram/common/session/UserSession;LX/03nI;)Z",
-            "LX/0OHC;->A03", "LX/0L4y;->A00:LX/03nI;", "LX/0OHC;->A00:Landroid/app/Activity;",
-            "LX/03nI;->A0L:LX/05s8;", "LX/05s8;->A02:Lcom/instagram/feed/media/Media;",
-            "LX/0a5d;->A00(Lcom/instagram/feed/media/Media;)LX/0T1Y;", "LX/06nc;->A02(LX/0T1Y;)LX/00ru;",
-            "LX/00ru;->A08:LX/09Ij;", "LX/09Ij;->BWx()Ljava/lang/String;",
-            "LX/03nI;->A0L:LX/05s8;", "LX/05s8;->A0D:Ljava/lang/String;",
+            "LX/09o1;->invoke", "LX/0KdP;->Aa0(Lcom/instagram/common/session/UserSession;LX/03eU;)Z",
+            "LX/0bik;->A03", "LX/0XvU;->A00:LX/03eU;", "LX/0bik;->A00:Landroid/app/Activity;",
+            "LX/03eU;->A0L:LX/03Rr;", "LX/03Rr;->A02:Lcom/instagram/feed/media/Media;",
+            "LX/0gl8;->A00(Lcom/instagram/feed/media/Media;)LX/0YYv;", "LX/00XT;->A01(LX/0YYv;)LX/00cE;",
+            "LX/00cE;->A08:LX/0nih;", "LX/0nih;->BYC()Ljava/lang/String;",
+            "LX/03eU;->A0L:LX/03Rr;", "LX/03Rr;->A0D:Ljava/lang/String;",
         )
 
         const val MENU = "Lfixture/ThreadFragment;"

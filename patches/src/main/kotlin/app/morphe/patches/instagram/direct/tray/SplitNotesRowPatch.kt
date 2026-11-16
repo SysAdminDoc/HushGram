@@ -22,12 +22,12 @@ internal const val SPLIT_NOTES_ROW_STATUS = "splitNotesRow"
 internal const val SPLIT_NOTES_ROW = "$EXTENSION_PACKAGE/direct/SplitNotesRow;->split(I)Z"
 
 /**
- * The server test behind the split top of your messages on 454: Instants, Notes and Stories as
+ * The server test behind the split top of your messages on 455 (0x8115f000007436 on 454): Instants, Notes and Stories as
  * three stacks instead of one row of notes. It's read four times, each as a yes or no: when your
  * messages open (a fragment's onCreate, which picks the split row's maker over the old row's),
  * in the notes row's constructor, and in two places that get the row's contents ready.
  */
-internal const val SPLIT_NOTES_ROW_FLAG = 0x8115f000007436L
+internal const val SPLIT_NOTES_ROW_FLAG = 0x8115d300007550L
 
 internal const val SPLIT_NOTES_STORIES = "$EXTENSION_PACKAGE/direct/SplitNotesRow;->storiesOff(I)Z"
 

@@ -58,7 +58,7 @@ internal const val MAP_SHOWN = "$NOTES_ROW->mapShown(I)I"
 
 /** The trace name of the method turning your notes into the row's items, the one place the Map bubble is added. */
 internal const val NOTES_TRAY_ITEMS =
-    "instagram.features.direct.inbox.notes.tray.compose.ui.toNotesTrayUiState (NotesTrayComposeItem.kt:319)"
+    "instagram.features.direct.inbox.notes.tray.compose.ui.toNotesTrayUiState (NotesTrayComposeItem.kt:331)"
 
 /** The trace name of the Map bubble's own content, which takes the bubble's item. */
 internal const val NOTES_MAP_CONTENT =

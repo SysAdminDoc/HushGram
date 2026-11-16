@@ -51,7 +51,8 @@ class CloneManifestTest {
             val manifest = CloneFixtures.manifest(file)
             val facts = readCloneManifest(manifest)
             val label = facts.label
-            assertEquals("[$build] authorities", 24, facts.authorities.size)
+            // 455 adds com.instagram.android.baselhandoff to 454's 24.
+            assertEquals("[$build] authorities", 25, facts.authorities.size)
             assertEquals("[$build] permissions", setOf(
                 "com.instagram.android.permission.SYSTEM_ONLY",
                 "com.instagram.android.permission.CROSS_PROCESS_BROADCAST_MANAGER",
@@ -66,7 +67,7 @@ class CloneManifestTest {
 
             val renamed = renameManifest(manifest, clone, "Second")
 
-            assertEquals("[$build]", ManifestRename(labels = 20, authorities = 25, permissions = 3, permissionUses = 3,
+            assertEquals("[$build]", ManifestRename(labels = 20, authorities = 26, permissions = 3, permissionUses = 3,
                 affinities = 19, categories = 2, hosts = 1, processes = 0, classNames = 0), renamed)
             assertEquals(clone, manifest.documentElement.getAttribute("package"))
             assertEquals("@string/$CLONE_LABEL_RESOURCE", manifest.elements("application").single().getAttribute("android:label"))

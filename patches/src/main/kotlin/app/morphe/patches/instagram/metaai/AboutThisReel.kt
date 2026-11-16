@@ -31,9 +31,9 @@ internal const val ASK_META_AI_BOX = "$EXTENSION_PACKAGE/metaai/MetaAi;->askMeta
 
 /**
  * The server flag Instagram's About this reel summary factory reads to pick how it fetches the
- * summary (`LX/0bws;->A02` on 454's 386014758; 453 had 0x8110a600115abd).
+ * summary (`LX/0WDk;->A02` on 455's 386113969; 454 had 0x81106500115afc, 453 0x8110a600115abd).
  */
-internal const val SUMMARY_FLAG = 0x81106500115afcL
+internal const val SUMMARY_FLAG = 0x81104e00115b00L
 
 /** Two strings the summary row's binder holds on 450 and 451, the method that adds its Ask Meta AI box. */
 internal val SUMMARY_ROW_STRINGS = listOf("overflow_open", "defer_eligibility_enabled")

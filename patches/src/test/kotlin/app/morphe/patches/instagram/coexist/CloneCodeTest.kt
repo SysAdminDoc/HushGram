@@ -25,7 +25,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The code half on every build of Instagram 454.0.0.54.77. Each build names its own package by the same
+ * The code half on every build of Instagram 455.0.0.51.72. Each build names its own package by the same
  * uses, Redex's names aside, and every use that means the running app moves while the rest stay.
  */
 class CloneCodeTest {
@@ -33,41 +33,52 @@ class CloneCodeTest {
 
     /**
      * The const-string loads of an authority each build has, and the loads of Instagram's package that stay,
-     * as each build's plan counts them. 454's builds differ more than 453's did: between 35 and 39 authority
-     * loads, and 386014704 keeps one package load fewer than the rest.
+     * as each build's plan counts them. 455's builds have between 35 and 38 authority loads, and keep 89 or 90
+     * package loads.
      */
     private val authorityLoads = mapOf(
-        "386014704" to 38, "386014705" to 37, "386014712" to 39, "386014714" to 35, "386014718" to 39,
-        "386014747" to 39, "386014757" to 37, "386014758" to 39, "386014759" to 37, "386014760" to 35,
-        "386014775" to 39,
+        "386113915" to 35, "386113916" to 37, "386113918" to 38, "386113922" to 35, "386113923" to 38,
+        "386113928" to 35, "386113929" to 37, "386113958" to 37, "386113968" to 35, "386113969" to 37,
+        "386113970" to 36, "386113971" to 38,
     )
     private val keptLoads = mapOf(
-        "386014704" to 87, "386014705" to 88, "386014712" to 88, "386014714" to 88, "386014718" to 88,
-        "386014747" to 88, "386014757" to 88, "386014758" to 88, "386014759" to 88, "386014760" to 88,
-        "386014775" to 88,
+        "386113915" to 90, "386113916" to 89, "386113918" to 90, "386113922" to 90, "386113923" to 90,
+        "386113928" to 90, "386113929" to 89, "386113958" to 89, "386113968" to 90, "386113969" to 89,
+        "386113970" to 89, "386113971" to 90,
     )
+
+    /**
+     * 455 moved the release and debug list checks 454 made in three places (Ig4aAppComponentFactory among
+     * them) into one shared helper, LX/07Dl;->A0d(Ljava/lang/String;Z)Z on 386113969, so there are four of
+     * those uses where 454 had seven.
+     */
     private val uses = mapOf(
-        SelfUse.INLINED to 5, SelfUse.PACKAGE_MANAGER to 7, SelfUse.OWN_INTENT to 9,
-        SelfUse.NAME_CHECK to 6, SelfUse.CALLER_CHECK to 3, SelfUse.PROVIDER_OWNER to 4, SelfUse.RELEASE_AND_DEBUG to 7,
+        SelfUse.INLINED to 5, SelfUse.PACKAGE_MANAGER to 7, SelfUse.OWN_INTENT to 12,
+        SelfUse.NAME_CHECK to 6, SelfUse.CALLER_CHECK to 3, SelfUse.PROVIDER_OWNER to 4, SelfUse.RELEASE_AND_DEBUG to 4,
         SelfUse.DEX_LOAD_REPORT to 2,
     )
 
     /**
-     * The builds whose uses differ from the rest. 386014704 and 386014757 open one more screen of their own
-     * from a click (0JOV.onClick, 0UoN.onClick), and 386014704 and 386014705 lack the pair of checks of the
-     * running app's release and debug names (01Gh.A08 and A0C on 386014758): neither loads the debug name there.
+     * The builds whose uses differ from the rest. 386113918, 386113923, 386113970 and 386113971 open one screen
+     * of their own fewer from a click, and 386113970 lacks one PackageManager question (LX/0oLi;->A00 on
+     * 386113969, the one asking for com.facebook.katana, com.facebook.orca and com.facebook.pronest.debug).
      */
     private val usesBy = mapOf(
-        "386014704" to mapOf(SelfUse.OWN_INTENT to 10, SelfUse.RELEASE_AND_DEBUG to 5),
-        "386014705" to mapOf(SelfUse.RELEASE_AND_DEBUG to 5),
-        "386014757" to mapOf(SelfUse.OWN_INTENT to 10),
+        "386113918" to mapOf(SelfUse.OWN_INTENT to 11),
+        "386113923" to mapOf(SelfUse.OWN_INTENT to 11),
+        "386113970" to mapOf(SelfUse.OWN_INTENT to 11, SelfUse.PACKAGE_MANAGER to 6),
+        "386113971" to mapOf(SelfUse.OWN_INTENT to 11),
     )
 
-    /** Google Play's uses, the one count that differs by build: R8 keeps more or fewer of its helpers in each. */
+    /**
+     * Google Play's uses, the one count that differs by build: R8 keeps more or fewer of its helpers in each.
+     * On the armeabi-v7a builds Play Core's deferred install and uninstall helpers merge into one, which
+     * leaves five.
+     */
     private val googlePlayUses = mapOf(
-        "386014704" to 7, "386014705" to 7, "386014712" to 7, "386014714" to 7, "386014718" to 7,
-        "386014747" to 7, "386014757" to 7, "386014758" to 7, "386014759" to 7, "386014760" to 7,
-        "386014775" to 7,
+        "386113915" to 5, "386113916" to 7, "386113918" to 7, "386113922" to 5, "386113923" to 7,
+        "386113928" to 5, "386113929" to 7, "386113958" to 7, "386113968" to 5, "386113969" to 7,
+        "386113970" to 7, "386113971" to 7,
     )
 
     /** The uses in classes Redex leaves named, the same in every build. 453 renames the Play billing classes, so theirs count among the LX/ ones. */
@@ -77,7 +88,6 @@ class CloneCodeTest {
         "Lcom/facebook/rti/mqtt/manager/MqttBackgroundServiceDelegate; NAME_CHECK",
         "Lcom/instagram/common/resources/downloadable/impl/WaitingForStringsActivity; OWN_INTENT",
         "Lcom/instagram/inappbrowser/service/BrowserLiteCallbackService\$BrowserLiteCallbackImpl; CALLER_CHECK",
-        "Lcom/instagram/process/instagram/Ig4aAppComponentFactory; RELEASE_AND_DEBUG",
         "Lcom/instagram/share/handleractivity/BaseShareHandlerActivity; CALLER_CHECK",
         "Linstagram/features/stories/fragment/ReelViewerFragment; CALLER_CHECK",
     )
@@ -98,7 +108,7 @@ class CloneCodeTest {
         run {
             val authorities = readCloneManifest(CloneFixtures.manifest(file)).authorities
             val classes = CloneFixtures.classes(file, authorities)
-            if (build == "386014758") {
+            if (build == "386113969") {
                 val withoutAnswer = PatchContexts.of(classes).planClone(clone, authorities)
                 val refusal = assertThrows(PatchException::class.java) { withoutAnswer.requireComplete() }
                 assertTrue(refusal.message, refusal.message!!.contains("OwnPackage.name()"))

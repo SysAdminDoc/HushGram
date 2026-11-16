@@ -82,7 +82,7 @@ class NativeVisualSeenTest {
         val found = PatchContexts.of(classes.values).findVisualSeen()
         val completion = classes.values.flatMap { it.methods }.single {
             it.name == found.complete.name && it.parameterTypes.map(Any::toString) == found.complete.parameterTypes.map(Any::toString) &&
-                it.visualCode().any { instruction -> instruction.visualString() == "uploaded" }
+                FixtureDex.loads(it, "uploaded", classes)
         }
         val completeCode = completion.visualCode()
         assertEquals(Opcode.IF_NEZ, completeCode.first().opcode)
@@ -179,8 +179,10 @@ class NativeVisualSeenTest {
                 }
             }
             val complete = found.getValue(handler.parameterTypes[1].toString()).methods.toList().single("completion interface") { it.returnType == "V" && it.parameterTypes.size == 2 && it.parameterTypes.last().toString() == STRING }
+            // 455 pools the status: 386113969's LX/0Awg;->Fzc asks LX/0000;->A00 for "uploaded".
+            for (pool in FixtureDex.withStringPools(bundle, found.values.toList())) found.putIfAbsent(pool.type, pool)
             val nativeCompletion = found.values.flatMap { it.methods }.single("uploaded completion") {
-                it.name == complete.name && it.parameterTypes.map(Any::toString) == complete.parameterTypes.map(Any::toString) && it.visualCode().any { ins -> ins.visualString() == "uploaded" }
+                it.name == complete.name && it.parameterTypes.map(Any::toString) == complete.parameterTypes.map(Any::toString) && FixtureDex.loads(it, "uploaded", found)
             }
             val queueRef = nativeCompletion.visualCode().calls().single("queue status update") { it.returnType == "Z" && it.parameterTypes.size == 2 && it.parameterTypes.first().toString() == handler.parameterTypes[2].toString() }
             found += FixtureDex.classes(bundle, setOf(queueRef.definingClass))

@@ -3,8 +3,8 @@
   "fixtures": [
     {
       "package": "com.instagram.android",
-      "versionName": "454.0.0.54.77",
-      "versionCode": "386014758",
+      "versionName": "455.0.0.51.72",
+      "versionCode": "386113969",
       "families": [
         {
           "family": "sanitizeSharingLinks",
@@ -22,8 +22,8 @@
     },
     {
       "package": "com.instagram.android",
-      "versionName": "454.0.0.54.77",
-      "versionCode": "386014757",
+      "versionName": "455.0.0.51.72",
+      "versionCode": "386113968",
       "families": [
         {
           "family": "sanitizeSharingLinks",
@@ -41,8 +41,8 @@
     },
     {
       "package": "com.instagram.android",
-      "versionName": "454.0.0.54.77",
-      "versionCode": "386014759",
+      "versionName": "455.0.0.51.72",
+      "versionCode": "386113970",
       "families": [
         {
           "family": "sanitizeSharingLinks",
@@ -60,8 +60,8 @@
     },
     {
       "package": "com.instagram.android",
-      "versionName": "454.0.0.54.77",
-      "versionCode": "386014760",
+      "versionName": "455.0.0.51.72",
+      "versionCode": "386113971",
       "families": [
         {
           "family": "sanitizeSharingLinks",

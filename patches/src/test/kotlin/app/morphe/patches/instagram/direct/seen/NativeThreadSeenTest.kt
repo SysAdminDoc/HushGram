@@ -107,7 +107,7 @@ class NativeThreadSeenTest {
         val found = PatchContexts.of(classes.values).findThreadSeen()
         val completion = classes.values.flatMap { it.methods }.single {
             it.name == found.complete.name && it.parameterTypes.map(Any::toString) == found.complete.parameterTypes.map(Any::toString) &&
-                it.visualCode().any { instruction -> instruction.visualString() == "uploaded" }
+                FixtureDex.loads(it, "uploaded", classes)
         }
         val updateRef = completion.visualCode().calls().single {
             it.returnType == "Z" && it.parameterTypes.size == 2 && it.parameterTypes.first().toString() == found.handler.parameterTypes[2].toString()

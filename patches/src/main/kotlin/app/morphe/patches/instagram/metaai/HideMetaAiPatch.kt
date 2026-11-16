@@ -77,10 +77,11 @@ private const val VIEW = "Landroid/view/View;"
  * offers Meta AI: the Search tab's, which also covers its results and Meta AI's answers there, the
  * messages inbox's "ask Meta AI" bar, and the Meta AI ring at the end of the inbox's bar. The fourth
  * puts a Meta AI chats ("hatch") button in Home's top bar when the server's list has no messages
- * button, and the same item in the bar's settings list. 454 renumbered all four (453 had
+ * button, and the same item in the bar's settings list. 455 renumbered all four (454 had
+ * 0x81063c00111e3b, 0x8103e60006103b, 0x8103e4001b1031 and 0x811616000174d6, 453
  * 0x81066200111e66, 0x81040000061068, 0x8103fe001b105e and 0x81166400017394).
  */
-internal val SEARCH_FLAGS = listOf(0x81063c00111e3bL, 0x8103e60006103bL, 0x8103e4001b1031L, 0x811616000174d6L)
+internal val SEARCH_FLAGS = listOf(0x81062e00111dfbL, 0x8103db00061011L, 0x8103d9001b1007L, 0x8115fa00017601L)
 
 /** The Search tab's flag, which the search results page reads too (#152). */
 internal val RESULTS_FLAG = SEARCH_FLAGS[0]
