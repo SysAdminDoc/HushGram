@@ -47,6 +47,7 @@ Every HushGram release, newest first.
 * `Time on the seek bar` in Feed puts the time played and the length over the seek bar on feed videos, like 0:12 / 0:45. It follows your finger while you drag. Tap the time to count down what's left instead, or turn on `Show the time left` to start that way. Starts off. Asked for in #711.
 * `Taps on feed videos stay in the feed`, right under `Tap a feed video to pause it` in Feed, stops a tap on a feed video from opening it full screen in Reels, and a tap on the screen a finished one shows too. It works with the pause switch on or off. The buttons on that end screen still work. Starts off. Asked for in #706.
 * `Items in the three-dot menus` in Feed lets you untick Report, Mute, Unfollow, Not interested, Interested, Why you're seeing this post and the playback rows, and they're left out of the menus behind the three dots on posts, reels and feed videos. Stories lose Report and Mute the same way. Every item shows until you untick it. Asked for in #697 and #707.
+* `Keep 2x after you let go`, right under `Hold for 2x on feed videos` in Feed, keeps a held feed video at 2x once you lift your finger. Hold it again and let go to get normal speed back. Starts off. Asked for in #552.
 
 ### Bug Fixes
 

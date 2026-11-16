@@ -3451,6 +3451,12 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->released(Ljava/l
 once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->fast(I)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V sites 6 class-holding FeedMediaTapHandlerV2-softError
 once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->fixedStrip(I)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
 once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->strip(D)D in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
+# Keep 2x after you let go: the press entry tells FeedHoldSpeed.pressed the feed's 2x flag before it
+# resets the speed (07kE.A01 on 454's 386014758), and the release (02g8.A09) asks FeedHoldSpeed.lifted
+# before its own reset, whose yes skips it (#552). Left out, a lift always puts the speed back, or a
+# kept flag Instagram cleared reads as kept; twice or elsewhere, they aren't the hooks the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->pressed(Ljava/util/concurrent/atomic/AtomicBoolean;)V in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
+once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->lifted(Ljava/util/concurrent/atomic/AtomicBoolean;)Z in instance (Lcom/instagram/feed/media/Media;L*;L*;Z)V class-holding FeedMediaTapHandlerV2-softError
 # On 451 a tap can reach Reels without the handler (the video's overlays, a server-sent tap), and
 # every way in ends in the feed's one Reels launcher, the instance (View, entry point, two objects,
 # Media, state, List, boolean, boolean) void method holding the contextual feed's profile argument

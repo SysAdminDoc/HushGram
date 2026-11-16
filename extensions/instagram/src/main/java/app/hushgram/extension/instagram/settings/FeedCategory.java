@@ -262,6 +262,9 @@ final class FeedCategory {
         if (feedHoldFast) {
             feed.addPreference(toggle(context, Settings.HOLD_FEED_VIDEO_FAST, L10n.t("Hold for 2x on feed videos"),
                     L10n.t("Press and hold a video in a feed to play it at 2x, and let go to go back to normal speed.")));
+            feed.addPreference(toggle(context, Settings.HOLD_FEED_VIDEO_KEEP, L10n.t("Keep 2x after you let go"),
+                    L10n.t("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back "
+                            + "to normal speed.")));
         }
         if (feedSeekBar) {
             feed.addPreference(toggle(context, Settings.FEED_SEEK_BAR, L10n.t("Seek bar on feed videos"),

@@ -511,6 +511,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hold_feed_video_fast", FALSE);
 
     /**
+     * A feed video held for 2x under {@link #HOLD_FEED_VIDEO_FAST} stays at 2x when the finger lifts,
+     * until the next hold's lift ({@link app.hushgram.extension.instagram.feed.FeedHoldSpeed#lifted}).
+     * Read on every lift, so it needs no restart. Off to start (#552).
+     */
+    public static final BooleanSetting HOLD_FEED_VIDEO_KEEP =
+            new BooleanSetting("hushgram_hold_feed_video_keep", FALSE, parent(HOLD_FEED_VIDEO_FAST));
+
+    /**
      * A seek bar along the bottom of the video playing in a feed, which moves the video to where a
      * drag lets go ({@link app.hushgram.extension.instagram.feed.FeedSeekBar}). Off to start.
      */

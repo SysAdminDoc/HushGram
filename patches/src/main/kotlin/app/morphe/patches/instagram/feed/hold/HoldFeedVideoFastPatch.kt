@@ -65,7 +65,7 @@ internal const val STRIP_FLAG = 0x840ec40007038cL
 val holdFeedVideoFastPatch = bytecodePatch(
     name = "Hold for 2x on feed videos",
     description = "Press and hold a video in a feed to play it at 2x with Instagram's own speed-up, and let go " +
-        "for normal speed. Starts off. Turn it on in HushGram settings > Feed.",
+        "for normal speed, or keep it at 2x until you hold it again. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     // Manager's Feed group is full at the fifteen PatchCategoriesTest allows. The switch is under Feed in settings.
     category("Playback")
@@ -74,7 +74,10 @@ val holdFeedVideoFastPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("feedHoldFast")
-        holdFast(findFeedHold())
+        val hold = findFeedHold()
+        val lock = findFeedLock(hold.press)
+        holdFast(hold)
+        lockFast(lock)
         enableStatus("feedHoldFast")
     }
 }
@@ -101,10 +104,9 @@ private const val MEDIA = "Lcom/instagram/feed/media/Media;"
 /**
  * The feed tap handler's class holds the press entry, its one instance void (View, Media, point,
  * holder, state) method (or (View, Media, point, state), as on 451): the same lookup the feed tap
- * pause patch makes. In it, the call to the static helper that alone reads [HOLD_FLAG], and one
- * read of each other flag. Fails before anything changes when any of it isn't so.
+ * pause patch makes. Fails when there isn't exactly one of each.
  */
-internal fun BytecodePatchContext.findFeedHold(): FeedHold {
+internal fun BytecodePatchContext.feedPressEntry(): Method {
     val handlers = classesLoadingString(FEED_TAP_HANDLER_STRING).flatMap { it.methods }.filter { method ->
         val p = method.parameterTypes.map(Any::toString)
         !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.implementation != null &&
@@ -121,8 +123,16 @@ internal fun BytecodePatchContext.findFeedHold(): FeedHold {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.implementation != null &&
             it.parameterTypes.map(Any::toString) in shapes
     }
-    val press = presses.singleOrNull()
+    return presses.singleOrNull()
         ?: refuse("expected one press entry ($VIEW, $MEDIA, $point[, $holder], $state) in ${handler.definingClass}, found ${presses.size}")
+}
+
+/**
+ * The [feedPressEntry], and in it the call to the static helper that alone reads [HOLD_FLAG], and
+ * one read of each other flag. Fails before anything changes when any of it isn't so.
+ */
+internal fun BytecodePatchContext.findFeedHold(): FeedHold {
+    val press = feedPressEntry()
     val where = "${press.definingClass}->${press.name}"
     fun FlagLoad.inPress() = type == press.definingClass && name == press.name &&
         parameters == press.parameterTypes.map(Any::toString)

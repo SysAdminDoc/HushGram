@@ -134,14 +134,25 @@ class HoldFeedVideoFastHookTest {
                 if (classDef.methods.any { it.loadsAFlag() }) holders += ImmutableClassDef.of(classDef)
             }
         }
-        val classes = (FixtureDex.classes(bundle, named + handlers.single().type).values + holders).distinctBy { it.type }
+        val tagged = FixtureDex.classesLoading(bundle, SPEED_RESET_TAG)
+        assertTrue("$label: no class loads \"$SPEED_RESET_TAG\"", tagged.isNotEmpty())
+        val classes = FixtureDex.withStringPools(
+            bundle,
+            (FixtureDex.classes(bundle, named + handlers.single().type).values + holders + tagged).distinctBy { it.type },
+        )
         val context = PatchContexts.of(classes)
 
         val found = context.findFeedHold()
         assertEquals("$label: the press entry's class", handlers.single().type, found.press.definingClass)
         assertEquals("$label: loads answered", 7, found.loads.size)
+        val lock = context.findFeedLock(found.press)
+        assertEquals("$label: the release's class", handlers.single().type, lock.release.definingClass)
         val stock = found.press.code()
+        val stockRelease = lock.release.code()
         context.holdFast(found)
+        context.lockFast(lock)
+        FeedLockWrites.assertWritten(label, context, lock)
+        assertTrue("$label: the release's stock kept in order", isKept(stockRelease, FeedLockWrites.code(context, lock.release)))
 
         val patched = context.mutableClassDefBy(found.press.definingClass).methods.single {
             it.name == found.press.name && it.parameterTypes.map(Any::toString) == found.press.parameterTypes.map(Any::toString)
