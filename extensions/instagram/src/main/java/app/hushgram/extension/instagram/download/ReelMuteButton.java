@@ -148,7 +148,7 @@ public final class ReelMuteButton {
                         && !ReelSoundButton.shows(column) && !ReelBlockButton.shows(column)
                         && !ReelNotInterestedButton.shows(column) && !ReelDownloadButton.shows(column)
                         ? ReelDownloadButton.underAboveMore(column, context, margin) : margin;
-                icon = ReelDownloadButton.bridge.icon(ReelNotInterestedButton.centered(context.getResources(), speaker),
+                icon = ReelColumnFit.icon(ReelNotInterestedButton.centered(context.getResources(), speaker),
                         L10n.t(context, "Sound"), new Click(), size, under);
             }
             if (icon == null) {

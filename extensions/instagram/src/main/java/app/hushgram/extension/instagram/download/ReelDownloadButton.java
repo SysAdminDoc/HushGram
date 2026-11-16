@@ -305,7 +305,7 @@ public final class ReelDownloadButton {
             Drawable drawable = context == null ? null : drawable(context, filter instanceof ColorFilter ? (ColorFilter) filter : null);
             long under = aboveMore && drawable != null ? underAboveMore(column, context, margin) : margin;
             Object icon = drawable == null ? null
-                    : bridge.icon(drawable, FeedDownloadButton.description(context), new Click(column), size, under);
+                    : ReelColumnFit.icon(drawable, FeedDownloadButton.description(context), new Click(column), size, under);
             if (icon == null) {
                 HookStatus.counted(FamilyNames.REEL_DOWNLOAD, COUNT_REFUSED);
                 return null;

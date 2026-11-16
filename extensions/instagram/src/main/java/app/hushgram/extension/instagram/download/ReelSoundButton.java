@@ -108,7 +108,7 @@ public final class ReelSoundButton {
                 // The last icon over More is the one that makes up the margin More takes back.
                 long under = aboveMore && !ReelBlockButton.shows(column) && !ReelNotInterestedButton.shows(column)
                         && !ReelDownloadButton.shows(column) ? ReelDownloadButton.underAboveMore(column, context, margin) : margin;
-                icon = ReelDownloadButton.bridge.icon(drawable, L10n.t(context, "Hide this sound"), new Click(column), size, under);
+                icon = ReelColumnFit.icon(drawable, L10n.t(context, "Hide this sound"), new Click(column), size, under);
             }
             if (icon == null) {
                 HookStatus.counted(FamilyNames.REEL_DOWNLOAD, COUNT_REFUSED);

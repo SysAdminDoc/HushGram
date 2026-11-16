@@ -100,7 +100,7 @@ public final class ReelFullScreenButton {
                         && !ReelSoundButton.shows(column) && !ReelBlockButton.shows(column)
                         && !ReelNotInterestedButton.shows(column) && !ReelDownloadButton.shows(column)
                         ? ReelDownloadButton.underAboveMore(column, context, margin) : margin;
-                icon = ReelDownloadButton.bridge.icon(drawable, L10n.t(context, "Full screen"), new Click(column), size, under);
+                icon = ReelColumnFit.icon(drawable, L10n.t(context, "Full screen"), new Click(column), size, under);
             }
             if (icon == null) {
                 HookStatus.counted(FamilyNames.REEL_DOWNLOAD, COUNT_REFUSED);

@@ -7,6 +7,9 @@ package app.hushgram.extension.instagram.download;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
@@ -14,8 +17,11 @@ import android.view.WindowInsets;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+
+import kotlin.jvm.functions.Function1;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -41,6 +47,14 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * <p>Where a column fits is read as if its reel had settled in the viewer: from the column's place
  * in its own page, never from where a swipe has it now, so a reel sliding in already has its final
  * size. Anything thrown leaves the column as Instagram drew it.
+ *
+ * <p>Drawing smaller isn't enough on its own (#676). Instagram puts in only the buttons whose
+ * unscaled place is on screen, so a Like laid out above the top of the screen stayed out of the
+ * shrunk column, which showed its count under an empty spot. So a column found too tall also sets
+ * how much of their own size HushGram's icons (and the room under each) are laid out at from then
+ * on, just enough that the next columns fit as laid out, never under {@link #LEAST_SHARE}. That share
+ * is kept in HushGram's own store and starts over at full size when the number of icons switched on
+ * or their size changes.
  */
 public final class ReelColumnFit {
     /** The reel's button column. */
@@ -57,12 +71,36 @@ public final class ReelColumnFit {
     static final float SMALLEST = 0.5f;
     /** The most views looked at for columns in one pass. */
     private static final int MAX_PAGES = 12;
+    /** The least share of their own size HushGram's icons are laid out at in a column too tall. */
+    static final float LEAST_SHARE = 0.6f;
+    /** Extra room taken off with each share learned, in dp, so a column lands inside the limit. */
+    static final int SLACK_DP = 2;
+    /** HushGram's own store for the learned share. Only this phone's Instagram reads it. */
+    static final String STORE = "hushgram_reel_column";
+    static final String KEY_SHARE = "share";
+    static final String KEY_ICONS = "icons";
+    static final String KEY_SIZE = "size";
+    /** The top 16 bits Litho gives a size in pixels, and one in scaled pixels. */
+    static final long PX_BITS = 0x7ff9000000000000L;
+    static final long SP_BITS = 0x7ffa000000000000L;
+    private static final long KIND_BITS = 0xFFFF000000000000L;
 
     private static final ResourceIdCache ids = new ResourceIdCache();
     private static final WeakHashMap<Activity, Session> sessions = new WeakHashMap<>();
     /** The columns drawn smaller, so only those are put back. */
     private static final WeakHashMap<View, Float> shrunk = new WeakHashMap<>();
+    /** Columns already read for the share, with the height each had then, so one is read once. */
+    private static final WeakHashMap<View, Integer> read = new WeakHashMap<>();
+    private static final Object lock = new Object();
     private static volatile boolean registered;
+    /** The share of their own size the icons are laid out at: 1 until a column is too tall. */
+    private static volatile float share = 1f;
+    /** How many icons were on, and the pixels one icon took, when {@link #share} was set. */
+    private static volatile int shareIcons = -1;
+    private static volatile int shareSize = -1;
+    /** The most pixels one icon and the room under it take at full size, as last laid out. */
+    private static volatile int pitch;
+    private static volatile boolean loaded;
 
     private ReelColumnFit() {
     }
@@ -99,6 +137,120 @@ public final class ReelColumnFit {
         float scale = (bottom - limit) / (float) height;
         if (scale >= 1f) return 1f;
         return Math.max(SMALLEST, scale);
+    }
+
+    /** How many of the icons HushGram adds to the column are switched on. Paused answers none. */
+    static int iconsOn() {
+        boolean[] on = {ReelDownloadButton.iconOn(), ReelFullScreenButton.on(), ReelSpeedButton.on(), ReelTextButton.on(),
+                ReelSoundButton.on(), ReelNotInterestedButton.on(), ReelBlockButton.on(), ReelMuteButton.on()};
+        int count = 0;
+        for (boolean each : on) if (each) count++;
+        return count;
+    }
+
+    /**
+     * One of HushGram's icons for the column, made by the bridge with [size] and the room [margin]
+     * under it laid out at the share the column has learned it needs (#676). Every icon HushGram adds
+     * to the column comes through here.
+     */
+    static Object icon(Drawable drawable, CharSequence description, Function1<Object, Object> click, long size, long margin) {
+        float now = shareFor(size, margin);
+        return ReelDownloadButton.bridge.icon(drawable, description, click, scaled(size, now), scaled(margin, now));
+    }
+
+    /**
+     * The share to lay out an icon of [size] over [margin] at, noting the pixels it takes at full
+     * size. A share learned for another number of icons or another icon size starts over at 1.
+     * Never throws.
+     */
+    static float shareFor(long size, long margin) {
+        try {
+            Context context = Utils.getContext();
+            if (context == null) return share;
+            DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+            int sizePx = pixels(size, metrics);
+            int icons = iconsOn();
+            synchronized (lock) {
+                load(context);
+                if (icons != shareIcons || sizePx != shareSize) {
+                    boolean was = share < 1f;
+                    share = 1f;
+                    shareIcons = icons;
+                    shareSize = sizePx;
+                    pitch = 0;
+                    if (was) save(context);
+                }
+                int taken = sizePx + Math.max(0, pixels(margin, metrics));
+                if (taken > pitch) pitch = taken;
+                return share;
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, HOOK + " share", failure);
+            return 1f;
+        }
+    }
+
+    /**
+     * Litho's [dimen] at [share] of itself: pixels, scaled pixels and dp each kept in their own
+     * kind. None, and any size Litho reads some other way, stay as they are.
+     */
+    static long scaled(long dimen, float share) {
+        if (share >= 1f || dimen == 0) return dimen;
+        long kind = dimen & KIND_BITS;
+        if (kind == PX_BITS) return PX_BITS | (Math.round((int) dimen * share) & 0xFFFFFFFFL);
+        if (kind == SP_BITS) return SP_BITS | (Float.floatToRawIntBits(Float.intBitsToFloat((int) dimen) * share) & 0xFFFFFFFFL);
+        double dp = Double.longBitsToDouble(dimen);
+        if (Double.isNaN(dp)) return dimen;
+        return Double.doubleToRawLongBits(dp * share);
+    }
+
+    /** The pixels Litho's [dimen] comes to, or 0 for none and any size read some other way. */
+    static int pixels(long dimen, DisplayMetrics metrics) {
+        if (dimen == 0) return 0;
+        long kind = dimen & KIND_BITS;
+        if (kind == PX_BITS) return (int) dimen;
+        if (kind == SP_BITS) return Math.round(Float.intBitsToFloat((int) dimen) * metrics.scaledDensity);
+        double dp = Double.longBitsToDouble(dimen);
+        if (Double.isNaN(dp)) return 0;
+        return (int) Math.round(dp * metrics.density);
+    }
+
+    /**
+     * Lowers the share by what a column [over] pixels too tall needs, spread over the icons switched
+     * on, never under {@link #LEAST_SHARE}. Answers whether it changed.
+     */
+    static boolean learn(Context context, int over) {
+        if (over <= 0) return false;
+        synchronized (lock) {
+            load(context);
+            int icons = shareIcons;
+            int each = pitch;
+            if (icons <= 0 || each <= 0 || share <= LEAST_SHARE) return false;
+            int slack = Math.round(SLACK_DP * context.getResources().getDisplayMetrics().density);
+            float next = Math.max(LEAST_SHARE, share - (over + slack) / (float) (icons * each));
+            if (next >= share) return false;
+            share = next;
+            save(context);
+            return true;
+        }
+    }
+
+    private static void load(Context context) {
+        if (loaded) return;
+        loaded = true;
+        SharedPreferences store = context.getSharedPreferences(STORE, Context.MODE_PRIVATE);
+        float saved = store.getFloat(KEY_SHARE, 1f);
+        if (!(saved >= LEAST_SHARE && saved < 1f)) return;
+        share = saved;
+        shareIcons = store.getInt(KEY_ICONS, -1);
+        shareSize = store.getInt(KEY_SIZE, -1);
+    }
+
+    private static void save(Context context) {
+        SharedPreferences.Editor editor = context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit();
+        if (share >= 1f) editor.clear();
+        else editor.putFloat(KEY_SHARE, share).putInt(KEY_ICONS, shareIcons).putInt(KEY_SIZE, shareSize);
+        editor.apply();
     }
 
     /** Starts watching [activity]. Called as an activity resumes. */
@@ -170,16 +322,44 @@ public final class ReelColumnFit {
             limit = Math.max(limit, at[1] + bar.getHeight());
         }
         limit += Math.round(GAP_DP * owner.getResources().getDisplayMetrics().density);
-        boolean changed = false;
+        List<View> columns = new ArrayList<>();
+        List<Integer> tops = new ArrayList<>();
         int count = Math.min(pages.getChildCount(), MAX_PAGES);
         for (int i = 0; i < count; i++) {
             View page = pages.getChildAt(i);
             View column = page.findViewById(columnId);
             if (column == null || column == page || column.getVisibility() != View.VISIBLE || column.getHeight() <= 0) continue;
-            int top = pagesTop + settledTop(column, page);
+            columns.add(column);
+            tops.add(pagesTop + settledTop(column, page));
+        }
+        learnFrom(owner, columns, tops, limit);
+        boolean changed = false;
+        for (int i = 0; i < columns.size(); i++) {
+            View column = columns.get(i);
+            int top = tops.get(i);
             changed |= scale(column, scaleFor(top, top + column.getHeight(), limit));
         }
         return changed;
+    }
+
+    /**
+     * Lowers the share by what the tallest new column over [limit] needs. Every column there now was
+     * laid out at the share before, so each is noted with its height and read again only once it's
+     * laid out anew.
+     */
+    private static void learnFrom(Context context, List<View> columns, List<Integer> tops, int limit) {
+        int most = 0;
+        synchronized (lock) {
+            for (int i = 0; i < columns.size(); i++) {
+                View column = columns.get(i);
+                Integer height = read.get(column);
+                if (height != null && height == column.getHeight()) continue;
+                most = Math.max(most, limit - tops.get(i));
+            }
+            if (most <= 0) return;
+            for (View column : columns) read.put(column, column.getHeight());
+        }
+        learn(context, most);
     }
 
     /**
@@ -244,9 +424,21 @@ public final class ReelColumnFit {
         }
     }
 
+    static float shareForTests() {
+        return share;
+    }
+
     static void resetForTests() {
         ids.clear();
         putBack();
+        synchronized (lock) {
+            share = 1f;
+            shareIcons = -1;
+            shareSize = -1;
+            pitch = 0;
+            loaded = false;
+            read.clear();
+        }
         synchronized (sessions) {
             for (Map.Entry<Activity, Session> each : new ArrayList<>(sessions.entrySet())) {
                 if (each.getKey() != null) ViewWatcher.leave(each.getKey(), each.getValue());

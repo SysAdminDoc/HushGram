@@ -5,9 +5,14 @@
 package app.hushgram.extension.instagram.download;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.content.Context;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +28,8 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
+
+import kotlin.jvm.functions.Function1;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -44,6 +51,8 @@ public class ReelColumnFitTest {
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
+    private final ReelDownloadButton.Bridge originalBridge = ReelDownloadButton.bridge;
+    private final Sizes sizes = new Sizes();
     private ActivityController<Activity> controller;
     private Activity activity;
     private FrameLayout root;
@@ -90,8 +99,58 @@ public class ReelColumnFitTest {
 
     @After
     public void restore() {
+        ReelDownloadButton.bridge = originalBridge;
         resetAll();
         controller.pause().stop().destroy();
+    }
+
+    /** Keeps the size and margin each icon is made with. */
+    private static final class Sizes implements ReelDownloadButton.Bridge {
+        long size = -1;
+        long margin = -1;
+
+        @Override public Object item(Object column) {
+            return null;
+        }
+
+        @Override public Object media(Object item) {
+            return null;
+        }
+
+        @Override public String kind(Object item) {
+            return null;
+        }
+
+        @Override public int moreTop(Object column, Context context) {
+            return 0;
+        }
+
+        @Override public Object icon(Drawable drawable, CharSequence description, Function1<Object, Object> click, long size,
+                                     long margin) {
+            this.size = size;
+            this.margin = margin;
+            return drawable;
+        }
+    }
+
+    private static long px(int pixels) {
+        return ReelColumnFit.PX_BITS | (pixels & 0xFFFFFFFFL);
+    }
+
+    /** Lays out one icon of [size] over [margin] pixels through the column's own route. */
+    private void icon(int size, int margin) {
+        ReelDownloadButton.bridge = sizes;
+        ReelColumnFit.icon(new ColorDrawable(), "Full screen", tap -> null, px(size), px(margin));
+    }
+
+    /** How far a column [columnTall] high reaches past the top bar and its gap, in pixels. */
+    private int over(int columnTall) {
+        float density = activity.getResources().getDisplayMetrics().density;
+        return BAR + Math.round(ReelColumnFit.GAP_DP * density) - (TALL - SEEK_ROOM - columnTall);
+    }
+
+    private int slack() {
+        return Math.round(ReelColumnFit.SLACK_DP * activity.getResources().getDisplayMetrics().density);
     }
 
     private static void resetAll() {
@@ -254,5 +313,131 @@ public class ReelColumnFitTest {
 
         assertTrue("with the bar gone the column needs less shrinking: " + column.getScaleY(),
                 column.getScaleY() > fittingScale(COLUMN_TALL));
+    }
+
+    @Test
+    public void scaledKeepsEachKindOfSize() {
+        assertEquals(px(75), ReelColumnFit.scaled(px(100), 0.75f));
+        assertEquals(ReelColumnFit.SP_BITS | Float.floatToRawIntBits(4f),
+                ReelColumnFit.scaled(ReelColumnFit.SP_BITS | Float.floatToRawIntBits(8f), 0.5f));
+        assertEquals(Double.doubleToRawLongBits(4.0), ReelColumnFit.scaled(Double.doubleToRawLongBits(8.0), 0.5f));
+        assertEquals("none stays none", 0L, ReelColumnFit.scaled(0L, 0.5f));
+        long unknown = 0x7ff8000000000000L;
+        assertEquals("a size read some other way is left alone", unknown, ReelColumnFit.scaled(unknown, 0.5f));
+        assertEquals("full size changes nothing", px(23), ReelColumnFit.scaled(px(23), 1f));
+    }
+
+    @Test
+    public void pixelsReadsEachKindOfSize() {
+        DisplayMetrics metrics = new DisplayMetrics();
+        metrics.density = 2f;
+        metrics.scaledDensity = 3f;
+        assertEquals(23, ReelColumnFit.pixels(px(23), metrics));
+        assertEquals(16, ReelColumnFit.pixels(Double.doubleToRawLongBits(8.0), metrics));
+        assertEquals(24, ReelColumnFit.pixels(ReelColumnFit.SP_BITS | Float.floatToRawIntBits(8f), metrics));
+        assertEquals(0, ReelColumnFit.pixels(0L, metrics));
+        assertEquals(0, ReelColumnFit.pixels(0x7ff8000000000000L, metrics));
+    }
+
+    @Test
+    public void aColumnTooTallLaysTheNextIconsOutSmaller() {
+        Settings.FULL_SCREEN_BUTTON_ON_REELS.save(true);
+        icon(300, 200);
+        assertEquals("full size until a column is too tall", px(300), sizes.size);
+        assertEquals(px(200), sizes.margin);
+        ReelColumnFit.watch(activity);
+
+        frame();
+
+        float wanted = 1f - (over(COLUMN_TALL) + slack()) / 500f;
+        assertEquals(wanted, ReelColumnFit.shareForTests(), EPSILON);
+        icon(300, 200);
+        assertEquals(px(Math.round(300 * wanted)), sizes.size);
+        assertEquals(px(Math.round(200 * wanted)), sizes.margin);
+        assertTrue("the column on screen now is still drawn smaller", column.getScaleY() < 1f);
+    }
+
+    @Test
+    public void aColumnIsReadOnceUntilItIsLaidOutAgain() {
+        Settings.FULL_SCREEN_BUTTON_ON_REELS.save(true);
+        icon(300, 200);
+        ReelColumnFit.watch(activity);
+        frame();
+        float first = ReelColumnFit.shareForTests();
+        assertTrue(first < 1f);
+
+        frame();
+        frame();
+        assertEquals("the same columns don't lower it again", first, ReelColumnFit.shareForTests(), 0f);
+
+        column.setLayoutParams(columnParams(COLUMN_TALL - 50));
+        layout();
+        frame();
+
+        float wanted = first - (over(COLUMN_TALL - 50) + slack()) / 500f;
+        assertEquals("a column laid out anew is read at the share it got", wanted, ReelColumnFit.shareForTests(), EPSILON);
+    }
+
+    @Test
+    public void theShareNeverGoesUnderTheLeast() {
+        Settings.FULL_SCREEN_BUTTON_ON_REELS.save(true);
+        icon(30, 20);
+        ReelColumnFit.watch(activity);
+
+        frame();
+
+        assertEquals(ReelColumnFit.LEAST_SHARE, ReelColumnFit.shareForTests(), 0f);
+    }
+
+    @Test
+    public void aColumnThatFitsLeavesTheIconsAtFullSize() {
+        Settings.SPEED_BUTTON_ON_REELS.save(true);
+        icon(300, 200);
+        page.removeView(column);
+        page.addView(column, columnParams(300));
+        nextPage.removeView(nextColumn);
+        layout();
+        ReelColumnFit.watch(activity);
+
+        frame();
+
+        assertEquals(1f, ReelColumnFit.shareForTests(), 0f);
+    }
+
+    @Test
+    public void theShareIsKeptAndStartsOverWhenTheIconsChange() {
+        Settings.FULL_SCREEN_BUTTON_ON_REELS.save(true);
+        icon(300, 200);
+        ReelColumnFit.watch(activity);
+        frame();
+        float learned = ReelColumnFit.shareForTests();
+        assertTrue(learned < 1f);
+        ShadowLooper.idleMainLooper();
+
+        ReelColumnFit.resetForTests();
+        icon(300, 200);
+        assertEquals("read back from HushGram's store", learned, ReelColumnFit.shareForTests(), 0f);
+        assertEquals(px(Math.round(300 * learned)), sizes.size);
+
+        Settings.SPEED_BUTTON_ON_REELS.save(true);
+        icon(300, 200);
+        assertEquals("another icon switched on starts over", 1f, ReelColumnFit.shareForTests(), 0f);
+        assertEquals(px(300), sizes.size);
+        ShadowLooper.idleMainLooper();
+        assertFalse(activity.getSharedPreferences(ReelColumnFit.STORE, Context.MODE_PRIVATE).contains(ReelColumnFit.KEY_SHARE));
+    }
+
+    @Test
+    public void anotherIconSizeStartsTheShareOver() {
+        Settings.FULL_SCREEN_BUTTON_ON_REELS.save(true);
+        icon(300, 200);
+        ReelColumnFit.watch(activity);
+        frame();
+        assertTrue(ReelColumnFit.shareForTests() < 1f);
+
+        icon(320, 200);
+
+        assertEquals("a new display size lays the icons out at full size again", 1f, ReelColumnFit.shareForTests(), 0f);
+        assertEquals(px(320), sizes.size);
     }
 }
