@@ -23,6 +23,8 @@ Every HushGram release, newest first.
 * `Hide Blend in chats` and `Hide the back button in chats`, new under Messages, take those buttons off a chat's top bar. Swiping back still leaves the chat. Asked for in #688.
 * `Top bar tint in chats` and `Message bar tint`, new under `Glass in chats`, set how dark each glass bar is, from 0% (blur only) to 150%. The tab bar keeps its own tint. Asked for in #688.
 * `Header text font` picks bold, regular, serif, script, monospace or your `Font` choice for the words on Home's header, and `Center the header text` puts them in the middle of the screen. Asked for in #688.
+* With `Glass in chats` on, messages scroll under a chat's top bar and show through it blurred, and the blur runs up behind the status bar with a soft fade at its edge. Asked for in #684.
+* `Story buttons at the bottom`, new under Stories, puts the seen and download buttons at the bottom right of a story, by your thumb, next to Like. Asked for in #647.
 * `Text size`, new under `Font`, sets Instagram's text anywhere from 70% to 200% of the phone's size, in any font. Asked for in #682.
 * `Profile history` keeps each profile picture at full size. Old pictures open full screen from its page, a long press saves one to your gallery, and every row says when its old value was seen. Asked for in #611.
 * `Decline calls that don't ring`, new under Call blocker, declines a call `Who can call you` keeps quiet, the same as tapping Decline, so it doesn't keep ringing on their end. Starts off. Asked for in #578.
@@ -33,6 +35,8 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* With `Swipe through a chat's reels` on, every reel you swipe to from a chat keeps its reply bar and reactions, answering its own message, and a second reel opened from the same chat does too. Reported in #658.
+* `Messages after a reel` points out what the other person wrote after a reel again, whichever way the chat's reel was opened. Reported in #658.
 * `Copy link` in the share sheet uses your `Sharing domain` again. The copied link had its tracking bits removed but still pointed at instagram.com. Reported in #667.
 * In light mode the strips above and below a story, from a profile too, are black instead of white, so the clock and navigation buttons show again. `Ambient light in stories` glows on black there too. Reported in #666.
 * With `Accent color` and `Icons in the accent color` on, the tab bar icons keep the picked color on Reels and after you leave it. They turned white on Reels and stayed white back on Home. Reported in #663.
