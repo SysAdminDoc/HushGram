@@ -133,6 +133,7 @@ import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.UploadBitrate;
 import app.hushgram.extension.instagram.stories.UploadScope;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryViewers;
 import app.hushgram.extension.instagram.stories.StoryRingThickness;
 import app.hushgram.extension.instagram.stories.StoryMentionsLook;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
@@ -236,6 +237,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String CLEAR_PROFILE_HISTORY = "hushgram_clear_profile_history";
     static final String ONLINE_HISTORY_ROW = "hushgram_online_history_row";
     static final String CLEAR_ONLINE_HISTORY = "hushgram_clear_online_history";
+    static final String STORY_VIEWERS_ROW = "hushgram_story_viewers_row";
+    static final String CLEAR_STORY_VIEWERS = "hushgram_clear_story_viewers";
     static final String SAVED_PROFILES_ROW = "hushgram_saved_profiles_row";
     static final String CLEAR_UNFOLLOWERS = "hushgram_clear_unfollowers";
     /** The row listing the follow requests still waiting, and the row that forgets them. */
@@ -960,6 +963,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || SAVED_PROFILES_ROW.equals(key) || Settings.SAVED_PROFILES_TAB_TARGET.key.equals(key));
                     belongs |= family == PatchFamily.ONLINE_HISTORY
                             && (ONLINE_HISTORY_ROW.equals(key) || CLEAR_ONLINE_HISTORY.equals(key));
+                    belongs |= family == PatchFamily.STORY_VIEWERS
+                            && (STORY_VIEWERS_ROW.equals(key) || CLEAR_STORY_VIEWERS.equals(key));
                     belongs |= family == PatchFamily.SENT_FOLLOW_REQUESTS
                             && (SENT_REQUESTS_ROW.equals(key) || CLEAR_SENT_REQUESTS.equals(key));
                     belongs |= family == PatchFamily.FOLLOWING_FEED && Settings.FAVORITES_TAB_TARGET.key.equals(key);
@@ -5070,6 +5075,73 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             });
         })) {
             Utils.showToastLong(L10n.t("Couldn't clear the online history. Try again."));
+        }
+    }
+
+    /**
+     * The row saying how many of your stories have their viewers kept, and since when. Read off the
+     * main thread, so it says so until it's read. Tapping it opens them on a page.
+     */
+    static Preference storyViewersRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(STORY_VIEWERS_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Story viewers"));
+        row.setSummary(L10n.t("Reading the list…"));
+        row.setOnPreferenceClickListener(tapped -> {
+            StoryViewersPage.open(tapped.getContext(), tapped);
+            return true;
+        });
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        if (!Utils.runOnBackgroundThread(() -> {
+            String summary = storyViewersSummary(application, StoryViewers.summary(application, 0, java.util.Collections.emptyMap()));
+            Utils.runOnMainThread(() -> row.setSummary(summary));
+        })) {
+            row.setSummary(storyViewersSummary(application, StoryViewers.summary(application, 0, java.util.Collections.emptyMap())));
+        }
+        return mark(row, SettingsIcons.UPDATES);
+    }
+
+    /** What the story viewers row says for [kept]. */
+    static String storyViewersSummary(Context context, StoryViewers.Summary kept) {
+        if (kept.stories.isEmpty()) {
+            return L10n.t("Nothing here yet. With Keep story viewers on, open who viewed one of your stories "
+                    + "in Instagram and the list is kept here.");
+        }
+        int flags = android.text.format.DateUtils.FORMAT_SHOW_DATE | android.text.format.DateUtils.FORMAT_ABBREV_MONTH;
+        int count = kept.stories.size();
+        return L10n.quantity(context, count,
+                "%1$d story kept since %2$s. Tap to see who viewed it and who has no view recorded.",
+                "%1$d stories kept since %2$s. Tap to see who viewed each one and who has no view recorded.",
+                count, android.text.format.DateUtils.formatDateTime(context, kept.since, flags));
+    }
+
+    /** Forgets the story viewers off the main thread, says so, and empties [list]. */
+    static void clearStoryViewers(Preference row, Preference list) {
+        clearStoryViewers(row, list, null);
+    }
+
+    /** {@link #clearStoryViewers(Preference, Preference)}, running [after] once they're gone. */
+    static void clearStoryViewers(Preference row, Preference list, @Nullable Runnable after) {
+        if (!allowMutation(row, true)) return;
+        Context context = row.getContext();
+        if (!Utils.runOnBackgroundThread(() -> {
+            if (!asyncChangesAllowed()) {
+                Utils.showToastLong(heldMessage());
+                return;
+            }
+            boolean cleared = StoryViewers.clear(context);
+            Utils.runOnMainThread(() -> {
+                if (cleared) {
+                    Utils.showToastShort(L10n.t("Story viewers cleared."));
+                    list.setSummary(storyViewersSummary(context, StoryViewers.summary(context, 0, java.util.Collections.emptyMap())));
+                    if (after != null) after.run();
+                } else {
+                    Utils.showToastLong(L10n.t("Couldn't clear the story viewers. Try again."));
+                }
+            });
+        })) {
+            Utils.showToastLong(L10n.t("Couldn't clear the story viewers. Try again."));
         }
     }
 

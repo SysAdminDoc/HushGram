@@ -2464,3 +2464,36 @@ Saved photos and videos take up %1$s now.	As fotos e vídeos salvos ocupam %1$s 
 # context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
 Glass lens under your finger	Lente de vidro sob o seu dedo
 Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	Segure um dedo na bolha da pílula de vidro líquido, ou deslize-a pelas abas, e a bolha cresce e curva mais o que está atrás dela, como vidro sob a ponta de um dedo. Ela volta ao normal quando você solta. A curvatura precisa de Desfoque atrás da barra de abas e Android 13 ou mais recente. Reinicie o Instagram depois de alterar.
+# context: Keep story viewers, its Stories settings rows and the Story viewers page.
+Keep story viewers	Guardar quem viu os stories
+Each time you open who viewed one of your stories, the list is kept on this phone and set beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.	Toda vez que você abre quem viu um dos seus stories, a lista fica guardada neste celular, ao lado dos seus seguidores. Nada a mais é pedido ao Instagram. Desative e para na hora.
+Story viewers	Quem viu os stories
+Nothing here yet. With Keep story viewers on, open who viewed one of your stories in Instagram and the list is kept here.	Nada aqui ainda. Com Guardar quem viu os stories ativado, abra no Instagram quem viu um dos seus stories e a lista fica guardada aqui.
+%1$d story kept since %2$s. Tap to see who viewed it and who has no view recorded.	%1$d story guardado desde %2$s. Toque para ver quem viu e quem não tem visualização registrada.
+%1$d stories kept since %2$s. Tap to see who viewed each one and who has no view recorded.	%1$d stories guardados desde %2$s. Toque para ver quem viu cada um e quem não tem visualização registrada.
+Clear story viewers	Apagar quem viu os stories
+Forgets every story's viewers kept here. The switch stays as it is.	Esquece quem viu cada story guardado aqui. O botão fica como está.
+Story viewers cleared.	Lista de quem viu apagada.
+Couldn't clear the story viewers. Try again.	Lista não apagada. Tente de novo.
+Last 7 days	Últimos 7 dias
+Last 30 days	Últimos 30 dias
+Last 90 days	Últimos 90 dias
+All kept	Tudo guardado
+Viewers	Quem viu
+No view recorded	Sem visualização registrada
+Frequent	Frequentes
+Stories kept: %1$d. Viewers: %2$d.	Stories guardados: %1$d. Quem viu: %2$d.
+%1$d%% of your followers viewed at least one.	%1$d%% dos seus seguidores viram pelo menos um.
+To see followers with no view recorded, turn on Recent unfollowers and open your Followers list once.	Para ver seguidores sem visualização registrada, ative Deixaram de seguir você e abra sua lista de Seguidores uma vez.
+Viewed this story	Viu este story
+Not on this story's list	Não está na lista deste story
+Stories viewed: %1$d of %2$d, the newest posted %3$s	Stories vistos: %1$d de %2$d, o mais recente postado %3$s
+None in this period. The last story they viewed is from %s	Nenhum neste período. O último story que viu é de %s
+No view recorded since %s	Sem visualização registrada desde %s
+Story from %s	Story de %s
+Viewers kept: %1$d of %2$d	Quem viu, guardados: %1$d de %2$d
+Viewers: %1$d	Quem viu: %1$d
+Viewers: %1$d. Followers not on the list: %2$d	Quem viu: %1$d. Seguidores fora da lista: %2$d
+No stories kept in this period.	Nenhum story guardado neste período.
+Every follower viewed at least one story in this period.	Todos os seguidores viram pelo menos um story neste período.
+No one has viewed half of this period's stories yet.	Ninguém viu metade dos stories deste período ainda.

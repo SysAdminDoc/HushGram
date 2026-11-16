@@ -6,7 +6,11 @@
  */
 package app.hushgram.extension.instagram.settings;
 
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_STORY_VIEWERS;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearStoryViewers;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyViewersRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.priorityAccountsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyBarRow;
@@ -259,6 +263,24 @@ final class StoriesCategory {
             stories.add(uploadFrameRateRow(context));
             stories.add(uploadPhotoQualityRow(context));
             stories.add(uploadPhotoSizeRow(context));
+        }
+        if (build.contains(PatchFamily.STORY_VIEWERS)) {
+            stories.add(toggle(context, Settings.STORY_VIEWERS, L10n.t("Keep story viewers"),
+                    L10n.t("Each time you open who viewed one of your stories, the list is kept on this phone and set "
+                            + "beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.")));
+            Preference viewers = storyViewersRow(context);
+            stories.add(viewers);
+            HushgramPreferenceFragment.Row clear = new HushgramPreferenceFragment.Row(context);
+            clear.setKey(CLEAR_STORY_VIEWERS);
+            clear.setPersistent(false);
+            clear.actsAtOnce = true;
+            clear.setTitle(L10n.t("Clear story viewers"));
+            clear.setSummary(L10n.t("Forgets every story's viewers kept here. The switch stays as it is."));
+            clear.setOnPreferenceClickListener(p -> {
+                clearStoryViewers(p, viewers);
+                return true;
+            });
+            stories.add(mark(clear, SettingsIcons.DELETE));
         }
         if (build.contains(PatchFamily.STORY_FONTS)) {
             stories.add(toggle(context, Settings.STORY_FONTS, L10n.t("Your fonts in story text"),

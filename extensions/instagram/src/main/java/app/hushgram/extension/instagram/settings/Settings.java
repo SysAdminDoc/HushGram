@@ -4535,6 +4535,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_profile_history_save_pictures", FALSE, parent(PROFILE_HISTORY));
 
     /**
+     * Keeps, only on this phone, who Instagram listed as viewers of your stories each time you open
+     * a story's viewer list (#710), and sets them beside your last Followers list. Nothing is asked
+     * for or sent. The lists stay out of settings backups and the diagnostic report, and Clear story
+     * viewers forgets them. Starts off.
+     */
+    public static final BooleanSetting STORY_VIEWERS =
+            new BooleanSetting("hushgram_story_viewers", FALSE);
+
+    /**
      * The name a saved video gets: {date}, {video_id}, {owner} and {posted} fill in per save, the
      * last three only when the save knows them, and the default is IG_VID_ and the date and time.
      * Photos keep their IG_IMG_ names. Cleaned like the folder wherever it's read

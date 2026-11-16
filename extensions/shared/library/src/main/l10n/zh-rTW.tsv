@@ -2467,3 +2467,36 @@ Saved photos and videos take up %1$s now.	已儲存的照片與影片目前佔�
 # context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
 Glass lens under your finger	手指下的玻璃透鏡
 Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	用手指按住液態膠囊的泡泡，或在分頁間滑動它，泡泡會變大，並更強烈地折射後方的內容，就像指尖下的玻璃。放開後會恢復原狀。折射需要開啟「模糊分頁列後方內容」及 Android 13 或以上版本。變更後請重新啟動 Instagram。
+# context: Keep story viewers, its Stories settings rows and the Story viewers page.
+Keep story viewers	保留限時動態觀看者
+Each time you open who viewed one of your stories, the list is kept on this phone and set beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.	每次你打開誰看過你的某則限時動態，名單就會保留在這支手機上，並和你的粉絲放在一起對照。不會向 Instagram 多要任何東西。關閉後會立刻停止。
+Story viewers	限時動態觀看者
+Nothing here yet. With Keep story viewers on, open who viewed one of your stories in Instagram and the list is kept here.	這裡還沒有東西。開啟「保留限時動態觀看者」後，在 Instagram 打開誰看過你的某則限時動態，名單就會保留在這裡。
+%1$d story kept since %2$s. Tap to see who viewed it and who has no view recorded.	自 %2$s 起保留了 %1$d 則限時動態。點一下即可查看誰看過，以及誰沒有記錄到觀看。
+%1$d stories kept since %2$s. Tap to see who viewed each one and who has no view recorded.	自 %2$s 起保留了 %1$d 則限時動態。點一下即可查看每則的觀看者，以及誰沒有記錄到觀看。
+Clear story viewers	清除限時動態觀看者
+Forgets every story's viewers kept here. The switch stays as it is.	忘記這裡保留的所有限時動態觀看者。開關維持原樣。
+Story viewers cleared.	已清除觀看者。
+Couldn't clear the story viewers. Try again.	無法清除觀看者，請再試一次。
+Last 7 days	最近 7 天
+Last 30 days	最近 30 天
+Last 90 days	最近 90 天
+All kept	全部保留的
+Viewers	觀看者
+No view recorded	沒有記錄到觀看
+Frequent	常看
+Stories kept: %1$d. Viewers: %2$d.	已保留的限時動態：%1$d。觀看者：%2$d。
+%1$d%% of your followers viewed at least one.	%1$d%% 的粉絲至少看過一則。
+To see followers with no view recorded, turn on Recent unfollowers and open your Followers list once.	想看到沒有記錄到觀看的粉絲，請開啟「最近取消追蹤者」，並打開一次你的粉絲名單。
+Viewed this story	看過這則限時動態
+Not on this story's list	不在這則限時動態的名單上
+Stories viewed: %1$d of %2$d, the newest posted %3$s	看過的限時動態：%2$d 則中的 %1$d 則，最新一則是%3$s發布的
+None in this period. The last story they viewed is from %s	這段期間沒有。最後看過的限時動態是 %s 的
+No view recorded since %s	自 %s 起沒有記錄到觀看
+Story from %s	%s 的限時動態
+Viewers kept: %1$d of %2$d	已保留的觀看者：%1$d / %2$d
+Viewers: %1$d	觀看者：%1$d
+Viewers: %1$d. Followers not on the list: %2$d	觀看者：%1$d。不在名單上的粉絲：%2$d
+No stories kept in this period.	這段期間沒有保留的限時動態。
+Every follower viewed at least one story in this period.	每位粉絲在這段期間都至少看過一則限時動態。
+No one has viewed half of this period's stories yet.	還沒有人看過這段期間一半的限時動態。

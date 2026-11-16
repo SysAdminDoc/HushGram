@@ -3645,3 +3645,9 @@ once-call Lapp/hushgram/extension/instagram/direct/MarkReadButton;->closed(Ljava
 # anywhere else, it isn't the store every presence update goes through.
 start-call Lapp/hushgram/extension/instagram/direct/OnlineHistory;->received(Ljava/lang/Object;Ljava/util/Map;)V in static (L*;Ljava/util/Map;ZZ)V pooled class-holding direct_v2/get_presence_active_now/
 once-call Lapp/hushgram/extension/instagram/direct/OnlineHistory;->received(Ljava/lang/Object;Ljava/util/Map;)V in static (L*;Ljava/util/Map;ZZ)V pooled class-holding direct_v2/get_presence_active_now/
+# Keep story viewers (#710). The success method of the callback for who viewed a story, the one taking the
+# answer that logs fetched_ig_viewers_count and total_viewer_count, hands the callback and the answer to
+# StoryViewers.listed before anything else. Left out, the list never fills; anywhere else, it isn't the
+# answer every page of viewers comes back in.
+start-call Lapp/hushgram/extension/instagram/stories/StoryViewers;->listed(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V pooled holding fetched_ig_viewers_count total_viewer_count
+once-call Lapp/hushgram/extension/instagram/stories/StoryViewers;->listed(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V pooled holding fetched_ig_viewers_count total_viewer_count

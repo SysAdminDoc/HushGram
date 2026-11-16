@@ -2463,3 +2463,36 @@ Saved photos and videos take up %1$s now.	현재 저장된 사진과 동영상 �
 # context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
 Glass lens under your finger	손가락 아래 유리 렌즈
 Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	리퀴드 글래스 알약의 버블을 손가락으로 누르고 있거나 탭 위로 밀면 버블이 커지고 뒤에 있는 화면을 더 강하게 굴절시킵니다. 손끝 아래의 유리처럼요. 손을 떼면 원래대로 돌아갑니다. 굴절에는 탭 바 뒤 흐림 효과와 Android 13 이상이 필요합니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
+# context: Keep story viewers, its Stories settings rows and the Story viewers page.
+Keep story viewers	스토리 조회자 보관
+Each time you open who viewed one of your stories, the list is kept on this phone and set beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.	내 스토리를 누가 봤는지 열 때마다 그 목록이 이 휴대폰에 보관되고 팔로워 옆에 나란히 놓입니다. Instagram에 추가로 요청하는 것은 없습니다. 끄면 바로 멈춥니다.
+Story viewers	스토리 조회자
+Nothing here yet. With Keep story viewers on, open who viewed one of your stories in Instagram and the list is kept here.	아직 없습니다. 스토리 조회자 보관을 켠 상태에서 Instagram에서 내 스토리를 누가 봤는지 열면 목록이 여기에 보관됩니다.
+%1$d story kept since %2$s. Tap to see who viewed it and who has no view recorded.	%2$s부터 스토리 %1$d개를 보관했습니다. 누가 봤는지, 조회 기록이 없는 사람은 누구인지 보려면 누르세요.
+%1$d stories kept since %2$s. Tap to see who viewed each one and who has no view recorded.	%2$s부터 스토리 %1$d개를 보관했습니다. 각 스토리를 누가 봤는지, 조회 기록이 없는 사람은 누구인지 보려면 누르세요.
+Clear story viewers	스토리 조회자 지우기
+Forgets every story's viewers kept here. The switch stays as it is.	여기에 보관된 모든 스토리의 조회자를 지웁니다. 스위치는 그대로 둡니다.
+Story viewers cleared.	조회 목록을 지웠습니다.
+Couldn't clear the story viewers. Try again.	조회 목록을 지우지 못했습니다. 다시 시도해 주세요.
+Last 7 days	최근 7일
+Last 30 days	최근 30일
+Last 90 days	최근 90일
+All kept	보관된 전체
+Viewers	조회자
+No view recorded	조회 기록 없음
+Frequent	자주 봄
+Stories kept: %1$d. Viewers: %2$d.	보관된 스토리: %1$d. 조회자: %2$d.
+%1$d%% of your followers viewed at least one.	팔로워의 %1$d%%가 하나 이상 봤습니다.
+To see followers with no view recorded, turn on Recent unfollowers and open your Followers list once.	조회 기록이 없는 팔로워를 보려면 최근 언팔로우를 켜고 팔로워 목록을 한 번 여세요.
+Viewed this story	이 스토리를 봄
+Not on this story's list	이 스토리의 목록에 없음
+Stories viewed: %1$d of %2$d, the newest posted %3$s	본 스토리: %2$d개 중 %1$d개, 가장 최근 스토리는 %3$s 게시
+None in this period. The last story they viewed is from %s	이 기간에는 없음. 마지막으로 본 스토리는 %s 게시
+No view recorded since %s	%s 이후 조회 기록 없음
+Story from %s	%s 스토리
+Viewers kept: %1$d of %2$d	보관된 조회자: %1$d / %2$d
+Viewers: %1$d	조회자: %1$d
+Viewers: %1$d. Followers not on the list: %2$d	조회자: %1$d. 목록에 없는 팔로워: %2$d
+No stories kept in this period.	이 기간에 보관된 스토리가 없습니다.
+Every follower viewed at least one story in this period.	모든 팔로워가 이 기간에 스토리를 하나 이상 봤습니다.
+No one has viewed half of this period's stories yet.	아직 이 기간 스토리의 절반을 본 사람이 없습니다.

@@ -2379,3 +2379,36 @@ Saved photos and videos take up %1$s now.	Ảnh và video đã lưu hiện chi�
 # context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
 Glass lens under your finger	Thấu kính kính dưới ngón tay
 Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	Giữ ngón tay trên bong bóng của viên kính lỏng, hoặc trượt nó qua các tab, bong bóng sẽ phồng lên và bẻ cong mạnh hơn những gì phía sau, như kính dưới đầu ngón tay. Bong bóng trở lại như cũ khi bạn thả tay. Hiệu ứng bẻ cong cần Làm mờ phía sau thanh tab và Android 13 trở lên. Hãy khởi động lại Instagram sau khi thay đổi.
+# context: Keep story viewers, its Stories settings rows and the Story viewers page.
+Keep story viewers	Giữ danh sách người xem tin
+Each time you open who viewed one of your stories, the list is kept on this phone and set beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.	Mỗi lần bạn mở xem ai đã xem một tin của bạn, danh sách sẽ được giữ trên điện thoại này và đặt cạnh người theo dõi của bạn. Không yêu cầu thêm gì từ Instagram. Tắt đi là dừng ngay.
+Story viewers	Người xem tin
+Nothing here yet. With Keep story viewers on, open who viewed one of your stories in Instagram and the list is kept here.	Chưa có gì. Khi bật Giữ danh sách người xem tin, hãy mở xem ai đã xem một tin của bạn trong Instagram và danh sách sẽ được giữ ở đây.
+%1$d story kept since %2$s. Tap to see who viewed it and who has no view recorded.	Đã giữ %1$d tin từ %2$s. Nhấn để xem ai đã xem và ai chưa có lượt xem nào được ghi lại.
+%1$d stories kept since %2$s. Tap to see who viewed each one and who has no view recorded.	Đã giữ %1$d tin từ %2$s. Nhấn để xem ai đã xem từng tin và ai chưa có lượt xem nào được ghi lại.
+Clear story viewers	Xóa người xem tin
+Forgets every story's viewers kept here. The switch stays as it is.	Quên người xem của mọi tin được giữ ở đây. Công tắc vẫn giữ nguyên.
+Story viewers cleared.	Đã xóa người xem tin.
+Couldn't clear the story viewers. Try again.	Không xóa được người xem. Hãy thử lại.
+Last 7 days	7 ngày qua
+Last 30 days	30 ngày qua
+Last 90 days	90 ngày qua
+All kept	Tất cả đã giữ
+Viewers	Người xem
+No view recorded	Chưa có lượt xem được ghi lại
+Frequent	Thường xem
+Stories kept: %1$d. Viewers: %2$d.	Tin đã giữ: %1$d. Người xem: %2$d.
+%1$d%% of your followers viewed at least one.	%1$d%% người theo dõi bạn đã xem ít nhất một tin.
+To see followers with no view recorded, turn on Recent unfollowers and open your Followers list once.	Để thấy người theo dõi chưa có lượt xem được ghi lại, hãy bật Người bỏ theo dõi gần đây và mở danh sách Người theo dõi của bạn một lần.
+Viewed this story	Đã xem tin này
+Not on this story's list	Không có trong danh sách của tin này
+Stories viewed: %1$d of %2$d, the newest posted %3$s	Tin đã xem: %1$d trên %2$d, tin mới nhất đăng %3$s
+None in this period. The last story they viewed is from %s	Không có trong khoảng này. Tin gần nhất họ xem là từ %s
+No view recorded since %s	Chưa có lượt xem được ghi lại từ %s
+Story from %s	Tin từ %s
+Viewers kept: %1$d of %2$d	Người xem đã giữ: %1$d trên %2$d
+Viewers: %1$d	Người xem: %1$d
+Viewers: %1$d. Followers not on the list: %2$d	Người xem: %1$d. Người theo dõi không có trong danh sách: %2$d
+No stories kept in this period.	Không có tin nào được giữ trong khoảng này.
+Every follower viewed at least one story in this period.	Mọi người theo dõi đều đã xem ít nhất một tin trong khoảng này.
+No one has viewed half of this period's stories yet.	Chưa ai xem một nửa số tin của khoảng này.

@@ -371,7 +371,8 @@
           "View live anonymously",
           "Download any story",
           "Upload stories at full quality",
-          "Story text fonts"
+          "Story text fonts",
+          "Keep story viewers"
         ]
       },
       "anchors": [
@@ -390,6 +391,15 @@
             "op": "any",
             "patches": [
               "View stories anonymously"
+            ]
+          }
+        },
+        {
+          "title": "Keep story viewers",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Keep story viewers"
             ]
           }
         }

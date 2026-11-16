@@ -580,6 +580,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Keep story viewers patch. */
+    public static boolean storyViewers() {
+        return false;
+    }
+
     public static boolean doubleTapLike() {
         return false;
     }
