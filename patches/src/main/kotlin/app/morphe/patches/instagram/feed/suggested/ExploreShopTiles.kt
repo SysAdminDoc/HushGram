@@ -151,8 +151,8 @@ internal fun BytecodePatchContext.findExploreShopSections(): ExploreShopSections
         val read = pageCode[at]
         if (read.opcode != Opcode.SGET_OBJECT) return@mapNotNull null
         val instance = (read as ReferenceInstruction).reference as FieldReference
-        val call = (pageCode[at + 1] as? ReferenceInstruction)?.reference as? MethodReference
-        instance.type.takeIf { it == instance.definingClass && call?.name == "parseFromJsonParser" }
+        val call = pageCode.getOrNull(at + 1) ?: return@mapNotNull null
+        instance.type.takeIf { it == instance.definingClass && parsesWith(call, (read as OneRegisterInstruction).registerA) }
     }.distinct()
     val parser = parsers.singleOrNull()
         ?: refuse("${page.type} reads its sections through ${parsers.size} parsers, expected one")
@@ -180,6 +180,39 @@ internal fun BytecodePatchContext.findExploreShopSections(): ExploreShopSections
     }
     if (!AccessFlags.PUBLIC.isSet(classDefBy(tile).accessFlags)) refuse("$tile isn't public, so the extension can't test for it")
     return ExploreShopSections(page, parser, section, ImmutableFieldReference(section, holder.name, holder.type), tile)
+}
+
+/**
+ * Whether [call] reads a section with the parser in [register]: the parser's own parseFromJsonParser,
+ * or, from 455, a static helper handed the parser that calls parseFromJsonParser on that parameter
+ * before anything writes it (0030.A0V on 386113969, which adds what it read to the page's list).
+ */
+private fun BytecodePatchContext.parsesWith(call: Instruction, register: Int): Boolean {
+    val called = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    if (called.name == "parseFromJsonParser") return true
+    if (call.opcode != Opcode.INVOKE_STATIC && call.opcode != Opcode.INVOKE_STATIC_RANGE) return false
+    val arguments = call.registers()
+    val position = arguments.indexOf(register).takeIf { it >= 0 && arguments.lastIndexOf(register) == it } ?: return false
+    val helper = classDefByOrNull(called.definingClass)?.methods?.singleOrNull {
+        it.name == called.name && it.returnType == called.returnType && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(CharSequence::toString) == called.parameterTypes.map(CharSequence::toString)
+    } ?: return false
+    val implementation = helper.implementation ?: return false
+    val parameter = implementation.registerCount - arguments.size + position
+    for (instruction in implementation.instructions) {
+        val reference = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+        if (reference?.name == "parseFromJsonParser" && instruction.registers().firstOrNull() == parameter) return true
+        if (instruction.opcode.setsRegister() && (instruction as? OneRegisterInstruction)?.let {
+                it.registerA == parameter || instruction.opcode.setsWideRegister() && it.registerA + 1 == parameter
+            } == true) return false
+    }
+    return false
+}
+
+private fun Instruction.registers(): List<Int> = when (this) {
+    is RegisterRangeInstruction -> List(registerCount) { startRegister + it }
+    is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+    else -> emptyList()
 }
 
 /**

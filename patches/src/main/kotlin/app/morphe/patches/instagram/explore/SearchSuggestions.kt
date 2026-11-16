@@ -55,48 +55,58 @@ internal val SEARCH_ITEM_KINDS = listOf("RECENTS", "SUGGESTED_USERS")
 private const val LIST = "Ljava/util/List;"
 
 /**
- * Instagram's two builders of what shows under the search bar before you type: the older one's
- * static method adding the Suggested for you section, and the newer one's static builder of the
- * whole screen, with the register of the list of items it's handed and those items' class.
+ * The older search screen's method adding the Suggested for you section, with where Instagram's own
+ * checks guard that block, the point they skip to and a register free at the guard.
+ */
+internal class SearchSection(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val guardIndex: Int,
+    val exitIndex: Int,
+    val scratchRegister: Int,
+)
+
+/**
+ * Instagram's builders of what shows under the search bar before you type: the older one's method
+ * adding the Suggested for you section, when the build still has it, and the newer one's static
+ * builder of the whole screen, with the register of the list of items it's handed and those items'
+ * class.
  */
 internal class SearchSuggestionSites(
-    val sectionType: String,
-    val sectionName: String,
-    val sectionParameters: List<String>,
+    val section: SearchSection?,
     val builderType: String,
     val builderName: String,
     val builderParameters: List<String>,
     val itemsRegister: Int,
     val itemType: String,
-    val sectionGuardIndex: Int,
-    val sectionExitIndex: Int,
-    val sectionScratchRegister: Int,
 )
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
 /**
- * Finds the two methods loading both [NULL_STATE_SUGGESTED] and [FOLLOW_CHAINING_UNIT]. The one
- * answering nothing adds the older screen's Suggested for you section. The one also loading
- * [SHOW_MORE_RECENTS] and taking one list builds the newer screen out of that list's items, and
- * the items' class is the one class it casts to with an enum field naming [SEARCH_ITEM_KINDS].
- * The builder is static, and nothing jumps back to either's start. Fails before anything changes when
- * any of it isn't so, since that's an update this patch hasn't seen.
+ * Finds the methods loading both [NULL_STATE_SUGGESTED] and [FOLLOW_CHAINING_UNIT]. One answering
+ * nothing adds the older screen's Suggested for you section; 455 dropped that screen, so its builds
+ * have only the newer builder (0TNm.A00 on 386113969). The one also loading [SHOW_MORE_RECENTS]
+ * and taking one list builds the newer screen out of that list's items, and the items' class is the
+ * one class it casts to with an enum field naming [SEARCH_ITEM_KINDS]. The builder is static, and
+ * nothing jumps back to its start or the section's. Fails before anything changes when any of it
+ * isn't so, since that's an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findSearchSuggestions(): SearchSuggestionSites {
     val holders = classesLoadingString(NULL_STATE_SUGGESTED).flatMap { classDef ->
         classDef.methods.filter { loadsString(it, NULL_STATE_SUGGESTED) && loadsString(it, FOLLOW_CHAINING_UNIT) }
     }
     val sections = holders.filter { it.returnType == "V" }
+    if (sections.size > 1) refuse("expected at most one method adding the search screen's $NULL_STATE_SUGGESTED section, found ${sections.size}")
     val section = sections.singleOrNull()
-        ?: refuse("expected one method adding the search screen's $NULL_STATE_SUGGESTED section, found ${sections.size}")
     val builders = holders.filter { it.returnType != "V" && loadsString(it, SHOW_MORE_RECENTS) && it.parameters().count { type -> type == LIST } == 1 }
     val builder = builders.singleOrNull()
         ?: refuse("expected one builder of the search screen taking a list and holding $SHOW_MORE_RECENTS, found ${builders.size}")
     // The older screen's section is an instance method on 452 (it was static on 451); only the builder takes
     // its list from a parameter register the hook counts, so only the builder has to be static.
     if (!AccessFlags.STATIC.isSet(builder.accessFlags)) refuse("${builder.definingClass}->${builder.name} isn't static")
-    for (method in listOf(section, builder)) {
+    for (method in listOfNotNull(section, builder)) {
         val where = "${method.definingClass}->${method.name}"
         if (0 in method.jumpTargets()) refuse("something in $where jumps back to its start")
     }
@@ -110,18 +120,20 @@ internal fun BytecodePatchContext.findSearchSuggestions(): SearchSuggestionSites
         ?: refuse("expected the search screen's builder to cast to one class with a kind naming SUGGESTED_USERS, found $items")
     requireOneKindField(PATCH, itemType, SEARCH_ITEM_KINDS)
 
-    val (guardIndex, exitIndex) = section.suggestedBlockGuard()
-    val scratch = try {
-        section.findFreeRegister(guardIndex)
-    } catch (failure: IllegalArgumentException) {
-        refuse("no free register to guard the ${section.name} section's $NULL_STATE_SUGGESTED block")
+    val guarded = section?.let {
+        val (guardIndex, exitIndex) = it.suggestedBlockGuard()
+        val scratch = try {
+            it.findFreeRegister(guardIndex)
+        } catch (failure: IllegalArgumentException) {
+            refuse("no free register to guard the ${it.name} section's $NULL_STATE_SUGGESTED block")
+        }
+        SearchSection(it.definingClass, it.name, it.parameters(), guardIndex, exitIndex, scratch)
     }
 
     return SearchSuggestionSites(
-        section.definingClass, section.name, section.parameters(),
+        guarded,
         builder.definingClass, builder.name, builder.parameters(),
         builder.parameterRegisterNumber(builder.parameters().indexOf(LIST)), itemType,
-        guardIndex, exitIndex, scratch,
     )
 }
 
@@ -159,7 +171,7 @@ private fun Method.suggestedBlockGuard(): Pair<Int, Int> {
 }
 
 /**
- * The older screen's section method builds the recent searches first, then its Suggested for you
+ * The older screen's section method, where a build has one, builds the recent searches first, then its Suggested for you
  * block. [HIDE_SECTION] is asked right where Instagram's own checks guard that block, and when the
  * switch is on it skips to the same point past the block they do, so the recents survive and only
  * the suggested accounts go. The newer screen's builder starts by passing its list of items through
@@ -168,19 +180,21 @@ private fun Method.suggestedBlockGuard(): Pair<Int, Int> {
  * draws those for a group of suggested accounts only.
  */
 internal fun BytecodePatchContext.hideSearchSuggestions(sites: SearchSuggestionSites) {
-    val section = mutableClassDefBy(sites.sectionType).methods.single {
-        it.name == sites.sectionName && it.parameterTypes.map(CharSequence::toString) == sites.sectionParameters
+    sites.section?.let { found ->
+        val section = mutableClassDefBy(found.type).methods.single {
+            it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
+        }
+        val scratch = found.scratchRegister
+        section.addInstructionsWithLabels(
+            found.guardIndex,
+            """
+                invoke-static { }, $HIDE_SECTION
+                move-result v$scratch
+                if-nez v$scratch, :hidden
+            """,
+            ExternalLabel("hidden", section.getInstruction(found.exitIndex)),
+        )
     }
-    val scratch = sites.sectionScratchRegister
-    section.addInstructionsWithLabels(
-        sites.sectionGuardIndex,
-        """
-            invoke-static { }, $HIDE_SECTION
-            move-result v$scratch
-            if-nez v$scratch, :hidden
-        """,
-        ExternalLabel("hidden", section.getInstruction(sites.sectionExitIndex)),
-    )
 
     val builder = mutableClassDefBy(sites.builderType).methods.single {
         it.name == sites.builderName && it.parameterTypes.map(CharSequence::toString) == sites.builderParameters

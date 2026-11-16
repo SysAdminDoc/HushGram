@@ -142,13 +142,18 @@ internal fun BytecodePatchContext.findExploreParser(): ExploreParser {
 
     // 453 hands the parsed list to the page at the label its loop branches to, after the other keys'
     // cases, so the first field write after the key is the next case's. Find the list write through
-    // the loop's own exit branch instead; older builds write it straight after the key.
+    // the loop's own exit branch instead; older builds write it straight after the key. 455 makes the
+    // list through a static helper with no arguments (LX/000H;->A0g() on 386113969), not new-instance.
     fun sectionsField(): Pair<FieldReference, Int> {
         val at = code.indices.firstOrNull { stringLoadedAt(code, it) == SECTIONS } ?: refuse("$where doesn't read $SECTIONS")
         val next = code.indices.firstOrNull { it > at && stringLoadedAt(code, it) != null } ?: code.size
         val listAt = (at until next).firstOrNull {
-            code[it].opcode == Opcode.NEW_INSTANCE &&
+            val made = code[it].opcode == Opcode.NEW_INSTANCE &&
                 ((code[it] as ReferenceInstruction).reference as TypeReference).type == "Ljava/util/ArrayList;"
+            val helper = (code.getOrNull(it - 1)?.takeIf { call -> call.opcode == Opcode.INVOKE_STATIC } as? ReferenceInstruction)
+                ?.reference as? MethodReference
+            made || code[it].opcode == Opcode.MOVE_RESULT_OBJECT && helper != null &&
+                helper.parameterTypes.isEmpty() && helper.returnType == "Ljava/util/ArrayList;"
         }
         if (listAt != null) {
             val listRegister = (code[listAt] as OneRegisterInstruction).registerA

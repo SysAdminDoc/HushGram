@@ -29,6 +29,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -78,12 +79,28 @@ class HideSearchSuggestionsHookTest {
         assertEquals("Instagram's builder after the filter", builderBefore.map { it.opcode }, builder.code().drop(2).map { it.opcode })
     }
 
+    /** Without the older screen's section, as on 455, only the newer builder is hooked and nothing asks [HIDE_SECTION]. */
+    @Test
+    fun aBuildWithoutTheOlderSectionHooksTheBuilderOnly() {
+        val classes = classes(sections = 0)
+        val context = PatchContexts.of(classes)
+
+        val sites = context.findSearchSuggestions()
+        context.hideSearchSuggestions(sites)
+
+        assertNull("no section", sites.section)
+        val builder = context.mutableClassDefBy(newSearch).methods.single()
+        assertItemsFiltered("stand-in", builder, builder.implementation!!.registerCount - 2)
+        val asking = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+            .filter { method -> method.code().any { it.referenceText() == HIDE_SECTION } }
+        assertTrue("asked from $asking", asking.isEmpty())
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
-            classes(sections = 0) to "expected one method adding the search screen's $NULL_STATE_SUGGESTED section, found 0",
-            classes(sections = 2) to "expected one method adding the search screen's $NULL_STATE_SUGGESTED section, found 2",
+            classes(sections = 2) to "expected at most one method adding the search screen's $NULL_STATE_SUGGESTED section, found 2",
             classes(builderHoldsRecents = false) to "expected one builder of the search screen taking a list and holding $SHOW_MORE_RECENTS, found 0",
             classes(loopsToStart = true) to "something in $newSearch->A00 jumps back to its start",
             classes(kindNames = listOf("RECENTS", "NULLSTATE_SUGGESTIONS")) to
@@ -103,15 +120,15 @@ class HideSearchSuggestionsHookTest {
     }
 
     /**
-     * In each of the three 452 builds both builders (the older section and the newer builder) are
-     * there once and hooked.
+     * In each 455 build the newer builder is there once and hooked, and so is the older section
+     * wherever a build still has one (455 dropped it; 386113969 has only the builder).
      */
     @Test
     fun eachDeclaredBuildHooksBothBuilders() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        assertEquals("every 455 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()
             val casts = mutableSetOf<String>()
@@ -132,14 +149,16 @@ class HideSearchSuggestionsHookTest {
             val sites = context.findSearchSuggestions()
             context.hideSearchSuggestions(sites)
 
-            val section = context.mutableClassDefBy(sites.sectionType).methods.single { it.name == sites.sectionName && it.parameterTypes.map(CharSequence::toString) == sites.sectionParameters }
-            assertSectionGuarded(bundle.name, section)
+            sites.section?.let { found ->
+                val section = context.mutableClassDefBy(found.type).methods.single { it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters }
+                assertSectionGuarded(bundle.name, section)
+            }
             val builder = context.mutableClassDefBy(sites.builderType).methods.single { it.name == sites.builderName && it.parameterTypes.map(CharSequence::toString) == sites.builderParameters }
             assertEquals("${bundle.name}: the builder's list", "Ljava/util/List;", sites.builderParameters[2])
             assertItemsFiltered(bundle.name, builder, builder.implementation!!.registerCount - 2)
             for (hook in listOf(HIDE_SECTION, NULL_STATE_ITEMS)) {
                 assertEquals(
-                    "${bundle.name}: methods calling $hook", 1,
+                    "${bundle.name}: methods calling $hook", if (hook == HIDE_SECTION && sites.section == null) 0 else 1,
                     holders.map { it.type }.distinct().sumOf { type -> context.mutableClassDefBy(type).methods.count { m -> m.code().any { it.referenceText() == hook } } },
                 )
             }

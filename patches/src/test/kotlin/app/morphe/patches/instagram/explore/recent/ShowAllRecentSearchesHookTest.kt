@@ -95,7 +95,7 @@ class ShowAllRecentSearchesHookTest {
         }
     }
 
-    /** On each declared build the group is found and the hook lands right after each count. */
+    /** On each build the group is found and the hook lands right after each count. */
     @Test
     fun everyDeclaredBuildTakesTheHookAfterTheCount() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -107,16 +107,19 @@ class ShowAllRecentSearchesHookTest {
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+        for (base in Fixtures.otherBuilds()) takesTheHook(base, base.parentFile.name)
     }
 
-    private fun takesTheHook(bundle: java.io.File) {
+    private fun takesTheHook(bundle: java.io.File, label: String = bundle.name) {
         val holders = (FixtureDex.classesLoading(bundle, SHOW_MORE) + FixtureDex.classesLoading(bundle, NULL_STATE_RECENT)).distinctBy { it.type }
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders) + ExtensionDex.classDef(RECENT_SEARCHES))
         val sites = context.findRecentLimits()
-        assertTrue("${bundle.name}: ${sites.size} sites", sites.size in 1..2)
+        // 455 trims the recents in one place, the screen's builder naming the Show more row itself
+        // (0TNm.A00 on 386113969). 453's second builder, which only made the row (#375), no longer counts them.
+        assertEquals("$label: sites", 1, sites.size)
         assertTrue(
-            "${bundle.name}: #375, the builder that only makes the Show more row is hooked too",
-            sites.any { site -> context.mutableClassDefBy(site.type).methods.single { it.matches(site) }.let { !context.loadsString(it, SHOW_MORE) } },
+            "$label: the builder names the Show more row",
+            context.loadsString(context.mutableClassDefBy(sites[0].type).methods.single { it.matches(sites[0]) }, SHOW_MORE),
         )
         val before = sites.map { site ->
             context.mutableClassDefBy(site.type).methods.single { it.matches(site) }.code().map { it.shape() }
@@ -127,8 +130,8 @@ class ShowAllRecentSearchesHookTest {
         sites.forEachIndexed { i, site ->
             val after = context.mutableClassDefBy(site.type).methods.single { it.matches(site) }.code()
             val at = after.indexOfFirst { it.reference() == hook }
-            assertEquals("${bundle.name}: the hook follows the count", min, after[at - 2].reference())
-            assertEquals("${bundle.name}: the rest is untouched", before[i], after.filterIndexed { n, _ -> n != at && n != at + 1 }.map { it.shape() })
+            assertEquals("$label: the hook follows the count", min, after[at - 2].reference())
+            assertEquals("$label: the rest is untouched", before[i], after.filterIndexed { n, _ -> n != at && n != at + 1 }.map { it.shape() })
         }
     }
 

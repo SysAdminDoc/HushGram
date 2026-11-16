@@ -232,6 +232,12 @@ class ExploreShopTilesTest {
             level = level.flatMap { fieldTypes[it].orEmpty() }.toSet()
             wanted.addAll(level)
         }
+        // From 455 the page reads each section through a static helper handed the parser (0030.A0V on
+        // 386113969), so the classes of the page's static calls come along too.
+        wanted += holders.filter { holder -> holder.methods.any { it.holds(SECTIONS) || it.holds(PAGING_TOKEN) } }
+            .flatMap { holder -> holder.methods.flatMap { it.implementation?.instructions ?: emptyList() } }
+            .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+            .map { ((it as ReferenceInstruction).reference as MethodReference).definingClass }
         val sliced = FixtureDex.classes(bundle, wanted - holders.map { it.type }.toSet()).values + holders
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, sliced) + ExtensionDex.classDef(EXPLORE_SHOPPING))
 
