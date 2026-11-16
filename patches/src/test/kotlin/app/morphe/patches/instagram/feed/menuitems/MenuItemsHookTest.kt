@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.download.reel.ROW_MARKER
 import app.morphe.patches.instagram.download.story.HELPER_NAME
 import app.morphe.patches.instagram.download.video.FEED_HELPER_NAME
 import app.morphe.patches.instagram.download.video.isShortMenuList
+import app.morphe.patches.instagram.feed.suggested.HideRowAsserts
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.originalName
@@ -64,7 +65,7 @@ class MenuItemsHookTest {
             getsEveryMenu(bundle, bundle.name)
             checked++
         }
-        assertEquals("every build of 454 is read", Fixtures.BUILDS, checked)
+        assertEquals("every build of 455 is read", Fixtures.BUILDS, checked)
     }
 
     private fun bundles(): List<File> {
@@ -100,6 +101,8 @@ class MenuItemsHookTest {
                     (it.returnType == "Ljava/lang/String;" && it.parameterTypes.map(Any::toString) == listOf("Landroid/content/res/Resources;", "I"))
             }.map { it.definingClass }.filter { type -> classes.none { it.type == type } }.toSet()
         if (outlined.isNotEmpty()) classes += FixtureDex.classes(bundle, outlined).values
+        // 455's builder reads its helper off its lambda and adds rows through a static adder of its state.
+        HideRowAsserts.loadMenuClasses(bundle, classes)
         return classes
     }
 

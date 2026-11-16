@@ -64,7 +64,7 @@ class AccentRingsHookTest {
     /** A ring the finders can't read fails Accent color in its own name, before anything changes. */
     @Test
     fun aRingTheFindersCantReadFailsAccentColor() {
-        refuses("Accent color: expected one static gradient builder", fixture(spinner = StoryRingFixtures.spinner(builders = 0)))
+        refuses("Accent color: expected one gradient builder", fixture(spinner = StoryRingFixtures.spinner(builders = 0)))
         refuses("Accent color: expected one place a method loading", fixture(compose = StoryRingFixtures.composeRing(calls = 0)))
         val context = PatchContexts.of(fixture(compose = StoryRingFixtures.composeRing(calls = 0)))
         assertThrows(PatchException::class.java) { context.findAccentRings() }
