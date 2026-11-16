@@ -238,13 +238,18 @@ class KeepHomePlaceHookTest {
                 assertEquals("$what: reads the pair", site.time, call.arguments()[2])
                 assertEquals("$what: one hook", 1, code.count { it.referenceText() == TIME_AWAY })
 
-                val settled = site.settled + 2
+                val logged = site.settled + 2
                 assertEquals("$what: the log before the reload hook", listOf("Ljava/lang/Integer;", "Ljava/lang/Long;"),
-                    ((code[settled - 1] as ReferenceInstruction).reference as com.android.tools.smali.dexlib2.iface.reference.MethodReference)
-                        .parameterTypes.map(Any::toString))
-                assertEquals("$what: logged the answer", site.answer, code[settled - 1].arguments()[1])
+                    ((code[logged - 1] as ReferenceInstruction).reference as com.android.tools.smali.dexlib2.iface.reference.MethodReference)
+                        .parameterTypes.map(Any::toString).takeLast(2))
+                assertEquals("$what: logged the answer", site.answer, code[logged - 1].arguments()[1])
+                site.copies.forEachIndexed { n, (to, from) ->
+                    assertEquals("$what: copy $n", Opcode.MOVE_OBJECT_FROM16, code[logged + n].opcode)
+                    assertEquals("$what: copy $n's registers", to to from, (code[logged + n] as TwoRegisterInstruction).let { it.registerA to it.registerB })
+                }
+                val settled = logged + site.copies.size
                 assertEquals("$what: the reload hook", RELOAD, code[settled].referenceText())
-                assertEquals("$what: handed the answer and nothing to do", listOf(site.answer, site.none), code[settled].arguments())
+                assertEquals("$what: handed the answer and nothing to do", site.handed, code[settled].arguments())
                 assertEquals("$what: reload answer read back", Opcode.MOVE_RESULT_OBJECT, code[settled + 1].opcode)
                 assertEquals("$what: into the answer", site.answer, (code[settled + 1] as OneRegisterInstruction).registerA)
                 assertEquals("$what: as an Integer", Opcode.CHECK_CAST, code[settled + 2].opcode)
@@ -254,9 +259,13 @@ class KeepHomePlaceHookTest {
                     it in code.indices && code[it].opcode == Opcode.IF_NE &&
                         (code[it] as TwoRegisterInstruction).let { two -> two.registerA == site.answer || two.registerB == site.answer }
                 }
-                assertTrue("$what: the compare reads the answer and nothing to do",
-                    (code[compare] as TwoRegisterInstruction).let { setOf(it.registerA, it.registerB) == setOf(site.answer, site.none) })
-                original.assertPreserved("$what warm-start check", check, setOf(at, at + 1, settled, settled + 1, settled + 2))
+                val other = (code[compare] as TwoRegisterInstruction).let { if (it.registerA == site.answer) it.registerB else it.registerA }
+                val copied = (code[compare - 1] as? TwoRegisterInstruction)?.takeIf { it.registerA == other && code[compare - 1].opcode in setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16) }?.registerB
+                assertEquals("$what: the compare reads the answer and nothing to do", site.none, copied ?: other)
+                original.assertPreserved(
+                    "$what warm-start check", check,
+                    setOf(at, at + 1) + (logged until settled + 3).toSet(),
+                )
             }
         }
     }
@@ -280,8 +289,8 @@ class KeepHomePlaceHookTest {
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
-            classes(minTimeAway = false) to "expected one (Integer)Z loading \"$HOT_START_TRACE\" and \"$MIN_TIME_AWAY\", found 0",
-            classes(twoChecks = true) to "expected one (Integer)Z loading \"$HOT_START_TRACE\" and \"$MIN_TIME_AWAY\", found 2",
+            classes(minTimeAway = false) to "expected one (Integer)Z or (Integer)V loading \"$HOT_START_TRACE\" and \"$MIN_TIME_AWAY\", found 0",
+            classes(twoChecks = true) to "expected one (Integer)Z or (Integer)V loading \"$HOT_START_TRACE\" and \"$MIN_TIME_AWAY\", found 2",
             classes(calls = 0) to "to make one (UserSession, long)Z call, found 0",
             classes(calls = 2) to "to make one (UserSession, long)Z call, found 2",
             classes(static = true) to "doesn't make its minimum time away call with invoke-virtual",

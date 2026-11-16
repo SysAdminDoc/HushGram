@@ -148,9 +148,8 @@ class ShowHiddenLikeCountsHookTest {
 
     companion object {
         /** The flag goes through the extension as an int and comes back in its own register, then [original] runs as it was. */
-        internal fun assertDecisionHook(method: Method, original: List<Instruction>) {
+        internal fun assertDecisionHook(method: Method, original: List<Instruction>, flag: Int = method.implementation!!.registerCount - 1) {
             val code = method.code()
-            val flag = method.implementation!!.registerCount - 1
             assertEquals(1, code.count { it.reference() == HIDDEN_DECISION })
             assertEquals(listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT), code.take(2).map { it.opcode })
             assertEquals(HIDDEN_DECISION, code[0].reference())

@@ -14,6 +14,7 @@ import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.util.ControlFlow
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -22,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -52,8 +54,8 @@ private val BIND_VIEW = listOf("I", "Landroid/view/View;", OBJECT, OBJECT)
 
 /**
  * The end of feed card's title, found: its binder, the holder's (title, subtitle) call and the fields
- * of the card's data it shows, the read of the link's text right before the holder's link call, the
- * registers holding the holder and the card there, two registers nothing reads after it, and the
+ * of the card's data it shows, the read of the link's text and the holder's link call, where the link
+ * starts, the registers holding the holder and the card there, two registers nothing reads after it, and the
  * walk from the card to the section its group set has open, as the card's own section getter walks
  * it: the card's data, the data's group set, a new sections view of that group set, and the view's
  * lookup by the open section's id.
@@ -64,7 +66,7 @@ private val BIND_VIEW = listOf("I", "Landroid/view/View;", OBJECT, OBJECT)
  * other build has proven. A card without a group set reaches the link too, with the fallback section
  * its getter makes, but the stub finds no section for it, so it keeps its title.
  *
- * [write] fills the extension's stub with the walk and, right before the link's text is read, sets
+ * [write] fills the extension's stub with the walk and, where the link starts, sets
  * the holder's title and subtitle again, the title through FeedSuggestions.caughtUpTitle, which
  * answers "" when the open section shows nothing. Seven of 451's nine holders behind that call hide
  * an empty title, LX/07Ks leaves a blank row and LX/0OUh ignores it. The caught up card's (LX/06ML)
@@ -77,12 +79,17 @@ internal class CaughtUpCardTitle(
     val titleCall: String,
     val titleField: String,
     val subtitleField: String,
+    /** The read of the link's text. */
     val linkAt: Int,
     val linkRead: String,
+    /** The holder's link call: right after the read, or after the listener it hands the holder (455). */
+    val callAt: Int,
     val linkCall: String,
+    /** Where the link starts: the first of the read and the listener's making that run straight into the call. */
+    val hookAt: Int,
     val holder: Int,
     val card: Int,
-    /** Two locals nothing reads after [linkAt]: the card's data, then its subtitle, and the title. */
+    /** Two locals nothing reads after [hookAt]: the card's data, then its subtitle, and the title. */
     val scratch: List<Int>,
     val cardType: String,
     val data: String,
@@ -102,7 +109,7 @@ internal class CaughtUpCardTitle(
         // Found before the patch's other steps wrote anything: if one moved the link, leave the card be.
         val code = bind.implementation?.instructions?.toList()
         val read = code?.getOrNull(linkAt)?.fieldReference()
-        if (read?.smali() != linkRead || code.getOrNull(linkAt + 1)?.methodReference()?.toString() != linkCall) {
+        if (read?.smali() != linkRead || code.getOrNull(callAt)?.methodReference()?.toString() != linkCall) {
             patchLog.warning("$PATCH: the caught up card's link moved before it was hooked. " +
                 "The card keeps its Suggested for you title when nothing is left under it.")
             return@with
@@ -147,8 +154,9 @@ internal class CaughtUpCardTitle(
             )
         }
         val (fields, title) = scratch
-        bind.addInstructions(
-            linkAt,
+        // Branches to where the link starts land on the hook (386113969's at 118).
+        bind.addInstructionsAtControlFlowLabel(
+            hookAt,
             """
                 iget-object v$fields, v$card, $data
                 iget-object v$title, v$fields, $titleField
@@ -169,12 +177,17 @@ internal class CaughtUpCardTitle(
  * - the title is the one call on the holder taking two Strings, its (title, subtitle), each read
  *   right there from a String field of the card's data;
  * - the card's section getter is its one call on the card taking nothing and answering a class of the app;
- * - the link is the one call on the holder taking a String read right before it from a String field
- *   of the getter's section. The card has to stay in its register from its cast to the link, and
- *   nothing may jump in between or onto the title's call or the link's read.
+ * - the link is the one call on the holder taking a String last written, before the call, by a read
+ *   of a String field of the getter's section. The link starts at that read, or where the listener
+ *   the call hands the holder is made when that comes right before it (455). Every way there has to
+ *   come from the card's cast through the title's call, with the card and the holder kept in their
+ *   registers, and nothing may jump onto the title's call or between its reads and it.
  * On 451's 385713073 that's LX/05ws's bindView: LX/0Bft->A07 at 34 with LX/06LF->A0G and A0F, the
  * card, LX/06hB, in v8 with its getter A00, and the link's read of LX/06LI->A04 at 58 before
- * LX/0Bft->A06 on the holder in v3, with v0 and v1 free.
+ * LX/0Bft->A06 on the holder in v3, with v0 and v1 free. On 455's 386113969 it's LX/07hJ's: the read
+ * of LX/08ZF->A04 at 97, the checks the link is drawn after, and LX/09Qn made at 118 for
+ * LX/0IBz->A06 at 120, which the card's buttons jump onto from 133 with their own text, past the
+ * hook at 118. On 386113915 LX/0Jdc is made at 108, then the read and the call.
  *
  * In the getter, the one constructor taking one value, other than the section's, is the sections
  * view of the group set (LX/06LH from LX/06LE). The getter's read of a field of the group set's
@@ -198,7 +211,7 @@ internal fun BytecodePatchContext.findCaughtUpCardTitle(): CaughtUpCardTitle {
 
     val (cardAt, cardType) = castAfter(code, END_CARD_UNIT) ?: refuse("bindView doesn't cast the card after naming it")
     val card = (code[cardAt] as OneRegisterInstruction).registerA
-    val holderType = castAfter(code, END_CARD_HOLDER)?.second ?: refuse("bindView doesn't cast the holder after naming it")
+    val (holderCast, holderType) = castAfter(code, END_CARD_HOLDER) ?: refuse("bindView doesn't cast the holder after naming it")
 
     val titles = code.indices.filter { at ->
         val call = code[at].methodReference() ?: return@filter false
@@ -253,32 +266,35 @@ internal fun BytecodePatchContext.findCaughtUpCardTitle(): CaughtUpCardTitle {
 
     val dataType = groupSet.definingClass
     val titleCall = code[titleAt] as FiveRegisterInstruction
-    val (titleField, subtitleField) = listOf(titleCall.registerD, titleCall.registerE).map { register ->
-        val read = (titleAt - 1 downTo cardAt + 1).firstOrNull { code[it].writes(register) }?.let { code[it] }
-        read?.fieldReference()?.takeIf { read.opcode == Opcode.IGET_OBJECT && it.definingClass == dataType && it.type == STRING }
-            ?: refuse("the card's title and subtitle aren't read from its $dataType")
+    val titleReads = listOf(titleCall.registerD, titleCall.registerE).map { register ->
+        (titleAt - 1 downTo cardAt + 1).firstOrNull { code[it].writes(register) }?.takeIf { at ->
+            val field = code[at].fieldReference()
+            code[at].opcode == Opcode.IGET_OBJECT && field != null && field.definingClass == dataType && field.type == STRING
+        } ?: refuse("the card's title and subtitle aren't read from its $dataType")
     }
-    val links = code.indices.drop(1).filter { at ->
+    val (titleField, subtitleField) = titleReads.map { code[it].fieldReference()!! }
+    val links = code.indices.filter { at ->
         val call = code[at].methodReference() ?: return@filter false
-        val text = code[at - 1].fieldReference() ?: return@filter false
         code[at].opcode == Opcode.INVOKE_VIRTUAL && call.definingClass == holderType && call.parameterTypes.size == 2 &&
-            call.parameterTypes[0].toString() == STRING && call.returnType == "V" &&
-            code[at - 1].opcode == Opcode.IGET_OBJECT && text.definingClass == sectionType && text.type == STRING &&
-            (code[at - 1] as TwoRegisterInstruction).registerA == (code[at] as FiveRegisterInstruction).registerD
+            call.parameterTypes[0].toString() == STRING && call.returnType == "V" && linkReadFor(code, at, sectionType) != null
     }
-    val linkAt = (links.singleOrNull() ?: refuse("expected one link from a $sectionType on the holder, found ${links.size}")) - 1
-    val holder = (code[linkAt + 1] as FiveRegisterInstruction).registerC
+    val callAt = links.singleOrNull() ?: refuse("expected one link from a $sectionType on the holder, found ${links.size}")
+    val linkAt = linkReadFor(code, callAt, sectionType)!!
+    val holder = (code[callAt] as FiveRegisterInstruction).registerC
     if (card > 15 || holder > 15) refuse("bindView keeps the card or the holder past v15")
-    if (linkAt <= cardAt) refuse("bindView sets the link before it casts the card")
-    if ((cardAt + 1 until linkAt).any { code[it].writes(card) }) refuse("bindView writes over the card before the link")
+    val hookAt = linkStart(code, callAt, linkAt)
+    if (linkAt <= cardAt || hookAt <= cardAt) refuse("bindView sets the link before it casts the card")
     val flow = ControlFlow.of(bind)
-    val last = maxOf(titleAt, linkAt)
-    val jumpsIn = flow.instructions.indices.any { from ->
-        (from < cardAt || from >= last) && (flow.normal[from] + flow.exceptional[from]).any { it in cardAt + 1..last }
-    }
     val targets = bind.jumpTargets()
-    if (jumpsIn || titleAt in targets || linkAt in targets) refuse("something jumps between the card's cast and the link")
-    val scratch = bind.freeLocalsAt("$PATCH: the caught up card's title", linkAt, 2, except = listOf(card, holder))
+    val toTitle = flow.reachedOnlyThrough(cardAt, titleAt)
+    val toHook = flow.reachedOnlyThrough(titleAt, hookAt)
+    if (toTitle == null || toHook == null || (titleReads.min() + 1..titleAt).any { it in targets }) {
+        refuse("something jumps between the card's cast and the link")
+    }
+    if ((toTitle + toHook - hookAt - holderCast).any { code[it].writes(card) || code[it].writes(holder) }) {
+        refuse("bindView writes over the card or the holder before the link")
+    }
+    val scratch = bind.freeLocalsAt("$PATCH: the caught up card's title", hookAt, 2, except = listOf(card, holder))
 
     for (type in listOf(cardType, data.definingClass, groupSetType, sectionsType, sectionType)) {
         val classDef = classDefByOrNull(type) ?: refuse("$type isn't in this build")
@@ -302,7 +318,8 @@ internal fun BytecodePatchContext.findCaughtUpCardTitle(): CaughtUpCardTitle {
 
     return CaughtUpCardTitle(
         binder.type, titleAt, code[titleAt].methodReference().toString(), titleField.smali(), subtitleField.smali(),
-        linkAt, code[linkAt].fieldReference()!!.smali(), code[linkAt + 1].methodReference().toString(), holder, card, scratch,
+        linkAt, code[linkAt].fieldReference()!!.smali(), callAt, code[callAt].methodReference().toString(), hookAt,
+        holder, card, scratch,
         cardType, data.smali(), groupSet.smali(), groupSetType, sectionsType, activeId.smali(), lookupRef, sectionType, items.smali(),
     )
 }
@@ -329,6 +346,61 @@ private fun castAfter(code: List<Instruction>, message: String): Pair<Int, Strin
     if (named < 0) return null
     val at = (named + 1 until code.size).firstOrNull { code[it].opcode == Opcode.CHECK_CAST } ?: return null
     return at to ((code[at] as ReferenceInstruction).reference as TypeReference).type
+}
+
+/**
+ * Where the String the call at [at] hands on comes from, when that's a String field of [sectionType]:
+ * the last write of its register before the call, in the order the code is laid out.
+ */
+private fun linkReadFor(code: List<Instruction>, at: Int, sectionType: String): Int? {
+    val text = (code[at] as? FiveRegisterInstruction)?.registerD ?: return null
+    val read = (at - 1 downTo 0).firstOrNull { code[it].writes(text) } ?: return null
+    val field = code[read].fieldReference() ?: return null
+    return read.takeIf { code[read].opcode == Opcode.IGET_OBJECT && field.definingClass == sectionType && field.type == STRING }
+}
+
+/**
+ * Where the link starts: the first of the instructions running straight into the link's call at
+ * [callAt] that read its text ([linkAt]) or make the listener it hands the holder. 455 makes the
+ * listener right before the call, after the checks the read goes through on 386113969, so code put
+ * there runs only when the link is drawn.
+ */
+private fun linkStart(code: List<Instruction>, callAt: Int, linkAt: Int): Int {
+    val listener = (code[callAt] as FiveRegisterInstruction).registerE
+    var at = callAt
+    while (at > 0) {
+        val before = code[at - 1]
+        val makesListener = when (before.opcode) {
+            Opcode.NEW_INSTANCE -> (before as OneRegisterInstruction).registerA == listener
+            Opcode.INVOKE_DIRECT -> before.methodReference()?.name == "<init>" && (before as FiveRegisterInstruction).registerC == listener
+            Opcode.INVOKE_DIRECT_RANGE -> before.methodReference()?.name == "<init>" && (before as RegisterRangeInstruction).startRegister == listener
+            else -> false
+        }
+        if (at - 1 != linkAt && !makesListener) break
+        at--
+    }
+    return at
+}
+
+/**
+ * The instructions that reach [to] without passing [from], [to] among them, when they all lie after
+ * [from] and up to [to] and [from] leads into them, so that every way to [to] comes through [from].
+ * Null when something reaches [to] another way or a loop runs back into them from past [to].
+ */
+private fun ControlFlow.reachedOnlyThrough(from: Int, to: Int): Set<Int>? {
+    val before = Array(instructions.size) { mutableListOf<Int>() }
+    instructions.indices.forEach { at -> (normal[at] + exceptional[at]).forEach { before[it] += at } }
+    val seen = mutableSetOf(to)
+    val queue = ArrayDeque(listOf(to))
+    var entered = false
+    while (queue.isNotEmpty()) {
+        val at = queue.removeFirst()
+        if (at !in from + 1..to) return null
+        for (previous in before[at]) {
+            if (previous == from) entered = true else if (seen.add(previous)) queue.addLast(previous)
+        }
+    }
+    return seen.takeIf { entered }
 }
 
 private fun FieldReference.smali() = "$definingClass->$name:$type"

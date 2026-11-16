@@ -46,9 +46,12 @@ class NativeHiddenLikeCountsTest {
 
             assertTrue("$name: the decider takes the session, then the poster's id and the flag (452 adds a surface before them)", isDecide(anchors.decider.parameterTypes.map(Any::toString)))
             assertEquals(name, "Z", anchors.decider.returnType)
-            assertEquals("$name: the flag is the decider's last register", anchors.decider.implementation!!.registerCount - 1, anchors.flag)
+            // The flag is the boolean right after the id; 455 adds one more after it (LX/02Le;->A07 on 386113969).
+            val types = anchors.decider.parameterTypes.map(Any::toString)
+            val id = types.lastIndexOf("Ljava/lang/String;")
+            assertTrue("$name: only booleans follow the id", types.drop(id + 1) in listOf(listOf("Z"), listOf("Z", "Z")))
+            assertEquals("$name: the flag is the register after the id's", anchors.decider.implementation!!.registerCount - (types.size - id - 1), anchors.flag)
             assertEquals("$name: the poster's id is the register before it", anchors.flag - 1, anchors.poster)
-            assertEquals("$name: the decider's second to last parameter is the id", "Ljava/lang/String;", anchors.decider.parameterTypes[anchors.decider.parameterTypes.size - 2].toString())
             assertEquals("$name: the poster is read with the interface the flag is", anchors.treeFlagRead.definingClass,
                 anchors.childRead.definingClass)
             assertEquals("$name: a poster's data is the same interface", anchors.treeFlagRead.definingClass, anchors.childRead.returnType)
@@ -79,7 +82,7 @@ class NativeHiddenLikeCountsTest {
             val before = classes.values.associate { it.type to snapshot(it.methods.filter { method -> method.toString() !in hooked }) }
             context.applyHiddenLikeCounts(anchors)
 
-            assertDecisionHook(context.mutableClassDefBy(anchors.decider.definingClass).methods.single { it.toString() == anchors.decider.toString() }, decider)
+            assertDecisionHook(context.mutableClassDefBy(anchors.decider.definingClass).methods.single { it.toString() == anchors.decider.toString() }, decider, anchors.flag)
             assertCountHook(context.mutableClassDefBy(anchors.counter.definingClass).methods.single { it.toString() == anchors.counter.toString() },
                 counter, anchors.countAt, anchors.tree, anchors.count)
             assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_FLAG_STUB },
@@ -123,7 +126,7 @@ class NativeHiddenLikeCountsTest {
             val counter = anchors.counter.code()
             assertEquals(copied.rows.map { it.method.toString() to it.at }, anchors.rows.map { it.method.toString() to it.at })
             context.applyHiddenLikeCounts(anchors)
-            assertDecisionHook(context.mutableClassDefBy(anchors.decider.definingClass).methods.single { it.toString() == anchors.decider.toString() }, decider)
+            assertDecisionHook(context.mutableClassDefBy(anchors.decider.definingClass).methods.single { it.toString() == anchors.decider.toString() }, decider, anchors.flag)
             assertCountHook(context.mutableClassDefBy(anchors.counter.definingClass).methods.single { it.toString() == anchors.counter.toString() },
                 counter, anchors.countAt, anchors.tree, anchors.count)
         }
@@ -133,7 +136,10 @@ class NativeHiddenLikeCountsTest {
         val BUILDS = listOf(386113969, 386113915, 386113916, 386113918, 386113922, 386113923, 386113928, 386113929, 386113958, 386113968, 386113970, 386113971)
         const val SESSION = "Lcom/instagram/common/session/UserSession;"
         fun isDecide(types: List<String>) =
-            types.size in 3..4 && types.first() == SESSION && types[types.size - 2] == "Ljava/lang/String;" && types.last() == "Z"
+            types.size in 3..5 && types.first() == SESSION && (
+                types[types.size - 2] == "Ljava/lang/String;" && types.last() == "Z" ||
+                    types.size >= 4 && types[types.size - 3] == "Ljava/lang/String;" && types.takeLast(2) == listOf("Z", "Z")
+                )
         val CONSTS = setOf(Opcode.CONST, Opcode.CONST_16, Opcode.CONST_HIGH16, Opcode.CONST_4)
         val cached = FixtureCache<Map<String, ClassDef>>()
 

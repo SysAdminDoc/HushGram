@@ -55,18 +55,39 @@ internal const val SCREEN_FORMAT = "%sdpi; %sx%s"
 
 /**
  * Instagram's size picker: static, taking a mode, a photo's sizes and the width it's shown at, and
- * answering the size nearest that width. It reads each size's width.
+ * answering the size nearest that width. It reads each size's width, or on 455 hands the sizes and
+ * the width on to a picker taking functions that read them (`LX/00VP;->A02` calls `LX/00VQ;->A00`
+ * on 386113969) and casts that picker's answer back to a size.
  */
 internal object SizePickerFingerprint : Fingerprint(
     returnType = EXTENDED_IMAGE_URL,
     parameters = listOf("Ljava/lang/Integer;", "Ljava/util/List;", "I"),
     custom = { method, _ ->
-        AccessFlags.STATIC.isSet(method.accessFlags) && method.implementation?.instructions?.any {
-            val called = (it as? ReferenceInstruction)?.reference as? MethodReference
-            called != null && called.definingClass == EXTENDED_IMAGE_URL && called.name == "getWidth"
-        } == true
+        val code = method.implementation?.instructions?.toList().orEmpty()
+        AccessFlags.STATIC.isSet(method.accessFlags) && (
+            code.any {
+                val called = (it as? ReferenceInstruction)?.reference as? MethodReference
+                called != null && called.definingClass == EXTENDED_IMAGE_URL && called.name == "getWidth"
+            } || code.indices.any { at -> handsOnToAPicker(code, at) }
+            )
     },
 )
+
+/**
+ * Whether [code] casts to [EXTENDED_IMAGE_URL] at [at] what the call two before answers, a call
+ * taking a boxed mode and the sizes first, the width last and only functions between (matched as
+ * objects, since Redex renames Kotlin's own classes on some builds).
+ */
+private fun handsOnToAPicker(code: List<Instruction>, at: Int): Boolean {
+    val cast = code[at]
+    if (cast.opcode != Opcode.CHECK_CAST || ((cast as ReferenceInstruction).reference as TypeReference).type != EXTENDED_IMAGE_URL) return false
+    val result = code.getOrNull(at - 1) ?: return false
+    if (result.opcode != Opcode.MOVE_RESULT_OBJECT || (result as OneRegisterInstruction).registerA != (cast as OneRegisterInstruction).registerA) return false
+    val called = (code.getOrNull(at - 2) as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    val types = called.parameterTypes.map(CharSequence::toString)
+    return types.size >= 4 && types[0] == "Ljava/lang/Integer;" && types[1] == "Ljava/util/List;" && types.last() == "I" &&
+        types.subList(2, types.size - 1).all { it.startsWith("L") }
+}
 
 /** The method building the device part of Instagram's user agent from a Context, which loads [SCREEN_FORMAT]. */
 internal object ScreenReportFingerprint : Fingerprint(

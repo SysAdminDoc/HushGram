@@ -75,7 +75,9 @@ internal class BubbleSetting(val check: Method, val has: FieldReference, val hid
  * The class holding the account's activity bubble setting is the one whose constructor checks
  * [BUBBLE_EXPERIMENT]. 454's Redex inlined that constructor into the method making the setting
  * (`LX/0HPM;->A02` makes `LX/08CB` on 386014758), so a class made there, given its plain Object
- * constructor and then its own flags, counts the same. Its one static (UserSession, ...)Z method is Instagram's check for a post: it
+ * constructor and then its own flags, counts the same. Its one static (UserSession, ...)Z method is Instagram's check for a post
+ * (455 hands it the post first and the session second, `LX/0AH7;->A01(LX/0427;UserSession;String)Z`
+ * on 386113969): it
  * reads whether the account has the setting, leaves with false when it doesn't, and ends returning
  * the setting. Every other read of the setting skips a post's friend pictures when it's true.
  * Proved before anything changes: the check reads exactly two of its class's flags, the first
@@ -91,7 +93,7 @@ internal fun BytecodePatchContext.findBubbleSetting(): BubbleSetting {
     val holder = holderTypes.singleOrNull()?.let { classDefBy(it) }
         ?: refuse("expected one class checking \"$BUBBLE_EXPERIMENT\" as it's made, found ${holderTypes.size}")
     val checks = holder.methods.filter {
-        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" && it.parameterTypes.firstOrNull()?.toString() == USER_SESSION
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" && it.parameterTypes.any { type -> type.toString() == USER_SESSION }
     }
     val check = checks.singleOrNull() ?: refuse("${holder.type} has ${checks.size} static (UserSession, ...)Z checks, not one")
     val where = "${check.definingClass}->${check.name}"

@@ -128,7 +128,7 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
     pandoGetter(HIDDEN_LIKE_COUNTS_PATCH, POST_MODEL, LIKE_COUNT_FIELD, INTEGER)
 
     val (decider, flag, asked) = findDecider()
-    val poster = decider.parameterRegisterNumber(decider.parameterTypes.size - 2)
+    val poster = decider.parameterRegisterNumber(decider.idIndex())
     if (flag != poster + 1) refuse("${decider.definingClass}->${decider.name} doesn't keep the poster's id and the flag in neighboring registers")
     val counter = findCounter()
     val code = counter.code()
@@ -228,7 +228,7 @@ private fun BytecodePatchContext.findDecider(): Triple<Method, Int, List<Pair<Me
     val decider = classDefByOrNull(owner)?.methods?.singleOrNull { it.key() == reference }
         ?: refuse("the like rows ask $reference, which isn't in the app")
     val code = decider.code()
-    val flag = decider.parameterRegisterNumber(decider.parameterTypes.size - 1)
+    val flag = decider.parameterRegisterNumber(decider.idIndex() + 1)
     // 450 and 451 test the flag first; 452 tests it after its enum and own-post checks. Either way
     // a test of the flag, and nothing else, has to lead straight to answering hidden.
     val tests = code.indices.filter { at -> code[at].opcode == Opcode.IF_NEZ && (code[at] as OneRegisterInstruction).registerA == flag }
@@ -366,9 +366,19 @@ private fun MethodReference.key(): String = "$definingClass->$name(${parameterTy
 
 /**
  * Whether this is shaped like the decider: the session first, the poster's id and the flag last,
- * and at most one more parameter between (452's surface). 450 and 451 take just the three.
+ * and at most one more parameter between (452's surface). 450 and 451 take just the three. 455 adds
+ * a boolean after the flag that skips the own-post check (`LX/02Le;->A07(UserSession, LX/02Lh;,
+ * String, Z, Z)Z` on 386113969).
  */
-private fun MethodReference.isDeciderShaped(): Boolean {
-    val types = parameterTypes.map(CharSequence::toString)
-    return types.size in 3..4 && types.first() == USER_SESSION && types[types.size - 2] == STRING && types.last() == "Z"
+private fun MethodReference.isDeciderShaped(): Boolean = deciderIdIndex(parameterTypes.map(CharSequence::toString)) != null
+
+/** Where the decider takes the poster's id, the flag being the boolean right after it. */
+private fun Method.idIndex(): Int =
+    deciderIdIndex(parameterTypes.map(CharSequence::toString)) ?: refuse("$definingClass->$name isn't shaped like the decider")
+
+private fun deciderIdIndex(types: List<String>): Int? {
+    if (types.size !in 3..5 || types.first() != USER_SESSION) return null
+    if (types[types.size - 2] == STRING && types.last() == "Z") return types.size - 2
+    if (types.size >= 4 && types[types.size - 3] == STRING && types[types.size - 2] == "Z" && types.last() == "Z") return types.size - 3
+    return null
 }

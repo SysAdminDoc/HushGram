@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -110,10 +111,18 @@ class ReelsInterestControlTest {
         val context = PatchContexts.of(FixtureDex.classesHolding(bundle, "android_purge_26_q3_$REELS_CONTROL_MARKER"))
 
         val found = context.findReelsInterestControl()
-        // 453: LX/08YT;->A02 (285) stores v13 into its component's A0A at instruction 57 in every build.
+        // The place and register of the store move between builds (455's 386113969: LX/0Ciy;->A02
+        // stores v14 into LX/0F5b;->A0A), so both come from the stock store itself.
         assertEquals("$label: the use case", "A02", found.name)
-        assertEquals("$label: the store's place", 57, found.storeAt)
-        assertEquals("$label: the register it stores", 13, found.register)
+        val stock = context.classDefBy(found.type).methods.single {
+            it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
+        }.implementation!!.instructions.toList()
+        val stores = stock.indices.filter { at ->
+            val field = (stock[at] as? ReferenceInstruction)?.reference as? FieldReference
+            stock[at].opcode == Opcode.IPUT_OBJECT && field?.definingClass == found.returnType && field.type == found.controlType
+        }
+        assertEquals("$label: the store's place", listOf(found.storeAt), stores)
+        assertEquals("$label: the register it stores", (stock[found.storeAt] as TwoRegisterInstruction).registerA, found.register)
         found.write(context)
 
         assertHooked("$label ${found.type}->${found.name}", context, found)

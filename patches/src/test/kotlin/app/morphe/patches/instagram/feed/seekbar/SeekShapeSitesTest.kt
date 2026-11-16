@@ -40,8 +40,8 @@ class SeekShapeSitesTest {
     }
 
     /**
-     * On 454.0.0.54.77's arm64 build 386014758 the bar draws ten rounded rectangles, four in onDraw,
-     * three in A0A, two in A0B and one in A00, and the chat media viewer is 0GOB. Each build has its
+     * The bar draws ten rounded rectangles, four in onDraw, three in A0A, two in A0B and one in A00,
+     * and on 455.0.0.51.72's arm64 build 386113969 the chat media viewer is 0be3. Each build has its
      * own names for the viewer.
      */
     @Test
@@ -125,7 +125,7 @@ class SeekShapeSitesTest {
         assertEquals("$label: right after it keeps its seek bar", CHAT_VIDEO_HOOK, hooked[kept + 1].called())
         assertEquals("$label: the seek bar it kept", listOf((viewer[kept] as TwoRegisterInstruction).registerA), hooked[kept + 1].registers())
         assertEquals("$label: and nothing else moves", viewer[kept + 1].opcode, hooked[kept + 2].opcode)
-        if (label.contains("386113969")) assertEquals("$label: the chat media viewer", "LX/0GOB;", chat.method.definingClass)
+        if (label.contains("386113969")) assertEquals("$label: the chat media viewer", "LX/0be3;", chat.method.definingClass)
     }
 
     /** The progress bar, the classes loading the chat viewer's key and the string pools they ask. */

@@ -63,8 +63,8 @@ internal class ReelsInterestControl(
  * ends up with in the one field of the component of the fallback's type. The component
  * (ClipsRankingControlsComponent) draws an empty box when that field is null. On 453's 385914557
  * that's LX/08YW;->A02(LX/09Wo;LX/06CH;)LX/0D5R; storing v13 into LX/0D5R;->A0A at instruction 57,
- * and 385914556 stores the same register at the same instruction. Anything else is an update this patch
- * hasn't seen, and it stops.
+ * and on 455's 386113969 LX/0Ciy;->A02 storing v14 into LX/0F5b;->A0A; the place and the register move
+ * between builds. Anything else is an update this patch hasn't seen, and it stops.
  */
 internal fun BytecodePatchContext.findReelsInterestControl(): ReelsInterestControl {
     val found = mutableListOf<Method>()

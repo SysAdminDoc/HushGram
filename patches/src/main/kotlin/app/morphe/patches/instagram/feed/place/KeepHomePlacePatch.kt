@@ -15,6 +15,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
+import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsConstString
@@ -60,14 +61,20 @@ internal const val MIN_TIME_AWAY = "MinTimeAway"
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val INTEGER = "Ljava/lang/Integer;"
+private const val LONG = "Ljava/lang/Long;"
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** Home's warm-start check: the instance `(Integer)Z` that loads [HOT_START_TRACE] and [MIN_TIME_AWAY]. */
+/**
+ * Home's warm-start check: the instance `(Integer)Z` that loads [HOT_START_TRACE] and [MIN_TIME_AWAY].
+ * 455 folds it into the warm start itself, an `(Integer)V` (`LX/06lQ;->A0e` on 386113969).
+ */
 internal object HomeHotStartFingerprint : Fingerprint(
-    returnType = "Z",
     parameters = listOf("Ljava/lang/Integer;"),
-    custom = { method, _ -> method.loadsConstString(HOT_START_TRACE) && method.loadsConstString(MIN_TIME_AWAY) },
+    custom = { method, _ ->
+        (method.returnType == "Z" || method.returnType == "V") &&
+            method.loadsConstString(HOT_START_TRACE) && method.loadsConstString(MIN_TIME_AWAY)
+    },
 )
 
 /** The alarm that reloads Home in the background: an `onAlarm()V` that loads [BACKGROUND_RELOAD_FIRED] and [SINCE_BACKGROUNDED]. */
@@ -152,9 +159,20 @@ val keepHomePlacePatch = bytecodePatch(
 /**
  * Home's warm-start check, the index of its minimum time away call and the pair holding the time, and
  * where the answer is settled: the index right after it's logged, the register holding it and the
- * register holding Instagram's "nothing to do" value.
+ * register holding Instagram's "nothing to do" value. [handed] are the two registers the reload hook
+ * names, the answer's and the "nothing to do" value's or, for one past v15, the free local in [copies]
+ * it's copied to first (to, from).
  */
-internal class HomePlaceSite(val check: Method, val index: Int, val time: Int, val settled: Int, val answer: Int, val none: Int)
+internal class HomePlaceSite(
+    val check: Method,
+    val index: Int,
+    val time: Int,
+    val settled: Int,
+    val answer: Int,
+    val none: Int,
+    val handed: List<Int> = listOf(answer, none),
+    val copies: List<Pair<Int, Int>> = emptyList(),
+)
 
 /**
  * Finds the one call in Home's warm-start check that takes the session and a time and answers a
@@ -162,18 +180,20 @@ internal class HomePlaceSite(val check: Method, val index: Int, val time: Int, v
  * - One instance method matches [HomeHotStartFingerprint].
  * - It makes one `invoke-virtual` of a `(UserSession, long)Z` method, and the long is a register pair.
  * - Nothing jumps to the call, so the hook goes in front of it and every path still passes through it.
- * - It logs its answer once, with a `(Integer, Long)V` call on its own class, after the minimum check.
+ * - It logs its answer once, with a `(Integer, Long)V` call on its own class or, on 455, a static
+ *   `(logger, Integer, Long)V` on the logger's (`LX/00N4;->A07` on 386113969), after the minimum check.
  * - The first `if-ne` after that compares the answer, unchanged since, with a register that only one
- *   `sget-object` of an Integer writes, earlier on: Instagram's "nothing to do" value.
- * - Nothing jumps to the instruction after the log call. An `if-ne` only names v0 to v15, so the
- *   hook can always hand both registers over without a range call.
+ *   `sget-object` of an Integer writes, earlier on: Instagram's "nothing to do" value. 455 copies
+ *   that value from a high register right before the compare, and the copy is followed back to it.
+ * - Nothing jumps to the instruction after the log call. A value past v15 is copied to a local
+ *   nothing reads afterwards, so the hook can hand both over without a range call.
  */
 internal fun BytecodePatchContext.findHomePlaceSite(): HomePlaceSite {
     val checks = HomeHotStartFingerprint.matchAllOrNull().orEmpty().map { it.method }
         .filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null }
         .distinctBy { it.definingClass + it.name }
     val check = checks.singleOrNull()
-        ?: refuse("expected one (Integer)Z loading \"$HOT_START_TRACE\" and \"$MIN_TIME_AWAY\", found ${checks.size}")
+        ?: refuse("expected one (Integer)Z or (Integer)V loading \"$HOT_START_TRACE\" and \"$MIN_TIME_AWAY\", found ${checks.size}")
     val where = "${check.definingClass}->${check.name}"
     val code = check.implementation?.instructions?.toList().orEmpty()
     val calls = code.indices.filter { at ->
@@ -193,8 +213,12 @@ internal fun BytecodePatchContext.findHomePlaceSite(): HomePlaceSite {
 
     val logs = code.indices.filter { at ->
         val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
-        called != null && called.definingClass == check.definingClass && called.returnType == "V" &&
-            called.parameterTypes.map(Any::toString) == listOf(INTEGER, "Ljava/lang/Long;")
+        val types = called?.parameterTypes?.map(Any::toString)
+        called != null && called.returnType == "V" && (
+            called.definingClass == check.definingClass && types == listOf(INTEGER, LONG) ||
+                (code[at].opcode == Opcode.INVOKE_STATIC || code[at].opcode == Opcode.INVOKE_STATIC_RANGE) &&
+                types == listOf(called.definingClass, INTEGER, LONG)
+            )
     }
     val log = logs.singleOrNull() ?: refuse("expected $where to log its answer with one (Integer, Long)V call, found ${logs.size}")
     if (log < index) refuse("$where logs its answer before its minimum time away call")
@@ -202,7 +226,11 @@ internal fun BytecodePatchContext.findHomePlaceSite(): HomePlaceSite {
     val compare = (log + 1 until code.size).firstOrNull { at ->
         code[at].opcode == Opcode.IF_NE && (code[at] as TwoRegisterInstruction).let { it.registerA == answer || it.registerB == answer }
     } ?: refuse("$where never compares its answer after logging it")
-    val none = (code[compare] as TwoRegisterInstruction).let { if (it.registerA == answer) it.registerB else it.registerA }
+    val other = (code[compare] as TwoRegisterInstruction).let { if (it.registerA == answer) it.registerB else it.registerA }
+    val copy = code.getOrNull(compare - 1)?.takeIf {
+        it.opcode in OBJECT_MOVES && (it as TwoRegisterInstruction).registerA == other && compare !in targets
+    }
+    val none = (copy as? TwoRegisterInstruction)?.registerB ?: other
     if ((log + 1 until compare).any { code[it].writes(answer) }) refuse("$where changes its answer between the log and the compare")
     val noneWrites = code.indices.filter { code[it].writes(none) }
     val noneSet = noneWrites.singleOrNull()
@@ -210,21 +238,29 @@ internal fun BytecodePatchContext.findHomePlaceSite(): HomePlaceSite {
         ?: refuse("$where doesn't hold its \"nothing to do\" value in a register only one Integer sget-object writes")
     if (noneSet > log) refuse("$where loads its \"nothing to do\" value after logging its answer")
     if (log + 1 in targets) refuse("something in $where jumps past the log of its answer")
-    return HomePlaceSite(check, index, arguments[2], log + 1, answer, none)
+    val high = listOf(answer, none).filter { it > 15 }
+    val spare = (if (high.isEmpty()) emptyList() else check.freeLocalsAt(PATCH, log + 1, high.size, except = listOf(answer, none))).iterator()
+    val copies = mutableListOf<Pair<Int, Int>>()
+    val handed = listOf(answer, none).map { register -> if (register <= 15) register else spare.next().also { copies += it to register } }
+    return HomePlaceSite(check, index, arguments[2], log + 1, answer, none, handed, copies)
 }
 
+private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
 /**
- * Right after the answer is logged, hand it and the "nothing to do" value to [RELOAD] and put what
- * comes back in the answer's register. In front of the minimum time away call, hand the time to
+ * Right after the answer is logged, hand it and the "nothing to do" value to [RELOAD] (through the
+ * site's copies for a register past v15) and put what comes back in the answer's register. In front of the minimum time away call, hand the time to
  * [TIME_AWAY] and put its answer back in the same pair, so the call and everything after it reads
  * the time the extension gave. The later site goes in first so the earlier index still holds.
  */
 internal fun BytecodePatchContext.keepHomePlace(site: HomePlaceSite) {
     val method = mutable(site.check)
+    val copies = site.copies.joinToString("\n") { (to, from) -> "move-object/from16 v$to, v$from" }
     method.addInstructions(
         site.settled,
         """
-            invoke-static { v${site.answer}, v${site.none} }, $RELOAD
+            $copies
+            invoke-static { v${site.handed[0]}, v${site.handed[1]} }, $RELOAD
             move-result-object v${site.answer}
             check-cast v${site.answer}, $INTEGER
         """,

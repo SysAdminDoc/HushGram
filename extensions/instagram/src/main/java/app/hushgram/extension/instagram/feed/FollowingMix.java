@@ -141,7 +141,7 @@ public final class FollowingMix {
     }
 
     /**
-     * Called with whether the request the fetcher just built is to carry the fetcher's paging
+     * Called with whether the request the fetcher is building is to carry the fetcher's paging
      * source, as an int. Answers 1 for a Following request, [set] otherwise. Never throws.
      */
     public static int sourceSet(int set) {
@@ -151,7 +151,7 @@ public final class FollowingMix {
     }
 
     /**
-     * Called with the paging source the request the fetcher just built is about to carry. Answers
+     * Called with the paging source the request the fetcher is building is about to carry. Answers
      * Following's for a Following request and marks it as out, [source] otherwise. Never throws.
      */
     @Nullable

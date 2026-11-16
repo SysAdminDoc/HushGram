@@ -10,6 +10,7 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -77,6 +78,8 @@ class CaughtUpCardTitleTest {
         assertEquals(LINK_AT, found.linkAt)
         assertEquals("$SECTION->link:$STRING", found.linkRead)
         assertEquals("$HOLDER->setLink($STRING$LISTENER)V", found.linkCall)
+        assertEquals("the link's call is right after its read", LINK_AT + 1, found.callAt)
+        assertEquals("nothing makes a listener there, so the link starts at the read", LINK_AT, found.hookAt)
         assertEquals(3, found.holder)
         assertEquals(8, found.card)
         assertEquals("v0 is written by the link's read and v1 isn't read again", listOf(0, 1), found.scratch)
@@ -94,10 +97,11 @@ class CaughtUpCardTitleTest {
     fun theTitleGoesPastTheExtension() {
         val context = PatchContexts.of(classes())
         val found = context.findCaughtUpCardTitle()
+        val stock = context.stock(found)
 
         found.write(context, itemsFilled = false)
 
-        assertHooked("stand-in", context, found, itemsFilled = false)
+        assertHooked("stand-in", context, found, stock, itemsFilled = false)
     }
 
     /** With the header's hook in, the items stub is the header's and the card leaves it be. */
@@ -105,10 +109,11 @@ class CaughtUpCardTitleTest {
     fun theItemsStubIsFilledOnce() {
         val context = PatchContexts.of(classes())
         val found = context.findCaughtUpCardTitle()
+        val stock = context.stock(found)
 
         found.write(context, itemsFilled = true)
 
-        assertHooked("stand-in", context, found, itemsFilled = true)
+        assertHooked("stand-in", context, found, stock, itemsFilled = true)
     }
 
     /** A build without the card's binder keeps Hide suggested posts as it was and leaves the stubs alone. */
@@ -160,8 +165,30 @@ class CaughtUpCardTitleTest {
         val found = context.findCaughtUpCardTitle()
 
         assertEquals(listOf(0, 2), found.scratch)
+        val stock = context.stock(found)
         found.write(context, itemsFilled = false)
-        assertHooked("v1 read after the link", context, found, itemsFilled = false)
+        assertHooked("v1 read after the link", context, found, stock, itemsFilled = false)
+    }
+
+    /**
+     * Shaped like 455's LX/07hJ bindView on 386113969: the listener the holder gets with the link is
+     * made between the link's read and its call, a branch lands where it's made, and a jump from below
+     * lands on the call itself, the way the card's buttons do. The link starts where the listener is
+     * made, the branch lands on the hook, and the jump onto the call passes it by.
+     */
+    @Test
+    fun aListenerMadeForTheLinkTakesTheHook() {
+        val context = PatchContexts.of(classes(listener = true, jumpTo = LINK_AT + 4))
+        val found = context.findCaughtUpCardTitle()
+
+        assertEquals(LINK_AT, found.linkAt)
+        assertEquals(LINK_AT + 4, found.callAt)
+        assertEquals("where the listener is made", LINK_AT + 2, found.hookAt)
+        val stock = context.stock(found)
+        assertTrue("the stand-in branches where the listener is made", found.hookAt in stock.targets)
+        assertTrue("the stand-in jumps onto the link's call", found.callAt in stock.targets)
+        found.write(context, itemsFilled = false)
+        assertHooked("listener", context, found, stock, itemsFilled = false)
     }
 
     /** A card that draws no group set link has no section header to drop. */
@@ -210,42 +237,55 @@ class CaughtUpCardTitleTest {
         val context = PatchContexts.of((binders + named + walked).distinctBy { it.type } + ExtensionDex.classDef(FEED_SUGGESTIONS))
 
         val found = context.findCaughtUpCardTitle()
+        val stock = context.stock(found)
         found.write(context, itemsFilled = false)
 
-        assertHooked("$label ${found.binder}", context, found, itemsFilled = false)
+        assertHooked("$label ${found.binder}", context, found, stock, itemsFilled = false)
     }
 
     /**
-     * Right before the link's read, once in bindView: the card's title and the card go to the
-     * extension, and the holder's (title, subtitle) call runs again with its answer and the card's
-     * subtitle, in two registers nothing reads afterwards. The first call is left as it was. The
-     * section stub walks from the card to its open section, and the items stub reads the section's
-     * list unless the header filled it.
+     * Where the link starts, once in bindView: the card's title and the card go to the extension, and
+     * the holder's (title, subtitle) call runs again with its answer and the card's subtitle, in two
+     * registers nothing reads afterwards. Everything else is left as it was, and what jumped to where
+     * the link starts lands on the hook. The section stub walks from the card to its open section, and
+     * the items stub reads the section's list unless the header filled it.
      */
-    private fun assertHooked(what: String, context: BytecodePatchContext, found: CaughtUpCardTitle, itemsFilled: Boolean) {
-        val code = context.mutableClassDefBy(found.binder).methods.single {
-            it.name == "bindView" && it.parameterTypes.map(CharSequence::toString) == BIND_VIEW
-        }.code()
-        val at = found.linkAt
+    private fun assertHooked(what: String, context: BytecodePatchContext, found: CaughtUpCardTitle, stock: Stock, itemsFilled: Boolean) {
+        val bind = context.mutableClassDefBy(found.binder).methods.single { it.isBind() }
+        val code = bind.code()
+        val at = found.hookAt
         val calls = code.indices.filter { code[it].referenceText() == CAUGHT_UP_TITLE }
-        assertEquals("$what: one hook, just before the link", listOf(at + 2), calls)
+        assertEquals("$what: one hook, where the link starts", listOf(at + 2), calls)
         assertEquals("$what: the title's own call stays", found.titleCall, code[found.titleAt].referenceText())
         val (fields, title) = found.scratch
         assertTrue("$what: borrowed ${found.scratch} apart from the card and the holder", fields != title && found.scratch.none { it == found.card || it == found.holder || it > 15 })
-        assertEquals(
-            "$what: the card's title past the extension, then the holder's call again",
-            listOf(
-                Opcode.IGET_OBJECT to found.data,
-                Opcode.IGET_OBJECT to found.titleField,
-                Opcode.INVOKE_STATIC to CAUGHT_UP_TITLE,
-                Opcode.MOVE_RESULT_OBJECT to null,
-                Opcode.IGET_OBJECT to found.subtitleField,
-                Opcode.INVOKE_VIRTUAL to found.titleCall,
-                Opcode.IGET_OBJECT to found.linkRead,
-                Opcode.INVOKE_VIRTUAL to found.linkCall,
-            ),
-            code.subList(at, at + 8).map { it.opcode to it.referenceText() },
+        val hook = listOf(
+            Opcode.IGET_OBJECT to found.data,
+            Opcode.IGET_OBJECT to found.titleField,
+            Opcode.INVOKE_STATIC to CAUGHT_UP_TITLE,
+            Opcode.MOVE_RESULT_OBJECT to null,
+            Opcode.IGET_OBJECT to found.subtitleField,
+            Opcode.INVOKE_VIRTUAL to found.titleCall,
         )
+        val kept = stock.code.map { it.kind() }
+        assertEquals(
+            "$what: the card's title past the extension, then the holder's call again, and the rest as it was",
+            (kept.take(at) + hook + kept.drop(at)).filter { it.first != Opcode.NOP },
+            code.map { it.kind() }.filter { it.first != Opcode.NOP },
+        )
+        val read = if (found.linkAt < at) found.linkAt else found.linkAt + hook.size
+        assertEquals(
+            "$what: the link's read and call",
+            listOf(found.linkRead, found.linkCall),
+            listOf(code[read].referenceText(), code[found.callAt + hook.size].referenceText()),
+        )
+        val targets = bind.jumpTargets()
+        if (at in stock.targets) {
+            assertTrue("$what: what jumped to where the link starts lands on the hook", at in targets && at + hook.size !in targets)
+        }
+        if (found.callAt in stock.targets) {
+            assertTrue("$what: what jumped onto the link's call still does", found.callAt + hook.size in targets)
+        }
         val reads = listOf(code[at], code[at + 1], code[at + 4]).map { it as TwoRegisterInstruction }
         assertEquals("$what: data from the card, the title and the subtitle from data", listOf(fields to found.card, title to fields, fields to fields), reads.map { it.registerA to it.registerB })
         val ask = code[at + 2] as FiveRegisterInstruction
@@ -291,6 +331,18 @@ class CaughtUpCardTitleTest {
         assertTrue(failure.message!!, failure.message!!.contains(why))
     }
 
+    /** bindView as the find saw it, before the hook went in. */
+    private class Stock(val code: List<Instruction>, val targets: Set<Int>)
+
+    private fun BytecodePatchContext.stock(found: CaughtUpCardTitle): Stock =
+        classDefBy(found.binder).methods.single { it.isBind() }.let { Stock(it.code(), it.jumpTargets()) }
+
+    private fun Method.isBind() = name == "bindView" && parameterTypes.map(CharSequence::toString) == BIND_VIEW
+
+    /** An instruction's opcode and reference, a widened goto read as a goto. */
+    private fun Instruction.kind(): Pair<Opcode, String?> =
+        (if (opcode == Opcode.GOTO_16 || opcode == Opcode.GOTO_32) Opcode.GOTO else opcode) to referenceText()
+
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
@@ -322,6 +374,7 @@ class CaughtUpCardTitleTest {
         const val STRING = "Ljava/lang/String;"
         const val LIST = "Ljava/util/List;"
         const val LISTENER = "Landroid/view/View\$OnClickListener;"
+        const val OPEN_OLDER = "Lfixture/OpenOlder;"
         const val PUBLIC_FINAL = 0x11
         const val TITLE_AT = 9
         const val LINK_AT = 12
@@ -348,6 +401,8 @@ class CaughtUpCardTitleTest {
          *   0 move   1 const-string   2 check-cast holder   3 const-string   4 check-cast card
          *   5 iget data   6 iget title   7 iget subtitle   8 nop   9 setTitles   10 section()
          *   11 move-result   12 iget link   13 setLink   14 bindCard   then return-void
+         * With [listener], shaped like 455's LX/07hJ on 386113969: 12 iget link, 13 if-eqz onto 14,
+         * 14 new-instance of the link's listener, 15 its <init>, 16 setLink, 17 bindCard.
          */
         fun classes(
             titleCalls: Int = 1,
@@ -363,11 +418,18 @@ class CaughtUpCardTitleTest {
             /** The link's read and call right after the holder's cast, ahead of the card's. */
             linkFirst: Boolean = false,
             titleReadAfter: Boolean = false,
+            /** The link's listener made between its read and its call, with a branch onto where it's made. */
+            listener: Boolean = false,
         ): List<ClassDef> {
             val setTitles = { invoke(Opcode.INVOKE_VIRTUAL, 3, 3, 1, 0, HOLDER, "setTitles", listOf(STRING, STRING), "V") }
-            val linkCode = listOf(
-                ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 9, field(SECTION, "link", STRING)),
-                invoke(Opcode.INVOKE_VIRTUAL, 3, 3, 0, 7, HOLDER, "setLink", listOf(STRING, LISTENER), "V"),
+            val read = ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 9, field(SECTION, "link", STRING))
+            val setLink = invoke(Opcode.INVOKE_VIRTUAL, 3, 3, 0, 7, HOLDER, "setLink", listOf(STRING, LISTENER), "V")
+            val linkCode = if (!listener) listOf(read, setLink) else listOf(
+                read,
+                ImmutableInstruction21t(Opcode.IF_EQZ, 0, 2),
+                ImmutableInstruction21c(Opcode.NEW_INSTANCE, 7, ImmutableTypeReference(OPEN_OLDER)),
+                invoke(Opcode.INVOKE_DIRECT, 1, 7, 0, 0, OPEN_OLDER, "<init>", emptyList(), "V"),
+                setLink,
             )
             val code = mutableListOf<Instruction>(
                 ImmutableInstruction12x(Opcode.MOVE_OBJECT, 8, 12),

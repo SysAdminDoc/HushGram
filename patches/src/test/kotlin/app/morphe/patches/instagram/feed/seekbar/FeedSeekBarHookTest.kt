@@ -47,11 +47,11 @@ class FeedSeekBarHookTest {
     }
 
     /**
-     * On 454.0.0.54.77's arm64 build 386014758 the patch finds the feed's player (07jT) and its
-     * progress callback (G4a), the holder's view (0Ba1's CXD) and the controller's seek (04Te's A0T,
-     * the one a SeekBar listener's onStopTrackingTouch makes), and the player's pause and play that
-     * listener makes around the seek (A0H and A04, #472), fills every stub and hands the callback to
-     * the extension first thing. Each build has its own names.
+     * The patch finds the feed's player and its progress callback, the holder's view and the
+     * controller's seek (the one a SeekBar listener's onStopTrackingTouch makes), and the player's
+     * pause and play that listener makes around the seek (#472), fills every stub and hands the
+     * callback to the extension first thing. Each build has its own names; on 455.0.0.51.72's arm64
+     * build 386113969 the player is 06yJ, and its GA1 reads the post from LX/07lE;->A03.
      */
     @Test
     fun eachDeclaredBuildFindsTheSeekAndHooksThePlayer() {
@@ -64,8 +64,8 @@ class FeedSeekBarHookTest {
                     assertEquals(
                         "${bundle.name}: the player, its progress callback, the holder's view, the seek, the pause and the play",
                         listOf(
-                            "LX/07jT;", "G4a", "LX/0Ba1;->CXD()Landroid/view/View;", "LX/04Te;->A0T(IZ)V",
-                            "LX/07jT;->A0H(Ljava/lang/String;)V", "LX/07jT;->A04(LX/07jT;Ljava/lang/String;ZZZ)V",
+                            "LX/06yJ;", "GA1", "LX/0GBC;->CZO()Landroid/view/View;", "LX/04q9;->A0U(IZ)V",
+                            "LX/06yJ;->A0F(Ljava/lang/String;)V", "LX/06yJ;->A04(LX/06yJ;Ljava/lang/String;ZZZ)V",
                         ),
                         listOf(
                             sites.player, sites.progress, sites.view.toString(), sites.seek.toString(),
@@ -162,7 +162,7 @@ class FeedSeekBarHookTest {
         if (label.contains("386113969")) {
             assertEquals(
                 "$label: the post, its strip and the strip's map",
-                listOf("LX/07Jc;->A03:Ljava/lang/Object;", "A2e", "LX/08cg;", "A02"),
+                listOf("LX/07lE;->A03:Ljava/lang/Object;", "A2e", "LX/00JV;", "A02"),
                 listOf(sheet.media.toString(), sheet.getter.name, sheet.builder.definingClass, sheet.builder.name),
             )
         }
@@ -204,7 +204,7 @@ class FeedSeekBarHookTest {
         )
         assertEquals("$label: the map is the same builder's", sheet.builder.name, scrubber.last().name)
         if (label.contains("386113969")) {
-            assertEquals("$label: the reel strip's getters", listOf("A3N", "DT4", "EA6"), scrubber.dropLast(1).map { it.name })
+            assertEquals("$label: the reel strip's getters", listOf("A3O", "DWB", "EDu"), scrubber.dropLast(1).map { it.name })
         }
         return sites
     }

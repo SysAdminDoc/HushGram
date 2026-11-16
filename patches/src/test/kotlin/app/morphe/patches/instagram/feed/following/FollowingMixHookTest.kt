@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -52,10 +53,10 @@ class FollowingMixHookTest {
     }
 
     /**
-     * In every build the fetcher's cursor, the request's flag and paging source, the reply's cursor
-     * and "more" writes and the delivery's rewind are found and hooked, each hook's answer goes back
-     * into the register Instagram goes on to use, the jumps onto the cursor land on its hook, and
-     * the methods' own code is otherwise untouched.
+     * In every build the fetcher's cursor, the flag and paging source its request builder hands the
+     * request's constructor, the reply's cursor and "more" writes and the delivery's rewind are found
+     * and hooked, each hook's answer goes back into the register Instagram goes on to use, the jumps
+     * onto the cursor land on its hook, and the methods' own code is otherwise untouched.
      */
     @Test
     fun everyBuildMixesFollowingIn() {
@@ -75,6 +76,7 @@ class FollowingMixHookTest {
             val targets = context.findFollowingMix()
             val fetch = targets.fetch
             val fetchBefore = fetch.method.code()
+            val builderBefore = fetch.builder.code()
             val replyBefore = targets.reply.method.code()
             val rewindBefore = targets.rewind.method.code()
             val locals = fetch.method.localRegisterCount()
@@ -103,13 +105,34 @@ class FollowingMixHookTest {
                 val moved = if (at > fetch.merge) at + 3 else at
                 assertEquals("$name: the jump at $at lands on the cursor hook", fetch.merge, fetcher.targetOf(moved))
             }
-            assertHooked(name, fetcher, MIX_SOURCE_SET, Opcode.MOVE_RESULT, Opcode.IPUT_BOOLEAN, fetch.setRegister)
-            assertHooked(name, fetcher, MIX_SOURCE, Opcode.MOVE_RESULT_OBJECT, Opcode.IPUT_OBJECT, fetch.sourceRegister)
             assertEquals(
                 "$name: the fetcher's own code",
                 fetchBefore.described(),
                 fetcher.filterIndexed { at, _ -> at != fetch.merge }.withoutHooks().described(),
             )
+
+            val builder = context.mutated(fetch.builder).code()
+            val build = fetch.buildAt
+            for ((offset, hook, register) in listOf(
+                Triple(0, MIX_SOURCE_SET, fetch.setRegister),
+                Triple(2, MIX_SOURCE, fetch.sourceRegister),
+            )) {
+                val range = builder[build + offset] as RegisterRangeInstruction
+                assertEquals(
+                    "$name: $hook before the request's constructor",
+                    listOf(Opcode.INVOKE_STATIC_RANGE, hook, register, 1),
+                    listOf(builder[build + offset].opcode, builder[build + offset].referenceText(), range.startRegister, range.registerCount),
+                )
+                val result = if (hook == MIX_SOURCE_SET) Opcode.MOVE_RESULT else Opcode.MOVE_RESULT_OBJECT
+                assertAnswered(name, builder, build + offset + 1, result, register)
+            }
+            val constructor = builder[build + 4]
+            assertEquals("$name: the request's constructor follows", "${fetch.requestType}-><init>", constructor.referenceText()?.substringBefore("("))
+            assertTrue(
+                "$name: the constructor takes the flag and the paging source",
+                constructor.namedRegisters().containsAll(listOf(fetch.setRegister, fetch.sourceRegister)),
+            )
+            assertEquals("$name: the request builder's own code", builderBefore.described(), builder.withoutHooks().described())
 
             val reply = context.mutated(targets.reply.method).code()
             assertHooked(name, reply, MIX_NEXT_CURSOR, Opcode.MOVE_RESULT_OBJECT, Opcode.IPUT_OBJECT, targets.reply.cursorRegister)
