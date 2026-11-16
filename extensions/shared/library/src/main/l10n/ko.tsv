@@ -2360,3 +2360,11 @@ A thicker rounded bar with no handle, on feed videos only.	핸들 없는 더 두
 A rounded bar split by a tall handle, on feed videos only.	긴 핸들로 나뉜 둥근 막대이며, 피드 동영상에만 적용됩니다.
 # context: Summary of Wave in Feed seek bar shape (#567)
 A wavy line for the part played, with a tall handle, on feed videos only.	재생된 부분은 물결선으로 표시되고 긴 핸들이 있으며, 피드 동영상에만 적용됩니다.
+# context: Feed settings: a switch under Seek bar on feed videos that shows the time over the bar (#711)
+Time on the seek bar	탐색 막대에 시간 표시
+# context: Summary of Time on the seek bar; 0:12 / 0:45 is an example time, keep the digits as they are (#711)
+Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.	피드 동영상의 탐색 막대 위에 재생한 시간과 동영상 길이를 0:12 / 0:45처럼 표시합니다. 시간을 탭하면 남은 시간이 표시됩니다.
+# context: Feed settings: a switch under Time on the seek bar that counts the time down instead (#711)
+Show the time left	남은 시간 표시
+# context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
+The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	탐색 막대의 시간이 -0:33 / 0:45처럼 동영상의 남은 시간을 거꾸로 셉니다. 시간을 탭하면 다시 바뀝니다.

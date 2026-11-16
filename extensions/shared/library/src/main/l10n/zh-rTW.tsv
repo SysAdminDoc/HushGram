@@ -2364,3 +2364,11 @@ A thicker rounded bar with no handle, on feed videos only.	較粗的圓角拖曳
 A rounded bar split by a tall handle, on feed videos only.	由高拖曳鈕分隔的圓角拖曳列，只用於動態影片.
 # context: Summary of Wave in Feed seek bar shape (#567)
 A wavy line for the part played, with a tall handle, on feed videos only.	已播放部分為波浪線，並附高拖曳鈕，只用於動態影片.
+# context: Feed settings: a switch under Seek bar on feed videos that shows the time over the bar (#711)
+Time on the seek bar	拖曳列上的時間
+# context: Summary of Time on the seek bar; 0:12 / 0:45 is an example time, keep the digits as they are (#711)
+Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.	在動態影片的拖曳列上方顯示已播放時間和影片長度，例如 0:12 / 0:45。點一下時間即可改看剩餘時間.
+# context: Feed settings: a switch under Time on the seek bar that counts the time down instead (#711)
+Show the time left	顯示剩餘時間
+# context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
+The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	拖曳列上的時間改為倒數影片剩餘的時間，例如 -0:33 / 0:45。點一下時間即可切換回來.

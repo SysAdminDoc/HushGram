@@ -2361,3 +2361,11 @@ A thicker rounded bar with no handle, on feed videos only.	Uma barra arredondada
 A rounded bar split by a tall handle, on feed videos only.	Uma barra arredondada dividida por um controle alto, só nos vídeos do feed.
 # context: Summary of Wave in Feed seek bar shape (#567)
 A wavy line for the part played, with a tall handle, on feed videos only.	Uma linha ondulada para a parte reproduzida, com um controle alto, só nos vídeos do feed.
+# context: Feed settings: a switch under Seek bar on feed videos that shows the time over the bar (#711)
+Time on the seek bar	Tempo na barra de busca
+# context: Summary of Time on the seek bar; 0:12 / 0:45 is an example time, keep the digits as they are (#711)
+Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.	Mostra o tempo assistido e a duração do vídeo sobre a barra de busca nos vídeos do feed, como 0:12 / 0:45. Toque no tempo para ver quanto falta.
+# context: Feed settings: a switch under Time on the seek bar that counts the time down instead (#711)
+Show the time left	Mostrar o tempo restante
+# context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
+The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	O tempo na barra de busca conta para trás o que falta do vídeo, como -0:33 / 0:45. Um toque no tempo volta ao normal.

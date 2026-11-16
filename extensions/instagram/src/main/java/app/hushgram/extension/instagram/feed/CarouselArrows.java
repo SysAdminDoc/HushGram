@@ -477,6 +477,7 @@ public final class CarouselArrows {
         private float fadedAlpha = 1f;
         private final Rect bounds = new Rect();
         private final Rect barBounds = new Rect();
+        private final Rect timeBounds = new Rect();
         private final Rect pageBounds = new Rect();
 
         Arrows(View pager, FrameLayout host) {
@@ -623,6 +624,13 @@ public final class CarouselArrows {
             if (bar == null || !bar.isShown() || !within(bar, pager)) return top;
             barBounds.set(0, 0, bar.getWidth(), bar.getHeight());
             AmbientLight.onto(bar, frame, barBounds);
+            // The time over the bar's middle (#711) counts as part of it, so the pill goes above both.
+            View time = FeedSeekBar.shownTime();
+            if (time != null && time.isShown() && time.getParent() == bar.getParent()) {
+                timeBounds.set(0, 0, time.getWidth(), time.getHeight());
+                AmbientLight.onto(time, frame, timeBounds);
+                barBounds.union(timeBounds);
+            }
             if (barBounds.right <= left || barBounds.left >= right) return top;
             float gap = PILL_OVER_BAR * density, height = PILL_HEIGHT * density;
             if (top >= barBounds.bottom || top + height + gap <= barBounds.top) return top;

@@ -14,6 +14,7 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Rect;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.view.Gravity;
@@ -185,6 +186,7 @@ public class CarouselArrowsTest {
         CarouselArrows.resetForTests();
         FeedSeekBar.resetForTests();
         Settings.FEED_SEEK_BAR.resetToDefault();
+        Settings.FEED_SEEK_TIME.resetToDefault();
         Settings.CAROUSEL_ARROWS.resetToDefault();
         Settings.CAROUSEL_DOTS_PILL.resetToDefault();
         Settings.CAROUSEL_PILL_LOOK.resetToDefault();
@@ -625,6 +627,45 @@ public class CarouselArrowsTest {
         settle();
         assertNull("the bar hides with its switch", FeedSeekBar.shownBar());
         assertEquals(Math.round(HEADER + HEIGHT - (CarouselArrows.PILL_MARGIN + CarouselArrows.PILL_HEIGHT) * d),
+                pill().getTop() + pill().getTranslationY(), 1f);
+    }
+
+    /** #711: the time over the feed seek bar's middle is part of the bar, so the pill goes above the time too. */
+    @Test
+    public void thePillGoesAboveTheTimeOverTheFeedSeekBar() {
+        FrameLayout photo = (FrameLayout) ((ViewGroup) ((ViewGroup) pager.getChildAt(0)).getChildAt(0)).getChildAt(0);
+        View cover = new View(activity);
+        photo.addView(cover, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        Object player = new Object();
+        FeedSeekBar.playerForTests(new FeedSeekBar.Player() {
+            @Override public View view(Object of) { return of == player ? cover : null; }
+            @Override public boolean seekTo(Object of, int positionMs) { return true; }
+            @Override public boolean pause(Object of) { return true; }
+            @Override public boolean play(Object of) { return true; }
+        });
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.FEED_SEEK_TIME.save(true);
+        FeedSeekBar.progress(player, 1000, 5000);
+        pillOn();
+        settle();
+
+        View time = FeedSeekBar.shownTime();
+        assertNotNull(time);
+        assertTrue("the time sits in the carousel's photo frame", time.getParent() == photo);
+        Rect at = new Rect(0, 0, time.getWidth(), time.getHeight());
+        root.offsetDescendantRectToMyCoords(time, at);
+        float d = density();
+        float barTop = HEADER + HEIGHT - Math.round(FeedSeekBar.HEIGHT_DP * d);
+        assertTrue("the time has a size", at.height() > 0 && at.width() > 0);
+        assertTrue("the time sits over the bar", at.bottom <= barTop);
+        assertEquals(at.top - (CarouselArrows.PILL_OVER_BAR + CarouselArrows.PILL_HEIGHT) * d,
+                pill().getTop() + pill().getTranslationY(), 1f);
+
+        Settings.FEED_SEEK_TIME.save(false);
+        FeedSeekBar.progress(player, 2000, 5000);
+        settle();
+        assertNull("the time goes with its switch", FeedSeekBar.shownTime());
+        assertEquals("and the pill sits just over the bar again", barTop - (CarouselArrows.PILL_OVER_BAR + CarouselArrows.PILL_HEIGHT) * d,
                 pill().getTop() + pill().getTranslationY(), 1f);
     }
 

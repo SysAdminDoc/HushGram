@@ -97,7 +97,8 @@ public final class SeekPreview {
         return time + " " + DOT + " " + format.format(speed) + "x";
     }
 
-    private static String time(long milliseconds) {
+    /** "1:05", or "1:02:05" from an hour, in the phone's digits. The time over the feed seek bar uses it too (#711). */
+    static String time(long milliseconds) {
         long seconds = milliseconds / 1000L;
         long hours = seconds / 3600L;
         long minutes = seconds / 60L % 60L;

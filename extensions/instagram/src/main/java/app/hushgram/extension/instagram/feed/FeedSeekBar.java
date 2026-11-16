@@ -8,9 +8,11 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -20,6 +22,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
 import android.widget.Switch;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -74,6 +77,13 @@ public final class FeedSeekBar {
     static final String HOOK = "feed seek bar";
     static final String COUNT_SEEKS = "feed seeks";
     static final String COUNT_TOGGLES = "feed seek bar toggles";
+    static final String COUNT_TIME_FLIPS = "feed seek time flips";
+
+    /** The gap between the bar and the time over it (#711). */
+    static final int TIME_GAP_DP = 2;
+
+    /** The time's text size, as the reel's time label has it. */
+    static final float TIME_SP = 12f;
 
     /** The toggle button's size, a small circle at the bottom start of the video (#437). */
     static final int BUTTON_DP = 28;
@@ -111,6 +121,50 @@ public final class FeedSeekBar {
     /** Whether the toggle button shows: its switch on, HushGram not paused, the settings read (#437). */
     static boolean buttonWanted() {
         return Utils.settingsReady() && Settings.FEED_SEEK_BUTTON.get();
+    }
+
+    /** Whether the time shows over a showing bar: its switch on, HushGram not paused, the settings read (#711). */
+    static boolean timeWanted() {
+        return Utils.settingsReady() && Settings.FEED_SEEK_TIME.get();
+    }
+
+    /**
+     * The time over the bar: the time played, past the end counted as the end, and the length, "0:12 / 0:45",
+     * or with [left] the time still to go, "-0:33 / 0:45".
+     */
+    static String timeText(int at, int length, boolean left) {
+        int played = Math.max(0, Math.min(at, length));
+        String total = SeekPreview.time(Math.max(0, length));
+        return (left ? "-" + SeekPreview.time(length - played) : SeekPreview.time(played)) + " / " + total;
+    }
+
+    /** The time's label, white bold text with a shadow over the video, a tap on it flipping what it counts. */
+    static TextView timeLabel(Context context) {
+        float density = context.getResources().getDisplayMetrics().density;
+        int gap = Math.round(4 * density);
+        TextView label = new TextView(context);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, TIME_SP);
+        label.setTypeface(Typeface.DEFAULT_BOLD);
+        label.setTextColor(Color.WHITE);
+        // Over the video, the shadow keeps white text readable on a bright frame.
+        label.setShadowLayer(2f * density, 0f, 0.5f * density, 0x99000000);
+        // Digits all as wide as each other, so the time doesn't wobble as it counts.
+        label.setFontFeatureSettings("tnum");
+        label.setSingleLine(true);
+        label.setIncludeFontPadding(false);
+        label.setGravity(Gravity.CENTER);
+        label.setPadding(gap, gap / 2, gap, gap / 2);
+        label.setClickable(true);
+        label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        return label;
+    }
+
+    /** The time showing over the bar on a feed video now, or null. A carousel's dots pill goes above it too. */
+    @Nullable
+    static View shownTime() {
+        Overlay overlay = current;
+        TextView label = overlay == null || overlay.removed ? null : overlay.time;
+        return label != null && label.getVisibility() == View.VISIBLE && label.getParent() != null ? label : null;
     }
 
     /** Whether a video gets an overlay at all: the bar or its toggle button is wanted. */
@@ -172,6 +226,13 @@ public final class FeedSeekBar {
     }
 
     @VisibleForTesting
+    @Nullable
+    static TextView timeForTests() {
+        Overlay overlay = current;
+        return overlay == null ? null : overlay.time;
+    }
+
+    @VisibleForTesting
     static void resetForTests() {
         Overlay overlay = current;
         if (overlay != null) overlay.remove();
@@ -185,6 +246,7 @@ public final class FeedSeekBar {
         final WeakReference<Object> player;
         @Nullable GlassSeekBar bar;
         @Nullable Toggle button;
+        @Nullable TextView time;
         int position;
         int duration;
         long hiddenSince = -1;
@@ -255,6 +317,64 @@ public final class FeedSeekBar {
             if (seek.getVisibility() != barState) seek.setVisibility(barState);
             if (barState == View.GONE) dragging = false;
             showButton(frame, view);
+            showTime(frame, view, seek);
+        }
+
+        /**
+         * Puts the time over the middle of the bar in [frame], or takes it away while its switch is off
+         * or the bar is hidden (#711). It sits in the middle since Instagram keeps its tags and sound
+         * buttons in the video's bottom corners.
+         */
+        private void showTime(FrameLayout frame, View view, SeekBar seek) {
+            if (!timeWanted() || seek.getVisibility() != View.VISIBLE) {
+                removeTime();
+                return;
+            }
+            TextView shown = time;
+            if (shown == null) {
+                shown = timeLabel(view.getContext());
+                shown.setOnClickListener(tapped -> flipTime());
+                time = shown;
+            }
+            int bottom = barHeight(view, seek) + dp(view, TIME_GAP_DP);
+            if (shown.getParent() != frame) {
+                if (shown.getParent() != null) ((ViewGroup) shown.getParent()).removeView(shown);
+                frame.addView(shown, frame.indexOfChild(seek) + 1, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                        Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+            }
+            fit(shown, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, bottom);
+            showTimeAt(dragging ? seek.getProgress() : position);
+        }
+
+        /** Writes the time at [at] into the label, when there is one. */
+        private void showTimeAt(int at) {
+            TextView shown = time;
+            if (shown == null) return;
+            String text = timeText(at, duration, Settings.FEED_SEEK_TIME_LEFT.get());
+            if (!text.contentEquals(shown.getText())) shown.setText(text);
+        }
+
+        /** A tap on the time flips it between the time played and the time left, through its own switch. */
+        private void flipTime() {
+            try {
+                if (removed || !timeWanted()) return;
+                Settings.FEED_SEEK_TIME_LEFT.save(!Settings.FEED_SEEK_TIME_LEFT.get());
+                HookStatus.counted(FamilyNames.FEED_SEEK_BAR, COUNT_TIME_FLIPS);
+                Object owner = player.get();
+                if (owner != null) update(owner);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FEED_SEEK_BAR, HOOK, failure);
+            }
+        }
+
+        private void removeTime() {
+            TextView shown = time;
+            time = null;
+            if (shown == null) return;
+            shown.setOnClickListener(null);
+            ViewGroup parent = (ViewGroup) shown.getParent();
+            if (parent != null) parent.removeView(shown);
         }
 
         /** Puts the toggle button in [frame] just after [view], or takes it out when its switch is off. */
@@ -310,6 +430,7 @@ public final class FeedSeekBar {
         /** Hides the bar, ending a drag under it, and takes it away once it's been hidden for {@link #GONE_MS}. */
         private void hide() {
             if (!buttonWanted()) removeButton();
+            removeTime();
             if (bar != null && bar.getVisibility() != View.GONE) bar.setVisibility(View.GONE);
             dragging = false;
             long now = SystemClock.uptimeMillis();
@@ -385,6 +506,7 @@ public final class FeedSeekBar {
             dragging = false;
             held = false;
             removeButton();
+            removeTime();
             SeekBar seek = bar;
             bar = null;
             if (seek != null) {
@@ -414,8 +536,10 @@ public final class FeedSeekBar {
 
         @Override
         public void onProgressChanged(SeekBar seek, int progress, boolean fromUser) {
-            if (!fromUser || !dragging || !SeekPreview.on()) return;
+            if (!fromUser || !dragging) return;
             try {
+                showTimeAt(progress);
+                if (!SeekPreview.on()) return;
                 Object owner = player.get();
                 SeekSheet sheet = owner != null ? feed.sheet(owner) : null;
                 SeekPreview.dragged(seek, progress, sheet, FamilyNames.FEED_SEEK_BAR);

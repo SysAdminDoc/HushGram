@@ -533,6 +533,20 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_feed_seek_bar_on_edge", FALSE, parentsAny(FEED_SEEK_BAR, FEED_SEEK_BUTTON));
 
     /**
+     * The time played and the video's length over the middle of the seek bar on feed videos, "0:12 / 0:45"
+     * (#711, {@link app.hushgram.extension.instagram.feed.FeedSeekBar}). Read as the bar updates. Off to start.
+     */
+    public static final BooleanSetting FEED_SEEK_TIME =
+            new BooleanSetting("hushgram_feed_seek_bar_time", FALSE, parentsAny(FEED_SEEK_BAR, FEED_SEEK_BUTTON));
+
+    /**
+     * The time over the feed seek bar counts down what's left, "-0:33 / 0:45" (#711). A tap on the time
+     * flips it. Off to start.
+     */
+    public static final BooleanSetting FEED_SEEK_TIME_LEFT =
+            new BooleanSetting("hushgram_feed_seek_bar_time_left", FALSE, parent(FEED_SEEK_TIME));
+
+    /**
      * A double tap on the left or right third of the video playing in a feed moves it back or ahead
      * {@link #FEED_DOUBLE_TAP_SKIP_SECONDS} instead of liking the post (#562,
      * {@link app.hushgram.extension.instagram.feed.FeedDoubleTapSkip}). Off to start.

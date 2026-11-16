@@ -2361,3 +2361,11 @@ A thicker rounded bar with no handle, on feed videos only.	Eine dickere, abgerun
 A rounded bar split by a tall handle, on feed videos only.	Eine abgerundete Leiste, die von einem hohen Griff geteilt wird, nur bei Feed-Videos.
 # context: Summary of Wave in Feed seek bar shape (#567)
 A wavy line for the part played, with a tall handle, on feed videos only.	Eine Wellenlinie für den abgespielten Teil, mit einem hohen Griff, nur bei Feed-Videos.
+# context: Feed settings: a switch under Seek bar on feed videos that shows the time over the bar (#711)
+Time on the seek bar	Zeit über der Suchleiste
+# context: Summary of Time on the seek bar; 0:12 / 0:45 is an example time, keep the digits as they are (#711)
+Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.	Zeigt bei Feed-Videos die abgespielte Zeit und die Länge des Videos über der Suchleiste, etwa 0:12 / 0:45. Tippe auf die Zeit, um stattdessen die Restzeit zu sehen.
+# context: Feed settings: a switch under Time on the seek bar that counts the time down instead (#711)
+Show the time left	Restzeit anzeigen
+# context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
+The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	Die Zeit über der Suchleiste zählt herunter, wie viel vom Video noch übrig ist, etwa -0:33 / 0:45. Ein Tippen auf die Zeit schaltet zurück.

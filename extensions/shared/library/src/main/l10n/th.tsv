@@ -2358,3 +2358,11 @@ A thicker rounded bar with no handle, on feed videos only.	แถบทรงม
 A rounded bar split by a tall handle, on feed videos only.	แถบทรงมนที่ถูกแบ่งด้วยปุ่มเลื่อนทรงสูง เฉพาะวิดีโอในฟีด
 # context: Summary of Wave in Feed seek bar shape (#567)
 A wavy line for the part played, with a tall handle, on feed videos only.	เส้นคลื่นแสดงส่วนที่เล่นไปแล้ว พร้อมปุ่มเลื่อนทรงสูง เฉพาะวิดีโอในฟีด
+# context: Feed settings: a switch under Seek bar on feed videos that shows the time over the bar (#711)
+Time on the seek bar	เวลาบนแถบเลื่อนเวลา
+# context: Summary of Time on the seek bar; 0:12 / 0:45 is an example time, keep the digits as they are (#711)
+Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.	แสดงเวลาที่เล่นไปแล้วและความยาวของวิดีโอเหนือแถบเลื่อนเวลาในวิดีโอฟีด เช่น 0:12 / 0:45 แตะที่เวลาเพื่อดูเวลาที่เหลือแทน
+# context: Feed settings: a switch under Time on the seek bar that counts the time down instead (#711)
+Show the time left	แสดงเวลาที่เหลือ
+# context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
+The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	เวลาบนแถบเลื่อนเวลานับถอยหลังส่วนที่เหลือของวิดีโอ เช่น -0:33 / 0:45 แตะที่เวลาเพื่อสลับกลับ

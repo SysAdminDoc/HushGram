@@ -275,6 +275,12 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.FEED_SEEK_BAR_ON_EDGE, L10n.t("Seek bar on the bottom edge"),
                     L10n.t("Puts the seek bar right on the bottom edge of the video, so it's harder to touch by "
                             + "accident while you scroll.")));
+            feed.addPreference(toggle(context, Settings.FEED_SEEK_TIME, L10n.t("Time on the seek bar"),
+                    L10n.t("Shows the time played and the video's length over the seek bar on feed videos, like "
+                            + "0:12 / 0:45. Tap the time to see the time left instead.")));
+            feed.addPreference(toggle(context, Settings.FEED_SEEK_TIME_LEFT, L10n.t("Show the time left"),
+                    L10n.t("The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. "
+                            + "A tap on the time switches back.")));
             feed.addPreference(toggle(context, Settings.FEED_DOUBLE_TAP_SKIP, L10n.t("Double tap to skip on feed videos"),
                     L10n.t("Double tap the left side of the video playing in a feed to go back, or the right side to go "
                             + "ahead, as far as Skip length says. A double tap in the middle works as before.")));
