@@ -2458,3 +2458,6 @@ Cache size limit	ขีดจำกัดขนาดแคช
 %1$d MB	%1$d MB
 # context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
 Saved photos and videos take up %1$s now.	รูปภาพและวิดีโอที่บันทึกไว้ใช้พื้นที่ %1$s ในตอนนี้
+# context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
+Glass lens under your finger	เลนส์แก้วใต้นิ้วของคุณ
+Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	แตะนิ้วค้างไว้บนฟองของแถบแคปซูลแบบแก้วเหลว หรือเลื่อนไปตามแท็บ แล้วฟองจะขยายและหักเหสิ่งที่อยู่ด้านหลังแรงขึ้น เหมือนแก้วใต้ปลายนิ้ว และจะกลับเป็นปกติเมื่อคุณปล่อยนิ้ว การหักเหต้องเปิดเบลอด้านหลังแถบแท็บและใช้ Android 13 ขึ้นไป รีสตาร์ท Instagram หลังจากเปลี่ยนแปลงการตั้งค่า

@@ -2464,3 +2464,6 @@ Cache size limit	缓存大小上限
 %1$d MB	%1$d MB
 # context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
 Saved photos and videos take up %1$s now.	已保存的照片与视频目前占用 %1$s。
+# context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
+Glass lens under your finger	手指下的玻璃透镜
+Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	用手指按住液态胶囊的气泡，或在标签页间滑动它，气泡会变大，并更强烈地折射后方的内容，就像指尖下的玻璃。松开后会恢复原状。折射需要开启“模糊标签栏后方内容”及 Android 13 或以上版本。变更后请重新启动 Instagram。

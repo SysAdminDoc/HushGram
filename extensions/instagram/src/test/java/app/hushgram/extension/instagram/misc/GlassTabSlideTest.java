@@ -88,6 +88,13 @@ public class GlassTabSlideTest {
         float last() {
             return follows.get(follows.size() - 1);
         }
+
+        /** Where the glass was told a held finger is, NaN as it let go (#705). */
+        final List<Float> holds = new ArrayList<>();
+
+        @Override public void hold(float x) {
+            holds.add(x);
+        }
     }
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
@@ -529,5 +536,115 @@ public class GlassTabSlideTest {
         assertEquals(GlassTabSlide.IDLE, slide.state());
         String missing = String.valueOf(HookStatus.missing(FamilyNames.GLASS_TAB_BAR));
         assertTrue(missing, missing.contains("'tab slide' hook (it threw java.lang.IllegalStateException)"));
+    }
+
+    /** Asserts the glass was told exactly [expected] about a held finger, NaN for a let go (#705). */
+    private void assertHolds(float... expected) {
+        assertEquals(String.valueOf(pill.holds), expected.length, pill.holds.size());
+        for (int i = 0; i < expected.length; i++) {
+            if (Float.isNaN(expected[i])) {
+                assertTrue("let go at " + i + " in " + pill.holds, Float.isNaN(pill.holds.get(i)));
+            } else {
+                assertEquals("at " + i + " in " + pill.holds, expected[i], pill.holds.get(i), 0.01f);
+            }
+        }
+    }
+
+    /**
+     * #705: a finger down on the pill is followed for the lens from the moment it lands, through a jitter and
+     * a slide, until it lifts.
+     */
+    @Test public void aFingerOnThePillIsFollowedForTheLensUntilItLifts() {
+        assertFalse(touch(MotionEvent.ACTION_DOWN, middle(0), 75));
+        assertHolds(middle(0));
+        assertFalse(touch(MotionEvent.ACTION_MOVE, middle(0) + 3, 76));
+        assertTrue(touch(MotionEvent.ACTION_MOVE, middle(0) + 40, 78));
+        assertEquals(GlassTabSlide.SLIDING, slide.state());
+        assertTrue(touch(MotionEvent.ACTION_MOVE, middle(2), 78));
+        assertTrue(touch(MotionEvent.ACTION_UP, middle(2), 78));
+        assertHolds(middle(0), middle(0) + 3, middle(0) + 40, middle(2), Float.NaN);
+        assertEquals(Arrays.asList(2), clicked);
+
+        pill.holds.clear();
+        assertFalse(touch(MotionEvent.ACTION_DOWN, middle(1), 75));
+        assertFalse(touch(MotionEvent.ACTION_CANCEL, middle(1), 75));
+        assertHolds(middle(1), Float.NaN);
+    }
+
+    /** #705: a swipe up or down off the bar, a second finger, a pause or a failure each let the lens go, once. */
+    @Test public void aSwipeASecondFingerAPauseOrAFailureLetsTheLensGo() {
+        touch(MotionEvent.ACTION_DOWN, middle(1), 75);
+        assertFalse(touch(MotionEvent.ACTION_MOVE, middle(1) + 2, 15));
+        assertFalse(touch(MotionEvent.ACTION_MOVE, middle(3), 15));
+        touch(MotionEvent.ACTION_UP, middle(3), 15);
+        assertHolds(middle(1), Float.NaN);
+
+        pill.holds.clear();
+        touch(MotionEvent.ACTION_DOWN, middle(1), 75);
+        touch(MotionEvent.ACTION_POINTER_DOWN, middle(1), 75);
+        touch(MotionEvent.ACTION_MOVE, middle(3), 75);
+        touch(MotionEvent.ACTION_UP, middle(3), 75);
+        assertHolds(middle(1), Float.NaN);
+
+        pill.holds.clear();
+        touch(MotionEvent.ACTION_DOWN, middle(1), 75);
+        running.set(false);
+        touch(MotionEvent.ACTION_MOVE, middle(1) + 2, 75);
+        touch(MotionEvent.ACTION_UP, middle(1) + 2, 75);
+        assertHolds(middle(1), Float.NaN);
+        running.set(true);
+
+        pill.holds.clear();
+        touch(MotionEvent.ACTION_DOWN, middle(1), 75);
+        slide.giveUp();
+        touch(MotionEvent.ACTION_MOVE, middle(1) + 2, 75);
+        touch(MotionEvent.ACTION_UP, middle(1) + 2, 75);
+        assertHolds(middle(1), Float.NaN);
+
+        pill.holds.clear();
+        touch(MotionEvent.ACTION_DOWN, middle(0), 75);
+        touch(MotionEvent.ACTION_DOWN, middle(2), 75);
+        assertHolds(middle(0), Float.NaN, middle(2));
+    }
+
+    /** #705: off the pill, with the bar away, under a sheet or paused, no finger is held. */
+    @Test public void offThePillOrPausedNoFingerIsHeld() {
+        touch(MotionEvent.ACTION_DOWN, 5, 75);
+        touch(MotionEvent.ACTION_MOVE, middle(1), 75);
+        touch(MotionEvent.ACTION_UP, middle(1), 75);
+        touch(MotionEvent.ACTION_DOWN, middle(1), 145);
+        touch(MotionEvent.ACTION_UP, middle(1), 145);
+        bar.setTranslationY(150);
+        touch(MotionEvent.ACTION_DOWN, middle(1), 75);
+        touch(MotionEvent.ACTION_UP, middle(1), 75);
+        bar.setTranslationY(0);
+        pill.sheet = true;
+        touch(MotionEvent.ACTION_DOWN, middle(1), 75);
+        touch(MotionEvent.ACTION_UP, middle(1), 75);
+        pill.sheet = false;
+        running.set(false);
+        touch(MotionEvent.ACTION_DOWN, middle(1), 75);
+        touch(MotionEvent.ACTION_UP, middle(1), 75);
+        assertHolds();
+    }
+
+    /**
+     * #705: with Slide across the tabs off, a finger on the pill is still followed for the lens, and the whole
+     * gesture stays Instagram's: no slide, no cancel, nothing opened.
+     */
+    @Test public void withSlidesOffTheHeldFingerIsFollowedAndTheGestureStaysInstagrams() {
+        slide = new GlassTabSlide(bar, pill, running::get, false);
+        GlassTabSlide.install(activity.getWindow(), slide);
+        dispatch(MotionEvent.ACTION_DOWN, middle(0), 75);
+        assertEquals(GlassTabSlide.REFUSED, slide.state());
+        dispatch(MotionEvent.ACTION_MOVE, middle(0) + 40, 78);
+        dispatch(MotionEvent.ACTION_MOVE, middle(2), 78);
+        dispatch(MotionEvent.ACTION_UP, middle(2), 78);
+        assertHolds(middle(0), middle(0) + 40, middle(2), Float.NaN);
+        assertEquals(GlassTabSlide.IDLE, slide.state());
+        assertTrue("no slide", pill.follows.isEmpty());
+        assertEquals(Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_MOVE,
+                MotionEvent.ACTION_UP), activity.actions);
+        assertTrue(clicked.isEmpty());
     }
 }

@@ -1965,6 +1965,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_keep_size", FALSE, true, parent(GLASS_TAB_BAR_LIQUID));
 
     /**
+     * Under {@link #GLASS_TAB_BAR_LIQUID}: a finger held on the bubble, or sliding it across the tabs, swells it
+     * and makes its lens bend what's behind it harder, the way glass does under a fingertip (#705). It eases back
+     * once the finger lifts. The lens needs Blur behind the tab bar and Android 13 or newer, and without them the
+     * bubble only swells ({@link app.hushgram.extension.instagram.misc.GlassTabBar}). Read as the bar is built,
+     * so a change asks for a restart. Off to start.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_HOLD_LENS =
+            new BooleanSetting("hushgram_glass_tab_bar_hold_lens", FALSE, true, parent(GLASS_TAB_BAR_LIQUID));
+
+    /**
      * With {@link #GLASS_TAB_BAR_LIQUID} off: scrolling a list down makes the standard pill smaller, and
      * scrolling up or changing tab brings it back to full size (#638). Hide the tab bar as you scroll takes
      * over when it's on, and the choice rests while the liquid look is on. Read as the bar is built, so a

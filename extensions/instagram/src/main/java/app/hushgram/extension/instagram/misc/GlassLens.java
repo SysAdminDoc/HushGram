@@ -29,6 +29,25 @@ public final class GlassLens {
     static final float CENTRE_MAGNIFY = 0.10f;
     static final float RIM_BEND = 0.14f;
 
+    /** How much harder the lens bends under a finger held all the way (#705): its bend times 1 plus this. */
+    static final float HOLD_BEND = 1.5f;
+
+    /**
+     * The most the lens may pull the backdrop in toward its middle at the rim, centre and rim together, so a
+     * strong bend under a finger magnifies without turning the picture inside out.
+     */
+    static final float MAX_PULL = 0.8f;
+
+    /** How much the lens's middle magnifies at [bend], the slider's scale, times [boost] under a finger. */
+    static float centre(float bend, float boost) {
+        return Math.min(MAX_PULL, CENTRE_MAGNIFY * bend * boost);
+    }
+
+    /** How much more the lens's rim bends at [bend] times [boost], within what {@link #centre} leaves of {@link #MAX_PULL}. */
+    static float rimBend(float bend, float boost) {
+        return Math.max(0f, Math.min(MAX_PULL - centre(bend, boost), RIM_BEND * bend * boost));
+    }
+
     private static final String SHADER = ""
             + "uniform shader content;\n"
             + "uniform float4 box;\n"
@@ -107,6 +126,8 @@ public final class GlassLens {
     private final boolean rim;
     /** A strength to draw at instead of the saved one, in percent, while a slider is being dragged. -1 for none. */
     int strengthNow = -1;
+    /** What the bubble's bend is multiplied by under a held finger (#705): 1 with none. The rim ignores it. */
+    float boost = 1f;
     @Nullable private RenderNode node;
     @Nullable private RuntimeShader shader;
     private boolean broken;
@@ -169,8 +190,8 @@ public final class GlassLens {
                 lens.setFloatUniform("band", bandShare(percent()) * across / 2f);
             } else {
                 float bend = scale(percent());
-                lens.setFloatUniform("centre", CENTRE_MAGNIFY * bend);
-                lens.setFloatUniform("rim", RIM_BEND * bend);
+                lens.setFloatUniform("centre", centre(bend, boost));
+                lens.setFloatUniform("rim", rimBend(bend, boost));
             }
             layer.setPosition(0, 0, width, height);
             layer.setRenderEffect(RenderEffect.createRuntimeShaderEffect(lens, "content"));

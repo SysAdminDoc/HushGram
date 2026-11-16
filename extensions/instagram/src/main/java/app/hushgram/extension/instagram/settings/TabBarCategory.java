@@ -155,6 +155,11 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_KEEP_SIZE, L10n.t("Keep the pill full size"),
                         L10n.t("Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart "
                                 + "Instagram after changing it.")));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HOLD_LENS, L10n.t("Glass lens under your finger"),
+                        slowsOlderPhones(L10n.t("Hold a finger on the liquid pill's bubble, or slide it across the tabs, and "
+                                + "the bubble swells and bends what's behind it harder, like glass under a fingertip. It "
+                                + "eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or "
+                                + "newer. Restart Instagram after changing it."))));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL, L10n.t("Shrink the pill as you scroll"),
                         L10n.t("With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up "
                                 + "or changing tab brings it back to full size. Hide the tab bar as you scroll takes over "

@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Glass lens under your finger`, under `Keep the pill full size` in Tab bar, makes the `Liquid glass look` bubble act like glass under a fingertip. Hold a finger on it, or slide it across the tabs, and it swells and bends what's behind it harder, then eases back when you let go. The bend needs `Blur behind the tab bar` and Android 13 or newer. It starts off. Asked for in #705.
 * `Cache size limit`, a slider under `Clear the media cache` in Storage, picks how much room Instagram's saved photos and videos can take before they're cleared, from 100 MB to 4,000 MB. It starts at 500 MB like before. `Clear saved copies now` also shows how much they take up right now. Asked for in #713.
 * `Save changed pictures to the gallery`, right under `Keep profile history` in Profiles, puts the old picture and the new one in your gallery when a profile you open has changed its picture. Each picture goes in once. Old usernames and bios keep their dates on the Profile changes page, and nothing leaves your phone. Starts off. Asked for in #715.
 * Tap the `Show it as a chip` chip on someone's profile to see everything else Instagram has said about you two, like a pending follow request either way, Close Friends, Favorites, a restriction, a block, a hidden story and each kind of mute. It reads what the profile already loaded, so nothing extra is asked of Instagram. Flags Instagram didn't send for that profile are named at the bottom. Asked for in #698.

@@ -84,6 +84,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
+        Settings.GLASS_TAB_BAR_HOLD_LENS.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
@@ -139,8 +140,8 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(Settings.GLASS_TAB_BAR.rebootApp);
         assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR, Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT,
                 Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE,
-                Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE, Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL,
-                Settings.GLASS_TAB_BAR_MATERIAL,
+                Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE, Settings.GLASS_TAB_BAR_HOLD_LENS,
+                Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL, Settings.GLASS_TAB_BAR_MATERIAL,
                 Settings.GLASS_TAB_BAR_REFRACT, Settings.GLASS_TAB_BAR_REELS_BEHIND, Settings.GLASS_TAB_BAR_TAP_SOUND),
                 PatchFamily.GLASS_TAB_BAR.switches);
         for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key,
@@ -591,6 +592,41 @@ public class TabBarAndBatterySettingsTest {
                 Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
         Settings.GLASS_TAB_BAR.save(true);
         assertTrue(Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
+    }
+
+    /**
+     * #705: Glass lens under your finger is a switch right after Keep the pill full size, off to start, offered
+     * only with the liquid look on, since only its bubble has a lens, backed up, and read as the bar is built.
+     */
+    @Test public void glassLensUnderYourFingerSitsUnderTheLiquidLookAndStartsOff() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        SwitchPreference lens = (SwitchPreference) row(Settings.GLASS_TAB_BAR_HOLD_LENS.key);
+        assertNotNull(lens);
+        assertEquals("Glass lens under your finger", String.valueOf(lens.getTitle()));
+        assertEquals("Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells "
+                + "and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. "
+                + "The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it. "
+                + "Can slow down older phones.", String.valueOf(lens.getSummary()));
+        assertFalse(lens.isChecked());
+        assertFalse(Settings.GLASS_TAB_BAR_HOLD_LENS.defaultValue);
+        assertTrue(Settings.GLASS_TAB_BAR_HOLD_LENS.rebootApp);
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), lens);
+        int keepAt = -1;
+        int lensAt = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.GLASS_TAB_BAR_KEEP_SIZE.key.equals(key)) keepAt = i;
+            if (Settings.GLASS_TAB_BAR_HOLD_LENS.key.equals(key)) lensAt = i;
+        }
+        assertTrue(keepAt >= 0);
+        assertEquals("right after Keep the pill full size", keepAt + 1, lensAt);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HOLD_LENS.key));
+
+        assertFalse("no glass bar, no bubble", Settings.GLASS_TAB_BAR_HOLD_LENS.isAvailable());
+        Settings.GLASS_TAB_BAR.save(true);
+        assertFalse("the standard pill has no bubble to grow", Settings.GLASS_TAB_BAR_HOLD_LENS.isAvailable());
+        Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_HOLD_LENS.isAvailable());
     }
 
     /**
