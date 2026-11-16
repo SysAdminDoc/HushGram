@@ -74,6 +74,7 @@ Every HushGram release, newest first.
 * With `Stories fill the screen` on, a feed post reshared to a story keeps its whole frame like a shared reel does, so its sides aren't cut off once the video starts. Reported in #618.
 * With `Stories fill the screen` on, a reel or post shared to a story keeps its whole frame now. A second layout pass right after was stretching it back over the whole screen and cutting its sides. Reported in #618.
 * With `Hide the reply box on stories` or the Like, Comment and Share ones on, a story you open from its ring no longer shows those for a split second before they go. Reported in #618.
+* `Ambient light` glows above and below a reel on the Reels tab and in reels opened from the feed again. Instagram 454 nests the reel deeper than the light was looking. Reported in #722.
 * A video's sound in your feed goes quiet while the HushGram settings are open and comes back when you close them. Reported in #725.
 * `Story rings in the accent color` now reaches the rings on profiles, posts, chats and the newer Instagram screens, not just the few that read the theme. They kept Instagram's gradient before. Reported in #528.
 * A color picked in `Ring color` now shows on the story rings of Instagram's newer screens too, which kept the stock gradient. A ring color you pick still wins over `Story rings in the accent color`. Reported in #528.

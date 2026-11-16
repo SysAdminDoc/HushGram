@@ -124,6 +124,12 @@ public final class AmbientLight {
     /** How many parents of a picture are asked whether they're its stage. */
     static final int STAGE_DEPTH = 16;
     /**
+     * How many parents of a stage are asked whether they span the window and light the bands round
+     * it. On 454 the Reels tab's reel is 18 views below that one (#722), so this looks further than
+     * {@link #STAGE_DEPTH}. The walk still stops at the activity's content view.
+     */
+    static final int HOST_DEPTH = 40;
+    /**
      * How many parents above a photo reel's stage are asked whether the picture leaves room in them.
      * On 454 the reel's own view is one up. Past two, a full screen photo reaches the window's layout.
      */
@@ -439,7 +445,7 @@ public final class AmbientLight {
         stage.getLocationInWindow(at);
         if (at[1] <= 0 && at[1] + stage.getHeight() >= height) return null;
         ViewParent parent = stage.getParent();
-        for (int i = 0; i < STAGE_DEPTH && parent instanceof ViewGroup && parent != root; i++, parent = parent.getParent()) {
+        for (int i = 0; i < HOST_DEPTH && parent instanceof ViewGroup && parent != root; i++, parent = parent.getParent()) {
             ViewGroup group = (ViewGroup) parent;
             group.getLocationInWindow(at);
             if (at[0] <= 0 && at[0] + group.getWidth() >= width && at[1] <= 0 && at[1] + group.getHeight() >= height) return group;
@@ -469,7 +475,7 @@ public final class AmbientLight {
     static List<ViewGroup> coversOf(ViewGroup stage, ViewGroup host) {
         List<ViewGroup> found = new ArrayList<>(1);
         ViewParent parent = stage.getParent();
-        for (int i = 0; i < STAGE_DEPTH && parent instanceof ViewGroup && parent != host; i++, parent = parent.getParent()) {
+        for (int i = 0; i < HOST_DEPTH && parent instanceof ViewGroup && parent != host; i++, parent = parent.getParent()) {
             ViewGroup group = (ViewGroup) parent;
             if (stripUnder(group) > 0) found.add(group);
         }

@@ -959,6 +959,55 @@ public class AmbientLightTest {
     }
 
     /**
+     * On 454 the Reels tab holds a reel 18 views below the view that spans the window, further up than
+     * the light looked, so the bands under the status bar and the gesture bar stayed black (#722).
+     */
+    @Test
+    public void aReelFarBelowTheViewThatSpansTheWindowStillLightsTheBands() {
+        FrameLayout host = new FrameLayout(activity);
+        activity.setContentView(host);
+        root = host;
+        if (activity.getActionBar() != null) activity.getActionBar().hide();
+        shadowOf(Looper.getMainLooper()).idle();
+        View window = activity.getWindow().getDecorView();
+        int width = window.getWidth(), height = window.getHeight();
+        int statusBar = height / 25, gestureBar = height / 20;
+        int stage = height - statusBar - gestureBar;
+        FrameLayout between = new FrameLayout(activity);
+        FrameLayout.LayoutParams margins = match();
+        margins.topMargin = statusBar;
+        margins.bottomMargin = gestureBar;
+        host.addView(between, margins);
+        ViewGroup deepest = between;
+        for (int i = 0; i < 20; i++) {
+            FrameLayout level = new FrameLayout(activity);
+            deepest.addView(level, match());
+            deepest = level;
+        }
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        FrameLayout container = new FrameLayout(activity);
+        TextureView video = new TextureView(activity);
+        container.addView(video, match());
+        frame.addView(container, match());
+        deepest.addView(frame, match());
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertEquals(new Rect(0, statusBar, width, statusBar + stage), AmbientLight.hostLitForTests(video));
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        Bitmap bands = background(host);
+        int status = bands.getPixel(width / 2, statusBar / 2);
+        assertTrue("under the status bar, the reel's top: " + hex(status),
+                Color.alpha(status) > 20 && Color.blue(status) > Color.red(status));
+        int gesture = bands.getPixel(width / 2, height - gestureBar / 2);
+        assertTrue("under the gesture bar, the reel's bottom: " + hex(gesture),
+                Color.alpha(gesture) > 20 && Color.red(gesture) > Color.blue(gesture));
+    }
+
+    /**
      * A reel opened from the feed stops its comment bar over the reel, and the strip under that bar
      * glowed, so the bar looked cut off from what's below it (#510). The host's glow stops at the bar.
      */
