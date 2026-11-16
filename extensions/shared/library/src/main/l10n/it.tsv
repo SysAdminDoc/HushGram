@@ -2339,3 +2339,5 @@ With a reel's comments open, tap the reel above them to pause or play it, or hol
 Hide the speed lock message	Nascondi il messaggio di blocco della velocità
 # context: Summary of Hide the speed lock message (#702)
 Keeps the message Instagram shows when you lock a reel's speed, and when the lock ends, off the screen. The lock still works.	Toglie dallo schermo il messaggio che Instagram mostra quando blocchi la velocità di un reel e quando il blocco finisce. Il blocco funziona ancora.
+Remove hidden data from saved photos	Rimuovi i dati nascosti dalle foto salvate
+Takes Meta's FBMD tracking tag out of each photo you save, along with any camera, place and time details. The picture and its colors stay the same. With Add the source on, the source still goes in afterward. JPEG photos only.	Toglie il tag di tracciamento FBMD di Meta da ogni foto che salvi, insieme a eventuali dati su fotocamera, luogo e ora. L'immagine e i suoi colori restano uguali. Con «Aggiungi l'origine alle foto e ai video salvati» attivo, l'origine viene comunque scritta dopo. Solo foto JPEG.

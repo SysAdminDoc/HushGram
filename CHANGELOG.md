@@ -41,6 +41,7 @@ Every HushGram release, newest first.
 * `Sent follow requests`, new under Profiles, keeps a list of the accounts you've asked to follow that haven't let you in. Tap one to open the profile, where Instagram's Requested button cancels it. Starts off. Asked for in #690.
 * With `Glass tab bar` on, a reel's seek bar keeps a little room above the tab bar instead of sitting right on it. The caption and buttons move up with it. Asked for in #187.
 * `Hide the speed lock message`, right under `Hide the 2x popup` in Reels, keeps Instagram's Locked at 2x speed message off a reel when you lock its speed, and the one it shows when the lock ends. The lock still works. Starts off. Asked for in #702 and #552.
+* `Remove hidden data from saved photos`, new under Downloads, takes Meta's FBMD tracking tag out of every photo you save, along with any camera, place or time details. The picture itself doesn't change, and `Add the source to saved photos and videos` still writes its tags after. Both switches now go into a settings backup too. Asked for in #699.
 
 ### Bug Fixes
 

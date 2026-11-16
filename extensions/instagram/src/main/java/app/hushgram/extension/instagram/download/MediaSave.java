@@ -341,6 +341,7 @@ public final class MediaSave {
                         if (result.lower) lower++;
                         if (result.lower && result.lowStorage) lowStorage++;
                         DownloadHistory.record(application, key, writer, page.details);
+                        PhotoScrub.scrub(application, writer);
                         PostMetadata.tag(application, writer, page.details);
                     } else if (result.status == Downloader.Status.CANCELLED) {
                         skipped += snapshot.size() - index;
@@ -1606,8 +1607,12 @@ public final class MediaSave {
                 else failure(() -> "save finished: " + result, null);
                 if (result.ok()) {
                     DownloadHistory.record(application, key, writer, known);
-                    // A photo or a video, after the file is published: tag it with where it came from.
-                    if (!audio) PostMetadata.tag(application, writer, known);
+                    // A photo or a video, after the file is published: take the hidden data out of
+                    // a photo, then tag it with where it came from.
+                    if (!audio) {
+                        PhotoScrub.scrub(application, writer);
+                        PostMetadata.tag(application, writer, known);
+                    }
                     if (published != null) published(published, writer.publishedItem());
                 }
                 Feedback.show(application, message(application, result.status, writer.savedLocation(), result.lower,

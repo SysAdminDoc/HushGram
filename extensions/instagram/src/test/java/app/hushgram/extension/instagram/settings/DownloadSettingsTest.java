@@ -1092,18 +1092,30 @@ public class DownloadSettingsTest {
             PreferenceGroup downloads = section(pageIn(controller).getPreferenceScreen(), "Downloads");
             int byPost = -1;
             int metadata = -1;
+            int scrub = -1;
             int skip = -1;
             int clear = -1;
             for (int i = 0; i < downloads.getPreferenceCount(); i++) {
                 String key = downloads.getPreference(i).getKey();
                 if (Settings.SAVE_NAME_BY_POST.key.equals(key)) byPost = i;
                 if (Settings.SAVE_PHOTO_METADATA.key.equals(key)) metadata = i;
+                if (Settings.SAVE_PHOTO_SCRUB.key.equals(key)) scrub = i;
                 if (Settings.DOWNLOAD_SKIP_SAVED.key.equals(key)) skip = i;
                 if (HushgramPreferenceFragment.CLEAR_DOWNLOAD_HISTORY.equals(key)) clear = i;
             }
             assertEquals(byPost + 1, metadata);
-            assertEquals(metadata + 1, skip);
+            assertEquals(metadata + 1, scrub);
+            assertEquals(scrub + 1, skip);
             assertEquals(skip + 1, clear);
+
+            // Remove hidden data from saved photos (#699) sits right under Add the source, off at first.
+            Preference scrubRow = downloads.getPreference(scrub);
+            assertTrue(scrubRow instanceof SwitchPreference);
+            assertEquals("Remove hidden data from saved photos", String.valueOf(scrubRow.getTitle()));
+            assertTrue(String.valueOf(scrubRow.getSummary()), String.valueOf(scrubRow.getSummary()).contains("FBMD"));
+            assertFalse(((SwitchPreference) scrubRow).isChecked());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SAVE_PHOTO_SCRUB.key));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SAVE_PHOTO_METADATA.key));
 
             Preference row = downloads.getPreference(skip);
             assertTrue(row instanceof SwitchPreference);

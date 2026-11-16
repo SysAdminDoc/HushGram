@@ -2338,3 +2338,5 @@ With a reel's comments open, tap the reel above them to pause or play it, or hol
 Hide the speed lock message	속도 고정 메시지 숨기기
 # context: Summary of Hide the speed lock message (#702)
 Keeps the message Instagram shows when you lock a reel's speed, and when the lock ends, off the screen. The lock still works.	릴스 속도를 고정할 때와 고정이 끝날 때 Instagram이 보여 주는 메시지를 화면에 띄우지 않습니다. 고정은 그대로 작동합니다.
+Remove hidden data from saved photos	저장한 사진에서 숨겨진 데이터 제거
+Takes Meta's FBMD tracking tag out of each photo you save, along with any camera, place and time details. The picture and its colors stay the same. With Add the source on, the source still goes in afterward. JPEG photos only.	저장하는 사진마다 Meta의 FBMD 추적 태그와 카메라, 장소, 시간 정보를 제거합니다. 사진과 색상은 그대로입니다. ‘저장한 사진과 동영상에 출처 추가’를 켜 두면 출처는 그 뒤에 그대로 기록됩니다. JPEG 사진만 해당합니다.

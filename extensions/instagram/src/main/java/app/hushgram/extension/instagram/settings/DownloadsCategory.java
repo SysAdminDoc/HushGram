@@ -150,6 +150,11 @@ final class DownloadsCategory {
                     L10n.t("Writes the account that posted, the post date and a link to the post into a saved photo "
                             + "or video, in the EXIF or MP4 tags a gallery or exiftool reads. JPEG photos and MP4 "
                             + "videos only, and only what the save knows. The picture and the sound are unchanged.")));
+            downloads.addPreference(toggle(context, Settings.SAVE_PHOTO_SCRUB,
+                    L10n.t("Remove hidden data from saved photos"),
+                    L10n.t("Takes Meta's FBMD tracking tag out of each photo you save, along with any camera, place "
+                            + "and time details. The picture and its colors stay the same. With Add the source on, "
+                            + "the source still goes in afterward. JPEG photos only.")));
             // Only the saves of a post, a reel or a story know the media's id, which the list keeps.
             if (build.contains(PatchFamily.REEL_DOWNLOAD) || build.contains(PatchFamily.STORY_DOWNLOAD)
                     || build.contains(PatchFamily.VIDEO_DOWNLOAD)) {

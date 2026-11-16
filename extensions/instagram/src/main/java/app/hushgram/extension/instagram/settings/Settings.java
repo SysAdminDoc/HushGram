@@ -4297,6 +4297,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_save_photo_metadata", FALSE);
 
     /**
+     * A saved photo loses its hidden data right after the save (#699): Meta's FBMD tag in the IPTC
+     * block, any EXIF or XMP, and comments. The picture and its color profile stay as they were,
+     * and the source tags above still go in after. JPEG only. Starts off.
+     */
+    public static final BooleanSetting SAVE_PHOTO_SCRUB =
+            new BooleanSetting("hushgram_save_photo_scrub", FALSE);
+
+    /**
      * The quality a video save asks for: the best the player streams, a ceiling, or the smallest
      * file. Every video save reads it when it starts, and one that finds nothing at or under a
      * ceiling takes the nearest above it. Photos always save whole. Like the folder, it isn't a
