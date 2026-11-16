@@ -277,6 +277,8 @@ final class FeedCategory {
                     L10n.t("Double tap the left side of the video playing in a feed to go back, or the right side to go "
                             + "ahead, as far as Skip length says. A double tap in the middle works as before.")));
             feed.addPreference(feedSkipLengthRow(context));
+            feed.addPreference(toggle(context, Settings.FEED_SKIP_ARROWS, L10n.t("Show the skip arrows"),
+                    L10n.t("Two arrows flash on the side you double tapped, with the seconds skipped under them.")));
         }
         if (longPressZoom) {
             feed.addPreference(toggle(context, Settings.LONG_PRESS_TO_ZOOM, L10n.t("Long press a photo to zoom"),

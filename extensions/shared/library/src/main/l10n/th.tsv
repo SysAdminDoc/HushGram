@@ -2340,3 +2340,5 @@ Remove hidden data from saved photos	ลบข้อมูลที่ซ่อ�
 Takes Meta's FBMD tracking tag out of each photo you save, along with any camera, place and time details. The picture and its colors stay the same. With Add the source on, the source still goes in afterward. JPEG photos only.	นำแท็กติดตาม FBMD ของ Meta ออกจากรูปภาพทุกรูปที่คุณบันทึก รวมถึงข้อมูลกล้อง สถานที่ และเวลา ภาพและสีของภาพจะเหมือนเดิม เมื่อเปิด "เพิ่มแหล่งที่มาลงในรูปภาพและวิดีโอที่บันทึก" แหล่งที่มาจะยังถูกเขียนลงไปหลังจากนั้น เฉพาะรูปภาพ JPEG เท่านั้น
 Ask for VP9 instead of AV1	ขอ VP9 แทน AV1
 Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.	บอก Instagram ว่าโทรศัพท์ของคุณไม่มีตัวถอดรหัส AV1 รีลและสตอรี่จึงมาเป็น VP9 หรือ H.264 ทั้งตอนดูและตอนบันทึก ต้องรีสตาร์ท
+# context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
+Two arrows flash on the side you double tapped, with the seconds skipped under them.	ลูกศรสองอันจะกะพริบที่ด้านที่คุณแตะสองครั้ง พร้อมจำนวนวินาทีที่ข้ามอยู่ด้านล่าง

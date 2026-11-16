@@ -548,6 +548,13 @@ public class Settings extends BaseSettings {
                     .withRange(5, 30);
 
     /**
+     * Under {@link #FEED_DOUBLE_TAP_SKIP}: a pair of arrows flashes on the side a double tap skipped to,
+     * with the seconds under them. On to start, off keeps the skip without the flash (#562).
+     */
+    public static final BooleanSetting FEED_SKIP_ARROWS =
+            new BooleanSetting("hushgram_feed_double_tap_skip_arrows", TRUE, parent(FEED_DOUBLE_TAP_SKIP));
+
+    /**
      * Home moves on to the next post by itself: a video post when its video starts over or ends, any
      * other post after {@link #FEED_AUTO_SCROLL_SECONDS}, and a touch holds it (#660,
      * {@link app.hushgram.extension.instagram.feed.FeedAutoScroll}). Off to start.

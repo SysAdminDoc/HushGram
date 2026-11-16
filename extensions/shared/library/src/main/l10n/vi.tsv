@@ -2258,3 +2258,5 @@ Remove hidden data from saved photos	Xóa dữ liệu ẩn khỏi ảnh đã lư
 Takes Meta's FBMD tracking tag out of each photo you save, along with any camera, place and time details. The picture and its colors stay the same. With Add the source on, the source still goes in afterward. JPEG photos only.	Gỡ thẻ theo dõi FBMD của Meta khỏi mỗi ảnh bạn lưu, cùng mọi thông tin về máy ảnh, địa điểm và thời gian. Hình ảnh và màu sắc vẫn giữ nguyên. Khi bật Thêm nguồn vào ảnh và video đã lưu, nguồn vẫn được ghi vào sau đó. Chỉ áp dụng cho ảnh JPEG.
 Ask for VP9 instead of AV1	Yêu cầu VP9 thay vì AV1
 Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.	Báo cho Instagram là điện thoại của bạn không có bộ giải mã AV1, nên reels và tin đến dưới dạng VP9 hoặc H.264, cả khi xem lẫn khi lưu. Cần khởi động lại.
+# context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
+Two arrows flash on the side you double tapped, with the seconds skipped under them.	Hai mũi tên hiện nhanh ở bên bạn nhấn đúp, kèm số giây đã tua bên dưới.

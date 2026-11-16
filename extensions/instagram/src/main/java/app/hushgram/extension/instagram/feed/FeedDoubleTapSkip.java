@@ -123,7 +123,7 @@ public final class FeedDoubleTapSkip {
             } finally {
                 if (held) feed.play(player);
             }
-            flash(video, side, skip / 1000);
+            if (Settings.FEED_SKIP_ARROWS.get()) flash(video, side, skip / 1000);
             if (!logged) {
                 logged = true;
                 Logger.printDebug(() -> "Double tap to skip on feed videos: moved a feed video " + (side < 0 ? "back" : "ahead"));

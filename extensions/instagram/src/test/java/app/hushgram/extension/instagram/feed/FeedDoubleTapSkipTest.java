@@ -116,6 +116,7 @@ public class FeedDoubleTapSkipTest {
         PauseForTests.resume();
         Settings.FEED_DOUBLE_TAP_SKIP.resetToDefault();
         Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.resetToDefault();
+        Settings.FEED_SKIP_ARROWS.resetToDefault();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
         HookStatus.clear();
@@ -127,6 +128,7 @@ public class FeedDoubleTapSkipTest {
         FeedSeekBar.resetForTests();
         Settings.FEED_DOUBLE_TAP_SKIP.resetToDefault();
         Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.resetToDefault();
+        Settings.FEED_SKIP_ARROWS.resetToDefault();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -306,6 +308,24 @@ public class FeedDoubleTapSkipTest {
         assertTrue(FeedDoubleTapSkip.doubleTap(post, tapAt(video, 0.1f)));
         assertEquals(Arrays.asList("pause", "seek 35000", "play"), stand.calls);
         assertEquals(5, FeedDoubleTapSkip.flashForTests().seconds);
+    }
+
+    /** #562: Show the skip arrows off keeps the skip and leaves the video clear, with no restart. */
+    @Test
+    public void arrowsOffStillSkipsWithNothingOverTheVideo() {
+        assertEquals(Boolean.TRUE, Settings.FEED_SKIP_ARROWS.defaultValue);
+        assertEquals(Settings.FEED_DOUBLE_TAP_SKIP, Settings.FEED_SKIP_ARROWS.getParentSettings().get(0));
+        assertFalse(Settings.FEED_SKIP_ARROWS.rebootApp);
+        Settings.FEED_SKIP_ARROWS.save(false);
+        playing(3000, 60000);
+        assertTrue("Instagram still doesn't like the post", FeedDoubleTapSkip.doubleTap(post, tapAt(video, 0.9f)));
+        assertEquals(Arrays.asList("pause", "seek 13000", "play"), stand.calls);
+        assertNull("no arrows", FeedDoubleTapSkip.flashForTests());
+        assertEquals("only the cover is over the video", 1, video.getChildCount());
+
+        Settings.FEED_SKIP_ARROWS.save(true);
+        assertTrue(FeedDoubleTapSkip.doubleTap(post, tapAt(video, 0.1f)));
+        assertNotNull("back on, the arrows show again", FeedDoubleTapSkip.flashForTests());
     }
 
     @Test
