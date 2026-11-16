@@ -14,13 +14,18 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.RippleDrawable;
+import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.TouchDelegate;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
@@ -40,11 +45,14 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
+import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
 
 import java.lang.ref.Reference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.Map;
 
 import app.hushgram.extension.instagram.profile.FriendshipStatus.Relation;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -818,12 +826,155 @@ public class FriendshipChipTest {
         assertNotNull("back on, the chip shows", FriendshipChip.shownUnder(counts));
     }
 
+    /**
+     * A tap on the chip lists every friendship flag the profile screen's answer carries (#698):
+     * the plain ones in words, the others by name, and the ones it doesn't carry at the bottom.
+     */
+    @Test
+    public void tappingTheChipListsTheFriendshipFlags() {
+        ShadowAlertDialog.reset();
+        Profile profile = new Profile(true, true);
+        profile.screen = new HashMap<>();
+        profile.screen.put("followed_by".hashCode(), true);
+        profile.screen.put("following".hashCode(), true);
+        profile.screen.put("is_bestie".hashCode(), true);
+        profile.screen.put("muting".hashCode(), false);
+        profile.screen.put("is_viewer_unconnected".hashCode(), false);
+        // A flag that can't be read is left out, as if it weren't sent.
+        profile.screen.put("blocking".hashCode(), null);
+        FriendshipStatus.besidePronouns(pronouns, profile);
+        layOut();
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertNotNull(chip);
+        Rect pill = chip.pill.getBounds();
+        assertFalse(pill.isEmpty());
+        assertNull("nothing opens before the tap", ShadowAlertDialog.getLatestAlertDialog());
+
+        assertTrue("the tap is the chip's", touch(counts, pill.centerX(), pill.centerY(), 0));
+
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull("a tap on the chip opens the list", dialog);
+        assertTrue(dialog.isShowing());
+        String text = message(dialog);
+        assertTrue(text, text.startsWith("Follows you: Yes\nYou follow them: Yes\n"));
+        assertTrue(text, text.contains("\nOn your Close Friends list: Yes\n"));
+        assertTrue(text, text.contains("\nYou muted their posts: No\n"));
+        assertTrue(text, text.contains("\n\nOther flags\nis_viewer_unconnected: No\n\n"));
+        assertFalse("a flag not sent gets no answer", text.contains("You muted their story:"));
+        assertFalse("nor does one that couldn't be read", text.contains("You blocked them:"));
+        int bottom = text.indexOf("Not sent for this profile\n");
+        assertTrue(text, bottom > 0);
+        String missing = text.substring(bottom);
+        assertTrue(missing, missing.contains("blocking, is_blocking_reel, is_muting_reel"));
+        assertTrue(missing, missing.endsWith("is_guardian_of_viewer"));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(FriendshipFlags.OPENED + " 1"));
+        assertTrue(report, report.contains(FriendshipFlags.UNREADABLE + " 1"));
+        dialog.dismiss();
+    }
+
+    /**
+     * A finger that moves off on the chip, as it does to scroll the profile, opens nothing, a touch
+     * off the pill still goes to the TouchDelegate the counts had, and that one is back once the
+     * chip goes (#698).
+     */
+    @Test
+    public void aDragOnTheChipOpensNothingAndOtherTouchesGoWhereTheyWent() {
+        ShadowAlertDialog.reset();
+        int[] theirs = {0};
+        TouchDelegate own = new TouchDelegate(new Rect(), counts) {
+            @Override
+            public boolean onTouchEvent(MotionEvent event) {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN) theirs[0]++;
+                return false;
+            }
+        };
+        counts.setTouchDelegate(own);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, false));
+        layOut();
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertNotNull(chip);
+        Rect pill = chip.pill.getBounds();
+        int slop = ViewConfiguration.get(counts.getContext()).getScaledTouchSlop();
+
+        assertTrue("the touch is the chip's", touch(counts, pill.centerX(), pill.centerY(), slop * 3));
+        assertNull("a drag isn't a tap", ShadowAlertDialog.getLatestAlertDialog());
+        assertEquals("and the counts' own delegate never saw it", 0, theirs[0]);
+
+        layOut();
+        pill = new Rect(chip.pill.getBounds());
+        touch(counts, pill.right + pill.height() * 2, pill.centerY(), 0);
+        assertNull(ShadowAlertDialog.getLatestAlertDialog());
+        assertEquals("a touch off the pill goes to the counts' own delegate", 1, theirs[0]);
+
+        FriendshipStatus.besidePronouns(pronouns, new Profile(null, null));
+        assertNull(FriendshipChip.shownUnder(counts));
+        assertSame("with the chip gone, the counts' own delegate is back", own, counts.getTouchDelegate());
+    }
+
+    /**
+     * Before the screen has its own answer, the list says so and gives only what Instagram keeps on
+     * the account, without calling everything else not sent.
+     */
+    @Test
+    public void withNoScreenAnswerTheListGivesWhatInstagramKeeps() {
+        FriendshipFlags.Report kept = FriendshipFlags.read(new Profile(true, false));
+        assertFalse(kept.fromScreen);
+        assertEquals("This profile hasn't loaded its own answer yet, so this is only what Instagram keeps on the account."
+                + "\nFollows you: Yes\nYou follow them: No", kept.text());
+        String nothing = "Instagram hasn't said anything about this account yet.";
+        assertEquals(nothing, FriendshipFlags.read(new Profile(null, null)).text());
+        assertEquals(nothing, FriendshipFlags.read(null).text());
+    }
+
+    /** Every flag listed in words has words of its own. */
+    @Test
+    public void everyPlainFlagHasWords() {
+        for (String key : FriendshipFlags.KNOWN) assertNotEquals(key, FriendshipFlags.label(key));
+        for (String key : FriendshipFlags.OTHER) assertEquals(key, FriendshipFlags.label(key));
+    }
+
+    /**
+     * Touches [view] at [x], [y] in its own coordinates through the header, as a finger would,
+     * moving [move] pixels down before it lifts. Whether the header took the touch.
+     */
+    private boolean touch(View view, float x, float y, float move) {
+        float left = x;
+        float top = y;
+        for (View at = view; at != header; at = (View) at.getParent()) {
+            left += at.getLeft();
+            top += at.getTop();
+        }
+        long now = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, left, top, 0);
+        boolean taken = header.dispatchTouchEvent(down);
+        down.recycle();
+        if (move != 0) {
+            MotionEvent moved = MotionEvent.obtain(now, now + 10, MotionEvent.ACTION_MOVE, left, top + move, 0);
+            header.dispatchTouchEvent(moved);
+            moved.recycle();
+        }
+        MotionEvent up = MotionEvent.obtain(now, now + 20, MotionEvent.ACTION_UP, left, top + move, 0);
+        header.dispatchTouchEvent(up);
+        up.recycle();
+        ShadowLooper.idleMainLooper();
+        return taken;
+    }
+
+    private static String message(AlertDialog dialog) {
+        TextView message = dialog.findViewById(android.R.id.message);
+        assertNotNull(message);
+        return message.getText().toString();
+    }
+
     /** A profile header that is its own user, with what Instagram has said about it. */
     static final class Profile {
         final Boolean followedBy;
         final Boolean following;
         final String id = "51234567";
         String viewer = "1";
+        /** The friendship status in the screen's answer, by hashed key, or null when the screen has none. */
+        Map<Integer, Boolean> screen;
 
         Profile(Boolean followedBy, Boolean following) {
             this.followedBy = followedBy;
@@ -841,6 +992,16 @@ public class FriendshipChipTest {
         @Implementation protected static String userId(Object user) { return ((Profile) user).id; }
         @Implementation protected static String viewerId(Object header) { return ((Profile) header).viewer; }
         @Implementation protected static View slotView(Object slot) { return (View) slot; }
+        @Implementation protected static Object screenFriendship(Object header) { return ((Profile) header).screen; }
+
+        /** A key kept with no value stands for a flag that can't be read, so reading it throws. */
+        @Implementation
+        @SuppressWarnings("unchecked")
+        protected static Boolean statusFlag(Object status, int key) {
+            Map<Integer, Boolean> flags = (Map<Integer, Boolean>) status;
+            if (flags.containsKey(key) && flags.get(key) == null) throw new IllegalStateException("unreadable");
+            return flags.get(key);
+        }
 
         @Implementation
         protected static boolean setSlotVisibility(Object slot, int visibility) {

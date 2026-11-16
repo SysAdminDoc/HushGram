@@ -839,7 +839,7 @@ Cancel saving this voice message	Speichern dieser Sprachnachricht abbrechen
 Download voice messages	Sprachnachrichten herunterladen
 Following each other	Ihr folgt euch gegenseitig
 Hide the comment bar on reposted reels	Kommentarleiste bei erneut geteilten Reels ausblenden
-Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too.	Zeigt die Antwort stattdessen als Chip unter den Zahlen für Beiträge, Follower und Gefolgt und sagt Ihr folgt euch gegenseitig, wenn du dem Konto auch folgst.
+Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too. Tap the chip to see everything else Instagram has said about you two, like Close Friends, mutes and restrictions.	Zeigt die Antwort stattdessen als Chip unter den Zahlen für Beiträge, Follower und Gefolgt und sagt Ihr folgt euch gegenseitig, wenn du dem Konto auch folgst. Tippe auf den Chip, um alles Weitere zu sehen, was Instagram über euch beide gesagt hat, etwa Enge Freunde, Stummschaltungen und Einschränkungen.
 Saving a voice message	Sprachnachricht wird gespeichert
 Show it as a chip	Als Chip anzeigen
 Follow label	Folge-Hinweis
@@ -2424,3 +2424,31 @@ Custom ring end color	Endfarbe des eigenen Rings
 A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	Eine zweite Farbe als sechs Hex-Ziffern, zum Beispiel #FF8A00, in die der Ring übergeht. Lass das Feld leer für eine einzige Farbe. Starte Instagram neu, um sie zu sehen.
 # context: Stories settings: summary of Custom ring end color while it is empty (#696)
 None. The ring is one solid color.	Keine. Der Ring hat eine einzige Farbe.
+# context: Profiles: title of the list a tap on the Show it as a chip chip opens (#698)
+Friendship status	Freundschaftsstatus
+# context: Profiles: the answer after a line in that list, "Follows you: Yes" (#698)
+Yes	Ja
+No	Nein
+# context: Profiles: one line per friendship flag in that list, followed by ": Yes" or ": No". Close Friends, Favorites and Instants are Instagram's own names (#698)
+You follow them	Du folgst dem Konto
+Asked to follow you	Möchte dir folgen
+You asked to follow them	Du hast angefragt, dem Konto zu folgen
+On your Close Friends list	Auf deiner Liste Enge Freunde
+In your Favorites	In deinen Favoriten
+You restricted them	Du hast das Konto eingeschränkt
+You blocked them	Du hast das Konto blockiert
+You hide your story from them	Du verbirgst deine Story vor dem Konto
+You muted their posts	Du hast die Beiträge stummgeschaltet
+You muted their story	Du hast die Story stummgeschaltet
+You muted their notes	Du hast die Notizen stummgeschaltet
+You muted their notes on posts and reels	Du hast die Notizen zu Beiträgen und Reels stummgeschaltet
+You muted their reposts	Du hast die Reposts stummgeschaltet
+You muted their Instants	Du hast die Instants stummgeschaltet
+Their account is private	Das Konto ist privat
+You're subscribed to them	Du hast das Konto abonniert
+# context: Profiles: that list before Instagram has answered (#698)
+Instagram hasn't said anything about this account yet.	Instagram hat zu diesem Konto noch nichts gesagt.
+This profile hasn't loaded its own answer yet, so this is only what Instagram keeps on the account.	Dieses Profil hat seine eigene Antwort noch nicht geladen, daher steht hier nur, was Instagram zum Konto gespeichert hat.
+# context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
+Other flags	Weitere Flags
+Not sent for this profile	Für dieses Profil nicht gesendet

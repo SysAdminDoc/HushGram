@@ -832,7 +832,7 @@ Cancel saving this voice message	ยกเลิกการบันทึก�
 Download voice messages	ดาวน์โหลดข้อความเสียง
 Following each other	กำลังติดตามซึ่งกันและกัน
 Hide the comment bar on reposted reels	ซ่อนแถบความคิดเห็นในรีลส์ที่โพสต์ซ้ำ
-Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too.	แสดงคำตอบเป็นชิปใต้จำนวนโพสต์ ผู้ติดตาม และกำลังติดตามของโปรไฟล์แทน และจะแสดงว่า "กำลังติดตามซึ่งกันและกัน" เมื่อคุณติดตามพวกเขากลับด้วย
+Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too. Tap the chip to see everything else Instagram has said about you two, like Close Friends, mutes and restrictions.	แสดงคำตอบเป็นชิปใต้จำนวนโพสต์ ผู้ติดตาม และกำลังติดตามของโปรไฟล์แทน และจะแสดงว่า "กำลังติดตามซึ่งกันและกัน" เมื่อคุณติดตามพวกเขากลับด้วย แตะชิปเพื่อดูข้อมูลอื่นๆ ทั้งหมดที่ Instagram บอกเกี่ยวกับคุณทั้งสอง เช่น เพื่อนสนิท การปิดเสียง และการจำกัด
 Saving a voice message	กำลังบันทึกข้อความเสียง
 Show it as a chip	แสดงเป็นชิป
 Follow label	ป้ายกำกับการติดตาม
@@ -2421,3 +2421,31 @@ Custom ring end color	สีปลายวงแหวนที่กำหน�
 A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	สีที่สองแบบฐานสิบหก 6 หลัก เช่น #FF8A00 ที่วงแหวนจะไล่สีไปหา เว้นว่างไว้เพื่อใช้สีเดียว รีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
 # context: Stories settings: summary of Custom ring end color while it is empty (#696)
 None. The ring is one solid color.	ไม่มี วงแหวนใช้สีเดียว
+# context: Profiles: title of the list a tap on the Show it as a chip chip opens (#698)
+Friendship status	สถานะความสัมพันธ์
+# context: Profiles: the answer after a line in that list, "Follows you: Yes" (#698)
+Yes	ใช่
+No	ไม่ใช่
+# context: Profiles: one line per friendship flag in that list, followed by ": Yes" or ": No". Close Friends, Favorites and Instants are Instagram's own names (#698)
+You follow them	คุณติดตามพวกเขา
+Asked to follow you	ขอติดตามคุณ
+You asked to follow them	คุณขอติดตามพวกเขาแล้ว
+On your Close Friends list	อยู่ในรายชื่อเพื่อนสนิทของคุณ
+In your Favorites	อยู่ในรายการโปรดของคุณ
+You restricted them	คุณจำกัดพวกเขาไว้
+You blocked them	คุณบล็อกพวกเขาไว้
+You hide your story from them	คุณซ่อนสตอรี่ของคุณจากพวกเขา
+You muted their posts	คุณปิดเสียงโพสต์ของพวกเขา
+You muted their story	คุณปิดเสียงสตอรี่ของพวกเขา
+You muted their notes	คุณปิดเสียงโน้ตของพวกเขา
+You muted their notes on posts and reels	คุณปิดเสียงโน้ตบนโพสต์และรีลส์ของพวกเขา
+You muted their reposts	คุณปิดเสียงรีโพสต์ของพวกเขา
+You muted their Instants	คุณปิดเสียง Instants ของพวกเขา
+Their account is private	บัญชีของพวกเขาเป็นส่วนตัว
+You're subscribed to them	คุณสมัครสมาชิกพวกเขาอยู่
+# context: Profiles: that list before Instagram has answered (#698)
+Instagram hasn't said anything about this account yet.	Instagram ยังไม่ได้บอกอะไรเกี่ยวกับบัญชีนี้
+This profile hasn't loaded its own answer yet, so this is only what Instagram keeps on the account.	โปรไฟล์นี้ยังโหลดคำตอบของตัวเองไม่เสร็จ จึงแสดงเฉพาะข้อมูลที่ Instagram เก็บไว้เกี่ยวกับบัญชีนี้
+# context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
+Other flags	แฟล็กอื่นๆ
+Not sent for this profile	ไม่ได้ส่งมาสำหรับโปรไฟล์นี้

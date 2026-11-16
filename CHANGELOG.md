@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* Tap the `Show it as a chip` chip on someone's profile to see everything else Instagram has said about you two, like a pending follow request either way, Close Friends, Favorites, a restriction, a block, a hidden story and each kind of mute. It reads what the profile already loaded, so nothing extra is asked of Instagram. Flags Instagram didn't send for that profile are named at the bottom. Asked for in #698.
 * `Tabs on your profile` and `Tabs on other profiles` under Profiles can take a creator's Subscriptions tab off too, along with Reels, Reposts and Tagged. Asked for in #721.
 * `Hide rings outside the stories row`, under `Story ring size` in Stories, takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row. Asked for in #719.
 * Each number beside a reel can go on its own now. Five new switches under Reels, `Hide like counts on reels` through `Hide save counts on reels`, take away the like, comment, repost, share or save count and leave the button where it is. Asked for in #719.

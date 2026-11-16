@@ -104,7 +104,9 @@ final class ProfilesCategory {
                                 + "their pronouns if they've set any. Nothing shows until Instagram has checked.")));
                 profiles.addPreference(toggle(context, Settings.FRIENDSHIP_STATUS_CHIP, L10n.t("Show it as a chip"),
                         L10n.t("Puts the answer in a chip under the profile's posts, followers and following counts "
-                                + "instead, and says Following each other when you follow them too.")));
+                                + "instead, and says Following each other when you follow them too. Tap the chip to "
+                                + "see everything else Instagram has said about you two, like Close Friends, mutes "
+                                + "and restrictions.")));
                 profiles.addPreference(followLabelPlaceRow(context));
                 if (PatchFamily.followingListMarkInBuild()) {
                     profiles.addPreference(toggle(context, Settings.MARK_FOLLOWING_LIST, L10n.t("Mark who doesn't follow you back"),

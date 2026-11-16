@@ -21,7 +21,10 @@ import android.graphics.drawable.DrawableWrapper;
 import android.graphics.drawable.RippleDrawable;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
+import android.view.MotionEvent;
+import android.view.TouchDelegate;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.ImageView;
@@ -59,6 +62,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * picture. Instagram's layouts can't be read offline, so each layout is checked: a column that
  * isn't sized to its content, or a pill that would touch anything the shared view's other children
  * show, puts the small pill under the counts instead.
+ *
+ * <p>Tapping the pill lists every friendship flag Instagram sent for the profile ({@link
+ * FriendshipFlags}, #698). The pill isn't a view, so the view it's drawn on takes the taps on it as
+ * a {@link Tap}.
  *
  * <p>Runs on the main thread, where Instagram binds the header.
  */
@@ -117,9 +124,11 @@ final class FriendshipChip {
     /**
      * Shows [relation]'s chip on the profile header [inside] is part of, in its own color and the
      * typeface of [style] when there is one: under the counts, or small under the picture as
-     * [place] says. False when the counts can't be found.
+     * [place] says. A tap on it lists the flags of the profile screen [header] belongs to. False
+     * when the counts can't be found.
      */
-    static boolean show(View inside, Relation relation, @Nullable TextView style, FollowLabelPlace place) {
+    static boolean show(View inside, Relation relation, @Nullable TextView style, FollowLabelPlace place,
+                        @Nullable Object header) {
         View block = counts(inside);
         if (block == null) return false;
         boolean small = place == FollowLabelPlace.UNDER_PICTURE;
@@ -140,6 +149,7 @@ final class FriendshipChip {
             }
             SHOWN.put(block, chip);
         }
+        chip.header = new WeakReference<>(header);
         chip.show(relation, style);
         return true;
     }
@@ -324,6 +334,8 @@ final class FriendshipChip {
         private final int countsRoom;
         /** The column's neighbors given the room too ({@link #keepNeighborsInPlace}), with their own bottom padding. */
         private final Map<View, Integer> lifted = new WeakHashMap<>();
+        /** The profile header the chip was last shown for, whose flags a tap lists. */
+        WeakReference<Object> header = new WeakReference<>(null);
 
         Chip(View block, boolean small, @Nullable View column) {
             this.block = new WeakReference<>(block);
@@ -346,6 +358,21 @@ final class FriendshipChip {
             ownBottom = host.getPaddingBottom();
             canvas.getOverlay().add(pill);
             canvas.addOnLayoutChangeListener(this);
+            canvas.setTouchDelegate(new Tap(this, canvas, canvas.getTouchDelegate()));
+        }
+
+        /** Whether [x], [y] on the view the pill is drawn on is on the pill, or close enough to it for a finger. */
+        boolean hit(float x, float y) {
+            Rect bounds = pill.getBounds();
+            if (bounds.isEmpty()) return false;
+            int reach = pill.dp(6);
+            return x >= bounds.left - reach && x <= bounds.right + reach
+                    && y >= bounds.top - reach && y <= bounds.bottom + reach;
+        }
+
+        /** Lists the flags of the profile the chip was last shown for. */
+        void tapped(View canvas) {
+            FriendshipFlags.open(canvas.getContext(), header.get());
         }
 
         /** Whether this chip is the size [small] asks for, under the picture's [column] or under the counts with none. */
@@ -386,6 +413,8 @@ final class FriendshipChip {
             if (canvas != null) {
                 canvas.getOverlay().remove(pill);
                 canvas.removeOnLayoutChangeListener(this);
+                TouchDelegate now = canvas.getTouchDelegate();
+                if (now instanceof Tap && ((Tap) now).chip == this) canvas.setTouchDelegate(((Tap) now).previous);
             }
             View host = this.host.get();
             if (host != null && host.getPaddingBottom() == ownBottom + roomNow()) {
@@ -679,6 +708,59 @@ final class FriendshipChip {
     }
 
     /** The outlined pill: an icon at the start, then the words, in the relation's color. */
+    /**
+     * Takes a tap on the pill for the view it's drawn on, and opens the flags list (#698). A view
+     * hands its TouchDelegate only the touches none of its children took, which the room the pill
+     * is drawn in always is. A touch that starts off the pill goes to the TouchDelegate the view had
+     * before, if any, and a finger that moves away before it lifts, as it does to scroll, opens
+     * nothing. It holds its chip, never the other way round: the view keeps it, and a chip holding
+     * it would keep the view [SHOWN] holds only weakly.
+     */
+    static final class Tap extends TouchDelegate {
+        final Chip chip;
+        @Nullable final TouchDelegate previous;
+        private final View canvas;
+        private final int slop;
+        /** Whether the touch going on started on the pill, so every event of it is this one's. */
+        private boolean mine;
+        /** Whether it's still a tap: it hasn't moved further than a tap may. */
+        private boolean tap;
+        private float downX;
+        private float downY;
+
+        Tap(Chip chip, View canvas, @Nullable TouchDelegate previous) {
+            super(new Rect(), canvas);
+            this.chip = chip;
+            this.canvas = canvas;
+            this.previous = previous instanceof Tap ? ((Tap) previous).previous : previous;
+            slop = ViewConfiguration.get(canvas.getContext()).getScaledTouchSlop();
+        }
+
+        @Override
+        public boolean onTouchEvent(@NonNull MotionEvent event) {
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                mine = chip.hit(event.getX(), event.getY());
+                tap = mine;
+                downX = event.getX();
+                downY = event.getY();
+            }
+            if (!mine) return previous != null && previous.onTouchEvent(event);
+            if (action == MotionEvent.ACTION_MOVE && tap
+                    && (Math.abs(event.getX() - downX) > slop || Math.abs(event.getY() - downY) > slop)) {
+                tap = false;
+            } else if (action == MotionEvent.ACTION_UP) {
+                mine = false;
+                if (tap && chip.hit(event.getX(), event.getY())) chip.tapped(canvas);
+                tap = false;
+            } else if (action == MotionEvent.ACTION_CANCEL) {
+                mine = false;
+                tap = false;
+            }
+            return true;
+        }
+    }
+
     static final class Pill extends Drawable {
         private final Paint words = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
         private final Paint outline = new Paint(Paint.ANTI_ALIAS_FLAG);

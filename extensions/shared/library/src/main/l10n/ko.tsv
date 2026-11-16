@@ -838,7 +838,7 @@ Cancel saving this voice message	이 음성 메시지 저장 취소
 Download voice messages	음성 메시지 다운로드
 Following each other	서로 팔로우 중
 Hide the comment bar on reposted reels	다시 게시한 릴스의 댓글 창 숨기기
-Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too.	대신 프로필의 게시물, 팔로워, 팔로잉 수 아래에 칩으로 표시하고, 나도 그 계정을 팔로우하면 서로 팔로우 중이라고 표시합니다.
+Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too. Tap the chip to see everything else Instagram has said about you two, like Close Friends, mutes and restrictions.	대신 프로필의 게시물, 팔로워, 팔로잉 수 아래에 칩으로 표시하고, 나도 그 계정을 팔로우하면 서로 팔로우 중이라고 표시합니다. 칩을 탭하면 친한 친구, 음소거, 제한 등 Instagram이 두 사람에 대해 알려 준 나머지 정보를 모두 볼 수 있습니다.
 Saving a voice message	음성 메시지 저장 중
 Show it as a chip	칩으로 표시
 Follow label	팔로우 표시
@@ -2423,3 +2423,31 @@ Custom ring end color	사용자 지정 링 끝 색상
 A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	#FF8A00처럼 16진수 여섯 자리로 쓴 두 번째 색상으로, 링이 이 색으로 이어집니다. 단색으로 하려면 비워 두세요. 보려면 Instagram을 다시 시작하세요.
 # context: Stories settings: summary of Custom ring end color while it is empty (#696)
 None. The ring is one solid color.	없음. 링이 한 가지 단색입니다.
+# context: Profiles: title of the list a tap on the Show it as a chip chip opens (#698)
+Friendship status	친구 관계 상태
+# context: Profiles: the answer after a line in that list, "Follows you: Yes" (#698)
+Yes	예
+No	아니요
+# context: Profiles: one line per friendship flag in that list, followed by ": Yes" or ": No". Close Friends, Favorites and Instants are Instagram's own names (#698)
+You follow them	내가 팔로우하고 있음
+Asked to follow you	나에게 팔로우를 요청함
+You asked to follow them	내가 팔로우를 요청함
+On your Close Friends list	내 친한 친구 목록에 있음
+In your Favorites	내 즐겨찾기에 있음
+You restricted them	내가 제한함
+You blocked them	내가 차단함
+You hide your story from them	내 스토리를 숨기고 있음
+You muted their posts	내가 게시물을 음소거함
+You muted their story	내가 스토리를 음소거함
+You muted their notes	내가 메모를 음소거함
+You muted their notes on posts and reels	내가 게시물과 릴스의 메모를 음소거함
+You muted their reposts	내가 리포스트를 음소거함
+You muted their Instants	내가 Instants를 음소거함
+Their account is private	비공개 계정임
+You're subscribed to them	내가 구독 중임
+# context: Profiles: that list before Instagram has answered (#698)
+Instagram hasn't said anything about this account yet.	Instagram이 아직 이 계정에 대해 아무것도 알려 주지 않았습니다.
+This profile hasn't loaded its own answer yet, so this is only what Instagram keeps on the account.	이 프로필의 자체 응답이 아직 로드되지 않아 Instagram이 계정에 저장해 둔 정보만 표시합니다.
+# context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
+Other flags	기타 플래그
+Not sent for this profile	이 프로필에 대해 전송되지 않음

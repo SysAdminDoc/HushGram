@@ -839,7 +839,7 @@ Cancel saving this voice message	Batalkan penyimpanan pesan suara ini
 Download voice messages	Unduh pesan suara
 Following each other	Saling mengikuti
 Hide the comment bar on reposted reels	Sembunyikan bilah komentar di reel yang diposting ulang
-Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too.	Menampilkan jawabannya sebagai chip di bawah jumlah postingan, pengikut, dan diikuti di profil, dan menampilkan Saling mengikuti jika Anda juga mengikutinya.
+Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too. Tap the chip to see everything else Instagram has said about you two, like Close Friends, mutes and restrictions.	Menampilkan jawabannya sebagai chip di bawah jumlah postingan, pengikut, dan diikuti di profil, dan menampilkan Saling mengikuti jika Anda juga mengikutinya. Ketuk chip untuk melihat semua hal lain yang dikatakan Instagram tentang kalian berdua, seperti Teman Dekat, bisukan, dan pembatasan.
 Saving a voice message	Menyimpan pesan suara
 Show it as a chip	Tampilkan sebagai chip
 Follow label	Label mengikuti
@@ -2424,3 +2424,31 @@ Custom ring end color	Warna akhir lingkaran kustom
 A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	Warna kedua dalam enam digit heksa, seperti #FF8A00, yang menjadi ujung gradasi lingkaran. Biarkan kosong untuk satu warna solid. Mulai ulang Instagram untuk melihatnya.
 # context: Stories settings: summary of Custom ring end color while it is empty (#696)
 None. The ring is one solid color.	Tidak ada. Lingkaran memakai satu warna solid.
+# context: Profiles: title of the list a tap on the Show it as a chip chip opens (#698)
+Friendship status	Status pertemanan
+# context: Profiles: the answer after a line in that list, "Follows you: Yes" (#698)
+Yes	Ya
+No	Tidak
+# context: Profiles: one line per friendship flag in that list, followed by ": Yes" or ": No". Close Friends, Favorites and Instants are Instagram's own names (#698)
+You follow them	Kamu mengikutinya
+Asked to follow you	Meminta untuk mengikuti kamu
+You asked to follow them	Kamu meminta untuk mengikutinya
+On your Close Friends list	Ada di daftar Teman Dekat kamu
+In your Favorites	Ada di Favorit kamu
+You restricted them	Kamu membatasinya
+You blocked them	Kamu memblokirnya
+You hide your story from them	Kamu menyembunyikan cerita kamu darinya
+You muted their posts	Kamu membisukan postingannya
+You muted their story	Kamu membisukan ceritanya
+You muted their notes	Kamu membisukan catatannya
+You muted their notes on posts and reels	Kamu membisukan catatannya di postingan dan reel
+You muted their reposts	Kamu membisukan postingan ulangnya
+You muted their Instants	Kamu membisukan Instants miliknya
+Their account is private	Akunnya privat
+You're subscribed to them	Kamu berlangganan akunnya
+# context: Profiles: that list before Instagram has answered (#698)
+Instagram hasn't said anything about this account yet.	Instagram belum memberi tahu apa pun tentang akun ini.
+This profile hasn't loaded its own answer yet, so this is only what Instagram keeps on the account.	Profil ini belum memuat jawabannya sendiri, jadi ini hanya yang disimpan Instagram tentang akun tersebut.
+# context: Profiles: heading over the flags in that list whose meaning isn't plain, shown under their raw names (#698)
+Other flags	Penanda lain
+Not sent for this profile	Tidak dikirim untuk profil ini

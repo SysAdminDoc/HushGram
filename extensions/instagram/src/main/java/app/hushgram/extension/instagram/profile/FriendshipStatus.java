@@ -76,7 +76,7 @@ public final class FriendshipStatus {
             View view = slotView(slot);
             if (!(view instanceof TextView)) return;
             TextView text = (TextView) view;
-            if (chipped(text, relation)) return;
+            if (chipped(text, relation, header)) return;
             String label = textFor(relation);
             if (label == null) return;
             text.setText(joined(text.getText(), label));
@@ -98,7 +98,7 @@ public final class FriendshipStatus {
             if (relation == null && !FriendshipChip.anyShown()) return;
             View view = slotView(slot);
             if (!(view instanceof TextView)) return;
-            String label = chipped(view, relation) ? null : textFor(relation);
+            String label = chipped(view, relation, header) ? null : textFor(relation);
             if (label == null) {
                 // Asking for the slot's view can put it in place, so it's hidden again as Instagram left it.
                 setSlotVisibility(slot, View.GONE);
@@ -224,17 +224,18 @@ public final class FriendshipStatus {
 
     /**
      * With Show it as a chip on and [relation] known, puts the chip under the counts of the header
-     * [inside] is in; otherwise takes a chip it put there before away. True when the chip is
-     * showing, so the text label stays out.
+     * [inside] is in; otherwise takes a chip it put there before away. A tap on the chip lists the
+     * flags of the profile [header] belongs to (#698). True when the chip is showing, so the text
+     * label stays out.
      */
-    private static boolean chipped(View inside, @Nullable Relation relation) {
+    private static boolean chipped(View inside, @Nullable Relation relation, Object header) {
         if (relation == null || !Settings.FRIENDSHIP_STATUS_CHIP.get()) {
             FriendshipChip.clear(inside);
             return false;
         }
         FollowLabelPlace place = Settings.FOLLOW_LABEL_PLACE.get();
         boolean shown = FriendshipChip.show(inside, relation, inside instanceof TextView ? (TextView) inside : null,
-                place == null ? FollowLabelPlace.UNDER_COUNTS : place);
+                place == null ? FollowLabelPlace.UNDER_COUNTS : place, header);
         if (!shown) Logger.printDebug(() -> "Friendship status: no counts to put the chip under, so the label goes by the name");
         return shown;
     }
