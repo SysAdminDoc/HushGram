@@ -3152,6 +3152,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_comment_button", FALSE);
 
     /**
+     * The number under each button in the right-hand column of a reel, one switch per button, with
+     * the button itself kept. The Like, Comment and Save button switches take their count too. Off to
+     * start (#719).
+     */
+    public static final BooleanSetting HIDE_REEL_LIKE_COUNT =
+            new BooleanSetting("hushgram_hide_reel_like_count", FALSE);
+    public static final BooleanSetting HIDE_REEL_COMMENT_COUNT =
+            new BooleanSetting("hushgram_hide_reel_comment_count", FALSE);
+    public static final BooleanSetting HIDE_REEL_REPOST_COUNT =
+            new BooleanSetting("hushgram_hide_reel_repost_count", FALSE);
+    public static final BooleanSetting HIDE_REEL_SHARE_COUNT =
+            new BooleanSetting("hushgram_hide_reel_share_count", FALSE);
+    public static final BooleanSetting HIDE_REEL_SAVE_COUNT =
+            new BooleanSetting("hushgram_hide_reel_save_count", FALSE);
+
+    /**
      * The big pause icon a paused reel shows in its middle, and the sound button beside it. The
      * paused reel shows just its frame, and a tap still plays it. Off to start (#686).
      */

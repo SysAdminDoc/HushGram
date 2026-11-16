@@ -504,6 +504,13 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentBu
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentButton()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; calling instance LX/*;-><init>(Landroid/graphics/ColorFilter;Lcom/instagram/common/session/UserSession;*)V class-holding android_purge_26_q2_ClipsUfiComponent_createLikeButtonComponent
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentCount()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; holding ufi_count
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentCount()Z in instance (L*;Lkotlin/jvm/functions/Function0;JJ)L*; holding ufi_count
+# The count-only switches (#719) ask the same hooks, and two more: hideRepostCount() first thing in the
+# repost count's builder, the one of the Save builders' shape loading the count's text name (the save
+# count's loads its own), and shareCount(Object) once in the column's render, right before it adds the
+# share count it builds inline after its marker.
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideRepostCount()Z in instance (L*;JJ)L*; holding ufi_count
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideRepostCount()Z in instance (L*;JJ)L*; holding ufi_count
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->shareCount(Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_createShareCountComponent
 # Hide the pause icon on reels asks first thing in the pause-and-mute component's builders of a paused
 # reel's big pause icon and its sound button, each holding its marker (#686).
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hidePauseIcon()Z in instance (*)L*; holding android_purge_26_q3_PauseAndMuteComponent_createPauseIcon

@@ -1215,6 +1215,17 @@ At once	立即
 Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	点击视频、双击点赞，以及保存与下载不算触碰操作，因此按钮会维持淡化。
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	已关闭。可在未触碰画面时淡化 Reel 按钮，避免 OLED 屏幕烙印。
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	移除 Reel 旁按钮栏中的保存按钮与下方数量。动态首页帖子的保存按钮仍会保留。
+# context: Reels settings: five switches after Hide the Save button on reels (#719), each taking only the number under one button in the column beside a reel; use the button names of the rows above
+Hide like counts on reels	隐藏 Reels 上的赞数
+Takes away the number under the heart beside a reel. The heart stays.	移除 Reel 旁爱心下方的数字。爱心会保留。
+Hide comment counts on reels	隐藏 Reels 上的评论数
+Takes away the number under the Comment button beside a reel. The button stays.	移除 Reel 旁评论按钮下方的数字。按钮会保留。
+Hide repost counts on reels	隐藏 Reels 上的转发数
+Takes away the number under the Repost button beside a reel. The button stays.	移除 Reel 旁转发按钮下方的数字。按钮会保留。
+Hide share counts on reels	隐藏 Reels 上的分享数
+Takes away the number under the Share button beside a reel. The button stays.	移除 Reel 旁分享按钮下方的数字。按钮会保留。
+Hide save counts on reels	隐藏 Reels 上的保存数
+Takes away the number under the Save button beside a reel. The button stays.	移除 Reel 旁保存按钮下方的数字。按钮会保留。
 Hide the pause icon on reels	隐藏 Reels 上的暂停图标
 A paused reel shows just its frame, without the big pause icon and the sound button over it. Tap the reel to play it again.	暂停的 Reel 只显示画面，不会再盖上大大的暂停图标和声音按钮。点一下 Reel 即可继续播放。
 Keep clear mode on	保持清爽模式

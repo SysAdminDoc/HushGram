@@ -1220,6 +1220,17 @@ At once	ทันที
 Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	การแตะวิดีโอ การแตะสองครั้งเพื่อกดถูกใจ รวมถึงการบันทึกและดาวน์โหลดจะไม่นับว่าเป็นการสัมผัส ปุ่มจึงยังคงจางอยู่
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	ปิดอยู่ สามารถทำให้ปุ่มของรีลส์จางลงได้ในขณะที่ไม่มีการสัมผัสหน้าจอ เพื่อไม่ให้เกิดภาพหน้าจอไหม้บนหน้าจอ OLED
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	นำปุ่มบันทึกและจำนวนใต้ปุ่มออกจากคอลัมน์ปุ่มข้างรีลส์ โดยโพสต์ในฟีดของคุณจะยังคงมีปุ่มนี้อยู่
+# context: Reels settings: five switches after Hide the Save button on reels (#719), each taking only the number under one button in the column beside a reel; use the button names of the rows above
+Hide like counts on reels	ซ่อนจำนวนถูกใจในรีลส์
+Takes away the number under the heart beside a reel. The heart stays.	นำตัวเลขใต้รูปหัวใจข้างรีลส์ออก รูปหัวใจยังอยู่
+Hide comment counts on reels	ซ่อนจำนวนความคิดเห็นในรีลส์
+Takes away the number under the Comment button beside a reel. The button stays.	นำตัวเลขใต้ปุ่มความคิดเห็นข้างรีลส์ออก ปุ่มยังอยู่
+Hide repost counts on reels	ซ่อนจำนวนรีโพสต์ในรีลส์
+Takes away the number under the Repost button beside a reel. The button stays.	นำตัวเลขใต้ปุ่มรีโพสต์ข้างรีลส์ออก ปุ่มยังอยู่
+Hide share counts on reels	ซ่อนจำนวนแชร์ในรีลส์
+Takes away the number under the Share button beside a reel. The button stays.	นำตัวเลขใต้ปุ่มแชร์ข้างรีลส์ออก ปุ่มยังอยู่
+Hide save counts on reels	ซ่อนจำนวนบันทึกในรีลส์
+Takes away the number under the Save button beside a reel. The button stays.	นำตัวเลขใต้ปุ่มบันทึกข้างรีลส์ออก ปุ่มยังอยู่
 Hide the pause icon on reels	ซ่อนไอคอนหยุดชั่วคราวในรีลส์
 A paused reel shows just its frame, without the big pause icon and the sound button over it. Tap the reel to play it again.	รีลส์ที่หยุดไว้จะแสดงแค่ภาพ ไม่มีไอคอนหยุดชั่วคราวขนาดใหญ่และปุ่มเสียงทับอยู่ แตะรีลส์เพื่อเล่นต่อ
 Keep clear mode on	เปิดโหมดล้างหน้าจอค้างไว้

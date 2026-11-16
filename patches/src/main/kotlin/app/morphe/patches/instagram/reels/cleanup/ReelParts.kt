@@ -20,6 +20,8 @@ internal const val HIDE_LIKE_BUTTON = "$DECLUTTER->hideLikeButton()Z"
 internal const val HIDE_LIKE_COUNT = "$DECLUTTER->hideLikeCount()Z"
 internal const val HIDE_COMMENT_BUTTON = "$DECLUTTER->hideCommentButton()Z"
 internal const val HIDE_COMMENT_COUNT = "$DECLUTTER->hideCommentCount()Z"
+internal const val HIDE_REPOST_COUNT = "$DECLUTTER->hideRepostCount()Z"
+internal const val SHARE_COUNT = "$DECLUTTER->shareCount(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val HIDE_COMMENT_BAR = "$DECLUTTER->hideCommentBar(Ljava/lang/Object;)Z"
 internal const val KEEP_COMMENT_BAR_SPACE = "$DECLUTTER->keepCommentBarSpace(Landroid/view/View;Ljava/lang/Object;)V"
 internal const val HIDE_DIRECT_REPLY_BAR = "$DECLUTTER->hideDirectReplyBar(Ljava/lang/Object;)Z"
@@ -131,6 +133,21 @@ internal val COMMENT_BUTTON = ReelPart(COMMENT_BUTTON_RENDER, HIDE_COMMENT_BUTTO
 internal val COMMENT_COUNT = ReelPart(UFI_COUNT, HIDE_COMMENT_COUNT)
 
 /**
+ * The repost count under the Repost button (#719). Its builder in the clips UFI holds no marker on
+ * 454 either: it's the one unmarked method of the UFI taking the Save builders' parameters (the
+ * scope and two colors) and loading [UFI_COUNT]. The save count's loads its own text name.
+ */
+internal val REPOST_COUNT = ReelPart(UFI_COUNT, HIDE_REPOST_COUNT)
+
+/**
+ * The share count under the Share button (#719) has no builder of its own on 454: the clips UFI's
+ * render builds it inline after this marker, through the UFI's text builder, and adds what that
+ * answers to the column. Every way through it, a share count or none, meets at that add, where
+ * [SHARE_COUNT] is handed the count and can answer nothing in its place.
+ */
+internal const val SHARE_COUNT_MARKER = "ClipsUfiComponent_createShareCountComponent"
+
+/**
  * The overlays near the username that aren't a creation pill (#332): the suggested search terms
  * ("Deep dive", and the related ads pivot that the same branch of the media info draws in the same
  * pill style), the product tag and shopping buttons, and the poll or vote prompt. Each is a render
@@ -210,6 +227,6 @@ internal const val CHAT_SOURCE = "DIRECT"
 internal const val CLIPS_VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
 internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + SAVE_PARTS.map { it.marker } + LIKE_PARTS.map { it.marker } +
-    PAUSE_PARTS.map { it.marker } + COMMENT_BUTTON_RENDER + PRODUCT_CTA.marker + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
+    PAUSE_PARTS.map { it.marker } + COMMENT_BUTTON_RENDER + SHARE_COUNT_MARKER + PRODUCT_CTA.marker + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
     COMMENT_BAR_SHOW + COMMENT_BAR_HIDE + COMMENT_BAR_CREATED + COMMENT_BAR_UNVANISH +
     DIRECT_REPLY_BAR_SHOW + DIRECT_REPLY_BAR_HIDE + DIRECT_REPLY_BAR_CREATED

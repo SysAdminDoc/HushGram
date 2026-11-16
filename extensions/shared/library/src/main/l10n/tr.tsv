@@ -1229,6 +1229,17 @@ At once	Hemen
 Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Videoya dokunmak, beğenmek için iki kez dokunmak, Kaydet ve İndir dokunuş sayılmaz, bu yüzden düğmeler soluk kalır.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Kapalı. Ekrana dokunulmadığı sürece bir reel'in düğmelerini soluklaştırabilir, böylece OLED ekranda iz bırakmazlar.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Kaydet düğmesini reel'in yanındaki düğme sütunundan ve altındaki sayıyı kaldırır. Akışındaki gönderiler kendi düğmesini korur.
+# context: Reels settings: five switches after Hide the Save button on reels (#719), each taking only the number under one button in the column beside a reel; use the button names of the rows above
+Hide like counts on reels	Reels'te beğeni sayılarını gizle
+Takes away the number under the heart beside a reel. The heart stays.	Reel'in yanındaki kalbin altındaki sayıyı kaldırır. Kalp kalır.
+Hide comment counts on reels	Reels'te yorum sayılarını gizle
+Takes away the number under the Comment button beside a reel. The button stays.	Reel'in yanındaki Yorum düğmesinin altındaki sayıyı kaldırır. Düğme kalır.
+Hide repost counts on reels	Reels'te yeniden paylaşım sayılarını gizle
+Takes away the number under the Repost button beside a reel. The button stays.	Reel'in yanındaki Yeniden paylaş düğmesinin altındaki sayıyı kaldırır. Düğme kalır.
+Hide share counts on reels	Reels'te paylaşım sayılarını gizle
+Takes away the number under the Share button beside a reel. The button stays.	Reel'in yanındaki Paylaş düğmesinin altındaki sayıyı kaldırır. Düğme kalır.
+Hide save counts on reels	Reels'te kaydetme sayılarını gizle
+Takes away the number under the Save button beside a reel. The button stays.	Reel'in yanındaki Kaydet düğmesinin altındaki sayıyı kaldırır. Düğme kalır.
 Hide the pause icon on reels	Reels'te duraklatma simgesini gizle
 A paused reel shows just its frame, without the big pause icon and the sound button over it. Tap the reel to play it again.	Duraklatılan bir reel, üzerinde büyük duraklatma simgesi ve ses düğmesi olmadan yalnızca karesini gösterir. Yeniden oynatmak için reel'e dokun.
 Keep clear mode on	Temiz mod açık kalsın

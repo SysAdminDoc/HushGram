@@ -1229,6 +1229,17 @@ At once	Subito
 Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Toccare il video, toccarlo due volte per mettere mi piace, Salva e Scarica non contano come un tocco, quindi i pulsanti restano sfumati.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Off. Può far sfumare i pulsanti di un reel mentre lo schermo non viene toccato, così non si imprimono su uno schermo OLED.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Toglie il pulsante Salva dalla colonna di pulsanti accanto a un reel, e il conteggio sotto. I post nel tuo feed mantengono il loro.
+# context: Reels settings: five switches after Hide the Save button on reels (#719), each taking only the number under one button in the column beside a reel; use the button names of the rows above
+Hide like counts on reels	Nascondi il numero di Mi piace sui reel
+Takes away the number under the heart beside a reel. The heart stays.	Toglie il numero sotto il cuore accanto a un reel. Il cuore resta.
+Hide comment counts on reels	Nascondi il numero di commenti sui reel
+Takes away the number under the Comment button beside a reel. The button stays.	Toglie il numero sotto il pulsante Commenta accanto a un reel. Il pulsante resta.
+Hide repost counts on reels	Nascondi il numero di ripubblicazioni sui reel
+Takes away the number under the Repost button beside a reel. The button stays.	Toglie il numero sotto il pulsante Ripubblica accanto a un reel. Il pulsante resta.
+Hide share counts on reels	Nascondi il numero di condivisioni sui reel
+Takes away the number under the Share button beside a reel. The button stays.	Toglie il numero sotto il pulsante Condividi accanto a un reel. Il pulsante resta.
+Hide save counts on reels	Nascondi il numero di salvataggi sui reel
+Takes away the number under the Save button beside a reel. The button stays.	Toglie il numero sotto il pulsante Salva accanto a un reel. Il pulsante resta.
 Hide the pause icon on reels	Nascondi l'icona di pausa sui reel
 A paused reel shows just its frame, without the big pause icon and the sound button over it. Tap the reel to play it again.	Un reel in pausa mostra solo il suo fotogramma, senza la grande icona di pausa e il pulsante dell'audio sopra. Tocca il reel per riprodurlo di nuovo.
 Keep clear mode on	Mantieni attiva la modalità pulita

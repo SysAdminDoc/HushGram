@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -23,10 +24,12 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -54,6 +57,7 @@ class CleanUpReelsHookTest {
             HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR, HIDE_EVERY_COMMENT_BAR,
             HIDE_SAVE_BUTTON, HIDE_SAVE_COUNT, HIDE_DIRECT_REPLY_BAR, KEEP_COMMENT_BAR_SPACE,
             HIDE_LIKE_BUTTON, HIDE_LIKE_COUNT, HIDE_COMMENT_BUTTON, HIDE_COMMENT_COUNT, HIDE_PAUSE_ICON, HIDE_PAUSE_SOUND_BUTTON,
+            HIDE_REPOST_COUNT, SHARE_COUNT,
         )) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
@@ -74,14 +78,16 @@ class CleanUpReelsHookTest {
             assertGuardFirst(part.marker, part, method)
         }
         val ufi = context.mutableClassDefBy(UFI).methods
-        assertEquals(setOf("A0D", "A06", "A0J", "A02", "A0I", "A0E", "A0C"), ufi.map { it.name }.toSet())
+        assertEquals(setOf("A0D", "A06", "A0J", "A02", "A0I", "A0E", "A0C", "A0q"), ufi.map { it.name }.toSet())
         SAVE_PARTS.zip(listOf("A0D", "A06")).forEach { (part, name) -> assertGuardFirst(part.marker, part, ufi.single { it.name == name }) }
-        // The Like and Comment buttons and their counts (#668); the save count's own count and the
-        // Comment button's render stay as they were.
-        (LIKE_PARTS + COMMENT_BUTTON + COMMENT_COUNT).zip(listOf("A0J", "A02", "A0I", "A0E")).forEach { (part, name) ->
+        // The Like and Comment buttons and their counts (#668) and the repost count (#719); the
+        // Comment button's render stays as it was.
+        (LIKE_PARTS + COMMENT_BUTTON + COMMENT_COUNT + REPOST_COUNT).zip(listOf("A0J", "A02", "A0I", "A0E", "A0C")).forEach { (part, name) ->
             assertGuardFirst(part.hook, part, ufi.single { it.name == name })
         }
-        assertEquals("the other count was touched", 3, ufi.single { it.name == "A0C" }.instructions().size)
+        // The share count (#719): handed to the hook right before its add, which the branch with no
+        // count reaches through the hook too.
+        assertShareCountHooked("stand-in", ufi.single { it.name == "A0q" }, 1, component, reached = true)
         assertEquals("the Comment button's render was touched", 3,
             context.mutableClassDefBy(owner(COMMENT_BUTTON_RENDER)).methods.single().instructions().size)
         assertGuardFirst(PRODUCT_CTA.marker, PRODUCT_CTA, context.mutableClassDefBy(owner(PRODUCT_CTA.marker)).methods.single())
@@ -244,6 +250,10 @@ class CleanUpReelsHookTest {
             Triple("no like count", classes(leaveOut = LIKE_PARTS[1].marker), LIKE_PARTS[1].marker),
             Triple("no comment button", classes(ufiShape = "no comment button"), "Comment button"),
             Triple("two comment counts", classes(ufiShape = "two counts"), UFI_COUNT),
+            // The repost and share counts (#719).
+            Triple("two repost counts", classes(ufiShape = "two repost counts"), "for the repost count"),
+            Triple("no share count", classes(leaveOut = SHARE_COUNT_MARKER), SHARE_COUNT_MARKER),
+            Triple("share count read later", classes(ufiShape = "share count read later"), "read again after the add"),
         )) {
             val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).hideReelParts() }
             assertTrue("$case: ${failure.message}", failure.message!!.contains(expected))
@@ -386,7 +396,7 @@ class CleanUpReelsHookTest {
         // holding its render's marker, and the count's takes the same parameters and loads ufi_count.
         val ufiType = classes.flatMap { it.methods }.single { LIKE_PARTS[0].marker in it.markers() }.definingClass
         val commentType = classes.flatMap { it.methods }.single { COMMENT_BUTTON_RENDER in it.markers() }.definingClass
-        val hooked = (LIKE_PARTS + COMMENT_BUTTON + COMMENT_COUNT).associateWith { part ->
+        val hooked = (LIKE_PARTS + COMMENT_BUTTON + COMMENT_COUNT + REPOST_COUNT).associateWith { part ->
             val askers = classes.flatMap { context.mutableClassDefBy(it.type).methods.toList() }
                 .filter { method -> method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == part.hook } }
             assertEquals("$label: who asks ${part.hook}", listOf(ufiType), askers.map { it.definingClass })
@@ -407,6 +417,29 @@ class CleanUpReelsHookTest {
         assertTrue("$label: the comment count loads $UFI_COUNT", commentCount.instructions().any {
             ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == UFI_COUNT
         })
+        // The repost count (#719): its builder holds no marker, takes the Save builders' scope and two
+        // colors and loads ufi_count.
+        val repostCount = hooked.getValue(REPOST_COUNT)
+        assertEquals("$label: the repost count's markers", emptyList<String>(), repostCount.markers())
+        assertEquals("$label: the repost count's parameters", listOf("J", "J"), repostCount.parameterTypes.drop(1).map { it.toString() })
+        assertTrue("$label: the repost count loads $UFI_COUNT", repostCount.instructions().any {
+            ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == UFI_COUNT
+        })
+        // The share count (#719): the UFI's render builds it with the UFI's text builder and hands it to
+        // the hook right before the add, where the branches that went to the add now land.
+        val shareBefore = classes.flatMap { it.methods }.single { SHARE_COUNT_MARKER in it.markers() }
+        assertEquals("$label: the share count's render", ufiType, shareBefore.definingClass)
+        val shareAfter = after(shareBefore)
+        val hook = shareAfter.instructions().indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == SHARE_COUNT }
+        assertTrue("$label: the share count's hook is after its build", hook >= 2)
+        val stock = shareBefore.instructions()
+        val built = (stock[hook - 2] as ReferenceInstruction).reference as MethodReference
+        assertEquals("$label: the share count's builder", ufiType to commentCount.returnType, built.definingClass to built.returnType)
+        val count = (stock[hook - 1] as OneRegisterInstruction).registerA
+        val type = ((stock[hook] as ReferenceInstruction).reference as MethodReference).parameterTypes.single().toString()
+        assertShareCountHooked(label, shareAfter, count, type, reached = hook in shareBefore.jumpTargets())
+        assertEquals("$label: the render grows by the hook", stock.count { it.opcode != Opcode.NOP } + 3,
+            shareAfter.instructions().count { it.opcode != Opcode.NOP })
         // The reel CTA's product button: the one builder, guarded first and growing by the guard alone.
         val productBefore = classes.flatMap { it.methods }.single { PRODUCT_CTA.marker in it.markers() }
         val productAfter = after(productBefore)
@@ -697,6 +730,37 @@ class CleanUpReelsHookTest {
         assertEquals("$what: the hook called", part.hook, (code[0] as ReferenceInstruction).reference.toString())
         val jump = code[2] as OffsetInstruction
         assertEquals("$what: the branch lands on the method's own code", code.subList(2, 5).sumOf { it.codeUnits }, jump.codeOffset)
+    }
+
+    /**
+     * The share count's hook (#719): the one call of it in [method], right before the add, handed the
+     * count in v[count], keeping it there and casting it back to the add's [type]. No branch skips the
+     * hook onto the add, and when [reached] the branches that went to the add land on the hook.
+     */
+    private fun assertShareCountHooked(what: String, method: Method, count: Int, type: String, reached: Boolean) {
+        val code = method.instructions()
+        val calls = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == SHARE_COUNT }
+        assertEquals("$what: the share count's hooks", 1, calls.size)
+        val at = calls.single()
+        assertEquals("$what: the hook's opcodes", listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST),
+            code.subList(at, at + 3).map { it.opcode })
+        val call = code[at] as RegisterRangeInstruction
+        assertEquals("$what: the hook is handed the count", count to 1, call.startRegister to call.registerCount)
+        assertEquals("$what: the answer is kept", count, (code[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the answer is cast", count, (code[at + 2] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the cast", type, ((code[at + 2] as ReferenceInstruction).reference as TypeReference).type)
+        val add = code[at + 3]
+        assertEquals("$what: the add's parameter", listOf(type),
+            ((add as ReferenceInstruction).reference as MethodReference).parameterTypes.map { it.toString() })
+        val added = when (add) {
+            is FiveRegisterInstruction -> add.registerD
+            is RegisterRangeInstruction -> add.startRegister + 1
+            else -> -1
+        }
+        assertEquals("$what: the add is handed the answer", count, added)
+        val targets = method.jumpTargets()
+        assertFalse("$what: a branch skips the hook onto the add", at + 3 in targets)
+        if (reached) assertTrue("$what: the branches to the add land on the hook", at in targets)
     }
 
     private fun owner(marker: String) = "Lfixture/${marker.substringBefore('_')};"
@@ -1055,8 +1119,10 @@ class CleanUpReelsHookTest {
     /**
      * The clips UFI's other builders, shaped like 454's (#668): the Like button's and the like
      * count's, holding their markers; the Comment button's, answering its component, and the comment
-     * count's, taking the same parameters and loading ufi_count; and another count loading ufi_count
-     * with the Save builders' parameters. [shape] breaks one of them.
+     * count's, taking the same parameters and loading ufi_count; the repost count's, loading ufi_count
+     * with the Save builders' parameters and no marker (#719); and the render building the share
+     * count inline after its marker and adding it to the column, where the branch with no count joins
+     * it. [shape] breaks one of them.
      */
     private fun ufiBuilders(shape: String, leaveOut: String?): List<Method> {
         val nothing = "const/4 v0, 0x0\nreturn-object v0"
@@ -1074,7 +1140,31 @@ class CleanUpReelsHookTest {
             method(UFI, "A0I", commentParameters, owner(COMMENT_BUTTON_RENDER), 8, nothing, static = false),
         )
         val counts = listOf(counter("A0E", commentParameters)) + if (shape == "two counts") listOf(counter("A0F", commentParameters)) else emptyList()
-        return likes + button + counts + counter("A0C", listOf(scope, "J", "J"))
+        val reposts = listOf(counter("A0C", listOf(scope, "J", "J"))) +
+            if (shape == "two repost counts") listOf(counter("A0G", listOf(scope, "J", "J"))) else emptyList()
+        val later = if (shape == "share count read later") "invoke-virtual { v2, v1 }, $LIST->A00($component)V" else ""
+        val share = if (leaveOut == SHARE_COUNT_MARKER) emptyList() else listOf(
+            method(
+                UFI, "A0q", listOf(scope), component, 6,
+                """
+                    const-string v0, "android_purge_26_q2_$SHARE_COUNT_MARKER"
+                    const/4 v2, 0x0
+                    if-eqz v0, :none
+                    invoke-direct/range { p0 .. p1 }, $UFI->A0B($scope)$component
+                    move-result-object v1
+                    :add
+                    invoke-virtual { v2, v1 }, $LIST->A00($component)V
+                    $later
+                    const/4 v1, 0x0
+                    return-object v1
+                    :none
+                    const/4 v1, 0x0
+                    goto :add
+                """,
+                static = false,
+            ),
+        )
+        return likes + button + counts + reposts + share
     }
 
     private fun check(type: String, marker: String, returns: String): ClassDef = ImmutableClassDef(
@@ -1100,6 +1190,7 @@ class CleanUpReelsHookTest {
 
     private companion object {
         const val UFI = "Lfixture/ClipsUfiComponent;"
+        const val LIST = "Lfixture/ComponentList;"
         const val PAUSE = "Lfixture/PauseAndMuteComponent;"
         const val BUBBLES = "Lfixture/FloatingBubblesUseCase;"
         const val BUBBLES_STATE = "Lfixture/BubblesState;"

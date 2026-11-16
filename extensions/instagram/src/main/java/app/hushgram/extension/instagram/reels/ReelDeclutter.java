@@ -121,6 +121,8 @@ public final class ReelDeclutter {
     static final String COUNT_LIKE_COUNT_HIDDEN = "reel like counts hidden";
     static final String COUNT_COMMENT_HIDDEN = "reel Comment buttons hidden";
     static final String COUNT_COMMENT_COUNT_HIDDEN = "reel comment counts hidden";
+    static final String COUNT_REPOST_COUNT_HIDDEN = "reel repost counts hidden";
+    static final String COUNT_SHARE_COUNT_HIDDEN = "reel share counts hidden";
     static final String COUNT_PAUSE_ICON_HIDDEN = "paused reel icons hidden";
     static final String COUNT_PAUSE_SOUND_HIDDEN = "paused reel sound buttons hidden";
     static final String COUNT_REPLY_BAR_HIDDEN = "chat reel reply bars kept hidden";
@@ -169,9 +171,9 @@ public final class ReelDeclutter {
         return hide;
     }
 
-    /** True leaves the save count under a reel's Save button out. Never throws. */
+    /** True leaves the save count under a reel's Save button out, with the button or alone (#719). Never throws. */
     public static boolean hideSaveCount() {
-        boolean hide = hide(Settings.HIDE_REEL_SAVE_BUTTON, "save count");
+        boolean hide = hide(Settings.HIDE_REEL_SAVE_BUTTON, "save count") || hide(Settings.HIDE_REEL_SAVE_COUNT, "save count");
         if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_SAVE_COUNT_HIDDEN);
         return hide;
     }
@@ -183,9 +185,9 @@ public final class ReelDeclutter {
         return hide;
     }
 
-    /** True leaves the like count under a reel's Like button out. Never throws. */
+    /** True leaves the like count under a reel's Like button out, with the button or alone (#719). Never throws. */
     public static boolean hideLikeCount() {
-        boolean hide = hide(Settings.HIDE_REEL_LIKE_BUTTON, "like count");
+        boolean hide = hide(Settings.HIDE_REEL_LIKE_BUTTON, "like count") || hide(Settings.HIDE_REEL_LIKE_COUNT, "like count");
         if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_LIKE_COUNT_HIDDEN);
         return hide;
     }
@@ -197,11 +199,28 @@ public final class ReelDeclutter {
         return hide;
     }
 
-    /** True leaves the comment count under a reel's Comment button out. Never throws. */
+    /** True leaves the comment count under a reel's Comment button out, with the button or alone (#719). Never throws. */
     public static boolean hideCommentCount() {
-        boolean hide = hide(Settings.HIDE_REEL_COMMENT_BUTTON, "comment count");
+        boolean hide = hide(Settings.HIDE_REEL_COMMENT_BUTTON, "comment count") || hide(Settings.HIDE_REEL_COMMENT_COUNT, "comment count");
         if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_COMMENT_COUNT_HIDDEN);
         return hide;
+    }
+
+    /** True leaves the repost count under a reel's Repost button out (#719). Never throws. */
+    public static boolean hideRepostCount() {
+        boolean hide = hide(Settings.HIDE_REEL_REPOST_COUNT, "repost count");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_REPOST_COUNT_HIDDEN);
+        return hide;
+    }
+
+    /**
+     * The share count under a reel's Share button, as the button column is about to add it: null
+     * when the switch is on, so the column adds nothing, else {@code count} as it came (#719). Never throws.
+     */
+    public static Object shareCount(Object count) {
+        if (count == null || !hide(Settings.HIDE_REEL_SHARE_COUNT, "share count")) return count;
+        HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_SHARE_COUNT_HIDDEN);
+        return null;
     }
 
     /** True leaves the big pause icon off a paused reel. Never throws. */

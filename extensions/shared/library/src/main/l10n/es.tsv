@@ -1229,6 +1229,17 @@ At once	Al instante
 Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Tocar el video, tocarlo dos veces para dar me gusta, Guardar y Descargar no cuentan como un toque, así que los botones siguen atenuados.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Desactivado. Puede atenuar los botones de un reel mientras no se toca la pantalla, para que no se quemen en una pantalla OLED.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Quita el botón Guardar de la columna de botones junto a un reel, y el número que va debajo. Las publicaciones de tu feed conservan el suyo.
+# context: Reels settings: five switches after Hide the Save button on reels (#719), each taking only the number under one button in the column beside a reel; use the button names of the rows above
+Hide like counts on reels	Ocultar el número de Me gusta en los reels
+Takes away the number under the heart beside a reel. The heart stays.	Quita el número debajo del corazón junto a un reel. El corazón se queda.
+Hide comment counts on reels	Ocultar el número de comentarios en los reels
+Takes away the number under the Comment button beside a reel. The button stays.	Quita el número debajo del botón Comentar junto a un reel. El botón se queda.
+Hide repost counts on reels	Ocultar el número de republicaciones en los reels
+Takes away the number under the Repost button beside a reel. The button stays.	Quita el número debajo del botón Republicar junto a un reel. El botón se queda.
+Hide share counts on reels	Ocultar el número de compartidos en los reels
+Takes away the number under the Share button beside a reel. The button stays.	Quita el número debajo del botón Compartir junto a un reel. El botón se queda.
+Hide save counts on reels	Ocultar el número de guardados en los reels
+Takes away the number under the Save button beside a reel. The button stays.	Quita el número debajo del botón Guardar junto a un reel. El botón se queda.
 Hide the pause icon on reels	Ocultar el icono de pausa en los reels
 A paused reel shows just its frame, without the big pause icon and the sound button over it. Tap the reel to play it again.	Un reel en pausa muestra solo su imagen, sin el icono grande de pausa ni el botón de sonido encima. Toca el reel para seguir viéndolo.
 Keep clear mode on	Mantener el modo limpio

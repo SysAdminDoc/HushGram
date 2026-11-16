@@ -1200,6 +1200,17 @@ At once	Ngay lập tức
 Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Nhấn vào video, nhấn đúp để thích, cùng Lưu và Tải xuống không tính là chạm, nên các nút vẫn mờ.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Tắt. Có thể làm mờ các nút của reel khi màn hình không bị chạm, để chúng không ám vào màn hình OLED.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Gỡ nút Lưu khỏi cột nút bên cạnh reel và số lượng bên dưới. Bài viết trong bảng feed vẫn giữ nút của chúng.
+# context: Reels settings: five switches after Hide the Save button on reels (#719), each taking only the number under one button in the column beside a reel; use the button names of the rows above
+Hide like counts on reels	Ẩn số lượt thích trên reel
+Takes away the number under the heart beside a reel. The heart stays.	Gỡ con số dưới biểu tượng trái tim bên cạnh reel. Trái tim vẫn giữ nguyên.
+Hide comment counts on reels	Ẩn số bình luận trên reel
+Takes away the number under the Comment button beside a reel. The button stays.	Gỡ con số dưới nút Bình luận bên cạnh reel. Nút vẫn giữ nguyên.
+Hide repost counts on reels	Ẩn số lượt đăng lại trên reel
+Takes away the number under the Repost button beside a reel. The button stays.	Gỡ con số dưới nút Đăng lại bên cạnh reel. Nút vẫn giữ nguyên.
+Hide share counts on reels	Ẩn số lượt chia sẻ trên reel
+Takes away the number under the Share button beside a reel. The button stays.	Gỡ con số dưới nút Chia sẻ bên cạnh reel. Nút vẫn giữ nguyên.
+Hide save counts on reels	Ẩn số lượt lưu trên reel
+Takes away the number under the Save button beside a reel. The button stays.	Gỡ con số dưới nút Lưu bên cạnh reel. Nút vẫn giữ nguyên.
 Hide the pause icon on reels	Ẩn biểu tượng tạm dừng trên reel
 A paused reel shows just its frame, without the big pause icon and the sound button over it. Tap the reel to play it again.	Reel đang tạm dừng chỉ hiện khung hình, không còn biểu tượng tạm dừng lớn và nút âm thanh đè lên. Nhấn vào reel để phát tiếp.
 Keep clear mode on	Giữ chế độ xem sạch luôn bật

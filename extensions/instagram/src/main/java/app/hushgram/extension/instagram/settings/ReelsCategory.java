@@ -152,6 +152,16 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_REEL_SAVE_BUTTON, L10n.t("Hide the Save button on reels"),
                     L10n.t("Takes the Save button out of the column of buttons beside a reel, and the count under it. "
                             + "Posts in your feed keep theirs.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_LIKE_COUNT, L10n.t("Hide like counts on reels"),
+                    L10n.t("Takes away the number under the heart beside a reel. The heart stays.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_COMMENT_COUNT, L10n.t("Hide comment counts on reels"),
+                    L10n.t("Takes away the number under the Comment button beside a reel. The button stays.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_REPOST_COUNT, L10n.t("Hide repost counts on reels"),
+                    L10n.t("Takes away the number under the Repost button beside a reel. The button stays.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_SHARE_COUNT, L10n.t("Hide share counts on reels"),
+                    L10n.t("Takes away the number under the Share button beside a reel. The button stays.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_SAVE_COUNT, L10n.t("Hide save counts on reels"),
+                    L10n.t("Takes away the number under the Save button beside a reel. The button stays.")));
             reels.add(toggle(context, Settings.HIDE_REEL_PAUSE_ICON, L10n.t("Hide the pause icon on reels"),
                     L10n.t("A paused reel shows just its frame, without the big pause icon and the sound button over "
                             + "it. Tap the reel to play it again.")));

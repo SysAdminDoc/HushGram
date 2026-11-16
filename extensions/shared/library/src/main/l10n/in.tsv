@@ -1229,6 +1229,17 @@ At once	Langsung
 Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Mengetuk video, mengetuk dua kali untuk menyukai, serta Simpan dan Unduh tidak dihitung sebagai sentuhan, jadi tombol tetap pudar.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Nonaktif. Bisa meredupkan tombol reel saat layar tidak disentuh, agar tidak membekas di layar OLED.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Menghapus tombol Simpan dari deretan tombol di samping reel, beserta angka di bawahnya. Postingan di feed-mu tetap punya tombolnya.
+# context: Reels settings: five switches after Hide the Save button on reels (#719), each taking only the number under one button in the column beside a reel; use the button names of the rows above
+Hide like counts on reels	Sembunyikan jumlah suka di reel
+Takes away the number under the heart beside a reel. The heart stays.	Menghapus angka di bawah ikon hati di samping reel. Ikon hatinya tetap ada.
+Hide comment counts on reels	Sembunyikan jumlah komentar di reel
+Takes away the number under the Comment button beside a reel. The button stays.	Menghapus angka di bawah tombol Komentar di samping reel. Tombolnya tetap ada.
+Hide repost counts on reels	Sembunyikan jumlah posting ulang di reel
+Takes away the number under the Repost button beside a reel. The button stays.	Menghapus angka di bawah tombol Posting ulang di samping reel. Tombolnya tetap ada.
+Hide share counts on reels	Sembunyikan jumlah bagikan di reel
+Takes away the number under the Share button beside a reel. The button stays.	Menghapus angka di bawah tombol Bagikan di samping reel. Tombolnya tetap ada.
+Hide save counts on reels	Sembunyikan jumlah simpan di reel
+Takes away the number under the Save button beside a reel. The button stays.	Menghapus angka di bawah tombol Simpan di samping reel. Tombolnya tetap ada.
 Hide the pause icon on reels	Sembunyikan ikon jeda di reel
 A paused reel shows just its frame, without the big pause icon and the sound button over it. Tap the reel to play it again.	Reel yang dijeda hanya menampilkan gambarnya, tanpa ikon jeda besar dan tombol suara di atasnya. Ketuk reel untuk memutarnya lagi.
 Keep clear mode on	Tetap aktifkan mode bersih

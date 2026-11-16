@@ -87,10 +87,19 @@ public class ReelLikeCommentButtonsSettingsTest {
         assertRow(Settings.HIDE_REEL_LIKE_BUTTON, "Hide the Like button on reels", "Double tap still likes a reel.", 2);
         assertRow(Settings.HIDE_REEL_COMMENT_BUTTON, "Hide the Comment button on reels", "has its own switch.", 1);
     }
-    /** Hide the pause icon on reels (#686) comes right after the Save button's switch. */
+    /** Hide the pause icon on reels (#686) comes after the Save button's switch and the five count switches. */
     @Test public void thePauseIconSwitchFollowsTheSaveSwitchAndStartsOff() throws Exception {
         open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
-        assertRow(Settings.HIDE_REEL_PAUSE_ICON, "Hide the pause icon on reels", "Tap the reel to play it again.", -1);
+        assertRow(Settings.HIDE_REEL_PAUSE_ICON, "Hide the pause icon on reels", "Tap the reel to play it again.", -6);
+    }
+    /** The count-only switches (#719) follow the Save button's switch, one per button, in the column's order. */
+    @Test public void theCountSwitchesFollowTheSaveSwitchAndStartOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        assertRow(Settings.HIDE_REEL_LIKE_COUNT, "Hide like counts on reels", "The heart stays.", -1);
+        assertRow(Settings.HIDE_REEL_COMMENT_COUNT, "Hide comment counts on reels", "under the Comment button", -2);
+        assertRow(Settings.HIDE_REEL_REPOST_COUNT, "Hide repost counts on reels", "under the Repost button", -3);
+        assertRow(Settings.HIDE_REEL_SHARE_COUNT, "Hide share counts on reels", "under the Share button", -4);
+        assertRow(Settings.HIDE_REEL_SAVE_COUNT, "Hide save counts on reels", "under the Save button", -5);
     }
     @Test public void withoutCleanUpReelsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
