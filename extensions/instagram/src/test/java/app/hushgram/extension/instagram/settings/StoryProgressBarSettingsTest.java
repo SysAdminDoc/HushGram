@@ -79,9 +79,10 @@ public class StoryProgressBarSettingsTest {
         String[] keys = new String[stories.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = stories.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.THICKER_STORY_BAR.key);
-        // The ring's switch and its two lists come right before.
-        assertEquals(Arrays.toString(keys), Settings.STORY_RING.key, keys[at - 3]);
-        assertEquals(Arrays.toString(keys), Settings.STORY_RING_COLOR.key, keys[at - 1]);
+        // The ring's switch, its two lists and the switch for rings outside the stories row come right before.
+        assertEquals(Arrays.toString(keys), Settings.STORY_RING.key, keys[at - 4]);
+        assertEquals(Arrays.toString(keys), Settings.STORY_RING_COLOR.key, keys[at - 2]);
+        assertEquals(Arrays.toString(keys), Settings.HIDE_OTHER_STORY_RINGS.key, keys[at - 1]);
         assertEquals(Arrays.toString(keys), Settings.STORY_BAR_THICKNESS.key, keys[at + 1]);
 
         HushgramPreferenceFragment.StoryBarRow thickness = (HushgramPreferenceFragment.StoryBarRow) stories.getPreference(at + 1);
