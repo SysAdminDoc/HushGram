@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Double tap to skip` on Reels flashes arrows and the seconds skipped on the side you tapped, like it already does on feed videos. `Show the skip arrows`, right under it, turns them off. Asked for in #691.
+* `Hide the pause icon on reels` under Reels keeps a paused reel clear of the big pause icon and its sound button, so the frame you stopped on stays in view. A tap still plays it. Asked for in #686.
 * `Hide the Like button on reels` and `Hide the Comment button on reels` under Reels, and `Hide the Like button` under Feed, take those buttons and their counts away. Double tap still likes. Asked for in #668.
 * `Ask before a refresh` also asks when you tap Home, Reels or Explore while you're already on it, since that tap scrolls back to the top and reloads too. Cancel leaves the list where it was. Asked for in #655.
 * HushGram's own settings screen uses the font you pick in `Change the font` too, headings and switch labels included. Asked for in #166.
@@ -36,6 +38,10 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* A wavy seek bar and its tall handle aren't cut flat along the top anymore once the controls dim on a reel. Reported in #450 and #586.
+* With the tab bar hiding on Reels, a reel shorter than the screen sits where it would with the pill in place, instead of half the pill's height lower with more black above it. Reported in #450.
+* `Show the whole reel` keeps a reel's top and bottom on a screen wider than the reel, like a tablet or an open foldable. Reported in #681.
+* A photo reel with music gets its seek bar back after you hold it. It used to stay gone for the rest of that post. Reported in #10.
 * `Download feed photos` saves a photo at the size it was posted, not the 1080 pixel copy. Instagram only lists a photo's original for a big enough screen, so `Save photos at full size`, new right under it, reports one. It starts on and takes effect once Instagram restarts. Reported in #500.
 * With `Swipe through a chat's reels` on, every reel you swipe to from a chat keeps its reply bar and reactions, answering its own message, and a second reel opened from the same chat does too. Reported in #658.
 * `Messages after a reel` points out what the other person wrote after a reel again, whichever way the chat's reel was opened. Reported in #658.
