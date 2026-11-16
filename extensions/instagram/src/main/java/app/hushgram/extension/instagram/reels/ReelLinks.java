@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.direct.ChatReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -243,6 +244,7 @@ public final class ReelLinks {
             HookStatus.invoked(FamilyNames.REEL_LINKS);
             if (!ON_REEL.equals(mediaType) && !ON_GLIMMER.equals(mediaType)) return;
             commentTapped = SystemClock.uptimeMillis();
+            ChatReels.commentTapped();
             Logger.printDebug(() -> "Shared comment on a " + mediaType + " tapped: its viewer waits for that reel");
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_LINKS, COMMENT, failure);
@@ -347,5 +349,6 @@ public final class ReelLinks {
             VIEWERS.clear();
         }
         commentTapped = NO_COMMENT;
+        ChatReels.forgetComment();
     }
 }

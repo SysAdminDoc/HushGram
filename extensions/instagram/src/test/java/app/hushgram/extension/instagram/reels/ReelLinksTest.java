@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import app.hushgram.extension.instagram.direct.ChatReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -266,6 +267,25 @@ public class ReelLinksTest {
         String report = report();
         assertTrue(report, report.contains(ReelLinks.HELD + " 1"));
         assertTrue(report, report.contains(ReelLinks.ADDED + " 1"));
+    }
+
+    /**
+     * With Swipe through a chat's reels on, a shared comment's viewer opened on the chat's first unread
+     * reel (#662). A tap on a comment on a reel tells the chat reels test to keep Instagram's answer for
+     * the viewer it opens, and a comment on anything else leaves the chain alone.
+     */
+    @Test
+    public void aSharedCommentOnAReelOpensUnchained() {
+        Settings.SWIPE_CHAT_REELS.save(true);
+        try {
+            assertTrue("a shared reel chains", ChatReels.chain(0));
+            ReelLinks.sharedCommentOpened("photo");
+            assertTrue("a comment on a post opens no Reels viewer", ChatReels.chain(0));
+            ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
+            assertFalse("the comment's reel opens on its own", ChatReels.chain(0));
+        } finally {
+            Settings.SWIPE_CHAT_REELS.resetToDefault();
+        }
     }
 
     /**

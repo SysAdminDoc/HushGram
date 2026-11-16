@@ -51,6 +51,7 @@ public class ChatReelsTest {
         PauseForTests.resume();
         Settings.SWIPE_CHAT_REELS.save(true);
         HookStatus.clear();
+        ChatReels.forgetComment();
     }
 
     @After
@@ -63,6 +64,7 @@ public class ChatReelsTest {
         HookStatus.clear();
         ChatReels.covered();
         ChatReels.forgetSent();
+        ChatReels.forgetComment();
     }
 
     /** The patch is in Manager's default selection, so its switch starts off. */
@@ -362,6 +364,53 @@ public class ChatReelsTest {
         assertFalse("loading", ChatReels.open(message("m1"), null));
         chat.pause();
         assertTrue("the viewer is up", ChatReels.open(message("m1"), null));
+    }
+
+    /**
+     * A shared comment's tap opens a viewer with only the comment's reel. Chained, it opened on the
+     * chat's first unread reel instead (#662), so from the tap through that viewer the test keeps
+     * Instagram's answer, and once the viewer goes the next shared reel chains again.
+     */
+    @Test
+    public void aSharedCommentsViewerShowsTheCommentsReel() {
+        ActivityController<Activity> chat = Robolectric.buildActivity(Activity.class).setup();
+        assertTrue("a shared reel chains", ChatReels.chain(0));
+
+        ChatReels.commentTapped();
+        assertFalse("the opener asks for the comment's reel", ChatReels.chain(0));
+        assertFalse("the reply bar answers the comment's message", ChatReels.chaining());
+        assertTrue("Instagram's own yes stands", ChatReels.chain(1));
+        assertTrue("and the reply bar follows it", ChatReels.chaining());
+        assertFalse(ChatReels.chain(0));
+
+        chat.pause();
+        ActivityController<Activity> viewer = Robolectric.buildActivity(Activity.class).setup();
+        ShadowSystemClock.advanceBy(ChatReels.COMMENT_MS * 3, TimeUnit.MILLISECONDS);
+        assertFalse("the viewer pages its reels long after the tap", ChatReels.chain(0));
+
+        viewer.pause();
+        ActivityController<Activity> profile = Robolectric.buildActivity(Activity.class).setup();
+        assertTrue("a screen over the viewer is the switch's again", ChatReels.chain(0));
+        profile.pause().stop().destroy();
+        viewer.resume();
+        assertFalse("back on the comment's viewer", ChatReels.chain(0));
+
+        viewer.pause().stop().destroy();
+        chat.resume();
+        assertTrue("the viewer's gone, so the next shared reel chains", ChatReels.chain(0));
+        assertTrue(ChatReels.chaining());
+        assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
+    }
+
+    /** A comment's tap that opens nothing within the wait lets go, and the next viewer chains as before. */
+    @Test
+    public void aSharedCommentsTapWithNoViewerLetsGo() {
+        Robolectric.buildActivity(Activity.class).setup();
+        ChatReels.commentTapped();
+        ShadowSystemClock.advanceBy(ChatReels.COMMENT_MS + 1, TimeUnit.MILLISECONDS);
+        assertTrue("past the wait", ChatReels.chain(0));
+        Robolectric.buildActivity(Activity.class).setup();
+        assertTrue("a later viewer isn't the comment's", ChatReels.chain(0));
     }
 
     /** A viewer pushed in the chat's place takes the bubble off the screen, which lets the next tap open. */

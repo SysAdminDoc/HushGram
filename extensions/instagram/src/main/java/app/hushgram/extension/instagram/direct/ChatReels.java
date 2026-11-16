@@ -102,13 +102,24 @@ public final class ChatReels {
     /** Instagram's own answer to the chat reels test, a server test it reads once a session: yes chains a chat's reels without the switch. */
     private static volatile boolean instagramChains;
 
+    /** How long after a shared comment's tap the next activity counts as the viewer it opened (#662). */
+    static final long COMMENT_MS = 5_000;
+    /** No shared comment's tap waiting for its viewer. */
+    private static final long NO_COMMENT = Long.MIN_VALUE;
+    /** When a comment shared in a chat, on a reel, was tapped, until the next activity takes it as its viewer. */
+    private static volatile long commentAt = NO_COMMENT;
+    /** The Reels viewer a shared comment's tap opened, while it's there. */
+    @Nullable private static volatile WeakReference<Activity> commentViewer;
+    /** The activity created or resumed last, the one on top. */
+    @Nullable private static volatile WeakReference<Activity> top;
+
     private ChatReels() {
     }
 
     /**
      * The chat reels test: Instagram's answer ([answer] nonzero for yes), or yes while the switch is
      * on. Instagram's answer while the switch is off, HushGram is paused or the settings aren't
-     * ready. Never throws.
+     * ready, and for the viewer a shared comment's tap opens ({@link #commentTapped()}). Never throws.
      */
     public static boolean chain(int answer) {
         boolean instagram = answer != 0;
@@ -118,11 +129,54 @@ public final class ChatReels {
                 Logger.printDebug(() -> "Instagram's own chat reels test: " + (instagram ? "on" : "off"));
             }
             HookStatus.invoked(FamilyNames.CHAT_REELS);
-            return instagram || (Utils.settingsReady() && Settings.SWIPE_CHAT_REELS.get());
+            return instagram || (Utils.settingsReady() && Settings.SWIPE_CHAT_REELS.get() && !onACommentsViewer());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels flag", failure);
             return instagram;
         }
+    }
+
+    /**
+     * Told as a tap on a comment shared in a chat, on a reel, goes on to open a Reels viewer with only
+     * that reel (#662). Instagram's opener asks the chat reels test for it like for a shared reel, and
+     * with the chain the viewer opens on the chat's shared reels, which the comment's reel isn't one
+     * of, so it starts on a reel the comment isn't on. The test keeps Instagram's answer from this tap
+     * through the viewer it opens, the next activity within {@link #COMMENT_MS}, for as long as that
+     * viewer is on top. Never throws.
+     */
+    public static void commentTapped() {
+        try {
+            commentAt = SystemClock.uptimeMillis();
+            commentViewer = null;
+            watchActivities();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_REELS, "shared comment tap", failure);
+        }
+    }
+
+    /** Whether the chat reels test is being read for a shared comment's viewer: on its way, or on top. */
+    private static boolean onACommentsViewer() {
+        if (commentPending()) return true;
+        Activity viewer = commentViewer == null ? null : commentViewer.get();
+        WeakReference<Activity> onTop = top;
+        return viewer != null && onTop != null && viewer == onTop.get();
+    }
+
+    /** Whether a shared comment's tap is within {@link #COMMENT_MS} and its viewer isn't there yet; forgets an older one. */
+    private static boolean commentPending() {
+        long at = commentAt;
+        if (at == NO_COMMENT) return false;
+        long since = SystemClock.uptimeMillis() - at;
+        if (since >= 0 && since <= COMMENT_MS) return true;
+        commentAt = NO_COMMENT;
+        return false;
+    }
+
+    /** Forgets a shared comment's tap and its viewer, for tests. */
+    public static void forgetComment() {
+        commentAt = NO_COMMENT;
+        commentViewer = null;
+        top = null;
     }
 
     /**
@@ -386,10 +440,11 @@ public final class ChatReels {
     /**
      * Whether a chat's reels are chained, so a reel swiped to needs its own message on the reply bar:
      * the switch is on, or Instagram's own chat reels test said yes, which chains them with the switch
-     * off and has the same wrong-message reply bar (#662).
+     * off and has the same wrong-message reply bar (#662). A shared comment's viewer isn't chained by the
+     * switch, so it keeps Instagram's own answer there too.
      */
     static boolean chaining() {
-        return instagramChains || Settings.SWIPE_CHAT_REELS.get();
+        return instagramChains || (Settings.SWIPE_CHAT_REELS.get() && !onACommentsViewer());
     }
 
     /** The info of [item]'s own message in the chat in place of [instagram], or null to keep Instagram's. */
@@ -582,16 +637,21 @@ public final class ChatReels {
     }
 
     private static void watch(Object message, @Nullable View view) {
+        watchActivities();
+        if (view == null) return;
+        Cover cover = new Cover(message, view);
+        view.addOnAttachStateChangeListener(cover);
+        view.getViewTreeObserver().addOnWindowFocusChangeListener(cover);
+    }
+
+    /** Registers {@link Watcher} on the application once. */
+    private static void watchActivities() {
         Context context = Utils.getContext();
         Context app = context == null ? null : context.getApplicationContext();
         if (app instanceof Application && app != watched) {
             ((Application) app).registerActivityLifecycleCallbacks(new Watcher());
             watched = (Application) app;
         }
-        if (view == null) return;
-        Cover cover = new Cover(message, view);
-        view.addOnAttachStateChangeListener(cover);
-        view.getViewTreeObserver().addOnWindowFocusChangeListener(cover);
     }
 
     /** Clears [message]'s open once its bubble's window loses focus or the bubble leaves it, then stops listening. */
@@ -629,17 +689,39 @@ public final class ChatReels {
     /**
      * Clears a tap's open when any activity pauses. The replies stay: Instagram goes through a chat's
      * messages once as it loads, so a viewer closing and the next tap in the same chat still need them.
+     * Also keeps which activity is on top, and takes the first one created after a shared comment's
+     * tap as the viewer it opened, until that one goes (#662).
      */
     private static final class Watcher implements Application.ActivityLifecycleCallbacks {
         @Override public void onActivityPaused(@NonNull Activity activity) {
             covered();
         }
 
-        @Override public void onActivityResumed(@NonNull Activity activity) { }
-        @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
+        @Override public void onActivityResumed(@NonNull Activity activity) {
+            top = new WeakReference<>(activity);
+        }
+
+        @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) {
+            try {
+                top = new WeakReference<>(activity);
+                if (!commentPending()) return;
+                commentAt = NO_COMMENT;
+                commentViewer = new WeakReference<>(activity);
+                Logger.printDebug(() -> "Chat reels: a shared comment's viewer opened, it shows the comment's reel without the chat's");
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.CHAT_REELS, "shared comment viewer", failure);
+            }
+        }
+
+        @Override public void onActivityDestroyed(@NonNull Activity activity) {
+            WeakReference<Activity> viewer = commentViewer;
+            if (viewer != null && viewer.get() == activity) commentViewer = null;
+            WeakReference<Activity> onTop = top;
+            if (onTop != null && onTop.get() == activity) top = null;
+        }
+
         @Override public void onActivityStarted(@NonNull Activity activity) { }
         @Override public void onActivityStopped(@NonNull Activity activity) { }
         @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
-        @Override public void onActivityDestroyed(@NonNull Activity activity) { }
     }
 }
