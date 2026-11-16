@@ -39,6 +39,22 @@ public final class SplitNotesRow {
         }
     }
 
+    /**
+     * A second server test that leaves the Stories stack out of the split row and skips loading
+     * its stories (#717): Instagram's answer ([answer] nonzero for yes), or no while the switch is
+     * on, so the split row keeps all three stacks. Never throws.
+     */
+    public static boolean storiesOff(int answer) {
+        boolean instagram = answer != 0;
+        try {
+            HookStatus.invoked(FamilyNames.SPLIT_NOTES_ROW);
+            return instagram && !on();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SPLIT_NOTES_ROW, "split notes row stories flag", failure);
+            return instagram;
+        }
+    }
+
     private static boolean on() {
         return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.SPLIT_NOTES_ROW.get();
     }

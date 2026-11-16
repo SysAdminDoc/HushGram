@@ -88,4 +88,30 @@ public class SplitNotesRowTest {
 
         assertTrue("back on", SplitNotesRow.split(0));
     }
+
+    /** With the switch on, the Stories stack's off switch always reads no, so the split row keeps Stories (#717). */
+    @Test
+    public void onTheStoriesStackStays() {
+        assertFalse("the server left Stories out", SplitNotesRow.storiesOff(1));
+        assertFalse("the server kept Stories", SplitNotesRow.storiesOff(0));
+        assertTrue(HookStatus.missing(FamilyNames.SPLIT_NOTES_ROW).toString(),
+                HookStatus.missing(FamilyNames.SPLIT_NOTES_ROW).isEmpty());
+    }
+
+    /** Off or paused, the Stories off switch keeps Instagram's answer. */
+    @Test
+    public void offOrPausedTheStoriesAnswerIsInstagrams() {
+        Settings.SPLIT_NOTES_ROW.save(false);
+        assertTrue("off, Instagram's yes", SplitNotesRow.storiesOff(1));
+        assertFalse("off, Instagram's no", SplitNotesRow.storiesOff(0));
+        Settings.SPLIT_NOTES_ROW.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("paused, Instagram's yes", SplitNotesRow.storiesOff(1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertTrue("no context, Instagram's yes", SplitNotesRow.storiesOff(1)));
+    }
 }

@@ -29,6 +29,16 @@ internal const val SPLIT_NOTES_ROW = "$EXTENSION_PACKAGE/direct/SplitNotesRow;->
  */
 internal const val SPLIT_NOTES_ROW_FLAG = 0x8115f000007436L
 
+internal const val SPLIT_NOTES_STORIES = "$EXTENSION_PACKAGE/direct/SplitNotesRow;->storiesOff(I)Z"
+
+/**
+ * A second server test on 454 that leaves the Stories stack out of the split row (#717): read once
+ * where the row's stacks get registered (a yes skips Stories) and once on the way into your
+ * messages (a yes skips loading the stories it shows). Accounts in the split test with this one on
+ * see only Instants and Notes.
+ */
+internal const val SPLIT_NOTES_STORIES_OFF_FLAG = 0x8115f0000e7443L
+
 /** The read that picks the split row when your messages open: an onCreate taking a Bundle. */
 private val INBOX_OPEN = listOf("Landroid/os/Bundle;")
 
@@ -56,9 +66,22 @@ val splitNotesRowPatch = bytecodePatch(
     }
 }
 
-/** Answers every read of [SPLIT_NOTES_ROW_FLAG] through [SPLIT_NOTES_ROW]. */
+/**
+ * Answers every read of [SPLIT_NOTES_ROW_FLAG] through [SPLIT_NOTES_ROW], and every read of
+ * [SPLIT_NOTES_STORIES_OFF_FLAG] through [SPLIT_NOTES_STORIES]. A build without the second test
+ * keeps the split row as it is.
+ */
 internal fun BytecodePatchContext.splitNotesRow() {
-    answerFlagLoads(findSplitNotesRow().map { it to SPLIT_NOTES_ROW })
+    answerFlagLoads(findSplitNotesRow().map { it to SPLIT_NOTES_ROW } + findSplitNotesStories().map { it to SPLIT_NOTES_STORIES })
+}
+
+/** Every read of [SPLIT_NOTES_STORIES_OFF_FLAG], none shared with another flag, or none at all. */
+internal fun BytecodePatchContext.findSplitNotesStories(): List<FlagLoad> {
+    val reads = findFlagLoads(PATCH, SPLIT_NOTES_STORIES_OFF_FLAG, "Z")
+    reads.firstOrNull { it.shared }?.let {
+        refuse("the read of ${SPLIT_NOTES_STORIES_OFF_FLAG.toString(16)} in ${it.type}->${it.name} is shared with another flag")
+    }
+    return reads
 }
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
