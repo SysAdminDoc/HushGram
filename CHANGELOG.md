@@ -44,6 +44,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* `Hide Follow on posts` catches the Follow button on a post you scroll to as well. It could slip through until something else on the screen moved. `Hide captions`, `Hide the Like button`, `Hide the Save button`, `Hide the emoji row` and `Hide GIFs in comments` got the same fix. Reported in #719.
 * `Take a scroll break` remembers a running break and the minutes you've already used when Instagram is closed and opened again, or Android ends it in the background. Both used to start over. Reported in #297.
 * `Stop after a set number of reels` keeps its count, and a stop it already reached, when Instagram is closed and opened again before the break is up.
 * A wavy seek bar and its tall handle aren't cut flat along the top anymore once the controls dim on a reel. Reported in #450 and #586.

@@ -13,6 +13,7 @@ import android.app.Activity;
 import android.os.Looper;
 import android.view.View;
 import android.view.ViewStub;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -27,6 +28,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -101,6 +103,33 @@ public class ViewHiderTest {
 
     private void layout() {
         root.getViewTreeObserver().dispatchOnGlobalLayout();
+    }
+
+    /** Tells the window something in it scrolled, as Android does while it draws the frame after a scroll. */
+    private void scrolled() throws Exception {
+        Method dispatch = ViewTreeObserver.class.getDeclaredMethod("dispatchOnScrollChanged");
+        dispatch.setAccessible(true);
+        dispatch.invoke(root.getViewTreeObserver());
+    }
+
+    @Test
+    public void aRowAListScrollsInIsLookedAtThoughTheWindowWasNotLaidOut() throws Exception {
+        LinearLayout column = new LinearLayout(activity);
+        root.addView(column);
+        show();
+        hider(null).watch(activity);
+        frame();
+
+        // A list binds and lays out a row it scrolls in by itself, so the window hears of no layout.
+        TextView target = view(targetId, "follow");
+        column.addView(target);
+        assertFalse("with no layout and no scroll, nothing is looked for", frame());
+        assertEquals(View.VISIBLE, target.getVisibility());
+
+        scrolled();
+
+        assertTrue("the frame after the scroll is drawn again", frame());
+        assertEquals(View.GONE, target.getVisibility());
     }
 
     @Test

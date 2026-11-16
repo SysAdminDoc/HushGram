@@ -27,6 +27,7 @@ import org.robolectric.annotation.Config;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +56,7 @@ public class ViewWatcherTest {
         boolean wanted = true;
         boolean redraw;
         boolean leaveInPreDraw;
+        boolean follows;
 
         Member() {
             members.add(this);
@@ -63,6 +65,11 @@ public class ViewWatcherTest {
         @Override
         public boolean wanted() {
             return wanted;
+        }
+
+        @Override
+        public boolean followsScrolls() {
+            return follows;
         }
 
         @Override
@@ -126,6 +133,57 @@ public class ViewWatcherTest {
     /** One frame's pre-draw on the window. True when a listener canceled the frame. */
     private boolean frame() {
         return tree().dispatchOnPreDraw();
+    }
+
+    /** Tells the window something in it scrolled, as Android does while it draws the frame after a scroll. */
+    private void scrolled() throws Exception {
+        Method dispatch = ViewTreeObserver.class.getDeclaredMethod("dispatchOnScrollChanged");
+        dispatch.setAccessible(true);
+        dispatch.invoke(tree());
+    }
+
+    @Test
+    public void aScrollCountsAsALayoutOnlyForAMemberThatFollowsScrolls() throws Exception {
+        int scrolls = listeners("mOnScrollChangedListeners");
+        Member follower = new Member();
+        follower.follows = true;
+        Member still = new Member();
+        ViewWatcher.join(activity, follower);
+        ViewWatcher.join(activity, still);
+        assertEquals(scrolls + 1, listeners("mOnScrollChangedListeners"));
+        frame();
+
+        scrolled();
+        frame();
+        frame();
+
+        assertEquals(List.of(true, true, false), follower.laidOut);
+        assertEquals(List.of(true, false, false), still.laidOut);
+        ViewWatcher.leave(activity, follower);
+        ViewWatcher.leave(activity, still);
+        assertEquals(scrolls, listeners("mOnScrollChangedListeners"));
+    }
+
+    @Test
+    public void aScrollAsksForOneMoreFrameSoAListThatStoppedThereIsLookedAt() throws Exception {
+        View decor = activity.getWindow().getDecorView();
+        Member still = new Member();
+        ViewWatcher.join(activity, still);
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100));
+        shadowOf(decor).clearWasInvalidated();
+        scrolled();
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100));
+        assertFalse("with no member following scrolls, no frame is asked for", shadowOf(decor).wasInvalidated());
+
+        Member follower = new Member();
+        follower.follows = true;
+        ViewWatcher.join(activity, follower);
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100));
+        shadowOf(decor).clearWasInvalidated();
+        scrolled();
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100));
+
+        assertTrue("one more frame is asked for", shadowOf(decor).wasInvalidated());
     }
 
     @Test

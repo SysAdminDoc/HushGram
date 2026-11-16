@@ -29,7 +29,11 @@ import java.util.function.Consumer;
  * listeners go on with the first member and come off with the last, so with every helper on, the
  * window still has one of each. A layout marks every member's window as laid out again, and before
  * each frame every member is asked in the order it joined, with whether a layout came since it last
- * looked. A member leaves on its own, from its pre-draw too. A decor view that isn't attached yet
+ * looked. For a member that {@link Member#followsScrolls follows scrolls} a scroll counts as a
+ * layout too: a list lays out the rows it scrolls in by itself, with no layout of the window, and
+ * the window hears of a scroll only as that frame is drawn, so one more frame is asked for, which
+ * a list that stopped right there would never draw. A member leaves on its own, from its pre-draw
+ * too. A decor view that isn't attached yet
  * is waited for, since an observer taken from it would be a stand-in thrown away on attach.
  * Main thread only, like the lifecycle callbacks and frames that drive it.
  */
@@ -45,6 +49,15 @@ public final class ViewWatcher {
          * because the member changed what it shows. Catches what it throws.
          */
         boolean preDraw(Activity owner, boolean laidOut);
+
+        /**
+         * Whether a scroll in the window counts as a layout for this member, for one that looks for
+         * views in rows a list brings in. Off by default, so the rest don't redo their work as a list
+         * moves.
+         */
+        default boolean followsScrolls() {
+            return false;
+        }
     }
 
     private static final WeakHashMap<Activity, Session> sessions = new WeakHashMap<>();
@@ -115,7 +128,8 @@ public final class ViewWatcher {
 
     /** One activity's listeners and its members, each with whether a layout came since it looked. */
     private static final class Session implements ViewTreeObserver.OnGlobalLayoutListener,
-            ViewTreeObserver.OnPreDrawListener, View.OnAttachStateChangeListener {
+            ViewTreeObserver.OnPreDrawListener, ViewTreeObserver.OnScrollChangedListener,
+            View.OnAttachStateChangeListener {
         private final WeakReference<Activity> activity;
         private final Map<Member, Boolean> members = new LinkedHashMap<>();
         @Nullable
@@ -151,6 +165,7 @@ public final class ViewWatcher {
             if (tree != null && tree.isAlive()) {
                 tree.removeOnGlobalLayoutListener(this);
                 tree.removeOnPreDrawListener(this);
+                tree.removeOnScrollChangedListener(this);
             }
             Activity owner = activity.get();
             if (waiting && owner != null) owner.getWindow().getDecorView().removeOnAttachStateChangeListener(this);
@@ -162,6 +177,7 @@ public final class ViewWatcher {
             ViewTreeObserver tree = decor.getViewTreeObserver();
             tree.addOnGlobalLayoutListener(this);
             tree.addOnPreDrawListener(this);
+            tree.addOnScrollChangedListener(this);
             observer = tree;
             decor.invalidate();
         }
@@ -185,6 +201,19 @@ public final class ViewWatcher {
         @Override
         public void onGlobalLayout() {
             for (Map.Entry<Member, Boolean> each : members.entrySet()) each.setValue(Boolean.TRUE);
+        }
+
+        @Override
+        public void onScrollChanged() {
+            boolean any = false;
+            for (Map.Entry<Member, Boolean> each : members.entrySet()) {
+                if (each.getKey().followsScrolls()) {
+                    each.setValue(Boolean.TRUE);
+                    any = true;
+                }
+            }
+            Activity owner = activity.get();
+            if (any && owner != null) owner.getWindow().getDecorView().postInvalidateOnAnimation();
         }
 
         @Override

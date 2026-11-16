@@ -34,8 +34,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>It watches the activities once the application is up. While the switch is on, an activity that
  * is resumed gets one global-layout listener, which only notes that the screen was laid out again,
  * and one pre-draw listener. Before a frame the pre-draw listener puts back to GONE anything it hid
- * that Instagram showed again, and after a layout it looks through the window once for the views
- * named. A hit is set GONE and the frame is drawn again, so it never shows and the row closes up
+ * that Instagram showed again, and after a layout or a scroll it looks through the window once for
+ * the views named, since a list lays out the rows it scrolls in with no layout of the window. A hit is set GONE and the frame is drawn again, so it never shows and the row closes up
  * around it. A view stub is never touched: only the view it inflated, which has its own id.
  *
  * <p>With a [scope] the views count only inside a view of that id, so an id Instagram reuses
@@ -229,6 +229,12 @@ final class ViewHider {
         @Override
         public boolean wanted() {
             return ViewHider.this.wanted();
+        }
+
+        /** A feed or comment list lays out the rows it scrolls in by itself, so a scroll is a search too. */
+        @Override
+        public boolean followsScrolls() {
+            return true;
         }
 
         @Override
