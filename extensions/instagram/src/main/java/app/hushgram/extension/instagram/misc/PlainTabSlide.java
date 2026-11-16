@@ -50,6 +50,8 @@ final class PlainTabSlide implements GlassTabSlide.Host {
     private boolean shown;
     /** Instagram's touch strip for the seek bar, found once: Instagram keeps one and moves it between reels. */
     @Nullable private WeakReference<View> stripRef;
+    /** Instagram's bottom sheet holder, kept once found: Instagram adds it with the first sheet and keeps it. */
+    @Nullable private WeakReference<View> sheetHolderRef;
 
     PlainTabSlide(ViewGroup bar) {
         this.bar = bar;
@@ -124,6 +126,20 @@ final class PlainTabSlide implements GlassTabSlide.Host {
     @Nullable
     @Override public View stripAt(float x, float y) {
         return null;
+    }
+
+    /**
+     * Whether a bottom sheet shows over the bar, so a sideways drag there, like along the share sheet's
+     * row of apps, stays the sheet's (#526). Looked for on each press until Instagram adds the holder.
+     */
+    @Override public boolean underASheet() {
+        View root = bar.getRootView();
+        View holder = sheetHolderRef == null ? null : sheetHolderRef.get();
+        if (holder == null || holder.getRootView() != root) {
+            holder = GlassTabBar.find(root, GlassTabBar.SHEET_HOLDER);
+            sheetHolderRef = holder == null ? null : new WeakReference<>(holder);
+        }
+        return GlassTabBar.showsASheet(holder);
     }
 
     @Override public void follow(float x) {

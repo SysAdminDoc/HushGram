@@ -801,6 +801,17 @@ public final class GlassTabBar {
         return id == 0 ? null : root.findViewById(id);
     }
 
+    /** Whether [holder], Instagram's bottom sheet holder ({@link #SHEET_HOLDER}), is shown with a sheet in it. */
+    static boolean showsASheet(@Nullable View holder) {
+        if (!(holder instanceof ViewGroup) || !holder.isShown()) return false;
+        ViewGroup sheets = (ViewGroup) holder;
+        for (int i = 0; i < sheets.getChildCount(); i++) {
+            View sheet = sheets.getChildAt(i);
+            if (sheet.getVisibility() == View.VISIBLE && sheet.getHeight() > 0) return true;
+        }
+        return false;
+    }
+
     /** The first shown view called [name] under [root], or null ({@link #shownById}). */
     @Nullable
     static View findShown(View root, String name) {
@@ -2107,15 +2118,8 @@ public final class GlassTabBar {
         }
 
         /** Whether Instagram's bottom sheet holder in the bar's window shows a sheet. */
-        boolean underASheet() {
-            View holder = sheetHolder();
-            if (!(holder instanceof ViewGroup) || !holder.isShown()) return false;
-            ViewGroup sheets = (ViewGroup) holder;
-            for (int i = 0; i < sheets.getChildCount(); i++) {
-                View sheet = sheets.getChildAt(i);
-                if (sheet.getVisibility() == View.VISIBLE && sheet.getHeight() > 0) return true;
-            }
-            return false;
+        @Override public boolean underASheet() {
+            return showsASheet(sheetHolder());
         }
 
         /**

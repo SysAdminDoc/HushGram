@@ -706,6 +706,8 @@ public class GlassTabBarTest {
             host.frame();
             host.frame();
             assertEquals("a sheet came up, and the insets didn't go round", asked, insets.get());
+            assertTrue("the pill's slide sees the sheet, so the sheet keeps its presses (#526)",
+                    ((GlassTabSlide.Host) host.glass()).underASheet());
             assertEquals("under a sheet Instagram keeps the 0", 0, GlassTabBar.navBarHeight(nav));
             assertEquals("the keyboard over the sheet too", 0, GlassTabBar.navBarHeightOverTheKeyboard(nav));
             assertEquals("the Reels viewer under the sheet keeps its size", nav, GlassTabBar.reelsMargin(0));
@@ -715,6 +717,8 @@ public class GlassTabBarTest {
 
             holder.removeView(sheet);
             host.frame();
+            assertFalse("the sheet went, and the bar's presses are its own again",
+                    ((GlassTabSlide.Host) host.glass()).underASheet());
             assertEquals("the sheet went, and the insets didn't go round", asked, insets.get());
             assertEquals("the keyboard with no sheet gets the height", nav, GlassTabBar.navBarHeightOverTheKeyboard(nav));
             assertEquals("Instagram pads the Reels viewer by it, so the viewer gives up as much (#222)", 0, GlassTabBar.reelsMargin(0));

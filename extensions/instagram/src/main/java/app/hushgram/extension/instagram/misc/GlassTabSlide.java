@@ -69,6 +69,12 @@ final class GlassTabSlide {
         /** A reel's seek bar touch strip when [x], [y], in the bar's own pixels, are on it and on the bar too, else null. */
         @Nullable
         View stripAt(float x, float y);
+
+        /**
+         * Whether one of Instagram's bottom sheets shows in the bar's window. The sheet covers the bar, so
+         * a press where the bar is belongs to the sheet, like the share sheet's Send button (#526).
+         */
+        boolean underASheet();
     }
 
     static final int IDLE = 0;
@@ -207,7 +213,7 @@ final class GlassTabSlide {
             if (state == SLIDING) host.follow(Float.NaN);
             state = IDLE;
             routed = null;
-            if (!running.getAsBoolean() || !barStill()) return false;
+            if (!running.getAsBoolean() || !barStill() || host.underASheet()) return false;
             bar.getLocationOnScreen(place);
             float x = event.getRawX() - place[0];
             float y = event.getRawY() - place[1];

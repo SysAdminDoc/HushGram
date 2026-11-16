@@ -65,6 +65,8 @@ public class GlassTabSlideTest {
         boolean fails;
         /** A reel's seek bar strip over the bar's top 28 pixels, or null on a screen without one. */
         View strip;
+        /** Whether one of Instagram's bottom sheets covers the bar. */
+        boolean sheet;
 
         @Override public boolean onPill(float x, float y) {
             return x >= 20 && x < 1060 && y >= 10 && y < 140;
@@ -72,6 +74,10 @@ public class GlassTabSlideTest {
 
         @Override public View stripAt(float x, float y) {
             return strip != null && y >= 0 && y < 28 ? strip : null;
+        }
+
+        @Override public boolean underASheet() {
+            return sheet;
         }
 
         @Override public void follow(float x) {
@@ -413,6 +419,34 @@ public class GlassTabSlideTest {
 
         assertFalse("below the strip, the tabs are Instagram's again", touch(MotionEvent.ACTION_DOWN, middle(2), 75));
         assertEquals(3, got.size());
+    }
+
+    /**
+     * #526: a bottom sheet over the bar, like the share sheet on a reel, keeps every press. Where the strip
+     * runs over the bar sits the sheet's Send button, which used to seek the reel behind the sheet instead,
+     * and a sideways drag on the pill, like along the sheet's row of apps, never slides. With the sheet
+     * gone the strip has its presses back.
+     */
+    @Test public void underABottomSheetEveryPressIsTheSheets() {
+        List<float[]> got = stripOverTheBar();
+        pill.sheet = true;
+        assertFalse("the strip doesn't take the press", touch(MotionEvent.ACTION_DOWN, middle(1), 10));
+        assertEquals(GlassTabSlide.IDLE, slide.state());
+        assertFalse(touch(MotionEvent.ACTION_UP, middle(1), 10));
+        assertTrue("the strip got nothing", got.isEmpty());
+
+        assertFalse(touch(MotionEvent.ACTION_DOWN, middle(0), 75));
+        assertFalse("sideways past the slop is still the sheet's", touch(MotionEvent.ACTION_MOVE, middle(3), 78));
+        assertFalse(touch(MotionEvent.ACTION_UP, middle(3), 78));
+        assertTrue("no slide", pill.follows.isEmpty());
+        assertTrue("Instagram had no cancel", activity.actions.isEmpty());
+        assertTrue(clicked.isEmpty());
+
+        pill.sheet = false;
+        assertTrue("the sheet went, and the strip takes its press", touch(MotionEvent.ACTION_DOWN, middle(1), 10));
+        assertEquals(GlassTabSlide.ROUTED, slide.state());
+        assertTrue(touch(MotionEvent.ACTION_UP, middle(1), 10));
+        assertEquals(2, got.size());
     }
 
     /**
