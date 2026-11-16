@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.misc;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -118,13 +119,14 @@ public final class GlassPreview extends View {
         int height = getHeight();
         if (width <= 0 || height <= 0) return;
         blurred = false;
+        boolean material = GlassTabBar.material();
         try {
             drawScene(canvas, width, height);
             float side = 18 * density;
             float tall = 52 * density;
             pill.set(side, height - tall - 14 * density, width - side, height - 14 * density);
             float round = tall / 2f;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && canvas.isHardwareAccelerated()) {
+            if (!material && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && canvas.isHardwareAccelerated()) {
                 blurred = drawBlurred(canvas, width, height, round);
             }
         } catch (Throwable failure) {
@@ -134,6 +136,10 @@ public final class GlassPreview extends View {
         float round = pill.height() / 2f;
         paint.setShader(null);
         paint.setStyle(Paint.Style.FILL);
+        if (material) {
+            drawMaterial(canvas, width, round);
+            return;
+        }
         paint.setColor(pillTint());
         canvas.drawRoundRect(pill, round, round, paint);
         boolean dark = GlassTabBar.isDark(base);
@@ -158,6 +164,23 @@ public final class GlassPreview extends View {
         edge.inset(density / 2f, density / 2f);
         canvas.drawRoundRect(edge, edge.height() / 2f, edge.height() / 2f, paint);
         paint.setStyle(Paint.Style.FILL);
+    }
+
+    /** The Material look's sample (#720): the pill solid in the bar's surface color, a round marker, no sheen or edge. */
+    private void drawMaterial(Canvas canvas, int width, float round) {
+        boolean dark = GlassTabBar.isDark(base);
+        int[] colors = GlassTabBar.materialColors(getContext(), dark);
+        int surface = colors[0];
+        paint.setColor((surface & 0x00ffffff) | (GlassTabBar.scaledAlpha(Color.alpha(surface), tintPercent() / 100f) << 24));
+        canvas.drawRoundRect(pill, round, round, paint);
+        capsule.set(pill.left + width * 0.26f, pill.top + 5 * density, pill.left + width * 0.26f + 64 * density, pill.bottom - 5 * density);
+        paint.setColor(colors[1]);
+        canvas.drawRoundRect(capsule, capsule.height() / 2f, capsule.height() / 2f, paint);
+        paint.setColor(dark ? 0xccffffff : 0xcc111111);
+        float step = (pill.width() - 2 * round) / 3f;
+        for (int tab = 0; tab < 4; tab++) {
+            canvas.drawCircle(pill.left + round + step * tab, pill.centerY(), 4.5f * density, paint);
+        }
     }
 
     /** Colorful circles and bars, so blur and bend have something to act on. */

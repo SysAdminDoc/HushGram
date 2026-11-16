@@ -1481,6 +1481,36 @@ public final class GlassTabBar {
         return Math.min(Math.round(dp * density), Math.max(0f, heightPx / 2f));
     }
 
+    /** Material 3's baseline surface container and secondary container, dark then light, for phones without Material You (#720). */
+    static final int[] MATERIAL_DARK = {0xff211f26, 0xff4a4458};
+    static final int[] MATERIAL_LIGHT = {0xfff3edf7, 0xffe8def8};
+
+    /** Whether the Material look is on (#720): its switch, which rests while the liquid look is on. */
+    public static boolean material() {
+        return Settings.GLASS_TAB_BAR_MATERIAL.isAvailable() && Settings.GLASS_TAB_BAR_MATERIAL.get();
+    }
+
+    /**
+     * The Material look's colors (#720): the bar's, Material 3's surface container, then the marker's, its
+     * secondary container, both from the phone's Material You palette. Android 14 and newer name the two
+     * tokens; Android 12 and 13 get them from the tones they're made of (neutral 12 and secondary 30 when
+     * [dark], neutral 95 and secondary 90 when light); older phones get Material 3's baseline.
+     */
+    public static int[] materialColors(Context context, boolean dark) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return new int[] {
+                    context.getColor(dark ? android.R.color.system_surface_container_dark : android.R.color.system_surface_container_light),
+                    context.getColor(dark ? android.R.color.system_secondary_container_dark : android.R.color.system_secondary_container_light)};
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            int surface = dark
+                    ? blend(context.getColor(android.R.color.system_neutral1_900), context.getColor(android.R.color.system_neutral1_800), 0.2f)
+                    : context.getColor(android.R.color.system_neutral1_50);
+            return new int[] {surface, context.getColor(dark ? android.R.color.system_accent2_700 : android.R.color.system_accent2_100)};
+        }
+        return (dark ? MATERIAL_DARK : MATERIAL_LIGHT).clone();
+    }
+
     /** The selected tab's capsule: a quarter of white on dark glass, a sixth of grey on light. */
     static int highlight(int base) {
         return isDark(base) ? 0x40ffffff : 0x2a787880;
@@ -1794,6 +1824,8 @@ public final class GlassTabBar {
         private final Rect reelsRect = new Rect();
         /** The liquid look (#65): a round pill and highlight, Search in a circle of its own, and the compact row on a scroll. */
         private final boolean liquid;
+        /** The Material look (#720): a solid pill in the phone's colors, fully round, with a round marker and no glass. */
+        private final boolean material;
         /** Whether the pill's rim bends what's behind it (#369), the liquid pill's or the standard one's (#391). */
         private final boolean refract;
         /** How far the liquid bar has shrunk to its compact row: 0 is the whole bar, 1 the tab you're on and Search. */
@@ -1820,7 +1852,9 @@ public final class GlassTabBar {
         Glass(ViewGroup bar) {
             this.bar = bar;
             this.density = bar.getResources().getDisplayMetrics().density;
-            this.blurWanted = Settings.GLASS_TAB_BAR_BLUR.get() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
+            this.material = material();
+            // The Material look is solid, so there's nothing for a blur to show through (#720).
+            this.blurWanted = !material && Settings.GLASS_TAB_BAR_BLUR.get() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
             this.floating = Settings.GLASS_TAB_BAR_FLOAT.get();
             this.haptics = Settings.GLASS_TAB_BAR_HAPTICS.get();
             this.hapticStyle = Settings.GLASS_TAB_BAR_HAPTIC_STYLE.get();
@@ -2839,6 +2873,9 @@ public final class GlassTabBar {
             private final Paint bubbleRim = new Paint(Paint.ANTI_ALIAS_FLAG);
             private final Matrix bubbleMatrix = new Matrix();
             private int bubbleShade;
+            /** The Material look's bar and marker colors (#720), and whether they're the dark shade's. */
+            @Nullable private int[] materialColors;
+            private boolean materialDark;
             /** The tab the capsule's middle was over when it last ticked, or -1 before the first frame. */
             private int tickedTab = -1;
             private boolean reported;
@@ -2876,6 +2913,10 @@ public final class GlassTabBar {
                 if (!pillBounds(rect)) return;
                 if (liquidNow()) {
                     drawLiquid(canvas);
+                    return;
+                }
+                if (material) {
+                    drawMaterial(canvas);
                     return;
                 }
                 float radius = cornerPx(corners, false, rect.height(), density);
@@ -2949,6 +2990,33 @@ public final class GlassTabBar {
                     outline.inset(half, half);
                     canvas.drawOval(outline, stroke);
                 }
+            }
+
+            /**
+             * The Material look (#720): the pill solid in Material 3's surface container, its ends fully round and
+             * lifted on a soft shadow in either shade, with the marker on the tab you're on in the secondary
+             * container, as round. The opacity slider still scales the pill's fill.
+             */
+            private void drawMaterial(@NonNull Canvas canvas) {
+                boolean dark = isDark(base);
+                float radius = rect.height() / 2f;
+                underlay(canvas);
+                shadow(canvas, rect, radius);
+                int surface = materialPair(dark)[0];
+                fill.setColor((surface & 0x00ffffff) | (scaledAlpha(Color.alpha(surface), opacityScale()) << 24));
+                canvas.drawRoundRect(rect, radius, radius, fill);
+                drawCapsule(canvas, rect, Math.max(0f, radius - dp(HIGHLIGHT_INSET_DP)), 1f);
+            }
+
+            /** The Material look's two colors for the shade the bar is in, read again only when the shade changes. */
+            private int[] materialPair(boolean dark) {
+                int[] pair = materialColors;
+                if (pair == null || materialDark != dark) {
+                    pair = GlassTabBar.materialColors(bar.getContext(), dark);
+                    materialColors = pair;
+                    materialDark = dark;
+                }
+                return pair;
             }
 
             /**
@@ -3042,7 +3110,7 @@ public final class GlassTabBar {
                     capsule.set(nowLeft, within.top + inset, nowRight, within.bottom - inset);
                 }
                 tick((nowLeft + nowRight) / 2f);
-                int color = highlight(base);
+                int color = material ? materialPair(isDark(base))[1] : highlight(base);
                 if (share < 1f) color = (color & 0x00ffffff) | (scaledAlpha(Color.alpha(color), Math.max(0f, share)) << 24);
                 fill.setColor(color);
                 if (bubble && bubbleNow != 1f) {

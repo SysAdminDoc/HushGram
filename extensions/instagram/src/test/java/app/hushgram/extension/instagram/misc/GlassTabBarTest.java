@@ -96,6 +96,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
         Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.resetToDefault();
+        Settings.GLASS_TAB_BAR_MATERIAL.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         GlassTabBar.animationsOnForTests = null;
         BaseSettings.PAUSED.save(false);
@@ -160,6 +161,70 @@ public class GlassTabBarTest {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * #720: the Material look draws the pill solid in Material 3's surface container with fully round ends,
+     * and the marker on the tab you're on in its secondary container. Below Android 12 those are the
+     * baseline colors. It rests while the liquid look is on.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void theMaterialLookIsASolidRoundPillInMaterialColors() throws Exception {
+        GlassTabBar.animationsOnForTests = false;
+        for (int base : new int[]{Color.BLACK, Color.WHITE}) {
+            int[] expected = base == Color.BLACK ? new int[]{0xff211f26, 0xff4a4458} : new int[]{0xfff3edf7, 0xffe8def8};
+            try (GlassHost host = new GlassHost(base, true, GlassHeight.STANDARD, false, false)) {
+                Settings.GLASS_TAB_BAR_MATERIAL.save(true);
+                assertTrue(GlassTabBar.material());
+                GlassTabBar.apply(host.activity);
+                host.layout();
+                try (Pixels plain = host.background()) {
+                    RectF drawn = ReflectionHelpers.getField(host.bar.getBackground(), "rect");
+                    int middle = plain.bitmap.getPixel(Math.round(drawn.centerX()), Math.round(drawn.centerY()));
+                    assertEquals("the pill is solid: " + Integer.toHexString(middle), expected[0], middle);
+                    int corner = plain.bitmap.getPixel(Math.round(drawn.left) + host.dp(3), Math.round(drawn.top) + host.dp(6));
+                    assertTrue("its ends are fully round: " + Integer.toHexString(corner), Color.alpha(corner) < 0x40);
+                }
+                assertTrue(host.bar.getChildAt(0).performClick());
+                try (Pixels active = host.background()) {
+                    RectF slot = ReflectionHelpers.getField(host.bar.getBackground(), "capsule");
+                    int marker = active.bitmap.getPixel(Math.round(slot.centerX()), Math.round(slot.centerY()));
+                    assertEquals("the marker: " + Integer.toHexString(marker), expected[1], marker);
+                }
+                host.capture(base == Color.BLACK ? "material-dark" : "material-light");
+            }
+        }
+        Settings.GLASS_TAB_BAR.save(true);
+        Settings.GLASS_TAB_BAR_MATERIAL.save(true);
+        Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        assertFalse("the liquid look wins", GlassTabBar.material());
+    }
+
+    /** #720: Android 12 and 13 give the Material look the phone's own tones, and its pill never blurs. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void theMaterialLookTakesThePhonesTonesAndNeverBlurs() {
+        GlassTabBar.animationsOnForTests = false;
+        Context context = RuntimeEnvironment.getApplication();
+        int[] light = GlassTabBar.materialColors(context, false);
+        assertEquals(context.getColor(android.R.color.system_neutral1_50), light[0]);
+        assertEquals(context.getColor(android.R.color.system_accent2_100), light[1]);
+        int[] dark = GlassTabBar.materialColors(context, true);
+        assertEquals(GlassTabBar.blend(context.getColor(android.R.color.system_neutral1_900),
+                context.getColor(android.R.color.system_neutral1_800), 0.2f), dark[0]);
+        assertEquals(context.getColor(android.R.color.system_accent2_700), dark[1]);
+        for (boolean material : new boolean[]{false, true}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+                Settings.GLASS_TAB_BAR_MATERIAL.save(material);
+                GlassTabBar.apply(host.activity);
+                host.layout();
+                assertEquals("blur with the Material look " + (material ? "on" : "off"), !material,
+                        (boolean) ReflectionHelpers.getField(host.glass(), "blurWanted"));
             }
         }
     }
@@ -1620,6 +1685,7 @@ public class GlassTabBarTest {
             Settings.GLASS_TAB_BAR_LIQUID.save(false);
             Settings.GLASS_TAB_BAR_KEEP_SIZE.save(false);
             Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.save(false);
+            Settings.GLASS_TAB_BAR_MATERIAL.save(false);
             Settings.GLASS_TAB_BAR_REFRACT.save(false);
             controller = Robolectric.buildActivity(Activity.class).setup();
             activity = controller.get();

@@ -32,6 +32,7 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.instagram.misc.GlassPreview;
+import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -63,6 +64,7 @@ public class GlassPreviewSettingsTest {
     private static void reset() {
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
+        Settings.GLASS_TAB_BAR_MATERIAL.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
@@ -255,6 +257,41 @@ public class GlassPreviewSettingsTest {
                 Color.blue(corners[0]) > 200);
         assertEquals("a redraw keeps the scene as bright", corners[0], corners[1]);
         assertEquals("a redraw keeps the scene as bright", corners[0], corners[2]);
+    }
+
+    /** #720: with the Material look on, the sample is the solid pill in the bar's colors, the phone's own on Android 14 and newer. */
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theSampleShowsTheMaterialLook() throws Exception {
+        Settings.GLASS_TAB_BAR.save(true);
+        Settings.GLASS_TAB_BAR_MATERIAL.save(true);
+        open();
+        assertNotNull("the Material look has its switch", row(Settings.GLASS_TAB_BAR_MATERIAL.key));
+        GlassPreview view = (GlassPreview) ((GlassPreviewRow) row("hushgram_glass_preview")).onCreateView(null);
+        view.setBase(Color.BLACK);
+        view.measure(View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+        int[] colors = GlassTabBar.materialColors(view.getContext(), true);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            assertEquals(view.getContext().getColor(android.R.color.system_surface_container_dark), colors[0]);
+            assertEquals(view.getContext().getColor(android.R.color.system_secondary_container_dark), colors[1]);
+        } else {
+            assertArrayEquals(new int[]{0xff211f26, 0xff4a4458}, colors);
+        }
+        float density = view.getResources().getDisplayMetrics().density;
+        float top = view.getHeight() - 66 * density;
+        float middle = view.getHeight() - 40 * density;
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        bitmap.eraseColor(Color.BLACK);
+        view.draw(new Canvas(bitmap));
+        assertEquals("the pill", colors[0], bitmap.getPixel(view.getWidth() * 3 / 4, Math.round(top + 8 * density)));
+        int marker = Math.round(18 * density + view.getWidth() * 0.26f + 32 * density);
+        assertEquals("the marker", colors[1], bitmap.getPixel(marker, Math.round(middle - 12 * density)));
+
+        Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        bitmap.eraseColor(Color.BLACK);
+        view.draw(new Canvas(bitmap));
+        assertNotEquals("the liquid look wins", colors[0], bitmap.getPixel(view.getWidth() * 3 / 4, Math.round(top + 8 * density)));
     }
 
     private int indexOf(Preference preference) {

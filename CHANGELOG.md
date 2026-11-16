@@ -8,6 +8,7 @@ Every HushGram release, newest first.
 
 * `Hide rings outside the stories row`, under `Story ring size` in Stories, takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row. Asked for in #719.
 * Each number beside a reel can go on its own now. Five new switches under Reels, `Hide like counts on reels` through `Hide save counts on reels`, take away the like, comment, repost, share or save count and leave the button where it is. Asked for in #719.
+* `Material look`, under Glass tab bar in Tab bar, gives the floating tab bar Android's own Material 3 style. The pill goes solid with fully round ends, takes your phone's colors on Android 12 and newer, and puts a round marker on the tab you're on. It needs `Liquid glass look` off. Asked for in #720.
 * `Start feed videos muted`, under Feed, keeps videos on Home quiet even after you turn the sound on in Reels, so reels keep theirs. Tap a video's speaker to hear that one. Asked for in #718.
 * `Double tap to skip` on Reels flashes arrows and the seconds skipped on the side you tapped, like it already does on feed videos. `Show the skip arrows`, right under it, turns them off. Asked for in #691.
 * Quick double taps the same way now add up under the skip arrows on Reels and feed videos, so three skips ahead read 10, 20 and then 30. Asked for in #554.

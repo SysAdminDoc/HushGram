@@ -1423,6 +1423,9 @@ Scrolling a list down leaves the liquid pill as it is, every tab in place. Resta
 # context: a switch under Glass tab bar that makes the standard pill (the one without the liquid look) smaller while a list scrolls down, and its description. Liquid glass look and Hide the tab bar as you scroll are the names of two other switches on the same page (#638)
 Shrink the pill as you scroll	ย่อแถบแคปซูลขณะเลื่อนหน้าจอ
 With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up or changing tab brings it back to full size. Hide the tab bar as you scroll takes over when it's on. Restart Instagram after changing it.	เมื่อปิดรูปลักษณ์กระจกเหลว การเลื่อนรายการลงจะทำให้แถบแคปซูลเล็กลง และการเลื่อนขึ้นหรือเปลี่ยนแท็บจะทำให้กลับเป็นขนาดเต็ม หากเปิดซ่อนแถบแท็บขณะเลื่อนหน้าจออยู่ จะใช้การตั้งค่านั้นแทน รีสตาร์ท Instagram หลังจากเปลี่ยนแปลงการตั้งค่า
+# context: a switch under Glass tab bar (#720) that gives the standard pill (the one without the liquid look) the look of Android's own Material 3 bars, and its description. Material is Google's design name, keep it; Liquid glass look is the name of another switch
+Material look	รูปลักษณ์ Material
+With Liquid glass look off, the pill looks like Android's own Material 3 bars. It's solid, with no blur, in your phone's colors on Android 12 and newer, and a round marker sits on the tab you're on. Restart Instagram after changing it.	เมื่อปิดรูปลักษณ์กระจกเหลว แถบแคปซูลจะดูเหมือนแถบ Material 3 ของ Android เป็นสีทึบไม่มีการเบลอ ใช้สีของโทรศัพท์คุณบน Android 12 ขึ้นไป และมีเครื่องหมายทรงกลมอยู่บนแท็บที่คุณเปิดอยู่ รีสตาร์ท Instagram หลังจากเปลี่ยนแปลงการตั้งค่า
 # context: Layout: Glass tab bar's switch that makes the liquid pill's rim bend and mirror what's behind it like glass (#369)
 Bend light at the edges	หักเหแสงที่ขอบ
 # context: Ghost mode: the row and dialog picking which switches Ghost mode turns (#251). %1$s is a list of switch names

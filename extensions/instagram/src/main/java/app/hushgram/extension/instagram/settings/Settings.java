@@ -1920,6 +1920,23 @@ public class Settings extends BaseSettings {
             });
 
     /**
+     * With {@link #GLASS_TAB_BAR_LIQUID} off: the Material look (#720). The pill is drawn the way Material 3
+     * Expressive's floating bars are, solid in the phone's own colors with fully round ends and a round marker
+     * on the tab you're on, and no blur, sheen or rim ({@link app.hushgram.extension.instagram.misc.GlassTabBar#materialColors}).
+     * Read as the bar is built, so a change asks for a restart. Off to start.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_MATERIAL =
+            new BooleanSetting("hushgram_glass_tab_bar_material", FALSE, true, new Setting.Availability() {
+                @Override public boolean isAvailable() {
+                    return GLASS_TAB_BAR.savedValue() && !GLASS_TAB_BAR_LIQUID.savedValue();
+                }
+
+                @Override public List<Setting<?>> getParentSettings() {
+                    return Collections.singletonList(GLASS_TAB_BAR);
+                }
+            });
+
+    /**
      * Under {@link #GLASS_TAB_BAR_BLUR}: the pill's rim bends what's behind it the way the edge of real glass
      * does, so what passes under the edge shows mirrored and upside down (#369). The liquid pill and the
      * standard one both bend (#391), and only where the pill is blurred. Android 13 and newer, where the bar

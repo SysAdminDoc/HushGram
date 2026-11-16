@@ -159,6 +159,10 @@ final class TabBarCategory {
                         L10n.t("With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up "
                                 + "or changing tab brings it back to full size. Hide the tab bar as you scroll takes over "
                                 + "when it's on. Restart Instagram after changing it.")));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_MATERIAL, L10n.t("Material look"),
+                        L10n.t("With Liquid glass look off, the pill looks like Android's own Material 3 bars. It's solid, "
+                                + "with no blur, in your phone's colors on Android 12 and newer, and a round marker sits on "
+                                + "the tab you're on. Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
                         L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
                                 + "or swipe between screens.")));
