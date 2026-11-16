@@ -190,6 +190,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.IntegerSetting;
 import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.EnumSetting;
+import app.hushgram.extension.shared.settings.StringSetting;
 import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 import app.hushgram.extension.shared.settings.preference.ClearLogBufferPreference;
 import app.hushgram.extension.shared.settings.preference.ExportDiagnosticReportPreference;
@@ -835,7 +836,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 for (PatchFamily family : build) {
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
                     belongs |= family == PatchFamily.STORY_RING && (Settings.STORY_RING_SCALE.key.equals(key)
-                            || Settings.STORY_RING_COLOR.key.equals(key) || Settings.STORY_RING_THICKNESS.key.equals(key));
+                            || Settings.STORY_RING_COLOR.key.equals(key) || Settings.STORY_RING_THICKNESS.key.equals(key)
+                            || Settings.STORY_RING_CUSTOM.key.equals(key) || Settings.STORY_RING_CUSTOM_END.key.equals(key));
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.AMBIENT_LIGHT && (Settings.AMBIENT_LIGHT_SPREAD.key.equals(key)
                             || Settings.AMBIENT_LIGHT_SPEED.key.equals(key) || Settings.AMBIENT_LIGHT_BLEND.key.equals(key));
@@ -7099,9 +7101,46 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Orange");
             case GOLD:
                 return L10n.t("Gold");
+            case CUSTOM:
+                return L10n.t("Custom");
             default:
                 return L10n.t("Instagram's colors");
         }
+    }
+
+    /**
+     * The color typed for Custom under Ring color (#696), saved as #RRGGBB. What isn't a color is
+     * refused under the field. Saving one picks Custom in the Ring color list too, so it takes one
+     * step.
+     */
+    static StoryRingCustomRow storyRingCustomRow(Context context) {
+        StoryRingCustomRow row = new StoryRingCustomRow(context, Settings.STORY_RING_CUSTOM, "#4A6B82");
+        row.setTitle(L10n.t("Custom ring color"));
+        row.setDialogTitle(L10n.t("Custom ring color"));
+        row.setDialogMessage(L10n.t("A color as six hex digits, like #4A6B82. Saving it picks Custom under "
+                + "Ring color. Restart Instagram to see it."));
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            if (CustomAccent.normalize(typed == null ? "" : typed.toString()) == null) return false;
+            Preference color = preference.getPreferenceManager() == null ? null
+                    : preference.getPreferenceManager().findPreference(Settings.STORY_RING_COLOR.key);
+            if (color instanceof StoryRingColorRow) ((StoryRingColorRow) color).setValue(StoryRingColor.CUSTOM.name());
+            else Settings.STORY_RING_COLOR.save(StoryRingColor.CUSTOM);
+            return true;
+        });
+        return row;
+    }
+
+    /**
+     * The color Custom's ring fades into (#696), saved as #RRGGBB, or empty for one solid color.
+     * What isn't a color is refused under the field.
+     */
+    static StoryRingCustomRow storyRingCustomEndRow(Context context) {
+        StoryRingCustomRow row = new StoryRingCustomRow(context, Settings.STORY_RING_CUSTOM_END, "#FF8A00");
+        row.setTitle(L10n.t("Custom ring end color"));
+        row.setDialogTitle(L10n.t("Custom ring end color"));
+        row.setDialogMessage(L10n.t("A second color as six hex digits, like #FF8A00, that the ring fades into. "
+                + "Leave it empty for one solid color. Restart Instagram to see it."));
+        return row;
     }
 
     /**
@@ -7229,6 +7268,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryRingColorRow) preference).showSummary();
         } else if (preference instanceof StoryRingThicknessRow) {
             ((StoryRingThicknessRow) preference).showSummary();
+        } else if (preference instanceof StoryRingCustomRow) {
+            ((StoryRingCustomRow) preference).showSummary();
         } else if (preference instanceof LikeAnimationRow) {
             ((LikeAnimationRow) preference).showSummary();
         } else if (preference instanceof GlassReelsHideRow) {
@@ -10392,6 +10433,66 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         protected void showDialog(Bundle state) {
             super.showDialog(state);
             if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /**
+     * A color typed for Custom under Ring color (#696): the one the ring starts from, or the one it
+     * fades into. Its summary is the color saved, that none is yet, or what to turn on while the
+     * switch above it is off. Only the end color may be left empty.
+     */
+    static final class StoryRingCustomRow extends ValidatedEditRow {
+        private final StringSetting setting;
+
+        StoryRingCustomRow(Context context, StringSetting setting, String hint) {
+            super(context);
+            this.setting = setting;
+            setKey(setting.key);
+            setPositiveButtonText(L10n.t("Save"));
+            setNegativeButtonText(L10n.t("Cancel"));
+            EditText field = getEditText();
+            field.setSingleLine(true);
+            field.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+            field.setTextDirection(View.TEXT_DIRECTION_LTR);
+            field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+            field.setHint(hint);
+            setText(setting.savedValue());
+        }
+
+        private boolean end() {
+            return setting == Settings.STORY_RING_CUSTOM_END;
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            showSummary();
+        }
+
+        void showSummary() {
+            if (setting == null) return;
+            String color = CustomAccent.normalize(getText());
+            if (!setting.isAvailable()) setSummary(L10n.t("Turn on Story ring size to use this choice."));
+            else if (color != null) setSummary(color);
+            else if (end()) setSummary(L10n.t("None. The ring is one solid color."));
+            else setSummary(L10n.t("None yet. Custom keeps Instagram's colors until you type one."));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        @Override String validatedValue(String typed) {
+            if (end() && (typed == null || typed.trim().isEmpty())) return "";
+            return CustomAccent.normalize(typed);
+        }
+
+        @Override String validationError() {
+            return L10n.t("That isn't a color. Try #4A6B82.");
         }
     }
 

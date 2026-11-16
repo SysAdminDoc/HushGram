@@ -69,6 +69,8 @@ public class StoryRingTest {
         Settings.STORY_RING_COLOR.resetToDefault();
         Settings.HIDE_OTHER_STORY_RINGS.resetToDefault();
         StoryRing.trayId = 0;
+        Settings.STORY_RING_CUSTOM.resetToDefault();
+        Settings.STORY_RING_CUSTOM_END.resetToDefault();
         Settings.STORY_RING_THICKNESS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -144,7 +146,8 @@ public class StoryRingTest {
         assertShades(StoryRingColor.RED, 0xFFFF3B30, 0xFFE0010D);
         assertShades(StoryRingColor.ORANGE, 0xFFF26B0F, 0xFFE0461F);
         assertShades(StoryRingColor.GOLD, 0xFFC58500, 0xFFB86E00);
-        assertEquals("a color with no shades listed here", 7, StoryRingColor.values().length);
+        assertShades(StoryRingColor.CUSTOM, 0, 0);
+        assertEquals("a color with no shades listed here", 8, StoryRingColor.values().length);
     }
 
     /**
@@ -155,7 +158,7 @@ public class StoryRingTest {
     @Test
     public void aChosenColorPaintsTheStoryGradient() {
         for (StoryRingColor color : StoryRingColor.values()) {
-            if (color == StoryRingColor.INSTAGRAM) continue;
+            if (color == StoryRingColor.INSTAGRAM || color == StoryRingColor.CUSTOM) continue;
             Settings.STORY_RING_COLOR.save(color);
             int[] story = STORY.clone();
             int[] painted = StoryRing.colors(story, STORY_STOPS);
@@ -187,7 +190,7 @@ public class StoryRingTest {
     @Test
     public void everyShadeStandsOutOnWhiteAndOnBlack() {
         for (StoryRingColor color : StoryRingColor.values()) {
-            if (color == StoryRingColor.INSTAGRAM) continue;
+            if (color == StoryRingColor.INSTAGRAM || color == StoryRingColor.CUSTOM) continue;
             for (int shade : color.colors(STORY.length)) {
                 String what = color.name() + " #" + Integer.toHexString(shade);
                 assertTrue(what + " on white is " + contrast(shade, 0xFFFFFFFF),
@@ -204,7 +207,7 @@ public class StoryRingTest {
         assertTrue("the green band misses Close Friends", isGreen(CLOSE_FRIENDS[0]));
         assertTrue("the pink band misses a Live", isPink(LIVE_PINK[0]));
         for (StoryRingColor color : StoryRingColor.values()) {
-            if (color == StoryRingColor.INSTAGRAM) continue;
+            if (color == StoryRingColor.INSTAGRAM || color == StoryRingColor.CUSTOM) continue;
             for (int shade : color.colors(STORY.length)) {
                 String what = color.name() + " #" + Integer.toHexString(shade) + " at " + hue(shade) + " degrees";
                 assertFalse(what + " is green", isGreen(shade));
@@ -453,6 +456,115 @@ public class StoryRingTest {
     public void aColorIsntPickedInABuildWithoutThePatch() {
         Settings.STORY_RING_COLOR.save(StoryRingColor.GOLD);
         assertFalse(StoryRing.picksColor());
+    }
+
+    /**
+     * Custom with nothing typed, or with something that isn't a color, has no colors of its own
+     * (#696): the ring keeps Instagram's, on the ring view and on Compose screens, and an end color
+     * alone changes nothing.
+     */
+    @Test
+    public void customWithNoColorTypedKeepsInstagramsColors() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.CUSTOM);
+        assertNull(StoryRingColor.CUSTOM.colors(4));
+        int[] story = STORY.clone();
+        assertSame("nothing typed", story, StoryRing.colors(story, STORY_STOPS));
+        assertSame("nothing typed, Compose", story, StoryRing.defaultColors(story));
+
+        Settings.STORY_RING_CUSTOM.save("teal");
+        assertSame("not a color", story, StoryRing.colors(story, STORY_STOPS));
+        Settings.STORY_RING_CUSTOM.save("");
+        Settings.STORY_RING_CUSTOM_END.save("#FF8A00");
+        assertSame("an end color alone", story, StoryRing.colors(story, STORY_STOPS));
+        assertSame("an end color alone, Compose", story, StoryRing.defaultColors(story));
+        assertArrayEquals(STORY, story);
+        assertTrue(HookStatus.missing(FamilyNames.STORY_RING).toString(), HookStatus.missing(FamilyNames.STORY_RING).isEmpty());
+    }
+
+    /** One color typed for Custom draws the story gradient in that one color, opaque, as many stops as Instagram gave. */
+    @Test
+    public void aTypedColorDrawsTheRingInThatOneColor() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.CUSTOM);
+        Settings.STORY_RING_CUSTOM.save("#4A6B82");
+        int[] story = STORY.clone();
+        int[] solid = {0xFF4A6B82, 0xFF4A6B82, 0xFF4A6B82, 0xFF4A6B82};
+        int[] painted = StoryRing.colors(story, STORY_STOPS);
+        assertArrayEquals(solid, painted);
+        assertArrayEquals("changed Instagram's own array", STORY, story);
+        assertNotSame("handed two rings one array", painted, StoryRing.colors(story, STORY_STOPS));
+        assertArrayEquals("Compose", solid, StoryRing.defaultColors(story));
+
+        Settings.STORY_RING_CUSTOM.save("4a6b82");
+        assertArrayEquals("typed without the # in small letters", solid, StoryRing.colors(story, STORY_STOPS));
+        Settings.STORY_RING_CUSTOM_END.save("not a color");
+        assertArrayEquals("an end color that isn't one", solid, StoryRing.colors(story, STORY_STOPS));
+    }
+
+    /** An end color makes Custom's ring fade from the first color to it, every stop opaque and between the two. */
+    @Test
+    public void anEndColorMakesCustomAGradient() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.CUSTOM);
+        Settings.STORY_RING_CUSTOM.save("#4A6B82");
+        Settings.STORY_RING_CUSTOM_END.save("#FF8A00");
+        int[] painted = StoryRing.colors(STORY.clone(), STORY_STOPS);
+        assertArrayEquals(StoryRingColor.gradient(0xFF4A6B82, 0xFFFF8A00, STORY.length), painted);
+        assertEquals(0xFF4A6B82, painted[0]);
+        assertEquals(0xFFFF8A00, painted[painted.length - 1]);
+        for (int at = 0; at < painted.length; at++) {
+            assertEquals(at + " isn't opaque", 0xFF, painted[at] >>> 24);
+            for (int shift = 0; shift <= 16; shift += 8) {
+                int low = Math.min(0x4A6B82 >> shift & 0xFF, 0xFF8A00 >> shift & 0xFF);
+                int high = Math.max(0x4A6B82 >> shift & 0xFF, 0xFF8A00 >> shift & 0xFF);
+                int channel = painted[at] >> shift & 0xFF;
+                assertTrue(at + " leaves the two colors", channel >= low && channel <= high);
+            }
+        }
+        assertArrayEquals("Compose", painted, StoryRing.defaultColors(STORY.clone()));
+
+        Settings.STORY_RING_CUSTOM_END.save("");
+        assertArrayEquals("the end color cleared", new int[]{0xFF4A6B82, 0xFF4A6B82, 0xFF4A6B82, 0xFF4A6B82},
+                StoryRing.colors(STORY.clone(), STORY_STOPS));
+    }
+
+    /** Custom's colors only take Instagram's own story gradient: Close Friends, a Live's pink and the rest keep theirs. */
+    @Test
+    public void customLeavesEveryOtherRingAlone() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.CUSTOM);
+        Settings.STORY_RING_CUSTOM.save("#4A6B82");
+        Settings.STORY_RING_CUSTOM_END.save("#FF8A00");
+        assertKept("Close Friends", CLOSE_FRIENDS.clone(), FLAT_STOPS);
+        assertKept("a Live's pink", LIVE_PINK.clone(), FLAT_STOPS);
+        assertKept("the rainbow", new int[]{1, 2, 3, 4, 5, 6, 7}, new float[]{0f, 0.16f, 0.33f, 0.5f, 0.66f, 0.83f, 1f});
+        int[] one = {0xFF000001};
+        assertSame("one color can't be a gradient", one, StoryRing.defaultColors(one));
+    }
+
+    /** Custom only counts as a color of its own once one is typed, so the accent keeps the rings until then. */
+    @Test
+    @Config(shadows = StoryRingBuilt.class)
+    public void customIsPickedOnlyOnceAColorIsTyped() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.CUSTOM);
+        assertFalse("nothing typed", StoryRing.picksColor());
+        Settings.STORY_RING_CUSTOM_END.save("#FF8A00");
+        assertFalse("an end color alone", StoryRing.picksColor());
+        Settings.STORY_RING_CUSTOM.save("#4A6B82");
+        assertTrue("a color typed", StoryRing.picksColor());
+        Settings.STORY_RING.save(false);
+        assertFalse("off", StoryRing.picksColor());
+    }
+
+    /** A gradient of two colors needs two stops, and blends evenly between them. */
+    @Test
+    public void aGradientRunsFromOneColorToTheOther() {
+        assertArrayEquals(new int[]{0xFF000000, 0xFFFFFFFF}, StoryRingColor.gradient(0xFF000000, 0xFFFFFFFF, 2));
+        assertArrayEquals(new int[]{0xFF000000, 0xFF808080, 0xFFFFFFFF}, StoryRingColor.gradient(0xFF000000, 0xFFFFFFFF, 3));
+        assertArrayEquals("made opaque", new int[]{0xFF123456, 0xFF123456}, StoryRingColor.gradient(0x00123456, 0x00123456, 2));
+        assertNull(StoryRingColor.gradient(0xFF000000, 0xFFFFFFFF, 1));
+        assertNull(StoryRingColor.gradient(0xFF000000, 0xFFFFFFFF, 0));
+        assertNull(StoryRing.typed(""));
+        assertNull(StoryRing.typed(null));
+        assertNull(StoryRing.typed("teal"));
+        assertEquals(Integer.valueOf(0xFF4A6B82), StoryRing.typed("#4A6B82"));
     }
 
     private static void assertShades(StoryRingColor color, int from, int to) {

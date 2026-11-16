@@ -12,6 +12,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.SwitchPreference;
@@ -56,6 +57,8 @@ public class ChildControlAvailabilityTest {
         Settings.STORY_RING.resetToDefault();
         Settings.STORY_RING_SCALE.resetToDefault();
         Settings.STORY_RING_COLOR.resetToDefault();
+        Settings.STORY_RING_CUSTOM.resetToDefault();
+        Settings.STORY_RING_CUSTOM_END.resetToDefault();
         Settings.STORY_RING_THICKNESS.resetToDefault();
         Settings.DEFAULT_PLAYBACK_QUALITY.resetToDefault();
         Settings.PLAYBACK_QUALITY.resetToDefault();
@@ -86,6 +89,15 @@ public class ChildControlAvailabilityTest {
         Settings.STORY_RING_THICKNESS.save(StoryRingThickness.PERCENT_75);
         checkParent(Settings.STORY_RING, Settings.STORY_RING_THICKNESS, PatchFamily.STORY_RING,
                 "Turn on Story ring size to use this choice.", "PERCENT_75");
+    }
+
+    @Test public void customRingColorsKeepWhatWasTypedAcrossParentChanges() {
+        Settings.STORY_RING_CUSTOM.save("#4A6B82");
+        Settings.STORY_RING_CUSTOM_END.save("#FF8A00");
+        checkParent(Settings.STORY_RING, Settings.STORY_RING_CUSTOM, PatchFamily.STORY_RING,
+                "Turn on Story ring size to use this choice.", "#4A6B82");
+        checkParent(Settings.STORY_RING, Settings.STORY_RING_CUSTOM_END, PatchFamily.STORY_RING,
+                "Turn on Story ring size to use this choice.", "#FF8A00");
     }
 
     @Test public void followLabelKeepsItsSavedChoiceAcrossChipChanges() {
@@ -191,6 +203,8 @@ public class ChildControlAvailabilityTest {
             assertNull(page.findPreference(Settings.STORY_RING_SCALE.key));
             assertNull(page.findPreference(Settings.STORY_RING_COLOR.key));
             assertNull(page.findPreference(Settings.STORY_RING_THICKNESS.key));
+            assertNull(page.findPreference(Settings.STORY_RING_CUSTOM.key));
+            assertNull(page.findPreference(Settings.STORY_RING_CUSTOM_END.key));
             assertNull(page.findPreference(Settings.PLAYBACK_QUALITY.key));
             assertTrue(page.findPreference(BaseSettings.PAUSED.key).isEnabled());
             assertTrue(page.findPreference(Settings.DOWNLOAD_QUALITY.key).isEnabled());
@@ -214,6 +228,7 @@ public class ChildControlAvailabilityTest {
             assertNotEquals(L10n.t(explanation), String.valueOf(row.getSummary()));
             assertEquals(saved, child.savedValue().toString());
             if (row instanceof ListPreference) assertEquals(saved, ((ListPreference) row).getValue());
+            else if (row instanceof EditTextPreference) assertEquals(saved, ((EditTextPreference) row).getText());
             else assertTrue(((SwitchPreference) row).isChecked());
             ((SwitchPreference) page.findPreference(parent.key)).setChecked(false);
             ShadowLooper.idleMainLooper();

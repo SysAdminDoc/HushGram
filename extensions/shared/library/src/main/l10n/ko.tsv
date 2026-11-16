@@ -2394,3 +2394,15 @@ A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again
 Ring thickness	링 두께
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
 Instagram's thickness	Instagram 두께
+# context: Stories settings: title and dialog title of the row under Ring color where a hex color is typed for the Custom ring color (#696)
+Custom ring color	사용자 지정 링 색상
+# context: Stories settings: dialog text of Custom ring color; Custom and Ring color are the names of the choice and the list above it (#696)
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Ring color. Restart Instagram to see it.	#4A6B82처럼 16진수 여섯 자리로 쓴 색상입니다. 저장하면 링 색상에서 사용자 지정이 선택됩니다. 보려면 Instagram을 다시 시작하세요.
+# context: Stories settings: summary of Custom ring color while no color is typed; Custom is the Ring color choice (#696)
+None yet. Custom keeps Instagram's colors until you type one.	아직 없습니다. 색상을 입력하기 전까지 사용자 지정은 Instagram 색상으로 남습니다.
+# context: Stories settings: title and dialog title of the row under Custom ring color for the second color the custom ring fades into (#696)
+Custom ring end color	사용자 지정 링 끝 색상
+# context: Stories settings: dialog text of Custom ring end color (#696)
+A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	#FF8A00처럼 16진수 여섯 자리로 쓴 두 번째 색상으로, 링이 이 색으로 이어집니다. 단색으로 하려면 비워 두세요. 보려면 Instagram을 다시 시작하세요.
+# context: Stories settings: summary of Custom ring end color while it is empty (#696)
+None. The ring is one solid color.	없음. 링이 한 가지 단색입니다.

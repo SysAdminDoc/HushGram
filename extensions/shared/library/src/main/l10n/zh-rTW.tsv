@@ -2398,3 +2398,15 @@ A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again
 Ring thickness	光圈粗細
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
 Instagram's thickness	Instagram 預設粗細
+# context: Stories settings: title and dialog title of the row under Ring color where a hex color is typed for the Custom ring color (#696)
+Custom ring color	自訂光圈顏色
+# context: Stories settings: dialog text of Custom ring color; Custom and Ring color are the names of the choice and the list above it (#696)
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Ring color. Restart Instagram to see it.	用六位十六進位數字表示的顏色，例如 #4A6B82。儲存後會在光圈顏色中選取自訂。重新啟動 Instagram 即可看到.
+# context: Stories settings: summary of Custom ring color while no color is typed; Custom is the Ring color choice (#696)
+None yet. Custom keeps Instagram's colors until you type one.	尚未設定。輸入顏色前，自訂會維持 Instagram 預設顏色.
+# context: Stories settings: title and dialog title of the row under Custom ring color for the second color the custom ring fades into (#696)
+Custom ring end color	自訂光圈結尾顏色
+# context: Stories settings: dialog text of Custom ring end color (#696)
+A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	光圈漸變到的第二種顏色，用六位十六進位數字表示，例如 #FF8A00。留空則為單一純色。重新啟動 Instagram 即可看到.
+# context: Stories settings: summary of Custom ring end color while it is empty (#696)
+None. The ring is one solid color.	無。光圈為單一純色.

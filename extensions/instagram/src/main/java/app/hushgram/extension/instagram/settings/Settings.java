@@ -1491,6 +1491,20 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_other_story_rings", FALSE, parent(STORY_RING));
 
     /**
+     * The color typed for Custom under {@link #STORY_RING_COLOR} (#696), {@code #RRGGBB}. Empty to
+     * start, which leaves Custom on Instagram's colors. A change shows after a restart.
+     */
+    public static final StringSetting STORY_RING_CUSTOM =
+            new StringSetting("hushgram_story_ring_custom", "", true, parent(STORY_RING));
+
+    /**
+     * The color Custom's ring fades into from {@link #STORY_RING_CUSTOM} (#696), {@code #RRGGBB}.
+     * Empty to start, which draws the ring in the one color. A change shows after a restart.
+     */
+    public static final StringSetting STORY_RING_CUSTOM_END =
+            new StringSetting("hushgram_story_ring_custom_end", "", true, parent(STORY_RING));
+
+    /**
      * How thick story rings are drawn while {@link #STORY_RING} is on, as a share of Instagram's
      * width (#528). It starts as Instagram's own, and like the color it is a choice of its own.
      */

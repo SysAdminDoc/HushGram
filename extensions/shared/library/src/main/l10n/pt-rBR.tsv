@@ -2395,3 +2395,15 @@ A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again
 Ring thickness	Espessura dos anéis
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
 Instagram's thickness	Espessura do Instagram
+# context: Stories settings: title and dialog title of the row under Ring color where a hex color is typed for the Custom ring color (#696)
+Custom ring color	Cor personalizada dos anéis
+# context: Stories settings: dialog text of Custom ring color; Custom and Ring color are the names of the choice and the list above it (#696)
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Ring color. Restart Instagram to see it.	Uma cor em seis dígitos hexadecimais, como #4A6B82. Salvar escolhe Personalizada em Cor dos anéis. Reinicie o Instagram para ver.
+# context: Stories settings: summary of Custom ring color while no color is typed; Custom is the Ring color choice (#696)
+None yet. Custom keeps Instagram's colors until you type one.	Nenhuma ainda. Personalizada mantém as cores do Instagram até você digitar uma.
+# context: Stories settings: title and dialog title of the row under Custom ring color for the second color the custom ring fades into (#696)
+Custom ring end color	Cor final personalizada dos anéis
+# context: Stories settings: dialog text of Custom ring end color (#696)
+A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	Uma segunda cor em seis dígitos hexadecimais, como #FF8A00, em que o anel se funde. Deixe vazio para uma única cor sólida. Reinicie o Instagram para ver.
+# context: Stories settings: summary of Custom ring end color while it is empty (#696)
+None. The ring is one solid color.	Nenhuma. O anel tem uma única cor sólida.

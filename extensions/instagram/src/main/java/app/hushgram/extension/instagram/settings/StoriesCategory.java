@@ -12,6 +12,8 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyBarRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyMentionsLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingColorRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingCustomEndRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingCustomRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingThicknessRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storySeekBarLookRow;
@@ -87,6 +89,8 @@ final class StoriesCategory {
                             + "below. Restart Instagram to see a change.")));
             stories.add(storyRingRow(context));
             stories.add(storyRingColorRow(context));
+            stories.add(storyRingCustomRow(context));
+            stories.add(storyRingCustomEndRow(context));
             stories.add(storyRingThicknessRow(context));
             stories.add(toggle(context, Settings.HIDE_OTHER_STORY_RINGS, L10n.t("Hide rings outside the stories row"),
                     L10n.t("Takes the story and live rings off profile pictures on posts, comments, reels and "

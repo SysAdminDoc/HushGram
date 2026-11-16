@@ -15,6 +15,10 @@ package app.hushgram.extension.instagram.stories;
  * either, since those are the rings of Close Friends and of a Live, which this choice leaves as
  * they are.
  *
+ * <p>{@link #CUSTOM} (#696) is the one color that isn't written down here: it is the one or two
+ * colors a person types under the list, which {@link StoryRing} reads, so none of the above holds
+ * for it.
+ *
  * <p>It holds no Android type and reads no setting, and the name a person reads is the settings
  * screen's, in the phone's language.
  */
@@ -25,14 +29,15 @@ public enum StoryRingColor {
     PURPLE(0xFF9B5CFF, 0xFFB14BE0),
     RED(0xFFFF3B30, 0xFFE0010D),
     ORANGE(0xFFF26B0F, 0xFFE0461F),
-    GOLD(0xFFC58500, 0xFFB86E00);
+    GOLD(0xFFC58500, 0xFFB86E00),
+    CUSTOM(0, 0);
 
     /** The least a shade stands out against white and against black, as a contrast ratio to one. */
     static final double LEAST_CONTRAST = 3.0;
 
-    /** The shade the ring starts from, opaque. Zero for {@link #INSTAGRAM}, which has none. */
+    /** The shade the ring starts from, opaque. Zero for {@link #INSTAGRAM} and {@link #CUSTOM}, which have none. */
     public final int from;
-    /** The shade the ring ends at, opaque. Zero for {@link #INSTAGRAM}, which has none. */
+    /** The shade the ring ends at, opaque. Zero for {@link #INSTAGRAM} and {@link #CUSTOM}, which have none. */
     public final int to;
 
     StoryRingColor(int from, int to) {
@@ -43,10 +48,20 @@ public enum StoryRingColor {
     /**
      * The ring's colors for a gradient of {@code count} stops: the two shades with an even blend
      * between them, in a new array each time since the gradient's builder owns what it is given.
-     * Null for {@link #INSTAGRAM} and for a count below two, which leave the ring alone.
+     * Null for {@link #INSTAGRAM}, for {@link #CUSTOM}, whose colors are typed, and for a count
+     * below two, which leave the ring alone.
      */
     public int[] colors(int count) {
-        if (this == INSTAGRAM || count < 2) return null;
+        if (this == INSTAGRAM || this == CUSTOM) return null;
+        return gradient(from, to, count);
+    }
+
+    /**
+     * The colors of a gradient of {@code count} stops from {@code from} to {@code to}, each made
+     * opaque, with an even blend between them, in a new array each time. Null for a count below two.
+     */
+    public static int[] gradient(int from, int to, int count) {
+        if (count < 2) return null;
         int[] colors = new int[count];
         for (int at = 0; at < count; at++) {
             colors[at] = blend(from, to, at / (float) (count - 1));

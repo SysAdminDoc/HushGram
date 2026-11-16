@@ -40,8 +40,8 @@ import org.robolectric.shadows.ShadowLooper;
  * With Story ring size in the build, the Stories section has its switch and the list of sizes right
  * below it, which says what the chosen size does. A share such as 130% shows as it is: the list's
  * summary isn't run through String.format, which a percent sign breaks. The list of colors comes
- * right below that, and shows the color chosen, then the list of thicknesses. Without the patch
- * there's none of the four.
+ * right below that, and shows the color chosen, then the two colors typed for Custom, then the list
+ * of thicknesses. Without the patch there's none of the six.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -55,7 +55,109 @@ public class StoryRingSettingsTest {
         Settings.STORY_RING.resetToDefault();
         Settings.STORY_RING_SCALE.resetToDefault();
         Settings.STORY_RING_COLOR.resetToDefault();
+        Settings.STORY_RING_CUSTOM.resetToDefault();
+        Settings.STORY_RING_CUSTOM_END.resetToDefault();
         Settings.STORY_RING_THICKNESS.resetToDefault();
+    }
+
+    /**
+     * #696: the Custom ring color rows sit under the color's list. The first refuses what isn't a
+     * color under the field, saves a color as #RRGGBB and picks Custom in the list as it saves. The
+     * end color takes a second color or nothing, and doesn't pick anything. Both are backed up that
+     * way, and neither is there without the patch.
+     */
+    @Test
+    public void theCustomRingColorRowsSaveHexColorsAndPickCustom() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORY_RING, PatchFamily.STORIES_TRAY);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            List<Preference> rows = rowsOf(page);
+            int toggle = indexOfKey(rows, Settings.STORY_RING.key);
+            assertTrue("no Story ring size switch", toggle >= 0);
+            HushgramPreferenceFragment.StoryRingColorRow color =
+                    (HushgramPreferenceFragment.StoryRingColorRow) rows.get(toggle + 2);
+            assertTrue("the custom color comes right under the color's list",
+                    rows.get(toggle + 3) instanceof HushgramPreferenceFragment.StoryRingCustomRow);
+            assertTrue("then its end color",
+                    rows.get(toggle + 4) instanceof HushgramPreferenceFragment.StoryRingCustomRow);
+            HushgramPreferenceFragment.StoryRingCustomRow start = (HushgramPreferenceFragment.StoryRingCustomRow) rows.get(toggle + 3);
+            HushgramPreferenceFragment.StoryRingCustomRow end = (HushgramPreferenceFragment.StoryRingCustomRow) rows.get(toggle + 4);
+            assertEquals(Settings.STORY_RING_CUSTOM.key, start.getKey());
+            assertEquals(Settings.STORY_RING_CUSTOM_END.key, end.getKey());
+            assertEquals("Custom ring color", String.valueOf(start.getTitle()));
+            assertEquals("Custom ring end color", String.valueOf(end.getTitle()));
+            assertEquals("None yet. Custom keeps Instagram's colors until you type one.", String.valueOf(start.getSummary()));
+            assertEquals("None. The ring is one solid color.", String.valueOf(end.getSummary()));
+
+            start.showDialog(null);
+            android.app.AlertDialog dialog = (android.app.AlertDialog) start.getDialog();
+            android.widget.EditText field = start.getEditText();
+            field.setText("teal");
+            field.onEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+            assertTrue("a word isn't a color", dialog.isShowing());
+            assertEquals("That isn't a color. Try #4A6B82.", String.valueOf(field.getError()));
+            field.setText("");
+            field.onEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+            assertTrue("the first color can't be left empty", dialog.isShowing());
+            assertEquals("", Settings.STORY_RING_CUSTOM.savedValue());
+            assertEquals(StoryRingColor.INSTAGRAM, Settings.STORY_RING_COLOR.savedValue());
+
+            field.setText(" 4a6b82 ");
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
+            ShadowLooper.idleMainLooper();
+            assertFalse(dialog.isShowing());
+            assertEquals("#4A6B82", Settings.STORY_RING_CUSTOM.savedValue());
+            assertEquals("#4A6B82", String.valueOf(start.getSummary()));
+            assertEquals("saving a color picks Custom", StoryRingColor.CUSTOM, Settings.STORY_RING_COLOR.savedValue());
+            assertEquals("CUSTOM", color.getValue());
+            assertEquals("Custom", String.valueOf(color.getSummary()));
+
+            end.showDialog(null);
+            dialog = (android.app.AlertDialog) end.getDialog();
+            field = end.getEditText();
+            field.setText("orange");
+            field.onEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+            assertTrue("a word isn't an end color either", dialog.isShowing());
+            assertEquals("That isn't a color. Try #4A6B82.", String.valueOf(field.getError()));
+            field.setText("#ff8a00");
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
+            ShadowLooper.idleMainLooper();
+            assertFalse(dialog.isShowing());
+            assertEquals("#FF8A00", Settings.STORY_RING_CUSTOM_END.savedValue());
+            assertEquals("#FF8A00", String.valueOf(end.getSummary()));
+
+            end.showDialog(null);
+            dialog = (android.app.AlertDialog) end.getDialog();
+            end.getEditText().setText("  ");
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
+            ShadowLooper.idleMainLooper();
+            assertFalse("an empty end color is one solid color", dialog.isShowing());
+            assertEquals("", Settings.STORY_RING_CUSTOM_END.savedValue());
+            assertEquals("None. The ring is one solid color.", String.valueOf(end.getSummary()));
+            assertEquals("the end color picks nothing", StoryRingColor.CUSTOM, Settings.STORY_RING_COLOR.savedValue());
+
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_RING_CUSTOM.key));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_RING_CUSTOM_END.key));
+            for (app.hushgram.extension.shared.settings.StringSetting typed
+                    : Arrays.asList(Settings.STORY_RING_CUSTOM, Settings.STORY_RING_CUSTOM_END)) {
+                assertTrue(ConfigurationBackup.textAllowed(typed, ""));
+                assertTrue(ConfigurationBackup.textAllowed(typed, "#4A6B82"));
+                assertFalse(ConfigurationBackup.textAllowed(typed, "#4a6b82"));
+                assertFalse(ConfigurationBackup.textAllowed(typed, "teal"));
+            }
+        }
+
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORIES_TRAY);
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.STORY_RING_CUSTOM.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.STORY_RING_CUSTOM_END.key));
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            for (Preference row : rowsOf(DownloadSettingsTest.pageIn(controller))) {
+                assertFalse("a custom ring color row with no Story ring size in the build",
+                        row instanceof HushgramPreferenceFragment.StoryRingCustomRow);
+                assertFalse(Settings.STORY_RING_CUSTOM.key.equals(row.getKey()));
+                assertFalse(Settings.STORY_RING_CUSTOM_END.key.equals(row.getKey()));
+            }
+        }
     }
 
     /**
@@ -86,10 +188,10 @@ public class StoryRingSettingsTest {
             assertEquals("Ring color", String.valueOf(color.getDialogTitle()));
             List<String> entries = new ArrayList<>();
             for (CharSequence entry : color.getEntries()) entries.add(String.valueOf(entry));
-            assertEquals(Arrays.asList("Instagram's colors", "Blue", "Teal", "Purple", "Red", "Orange", "Gold"), entries);
+            assertEquals(Arrays.asList("Instagram's colors", "Blue", "Teal", "Purple", "Red", "Orange", "Gold", "Custom"), entries);
             List<String> values = new ArrayList<>();
             for (CharSequence value : color.getEntryValues()) values.add(String.valueOf(value));
-            assertEquals(Arrays.asList("INSTAGRAM", "BLUE", "TEAL", "PURPLE", "RED", "ORANGE", "GOLD"), values);
+            assertEquals(Arrays.asList("INSTAGRAM", "BLUE", "TEAL", "PURPLE", "RED", "ORANGE", "GOLD", "CUSTOM"), values);
 
             assertEquals("INSTAGRAM", color.getValue());
             assertEquals("Instagram's colors", String.valueOf(color.getSummary()));
@@ -137,10 +239,10 @@ public class StoryRingSettingsTest {
             List<Preference> rows = rowsOf(page);
             int toggle = indexOfKey(rows, Settings.STORY_RING.key);
             assertTrue("no Story ring size switch", toggle >= 0);
-            assertTrue("the thickness comes right under the color",
-                    rows.get(toggle + 3) instanceof HushgramPreferenceFragment.StoryRingThicknessRow);
+            assertTrue("the thickness comes right under the custom colors",
+                    rows.get(toggle + 5) instanceof HushgramPreferenceFragment.StoryRingThicknessRow);
             HushgramPreferenceFragment.StoryRingThicknessRow thickness =
-                    (HushgramPreferenceFragment.StoryRingThicknessRow) rows.get(toggle + 3);
+                    (HushgramPreferenceFragment.StoryRingThicknessRow) rows.get(toggle + 5);
             assertEquals(Settings.STORY_RING_THICKNESS.key, thickness.getKey());
             assertEquals("Ring thickness", String.valueOf(thickness.getTitle()));
             assertEquals("Ring thickness", String.valueOf(thickness.getDialogTitle()));

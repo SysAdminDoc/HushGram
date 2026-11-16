@@ -2395,3 +2395,15 @@ A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again
 Ring thickness	Ketebalan lingkaran
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
 Instagram's thickness	Ketebalan Instagram
+# context: Stories settings: title and dialog title of the row under Ring color where a hex color is typed for the Custom ring color (#696)
+Custom ring color	Warna lingkaran kustom
+# context: Stories settings: dialog text of Custom ring color; Custom and Ring color are the names of the choice and the list above it (#696)
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Ring color. Restart Instagram to see it.	Warna dalam enam digit heksa, seperti #4A6B82. Menyimpannya memilih Kustom di Warna lingkaran. Mulai ulang Instagram untuk melihatnya.
+# context: Stories settings: summary of Custom ring color while no color is typed; Custom is the Ring color choice (#696)
+None yet. Custom keeps Instagram's colors until you type one.	Belum ada. Kustom tetap memakai warna Instagram sampai kamu mengetik warna.
+# context: Stories settings: title and dialog title of the row under Custom ring color for the second color the custom ring fades into (#696)
+Custom ring end color	Warna akhir lingkaran kustom
+# context: Stories settings: dialog text of Custom ring end color (#696)
+A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	Warna kedua dalam enam digit heksa, seperti #FF8A00, yang menjadi ujung gradasi lingkaran. Biarkan kosong untuk satu warna solid. Mulai ulang Instagram untuk melihatnya.
+# context: Stories settings: summary of Custom ring end color while it is empty (#696)
+None. The ring is one solid color.	Tidak ada. Lingkaran memakai satu warna solid.

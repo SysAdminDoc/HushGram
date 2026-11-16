@@ -2395,3 +2395,15 @@ A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again
 Ring thickness	Halka kalınlığı
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
 Instagram's thickness	Instagram kalınlığı
+# context: Stories settings: title and dialog title of the row under Ring color where a hex color is typed for the Custom ring color (#696)
+Custom ring color	Özel halka rengi
+# context: Stories settings: dialog text of Custom ring color; Custom and Ring color are the names of the choice and the list above it (#696)
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Ring color. Restart Instagram to see it.	Altı onaltılık basamaklı bir renk, örneğin #4A6B82. Kaydetmek, Halka rengi altında Özel'i seçer. Görmek için Instagram'ı yeniden başlat.
+# context: Stories settings: summary of Custom ring color while no color is typed; Custom is the Ring color choice (#696)
+None yet. Custom keeps Instagram's colors until you type one.	Henüz yok. Bir renk yazana kadar Özel, Instagram renklerinde kalır.
+# context: Stories settings: title and dialog title of the row under Custom ring color for the second color the custom ring fades into (#696)
+Custom ring end color	Özel halka bitiş rengi
+# context: Stories settings: dialog text of Custom ring end color (#696)
+A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	Halkanın geçtiği ikinci bir renk, altı onaltılık basamakla, örneğin #FF8A00. Tek düz renk için boş bırak. Görmek için Instagram'ı yeniden başlat.
+# context: Stories settings: summary of Custom ring end color while it is empty (#696)
+None. The ring is one solid color.	Yok. Halka tek düz renk.

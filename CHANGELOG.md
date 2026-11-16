@@ -49,6 +49,7 @@ Every HushGram release, newest first.
 * `Items in the three-dot menus` in Feed lets you untick Report, Mute, Unfollow, Not interested, Interested, Why you're seeing this post and the playback rows, and they're left out of the menus behind the three dots on posts, reels and feed videos. Stories lose Report and Mute the same way. Every item shows until you untick it. Asked for in #697 and #707.
 * `Keep 2x after you let go`, right under `Hold for 2x on feed videos` in Feed, keeps a held feed video at 2x once you lift your finger. Hold it again and let go to get normal speed back. Starts off. Asked for in #552.
 * `Ring thickness`, new under `Story ring size` in Stories, draws story rings thinner or thicker, from 50% to 200% of Instagram's width. The size and color lists above it work the same as before. Asked for in #528.
+* `Ring color` has a Custom choice now. Type a hex color in `Custom ring color` for one solid color, and add one in `Custom ring end color` if you want the ring to fade between the two. Saving the first color picks Custom for you. Asked for in #696.
 
 ### Bug Fixes
 

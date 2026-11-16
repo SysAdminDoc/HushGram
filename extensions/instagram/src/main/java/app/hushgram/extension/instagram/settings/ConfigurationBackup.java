@@ -144,6 +144,8 @@ public final class ConfigurationBackup {
         if (PatchFamily.STORY_RING.inBuild()) {
             settings.put(Settings.STORY_RING_SCALE.key, Settings.STORY_RING_SCALE);
             settings.put(Settings.STORY_RING_COLOR.key, Settings.STORY_RING_COLOR);
+            settings.put(Settings.STORY_RING_CUSTOM.key, Settings.STORY_RING_CUSTOM);
+            settings.put(Settings.STORY_RING_CUSTOM_END.key, Settings.STORY_RING_CUSTOM_END);
             settings.put(Settings.STORY_RING_THICKNESS.key, Settings.STORY_RING_THICKNESS);
         }
         if (PatchFamily.STORY_UPLOAD_QUALITY.inBuild()) {
@@ -599,6 +601,10 @@ public final class ConfigurationBackup {
         if (setting == Settings.APP_PROXY_SERVER) return text.equals(AppProxy.normalize(text));
         // The row saves the custom color as #RRGGBB, so a file holds it that way or blank.
         if (setting == Settings.ACCENT_CUSTOM) return text.isEmpty() || text.equals(CustomAccent.normalize(text));
+        // The Custom ring color rows save the same way (#696).
+        if (setting == Settings.STORY_RING_CUSTOM || setting == Settings.STORY_RING_CUSTOM_END) {
+            return text.isEmpty() || text.equals(CustomAccent.normalize(text));
+        }
         if (setting == Settings.TAB_ORDER) return text.equals(TabOrder.join(TabOrder.parse(text)));
         // The share sheet buttons to leave out, as Instagram's names for them with commas between.
         if (setting == Settings.HIDDEN_SHARE_SHEET_BUTTONS) {

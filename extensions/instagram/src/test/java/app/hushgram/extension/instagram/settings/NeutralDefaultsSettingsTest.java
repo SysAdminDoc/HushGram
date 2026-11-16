@@ -164,6 +164,8 @@ public class NeutralDefaultsSettingsTest {
         Settings.STORY_RING.resetToDefault();
         Settings.STORY_RING_SCALE.resetToDefault();
         Settings.STORY_RING_COLOR.resetToDefault();
+        Settings.STORY_RING_CUSTOM.resetToDefault();
+        Settings.STORY_RING_CUSTOM_END.resetToDefault();
         Settings.STORY_RING_THICKNESS.resetToDefault();
         Settings.FONT.resetToDefault();
         Settings.APP_ICON.resetToDefault();
@@ -181,6 +183,8 @@ public class NeutralDefaultsSettingsTest {
         assertEquals(StoryRingSize.INSTAGRAM, Settings.STORY_RING_SCALE.defaultValue);
         assertEquals(StoryRingColor.INSTAGRAM, Settings.STORY_RING_COLOR.defaultValue);
         assertEquals(StoryRingThickness.INSTAGRAM, Settings.STORY_RING_THICKNESS.defaultValue);
+        assertEquals("Custom starts with no color typed", "", Settings.STORY_RING_CUSTOM.defaultValue);
+        assertEquals("", Settings.STORY_RING_CUSTOM_END.defaultValue);
         assertStockHooks();
     }
 

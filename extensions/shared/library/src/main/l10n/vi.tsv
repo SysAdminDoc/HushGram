@@ -2310,3 +2310,15 @@ A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again
 Ring thickness	Độ dày vòng
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
 Instagram's thickness	Độ dày của Instagram
+# context: Stories settings: title and dialog title of the row under Ring color where a hex color is typed for the Custom ring color (#696)
+Custom ring color	Màu vòng tùy chỉnh
+# context: Stories settings: dialog text of Custom ring color; Custom and Ring color are the names of the choice and the list above it (#696)
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Ring color. Restart Instagram to see it.	Một màu gồm sáu chữ số hex, như #4A6B82. Lưu sẽ chọn Tùy chỉnh trong Màu vòng. Khởi động lại Instagram để thấy.
+# context: Stories settings: summary of Custom ring color while no color is typed; Custom is the Ring color choice (#696)
+None yet. Custom keeps Instagram's colors until you type one.	Chưa có. Tùy chỉnh vẫn giữ màu của Instagram cho đến khi bạn nhập một màu.
+# context: Stories settings: title and dialog title of the row under Custom ring color for the second color the custom ring fades into (#696)
+Custom ring end color	Màu cuối của vòng tùy chỉnh
+# context: Stories settings: dialog text of Custom ring end color (#696)
+A second color as six hex digits, like #FF8A00, that the ring fades into. Leave it empty for one solid color. Restart Instagram to see it.	Màu thứ hai gồm sáu chữ số hex, như #FF8A00, mà vòng chuyển dần sang. Để trống để dùng một màu đơn. Khởi động lại Instagram để thấy.
+# context: Stories settings: summary of Custom ring end color while it is empty (#696)
+None. The ring is one solid color.	Không có. Vòng chỉ có một màu đơn.

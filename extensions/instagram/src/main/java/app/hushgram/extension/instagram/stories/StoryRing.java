@@ -8,6 +8,7 @@ import android.content.Context;
 import android.view.View;
 import android.view.ViewParent;
 
+import app.hushgram.extension.instagram.misc.CustomAccent;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -105,8 +106,7 @@ public final class StoryRing {
             HookStatus.invoked(FamilyNames.STORY_RING);
             if (!instagramsOwn(colors, stops) || !Utils.settingsReady() || !Settings.STORY_RING.get()) return colors;
             StoryRingColor chosen = Settings.STORY_RING_COLOR.get();
-            if (chosen == null) return colors;
-            int[] shades = chosen.colors(colors.length);
+            int[] shades = shades(chosen, colors.length);
             if (shades == null) return colors;
             if (!colorLogged) {
                 colorLogged = true;
@@ -158,8 +158,7 @@ public final class StoryRing {
         try {
             HookStatus.invoked(FamilyNames.STORY_RING);
             if (colors == null || !Utils.settingsReady() || !Settings.STORY_RING.get()) return colors;
-            StoryRingColor chosen = Settings.STORY_RING_COLOR.get();
-            int[] shades = chosen == null ? null : chosen.colors(colors.length);
+            int[] shades = shades(Settings.STORY_RING_COLOR.get(), colors.length);
             return shades == null ? colors : shades;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_RING, "Compose ring color", failure);
@@ -220,13 +219,34 @@ public final class StoryRing {
 
     /**
      * Whether Ring color is drawing unwatched story rings in a color of its own: the switch on, a
-     * color other than Instagram's picked, and the patch in this build. Story rings in the accent
-     * color leaves those rings to it, so the two never answer the same ring.
+     * color other than Instagram's picked (Custom only once a color is typed for it), and the patch
+     * in this build. Story rings in the accent color leaves those rings to it, so the two never
+     * answer the same ring.
      */
     public static boolean picksColor() {
         if (!Utils.settingsReady() || !Settings.STORY_RING.get()) return false;
-        StoryRingColor chosen = Settings.STORY_RING_COLOR.get();
-        return chosen != null && chosen != StoryRingColor.INSTAGRAM && PatchFamily.STORY_RING.inBuild();
+        return shades(Settings.STORY_RING_COLOR.get(), 2) != null && PatchFamily.STORY_RING.inBuild();
+    }
+
+    /**
+     * The chosen color's shades for a gradient of {@code count} stops, or null to keep Instagram's.
+     * Custom (#696) takes the colors typed for it: the first alone draws the ring in that one color,
+     * and an end color makes it fade from the first to that. With no first color, or one that isn't
+     * a color, Custom keeps Instagram's.
+     */
+    static int[] shades(StoryRingColor chosen, int count) {
+        if (chosen == null) return null;
+        if (chosen != StoryRingColor.CUSTOM) return chosen.colors(count);
+        Integer from = typed(Settings.STORY_RING_CUSTOM.get());
+        if (from == null) return null;
+        Integer to = typed(Settings.STORY_RING_CUSTOM_END.get());
+        return StoryRingColor.gradient(from, to == null ? from : to, count);
+    }
+
+    /** A color typed for Custom, opaque, or null when nothing is typed or it isn't a color. */
+    static Integer typed(String text) {
+        String color = CustomAccent.normalize(text);
+        return color == null ? null : 0xFF000000 | Integer.parseInt(color.substring(1), 16);
     }
 
     /**
