@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
@@ -30,6 +31,9 @@ private const val PATCH = "Hide the Explore grid"
 
 internal const val SEARCH_RECOMMENDATIONS = "$EXTENSION_PACKAGE/explore/SearchRecommendations;"
 internal const val RECOMMENDATION_UNITS = "$SEARCH_RECOMMENDATIONS->units(Ljava/lang/Object;)Ljava/lang/Object;"
+
+/** Asked first thing in a results page's answer to whether more pages come after it, with the page's units. */
+internal const val LAST_PAGE = "$SEARCH_RECOMMENDATIONS->lastPage(Ljava/lang/Object;)Z"
 
 /** The stub the patch fills with Instagram's own check of a results unit. */
 internal const val SEARCH_RECOMMENDATION_READER = "$EXTENSION_PACKAGE/explore/SearchRecommendationReader;"
@@ -67,7 +71,9 @@ private val COPIES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode
  * Instagram's check of a results unit for [END_OF_SERP_RECOMMENDATION] (as a smali reference), the
  * unit's class, the getter of its kind and the [HEADER_KIND] constant (both smali references), and
  * the two builders of the results page it's asked in: a lambda handed the list of units as its
- * second argument, and a static builder taking the list as its one list parameter.
+ * second argument, and a static builder taking the list as its one list parameter. Then a page of
+ * results: its class, the name of its `()Z` answer to whether more pages come after it, and the
+ * field holding its units (a smali reference).
  */
 internal class SearchRecommendationSites(
     val predicate: String,
@@ -80,6 +86,9 @@ internal class SearchRecommendationSites(
     val builderName: String,
     val builderParameters: List<String>,
     val builderRegister: Int,
+    val pageType: String,
+    val moreName: String,
+    val pageUnits: String,
 )
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
@@ -89,10 +98,13 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * [END_OF_SERP_RECOMMENDATION], then every method outside its class asking it. Two of them build
  * the results page out of the list of units: the merged lambda whose `invoke` casts its second
  * argument to a list before its first branch, and the static method with one list parameter. Other
- * askers (a timing logger on 454) take no list and are left alone. The check, its class and the
- * unit's class are public, since the extension asks it, the extension carries the stub the check
- * goes in, and nothing may jump back to either builder's start, where the hook goes. Fails before
- * anything changes when any of it isn't so, since that's an update this patch hasn't seen.
+ * askers (a timing logger on 454) take no list and are left alone. One more, the static reducer
+ * that hands back the results state it's given, reads a fetched page's units from one list field
+ * and asks the page whether more pages come after it, in a final `()Z` method of the page's class.
+ * The check, its class and the unit's class are public, since the extension asks it, the extension
+ * carries the stub the check goes in, and nothing may jump back to the start of either builder or
+ * the page's answer, where the hooks go. Fails before anything changes when any of it isn't so,
+ * since that's an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findSearchRecommendations(): SearchRecommendationSites {
     val checks = classesLoadingString(END_OF_SERP_RECOMMENDATION).flatMap { classDef ->
@@ -154,7 +166,37 @@ internal fun BytecodePatchContext.findSearchRecommendations(): SearchRecommendat
     }
     val builder = builders.singleOrNull()
         ?: refuse("expected one static builder taking a list and asking $where, found ${builders.size}")
-    for (method in listOf(lambda, builder)) {
+    // The reducer folding a fetched page into the results state hands back the state it's given. It
+    // reads the page's units from one list field and asks the page one yes or no question: whether
+    // more pages come after it, which is what puts the load more button under the results.
+    val reducers = askers.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.any { type -> type.toString() == it.returnType }
+    }
+    val reducer = reducers.singleOrNull()
+        ?: refuse("expected one static reducer asking $where that hands back the state it's given, found ${reducers.size}")
+    val reducerName = "${reducer.definingClass}->${reducer.name}"
+    val reducerParameters = reducer.parameterTypes.map(CharSequence::toString).toSet()
+    val reducerReferences = reducer.implementation?.instructions?.toList().orEmpty().mapNotNull { (it as? ReferenceInstruction)?.reference }
+    val questions = reducerReferences.filterIsInstance<MethodReference>()
+        .filter { it.definingClass in reducerParameters && it.parameterTypes.isEmpty() && it.returnType == "Z" }
+        .distinctBy { it.toString() }
+    val question = questions.singleOrNull() ?: refuse("expected $reducerName to ask its page one yes or no question, found ${questions.size}")
+    val pageType = question.definingClass
+    val unitFields = reducerReferences.filterIsInstance<FieldReference>()
+        .filter { it.definingClass == pageType && it.type == UNITS_LIST }
+        .distinctBy { it.toString() }
+    val unitField = unitFields.singleOrNull() ?: refuse("expected $reducerName to read one list of $pageType, found ${unitFields.size}")
+    val pageClass = classDefByOrNull(pageType) ?: refuse("no class $pageType")
+    val more = pageClass.methods.singleOrNull { it.name == question.name && it.shapeText() == "()Z" }
+    if (more == null || more.implementation == null || AccessFlags.STATIC.isSet(more.accessFlags)) refuse("$question isn't code of $pageType")
+    if (!AccessFlags.FINAL.isSet(more.accessFlags) && !AccessFlags.FINAL.isSet(pageClass.accessFlags)) refuse("$question isn't final")
+    // The hook reads the units into the method's first local with a 4-bit iget, so it needs one
+    // besides `this`, and `this` no higher than v15.
+    val registers = more.implementation!!.registerCount
+    if (registers < 2) refuse("$question has no register of its own")
+    if (registers > 16) refuse("$question keeps this past v15")
+
+    for (method in listOf(lambda, builder, more)) {
         if (0 in method.jumpTargets()) refuse("something in ${method.definingClass}->${method.name} jumps back to its start")
     }
 
@@ -163,6 +205,7 @@ internal fun BytecodePatchContext.findSearchRecommendations(): SearchRecommendat
         "$where($unitType)Z", unitType, kindRead.toString(), "${kind.type}->${header.name}:${kind.type}",
         lambda.definingClass, lambda.parameterRegisterNumber(1),
         builder.definingClass, builder.name, builderParameters, builder.parameterRegisterNumber(builderParameters.indexOf(UNITS_LIST)),
+        pageType, more.name, unitField.toString(),
     )
 }
 
@@ -171,7 +214,8 @@ internal fun BytecodePatchContext.findSearchRecommendations(): SearchRecommendat
  * against [HEADER_KIND], each asked only of a unit of its class, and starts both builders by passing
  * their list of units through [RECOMMENDATION_UNITS], which hands back the list without the You may
  * also like units and their title while the switch is on. The builder's parameter is a list, so the
- * answer is cast back to one; the lambda's is an object already.
+ * answer is cast back to one; the lambda's is an object already. The page's answer to whether more
+ * pages come after it starts by asking [LAST_PAGE] about its units, and answers no when told to.
  */
 internal fun BytecodePatchContext.hideSearchRecommendations(sites: SearchRecommendationSites) {
     // D8 compiles a stub's `return false` into p0 alone, so each gets the locals it answers in.
@@ -230,6 +274,22 @@ internal fun BytecodePatchContext.hideSearchRecommendations(sites: SearchRecomme
             invoke-static/range { v${sites.builderRegister} .. v${sites.builderRegister} }, $RECOMMENDATION_UNITS
             move-result-object v${sites.builderRegister}
             check-cast v${sites.builderRegister}, $UNITS_LIST
+        """,
+    )
+
+    // A page holding the block is the last one while the switch is on; otherwise Instagram answers.
+    val more = mutableClassDefBy(sites.pageType).methods.single { it.name == sites.moreName && it.shapeText() == "()Z" }
+    more.addInstructionsWithLabels(
+        0,
+        """
+            iget-object v0, p0, ${sites.pageUnits}
+            invoke-static { v0 }, $LAST_PAGE
+            move-result v0
+            if-eqz v0, :instagram_answers
+            const/4 v0, 0x0
+            return v0
+            :instagram_answers
+            nop
         """,
     )
 }

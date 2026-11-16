@@ -17,9 +17,11 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -41,6 +43,11 @@ class HideSearchRecommendationsHookTest {
     private val page = "Lfixture/ResultsPage;"
     private val otherPage = "Lfixture/OtherResultsPage;"
     private val timing = "Lfixture/ResultsTiming;"
+    private val reducer = "Lfixture/ResultsReducer;"
+    private val otherReducer = "Lfixture/OtherResultsReducer;"
+    private val feedPage = "Lfixture/ResultsFeedPage;"
+    private val state = "Lfixture/ResultsState;"
+    private val pageUnits = "$feedPage->A0B:Ljava/util/List;"
     private val kind = "Lfixture/UnitKind;"
     private val kindGetter = "$unit->A01()$kind"
     private val headerKind = "$kind->A05:$kind"
@@ -49,6 +56,11 @@ class HideSearchRecommendationsHookTest {
     private val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
     private val instance = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
 
+    private companion object {
+        /** What the patch puts in front of the page's answer, its `nop` label included. */
+        const val PAGE_HOOK = 7
+    }
+
     /** The hook the patch writes is in the SearchRecommendations the bundle ships, public and static, and the reader has its stub. */
     @Test
     fun theHookAndTheStubAreInTheExtension() {
@@ -56,6 +68,7 @@ class HideSearchRecommendationsHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$RECOMMENDATION_UNITS is not in the extension: $declared", RECOMMENDATION_UNITS.substringAfter("->") in declared)
+        assertTrue("$LAST_PAGE is not in the extension: $declared", LAST_PAGE.substringAfter("->") in declared)
         for (name in listOf(IS_RECOMMENDATION, IS_HEADER)) {
             val stub = ExtensionDex.classDef(SEARCH_RECOMMENDATION_READER).methods.single { it.name == name }
             assertTrue("$name static", AccessFlags.STATIC.isSet(stub.accessFlags))
@@ -63,7 +76,11 @@ class HideSearchRecommendationsHookTest {
         }
     }
 
-    /** The lambda and the builder start by filtering their list, the timing logger is left alone, and the stub asks Instagram's check. */
+    /**
+     * The lambda and the builder start by filtering their list, the page's answer to whether more
+     * come after it starts by asking about its units, the timing logger and the reducer are left
+     * alone, and the stub asks Instagram's check.
+     */
     @Test
     fun bothBuildersAreHookedAndTheStubFilled() {
         val stock = classes()
@@ -71,6 +88,8 @@ class HideSearchRecommendationsHookTest {
         val lambdaBefore = stock.single { it.type == lambda }.methods.single().code()
         val builderBefore = stock.single { it.type == page }.methods.single().code()
         val timingBefore = stock.single { it.type == timing }.methods.single().code()
+        val reducerBefore = stock.single { it.type == reducer }.methods.single().code()
+        val moreBefore = stock.single { it.type == feedPage }.methods.single { it.name == "EIF" }.code()
 
         val sites = context.findSearchRecommendations()
         context.hideSearchRecommendations(sites)
@@ -86,6 +105,14 @@ class HideSearchRecommendationsHookTest {
         assertListFiltered("stand-in builder", hookedBuilder, hookedBuilder.implementation!!.registerCount - 2, castBack = true)
         assertEquals("Instagram's builder after the filter", builderBefore.map { it.opcode }, hookedBuilder.code().drop(3).map { it.opcode })
         assertEquals("the logger", timingBefore.map { it.opcode }, context.mutableClassDefBy(timing).methods.single().code().map { it.opcode })
+        assertEquals("the reducer", reducerBefore.map { it.opcode }, context.mutableClassDefBy(reducer).methods.single().code().map { it.opcode })
+        assertEquals("the page", feedPage, sites.pageType)
+        assertEquals("its answer", "EIF", sites.moreName)
+        assertEquals("its units", pageUnits, sites.pageUnits)
+        val hookedMore = context.mutableClassDefBy(feedPage).methods.single { it.name == sites.moreName }
+        assertPageAsked("stand-in page", hookedMore, sites)
+        assertEquals("Instagram's answer after the question", moreBefore.map { it.opcode }, hookedMore.code().drop(PAGE_HOOK).map { it.opcode })
+        assertEquals("the page's other answer", 1, context.mutableClassDefBy(feedPage).methods.count { it.code().any { i -> i.referenceText() == LAST_PAGE } })
         assertStubFilled("stand-in", context.stub(), predicate)
         assertHeaderStubFilled("stand-in", context.headerStub(), sites)
     }
@@ -106,6 +133,14 @@ class HideSearchRecommendationsHookTest {
             classes(builders = 0) to "expected one static builder taking a list and asking $where, found 0",
             classes(builders = 2) to "expected one static builder taking a list and asking $where, found 2",
             classes(loopsToStart = true) to "something in $page->A00 jumps back to its start",
+            classes(reducers = 0) to "expected one static reducer asking $where that hands back the state it's given, found 0",
+            classes(reducers = 2) to "expected one static reducer asking $where that hands back the state it's given, found 2",
+            classes(questions = 2) to "expected $reducer->A00 to ask its page one yes or no question, found 2",
+            classes(readsUnits = false) to "expected $reducer->A00 to read one list of $feedPage, found 0",
+            classes(moreFinal = false) to "$feedPage->EIF()Z isn't final",
+            classes(moreLocals = 0) to "$feedPage->EIF()Z has no register of its own",
+            classes(moreLocals = 16) to "$feedPage->EIF()Z keeps this past v15",
+            classes(moreLoops = true) to "something in $feedPage->EIF jumps back to its start",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -114,7 +149,12 @@ class HideSearchRecommendationsHookTest {
             }
             assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
             val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
-                .filter { method -> method.code().any { it.referenceText() == RECOMMENDATION_UNITS || it.referenceText() == predicate && method.definingClass == SEARCH_RECOMMENDATION_READER } }
+                .filter { method ->
+                    method.code().any {
+                        it.referenceText() == RECOMMENDATION_UNITS || it.referenceText() == LAST_PAGE ||
+                            it.referenceText() == predicate && method.definingClass == SEARCH_RECOMMENDATION_READER
+                    }
+                }
             assertTrue("$expected: something was written to $written", written.isEmpty())
         }
     }
@@ -148,7 +188,39 @@ class HideSearchRecommendationsHookTest {
                 "${bundle.name}: methods calling $RECOMMENDATION_UNITS", 2,
                 classes.map { it.type }.distinct().sumOf { type -> context.mutableClassDefBy(type).methods.count { m -> m.code().any { it.referenceText() == RECOMMENDATION_UNITS } } },
             )
+            val hookedMore = context.mutableClassDefBy(sites.pageType).methods.single {
+                it.name == sites.moreName && it.parameterTypes.isEmpty() && it.returnType == "Z"
+            }
+            assertPageAsked(bundle.name, hookedMore, sites)
+            assertEquals(
+                "${bundle.name}: methods calling $LAST_PAGE", 1,
+                classes.map { it.type }.distinct().sumOf { type -> context.mutableClassDefBy(type).methods.count { m -> m.code().any { it.referenceText() == LAST_PAGE } } },
+            )
         }
+    }
+
+    /**
+     * First thing: the page's units read into its first local and handed to the extension, its
+     * answer tested, and a no returned when it says this is the last page; Instagram's code after.
+     */
+    private fun assertPageAsked(what: String, method: Method, sites: SearchRecommendationSites) {
+        val code = method.code()
+        val self = method.implementation!!.registerCount - 1
+        assertEquals("$what: the units", Opcode.IGET_OBJECT, code[0].opcode)
+        assertEquals("$what: the page's list", sites.pageUnits, code[0].reference().toString())
+        assertEquals("$what: into the first local", 0, (code[0] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: of this", self, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the question", Opcode.INVOKE_STATIC, code[1].opcode)
+        assertEquals("$what: the hook", LAST_PAGE, code[1].referenceText())
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[2].opcode)
+        assertEquals("$what: tested", Opcode.IF_EQZ, code[3].opcode)
+        assertEquals("$what: no", Opcode.CONST_4, code[4].opcode)
+        assertEquals("$what: answered", Opcode.RETURN, code[5].opcode)
+        for (at in listOf(2, 3, 4, 5)) assertEquals("$what: [$at] in the first local", 0, (code[at] as OneRegisterInstruction).registerA)
+        val address = code.runningFold(0) { start, instruction -> start + instruction.codeUnits }
+        assertEquals("$what: then Instagram's own answer", Opcode.NOP, code[PAGE_HOOK - 1].opcode)
+        assertEquals("$what: reached when it's not the last", address[PAGE_HOOK - 1], address[3] + (code[3] as OffsetInstruction).codeOffset)
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == LAST_PAGE })
     }
 
     /** First thing: the list's register handed to the extension, its answer put back in it, and for a list parameter cast back to one. */
@@ -199,7 +271,9 @@ class HideSearchRecommendationsHookTest {
      * Shaped like 454's: a public check of a results unit that reads the unit's kind (an enum with a
      * HEADER and a MEDIA_GRID constant) and then loads the marker, a merged lambda whose `invoke`
      * casts its second argument to a list and asks it, a static builder taking the list and asking
-     * it, and a timing logger asking it with no list, plus the extension's reader.
+     * it, a timing logger asking it with no list, a static reducer asking it that reads a page's
+     * units, asks the page whether more come after it and hands back the state it was given, the
+     * abstract page with that final answer, plus the extension's reader.
      */
     private fun classes(
         checks: Int = 1,
@@ -211,6 +285,12 @@ class HideSearchRecommendationsHookTest {
         lambdaBranchesFirst: Boolean = false,
         builders: Int = 1,
         loopsToStart: Boolean = false,
+        reducers: Int = 1,
+        questions: Int = 1,
+        readsUnits: Boolean = true,
+        moreFinal: Boolean = true,
+        moreLocals: Int = 1,
+        moreLoops: Boolean = false,
     ): List<ClassDef> {
         val checkBody = { marker: String ->
             listOfNotNull(
@@ -298,6 +378,47 @@ class HideSearchRecommendationsHookTest {
                 return-void
             """,
         )
+        val reduce = { owner: String ->
+            method(
+                owner, "A00", listOf(feedPage, state), state, 2, static,
+                listOfNotNull(
+                    if (readsUnits) "iget-object v0, p0, $pageUnits" else "const/4 v0, 0x0",
+                    "const/4 v1, 0x0",
+                    "invoke-interface {v0, v1}, Ljava/util/List;->get(I)Ljava/lang/Object;",
+                    asks,
+                    "invoke-virtual {p0}, $feedPage->EIF()Z",
+                    "move-result v1",
+                    if (questions > 1) "invoke-virtual {p0}, $feedPage->A0F()Z" else null,
+                    if (questions > 1) "move-result v1" else null,
+                    "return-object p1",
+                ).joinToString("\n"),
+            )
+        }
+        val pageAbstract = AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value
+        val more = method(
+            feedPage, "EIF", emptyList(), "Z", moreLocals, if (moreFinal) instance else AccessFlags.PUBLIC.value,
+            when {
+                moreLoops -> """
+                    :start
+                    iget-boolean v0, p0, $feedPage->A0E:Z
+                    if-eqz v0, :start
+                    return v0
+                """
+                moreLocals == 1 -> """
+                    iget-boolean v0, p0, $feedPage->A0E:Z
+                    return v0
+                """
+                else -> """
+                    const/4 v0, 0x0
+                    return v0
+                """
+            },
+        )
+        val otherQuestion = method(feedPage, "A0F", emptyList(), "Z", 1, instance, "const/4 v0, 0x1\nreturn v0")
+        val pageFields = listOf(
+            ImmutableField(feedPage, "A0B", "Ljava/util/List;", AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null),
+            ImmutableField(feedPage, "A0E", "Z", AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null),
+        )
         return listOfNotNull(
             classDef(check, checkMethods),
             classDef(unit, listOf(getter), if (unitPublic) instance else AccessFlags.FINAL.value),
@@ -306,6 +427,9 @@ class HideSearchRecommendationsHookTest {
             if (builders > 0) classDef(page, listOf(builder(page))) else null,
             if (builders > 1) classDef(otherPage, listOf(builder(otherPage))) else null,
             classDef(timing, listOf(logger)),
+            if (reducers > 0) classDef(reducer, listOf(reduce(reducer))) else null,
+            if (reducers > 1) classDef(otherReducer, listOf(reduce(otherReducer))) else null,
+            classDef(feedPage, listOfNotNull(more, if (questions > 1) otherQuestion else null), pageAbstract, fields = pageFields),
             if (reader) ExtensionDex.classDef(SEARCH_RECOMMENDATION_READER) else null,
         )
     }
@@ -341,7 +465,12 @@ class HideSearchRecommendationsHookTest {
         val kinds = checks.flatMap { it.code() }.mapNotNull { it.reference() as? MethodReference }
             .filter { it.definingClass in unitTypes && it.parameterTypes.isEmpty() && it.returnType.startsWith("L") }
             .mapTo(HashSet()) { it.returnType }.filterTo(HashSet()) { it !in have && it !in unitTypes }
-        val found = loading + callers + FixtureDex.classes(bundle, units + kinds).values
+        // The arguments of a caller's static methods that hand back one of them: the reducer's page.
+        val pages = callers.flatMap { it.methods }
+            .filter { method -> AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.any { it.toString() == method.returnType } }
+            .flatMap { method -> method.parameterTypes.map(CharSequence::toString) }
+            .filterTo(HashSet()) { it.startsWith("L") && it !in have && it !in units && it !in kinds }
+        val found = loading + callers + FixtureDex.classes(bundle, units + kinds + pages).values
         return FixtureDex.withStringPools(bundle, found) + ExtensionDex.classDef(SEARCH_RECOMMENDATION_READER)
     }
 

@@ -31,12 +31,19 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>Every other unit stays, in order. The hook fails open: with the switch off, HushGram paused, the
  * settings not read yet or anything thrown, Instagram's own list stands.
+ *
+ * <p>Pages after the block hold more of it and nothing else, and with it gone the page is often too
+ * short to scroll, so Instagram puts its load more button under it, which fetched pages that came out
+ * empty and took the accounts above with them. The patch also asks {@link #lastPage} first thing in a
+ * page's own answer to whether more come after it, so a page holding the block is the last one.
  */
 public final class SearchRecommendations {
     /** The diagnostic counter route for the You may also like blocks left out of search results. */
     static final String ROUTE = "Search You may also like";
 
     static final String UNITS = "results units";
+
+    static final String PAGES = "results pages";
 
     private SearchRecommendations() {
     }
@@ -85,6 +92,32 @@ public final class SearchRecommendations {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.EXPLORE_GRID, UNITS, failure);
             return units;
+        }
+    }
+
+    /**
+     * Injected first thing in a page of search results' answer to whether more pages come after it,
+     * with the page's units. True, so Instagram reads the page as the last, while the switch is on and
+     * the page holds the You may also like block. False otherwise, when it isn't a list, or when
+     * anything goes wrong, and Instagram's own answer stands. Never throws.
+     */
+    public static boolean lastPage(Object units) {
+        return lastPage(units, SearchRecommendations::switchedOn, SearchRecommendationReader::isRecommendation);
+    }
+
+    static boolean lastPage(Object units, BooleanSupplier on, Predicate<Object> recommendation) {
+        if (!(units instanceof List)) return false;
+        List<?> list = (List<?>) units;
+        if (list.isEmpty()) return false;
+        try {
+            if (!on.getAsBoolean()) return false;
+            for (Object unit : list.toArray()) {
+                if (unit != null && recommendation.test(unit)) return true;
+            }
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.EXPLORE_GRID, PAGES, failure);
+            return false;
         }
     }
 

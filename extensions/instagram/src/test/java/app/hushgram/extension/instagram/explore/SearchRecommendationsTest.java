@@ -194,4 +194,44 @@ public class SearchRecommendationsTest {
         String missing = HookStatus.missing(FamilyNames.EXPLORE_GRID).toString();
         assertTrue(missing, missing.contains("'" + SearchRecommendations.UNITS + "'"));
     }
+
+    /**
+     * On, a page holding the recommended block is the last one, so no load more button goes under the
+     * short results. Seen on a phone: the button stayed, and a tap fetched pages that came out empty
+     * and took the accounts with them.
+     */
+    @Test
+    public void onAPageWithTheBlockIsTheLast() {
+        Settings.HIDE_SEARCH_RECOMMENDATIONS.save(true);
+        assertTrue(SearchRecommendations.lastPage(Arrays.asList(new Unit(false), null, Unit.title(), new Unit(true)),
+                SearchRecommendations::switchedOn, MARKED));
+    }
+
+    /** Off, on a page of results alone, and for an empty list, something else or null, Instagram's own answer stands. */
+    @Test
+    public void otherPagesKeepInstagramsAnswer() {
+        List<Unit> withBlock = Arrays.asList(new Unit(false), new Unit(true));
+        assertFalse("off", SearchRecommendations.lastPage(withBlock, SearchRecommendations::switchedOn, MARKED));
+        assertFalse("off, the real hook", SearchRecommendations.lastPage(withBlock));
+        Settings.HIDE_SEARCH_RECOMMENDATIONS.save(true);
+        assertFalse("results alone", SearchRecommendations.lastPage(Arrays.asList(new Unit(false), Unit.title()),
+                SearchRecommendations::switchedOn, MARKED));
+        assertFalse("empty", SearchRecommendations.lastPage(Collections.emptyList(), SearchRecommendations::switchedOn, MARKED));
+        assertFalse("not a list", SearchRecommendations.lastPage(new Unit(true), SearchRecommendations::switchedOn, MARKED));
+        assertFalse("null", SearchRecommendations.lastPage(null, SearchRecommendations::switchedOn, MARKED));
+        assertFalse("an unfilled reader", SearchRecommendations.lastPage(withBlock));
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", SearchRecommendations.lastPage(withBlock, SearchRecommendations::switchedOn, MARKED));
+    }
+
+    /** A check that throws leaves Instagram's answer and is reported. */
+    @Test
+    public void aThrowingPageCheckFailsOpenAndIsReported() {
+        assertFalse(SearchRecommendations.lastPage(Arrays.asList(new Unit(true)), () -> true, unit -> {
+            throw new IllegalStateException("check");
+        }));
+        String missing = HookStatus.missing(FamilyNames.EXPLORE_GRID).toString();
+        assertTrue(missing, missing.contains("'" + SearchRecommendations.PAGES + "'"));
+    }
 }
