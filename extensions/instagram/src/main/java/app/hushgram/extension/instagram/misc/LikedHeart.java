@@ -16,8 +16,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>Instagram's like heart draws the line heart at full strength first, then lays the filled heart
  * over it at the liked progress. The line heart's soft edge reaches about half a pixel past the filled
- * one, so a liked heart showed a thin light rim, which stands out once the fill is in the accent color.
- * With Accent color on and a color picked, a fully liked heart is drawn without its line heart.
+ * one, so a liked heart showed a thin light rim, which stands out once the fill is in the accent color,
+ * and around Instagram's own red one on a black page too (#721). A fully liked heart is drawn without
+ * its line heart, whatever the accent, since the filled heart covers everything else it would draw.
  */
 public final class LikedHeart {
     static final String COUNT_DROPPED = "liked hearts drawn without their line heart";
@@ -28,7 +29,7 @@ public final class LikedHeart {
     /**
      * Injected in place of the like heart's call drawing its line heart, [outline], on [canvas], with
      * the heart's liked progress, [liked], one once the post is liked. Draws it unless the heart is
-     * fully liked and Accent color is on. Anything thrown draws it as Instagram does.
+     * fully liked and HushGram isn't paused. Anything thrown draws it as Instagram does.
      */
     public static void outline(Drawable outline, Canvas canvas, float liked) {
         if (outline == null) return;
@@ -39,10 +40,10 @@ public final class LikedHeart {
         outline.draw(canvas);
     }
 
-    /** Whether a fully liked heart is drawn without its line heart: Accent color on, a color picked, not paused. */
+    /** Whether a fully liked heart is drawn without its line heart: whenever HushGram isn't paused. */
     static boolean dropsOutline() {
         try {
-            return !HushgramPause.isPaused() && AccentColor.picked() != null;
+            return !HushgramPause.isPaused();
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "liked heart", failure);
             return false;

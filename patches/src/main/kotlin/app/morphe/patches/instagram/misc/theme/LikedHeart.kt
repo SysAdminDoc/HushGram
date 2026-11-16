@@ -92,8 +92,8 @@ private fun Instruction.callsDraw(): Boolean {
 
 /**
  * Hands the like button's line heart to the extension in place of drawing it, with the heart's liked
- * progress, so a liked heart in the accent color no longer shows the line heart's light edge around it
- * (#519). Leaves the heart as it is, with a warning, when [findLikedHeart] finds none or the site can't
+ * progress, so a liked heart, in the accent color (#519) or Instagram's red (#721), no longer shows the
+ * line heart's light edge around it. Leaves the heart as it is, with a warning, when [findLikedHeart] finds none or the site can't
  * take the call.
  */
 internal fun BytecodePatchContext.dropLikedHeartOutline() {

@@ -1481,6 +1481,8 @@ Left off your profile: %1$s. The grid of posts stays.	นำออกจาก�
 Left off other profiles: %1$s. The grid of posts stays.	นำออกจากโปรไฟล์ของผู้อื่น: %1$s ตารางโพสต์จะยังคงอยู่
 Reposts	รีโพสต์
 Tagged	แท็กแล้ว
+# context: Instagram's Subscriptions tab on a creator's profile, a choice in the Tabs on your profile and Tabs on other profiles lists under Profiles (#721), next to Reels, Reposts and Tagged. Use Instagram's own name for that tab
+Subscriptions	การสมัครสมาชิก
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
 Show all recent searches	แสดงการค้นหาล่าสุดทั้งหมด
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	แสดงรายการค้นหาล่าสุดทั้งหมดใต้แถบค้นหา ไม่ใช่แค่สองสามรายการแรก โดย "ดูทั้งหมด" และเครื่องหมาย x ในแต่ละแถวจะยังคงทำงานเหมือนเดิม

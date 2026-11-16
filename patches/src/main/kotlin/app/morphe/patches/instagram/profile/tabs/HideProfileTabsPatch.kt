@@ -47,9 +47,9 @@ internal val PROFILE_TAB_KEYS = listOf(
 )
 
 /**
- * Leaves the Reels, Reposts and Tagged tabs off profiles as the user picks, once for your own
- * profile and once for everyone else's (#296). Included in the default selection with nothing
- * picked, so every tab stays until the user turns one off.
+ * Leaves the Subscriptions (#721), Reels, Reposts and Tagged tabs off profiles as the user picks,
+ * once for your own profile and once for everyone else's (#296). Included in the default selection
+ * with nothing picked, so every tab stays until the user turns one off.
  *
  * Instagram builds the list of a profile's tab keys in one method, and the strip, the pager and the
  * tab providers are made from that list. The patch hands the list to the extension just before the
@@ -61,7 +61,7 @@ internal val PROFILE_TAB_KEYS = listOf(
 @Suppress("unused")
 val hideProfileTabsPatch = bytecodePatch(
     name = "Hide profile tabs",
-    description = "Lets you take the Reels, Reposts and Tagged tabs off profiles, yours and other people's, and keep " +
+    description = "Lets you take the Subscriptions, Reels, Reposts and Tagged tabs off profiles, yours and other people's, and keep " +
         "the grid. Starts with every tab showing. Pick which to hide in HushGram settings > Profiles.",
     default = true,
 ) {

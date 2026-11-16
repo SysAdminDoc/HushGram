@@ -1491,6 +1491,8 @@ Left off your profile: %1$s. The grid of posts stays.	Profilinden kaldırılanla
 Left off other profiles: %1$s. The grid of posts stays.	Diğer profillerden kaldırılanlar: %1$s. Gönderi ızgarası kalır.
 Reposts	Yeniden paylaşımlar
 Tagged	Etiketli
+# context: Instagram's Subscriptions tab on a creator's profile, a choice in the Tabs on your profile and Tabs on other profiles lists under Profiles (#721), next to Reels, Reposts and Tagged. Use Instagram's own name for that tab
+Subscriptions	Abonelikler
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
 Show all recent searches	Tüm son aramaları göster
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Arama çubuğunun altında yalnızca ilk birkaçını değil, tüm son aramaları listeler. Tümünü gör ve her satırdaki x eskisi gibi çalışır.

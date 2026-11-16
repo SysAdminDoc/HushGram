@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Tabs on your profile` and `Tabs on other profiles` under Profiles can take a creator's Subscriptions tab off too, along with Reels, Reposts and Tagged. Asked for in #721.
 * `Hide rings outside the stories row`, under `Story ring size` in Stories, takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row. Asked for in #719.
 * Each number beside a reel can go on its own now. Five new switches under Reels, `Hide like counts on reels` through `Hide save counts on reels`, take away the like, comment, repost, share or save count and leave the button where it is. Asked for in #719.
 * `Material look`, under Glass tab bar in Tab bar, gives the floating tab bar Android's own Material 3 style. The pill goes solid with fully round ends, takes your phone's colors on Android 12 and newer, and puts a round marker on the tab you're on. It needs `Liquid glass look` off. Asked for in #720.
@@ -53,6 +54,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* A liked heart in Instagram's own red no longer has a thin light edge around it on a black page. The outline under it is left out with `Accent color` off too, the same way it already was for your accent color. Reported in #721.
 * `Split the notes row` shows the Stories stack next to Instants and Notes on accounts where Instagram had left it out, with your friends' stories in it. Reported in #717.
 * `Never save AV1 video`, `Never save HDR video` and `Save videos as MKV` go into a settings backup now, so restoring one brings them back with the other save switches. They used to come back off.
 * `Hide Follow on posts` catches the Follow button on a post you scroll to as well. It could slip through until something else on the screen moved. `Hide captions`, `Hide the Like button`, `Hide the Save button`, `Hide the emoji row` and `Hide GIFs in comments` got the same fix. Reported in #719.

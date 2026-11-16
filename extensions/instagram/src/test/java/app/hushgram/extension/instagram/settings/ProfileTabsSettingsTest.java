@@ -29,6 +29,7 @@ import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.instagram.profile.ProfileTabs;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -101,7 +102,7 @@ public class ProfileTabsSettingsTest {
         assertNull(others());
     }
 
-    /** Both rows sit under Profiles, yours first, each offering the three tabs all ticked and never the grid. */
+    /** Both rows sit under Profiles, yours first, each offering the four tabs all ticked and never the grid. */
     @Test public void everyTabStartsTickedAndTheGridIsNotOffered() throws Exception {
         open(true);
         Preference own = own();
@@ -128,11 +129,12 @@ public class ProfileTabsSettingsTest {
 
         for (Preference row : new Preference[]{own, others}) {
             ListView list = pick(row);
-            assertEquals(row.getTitle().toString(), 3, list.getCount());
-            assertEquals("Reels", list.getItemAtPosition(0).toString());
-            assertEquals("Reposts", list.getItemAtPosition(1).toString());
-            assertEquals("Tagged", list.getItemAtPosition(2).toString());
-            for (int i = 0; i < 3; i++) assertTrue("tab " + i + " ticked", list.isItemChecked(i));
+            assertEquals(row.getTitle().toString(), 4, list.getCount());
+            assertEquals("Subscriptions", list.getItemAtPosition(0).toString());
+            assertEquals("Reels", list.getItemAtPosition(1).toString());
+            assertEquals("Reposts", list.getItemAtPosition(2).toString());
+            assertEquals("Tagged", list.getItemAtPosition(3).toString());
+            for (int i = 0; i < 4; i++) assertTrue("tab " + i + " ticked", list.isItemChecked(i));
             ShadowAlertDialog.getLatestAlertDialog().dismiss();
         }
     }
@@ -144,16 +146,33 @@ public class ProfileTabsSettingsTest {
         Preference row = others();
         ListView list = pick(row);
 
-        tap(list, 1);
+        tap(list, 2);
         assertEquals("profile_reposts", Settings.HIDDEN_PROFILE_TABS.get());
-        tap(list, 0);
+        tap(list, 1);
         assertEquals("profile_clips,profile_reposts", Settings.HIDDEN_PROFILE_TABS.get());
         assertTrue(row.getSummary().toString(), row.getSummary().toString().startsWith("Left off other profiles: "));
         assertEquals("your profile's pick is untouched", "", Settings.HIDDEN_OWN_PROFILE_TABS.get());
-        tap(list, 1);
+        tap(list, 2);
         assertEquals("profile_clips", Settings.HIDDEN_PROFILE_TABS.get());
-        tap(list, 0);
+        tap(list, 1);
         assertEquals("", Settings.HIDDEN_PROFILE_TABS.get());
+    }
+
+    /** Subscriptions (#721) leaves the list under its own key, first, like the strip shows it. */
+    @Test public void subscriptionsCanBeLeftOff() throws Exception {
+        Settings.HIDDEN_OWN_PROFILE_TABS.save("");
+        open(true);
+        Preference row = others();
+        ListView list = pick(row);
+
+        tap(list, 3);
+        tap(list, 0);
+        assertEquals("profile_fan_club_grid,profile_tagged_media_photos_of_you", Settings.HIDDEN_PROFILE_TABS.get());
+        assertEquals("Left off other profiles: " + L10n.isolate("Subscriptions") + ", " + L10n.isolate("Tagged")
+                + ". The grid of posts stays.", row.getSummary().toString());
+        assertFalse(list.isItemChecked(0));
+        tap(list, 0);
+        assertEquals("profile_tagged_media_photos_of_you", Settings.HIDDEN_PROFILE_TABS.get());
     }
 
     /** Your profile's row saves only your profile's key. */
@@ -162,12 +181,12 @@ public class ProfileTabsSettingsTest {
         Preference row = own();
         ListView list = pick(row);
 
-        tap(list, 0);
+        tap(list, 1);
         assertEquals("profile_clips", Settings.HIDDEN_OWN_PROFILE_TABS.get());
         assertEquals("other profiles keep every tab", "", Settings.HIDDEN_PROFILE_TABS.get());
         assertTrue(row.getSummary().toString(), row.getSummary().toString().startsWith("Left off your profile: "));
         assertTrue(others().getSummary().toString().startsWith("Every tab shows on other people's"));
-        tap(list, 0);
+        tap(list, 1);
         assertEquals("ticking everything again is a pick of its own", "", Settings.HIDDEN_OWN_PROFILE_TABS.get());
     }
 
@@ -180,11 +199,12 @@ public class ProfileTabsSettingsTest {
         ListView mine = pick(own());
         assertTrue(mine.isItemChecked(0));
         assertTrue(mine.isItemChecked(1));
-        assertFalse(mine.isItemChecked(2));
+        assertTrue(mine.isItemChecked(2));
+        assertFalse(mine.isItemChecked(3));
         ShadowAlertDialog.getLatestAlertDialog().dismiss();
 
         ListView theirs = pick(others());
-        tap(theirs, 2);
+        tap(theirs, 3);
         assertEquals("", Settings.HIDDEN_PROFILE_TABS.get());
         assertEquals("profile_tagged_media_photos_of_you", Settings.HIDDEN_OWN_PROFILE_TABS.get());
     }
@@ -197,12 +217,14 @@ public class ProfileTabsSettingsTest {
         ListView list = pick(others());
         assertTrue(list.isItemChecked(0));
         assertTrue(list.isItemChecked(1));
-        assertFalse(list.isItemChecked(2));
+        assertTrue(list.isItemChecked(2));
+        assertFalse(list.isItemChecked(3));
         ShadowAlertDialog.getLatestAlertDialog().dismiss();
         ListView mine = pick(own());
-        assertFalse(mine.isItemChecked(0));
-        assertTrue(mine.isItemChecked(1));
+        assertTrue(mine.isItemChecked(0));
+        assertFalse(mine.isItemChecked(1));
         assertTrue(mine.isItemChecked(2));
+        assertTrue(mine.isItemChecked(3));
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
@@ -222,6 +244,8 @@ public class ProfileTabsSettingsTest {
         assertTrue(ConfigurationBackup.textAllowed(Settings.HIDDEN_OWN_PROFILE_TABS, ""));
         assertTrue(ConfigurationBackup.textAllowed(Settings.HIDDEN_OWN_PROFILE_TABS, "profile_clips,profile_reposts"));
         assertFalse(ConfigurationBackup.textAllowed(Settings.HIDDEN_OWN_PROFILE_TABS, "profile_reposts,profile_clips"));
+        assertTrue(ConfigurationBackup.textAllowed(Settings.HIDDEN_PROFILE_TABS, "profile_fan_club_grid,profile_clips"));
+        assertFalse(ConfigurationBackup.textAllowed(Settings.HIDDEN_PROFILE_TABS, "profile_clips,profile_fan_club_grid"));
         assertFalse(ConfigurationBackup.textAllowed(Settings.HIDDEN_OWN_PROFILE_TABS, "profile_media_grid"));
         assertFalse(ConfigurationBackup.textAllowed(Settings.HIDDEN_PROFILE_TABS, ProfileTabs.SAME_AS_OTHERS));
     }

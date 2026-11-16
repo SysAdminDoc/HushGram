@@ -1490,6 +1490,8 @@ Left off your profile: %1$s. The grid of posts stays.	내 프로필에서 숨긴
 Left off other profiles: %1$s. The grid of posts stays.	다른 프로필에서 숨긴 탭: %1$s. 게시물 그리드는 그대로 남습니다.
 Reposts	리포스트
 Tagged	태그됨
+# context: Instagram's Subscriptions tab on a creator's profile, a choice in the Tabs on your profile and Tabs on other profiles lists under Profiles (#721), next to Reels, Reposts and Tagged. Use Instagram's own name for that tab
+Subscriptions	구독
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
 Show all recent searches	최근 검색 모두 표시
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	검색창 아래에 처음 몇 개만이 아니라 최근 검색을 전부 보여 줍니다. 모두 보기와 각 줄의 x는 전과 똑같이 작동합니다.

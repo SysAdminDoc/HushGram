@@ -1618,6 +1618,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** What the profile tabs list calls the tab Instagram keys [key]. */
     static String profileTabLabel(String key) {
         switch (key) {
+            case "profile_fan_club_grid":
+                return L10n.t("Subscriptions");
             case "profile_clips":
                 return L10n.t("Reels");
             case "profile_reposts":

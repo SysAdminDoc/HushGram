@@ -31,7 +31,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** The like button's line heart, left out of a liked heart in the accent color (#519). */
+/** The like button's line heart, left out of a liked heart in the accent color (#519) and in Instagram's red (#721). */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class LikedHeartTest {
@@ -55,12 +55,15 @@ public class LikedHeartTest {
         prepare();
     }
 
+    /** Instagram's own red heart lost its light rim on a black page too (#721), with Accent color off. */
     @Test
-    public void accentColorOffDrawsTheLineHeartAsInstagramDoes() {
+    public void accentColorOffDropsTheLineHeartOfALikedHeartToo() {
         LikedHeart.outline(outline, canvas, 1f);
-        LikedHeart.outline(outline, canvas, 0f);
+        assertEquals("liked", 0, outline.draws);
 
-        assertEquals(2, outline.draws);
+        LikedHeart.outline(outline, canvas, 0f);
+        LikedHeart.outline(outline, canvas, 0.5f);
+        assertEquals("not liked, or still filling in", 2, outline.draws);
     }
 
     @Test
@@ -79,17 +82,17 @@ public class LikedHeartTest {
     }
 
     @Test
-    public void instagramBlueOrAPauseKeepsTheLineHeart() {
+    public void instagramBlueDropsItAndAPauseKeepsIt() {
         Settings.ACCENT_COLOR.save(true);
         Settings.ACCENT_HUE.save(AccentHue.BLUE);
         LikedHeart.outline(outline, canvas, 1f);
-        assertEquals("Instagram's blue picked", 1, outline.draws);
+        assertEquals("Instagram's blue picked", 0, outline.draws);
 
         Settings.ACCENT_HUE.save(AccentHue.TEAL);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         LikedHeart.outline(outline, canvas, 1f);
-        assertEquals("paused", 2, outline.draws);
+        assertEquals("paused", 1, outline.draws);
     }
 
     @Test

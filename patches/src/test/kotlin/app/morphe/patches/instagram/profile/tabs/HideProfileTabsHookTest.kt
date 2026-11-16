@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -115,6 +116,15 @@ class HideProfileTabsHookTest {
         }
     }
 
+    /** The extension offers Subscriptions (#721) with the other three, and never the grid. */
+    @Test
+    fun theExtensionOffersSubscriptions() {
+        assertEquals(
+            setOf("profile_fan_club_grid", "profile_clips", "profile_reposts", "profile_tagged_media_photos_of_you"),
+            offeredKeys(),
+        )
+    }
+
     /** An extension without the readers fails before the builder is touched. */
     @Test
     fun anExtensionWithoutTheReadersFailsBeforeAnythingChanges() {
@@ -161,6 +171,8 @@ class HideProfileTabsHookTest {
         val locals = method.implementation!!.registerCount - 1 - method.parameterTypes.size
         assertEquals("$label: this", locals, site.self)
         assertEquals("$label: the user", locals + 1, site.user)
+        val loaded = method.code().mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }.toSet()
+        assertEquals("$label: every tab the settings offer is one this builder adds", emptySet<String>(), offeredKeys() - loaded)
         val before = method.code().map { it.shape() }
 
         context.hideProfileTabs(site)
@@ -321,6 +333,13 @@ class HideProfileTabsHookTest {
         ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, fields, methods)
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty().filter { it.opcode != Opcode.NOP }
+
+    /** The tab keys the extension's ProfileTabs offers, read from its code: every `profile_` string but the grid. */
+    private fun offeredKeys(): Set<String> = ExtensionDex.classDef(PROFILE_TABS).methods
+        .flatMap { it.code() }
+        .mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+        .filter { it.startsWith("profile_") && it != "profile_media_grid" }
+        .toSet()
 
     private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference?.toString()
 

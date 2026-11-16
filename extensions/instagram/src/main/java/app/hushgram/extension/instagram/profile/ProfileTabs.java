@@ -20,12 +20,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
- * Helper for the "Hide profile tabs" patch (#254): leaves the Reels, Reposts and Tagged tabs off
- * profiles and keeps the grid, with one pick for your own profile and one for everyone else's
- * (#296).
+ * Helper for the "Hide profile tabs" patch (#254): leaves the Subscriptions (#721), Reels, Reposts
+ * and Tagged tabs off profiles and keeps the grid, with one pick for your own profile and one for
+ * everyone else's (#296).
  *
  * <p>Instagram names each profile tab with a string key ({@code profile_media_grid},
- * {@code profile_clips}, {@code profile_reposts}, {@code profile_tagged_media_photos_of_you}) and
+ * {@code profile_fan_club_grid} for a creator's Subscriptions, {@code profile_clips},
+ * {@code profile_reposts}, {@code profile_tagged_media_photos_of_you}) and
  * builds the list of keys for the profile it's showing in one method, which the tab strip, the pager
  * and the tab providers are all made from. The patch hands that list to {@link #tabs} just before the
  * method returns, with the builder and the profile's user. A tab is dropped by its key, never by its
@@ -42,9 +43,13 @@ public final class ProfileTabs {
     /** The grid of posts. Never offered, never dropped. */
     static final String GRID = "profile_media_grid";
 
-    /** The tabs the setting can leave off, as Instagram's keys, in the order the tab strip shows them. */
+    /**
+     * The tabs the setting can leave off, as Instagram's keys, in the order the tab strip shows them.
+     * Subscriptions ({@code profile_fan_club_grid}, #721) only shows on a creator who sells them, right
+     * after the grid.
+     */
     public static final List<String> OFFERED = Collections.unmodifiableList(Arrays.asList(
-            "profile_clips", "profile_reposts", "profile_tagged_media_photos_of_you"));
+            "profile_fan_club_grid", "profile_clips", "profile_reposts", "profile_tagged_media_photos_of_you"));
 
     /**
      * What {@link Settings#HIDDEN_OWN_PROFILE_TABS} holds until it's saved: your own profile follows

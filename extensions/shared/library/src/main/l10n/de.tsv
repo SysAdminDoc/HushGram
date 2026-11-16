@@ -1491,6 +1491,8 @@ Left off your profile: %1$s. The grid of posts stays.	In deinem Profil ausgeblen
 Left off other profiles: %1$s. The grid of posts stays.	In anderen Profilen ausgeblendet: %1$s. Das Raster mit den Beiträgen bleibt.
 Reposts	Reposts
 Tagged	Markiert
+# context: Instagram's Subscriptions tab on a creator's profile, a choice in the Tabs on your profile and Tabs on other profiles lists under Profiles (#721), next to Reels, Reposts and Tagged. Use Instagram's own name for that tab
+Subscriptions	Abonnements
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
 Show all recent searches	Alle letzten Suchen anzeigen
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Zeigt unter der Suchleiste alle letzten Suchen, nicht nur die ersten paar. „Alle ansehen“ und das x an jeder Zeile funktionieren wie vorher.

@@ -1477,6 +1477,8 @@ Left off your profile: %1$s. The grid of posts stays.	你的主页中已隐藏�
 Left off other profiles: %1$s. The grid of posts stays.	他人的主页中已隐藏：%1$s。帖子网格仍会保留。
 Reposts	转发
 Tagged	被标注
+# context: Instagram's Subscriptions tab on a creator's profile, a choice in the Tabs on your profile and Tabs on other profiles lists under Profiles (#721), next to Reels, Reposts and Tagged. Use Instagram's own name for that tab
+Subscriptions	订阅
 # context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
 Show all recent searches	显示所有最近搜索
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	在搜索栏下方栏出所有最近搜索，而非仅前几笔。“查看全部”与每列的 x 仍可照常使用。

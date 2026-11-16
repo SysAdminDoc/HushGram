@@ -1435,6 +1435,8 @@ Left off other profiles: %1$s. The grid of posts stays.	Đã bỏ khỏi trang c
 # context: tabs on a profile: Reposts and Tagged are Instagram's own tab names
 Reposts	Bài đăng lại
 Tagged	Được gắn thẻ
+# context: Instagram's Subscriptions tab on a creator's profile, a choice in the Tabs on your profile and Tabs on other profiles lists under Profiles (#721), next to Reels, Reposts and Tagged. Use Instagram's own name for that tab
+Subscriptions	Gói đăng ký
 Show all recent searches	Hiện mọi nội dung tìm gần đây
 Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Liệt kê mọi nội dung tìm gần đây dưới thanh tìm kiếm, không chỉ vài mục đầu. Xem tất cả và dấu x trên mỗi hàng hoạt động như trước.
 Hide the call buttons in chats	Ẩn nút gọi trong cuộc trò chuyện
