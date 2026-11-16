@@ -27,10 +27,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The flags come from the friendship status in the profile screen's own answer, the one the chip
  * reads whether the account follows you from, each by the Java hash of its name as Instagram's
- * trees keep them. That's data the app already has: nothing is asked of Instagram for it. Flags
- * with a plain meaning are listed in words, the few whose meaning isn't plain go under their own
- * names, and the ones the answer doesn't carry are named at the bottom. A screen with no answer yet
- * lists what Instagram keeps on the user instead, which is only whether you follow each other.
+ * trees keep them, and for the many that answer doesn't carry, from the status Instagram keeps on
+ * the user. That's data the app already has: nothing is asked of Instagram for it. Flags with a
+ * plain meaning are listed in words, the few whose meaning isn't plain go under their own names,
+ * and the ones neither carries are named at the bottom. A screen with no answer yet says so first.
  */
 final class FriendshipFlags {
     /** The flags with a plain meaning, in the order they're listed. */
@@ -87,6 +87,8 @@ final class FriendshipFlags {
         final List<String[]> other = new ArrayList<>();
         /** The names of the flags the answer didn't carry. */
         final List<String> missing = new ArrayList<>();
+        /** Whether any flag came from the status kept on the user, which then names what neither carried. */
+        boolean flagsRead;
 
         Report(boolean fromScreen) {
             this.fromScreen = fromScreen;
@@ -105,7 +107,7 @@ final class FriendshipFlags {
                 section(text, L10n.t("Other flags"));
                 for (String[] line : other) line(text, line);
             }
-            if (fromScreen && !missing.isEmpty()) {
+            if ((fromScreen || flagsRead) && !missing.isEmpty()) {
                 section(text, L10n.t("Not sent for this profile"));
                 text.append('\n').append(String.join(", ", missing));
             }
@@ -136,40 +138,60 @@ final class FriendshipFlags {
             status = FriendshipStatus.screenStatus(header);
         }
         Report report = new Report(status != null);
-        if (status == null) {
-            kept(report, user);
-            return report;
-        }
-        for (String key : KNOWN) add(report, status, key, label(key), report.known);
-        for (String key : OTHER) add(report, status, key, key, report.other);
+        for (String key : KNOWN) add(report, status, user, key, label(key), report.known);
+        for (String key : OTHER) add(report, status, user, key, key, report.other);
         return report;
     }
 
-    private static void add(Report report, Object status, String key, String name, List<String[]> into) {
-        Boolean value;
-        try {
-            value = FriendshipStatus.statusFlag(status, key.hashCode());
-        } catch (Throwable failure) {
-            HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, UNREADABLE);
-            Logger.printDebug(() -> "Friendship flags: couldn't read " + key + ": " + failure);
-            value = null;
+    /**
+     * Lists [key] from the screen's answer [status], or when that doesn't carry it, from the status
+     * Instagram keeps on [user]: the screen's answer carries only the few flags the profile's own
+     * buttons need, so Close Friends, Favorites and the mutes come from the user's (#698).
+     */
+    private static void add(
+            Report report, @Nullable Object status, @Nullable Object user, String key, String name, List<String[]> into
+    ) {
+        Boolean value = null;
+        if (status != null) value = flag(key, () -> FriendshipStatus.statusFlag(status, key.hashCode()));
+        if (value == null && user != null) {
+            value = flag(key, () -> FriendshipStatus.userFlag(user, key.hashCode()));
+            if (value != null) report.flagsRead = true;
+            else value = kept(user, key);
         }
         if (value == null) report.missing.add(key);
         else into.add(new String[]{name, answer(value)});
     }
 
-    /** With no answer on the screen, whether you follow each other from what Instagram keeps on [user]. */
-    private static void kept(Report report, @Nullable Object user) {
-        if (user == null) return;
+    private interface Flag {
+        @Nullable
+        Boolean read();
+    }
+
+    /** What [read] gives for [key], or null when it throws, which is counted. */
+    @Nullable
+    private static Boolean flag(String key, Flag read) {
         try {
-            Boolean followedBy = FriendshipStatus.friendshipFollowedBy(user);
-            if (followedBy == null) followedBy = FriendshipStatus.followedBy(user);
-            if (followedBy != null) report.known.add(new String[]{label("followed_by"), answer(followedBy)});
-            Boolean following = FriendshipStatus.friendshipFollowing(user);
-            if (following != null) report.known.add(new String[]{label("following"), answer(following)});
+            return read.read();
+        } catch (Throwable failure) {
+            HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, UNREADABLE);
+            Logger.printDebug(() -> "Friendship flags: couldn't read " + key + ": " + failure);
+            return null;
+        }
+    }
+
+    /** Whether you follow each other from the two getters the chip reads on [user], for a build whose status gave neither. */
+    @Nullable
+    private static Boolean kept(Object user, String key) {
+        try {
+            if ("followed_by".equals(key)) {
+                Boolean followedBy = FriendshipStatus.friendshipFollowedBy(user);
+                return followedBy != null ? followedBy : FriendshipStatus.followedBy(user);
+            }
+            if ("following".equals(key)) return FriendshipStatus.friendshipFollowing(user);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, "friendship flags kept on the user", failure);
         }
+        return null;
     }
 
     private static String answer(boolean value) {

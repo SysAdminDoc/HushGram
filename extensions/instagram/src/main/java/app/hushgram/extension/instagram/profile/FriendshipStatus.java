@@ -296,6 +296,16 @@ public final class FriendshipStatus {
     }
 
     /**
+     * Filled in by the patch: the flag the friendship status Instagram keeps on [user] gives under the
+     * key whose Java hash is [key], or null when it has none or the build's getter for it couldn't be
+     * told. It's the status the screen's answer replaces, so it carries every flag (#698).
+     */
+    @Nullable
+    public static Boolean userFlag(Object user, int key) {
+        return null;
+    }
+
+    /**
      * Filled in by the patch: the friendship status in the answer of the profile screen [header]
      * belongs to, read as fresh as Instagram's options sheet reads it to offer Remove follower, or
      * null when the screen has none or this build's couldn't be found.

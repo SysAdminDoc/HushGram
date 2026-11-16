@@ -245,6 +245,8 @@ internal class ProfileName(
     /** The user model's getter of its ID, and the header's field of the signed-in account. */
     val userId: String,
     val session: FieldReference,
+    /** Each key the status's dump asks one getter for right after loading it, and that getter (#698). */
+    val relationshipFlags: Map<String, String>,
 )
 
 /**
@@ -291,17 +293,21 @@ internal class ProfileUser(
  */
 internal fun BytecodePatchContext.findProfileName(): ProfileName {
     val binders = mutableListOf<Pair<String, Method>>()
-    val relationshipGetters = sortedSetOf<String>()
-    val followingGetters = sortedSetOf<String>()
+    val dumped = sortedMapOf<String, MutableSet<String>>()
     val naming = classesHolding(BIND_FULL_NAME).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
         if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         if (classDef.type in naming) classDef.methods.filter { it.holdsString(BIND_FULL_NAME) }.forEach { binders += classDef.type to it }
         classDef.methods.filter { method -> method.parameterTypes.any { it.toString() == RELATIONSHIP } }.forEach {
-            relationshipGetters += it.relationshipGetters(FOLLOWED_BY)
-            followingGetters += it.relationshipGetters(FOLLOWING)
+            it.relationshipGetters().forEach { (key, getter) -> dumped.getOrPut(key) { sortedSetOf() } += getter }
         }
     }
+    val relationshipGetters = dumped[FOLLOWED_BY].orEmpty()
+    val followingGetters = dumped[FOLLOWING].orEmpty()
+    // Every key the dump asks one getter right after, for the flag list (#698). Keys whose hashes
+    // meet are left out, since the stub tells them apart by hash.
+    val told = dumped.filterValues { it.size == 1 }.mapValues { it.value.single() }
+    val relationshipFlags = told.filterKeys { key -> told.keys.count { it.hashCode() == key.hashCode() } == 1 }
     val (type, binder) = binders.singleOrNull()
         ?: refuse("expected one method loading $BIND_FULL_NAME, found ${binders.size}")
     val where = "$type->${binder.name}"
@@ -398,23 +404,24 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
         type, binder.name, binder.parameterTypes.map(CharSequence::toString), slot,
         shown, code[shown].namedRegisters().first(), hidden, code[hidden].namedRegisters().first(),
         header, headerType, viewModel, user, friendship.name, relationshipFollowedBy, relationshipFollowing, followedBy.name, userId,
-        session,
+        session, relationshipFlags,
     )
 }
 
 /**
- * The names of the [RELATIONSHIP] getters [this] asks, with nothing, right after loading [key]: the
- * friendship status's dump writes each key and then asks the status for it.
+ * Each key [this] loads with a [RELATIONSHIP] getter asked, with nothing, right after it, and that
+ * getter's name: the friendship status's dump writes each key and then asks the status for it.
  */
-private fun Method.relationshipGetters(key: String): List<String> {
+private fun Method.relationshipGetters(): List<Pair<String, String>> {
     val code = implementation?.instructions?.toList() ?: return emptyList()
     return code.withIndex().mapNotNull { (at, instruction) ->
-        if (!instruction.loadsString(key)) return@mapNotNull null
+        if (instruction.opcode != Opcode.CONST_STRING && instruction.opcode != Opcode.CONST_STRING_JUMBO) return@mapNotNull null
+        val key = ((instruction as ReferenceInstruction).reference as StringReference).string
         val next = code.getOrNull(at + 1) ?: return@mapNotNull null
         val asked = next.methodReference() ?: return@mapNotNull null
         val isGetter = (next.opcode == Opcode.INVOKE_INTERFACE || next.opcode == Opcode.INVOKE_INTERFACE_RANGE) &&
             asked.definingClass == RELATIONSHIP && asked.parameterTypes.isEmpty() && asked.returnType == BOOLEAN
-        if (isGetter) asked.name else null
+        if (isGetter) key to asked.name else null
     }
 }
 
@@ -518,6 +525,7 @@ internal class FriendshipStubs(
     private val profileUser: MutableMethod,
     private val friendshipFollowedBy: MutableMethod,
     private val friendshipFollowing: MutableMethod,
+    private val userFlag: MutableMethod,
     private val followedBy: MutableMethod,
     private val userId: MutableMethod,
     private val viewerId: MutableMethod,
@@ -573,6 +581,7 @@ internal class FriendshipStubs(
                 """,
             )
         }
+        fillUserFlag(found)
         followedBy.addInstructionsWithLabels(
             0,
             """
@@ -624,6 +633,43 @@ internal class FriendshipStubs(
                 return p0
             """,
         )
+    }
+
+    /**
+     * Writes the stub reading one flag of the status kept on the user by its key's hash (#698): a
+     * compare per key the dump names, each asking that key's getter and returning on its own. It
+     * needs a register of its own for the hash, which the stub as compiled may not have, so it's
+     * written anew with one ahead of its parameters.
+     */
+    private fun fillUserFlag(found: ProfileName) {
+        val keys = found.relationshipFlags.entries.withIndex().joinToString("\n") { (index, flag) ->
+            """
+                const v0, ${flag.key.hashCode()}
+                if-ne p1, v0, :not_$index
+                invoke-interface { p0 }, $RELATIONSHIP->${flag.value}()$BOOLEAN
+                move-result-object p0
+                return-object p0
+                :not_$index
+            """.trimIndent()
+        }
+        val body = """
+            |if-eqz p0, :none
+            |check-cast p0, $USER
+            |invoke-virtual { p0 }, $USER->${found.friendship}()$RELATIONSHIP
+            |move-result-object p0
+            |if-eqz p0, :none
+            |$keys
+            |:none
+            |const/4 p0, 0x0
+            |return-object p0
+        """.trimMargin().lines().joinToString("\n") { it.trim() }
+        val written = ImmutableMethod(
+            userFlag.definingClass, userFlag.name, userFlag.parameters, userFlag.returnType,
+            userFlag.accessFlags, userFlag.annotations, userFlag.hiddenApiRestrictions,
+            ImmutableMethodImplementation(USER_FLAG_LOCALS + 2, emptyList(), null, null),
+        ).toMutable().apply { addInstructionsWithLabels(0, body) }
+        extension.methods.remove(userFlag)
+        extension.methods.add(written)
     }
 
     /**
@@ -686,6 +732,9 @@ internal class FriendshipStubs(
 /** The registers the screen's answer stub has of its own: the type and the client. */
 private const val SCREEN_LOCALS = 2
 
+/** The register the user's flag stub has of its own: the key's hash it's compared with. */
+private const val USER_FLAG_LOCALS = 1
+
 internal fun BytecodePatchContext.friendshipStubs(): FriendshipStubs {
     val extension = mutableClassDefBy(FRIENDSHIP_STATUS)
     fun stub(name: String, parameters: List<String>, returns: String): MutableMethod = extension.methods.singleOrNull {
@@ -700,6 +749,7 @@ internal fun BytecodePatchContext.friendshipStubs(): FriendshipStubs {
         profileUser = stub("profileUser", listOf(OBJECT), OBJECT),
         friendshipFollowedBy = stub("friendshipFollowedBy", listOf(OBJECT), BOOLEAN),
         friendshipFollowing = stub("friendshipFollowing", listOf(OBJECT), BOOLEAN),
+        userFlag = stub("userFlag", listOf(OBJECT, "I"), BOOLEAN),
         followedBy = stub("followedBy", listOf(OBJECT), BOOLEAN),
         userId = stub("userId", listOf(OBJECT), STRING),
         viewerId = stub("viewerId", listOf(OBJECT), STRING),

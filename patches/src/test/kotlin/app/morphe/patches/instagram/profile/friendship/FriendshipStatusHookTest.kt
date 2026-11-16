@@ -87,6 +87,37 @@ class FriendshipStatusHookTest {
     }
 
     /**
+     * The flag list reads every flag the status kept on the user has (#698) through one stub that
+     * asks the getter the status's dump asks right after each key, told apart by the key's hash. A
+     * key the dump asks two getters after is left out, since which one it means can't be told.
+     */
+    @Test
+    fun theUserFlagStubAsksEachKeysGetterByItsHash() {
+        val context = PatchContexts.of(standIns())
+        val found = context.findProfileName()
+        assertEquals(mapOf(FOLLOWED_BY to "followedBy", FOLLOWING to "following", "muting" to "muting"), found.relationshipFlags)
+
+        context.friendshipStubs().fill(found)
+
+        val stub = context.mutableClassDefBy(FRIENDSHIP_STATUS).methods.single { it.name == "userFlag" }
+        assertEquals("a register of its own and the two parameters", 3, stub.implementation!!.registerCount)
+        val code = stub.implementation!!.instructions.toList()
+        assertEquals(
+            listOf(
+                USER, "$USER->friendship()$RELATIONSHIP", "$RELATIONSHIP->followedBy()Ljava/lang/Boolean;",
+                "$RELATIONSHIP->following()Ljava/lang/Boolean;", "$RELATIONSHIP->muting()Ljava/lang/Boolean;",
+            ),
+            code.mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() },
+        )
+        val hashes = code.filter { it.opcode == Opcode.CONST }.map { (it as NarrowLiteralInstruction).narrowLiteral }
+        assertEquals(listOf(FOLLOWED_BY.hashCode(), FOLLOWING.hashCode(), "muting".hashCode()), hashes)
+        // Each compare is against the key's own hash in p1, the stub's second parameter.
+        val compares = code.filter { it.opcode == Opcode.IF_NE }.map { it as TwoRegisterInstruction }
+        assertEquals(3, compares.size)
+        compares.forEach { assertEquals(2, it.registerA) }
+    }
+
+    /**
      * The label reads the profile screen's own answer the way Instagram's options sheet does to offer
      * Remove follower (#40): from the header's view model to the answer's tree, made the sheet's
      * fragment and typed for its client, then the friendship status in it, and followed_by in that.
@@ -175,10 +206,10 @@ class FriendshipStatusHookTest {
         val narrow = context.mutableClassDefBy(FRIENDSHIP_STATUS).methods.filter {
             it.name in setOf(
                 "friendshipFollowedBy", "friendshipFollowing", "followedBy", "userId", "viewerId", "slotView", "statusFlag",
-                "screenFriendship",
+                "screenFriendship", "userFlag",
             )
         }
-        assertEquals(8, narrow.size)
+        assertEquals(9, narrow.size)
         for (stub in narrow) {
             val code = stub.implementation!!.instructions.toList()
             val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
@@ -258,6 +289,10 @@ class FriendshipStatusHookTest {
                 val asked = context.mutableClassDefBy(FRIENDSHIP_STATUS).methods.single { it.name == "friendshipFollowing" }
                     .implementation!!.instructions.mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
                 assertTrue("${bundle.name}: $asked", "$RELATIONSHIP->$following()Ljava/lang/Boolean;" in asked)
+                // The flag list's keys (#698), each told by the status's dump on every declared build,
+                // save the supervision pair, which the user's status doesn't carry on 454.
+                val unknown = LISTED_FLAGS.filter { it !in SCREEN_ONLY_FLAGS && it !in found.relationshipFlags }
+                assertTrue("${bundle.name}: no getter for $unknown in ${found.relationshipFlags}", unknown.isEmpty())
                 val method = context.mutableClassDefBy(found.type).methods.single {
                     it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
                 }
@@ -433,6 +468,20 @@ class FriendshipStatusHookTest {
     internal companion object {
         val PLAIN_MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
 
+        /** The keys the extension's flag list names (FriendshipFlags.KNOWN and OTHER). */
+        val LISTED_FLAGS = listOf(
+            "followed_by", "following", "incoming_request", "outgoing_request", "is_bestie", "is_feed_favorite",
+            "is_restricted", "blocking", "is_blocking_reel", "muting", "is_muting_reel", "is_muting_notes",
+            "is_muting_media_notes", "is_muting_media_reposts", "is_muting_quick_snap", "is_private", "subscribed",
+            "is_viewer_unconnected", "is_eligible_to_subscribe", "is_supervised_by_viewer", "is_guardian_of_viewer",
+        )
+
+        /**
+         * Listed keys the user's status has no getter for on 454's builds, so the list takes them from the
+         * profile screen's answer alone and names them as not sent when it lacks them.
+         */
+        val SCREEN_ONLY_FLAGS = setOf("is_supervised_by_viewer", "is_guardian_of_viewer")
+
         const val BINDER = "Lfixture/ProfileBinder;"
         const val HOLDER = "Lfixture/ProfileHolder;"
         const val HEADER = "Lfixture/ProfileHeader;"
@@ -554,6 +603,15 @@ class FriendshipStatusHookTest {
                     const-string v0, "$FOLLOWED_BY"
                     invoke-interface { p0 }, $RELATIONSHIP->followedBy()Ljava/lang/Boolean;
                     move-result-object v0
+                    const-string v0, "muting"
+                    invoke-interface { p0 }, $RELATIONSHIP->muting()Ljava/lang/Boolean;
+                    move-result-object v0
+                    const-string v0, "is_private"
+                    invoke-interface { p0 }, $RELATIONSHIP->muting()Ljava/lang/Boolean;
+                    move-result-object v0
+                    const-string v0, "is_private"
+                    invoke-interface { p0 }, $RELATIONSHIP->followedBy()Ljava/lang/Boolean;
+                    move-result-object v0
                     return-void
                 """,
             )
@@ -625,6 +683,7 @@ class FriendshipStatusHookTest {
                     RELATIONSHIP,
                     abstract(RELATIONSHIP, "following", emptyList(), "Ljava/lang/Boolean;"),
                     abstract(RELATIONSHIP, "followedBy", emptyList(), "Ljava/lang/Boolean;"),
+                    abstract(RELATIONSHIP, "muting", emptyList(), "Ljava/lang/Boolean;"),
                 ),
                 classOf(PROFILE_FRAGMENT, listOf(field(PROFILE_FRAGMENT, "model", VIEW_MODEL)), listOf(answer)),
                 interfaceOf(FLOW, abstract(FLOW, "getValue", emptyList(), "Ljava/lang/Object;")),

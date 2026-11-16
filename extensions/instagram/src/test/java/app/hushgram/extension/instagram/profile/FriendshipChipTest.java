@@ -927,6 +927,43 @@ public class FriendshipChipTest {
         assertEquals(nothing, FriendshipFlags.read(null).text());
     }
 
+    /**
+     * The screen's answer carries only the few flags the profile's own buttons need, so the rest
+     * come from the status Instagram keeps on the user (#698): on a profile you follow, You follow
+     * them, Close Friends and the mutes were all listed as not sent.
+     */
+    @Test
+    public void flagsTheScreensAnswerLacksComeFromTheUsersStatus() {
+        Profile profile = new Profile(true, null);
+        profile.screen = new HashMap<>();
+        profile.screen.put("followed_by".hashCode(), false);
+        profile.screen.put("is_restricted".hashCode(), false);
+        profile.kept = new HashMap<>();
+        // The screen's answer is the fresher one, so it wins where both carry a flag.
+        profile.kept.put("followed_by".hashCode(), true);
+        profile.kept.put("following".hashCode(), true);
+        profile.kept.put("is_bestie".hashCode(), true);
+        profile.kept.put("muting".hashCode(), false);
+        profile.kept.put("is_muting_reel".hashCode(), true);
+        profile.kept.put("is_viewer_unconnected".hashCode(), false);
+
+        String text = FriendshipFlags.read(profile).text();
+        assertTrue(text, text.startsWith("Follows you: No\nYou follow them: Yes\nOn your Close Friends list: Yes\n"));
+        assertTrue(text, text.contains("\nYou restricted them: No\n"));
+        assertTrue(text, text.contains("\nYou muted their posts: No\nYou muted their story: Yes\n"));
+        assertTrue(text, text.contains("\n\nOther flags\nis_viewer_unconnected: No\n\n"));
+        String missing = text.substring(text.indexOf("Not sent for this profile\n"));
+        assertFalse(missing, missing.contains("following") || missing.contains("is_bestie") || missing.contains("muting,"));
+        assertTrue(missing, missing.contains("incoming_request, outgoing_request, is_feed_favorite, blocking"));
+
+        // Before the screen has its answer, the user's status still lists every flag it carries.
+        profile.screen = null;
+        String early = FriendshipFlags.read(profile).text();
+        assertTrue(early, early.startsWith("This profile hasn't loaded its own answer yet, so this is only what Instagram keeps on the account."
+                + "\nFollows you: Yes\nYou follow them: Yes\nOn your Close Friends list: Yes\n"));
+        assertTrue(early, early.contains("Not sent for this profile\nincoming_request"));
+    }
+
     /** Every flag listed in words has words of its own. */
     @Test
     public void everyPlainFlagHasWords() {
@@ -975,6 +1012,8 @@ public class FriendshipChipTest {
         String viewer = "1";
         /** The friendship status in the screen's answer, by hashed key, or null when the screen has none. */
         Map<Integer, Boolean> screen;
+        /** The friendship status Instagram keeps on the user, by hashed key, or null when it has none. */
+        Map<Integer, Boolean> kept;
 
         Profile(Boolean followedBy, Boolean following) {
             this.followedBy = followedBy;
@@ -1001,6 +1040,12 @@ public class FriendshipChipTest {
             Map<Integer, Boolean> flags = (Map<Integer, Boolean>) status;
             if (flags.containsKey(key) && flags.get(key) == null) throw new IllegalStateException("unreadable");
             return flags.get(key);
+        }
+
+        @Implementation
+        protected static Boolean userFlag(Object user, int key) {
+            Map<Integer, Boolean> kept = ((Profile) user).kept;
+            return kept == null ? null : kept.get(key);
         }
 
         @Implementation
