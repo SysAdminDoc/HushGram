@@ -3505,6 +3505,12 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->storyBound(Ljava/la
 # Left out, a shared reel loses its sides on a tall phone; twice or elsewhere, it isn't the call the
 # patch wrote.
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->storyFrame(Ljava/lang/Object;Ljava/lang/Object;)V in static (L*;)V calling instance Lcom/instagram/ui/widget/roundedcornerlayout/RoundedCornerFrameLayout;->setCornerRadius(I)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
+# Its sibling A0A (0DdX.A0A on 455's 386113969, taking 0OAl), the second whole-room layout the story
+# layout runs behind another check, sizes the same frame to the whole room again right after, so its
+# one return hands the frame over too (#618). It's the class's only other static (holder)V, the one
+# lacking setCornerRadius, in every 455 build. Left out, a shared reel's frame fills the room again
+# and loses its sides.
+once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->storyFrame(Ljava/lang/Object;Ljava/lang/Object;)V in static (L*;)V lacking instance Lcom/instagram/ui/widget/roundedcornerlayout/RoundedCornerFrameLayout;->setCornerRadius(I)V pooled class-holding ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio
 # Ambient light tells AmbientLight.cornerRadius the layout and the radius first in that rounded
 # layout's own setCornerRadius, since the story card's layout paints its corners solid black at it
 # and the glow covers them (#630). Left out, a lit story keeps black corner wedges; twice or
