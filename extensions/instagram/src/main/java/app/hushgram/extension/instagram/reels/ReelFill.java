@@ -314,7 +314,8 @@ public final class ReelFill {
 
     /**
      * Asked each time Instagram lays a story out over the whole screen (#618), with the item holder and
-     * its story frame, the rounded frame the picture or video fills. With Stories fill the screen on
+     * its story frame, the rounded frame the picture or video fills, and again each time its second
+     * layout sizes that frame to the whole room, which comes right after. With Stories fill the screen on
      * and a story that shares a reel or post, the frame goes back to 9:16, as wide as the screen and centered
      * with a band above and below, so its sides aren't cut. A screen wider than 9:16 gets
      * the frame's full height instead. A holder the binder never saw goes by what the frame last

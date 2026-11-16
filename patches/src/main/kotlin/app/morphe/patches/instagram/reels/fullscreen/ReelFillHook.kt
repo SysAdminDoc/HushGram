@@ -23,6 +23,7 @@ import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import app.morphe.util.ControlFlow
@@ -375,8 +376,12 @@ internal fun findWideReelCheck(code: List<Instruction>): WideReelCheck? {
     return WideReelCheck(screen + 2, constant, (code[constant - 1] as ThreeRegisterInstruction).registerA)
 }
 
-/** The story layout's pieces: the tall-screen check, the card layout and the whole-screen layout. */
-internal data class StoryLayout(val tall: MethodReference, val card: MethodReference, val full: MethodReference)
+/**
+ * The story layout's pieces: the tall-screen check, the card layout and the whole-screen layout, and
+ * the other static (holder) layout it calls, which sizes the frame to the whole room again behind a
+ * second check (#618), A0A on 454. Null when the story layout calls no other one.
+ */
+internal data class StoryLayout(val tall: MethodReference, val card: MethodReference, val full: MethodReference, val reset: MethodReference?)
 
 /**
  * Finds the story layout (#436), 0BmY on 453 and 0Bw2 on 454. The method opening [STORY_ASPECT_RATIO]
@@ -427,7 +432,13 @@ internal fun BytecodePatchContext.findStoryLayout(): StoryLayout {
     }.map { ownCall(it)!! }.distinctBy { it.toString() }
     val full = fulls.singleOrNull()
         ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story layout calls ${fulls.size} ($holder) layouts its tall-screen check skips, not one")
-    return StoryLayout(tall, card, full)
+    val resets = code.indices.mapNotNull(::ownCall).filter {
+        it.returnType == "V" && it.takes() == listOf(holder) && it.toString() != full.toString()
+    }.distinctBy { it.toString() }
+    if (resets.size > 1) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the story layout calls ${resets.size} other ($holder) layouts, not one")
+    }
+    return StoryLayout(tall, card, full, resets.singleOrNull())
 }
 
 /**
@@ -591,7 +602,9 @@ private fun BytecodePatchContext.findSharedReelCheck(): Method {
  * Filling the screen cut the sides off a 9:16 reel or reshared post on a taller phone. The
  * whole-screen layout's one return now hands [STORY_FRAME_HOOK] the holder and the frame it sized,
  * the view whose layout params it sets, so the extension can size a shared post's frame back to
- * 9:16. Every branch that reached the return reaches the hook first.
+ * 9:16. Every branch that reached the return reaches the hook first. The story layout then runs a
+ * second (holder) layout behind another check ([StoryLayout.reset]), which sizes the same frame to
+ * the whole room again, so its one return hands the frame over too.
  */
 internal fun BytecodePatchContext.layStoriesOutAsTheyBind() {
     val layout = findStoryLayout()
@@ -607,21 +620,14 @@ internal fun BytecodePatchContext.layStoriesOutAsTheyBind() {
     val item = binder.parameterRegisterNumber(found.item)
     val holder = binder.parameterRegisterNumber(found.holder)
 
-    val full = mutableClassDefBy(layout.full.definingClass).methods.single {
-        it.name == layout.full.name && it.parameterTypes.map(CharSequence::toString) == layout.full.parameterTypes.map(CharSequence::toString) &&
-            AccessFlags.STATIC.isSet(it.accessFlags)
+    val reset = layout.reset
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story layout has no second whole-room layout behind its other check")
+    val handOvers = listOf("whole-screen layout" to layout.full, "second whole-room layout" to reset).map { (what, call) ->
+        frameHandOver(what, mutableClassDefBy(call.definingClass).methods.single {
+            it.name == call.name && it.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString) &&
+                AccessFlags.STATIC.isSet(it.accessFlags)
+        })
     }
-    val frame = findStoryFrameGetter(full)
-    val code = full.implementation?.instructions?.toList().orEmpty()
-    val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
-    val end = returns.singleOrNull()
-        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story's whole-screen layout returns ${returns.size} times, not once")
-    val fullHolder = full.parameterRegisterNumber(0)
-    if (fullHolder > 15) {
-        throw PatchException("$FULL_SCREEN_BARS_PATCH: the story's whole-screen layout keeps its holder in v$fullHolder, past what an invoke names")
-    }
-    full.requireParameterIntact(FULL_SCREEN_BARS_PATCH, 0, listOf(end))
-    val local = full.freeLocalsAt(FULL_SCREEN_BARS_PATCH, end, 1).first()
 
     binder.addInstructionsWithLabels(
         0,
@@ -643,14 +649,35 @@ internal fun BytecodePatchContext.layStoriesOutAsTheyBind() {
         """,
         ExternalLabel("instagram", binder.getInstruction(0)),
     )
-    full.addInstructionsAtControlFlowLabel(
-        end,
-        """
-            ${frame.call} { v$fullHolder }, ${frame.getter}
-            move-result-object v$local
-            invoke-static { v$fullHolder, v$local }, $STORY_FRAME_HOOK
-        """,
-    )
+    handOvers.forEach { it() }
+}
+
+/**
+ * Checks that [method], a static (holder) layout that sizes the story frame, can hand its holder and
+ * frame to [STORY_FRAME_HOOK] in front of its one return, and answers the insert that does it.
+ */
+private fun frameHandOver(what: String, method: MutableMethod): () -> Unit {
+    val frame = findStoryFrameGetter(method)
+    val code = method.implementation?.instructions?.toList().orEmpty()
+    val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
+    val end = returns.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the story's $what returns ${returns.size} times, not once")
+    val holder = method.parameterRegisterNumber(0)
+    if (holder > 15) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the story's $what keeps its holder in v$holder, past what an invoke names")
+    }
+    method.requireParameterIntact(FULL_SCREEN_BARS_PATCH, 0, listOf(end))
+    val local = method.freeLocalsAt(FULL_SCREEN_BARS_PATCH, end, 1).first()
+    return {
+        method.addInstructionsAtControlFlowLabel(
+            end,
+            """
+                ${frame.call} { v$holder }, ${frame.getter}
+                move-result-object v$local
+                invoke-static { v$holder, v$local }, $STORY_FRAME_HOOK
+            """,
+        )
+    }
 }
 
 /** How the whole-screen layout gets the story frame from its holder: the invoke's mnemonic and the getter. */

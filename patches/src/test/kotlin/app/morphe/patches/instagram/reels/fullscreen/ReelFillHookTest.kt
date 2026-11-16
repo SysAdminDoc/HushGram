@@ -284,7 +284,9 @@ class ReelFillHookTest {
      * list Instagram's own shared-reel check reads, which a reshared post is in too, and a yes lays
      * out the whole screen before anything else runs. The whole-screen
      * layout hands the holder and its frame over in front of its one return, and every branch that
-     * went to the return reaches the hand-over first. Every other build of the declared versions too.
+     * went to the return reaches the hand-over first. So does the second (holder) layout, which sized
+     * a shared reel's frame back to the whole room right after. Every other build of the declared
+     * versions too.
      */
     @Test
     fun eachBuildLaysStoriesOutAsTheyBind() {
@@ -306,24 +308,29 @@ class ReelFillHookTest {
         fun MethodReference.same(method: Method) = method.name == name &&
             method.parameterTypes.map(CharSequence::toString) == parameterTypes.map(CharSequence::toString)
         val binder = context.mutableClassDefBy(found.method.definingClass).methods.single { found.method.toReference().same(it) }
-        val full = context.mutableClassDefBy(layout.full.definingClass).methods.single {
-            layout.full.same(it) && AccessFlags.STATIC.isSet(it.accessFlags)
+        fun static(call: MethodReference) = context.mutableClassDefBy(call.definingClass).methods.single {
+            call.same(it) && AccessFlags.STATIC.isSet(it.accessFlags)
         }
+        val full = static(layout.full)
+        // The story layout's other (holder) layout sizes the same frame to the whole room again.
+        val reset = static(layout.reset ?: throw AssertionError("$label: no second whole-room layout"))
         assertEquals("$label: the binder binds a story", STORY_REEL_ITEM, binder.parameterTypes[found.item].toString())
         val item = binder.parameterRegisterNumber(found.item)
         val holder = binder.parameterRegisterNumber(found.holder)
-        val fullHolder = full.parameterRegisterNumber(0)
         val getter = findStoryFrameGetter(full)
         assertTrue("$label: the frame is the story's rounded frame",
             getter.getter.returnType.endsWith("/RoundedCornerFrameLayout;"))
+        assertEquals("$label: the second layout sizes the same frame", getter, findStoryFrameGetter(reset))
         val bindBefore = binder.code()
-        val fullBefore = full.code()
-        val returnAt = fullBefore.indexOfFirst { it.opcode == Opcode.RETURN_VOID }
-        val stockFlow = ControlFlow.of(full)
-        val branches = fullBefore.indices.filter { fullBefore[it] is OffsetInstruction && stockFlow.normal[it].first() == returnAt }
-        assertTrue("$label: something branches to the layout's return", branches.isNotEmpty())
+        val stock = listOf(full, reset).associateWith { method ->
+            val before = method.code()
+            val returnAt = before.indexOfFirst { it.opcode == Opcode.RETURN_VOID }
+            val flow = ControlFlow.of(method)
+            val branches = before.indices.filter { before[it] is OffsetInstruction && flow.normal[it].first() == returnAt }
+            assertTrue("$label: something branches to the return of ${method.name}", branches.isNotEmpty())
+            Triple(before, returnAt, branches) to NeutralNativePath(method)
+        }
         val bindNative = NeutralNativePath(binder)
-        val fullNative = NeutralNativePath(full)
 
         context.layStoriesOutAsTheyBind()
 
@@ -371,30 +378,34 @@ class ReelFillHookTest {
         assertEquals("$bind: a no skips the layout", 13, bindFlow.normal[11].first())
         bindNative.assertPreserved(bind, binder, (0 until 13).toSet())
 
-        val after = full.code()
-        val lay = "$label whole-screen layout"
-        assertEquals("$lay: three instructions added", fullBefore.count { it.opcode != Opcode.NOP } + 3, after.count { it.opcode != Opcode.NOP })
-        assertEquals("$lay: one hand-over", 1, after.count { it.referenceText() == STORY_FRAME_HOOK })
-        assertEquals("$lay: the frame fetched where the return was", getter.getter.toString(), after[returnAt].referenceText())
-        assertEquals("$lay: as the layout fetches it", getter.call, if (after[returnAt].opcode == Opcode.INVOKE_INTERFACE) "invoke-interface" else "invoke-virtual")
-        assertTrue("$lay: an invoke", after[returnAt].opcode == Opcode.INVOKE_INTERFACE || after[returnAt].opcode == Opcode.INVOKE_VIRTUAL)
-        assertEquals("$lay: from the holder", listOf(fullHolder), (after[returnAt] as FiveRegisterInstruction).let {
-            listOf(it.registerC).take(it.registerCount)
-        })
-        assertEquals("$lay: into a local", Opcode.MOVE_RESULT_OBJECT, after[returnAt + 1].opcode)
-        val frame = (after[returnAt + 1] as OneRegisterInstruction).registerA
-        assertTrue("$lay: a local", frame < full.implementation!!.registerCount - full.parameters.size)
-        assertEquals("$lay: then the hand-over", STORY_FRAME_HOOK, after[returnAt + 2].referenceText())
-        assertEquals("$lay: an invoke-static", Opcode.INVOKE_STATIC, after[returnAt + 2].opcode)
-        assertEquals("$lay: of the holder and the frame", listOf(fullHolder, frame), (after[returnAt + 2] as FiveRegisterInstruction).let {
-            listOf(it.registerC, it.registerD).take(it.registerCount)
-        })
-        assertEquals("$lay: then the return", Opcode.RETURN_VOID, after[returnAt + 3].opcode)
-        val flow = ControlFlow.of(full)
-        for (branch in branches) {
-            assertEquals("$lay: instruction $branch reaches the hand-over", returnAt, flow.normal[branch].first())
+        for ((what, method) in listOf("whole-screen layout" to full, "second whole-room layout" to reset)) {
+            val (before, returnAt, branches) = stock.getValue(method).first
+            val after = method.code()
+            val lay = "$label $what"
+            val layHolder = method.parameterRegisterNumber(0)
+            assertEquals("$lay: three instructions added", before.count { it.opcode != Opcode.NOP } + 3, after.count { it.opcode != Opcode.NOP })
+            assertEquals("$lay: one hand-over", 1, after.count { it.referenceText() == STORY_FRAME_HOOK })
+            assertEquals("$lay: the frame fetched where the return was", getter.getter.toString(), after[returnAt].referenceText())
+            assertEquals("$lay: as the layout fetches it", getter.call, if (after[returnAt].opcode == Opcode.INVOKE_INTERFACE) "invoke-interface" else "invoke-virtual")
+            assertTrue("$lay: an invoke", after[returnAt].opcode == Opcode.INVOKE_INTERFACE || after[returnAt].opcode == Opcode.INVOKE_VIRTUAL)
+            assertEquals("$lay: from the holder", listOf(layHolder), (after[returnAt] as FiveRegisterInstruction).let {
+                listOf(it.registerC).take(it.registerCount)
+            })
+            assertEquals("$lay: into a local", Opcode.MOVE_RESULT_OBJECT, after[returnAt + 1].opcode)
+            val frame = (after[returnAt + 1] as OneRegisterInstruction).registerA
+            assertTrue("$lay: a local", frame < method.implementation!!.registerCount - method.parameters.size)
+            assertEquals("$lay: then the hand-over", STORY_FRAME_HOOK, after[returnAt + 2].referenceText())
+            assertEquals("$lay: an invoke-static", Opcode.INVOKE_STATIC, after[returnAt + 2].opcode)
+            assertEquals("$lay: of the holder and the frame", listOf(layHolder, frame), (after[returnAt + 2] as FiveRegisterInstruction).let {
+                listOf(it.registerC, it.registerD).take(it.registerCount)
+            })
+            assertEquals("$lay: then the return", Opcode.RETURN_VOID, after[returnAt + 3].opcode)
+            val flow = ControlFlow.of(method)
+            for (branch in branches) {
+                assertEquals("$lay: instruction $branch reaches the hand-over", returnAt, flow.normal[branch].first())
+            }
+            stock.getValue(method).second.assertPreserved(lay, method, (returnAt until returnAt + 3).toSet())
         }
-        fullNative.assertPreserved(lay, full, (returnAt until returnAt + 3).toSet())
     }
 
     /**
