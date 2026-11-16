@@ -13,6 +13,7 @@ import app.morphe.patches.instagram.misc.extension.classesReadingWide
 import app.morphe.patches.instagram.misc.extension.classesTouching
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.util.ControlFlow
+import app.morphe.util.reachingWrites
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -37,7 +38,7 @@ internal const val NEW_ROW_THEME_COLORS = 80
 /** Every composable on the Notifications page logs a trace label starting with this. */
 private const val NOTIFICATIONS_LABEL = "com.instagram.newsfeed."
 
-/** The avatar reads only the tint from the theme, which is how a build's Redex name for that field is found. */
+/** The avatar reads the tint from the theme, alone or on its new notification's arm, which is how a build's Redex name for that field is found. */
 private const val AVATAR_LABEL = "${NOTIFICATIONS_LABEL}compose.ui.StartAvatar."
 
 private const val NEW_ROW_PATCH = "Pure black dark mode"
@@ -74,12 +75,12 @@ internal fun BytecodePatchContext.findNewRowTintReads(): List<NewRowTintRead> {
                 avatars.joinToString { "${it.type}->${it.method.name}" },
         )
     }
-    val colors = avatars.single().code.mapNotNull { it.wideFieldOf(theme) }.distinct()
-    if (colors.size != 1) {
-        throw PatchException("$NEW_ROW_PATCH: the Notifications avatar reads $colors, expected one color of $theme")
-    }
+    val avatar = avatars.single()
+    val colors = avatar.code.mapNotNull { it.wideFieldOf(theme) }.distinct()
+    val tint = colors.singleOrNull() ?: newArmColor(avatar, theme)
+        ?: throw PatchException("$NEW_ROW_PATCH: the Notifications avatar reads $colors, expected one color of $theme")
     return pages.flatMap { page ->
-        page.code.indices.filter { page.code[it].wideFieldOf(theme) == colors.single() }
+        page.code.indices.filter { page.code[it].wideFieldOf(theme) == tint }
             .map { NewRowTintRead(page.type, page.method, it) }
     }
 }
@@ -103,6 +104,33 @@ internal fun BytecodePatchContext.blackenNewRowTints(reads: List<NewRowTintRead>
 }
 
 private class NewRowPage(val type: String, val method: Method, val code: List<Instruction>, val labels: List<String>)
+
+/**
+ * The color an avatar reading more than one takes for a new notification. Its ring checks the
+ * lambda's own boolean with `if-eqz` and reads the tint where that falls through, another color
+ * where it branches. Some builds inline both arms into the invoke (`LX/0U2I;->invoke` reads `A1I`
+ * and `A0w` on 386113918), others call an outlined getter for the other one, so the avatar reads
+ * one color there. Null unless exactly one such check splits the colors and its new arm reads one.
+ */
+private fun newArmColor(avatar: NewRowPage, theme: String): String? {
+    val code = avatar.code
+    val flow = runCatching { ControlFlow.of(avatar.method) }.getOrNull() ?: return null
+    val reads = code.indices.filter { code[it].wideFieldOf(theme) != null }
+    val splits = code.indices.mapNotNull { at ->
+        val check = code[at]
+        if (check.opcode != Opcode.IF_EQZ || flow.normal[at].size != 2) return@mapNotNull null
+        val flags = reachingWrites(avatar.method, code, (check as OneRegisterInstruction).registerA, at)
+        if (flags.isEmpty() || flags.any { !code[it].readsFlagOf(avatar.type) }) return@mapNotNull null
+        val branch = flow.normal[at][0]
+        val newArm = reads.filter { flow.reaches(at + 1, it) && !flow.reaches(branch, it) }.mapNotNull { code[it].wideFieldOf(theme) }.distinct()
+        val oldArm = reads.filter { flow.reaches(branch, it) && !flow.reaches(at + 1, it) }.mapNotNull { code[it].wideFieldOf(theme) }.distinct()
+        if (oldArm.isEmpty() || newArm.size != 1 || newArm.single() in oldArm) null else newArm.single()
+    }
+    return splits.singleOrNull()
+}
+
+private fun Instruction.readsFlagOf(type: String): Boolean =
+    opcode == Opcode.IGET_BOOLEAN && ((this as ReferenceInstruction).reference as FieldReference).definingClass == type
 
 /** Each Notifications label [code] loads, with the index of its load. */
 private fun BytecodePatchContext.notificationLabels(code: List<Instruction>): List<Pair<Int, String>> =

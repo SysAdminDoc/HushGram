@@ -871,6 +871,57 @@ class PureBlackTest {
     }
 
     /**
+     * An avatar with both arms of its ring inlined reads the tint where its own "new" flag falls
+     * through and another color where it branches (`LX/0U2I;->invoke` on 386113918). The new arm's
+     * color is the tint, and the other one stays everywhere.
+     */
+    @Test
+    fun anAvatarReadingTwoColorsTakesItsNewArmsColor() {
+        val avatar = "Lfixture/Avatar;"
+        val row = "Lfixture/Row;"
+        val patch = newRowContext(
+            classDef(avatar, """
+                const-string v0, "com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous> (NewsfeedStoryRow.kt:359)"
+                iget-boolean v0, v5, $avatar->isNew:Z
+                if-eqz v0, :old
+                iget-wide v1, v5, $FAKE_THEME->tint:J
+                goto :ring
+                :old
+                iget-wide v1, v5, $FAKE_THEME->f0:J
+                :ring
+                return-void
+            """),
+            classDef(row, """
+                const-string v0, "com.instagram.newsfeed.fragment.NewsfeedRow.<anonymous> (NewsfeedYouComposeFragment.kt:3634)"
+                iget-wide v1, v5, $FAKE_THEME->f0:J
+                iget-wide v3, v5, $FAKE_THEME->tint:J
+                return-void
+            """),
+        )
+
+        assertEquals(listOf(avatar to 3, row to 2), patch.findNewRowTintReads().map { it.type to it.index })
+    }
+
+    /** Two colors split by a flag that isn't the avatar's own still don't say which is the tint. */
+    @Test
+    fun anAvatarSplittingOnAnotherClassesFlagFails() {
+        val patch = newRowContext(classDef("Lfixture/Avatar;", """
+            const-string v0, "com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous> (NewsfeedStoryRow.kt:359)"
+            iget-boolean v0, v5, Lfixture/Other;->isNew:Z
+            if-eqz v0, :old
+            iget-wide v1, v5, $FAKE_THEME->tint:J
+            goto :ring
+            :old
+            iget-wide v1, v5, $FAKE_THEME->f0:J
+            :ring
+            return-void
+        """))
+
+        val failure = assertThrows(PatchException::class.java) { patch.findNewRowTintReads() }
+        assertTrue(failure.message!!, "color" in failure.message!!)
+    }
+
+    /**
      * A merged lambda's invoke holding an avatar label that reads no color isn't the avatar, even when
      * another arm's body in its class reads the theme (`LX/0C5a;->invoke` beside `A04` on 386014714).
      */

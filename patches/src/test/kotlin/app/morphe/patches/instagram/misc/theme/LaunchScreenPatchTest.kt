@@ -133,8 +133,8 @@ class LaunchScreenPatchTest {
     }
 
     /**
-     * On every build of Instagram 452, decoded and encoded as Manager does: the launcher wears
-     * Instagram's launch theme, the build's Android 12 styles name its icon, and the patched build
+     * On every build of Instagram, decoded and encoded as Manager does: the launcher wears
+     * Instagram's launch theme or one of its children, the build's Android 12 styles name its icon, and the patched build
      * keeps every resource's number and gains just the theme and the mark, both as written.
      */
     @Test
@@ -152,7 +152,13 @@ class LaunchScreenPatchTest {
                 val patched = File(work, "patched.apk")
                 val before = decoded(apk, File(work, "patch")) { context ->
                     val manifest = parse(context.get("AndroidManifest.xml").readText())
-                    assertEquals("$code: the launchers' theme", setOf("@style/$INSTAGRAM_LAUNCH_THEME"), launcherThemes(manifest))
+                    // 455's 386113958 puts its launchers in Base.Theme.Launcher.Monochrome.ViewFinder, a child
+                    // of Instagram's launch theme, so each launcher theme only has to come from that one.
+                    val declared = parse(File(context.get("res"), "values/styles.xml").readText()).elements("style")
+                        .associate { it.getAttribute("name") to it.getAttribute("parent").removePrefix("@style/") }
+                    for (theme in launcherThemes(manifest)) {
+                        assertTrue("$code: the launchers' theme $theme comes from $INSTAGRAM_LAUNCH_THEME", comesFrom(theme.removePrefix("@style/"), declared))
+                    }
                     val ids = ids(context.get("res"))
                     context.addLaunchScreen()
                     encoded(context).copyTo(patched)
@@ -259,6 +265,18 @@ class LaunchScreenPatchTest {
                 ?.let { name -> entries.single { it.tagName == "activity" && it.getAttribute("android:name") == name } }
             launcher.getAttribute("android:theme").ifEmpty { target?.getAttribute("android:theme").orEmpty() }
         }
+    }
+
+    /** Whether [style], through the parents [parents] names (a dotted name's prefix when it names none), is [INSTAGRAM_LAUNCH_THEME]. */
+    private fun comesFrom(style: String, parents: Map<String, String>): Boolean {
+        var name: String? = style
+        val seen = HashSet<String>()
+        while (name != null && seen.add(name)) {
+            if (name == INSTAGRAM_LAUNCH_THEME) return true
+            val parent = parents[name] ?: return false
+            name = parent.ifEmpty { name.substringBeforeLast('.', "").ifEmpty { null } }
+        }
+        return false
     }
 
     private fun parse(xml: String): Document =
