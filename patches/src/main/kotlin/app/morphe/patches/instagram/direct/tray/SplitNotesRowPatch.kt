@@ -32,12 +32,12 @@ internal const val SPLIT_NOTES_ROW_FLAG = 0x8115d300007550L
 internal const val SPLIT_NOTES_STORIES = "$EXTENSION_PACKAGE/direct/SplitNotesRow;->storiesOff(I)Z"
 
 /**
- * A second server test on 454 that leaves the Stories stack out of the split row (#717): read once
- * where the row's stacks get registered (a yes skips Stories) and once on the way into your
- * messages (a yes skips loading the stories it shows). Accounts in the split test with this one on
- * see only Instants and Notes.
+ * A second server test, on 455 (0x8115f0000e7443 on 454), that leaves the Stories stack out of the
+ * split row (#717): read once where the row's stacks get registered (a yes skips Stories) and once
+ * on the way into your messages (a yes skips loading the stories it shows). Accounts in the split
+ * test with this one on see only Instants and Notes.
  */
-internal const val SPLIT_NOTES_STORIES_OFF_FLAG = 0x8115f0000e7443L
+internal const val SPLIT_NOTES_STORIES_OFF_FLAG = 0x8115d3000e755dL
 
 /** The read that picks the split row when your messages open: an onCreate taking a Bundle. */
 private val INBOX_OPEN = listOf("Landroid/os/Bundle;")
