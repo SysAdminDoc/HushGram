@@ -2186,6 +2186,21 @@ Clear profile history	프로필 기록 지우기
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	목록에 있는 모든 사용자 이름, 소개, 사진을 모든 계정에 대해 지웁니다. 스위치는 그대로 유지됩니다.
 Profile history cleared.	프로필 기록을 지웠습니다.
 Couldn't clear the profile history. Try again.	프로필 기록을 지우지 못했습니다. 다시 시도해 주세요.
+# context: switch in HushGram settings > Profiles; notes, on this phone, when people in your messages come online and go offline, from the active status Instagram already shows (#590)
+Keep online history	접속 기록 남기기
+Notes when people in your messages come online and go offline, from the active status Instagram already shows, on this phone only. Turn it off and it stops at once.	메시지에 있는 사람들이 언제 접속하고 접속을 끊는지 Instagram이 이미 보여 주는 활동 상태로 이 휴대폰에만 기록합니다. 끄면 바로 멈춥니다.
+# context: row and page title in HushGram settings > Profiles listing when people came online and went offline (#590)
+Online history	접속 기록
+Nothing here yet. With Keep online history on, the times people in your messages come online and go offline show up here.	아직 아무것도 없습니다. 접속 기록 남기기를 켜면 메시지에 있는 사람들이 접속하고 접속을 끊은 시간이 여기에 표시됩니다.
+# context: a row on the Online history page; %s is Android's relative time of the change, like 5 minutes ago (#590)
+Came online, %s	접속함, %s
+Went offline, %s	접속 끊김, %s
+# context: stands in for the username on an Online history row when Instagram never gave one (#590)
+Unknown account	알 수 없는 계정
+Clear online history	접속 기록 지우기
+Forgets everyone on the list, for all your accounts. The switch stays as it is.	목록에 있는 모든 사람을 모든 계정에 대해 지웁니다. 스위치는 그대로 유지됩니다.
+Online history cleared.	접속 기록을 지웠습니다.
+Couldn't clear the online history. Try again.	접속 기록을 지우지 못했습니다. 다시 시도해 주세요.
 # context: toast when a profile opened has a different username than last time; %s is the old username (#611)
 Used to be @%s	이전 이름 @%s
 # context: toast when a profile opened has a new profile picture and bio since last time (#611)

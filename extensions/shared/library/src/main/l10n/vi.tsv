@@ -2102,6 +2102,21 @@ Clear profile history	Xóa lịch sử trang cá nhân
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	Quên mọi tên người dùng, tiểu sử và ảnh trong danh sách, cho mọi tài khoản của bạn. Công tắc giữ nguyên.
 Profile history cleared.	Đã xóa lịch sử trang cá nhân.
 Couldn't clear the profile history. Try again.	Không xóa được lịch sử trang cá nhân. Hãy thử lại.
+# context: switch in HushGram settings > Profiles; notes, on this phone, when people in your messages come online and go offline, from the active status Instagram already shows (#590)
+Keep online history	Giữ lịch sử trực tuyến
+Notes when people in your messages come online and go offline, from the active status Instagram already shows, on this phone only. Turn it off and it stops at once.	Ghi lại khi nào những người trong tin nhắn của bạn trực tuyến và ngoại tuyến, từ trạng thái hoạt động Instagram đã hiển thị, chỉ trên điện thoại này. Tắt đi là dừng ngay.
+# context: row and page title in HushGram settings > Profiles listing when people came online and went offline (#590)
+Online history	Lịch sử trực tuyến
+Nothing here yet. With Keep online history on, the times people in your messages come online and go offline show up here.	Chưa có gì. Khi bật Giữ lịch sử trực tuyến, thời điểm những người trong tin nhắn của bạn trực tuyến và ngoại tuyến sẽ hiện ở đây.
+# context: a row on the Online history page; %s is Android's relative time of the change, like 5 minutes ago (#590)
+Came online, %s	Đã trực tuyến, %s
+Went offline, %s	Đã ngoại tuyến, %s
+# context: stands in for the username on an Online history row when Instagram never gave one (#590)
+Unknown account	Tài khoản không xác định
+Clear online history	Xóa lịch sử trực tuyến
+Forgets everyone on the list, for all your accounts. The switch stays as it is.	Quên mọi người trong danh sách, cho mọi tài khoản của bạn. Công tắc giữ nguyên.
+Online history cleared.	Đã xóa lịch sử trực tuyến.
+Couldn't clear the online history. Try again.	Không xóa được lịch sử trực tuyến. Hãy thử lại.
 # context: toast when a profile opened has a different username than last time; %s is the old username (#611)
 Used to be @%s	Từng là @%s
 # context: toast when a profile opened has a new profile picture and bio since last time (#611)

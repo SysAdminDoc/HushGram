@@ -2184,6 +2184,21 @@ Clear profile history	ล้างประวัติโปรไฟล์
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	ลบชื่อผู้ใช้ ประวัติ และรูปทั้งหมดในรายการสำหรับทุกบัญชีของคุณ โดยสวิตช์จะยังคงอยู่ในสถานะเดิม
 Profile history cleared.	ล้างประวัติโปรไฟล์แล้ว
 Couldn't clear the profile history. Try again.	ล้างประวัติโปรไฟล์ไม่ได้ โปรดลองอีกครั้ง
+# context: switch in HushGram settings > Profiles; notes, on this phone, when people in your messages come online and go offline, from the active status Instagram already shows (#590)
+Keep online history	เก็บประวัติการออนไลน์
+Notes when people in your messages come online and go offline, from the active status Instagram already shows, on this phone only. Turn it off and it stops at once.	จดว่าคนในข้อความของคุณออนไลน์และออฟไลน์เมื่อใด จากสถานะกิจกรรมที่ Instagram แสดงอยู่แล้ว ไว้ในโทรศัพท์เครื่องนี้เท่านั้น ปิดเมื่อใดก็หยุดทันที
+# context: row and page title in HushGram settings > Profiles listing when people came online and went offline (#590)
+Online history	ประวัติการออนไลน์
+Nothing here yet. With Keep online history on, the times people in your messages come online and go offline show up here.	ยังไม่มีอะไร เมื่อเปิด "เก็บประวัติการออนไลน์" ไว้ เวลาที่คนในข้อความของคุณออนไลน์และออฟไลน์จะแสดงที่นี่
+# context: a row on the Online history page; %s is Android's relative time of the change, like 5 minutes ago (#590)
+Came online, %s	ออนไลน์แล้ว %s
+Went offline, %s	ออฟไลน์แล้ว %s
+# context: stands in for the username on an Online history row when Instagram never gave one (#590)
+Unknown account	บัญชีที่ไม่รู้จัก
+Clear online history	ล้างประวัติการออนไลน์
+Forgets everyone on the list, for all your accounts. The switch stays as it is.	ลบทุกคนในรายการสำหรับทุกบัญชีของคุณ โดยสวิตช์จะยังคงอยู่ในสถานะเดิม
+Online history cleared.	ล้างประวัติการออนไลน์แล้ว
+Couldn't clear the online history. Try again.	ล้างประวัติการออนไลน์ไม่ได้ โปรดลองอีกครั้ง
 # context: toast when a profile opened has a different username than last time; %s is the old username (#611)
 Used to be @%s	เคยใช้ชื่อ @%s
 # context: toast when a profile opened has a new profile picture and bio since last time (#611)

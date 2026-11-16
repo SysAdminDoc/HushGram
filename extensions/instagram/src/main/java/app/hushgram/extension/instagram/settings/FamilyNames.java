@@ -201,4 +201,5 @@ public final class FamilyNames {
     public static final String SAVE_TRAY = "Skip the collections tray";
     public static final String LIVE_SEEN = "View live anonymously";
     public static final String VP9_VIDEO = "Ask for VP9 instead of AV1";
+    public static final String ONLINE_HISTORY = "Keep online history";
 }

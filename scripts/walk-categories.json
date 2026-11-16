@@ -526,7 +526,8 @@
           "Jump a profile's posts to a date",
           "Sort reels on profiles",
           "Ask before a follow",
-          "Sent follow requests"
+          "Sent follow requests",
+          "Keep online history"
         ]
       },
       "anchors": [
@@ -545,6 +546,15 @@
             "op": "any",
             "patches": [
               "Save profile picture"
+            ]
+          }
+        },
+        {
+          "title": "Keep online history",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Keep online history"
             ]
           }
         },

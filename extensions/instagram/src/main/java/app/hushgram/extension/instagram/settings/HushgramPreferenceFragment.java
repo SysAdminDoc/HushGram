@@ -99,6 +99,7 @@ import app.hushgram.extension.instagram.direct.PinnedChats;
 import app.hushgram.extension.instagram.direct.LockDelay;
 import app.hushgram.extension.instagram.direct.MessageBox;
 import app.hushgram.extension.instagram.direct.MessagesLock;
+import app.hushgram.extension.instagram.direct.OnlineHistory;
 import app.hushgram.extension.instagram.direct.PinLock;
 import app.hushgram.extension.instagram.direct.UnlockWith;
 import app.hushgram.extension.instagram.download.DownloadQuality;
@@ -233,6 +234,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String CLEAR_VIEWING_HISTORY = "hushgram_clear_viewing_history";
     static final String PROFILE_HISTORY_ROW = "hushgram_profile_history_row";
     static final String CLEAR_PROFILE_HISTORY = "hushgram_clear_profile_history";
+    static final String ONLINE_HISTORY_ROW = "hushgram_online_history_row";
+    static final String CLEAR_ONLINE_HISTORY = "hushgram_clear_online_history";
     static final String SAVED_PROFILES_ROW = "hushgram_saved_profiles_row";
     static final String CLEAR_UNFOLLOWERS = "hushgram_clear_unfollowers";
     /** The row listing the follow requests still waiting, and the row that forgets them. */
@@ -953,6 +956,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.PROFILE_PICTURE
                             && (PROFILE_HISTORY_ROW.equals(key) || CLEAR_PROFILE_HISTORY.equals(key)
                             || SAVED_PROFILES_ROW.equals(key) || Settings.SAVED_PROFILES_TAB_TARGET.key.equals(key));
+                    belongs |= family == PatchFamily.ONLINE_HISTORY
+                            && (ONLINE_HISTORY_ROW.equals(key) || CLEAR_ONLINE_HISTORY.equals(key));
                     belongs |= family == PatchFamily.SENT_FOLLOW_REQUESTS
                             && (SENT_REQUESTS_ROW.equals(key) || CLEAR_SENT_REQUESTS.equals(key));
                     belongs |= family == PatchFamily.FOLLOWING_FEED && Settings.FAVORITES_TAB_TARGET.key.equals(key);
@@ -4946,6 +4951,91 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             case USERNAME: return L10n.f("Was @%1$s, %2$s", change.entry.value, ago);
             case PICTURE: return L10n.f("Old profile picture, %s", ago);
             default: return L10n.f("Old bio, %s", ago);
+        }
+    }
+
+    /** How many of the newest online changes the settings row names. Its page has them all. */
+    static final int ONLINE_HISTORY_SHOWN = 3;
+
+    /**
+     * The row with the newest times people in your messages came online or went offline. Read off
+     * the main thread, so it says so until it's read. Tapping it opens them all on a page.
+     */
+    static Preference onlineHistoryRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(ONLINE_HISTORY_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Online history"));
+        row.setSummary(L10n.t("Reading the list…"));
+        row.setOnPreferenceClickListener(tapped -> {
+            OnlineHistoryPage.open(tapped.getContext(), tapped);
+            return true;
+        });
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        if (!Utils.runOnBackgroundThread(() -> {
+            String summary = onlineHistorySummary(OnlineHistory.events(application), System.currentTimeMillis());
+            Utils.runOnMainThread(() -> row.setSummary(summary));
+        })) {
+            row.setSummary(onlineHistorySummary(OnlineHistory.events(application), System.currentTimeMillis()));
+        }
+        return mark(row, SettingsIcons.UPDATES);
+    }
+
+    /** What the online history row says for [events], newest first, at [now]. */
+    static String onlineHistorySummary(List<OnlineHistory.Event> events, long now) {
+        if (events.isEmpty()) {
+            return L10n.t("Nothing here yet. With Keep online history on, the times people in your messages "
+                    + "come online and go offline show up here.");
+        }
+        StringBuilder text = new StringBuilder();
+        int shown = 0;
+        for (OnlineHistory.Event event : events) {
+            if (shown == ONLINE_HISTORY_SHOWN) break;
+            text.append(onlineName(event)).append(": ").append(onlineChangeLabel(event, now)).append('\n');
+            shown++;
+        }
+        text.append(L10n.f("Tap to see all %1$d, or search them.", events.size()));
+        return text.toString().trim();
+    }
+
+    /** Who [event] is about: their username, or a stand-in when Instagram never gave it. */
+    static String onlineName(OnlineHistory.Event event) {
+        return event.username.isEmpty() ? L10n.t("Unknown account") : "@" + event.username;
+    }
+
+    /** Whether [event] came online or went offline, and how long ago, without whose it was. */
+    static String onlineChangeLabel(OnlineHistory.Event event, long now) {
+        String ago = android.text.format.DateUtils.getRelativeTimeSpanString(event.time, now,
+                android.text.format.DateUtils.MINUTE_IN_MILLIS).toString();
+        return event.online ? L10n.f("Came online, %s", ago) : L10n.f("Went offline, %s", ago);
+    }
+
+    /** Forgets the online history off the main thread, says so, and empties [list]. */
+    static void clearOnlineHistory(Preference row, Preference list) {
+        clearOnlineHistory(row, list, null);
+    }
+
+    /** {@link #clearOnlineHistory(Preference, Preference)}, running [after] once it's gone. */
+    static void clearOnlineHistory(Preference row, Preference list, @Nullable Runnable after) {
+        if (!allowMutation(row, true)) return;
+        Context context = row.getContext();
+        if (!Utils.runOnBackgroundThread(() -> {
+            if (!asyncChangesAllowed()) {
+                Utils.showToastLong(heldMessage());
+                return;
+            }
+            boolean cleared = OnlineHistory.clear(context);
+            Utils.runOnMainThread(() -> {
+                if (cleared) {
+                    Utils.showToastShort(L10n.t("Online history cleared."));
+                    list.setSummary(onlineHistorySummary(java.util.Collections.emptyList(), System.currentTimeMillis()));
+                    if (after != null) after.run();
+                } else {
+                    Utils.showToastLong(L10n.t("Couldn't clear the online history. Try again."));
+                }
+            });
+        })) {
+            Utils.showToastLong(L10n.t("Couldn't clear the online history. Try again."));
         }
     }
 

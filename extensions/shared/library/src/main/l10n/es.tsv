@@ -2187,6 +2187,21 @@ Clear profile history	Borrar el historial de perfiles
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	Olvida todos los nombres de usuario, presentaciones y fotos de la lista, de todas tus cuentas. El interruptor se queda como está.
 Profile history cleared.	Historial de perfiles borrado.
 Couldn't clear the profile history. Try again.	No se borró el historial de perfiles. Reinténtalo.
+# context: switch in HushGram settings > Profiles; notes, on this phone, when people in your messages come online and go offline, from the active status Instagram already shows (#590)
+Keep online history	Guardar un historial de conexión
+Notes when people in your messages come online and go offline, from the active status Instagram already shows, on this phone only. Turn it off and it stops at once.	Anota cuándo las personas de tus mensajes se conectan y se desconectan, a partir del estado de actividad que Instagram ya muestra, solo en este teléfono. Desactívalo y se detiene al instante.
+# context: row and page title in HushGram settings > Profiles listing when people came online and went offline (#590)
+Online history	Historial de conexión
+Nothing here yet. With Keep online history on, the times people in your messages come online and go offline show up here.	Aún no hay nada. Con Guardar un historial de conexión activado, aquí aparecen las horas en que las personas de tus mensajes se conectan y se desconectan.
+# context: a row on the Online history page; %s is Android's relative time of the change, like 5 minutes ago (#590)
+Came online, %s	Se conectó, %s
+Went offline, %s	Se desconectó, %s
+# context: stands in for the username on an Online history row when Instagram never gave one (#590)
+Unknown account	Cuenta desconocida
+Clear online history	Borrar el historial de conexión
+Forgets everyone on the list, for all your accounts. The switch stays as it is.	Olvida a todas las personas de la lista, de todas tus cuentas. El interruptor se queda como está.
+Online history cleared.	Historial de conexión borrado.
+Couldn't clear the online history. Try again.	No se borró el historial de conexión. Reinténtalo.
 # context: toast when a profile opened has a different username than last time; %s is the old username (#611)
 Used to be @%s	Antes era @%s
 # context: toast when a profile opened has a new profile picture and bio since last time (#611)

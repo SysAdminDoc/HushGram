@@ -4498,6 +4498,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_profile_history", FALSE);
 
     /**
+     * Notes, only on this phone, when people in your messages come online and go offline (#590),
+     * from the active status Instagram already receives for its Active now dots. Nothing is asked
+     * for or sent. The list stays out of settings backups and the diagnostic report, and Clear
+     * online history forgets it. Starts off.
+     */
+    public static final BooleanSetting ONLINE_HISTORY =
+            new BooleanSetting("hushgram_online_history", FALSE);
+
+    /**
      * The name a saved video gets: {date}, {video_id}, {owner} and {posted} fill in per save, the
      * last three only when the save knows them, and the default is IG_VID_ and the date and time.
      * Photos keep their IG_IMG_ names. Cleaned like the folder wherever it's read

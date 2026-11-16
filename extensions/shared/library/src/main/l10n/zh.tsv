@@ -2190,6 +2190,21 @@ Clear profile history	清除主页纪录
 Forgets every username, bio and picture on the list, for all your accounts. The switch stays as it is.	清除清单中所有的用户名、个人简介和照片，涵盖你的所有账户。开关维持原状。
 Profile history cleared.	已清除主页纪录。
 Couldn't clear the profile history. Try again.	无法清除主页纪录，请再试一次。
+# context: switch in HushGram settings > Profiles; notes, on this phone, when people in your messages come online and go offline, from the active status Instagram already shows (#590)
+Keep online history	保留在线纪录
+Notes when people in your messages come online and go offline, from the active status Instagram already shows, on this phone only. Turn it off and it stops at once.	只在这支手机上记下你消息里的人何时上线、何时下线，资料来自 Instagram 已显示的活动状态。关闭后会立即停止。
+# context: row and page title in HushGram settings > Profiles listing when people came online and went offline (#590)
+Online history	在线纪录
+Nothing here yet. With Keep online history on, the times people in your messages come online and go offline show up here.	目前还没有内容。打开“保留在线纪录”后，你消息里的人上线和下线的时间会显示在这里。
+# context: a row on the Online history page; %s is Android's relative time of the change, like 5 minutes ago (#590)
+Came online, %s	上线了，%s
+Went offline, %s	下线了，%s
+# context: stands in for the username on an Online history row when Instagram never gave one (#590)
+Unknown account	未知账户
+Clear online history	清除在线纪录
+Forgets everyone on the list, for all your accounts. The switch stays as it is.	清除清单中的所有人，涵盖你的所有账户。开关维持原状。
+Online history cleared.	已清除在线纪录。
+Couldn't clear the online history. Try again.	无法清除在线纪录，请再试一次。
 # context: toast when a profile opened has a different username than last time; %s is the old username (#611)
 Used to be @%s	以前是 @%s
 # context: toast when a profile opened has a new profile picture and bio since last time (#611)

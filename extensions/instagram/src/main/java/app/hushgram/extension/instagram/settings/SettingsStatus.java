@@ -575,6 +575,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Keep online history patch. */
+    public static boolean onlineHistory() {
+        return false;
+    }
+
     public static boolean doubleTapLike() {
         return false;
     }

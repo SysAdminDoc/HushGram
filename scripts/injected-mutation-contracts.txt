@@ -3628,3 +3628,9 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatPager;->closed(Ljava/lang
 # chat gets no check mark in its header; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/direct/MarkReadButton;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
 once-call Lapp/hushgram/extension/instagram/direct/MarkReadButton;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
+# Keep online history (#590). The presence store's merge, the one static method of the class polling
+# direct_v2/get_presence_active_now/ that takes the store and a map of updates, hands the store's
+# session and the map to OnlineHistory.received before anything else. Left out, the list never fills;
+# anywhere else, it isn't the store every presence update goes through.
+start-call Lapp/hushgram/extension/instagram/direct/OnlineHistory;->received(Ljava/lang/Object;Ljava/util/Map;)V in static (L*;Ljava/util/Map;ZZ)V pooled class-holding direct_v2/get_presence_active_now/
+once-call Lapp/hushgram/extension/instagram/direct/OnlineHistory;->received(Ljava/lang/Object;Ljava/util/Map;)V in static (L*;Ljava/util/Map;ZZ)V pooled class-holding direct_v2/get_presence_active_now/

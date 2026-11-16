@@ -6,16 +6,19 @@
  */
 package app.hushgram.extension.instagram.settings;
 
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_ONLINE_HISTORY;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_PROFILE_HISTORY;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_SENT_REQUESTS;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.CLEAR_UNFOLLOWERS;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearOnlineHistory;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearProfileHistory;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearSentRequests;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearUnfollowers;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.followerHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.followLabelPlaceRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onlineHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.profileHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.savedProfilesRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.savedProfilesTabRow;
@@ -41,7 +44,7 @@ final class ProfilesCategory {
         if (build.contains(PatchFamily.FRIENDSHIP_STATUS) || build.contains(PatchFamily.PROFILE_SUGGESTIONS)
                 || build.contains(PatchFamily.PROFILE_HIGHLIGHTS) || build.contains(PatchFamily.THREADS_BUTTON)
                 || build.contains(PatchFamily.PROFILE_NOTES) || build.contains(PatchFamily.PROFILE_BANNERS)
-                || build.contains(PatchFamily.PROFILE_PICTURE)
+                || build.contains(PatchFamily.PROFILE_PICTURE) || build.contains(PatchFamily.ONLINE_HISTORY)
                 || build.contains(PatchFamily.PROFILE_TABS)
                 || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)
                 || build.contains(PatchFamily.PROFILE_GRID_JUMP) || build.contains(PatchFamily.PROFILE_REEL_SORT)
@@ -75,6 +78,25 @@ final class ProfilesCategory {
                                 + "The list stays on this phone, apart from Instagram's Favorites and Following.")));
                 profiles.addPreference(savedProfilesRow(context));
                 profiles.addPreference(savedProfilesTabRow(context));
+            }
+            if (build.contains(PatchFamily.ONLINE_HISTORY)) {
+                profiles.addPreference(toggle(context, Settings.ONLINE_HISTORY, L10n.t("Keep online history"),
+                        L10n.t("Notes when people in your messages come online and go offline, from the active "
+                                + "status Instagram already shows, on this phone only. Turn it off and it stops at once.")));
+                Preference onlineChanges = onlineHistoryRow(context);
+                profiles.addPreference(onlineChanges);
+                Row clearOnlineHistory = new Row(context);
+                clearOnlineHistory.setKey(CLEAR_ONLINE_HISTORY);
+                clearOnlineHistory.setPersistent(false);
+                clearOnlineHistory.actsAtOnce = true;
+                clearOnlineHistory.setTitle(L10n.t("Clear online history"));
+                clearOnlineHistory.setSummary(L10n.t("Forgets everyone on the list, for all your accounts. "
+                        + "The switch stays as it is."));
+                clearOnlineHistory.setOnPreferenceClickListener(p -> {
+                    clearOnlineHistory(p, onlineChanges);
+                    return true;
+                });
+                profiles.addPreference(mark(clearOnlineHistory, SettingsIcons.DELETE));
             }
             if (build.contains(PatchFamily.FRIENDSHIP_STATUS)) {
                 profiles.addPreference(toggle(context, Settings.SHOW_FRIENDSHIP_STATUS, L10n.t("Show if a profile follows you"),
