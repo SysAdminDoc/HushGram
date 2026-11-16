@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
+import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -68,7 +70,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * ({@link #cap}, {@link #CAP} to start) the pager's input goes off and stays off, in this viewer and
  * any that opens, the same as with the first switch on, until Instagram has been in the background
  * for the minutes picked ({@link #breakMillis}, {@link #BREAK_MINUTES} to start, #405). A reel you
- * open still plays.
+ * open still plays. The count and the cap are saved as Instagram goes to the background, so a run
+ * that starts before the break is up carries on with them ({@link #restore}).
  * Turning the switch off, or pausing HushGram, gives the swipes back at the next touch in Reels
  * ({@link #settle}).
  *
@@ -103,6 +106,16 @@ public final class ReelScrolling {
     private static volatile boolean capped;
     private static volatile long hiddenAt;
     private static volatile boolean watching;
+    private static volatile boolean restored;
+
+    /** The clock a saved session is read back on, the one {@link #hidden} is given. */
+    static volatile LongSupplier wall = System::currentTimeMillis;
+
+    /** Where the session is kept as Instagram goes to the background, for the next run to read. */
+    static final String STORE = "hushgram_reel_cap_state";
+    static final String PLAYED = "played";
+    static final String SESSION_CAPPED = "capped";
+    static final String HIDDEN_AT = "hidden_at";
 
     /**
      * The Reels pagers handed over so far, each with its viewer's source by name (null when it couldn't
@@ -276,9 +289,55 @@ public final class ReelScrolling {
         }
     }
 
-    /** Instagram's screens went to the background at [now]. */
+    /** Instagram's screens went to the background at [now]. The session is saved for a run that starts after this one. */
     static void hidden(long now) {
         hiddenAt = now;
+        save(now);
+    }
+
+    private static void save(long now) {
+        try {
+            SharedPreferences store = store();
+            if (store == null) return;
+            int count;
+            boolean stop;
+            synchronized (ReelScrolling.class) {
+                count = played;
+                stop = capped;
+            }
+            store.edit().putInt(PLAYED, count).putBoolean(SESSION_CAPPED, stop).putLong(HIDDEN_AT, now).apply();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SCROLLING, PAGE, failure);
+        }
+    }
+
+    /**
+     * Reads back the session an earlier run of Instagram saved as it went to the background (#297):
+     * back before the break was up, the count goes on where it was, the cap included. Android ending
+     * Instagram in the background, or swiping it away, used to start a fresh session.
+     */
+    private static void restore() {
+        restored = true;
+        try {
+            SharedPreferences store = store();
+            if (store == null) return;
+            long hidden = store.getLong(HIDDEN_AT, 0);
+            if (hidden == 0 || wall.getAsLong() - hidden >= breakMillis()) return;
+            boolean wasCapped = store.getBoolean(SESSION_CAPPED, false);
+            synchronized (ReelScrolling.class) {
+                played = Math.max(played, store.getInt(PLAYED, 0));
+                if (wasCapped) capped = true;
+            }
+            // A capped pager stores no pages, so nothing else would start listening for the break.
+            if (wasCapped) watch();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SCROLLING, PAGE, failure);
+        }
+    }
+
+    private static SharedPreferences store() {
+        Context context = Utils.getContext();
+        return context == null ? null : context.getSharedPreferences(STORE, Context.MODE_PRIVATE);
     }
 
     /**
@@ -301,6 +360,7 @@ public final class ReelScrolling {
      * after the switch goes off gives the swipes back.
      */
     private static void settle(BooleanSupplier capOn) {
+        if (!restored && Utils.settingsReady()) restore();
         if (capped && !capOn.getAsBoolean()) release();
     }
 
@@ -370,8 +430,16 @@ public final class ReelScrolling {
         watching = true;
     }
 
-    /** Forgets every pager handed over and the session's count, for tests. */
+    /** Forgets every pager handed over and the session's count, the saved one too, for tests. */
     static void forget() {
+        restartForTests();
+        SharedPreferences store = store();
+        if (store != null) store.edit().clear().commit();
+        wall = System::currentTimeMillis;
+    }
+
+    /** Forgets what this run held but keeps what it saved, the way Android ending Instagram does. For tests. */
+    static void restartForTests() {
         PAGERS.clear();
         FURTHEST.clear();
         synchronized (ReelScrolling.class) {
@@ -379,6 +447,7 @@ public final class ReelScrolling {
             capped = false;
         }
         hiddenAt = 0;
+        restored = false;
     }
 
     private static boolean switchedOn(Object pager) {

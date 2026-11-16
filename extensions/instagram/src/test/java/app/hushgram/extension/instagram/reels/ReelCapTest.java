@@ -220,6 +220,59 @@ public class ReelCapTest {
         assertEquals(1, ReelScrolling.userInput(pager, 1));
     }
 
+    /** #297: Android ending Instagram in the background, or swiping it away, used to lift the cap. */
+    @Test
+    public void theCapHoldsAfterInstagramIsEnded() {
+        Pager pager = new Pager();
+        ReelScrolling.pager(pager, null);
+        play(pager, 0, ReelScrolling.CAP + 1);
+        ReelScrolling.hidden(2_000_000L);
+        ReelScrolling.restartForTests();
+        ReelScrolling.wall = () -> 2_000_000L + 60_000L;
+
+        Pager next = new Pager();
+        assertEquals("the next run's viewer opens without swipes", 0, ReelScrolling.pager(next, null));
+        assertEquals(0, ReelScrolling.userInput(next, 1));
+        assertEquals(0, ReelScrolling.pull(null));
+
+        ReelScrolling.hidden(3_000_000L);
+        ReelScrolling.shown(3_000_000L + ReelScrolling.BREAK_MILLIS);
+        assertEquals("the break still starts a new session", 1, ReelScrolling.userInput(next, 1));
+    }
+
+    @Test
+    public void theReelsPlayedStillCountAfterAShortRestart() {
+        Pager pager = new Pager();
+        ReelScrolling.pager(pager, null);
+        play(pager, 0, 11);
+        ReelScrolling.hidden(2_000_000L);
+        ReelScrolling.restartForTests();
+        ReelScrolling.wall = () -> 2_000_000L + 60_000L;
+
+        Pager next = new Pager();
+        assertEquals(1, ReelScrolling.pager(next, null));
+        play(next, 0, ReelScrolling.CAP - 10);
+        assertTrue("ten before the restart and nine after", next.inputs.isEmpty());
+        ReelScrolling.page(next, ReelScrolling.CAP - 10);
+        assertEquals(java.util.Collections.singletonList(false), next.inputs);
+    }
+
+    @Test
+    public void aWholeBreakAwayStartsFreshAfterARestart() {
+        Pager pager = new Pager();
+        ReelScrolling.pager(pager, null);
+        play(pager, 0, ReelScrolling.CAP + 1);
+        ReelScrolling.hidden(2_000_000L);
+        ReelScrolling.restartForTests();
+        ReelScrolling.wall = () -> 2_000_000L + ReelScrolling.BREAK_MILLIS;
+
+        Pager next = new Pager();
+        assertEquals(1, ReelScrolling.pager(next, null));
+        play(next, 0, ReelScrolling.CAP);
+        assertTrue(next.inputs.isEmpty());
+        assertEquals(1, ReelScrolling.userInput(next, 1));
+    }
+
     @Test
     public void stopReelsScrollingKeepsSwipesOffAfterABreak() {
         Pager pager = new Pager();
