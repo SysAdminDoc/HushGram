@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.feed.back.enumConstantName
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -35,6 +36,18 @@ internal const val SEARCH_RECOMMENDATION_READER = "$EXTENSION_PACKAGE/explore/Se
 internal const val IS_RECOMMENDATION = "isRecommendation"
 internal const val IS_RECOMMENDATION_SHAPE = "(Ljava/lang/Object;)Z"
 
+/** The second stub, filled with a test of a unit's kind against [HEADER_KIND]. Same shape as the first. */
+internal const val IS_HEADER = "isHeader"
+
+/**
+ * The kind of results unit that's a section's title. The You may also like title is one, a unit of
+ * its own right before the block, and both builders look at the unit after a title to see whether
+ * it's the block's.
+ */
+internal const val HEADER_KIND = "HEADER"
+
+private const val ENUM = "Ljava/lang/Enum;"
+
 /**
  * The marker Instagram's server puts on the You may also like unit at the end of search results.
  * Only the check of a unit for it and a few logging classes load it.
@@ -52,12 +65,15 @@ private val COPIES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode
 
 /**
  * Instagram's check of a results unit for [END_OF_SERP_RECOMMENDATION] (as a smali reference), the
- * unit's class, and the two builders of the results page it's asked in: a lambda handed the list of
- * units as its second argument, and a static builder taking the list as its one list parameter.
+ * unit's class, the getter of its kind and the [HEADER_KIND] constant (both smali references), and
+ * the two builders of the results page it's asked in: a lambda handed the list of units as its
+ * second argument, and a static builder taking the list as its one list parameter.
  */
 internal class SearchRecommendationSites(
     val predicate: String,
     val unitType: String,
+    val kindGetter: String,
+    val headerKind: String,
     val lambdaType: String,
     val lambdaRegister: Int,
     val builderType: String,
@@ -97,11 +113,34 @@ internal fun BytecodePatchContext.findSearchRecommendations(): SearchRecommendat
         refuse("$where or its unit $unitType isn't public")
     }
 
+    // The check reads the unit's kind (an enum) before its marker; the title kind is the enum's HEADER.
+    val kindReads = check.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
+        if (instruction.opcode != Opcode.INVOKE_VIRTUAL && instruction.opcode != Opcode.INVOKE_VIRTUAL_RANGE) return@mapNotNull null
+        val called = (instruction as ReferenceInstruction).reference as? MethodReference ?: return@mapNotNull null
+        called.takeIf {
+            it.definingClass == unitType && it.parameterTypes.isEmpty() && classDefByOrNull(it.returnType)?.superclass == ENUM
+        }
+    }.distinctBy { it.toString() }
+    val kindRead = kindReads.singleOrNull() ?: refuse("expected $where to read one kind of its unit, found ${kindReads.size}")
+    val kind = classDefByOrNull(kindRead.returnType)!!
+    val getter = unit.methods.singleOrNull { it.name == kindRead.name && it.shapeText() == "()${kindRead.returnType}" }
+    val headers = kind.fields.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.type == kind.type && enumConstantName(kind, it) == HEADER_KIND
+    }
+    val header = headers.singleOrNull() ?: refuse("expected one $HEADER_KIND kind in ${kind.type}, found ${headers.size}")
+    if (getter == null || !AccessFlags.PUBLIC.isSet(getter.accessFlags) || !AccessFlags.PUBLIC.isSet(kind.accessFlags) ||
+        !AccessFlags.PUBLIC.isSet(header.accessFlags)
+    ) {
+        refuse("$kindRead or ${kind.type}'s $HEADER_KIND isn't public")
+    }
+
     val reader = classDefByOrNull(SEARCH_RECOMMENDATION_READER) ?: refuse("the extension has no $SEARCH_RECOMMENDATION_READER")
-    val stub = reader.methods.singleOrNull {
-        it.name == IS_RECOMMENDATION && AccessFlags.STATIC.isSet(it.accessFlags) && it.shapeText() == IS_RECOMMENDATION_SHAPE
-    } ?: refuse("$SEARCH_RECOMMENDATION_READER has no static $IS_RECOMMENDATION$IS_RECOMMENDATION_SHAPE")
-    if (stub.implementation == null) refuse("$SEARCH_RECOMMENDATION_READER->$IS_RECOMMENDATION has no code to fill")
+    for (name in listOf(IS_RECOMMENDATION, IS_HEADER)) {
+        val stub = reader.methods.singleOrNull {
+            it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.shapeText() == IS_RECOMMENDATION_SHAPE
+        } ?: refuse("$SEARCH_RECOMMENDATION_READER has no static $name$IS_RECOMMENDATION_SHAPE")
+        if (stub.implementation == null) refuse("$SEARCH_RECOMMENDATION_READER->$name has no code to fill")
+    }
 
     val askers = classesCalling(check.definingClass, check.name, listOf(unitType), "Z")
         .filter { it.type != check.definingClass }
@@ -121,27 +160,31 @@ internal fun BytecodePatchContext.findSearchRecommendations(): SearchRecommendat
 
     val builderParameters = builder.parameterTypes.map(CharSequence::toString)
     return SearchRecommendationSites(
-        "$where($unitType)Z", unitType,
+        "$where($unitType)Z", unitType, kindRead.toString(), "${kind.type}->${header.name}:${kind.type}",
         lambda.definingClass, lambda.parameterRegisterNumber(1),
         builder.definingClass, builder.name, builderParameters, builder.parameterRegisterNumber(builderParameters.indexOf(UNITS_LIST)),
     )
 }
 
 /**
- * Fills [SEARCH_RECOMMENDATION_READER]'s stub with Instagram's check, asked only of a unit of its
- * class, and starts both builders by passing their list of units through [RECOMMENDATION_UNITS],
- * which hands back the list without the You may also like unit while the switch is on. The builder's
- * parameter is a list, so the answer is cast back to one; the lambda's is an object already.
+ * Fills [SEARCH_RECOMMENDATION_READER]'s stubs with Instagram's check and a test of the unit's kind
+ * against [HEADER_KIND], each asked only of a unit of its class, and starts both builders by passing
+ * their list of units through [RECOMMENDATION_UNITS], which hands back the list without the You may
+ * also like units and their title while the switch is on. The builder's parameter is a list, so the
+ * answer is cast back to one; the lambda's is an object already.
  */
 internal fun BytecodePatchContext.hideSearchRecommendations(sites: SearchRecommendationSites) {
-    // D8 compiles the stub's `return false` into p0 alone, so it gets a local to answer in.
+    // D8 compiles a stub's `return false` into p0 alone, so each gets the locals it answers in.
     val methods = mutableClassDefBy(SEARCH_RECOMMENDATION_READER).methods
-    val original = methods.single { it.name == IS_RECOMMENDATION && it.shapeText() == IS_RECOMMENDATION_SHAPE }
-    val stub = original.cloneMutable(additionalRegisters = (2 - original.implementation!!.registerCount).coerceAtLeast(0))
-    methods.remove(original)
-    methods.add(stub)
-    stub.addInstructionsWithLabels(
-        0,
+    fun fill(name: String, locals: Int, code: String) {
+        val original = methods.single { it.name == name && it.shapeText() == IS_RECOMMENDATION_SHAPE }
+        val stub = original.cloneMutable(additionalRegisters = (locals + 1 - original.implementation!!.registerCount).coerceAtLeast(0))
+        methods.remove(original)
+        methods.add(stub)
+        stub.addInstructionsWithLabels(0, code)
+    }
+    fill(
+        IS_RECOMMENDATION, 1,
         """
             instance-of v0, p0, ${sites.unitType}
             if-eqz v0, :not_a_unit
@@ -149,6 +192,22 @@ internal fun BytecodePatchContext.hideSearchRecommendations(sites: SearchRecomme
             invoke-static { p0 }, ${sites.predicate}
             move-result v0
             :not_a_unit
+            return v0
+        """,
+    )
+    fill(
+        IS_HEADER, 2,
+        """
+            const/4 v0, 0x0
+            instance-of v1, p0, ${sites.unitType}
+            if-eqz v1, :not_a_header
+            check-cast p0, ${sites.unitType}
+            invoke-virtual { p0 }, ${sites.kindGetter}
+            move-result-object v1
+            sget-object p0, ${sites.headerKind}
+            if-ne v1, p0, :not_a_header
+            const/4 v0, 0x1
+            :not_a_header
             return v0
         """,
     )

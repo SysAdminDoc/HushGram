@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -40,6 +41,9 @@ class HideSearchRecommendationsHookTest {
     private val page = "Lfixture/ResultsPage;"
     private val otherPage = "Lfixture/OtherResultsPage;"
     private val timing = "Lfixture/ResultsTiming;"
+    private val kind = "Lfixture/UnitKind;"
+    private val kindGetter = "$unit->A01()$kind"
+    private val headerKind = "$kind->A05:$kind"
     private val predicate = "$check->A02($unit)Z"
     private val builderParameters = listOf("Landroid/content/Context;", "Ljava/util/List;", "Z")
     private val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
@@ -52,9 +56,11 @@ class HideSearchRecommendationsHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$RECOMMENDATION_UNITS is not in the extension: $declared", RECOMMENDATION_UNITS.substringAfter("->") in declared)
-        val stub = ExtensionDex.classDef(SEARCH_RECOMMENDATION_READER).methods.single { it.name == IS_RECOMMENDATION }
-        assertTrue("static", AccessFlags.STATIC.isSet(stub.accessFlags))
-        assertEquals(IS_RECOMMENDATION_SHAPE, "(${stub.parameterTypes.joinToString("")})${stub.returnType}")
+        for (name in listOf(IS_RECOMMENDATION, IS_HEADER)) {
+            val stub = ExtensionDex.classDef(SEARCH_RECOMMENDATION_READER).methods.single { it.name == name }
+            assertTrue("$name static", AccessFlags.STATIC.isSet(stub.accessFlags))
+            assertEquals(name, IS_RECOMMENDATION_SHAPE, "(${stub.parameterTypes.joinToString("")})${stub.returnType}")
+        }
     }
 
     /** The lambda and the builder start by filtering their list, the timing logger is left alone, and the stub asks Instagram's check. */
@@ -71,6 +77,8 @@ class HideSearchRecommendationsHookTest {
 
         assertEquals("the check", predicate, sites.predicate)
         assertEquals("the unit", unit, sites.unitType)
+        assertEquals("the unit's kind", kindGetter, sites.kindGetter)
+        assertEquals("the title kind", headerKind, sites.headerKind)
         val hookedLambda = context.mutableClassDefBy(lambda).methods.single()
         assertListFiltered("stand-in lambda", hookedLambda, hookedLambda.implementation!!.registerCount - 1, castBack = false)
         assertEquals("Instagram's lambda after the filter", lambdaBefore.map { it.opcode }, hookedLambda.code().drop(2).map { it.opcode })
@@ -79,6 +87,7 @@ class HideSearchRecommendationsHookTest {
         assertEquals("Instagram's builder after the filter", builderBefore.map { it.opcode }, hookedBuilder.code().drop(3).map { it.opcode })
         assertEquals("the logger", timingBefore.map { it.opcode }, context.mutableClassDefBy(timing).methods.single().code().map { it.opcode })
         assertStubFilled("stand-in", context.stub(), predicate)
+        assertHeaderStubFilled("stand-in", context.headerStub(), sites)
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
@@ -89,6 +98,8 @@ class HideSearchRecommendationsHookTest {
             classes(checks = 0) to "expected one static check of a results unit loading $END_OF_SERP_RECOMMENDATION, found 0",
             classes(checks = 2) to "expected one static check of a results unit loading $END_OF_SERP_RECOMMENDATION, found 2",
             classes(unitPublic = false) to "$where or its unit $unit isn't public",
+            classes(readsKind = false) to "expected $where to read one kind of its unit, found 0",
+            classes(header = false) to "expected one $HEADER_KIND kind in $kind, found 0",
             classes(reader = false) to "the extension has no $SEARCH_RECOMMENDATION_READER",
             classes(lambdas = 0) to "expected one lambda asking $where, found 0",
             classes(lambdaBranchesFirst = true) to "$lambda->invoke doesn't cast its second argument to a list first",
@@ -132,6 +143,7 @@ class HideSearchRecommendationsHookTest {
             assertEquals("${bundle.name}: one list", 1, sites.builderParameters.count { it == "Ljava/util/List;" })
             assertListFiltered(bundle.name, hookedBuilder, sites.builderRegister, castBack = true)
             assertStubFilled(bundle.name, context.stub(), sites.predicate)
+            assertHeaderStubFilled(bundle.name, context.headerStub(), sites)
             assertEquals(
                 "${bundle.name}: methods calling $RECOMMENDATION_UNITS", 2,
                 classes.map { it.type }.distinct().sumOf { type -> context.mutableClassDefBy(type).methods.count { m -> m.code().any { it.referenceText() == RECOMMENDATION_UNITS } } },
@@ -165,17 +177,35 @@ class HideSearchRecommendationsHookTest {
         assertTrue("$what: and answers it", code.any { it.opcode == Opcode.RETURN })
     }
 
+    /** The title stub reads the unit's kind once, of a unit of its class, and compares it with the HEADER constant. */
+    private fun assertHeaderStubFilled(what: String, stub: Method, sites: SearchRecommendationSites) {
+        val code = stub.code()
+        val test = code.indexOfFirst { it.opcode == Opcode.INSTANCE_OF }
+        assertTrue("$what: the title stub tests the class", test >= 0)
+        assertEquals("$what: of the unit's class", sites.unitType, (code[test].reference() as TypeReference).type)
+        assertEquals("$what: reads the kind once", 1, code.count { it.opcode == Opcode.INVOKE_VIRTUAL && it.referenceText() == sites.kindGetter })
+        assertEquals("$what: against HEADER", 1, code.count { it.opcode == Opcode.SGET_OBJECT && it.reference().toString() == sites.headerKind })
+        assertTrue("$what: compares them", code.any { it.opcode == Opcode.IF_NE })
+        assertTrue("$what: and answers", code.any { it.opcode == Opcode.RETURN })
+    }
+
     private fun app.morphe.patcher.patch.BytecodePatchContext.stub(): Method =
         mutableClassDefBy(SEARCH_RECOMMENDATION_READER).methods.single { it.name == IS_RECOMMENDATION }
 
+    private fun app.morphe.patcher.patch.BytecodePatchContext.headerStub(): Method =
+        mutableClassDefBy(SEARCH_RECOMMENDATION_READER).methods.single { it.name == IS_HEADER }
+
     /**
-     * Shaped like 454's: a public check of a results unit loading the marker, a merged lambda whose
-     * `invoke` casts its second argument to a list and asks it, a static builder taking the list and
-     * asking it, and a timing logger asking it with no list, plus the extension's reader.
+     * Shaped like 454's: a public check of a results unit that reads the unit's kind (an enum with a
+     * HEADER and a MEDIA_GRID constant) and then loads the marker, a merged lambda whose `invoke`
+     * casts its second argument to a list and asks it, a static builder taking the list and asking
+     * it, and a timing logger asking it with no list, plus the extension's reader.
      */
     private fun classes(
         checks: Int = 1,
         unitPublic: Boolean = true,
+        readsKind: Boolean = true,
+        header: Boolean = true,
         reader: Boolean = true,
         lambdas: Int = 1,
         lambdaBranchesFirst: Boolean = false,
@@ -183,15 +213,45 @@ class HideSearchRecommendationsHookTest {
         loopsToStart: Boolean = false,
     ): List<ClassDef> {
         val checkBody = { marker: String ->
-            """
-                const-string v0, "$marker"
-                invoke-virtual {p0}, $unit->A00()Ljava/lang/String;
-                move-result-object v1
-                invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-                move-result v0
-                return v0
-            """
+            listOfNotNull(
+                if (readsKind) "invoke-virtual {p0}, $kindGetter" else null,
+                if (readsKind) "move-result-object v0" else null,
+                if (readsKind) "sget-object v1, $kind->A07:$kind" else null,
+                if (readsKind) "if-ne v0, v1, :no" else null,
+                "const-string v0, \"$marker\"",
+                "invoke-virtual {p0}, $unit->A00()Ljava/lang/String;",
+                "move-result-object v1",
+                "invoke-virtual {v0, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z",
+                "move-result v0",
+                "return v0",
+                ":no",
+                "const/4 v0, 0x0",
+                "return v0",
+            ).joinToString("\n")
         }
+        val kinds = listOfNotNull(if (header) "A05" to HEADER_KIND else null, "A07" to "MEDIA_GRID")
+        val kindSetup = method(
+            kind, "<clinit>", emptyList(), "V", 3, AccessFlags.STATIC.value or AccessFlags.CONSTRUCTOR.value,
+            kinds.withIndex().joinToString("\n") { (ordinal, constant) ->
+                """
+                    new-instance v0, $kind
+                    const-string v1, "${constant.second}"
+                    const/4 v2, $ordinal
+                    invoke-direct {v0, v1, v2}, $kind-><init>(Ljava/lang/String;I)V
+                    sput-object v0, $kind->${constant.first}:$kind
+                """
+            } + "\nreturn-void",
+        )
+        val kindFields = kinds.map { (field, _) ->
+            ImmutableField(kind, field, kind, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value or AccessFlags.ENUM.value, null, null, null)
+        }
+        val getter = method(
+            unit, "A01", emptyList(), kind, 1, instance,
+            """
+                const/4 v0, 0x0
+                return-object v0
+            """,
+        )
         val checkMethods = when (checks) {
             0 -> listOf(method(check, "A02", listOf(unit), "Z", 2, static, checkBody("end_of_serp_header")))
             else -> List(checks) { method(check, if (it == 0) "A02" else "A03", listOf(unit), "Z", 2, static, checkBody(END_OF_SERP_RECOMMENDATION)) }
@@ -240,7 +300,8 @@ class HideSearchRecommendationsHookTest {
         )
         return listOfNotNull(
             classDef(check, checkMethods),
-            classDef(unit, emptyList(), if (unitPublic) instance else AccessFlags.FINAL.value),
+            classDef(unit, listOf(getter), if (unitPublic) instance else AccessFlags.FINAL.value),
+            classDef(kind, listOf(kindSetup), instance or AccessFlags.ENUM.value, "Ljava/lang/Enum;", kindFields),
             if (lambdas > 0) classDef(lambda, listOf(invoke)) else null,
             if (builders > 0) classDef(page, listOf(builder(page))) else null,
             if (builders > 1) classDef(otherPage, listOf(builder(otherPage))) else null,
@@ -274,8 +335,13 @@ class HideSearchRecommendationsHookTest {
                 }
             }
         }
-        val units = checks.map { it.parameterTypes.single().toString() }.filterTo(HashSet()) { it !in have }
-        val found = loading + callers + FixtureDex.classes(bundle, units).values
+        val unitTypes = checks.mapTo(HashSet()) { it.parameterTypes.single().toString() }
+        val units = unitTypes.filterTo(HashSet()) { it !in have }
+        // The kind the check reads off its unit: an enum, read for its HEADER constant.
+        val kinds = checks.flatMap { it.code() }.mapNotNull { it.reference() as? MethodReference }
+            .filter { it.definingClass in unitTypes && it.parameterTypes.isEmpty() && it.returnType.startsWith("L") }
+            .mapTo(HashSet()) { it.returnType }.filterTo(HashSet()) { it !in have && it !in unitTypes }
+        val found = loading + callers + FixtureDex.classes(bundle, units + kinds).values
         return FixtureDex.withStringPools(bundle, found) + ExtensionDex.classDef(SEARCH_RECOMMENDATION_READER)
     }
 
@@ -295,8 +361,13 @@ class HideSearchRecommendationsHookTest {
         return ImmutableMethod.of(mutable)
     }
 
-    private fun classDef(type: String, methods: List<Method>, flags: Int = instance): ClassDef =
-        ImmutableClassDef(type, flags, "Ljava/lang/Object;", null, null, null, emptyList(), methods)
+    private fun classDef(
+        type: String,
+        methods: List<Method>,
+        flags: Int = instance,
+        superclass: String = "Ljava/lang/Object;",
+        fields: List<ImmutableField> = emptyList(),
+    ): ClassDef = ImmutableClassDef(type, flags, superclass, null, null, null, fields, methods)
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

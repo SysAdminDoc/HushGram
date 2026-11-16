@@ -23,9 +23,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * posts and reels, a header. At the end it adds one more, a You may also like block of posts nobody
  * searched for, and Instagram itself tells that unit apart by a marker the server puts on it. Both
  * builders of the results page are handed the list first thing, and the patch passes it through
- * {@link #units}, which leaves that block out. The builders then draw no header for it either, since
- * they draw the header from the unit. The patch fills {@link SearchRecommendationReader} with
- * Instagram's own check, so this class never reads the marker itself.
+ * {@link #units}, which leaves that block out. Its You may also like title is a unit of its own,
+ * Instagram's HEADER kind, right before the block (both builders look at the unit after a title to
+ * see whether it's the block's), so a title followed by the block goes with it. The patch fills
+ * {@link SearchRecommendationReader} with Instagram's own check and kind, so this class never reads
+ * the marker itself.
  *
  * <p>Every other unit stays, in order. The hook fails open: with the switch off, HushGram paused, the
  * settings not read yet or anything thrown, Instagram's own list stands.
@@ -41,15 +43,16 @@ public final class SearchRecommendations {
 
     /**
      * Injected first thing in both builders of the search results page, with the list of units it's
-     * handed. Answers a new list without the You may also like block while the switch is on, and
-     * {@code units} itself otherwise, when it isn't a list, has no such block, or when anything goes
-     * wrong. The list Instagram passed is never changed. Never throws.
+     * handed. Answers a new list without the You may also like block and its title while the switch
+     * is on, and {@code units} itself otherwise, when it isn't a list, has no such block, or when
+     * anything goes wrong. The list Instagram passed is never changed. Never throws.
      */
     public static Object units(Object units) {
-        return units(units, SearchRecommendations::switchedOn, SearchRecommendationReader::isRecommendation);
+        return units(units, SearchRecommendations::switchedOn, SearchRecommendationReader::isRecommendation,
+                SearchRecommendationReader::isHeader);
     }
 
-    static Object units(Object units, BooleanSupplier on, Predicate<Object> recommendation) {
+    static Object units(Object units, BooleanSupplier on, Predicate<Object> recommendation, Predicate<Object> header) {
         if (!(units instanceof List)) return units;
         List<?> list = (List<?>) units;
         if (list.isEmpty()) return units;
@@ -57,19 +60,27 @@ public final class SearchRecommendations {
             HookStatus.invoked(FamilyNames.EXPLORE_GRID);
             FeedFilterCounters.sawList(ROUTE, list.size());
             if (!on.getAsBoolean()) return units;
-            List<Object> kept = new ArrayList<>(list.size());
+            Object[] all = list.toArray();
+            boolean[] out = new boolean[all.length];
             int removed = 0;
-            for (Object unit : list) {
-                if (unit != null && recommendation.test(unit)) {
+            for (int i = 0; i < all.length; i++) {
+                if (all[i] == null || !recommendation.test(all[i])) continue;
+                out[i] = true;
+                removed++;
+                // Instagram pairs a title with the unit right after it, so that's the block's title.
+                if (i > 0 && !out[i - 1] && all[i - 1] != null && header.test(all[i - 1])) {
+                    out[i - 1] = true;
                     removed++;
-                } else {
-                    kept.add(unit);
                 }
             }
             if (removed == 0) return units;
+            List<Object> kept = new ArrayList<>(all.length - removed);
+            for (int i = 0; i < all.length; i++) {
+                if (!out[i]) kept.add(all[i]);
+            }
             FeedFilterCounters.removed(ROUTE, removed, UNITS);
             int count = removed;
-            Logger.printDebug(() -> "Search recommendations: left out " + count + " You may also like blocks");
+            Logger.printDebug(() -> "Search recommendations: left out " + count + " You may also like units");
             return kept;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.EXPLORE_GRID, UNITS, failure);

@@ -6,7 +6,7 @@ package app.hushgram.extension.instagram.explore;
 
 /**
  * What the Hide the Explore grid patch fills in: Instagram's own check of whether a unit of search
- * results is the You may also like block at their end.
+ * results is the You may also like block at their end, and whether a unit is a section's title.
  *
  * <p>Apart from {@link SearchRecommendations} for the reason StoryButtonsRoomReader is: a stub the
  * phone's verifier refused would take the class the results builders call down with it. Only
@@ -17,6 +17,11 @@ final class SearchRecommendationReader {
 
     /** Filled in by the patch: whether Instagram marks [unit] as its end of results recommendations. */
     static boolean isRecommendation(Object unit) {
+        return false;
+    }
+
+    /** Filled in by the patch: whether [unit] is of Instagram's HEADER kind, a section's title. */
+    static boolean isHeader(Object unit) {
         return false;
     }
 }

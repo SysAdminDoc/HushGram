@@ -34,21 +34,34 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class SearchRecommendationsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
-    /** A unit of the results page, marked the way Instagram's own check would answer for it. */
+    /** A unit of the results page, marked the way Instagram's own check and kind would answer for it. */
     static final class Unit {
         final boolean recommendation;
+        final boolean header;
 
         Unit(boolean recommendation) {
+            this(recommendation, false);
+        }
+
+        Unit(boolean recommendation, boolean header) {
             this.recommendation = recommendation;
+            this.header = header;
+        }
+
+        static Unit title() {
+            return new Unit(false, true);
         }
     }
 
     /** Stands in for Instagram's check, which the patch puts in the reader. */
     private static final Predicate<Object> MARKED = unit -> unit instanceof Unit && ((Unit) unit).recommendation;
 
-    /** The hook with its real switch and the stand-in check. */
+    /** Stands in for the test of Instagram's HEADER kind, which the patch puts in the reader. */
+    private static final Predicate<Object> TITLE = unit -> unit instanceof Unit && ((Unit) unit).header;
+
+    /** The hook with its real switch and the stand-in check and kind. */
     private static Object filtered(Object units) {
-        return SearchRecommendations.units(units, SearchRecommendations::switchedOn, MARKED);
+        return SearchRecommendations.units(units, SearchRecommendations::switchedOn, MARKED, TITLE);
     }
 
     @Before
@@ -99,6 +112,32 @@ public class SearchRecommendationsTest {
         assertTrue(HookStatus.missing(FamilyNames.EXPLORE_GRID).toString(), HookStatus.missing(FamilyNames.EXPLORE_GRID).isEmpty());
     }
 
+    /**
+     * On, the block's You may also like title, a unit of its own right before it, goes too; a title
+     * before other results stays, and so does one with nothing after it. Seen on a phone: the reels
+     * went and the title stayed, with nothing under it.
+     */
+    @Test
+    public void onTheBlocksTitleGoesWithIt() {
+        Settings.HIDE_SEARCH_RECOMMENDATIONS.save(true);
+        Unit tagsTitle = Unit.title();
+        Unit tags = new Unit(false);
+        Unit lastTitle = Unit.title();
+        List<Unit> units = Arrays.asList(tagsTitle, tags, Unit.title(), new Unit(true), new Unit(true), lastTitle);
+
+        Object kept = filtered(units);
+
+        assertEquals(Arrays.asList(tagsTitle, tags, lastTitle), kept);
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("3 removed"));
+    }
+
+    /** Before the patch fills the reader its title test answers no too. */
+    @Test
+    public void anUnfilledReaderSeesNoTitle() {
+        assertFalse(SearchRecommendationReader.isHeader(Unit.title()));
+    }
+
     /** On, a page with no recommended block, an empty list, something that isn't a list and null come back as they are. */
     @Test
     public void aPageWithoutTheBlockComesBackAsItIs() {
@@ -144,9 +183,13 @@ public class SearchRecommendationsTest {
         List<Unit> units = Arrays.asList(new Unit(false), new Unit(true));
         assertSame(units, SearchRecommendations.units(units, () -> {
             throw new IllegalStateException("switch");
-        }, MARKED));
+        }, MARKED, TITLE));
         assertSame(units, SearchRecommendations.units(units, () -> true, unit -> {
             throw new IllegalStateException("check");
+        }, TITLE));
+        List<Unit> titled = Arrays.asList(Unit.title(), new Unit(true));
+        assertSame(titled, SearchRecommendations.units(titled, () -> true, MARKED, unit -> {
+            throw new IllegalStateException("title");
         }));
         String missing = HookStatus.missing(FamilyNames.EXPLORE_GRID).toString();
         assertTrue(missing, missing.contains("'" + SearchRecommendations.UNITS + "'"));
