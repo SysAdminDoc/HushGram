@@ -55,6 +55,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * The Like button is back on reels where HushGram's extra icons made the button column too tall, which left only the like count showing. When a column runs past the top bar, HushGram's own icons in it are laid out a little smaller from the next reel on, so every button fits on screen. Turning an icon on or off sets them back to full size. Reported in #676.
+* The `Keep the comment bar's space` row now says it leaves a black band, and that reels from Explore get it too. Search settings for "black bar" and it comes up. Turn it off to let the reel fill that space again. Reported in #680.
 * A liked heart in Instagram's own red no longer has a thin light edge around it on a black page. The outline under it is left out with `Accent color` off too, the same way it already was for your accent color. Reported in #721.
 * `Split the notes row` shows the Stories stack next to Instants and Notes on accounts where Instagram had left it out, with your friends' stories in it. Reported in #717.
 * `Never save AV1 video`, `Never save HDR video` and `Save videos as MKV` go into a settings backup now, so restoring one brings them back with the other save switches. They used to come back off.

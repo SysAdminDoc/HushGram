@@ -3143,9 +3143,10 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_comment_bar_everywhere", FALSE);
 
     /**
-     * Leaves the room of a hidden comment bar empty under a reel opened from a post or a profile, so
-     * the reel, its buttons and the seek bar stay where they'd be with the bar (#523). The Reels tab's
-     * own bar keeps no room. Off to start.
+     * Leaves the room of a hidden comment bar empty under a reel outside the Reels tab, from Explore,
+     * a post or a profile, so the reel, its buttons and the seek bar stay where they'd be with the bar
+     * (#523). The room shows as a black band, and its row says so, so someone who sees the band can
+     * find it by searching for black (#680). The Reels tab's own bar keeps no room. Off to start.
      */
     public static final BooleanSetting KEEP_REEL_COMMENT_BAR_SPACE =
             new BooleanSetting("hushgram_keep_reel_comment_bar_space", FALSE,

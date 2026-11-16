@@ -846,7 +846,7 @@ The Add comment bar under a reel you open from a profile's reposts. The comment 
 Hide the comment bar on all reels	ซ่อนแถบความคิดเห็นในรีลส์ทั้งหมด
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	แถบ "เพิ่มความคิดเห็น" ใต้ทุกรีลส์ รวมถึงรีลส์ในแท็บรีลส์ด้วย ปุ่มความคิดเห็นจะยังคงเปิดความคิดเห็นได้ตามเดิม
 Keep the comment bar's space	เว้นพื้นที่ของแถบความคิดเห็นไว้
-Leaves an empty band where a hidden comment bar was on reels you open from a post or a profile, so the reel, its buttons and the seek bar don't move down.	เว้นแถบว่างไว้ตรงจุดที่เคยมีแถบความคิดเห็นที่ถูกซ่อนในรีลส์ที่คุณเปิดจากโพสต์หรือโปรไฟล์ เพื่อไม่ให้รีลส์ ปุ่มต่างๆ และแถบเลื่อนเวลาเลื่อนลงไปด้านล่าง
+Leaves an empty black band where a hidden comment bar was on reels outside the Reels tab, like the ones you open from Explore or a profile, so the reel, its buttons and the seek bar don't move down.	เว้นแถบสีดำว่างไว้ตรงจุดที่เคยมีแถบความคิดเห็นที่ถูกซ่อนในรีลส์นอกแท็บรีลส์ เช่นรีลส์ที่คุณเปิดจากสำรวจหรือโปรไฟล์ เพื่อไม่ให้รีลส์ ปุ่มต่างๆ และแถบเลื่อนเวลาเลื่อนลงไปด้านล่าง
 Adds Copy username and Copy bio to the menu on someone's profile. Each copies the text exactly as the account has it.	เพิ่ม "คัดลอกชื่อผู้ใช้" และ "คัดลอกประวัติ" ในเมนูบนโปรไฟล์ของผู้อื่น โดยแต่ละรายการจะคัดลอกข้อความตามที่บัญชีนั้นระบุไว้ทุกประการ
 Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.	เพิ่ม "ดูรูปโปรไฟล์" ในเมนูบนโปรไฟล์ของผู้อื่น โดยจะเปิดรูปภาพแบบเต็มหน้าจอในขนาดใหญ่ที่สุดที่ Instagram มี พร้อมการบีบนิ้วเพื่อซูมและปุ่มบันทึก
 Bio	ประวัติ

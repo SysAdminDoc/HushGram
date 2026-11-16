@@ -857,7 +857,7 @@ The Add comment bar under a reel you open from a profile's reposts. The comment 
 Hide the comment bar on all reels	隐藏所有 Reels 的评论栏
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	隐藏每则 Reel 下方的“添加评论”列，包括 Reels 标签页中的视频。仍可通过评论按钮打开评论。
 Keep the comment bar's space	保留评论栏的空间
-Leaves an empty band where a hidden comment bar was on reels you open from a post or a profile, so the reel, its buttons and the seek bar don't move down.	在从帖子或主页打开的 Reel 上，于隐藏的评论栏原处留下一条空白带，让 Reel、按钮和进度条不会往下移。
+Leaves an empty black band where a hidden comment bar was on reels outside the Reels tab, like the ones you open from Explore or a profile, so the reel, its buttons and the seek bar don't move down.	在 Reels 标签页以外的 Reel 上，例如从探索或主页打开的，于隐藏的评论栏原处留下一条黑色空白带，让 Reel、按钮和进度条不会往下移。
 Adds Copy username and Copy bio to the menu on someone's profile. Each copies the text exactly as the account has it.	在他人主页的菜单中添加“复制用户名”与“复制个人简介”，依账户原文完整复制。
 Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.	在他人主页的菜单中添加“查看头像”，以 Instagram 提供的最大尺寸全屏幕打开，支持双指缩放并提供保存按钮。
 Bio	个人简介
