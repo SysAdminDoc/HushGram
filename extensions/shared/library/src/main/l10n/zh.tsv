@@ -674,7 +674,7 @@ Download audio	下载音频
 Download on a reel, a feed post or a story opens the share sheet with its link, for a downloader app such as Seal. Save all and the other save rows still save here.	点击 Reel、动态首页帖子或快拍的“下载”，会打开包含链接的分享表单，以便发送给 Seal 等下载器。“保存全部”与其他保存选项仍会在此保存。
 Each save goes into a folder named for the account that posted it, inside the save folder. A save that doesn't know who posted stays in the save folder.	每次保存时，会在保存文件夹内置立以发帖账户命名的子文件夹。若无法取得发帖账户，则直接留在保存文件夹中。
 Folder per account	按账户分类文件夹
-Freed %1$s.	已发布 %1$s。
+Freed %1$s.	已释放 %1$s。
 HDR photos and reels stop brightening the screen above everything else. They show at the same brightness as the rest of Instagram.	HDR 照片与 Reels 不再让屏幕亮度高于其他内容，而是与 Instagram 其他部分维持相同亮度。
 Tells Instagram your phone is at %1$s.	向 Instagram 上报手机位于 %1$s。
 Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.	向 Instagram 上报手机位于下方设置的位置，供位置贴图、附近地点与地图使用。照片本身的位置不会改变。
@@ -783,7 +783,7 @@ That isn't a domain. Try one like example.com.	这不是有效的网域。请输
 The heart plays %1$s when you double tap a post.	双击帖子时，爱心会播放 %1$s。
 The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	双击帖子时弹出的爱心会播放下方选择的动画。这些是 Instagram 为 Rings 创作者制作的动画。
 Turn on Change the like animation to use this choice.	请启用“更改‘点赞’动画”以使用此选项。
-When Instagram has more than 500 MB of saved photos and videos, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Instagram 保存的照片与视频超过 500 MB 时，会在离开应用程序时删除照片，并于下次启动时删除视频。登录状态、草稿与设置仍会保留。
+When Instagram's saved photos and videos pass the limit below, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Instagram 保存的照片与视频超过下方的上限时，会在离开应用程序时删除照片，并于下次启动时删除视频。登录状态、草稿与设置仍会保留。
 Ask before a like	点赞前询问
 Ask before a refresh	刷新前询问
 Continue	继续
@@ -2458,3 +2458,9 @@ Not sent for this profile	此主页未发送
 # context: Profiles: switch under Keep profile history (#715)
 Save changed pictures to the gallery	将更换的图片保存到相册
 When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	你打开的主页换了新图片时，会将旧图片和新图片各保存一次到你的相册。需要开启“保留主页纪录”。
+# context: Storage: slider under Clear the media cache that picks how big the saved photos and videos can get (#713)
+Cache size limit	缓存大小上限
+# context: Storage: the Cache size limit slider's value; %1$d is a number of megabytes
+%1$d MB	%1$d MB
+# context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
+Saved photos and videos take up %1$s now.	已保存的照片与视频目前占用 %1$s。

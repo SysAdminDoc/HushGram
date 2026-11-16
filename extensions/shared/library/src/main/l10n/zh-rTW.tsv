@@ -783,7 +783,7 @@ That isn't a domain. Try one like example.com.	這不是有效的網域。請輸
 The heart plays %1$s when you double tap a post.	雙擊貼文時，愛心會播放 %1$s。
 The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	雙擊貼文時彈出的愛心會播放下方選擇的動畫。這些是 Instagram 為 Rings 創作者製作的動畫。
 Turn on Change the like animation to use this choice.	請啟用「更改『按讚』動畫」以使用此選項。
-When Instagram has more than 500 MB of saved photos and videos, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Instagram 儲存的照片與影片超過 500 MB 時，會在離開應用程式時刪除照片，並於下次啟動時刪除影片。登入狀態、草稿與設定仍會保留。
+When Instagram's saved photos and videos pass the limit below, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Instagram 儲存的照片與影片超過下方的上限時，會在離開應用程式時刪除照片，並於下次啟動時刪除影片。登入狀態、草稿與設定仍會保留。
 Ask before a like	按讚前詢問
 Ask before a refresh	重新整理前詢問
 Continue	繼續
@@ -2458,3 +2458,9 @@ Not sent for this profile	此個人檔案未傳送
 # context: Profiles: switch under Keep profile history (#715)
 Save changed pictures to the gallery	將更換的相片存到圖庫
 When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	你開啟的個人檔案換了新相片時，會將舊相片和新相片各存一次到你的圖庫。需要開啟「保留個人檔案紀錄」。
+# context: Storage: slider under Clear the media cache that picks how big the saved photos and videos can get (#713)
+Cache size limit	快取大小上限
+# context: Storage: the Cache size limit slider's value; %1$d is a number of megabytes
+%1$d MB	%1$d MB
+# context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
+Saved photos and videos take up %1$s now.	已儲存的照片與影片目前佔用 %1$s。

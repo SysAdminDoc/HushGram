@@ -869,6 +869,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_DOUBLE_TAP_SKIP
                             && Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key.equals(key);
                     belongs |= family == PatchFamily.FEED_AUTO_SCROLL && Settings.FEED_AUTO_SCROLL_SECONDS.key.equals(key);
+                    belongs |= family == PatchFamily.MEDIA_CACHE && (Settings.MEDIA_CACHE_LIMIT_MB.key.equals(key)
+                            || CLEAR_MEDIA_CACHE_NOW.equals(key));
                     belongs |= family == PatchFamily.STORY_SEEK_BAR && (Settings.STORY_SEEK_BAR_LOOK.key.equals(key)
                             || Settings.STORY_SEEK_BAR_POSITION.key.equals(key));
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
@@ -4678,6 +4680,36 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         })) {
             Utils.showToastLong(L10n.t("Couldn't clear the saved copies. Try again."));
         }
+    }
+
+    /** What Clear now does, the summary its row starts with. */
+    static String clearMediaCacheSummary() {
+        return L10n.t("Deletes the saved photos Instagram keeps to show again, whatever their size, "
+                + "and the saved videos the next time it starts.");
+    }
+
+    /**
+     * Adds how much Instagram's saved photos and videos take up now under what Clear now does (#713),
+     * read off the main thread since it walks the cache folders. A row that already says what a clear
+     * freed keeps saying that.
+     */
+    static void showMediaCacheSize(Preference row) {
+        Context context = row.getContext();
+        Utils.runOnBackgroundThread(() -> {
+            String size = L10n.isolate(Formatter.formatShortFileSize(context, MediaCache.size(context)));
+            String shown = clearMediaCacheSummary() + "\n" + L10n.f("Saved photos and videos take up %1$s now.", size);
+            Utils.runOnMainThread(() -> {
+                if (clearMediaCacheSummary().contentEquals(String.valueOf(row.getSummary()))) row.setSummary(shown);
+            });
+        });
+    }
+
+    /** How big Instagram's saved photos and videos may get before Clear the media cache empties them, in MB (#713). */
+    static SliderRow mediaCacheLimitRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.MEDIA_CACHE_LIMIT_MB, 100, L10n.t("%1$d MB"));
+        row.setTitle(L10n.t("Cache size limit"));
+        row.setText(String.valueOf(Settings.MEDIA_CACHE_LIMIT_MB.savedValue()));
+        return row;
     }
 
     /** How many of the newest unfollowers the list row shows. */

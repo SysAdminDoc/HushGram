@@ -2392,11 +2392,20 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_muted_notification_channels", "");
 
     /**
-     * Each time Instagram goes to the background with more than 500 MB in its cache folders, they're
-     * emptied ({@link app.hushgram.extension.instagram.misc.MediaCache}). Off to start.
+     * Each time Instagram goes to the background with more than {@link #MEDIA_CACHE_LIMIT_MB} in its
+     * cache folders, they're emptied ({@link app.hushgram.extension.instagram.misc.MediaCache}). Off
+     * to start.
      */
     public static final BooleanSetting CLEAR_MEDIA_CACHE =
             new BooleanSetting("hushgram_clear_media_cache", FALSE);
+
+    /**
+     * How many megabytes Instagram's saved photos and videos may take before Clear the media cache
+     * empties them, from a slider under it (#713). 500, the size it always had, to start.
+     */
+    public static final IntegerSetting MEDIA_CACHE_LIMIT_MB =
+            new IntegerSetting("hushgram_media_cache_limit_mb", 500, false, parent(CLEAR_MEDIA_CACHE))
+                    .withRange(100, 4000);
 
     /**
      * Follows you or Doesn't follow you beside the name on someone's profile

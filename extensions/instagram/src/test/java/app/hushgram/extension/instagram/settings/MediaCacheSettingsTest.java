@@ -51,6 +51,7 @@ public class MediaCacheSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.CLEAR_MEDIA_CACHE.resetToDefault();
+        Settings.MEDIA_CACHE_LIMIT_MB.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(boolean installed) throws Exception {
@@ -70,11 +71,12 @@ public class MediaCacheSettingsTest {
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.CLEAR_MEDIA_CACHE.key);
         assertNotNull(row);
         assertEquals("Clear the media cache", row.getTitle().toString());
-        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("500 MB"));
+        assertEquals("When Instagram's saved photos and videos pass the limit below, deletes the photos as you leave "
+                + "it and the videos the next time it starts. Your sign-in, drafts and settings stay.", row.getSummary().toString());
         PreferenceCategory storage = categoryHolding(page.getPreferenceScreen(), row);
         assertNotNull(storage);
         assertEquals("Storage", storage.getTitle().toString());
-        assertEquals(2, storage.getPreferenceCount());
+        assertEquals(3, storage.getPreferenceCount());
         assertFalse(row.isChecked());
         assertFalse(Settings.CLEAR_MEDIA_CACHE.get());
         assertEquals(java.util.Collections.singletonList(Settings.CLEAR_MEDIA_CACHE), PatchFamily.MEDIA_CACHE.switches);
@@ -98,6 +100,49 @@ public class MediaCacheSettingsTest {
 
         assertFalse(image.exists());
         assertTrue(clear.getSummary().toString(), clear.getSummary().toString().startsWith("Freed "));
+    }
+
+    /**
+     * #713: a slider under the switch picks the size, 500 MB to start, and waits for the switch. Clear
+     * now says how much the saved photos and videos take up, read once the page is built.
+     */
+    @Test public void aSliderPicksTheLimitAndClearNowSaysTheSize() throws Exception {
+        File image = new File(RuntimeEnvironment.getApplication().getCacheDir(), "image_scoped/0/a.jpg");
+        image.getParentFile().mkdirs();
+        try (RandomAccessFile out = new RandomAccessFile(image, "rw")) {
+            out.setLength(3 * 1024 * 1024);
+        }
+        open(true);
+        ShadowLooper.idleMainLooper();
+        SwitchPreference toggle = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.CLEAR_MEDIA_CACHE.key);
+        Preference found = page.getPreferenceScreen().findPreference(Settings.MEDIA_CACHE_LIMIT_MB.key);
+        assertTrue(found instanceof HushgramPreferenceFragment.SliderRow);
+        HushgramPreferenceFragment.SliderRow slider = (HushgramPreferenceFragment.SliderRow) found;
+        PreferenceCategory storage = categoryHolding(page.getPreferenceScreen(), toggle);
+        assertSame("right under the switch", slider, storage.getPreference(1));
+        assertEquals("Cache size limit", slider.getTitle().toString());
+        assertEquals(100, slider.step);
+        assertEquals(100, Settings.MEDIA_CACHE_LIMIT_MB.minimum());
+        assertEquals(4000, Settings.MEDIA_CACHE_LIMIT_MB.maximum());
+        assertEquals(500, (int) Settings.MEDIA_CACHE_LIMIT_MB.get());
+        assertFalse("it waits for the switch", slider.isEnabled());
+        assertEquals("Turn on Clear the media cache to use this slider.", slider.getSummary().toString());
+        toggle.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(slider.isEnabled());
+        assertEquals("500 MB (standard)", slider.getSummary().toString());
+        slider.choose(1500);
+        ShadowLooper.idleMainLooper();
+        assertEquals(1500, (int) Settings.MEDIA_CACHE_LIMIT_MB.savedValue());
+        assertEquals("1500 MB", slider.getSummary().toString());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.MEDIA_CACHE_LIMIT_MB.key));
+
+        Preference clear = page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.CLEAR_MEDIA_CACHE_NOW);
+        String size = android.text.format.Formatter.formatShortFileSize(RuntimeEnvironment.getApplication(), 3 * 1024 * 1024);
+        String[] lines = clear.getSummary().toString().split("\n");
+        assertEquals(2, lines.length);
+        assertEquals(HushgramPreferenceFragment.clearMediaCacheSummary(), lines[0]);
+        assertEquals("Saved photos and videos take up " + size + " now.", lines[1].replaceAll("[\\u2066-\\u2069]", ""));
     }
     private static PreferenceCategory categoryHolding(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {

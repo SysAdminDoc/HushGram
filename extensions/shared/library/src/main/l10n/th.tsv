@@ -772,7 +772,7 @@ That isn't a domain. Try one like example.com.	นั่นไม่ใช่โ
 The heart plays %1$s when you double tap a post.	รูปหัวใจจะเล่นภาพเคลื่อนไหว %1$s เมื่อคุณแตะสองครั้งที่โพสต์
 The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	รูปหัวใจที่ปรากฏขึ้นเมื่อคุณแตะสองครั้งที่โพสต์จะเล่นภาพเคลื่อนไหวที่คุณเลือกด้านล่าง ซึ่งเป็นภาพเคลื่อนไหวที่ Instagram สร้างขึ้นสำหรับครีเอเตอร์ Rings
 Turn on Change the like animation to use this choice.	เปิดใช้งาน "เปลี่ยนภาพเคลื่อนไหวการกดถูกใจ" เพื่อใช้ตัวเลือกนี้
-When Instagram has more than 500 MB of saved photos and videos, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	เมื่อ Instagram มีรูปภาพและวิดีโอที่บันทึกไว้มากกว่า 500 MB จะลบรูปภาพเมื่อคุณออกจากแอป และลบวิดีโอในครั้งถัดไปที่แอปเริ่มทำงาน ทั้งนี้การเข้าสู่ระบบ แบบร่าง และการตั้งค่าของคุณจะยังคงอยู่
+When Instagram's saved photos and videos pass the limit below, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	เมื่อรูปภาพและวิดีโอที่ Instagram บันทึกไว้เกินขีดจำกัดด้านล่าง จะลบรูปภาพเมื่อคุณออกจากแอป และลบวิดีโอเมื่อเริ่มแอปครั้งถัดไป การลงชื่อเข้าใช้ ฉบับร่าง และการตั้งค่ายังคงอยู่
 Ask before a like	ถามก่อนกดถูกใจ
 Ask before a refresh	ถามก่อนรีเฟรช
 Continue	ดำเนินการต่อ
@@ -2452,3 +2452,9 @@ Not sent for this profile	ไม่ได้ส่งมาสำหรับโ
 # context: Profiles: switch under Keep profile history (#715)
 Save changed pictures to the gallery	บันทึกรูปที่เปลี่ยนลงในแกลเลอรี
 When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	เมื่อโปรไฟล์ที่คุณเปิดมีรูปใหม่ จะบันทึกรูปเก่าและรูปใหม่ลงในแกลเลอรีของคุณ รูปละครั้ง ต้องเปิดเก็บประวัติโปรไฟล์
+# context: Storage: slider under Clear the media cache that picks how big the saved photos and videos can get (#713)
+Cache size limit	ขีดจำกัดขนาดแคช
+# context: Storage: the Cache size limit slider's value; %1$d is a number of megabytes
+%1$d MB	%1$d MB
+# context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
+Saved photos and videos take up %1$s now.	รูปภาพและวิดีโอที่บันทึกไว้ใช้พื้นที่ %1$s ในตอนนี้

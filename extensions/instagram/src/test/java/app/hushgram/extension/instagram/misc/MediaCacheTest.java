@@ -54,7 +54,9 @@ public class MediaCacheTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws Exception {
+        Utils.awaitBackgroundTasksForTests();
+        Settings.MEDIA_CACHE_LIMIT_MB.resetToDefault();
         HookStatus.clear();
         MediaCache.restartForTests();
     }
@@ -372,6 +374,40 @@ public class MediaCacheTest {
 
         assertTrue(image.exists());
         assertFalse(HookStatus.missing(FamilyNames.MEDIA_CACHE).isEmpty());
+    }
+
+    /** #713: a trip to the background clears over the size picked on the slider, 500 MB to start. */
+    @Test
+    public void theLimitIsTheSizePickedUnderTheSwitch() throws Exception {
+        assertEquals(500L * 1024 * 1024, MediaCache.limit());
+        assertEquals(MediaCache.LIMIT, MediaCache.limit());
+        Settings.MEDIA_CACHE_LIMIT_MB.save(4000);
+        assertEquals(4000L * 1024 * 1024, MediaCache.limit());
+
+        // A trip to the background clears by the clock, so the image is ten minutes older than now.
+        File image = file("images/a.jpg", 100L * 1024 * 1024 + 1, System.currentTimeMillis() - 10 * 60_000);
+        Settings.MEDIA_CACHE_LIMIT_MB.save(500);
+        assertTrue(MediaCache.onBackground(context, () -> true));
+        Utils.awaitBackgroundTasksForTests();
+        assertTrue("under 500 MB it stays", image.exists());
+
+        Settings.MEDIA_CACHE_LIMIT_MB.save(100);
+        assertEquals(100L * 1024 * 1024, MediaCache.limit());
+        assertTrue(MediaCache.onBackground(context, () -> true));
+        Utils.awaitBackgroundTasksForTests();
+        assertFalse("over a 100 MB limit it goes", image.exists());
+    }
+
+    /** #713: the size Clear now's row shows counts the image and video caches, and nothing else. */
+    @Test
+    public void theSizeCountsTheImageAndVideoCachesOnly() throws IOException {
+        assertEquals(0, MediaCache.size(context));
+        file("image_scoped/0/a.jpg", 400, OLD);
+        file("images.stash/clean/3fa1c0d2e4b5a697.0", 100, OLD);
+        file("ExoPlayerCacheDir/videocache/1.0.1.v3.exo", 500, OLD);
+        file("hushgram-save/reel.mp4", 700, OLD);
+        file("http_responses/a", 900, OLD);
+        assertEquals(1000, MediaCache.size(context));
     }
 
     @Test

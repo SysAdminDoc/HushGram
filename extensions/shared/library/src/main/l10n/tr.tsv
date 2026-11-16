@@ -779,7 +779,7 @@ That isn't a domain. Try one like example.com.	Bu bir alan adı değil. example.
 The heart plays %1$s when you double tap a post.	Bir gönderiye iki kez dokunduğunda kalp %1$s oynatır.
 The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	Bir gönderiye çift dokunduğunda çıkan kalp, aşağıdan seçtiğin animasyonu oynatır. Bunlar Instagram'ın Rings içerik üreticileri için yaptığı animasyonlardır.
 Turn on Change the like animation to use this choice.	Bu seçimi kullanmak için Beğeni animasyonunu değiştir'i aç.
-When Instagram has more than 500 MB of saved photos and videos, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Instagram'da 500 MB'dan fazla kayıtlı fotoğraf ve video olduğunda, fotoğrafları uygulamadan çıktığında, videoları ise bir sonraki açılışta siler. Oturum açma bilgilerin, taslakların ve ayarların kalır.
+When Instagram's saved photos and videos pass the limit below, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Instagram'ın kayıtlı fotoğraf ve videoları aşağıdaki sınırı geçtiğinde, fotoğrafları uygulamadan çıktığında, videoları ise bir sonraki açılışta siler. Oturum açma bilgilerin, taslakların ve ayarların kalır.
 Ask before a like	Beğenmeden önce sor
 Ask before a refresh	Yenilemeden önce sor
 Continue	Devam et
@@ -2455,3 +2455,9 @@ Not sent for this profile	Bu profil için gönderilmeyenler
 # context: Profiles: switch under Keep profile history (#715)
 Save changed pictures to the gallery	Değişen fotoğrafları galeriye kaydet
 When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	Açtığın bir profilin yeni fotoğrafı varsa eski ve yeni fotoğrafı galerine birer kez kaydeder. Profil geçmişi tut gerekir.
+# context: Storage: slider under Clear the media cache that picks how big the saved photos and videos can get (#713)
+Cache size limit	Önbellek boyutu sınırı
+# context: Storage: the Cache size limit slider's value; %1$d is a number of megabytes
+%1$d MB	%1$d MB
+# context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
+Saved photos and videos take up %1$s now.	Kayıtlı fotoğraf ve videolar şu anda %1$s yer kaplıyor.

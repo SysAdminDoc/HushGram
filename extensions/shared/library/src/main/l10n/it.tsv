@@ -779,7 +779,7 @@ That isn't a domain. Try one like example.com.	Non è un dominio. Prova ad esemp
 The heart plays %1$s when you double tap a post.	Il cuore riproduce %1$s quando tocchi due volte un post.
 The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	Il cuore che compare quando tocchi due volte un post riproduce l'animazione che scegli qui sotto. Sono animazioni che Instagram ha creato per i suoi creator Rings.
 Turn on Change the like animation to use this choice.	Attiva Cambia l'animazione del Mi piace per usare questa scelta.
-When Instagram has more than 500 MB of saved photos and videos, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Quando Instagram ha più di 500 MB di foto e video salvati, elimina le foto quando lo lasci e i video al prossimo avvio. Il tuo accesso, le bozze e le impostazioni restano.
+When Instagram's saved photos and videos pass the limit below, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Quando le foto e i video salvati da Instagram superano il limite qui sotto, elimina le foto quando lo lasci e i video al prossimo avvio. Il tuo accesso, le bozze e le impostazioni restano.
 Ask before a like	Chiedi prima di un Mi piace
 Ask before a refresh	Chiedi prima di un aggiornamento
 Continue	Continua
@@ -2455,3 +2455,9 @@ Not sent for this profile	Non inviati per questo profilo
 # context: Profiles: switch under Keep profile history (#715)
 Save changed pictures to the gallery	Salva nella galleria le foto cambiate
 When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	Quando un profilo che apri ha una foto nuova, mette nella tua galleria la foto vecchia e quella nuova, una volta ciascuna. Richiede Tieni una cronologia dei profili.
+# context: Storage: slider under Clear the media cache that picks how big the saved photos and videos can get (#713)
+Cache size limit	Limite di dimensione della cache
+# context: Storage: the Cache size limit slider's value; %1$d is a number of megabytes
+%1$d MB	%1$d MB
+# context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
+Saved photos and videos take up %1$s now.	Le foto e i video salvati occupano ora %1$s.

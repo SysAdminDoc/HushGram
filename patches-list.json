@@ -767,7 +767,7 @@
     },
     {
       "name": "Clear the media cache",
-      "description": "Frees storage by deleting Instagram's saved copies of photos and videos once they pass 500 MB. Your sign-in, drafts and settings stay. A row clears them right away. Starts off. Turn it on in HushGram settings > Storage.",
+      "description": "Frees storage by deleting Instagram's saved copies of photos and videos once they pass a size you pick, 500 MB to start. Your sign-in, drafts and settings stay. A row shows how much they take up and clears them right away. Starts off. Turn it on in HushGram settings > Storage.",
       "category": "Settings",
       "use": true,
       "dependencies": [

@@ -778,7 +778,7 @@ That isn't a domain. Try one like example.com.	올바른 도메인이 아닙니�
 The heart plays %1$s when you double tap a post.	게시물을 두 번 탭하면 하트가 %1$s 애니메이션을 재생합니다.
 The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	게시물을 두 번 탭하면 나타나는 하트가 아래에서 고른 애니메이션으로 재생됩니다. Instagram이 Rings 크리에이터를 위해 만든 애니메이션입니다.
 Turn on Change the like animation to use this choice.	이 선택을 사용하려면 좋아요 애니메이션 바꾸기를 켜세요.
-When Instagram has more than 500 MB of saved photos and videos, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Instagram에 저장된 사진과 동영상이 500MB를 넘으면, 앱에서 나갈 때 사진을, 다음 실행 때 동영상을 삭제합니다. 로그인 정보, 임시 저장 글, 설정은 그대로입니다.
+When Instagram's saved photos and videos pass the limit below, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Instagram에 저장된 사진과 동영상이 아래 한도를 넘으면, 앱에서 나갈 때 사진을, 다음 실행 때 동영상을 삭제합니다. 로그인 정보, 임시 저장 글, 설정은 그대로입니다.
 Ask before a like	좋아요 전에 묻기
 Ask before a refresh	새로고침 전에 묻기
 Continue	계속
@@ -2454,3 +2454,9 @@ Not sent for this profile	이 프로필에 대해 전송되지 않음
 # context: Profiles: switch under Keep profile history (#715)
 Save changed pictures to the gallery	바뀐 사진을 갤러리에 저장
 When a profile you open has a new picture, puts the old picture and the new one in your gallery, each once. Needs Keep profile history.	연 프로필의 사진이 바뀌었으면 이전 사진과 새 사진을 갤러리에 한 번씩 저장합니다. 프로필 기록 남기기가 필요합니다.
+# context: Storage: slider under Clear the media cache that picks how big the saved photos and videos can get (#713)
+Cache size limit	캐시 크기 한도
+# context: Storage: the Cache size limit slider's value; %1$d is a number of megabytes
+%1$d MB	%1$dMB
+# context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
+Saved photos and videos take up %1$s now.	현재 저장된 사진과 동영상 용량: %1$s

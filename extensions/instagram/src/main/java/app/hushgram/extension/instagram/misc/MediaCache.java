@@ -35,7 +35,8 @@ import app.hushgram.extension.shared.settings.Setting;
  *
  * <p>Instagram keeps the images and videos it has shown in two caches in its cache folder, and they
  * grow to several gigabytes. While the switch is on, each time Instagram goes to the background and
- * those two hold more than {@link #LIMIT}, HushGram deletes the image files on a background thread
+ * those two hold more than the size picked under it ({@link #limit}, 500 MB to start), HushGram
+ * deletes the image files on a background thread
  * and asks for the video cache to go the next time Instagram starts. Nothing else in the cache
  * folder is touched: uploads, drafts being made, saved network answers, HushGram's own saves and the
  * rest stay, and so do sign-in and settings, which live elsewhere. An image written in the last
@@ -66,7 +67,10 @@ import app.hushgram.extension.shared.settings.Setting;
  * limit's go only if the switch is still on then.
  */
 public final class MediaCache {
-    /** The size the two caches may reach before a trip to the background clears them. */
+    /**
+     * The size the two caches may reach before a trip to the background clears them while the
+     * settings can't be read. Otherwise it's the size picked under the switch ({@link #limit}).
+     */
     static final long LIMIT = 500L * 1024 * 1024;
 
     /** A file younger than this may still be open for writing, so it stays. */
@@ -152,10 +156,41 @@ public final class MediaCache {
         try {
             HookStatus.invoked(FamilyNames.MEDIA_CACHE);
             if (!on.getAsBoolean()) return false;
-            return Utils.runOnBackgroundThread(() -> clearIfOver(context, LIMIT, System.currentTimeMillis()));
+            long limit = limit();
+            return Utils.runOnBackgroundThread(() -> clearIfOver(context, limit, System.currentTimeMillis()));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.MEDIA_CACHE, CLEAR, failure);
             return false;
+        }
+    }
+
+    /**
+     * The size picked on the slider under the switch, in bytes (#713), or {@link #LIMIT} while the
+     * settings can't be read. Never throws.
+     */
+    static long limit() {
+        try {
+            if (Utils.settingsReady()) return Settings.MEDIA_CACHE_LIMIT_MB.get() * 1024L * 1024L;
+        } catch (Throwable failure) {
+            Logger.printDebug(() -> "Media cache: the limit couldn't be read: " + failure);
+        }
+        return LIMIT;
+    }
+
+    /**
+     * How many bytes the image and video caches hold now, for the Clear now row (#713). Walks the
+     * folders, so call it off the main thread. Zero when there's no cache folder. Never throws.
+     */
+    public static long size(Context context) {
+        try {
+            File cache = context.getCacheDir();
+            if (cache == null) return 0;
+            long size = 0;
+            for (File folder : folders(cache)) size += sizeOf(folder);
+            return size;
+        } catch (Throwable failure) {
+            Logger.printDebug(() -> "Media cache: the size couldn't be read: " + failure);
+            return 0;
         }
     }
 
