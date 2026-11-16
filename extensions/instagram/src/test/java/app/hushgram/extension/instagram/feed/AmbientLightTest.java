@@ -121,6 +121,7 @@ public class AmbientLightTest {
         Settings.AMBIENT_LIGHT_SPEED.resetToDefault();
         Settings.AMBIENT_LIGHT_BLEND.resetToDefault();
         Settings.ROUNDED_POST_CORNERS.resetToDefault();
+        Settings.ROUNDED_REEL_CORNERS.resetToDefault();
         Settings.ROUNDED_CORNER_SIZE.resetToDefault();
         Settings.BLUR_REEL_BARS.resetToDefault();
     }
@@ -1005,6 +1006,74 @@ public class AmbientLightTest {
         int gesture = bands.getPixel(width / 2, height - gestureBar / 2);
         assertTrue("under the gesture bar, the reel's bottom: " + hex(gesture),
                 Color.alpha(gesture) > 20 && Color.red(gesture) > Color.blue(gesture));
+    }
+
+    /**
+     * Rounded corners on Reels cuts the reel's frame round, and the black behind it showed in its
+     * corners against the glow under the system bars (#722). The view the frame sits in draws the glow
+     * there, and only there.
+     */
+    @Test
+    public void aRoundedReelsCornersShowTheGlowNotTheBlackBehindThem() {
+        Settings.ROUNDED_REEL_CORNERS.save(true);
+        Settings.ROUNDED_CORNER_SIZE.save(CornerSize.LARGE);
+        int radius = Math.round(CornerSize.LARGE.dp * activity.getResources().getDisplayMetrics().density);
+        FrameLayout host = new FrameLayout(activity);
+        activity.setContentView(host);
+        root = host;
+        if (activity.getActionBar() != null) activity.getActionBar().hide();
+        shadowOf(Looper.getMainLooper()).idle();
+        int height = activity.getWindow().getDecorView().getHeight();
+        int statusBar = height / 25, gestureBar = height / 20;
+        int stage = height - statusBar - gestureBar;
+        FrameLayout page = new FrameLayout(activity);
+        page.setBackgroundColor(Color.BLACK);
+        FrameLayout.LayoutParams margins = match();
+        margins.topMargin = statusBar;
+        margins.bottomMargin = gestureBar;
+        host.addView(page, margins);
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        // Drawn to a bitmap, the outline's cut is left out, so the corners show what's behind the
+        // video there: the page's black, or the glow over it.
+        frame.setClipToOutline(true);
+        FrameLayout container = new FrameLayout(activity);
+        container.addView(new TextureView(activity), match());
+        frame.addView(container, match());
+        page.addView(frame, match());
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+
+        assertEquals(1, AmbientLight.litForTests());
+        int width = page.getWidth();
+        Bitmap drawnPage = drawn(page);
+        int topCorner = drawnPage.getPixel(1, 1);
+        assertTrue("the reel's top corner shows the glow above it, the reel's top: " + hex(topCorner),
+                Color.blue(topCorner) > 60 && Color.red(topCorner) < 30);
+        int bottomCorner = drawnPage.getPixel(width - 2, stage - 2);
+        assertTrue("its bottom corner, the reel's bottom: " + hex(bottomCorner),
+                Color.red(bottomCorner) > 60 && Color.blue(bottomCorner) < 30);
+        // A TextureView drawn without a GPU clears its own area, so nothing glowing there reads as clear.
+        assertUnlit("the reel itself is left alone", drawnPage.getPixel(radius + 2, 1));
+        assertUnlit("the reel's middle too", drawnPage.getPixel(width / 2, stage / 2));
+
+        frame.setClipToOutline(false);
+        frame();
+        assertUnlit("a frame whose corners aren't cut covers them itself", drawn(page).getPixel(1, 1));
+        frame.setClipToOutline(true);
+        frame();
+        assertTrue("cut again, they glow again", Color.blue(drawn(page).getPixel(1, 1)) > 60);
+
+        Settings.AMBIENT_LIGHT.save(false);
+        AmbientLight.switchChanged(activity);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertUnlit("off, nothing glows in the corner", drawn(page).getPixel(1, 1));
+    }
+
+    private static void assertUnlit(String what, int pixel) {
+        assertTrue(what + ": " + hex(pixel), Color.red(pixel) < 30 && Color.green(pixel) < 30 && Color.blue(pixel) < 30);
     }
 
     /**
