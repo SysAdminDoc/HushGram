@@ -768,7 +768,8 @@ public enum PatchFamily {
         anyOn |= this == REEL_TAP_AND_VOLUME
                 && Settings.REEL_TAP_CHOICE.savedValue() != app.hushgram.extension.instagram.reels.ReelTapChoice.DEFAULT;
         // Share sheet buttons picked to hide act with the group switch off (#252).
-        anyOn |= this == SHARE_SHEET && !Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue().trim().isEmpty();        // Muted notification types act with the group switch off.
+        anyOn |= this == SHARE_SHEET && !Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue().trim().isEmpty();
+        // Muted notification types act with the group switch off.
         anyOn |= this == NOTIFICATION_GROUPS && !Settings.MUTED_NOTIFICATION_CHANNELS.savedValue().trim().isEmpty();
         line.append(paused ? "disabled while paused (saved " : anyOn ? "on (" : "disabled by its switch (");
         for (int i = 0; i < switches.size(); i++) {
