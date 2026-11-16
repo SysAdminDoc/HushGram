@@ -2373,3 +2373,17 @@ The time on the seek bar counts down what's left of the video, like -0:33 / 0:45
 Taps on feed videos stay in the feed	I tocchi sui video del feed restano nel feed
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
 A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	Un tocco su un video del feed, o sulla schermata che mostra alla fine, non lo apre più a schermo intero in Reel. Tocca un video del feed per metterlo in pausa lo mette ancora in pausa, e i pulsanti di quella schermata funzionano ancora.
+# context: Item in Items in the three-dot menus under Feed: Instagram's Report row in the menus behind the three dots (#697)
+Report	Segnala
+# context: Item in Items in the three-dot menus under Feed: Instagram's Unfollow row (#697)
+Unfollow	Non seguire più
+# context: Item in Items in the three-dot menus under Feed: Instagram's Interested row (#697)
+Interested	Mi interessa
+# context: Item in Items in the three-dot menus under Feed: Instagram's Why you're seeing this post row (#697)
+Why you're seeing this post	Perché vedi questo post
+# context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
+Items in the three-dot menus	Voci dei menu a tre puntini
+# context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)
+Every item shows. Untick the ones you don't want in the menus behind the three dots on posts, reels and stories.	Tutte le voci sono visibili. Togli la spunta a quelle che non vuoi nei menu a tre puntini di post, reel e storie.
+# context: Summary of Items in the three-dot menus under Feed naming the unticked items, which are joined with a comma (#697, #707)
+Left off the three-dot menus: %1$s.	Tolte dai menu a tre puntini: %1$s.

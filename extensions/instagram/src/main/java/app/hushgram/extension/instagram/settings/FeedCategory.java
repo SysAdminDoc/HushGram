@@ -68,6 +68,7 @@ final class FeedCategory {
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
         boolean editsLabel = build.contains(PatchFamily.EDITS_LABEL);
         boolean feedSave = build.contains(PatchFamily.FEED_SAVE);
+        boolean menuItems = build.contains(PatchFamily.MENU_ITEMS);
         boolean watchAgain = build.contains(PatchFamily.WATCH_AGAIN);
         boolean hideCaptions = build.contains(PatchFamily.HIDE_CAPTIONS);
         boolean feedAudioIcon = build.contains(PatchFamily.FEED_AUDIO_ICON);
@@ -78,7 +79,7 @@ final class FeedCategory {
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedHoldFast || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
                 || fullScreen || feedFollow || editsLabel || feedSave || watchAgain || hideCaptions || feedAudioIcon || feedAutoScroll || homeTopBar
-                || activityBubbles
+                || activityBubbles || menuItems
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -372,6 +373,7 @@ final class FeedCategory {
                     L10n.t("Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.")),
                     FeedSaveRow::switchChanged));
         }
+        if (menuItems) feed.addPreference(page.menuItemsRow(context));
         if (activityBubbles) {
             feed.addPreference(toggle(context, Settings.HIDE_ACTIVITY_BUBBLES, L10n.t("Hide activity bubbles"),
                     L10n.t("Takes the little round pictures off posts and reels that show a friend liked, commented on "

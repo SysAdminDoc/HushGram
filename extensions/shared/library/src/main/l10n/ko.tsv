@@ -2372,3 +2372,17 @@ The time on the seek bar counts down what's left of the video, like -0:33 / 0:45
 Taps on feed videos stay in the feed	피드 동영상을 탭해도 피드에 머물기
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
 A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	피드 동영상이나 동영상이 끝날 때 나오는 화면을 탭해도 더 이상 릴스에서 전체 화면으로 열리지 않습니다. 피드 동영상을 탭하여 일시정지는 그대로 동영상을 일시정지하고, 그 화면의 버튼도 그대로 작동합니다.
+# context: Item in Items in the three-dot menus under Feed: Instagram's Report row in the menus behind the three dots (#697)
+Report	신고
+# context: Item in Items in the three-dot menus under Feed: Instagram's Unfollow row (#697)
+Unfollow	팔로우 취소
+# context: Item in Items in the three-dot menus under Feed: Instagram's Interested row (#697)
+Interested	관심 있음
+# context: Item in Items in the three-dot menus under Feed: Instagram's Why you're seeing this post row (#697)
+Why you're seeing this post	이 게시물이 표시되는 이유
+# context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
+Items in the three-dot menus	점 세 개 메뉴의 항목
+# context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)
+Every item shows. Untick the ones you don't want in the menus behind the three dots on posts, reels and stories.	모든 항목이 표시됩니다. 게시물, 릴스, 스토리의 점 세 개 메뉴에서 원하지 않는 항목의 선택을 해제하세요.
+# context: Summary of Items in the three-dot menus under Feed naming the unticked items, which are joined with a comma (#697, #707)
+Left off the three-dot menus: %1$s.	점 세 개 메뉴에서 뺀 항목: %1$s.

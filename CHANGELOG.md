@@ -46,6 +46,7 @@ Every HushGram release, newest first.
 * `Feed seek bar shape`, right under `Seek bar shape` in Feed, gives feed videos a shape of their own, so the feed can have the thin line while reels and stories keep the standard bar. It starts on `Same as Seek bar shape`. Asked for in #567.
 * `Time on the seek bar` in Feed puts the time played and the length over the seek bar on feed videos, like 0:12 / 0:45. It follows your finger while you drag. Tap the time to count down what's left instead, or turn on `Show the time left` to start that way. Starts off. Asked for in #711.
 * `Taps on feed videos stay in the feed`, right under `Tap a feed video to pause it` in Feed, stops a tap on a feed video from opening it full screen in Reels, and a tap on the screen a finished one shows too. It works with the pause switch on or off. The buttons on that end screen still work. Starts off. Asked for in #706.
+* `Items in the three-dot menus` in Feed lets you untick Report, Mute, Unfollow, Not interested, Interested, Why you're seeing this post and the playback rows, and they're left out of the menus behind the three dots on posts, reels and feed videos. Stories lose Report and Mute the same way. Every item shows until you untick it. Asked for in #697 and #707.
 
 ### Bug Fixes
 

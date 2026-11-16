@@ -513,6 +513,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean menuItems() {
+        return false;
+    }
+
     public static boolean watchAgain() {
         return false;
     }

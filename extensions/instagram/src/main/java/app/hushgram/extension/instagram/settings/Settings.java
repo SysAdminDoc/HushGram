@@ -2999,6 +2999,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_like_button", FALSE);
 
     /**
+     * The items left out of the menus behind the three dots on posts, reels and stories
+     * ({@link app.hushgram.extension.instagram.feed.MenuItems}, #697, #707), with commas between: any
+     * of REPORT, MUTE, UNFOLLOW, NOT_INTERESTED, INTERESTED, WHY, PLAYBACK_SPEED and PLAYBACK. Nothing
+     * named is the start, so every item shows. Read each time a menu is built, so a change shows the
+     * next time one opens. Stories only have Report and Mute to leave out.
+     */
+    public static final StringSetting HIDDEN_MENU_ITEMS =
+            new StringSetting("hushgram_hidden_menu_items", "");
+
+    /**
      * "Watch again" on a feed reel's end card replays the reel in the feed instead of opening Reels
      * (#568, {@link app.hushgram.extension.instagram.feed.WatchAgain}). Read as each end card is set
      * up, so it needs no restart. Off to start.

@@ -110,6 +110,7 @@ import app.hushgram.extension.instagram.feed.AmbientSpeed;
 import app.hushgram.extension.instagram.feed.AmbientSpread;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
+import app.hushgram.extension.instagram.feed.MenuItems;
 import app.hushgram.extension.instagram.feed.FeedSeekShape;
 import app.hushgram.extension.instagram.feed.OverlayLook;
 import app.hushgram.extension.instagram.feed.SeekShape;
@@ -910,6 +911,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.PROFILE_TABS && (Settings.HIDDEN_PROFILE_TABS.key.equals(key)
                             || Settings.HIDDEN_OWN_PROFILE_TABS.key.equals(key));
                     belongs |= family == PatchFamily.MESSAGE_BOX && Settings.HIDDEN_MESSAGE_BOX_BUTTONS.key.equals(key);
+                    belongs |= family == PatchFamily.MENU_ITEMS && Settings.HIDDEN_MENU_ITEMS.key.equals(key);
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key)
                             || Settings.TAB_ICON_SIZE.key.equals(key));
@@ -1460,6 +1462,96 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             hidden.clear();
             Settings.HIDDEN_MESSAGE_BOX_BUTTONS.save("");
             row.setSummary(messageBoxSummary(""));
+            for (int i = 0; i < names.size(); i++) dialog.getListView().setItemChecked(i, true);
+        });
+    }
+
+    /** The row under Feed that opens the list of items to keep in the three-dot menus (#697, #707). */
+    Row menuItemsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(Settings.HIDDEN_MENU_ITEMS.key);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Items in the three-dot menus"));
+        row.setSummary(menuItemsSummary(Settings.HIDDEN_MENU_ITEMS.savedValue()));
+        row.setOnPreferenceClickListener(tapped -> {
+            pickMenuItems(row);
+            return true;
+        });
+        return row;
+    }
+
+    /** What the items left out in [saved] do, for the row's summary. */
+    static String menuItemsSummary(String saved) {
+        Set<String> hidden = MenuItems.parse(saved);
+        List<String> labels = new ArrayList<>();
+        for (String name : MenuItems.OFFERED) {
+            if (hidden.contains(name)) labels.add(L10n.isolate(menuItemLabel(name)));
+        }
+        if (labels.isEmpty()) {
+            return L10n.t("Every item shows. Untick the ones you don't want in the menus behind the three dots on "
+                    + "posts, reels and stories.");
+        }
+        String left = String.join(", ", labels);
+        return L10n.f("Left off the three-dot menus: %1$s.", left);
+    }
+
+    /** What the three-dot menu list calls the item the setting names [name]. */
+    static String menuItemLabel(String name) {
+        switch (name) {
+            case "REPORT":
+                return L10n.t("Report");
+            case "MUTE":
+                return L10n.t("Mute");
+            case "UNFOLLOW":
+                return L10n.t("Unfollow");
+            case "NOT_INTERESTED":
+                return L10n.t("Not interested");
+            case "INTERESTED":
+                return L10n.t("Interested");
+            case "WHY":
+                return L10n.t("Why you're seeing this post");
+            case "PLAYBACK_SPEED":
+                return L10n.t("Playback speed");
+            default:
+                return L10n.t("Playback");
+        }
+    }
+
+    /**
+     * Each item the three-dot menus can leave out, ticked while it shows. A change saves at once and
+     * shows the next time a menu opens.
+     */
+    void pickMenuItems(Row row) {
+        Context context = getActivity();
+        if (context == null) return;
+        Set<String> hidden = new LinkedHashSet<>(MenuItems.parse(Settings.HIDDEN_MENU_ITEMS.savedValue()));
+        List<String> names = MenuItems.OFFERED;
+        CharSequence[] labels = new CharSequence[names.size()];
+        boolean[] shown = new boolean[names.size()];
+        for (int i = 0; i < labels.length; i++) {
+            labels[i] = menuItemLabel(names.get(i));
+            shown[i] = !hidden.contains(names.get(i));
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Items in the three-dot menus"));
+        builder.setMultiChoiceItems(labels, shown, (dialog, which, on) -> {
+            if (!allowMutation(row, true)) {
+                setChecked((AlertDialog) dialog, which, !hidden.contains(names.get(which)));
+                return;
+            }
+            if (on) hidden.remove(names.get(which));
+            else hidden.add(names.get(which));
+            Settings.HIDDEN_MENU_ITEMS.save(MenuItems.join(hidden));
+            row.setSummary(menuItemsSummary(Settings.HIDDEN_MENU_ITEMS.savedValue()));
+        });
+        AlertDialog dialog = show(builder.setNeutralButton(L10n.t("Show all"), null)
+                .setPositiveButton(L10n.t("OK"), null));
+        if (dialog == null) return;
+        // A click listener of its own, so Show all ticks every item without closing the list.
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(tapped -> {
+            if (!allowMutation(row, true)) return;
+            hidden.clear();
+            Settings.HIDDEN_MENU_ITEMS.save("");
+            row.setSummary(menuItemsSummary(""));
             for (int i = 0; i < names.size(); i++) dialog.getListView().setItemChecked(i, true);
         });
     }

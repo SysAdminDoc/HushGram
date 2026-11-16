@@ -33,6 +33,7 @@ import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.SaveFolder;
 import app.hushgram.extension.instagram.download.SavedProfiles;
 import app.hushgram.extension.instagram.direct.MessageBox;
+import app.hushgram.extension.instagram.feed.MenuItems;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.misc.GlassBlur;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
@@ -229,6 +230,7 @@ public final class ConfigurationBackup {
         }
         if (PatchFamily.favoritesFeedInBuild()) settings.put(Settings.FAVORITES_TAB_TARGET.key, Settings.FAVORITES_TAB_TARGET);
         if (PatchFamily.MESSAGE_BOX.inBuild()) settings.put(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.key, Settings.HIDDEN_MESSAGE_BOX_BUTTONS);
+        if (PatchFamily.MENU_ITEMS.inBuild()) settings.put(Settings.HIDDEN_MENU_ITEMS.key, Settings.HIDDEN_MENU_ITEMS);
         if (PatchFamily.PROFILE_TABS.inBuild()) {
             settings.put(Settings.HIDDEN_OWN_PROFILE_TABS.key, Settings.HIDDEN_OWN_PROFILE_TABS);
             settings.put(Settings.HIDDEN_PROFILE_TABS.key, Settings.HIDDEN_PROFILE_TABS);
@@ -603,6 +605,8 @@ public final class ConfigurationBackup {
         }
         // The message box buttons left off, as the names of Instagram's enum with commas between, in the order the dialog lists them.
         if (setting == Settings.HIDDEN_MESSAGE_BOX_BUTTONS) return text.equals(MessageBox.join(MessageBox.parse(text)));
+        // The three-dot menu items left out, as the names the list keeps them by with commas between, in the order it lists them.
+        if (setting == Settings.HIDDEN_MENU_ITEMS) return text.equals(MenuItems.join(MenuItems.parse(text)));
         // The rows of Instagram's settings left off, as the names of Instagram's row ids with commas between, in name order.
         if (setting == Settings.HIDDEN_SETTINGS_ROWS) return text.equals(SettingsRows.join(SettingsRows.parse(text)));
         // The notification channels muted, as Instagram's channel ids with commas between, in id order.

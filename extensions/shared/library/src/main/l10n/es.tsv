@@ -2373,3 +2373,17 @@ The time on the seek bar counts down what's left of the video, like -0:33 / 0:45
 Taps on feed videos stay in the feed	Los toques en videos del feed se quedan en el feed
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
 A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	Un toque en un video del feed, o en la pantalla que muestra al terminar, ya no lo abre en pantalla completa en Reels. Toca un video del feed para pausarlo lo sigue pausando, y los botones de esa pantalla siguen funcionando.
+# context: Item in Items in the three-dot menus under Feed: Instagram's Report row in the menus behind the three dots (#697)
+Report	Reportar
+# context: Item in Items in the three-dot menus under Feed: Instagram's Unfollow row (#697)
+Unfollow	Dejar de seguir
+# context: Item in Items in the three-dot menus under Feed: Instagram's Interested row (#697)
+Interested	Me interesa
+# context: Item in Items in the three-dot menus under Feed: Instagram's Why you're seeing this post row (#697)
+Why you're seeing this post	Por qué ves esta publicación
+# context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
+Items in the three-dot menus	Opciones de los menús de tres puntos
+# context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)
+Every item shows. Untick the ones you don't want in the menus behind the three dots on posts, reels and stories.	Se muestran todas las opciones. Desmarca las que no quieras en los menús de tres puntos de publicaciones, reels e historias.
+# context: Summary of Items in the three-dot menus under Feed naming the unticked items, which are joined with a comma (#697, #707)
+Left off the three-dot menus: %1$s.	Quitado de los menús de tres puntos: %1$s.

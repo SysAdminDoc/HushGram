@@ -2376,3 +2376,17 @@ The time on the seek bar counts down what's left of the video, like -0:33 / 0:45
 Taps on feed videos stay in the feed	點擊動態影片時留在動態
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
 A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	點擊動態影片，或影片結束時顯示的畫面，不會再於 Reels 中以全螢幕開啟。點擊動態首頁影片以暫停仍會暫停影片，該畫面上的按鈕也照常運作.
+# context: Item in Items in the three-dot menus under Feed: Instagram's Report row in the menus behind the three dots (#697)
+Report	檢舉
+# context: Item in Items in the three-dot menus under Feed: Instagram's Unfollow row (#697)
+Unfollow	取消追蹤
+# context: Item in Items in the three-dot menus under Feed: Instagram's Interested row (#697)
+Interested	感興趣
+# context: Item in Items in the three-dot menus under Feed: Instagram's Why you're seeing this post row (#697)
+Why you're seeing this post	你為什麼會看到這則貼文
+# context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
+Items in the three-dot menus	三點選單中的項目
+# context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)
+Every item shows. Untick the ones you don't want in the menus behind the three dots on posts, reels and stories.	所有項目都會顯示。取消勾選你不想在貼文、Reels 和限時動態的三點選單中看到的項目.
+# context: Summary of Items in the three-dot menus under Feed naming the unticked items, which are joined with a comma (#697, #707)
+Left off the three-dot menus: %1$s.	已從三點選單中移除：%1$s.

@@ -235,6 +235,7 @@ public enum PatchFamily {
     EDITS_LABEL(FamilyNames.EDITS_LABEL, "editsLabel", null, Settings.HIDE_EDITS_LABEL),
     FEED_SAVE(FamilyNames.FEED_SAVE, "feedSave", null, Settings.SAVE_IN_POST_MENU, Settings.HIDE_FEED_SAVE_BUTTON,
             Settings.HIDE_FEED_LIKE_BUTTON),
+    MENU_ITEMS(FamilyNames.MENU_ITEMS, "menuItems", null),
     WATCH_AGAIN(FamilyNames.WATCH_AGAIN, "watchAgain", null, Settings.WATCH_AGAIN_IN_FEED, Settings.HIDE_WATCH_MORE_REELS),
     ACTIVITY_BUBBLES(FamilyNames.ACTIVITY_BUBBLES, "activityBubbles", null, Settings.HIDE_ACTIVITY_BUBBLES),
     HIDE_CAPTIONS(FamilyNames.HIDE_CAPTIONS, "hideCaptions", null, Settings.HIDE_CAPTIONS),
@@ -767,8 +768,7 @@ public enum PatchFamily {
         anyOn |= this == REEL_TAP_AND_VOLUME
                 && Settings.REEL_TAP_CHOICE.savedValue() != app.hushgram.extension.instagram.reels.ReelTapChoice.DEFAULT;
         // Share sheet buttons picked to hide act with the group switch off (#252).
-        anyOn |= this == SHARE_SHEET && !Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue().trim().isEmpty();
-        // Muted notification types act with the group switch off.
+        anyOn |= this == SHARE_SHEET && !Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue().trim().isEmpty();        // Muted notification types act with the group switch off.
         anyOn |= this == NOTIFICATION_GROUPS && !Settings.MUTED_NOTIFICATION_CHANNELS.savedValue().trim().isEmpty();
         line.append(paused ? "disabled while paused (saved " : anyOn ? "on (" : "disabled by its switch (");
         for (int i = 0; i < switches.size(); i++) {
@@ -811,6 +811,8 @@ public enum PatchFamily {
                 return Collections.singletonList(Settings.EMOJI_FONT);
             case MESSAGE_BOX:
                 return Collections.singletonList(Settings.HIDDEN_MESSAGE_BOX_BUTTONS);
+            case MENU_ITEMS:
+                return Collections.singletonList(Settings.HIDDEN_MENU_ITEMS);
             case NOTIFICATION_GROUPS:
                 return Collections.singletonList(Settings.MUTED_NOTIFICATION_CHANNELS);
             case PROFILE_TABS:
