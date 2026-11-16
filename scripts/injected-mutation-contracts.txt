@@ -1255,6 +1255,17 @@ start-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->uni
 once-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->units(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding XDTTopSerpJourneyHeaderUnit
 start-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->units(Ljava/lang/Object;)Ljava/lang/Object; in static (*Ljava/util/List;*)L*; pooled holding ig_top_serp_upsell_unit XDTTopSerpJourneyHeaderUnit
 once-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->units(Ljava/lang/Object;)Ljava/lang/Object; in static (*Ljava/util/List;*)L*; pooled holding ig_top_serp_upsell_unit XDTTopSerpJourneyHeaderUnit
+# The same switch asks SearchRecommendations.lastPage(Object) first thing in a results page's own
+# answer to whether more pages come after it, with the page's units, so a page holding the block is
+# the last one: 454's LX/0HR8;->EIF()Z, the one ()Z of an abstract page class that loads no string,
+# picked by the fields its methods read and write between them (its paging info and that info's
+# has-more flag, its own flag, two strings, two lists and the flag its constructor sets), and by the
+# ArrayList its constructor gets from Redex's outlined helper, whose name changes from build to build
+# (0005.A0Y on 386014758, 0003.A0e on 386014757). A search fragment holding the same field names
+# (0ILp on 386014758) has six ()Z methods but never calls such a helper. Left out, Instagram puts its
+# load more button under the short results, and a tap empties them.
+start-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->lastPage(Ljava/lang/Object;)Z in instance ()Z class-holding LX/*;->A04:LX/*; LX/*;->A06:Z LX/*;->A0E:Z LX/*;->A07:Ljava/lang/String; LX/*;->A08:Ljava/lang/String; LX/*;->A0A:Ljava/util/List; LX/*;->A0B:Ljava/util/List; LX/*;->A0D:Z LX/*;->*()Ljava/util/ArrayList;
+once-call Lapp/hushgram/extension/instagram/explore/SearchRecommendations;->lastPage(Ljava/lang/Object;)Z in instance ()Z class-holding LX/*;->A04:LX/*; LX/*;->A06:Z LX/*;->A0E:Z LX/*;->A07:Ljava/lang/String; LX/*;->A08:Ljava/lang/String; LX/*;->A0A:Ljava/util/List; LX/*;->A0B:Ljava/util/List; LX/*;->A0D:Z LX/*;->*()Ljava/util/ArrayList;
 #
 # Explore without personalization (#311) asks ExploreMenu first in the ten-minute timer, the one
 # instance ()Z method loading explore_dsa_experience_expired (some builds may pool it), and nowhere
@@ -3124,10 +3135,11 @@ once-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->label(Ljava/la
 # It also hands each speed lock toast to FastPlayLabel.lockToast in place of its show: "Locked at 2x speed" in
 # the long press navigator's lock call (0AIS.A07 on 454's 386014758) and the one when the lock ends (0AIS.A06)
 # (#702, #552). Left out, the toast shows with the switch on; beside the show, it shows anyway; on another
-# register the hook gets something else. Pool asks count (pooled). Written for the declared build: some
-# others (386014705, 386014714, 386014759, 386014760) fold both toasts into one lambda's invoke() with one show.
-sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in static (LX/*;)Ljava/lang/Object; pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showLockUpToast
-sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in static (LX/*;)Ljava/lang/Object; pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showExitLockUpToast
+# register the hook gets something else. Pool asks count (pooled). Other builds (386014705, 386014714,
+# 386014759, 386014760) fold both toasts into one lambda's invoke() with one show (0241.invoke on
+# 386014759), which both rules pick there, so the shape is any method returning an Object.
+sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in (*)Ljava/lang/Object; pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showLockUpToast
+sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in (*)Ljava/lang/Object; pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showExitLockUpToast
 # Hide Instagram Plus prompts hands each answer of Instagram's Plus offer check to PlusUpsell.offer
 # right before its three returns (002K.A02 on 454's 386014758, the check every Plus card, menu row and
 # viewer list diamond asks first) (#559). Left out, a return answers yes with the switch on; anywhere
