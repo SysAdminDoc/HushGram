@@ -81,8 +81,10 @@ internal class LockToastShow(val method: Method, val at: Int, val register: Int)
  * The show of each speed lock toast: for [LOCK_TOAST_SHOW] and [EXIT_LOCK_TOAST_SHOW], the one method
  * loading it, and in it the one call to `Toast.show()`, after its marker. Most builds have a static call
  * for each toast. On others (386014705, 386014714, 386014759 and 386014760) Redex folds both into one
- * lambda's `invoke()` with a single show the two share, and that one show is found once. Fails before
- * anything changes when any of it isn't so.
+ * lambda's `invoke()` with a single show the two share, and that one show is found once. On 455's
+ * 386113970 the folded lambda keeps a show on each marker's branch (0241.invoke), so a method loading
+ * both markers may instead show twice, once after each marker and before the next, and both shows are
+ * found. Fails before anything changes when any of it isn't so.
  */
 internal fun BytecodePatchContext.findLockToasts(): List<LockToastShow> {
     val markers = listOf(LOCK_TOAST_SHOW, EXIT_LOCK_TOAST_SHOW)
@@ -91,24 +93,38 @@ internal fun BytecodePatchContext.findLockToasts(): List<LockToastShow> {
             .filter { method -> method.implementation != null && loadsString(method, marker) }
         loading.singleOrNull() ?: refuse("expected one speed lock toast loading \"$marker\", found ${loading.size}")
     }.distinctBy { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-    return methods.map { method ->
+    return methods.flatMap { method ->
+        val where = "${method.definingClass}->${method.name}"
         val code = method.implementation!!.instructions.toList()
         val calls = code.indices.filter { at ->
             (code[at].opcode == Opcode.INVOKE_VIRTUAL || code[at].opcode == Opcode.INVOKE_VIRTUAL_RANGE) &&
                 ((code[at] as ReferenceInstruction).reference as? MethodReference)?.let { showsAToast(it) } == true
         }
-        val at = calls.singleOrNull()
-            ?: refuse("expected ${method.definingClass}->${method.name} to show its toast once, found ${calls.size}")
-        val lastMarker = code.indices.last { index ->
+        val loads = code.indices.filter { index ->
             ((code[index] as? ReferenceInstruction)?.reference as? StringReference)?.string in markers
         }
-        if (at < lastMarker) refuse("${method.definingClass}->${method.name} shows its toast before it loads its marker")
-        val register = when (val call = code[at]) {
-            is FiveRegisterInstruction -> call.registerC
-            is RegisterRangeInstruction -> call.startRegister
-            else -> refuse("${method.definingClass}->${method.name}'s toast show reads no register")
+        if (loads.isEmpty()) refuse("$where asks a string pool for its marker, so where it loads it can't be read")
+        val shows = when {
+            calls.size == 1 -> {
+                if (calls.single() < loads.last()) refuse("$where shows its toast before it loads its marker")
+                calls
+            }
+            loads.map { ((code[it] as ReferenceInstruction).reference as StringReference).string }.toSet().size == 2 -> {
+                // One show on each marker's branch: marker, show, the other marker, its show.
+                val apart = calls.size == 2 && loads.size == 2 && loads[0] < calls[0] && calls[0] < loads[1] && loads[1] < calls[1]
+                if (!apart) refuse("expected $where to show its toast once, or once after each marker, found ${calls.size}")
+                calls
+            }
+            else -> refuse("expected $where to show its toast once, found ${calls.size}")
         }
-        LockToastShow(method, at, register)
+        shows.map { at ->
+            val register = when (val call = code[at]) {
+                is FiveRegisterInstruction -> call.registerC
+                is RegisterRangeInstruction -> call.startRegister
+                else -> refuse("$where's toast show reads no register")
+            }
+            LockToastShow(method, at, register)
+        }
     }
 }
 

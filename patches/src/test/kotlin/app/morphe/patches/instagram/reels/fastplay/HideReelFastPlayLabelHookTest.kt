@@ -163,6 +163,24 @@ class HideReelFastPlayLabelHookTest {
         assertHandedOver("invoke", stock, context.foldedInvoke().code(), 3)
     }
 
+    /**
+     * A folded lambda that keeps a show on each marker's branch, like 0241.invoke on 455's 386113970: the exit
+     * branch shows its toast on v3 and jumps past the lock branch, which shows its own on v2 through a range
+     * call. Both shows are found, in order, and each is handed to the hook on its own register.
+     */
+    @Test
+    fun aFoldedLambdaWithAShowOnEachBranchHandsBothOver() {
+        val context = PatchContexts.of(foldedClasses(showEach = true))
+        val stock = context.foldedInvoke().code()
+
+        val found = context.findLockToasts()
+        assertEquals("a show for each toast", listOf("invoke", "invoke"), found.map { it.method.name })
+        assertEquals("the toasts' registers", listOf(3, 2), found.map { it.register })
+        context.hideLockToasts(found)
+
+        assertHandedOver("invoke", stock, context.foldedInvoke().code(), 3, 2)
+    }
+
     /** A build whose lock toasts the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildWhoseLockToastsThePatchCantReadFailsBeforeAnythingChanges() {
@@ -171,6 +189,7 @@ class HideReelFastPlayLabelHookTest {
             lockClasses(showsTwice = true) to "to show its toast once, found 2",
             lockClasses(shows = false) to "to show its toast once, found 0",
             foldedClasses(showFirst = true) to "shows its toast before it loads its marker",
+            foldedClasses(showEach = true, lockShowsFirst = true) to "to show its toast once, or once after each marker, found 2",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -206,7 +225,8 @@ class HideReelFastPlayLabelHookTest {
         val classes = FixtureDex.withStringPools(bundle, loading.distinctBy { it.type })
         val context = PatchContexts.of(classes)
 
-        // Two static calls on most builds, one folded lambda holding both markers on others (386014714).
+        // Two static calls on most builds, one folded lambda holding both markers on others (386014714), its
+        // one show shared or (455's 386113970) one on each marker's branch.
         val markers = setOf(LOCK_TOAST_SHOW, EXIT_LOCK_TOAST_SHOW)
         val loaders = classes.flatMap { it.methods }
             .filter { method -> method.code().any { (it.reference() as? StringReference)?.string in markers } }
@@ -214,15 +234,17 @@ class HideReelFastPlayLabelHookTest {
         assertTrue("$label: one or two methods load the markers, found $loaders", loaders.size in 1..2)
 
         val found = context.findLockToasts()
-        assertEquals("$label: one show in each method loading a marker", loaders.sorted(), found.map { "${it.method.definingClass}->${it.method.name}" }.sorted())
-        val stock = found.map { it.method.code() }
+        val byMethod = found.groupBy { "${it.method.definingClass}->${it.method.name}" }
+        assertEquals("$label: shows found in each method loading a marker", loaders.sorted(), byMethod.keys.sorted())
+        val stock = byMethod.mapValues { (_, shows) -> shows.first().method.code() }
         context.hideLockToasts(found)
 
-        for ((at, show) in found.withIndex()) {
-            val patched = context.mutableClassDefBy(show.method.definingClass).methods.single {
-                it.name == show.method.name && it.parameterTypes.map(Any::toString) == show.method.parameterTypes.map(Any::toString)
+        for ((where, shows) in byMethod) {
+            val method = shows.first().method
+            val patched = context.mutableClassDefBy(method.definingClass).methods.single {
+                it.name == method.name && it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
             }.code()
-            assertHandedOver("$label ${show.method.name}", stock[at], patched, show.register)
+            assertHandedOver("$label $where", stock.getValue(where), patched, *shows.map { it.register }.toIntArray())
         }
         assertEquals(
             "$label: methods hooked",
@@ -233,28 +255,29 @@ class HideReelFastPlayLabelHookTest {
     }
 
     /**
-     * The one `Toast.show()` in [stock] became a one-register range call to the hook on [register], the toast
-     * the stock call showed; every other instruction is as it was.
+     * Each `Toast.show()` in [stock], in order, became a one-register range call to the hook on its entry in
+     * [registers], the toast that stock call showed; every other instruction is as it was.
      */
-    private fun assertHandedOver(what: String, stock: List<Instruction>, patched: List<Instruction>, register: Int) {
+    private fun assertHandedOver(what: String, stock: List<Instruction>, patched: List<Instruction>, vararg registers: Int) {
         val shows = stock.indices.filter { stock[it].referenceText() == "Landroid/widget/Toast;->show()V" }
-        assertEquals("$what: stock shows", 1, shows.size)
-        val at = shows.single()
-        val stockRegister = when (val call = stock[at]) {
-            is FiveRegisterInstruction -> call.registerC
-            is RegisterRangeInstruction -> call.startRegister
-            else -> error("$what: the stock show reads no register")
-        }
-        assertEquals("$what: the toast's register", stockRegister, register)
+        assertEquals("$what: stock shows", registers.size, shows.size)
         assertEquals("$what: instructions", stock.size, patched.size)
-        assertEquals("$what: the hook's call", Opcode.INVOKE_STATIC_RANGE, patched[at].opcode)
-        assertEquals("$what: the hook", LOCK_TOAST, patched[at].referenceText())
-        val range = patched[at] as RegisterRangeInstruction
-        assertEquals("$what: registers handed to the hook", 1, range.registerCount)
-        assertEquals("$what: the toast handed over", register, range.startRegister)
+        for ((at, register) in shows.zip(registers.toList())) {
+            val stockRegister = when (val call = stock[at]) {
+                is FiveRegisterInstruction -> call.registerC
+                is RegisterRangeInstruction -> call.startRegister
+                else -> error("$what: the stock show reads no register")
+            }
+            assertEquals("$what: the toast's register at $at", stockRegister, register)
+            assertEquals("$what: the hook's call at $at", Opcode.INVOKE_STATIC_RANGE, patched[at].opcode)
+            assertEquals("$what: the hook at $at", LOCK_TOAST, patched[at].referenceText())
+            val range = patched[at] as RegisterRangeInstruction
+            assertEquals("$what: registers handed to the hook at $at", 1, range.registerCount)
+            assertEquals("$what: the toast handed over at $at", register, range.startRegister)
+        }
         assertEquals("$what: toasts still shown", 0, patched.count { it.referenceText() == "Landroid/widget/Toast;->show()V" })
         for (index in stock.indices) {
-            if (index == at) continue
+            if (index in shows) continue
             assertEquals("$what: instruction $index", stock[index].opcode, patched[index].opcode)
             assertEquals("$what: instruction $index's reference", stock[index].referenceText(), patched[index].referenceText())
         }
@@ -297,15 +320,39 @@ class HideReelFastPlayLabelHookTest {
     /**
      * A folded lock lambda shaped like 386014714's 0288.invoke: a field picks the exit or the lock branch,
      * each loads its marker, and both then build one toast on v3 and show it. With [showFirst] the show
-     * comes before either marker.
+     * comes before either marker. With [showEach], shaped like 386113970's 0241.invoke, each branch builds
+     * and shows its own toast, the exit one on v3 before it jumps past the lock branch and the lock one on
+     * v2 through a range call; with [lockShowsFirst] too the lock branch shows before it loads its marker.
      */
-    private fun foldedClasses(showFirst: Boolean = false): List<ClassDef> {
+    private fun foldedClasses(showFirst: Boolean = false, showEach: Boolean = false, lockShowsFirst: Boolean = false): List<ClassDef> {
         val show = """
             invoke-static {p0}, Lfixture/Toasts;->make(Ljava/lang/Object;)Landroid/widget/Toast;
             move-result-object v3
             invoke-virtual {v3}, Landroid/widget/Toast;->show()V
         """
-        val body = """
+        val lockShow = """
+            invoke-static {p0}, Lfixture/Toasts;->make(Ljava/lang/Object;)Landroid/widget/Toast;
+            move-result-object v2
+            invoke-virtual/range {v2 .. v2}, Landroid/widget/Toast;->show()V
+        """
+        val lockMarker = """
+            const-string v1, "$LOCK_TOAST_SHOW"
+            invoke-static {v1}, Lfixture/Trace;->begin(Ljava/lang/String;)V
+        """
+        val each = """
+            iget v0, p0, $folded->which:I
+            if-eqz v0, :lock
+            const-string v1, "$EXIT_LOCK_TOAST_SHOW"
+            invoke-static {v1}, Lfixture/Trace;->begin(Ljava/lang/String;)V
+            $show
+            goto :done
+            :lock
+            ${if (lockShowsFirst) lockShow + lockMarker else lockMarker + lockShow}
+            :done
+            sget-object v0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+            return-object v0
+        """
+        val body = if (showEach) each else """
             ${if (showFirst) show else ""}
             iget v0, p0, $folded->which:I
             if-eqz v0, :lock

@@ -3250,9 +3250,11 @@ once-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->label(Ljava/la
 # (#702, #552). Left out, the toast shows with the switch on; beside the show, it shows anyway; on another
 # register the hook gets something else. Pool asks count (pooled). Other builds (386014705, 386014714,
 # 386014759, 386014760) fold both toasts into one lambda's invoke() with one show (0241.invoke on
-# 386014759), which both rules pick there, so the shape is any method returning an Object.
-sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in (*)Ljava/lang/Object; pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showLockUpToast
-sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in (*)Ljava/lang/Object; pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showExitLockUpToast
+# 386014759), which both rules pick there, so the shape is any method returning an Object. 455's 386113970
+# keeps a show on each marker's branch of its folded lambda (0241.invoke), so each rule holds the hook to
+# once in place of each show the clean build makes there (sites each).
+sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in (*)Ljava/lang/Object; sites each pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showLockUpToast
+sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in (*)Ljava/lang/Object; sites each pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showExitLockUpToast
 # Hide Instagram Plus prompts hands each answer of Instagram's Plus offer check to PlusUpsell.offer
 # right before its three returns (002K.A02 on 454's 386014758, the check every Plus card, menu row and
 # viewer list diamond asks first) (#559). Left out, a return answers yes with the switch on; anywhere
