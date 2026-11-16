@@ -42,7 +42,7 @@ private val PUTS = setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE, Opc
 
 @Suppress("unused")
 val askForVp9Patch = bytecodePatch(
-    name = VP9_PATCH,
+    name = "Ask for VP9 instead of AV1",
     description = "Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, " +
         "both to watch and to save. Useful when AV1 saves won't play in your gallery or editor, or Never save " +
         "AV1 video can only fall back to a small file. Takes a restart. Starts off. Turn it on in HushGram " +
@@ -83,7 +83,7 @@ internal fun BytecodePatchContext.findDeviceStatus(): DeviceStatus {
         it.name == found.name && it.returnType == found.returnType && it.parameterTypes.map(CharSequence::toString) == types
     }
     val where = "${method.definingClass}->${method.name}"
-    if (method.returnType != MAP) refuse("$where returns ${method.returnType}, not a map")
+    if (!isAMap(method.returnType)) refuse("$where returns ${method.returnType}, not a map")
     val code = method.implementation!!.instructions.toList()
     val targets = method.jumpTargets()
     val puts = AV1_KEYS.map { key ->
@@ -92,6 +92,30 @@ internal fun BytecodePatchContext.findDeviceStatus(): DeviceStatus {
         put
     }
     return DeviceStatus(method, puts)
+}
+
+/** The JDK's maps an app's map class may extend or implement; none of them is in the app's dex. */
+private val JDK_MAPS = setOf(
+    MAP, "Ljava/util/AbstractMap;", "Ljava/util/HashMap;", "Ljava/util/LinkedHashMap;", "Ljava/util/TreeMap;",
+    "Ljava/util/SortedMap;", "Ljava/util/NavigableMap;", "Ljava/util/concurrent/ConcurrentMap;",
+)
+
+/**
+ * Whether [type] is a map: one of the JDK's, or an app class whose superclasses or interfaces lead
+ * to one. Some builds of a version return the app's own immutable map class (#546).
+ */
+private fun BytecodePatchContext.isAMap(type: String): Boolean {
+    val seen = mutableSetOf<String>()
+    val waiting = ArrayDeque(listOf(type))
+    while (waiting.isNotEmpty()) {
+        val next = waiting.removeFirst()
+        if (next in JDK_MAPS) return true
+        if (!seen.add(next) || seen.size > 32) continue
+        val classDef = classDefByOrNull(next) ?: continue
+        classDef.superclass?.let(waiting::add)
+        waiting.addAll(classDef.interfaces)
+    }
+    return false
 }
 
 /** The put [key] goes into: right after the key's load (a const-string, or a pool call and its move-result). */

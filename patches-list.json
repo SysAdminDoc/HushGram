@@ -326,6 +326,46 @@
       "options": []
     },
     {
+      "name": "Ask for VP9 instead of AV1",
+      "description": "Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Useful when AV1 saves won't play in your gallery or editor, or Never save AV1 video can only fall back to a small file. Takes a restart. Starts off. Turn it on in HushGram settings > Downloads.",
+      "category": "Downloads",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "454.0.0.54.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "454.0.0.54.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386014758,
+                "ARMEABI_V7A": 386014757,
+                "X86": 386014759,
+                "X86_64": 386014760
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Auto scroll in Home",
       "description": "Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after the time you pick. Touching the screen holds it. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Fixes",

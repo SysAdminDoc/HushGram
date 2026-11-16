@@ -94,10 +94,24 @@ class AskForVp9HookTest {
     @Test
     fun aStatusOfAnotherShapeFailsThePatch() {
         refuses("not a map", listOf(status(returns = "Ljava/lang/String;")))
+        refuses("not a map", listOf(status(returns = APP_MAP), appClass(APP_MAP, BASE_MAP), appClass(BASE_MAP)))
+        refuses("not a map", listOf(status(returns = APP_MAP)))
         refuses("2 times, not once", listOf(status(twice = true)))
         refuses("right after loading it", listOf(status(gap = true)))
         refuses("right after loading it", listOf(status(adder = OTHER_ADD)))
         refuses("jumps onto the put", listOf(status(loop = true)))
+    }
+
+    /** Some builds return the app's own map class (#546): it counts once its superclasses or interfaces reach a map. */
+    @Test
+    fun anAppMapClassIsAMap() {
+        val classes = listOf(status(returns = APP_MAP), appClass(APP_MAP, BASE_MAP), appClass(BASE_MAP, interfaces = listOf("Ljava/util/Map;")))
+        val context = PatchContexts.of(classes)
+        val found = context.findDeviceStatus()
+        assertEquals("the keys", AV1_KEYS, found.puts.map { it.key })
+        val before = found.method.code().filter { it.opcode != Opcode.NOP }.map(::text)
+        askForVp9(found)
+        assertHooked(context, "app map", found.method, before)
     }
 
     /** In each declared build: the one status builder, both AV1 answers asking first. */
@@ -121,13 +135,35 @@ class AskForVp9HookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val context = PatchContexts.of(FixtureDex.classesLoading(bundle, HW_AV1))
+        val classes = FixtureDex.classesLoading(bundle, HW_AV1)
+        val context = PatchContexts.of(classes + returnedClasses(bundle, classes))
         val found = context.findDeviceStatus()
         assertEquals("$label: the keys", AV1_KEYS, found.puts.map { it.key })
         val before = found.method.code().filter { it.opcode != Opcode.NOP }.map(::text)
         askForVp9(found)
         assertHooked(context, label, found.method, before)
     }
+
+    /**
+     * The app classes [classes]' methods return, with their superclasses and interfaces, so the
+     * patch can tell an app map class from anything else the way it does on the whole app.
+     */
+    private fun returnedClasses(bundle: File, classes: List<ClassDef>): List<ClassDef> {
+        val have = classes.map { it.type }.toMutableSet()
+        val found = mutableListOf<ClassDef>()
+        var wanted = classes.flatMap { it.methods }.map { it.returnType }.filter(::appType).toSet()
+        repeat(4) {
+            wanted = wanted - have
+            if (wanted.isEmpty()) return@repeat
+            val loaded = FixtureDex.classes(bundle, wanted).values
+            found += loaded
+            have += wanted
+            wanted = loaded.flatMap { listOfNotNull(it.superclass) + it.interfaces }.filter(::appType).toSet()
+        }
+        return found
+    }
+
+    private fun appType(type: String) = type.startsWith("L") && !type.startsWith("Ljava/") && !type.startsWith("Landroid/")
 
     /** The patch refuses for the reason given, and nothing has changed. */
     private fun refuses(reason: String, classes: List<ClassDef>, patch: BytecodePatchContext.() -> Unit = { askForVp9(findDeviceStatus()) }) {
@@ -194,6 +230,8 @@ class AskForVp9HookTest {
         const val DECODERS = "Lfixture/Decoders;"
         const val POOL = "Lfixture/Strings;"
         const val POOLED = 7
+        const val APP_MAP = "Lfixture/ImmutableStatusMap;"
+        const val BASE_MAP = "Lfixture/BaseMap;"
         val PUT = ImmutableMethodReference(MAP_TYPE, "put", listOf("Ljava/lang/Object;", "Ljava/lang/Object;"), "Ljava/lang/Object;")
         val OTHER_ADD = ImmutableMethodReference(MAP_TYPE, "add", listOf("Ljava/lang/Object;", "Ljava/lang/Object;"), "Ljava/lang/Object;")
         val INIT = ImmutableMethodReference(MAP_TYPE, "<init>", emptyList(), "V")
@@ -249,6 +287,10 @@ class AskForVp9HookTest {
             )
             return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(build))
         }
+
+        /** An app class with no methods: [superclass] and [interfaces] are all the map check reads. */
+        fun appClass(type: String, superclass: String = "Ljava/lang/Object;", interfaces: List<String> = emptyList()): ClassDef =
+            ImmutableClassDef(type, AccessFlags.PUBLIC.value, superclass, interfaces, null, null, null, null)
 
         /**
          * A Redex string pool: a packed switch from [POOLED] to the 10-bit AV1 key, anything else null.
