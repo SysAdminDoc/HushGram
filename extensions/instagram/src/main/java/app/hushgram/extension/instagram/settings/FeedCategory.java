@@ -247,6 +247,9 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.TAP_FEED_VIDEO_TO_PAUSE, L10n.t("Tap a feed video to pause it"),
                     L10n.t("Tap the video playing in a feed to pause it in place instead of opening it in Reels, and tap it "
                             + "again to play it. Ads keep Instagram's own tap.")));
+            feed.addPreference(toggle(context, Settings.FEED_TAPS_STAY_IN_FEED, L10n.t("Taps on feed videos stay in the feed"),
+                    L10n.t("A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen "
+                            + "in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.")));
         }
         if (watchAgain) {
             feed.addPreference(toggle(context, Settings.WATCH_AGAIN_IN_FEED, L10n.t("Watch again in the feed"),

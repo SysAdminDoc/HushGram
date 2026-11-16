@@ -2369,3 +2369,7 @@ Shows the time played and the video's length over the seek bar on feed videos, l
 Show the time left	Kalan süreyi göster
 # context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
 The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	Arama çubuğundaki süre, videonun kalanını geri sayar, örneğin -0:33 / 0:45. Süreye dokununca geri döner.
+# context: Feed settings: a switch under Tap a feed video to pause it that keeps any tap on a feed video from opening Reels (#706)
+Taps on feed videos stay in the feed	Akış videolarına dokunmak akışta kalır
+# context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
+A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	Bir akış videosuna ya da video bitince gösterdiği ekrana dokunmak artık onu Reels'te tam ekran açmaz. Duraklatmak için akış videosuna dokun yine duraklatır ve o ekrandaki düğmeler çalışmaya devam eder.

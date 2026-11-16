@@ -495,6 +495,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_tap_feed_video_to_pause", FALSE);
 
     /**
+     * A tap on a feed video, or on the end screen a finished feed reel shows, no longer opens it in Reels
+     * (#706, {@link app.hushgram.extension.instagram.feed.FeedTapPause}). With {@link #TAP_FEED_VIDEO_TO_PAUSE}
+     * on, a tap on the playing video still pauses it, and the end screen's buttons still go where they say.
+     * Off to start.
+     */
+    public static final BooleanSetting FEED_TAPS_STAY_IN_FEED =
+            new BooleanSetting("hushgram_feed_taps_stay_in_feed", FALSE);
+
+    /**
      * A press held on a video in a feed plays it at 2x until the finger lifts, with Instagram's own
      * speed-up ({@link app.hushgram.extension.instagram.feed.FeedHoldSpeed}). Off to start.
      */

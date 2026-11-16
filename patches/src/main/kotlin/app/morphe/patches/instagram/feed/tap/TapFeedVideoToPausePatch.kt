@@ -146,7 +146,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 val tapFeedVideoToPausePatch = bytecodePatch(
     name = "Tap a feed video to pause it",
     description = "A tap on the video playing in a feed pauses it in place instead of opening it in Reels, and " +
-        "another tap plays it again. Ads keep Instagram's own tap. Starts off. Turn it on in HushGram settings > Feed.",
+        "another tap plays it again. Ads keep Instagram's own tap. Starts off. Turn it on in HushGram settings > Feed. " +
+        "Another switch there stops any tap on a feed video from opening Reels, with or without the pause.",
 ) {
     // Manager's Feed group is full at the fifteen PatchCategoriesTest allows. The switch is still under Feed in settings.
     category("Playback")

@@ -50,7 +50,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * launcher there. Every other opening goes on to Reels, the end screen a finished feed reel shows
  * included: its backdrop ({@code BACKGROUND_TAP}), Watch again and Watch more reels. Each opening with
  * the switch on is counted under its entry point's name, so one report says which way a phone's taps
- * come.
+ * come. Taps on feed videos stay in the feed (#706) ends the launcher for every tap on a video, and for
+ * a tap on the end screen's backdrop, whether or not the pause switch is on.
  *
  * <p>Everything else is left to Instagram: a sponsored post, a photo, a carousel on a photo, a video
  * the controller doesn't have playing, a feed with no video controller. So is every tap or press while
@@ -83,8 +84,14 @@ public final class FeedTapPause {
     /** What {@link HookStatus} counts for each Reels opening with the switch on, followed by its entry point's name. */
     static final String OPENED_FROM = "Reels openings from ";
 
+    /** What {@link HookStatus} counts for each Reels opening Taps on feed videos stay in the feed ended, followed by its entry point's name. */
+    static final String KEPT_FROM = "taps kept in the feed from ";
+
     /** The entry point of a tap on a feed video, the one opening {@link #opening} pauses or plays in place of. */
     static final String VIDEO_TAP = "VIDEO_TAP";
+
+    /** The entry point of a tap on the backdrop of the end screen a finished feed reel shows. */
+    static final String BACKGROUND_TAP = "BACKGROUND_TAP";
 
     /** The hooks' names in a failure report. */
     static final String TAP = "feed tap";
@@ -284,24 +291,43 @@ public final class FeedTapPause {
      * True means a tap on the playing video paused or played it and the launcher is done. False lets
      * Reels open: the switch is off, HushGram is paused, the settings aren't ready, the opening isn't a
      * tap on a video ({@link #VIDEO_TAP}), or the tap fails a check {@link #tapped} makes. A tap that
-     * ends a held press {@link #pressed} took is that press's own, so its lift does nothing more. Not
-     * counted as invoked, like the press. Never throws.
+     * ends a held press {@link #pressed} took is that press's own, so its lift does nothing more. With
+     * {@link Settings#FEED_TAPS_STAY_IN_FEED} on (#706), a tap on a video that isn't paused or played, and a
+     * tap on a finished reel's end screen ({@link #BACKGROUND_TAP}), answer true as well, so Reels never
+     * opens from a tap; the end screen's buttons and every other way in still open it. Not counted as
+     * invoked, like the press. Never throws.
      */
     public static boolean opening(@Nullable Object launcher, @Nullable Object entryPoint, @Nullable Object media,
                                   @Nullable Object state) {
+        boolean pauses;
+        boolean keeps;
         try {
             if (launcher == null || media == null || state == null) return false;
-            if (!switchedOn()) return false;
+            pauses = switchedOn();
+            keeps = Utils.settingsReady() && Settings.FEED_TAPS_STAY_IN_FEED.get();
+            if (!pauses && !keeps) return false;
             HookStatus.bound(FamilyNames.FEED_TAP_PAUSE, OPEN);
             String from = entryPoint instanceof Enum ? ((Enum<?>) entryPoint).name() : String.valueOf(entryPoint);
             HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, OPENED_FROM + from);
-            if (!VIDEO_TAP.equals(from)) return false;
+            boolean onVideo = VIDEO_TAP.equals(from);
+            if (!onVideo) return keeps && BACKGROUND_TAP.equals(from) && kept(from);
             letGo(state);
+            if (!pauses) return kept(from);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, OPEN, failure);
             return false;
         }
-        return toggle(feed -> feed.controllerOfLauncher(launcher), media, state, OPEN);
+        return toggle(feed -> feed.controllerOfLauncher(launcher), media, state, OPEN) || keeps && kept(VIDEO_TAP);
+    }
+
+    /**
+     * Keeps a tap from opening Reels for Taps on feed videos stay in the feed (#706): counted, and true, so the
+     * launcher ends there and the video stays where it is in the feed.
+     */
+    private static boolean kept(String from) {
+        HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, KEPT_FROM + from);
+        Logger.printDebug(() -> "Feed video: kept a tap in the feed (" + from + ")");
+        return true;
     }
 
     /**

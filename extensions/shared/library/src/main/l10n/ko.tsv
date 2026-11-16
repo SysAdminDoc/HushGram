@@ -2368,3 +2368,7 @@ Shows the time played and the video's length over the seek bar on feed videos, l
 Show the time left	남은 시간 표시
 # context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
 The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	탐색 막대의 시간이 -0:33 / 0:45처럼 동영상의 남은 시간을 거꾸로 셉니다. 시간을 탭하면 다시 바뀝니다.
+# context: Feed settings: a switch under Tap a feed video to pause it that keeps any tap on a feed video from opening Reels (#706)
+Taps on feed videos stay in the feed	피드 동영상을 탭해도 피드에 머물기
+# context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
+A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	피드 동영상이나 동영상이 끝날 때 나오는 화면을 탭해도 더 이상 릴스에서 전체 화면으로 열리지 않습니다. 피드 동영상을 탭하여 일시정지는 그대로 동영상을 일시정지하고, 그 화면의 버튼도 그대로 작동합니다.

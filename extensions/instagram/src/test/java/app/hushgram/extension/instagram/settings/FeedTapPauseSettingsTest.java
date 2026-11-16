@@ -37,6 +37,7 @@ public class FeedTapPauseSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.TAP_FEED_VIDEO_TO_PAUSE.resetToDefault();
+        Settings.FEED_TAPS_STAY_IN_FEED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -47,6 +48,7 @@ public class FeedTapPauseSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.TAP_FEED_VIDEO_TO_PAUSE.resetToDefault();
+        Settings.FEED_TAPS_STAY_IN_FEED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -70,9 +72,29 @@ public class FeedTapPauseSettingsTest {
         for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.TAP_FEED_VIDEO_TO_PAUSE.key);
         assertEquals(Arrays.toString(keys), Settings.START_FEED_VIDEOS_MUTED.key, keys[at - 1]);
-        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at + 1]);
+        assertEquals(Arrays.toString(keys), Settings.FEED_TAPS_STAY_IN_FEED.key, keys[at + 1]);
+        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at + 2]);
         assertEquals("Tap a feed video to pause it", PatchFamily.FEED_TAP_PAUSE.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.TAP_FEED_VIDEO_TO_PAUSE.key));
+    }
+
+    /** #706: Taps on feed videos stay in the feed sits right under the pause switch, starts off, stands on its own and is kept in a backup. */
+    @Test public void theStayInTheFeedSwitchSitsUnderThePauseAndStandsAlone() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_TAP_PAUSE));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.FEED_TAPS_STAY_IN_FEED.key);
+        assertNotNull(row);
+        assertEquals("Taps on feed videos stay in the feed", row.getTitle().toString());
+        assertEquals("Feed", ((PreferenceGroup) row.getParent()).getTitle().toString());
+        assertFalse(Settings.FEED_TAPS_STAY_IN_FEED.get());
+        assertTrue("no switch above it", Settings.FEED_TAPS_STAY_IN_FEED.getParentSettings().isEmpty());
+        assertTrue("on with the pause switch off", row.isEnabled());
+        assertFalse(Settings.FEED_TAPS_STAY_IN_FEED.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FEED_TAPS_STAY_IN_FEED.key));
+        Settings.FEED_TAPS_STAY_IN_FEED.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("off while paused", Settings.FEED_TAPS_STAY_IN_FEED.get());
+        assertTrue(Settings.FEED_TAPS_STAY_IN_FEED.savedValue());
     }
     @Test public void theSwitchAloneStillMakesTheFeedSection() throws Exception {
         open(EnumSet.of(PatchFamily.FEED_TAP_PAUSE));

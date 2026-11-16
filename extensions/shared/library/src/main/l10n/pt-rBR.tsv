@@ -2369,3 +2369,7 @@ Shows the time played and the video's length over the seek bar on feed videos, l
 Show the time left	Mostrar o tempo restante
 # context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
 The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	O tempo na barra de busca conta para trás o que falta do vídeo, como -0:33 / 0:45. Um toque no tempo volta ao normal.
+# context: Feed settings: a switch under Tap a feed video to pause it that keeps any tap on a feed video from opening Reels (#706)
+Taps on feed videos stay in the feed	Toques em vídeos do feed ficam no feed
+# context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
+A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	Um toque em um vídeo do feed, ou na tela que ele mostra ao terminar, não o abre mais em tela cheia no Reels. Tocar em um vídeo do feed para pausar continua pausando, e os botões dessa tela continuam funcionando.
