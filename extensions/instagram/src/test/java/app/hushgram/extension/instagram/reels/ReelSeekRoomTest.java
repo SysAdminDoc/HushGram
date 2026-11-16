@@ -104,6 +104,7 @@ public class ReelSeekRoomTest {
 
         look(WINDOW);
         assertEquals(-10f - STRIP, holder.getTranslationY(), 0f);
+        assertFalse("Instagram's translation is under the lift, so the pill leaves it", ReelSeekRoom.holdsUp(holder));
 
         look(WINDOW - STRIP - 300);
         assertEquals(-10f, holder.getTranslationY(), 0f);
@@ -137,6 +138,33 @@ public class ReelSeekRoomTest {
         assertEquals(-STRIP, holder.getTranslationY(), 0f);
         look(WINDOW - STRIP);
         assertEquals(-STRIP, holder.getTranslationY(), 0f);
+    }
+
+    /**
+     * #704: the glass pill raises the same row for the reels it knows, and takes this one's lift over. A lift
+     * with nothing under it, and the caption scroll that goes with it, are offered. Once the pill has written
+     * its own, the next look lets go of both without moving the row or the caption back.
+     */
+    @Test
+    public void aLiftThePillTookOverIsLetGo() {
+        View band = band(1500);
+        assertFalse("nothing up yet", ReelSeekRoom.holdsUp(holder));
+        look(WINDOW);
+        assertTrue(ReelSeekRoom.holdsUp(holder));
+        assertEquals(STRIP, band.getScrollY());
+        assertTrue(ReelSeekRoom.scrollsUp(band));
+        assertFalse("a band it never scrolled", ReelSeekRoom.scrollsUp(new FrameLayout(RuntimeEnvironment.getApplication())));
+
+        // The pill raises the row by its slot and gap, and scrolls the caption as far.
+        holder.setTranslationY(-180f);
+        band.scrollTo(0, 180);
+        assertFalse(ReelSeekRoom.holdsUp(holder));
+        assertFalse(ReelSeekRoom.scrollsUp(band));
+        look(WINDOW - 180);
+        assertEquals("the pill's lift stays", -180f, holder.getTranslationY(), 0f);
+        assertEquals("and its scroll", 180, band.getScrollY());
+        assertFalse(ReelSeekRoom.holdsUp(holder));
+        assertFalse(ReelSeekRoom.scrollsUp(band));
     }
 
     /** Instagram's drag times sit beside the holder in this row, so the row has to go up with the bar (#567). */

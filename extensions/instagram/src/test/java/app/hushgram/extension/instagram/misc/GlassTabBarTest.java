@@ -61,6 +61,7 @@ import org.robolectric.util.ReflectionHelpers;
 
 import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelBlurBars;
+import app.hushgram.extension.instagram.reels.ReelSeekRoom;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -3828,6 +3829,52 @@ public class GlassTabBarTest {
         assertEquals("the buttons are highest", 954, GlassTabBar.roomAbove(band));
         buttons.setVisibility(View.INVISIBLE);
         assertEquals(1807, GlassTabBar.roomAbove(band));
+    }
+
+    /**
+     * #704: the seek bar's room lifts a reel's seek bar row out of the navigation bar, and the pill raises the
+     * same row. When the room got there first, the pill took its lift for Instagram's and left the row there,
+     * with the seek bar behind the pill. The room's lift, and the caption scroll that goes with it, are the
+     * pill's to take over now. A translation or a scroll anyone else gave stays theirs.
+     */
+    @Test
+    public void theSeekBarRoomsLiftIsThePillsToTakeOver() {
+        Context context = RuntimeEnvironment.getApplication();
+        int info = 0x7f0b0633;
+        FrameLayout layer = new FrameLayout(context);
+        FrameLayout caption = new FrameLayout(context);
+        View name = new View(context);
+        name.setId(info);
+        caption.addView(name);
+        FrameLayout row = new FrameLayout(context);
+        layer.addView(caption);
+        layer.addView(row);
+        caption.layout(0, 0, 1080, 2316);
+        name.layout(0, 1500, 1080, 1800);
+        assertFalse("nothing on it", GlassTabBar.othersTranslation(row, null));
+        assertFalse(GlassTabBar.othersScroll(caption, null));
+
+        ReflectionHelpers.callStaticMethod(ReelSeekRoom.class, "due",
+                ReflectionHelpers.ClassParameter.from(View.class, row), ReflectionHelpers.ClassParameter.from(long.class, 10_000L));
+        ReflectionHelpers.callStaticMethod(ReelSeekRoom.class, "keep",
+                ReflectionHelpers.ClassParameter.from(View.class, row), ReflectionHelpers.ClassParameter.from(boolean.class, true),
+                ReflectionHelpers.ClassParameter.from(int.class, 2316), ReflectionHelpers.ClassParameter.from(int.class, 2316),
+                ReflectionHelpers.ClassParameter.from(int.class, 48));
+        ReflectionHelpers.callStaticMethod(ReelSeekRoom.class, "along",
+                ReflectionHelpers.ClassParameter.from(View.class, row), ReflectionHelpers.ClassParameter.from(int.class, info));
+        assertEquals("the room lifted the row", -48f, row.getTranslationY(), 0f);
+        assertEquals("and scrolled the caption", 48, caption.getScrollY());
+        assertFalse("the room's lift is the pill's to take", GlassTabBar.othersTranslation(row, null));
+        assertFalse("and so is the caption's scroll", GlassTabBar.othersScroll(caption, null));
+        assertTrue("moved since the pill raised it", GlassTabBar.othersTranslation(row, -134f));
+
+        View other = new View(context);
+        other.setTranslationY(-48f);
+        other.scrollTo(0, 48);
+        assertTrue("Instagram's", GlassTabBar.othersTranslation(other, null));
+        assertTrue(GlassTabBar.othersScroll(other, null));
+        assertFalse("the pill's own", GlassTabBar.othersTranslation(other, -48f));
+        assertFalse(GlassTabBar.othersScroll(other, 48));
     }
 
     /**

@@ -60,6 +60,7 @@ import java.util.WeakHashMap;
 import app.hushgram.extension.instagram.feed.AmbientLight;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelBlurBars;
+import app.hushgram.extension.instagram.reels.ReelSeekRoom;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -465,6 +466,23 @@ public final class GlassTabBar {
             room = Math.min(room, child.getTop());
         }
         return room == Integer.MAX_VALUE ? 0 : Math.max(0, room);
+    }
+
+    /**
+     * Whether [view]'s translation is someone else's, to be left alone: neither 0 nor [ours], the last one
+     * the pill gave it (null for none). A lift the seek bar's room gave the reel's seek bar row
+     * ({@link ReelSeekRoom#holdsUp}) is the pill's to take over. Taken for Instagram's, the row kept only
+     * that lift out of the navigation bar, and the seek bar stayed behind the pill (#704).
+     */
+    static boolean othersTranslation(View view, @Nullable Float ours) {
+        float now = view.getTranslationY();
+        return ours == null ? now != 0f && !ReelSeekRoom.holdsUp(view) : now != ours;
+    }
+
+    /** {@link #othersTranslation} for [view]'s scroll, which the seek bar's room gives the caption over the bar. */
+    static boolean othersScroll(View view, @Nullable Integer ours) {
+        int now = view.getScrollY();
+        return ours == null ? now != 0 && !ReelSeekRoom.scrollsUp(view) : now != ours;
     }
 
     /**
@@ -2515,7 +2533,7 @@ public final class GlassTabBar {
         private boolean scrollUp(View view, int by) {
             Integer ours = scrolled.get(view);
             int now = view.getScrollY();
-            if (ours == null ? now != 0 : now != ours) {
+            if (othersScroll(view, ours)) {
                 if (ours != null) {
                     scrolled.remove(view);
                     unwatch(view);
@@ -2570,12 +2588,13 @@ public final class GlassTabBar {
         /**
          * Moves [view] by [lift] up the screen (a negative translation) and says whether that changed it.
          * A translation that is neither 0 nor the last one this gave is Instagram's: the view is left to it
-         * and taken up again once Instagram puts it back to 0.
+         * and taken up again once Instagram puts it back to 0. The seek bar room's lift is taken over
+         * ({@link #othersTranslation}).
          */
         private boolean raise(View view, int lift) {
             Float ours = raised.get(view);
             float now = view.getTranslationY();
-            if (ours == null ? now != 0f : now != ours) {
+            if (othersTranslation(view, ours)) {
                 if (ours != null) forget(view);
                 return false;
             }
