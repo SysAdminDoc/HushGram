@@ -337,6 +337,9 @@ public final class ConfigurationBackup {
                 || PatchFamily.VIDEO_DOWNLOAD.inBuild()) {
             settings.put(Settings.DOWNLOAD_COMPATIBLE.key, Settings.DOWNLOAD_COMPATIBLE);
             settings.put(Settings.DOWNLOAD_CONVERT.key, Settings.DOWNLOAD_CONVERT);
+            settings.put(Settings.DOWNLOAD_NO_AV1.key, Settings.DOWNLOAD_NO_AV1);
+            settings.put(Settings.DOWNLOAD_NO_HDR.key, Settings.DOWNLOAD_NO_HDR);
+            settings.put(Settings.SAVE_VIDEOS_AS_MKV.key, Settings.SAVE_VIDEOS_AS_MKV);
             // The switch only. What it remembered stays in DownloadHistory's own file, never exported.
             settings.put(Settings.DOWNLOAD_SKIP_SAVED.key, Settings.DOWNLOAD_SKIP_SAVED);
             // The switch only, like the one above. The list itself stays on the phone and is never exported.

@@ -45,6 +45,7 @@ import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.shared.settings.Setting;
 
 import org.junit.After;
 import org.junit.Rule;
@@ -559,6 +560,12 @@ public class DownloadSettingsTest {
             assertEquals("Saves videos as .mkv files instead of .mp4, for galleries that show no thumbnail for VP9 "
                     + "or AV1 videos. Nothing is re-encoded. A video Instagram sends as one file stays .mp4.",
                     String.valueOf(mkvRow.getSummary()));
+
+            // A settings backup carries all three, like the compatible and convert switches above them.
+            for (Setting<?> kept : Arrays.<Setting<?>>asList(Settings.DOWNLOAD_COMPATIBLE, Settings.DOWNLOAD_CONVERT,
+                    Settings.DOWNLOAD_NO_AV1, Settings.DOWNLOAD_NO_HDR, Settings.SAVE_VIDEOS_AS_MKV)) {
+                assertTrue(kept.key + " left out of a settings backup", ConfigurationBackup.eligible().containsKey(kept.key));
+            }
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
