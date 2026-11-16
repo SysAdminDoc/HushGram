@@ -4,7 +4,9 @@
  */
 package app.hushgram.extension.instagram.misc;
 
+import android.content.Context;
 import android.content.res.ColorStateList;
+import android.graphics.PorterDuff;
 import android.os.Parcel;
 import android.util.TypedValue;
 import android.widget.ImageView;
@@ -52,6 +54,21 @@ public final class AccentColor {
 
     /** What's counted when a list didn't read back as states and colors, so it was left alone. */
     static final String UNREAD = "color lists it couldn't read";
+
+    /** What's counted when a profile's verified badge takes the picked color. */
+    static final String BADGES = "verified badges colored";
+
+    /** The id Instagram gives the verified badge by a profile's name in its top bar. */
+    private static final String VERIFIED_BADGE = "action_bar_title_verified_badge";
+
+    /** The blue drawn into the verified badge, Instagram's blue_5. */
+    private static final int BADGE_BLUE = 0xff0095f6;
+
+    /** The badge's id once looked up, -1 before. */
+    private static volatile int verifiedBadgeId = -1;
+
+    /** The badge's id for tests, in place of a lookup. */
+    static volatile Integer verifiedBadgeIdForTests;
 
     /** The most states a list is read with. Instagram's have a handful. */
     private static final int MOST_STATES = 64;
@@ -180,6 +197,10 @@ public final class AccentColor {
     public static void image(ImageView view) {
         try {
             if (view == null) return;
+            if (view.getId() != 0 && view.getId() == verifiedBadgeId(view.getContext())) {
+                verifiedBadge(view);
+                return;
+            }
             ColorStateList before = view.getImageTintList();
             if (before == null) return;
             ColorStateList after = list(before);
@@ -187,6 +208,32 @@ public final class AccentColor {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "image view", failure);
         }
+    }
+
+    /**
+     * The verified badge by a profile's name in its top bar has no tint: its blue is drawn into the
+     * badge itself, so {@link #image} found nothing to swap and it stayed blue (#187, #721). The check
+     * is cut out of the badge, so the picked fill laid over what the badge draws keeps the check.
+     */
+    private static void verifiedBadge(ImageView view) {
+        AccentHue hue = picked();
+        if (hue == null) return;
+        int fill = swap(BADGE_BLUE, hue);
+        if (fill == BADGE_BLUE) return;
+        view.setColorFilter(fill, PorterDuff.Mode.SRC_IN);
+        HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES);
+    }
+
+    /** action_bar_title_verified_badge's id, looked up once; 0 when Instagram has none. */
+    private static int verifiedBadgeId(Context context) {
+        Integer forTests = verifiedBadgeIdForTests;
+        if (forTests != null) return forTests;
+        int id = verifiedBadgeId;
+        if (id == -1) {
+            id = context.getResources().getIdentifier(VERIFIED_BADGE, "id", Utils.resourcePackage(context));
+            verifiedBadgeId = id;
+        }
+        return id;
     }
 
     /**

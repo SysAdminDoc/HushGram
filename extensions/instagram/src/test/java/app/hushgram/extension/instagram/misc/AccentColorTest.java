@@ -68,6 +68,7 @@ public class AccentColorTest {
         Settings.ACCENT_COLOR.resetToDefault();
         Settings.ACCENT_HUE.resetToDefault();
         MaterialYou.reset();
+        AccentColor.verifiedBadgeIdForTests = null;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -431,6 +432,36 @@ public class AccentColorTest {
         assertSame("the switch off leaves Instagram's blue", blue, view.getImageTintList());
 
         AccentColor.image(null);
+    }
+
+    /**
+     * The verified badge by a profile's name has its blue drawn in, with no tint, so it takes the
+     * picked fill laid over it; the switch off or another image view leaves it alone (#187, #721).
+     */
+    @Test
+    public void theTopBarVerifiedBadgeTakesTheFill() {
+        int badgeId = 0x7f0b00f7;
+        AccentColor.verifiedBadgeIdForTests = badgeId;
+        android.widget.ImageView badge = new android.widget.ImageView(RuntimeEnvironment.getApplication());
+        badge.setId(badgeId);
+        android.widget.ImageView other = new android.widget.ImageView(RuntimeEnvironment.getApplication());
+        other.setId(0x7f0b00f3);
+
+        AccentColor.image(badge);
+        assertNull("the switch off leaves the badge blue", badge.getColorFilter());
+
+        Settings.ACCENT_COLOR.save(true);
+        AccentColor.image(badge);
+        AccentColor.image(other);
+        assertEquals(new android.graphics.PorterDuffColorFilter(0xff7638fa, android.graphics.PorterDuff.Mode.SRC_IN), badge.getColorFilter());
+        assertNull("only the badge", other.getColorFilter());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(AccentColor.BADGES + " 1"));
+
+        Settings.ACCENT_HUE.save(AccentHue.BLUE);
+        android.widget.ImageView blue = new android.widget.ImageView(RuntimeEnvironment.getApplication());
+        blue.setId(badgeId);
+        AccentColor.image(blue);
+        assertNull("Instagram's blue picked leaves it as it is", blue.getColorFilter());
     }
 
     /** Paused, not ready yet or Instagram blue picked: the stock blue, in a color and in a list. */
