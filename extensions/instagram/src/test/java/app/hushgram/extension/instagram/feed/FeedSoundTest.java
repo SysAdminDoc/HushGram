@@ -41,6 +41,7 @@ public class FeedSoundTest {
     @Before
     public void clean() {
         Settings.START_FEED_VIDEOS_WITH_SOUND.resetToDefault();
+        Settings.START_FEED_VIDEOS_MUTED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -53,6 +54,7 @@ public class FeedSoundTest {
     @After
     public void restore() {
         Settings.START_FEED_VIDEOS_WITH_SOUND.resetToDefault();
+        Settings.START_FEED_VIDEOS_MUTED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -153,5 +155,46 @@ public class FeedSoundTest {
     public void withoutAControllerItSaysNo() {
         Settings.START_FEED_VIDEOS_WITH_SOUND.save(true);
         assertEquals(0, FeedSound.startWithSound(null));
+    }
+
+    /** Start feed videos muted starts off: a video the account's sound turned on keeps it. */
+    @Test
+    public void keepingFeedVideosMutedStartsOff() {
+        assertFalse(Settings.START_FEED_VIDEOS_MUTED.get());
+        assertEquals(0, FeedSound.keepsMuted());
+        assertFalse(report(), report().contains(FeedSound.KEPT_MUTED));
+    }
+
+    /** On, every feed video the account's sound turned on starts muted, with no turns, and each is counted (#718). */
+    @Test
+    public void onEveryFeedVideoStartsMuted() {
+        Settings.START_FEED_VIDEOS_MUTED.save(true);
+        assertEquals("first video", 1, FeedSound.keepsMuted());
+        assertEquals("second video", 1, FeedSound.keepsMuted());
+        assertTrue(report(), report().contains(FeedSound.KEPT_MUTED + " 2"));
+    }
+
+    /** With both on, muted wins, and the controller's turn is still there once muted goes off. */
+    @Test
+    public void mutedWinsOverStartingWithSound() {
+        Settings.START_FEED_VIDEOS_WITH_SOUND.save(true);
+        Settings.START_FEED_VIDEOS_MUTED.save(true);
+        Object feed = new Object();
+        assertEquals("muted wins", 0, FeedSound.startWithSound(feed));
+        assertFalse(report(), report().contains(FeedSound.STARTED));
+        Settings.START_FEED_VIDEOS_MUTED.save(false);
+        assertEquals("the turn was kept", 1, FeedSound.startWithSound(feed));
+    }
+
+    /** Paused or before the settings are ready, a video keeps the sound Instagram gave it. */
+    @Test
+    public void pausedOrNotReadyFeedVideosKeepTheirSound() {
+        Settings.START_FEED_VIDEOS_MUTED.save(true);
+        SettingsContextRule.withoutContext(() -> assertEquals("not ready", 0, FeedSound.keepsMuted()));
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 0, FeedSound.keepsMuted());
+        assertTrue("the saved choice is kept", Settings.START_FEED_VIDEOS_MUTED.savedValue());
+        assertFalse(report(), report().contains(FeedSound.KEPT_MUTED));
     }
 }

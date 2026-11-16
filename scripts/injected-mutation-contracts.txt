@@ -3171,6 +3171,10 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySwipeReply;->keepsSwipe
 # through the state's own setter (#504), a call Instagram's code already makes, so only the ask is counted. Left
 # out, feed videos start as Instagram's own settings say; twice or elsewhere, it isn't the call the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->startWithSound(Ljava/lang/Object;)I in instance (Lcom/instagram/feed/media/Media;L*;L*;L*;IIIZZZ)V class-holding feed_video_crash_when_adjusting_volume
+# Start feed videos muted (#718) asks FeedSound.keepsMuted() once, in the same video start, where the sound
+# flag came out true, and a yes clears the flag before the same setter. Left out, a reel you unmuted makes the
+# feed play with sound whatever the switch says; twice or elsewhere, it isn't the branch the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->keepsMuted()I in instance (Lcom/instagram/feed/media/Media;L*;L*;L*;IIIZZZ)V class-holding feed_video_crash_when_adjusting_volume
 # Long press to zoom (#63): the feed media touch helper hands every touch on a post's frame to the
 # extension first, in its one instance (MotionEvent) boolean method, the one of that shape reading
 # the helper's GestureDetector field. Left out, the zoom never learns where the finger went down;

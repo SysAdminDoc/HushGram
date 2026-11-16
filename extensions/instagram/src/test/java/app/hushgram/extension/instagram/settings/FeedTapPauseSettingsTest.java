@@ -69,7 +69,7 @@ public class FeedTapPauseSettingsTest {
         String[] keys = new String[feed.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.TAP_FEED_VIDEO_TO_PAUSE.key);
-        assertEquals(Arrays.toString(keys), Settings.START_FEED_VIDEOS_WITH_SOUND.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.START_FEED_VIDEOS_MUTED.key, keys[at - 1]);
         assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at + 1]);
         assertEquals("Tap a feed video to pause it", PatchFamily.FEED_TAP_PAUSE.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.TAP_FEED_VIDEO_TO_PAUSE.key));

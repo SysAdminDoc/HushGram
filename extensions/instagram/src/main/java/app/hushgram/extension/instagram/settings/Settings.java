@@ -477,6 +477,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_feed_videos_with_sound", FALSE);
 
     /**
+     * Every feed video starts with its sound off, even with the account's audio state on, which Reels
+     * share, so reels keep their sound and the feed stays quiet. The account's state is left alone.
+     * Wins over {@link #START_FEED_VIDEOS_WITH_SOUND} when both are on. Off to start (#718).
+     */
+    public static final BooleanSetting START_FEED_VIDEOS_MUTED =
+            new BooleanSetting("hushgram_start_feed_videos_muted", FALSE);
+
+    /**
      * A tap on the video playing in a feed pauses it in place of Instagram's own tap there, which
      * opens some videos in Reels. It also plays a paused video again when it still can, though the
      * feed can reclaim a paused video's player first

@@ -1131,6 +1131,8 @@ Never. Pick a time and the tab bar slides away once a reel has played that long 
 On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	在 Reels 中，未触碰画面 %1$d 秒后标签栏会滑出画面。点击屏幕底部边缘、切换标签页或按返回即可重新显示。变更后请重新启动 Instagram。
 Start feed videos with sound	动态首页视频默认打开声音
 Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.	首页视频会打开声音播放，等同点击视频的喇叭按钮。将其中一部静音后，之后的视频也会保持静音。仍受手机铃声与音量设置影响，因此静音或音量调低时仍不会出声。
+Start feed videos muted	动态首页视频默认静音
+Videos on Home start silent, even after you turn the sound on in Reels, so reels keep their sound. Tap a video's speaker to hear that one. Wins over Start feed videos with sound.	首页视频会以静音开始播放，即使你在 Reels 中打开了声音也一样，因此 Reels 仍会保留声音。点击视频的喇叭按钮即可听该视频。优先于“动态首页视频默认打开声音”。
 Tap a feed video to pause it	点击动态首页视频以暂停
 Tap the video playing in a feed to pause it in place instead of opening it in Reels, and tap it again to play it. Ads keep Instagram's own tap.	点击动态中播放的视频会直接暂停，而非在 Reels 中打开；再次点击即可播放。广告仍使用 Instagram 原本的点击操作。
 Hold for 2x on feed videos	长按动态首页视频以 2 倍速播放

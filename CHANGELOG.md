@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Start feed videos muted`, under Feed, keeps videos on Home quiet even after you turn the sound on in Reels, so reels keep theirs. Tap a video's speaker to hear that one. Asked for in #718.
 * `Double tap to skip` on Reels flashes arrows and the seconds skipped on the side you tapped, like it already does on feed videos. `Show the skip arrows`, right under it, turns them off. Asked for in #691.
 * Quick double taps the same way now add up under the skip arrows on Reels and feed videos, so three skips ahead read 10, 20 and then 30. Asked for in #554.
 * `Hide the pause icon on reels` under Reels keeps a paused reel clear of the big pause icon and its sound button, so the frame you stopped on stays in view. A tap still plays it. Asked for in #686.

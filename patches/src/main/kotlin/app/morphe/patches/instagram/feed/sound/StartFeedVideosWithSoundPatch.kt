@@ -39,6 +39,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReferen
 private const val PATCH = "Start feed videos with sound"
 internal const val FEED_SOUND = "$EXTENSION_PACKAGE/feed/FeedSound;"
 internal const val FEED_START_WITH_SOUND = "$FEED_SOUND->startWithSound(Ljava/lang/Object;)I"
+internal const val FEED_KEEPS_MUTED = "$FEED_SOUND->keepsMuted()I"
 
 /** A string only the feed video controller loads, in its volume key handler. */
 internal const val FEED_CONTROLLER_STRING = "feed_video_crash_when_adjusting_volume"
@@ -67,14 +68,19 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * ready all leave Instagram's code exactly as it was. Stories don't pass through this method; Reels
  * read the same audio state, as they do after a tap on a feed video's speaker.
  *
+ * The same hook serves Start feed videos muted (#718): when the boolean comes out true, from an audio
+ * state a reel turned on, the patch asks the extension again, and a yes sets it to false. The video
+ * starts muted and the account's state, the one Reels play by, is left on.
+ *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
  */
 @Suppress("unused")
 val startFeedVideosWithSoundPatch = bytecodePatch(
     name = "Start feed videos with sound",
-    description = "Starts videos on Home with their sound on, the same as tapping a video's speaker. Your phone's " +
-        "ringer and volume still count. Starts off. Turn it on in HushGram settings > Feed.",
+    description = "Starts videos on Home with their sound on, the same as tapping a video's speaker, or keeps them " +
+        "muted while reels play with sound. Your phone's ringer and volume still count. Starts off. Turn it on in " +
+        "HushGram settings > Feed.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -255,8 +261,8 @@ internal fun writesReaching(method: Method, at: Int, register: Int): Set<Int> {
  * In front of the call that gives the video's state object its sound flag: when the flag is false, ask
  * [FEED_START_WITH_SOUND] with the controller, and on a yes make the flag true, take the account's
  * audio state from the controller's session and set it to on, with false for the setter's second
- * boolean where it takes one, as the story hook does. A flag that is already true, or no session,
- * goes straight on.
+ * boolean where it takes one, as the story hook does. No session goes straight on. When the flag is
+ * already true, ask [FEED_KEEPS_MUTED], and on a yes make it false, leaving the account's state alone.
  */
 internal fun BytecodePatchContext.applyFeedSound(site: FeedSoundSite) {
     val (answer, state, extra) = site.scratch
@@ -269,7 +275,7 @@ internal fun BytecodePatchContext.applyFeedSound(site: FeedSoundSite) {
         addInstructionsWithLabels(
             site.index,
             """
-                if-nez v${site.flag}, :stock
+                if-nez v${site.flag}, :loud
                 invoke-static/range { p0 .. p0 }, $FEED_START_WITH_SOUND
                 move-result v$answer
                 if-eqz v$answer, :stock
@@ -280,6 +286,12 @@ internal fun BytecodePatchContext.applyFeedSound(site: FeedSoundSite) {
                 invoke-static { v$state }, ${site.factory}
                 move-result-object v$state
                 $setter
+                goto :stock
+                :loud
+                invoke-static { }, $FEED_KEEPS_MUTED
+                move-result v$answer
+                if-eqz v$answer, :stock
+                const/4 v${site.flag}, 0
             """,
             ExternalLabel("stock", getInstruction(site.index)),
         )

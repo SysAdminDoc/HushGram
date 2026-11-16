@@ -16,7 +16,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
- * Helper for the "Start feed videos with sound" patch.
+ * Helper for the "Start feed videos with sound" patch, and its Start feed videos muted switch.
  *
  * <p>Instagram 450's feed video controller starts each video through one method that makes the
  * video's state object and gives it a sound flag, which Instagram works out from its own server
@@ -32,10 +32,18 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * The phone's ringer and volume are respected: with the ringer on silent or vibrate, or the media
  * volume at zero, the answer is no and the video stays muted. A no doesn't use up the controller's
  * turn.
+ *
+ * <p>The feed and Reels share the account's audio state, so a reel you unmute made the feed play with
+ * sound too (#718). With Start feed videos muted on, the patch asks {@link #keepsMuted()} each time
+ * the flag comes out true, and a yes makes it false: the video starts muted while the account's state,
+ * and with it Reels, keeps its sound. It wins over Start feed videos with sound.
  */
 public final class FeedSound {
     /** What {@link HookStatus} counts: a feed video started with the sound turned on. */
     static final String STARTED = "feed videos started with sound";
+
+    /** What {@link HookStatus} counts: a feed video started muted by Start feed videos muted. */
+    static final String KEPT_MUTED = "feed videos started muted";
 
     /** The hook's name in a failure report. */
     static final String VIDEO = "feed video start";
@@ -60,12 +68,30 @@ public final class FeedSound {
         try {
             HookStatus.invoked(FamilyNames.FEED_SOUND);
             if (controller == null || !Utils.settingsReady() || !Settings.START_FEED_VIDEOS_WITH_SOUND.get()) return 0;
+            if (Settings.START_FEED_VIDEOS_MUTED.get()) return 0;
             if (!StorySound.phoneAllowsSound()) return 0;
             synchronized (FeedSound.class) {
                 if (!served.add(controller)) return 0;
             }
             HookStatus.counted(FamilyNames.FEED_SOUND, STARTED);
             Logger.printDebug(() -> "Feed video: starting with sound");
+            return 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SOUND, VIDEO, failure);
+            return 0;
+        }
+    }
+
+    /**
+     * Asked when a feed video's sound flag came out true, from the account's audio state. True means make
+     * it false, so the video starts muted. True only while Start feed videos muted is on, HushGram isn't
+     * paused and the settings are ready. Never throws.
+     */
+    public static int keepsMuted() {
+        try {
+            HookStatus.invoked(FamilyNames.FEED_SOUND);
+            if (!Utils.settingsReady() || !Settings.START_FEED_VIDEOS_MUTED.get()) return 0;
+            HookStatus.counted(FamilyNames.FEED_SOUND, KEPT_MUTED);
             return 1;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SOUND, VIDEO, failure);

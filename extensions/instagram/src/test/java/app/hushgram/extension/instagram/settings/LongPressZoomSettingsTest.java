@@ -73,7 +73,7 @@ public class LongPressZoomSettingsTest {
         PreferenceGroup feed = row.getParent();
         String[] keys = new String[feed.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
-        assertEquals(Arrays.toString(keys), Settings.START_FEED_VIDEOS_WITH_SOUND.key,
+        assertEquals(Arrays.toString(keys), Settings.START_FEED_VIDEOS_MUTED.key,
                 keys[Arrays.asList(keys).indexOf(Settings.LONG_PRESS_TO_ZOOM.key) - 1]);
         assertEquals("Long press to zoom", PatchFamily.LONG_PRESS_ZOOM.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LONG_PRESS_TO_ZOOM.key));
