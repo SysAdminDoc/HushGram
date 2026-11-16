@@ -52,6 +52,7 @@ Every HushGram release, newest first.
 
 * `Split the notes row` shows the Stories stack next to Instants and Notes on accounts where Instagram had left it out, with your friends' stories in it. Reported in #717.
 * `Hide Follow on posts` catches the Follow button on a post you scroll to as well. It could slip through until something else on the screen moved. `Hide captions`, `Hide the Like button`, `Hide the Save button`, `Hide the emoji row` and `Hide GIFs in comments` got the same fix. Reported in #719.
+* `Below the Send message box` under `Seek bar position` now puts the story seek bar there on phones with little room under the box. The box moves up just enough for the bar and goes back down when the bar does. It used to stay above the box. A keyboard over the box still keeps the bar above it. Reported in #636.
 * With `Stories fill the screen` on, a feed post reshared to a story keeps its whole frame like a shared reel does, so its sides aren't cut off once the video starts. Reported in #618.
 * `Take a scroll break` remembers a running break and the minutes you've already used when Instagram is closed and opened again, or Android ends it in the background. Both used to start over. Reported in #297.
 * `Stop after a set number of reels` keeps its count, and a stop it already reached, when Instagram is closed and opened again before the break is up.

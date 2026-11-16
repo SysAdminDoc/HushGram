@@ -349,22 +349,108 @@ public class StorySeekBarTest {
         assertEquals(0, margin(bar()));
     }
 
-    /** #636: with less than 16 dp under the row, the bar stays above the row rather than over it. */
+    /**
+     * #636: with less than 16 dp under the row, the row goes up just enough to make that room and the
+     * bar sits under it, staying put tick after tick. Back above, the row comes back down.
+     */
     @Test
-    public void belowWithNoRoomUnderTheRowStaysAboveIt() {
-        rowOver(10);
+    public void belowWithLittleRoomLiftsTheRowJustEnough() {
+        View footer = rowOver(10);
         Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
         Settings.STORY_SEEK_BAR.save(true);
         StorySeekBar.resumed(viewer);
         idle();
+        assertEquals("up the 6 pixels the 16 needs", -6f, footer.getTranslationY(), 0f);
+        assertEquals(16, height(bar()));
+        assertEquals(0, margin(bar()));
+        tick();
+        idle();
+        tick();
+        idle();
+        assertEquals("not lifted again on its own room", -6f, footer.getTranslationY(), 0f);
+        assertEquals(16, height(bar()));
+
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.ABOVE);
+        tick();
+        idle();
+        assertEquals("back down", 0f, footer.getTranslationY(), 0f);
         assertEquals("above the row and the 10 pixels under it", 191, margin(bar()));
         assertEquals(32, height(bar()));
+    }
+
+    /** #636: a row Instagram moves itself is left where it put it, and lifted again once it's back. */
+    @Test
+    public void aRowInstagramMovesIsLeftToIt() {
+        View footer = rowOver(10);
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals(-6f, footer.getTranslationY(), 0f);
+        footer.setTranslationY(-100f);
+        tick();
+        idle();
+        assertEquals("left where Instagram put it", -100f, footer.getTranslationY(), 0f);
+        assertEquals("with plenty of room under it", 32, height(bar()));
+        footer.setTranslationY(0f);
+        tick();
+        idle();
+        assertEquals("lifted again", -6f, footer.getTranslationY(), 0f);
+    }
+
+    /** #636: turning the bar off, pausing HushGram or the bar going away puts a lifted row back. */
+    @Test
+    public void aLiftedRowComesBackDownWhenTheBarGoes() {
+        View footer = rowOver(10);
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals(-6f, footer.getTranslationY(), 0f);
+        Settings.STORY_SEEK_BAR.save(false);
+        tick();
+        idle();
+        assertEquals("switched off", 0f, footer.getTranslationY(), 0f);
+
+        Settings.STORY_SEEK_BAR.save(true);
+        tick();
+        idle();
+        assertEquals(-6f, footer.getTranslationY(), 0f);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        tick();
+        idle();
+        assertEquals("paused", 0f, footer.getTranslationY(), 0f);
+
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        tick();
+        idle();
+        assertEquals(-6f, footer.getTranslationY(), 0f);
+        StorySeekBar.paused(viewer);
+        idle();
+        assertEquals("the viewer went", 0f, footer.getTranslationY(), 0f);
+    }
+
+    /** #636: the bottom padding an edge-to-edge row keeps clear of the swipe area counts as room. */
+    @Test
+    public void aRowsBottomPaddingCountsAsRoom() {
+        View footer = rowOver(0);
+        footer.setPadding(0, 0, 0, 40);
+        idle();
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals(32, height(bar()));
+        assertEquals("in the middle of the 40 padded pixels", 4, margin(bar()));
+        assertEquals("nothing lifted", 0f, footer.getTranslationY(), 0f);
     }
 
     /** #636: below the row, the bar keeps out of the system's bars and swipe area at the window's bottom. */
     @Test
     public void belowKeepsClearOfTheSystemBars() {
-        rowOver(60);
+        View footer = rowOver(60);
         int[] frame = new int[2];
         content.getLocationInWindow(frame);
         int pastFrame = content.getRootView().getHeight() - frame[1] - content.getHeight();
@@ -379,11 +465,20 @@ public class StorySeekBarTest {
         StorySeekBar.systemBottomForTests(pastFrame + 50);
         tick();
         idle();
-        assertEquals("10 pixels left over the bars is too little, so above the row", 241, margin(bar()));
+        assertEquals("10 pixels left over the bars lifts the row 6", -6f, footer.getTranslationY(), 0f);
+        assertEquals("and the bar sits on the bars", 50, margin(bar()));
+        assertEquals(16, height(bar()));
+
+        StorySeekBar.systemBottomForTests(pastFrame + 100);
+        tick();
+        idle();
+        assertEquals("a keyboard over the row puts it back", 0f, footer.getTranslationY(), 0f);
+        assertEquals("and the bar goes above the row", 241, margin(bar()));
+        assertEquals(32, height(bar()));
     }
 
     /** The 181 pixel row along a story's bottom on 453, [space] pixels over the viewer's bottom, with the old box's stub never inflated. */
-    private void rowOver(int space) {
+    private View rowOver(int space) {
         viewerView.removeView(composer);
         int footerId = View.generateViewId();
         StorySeekBar.footerIdForTests(activity, footerId);
@@ -393,6 +488,7 @@ public class StorySeekBarTest {
         params.bottomMargin = space;
         viewerView.addView(footer, params);
         idle();
+        return footer;
     }
 
     private static int margin(SeekBar bar) {

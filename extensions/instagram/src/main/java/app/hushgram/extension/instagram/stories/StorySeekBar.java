@@ -19,6 +19,8 @@ import androidx.annotation.VisibleForTesting;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.feed.GlassSeekBar;
 import app.hushgram.extension.instagram.feed.SeekPreview;
@@ -227,6 +229,12 @@ public final class StorySeekBar {
         /** Whether a frame is coming that follows the video. */
         boolean framing;
         final Runnable frame = this::frame;
+        /**
+         * The rows this bar lifted to make room under them (#636), each with the translation it had
+         * before, and how far up they went. Weak, since Instagram drops a story's views as it pages.
+         */
+        final Map<View, Float> lifted = new WeakHashMap<>();
+        int liftedBy;
 
         Overlay(Object viewer) {
             this.viewer = new WeakReference<>(viewer);
@@ -333,6 +341,7 @@ public final class StorySeekBar {
         /** Hides the bar, and plays the story on if it hid under a finger mid-drag. */
         private void hide(Object owner) {
             forget();
+            lift(new ArrayList<>(), 0);
             if (bar != null && bar.getVisibility() != View.GONE) bar.setVisibility(View.GONE);
             if (dragging) {
                 dragging = false;
@@ -373,13 +382,19 @@ public final class StorySeekBar {
          *
          * <p>Placed below (#636), the bar sits in the middle of the space between the lowest row's
          * bottom and the system's bars or swipe area, as tall as fits there up to {@link #HEIGHT_DP},
-         * so it never covers the row. With less than {@link #BELOW_MIN_DP} free, it stays above.
+         * so it never covers the row. A row's bottom padding counts as free, since an edge-to-edge
+         * row pads itself clear of the swipe area. With less than {@link #BELOW_MIN_DP} free, the rows
+         * are lifted just enough to make that room, and the bar sits under them at that height.
+         * When the row is already under the system's bars or the keyboard, nothing is lifted and the
+         * bar stays above.
          */
         private void place(Object owner, SeekBar seek) {
             ViewGroup parent = (ViewGroup) seek.getParent();
             if (parent == null) return;
             int height = dp(seek, HEIGHT_DP);
             int bottom = dp(seek, BOTTOM_DP);
+            ArrayList<View> rows = new ArrayList<>();
+            int lift = 0;
             if (parent.getHeight() > 0) {
                 findAnchors(owner, parent);
                 int[] frame = new int[2];
@@ -391,27 +406,35 @@ public final class StorySeekBar {
                     if (box == null) continue;
                     int[] at = new int[2];
                     box.getLocationInWindow(at);
-                    int above = frame[1] + parent.getHeight() - at[1];
+                    // Where the row would be without this bar's lift, so the room under it doesn't feed on itself.
+                    int above = frame[1] + parent.getHeight() - at[1] - (liftedHere(box) ? liftedBy : 0);
                     if (above <= 0 || above >= parent.getHeight()) continue;
                     if (ANCHORS[i].equals(COMMENT_LINE)) {
                         if (above * 2 > parent.getHeight()) continue;
                     } else {
-                        int below = Math.max(0, above - box.getHeight());
+                        int below = Math.max(0, above - box.getHeight() + box.getPaddingBottom());
                         under = under < 0 ? below : Math.min(under, below);
                     }
                     highest = Math.max(highest, above);
+                    rows.add(box);
                 }
                 if (highest > 0) bottom = highest;
                 if (under >= 0 && Settings.STORY_SEEK_BAR_POSITION.get() == StorySeekBarPosition.BELOW) {
                     int clear = seek.getRootView().getHeight() - systemBottom(seek);
                     int covered = Math.max(0, frame[1] + parent.getHeight() - clear);
                     int room = under - covered;
-                    if (room >= dp(seek, BELOW_MIN_DP)) {
+                    int least = dp(seek, BELOW_MIN_DP);
+                    if (room >= least) {
                         height = Math.min(height, room);
                         bottom = covered + (room - height) / 2;
+                    } else if (room >= 0) {
+                        lift = least - room;
+                        height = least;
+                        bottom = covered;
                     }
                 }
             }
+            lift(outermost(rows), lift);
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) seek.getLayoutParams();
             if (params.bottomMargin != bottom || params.height != height) {
                 params.bottomMargin = bottom;
@@ -455,8 +478,60 @@ public final class StorySeekBar {
             }
         }
 
+        /** Whether [view] is, or sits in, a row this bar still holds lifted. */
+        private boolean liftedHere(View view) {
+            for (Object at = view; at instanceof View; at = ((View) at).getParent()) {
+                if (holds((View) at)) return true;
+            }
+            return false;
+        }
+
+        /** Whether [row] is lifted by this bar and Instagram hasn't moved it since. */
+        private boolean holds(View row) {
+            Float from = lifted.get(row);
+            return from != null && row.getTranslationY() == from - liftedBy;
+        }
+
+        /** The [rows] not inside another of them, which move their insides along. */
+        private ArrayList<View> outermost(ArrayList<View> rows) {
+            ArrayList<View> outer = new ArrayList<>();
+            for (View row : rows) {
+                boolean inside = false;
+                for (Object at = row.getParent(); at instanceof View && !inside; at = ((View) at).getParent()) {
+                    inside = rows.contains(at);
+                }
+                if (!inside && !outer.contains(row)) outer.add(row);
+            }
+            return outer;
+        }
+
+        /**
+         * Keeps [rows] lifted [by] pixels and puts back every other row this bar lifted (#636). A row
+         * Instagram moved since is let go as it is, since it's placing that row itself.
+         */
+        private void lift(ArrayList<View> rows, int by) {
+            for (Map.Entry<View, Float> entry : new ArrayList<>(lifted.entrySet())) {
+                View row = entry.getKey();
+                if (row == null) continue;
+                boolean held = holds(row);
+                if (held && by == liftedBy && rows.contains(row)) continue;
+                if (held) row.setTranslationY(entry.getValue());
+                lifted.remove(row);
+            }
+            if (lifted.isEmpty()) liftedBy = 0;
+            if (by <= 0) return;
+            liftedBy = by;
+            for (View row : rows) {
+                if (lifted.containsKey(row)) continue;
+                float from = row.getTranslationY();
+                lifted.put(row, from);
+                row.setTranslationY(from - by);
+            }
+        }
+
         void remove() {
             removed = true;
+            lift(new ArrayList<>(), 0);
             SeekBar seek = bar;
             bar = null;
             if (seek != null) {
