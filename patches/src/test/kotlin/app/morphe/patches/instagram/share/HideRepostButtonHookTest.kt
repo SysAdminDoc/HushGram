@@ -250,10 +250,11 @@ class HideRepostButtonHookTest {
     /**
      * In each declared build, and in each other build of a declared version, the model's getter is
      * guarded, every tree read of the field is filtered, and the component renderer's Repost part
-     * returns nothing. On 451's and 453's declared builds there are six reads, two of them in one lambda's
-     * invoke; 450's 438 had five, and 449 and 450's 385611395 six, so another build's count isn't
-     * pinned. On 073 the hook goes where it went when the renderer was found by its label: in
-     * [RENDERER_073], at [PART_073], the start of a renderer that draws Repost alone and reaches both
+     * returns nothing. On 455's arm64 build 386113969 there are eight reads: two in LX/0R5O;->invoke,
+     * two in LX/0HuL;->A0E, and one each in LX/0hoc;->A00, LX/02Pc;->A02, LX/052f;->A0Q and
+     * LX/0IpL;->invoke. 451's and 453's declared builds had six, 450's 438 five, so another build's
+     * count isn't pinned. On 969 the hook goes where it went when the renderer was found by its label: in
+     * [RENDERER_969], at [PART_969], the start of a renderer that draws Repost alone and reaches both
      * the repost icon and the label.
      */
     @Test
@@ -262,7 +263,7 @@ class HideRepostButtonHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                hidesTheButtonIn(bundle, bundle.name, reads = 6, pinned = bundle.name.contains("-386113969."))
+                hidesTheButtonIn(bundle, bundle.name, reads = 8, pinned = bundle.name.contains("-386113969."))
                 checked++
             }
         }
@@ -306,8 +307,8 @@ class HideRepostButtonHookTest {
         }
         if (pinned) {
             val renderer = "${component.method.definingClass}->${component.method.name}"
-            assertEquals("$label: the renderer, at ${component.at}", RENDERER_073, renderer)
-            assertEquals("$label: the Repost part", PART_073, component.at)
+            assertEquals("$label: the renderer, at ${component.at}", RENDERER_969, renderer)
+            assertEquals("$label: the Repost part", PART_969, component.at)
             val reached = partReached(component.method, component.at)
             val code = component.method.implementation!!.instructions.toList()
             for ((what, id) in listOf("icon" to REPOSTS_UFI_ICON_ID, "label" to LABEL)) {
@@ -531,12 +532,15 @@ class HideRepostButtonHookTest {
             ),
         )
 
-        /** 386014758's Repost label, the button's content description (0x7f13732b on 453's 385914557). */
-        const val LABEL = 0x7f137490
+        /**
+         * 386113969's Repost label, the button's content description (0x7f137490 on 454's 386014758). The
+         * reel and long-form repost buttons load it too.
+         */
+        const val LABEL = 0x7f1375f4
 
-        /** 386014758's Feed component renderer, a renderer of its own, so its Repost part is the whole of it. */
-        const val RENDERER_073 = "LX/08Ib;->A0q"
-        const val PART_073 = 0
+        /** 386113969's Feed component renderer, a renderer of its own, so its Repost part is the whole of it. */
+        const val RENDERER_969 = "LX/03Sh;->A0p"
+        const val PART_969 = 0
 
         /** A renderer of its own: the icon, the label, the [role] it gives the button, then null. */
         fun feedComponent(

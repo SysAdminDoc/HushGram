@@ -10,7 +10,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -226,7 +226,10 @@ internal class ActionListSite(
  */
 internal fun BytecodePatchContext.findActionList(): ActionListSite {
     val sites = mutableListOf<ActionListSite>()
-    classesHolding(*ACTION_NAMES.toTypedArray()).forEach { classDef ->
+    // 455's x86_64 builds ask a pool for whatsapp_status in the builder, so a class holding all three names misses it.
+    val loading = ACTION_NAMES.map { name -> classesLoadingString(name) }
+    val alsoLoading = loading.drop(1).map { classes -> classes.mapTo(HashSet()) { it.type } }
+    loading.first().filter { classDef -> alsoLoading.all { classDef.type in it } }.forEach { classDef ->
         classDef.methods.forEach { method ->
             val code = method.implementation?.instructions?.toList() ?: return@forEach
             val asks = code.indices.filter { at -> code[at].isPickerCall() }
