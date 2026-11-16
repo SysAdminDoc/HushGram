@@ -102,6 +102,27 @@ class StopSwipeReplyHookTest {
         assertEquals(listOf("GKg", "GKf"), hooked.map { it.name }.sortedDescending())
     }
 
+    /**
+     * 455's composer listener only asks the reply controller it keeps in a field, and the viewer's
+     * scroll handler asks the controller too, so the guard goes first in the controller's focus method.
+     */
+    @Test
+    fun aListenerThatForwardsGuardsWhatItAsks() {
+        val stock = classes(forwarded = true)
+        val context = PatchContexts.of(stock)
+
+        val sites = context.findSwipeReply()
+        assertEquals(composer, sites.composer)
+        assertEquals("A0O", sites.composerMethod)
+        context.hookSwipeReply(sites)
+
+        val guarded = context.mutableClassDefBy(composer).methods.single { it.name == "A0O" }.code()
+        assertEquals(KEEPS_SWIPE, guarded[0].referenceText())
+        val hooked = stock.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+            .filter { method -> method.code().any { it.referenceText() == KEEPS_SWIPE } }
+        assertEquals(listOf("GKg", "A0O"), hooked.map { it.name }.sortedDescending())
+    }
+
     /** A second run finds its own guard and refuses instead of asking twice. */
     @Test
     fun aSecondRunRefuses() {
@@ -129,6 +150,7 @@ class StopSwipeReplyHookTest {
             classes(composers = 0) to "expected one $listener focusing a text box when the story is swiped up, found 0",
             classes(composers = 2) to "expected one $listener focusing a text box when the story is swiped up, found 2",
             classes(directCall = true) to "expected only the swipe to reach $composerAt, Lfixture/Tapper; calls it too",
+            classes(forwarded = true, directCall = true) to "expected only the swipe to reach $composer->A0O, Lfixture/Tapper; calls it too",
             classes(composerTopIsTarget = true) to "a branch in $composerAt lands on its first instruction, where the guard goes",
             classes(sheetIsTarget = true) to "a branch in $gestureAt lands on the reply sheet's source, where the guard goes",
         )
@@ -193,7 +215,9 @@ class StopSwipeReplyHookTest {
         // The patch and the checks below read a caller one method at a time, so a class that only calls
         // in keeps the methods that do. Whole copies took the rest of the heap in a full area run, where
         // these builds follow every other test in one JVM. The composer's interfaces stay on the list
-        // because the listener is one of them, and the patch asks who else calls it.
+        // because the listener is one of them through 454, and the patch asks who else calls it. On 455
+        // the listener is a forwarder's, and the manager asking it is a delegate field's type, copied
+        // whole; any other asker only shows on the whole build, which patching the real APK covers.
         val asked = near + first.filter { it.type in focusing }.flatMap { it.interfaces }.filter { it.startsWith("LX/") }
         val second = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
@@ -215,7 +239,16 @@ class StopSwipeReplyHookTest {
         val listenerType = classes.single { it.type == sites.listenerManager.definingClass }.methods
             .single { it.name == sites.listenerManager.name && it.parameterTypes.isEmpty() }.code()
             .mapNotNull { it.method() }.single { it.name == sites.listenerManager.name }.definingClass
-        assertTrue("$label: the composer is a listener", listenerType in classes.single { it.type == sites.composer }.interfaces)
+        // 455's listener only reads the reply controller from a field and asks it; that listener calls into
+        // the controller, so the second pass kept it.
+        val focusAt = "${sites.composer}->${sites.composerMethod}()Z"
+        val forwarders = classes.filter { listenerType in it.interfaces }.flatMap { c ->
+            c.methods.filter { m -> m.name == sites.listenerManager.name && m.code().any { it.referenceText() == focusAt } }
+        }
+        assertTrue(
+            "$label: the composer is a listener or what one asks",
+            listenerType in classes.single { it.type == sites.composer }.interfaces || forwarders.isNotEmpty(),
+        )
         val stock = delegates.single().methods.single { it.name == sites.gesture && it.parameterTypes.map(CharSequence::toString) == GESTURE_PARAMETERS }.code()
         assertEquals("$label: the reply sheet's source", Opcode.SGET_OBJECT, stock[sites.sheet].opcode)
         val read = (stock[sites.listeners] as ReferenceInstruction).reference as FieldReference
@@ -230,10 +263,9 @@ class StopSwipeReplyHookTest {
             }
         }
         assertEquals("$label: the gesture rule's method", listOf("${sites.delegate}->${sites.gesture}"), shaped.map { "${it.definingClass}->${it.name}" })
-        // The composer rule's markers, EditText read and Math.pow call are its class's, the focus call is the method's.
+        // The composer rule's markers and EditText read are its class's, the focus call is the method's.
         val focusers = first.filter { c ->
             COMPOSER_MARKERS.all { marker -> c.methods.any { m -> m.code().any { it.string() == marker } } } &&
-                c.methods.any { m -> m.code().any { it.referenceText() == "Ljava/lang/Math;->pow(DD)D" } } &&
                 c.methods.any { m ->
                     m.code().any { read ->
                         val field = (read as? ReferenceInstruction)?.reference as? FieldReference
@@ -284,6 +316,7 @@ class StopSwipeReplyHookTest {
         composers: Int = 1,
         directCall: Boolean = false,
         composerTopIsTarget: Boolean = false,
+        forwarded: Boolean = false,
     ): List<ClassDef> {
         val public = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         // Four locals, this in v4, the two motion events in v5 and v6, the view in v7, the distances in v8 and v9, the flag in v10.
@@ -345,8 +378,8 @@ class StopSwipeReplyHookTest {
                 .joinToString("\n"),
         )
         // Three locals, this in v3.
-        fun focus(owner: String) = method(
-            owner, "GKf", emptyList(), "Z", 3, public,
+        fun focus(owner: String, name: String = "GKf") = method(
+            owner, name, emptyList(), "Z", 3, public,
             listOfNotNull(
                 if (composerTopIsTarget) ":top" else null,
                 "iget-object v0, v3, $owner->A02:Landroid/widget/EditText;",
@@ -382,14 +415,27 @@ class StopSwipeReplyHookTest {
         )
         repeat(composers) { at ->
             val type = if (at == 0) composer else "Lfixture/Composer$at;"
-            all += classDef(type, "Ljava/lang/Object;", listOf(listener), listOf(focus(type), marked(type)))
+            all += if (forwarded && at == 0) {
+                classDef(type, "Ljava/lang/Object;", emptyList(), listOf(focus(type, "A0O"), marked(type)))
+            } else {
+                classDef(type, "Ljava/lang/Object;", listOf(listener), listOf(focus(type), marked(type)))
+            }
+        }
+        // 455's composer listener and the viewer's scroll handler only ask the reply controller from a field. One local, this in v1.
+        fun forward(owner: String, name: String, parameters: List<String>) = method(
+            owner, name, parameters, "Z", 1, public,
+            "iget-object v0, v1, $owner->A00:$composer\ninvoke-virtual {v0}, $composer->A0O()Z\nmove-result v0\nreturn v0",
+        )
+        if (forwarded) {
+            all += classDef("Lfixture/ComposerListener;", "Ljava/lang/Object;", listOf(listener), listOf(forward("Lfixture/ComposerListener;", "GKf", emptyList())))
+            all += classDef("Lfixture/Scroller;", "Ljava/lang/Object;", emptyList(), listOf(forward("Lfixture/Scroller;", "GVb", GESTURE_PARAMETERS)))
         }
         // 453's Live comment box listens too and focuses its own box, loading neither marker.
         all += classDef("Lfixture/LiveComments;", "Ljava/lang/Object;", listOf(listener), listOf(focus("Lfixture/LiveComments;")))
         if (twoDelegates) all += delegateClass("Lfixture/ItemDelegate2;")
         if (otherAsker) all += caller("Lfixture/Elsewhere;", "$manager->GKf()Z")
         if (listenerElsewhere) all += caller("Lfixture/Dispatcher;", "$listener->GKf()Z", "invoke-interface")
-        if (directCall) all += caller("Lfixture/Tapper;", "$composer->GKf()Z")
+        if (directCall) all += caller("Lfixture/Tapper;", "$composer->${if (forwarded) "A0O" else "GKf"}()Z")
         return all
     }
 

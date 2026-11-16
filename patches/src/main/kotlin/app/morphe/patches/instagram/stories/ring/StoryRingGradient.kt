@@ -65,8 +65,9 @@ internal class RingGradient(val name: String, val parameters: List<String>, val 
 
 /**
  * Finds every place a ring builds its gradient, and checks each before anything changes. The ring
- * is a view that keeps its class name. Its builder is its one static method taking
- * [GRADIENT_PARAMETERS] and answering a gradient. Most of 454's builds also give the view a private
+ * is a view that keeps its class name. Its builder is its one method answering a gradient that takes
+ * [GRADIENT_PARAMETERS] when static or, as on every 455 build, [SETTER_PARAMETERS] with the ring as
+ * `this`. Most of 454's builds and every 455 build also give the view a private
  * setter taking [SETTER_PARAMETERS] that makes the same gradient with its own copy of the builder's
  * code and keeps it (#518). That setter is what the stories row's rings go through, from the ring's
  * measure and from every ring spec it's given, and the builder only serves a couple of other
@@ -84,7 +85,7 @@ internal fun BytecodePatchContext.findRingGradients(patch: String = PATCH): List
     val spinner = classDefByOrNull(GRADIENT_SPINNER) ?: refuse("the build has no $GRADIENT_SPINNER", patch)
     val builders = spinner.methods.filter { it.isRingBuilder() }
     val builder = builders.singleOrNull()
-        ?: refuse("expected one static gradient builder taking stops and colors in $GRADIENT_SPINNER, found ${builders.size}", patch)
+        ?: refuse("expected one gradient builder taking stops and colors in $GRADIENT_SPINNER, found ${builders.size}", patch)
     if (!builder.makesGradientFromArrays()) {
         refuse("$GRADIENT_SPINNER->${builder.name} no longer makes its gradient from an array of colors and an array of stops", patch)
     }
@@ -117,8 +118,8 @@ private fun Method.ringGradient(patch: String): RingGradient {
     return RingGradient(name, parameterTypes.map(CharSequence::toString), colors, stops)
 }
 
-private fun Method.isRingBuilder() = AccessFlags.STATIC.isSet(accessFlags) && returnType == LINEAR_GRADIENT &&
-    parameterTypes.map(CharSequence::toString) == GRADIENT_PARAMETERS
+private fun Method.isRingBuilder() = returnType == LINEAR_GRADIENT && parameterTypes.map(CharSequence::toString) ==
+    if (AccessFlags.STATIC.isSet(accessFlags)) GRADIENT_PARAMETERS else SETTER_PARAMETERS
 
 private fun Method.isRingSetter() = !AccessFlags.STATIC.isSet(accessFlags) && returnType == "V" &&
     parameterTypes.map(CharSequence::toString) == SETTER_PARAMETERS
@@ -129,6 +130,8 @@ private fun Method.makesGradientFromArrays() =
 /**
  * The methods that put Instagram's default ring together: each is in a class loading
  * [DEFAULT_RING] and loads every one of [DEFAULT_RING_STOPS]. On 450 there is one in every build.
+ * 455's arm64, x86 and x86_64 builds have two, a RingSpec and a ring with its angle, in two
+ * lambda classes, both with the same stops.
  */
 internal fun BytecodePatchContext.findDefaultRingStops(): List<String> =
     classesLoadingString(DEFAULT_RING).flatMap { classDef ->

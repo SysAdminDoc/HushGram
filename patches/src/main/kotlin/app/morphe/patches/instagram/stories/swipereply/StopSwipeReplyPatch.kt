@@ -48,9 +48,10 @@ internal const val LISTENER_MANAGER = "reelViewerListenerManager"
 internal const val REQUEST_FOCUS = "Landroid/view/View;->requestFocus()Z"
 
 /**
- * Strings the story reply composer's class loads in every 453 build. 453 has a second listener
- * focusing a text box, the Live viewer's comment box (inlined into the listener on some builds, a
- * forward to IgLiveViewerPageViewHolder's controller on others), which loads none.
+ * Strings the story reply composer's class loads in every 453 build, and the class of 455's reply
+ * controller, which focuses the box for it. 453 has a second listener focusing a text box, the Live
+ * viewer's comment box (inlined into the listener on some builds, a forward to
+ * IgLiveViewerPageViewHolder's controller on others), which loads none.
  */
 internal val COMPOSER_MARKERS = listOf("fragment_paused", "ig4a-instagram-schema")
 
@@ -72,6 +73,10 @@ internal val GESTURE_PARAMETERS = listOf(MOTION_EVENT, MOTION_EVENT, "Ljava/lang
  * [KEEPS_SWIPE] first thing in that listener and right before the delegate opens the sheet; a no
  * makes the listener answer that it didn't take the swipe and sends the delegate on to its listeners
  * instead of the sheet, the way a story nobody can reply to goes.
+ *
+ * On 455 the composer's listener (0EjU on 386113969) only asks the reply controller it keeps in a
+ * field (0EhV), and the controller's method (A0O) focuses the box. The viewer's own scroll handler
+ * (0oOb.GVb) asks that method too, so the guard goes first in it and stops both swipes.
  */
 @Suppress("unused")
 val stopSwipeReplyPatch = bytecodePatch(
@@ -121,8 +126,9 @@ internal class SwipeReplySites(
  *   the listener block: the listener manager read from a field and asked a no-argument boolean;
  * - that method of the listener manager, asked by nothing but the gesture handler, asking one
  *   listener interface's method of the same name;
- * - the one implementation of it that calls [REQUEST_FOCUS] in a class loading [COMPOSER_MARKERS],
- *   the composer's.
+ * - the one instance `()Z` method calling [REQUEST_FOCUS] in a class loading [COMPOSER_MARKERS]
+ *   that is either that implementation or what one only forwards to, the composer's, reached by
+ *   nothing but its listener and the viewer's scroll handlers.
  *
  * Fails before anything changes when any of it isn't so, since that's an update this patch hasn't
  * seen, or when code the guards go in front of is something jumps to.
@@ -199,22 +205,28 @@ internal fun BytecodePatchContext.findSwipeReply(): SwipeReplySites {
         refuse("expected only $managerAt to ask ${listener}->${listenerCall.name}, found ${listenerAskers.joinToString { "${it.definingClass}->${it.name}" }}")
     }
 
+    // Through 454 the composer's class was the listener and focused the box itself. 455's listener only
+    // asks the reply controller it keeps in a field, and the controller focuses the box.
     val composers = classesCalling("Landroid/view/View;", "requestFocus").filter { classDef ->
-        listener in classDef.interfaces && COMPOSER_MARKERS.all { marker -> classDef.methods.any { loadsString(it, marker) } }
+        COMPOSER_MARKERS.all { marker -> classDef.methods.any { loadsString(it, marker) } }
     }.flatMap { classDef ->
         classDef.methods.filter { method ->
-            !method.isStatic() && method.name == listenerCall.name && method.parameterTypes.isEmpty() && method.returnType == "Z" &&
-                method.code().any { it.reference() == REQUEST_FOCUS }
+            !method.isStatic() && method.parameterTypes.isEmpty() && method.returnType == "Z" &&
+                method.code().any { it.reference() == REQUEST_FOCUS } &&
+                (listener in classDef.interfaces && method.name == listenerCall.name || forwardersTo(method, listenerCall).isNotEmpty())
         }
     }
     val composer = composers.singleOrNull()
         ?: refuse("expected one $listener focusing a text box when the story is swiped up, found ${composers.size}")
     val composerAt = "${composer.definingClass}->${composer.name}"
     if (composer.code().any { it.reference() == KEEPS_SWIPE }) refuse("$composerAt already calls $KEEPS_SWIPE")
-    // Only the swipe reaches it, through the listener manager; a direct call could be a tap the guard would stop.
+    // Only a swipe reaches it: the listener manager, through a listener that forwards on 455, and 455's
+    // scroll handlers, given two motion events and two distances. Anything else could be a tap the guard would stop.
+    val forwarders = forwardersTo(composer, listenerCall).mapTo(HashSet()) { it.key() }
     val direct = classesCalling(composer.definingClass, composer.name).filter { classDef ->
         classDef.methods.any { method ->
-            method.code().any { val called = it.method(); called != null && called.definingClass == composer.definingClass && called.name == composer.name }
+            method.key() !in forwarders && !method.isScrollHandler() &&
+                method.code().any { val called = it.method(); called != null && called.definingClass == composer.definingClass && called.name == composer.name }
         }
     }
     if (direct.isNotEmpty()) refuse("expected only the swipe to reach $composerAt, ${direct.joinToString { it.type }} calls it too")
@@ -262,6 +274,41 @@ internal fun BytecodePatchContext.hookSwipeReply(sites: SwipeReplySites) {
         ExternalLabel("listeners", gesture.getInstruction(sites.listeners)),
     )
 }
+
+/**
+ * The methods of [listenerCall]'s interface that only hand the swipe to [target]: each reads an
+ * object of [target]'s class from a field of its own, asks it [target] and answers that, the four
+ * instructions 455's composer listener is.
+ */
+private fun BytecodePatchContext.forwardersTo(target: Method, listenerCall: MethodReference): List<Method> =
+    classesCalling(target.definingClass, target.name).filter { listenerCall.definingClass in it.interfaces }.flatMap { classDef ->
+        classDef.methods.filter { method ->
+            !method.isStatic() && method.name == listenerCall.name && method.parameterTypes.isEmpty() && method.returnType == "Z" &&
+                method.forwardsTo(target)
+        }
+    }
+
+private fun Method.forwardsTo(target: Method): Boolean {
+    val code = code()
+    if (code.size != 4) return false
+    val field = (code[0] as? ReferenceInstruction)?.reference as? FieldReference ?: return false
+    if (code[0].opcode != Opcode.IGET_OBJECT || field.definingClass != definingClass || field.type != target.definingClass) return false
+    val asked = code[1].method() ?: return false
+    if (code[1].opcode != Opcode.INVOKE_VIRTUAL || asked.definingClass != target.definingClass || asked.name != target.name ||
+        asked.parameterTypes.isNotEmpty() || asked.returnType != "Z"
+    ) {
+        return false
+    }
+    val ask = code[1] as FiveRegisterInstruction
+    if (ask.registerCount != 1 || ask.registerC != (code[0] as TwoRegisterInstruction).registerA) return false
+    return code[2].opcode == Opcode.MOVE_RESULT && code[3].opcode == Opcode.RETURN &&
+        (code[3] as OneRegisterInstruction).registerA == (code[2] as OneRegisterInstruction).registerA
+}
+
+/** A scroll or fling handler like the delegate's, which only a swipe calls. */
+private fun Method.isScrollHandler() = !isStatic() && parameters() == GESTURE_PARAMETERS && returnType == "Z"
+
+private fun Method.key() = "$definingClass->$name(${parameters().joinToString("")})$returnType"
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

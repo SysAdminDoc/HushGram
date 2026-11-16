@@ -353,7 +353,9 @@ private fun BytecodePatchContext.findFontPremium(controller: ClassDef, format: S
         reads.groupBy { it.second.name.toString() to it.second.check.toString() }.values.mapNotNull { group ->
             val badge = group.any { code[it.first + 3].opcode == Opcode.IF_EQZ }
             val boundary = group.any { (at, _) ->
-                val tail = code.subList(at + 4, minOf(code.size, at + 16))
+                // 455 unboxes the index, checks it and adds the header row's offset before boxing it
+                // again, so its field write is 16 instructions past the name's read.
+                val tail = code.subList(at + 4, minOf(code.size, at + 24))
                 code[at + 3].opcode == Opcode.IF_NEZ && tail.any {
                     it.call()?.toString() == "$INTEGER->valueOf(I)$INTEGER"
                 } && tail.any {

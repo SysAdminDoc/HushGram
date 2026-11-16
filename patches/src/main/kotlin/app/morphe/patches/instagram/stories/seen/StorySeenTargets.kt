@@ -681,7 +681,7 @@ private fun retryOf(method: Method, build: Int, store: String, batch: String): S
  * field it reads only has constants added to it, so nothing that batch sends names a story you
  * watched.
  */
-private fun freshRoute(method: Method, build: Int, batch: String, constructors: List<Method>): Boolean {
+private fun BytecodePatchContext.freshRoute(method: Method, build: Int, batch: String, constructors: List<Method>): Boolean {
     val code = method.code()
     val handed = code[build].namedRegisters()
     val receiver = handed.firstOrNull() ?: return false
@@ -713,7 +713,7 @@ private fun freshRoute(method: Method, build: Int, batch: String, constructors: 
  * constants put or added into it, each loaded after [from] on the same straight run, until the
  * register is written again.
  */
-private fun onlyConstantsInto(code: List<Instruction>, at: Int, register: Int, build: Int, from: Int): Boolean {
+private fun BytecodePatchContext.onlyConstantsInto(code: List<Instruction>, at: Int, register: Int, build: Int, from: Int): Boolean {
     for (index in at + 1 until build) {
         val instruction = code[index]
         val named = instruction.namedRegisters()
@@ -730,10 +730,16 @@ private fun onlyConstantsInto(code: List<Instruction>, at: Int, register: Int, b
     return register !in code[build].namedRegisters()
 }
 
-/** Whether [register] at [at] holds a constant loaded after [from], on the straight run between them. */
-private fun constantAt(code: List<Instruction>, at: Int, register: Int, from: Int): Boolean {
+/**
+ * Whether [register] at [at] holds a constant loaded after [from], on the straight run between them:
+ * a constant load, or the answer of a static pool asked for a string by a constant number, as 455's
+ * armeabi-v7a build 386113915 has the Reset NUX route's key.
+ */
+private fun BytecodePatchContext.constantAt(code: List<Instruction>, at: Int, register: Int, from: Int): Boolean {
     val loaded = (at - 1 downTo from + 1).firstOrNull { code[it].writes(register) } ?: return false
-    return code[loaded].opcode in CONSTANTS
+    if (code[loaded].opcode in CONSTANTS) return true
+    return code[loaded].opcode == Opcode.MOVE_RESULT_OBJECT && loaded - 2 > from &&
+        code[loaded - 1].opcode == Opcode.INVOKE_STATIC && stringLoadedAt(code, loaded - 1) != null
 }
 
 /**
