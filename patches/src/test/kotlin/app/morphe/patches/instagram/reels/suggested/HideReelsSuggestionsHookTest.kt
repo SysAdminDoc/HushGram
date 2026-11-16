@@ -187,13 +187,22 @@ class HideReelsSuggestionsHookTest {
         val code = method.code()
         val asked = code.indexOfFirst { it.referenceText() == NETEGO_FILTER }
         val made = code[asked - 4]
-        assertEquals("${label}: what the netego hook follows", Opcode.MOVE_RESULT_OBJECT, made.opcode)
-        val call = code[asked - 5].reference() as MethodReference
-        assertEquals("${label}: the call that made the netego item", itemType, call.returnType)
-        assertNetegoAsked(
-            label, method,
-            unitRegister = code[asked - 5].arguments().first(), itemRegister = (made as OneRegisterInstruction).registerA,
-        )
+        val (unitRegister, itemRegister) = if (made.opcode == Opcode.MOVE_RESULT_OBJECT) {
+            val call = code[asked - 5].reference() as MethodReference
+            assertEquals("${label}: the call that made the netego item", itemType, call.returnType)
+            code[asked - 5].arguments().first() to (made as OneRegisterInstruction).registerA
+        } else {
+            // Some 455 builds build the item in place from a wrapper of the unit (07f5.A03 on 386113922).
+            assertTrue("${label}: what the netego hook follows", made.opcode == Opcode.INVOKE_DIRECT || made.opcode == Opcode.INVOKE_DIRECT_RANGE)
+            val built = made.reference() as MethodReference
+            assertEquals("${label}: the constructor that made the netego item", itemType to "<init>", built.definingClass to built.name)
+            val unitType = (code[asked - 2].reference() as FieldReference).definingClass
+            val wrap = (asked - 5 downTo 0).first { at ->
+                (code[at].reference() as? MethodReference)?.let { it.name == "<init>" && it.parameterTypes.map(Any::toString) == listOf(unitType) } == true
+            }
+            code[wrap].arguments()[1] to made.arguments().first()
+        }
+        assertNetegoAsked(label, method, unitRegister = unitRegister, itemRegister = itemRegister)
     }
 
     /**

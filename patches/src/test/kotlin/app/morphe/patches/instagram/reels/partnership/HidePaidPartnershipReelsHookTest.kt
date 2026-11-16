@@ -57,6 +57,7 @@ class HidePaidPartnershipReelsHookTest {
     private val other = "Lfixture/Other;"
     private val callback = "Lfixture/Callback;"
     private val fetcher = "Lfixture/Fetcher;"
+    private val provider = "Lfixture/Provider;"
     private val viewer = "Lfixture/Viewer;"
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val list = "Ljava/util/List;"
@@ -132,6 +133,24 @@ class HidePaidPartnershipReelsHookTest {
             val method = context.mutableClassDefBy(type).methods.single { it.name == name }
             assertTrue("$type->$name was hooked", method.code().none { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
         }
+    }
+
+    /**
+     * 455's fetcher asks a provider for the callback, handing it the module name, and the provider
+     * makes the callback with it (07Yr.A00 and A01 on 386113969), so the module field is still the
+     * one that name goes in, and the provider stays as it was.
+     */
+    @Test
+    fun aFetcherAskingAProviderForTheCallbackStillFindsTheModule() {
+        val context = PatchContexts.of(classes(fetchThroughProvider = true))
+
+        val sites = context.findPaidPartnershipReels()
+        context.hidePaidPartnershipReels(sites)
+
+        assertEquals("module", sites.moduleField)
+        assertHookAtJoin("the provided stand-in", context.mutableClassDefBy(callback).methods.single { it.name == "success" }, sites, "page")
+        val make = context.mutableClassDefBy(provider).methods.single { it.name == "make" }
+        assertTrue("the provider was hooked", make.code().none { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
     }
 
     /**
@@ -221,6 +240,10 @@ class HidePaidPartnershipReelsHookTest {
             classes(fetchMarked = false) to "expected one method marked $REELS_FETCH, found []",
             classes(fetchMakes = false) to "$fetcher->fetch()V doesn't make $callback",
             classes(fetchNamed = false) to "expected $fetcher->fetch()V to make $callback with one module name at instruction",
+            classes(fetchThroughProvider = true, fetchNamed = false) to
+                "expected $fetcher->fetch()V to hand $provider->make one module name at instruction",
+            classes(fetchThroughProvider = true, providerKeepsName = false) to
+                "expected $provider->make($session$string)$callback to make $callback with the module name it takes in one place at instruction 3, found []",
             classes(moduleKeptTwice = true) to "expected $callback's constructor to keep its module name in one field, found 2",
             classes(moduleWrittenElsewhere = true) to "$callback->module is written by [",
             classes(partnershipField = "is_paid_partnership_v2") to "expected one getter on $MEDIA answering Ljava/lang/Boolean; for is_paid_partnership, found none",
@@ -316,8 +339,14 @@ class HidePaidPartnershipReelsHookTest {
             val success = markedBy(REELS_PAGE_ARRIVED).single()
             val fetch = markedBy(REELS_FETCH).single()
             val callbackClass = marked.getValue(REELS_PAGE_ARRIVED).single()
+            // From 455 the fetcher asks a provider for the callback (07Yr.A00 and A01 on 386113969).
+            val providerTypes = fetch.code().mapNotNull { instruction ->
+                (instruction.reference() as? MethodReference)?.takeIf { it.returnType == callbackClass.type && it.name != "<init>" }?.definingClass
+            }.toSet()
+            val looked = FixtureDex.classes(bundle, ancestors + itemType + MEDIA + providerTypes)
+            val providers = providerTypes.mapNotNull { looked[it] }
             val kept = (converterClasses + callers + wrapped + helped + callbackClass + marked.getValue(REELS_FETCH) +
-                FixtureDex.classes(bundle, ancestors + itemType + MEDIA).values).distinctBy { it.type } +
+                looked.values).distinctBy { it.type } +
                 ExtensionDex.classDef(PAID_PARTNERSHIP_REELS)
             val context = PatchContexts.of(kept)
 
@@ -331,7 +360,7 @@ class HidePaidPartnershipReelsHookTest {
             val pageName = pageClasses.flatMap { it.methods }.filter { it.isPageShaped() && it.callsAny(pageCalls) }
                 .map { it.name }.distinct().single()
             assertHookAtJoin(bundle.name, hooked.single(), sites, pageName)
-            assertEquals("${bundle.name}: the field the fetcher fills from getModuleName", moduleFieldOf(fetch, callbackClass), sites.moduleField)
+            assertEquals("${bundle.name}: the field the fetcher fills from getModuleName", moduleFieldOf(fetch, callbackClass, providers), sites.moduleField)
             assertEquals("${bundle.name}: the item", itemType, sites.itemType)
             assertStubsFilled(bundle.name, context, itemType, sites.mediaField, sites.partnershipGetter.name, sites.boostedGetter.name)
             assertTrue("${bundle.name}: the partnership getter's field", sites.partnershipGetter.loads(PAID_PARTNERSHIP_FIELD.hashCode()))
@@ -412,28 +441,65 @@ class HidePaidPartnershipReelsHookTest {
 
     /**
      * The field of [callback]'s constructor parameter that [fetch] fills straight from the
-     * viewer's getModuleName, read off the code here rather than the patch's finder.
+     * viewer's getModuleName, itself or, from 455, through the one of [providers] it asks for the
+     * callback, read off the code here rather than the patch's finder.
      */
-    private fun moduleFieldOf(fetch: Method, callback: ClassDef): String {
+    private fun moduleFieldOf(fetch: Method, callback: ClassDef, providers: Collection<ClassDef>): String {
         val code = fetch.code()
-        val fields = code.indices.filter { at ->
-            (code[at].reference() as? MethodReference)?.let { it.definingClass == callback.type && it.name == "<init>" } == true
-        }.map { at ->
-            val constructor = code[at].reference() as MethodReference
-            val parameters = constructor.parameterTypes.map(Any::toString)
-            val registers = code[at].invokeRegisters()
-            val slot = parameters.indices.single { index ->
-                val register = registers[1 + parameters.take(index).sumOf { it.width() }]
-                val writer = (at - 1 downTo 1).first { code[it].writes(register) }
-                code[writer].opcode == Opcode.MOVE_RESULT_OBJECT &&
-                    (code[writer - 1].reference() as? MethodReference)?.name == "getModuleName"
+        fun slotOf(body: List<Instruction>, at: Int, filled: (Int) -> Boolean): Int {
+            val parameters = (body[at].reference() as MethodReference).parameterTypes.map(Any::toString)
+            val registers = body[at].invokeRegisters()
+            return parameters.indices.single { index ->
+                parameters[index] == string && filled(registers[1 + parameters.take(index).sumOf { it.width() }])
             }
+        }
+        fun fieldFor(constructor: MethodReference, slot: Int): String {
+            val parameters = constructor.parameterTypes.map(Any::toString)
             val body = callback.methods.single { it.name == "<init>" && it.parameterTypes.map(Any::toString) == parameters }
-            val held = body.implementation!!.registerCount - 1 - parameters.sumOf { it.width() } + 1 + parameters.take(slot).sumOf { it.width() }
-            body.code().filter { it.opcode == Opcode.IPUT_OBJECT && (it as TwoRegisterInstruction).registerA == held }
+            val held = body.implementation!!.registerCount - parameters.sumOf { it.width() } + parameters.take(slot).sumOf { it.width() }
+            return body.code().filter { it.opcode == Opcode.IPUT_OBJECT && (it as TwoRegisterInstruction).registerA == held }
                 .map { (it.reference() as FieldReference).name }.single()
         }
+        fun fromModuleName(at: Int): (Int) -> Boolean = { register ->
+            val writer = (at - 1 downTo 1).firstOrNull { code[it].writes(register) }
+            writer != null && code[writer].opcode == Opcode.MOVE_RESULT_OBJECT &&
+                (code[writer - 1].reference() as? MethodReference)?.name == "getModuleName"
+        }
+        fun makesCallback(instruction: Instruction) =
+            (instruction.reference() as? MethodReference)?.let { it.definingClass == callback.type && it.name == "<init>" } == true
+        val fields = code.indices.flatMap { at ->
+            val called = code[at].reference() as? MethodReference
+            when {
+                called == null -> emptyList()
+                makesCallback(code[at]) -> listOf(fieldFor(called, slotOf(code, at, fromModuleName(at))))
+                called.returnType == callback.type -> {
+                    val slot = slotOf(code, at, fromModuleName(at))
+                    val takes = called.parameterTypes.map(Any::toString)
+                    val provider = providers.flatMap { it.methods }.single {
+                        it.definingClass == called.definingClass && it.name == called.name && it.parameterTypes.map(Any::toString) == takes
+                    }
+                    val taken = provider.implementation!!.registerCount - takes.sumOf { it.width() } + takes.take(slot).sumOf { it.width() }
+                    val body = provider.code()
+                    body.indices.filter { makesCallback(body[it]) }.map { made ->
+                        fieldFor(body[made].reference() as MethodReference, slotOf(body, made) { movedBack(body, made, it) == taken })
+                    }
+                }
+                else -> emptyList()
+            }
+        }
         return fields.distinct().single()
+    }
+
+    /** The register [register] was moved from, back along [code] from [at] through object moves; -1 when anything else wrote it. */
+    private fun movedBack(code: List<Instruction>, at: Int, register: Int): Int {
+        var held = register
+        for (index in at - 1 downTo 0) {
+            if (!code[index].writes(held)) continue
+            val opcode = code[index].opcode
+            if (opcode != Opcode.MOVE_OBJECT && opcode != Opcode.MOVE_OBJECT_FROM16 && opcode != Opcode.MOVE_OBJECT_16) return -1
+            held = (code[index] as TwoRegisterInstruction).registerB
+        }
+        return held
     }
 
     /** Each ClipsViewerSource constant's source string, by field, as its static initializer makes them. */
@@ -528,6 +594,8 @@ class HidePaidPartnershipReelsHookTest {
         fetchMarked: Boolean = true,
         fetchMakes: Boolean = true,
         fetchNamed: Boolean = true,
+        fetchThroughProvider: Boolean = false,
+        providerKeepsName: Boolean = true,
         moduleKeptTwice: Boolean = false,
         moduleWrittenElsewhere: Boolean = false,
         partnershipField: String = PAID_PARTNERSHIP_FIELD,
@@ -663,7 +731,11 @@ class HidePaidPartnershipReelsHookTest {
             }
             appendLine("const-string v3, \"clips/discover/\"")
             appendLine("iget-object v4, p0, $fetcher->session:$session")
-            if (fetchMakes) {
+            if (fetchMakes && fetchThroughProvider) {
+                appendLine("iget-object v0, p0, $fetcher->provider:$provider")
+                appendLine("invoke-virtual { v0, v4, v2 }, $provider->make($session$string)$callback")
+                appendLine("move-result-object v0")
+            } else if (fetchMakes) {
                 appendLine("new-instance v0, $callback")
                 appendLine("invoke-direct { v0, v4, v3, v2 }, $callback-><init>($session$string$string)V")
             }
@@ -671,10 +743,20 @@ class HidePaidPartnershipReelsHookTest {
         }
         val fetcherClass = classDef(
             fetcher, listOf(method(fetcher, "fetch", emptyList(), "V", 5, body = fetchBody)),
-            fields = listOf("viewer" to viewer, "session" to session),
+            fields = listOf("viewer" to viewer, "session" to session, "provider" to provider),
+        )
+        // 455's provider makes the callback with the module name the fetcher hands it.
+        val providerClasses = if (!fetchThroughProvider) emptyList() else listOf(
+            classDef(provider, listOf(method(provider, "make", listOf(session, string), callback, 3, body = """
+                new-instance v0, $callback
+                const-string v1, "clips/discover/"
+                ${if (providerKeepsName) "move-object v2, p2" else "const/4 v2, 0x0"}
+                invoke-direct { v0, p1, v1, v2 }, $callback-><init>($session$string$string)V
+                return-object v0
+            """))),
         )
         return converterClasses + itemClass + mediaClass + interfaces + directSource + helperClass + helpedSource + otherClass +
-            callbackClass + otherCallback + fetcherClass +
+            callbackClass + otherCallback + fetcherClass + providerClasses +
             if (extension) listOf(ExtensionDex.classDef(PAID_PARTNERSHIP_REELS)) else emptyList()
     }
 

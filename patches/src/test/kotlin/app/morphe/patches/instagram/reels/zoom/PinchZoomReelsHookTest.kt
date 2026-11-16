@@ -63,6 +63,21 @@ class PinchZoomReelsHookTest {
         assertTrue("the zoom config maker was touched", asks.none { it.referenceText() == ZOOM })
     }
 
+    /**
+     * 455 reads the zoomable flag a second time, to warm the zoom classes up, and branches on it
+     * without storing it: the settings' factory gets both answers and the warm-up read stays Instagram's.
+     */
+    @Test
+    fun aReadThatOnlyWarmsTheZoomUpIsLeftAlone() {
+        val context = PatchContexts.of(classes(warmUpRead = true))
+
+        context.zoomReels()
+
+        val methods = context.mutableClassDefBy(factory).methods
+        assertAnswered("stand-in", methods.single { it.name == "make" })
+        assertEquals("the warm-up read was answered", 0, methods.single { it.name == "warmUp" }.code().count { it.referenceText() == ZOOM })
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
@@ -168,6 +183,7 @@ class PinchZoomReelsHookTest {
         storedIn: String = settings,
         storedLater: Boolean = false,
         makerReads: List<String> = listOf("zoomable", "gesture"),
+        warmUpRead: Boolean = false,
     ): List<ClassDef> {
         fun read(flag: Long, field: String, owner: String, at: Int, later: Boolean, shared: Boolean) = """
             ${if (shared) "if-eqz v4, :cast$at" else ""}
@@ -197,6 +213,23 @@ class PinchZoomReelsHookTest {
         } else {
             listOf(method(factory, "make", takes, "Ljava/lang/Object;", 5, static, "$start\n$zoomableBody\n$gestureBody\nreturn-object v3"))
         }
+        val warmUps = if (!warmUpRead) emptyList() else listOf(
+            method(
+                factory, "warmUp", takes, "V", 5, static,
+                """
+                    invoke-static {p0}, Lfixture/Configs;->of(Ljava/lang/Object;)Ljava/lang/Object;
+                    move-result-object v4
+                    const-wide v0, 0x${zoomable}L
+                    check-cast v4, $configs
+                    invoke-interface {v4, v0, v1}, $configs->BbW(J)Z
+                    move-result v0
+                    if-eqz v0, :done
+                    const/4 v2, 0x1
+                    :done
+                    return-void
+                """,
+            ),
+        )
         val makerBody = """
             ${askedClasses.joinToString("\n") { "const-class v0, $it" }}
             const-string v1, "$marker"
@@ -208,7 +241,7 @@ class PinchZoomReelsHookTest {
             val body = if (makers == 0) makerBody.replace(marker, "ClipsZoomUtil.createZoomConfig") else makerBody
             method(util, if (it == 0) "create" else "create$it", takes, "Ljava/lang/Object;", 2, static, body)
         }
-        return listOf(classDef(factory, factories), classDef(util, makerMethods))
+        return listOf(classDef(factory, factories + warmUps), classDef(util, makerMethods))
     }
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, flags: Int, body: String): Method {

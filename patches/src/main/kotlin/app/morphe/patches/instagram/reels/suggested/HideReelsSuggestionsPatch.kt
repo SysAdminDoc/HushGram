@@ -137,7 +137,8 @@ internal class ReelsSuggestionSites(
  * one enum field, the one the extension reads. The netego unit's type is the one String field the
  * binder dispatch reads off another class, and that class is the netego unit: the converter has to
  * return, once, the item a call taking the unit makes, with the unit still in its register and
- * nothing jumping to the return. The friends tab's page is made by the one method holding
+ * nothing jumping to the return. Where Redex built that call's item in place, as 455 does on
+ * some builds ([inlinedNetegoReturns]), the item's constructor right before the return counts. The friends tab's page is made by the one method holding
  * [TO_FRIENDS_TAB_PAGE], which has to answer the same item type and return it somewhere. Fails
  * before anything changes when any of it isn't there exactly once, since that's an update this
  * patch hasn't seen.
@@ -168,17 +169,21 @@ internal fun BytecodePatchContext.findReelsSuggestions(): ReelsSuggestionSites {
             (code[at - 1] as OneRegisterInstruction).registerA == (code[at] as OneRegisterInstruction).registerA &&
             made != null && made.returnType == itemType && made.parameterTypes.firstOrNull()?.toString() == unitType
     }
-    val netegoReturn = returns.singleOrNull()
-        ?: refuse("expected $where to return one item made from a $unitType, found ${returns.size}")
+    val targets = converter.jumpTargets()
+    val inlined = inlinedNetegoReturns(code, targets, itemType, unitType)
+    val netegoReturn = (returns + inlined.map { it.first }).singleOrNull()
+        ?: refuse("expected $where to return one item made from a $unitType, found ${returns.size + inlined.size}")
     val item = (code[netegoReturn] as OneRegisterInstruction).registerA
-    // The unit is the call's first argument only in a static call; an instance call's first is its receiver.
-    val call = code[netegoReturn - 2].opcode
-    if (call != Opcode.INVOKE_STATIC && call != Opcode.INVOKE_STATIC_RANGE) {
-        refuse("$where makes its netego item with ${call.name}, not a static call")
+    val unit = inlined.singleOrNull { it.first == netegoReturn }?.second ?: run {
+        // The unit is the call's first argument only in a static call; an instance call's first is its receiver.
+        val call = code[netegoReturn - 2].opcode
+        if (call != Opcode.INVOKE_STATIC && call != Opcode.INVOKE_STATIC_RANGE) {
+            refuse("$where makes its netego item with ${call.name}, not a static call")
+        }
+        code[netegoReturn - 2].argumentRegisters().firstOrNull() ?: refuse("$where makes its netego item with no arguments")
     }
-    val unit = code[netegoReturn - 2].argumentRegisters().firstOrNull() ?: refuse("$where makes its netego item with no arguments")
     if (unit == item) refuse("$where writes the netego item over its unit before returning it")
-    if (netegoReturn in converter.jumpTargets()) refuse("something in $where jumps to the return of its netego item")
+    if (netegoReturn in targets) refuse("something in $where jumps to the return of its netego item")
     // Two locals the netego hook may borrow, checked now so a method short of them changes nothing.
     converter.freeLocalsAt(PATCH, netegoReturn, 2)
 
@@ -255,6 +260,43 @@ private fun Method.holdsString(value: String) = instructions().any {
 private fun Instruction.fieldReference(): FieldReference? = (this as? ReferenceInstruction)?.reference as? FieldReference
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+/**
+ * The returns of [code] whose item Redex built in place from a netego unit, the way 455 inlines
+ * the netego maker on some builds (`Companion_ofNetego` in `LX/07f5;->A03` at 1055 on 386113922):
+ * the return's register gets [itemType]'s constructor right before it, and before that, along code
+ * nothing jumps into, a constructor taking just a [unitType] wraps the unit, whose register nothing
+ * writes after. Each comes with the unit's register.
+ */
+private fun inlinedNetegoReturns(code: List<Instruction>, targets: Set<Int>, itemType: String, unitType: String): List<Pair<Int, Int>> =
+    code.indices.mapNotNull { at ->
+        if (code[at].opcode != Opcode.RETURN_OBJECT || at < 2 || at in targets) return@mapNotNull null
+        val item = (code[at] as OneRegisterInstruction).registerA
+        val made = code[at - 1]
+        val built = made.methodReference()
+        if (built == null || built.definingClass != itemType || built.name != "<init>" || !made.isDirectCall() ||
+            made.argumentRegisters().firstOrNull() != item
+        ) {
+            return@mapNotNull null
+        }
+        for (index in at - 2 downTo 0) {
+            if (index + 1 in targets) return@mapNotNull null
+            val wrap = code[index].methodReference() ?: continue
+            if (wrap.name != "<init>" || !code[index].isDirectCall() || wrap.parameterTypes.map(CharSequence::toString) != listOf(unitType)) continue
+            val unit = code[index].argumentRegisters().getOrNull(1) ?: return@mapNotNull null
+            return@mapNotNull if ((index + 1 until at).none { code[it].writesRegister(unit) }) at to unit else null
+        }
+        null
+    }
+
+private fun Instruction.isDirectCall() = opcode == Opcode.INVOKE_DIRECT || opcode == Opcode.INVOKE_DIRECT_RANGE
+
+/** Whether this instruction writes [register], a wide write's second half included. */
+private fun Instruction.writesRegister(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val destination = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return destination == register || (opcode.setsWideRegister() && destination + 1 == register)
+}
 
 /** The registers an invoke hands over, in order. */
 private fun Instruction.argumentRegisters(): List<Int> = when (this) {

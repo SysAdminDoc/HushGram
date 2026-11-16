@@ -30,6 +30,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import java.util.BitSet
 
 internal const val AUTOSCROLL_EXPIRATION = "preference_clips_auto_scroll_expiration_timestamp"
 internal const val AUTOSCROLL_EXPIRATION_GETTER = "getClipsAutoscrollExpirationTimestampMs(Lcom/instagram/preferences/user/UserPreferences;)J"
@@ -149,7 +150,7 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
         val read = code.getOrNull(readAt)
         val cast = code.getOrNull(readAt + 1)
         if (read?.opcode != Opcode.IGET_OBJECT || read.timerField()?.toString() != captured.toString() ||
-            (read as TwoRegisterInstruction).registerA != args[0] || read.registerB != callback.implementation!!.registerCount - 1 ||
+            (read as TwoRegisterInstruction).registerA != args[0] || !callback.receiverAt(read.registerB, readAt) ||
             cast?.opcode != Opcode.CHECK_CAST || (cast as OneRegisterInstruction).registerA != args[0] ||
             (cast as ReferenceInstruction).reference.toString() != prefs || args[0] in value..value + 1 ||
             (readAt + 1..at).any { it in targets || flow.normal[it - 1] != listOf(it) }
@@ -168,13 +169,12 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
  * after this prove each save reads that field and casts it, or the patch fails.
  */
 private fun castCapture(type: ClassDef, constructor: Method, constructorCode: List<Instruction>, callback: Method, prefs: String): Int? {
-    val self = callback.implementation!!.registerCount - 1
     val code = callback.timerCode()
     val fields = code.indices.mapNotNull { at ->
         val read = code[at]
         val cast = code.getOrNull(at + 1)
         val field = read.timerField()
-        if (read.opcode == Opcode.IGET_OBJECT && field?.definingClass == type.type && (read as TwoRegisterInstruction).registerB == self &&
+        if (read.opcode == Opcode.IGET_OBJECT && field?.definingClass == type.type && callback.receiverAt((read as TwoRegisterInstruction).registerB, at) &&
             cast?.opcode == Opcode.CHECK_CAST && (cast as OneRegisterInstruction).registerA == read.registerA &&
             (cast as ReferenceInstruction).reference.toString() == prefs
         ) field.toString() else null
@@ -273,6 +273,40 @@ private fun BytecodePatchContext.proveBoxedTimestamp(call: MethodReference) {
     ) refuseTimer("$call doesn't save the boxed timestamp parameter")
 }
 
+/**
+ * Whether [register] holds this callback's receiver at [at]: it's the receiver's own register, or the
+ * one the callback copies it into first thing when no other write of that register reaches [at].
+ * 455 makes that copy (LX/0wls;->invoke on 386113969 starts with move-object/from16 v1, v16), since
+ * its seventeen registers put the receiver past v15, out of an iget's reach.
+ */
+private fun Method.receiverAt(register: Int, at: Int): Boolean {
+    val self = implementation!!.registerCount - 1
+    if (register == self) return true
+    val code = timerCode()
+    val copy = code.firstOrNull()
+    if (copy?.opcode !in RECEIVER_COPIES || (copy as TwoRegisterInstruction).registerA != register || copy.registerB != self) return false
+    val flow = ControlFlow.of(this)
+    val writes = code.indices.filter { it > 0 && code[it].writesTimerRegister(register) }.toSet()
+    val reached = BitSet()
+    val pending = ArrayDeque<Int>()
+    fun visit(next: List<Int>) = next.forEach { if (!reached[it]) { reached.set(it); pending += it } }
+    writes.forEach { visit(flow.normal[it]) }
+    while (pending.isNotEmpty()) {
+        val index = pending.removeFirst()
+        if (index == at) return false
+        if (index != 0 && index !in writes) visit(flow.normal[index])
+        visit(flow.exceptional[index])
+    }
+    return true
+}
+
+private fun Instruction.writesTimerRegister(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val written = (this as OneRegisterInstruction).registerA
+    return written == register || (opcode.setsWideRegister() && written + 1 == register)
+}
+
+private val RECEIVER_COPIES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
 private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 private val DIRECT_CALLS = setOf(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE)
 private fun Method.concreteTimer() = implementation != null && !AccessFlags.NATIVE.isSet(accessFlags) && !AccessFlags.ABSTRACT.isSet(accessFlags)

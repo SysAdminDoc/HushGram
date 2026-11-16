@@ -36,6 +36,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -437,8 +438,14 @@ class SwipeToProfileHookTest {
             method.implementation?.instructions?.any { it.called()?.toString() in asked } == true
         }
         val hosts = FixtureDex.classes(bundle, callers.map { it.definingClass }.toSet() - SWIPE_CONTAINER).values
+        // 455's gate caller is a panel update taking nothing, so the tab it compares with comes in
+        // through the static it loads (03am's on 386113969), not through a parameter.
+        val loaded = callers.flatMap { method ->
+            method.implementation!!.instructions.filter { it.opcode == Opcode.SGET_OBJECT }
+                .mapNotNull { ((it as ReferenceInstruction).reference as? FieldReference)?.definingClass }
+        }
         val kept = (hosts + container).flatMap { holder -> holder.fields.map { it.type } } +
-            callers.flatMap { method -> method.parameterTypes.map(CharSequence::toString) }
+            callers.flatMap { method -> method.parameterTypes.map(CharSequence::toString) } + loaded
         val have = hosts.map { it.type }.toSet() + SWIPE_CONTAINER
         val wanted = kept.filter { it.startsWith("L") }.toSet() + walks + VIEW_PAGER
         return listOf(container) + hosts + FixtureDex.classes(bundle, wanted - have).values

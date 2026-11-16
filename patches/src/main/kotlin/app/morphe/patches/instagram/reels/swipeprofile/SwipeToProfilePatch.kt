@@ -201,7 +201,8 @@ internal fun BytecodePatchContext.hookSwipeGate(gate: SwipeGate) {
  * which keeps its on flag and its position. The tab host's tab-change method (00M2.A0O) is the
  * gate's one other caller; the host answers its tab with [currentTab] (A09), compares it with
  * [reelsTab] (08kM.A08), and reaches the container through its [controller] field (A03, a 004N) and
- * that one's [container] field (A0E).
+ * that one's [container] field (A0E). From 455 the tab change (04sL.A0S on 386113969) leaves the
+ * gate to the controller's panel update (04sV.A0I), which asks and fetches the container instead.
  */
 internal class ProfilePanel(
     val touch: Method,
@@ -231,7 +232,10 @@ internal class ProfilePanel(
  *   right one; the switch reads the same field. The panel keeps its position in its one float
  *   field, which the switch reads too.
  * - The tab-change method is the one other method calling the gate. It is an instance method
- *   answering nothing whose first two parameters are a tab. Before the gate it asks the host's tab
+ *   answering nothing whose first two parameters are a tab. From 455 the gate's other caller is
+ *   the controller's panel update, taking and answering nothing, and the tab change is the one
+ *   method of that shape calling it; the rest is read in the panel update.
+ *   Before the gate it asks the host's tab
  *   (a call of the host taking nothing and answering a tab, or on 454 a call of the host asking
  *   whether its tab is the one handed, beside which sits the getter) and loads the tab it's compared with,
  *   which the touch check loads as well. After the gate it fetches the container with a static call
@@ -304,15 +308,16 @@ internal fun BytecodePatchContext.findProfilePanel(): ProfilePanel {
     val callers = classesCalling(gateCall.definingClass, gateCall.name).flatMap { holder ->
         holder.methods.filter { method -> method.implementation?.instructions?.any { it.called()?.matches(gateCall) == true } == true }
     }.filterNot { it.definingClass == SWIPE_CONTAINER && it.name == touch.name }
-    val tabChange = callers.singleOrNull() ?: refuse("expected the panel gate $gateCall to have one caller besides the touch check, found ${callers.size}")
+    val asker = callers.singleOrNull() ?: refuse("expected the panel gate $gateCall to have one caller besides the touch check, found ${callers.size}")
+    val tabChange = if (asker.isTabChange() || !asker.isPanelUpdate()) asker else tabChangeCalling(asker)
     val host = "${tabChange.definingClass}->${tabChange.name}"
     val parameters = tabChange.parameterTypes.map(CharSequence::toString)
-    if (tabChange.returnType != "V" || parameters.size < 2 || parameters[0] != parameters[1] || !parameters[0].startsWith("L")) {
+    if (!tabChange.isTabChange()) {
         refuse("$host, the gate's other caller, doesn't take two tabs first and answer nothing")
     }
     requirePublicInstance(tabChange)
     val tab = parameters[0]
-    val body = tabChange.implementation!!.instructions.toList()
+    val body = asker.implementation!!.instructions.toList()
     val ask = body.indexOfFirst { it.called()?.matches(gateCall) == true }
     val hostCalls = (0 until ask).reversed().mapNotNull { at ->
         body[at].takeIf { it.opcode == Opcode.INVOKE_VIRTUAL }?.called()?.takeIf { it.definingClass == tabChange.definingClass }
@@ -334,6 +339,9 @@ internal fun BytecodePatchContext.findProfilePanel(): ProfilePanel {
     val controllerType = fetch.parameterTypes.single().toString()
     if (setter.parameterTypes.first().toString() != controllerType) {
         refuse("the panel setter ${setter.name} takes a ${setter.parameterTypes.first()}, not the container's holder $controllerType")
+    }
+    if (asker != tabChange && asker.definingClass != controllerType) {
+        refuse("${asker.definingClass}->${asker.name}, the gate's other caller, isn't the container's holder $controllerType")
     }
     val controllers = instanceFields(classDefBy(tabChange.definingClass)).filter { it.type == controllerType }
     val controller = controllers.singleOrNull()
@@ -357,6 +365,31 @@ internal fun BytecodePatchContext.findProfilePanel(): ProfilePanel {
     return ProfilePanel(
         touch, toggle, panel, panelOn, position, setter, tabChange, currentTab, reelsTab, controllerRef, containerRef,
     )
+}
+
+/** Whether this answers nothing and its first two parameters are one class. */
+private fun Method.isTabChange(): Boolean {
+    val parameters = parameterTypes.map(CharSequence::toString)
+    return returnType == "V" && parameters.size >= 2 && parameters[0] == parameters[1] && parameters[0].startsWith("L")
+}
+
+/** Whether this is an instance method taking and answering nothing, as 455's panel update (04sV.A0I) is. */
+private fun Method.isPanelUpdate(): Boolean =
+    !AccessFlags.STATIC.isSet(accessFlags) && returnType == "V" && parameterTypes.isEmpty() && implementation != null
+
+/**
+ * The one tab-change method calling [update], the controller's panel update that asks the gate from
+ * 455 (04sL.A0S calling 04sV.A0I on 386113969).
+ */
+private fun BytecodePatchContext.tabChangeCalling(update: Method): Method {
+    val where = "${update.definingClass}->${update.name}"
+    val changes = classesCalling(update.definingClass, update.name).flatMap { holder ->
+        holder.methods.filter { method ->
+            method.isTabChange() && method.implementation?.instructions?.any { it.called()?.matches(update) == true } == true
+        }
+    }
+    return changes.singleOrNull()
+        ?: refuse("expected $where, the gate's other caller, to be called by one method taking two tabs first and answering nothing, found ${changes.size}")
 }
 
 /**

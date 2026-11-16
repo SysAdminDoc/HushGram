@@ -22,6 +22,7 @@ import app.morphe.patches.instagram.reels.scrolling.ReelsPagerEnableFingerprint
 import app.morphe.patches.instagram.reels.scrolling.ReelsViewerSetupFingerprint
 import app.morphe.patches.instagram.reels.scrolling.SET_USER_INPUT
 import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
+import app.morphe.patches.instagram.reels.scrolling.reelsPagerSwitchCode
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -76,14 +77,15 @@ val blurReelBarsPatch = bytecodePatch(
 internal class ReelPagerStore(val viewer: String, val name: String, val parameters: List<String>, val store: Int, val pager: Int, val field: String)
 
 /**
- * The Reels pager is the [VIEW_PAGER] field its own [ENABLE_SCROLLING] switch reads, and the viewer
+ * The Reels pager is the [VIEW_PAGER] field its own [ENABLE_SCROLLING] switch reads, itself or
+ * through its helper ([reelsPagerSwitchCode]), and the viewer
  * whose onViewCreated holds [PAGER_SETUP] stores it exactly once. Nothing may jump to the
  * instruction after the store, so the hook sits in the straight line behind it with the pager still
  * in its register.
  */
 internal fun BytecodePatchContext.findReelPagerStore(): ReelPagerStore {
     val enable = uniqueMethod(PATCH, "Reels pager switch holding \"$ENABLE_SCROLLING\"", ReelsPagerEnableFingerprint)
-    val enableCode = enable.instructions()
+    val enableCode = reelsPagerSwitchCode(enable)
     val pagerReads = enableCode.mapNotNull { instruction ->
         instruction.fieldReference()?.takeIf {
             instruction.opcode == Opcode.IGET_OBJECT && it.definingClass == enable.definingClass && it.type == VIEW_PAGER

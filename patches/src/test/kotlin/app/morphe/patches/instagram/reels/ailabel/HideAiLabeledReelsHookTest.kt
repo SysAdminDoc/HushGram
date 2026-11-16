@@ -109,7 +109,7 @@ class HideAiLabeledReelsHookTest {
         assertTrue("no fixture of a declared build", checked > 0)
     }
 
-    /** The same in the other seven builds of 451 (#77, #95), where every class and getter has another short name. */
+    /** The same in the other builds (#77, #95), where every class and getter has another short name. */
     @Test
     fun everyOtherBuildReadsTheLabelInstagramShows() {
         val checked = Fixtures.otherBuilds().map { bundle ->
@@ -156,12 +156,16 @@ class HideAiLabeledReelsHookTest {
 
         assertEquals("$label: Media's label getter", getter.name, sites.getter.name)
         assertEquals("$label: the label interface", labelType, sites.labelType)
-        val tree = implementers.single { classDef -> classDef.methods.any { method -> method.code().any { it.string() == AI_LABEL_TYPE_NAME } } &&
-            classDef.methods.any { it.loads(READS_LABEL_FIELD.hashCode()) } }
+        // 455's arm64 builds ask a Redex pool for the type name (LX/0005;->A00 on 386113969), so the
+        // tree is among the classes loading it either way, not only those holding the literal.
+        val namedTypes = named.mapTo(HashSet()) { it.type }
+        val tree = implementers.single { classDef -> classDef.type in namedTypes && classDef.methods.any { it.loads(READS_LABEL_FIELD.hashCode()) } }
         assertTrue("$label: ${sites.reads} reads $READS_LABEL_FIELD", tree.methods.single { it.name == sites.reads && it.parameterTypes.isEmpty() }.loads(READS_LABEL_FIELD.hashCode()))
         assertTrue("$label: ${sites.text} reads $LABEL_TEXT_FIELD", tree.methods.single { it.name == sites.text && it.parameterTypes.isEmpty() }.loads(LABEL_TEXT_FIELD.hashCode()))
 
-        assertEquals("$label: Instagram's tests for showing the AI label under a reel (452 folds the two into one)", 1, shows.size)
+        // Every 455 build keeps both copies: the util's own (LX/02Ke;->A0C on 386113969) and the one
+        // inlined into the attribution list builder (LX/055a;->A03).
+        assertEquals("$label: Instagram's tests for showing the AI label under a reel", 2, shows.size)
         val checks = shows.map { method ->
             for (field in listOf(AI_LABEL_FIELD, READS_LABEL_FIELD, LABEL_TEXT_FIELD)) {
                 assertTrue("$label: ${method.definingClass}->${method.name} doesn't read $field", method.loads(field.hashCode()))

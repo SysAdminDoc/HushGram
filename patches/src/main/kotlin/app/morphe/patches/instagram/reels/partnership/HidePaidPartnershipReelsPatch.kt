@@ -265,7 +265,9 @@ private fun pageJoin(patch: String, success: Method, pageInterface: String, page
 /**
  * The [callback]'s String field holding the viewer's module name. The fetcher ([REELS_FETCH]) makes
  * the callback with what the viewer's getModuleName answered, read straight before; the callback's
- * one constructor keeps that parameter in one field, and nothing else writes it.
+ * one constructor keeps that parameter in one field, and nothing else writes it. From 455 the
+ * fetcher asks a provider for the callback instead (`LX/07Yr;->A00` and `A01` on 386113969),
+ * handing it that answer, and the provider makes the callback with it ([providedSlots]).
  */
 private fun BytecodePatchContext.moduleField(patch: String, callback: String): String {
     fun refuse(detail: String): Nothing = refuseFor(patch, detail)
@@ -273,24 +275,36 @@ private fun BytecodePatchContext.moduleField(patch: String, callback: String): S
         ?: refuse("expected one method marked $REELS_FETCH, found ${markedMethods(REELS_FETCH).map { it.describe() }}")
     val code = fetch.implementation?.instructions?.toList().orEmpty()
     val targets = fetch.jumpTargets()
-    val made = code.indices.filter { at ->
-        val called = code[at].methodReference()
-        called != null && called.definingClass == callback && called.name == "<init>" &&
-            (code[at].opcode == Opcode.INVOKE_DIRECT || code[at].opcode == Opcode.INVOKE_DIRECT_RANGE)
+    val made = code.indices.filter { at -> code[at].makes(callback) }
+    val provided = code.indices.filter { at ->
+        code[at].methodReference()?.let { it.returnType == callback && it.name != "<init>" } == true
     }
-    if (made.isEmpty()) refuse("${fetch.describe()} doesn't make $callback")
-    val slots = made.map { at ->
-        val constructor = code[at].methodReference()!!
+    if (made.isEmpty() && provided.isEmpty()) refuse("${fetch.describe()} doesn't make $callback")
+    fun named(at: Int): List<Int> {
+        val called = code[at].methodReference()!!
         val registers = code[at].registers()
-        val parameters = constructor.parameterTypes.map(Any::toString)
-        val named = parameters.indices.filter { index ->
+        val parameters = called.parameterTypes.map(Any::toString)
+        val first = if (code[at].opcode == Opcode.INVOKE_STATIC || code[at].opcode == Opcode.INVOKE_STATIC_RANGE) 0 else 1
+        return parameters.indices.filter { index ->
             parameters[index] == STRING &&
-                answeredBy(code, targets, at, registers[1 + parameters.take(index).sumOf { it.width() }]) == GET_MODULE_NAME
+                answeredBy(code, targets, at, registers[first + parameters.take(index).sumOf { it.width() }]) == GET_MODULE_NAME
         }
+    }
+    val direct = made.map { at ->
+        val named = named(at)
         val slot = named.singleOrNull()
             ?: refuse("expected ${fetch.describe()} to make $callback with one module name at instruction $at, found $named")
-        parameters to slot
-    }.distinct()
+        code[at].methodReference()!!.parameterTypes.map(Any::toString) to slot
+    }
+    val throughProvider = provided.flatMap { at ->
+        val provider = code[at].methodReference()!!
+        val named = named(at)
+        val slot = named.singleOrNull() ?: refuse(
+            "expected ${fetch.describe()} to hand ${provider.definingClass}->${provider.name} one module name at instruction $at, found $named",
+        )
+        providedSlots(patch, provider, slot, callback)
+    }
+    val slots = (direct + throughProvider).distinct()
     val (parameters, slot) = slots.singleOrNull()
         ?: refuse("${fetch.describe()} makes $callback in more than one way: $slots")
 
@@ -336,6 +350,63 @@ private fun answeredBy(code: List<Instruction>, targets: Set<Int>, at: Int, regi
         if (index in targets) return null
     }
     return null
+}
+
+/**
+ * How [provider], which the fetcher hands the module name as its parameter [slot], makes [callback]:
+ * for each constructor call, the constructor's parameters and the one String it takes that
+ * parameter in, moved there along straight code (455's `LX/07Yr;->A00` and `A01` on 386113969).
+ */
+private fun BytecodePatchContext.providedSlots(
+    patch: String,
+    provider: MethodReference,
+    slot: Int,
+    callback: String,
+): List<Pair<List<String>, Int>> {
+    fun refuse(detail: String): Nothing = refuseFor(patch, detail)
+    val takes = provider.parameterTypes.map(Any::toString)
+    val method = classDefByOrNull(provider.definingClass)?.methods?.singleOrNull { method ->
+        method.name == provider.name && method.returnType == provider.returnType && method.implementation != null &&
+            method.parameterTypes.map(Any::toString) == takes
+    } ?: refuse("${provider.definingClass}->${provider.name}, which the fetcher asks for $callback, has no code in this build")
+    val held = method.parameterRegisterNumber(slot)
+    val code = method.implementation!!.instructions.toList()
+    val targets = method.jumpTargets()
+    val made = code.indices.filter { code[it].makes(callback) }
+    if (made.isEmpty()) refuse("${method.describe()} answers $callback without making one")
+    return made.map { at ->
+        val parameters = code[at].methodReference()!!.parameterTypes.map(Any::toString)
+        val registers = code[at].registers()
+        val fed = parameters.indices.filter { index ->
+            parameters[index] == STRING &&
+                movedFrom(code, targets, at, registers[1 + parameters.take(index).sumOf { it.width() }]) == held
+        }
+        val kept = fed.singleOrNull() ?: refuse(
+            "expected ${method.describe()} to make $callback with the module name it takes in one place at instruction $at, found $fed",
+        )
+        parameters to kept
+    }
+}
+
+/**
+ * The register whose value on entry [register] holds at instruction [at], following object moves
+ * back along straight code with no jump into it; null when anything else wrote it.
+ */
+private fun movedFrom(code: List<Instruction>, targets: Set<Int>, at: Int, register: Int): Int? {
+    var held = register
+    for (index in at - 1 downTo 0) {
+        val instruction = code[index]
+        if (instruction.writes(held)) {
+            if (instruction.opcode != Opcode.MOVE_OBJECT && instruction.opcode != Opcode.MOVE_OBJECT_FROM16 &&
+                instruction.opcode != Opcode.MOVE_OBJECT_16
+            ) {
+                return null
+            }
+            held = (instruction as TwoRegisterInstruction).registerB
+        }
+        if (index in targets) return null
+    }
+    return held
 }
 
 /**
@@ -459,6 +530,13 @@ private fun Method.describe() = "$definingClass->$name(${parameterTypes.joinToSt
 private fun Instruction.methodReference() = (this as? ReferenceInstruction)?.reference as? MethodReference
 
 private fun Instruction.fieldReference() = (this as? ReferenceInstruction)?.reference as? FieldReference
+
+/** Whether this instruction runs a constructor of [type] on a new instance. */
+private fun Instruction.makes(type: String): Boolean {
+    val called = methodReference() ?: return false
+    return called.definingClass == type && called.name == "<init>" &&
+        (opcode == Opcode.INVOKE_DIRECT || opcode == Opcode.INVOKE_DIRECT_RANGE)
+}
 
 /** Whether this instruction writes [register], a wide write's second half included. */
 private fun Instruction.writes(register: Int): Boolean {

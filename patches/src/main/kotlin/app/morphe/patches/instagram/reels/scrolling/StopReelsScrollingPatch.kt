@@ -116,6 +116,33 @@ internal object ReelsPagerEnableFingerprint : Fingerprint(
 )
 
 /**
+ * The code of the Reels pager's switch [enable], followed, when it reads no pager of its class itself,
+ * by the code of the one static method of its class taking just that class that it hands itself to.
+ * From 455 the switch only sets its flag and leaves the pager's input to that helper
+ * (`LX/06Sp;->BEh` calling `LX/06Sp;->A01(LX/06Sp;)V` on 386113969).
+ */
+internal fun BytecodePatchContext.reelsPagerSwitchCode(enable: Method): List<Instruction> {
+    val code = enable.instructions()
+    val owner = enable.definingClass
+    fun List<Instruction>.readsPager() = any { instruction ->
+        instruction.opcode == Opcode.IGET_OBJECT && instruction.fieldReference()?.let { it.definingClass == owner && it.type == VIEW_PAGER } == true
+    }
+    if (code.readsPager()) return code
+    val helpers = code.mapNotNull { instruction ->
+        instruction.methodReference()?.takeIf {
+            instruction.opcode == Opcode.INVOKE_STATIC && it.definingClass == owner && it.returnType == "V" &&
+                it.parameterTypes.map(CharSequence::toString) == listOf(owner)
+        }?.name
+    }.distinct()
+    val helper = helpers.singleOrNull()?.let { name ->
+        classDefByOrNull(owner)?.methods?.singleOrNull {
+            it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(CharSequence::toString) == listOf(owner)
+        }
+    } ?: return code
+    return code + helper.instructions()
+}
+
+/**
  * Where the three hooks go: after the viewer's store of its pager, with the pager's register, the
  * register of the object it's stored in, that object's viewer config field, the config's source
  * field and a free local there; in front of the pager's setter, with the register of its `this`; and
@@ -140,14 +167,14 @@ internal class ReelsScrollingSite(
  * Finds all three places before anything changes, failing when one isn't there exactly once, since
  * that's an update this patch hasn't seen.
  *
- * The Reels pager is the [VIEW_PAGER] field its own [ENABLE_SCROLLING] switch reads, and the
- * viewer's onViewCreated stores it once. AndroidX's [SET_USER_INPUT] stores its parameter in one
+ * The Reels pager is the [VIEW_PAGER] field its own [ENABLE_SCROLLING] switch reads, itself or
+ * through its helper ([reelsPagerSwitchCode]), and the viewer's onViewCreated stores it once. AndroidX's [SET_USER_INPUT] stores its parameter in one
  * field. The pull-down layout declares both [PULL_TOUCHES] itself. The object the pager is stored in
  * holds one [VIEWER_CONFIG], and that holds one [VIEWER_SOURCE].
  */
 internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
     val enable = uniqueMethod(PATCH, "Reels pager switch holding \"$ENABLE_SCROLLING\"", ReelsPagerEnableFingerprint)
-    val enableCode = enable.instructions()
+    val enableCode = reelsPagerSwitchCode(enable)
     val pagerReads = enableCode.mapNotNull { instruction ->
         instruction.fieldReference()?.takeIf {
             instruction.opcode == Opcode.IGET_OBJECT && it.definingClass == enable.definingClass && it.type == VIEW_PAGER

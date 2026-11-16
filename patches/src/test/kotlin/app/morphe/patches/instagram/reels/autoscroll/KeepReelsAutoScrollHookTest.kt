@@ -200,6 +200,14 @@ class KeepReelsAutoScrollHookTest {
         assertEquals("the cancellation callback remains stock", 0, context.method("Lfixture/DurationCancel;", "invoke").code().count { it.referenceText() in hooks })
     }
 
+    /** 455's callback reads its captures off a copy of its receiver it makes first thing, and is read the same. */
+    @Test
+    fun aDurationCallbackReadingACopyOfItselfIsStillRemembered() {
+        val context = PatchContexts.of(classes(durationCopiesReceiver = true) + ExtensionDex.classDef(SETTINGS_STATUS))
+        keepReelsAutoScrollPatch.execute(context)
+        assertTimerChoices(context.method(duration, "invoke"))
+    }
+
     /** A timer role or timestamp with no proof must fail before any of the other hooks are written. */
     @Test
     fun anUnprovedTimerFailsBeforeAnythingChanges() {
@@ -212,6 +220,7 @@ class KeepReelsAutoScrollHookTest {
             classes(timerKeepsDeadline = false),
             classes(durationOverwritesPrefs = true),
             classes(durationOverwritesReceiver = true),
+            classes(durationCopiesReceiver = true, durationRewritesCopy = true),
         )
         for (classes in fixtures) {
             val context = PatchContexts.of(classes + ExtensionDex.classDef(SETTINGS_STATUS))
@@ -715,6 +724,8 @@ class KeepReelsAutoScrollHookTest {
         timerKeepsDeadline: Boolean = true,
         durationOverwritesPrefs: Boolean = false,
         durationOverwritesReceiver: Boolean = false,
+        durationCopiesReceiver: Boolean = false,
+        durationRewritesCopy: Boolean = false,
         gates: Int = 1,
         gateTakes: List<String> = listOf(session, "Z"),
         scrollerMarks: Set<String> = scrollerMarkers - OPT_IN_AUTOSCROLL,
@@ -740,6 +751,7 @@ class KeepReelsAutoScrollHookTest {
         branchSkipsBuild: Boolean = true,
         jumpOntoBranch: Boolean = false,
     ): List<ClassDef> {
+        fun self() = if (durationCopiesReceiver) "v5" else "p0"
         val setter = "$preference->setEnabled($prefs" + "Z)V"
         val read = if (checkReads) "invoke-static { v0 }, $preference->enabled($prefs)Z" else "invoke-static { v0 }, Lfixture/Other;->enabled($prefs)Z"
         val instance = "$memoryClass->instance($session)$memoryClass"
@@ -930,18 +942,20 @@ class KeepReelsAutoScrollHookTest {
                     invoke-direct { p0 }, Ljava/lang/Object;-><init>()V
                     return-void
                 """),
+                // 455 copies the receiver first (LX/0wls;->invoke on 386113969: move-object/from16 v1, v16).
                 method(duration, "invoke", emptyList(), "Ljava/lang/Object;", 8, body = """
-                    iget v1, p0, $duration->which:I
+                    ${if (durationCopiesReceiver) "move-object/from16 v5, p0" else ""}
+                    iget v1, ${self()}, $duration->which:I
                     if-eqz v1, :hour
                     const/4 v0, 0x1
                     if-eq v1, v0, :day
-                    iget-object v2, p0, $duration->preferences:Ljava/lang/Object;
+                    iget-object v2, ${self()}, $duration->preferences:Ljava/lang/Object;
                     check-cast v2, $prefs
                     const-wide v0, 0x7fffffffffffffffL
                     invoke-static { v2, v0, v1 }, $timerSetter
                     goto :logged
                     :hour
-                    iget-object v4, p0, $duration->preferences:Ljava/lang/Object;
+                    iget-object v4, ${self()}, $duration->preferences:Ljava/lang/Object;
                     check-cast v4, $prefs
                     ${if (jumpIntoDurationSave) "if-eqz v4, :hourSave" else ""}
                     invoke-static { }, Ljava/lang/System;->currentTimeMillis()J
@@ -952,7 +966,8 @@ class KeepReelsAutoScrollHookTest {
                     invoke-static { v4, v2, v3 }, $timerSetter
                     goto :logged
                     :day
-                    iget-object v4, p0, $duration->preferences:Ljava/lang/Object;
+                    ${if (durationRewritesCopy) "const/4 v5, 0x0" else ""}
+                    iget-object v4, ${self()}, $duration->preferences:Ljava/lang/Object;
                     check-cast v4, $prefs
                     invoke-static { }, Ljava/lang/System;->currentTimeMillis()J
                     move-result-wide v2
