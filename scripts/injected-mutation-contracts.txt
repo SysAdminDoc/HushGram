@@ -121,8 +121,10 @@ once-call Lapp/hushgram/extension/instagram/direct/SplitNotesRow;->split(I)Z in 
 once-call Lapp/hushgram/extension/instagram/direct/SplitNotesRow;->split(I)Z in instance (Lcom/instagram/common/session/UserSession;Lcom/instagram/direct/inbox/notes/data/repository/NotesRepository;LX/*;LX/*;LX/*;)V holding const:0x8115d300007550
 once-call Lapp/hushgram/extension/instagram/direct/SplitNotesRow;->split(I)Z in (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;LX/*;LX/*;Ljava/lang/String;Lkotlin/jvm/functions/Function0;J)V holding const:0x8115d300007550
 once-call Lapp/hushgram/extension/instagram/direct/SplitNotesRow;->split(I)Z in (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Z)V holding const:0x8115d300007550
-once-call Lapp/hushgram/extension/instagram/direct/SplitNotesRow;->storiesOff(I)Z in (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Z)V holding const:0x8115f0000e7443
-once-call Lapp/hushgram/extension/instagram/direct/SplitNotesRow;->storiesOff(I)Z in instance ()Ljava/lang/Object; holding const:0x8115f0000e7443
+# Its stories-off test (0x8115d3000e755d on 455, 0x8115f0000e7443 on 454) is read where the row's stacks
+# get registered and on the way into your messages (#717).
+once-call Lapp/hushgram/extension/instagram/direct/SplitNotesRow;->storiesOff(I)Z in (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Z)V holding const:0x8115d3000e755d
+once-call Lapp/hushgram/extension/instagram/direct/SplitNotesRow;->storiesOff(I)Z in instance ()Ljava/lang/Object; holding const:0x8115d3000e755d
 # Tab bar layout (#356) hands each of the three returns of Instagram's newer tab bar gate (00PP.A04
 # on 454's 386014758), the static (UserSession) method answering a boolean from an override and the navigation
 # config, to TabBarLayout.newTabBar(int) first. The config's string read has another shape, so the
@@ -2143,12 +2145,15 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I i
 # fixture.
 start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->hides(Landroid/view/View;)I in instance (Landroid/graphics/Canvas;)V holding Landroid/graphics/Picture;->beginRecording(II)Landroid/graphics/Canvas; Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->getCurrentPaint()Landroid/graphics/Paint;
 once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->hides(Landroid/view/View;)I in instance (Landroid/graphics/Canvas;)V holding Landroid/graphics/Picture;->beginRecording(II)Landroid/graphics/Canvas; Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->getCurrentPaint()Landroid/graphics/Paint;
-# Compose screens build the default ring apart from the view (0IDN.A00 on 386014758): the static
-# loading default_brand_update turns the ring spec's list of colors into an int array, and
-# StoryRing.defaultColors takes that array right after it lands (#528). Its sibling loading the
-# same name turns no list into an array, so calling tells them apart. Left out, a chosen color
-# leaves Compose screens' rings in Instagram's gradient. StoryRingComposeHookTest checks every build.
-once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->defaultColors([I)[I in static ()L*; calling static LX/*;->*(Ljava/util/List;)[I pooled holding default_brand_update
+# Compose screens build the default ring apart from the view (0129.A00 on 386113969, 0IDN.A00 on
+# 454's 386014758): a static taking the default ring's own class, the one the method loading
+# default_brand_update makes from two lists and four doubles, turns its list of colors into an int
+# array, and StoryRing.defaultColors takes that array right after it lands (#528). On 455 that
+# static holds no name string, so the rule picks it by its shape, the list-to-array call, the float
+# packing of the ring's points and the spec it makes; it's the only such static in every 455 build.
+# Left out, a chosen color leaves Compose screens' rings in Instagram's gradient.
+# StoryRingComposeHookTest checks every build.
+once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->defaultColors([I)[I in static (LX/*;)LX/*; calling static LX/*;->*(Ljava/util/List;)[I holding Ljava/lang/Float;->floatToRawIntBits(F)I LX/*;->*(Ljava/lang/String;LX/*;LX/*;JJ)V
 # Its thickness passes every width the ring view reads through StoryRing.thickness, right after the
 # read (#528). It gets no rule: the view reads its two widths in five methods, up to a dozen times in
 # onDraw, the reads hold no string, and the fields' names are Redex's, so neither a method nor its
@@ -2161,7 +2166,7 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->defaultColors([I
 # checks every build.
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->colors([I[F)[I in static (Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;[F[F[F[III)Landroid/graphics/LinearGradient; holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->colors([I[F)[I in instance ([F[F[F[III)V holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
-once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeColors([I)[I in static ()L*; calling static LX/*;->*(Ljava/util/List;)[I pooled holding default_brand_update
+once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeColors([I)[I in static (LX/*;)LX/*; calling static LX/*;->*(Ljava/util/List;)[I holding Ljava/lang/Float;->floatToRawIntBits(F)I LX/*;->*(Ljava/lang/String;LX/*;LX/*;JJ)V
 # Hide the Repost button answers FALSE first thing in the post model's getter of
 # enable_media_notes_production, the one instance method taking nothing and answering a Boolean
 # that loads the field's name (Media.A3o on 449). Its other hooks filter the reads of the field
