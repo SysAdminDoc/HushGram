@@ -464,9 +464,9 @@ private fun BytecodePatchContext.handsToRows(builder: Method, adder: Method): Bo
 /**
  * The register holding the Media the call at [at] hands [eligible], the download check, or null. The
  * check takes the Media once, or, as on 451, takes no Media and is handed one wrapper that a static
- * (Media) call answering that parameter's type makes just before (the same check the feed menu reads
- * through `checkedPost`). The wrapper's Media is used only when nothing writes its register from that
- * call to the check's answer and no jump lands in between, so it still holds the post the check got.
+ * (Media) call answering that parameter's type makes just before. The wrapper's Media is used only
+ * when nothing writes its register from that call to the check's answer and no jump lands in
+ * between, so it still holds the post the check got.
  */
 private fun Method.mediaArgument(code: List<Instruction>, at: Int, eligible: Method): Int? {
     val types = eligible.parameterTypes.map(Any::toString)

@@ -16,7 +16,9 @@ import app.morphe.patches.instagram.download.reel.code
 import app.morphe.patches.instagram.download.video.FeedMenu
 import app.morphe.patches.instagram.download.video.downloadRow
 import app.morphe.patches.instagram.download.video.findFeedMenu
+import app.morphe.patches.instagram.download.video.helperAt
 import app.morphe.patches.instagram.download.video.mutable
+import app.morphe.patches.instagram.download.video.postBridge
 import app.morphe.patches.instagram.feed.FeedStateWrite
 import app.morphe.patches.instagram.feed.feedRowState
 import app.morphe.patches.instagram.feed.flagWrites
@@ -150,20 +152,17 @@ internal class FeedSaveRowHooks(
         val built = builder.code()
         val inserts = built.indices.filter { built[it].opcode == Opcode.RETURN_OBJECT }.map { index ->
             val rows = (built[index] as OneRegisterInstruction).registerA
-            index to "invoke-static/range { v$rows .. v$rows }, $SETTLE_SAVE"
-        } + (others.at to "invoke-static { v${others.state}, v${others.rows} }, $OFFER_SAVE")
+            index to { "invoke-static/range { v$rows .. v$rows }, $SETTLE_SAVE" }
+        } + (others.at to {
+            // The menu's helper, read off the builder's lambda into a register free there by then.
+            val (held, load) = menu.helperAt(builder, others.at, listOf(others.rows))
+            "$load\ninvoke-static { v$held, v${others.rows} }, $OFFER_SAVE"
+        })
         // The highest index first, so the ones below it stay where they were.
         for ((index, call) in inserts.sortedByDescending { it.first }) {
-            builder.addInstructionsAtControlFlowLabel(index, call)
+            builder.addInstructionsAtControlFlowLabel(index, call())
         }
-        postOf.addInstructions(
-            0,
-            """
-                check-cast p0, ${others.stateType}
-                iget-object p0, p0, ${others.media}
-                return-object p0
-            """,
-        )
+        menu.postBridge(postOf)
         saveOf.addInstructions(0, "sget-object v0, $SAVE_OPTION\nreturn-object v0")
         unsaveOf.addInstructions(0, "sget-object v0, $UNSAVE_OPTION\nreturn-object v0")
         savedOf.addInstructions(
@@ -178,14 +177,14 @@ internal class FeedSaveRowHooks(
             """,
         )
         row.methods.remove(adder)
-        row.methods.add(downloadRow(adder, others, all = true))
+        row.methods.add(downloadRow(adder, menu, all = true))
     }
 }
 
 /** Finds [FeedSaveRowHooks], or stops the patch saying what moved. Nothing is changed here. */
 internal fun BytecodePatchContext.findFeedSaveRow(): FeedSaveRowHooks {
     val menu = try {
-        findFeedMenu()
+        findFeedMenu().also { it.helperAt(mutable(it.builder), it.others.at, listOf(it.others.rows)) }
     } catch (moved: PatchException) {
         throw PatchException(moved.message.orEmpty().replace("Download any video:", "$PATCH:"))
     }

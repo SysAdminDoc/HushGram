@@ -317,8 +317,10 @@ internal const val MUSIC_INFO = "Lcom/instagram/api/schemas/MusicInfo;"
 internal const val PANDO_MUSIC_INFO = "Lcom/instagram/api/schemas/ImmutablePandoMusicInfo;"
 internal const val TRACK_DATA = "Lcom/instagram/api/schemas/TrackData;"
 internal const val PANDO_TRACK_DATA = "Lcom/instagram/api/schemas/ImmutablePandoTrackData;"
-internal const val MUSIC_CONSUMPTION = "Lcom/instagram/music/common/model/MusicConsumptionModel;"
-internal const val PANDO_MUSIC_CONSUMPTION = "Lcom/instagram/music/common/model/ImmutablePandoMusicConsumptionModel;"
+// 455 dropped MusicConsumptionModel: the music's getter for music_consumption_info answers this
+// interface instead (MusicInfoImpl's Cx6 on 386113969), which keeps the start and length getters.
+internal const val MUSIC_CONSUMPTION = "Lcom/instagram/api/schemas/MusicConsumptionInfoDict;"
+internal const val PANDO_MUSIC_CONSUMPTION = "Lcom/instagram/api/schemas/ImmutablePandoMusicConsumptionInfoDict;"
 
 /**
  * The same for a post's music (#71): where a photo post keeps it (`music_metadata`) or a reel does

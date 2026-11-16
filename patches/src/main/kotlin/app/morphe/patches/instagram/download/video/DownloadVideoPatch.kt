@@ -42,6 +42,8 @@ import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.media.quality.target
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
+import app.morphe.util.RegisterLiveness
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -188,27 +190,49 @@ val downloadVideoPatch = bytecodePatch(
 }
 
 /**
- * What the patch found of the feed menu's builder. Anyone else's rows start at [at], where
- * [state] holds the builder's state, of [stateType], and [rows] the list of rows. Instagram adds
- * its own Download row with [adder], passing the row kind [kind] and a label read by resource id
- * [label] through the state's [context]. The state keeps the post in [media].
+ * What the patch found of the feed menu's builder. Anyone else's rows start at [at], where [rows]
+ * holds the list of rows. Instagram adds its own Download row with [adder], a static method of the
+ * builder's state, of [stateType], passing the row kind [kind] and a label read by resource id
+ * [label] through the state's [context].
  */
 internal class OthersRow(
     val at: Int,
-    val state: Int,
     val rows: Int,
     val stateType: String,
     val adder: MethodReference,
     val kind: FieldReference,
     val context: FieldReference,
     val label: Int,
-    val media: FieldReference,
+)
+
+/**
+ * How [OthersRow.adder] makes a row, which the patch's own rows copy without calling it: a [type]
+ * made with [constructor], its [option], [label], [kind] and [flag] fields set, the static [fence]
+ * Redex writes [fenceValue] to after them when the adder does, and the row put on the list with
+ * [add], called by [addCall].
+ */
+internal class RowShape(
+    val type: String,
+    val constructor: MethodReference,
+    val option: FieldReference,
+    val label: FieldReference,
+    val kind: FieldReference,
+    val flag: FieldReference,
+    val fence: FieldReference?,
+    val fenceValue: Int,
+    val add: MethodReference,
+    val addCall: String,
 )
 
 /**
  * The feed menu's pieces every row added to it needs: its helper, Instagram's download check, the
  * builder that adds rows, where anyone else's rows start in it, the page reads and the lists of
  * kept options for the short menu. Hide posts from this account finds them the same way.
+ *
+ * The extension is handed the helper as the menu. From 455 the builder's state holds no post, but
+ * the helper answers it with [media] and keeps the state in [state]. The builder reads the helper
+ * off its lambda, which comes in [lambda] and keeps it in the final [lambdaField], so a hook reads
+ * it there again ([helperAt]).
  */
 internal class FeedMenu(
     val helper: ClassDef,
@@ -218,6 +242,11 @@ internal class FeedMenu(
     val outlined: (MethodReference) -> Method?,
     val pageReads: List<PageRead>,
     val shortLists: List<Method>,
+    val lambda: Int,
+    val lambdaField: FieldReference,
+    val state: FieldReference,
+    val media: Method,
+    val row: RowShape,
 )
 
 /** Finds [FeedMenu] without changing anything. */
@@ -258,10 +287,179 @@ internal fun BytecodePatchContext.findFeedMenu(): FeedMenu {
         "$PATCH: expected one builder of the feed menu adding Download after the download check, found " +
             if (builders.isEmpty()) "none" else builders.joinToString { "${it.definingClass}->${it.name}" },
     )
-    builder.checkedPost(eligible)
     val outlined = { call: MethodReference -> classDefByOrNull(call.definingClass)?.methods?.firstOrNull { it.isTargetOf(call) } }
     val others = builder.othersRow(eligible, outlined)
-    return FeedMenu(helper, eligible, builder, others, outlined, pageReads, shortLists)
+    // The extension's bridges cast the menu to the helper and read it from outside its package.
+    if (!AccessFlags.PUBLIC.isSet(helper.accessFlags)) throw PatchException("$PATCH: ${helper.type}, the feed menu's helper, isn't public")
+    val (lambda, lambdaField) = helperField(builder, helper)
+    val stateFields = helper.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == others.stateType }
+    val state = stateFields.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one ${others.stateType} field in ${helper.type}, the builder's state, found ${stateFields.size}",
+    )
+    if (!AccessFlags.PUBLIC.isSet(state.accessFlags)) throw PatchException("$PATCH: ${helper.type}->${state.name}, the builder's state, isn't public")
+    val media = postGetter(helper)
+    if (!AccessFlags.PUBLIC.isSet(media.accessFlags)) throw PatchException("$PATCH: ${helper.type}->${media.name}, the post's getter, isn't public")
+    val row = rowShape(others)
+    if (!publicField(others.context, static = false)) {
+        throw PatchException("$PATCH: ${others.context}, the builder's context, isn't a public field of a public class")
+    }
+    if (!publicField(others.kind, static = true)) {
+        throw PatchException("$PATCH: ${others.kind}, the Download row's kind, isn't a public static of a public class")
+    }
+    return FeedMenu(
+        helper, eligible, builder, others, outlined, pageReads, shortLists, lambda, lambdaField,
+        ImmutableFieldReference(state.definingClass, state.name, state.type), media, row,
+    )
+}
+
+/**
+ * The register [builder] gets its lambda in, its own first parameter, and the one field of that
+ * lambda it reads [helper] from and casts it to straight after. R8 merged the builder into the
+ * lambda, so the field is the lambda's and final, and every read of it answers the helper the
+ * menu is built for.
+ */
+private fun BytecodePatchContext.helperField(builder: Method, helper: ClassDef): Pair<Int, FieldReference> {
+    val where = "${builder.definingClass}->${builder.name}"
+    val static = AccessFlags.STATIC.isSet(builder.accessFlags)
+    val lambdaType = if (static) builder.parameterTypes.firstOrNull()?.toString() else builder.definingClass
+    val code = builder.code()
+    val fields = code.indices.mapNotNull { index ->
+        val read = code.getOrNull(index - 1) ?: return@mapNotNull null
+        val field = (read as? ReferenceInstruction)?.reference as? FieldReference ?: return@mapNotNull null
+        field.takeIf {
+            code[index].opcode == Opcode.CHECK_CAST && code[index].referenceText() == helper.type && read.opcode == Opcode.IGET_OBJECT &&
+                field.definingClass == lambdaType && (read as TwoRegisterInstruction).registerA == (code[index] as OneRegisterInstruction).registerA
+        }
+    }.distinctBy { it.toString() }
+    val field = fields.singleOrNull() ?: throw PatchException(
+        "$PATCH: $where reads ${helper.type} out of ${fields.size} fields of its lambda $lambdaType, not one",
+    )
+    val declared = classDefByOrNull(field.definingClass)?.fields?.firstOrNull { it.name == field.name && it.type == field.type }
+    if (declared == null || AccessFlags.STATIC.isSet(declared.accessFlags) || !AccessFlags.FINAL.isSet(declared.accessFlags)) {
+        throw PatchException("$PATCH: $field, where $where finds the menu's helper, isn't a final field of its lambda")
+    }
+    val registers = builder.implementation?.registerCount ?: 0
+    val words = builder.parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 } + if (static) 0 else 1
+    return registers - words to field
+}
+
+/**
+ * Smali that puts the menu's helper in a free register in front of instruction [index] of [builder]
+ * as its code is now, and that register: one no path from there reads before writing, under v16,
+ * and none of [keep] or the lambda's. No write of the lambda's register may reach [index], so the
+ * read there is of the lambda the builder was called with.
+ */
+internal fun FeedMenu.helperAt(builder: Method, index: Int, keep: Collection<Int> = emptyList()): Pair<Int, String> {
+    val where = "${builder.definingClass}->${builder.name}"
+    val flow = try {
+        ControlFlow.of(builder)
+    } catch (unreadable: IllegalArgumentException) {
+        throw PatchException("$PATCH: $where has control flow this patch can't follow: ${unreadable.message}")
+    }
+    val code = flow.instructions
+    val reached = BooleanArray(code.size)
+    val queue = ArrayDeque<Int>()
+    code.indices.filter { code[it].writes(lambda) }.forEach { queue += flow.normal[it] + flow.exceptional[it] }
+    while (queue.isNotEmpty()) {
+        val next = queue.removeFirst()
+        if (reached[next]) continue
+        reached[next] = true
+        queue += flow.normal[next] + flow.exceptional[next]
+    }
+    if (reached[index]) throw PatchException("$PATCH: in $where a write of the lambda's v$lambda reaches instruction $index")
+    val live = RegisterLiveness.of(builder).liveInto(index)
+    val free = (0..15).firstOrNull { it !in live && it !in keep && it != lambda }
+        ?: throw PatchException("$PATCH: in $where no register under v16 is free at instruction $index")
+    return free to "move-object/from16 v$free, v$lambda\niget-object v$free, v$free, $lambdaField"
+}
+
+/** Writes [bridge], an extension stub taking the menu and answering its post, to ask the helper for the post. */
+internal fun FeedMenu.postBridge(bridge: MutableMethod) {
+    val type = helper.type
+    bridge.addInstructions(
+        0,
+        """
+            check-cast p0, $type
+            invoke-static { p0 }, $type->${media.name}($type)$MEDIA
+            move-result-object p0
+            return-object p0
+        """,
+    )
+}
+
+/**
+ * How the adder makes its row ([RowShape]): the instance its first add call puts on the list, made
+ * with a constructor taking nothing, has its four fields set from the option, the label, the kind
+ * and the flag it's handed. The row class and its fields are public, and so is any static Redex
+ * writes before the add, since the patch's own rows are made the same way from another class.
+ */
+private fun BytecodePatchContext.rowShape(others: OthersRow): RowShape {
+    val adder = others.adder
+    val where = "${adder.definingClass}->${adder.name}"
+    val body = classDefByOrNull(adder.definingClass)?.methods?.firstOrNull { it.isTargetOf(adder) }?.code()
+        ?: throw PatchException("$PATCH: $where, the Download row's adder, isn't in the app")
+    // 455's adder makes other objects too, so the row is the one the add call is handed.
+    val add = body.indices.firstOrNull { body[it].opcode in ADD_CALLS && body[it].methodReference()?.name == "add" }
+        ?: throw PatchException("$PATCH: $where never adds its row to the list")
+    val addReference = body[add].methodReference()!!
+    val row = body[add].argumentRegisters().getOrNull(1)
+    if (row == null || addReference.parameterTypes.map(Any::toString) != listOf("Ljava/lang/Object;")) {
+        throw PatchException("$PATCH: $where adds something other than one row to the list")
+    }
+    val made = (add - 1 downTo 0).firstOrNull { body[it].writes(row) }?.takeIf { body[it].opcode == Opcode.NEW_INSTANCE }
+        ?: throw PatchException("$PATCH: $where adds a row it didn't make right before")
+    val type = body[made].referenceText()!!
+    val constructor = body.getOrNull(made + 1)?.takeIf {
+        it.opcode == Opcode.INVOKE_DIRECT && it.argumentRegisters() == listOf(row) && it.methodReference()?.name == "<init>" &&
+            it.methodReference()?.parameterTypes?.isEmpty() == true
+    }?.methodReference() ?: throw PatchException("$PATCH: $where doesn't make its row $type with a constructor taking nothing")
+    val rowClass = classDefByOrNull(type) ?: throw PatchException("$PATCH: $type, the feed menu's row, isn't in the app")
+    val fields = rowClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }
+    if (!AccessFlags.PUBLIC.isSet(rowClass.accessFlags) || fields.any { !AccessFlags.PUBLIC.isSet(it.accessFlags) } ||
+        (constructor.definingClass != type && constructor.definingClass != rowClass.superclass)
+    ) {
+        throw PatchException("$PATCH: $type, the feed menu's row, isn't public with public fields and its constructor")
+    }
+    val sets = (made + 2 until add).mapNotNull { index ->
+        val field = (body[index].takeIf { it.opcode == Opcode.IPUT_OBJECT || it.opcode == Opcode.IPUT_BOOLEAN } as? ReferenceInstruction)
+            ?.reference as? FieldReference
+        field?.takeIf { (body[index] as TwoRegisterInstruction).registerB == row && it.definingClass == type }
+    }
+    fun set(fieldType: String) = sets.singleOrNull { it.type == fieldType } ?: throw PatchException(
+        "$PATCH: $where doesn't set one $fieldType field of its row",
+    )
+    val option = set(OPTION)
+    val label = set(CHAR_SEQUENCE)
+    val kind = set(others.kind.type)
+    val flag = set("Z")
+    if (fields.size != 4 || sets.size != 4) throw PatchException("$PATCH: $type, the feed menu's row, has fields this patch doesn't know")
+    val fences = (made + 2 until add).filter { body[it].opcode == Opcode.SPUT }
+    if (fences.size > 1) throw PatchException("$PATCH: $where writes ${fences.size} statics before it adds its row")
+    val fence = fences.singleOrNull()
+    val fenceValue = fence?.let { at ->
+        val register = (body[at] as OneRegisterInstruction).registerA
+        (at - 1 downTo made).firstOrNull { body[it].writes(register) }?.let { body[it] as? NarrowLiteralInstruction }?.narrowLiteral
+            ?: throw PatchException("$PATCH: $where writes a static that isn't a constant before it adds its row")
+    } ?: 0
+    val fenceField = fence?.let { (body[it] as ReferenceInstruction).reference as FieldReference }
+    if (fenceField != null && (fenceField.type != "I" || !publicField(fenceField, static = true))) {
+        throw PatchException("$PATCH: $fenceField, the static $where writes before it adds its row, isn't a public int of a public class")
+    }
+    return RowShape(
+        type, constructor, option, label, kind, flag, fenceField,
+        fenceValue, addReference, if (body[add].opcode == Opcode.INVOKE_INTERFACE) "invoke-interface" else "invoke-virtual",
+    )
+}
+
+private val ADD_CALLS = setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_INTERFACE)
+
+/** Whether [field] is declared, public, in a public class, so a bridge in the extension may read or write it. */
+private fun BytecodePatchContext.publicField(field: FieldReference, static: Boolean): Boolean {
+    val owner = classDefByOrNull(field.definingClass) ?: return false
+    return AccessFlags.PUBLIC.isSet(owner.accessFlags) && owner.fields.any {
+        it.name == field.name && it.type == field.type && AccessFlags.PUBLIC.isSet(it.accessFlags) &&
+            AccessFlags.STATIC.isSet(it.accessFlags) == static
+    }
 }
 
 /** The feed menu's handler of a tapped option, the getter of the post it is for, and the field of its activity. */
@@ -275,18 +473,24 @@ internal fun findMenuHandler(helper: ClassDef): MenuHandler {
     }
     val handler = handlers.singleOrNull()
         ?: throw PatchException("$PATCH: expected one handler of a tapped option in $type, found ${handlers.size}")
+    val media = postGetter(helper)
+    val activities = helper.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == FRAGMENT_ACTIVITY }
+    val activity = activities.singleOrNull()
+        ?: throw PatchException("$PATCH: expected one $FRAGMENT_ACTIVITY field in $type, found ${activities.size}")
+    return MenuHandler(handler, media, activity)
+}
+
+/** The static getter of [helper] answering the post its menu is for. */
+internal fun postGetter(helper: ClassDef): Method {
+    val type = helper.type
     // Two static getters answer the post: one reads it, the other calls that one and throws on null.
     val getters = helper.methods.filter { method ->
         AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == MEDIA &&
             method.parameterTypes.map(Any::toString) == listOf(type) &&
             method.code().any { (it as? ReferenceInstruction)?.reference.let { field -> field is FieldReference && field.definingClass == type } }
     }
-    val media = getters.singleOrNull()
+    return getters.singleOrNull()
         ?: throw PatchException("$PATCH: expected one getter reading the post in $type, found ${getters.size}")
-    val activities = helper.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == FRAGMENT_ACTIVITY }
-    val activity = activities.singleOrNull()
-        ?: throw PatchException("$PATCH: expected one $FRAGMENT_ACTIVITY field in $type, found ${activities.size}")
-    return MenuHandler(handler, media, activity)
 }
 
 internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
@@ -300,6 +504,11 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     val shortLists = menuFound.shortLists
     val batchAt = builder.batchRow(others, outlined)
     val own = builder.ownPost(eligible, others)
+    // Each hook in the builder reads the menu's helper into a register free where it goes. The
+    // hooks only add reads of registers already live there, so the builder as it is now settles it.
+    val hooked = mutable(builder)
+    val keep = listOf(others.rows, own.flag, own.answer)
+    listOf(others.at, own.gate + 1, own.result + 1, batchAt).forEach { menuFound.helperAt(hooked, it, keep) }
     val icon = optionIcon(PATCH)
     val type = helper.type
     val tap = findMenuHandler(helper)
@@ -307,7 +516,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     val media = tap.media
     val activity = tap.activity
     val carousel = pandoGetter(PATCH, MEDIA, CAROUSEL_FIELD, LIST)
-    val page = pageIndex(pageReads, carousel, builder, others.stateType, helper)
+    val page = pageIndex(pageReads, carousel, helper)
     val menu = mutable(handler)
     menu.requireLocals(PATCH, 3)
     val bridges = mutableClassDefBy(INSTAGRAM_MEDIA)
@@ -368,34 +577,20 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     }
 
     // Highest index first, so the ones before it stay where they were.
-    mutable(builder).addInstructionsAtControlFlowLabel(
-        others.at,
-        "invoke-static { v${others.state}, v${others.rows} }, $OFFER_VIDEO",
-    )
-    mutable(builder).addInstructions(
-        own.gate + 1,
-        """
-            invoke-static { v${own.flag}, v${own.state} }, $OWN_POST_ROW
-            move-result v${own.flag}
-        """,
-    )
-    mutable(builder).addInstructions(
-        own.result + 1,
-        """
-            invoke-static { v${own.answer}, v${own.state} }, $OWN_POST
-            move-result v${own.answer}
-        """,
-    )
-    mutable(builder).addInstructions(
-        batchAt,
-        """
-            invoke-static { v${others.state}, v${others.rows} }, $OFFER_ALL
-            invoke-static { v${others.state}, v${others.rows} }, $OFFER_COVER
-            invoke-static { v${others.state}, v${others.rows} }, $OFFER_PLAYER
-            invoke-static { v${others.state}, v${others.rows} }, $OFFER_DETAILS
-            invoke-static { v${others.state}, v${others.rows} }, $OFFER_LOOP
-        """,
-    )
+    val rows = others.rows
+    menuFound.helperAt(hooked, others.at, keep).let { (held, load) ->
+        hooked.addInstructionsAtControlFlowLabel(others.at, "$load\ninvoke-static { v$held, v$rows }, $OFFER_VIDEO")
+    }
+    menuFound.helperAt(hooked, own.gate + 1, keep).let { (held, load) ->
+        hooked.addInstructions(own.gate + 1, "$load\ninvoke-static { v${own.flag}, v$held }, $OWN_POST_ROW\nmove-result v${own.flag}")
+    }
+    menuFound.helperAt(hooked, own.result + 1, keep).let { (held, load) ->
+        hooked.addInstructions(own.result + 1, "$load\ninvoke-static { v${own.answer}, v$held }, $OWN_POST\nmove-result v${own.answer}")
+    }
+    menuFound.helperAt(hooked, batchAt, keep).let { (held, load) ->
+        val offers = listOf(OFFER_ALL, OFFER_COVER, OFFER_PLAYER, OFFER_DETAILS, OFFER_LOOP)
+        hooked.addInstructions(batchAt, load + offers.joinToString("") { "\ninvoke-static { v$held, v$rows }, $it" })
+    }
 
     menu.addInstructionsWithLabels(
         0,
@@ -487,19 +682,12 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
         ExternalLabel("handle", menu.getInstruction(0)),
     )
 
-    postOf.addInstructions(
-        0,
-        """
-            check-cast p0, ${others.stateType}
-            iget-object p0, p0, ${others.media}
-            return-object p0
-        """,
-    )
+    menuFound.postBridge(postOf)
     itemStateOf.addInstructions(
         0,
         """
-            check-cast p0, ${others.stateType}
-            iget-object p0, p0, ${page.builderState}
+            check-cast p0, $type
+            iget-object p0, p0, ${page.menuState}
             return-object p0
         """,
     )
@@ -512,9 +700,9 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
         """,
     )
     bridges.methods.remove(rowStub)
-    bridges.methods.add(downloadRow(rowStub, others))
+    bridges.methods.add(downloadRow(rowStub, menuFound))
     bridges.methods.remove(allRowStub)
-    bridges.methods.add(downloadRow(allRowStub, others, all = true))
+    bridges.methods.add(downloadRow(allRowStub, menuFound, all = true))
     bridges.methods.remove(optionStub)
     bridges.methods.add(ImmutableMethod(
         optionStub.definingClass, optionStub.name, optionStub.parameters, optionStub.returnType,
@@ -540,68 +728,85 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
 }
 
 /**
- * [stub] with a body that adds Instagram's Download row to its list the way the builder does:
- * each of the adder's arguments is loaded into the register of its position, so one range call
- * passes them all, with the label read in a spare register after them. The flag the adder takes
- * last is false, as the builder passes it for your own posts.
- * The batch bridge instead takes its separate option and localized title from the extension.
+ * [stub] with a body that adds Instagram's Download row to its list the way the builder's adder
+ * makes it ([RowShape]), without the adder's logging: the row with Download as its option, the
+ * label the builder reads through its state's context, the builder's row kind and a false flag,
+ * as the builder passes it for your own posts. The menu it's handed is the helper, which keeps the
+ * builder's state. The batch bridge instead takes its separate option and localized title from the
+ * extension.
  */
-internal fun downloadRow(stub: Method, found: OthersRow, all: Boolean = false): MutableMethod {
-    val parameters = found.adder.parameterTypes.map(Any::toString)
-    val spare = parameters.size
-    val loads = parameters.mapIndexed { index, type ->
-        when (type) {
-            found.kind.type -> "sget-object v$index, ${found.kind}"
-            OPTION -> if (all) "move-object v$index, p2" else "sget-object v$index, $DOWNLOAD"
-            found.stateType -> "move-object v$index, p0"
-            CHAR_SEQUENCE -> if (all) "move-object v$index, p3" else
-                """
-                    iget-object v$index, p0, ${found.context}
-                    invoke-virtual { v$index }, $GET_RESOURCES
-                    move-result-object v$index
-                    const v$spare, ${found.label}
-                    invoke-virtual { v$index, v$spare }, $GET_STRING
-                    move-result-object v$index
-                """.trimIndent()
-            ARRAY_LIST -> "move-object v$index, p1"
-            else -> "const/4 v$index, 0x0"
-        }
+internal fun downloadRow(stub: Method, menu: FeedMenu, all: Boolean = false): MutableMethod {
+    val row = menu.row
+    val others = menu.others
+    val option = if (all) {
+        "check-cast p2, $OPTION\niput-object p2, v1, ${row.option}"
+    } else {
+        "sget-object v2, $DOWNLOAD\niput-object v2, v1, ${row.option}"
     }
+    val label = if (all) {
+        "iput-object p3, v1, ${row.label}"
+    } else {
+        listOf(
+            "check-cast p0, ${menu.helper.type}",
+            "iget-object v0, p0, ${menu.state}",
+            "iget-object v2, v0, ${others.context}",
+            "invoke-virtual { v2 }, $GET_RESOURCES",
+            "move-result-object v2",
+            "const v3, ${others.label}",
+            "invoke-virtual { v2, v3 }, $GET_STRING",
+            "move-result-object v2",
+            "iput-object v2, v1, ${row.label}",
+        ).joinToString("\n")
+    }
+    val fence = row.fence?.let { "const v2, ${row.fenceValue}\nsput v2, $it" }
+    val body = listOfNotNull(
+        "new-instance v1, ${row.type}",
+        "invoke-direct { v1 }, ${row.constructor}",
+        option,
+        label,
+        "sget-object v2, ${others.kind}",
+        "iput-object v2, v1, ${row.kind}",
+        "const/4 v2, 0x0",
+        "iput-boolean v2, v1, ${row.flag}",
+        fence,
+        "${row.addCall} { p1, v1 }, ${row.add}",
+        "return-void",
+    )
     return ImmutableMethod(
         stub.definingClass, stub.name, stub.parameters, stub.returnType, stub.accessFlags, stub.annotations,
-        stub.hiddenApiRestrictions, ImmutableMethodImplementation(spare + if (all) 5 else 3, emptyList(), null, null),
+        stub.hiddenApiRestrictions, ImmutableMethodImplementation(4 + if (all) 4 else 2, emptyList(), null, null),
     ).toMutable().apply {
-        addInstructions(
-            0,
-            "check-cast p0, ${found.stateType}\n" + (if (all) "check-cast p2, $OPTION\n" else "") + loads.joinToString("\n") +
-                "\ninvoke-static/range { v0 .. v${spare - 1} }, ${found.adder}\nreturn-void",
-        )
+        addInstructions(0, body.joinToString("\n"))
     }
 }
 
 /**
- * Both the fresh row list and captured feed state are valid before the split by ownership. The list
- * is made in place, or by a static method R8 outlined that making into, which [outlined] looks up.
+ * Where the batch rows go in [this], the feed menu's builder: right after the row list is made and
+ * before the split by whose post it is, the first jump to anyone else's rows, so every post gets
+ * them. The list is made in place, or by a static method R8 outlined that making into, which
+ * [outlined] looks up, and nothing branches between it and the split.
  */
 internal fun Method.batchRow(found: OthersRow, outlined: (MethodReference) -> Method? = { null }): Int {
     val code = code()
-    val cast = code.indices.singleOrNull {
-        code[it].opcode == Opcode.CHECK_CAST && code[it].referenceText() == found.stateType &&
-            (code[it] as OneRegisterInstruction).registerA == found.state
-    } ?: throw PatchException("$PATCH: the feed builder has no unique initial state cast")
-    val list = (cast - 1 downTo 0).firstOrNull { code[it].writes(found.rows) }
-        ?: throw PatchException("$PATCH: the feed builder has no initial row list")
-    val madeHere = code[list].opcode == Opcode.NEW_INSTANCE && code[list].referenceText() == ARRAY_LIST &&
-        (list + 1 until cast).any { code[it].referenceText() == "$ARRAY_LIST-><init>()V" && code[it].argumentRegisters() == listOf(found.rows) }
+    val where = "$definingClass->$name"
+    val split = code.indices.firstOrNull { code[it].jumps() && code.target(it) == found.at }
+        ?: throw PatchException("$PATCH: $where never jumps to anyone else's rows")
+    val list = (split - 1 downTo 0).firstOrNull { code[it].writes(found.rows) }
+        ?: throw PatchException("$PATCH: $where makes no row list before it splits by whose post it is")
+    val init = (list + 1 until split).firstOrNull {
+        code[it].referenceText() == "$ARRAY_LIST-><init>()V" && code[it].argumentRegisters() == listOf(found.rows)
+    }?.takeIf { code[list].opcode == Opcode.NEW_INSTANCE && code[list].referenceText() == ARRAY_LIST }
     val madeByOutline = code[list].opcode == Opcode.MOVE_RESULT_OBJECT && code.getOrNull(list - 1)?.let { call ->
         val reference = call.methodReference()
         call.opcode in STATIC_CALLS && reference != null && reference.returnType == ARRAY_LIST && reference.parameterTypes.isEmpty() &&
             outlined(reference)?.makesAnEmptyList() == true
     } == true
-    if (!(madeHere || madeByOutline) || cast >= found.at || (list + 1..cast).any { code[it] is OffsetInstruction }) {
-        throw PatchException("$PATCH: the row list isn't initialized before the feed builder's state cast")
+    val site = init?.plus(1) ?: (list + 1).takeIf { madeByOutline }
+        ?: throw PatchException("$PATCH: in $where v${found.rows} isn't a new row list before the split by whose post it is")
+    if ((list + 1 until split).any { code[it] is OffsetInstruction }) {
+        throw PatchException("$PATCH: in $where something branches between the row list and the split by whose post it is")
     }
-    return cast + 1
+    return site
 }
 
 /** Whether [this] only makes an empty ArrayList and answers it, the way R8 outlines `new ArrayList()`. */
@@ -639,8 +844,8 @@ private fun Instruction.readsLabel(outlined: (MethodReference) -> Method?): Bool
  * own Download row. The row is loaded once, and the first call after it that takes a Download
  * option, a label and the row list, declared by the state it also takes, adds it; a jump right
  * after ends the row. The instruction after that jump starts anyone else's rows, and every jump
- * there comes before the download check, so only anyone else's posts reach it. The state and the
- * list there are the ones the first call after it that takes both is handed, and neither changes
+ * there comes before the download check, so only anyone else's posts reach it. The list there is
+ * the one the first call after it that takes the state and a list is handed, and it doesn't change
  * on the way. The row's label may be read through a method R8 outlined getString into, which
  * [outlined] looks up.
  */
@@ -666,8 +871,7 @@ internal fun Method.othersRow(eligible: Method, outlined: (MethodReference) -> M
     val address = IntArray(code.size + 1)
     code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
     fun target(index: Int) = address.indexOf(address[index] + (code[index] as OffsetInstruction).codeOffset)
-    val into = code.indices.filter { code[it] is OffsetInstruction && code[it].opcode.name.let { name -> name.startsWith("if-") || name.startsWith("goto") } }
-        .filter { target(it) == at }
+    val into = code.indices.filter { code[it].jumps() }.filter { target(it) == at }
     if (into.isEmpty() || into.any { it > check }) {
         throw PatchException("$PATCH: in $where the rows after Download aren't a branch taken before the download check")
     }
@@ -686,8 +890,12 @@ internal fun Method.othersRow(eligible: Method, outlined: (MethodReference) -> M
     val id = code[read].argumentRegisters()[1]
     val label = (read - 1 downTo row).firstOrNull { code[it].writes(id) }?.let { code[it] as? NarrowLiteralInstruction }?.narrowLiteral
         ?: throw PatchException("$PATCH: in $where the Download row's label isn't a resource")
+    // 455's adder also takes an object its logging reads after the row is added (LX/0YL1 on 386113969).
     val known = listOf(kind.type, OPTION, stateType, CHAR_SEQUENCE, ARRAY_LIST)
-    if (known.any { type -> parameters.count { it == type } != 1 } || parameters.any { it !in known && it != "Z" } || parameters.count { it == "Z" } > 1) {
+    val others = parameters.filter { it !in known && it != "Z" }
+    if (known.any { type -> parameters.count { it == type } != 1 } || others.size > 1 || others.any { it[0] != 'L' && it[0] != '[' } ||
+        parameters.count { it == "Z" } > 1
+    ) {
         throw PatchException("$PATCH: in $where the Download row's adder takes $parameters, which this patch doesn't know")
     }
 
@@ -696,121 +904,65 @@ internal fun Method.othersRow(eligible: Method, outlined: (MethodReference) -> M
         code[index].opcode in STATIC_CALLS && stateType in types && ARRAY_LIST in types
     } ?: throw PatchException("$PATCH: in $where no row after Download takes the state and the list")
     val types = code[use].methodReference()!!.parameterTypes.map(Any::toString)
-    val arguments = code[use].argumentRegisters()
-    val state = arguments[types.indexOf(stateType)]
-    val rows = arguments[types.indexOf(ARRAY_LIST)]
-    if (state > 15 || rows > 15 || (at until use).any { code[it].writes(state) || code[it].writes(rows) }) {
-        throw PatchException("$PATCH: in $where the state v$state and the list v$rows don't reach anyone else's rows as they are")
+    val rows = code[use].argumentRegisters()[types.indexOf(ARRAY_LIST)]
+    if (rows > 15 || (at until use).any { code[it].writes(rows) }) {
+        throw PatchException("$PATCH: in $where the list v$rows doesn't reach anyone else's rows as it is")
     }
-    val media = (at until code.size).firstNotNullOfOrNull { index ->
-        ((code[index].takeIf { it.opcode == Opcode.IGET_OBJECT } as? ReferenceInstruction)?.reference as? FieldReference)
-            ?.takeIf { it.definingClass == stateType && it.type == MEDIA }
-    } ?: throw PatchException("$PATCH: in $where anyone else's rows never read the post")
-    return OthersRow(at, state, rows, stateType, adder, kind, context, label, media)
+    return OthersRow(at, rows, stateType, adder, kind, context, label)
 }
+
+/** Whether [this] is an if or a goto, as opposed to a switch or an array fill, which point at a payload. */
+private fun Instruction.jumps(): Boolean = this is OffsetInstruction && opcode !in PAYLOAD_READS
+
+private val PAYLOAD_READS = setOf(Opcode.PACKED_SWITCH, Opcode.SPARSE_SWITCH, Opcode.FILL_ARRAY_DATA)
 
 /**
  * Where your own post's rows ask Instagram whether the post may be downloaded: [result], the
  * move-result of the builder's one call to the download check, holding the answer in [answer].
  * Instagram adds its Download row to your own post only on a yes, which a photo, and a video it
- * doesn't allow downloads of, never get (#57). [state] still holds the builder's state there.
- * Past a yes, [gate] reads a flag of the state into [flag], and a 0 there jumps to the row. With
- * the flag and a server flag on, Instagram offers its download in the share sheet and leaves the
- * row out, which is what an account with downloads allowed gets (#57 again).
+ * doesn't allow downloads of, never get (#57). Past a yes, [gate] reads a flag of the builder's
+ * state into [flag], and a 0 there jumps to the row. With the flag and a server flag on, Instagram
+ * offers its download in the share sheet and leaves the row out, which is what an account with
+ * downloads allowed gets (#57 again).
  */
-internal class OwnPost(val result: Int, val answer: Int, val state: Int, val gate: Int, val flag: Int)
-
-/**
- * Where [this], the feed menu's builder, hands [eligible], the download check, its post: [register]
- * holds the post's Media at [before], the check itself, or on 451 the one static call that makes
- * the check's own wrapper of a Media out of it, whose result goes straight into the check.
- */
-internal class CheckedPost(val register: Int, val before: Int)
-
-/**
- * Finds [CheckedPost]: the check takes a Media once, or, as on 451, takes no Media and is handed
- * one argument that a static (Media) call answering that parameter's type makes just before (on
- * 451's 385713073 that's LX/0jTN->A00 making the LX/0WWx that LX/0F3f->A07 takes).
- */
-internal fun Method.checkedPost(eligible: Method): CheckedPost {
-    val code = code()
-    val where = "$definingClass->$name"
-    val check = code.indices.singleOrNull { code[it].calls(eligible) }
-        ?: throw PatchException("$PATCH: $where doesn't call the download check once")
-    val parameters = eligible.parameterTypes.map(Any::toString)
-    val offset = if (code[check].opcode in STATIC_CALLS) 0 else 1
-    val arguments = code[check].argumentRegisters()
-    if (MEDIA in parameters) {
-        val post = arguments.getOrNull(offset + parameters.indexOf(MEDIA))
-        if (parameters.count { it == MEDIA } != 1 || post == null) throw PatchException("$PATCH: $where hands the download check no one post")
-        return CheckedPost(post, check)
-    }
-    val made = parameters.indices.mapNotNull { index ->
-        val register = arguments.getOrNull(offset + index) ?: return@mapNotNull null
-        val write = (check - 1 downTo 0).firstOrNull { code[it].writes(register) } ?: return@mapNotNull null
-        val call = code.getOrNull(write - 1)?.takeIf { code[write].opcode == Opcode.MOVE_RESULT_OBJECT && it.opcode in STATIC_CALLS }
-        val reference = call?.methodReference()
-        if (reference == null || reference.returnType != parameters[index] || reference.parameterTypes.map(Any::toString) != listOf(MEDIA)) {
-            return@mapNotNull null
-        }
-        CheckedPost(call.argumentRegisters().single(), write - 1)
-    }
-    return made.singleOrNull() ?: throw PatchException(
-        "$PATCH: ${eligible.definingClass}->${eligible.name}, the download check, isn't handed a Media or one made out of one in $where",
-    )
-}
+internal class OwnPost(val result: Int, val answer: Int, val gate: Int, val flag: Int)
 
 /**
  * Finds [OwnPost] in [this], the feed menu's builder. Only your own posts reach the check (see
- * [othersRow]). The post the check is handed ([checkedPost]) is read from the builder's state just
- * before, possibly through a copy (451 moves it to a high register first), and nothing between that
- * read and the answer writes the state's register. A no jumps away at once. On a yes, the first
- * branch is on a boolean of the state read without a branch in between, and it jumps ahead to the
- * Download row on a 0.
+ * [othersRow]). A no jumps away at once. On a yes, the first branch is on a boolean of the
+ * builder's state read without a branch in between, and it jumps ahead to the Download row on a 0.
+ * The hooks there are handed the menu's helper, which answers the post: from 455 the check is
+ * handed a wrapper the builder makes for it, and the builder's state holds no post.
  */
 internal fun Method.ownPost(eligible: Method, found: OthersRow): OwnPost {
     val code = code()
     val where = "$definingClass->$name"
-    val check = code.indices.single { code[it].calls(eligible) }
+    val check = code.indices.singleOrNull { code[it].calls(eligible) }
+        ?: throw PatchException("$PATCH: $where doesn't call the download check once")
     val result = check + 1
     if (code.getOrNull(result)?.opcode != Opcode.MOVE_RESULT) throw PatchException("$PATCH: $where drops the download check's answer")
     val answer = (code[result] as OneRegisterInstruction).registerA
-    val checked = checkedPost(eligible)
-    var post = checked.register
-    var read = (checked.before - 1 downTo 0).firstOrNull { code[it].writes(post) }
-    while (read != null && code[read].opcode in OBJECT_MOVES) {
-        post = (code[read] as TwoRegisterInstruction).registerB
-        read = (read - 1 downTo 0).firstOrNull { code[it].writes(post) }
-    }
-    if (read == null || code[read].opcode != Opcode.IGET_OBJECT || code[read].referenceText() != found.media.toString()) {
-        throw PatchException("$PATCH: $where doesn't read the post it checks from the menu's state")
-    }
-    val state = (code[read] as TwoRegisterInstruction).registerB
-    if ((read + 1..result).any { code[it].writes(state) } || (read + 1 until check).any { code[it] is OffsetInstruction }) {
-        throw PatchException("$PATCH: in $where the state doesn't reach the download check's answer as it was")
-    }
     if (code.getOrNull(result + 1)?.opcode != Opcode.IF_EQZ || (code[result + 1] as OneRegisterInstruction).registerA != answer) {
         throw PatchException("$PATCH: $where doesn't branch on the download check's answer right away")
     }
-    val gate = (result + 2 until code.size).firstOrNull { code[it] is OffsetInstruction || code[it].writes(state) || code[it].readsFlagOf(state, found.stateType) }
+    val gate = (result + 2 until code.size).firstOrNull { code[it] is OffsetInstruction || code[it].readsFlagOf(found.stateType) }
         ?.takeIf { code[it].opcode == Opcode.IGET_BOOLEAN }
-        ?: throw PatchException("$PATCH: past the download check's yes, $where reads no flag of the menu's state before it branches")
+        ?: throw PatchException("$PATCH: past the download check's yes, $where reads no flag of the builder's state before it branches")
     val flag = (code[gate] as TwoRegisterInstruction).registerA
-    val branch = (gate + 1 until code.size).firstOrNull { code[it] is OffsetInstruction || code[it].writes(flag) || code[it].writes(state) }
+    val branch = (gate + 1 until code.size).firstOrNull { code[it] is OffsetInstruction || code[it].writes(flag) }
     val row = branch?.let { code.target(it) } ?: -1
-    if (branch == null || flag == state || code[branch].opcode != Opcode.IF_EQZ || (code[branch] as OneRegisterInstruction).registerA != flag ||
+    if (branch == null || code[branch].opcode != Opcode.IF_EQZ || (code[branch] as OneRegisterInstruction).registerA != flag ||
         row <= branch || row >= found.at || code[row].opcode != Opcode.SGET_OBJECT || code[row].referenceText() != DOWNLOAD
     ) {
-        throw PatchException("$PATCH: in $where the menu state's flag past the download check doesn't jump ahead to the Download row on a 0")
+        throw PatchException("$PATCH: in $where the builder state's flag past the download check doesn't jump ahead to the Download row on a 0")
     }
-    if (state > 15 || answer > 15 || flag > 15) throw PatchException("$PATCH: in $where v$answer, v$flag and v$state are out of an invoke's reach")
-    return OwnPost(result, answer, state, gate, flag)
+    if (answer > 15 || flag > 15) throw PatchException("$PATCH: in $where v$answer and v$flag are out of an invoke's reach")
+    return OwnPost(result, answer, gate, flag)
 }
 
-/** Whether [this] reads a boolean field of [stateType] from [state]. */
-private fun Instruction.readsFlagOf(state: Int, stateType: String): Boolean =
-    opcode == Opcode.IGET_BOOLEAN && (this as TwoRegisterInstruction).registerB == state &&
-        ((this as ReferenceInstruction).reference as FieldReference).definingClass == stateType
+/** Whether [this] reads a boolean field of [stateType]. */
+private fun Instruction.readsFlagOf(stateType: String): Boolean =
+    opcode == Opcode.IGET_BOOLEAN && ((this as ReferenceInstruction).reference as FieldReference).definingClass == stateType
 
 /** A call to [lookup], one of [MEDIA_EXT]'s (Media, int) methods answering a Media, handed an int read from [field], or null when it isn't one. */
 internal class PageRead(val lookup: String, val field: FieldReference?)
@@ -837,23 +989,22 @@ internal fun Method.pageReads(): List<PageRead> {
 
 /**
  * Where the menu finds the carousel page on screen: the int field [index] of the post's feed state,
- * which the builder's state holds in [builderState] and the menu in [menuState].
+ * which the menu holds in [menuState].
  */
-internal class PageIndex(val index: FieldReference, val builderState: FieldReference, val menuState: FieldReference)
+internal class PageIndex(val index: FieldReference, val menuState: FieldReference)
 
 /**
  * Finds which carousel page a feed post is showing. [MEDIA_EXT] has one static method taking a
  * Media and an int that reads [carousel], the carousel's pages, and answers the page. Instagram
  * hands it the page its feed state keeps nearly everywhere it's called, as an int field read just
- * before, among [reads]. Of those fields, only one on a class the menu, [helper], keeps one field
- * of and [builder] reads off its state [stateType] counts. It has to be read at least twice as often
- * as the next such field, so a build where it's unclear stops the patch rather than guess.
+ * before, among [reads]. Of those fields, only one on a class the menu, [helper], keeps one public
+ * field of counts. It has to be read at least twice as often as the next such field, so a build
+ * where it's unclear stops the patch rather than guess. The extension reads the feed state off the
+ * menu, so that field has to be public.
  */
 internal fun BytecodePatchContext.pageIndex(
     reads: List<PageRead>,
     carousel: Method,
-    builder: Method,
-    stateType: String,
     helper: ClassDef,
 ): PageIndex {
     val lookups = classDefBy(MEDIA_EXT).methods.filter {
@@ -865,24 +1016,22 @@ internal fun BytecodePatchContext.pageIndex(
             if (lookups.isEmpty()) "none" else lookups.joinToString { it.name },
     )
     fun menuState(type: String) = helper.fields.singleOrNull { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == type }
-        ?.let { ImmutableFieldReference(it.definingClass, it.name, it.type) }
-    val builderReads = builder.code().mapNotNull { instruction ->
-        ((instruction.takeIf { it.opcode == Opcode.IGET_OBJECT } as? ReferenceInstruction)?.reference as? FieldReference)
-            ?.takeIf { it.definingClass == stateType }
-    }.distinctBy { it.toString() }
-    fun builderState(type: String) = builderReads.singleOrNull { it.type == type }
     val fields = reads.filter { it.lookup == lookup.name }.mapNotNull { it.field }
-        .filter { it.type == "I" && menuState(it.definingClass) != null && builderState(it.definingClass) != null }
+        .filter { it.type == "I" && menuState(it.definingClass) != null }
     val ranked = fields.groupBy { it.toString() }.values.sortedByDescending { it.size }
     val top = ranked.firstOrNull() ?: throw PatchException(
-        "$PATCH: no call to ${lookup.definingClass}->${lookup.name} reads its page from a feed state the menu and its builder hold",
+        "$PATCH: no call to ${lookup.definingClass}->${lookup.name} reads its page from a feed state the menu holds",
     )
     val next = ranked.getOrNull(1)
     if (next != null && top.size < 2 * next.size) {
         throw PatchException("$PATCH: the carousel page is either ${top.first()} (${top.size} reads) or ${next.first()} (${next.size} reads)")
     }
     val index = top.first()
-    return PageIndex(index, builderState(index.definingClass)!!, menuState(index.definingClass)!!)
+    val state = menuState(index.definingClass)!!
+    if (!AccessFlags.PUBLIC.isSet(state.accessFlags)) {
+        throw PatchException("$PATCH: ${helper.type}->${state.name}, the post's feed state, isn't public")
+    }
+    return PageIndex(index, ImmutableFieldReference(state.definingClass, state.name, state.type))
 }
 
 /**
@@ -896,7 +1045,6 @@ internal fun Method.isShortMenuList(): Boolean =
 
 private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
-private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
 
 private fun Instruction.argumentRegisters(): List<Int> = when (this) {
     is RegisterRangeInstruction -> List(registerCount) { startRegister + it }

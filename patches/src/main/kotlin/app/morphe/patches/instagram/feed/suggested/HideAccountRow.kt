@@ -22,7 +22,9 @@ import app.morphe.patches.instagram.download.video.MenuHandler
 import app.morphe.patches.instagram.download.video.downloadRow
 import app.morphe.patches.instagram.download.video.findFeedMenu
 import app.morphe.patches.instagram.download.video.findMenuHandler
+import app.morphe.patches.instagram.download.video.helperAt
 import app.morphe.patches.instagram.download.video.mutable
+import app.morphe.patches.instagram.download.video.postBridge
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireLocals
@@ -57,9 +59,10 @@ private const val OBJECT = "Ljava/lang/Object;"
  * video left out, and both patches in one build add their own hooks side by side.
  *
  * [write] puts one call where anyone else's rows start, one before each return of the short menu's
- * list of kept options, and one in front of the handler of a tapped option. Rows are added through
- * the builder's own adder, as Download's Details row is, with an option made by the option's own
- * constructor with Download's ordinal and icon.
+ * list of kept options, and one in front of the handler of a tapped option. The call where anyone
+ * else's rows start hands the extension the menu's helper, read off the builder's lambda. Rows are
+ * made the way the builder's own adder makes them, as Download's Details row is, with an option
+ * made by the option's own constructor with Download's ordinal and icon.
  */
 internal class HideAccountRow(
     private val context: BytecodePatchContext,
@@ -87,10 +90,9 @@ internal class HideAccountRow(
                 """,
             )
         }
-        mutable(menu.builder).addInstructionsAtControlFlowLabel(
-            others.at,
-            "invoke-static { v${others.state}, v${others.rows} }, $OFFER_HIDE",
-        )
+        val builder = mutable(menu.builder)
+        val (held, load) = menu.helperAt(builder, others.at, listOf(others.rows))
+        builder.addInstructionsAtControlFlowLabel(others.at, "$load\ninvoke-static { v$held, v${others.rows} }, $OFFER_HIDE")
         val type = menu.helper.type
         val handler = mutable(tap.handler)
         handler.addInstructionsWithLabels(
@@ -110,16 +112,9 @@ internal class HideAccountRow(
             """,
             ExternalLabel("handle", handler.getInstruction(0)),
         )
-        postOf.addInstructions(
-            0,
-            """
-                check-cast p0, ${others.stateType}
-                iget-object p0, p0, ${others.media}
-                return-object p0
-            """,
-        )
+        menu.postBridge(postOf)
         row.methods.remove(adder)
-        row.methods.add(downloadRow(adder, others, all = true))
+        row.methods.add(downloadRow(adder, menu, all = true))
         row.methods.remove(optionOf)
         row.methods.add(
             ImmutableMethod(
@@ -137,7 +132,7 @@ internal class HideAccountRow(
  */
 internal fun BytecodePatchContext.hideAccountRowOrWarn(): HideAccountRow? = try {
     val menu = try {
-        findFeedMenu()
+        findFeedMenu().also { it.helperAt(mutable(it.builder), it.others.at, listOf(it.others.rows)) }
     } catch (moved: PatchException) {
         throw PatchException(moved.message.orEmpty().replace("Download any video:", ROW_PATCH + ":"))
     }

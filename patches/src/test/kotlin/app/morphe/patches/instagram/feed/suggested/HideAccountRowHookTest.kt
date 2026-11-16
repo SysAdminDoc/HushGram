@@ -34,7 +34,7 @@ import org.junit.Test
 
 /**
  * Hide posts from this account, the row Hide suggested posts adds to a post's menu: the hooks are in
- * the extension, a build without the feed menu changes nothing, and in every declared 450 build the
+ * the extension, a build without the feed menu changes nothing, and in every declared build the
  * row's call goes where anyone else's rows start, before each return of the short menu's list and
  * in front of the menu's handler, with the row's stubs filled.
  */
@@ -106,6 +106,7 @@ class HideAccountRowHookTest {
                 (it.returnType == "Ljava/lang/String;" && it.parameterTypes.map(Any::toString) == listOf("Landroid/content/res/Resources;", "I")) }
             .map { it.definingClass }.filter { type -> classes.none { it.type == type } }.toSet()
         if (outlined.isNotEmpty()) classes += FixtureDex.classes(bundle, outlined).values
+        HideRowAsserts.loadMenuClasses(bundle, classes)
         val context = PatchContexts.of(classes)
 
         val row = context.hideAccountRowOrWarn()

@@ -459,7 +459,6 @@ class FeedDownloadButtonHookTest {
         const val TEXT = "Lcom/instagram/common/ui/base/IgTextView;"
         val PAGE = PageIndex(
             ImmutableFieldReference(ITEM, "page", "I"),
-            ImmutableFieldReference(STATE, "item", ITEM),
             ImmutableFieldReference("Lfixture/Menu;", "item", ITEM),
         )
         val REQUIRE_VIEW = ImmutableMethodReference("Landroid/view/View;", "requireViewById", listOf("I"), "Landroid/view/View;")

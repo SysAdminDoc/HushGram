@@ -20,10 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Adds a plain text row to Instagram's newer pop-up list, the one next to a profile's three dots.
- * Its entries are all one class with a single constructor of 26 arguments (24 before Instagram
- * 454), whose fifth is the row's click callback, an interface of one boolean method and one void
- * method, and whose first String is the label, with the subtitle right after it (the eighteenth
- * and nineteenth on 454, a place earlier before). The names are Instagram's own and change with every build, so the
+ * Its entries are all one class with a single constructor of 27 arguments (26 on Instagram 454, 24
+ * before), whose fifth is the row's click callback, an interface of one boolean method and one void
+ * method, and whose first String is the label, with the subtitle right after it (the nineteenth
+ * and twentieth on 455, the eighteenth and nineteenth on 454, a place earlier before). The names
+ * are Instagram's own and change with every build, so the
  * class is never named here: a row Instagram already built in the same list is the template, and
  * the new one is made with that row's constructor and the same values, bar its icon, its label and
  * its callback. Which field holds which argument doesn't follow the field names, so the patch reads
@@ -34,21 +35,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * boolean one answers true.
  */
 final class PopupRows {
-    /** The constructor's argument counts, 454's and the older one, and the places of the ones that change. */
-    static final int ARGUMENTS = 26;
+    /** The constructor's argument counts, 455's, 454's and the older one, and the places of the ones that change. */
+    static final int ARGUMENTS = 27;
+    static final int ARGUMENTS_454 = 26;
     static final int OLDER_ARGUMENTS = 24;
     static final int ICON = 0;
     static final int CLICK = 4;
-    /**
-     * A row with no extra color: Instagram gives one an Integer color of -1 in slot 9 and nothing
-     * in slot 10, while a highlighted one carries its color in both.
-     */
-    static final int COLOR = 9;
-    static final int HIGHLIGHT = 10;
 
     /** Each item class's constructor and its fields in constructor order, read once; NONE when it isn't shaped as expected. */
     private static final Map<Class<?>, Shape> SHAPES = new ConcurrentHashMap<>();
-    private static final Shape NONE = new Shape(null, null, -1);
+    private static final Shape NONE = new Shape(null, null, -1, -1);
 
     /** Where the item's class and field order come from: the patched stub, or a stand-in in tests. */
     interface Layout {
@@ -70,11 +66,18 @@ final class PopupRows {
         final Field[] fields;
         /** The label's place; the subtitle is the next. */
         final int label;
+        /**
+         * A row with no extra color: Instagram gives one an Integer color of -1 in the first Integer
+         * argument (the tenth before 455, the eleventh on 455) and nothing in the next, while a
+         * highlighted one carries its color in both.
+         */
+        final int color;
 
-        Shape(Constructor<?> constructor, Field[] fields, int label) {
+        Shape(Constructor<?> constructor, Field[] fields, int label, int color) {
             this.constructor = constructor;
             this.fields = fields;
             this.label = label;
+            this.color = color;
         }
     }
 
@@ -106,7 +109,8 @@ final class PopupRows {
             if (item == null) continue;
             Object[] values = values(item);
             if (values == null) continue;
-            if (Integer.valueOf(-1).equals(values[COLOR]) && values[HIGHLIGHT] == null) return item;
+            int color = shape(item.getClass()).color;
+            if (Integer.valueOf(-1).equals(values[color]) && values[color + 1] == null) return item;
         }
         return null;
     }
@@ -135,7 +139,8 @@ final class PopupRows {
         } catch (ReflectiveOperationException | RuntimeException missing) {
             ordered = null;
         }
-        shape = ordered == null ? NONE : new Shape(constructor, ordered, labelAt(constructor.getParameterTypes()));
+        Class<?>[] parameters = constructor == null ? null : constructor.getParameterTypes();
+        shape = ordered == null ? NONE : new Shape(constructor, ordered, labelAt(parameters), colorAt(parameters));
         SHAPES.put(type, shape);
         return shape;
     }
@@ -149,10 +154,11 @@ final class PopupRows {
         Constructor<?>[] constructors = type.getDeclaredConstructors();
         if (constructors.length != 1) return null;
         Class<?>[] parameters = constructors[0].getParameterTypes();
-        if (parameters.length != ARGUMENTS && parameters.length != OLDER_ARGUMENTS) return null;
+        if (parameters.length != ARGUMENTS && parameters.length != ARGUMENTS_454 && parameters.length != OLDER_ARGUMENTS) return null;
         int label = labelAt(parameters);
+        int color = colorAt(parameters);
         if (!parameters[CLICK].isInterface() || label < 0 || label + 1 >= parameters.length || parameters[label + 1] != String.class
-                || parameters[COLOR] != Integer.class || parameters[HIGHLIGHT] != Integer.class) {
+                || color < 0 || color + 1 >= parameters.length || parameters[color + 1] != Integer.class) {
             return null;
         }
         return constructors[0];
@@ -161,6 +167,12 @@ final class PopupRows {
     /** Where the label goes: the first String argument, or -1. */
     private static int labelAt(Class<?>[] parameters) {
         for (int at = 0; at < parameters.length; at++) if (parameters[at] == String.class) return at;
+        return -1;
+    }
+
+    /** Where the row's color goes: the first Integer argument, with the highlight right after it, or -1. */
+    private static int colorAt(Class<?>[] parameters) {
+        for (int at = 0; at < parameters.length; at++) if (parameters[at] == Integer.class) return at;
         return -1;
     }
 

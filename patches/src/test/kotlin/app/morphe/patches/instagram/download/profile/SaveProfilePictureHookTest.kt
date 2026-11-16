@@ -102,7 +102,7 @@ class SaveProfilePictureHookTest {
         assertEquals("the stub says the row went in", Opcode.RETURN, stub.last().opcode)
 
         // The fixture's item stores its eleventh and sixteenth arguments in each other's field, as 450 does.
-        val names = (0 until 26).map { "a$it" }.toMutableList().apply { this[10] = "a15"; this[15] = "a10" }
+        val names = (0 until POPUP_ITEM_ARGUMENTS).map { "a$it" }.toMutableList().apply { this[10] = "a15"; this[15] = "a10" }
         assertEquals("the item's fields in argument order", "fixture.PopupItem|" + names.joinToString(","), layout(context))
     }
 
@@ -152,7 +152,7 @@ class SaveProfilePictureHookTest {
     }
 
     @Test
-    fun aPopupItemOfAnotherSizeFailsThePatch() = refuses("expected one item class built with 26 arguments") {
+    fun aPopupItemOfAnotherSizeFailsThePatch() = refuses("expected one item class built with 27 arguments") {
         context(popupItemArguments = 24).findProfileMenus()
     }
 
