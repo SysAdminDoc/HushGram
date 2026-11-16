@@ -25,7 +25,22 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import app.morphe.patcher.patch.PatchException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -36,9 +51,13 @@ import java.io.File
  * own checks unchanged.
  */
 class ReelFillHookTest {
+    private val STICKER_KIND = "Lfixture/StickerKind;"
+    private val CLIPS_FIELD = ImmutableFieldReference(REEL_PRODUCT_TYPE, "A07", REEL_PRODUCT_TYPE)
+
     @Test
     fun theHookIsInTheExtension() {
-        for (hook in listOf(FILL_HOOK, FIT_HOOK, FIT_VIDEO_HOOK, FIT_BOX_HOOK, STORY_HOOK, WIDE_HOOK, STORY_BOUND_HOOK, STORY_FRAME_HOOK)) {
+        for (hook in listOf(FILL_HOOK, FIT_HOOK, FIT_VIDEO_HOOK, FIT_BOX_HOOK, STORY_HOOK, WIDE_HOOK, STORY_BOUND_HOOK, STORY_FRAME_HOOK,
+            SHARES_POST_HOOK)) {
             val method = ExtensionDex.classDef(hook.substringBefore("->")).methods.single {
                 "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook.substringAfter("->")
             }
@@ -261,8 +280,9 @@ class ReelFillHookTest {
     }
 
     /**
-     * #618: the story binder asks first, with its holder and Instagram's own check of whether the story
-     * shares a reel, and a yes lays out the whole screen before anything else runs. The whole-screen
+     * #618: the story binder asks first, with its holder and whether the story has a sticker in the
+     * list Instagram's own shared-reel check reads, which a reshared post is in too, and a yes lays
+     * out the whole screen before anything else runs. The whole-screen
      * layout hands the holder and its frame over in front of its one return, and every branch that
      * went to the return reaches the hand-over first. Every other build of the declared versions too.
      */
@@ -278,9 +298,11 @@ class ReelFillHookTest {
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, (loading + models).distinctBy { it.type }))
         val layout = context.findStoryLayout()
         val found = context.findStoryBinder(layout)
-        val shared = context.findSharedReelCheck()
-        assertEquals("$label: the shared-reel check is the story's own", STORY_REEL_ITEM, shared.definingClass)
-        assertEquals("$label: and answers yes or no", "Z", shared.returnType)
+        val stickers = context.findSharedPostStickers()
+        assertEquals("$label: the story's own sticker list", STORY_REEL_ITEM, stickers.list.definingClass)
+        assertEquals("$label: a list", "Ljava/util/List;", stickers.list.returnType)
+        assertEquals("$label: of one kind", listOf(stickers.kind.type), stickers.list.parameterTypes.map(CharSequence::toString))
+        assertEquals("$label: the kind is a constant of its own type", stickers.kind.type, stickers.kind.definingClass)
         fun MethodReference.same(method: Method) = method.name == name &&
             method.parameterTypes.map(CharSequence::toString) == parameterTypes.map(CharSequence::toString)
         val binder = context.mutableClassDefBy(found.method.definingClass).methods.single { found.method.toReference().same(it) }
@@ -307,38 +329,47 @@ class ReelFillHookTest {
 
         val code = binder.code()
         val bind = "$label binder"
-        assertEquals("$bind: nine instructions added", bindBefore.count { it.opcode != Opcode.NOP } + 9, code.count { it.opcode != Opcode.NOP })
-        assertEquals("$bind: the holder first", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
-        assertEquals("$bind: into the first local", 0, (code[0] as TwoRegisterInstruction).registerA)
-        assertEquals("$bind: out of its parameter", holder, (code[0] as TwoRegisterInstruction).registerB)
-        assertEquals("$bind: no until asked", Opcode.CONST_4, code[1].opcode)
-        assertEquals("$bind: in the second local", 1, (code[1] as OneRegisterInstruction).registerA)
-        assertEquals("$bind: no", 0, (code[1] as NarrowLiteralInstruction).narrowLiteral)
-        assertEquals("$bind: no story isn't asked about", Opcode.IF_EQZ, code[2].opcode)
-        assertEquals("$bind: on the story", item, (code[2] as OneRegisterInstruction).registerA)
-        assertEquals("$bind: an invoke-virtual/range", Opcode.INVOKE_VIRTUAL_RANGE, code[3].opcode)
-        assertEquals("$bind: of the shared-reel check", shared.toString(), code[3].referenceText())
-        assertEquals("$bind: on the story", item to 1, (code[3] as RegisterRangeInstruction).let { it.startRegister to it.registerCount })
-        assertEquals("$bind: its answer", Opcode.MOVE_RESULT, code[4].opcode)
-        assertEquals("$bind: in the second local", 1, (code[4] as OneRegisterInstruction).registerA)
+        fun FiveRegisterInstruction.arguments() = listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+        assertEquals("$bind: thirteen instructions added", bindBefore.count { it.opcode != Opcode.NOP } + 13, code.count { it.opcode != Opcode.NOP })
+        assertEquals("$bind: no until asked", Opcode.CONST_4, code[0].opcode)
+        assertEquals("$bind: in the second local", 1, (code[0] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: no", 0, (code[0] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$bind: no story isn't asked about", Opcode.IF_EQZ, code[1].opcode)
+        assertEquals("$bind: on the story", item, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: the story", Opcode.MOVE_OBJECT_FROM16, code[2].opcode)
+        assertEquals("$bind: into the first local", 0 to item, (code[2] as TwoRegisterInstruction).let { it.registerA to it.registerB })
+        assertEquals("$bind: the kind of sticker", Opcode.SGET_OBJECT, code[3].opcode)
+        assertEquals("$bind: that shares a post", stickers.kind.toString(), code[3].referenceText())
+        assertEquals("$bind: in the second local", 1, (code[3] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: an invoke-virtual", Opcode.INVOKE_VIRTUAL, code[4].opcode)
+        assertEquals("$bind: of the story's sticker list", stickers.list.toString(), code[4].referenceText())
+        assertEquals("$bind: on the story and the kind", listOf(0, 1), (code[4] as FiveRegisterInstruction).arguments())
+        assertEquals("$bind: the stickers", Opcode.MOVE_RESULT_OBJECT, code[5].opcode)
+        assertEquals("$bind: in the second local", 1, (code[5] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: one look at them", 1, code.count { it.referenceText() == SHARES_POST_HOOK })
+        assertEquals("$bind: handed over", SHARES_POST_HOOK, code[6].referenceText())
+        assertEquals("$bind: with an invoke-static", Opcode.INVOKE_STATIC, code[6].opcode)
+        assertEquals("$bind: of the stickers", listOf(1), (code[6] as FiveRegisterInstruction).arguments())
+        assertEquals("$bind: its answer", Opcode.MOVE_RESULT, code[7].opcode)
+        assertEquals("$bind: in the second local", 1, (code[7] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: then the holder", Opcode.MOVE_OBJECT_FROM16, code[8].opcode)
+        assertEquals("$bind: into the first local", 0 to holder, (code[8] as TwoRegisterInstruction).let { it.registerA to it.registerB })
         assertEquals("$bind: one ask", 1, code.count { it.referenceText() == STORY_BOUND_HOOK })
-        assertEquals("$bind: then the ask", STORY_BOUND_HOOK, code[5].referenceText())
-        assertEquals("$bind: an invoke-static", Opcode.INVOKE_STATIC, code[5].opcode)
-        assertEquals("$bind: on the holder and the answer", listOf(0, 1), (code[5] as FiveRegisterInstruction).let {
-            listOf(it.registerC, it.registerD).take(it.registerCount)
-        })
-        assertEquals("$bind: the ask's answer", Opcode.MOVE_RESULT, code[6].opcode)
-        assertEquals("$bind: in the second local", 1, (code[6] as OneRegisterInstruction).registerA)
-        assertEquals("$bind: a no goes on", Opcode.IF_EQZ, code[7].opcode)
-        assertEquals("$bind: on the ask's answer", 1, (code[7] as OneRegisterInstruction).registerA)
-        assertEquals("$bind: a yes lays out the whole screen", layout.full.toString(), code[8].referenceText())
-        assertEquals("$bind: with an invoke-static", Opcode.INVOKE_STATIC, code[8].opcode)
-        assertEquals("$bind: on the holder", listOf(0), (code[8] as FiveRegisterInstruction).let { listOf(it.registerC).take(it.registerCount) })
-        assertEquals("$bind: then Instagram's first instruction", bindBefore[0].opcode, code[9].opcode)
+        assertEquals("$bind: then the ask", STORY_BOUND_HOOK, code[9].referenceText())
+        assertEquals("$bind: an invoke-static", Opcode.INVOKE_STATIC, code[9].opcode)
+        assertEquals("$bind: on the holder and the answer", listOf(0, 1), (code[9] as FiveRegisterInstruction).arguments())
+        assertEquals("$bind: the ask's answer", Opcode.MOVE_RESULT, code[10].opcode)
+        assertEquals("$bind: in the second local", 1, (code[10] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: a no goes on", Opcode.IF_EQZ, code[11].opcode)
+        assertEquals("$bind: on the ask's answer", 1, (code[11] as OneRegisterInstruction).registerA)
+        assertEquals("$bind: a yes lays out the whole screen", layout.full.toString(), code[12].referenceText())
+        assertEquals("$bind: with an invoke-static", Opcode.INVOKE_STATIC, code[12].opcode)
+        assertEquals("$bind: on the holder", listOf(0), (code[12] as FiveRegisterInstruction).arguments())
+        assertEquals("$bind: then Instagram's first instruction", bindBefore[0].opcode, code[13].opcode)
         val bindFlow = ControlFlow.of(binder)
-        assertEquals("$bind: no story goes straight to the ask", 5, bindFlow.normal[2].first())
-        assertEquals("$bind: a no skips the layout", 9, bindFlow.normal[7].first())
-        bindNative.assertPreserved(bind, binder, (0 until 9).toSet())
+        assertEquals("$bind: no story goes straight to the holder", 8, bindFlow.normal[1].first())
+        assertEquals("$bind: a no skips the layout", 13, bindFlow.normal[11].first())
+        bindNative.assertPreserved(bind, binder, (0 until 13).toSet())
 
         val after = full.code()
         val lay = "$label whole-screen layout"
@@ -364,6 +395,56 @@ class ReelFillHookTest {
             assertEquals("$lay: instruction $branch reaches the hand-over", returnAt, flow.normal[branch].first())
         }
         fullNative.assertPreserved(lay, full, (returnAt until returnAt + 3).toSet())
+    }
+
+    /**
+     * #618: a build whose shared-reel check reads no sticker list, or reads one without naming its
+     * kind from a constant, stops the patch instead of guessing what a story shares.
+     */
+    @Test
+    fun aSharedReelCheckWithoutOneStickerListFailsThePatch() {
+        val kind = ImmutableFieldReference(STICKER_KIND, "media", STICKER_KIND)
+        val list = ImmutableMethodReference(STORY_REEL_ITEM, "stickers", listOf(STICKER_KIND), "Ljava/util/List;")
+        fun refused(why: String, vararg check: Instruction) {
+            val context = PatchContexts.of(storyModels(*check))
+            val refusal = assertThrows(PatchException::class.java) { context.findSharedPostStickers() }
+            assertTrue(refusal.message, refusal.message!!.contains(why))
+        }
+        refused("reads 0 sticker lists", ImmutableInstruction21c(Opcode.SGET_OBJECT, 0, CLIPS_FIELD),
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 0), ImmutableInstruction11x(Opcode.RETURN, 0))
+        refused("doesn't ask the story for one kind of sticker",
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 2, 0, 0, 0, 0, list),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+            ImmutableInstruction21c(Opcode.SGET_OBJECT, 0, CLIPS_FIELD),
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 0), ImmutableInstruction11x(Opcode.RETURN, 0))
+
+        val found = PatchContexts.of(storyModels(
+            ImmutableInstruction21c(Opcode.SGET_OBJECT, 0, kind),
+            ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 2, 0, 0, 0, 0, list),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+            ImmutableInstruction21c(Opcode.SGET_OBJECT, 0, CLIPS_FIELD),
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 0), ImmutableInstruction11x(Opcode.RETURN, 0),
+        )).findSharedPostStickers()
+        assertEquals("the list", list.toString(), found.list.toString())
+        assertEquals("of that kind", kind.toString(), found.kind.toString())
+    }
+
+    /** ProductType naming CLIPS, and a story whose one no-argument check reads it with [check] on three registers. */
+    private fun storyModels(vararg check: Instruction): List<ClassDef> {
+        val productType = ImmutableClassDef(REEL_PRODUCT_TYPE, AccessFlags.PUBLIC.value, "Ljava/lang/Enum;", null, null, null, null,
+            listOf(ImmutableMethod(REEL_PRODUCT_TYPE, "<clinit>", emptyList<ImmutableMethodParameter>(), "V",
+                AccessFlags.STATIC.value or AccessFlags.CONSTRUCTOR.value, null, null,
+                ImmutableMethodImplementation(1, listOf(
+                    ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("CLIPS")),
+                    ImmutableInstruction21c(Opcode.SPUT_OBJECT, 0, CLIPS_FIELD),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ), null, null))))
+        val story = ImmutableClassDef(STORY_REEL_ITEM, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
+            null, null, null, null, listOf(ImmutableMethod(STORY_REEL_ITEM, "A0w", emptyList<ImmutableMethodParameter>(), "Z",
+                AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
+                ImmutableMethodImplementation(3, check.toList(), null, null))))
+        return listOf(productType, story)
     }
 
     private fun Method.toReference(): MethodReference =

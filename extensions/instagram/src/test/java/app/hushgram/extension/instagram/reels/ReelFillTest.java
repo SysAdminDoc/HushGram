@@ -100,6 +100,19 @@ public class ReelFillTest {
         frame.setLayoutParams(new FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT));
     }
 
+    /**
+     * #618: a reshared feed post comes in the same sticker list as a shared reel, so any sticker there
+     * counts as sharing a post. No list, an empty one or something else counts as none.
+     */
+    @Test
+    public void anyStickerInTheSharedListSharesAPost() {
+        assertEquals("a reshared post", 1, ReelFill.sharesPost(java.util.Collections.singletonList(new Object())));
+        assertEquals(1, ReelFill.sharesPost(new java.util.ArrayList<>(java.util.Arrays.asList("a", "b"))));
+        assertEquals("no sticker", 0, ReelFill.sharesPost(java.util.Collections.emptyList()));
+        assertEquals("no list", 0, ReelFill.sharesPost(null));
+        assertEquals("not a list", 0, ReelFill.sharesPost("sticker"));
+    }
+
     /** #618: the binder lays a story out as it binds only with Stories fill the screen on. */
     @Test
     public void theStoryBinderLaysOutTheWholeScreenOnTheStorySwitch() {

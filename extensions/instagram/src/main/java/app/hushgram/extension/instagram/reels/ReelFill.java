@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -56,8 +57,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Instagram's newer story viewer lays a story out only once its state has loaded, and for a reel
  * shared to a story that took about a second, so the card and its reply bar showed first (#618). The
  * story binder now asks as it binds ({@link #storyBound}) and lays out the whole screen right away.
- * A shared reel's frame is then kept at 9:16 across the screen's width ({@link #storyFrame}), since
- * filling the screen cut its sides off.
+ * A story sharing a reel or a feed post ({@link #sharesPost}) then has its frame kept at 9:16 across
+ * the screen's width ({@link #storyFrame}), since filling the screen cut its sides off.
  */
 public final class ReelFill {
     /**
@@ -82,20 +83,20 @@ public final class ReelFill {
     /** What a story laid out over the whole screen as it binds is counted under. */
     static final String COUNT_STORY_BOUND = "stories laid out as they open";
 
-    /** What a reel shared to a story and kept whole is counted under. */
-    static final String COUNT_SHARED_REEL = "shared reels kept whole in stories";
+    /** What a reel or post shared to a story and kept whole is counted under. */
+    static final String COUNT_SHARED_REEL = "shared posts kept whole in stories";
 
     /** The shape Instagram keeps a reel to on a foldable or large screen of another shape. */
     static final float REEL_SHAPE = 9f / 16f;
 
     /**
-     * Whether the story the binder last bound to each of the story viewer's item holders shares a reel.
+     * Whether the story the binder last bound to each of the story viewer's item holders shares a reel or post.
      * Weak, so a holder Instagram lets go of isn't kept.
      */
     static final Map<Object, Boolean> SHARED_REELS = Collections.synchronizedMap(new WeakHashMap<>());
 
     /**
-     * The story frames last laid out for a story that shares a reel, for a layout that comes from the
+     * The story frames last laid out for a story that shares a reel or post, for a layout that comes from the
      * newer story viewer's state with a holder the binder never saw. Weak, like {@link #SHARED_REELS}.
      */
     static final Map<View, Boolean> SHARED_FRAMES = Collections.synchronizedMap(new WeakHashMap<>());
@@ -275,13 +276,28 @@ public final class ReelFill {
     }
 
     /**
+     * Asked by Instagram's story binder with the story's stickers that share a post or reel (#618), the
+     * list Instagram's own shared-reel check reads, which holds a reshared feed post as well as a
+     * reel. Non-zero when the story has one, so a reshared post keeps its whole frame like a shared
+     * reel. Zero for an empty list, anything that isn't one, and anything that throws.
+     */
+    public static int sharesPost(Object stickers) {
+        try {
+            return stickers instanceof Collection && !((Collection<?>) stickers).isEmpty() ? 1 : 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "story stickers", failure);
+            return 0;
+        }
+    }
+
+    /**
      * Asked first thing as Instagram's story binder binds a story to an item holder (#618), with the
-     * holder and whether the story shares a reel, non-zero for yes. Remembers that for
-     * {@link #storyFrame}. Non-zero when Stories fill the screen is on, and the binder then lays the
-     * whole screen out right away, before the story's first frame. Instagram's newer story viewer
-     * otherwise leaves that to its state, which for a shared reel arrives about a second later, and the
-     * card with its reply bar shows until then. Zero leaves the binder as it was, and so does anything
-     * that throws.
+     * holder and whether the story shares a reel or post ({@link #sharesPost}), non-zero for yes.
+     * Remembers that for {@link #storyFrame}. Non-zero when Stories fill the screen is on, and the
+     * binder then lays the whole screen out right away, before the story's first frame. Instagram's
+     * newer story viewer otherwise leaves that to its state, which for a shared reel arrives about a
+     * second later, and the card with its reply bar shows until then. Zero leaves the binder as it
+     * was, and so does anything that throws.
      */
     public static int storyBound(Object holder, int sharedReel) {
         try {
@@ -299,8 +315,8 @@ public final class ReelFill {
     /**
      * Asked each time Instagram lays a story out over the whole screen (#618), with the item holder and
      * its story frame, the rounded frame the picture or video fills. With Stories fill the screen on
-     * and a story that shares a reel, the frame goes back to 9:16, as wide as the screen and centered
-     * with a band above and below, so the reel isn't cut at the sides. A screen wider than 9:16 gets
+     * and a story that shares a reel or post, the frame goes back to 9:16, as wide as the screen and centered
+     * with a band above and below, so its sides aren't cut. A screen wider than 9:16 gets
      * the frame's full height instead. A holder the binder never saw goes by what the frame last
      * showed. Anything else, or anything that throws, leaves Instagram's whole-screen frame.
      */
@@ -335,7 +351,7 @@ public final class ReelFill {
             HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_SHARED_REEL);
             if (!loggedSharedReel) {
                 loggedSharedReel = true;
-                Logger.printDebug(() -> "Story fill: keeping a shared reel's whole frame");
+                Logger.printDebug(() -> "Story fill: keeping a shared post's whole frame");
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "shared reel frame", failure);

@@ -38,6 +38,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 
 internal const val FILL_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fill(Ljava/lang/Object;F)Z"
@@ -46,6 +47,7 @@ internal const val STORY_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->story()Z"
 internal const val WIDE_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->wide(F)Z"
 internal const val STORY_BOUND_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->storyBound(Ljava/lang/Object;I)I"
 internal const val STORY_FRAME_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->storyFrame(Ljava/lang/Object;Ljava/lang/Object;)V"
+internal const val SHARES_POST_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->sharesPost(Ljava/lang/Object;)I"
 
 /** The trace section Instagram's story item binder opens while it binds a story's picture or video. */
 internal const val STORY_BIND_MEDIA = "ReelViewerItemBinder.bindMedia"
@@ -510,13 +512,49 @@ internal fun BytecodePatchContext.findStoryBinder(layout: StoryLayout): StoryBin
     return StoryBinder(binder, types.indexOf(STORY_REEL_ITEM), holder)
 }
 
+/** How a story gets its stickers of one kind ([list]), and the kind ([kind]) of the stickers that share a post or reel. */
+internal data class SharedPostStickers(val kind: FieldReference, val list: MethodReference)
+
+/**
+ * The stickers a story shares a post or reel with (#618), read the way Instagram's own shared-reel
+ * check reads them. That check, ReelItem.A0w on 454, asks the story for its stickers of one kind
+ * ([SharedPostStickers.list], DK9 with 01Mb.A0m on 454) and answers yes only when one of them is a
+ * reel. A reshared feed post comes in the same list, so the binder asks about the list itself.
+ */
+internal fun BytecodePatchContext.findSharedPostStickers(): SharedPostStickers {
+    val check = findSharedReelCheck()
+    val code = check.implementation?.instructions?.toList().orEmpty()
+    val calls = code.indices.filter { at ->
+        val call = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
+        code[at].opcode == Opcode.INVOKE_VIRTUAL && call != null && call.definingClass == STORY_REEL_ITEM &&
+            call.returnType == "Ljava/util/List;" && call.parameterTypes.size == 1
+    }
+    val at = calls.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the shared-reel check reads ${calls.size} sticker lists, not one")
+    val list = (code[at] as ReferenceInstruction).reference as MethodReference
+    val call = code[at] as FiveRegisterInstruction
+    val self = check.implementation!!.registerCount - 1
+    val loaded = code.getOrNull(at - 1)
+    val kind = (loaded as? ReferenceInstruction)?.reference as? FieldReference
+    if (call.registerCount != 2 || call.registerC != self || loaded == null || kind == null ||
+        loaded.opcode != Opcode.SGET_OBJECT || (loaded as OneRegisterInstruction).registerA != call.registerD ||
+        kind.type != list.parameterTypes[0].toString()
+    ) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the shared-reel check doesn't ask the story for one kind of sticker")
+    }
+    return SharedPostStickers(
+        ImmutableFieldReference(kind.definingClass, kind.name, kind.type),
+        ImmutableMethodReference(list.definingClass, list.name, list.parameterTypes, list.returnType),
+    )
+}
+
 /**
  * Instagram's own check of whether a story shares a reel (#618), ReelItem.A0w on 454: the story's
  * one no-argument boolean that reads the ProductType a reel has, which it compares a media sticker's
  * product type with. That constant is the field ProductType's static initializer stores right after
  * naming [CLIPS].
  */
-internal fun BytecodePatchContext.findSharedReelCheck(): MethodReference {
+private fun BytecodePatchContext.findSharedReelCheck(): Method {
     val productType = classDefByOrNull(REEL_PRODUCT_TYPE)
         ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: $REEL_PRODUCT_TYPE isn't in this Instagram")
     val setup = productType.methods.singleOrNull { it.name == "<clinit>" }?.implementation?.instructions?.toList().orEmpty()
@@ -535,9 +573,8 @@ internal fun BytecodePatchContext.findSharedReelCheck(): MethodReference {
                 it.opcode == Opcode.SGET_OBJECT && (it as ReferenceInstruction).reference.toString() == clips
             } == true
     }
-    val check = checks.singleOrNull()
+    return checks.singleOrNull()
         ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: $STORY_REEL_ITEM has ${checks.size} checks for a shared reel, not one")
-    return ImmutableMethodReference(check.definingClass, check.name, check.parameterTypes, check.returnType)
 }
 
 /**
@@ -546,20 +583,20 @@ internal fun BytecodePatchContext.findSharedReelCheck(): MethodReference {
  * Instagram's newer story viewer (its own server flag) skips the binder's layout and lays a story
  * out once the story's state has loaded, which for a reel shared to a story came about a second
  * later: the card and its reply bar showed first, then the whole screen. So the binder's first
- * instruction asks [STORY_BOUND_HOOK] with the holder and the answer of Instagram's own shared-reel
- * check ([findSharedReelCheck]), or no when there's no story, and a yes lays out the whole screen
- * there and then. Nothing jumps back to that first instruction, and its first two locals hold
- * nothing yet.
+ * instruction hands [SHARES_POST_HOOK] the story's stickers that share a post or reel
+ * ([findSharedPostStickers]), then asks [STORY_BOUND_HOOK] with the holder and that answer, or no
+ * when there's no story, and a yes lays out the whole screen there and then. Nothing jumps back to
+ * that first instruction, and its first two locals hold nothing yet.
  *
- * Filling the screen cut a 9:16 reel's sides off on a taller phone. The whole-screen layout's one
- * return now hands [STORY_FRAME_HOOK] the holder and the frame it sized, the view whose layout
- * params it sets, so the extension can size a shared reel's frame back to 9:16. Every branch that
- * reached the return reaches the hook first.
+ * Filling the screen cut the sides off a 9:16 reel or reshared post on a taller phone. The
+ * whole-screen layout's one return now hands [STORY_FRAME_HOOK] the holder and the frame it sized,
+ * the view whose layout params it sets, so the extension can size a shared post's frame back to
+ * 9:16. Every branch that reached the return reaches the hook first.
  */
 internal fun BytecodePatchContext.layStoriesOutAsTheyBind() {
     val layout = findStoryLayout()
     val found = findStoryBinder(layout)
-    val shared = findSharedReelCheck()
+    val stickers = findSharedPostStickers()
     val binder = mutableClassDefBy(found.method.definingClass).methods.single {
         it.name == found.method.name && it.parameterTypes.map(CharSequence::toString) == found.method.parameterTypes.map(CharSequence::toString)
     }
@@ -589,12 +626,16 @@ internal fun BytecodePatchContext.layStoriesOutAsTheyBind() {
     binder.addInstructionsWithLabels(
         0,
         """
-            move-object/from16 v0, v$holder
             const/4 v1, 0x0
             if-eqz v$item, :ask
-            invoke-virtual/range { v$item .. v$item }, $shared
+            move-object/from16 v0, v$item
+            sget-object v1, ${stickers.kind}
+            invoke-virtual { v0, v1 }, ${stickers.list}
+            move-result-object v1
+            invoke-static { v1 }, $SHARES_POST_HOOK
             move-result v1
             :ask
+            move-object/from16 v0, v$holder
             invoke-static { v0, v1 }, $STORY_BOUND_HOOK
             move-result v1
             if-eqz v1, :instagram
