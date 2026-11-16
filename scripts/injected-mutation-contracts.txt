@@ -3125,6 +3125,12 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySeekBar;->paused(Ljava/
 # hides; twice or elsewhere, it isn't the call the patch wrote.
 # HideStoryReplyBoxHookTest checks on the fixtures that the call sits right after the super call.
 once-call Lapp/hushgram/extension/instagram/stories/StoryReplyBox;->resumed(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onResume
+# It also tells StoryReplyBox first thing in ReelViewerFragment's onViewCreated, once, since a story
+# opened from a ring draws a few frames before the viewer resumes and those frames showed the hidden
+# buttons (#618). Left out, the buttons flash in; twice or elsewhere, it isn't the call the patch
+# wrote. HideStoryReplyBoxHookTest checks on the fixtures that the call comes first.
+start-call Lapp/hushgram/extension/instagram/stories/StoryReplyBox;->viewCreated(Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding ReelViewerFragment.onViewCreated
+once-call Lapp/hushgram/extension/instagram/stories/StoryReplyBox;->viewCreated(Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding ReelViewerFragment.onViewCreated
 # Keep story buttons below the story tells StoryButtonsRoom the story viewer came back, once, right
 # after ReelViewerFragment's onResume hands on to its superclass's (#598). Left out, the row stays
 # over the story at a large font; twice or elsewhere, it isn't the call the patch wrote.
