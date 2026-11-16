@@ -398,9 +398,9 @@ Leaves New group out of the share sheet, and the button that sends to the people
 Hide the search bar	Suchleiste ausblenden
 Takes the search bar off the top of the share sheet. The people you can send to still show.	Entfernt die Suchleiste oben im Teilen-Menü. Die Personen, an die du senden kannst, werden weiter angezeigt.
 Story ring size	Größe der Story-Ringe
-Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.	Zeichnet die Ringe in der Story-Leiste oben auf der Startseite in der unten gewählten Größe und die Ringe von Stories, die du noch nicht angesehen hast, in der unten gewählten Farbe. Starte Instagram neu, um eine Änderung zu sehen.
 Hide rings outside the stories row	Ringe außerhalb der Story-Leiste ausblenden
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	Entfernt die Story- und Live-Ringe von Profilbildern bei Beiträgen, Kommentaren, Reels und Profilen. Die Bilder bleiben, ebenso die Ringe in der Story-Leiste.
+Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Story rings take the thickness below. Restart Instagram to see a change.	Zeichnet die Ringe in der Story-Leiste oben auf der Startseite in der unten gewählten Größe und die Ringe von Stories, die du noch nicht angesehen hast, in der unten gewählten Farbe. Story-Ringe bekommen die unten gewählte Stärke. Starte Instagram neu, um eine Änderung zu sehen.
 Ring size	Ringgröße
 Instagram's size	Größe von Instagram
 The rings are the size Instagram picks for your screen.	Die Ringe haben die Größe, die Instagram für deinen Bildschirm wählt.
@@ -2391,3 +2391,7 @@ Left off the three-dot menus: %1$s.	Aus den Drei-Punkte-Menüs entfernt: %1$s.
 Keep 2x after you let go	2x nach dem Loslassen beibehalten
 # context: Summary of Keep 2x after you let go, a switch under Hold for 2x on feed videos (#552)
 A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.	Ein Feed-Video, das du für 2x gedrückt hältst, läuft nach dem Loslassen mit 2x weiter. Halte es erneut gedrückt, um zur normalen Geschwindigkeit zurückzukehren.
+# context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
+Ring thickness	Ringstärke
+# context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
+Instagram's thickness	Stärke von Instagram

@@ -6564,7 +6564,7 @@
     },
     {
       "name": "Story ring size",
-      "description": "Draws the rings in the stories row at the top of Home smaller, so more fit on screen, or larger, and the ring of a story you haven't watched in a color you pick. Another switch takes the rings off profile pictures everywhere else, like posts, comments, reels and profiles. Nothing changes until you pick a size or a color or turn that switch on. On by default. Turn it off in HushGram settings > Stories.",
+      "description": "Draws the rings in the stories row at the top of Home smaller, so more fit on screen, or larger, the ring of a story you haven't watched in a color you pick, and story rings thinner or thicker. Another switch takes the rings off profile pictures everywhere else, like posts, comments, reels and profiles. Nothing changes until you pick a size, a color or a thickness or turn that switch on. On by default. Turn it off in HushGram settings > Stories.",
       "category": "Stories",
       "use": true,
       "dependencies": [

@@ -22,6 +22,7 @@ import java.util.List;
 
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryRingThickness;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 
@@ -39,7 +40,8 @@ import org.robolectric.shadows.ShadowLooper;
  * With Story ring size in the build, the Stories section has its switch and the list of sizes right
  * below it, which says what the chosen size does. A share such as 130% shows as it is: the list's
  * summary isn't run through String.format, which a percent sign breaks. The list of colors comes
- * right below that, and shows the color chosen. Without the patch there's none of the three.
+ * right below that, and shows the color chosen, then the list of thicknesses. Without the patch
+ * there's none of the four.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -53,6 +55,7 @@ public class StoryRingSettingsTest {
         Settings.STORY_RING.resetToDefault();
         Settings.STORY_RING_SCALE.resetToDefault();
         Settings.STORY_RING_COLOR.resetToDefault();
+        Settings.STORY_RING_THICKNESS.resetToDefault();
     }
 
     /**
@@ -69,7 +72,8 @@ public class StoryRingSettingsTest {
             int toggle = indexOfKey(rows, Settings.STORY_RING.key);
             assertTrue("no Story ring size switch", toggle >= 0);
             assertEquals("Draws the rings in the stories row at the top of Home at the size below, and the rings of "
-                    + "stories you haven't watched in the color below. Restart Instagram to see a change.",
+                    + "stories you haven't watched in the color below. Story rings take the thickness below. "
+                    + "Restart Instagram to see a change.",
                     String.valueOf(rows.get(toggle).getSummary()));
 
             assertTrue("the size's list stays right under the switch",
@@ -117,6 +121,58 @@ public class StoryRingSettingsTest {
                 assertFalse("a ring color row with no Story ring size in the build",
                         row instanceof HushgramPreferenceFragment.StoryRingColorRow);
                 assertFalse(Settings.STORY_RING_COLOR.key.equals(row.getKey()));
+            }
+        }
+    }
+
+    /**
+     * The thickness's list sits under the color's (#528), offers each share thinnest first with
+     * Instagram's own in the middle, and saves a pick without touching the size or the color.
+     */
+    @Test
+    public void theRingThicknessRowOffersEachThicknessAndShowsTheOneChosen() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORY_RING, PatchFamily.STORIES_TRAY);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            List<Preference> rows = rowsOf(page);
+            int toggle = indexOfKey(rows, Settings.STORY_RING.key);
+            assertTrue("no Story ring size switch", toggle >= 0);
+            assertTrue("the thickness comes right under the color",
+                    rows.get(toggle + 3) instanceof HushgramPreferenceFragment.StoryRingThicknessRow);
+            HushgramPreferenceFragment.StoryRingThicknessRow thickness =
+                    (HushgramPreferenceFragment.StoryRingThicknessRow) rows.get(toggle + 3);
+            assertEquals(Settings.STORY_RING_THICKNESS.key, thickness.getKey());
+            assertEquals("Ring thickness", String.valueOf(thickness.getTitle()));
+            assertEquals("Ring thickness", String.valueOf(thickness.getDialogTitle()));
+            List<String> entries = new ArrayList<>();
+            for (CharSequence entry : thickness.getEntries()) entries.add(String.valueOf(entry));
+            NumberFormat percent = NumberFormat.getPercentInstance(L10n.locale());
+            assertEquals(Arrays.asList(percent.format(0.5), percent.format(0.75), "Instagram's thickness",
+                    percent.format(1.5), percent.format(2.0)), entries);
+            List<String> values = new ArrayList<>();
+            for (CharSequence value : thickness.getEntryValues()) values.add(String.valueOf(value));
+            assertEquals(Arrays.asList("PERCENT_50", "PERCENT_75", "INSTAGRAM", "PERCENT_150", "PERCENT_200"), values);
+
+            assertEquals("INSTAGRAM", thickness.getValue());
+            assertEquals("Instagram's thickness", String.valueOf(thickness.getSummary()));
+
+            for (StoryRingThickness each : StoryRingThickness.values()) {
+                thickness.setValue(each.name());
+                ShadowLooper.idleMainLooper();
+                assertEquals(each, Settings.STORY_RING_THICKNESS.savedValue());
+                assertEquals(entries.get(each.ordinal()), String.valueOf(thickness.getSummary()));
+                assertEquals("a thickness changed the size", StoryRingSize.INSTAGRAM, Settings.STORY_RING_SCALE.savedValue());
+                assertEquals("a thickness changed the color", StoryRingColor.INSTAGRAM, Settings.STORY_RING_COLOR.savedValue());
+            }
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_RING_THICKNESS.key));
+        }
+
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORIES_TRAY);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            for (Preference row : rowsOf(DownloadSettingsTest.pageIn(controller))) {
+                assertFalse("a ring thickness row with no Story ring size in the build",
+                        row instanceof HushgramPreferenceFragment.StoryRingThicknessRow);
+                assertFalse(Settings.STORY_RING_THICKNESS.key.equals(row.getKey()));
             }
         }
     }

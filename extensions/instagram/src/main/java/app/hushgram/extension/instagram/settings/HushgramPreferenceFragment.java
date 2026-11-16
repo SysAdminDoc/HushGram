@@ -132,6 +132,7 @@ import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.UploadBitrate;
 import app.hushgram.extension.instagram.stories.UploadScope;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryRingThickness;
 import app.hushgram.extension.instagram.stories.StoryMentionsLook;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.stories.TrayBadge;
@@ -834,7 +835,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 for (PatchFamily family : build) {
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
                     belongs |= family == PatchFamily.STORY_RING && (Settings.STORY_RING_SCALE.key.equals(key)
-                            || Settings.STORY_RING_COLOR.key.equals(key));
+                            || Settings.STORY_RING_COLOR.key.equals(key) || Settings.STORY_RING_THICKNESS.key.equals(key));
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
                     belongs |= family == PatchFamily.AMBIENT_LIGHT && (Settings.AMBIENT_LIGHT_SPREAD.key.equals(key)
                             || Settings.AMBIENT_LIGHT_SPEED.key.equals(key) || Settings.AMBIENT_LIGHT_BLEND.key.equals(key));
@@ -7104,6 +7105,35 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
+     * How thick the story rings are drawn (#528). Its values are the setting's own names, and its
+     * summary is the thickness chosen.
+     */
+    static StoryRingThicknessRow storyRingThicknessRow(Context context) {
+        StoryRingThicknessRow row = new StoryRingThicknessRow(context);
+        row.setKey(Settings.STORY_RING_THICKNESS.key);
+        row.setTitle(L10n.t("Ring thickness"));
+        row.setDialogTitle(L10n.t("Ring thickness"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        StoryRingThickness[] choices = StoryRingThickness.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = storyRingThicknessLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.STORY_RING_THICKNESS.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [thickness]: its share in Instagram's language's percent format, or Instagram's own. */
+    static String storyRingThicknessLabel(StoryRingThickness thickness) {
+        if (thickness == StoryRingThickness.INSTAGRAM) return L10n.t("Instagram's thickness");
+        return NumberFormat.getPercentInstance(L10n.locale()).format(thickness.percent() / 100.0);
+    }
+
+    /**
      * Which switch a greyed-out slider waits on: "Turn on Glass tab bar to use this slider." The switch
      * named is the one resting, found by walking up from the slider's own parent while that parent is
      * itself held by one above it, and it's named by its row's title on this page. Null when no row on
@@ -7197,6 +7227,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryRingRow) preference).showSummary();
         } else if (preference instanceof StoryRingColorRow) {
             ((StoryRingColorRow) preference).showSummary();
+        } else if (preference instanceof StoryRingThicknessRow) {
+            ((StoryRingThicknessRow) preference).showSummary();
         } else if (preference instanceof LikeAnimationRow) {
             ((LikeAnimationRow) preference).showSummary();
         } else if (preference instanceof GlassReelsHideRow) {
@@ -7250,6 +7282,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryRingRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryRingColorRow) {
             ((StoryRingColorRow) listPreference).showSummary();
+        } else if (listPreference instanceof StoryRingThicknessRow) {
+            ((StoryRingThicknessRow) listPreference).showSummary();
         } else if (listPreference instanceof LikeAnimationRow) {
             ((LikeAnimationRow) listPreference).showSummary();
         } else if (listPreference instanceof GlassReelsHideRow) {
@@ -10286,6 +10320,56 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             summary = Settings.STORY_RING_COLOR.isAvailable()
                     ? storyRingColorLabel(color)
+                    : L10n.t("Turn on Story ring size to use this choice.");
+            setSummary(summary);
+        }
+
+        @Override
+        public CharSequence getSummary() {
+            return summary != null ? summary : super.getSummary();
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /**
+     * The story ring thickness's row. Its summary is the thickness chosen, or what to turn on while
+     * the switch above it is off, and it answers that summary itself as the ring size's row does.
+     */
+    static final class StoryRingThicknessRow extends ListPreference {
+        @Nullable
+        private String summary;
+
+        StoryRingThicknessRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            StoryRingThickness thickness = StoryRingThickness.INSTAGRAM;
+            for (StoryRingThickness candidate : StoryRingThickness.values()) {
+                if (candidate.name().equals(getValue())) thickness = candidate;
+            }
+            summary = Settings.STORY_RING_THICKNESS.isAvailable()
+                    ? storyRingThicknessLabel(thickness)
                     : L10n.t("Turn on Story ring size to use this choice.");
             setSummary(summary);
         }

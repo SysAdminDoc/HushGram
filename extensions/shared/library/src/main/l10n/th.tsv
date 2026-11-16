@@ -395,9 +395,9 @@ Leaves New group out of the share sheet, and the button that sends to the people
 Hide the search bar	ซ่อนแถบค้นหา
 Takes the search bar off the top of the share sheet. The people you can send to still show.	นำแถบค้นหาออกจากด้านบนของเมนูแชร์ โดยบุคคลที่คุณสามารถส่งถึงจะยังคงแสดงอยู่
 Story ring size	ขนาดวงแหวนสตอรี่
-Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.	แสดงวงแหวนในแถวสตอรี่ที่ด้านบนของหน้าหลักตามขนาดด้านล่าง และแสดงวงแหวนของสตอรี่ที่คุณยังไม่ได้ดูตามสีด้านล่าง โปรดรีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
 Hide rings outside the stories row	ซ่อนวงแหวนนอกแถวสตอรี่
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	เอาวงแหวนสตอรี่และวงแหวนไลฟ์ออกจากรูปโปรไฟล์ในโพสต์ ความคิดเห็น รีลส์ และโปรไฟล์ รูปยังอยู่ และวงแหวนในแถวสตอรี่ก็ยังอยู่
+Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Story rings take the thickness below. Restart Instagram to see a change.	แสดงวงแหวนในแถวสตอรี่ที่ด้านบนของหน้าหลักตามขนาดด้านล่าง และแสดงวงแหวนของสตอรี่ที่คุณยังไม่ได้ดูตามสีด้านล่าง วงแหวนสตอรี่จะหนาตามที่เลือกด้านล่าง โปรดรีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
 Ring size	ขนาดวงแหวน
 Instagram's size	ขนาดตาม Instagram
 The rings are the size Instagram picks for your screen.	วงแหวนมีขนาดตามที่ Instagram เลือกให้สำหรับหน้าจอของคุณ
@@ -2388,3 +2388,7 @@ Left off the three-dot menus: %1$s.	นำออกจากเมนูสา�
 Keep 2x after you let go	คง 2 เท่าไว้หลังปล่อยนิ้ว
 # context: Summary of Keep 2x after you let go, a switch under Hold for 2x on feed videos (#552)
 A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.	วิดีโอในฟีดที่คุณกดค้างเพื่อเล่น 2 เท่าจะเล่นด้วยความเร็ว 2 เท่าต่อไปหลังปล่อยนิ้ว กดค้างอีกครั้งเพื่อกลับสู่ความเร็วปกติ
+# context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
+Ring thickness	ความหนาของวงแหวน
+# context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
+Instagram's thickness	ความหนาตาม Instagram

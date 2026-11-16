@@ -27,6 +27,7 @@ import app.hushgram.extension.instagram.stories.StoryMentionsLook;
 import app.hushgram.extension.instagram.stories.StorySeekBarPosition;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryRingThickness;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.stories.TrayBadge;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -1455,8 +1456,9 @@ public class Settings extends BaseSettings {
     /**
      * The rings in the stories row at the top of Home are drawn at the size in
      * {@link #STORY_RING_SCALE}, and the ring of a story that hasn't been watched in the color in
-     * {@link #STORY_RING_COLOR} ({@link app.hushgram.extension.instagram.stories.StoryRing}). The
-     * switch starts on, and both choices start as Instagram's own, so nothing changes until one is
+     * {@link #STORY_RING_COLOR} ({@link app.hushgram.extension.instagram.stories.StoryRing}), and
+     * story rings as thick as {@link #STORY_RING_THICKNESS} says. The switch starts on, and every
+     * choice starts as Instagram's own, so nothing changes until one is
      * picked. Nothing Instagram stores is written, so off or paused, the rings are Instagram's
      * again once Home is built anew.
      */
@@ -1487,6 +1489,13 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_OTHER_STORY_RINGS =
             new BooleanSetting("hushgram_hide_other_story_rings", FALSE, parent(STORY_RING));
+
+    /**
+     * How thick story rings are drawn while {@link #STORY_RING} is on, as a share of Instagram's
+     * width (#528). It starts as Instagram's own, and like the color it is a choice of its own.
+     */
+    public static final EnumSetting<StoryRingThickness> STORY_RING_THICKNESS =
+            new EnumSetting<>("hushgram_story_ring_thickness", StoryRingThickness.INSTAGRAM, true, parent(STORY_RING));
 
     /**
      * The progress bar along the top of a story is drawn {@link #STORY_BAR_THICKNESS} times as thick

@@ -25,9 +25,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -65,6 +69,7 @@ public class StoryRingTest {
         Settings.STORY_RING_COLOR.resetToDefault();
         Settings.HIDE_OTHER_STORY_RINGS.resetToDefault();
         StoryRing.trayId = 0;
+        Settings.STORY_RING_THICKNESS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -318,6 +323,138 @@ public class StoryRingTest {
         assertNull(StoryRingColor.INSTAGRAM.colors(2));
     }
 
+    /**
+     * On Compose screens the default ring's colors take the chosen color's shades, as many as
+     * Instagram gave (#528), a new array each time, and Instagram's own array is left alone.
+     */
+    @Test
+    public void aChosenColorPaintsTheComposeRing() {
+        int[] story = STORY.clone();
+        assertSame("Instagram's own choice", story, StoryRing.defaultColors(story));
+
+        Settings.STORY_RING_COLOR.save(StoryRingColor.PURPLE);
+        int[] painted = StoryRing.defaultColors(story);
+        assertArrayEquals(StoryRingColor.PURPLE.colors(STORY.length), painted);
+        assertArrayEquals("changed Instagram's own array", STORY, story);
+        assertNotSame(painted, StoryRing.defaultColors(story));
+
+        int[] one = {0xFF000001};
+        assertSame("one color can't be a gradient", one, StoryRing.defaultColors(one));
+        assertNull(StoryRing.defaultColors(null));
+        assertTrue(HookStatus.missing(FamilyNames.STORY_RING).toString(), HookStatus.missing(FamilyNames.STORY_RING).isEmpty());
+    }
+
+    @Test
+    public void offPausedAndUnreadyKeepTheComposeRingsColors() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.RED);
+        int[] story = STORY.clone();
+        Settings.STORY_RING.save(false);
+        assertSame("off", story, StoryRing.defaultColors(story));
+        Settings.STORY_RING.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", story, StoryRing.defaultColors(story));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertSame("no context", story, StoryRing.defaultColors(story)));
+        assertNotSame("on again", story, StoryRing.defaultColors(story));
+    }
+
+    /** The thickness starts as Instagram's, so every ring keeps its width. */
+    @Test
+    public void picked_theRingsKeepInstagramsThickness() {
+        assertEquals(StoryRingThickness.INSTAGRAM, Settings.STORY_RING_THICKNESS.get());
+        assertEquals(6f, StoryRing.thickness(6f), 0f);
+        assertTrue(HookStatus.missing(FamilyNames.STORY_RING).toString(), HookStatus.missing(FamilyNames.STORY_RING).isEmpty());
+    }
+
+    @Test
+    public void aChosenThicknessScalesEveryWidth() {
+        for (StoryRingThickness thickness : StoryRingThickness.values()) {
+            Settings.STORY_RING_THICKNESS.save(thickness);
+            assertEquals(thickness.name(), 6f * thickness.scale, StoryRing.thickness(6f), 0.001f);
+            assertEquals(thickness.name(), 2.5f * thickness.scale, StoryRing.thickness(2.5f), 0.001f);
+        }
+    }
+
+    /** Off, paused, before the settings are read, or a width that isn't one: the width passes through as it came. */
+    @Test
+    public void offPausedUnreadyAndNoWidthKeepInstagramsThickness() {
+        Settings.STORY_RING_THICKNESS.save(StoryRingThickness.PERCENT_200);
+        assertEquals("on", 12f, StoryRing.thickness(6f), 0.001f);
+
+        Settings.STORY_RING.save(false);
+        assertEquals("off", 6f, StoryRing.thickness(6f), 0f);
+        Settings.STORY_RING.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 6f, StoryRing.thickness(6f), 0f);
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertEquals("no context", 6f, StoryRing.thickness(6f), 0f));
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertEquals("before the pause is decided", 6f, StoryRing.thickness(6f), 0f));
+
+        assertEquals(0f, StoryRing.thickness(0f), 0f);
+        assertEquals(-3f, StoryRing.thickness(-3f), 0f);
+        assertTrue(Float.isNaN(StoryRing.thickness(Float.NaN)));
+        assertEquals("the saved thickness outlives the pause", StoryRingThickness.PERCENT_200, Settings.STORY_RING_THICKNESS.savedValue());
+    }
+
+    /** The choices run thinnest first, from half to double, with Instagram's in the middle. Saved names stay. */
+    @Test
+    public void theThicknessesRunFromThinnestToThickest() {
+        StoryRingThickness[] thicknesses = StoryRingThickness.values();
+        for (int i = 1; i < thicknesses.length; i++) assertTrue(thicknesses[i - 1].scale < thicknesses[i].scale);
+        assertEquals(StoryRingThickness.INSTAGRAM, thicknesses[thicknesses.length / 2]);
+        assertEquals(100, StoryRingThickness.INSTAGRAM.percent());
+        assertEquals(50, StoryRingThickness.valueOf("PERCENT_50").percent());
+        assertEquals(75, StoryRingThickness.valueOf("PERCENT_75").percent());
+        assertEquals(150, StoryRingThickness.valueOf("PERCENT_150").percent());
+        assertEquals(200, StoryRingThickness.valueOf("PERCENT_200").percent());
+    }
+
+    /** The thickness and the color are two choices: either works with the other on Instagram's own. */
+    @Test
+    public void theThicknessAndTheColorAreChosenApart() {
+        Settings.STORY_RING_THICKNESS.save(StoryRingThickness.PERCENT_150);
+        int[] story = STORY.clone();
+        assertSame("a thickness without a color", story, StoryRing.colors(story, STORY_STOPS));
+        assertEquals(9f, StoryRing.thickness(6f), 0.001f);
+
+        Settings.STORY_RING_THICKNESS.save(StoryRingThickness.INSTAGRAM);
+        Settings.STORY_RING_COLOR.save(StoryRingColor.BLUE);
+        assertEquals("a color without a thickness", 6f, StoryRing.thickness(6f), 0f);
+        assertNotSame(story, StoryRing.colors(story, STORY_STOPS));
+    }
+
+    /**
+     * Ring color only draws a color of its own with the switch on, a color other than Instagram's
+     * picked, and the patch in the build, which is when Story rings in the accent color leaves
+     * those rings to it.
+     */
+    @Test
+    @Config(shadows = StoryRingBuilt.class)
+    public void aColorIsPickedOnlyWithTheSwitchOnAndAColorOfItsOwn() {
+        assertFalse("Instagram's own", StoryRing.picksColor());
+        Settings.STORY_RING_COLOR.save(StoryRingColor.GOLD);
+        assertTrue("a color", StoryRing.picksColor());
+        Settings.STORY_RING.save(false);
+        assertFalse("off", StoryRing.picksColor());
+        Settings.STORY_RING.save(true);
+        SettingsContextRule.withoutContext(() -> assertFalse("no context", StoryRing.picksColor()));
+    }
+
+    /** A color saved in a build without the patch draws nothing, so it's not picked there. */
+    @Test
+    public void aColorIsntPickedInABuildWithoutThePatch() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.GOLD);
+        assertFalse(StoryRing.picksColor());
+    }
+
     private static void assertShades(StoryRingColor color, int from, int to) {
         assertEquals(color.name(), from, color.from);
         assertEquals(color.name(), to, color.to);
@@ -499,6 +636,15 @@ public class StoryRingTest {
 
         int[] drawn() {
             return watched ? new int[]{WATCHED} : gradient;
+        }
+    }
+
+    /** This build has Story ring size, as the patch writes its status method. */
+    @Implements(value = SettingsStatus.class, isInAndroidSdk = false)
+    public static class StoryRingBuilt {
+        @Implementation
+        protected static boolean storyRingSize() {
+            return true;
         }
     }
 }

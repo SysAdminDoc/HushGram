@@ -2081,6 +2081,25 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->colors([I[F)[I i
 # fixture.
 start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->hides(Landroid/view/View;)I in instance (Landroid/graphics/Canvas;)V holding Landroid/graphics/Picture;->beginRecording(II)Landroid/graphics/Canvas; Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->getCurrentPaint()Landroid/graphics/Paint;
 once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->hides(Landroid/view/View;)I in instance (Landroid/graphics/Canvas;)V holding Landroid/graphics/Picture;->beginRecording(II)Landroid/graphics/Canvas; Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->getCurrentPaint()Landroid/graphics/Paint;
+# Compose screens build the default ring apart from the view (0IDN.A00 on 386014758): the static
+# loading default_brand_update turns the ring spec's list of colors into an int array, and
+# StoryRing.defaultColors takes that array right after it lands (#528). Its sibling loading the
+# same name turns no list into an array, so calling tells them apart. Left out, a chosen color
+# leaves Compose screens' rings in Instagram's gradient. StoryRingComposeHookTest checks every build.
+once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->defaultColors([I)[I in static ()L*; calling static LX/*;->*(Ljava/util/List;)[I pooled holding default_brand_update
+# Its thickness passes every width the ring view reads through StoryRing.thickness, right after the
+# read (#528). It gets no rule: the view reads its two widths in five methods, up to a dozen times in
+# onDraw, the reads hold no string, and the fields' names are Redex's, so neither a method nor its
+# count of reads is a thing a rule can hold from one build to the next. StoryRingThicknessHookTest
+# checks on every fixture that each read gets the hook right after it and no other place does.
+# Story rings in the accent color hands the same two gradient makers to AccentRings.colors, behind
+# Story ring size's guard when that one is in, so the guard above stays first in either order, and
+# the Compose default ring's array to AccentRings.composeColors (#528). Left out, every ring but the
+# few that read the theme keeps Instagram's gradient with the accent rings on. AccentRingsHookTest
+# checks every build.
+once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->colors([I[F)[I in static (Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;[F[F[F[III)Landroid/graphics/LinearGradient; holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
+once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->colors([I[F)[I in instance ([F[F[F[III)V holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
+once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeColors([I)[I in static ()L*; calling static LX/*;->*(Ljava/util/List;)[I pooled holding default_brand_update
 # Hide the Repost button answers FALSE first thing in the post model's getter of
 # enable_media_notes_production, the one instance method taking nothing and answering a Boolean
 # that loads the field's name (Media.A3o on 449). Its other hooks filter the reads of the field

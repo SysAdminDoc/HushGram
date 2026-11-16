@@ -48,18 +48,23 @@ internal val ITEMS_A_SCREEN = 3.75.toRawBits()
 internal const val SETTLED_PER_METHOD = 3
 
 /**
- * Draws the rings in the stories row at the top of Home at a share of their size, and the ring of
- * a story that hasn't been watched in a chosen color. Included in the default selection. Its
- * switch starts on and the size and the color start as Instagram's own, so nothing changes until
- * one is chosen.
+ * Draws the rings in the stories row at the top of Home at a share of their size, the ring of a
+ * story that hasn't been watched in a chosen color, and the rings at a share of their thickness.
+ * Included in the default selection. Its switch starts on and the size, the color and the
+ * thickness start as Instagram's own, so nothing changes until one is chosen.
+ *
+ * The color reaches the ring view's gradients ([colorRingGradients]) and, on Compose screens, the
+ * default ring's colors ([colorComposeRing], #528). The thickness reaches every width the ring view
+ * reads ([thickenRings], #528).
  */
 @Suppress("unused")
 val storyRingSizePatch = bytecodePatch(
     name = "Story ring size",
     description = "Draws the rings in the stories row at the top of Home smaller, so more fit on screen, or " +
-        "larger, and the ring of a story you haven't watched in a color you pick. Another switch takes the rings " +
-        "off profile pictures everywhere else, like posts, comments, reels and profiles. Nothing changes until you " +
-        "pick a size or a color or turn that switch on. On by default. Turn it off in HushGram settings > Stories.",
+        "larger, the ring of a story you haven't watched in a color you pick, and story rings thinner or thicker. " +
+        "Another switch takes the rings off profile pictures everywhere else, like posts, comments, reels and " +
+        "profiles. Nothing changes until you pick a size, a color or a thickness or turn that switch on. On by " +
+        "default. Turn it off in HushGram settings > Stories.",
     default = true,
 ) {
     category("Stories")
@@ -68,12 +73,18 @@ val storyRingSizePatch = bytecodePatch(
 
     execute {
         requireStatusMethod("storyRingSize")
-        // Both are found before either is changed, so a build missing one is left as it was.
+        // Everything is found before anything is changed, so a build missing one is left as it was.
         val sizings = findRingSizes()
         val gradients = findRingGradients()
         val draw = findRingDraw()
+        val composeRing = findComposeRing()
+        val widths = findRingWidthReads()
         scaleRingSizes(sizings)
+        // The widths go in by index, before the color hook moves the builder's code along and
+        // before the early return goes in at the top of the ring's draw.
+        thickenRings(widths)
         colorRingGradients(gradients)
+        colorComposeRing(composeRing, RING_DEFAULT_COLORS)
         hideRingsOutsideTheRow(draw)
         enableStatus("storyRingSize")
     }

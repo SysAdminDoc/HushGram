@@ -35,6 +35,7 @@ import app.hushgram.extension.instagram.reels.ReelScrolling;
 import app.hushgram.extension.instagram.stories.StoryRing;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryRingThickness;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -163,6 +164,7 @@ public class NeutralDefaultsSettingsTest {
         Settings.STORY_RING.resetToDefault();
         Settings.STORY_RING_SCALE.resetToDefault();
         Settings.STORY_RING_COLOR.resetToDefault();
+        Settings.STORY_RING_THICKNESS.resetToDefault();
         Settings.FONT.resetToDefault();
         Settings.APP_ICON.resetToDefault();
         Settings.TAB_BAR_LAYOUT.resetToDefault();
@@ -178,6 +180,7 @@ public class NeutralDefaultsSettingsTest {
         assertEquals(Boolean.TRUE, Settings.STORY_RING.defaultValue);
         assertEquals(StoryRingSize.INSTAGRAM, Settings.STORY_RING_SCALE.defaultValue);
         assertEquals(StoryRingColor.INSTAGRAM, Settings.STORY_RING_COLOR.defaultValue);
+        assertEquals(StoryRingThickness.INSTAGRAM, Settings.STORY_RING_THICKNESS.defaultValue);
         assertStockHooks();
     }
 

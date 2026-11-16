@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewParent;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -26,7 +27,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * in its static builder and, on most builds, in a setter of its own that the stories row goes
  * through. The patch passes those through {@link #colors} first in each, which swaps the colors of
  * Instagram's own story gradient for the chosen ones. Nothing is kept: Instagram still holds its
- * own colors, and asks again each time a ring is measured or bound to another story.
+ * own colors, and asks again each time a ring is measured or bound to another story. Compose
+ * screens build their default ring apart from the view, and pass its colors through
+ * {@link #defaultColors}.
+ *
+ * <p>The view also reads the width of its ring wherever it measures or draws one, and the patch
+ * passes each read through {@link #thickness} (#528).
  */
 public final class StoryRing {
     /**
@@ -143,6 +149,25 @@ public final class StoryRing {
     }
 
     /**
+     * Injected where Compose screens turn the default ring's colors into an array, the ring their
+     * unwatched stories get (#528). The ring view's builder never sees those, so a picked color
+     * left them in Instagram's gradient. Answers the chosen color's shades, as many as Instagram
+     * gave, while the switch is on, and [colors] itself otherwise. Never throws.
+     */
+    public static int[] defaultColors(int[] colors) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_RING);
+            if (colors == null || !Utils.settingsReady() || !Settings.STORY_RING.get()) return colors;
+            StoryRingColor chosen = Settings.STORY_RING_COLOR.get();
+            int[] shades = chosen == null ? null : chosen.colors(colors.length);
+            return shades == null ? colors : shades;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_RING, "Compose ring color", failure);
+            return colors;
+        }
+    }
+
+    /**
      * Whether a parent of [ring], no more than {@link #TRAY_DEPTH} levels up, has the id [tray]. A
      * ring in the stories row is six levels below the row's container, and every other ring is
      * under no such container at all.
@@ -174,10 +199,41 @@ public final class StoryRing {
     }
 
     /**
+     * Injected right after the ring view reads the width of its ring, the one around an unwatched
+     * story or the thinner one around a watched story (#528). Answers [width] times the chosen
+     * share while the switch is on, and [width] itself otherwise, or when anything goes wrong.
+     * Instagram keeps its own width and the ring is measured from the answer, so a thicker ring
+     * grows inward from where its outer edge was and never past the view. Never throws.
+     */
+    public static float thickness(float width) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_RING);
+            if (!(width > 0f) || !Utils.settingsReady() || !Settings.STORY_RING.get()) return width;
+            StoryRingThickness chosen = Settings.STORY_RING_THICKNESS.get();
+            if (chosen == null || chosen == StoryRingThickness.INSTAGRAM) return width;
+            return width * chosen.scale;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_RING, "ring thickness", failure);
+            return width;
+        }
+    }
+
+    /**
+     * Whether Ring color is drawing unwatched story rings in a color of its own: the switch on, a
+     * color other than Instagram's picked, and the patch in this build. Story rings in the accent
+     * color leaves those rings to it, so the two never answer the same ring.
+     */
+    public static boolean picksColor() {
+        if (!Utils.settingsReady() || !Settings.STORY_RING.get()) return false;
+        StoryRingColor chosen = Settings.STORY_RING_COLOR.get();
+        return chosen != null && chosen != StoryRingColor.INSTAGRAM && PatchFamily.STORY_RING.inBuild();
+    }
+
+    /**
      * Whether these are the colors and stops of Instagram's own story gradient: its four stops,
      * and more than one color between them. A ring of one color is a state, never a story's.
      */
-    static boolean instagramsOwn(int[] colors, float[] stops) {
+    public static boolean instagramsOwn(int[] colors, float[] stops) {
         if (colors == null || stops == null) return false;
         if (colors.length != INSTAGRAM_STOPS.length || stops.length != INSTAGRAM_STOPS.length) return false;
         for (int at = 0; at < INSTAGRAM_STOPS.length; at++) {

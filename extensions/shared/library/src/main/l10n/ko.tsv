@@ -399,9 +399,9 @@ Leaves New group out of the share sheet, and the button that sends to the people
 Hide the search bar	검색창 숨기기
 Takes the search bar off the top of the share sheet. The people you can send to still show.	공유 시트 맨 위의 검색창을 없앱니다. 보낼 수 있는 사람들은 그대로 표시됩니다.
 Story ring size	스토리 링 사이즈
-Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.	홈 상단 스토리 목록의 링을 아래에서 고른 크기로, 아직 보지 않은 스토리의 링을 아래에서 고른 색상으로 표시합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Hide rings outside the stories row	스토리 목록 밖의 링 숨기기
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	게시물, 댓글, 릴스, 프로필의 프로필 사진에서 스토리 링과 라이브 링을 없앱니다. 사진은 그대로 있고, 스토리 목록의 링도 그대로 있습니다.
+Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Story rings take the thickness below. Restart Instagram to see a change.	홈 상단 스토리 목록의 링을 아래에서 고른 크기로, 아직 보지 않은 스토리의 링을 아래에서 고른 색상으로 표시합니다. 스토리 링은 아래에서 고른 두께로 표시됩니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Ring size	링 사이즈
 Instagram's size	Instagram 사이즈
 The rings are the size Instagram picks for your screen.	스토리 링의 크기를 Instagram이 화면에 맞게 선택한 크기로 설정합니다
@@ -2390,3 +2390,7 @@ Left off the three-dot menus: %1$s.	점 세 개 메뉴에서 뺀 항목: %1$s.
 Keep 2x after you let go	손을 떼도 2배속 유지
 # context: Summary of Keep 2x after you let go, a switch under Hold for 2x on feed videos (#552)
 A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.	길게 눌러 2배속으로 재생한 피드 동영상은 손을 떼도 2배속으로 계속 재생됩니다. 다시 길게 누르면 보통 속도로 돌아갑니다.
+# context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
+Ring thickness	링 두께
+# context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
+Instagram's thickness	Instagram 두께

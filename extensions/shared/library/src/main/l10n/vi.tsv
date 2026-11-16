@@ -397,9 +397,9 @@ Leaves New group out of the share sheet, and the button that sends to the people
 Hide the search bar	Ẩn thanh tìm kiếm
 Takes the search bar off the top of the share sheet. The people you can send to still show.	Bỏ thanh tìm kiếm ở đầu bảng chia sẻ. Những người bạn có thể gửi vẫn hiện.
 Story ring size	Kích thước vòng tin
-Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.	Vẽ các vòng trong hàng tin ở đầu trang chủ theo kích thước bên dưới, và vòng của tin bạn chưa xem theo màu bên dưới. Hãy khởi động lại Instagram để thấy thay đổi.
 Hide rings outside the stories row	Ẩn vòng bên ngoài hàng tin
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	Bỏ vòng tin và vòng phát trực tiếp khỏi ảnh đại diện trên bài viết, bình luận, reel và trang cá nhân. Ảnh vẫn giữ nguyên, các vòng trong hàng tin cũng vậy.
+Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Story rings take the thickness below. Restart Instagram to see a change.	Vẽ các vòng trong hàng tin ở đầu trang chủ theo kích thước bên dưới, và vòng của tin bạn chưa xem theo màu bên dưới. Các vòng tin theo độ dày bên dưới. Hãy khởi động lại Instagram để thấy thay đổi.
 Ring size	Kích thước vòng
 Instagram's size	Kích thước của Instagram
 The rings are the size Instagram picks for your screen.	Vòng có kích thước mà Instagram chọn cho màn hình của bạn.
@@ -2306,3 +2306,7 @@ Left off the three-dot menus: %1$s.	Đã bỏ khỏi menu ba chấm: %1$s.
 Keep 2x after you let go	Giữ 2x sau khi thả tay
 # context: Summary of Keep 2x after you let go, a switch under Hold for 2x on feed videos (#552)
 A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.	Video trên bảng feed bạn nhấn giữ để phát 2x sẽ tiếp tục phát 2x sau khi bạn thả tay. Nhấn giữ lần nữa để trở về tốc độ bình thường.
+# context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
+Ring thickness	Độ dày vòng
+# context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
+Instagram's thickness	Độ dày của Instagram

@@ -341,6 +341,8 @@ public final class AccentTheme {
             } else {
                 theme.applyStyle(rings, true);
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, RINGS);
+                // Most rings take their colors from Instagram's default ring, not the theme (#528).
+                AccentRings.remember(resources, theme, app);
             }
         }
         if (Settings.ACCENT_BACKGROUNDS.get()) {
@@ -774,7 +776,7 @@ public final class AccentTheme {
         return 299 * red + 587 * green + 114 * blue > 127_500;
     }
 
-    private static int id(Resources resources, String name, String type, String app) {
+    static int id(Resources resources, String name, String type, String app) {
         String key = type + "/" + app + ":" + name;
         synchronized (IDS) {
             Integer known = IDS.get(key);

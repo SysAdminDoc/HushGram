@@ -37,6 +37,7 @@ import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryRingThickness;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -390,6 +391,35 @@ public class ConfigurationBackupTest {
         assertEquals(StoryRingSize.SMALLER, Settings.STORY_RING_SCALE.savedValue());
     }
 
+    // The ring's thickness (#528) travels by name beside the color, and a name this build has no
+    // thickness for is skipped while the color beside it applies.
+    @Test public void ringThicknessIsCarriedAndRestoredBesideTheColor() throws Exception {
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_RING_THICKNESS.key));
+        Settings.STORY_RING_THICKNESS.save(StoryRingThickness.PERCENT_150);
+        JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
+        assertEquals("PERCENT_150", values.getJSONObject(Settings.STORY_RING_THICKNESS.key).getString("value"));
+        Settings.STORY_RING_THICKNESS.resetToDefault();
+
+        ConfigurationBackup.Result restored = ConfigurationBackup.restore(file(
+                entry(Settings.STORY_RING_THICKNESS.key, "enum", "PERCENT_50") + "," + entry(Settings.STORY_RING_COLOR.key, "enum", "TEAL")));
+        assertEquals(2, restored.applied);
+        assertTrue("a new thickness shows after a restart", restored.restart);
+        assertEquals(StoryRingThickness.PERCENT_50, Settings.STORY_RING_THICKNESS.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        ConfigurationBackup.Result unknown = ConfigurationBackup.restore(file(
+                entry(Settings.STORY_RING_THICKNESS.key, "enum", "PERCENT_300") + "," + entry(Settings.STORY_RING_COLOR.key, "enum", "RED")));
+        assertEquals(1, unknown.applied);
+        assertEquals(1, unknown.skipped);
+        assertEquals(StoryRingThickness.PERCENT_50, Settings.STORY_RING_THICKNESS.savedValue());
+        assertEquals(StoryRingColor.RED, Settings.STORY_RING_COLOR.savedValue());
+
+        Settings.STORY_RING_THICKNESS.resetToDefault();
+        Settings.STORY_RING_COLOR.resetToDefault();
+        PatchFamily.inBuildForTests = EnumSet.complementOf(EnumSet.of(PatchFamily.STORY_RING));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.STORY_RING_THICKNESS.key));
+    }
+
     // The glass sliders (#391) travel as whole numbers and come back without a restart. A number outside
     // the slider's range, or one that isn't a whole number, is skipped while the rest of the file applies.
     @Test public void glassSlidersRoundTripAsWholeNumbersInsideTheirRange() throws Exception {
@@ -508,7 +538,8 @@ public class ConfigurationBackupTest {
 
     @Test public void documentedRestartChoicesShareMetadataWithRowAndImportFeedback() throws Exception {
         Setting<?>[] choices = {Settings.START_ON_FOLLOWING, Settings.ONLY_FOLLOWING,
-                Settings.STORY_RING, Settings.STORY_RING_SCALE, Settings.STORY_RING_COLOR, Settings.HIDE_META_AI_SEARCH,
+                Settings.STORY_RING, Settings.STORY_RING_SCALE, Settings.STORY_RING_COLOR, Settings.STORY_RING_THICKNESS,
+                Settings.HIDE_META_AI_SEARCH,
                 Settings.REMOVE_BOTTOM_SPACE};
         for (Setting<?> setting : choices) assertTrue(setting.key, setting.rebootApp);
         assertFalse(Settings.HIDE_ADS.rebootApp);

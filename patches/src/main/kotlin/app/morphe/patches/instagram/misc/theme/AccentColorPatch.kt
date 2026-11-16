@@ -87,7 +87,10 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * palette is set up ([swapComposePalettes]). The unread dot on the Messages folder chips reads a palette's
  * badge red, which goes through the extension as it's painted ([tintChipDot]). Meta's own menus, the
  * account switcher among them, build each color with its light and dark shade from tables in the code,
- * and both go through the extension as the color is made ([swapDspColors]).
+ * and both go through the extension as the color is made ([swapDspColors]). Most story rings read
+ * Instagram's default ring, whose colors were read once from a context no accent theme is laid on,
+ * so the ring view's gradients and the Compose screens' default ring go through the extension as
+ * they're made ([colorAccentRings], #528).
  *
  * A text color written into a layout's XML doesn't pass any of that either, which left the end of
  * Home's "Older posts" link blue (#187). The text views Instagram's layouts build hand the colors they
@@ -116,6 +119,7 @@ val accentColorPatch = bytecodePatch(
         findThemeUtil()
         val palettes = findPaletteStores()
         requirePaletteSurfaces()
+        val rings = findAccentRings()
         swapAccentColors()
         swapTextViewColors()
         swapImageTints()
@@ -128,6 +132,7 @@ val accentColorPatch = bytecodePatch(
         tintTabIcons()
         tintChipDot()
         dropLikedHeartOutline()
+        colorAccentRings(rings)
         enableStatus("accentColor")
     }
 }

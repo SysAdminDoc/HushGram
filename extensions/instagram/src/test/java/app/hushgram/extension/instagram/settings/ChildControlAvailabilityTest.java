@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryRingThickness;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -55,6 +56,7 @@ public class ChildControlAvailabilityTest {
         Settings.STORY_RING.resetToDefault();
         Settings.STORY_RING_SCALE.resetToDefault();
         Settings.STORY_RING_COLOR.resetToDefault();
+        Settings.STORY_RING_THICKNESS.resetToDefault();
         Settings.DEFAULT_PLAYBACK_QUALITY.resetToDefault();
         Settings.PLAYBACK_QUALITY.resetToDefault();
         Settings.DOWNLOAD_REELS.resetToDefault();
@@ -78,6 +80,12 @@ public class ChildControlAvailabilityTest {
         Settings.STORY_RING_COLOR.save(StoryRingColor.GOLD);
         checkParent(Settings.STORY_RING, Settings.STORY_RING_COLOR, PatchFamily.STORY_RING,
                 "Turn on Story ring size to use this choice.", "GOLD");
+    }
+
+    @Test public void ringThicknessKeepsItsSavedChoiceAcrossParentChanges() {
+        Settings.STORY_RING_THICKNESS.save(StoryRingThickness.PERCENT_75);
+        checkParent(Settings.STORY_RING, Settings.STORY_RING_THICKNESS, PatchFamily.STORY_RING,
+                "Turn on Story ring size to use this choice.", "PERCENT_75");
     }
 
     @Test public void followLabelKeepsItsSavedChoiceAcrossChipChanges() {
@@ -182,6 +190,7 @@ public class ChildControlAvailabilityTest {
             assertNull(page.findPreference(Settings.ONLY_FOLLOWING.key));
             assertNull(page.findPreference(Settings.STORY_RING_SCALE.key));
             assertNull(page.findPreference(Settings.STORY_RING_COLOR.key));
+            assertNull(page.findPreference(Settings.STORY_RING_THICKNESS.key));
             assertNull(page.findPreference(Settings.PLAYBACK_QUALITY.key));
             assertTrue(page.findPreference(BaseSettings.PAUSED.key).isEnabled());
             assertTrue(page.findPreference(Settings.DOWNLOAD_QUALITY.key).isEnabled());

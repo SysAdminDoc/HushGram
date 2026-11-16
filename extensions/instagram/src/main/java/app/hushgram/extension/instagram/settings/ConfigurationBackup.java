@@ -144,6 +144,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.STORY_RING.inBuild()) {
             settings.put(Settings.STORY_RING_SCALE.key, Settings.STORY_RING_SCALE);
             settings.put(Settings.STORY_RING_COLOR.key, Settings.STORY_RING_COLOR);
+            settings.put(Settings.STORY_RING_THICKNESS.key, Settings.STORY_RING_THICKNESS);
         }
         if (PatchFamily.STORY_UPLOAD_QUALITY.inBuild()) {
             settings.put(Settings.UPLOAD_QUALITY_APPLIES_TO.key, Settings.UPLOAD_QUALITY_APPLIES_TO);

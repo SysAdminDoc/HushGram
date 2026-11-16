@@ -48,6 +48,7 @@ Every HushGram release, newest first.
 * `Taps on feed videos stay in the feed`, right under `Tap a feed video to pause it` in Feed, stops a tap on a feed video from opening it full screen in Reels, and a tap on the screen a finished one shows too. It works with the pause switch on or off. The buttons on that end screen still work. Starts off. Asked for in #706.
 * `Items in the three-dot menus` in Feed lets you untick Report, Mute, Unfollow, Not interested, Interested, Why you're seeing this post and the playback rows, and they're left out of the menus behind the three dots on posts, reels and feed videos. Stories lose Report and Mute the same way. Every item shows until you untick it. Asked for in #697 and #707.
 * `Keep 2x after you let go`, right under `Hold for 2x on feed videos` in Feed, keeps a held feed video at 2x once you lift your finger. Hold it again and let go to get normal speed back. Starts off. Asked for in #552.
+* `Ring thickness`, new under `Story ring size` in Stories, draws story rings thinner or thicker, from 50% to 200% of Instagram's width. The size and color lists above it work the same as before. Asked for in #528.
 
 ### Bug Fixes
 
@@ -55,6 +56,8 @@ Every HushGram release, newest first.
 * `Hide Follow on posts` catches the Follow button on a post you scroll to as well. It could slip through until something else on the screen moved. `Hide captions`, `Hide the Like button`, `Hide the Save button`, `Hide the emoji row` and `Hide GIFs in comments` got the same fix. Reported in #719.
 * `Below the Send message box` under `Seek bar position` now puts the story seek bar there on phones with little room under the box. The box moves up just enough for the bar and goes back down when the bar does. It used to stay above the box. A keyboard over the box still keeps the bar above it. Reported in #636.
 * With `Stories fill the screen` on, a feed post reshared to a story keeps its whole frame like a shared reel does, so its sides aren't cut off once the video starts. Reported in #618.
+* `Story rings in the accent color` now reaches the rings on profiles, posts, chats and the newer Instagram screens, not just the few that read the theme. They kept Instagram's gradient before. Reported in #528.
+* A color picked in `Ring color` now shows on the story rings of Instagram's newer screens too, which kept the stock gradient. A ring color you pick still wins over `Story rings in the accent color`. Reported in #528.
 * `Take a scroll break` remembers a running break and the minutes you've already used when Instagram is closed and opened again, or Android ends it in the background. Both used to start over. Reported in #297.
 * `Stop after a set number of reels` keeps its count, and a stop it already reached, when Instagram is closed and opened again before the break is up.
 * A wavy seek bar and its tall handle aren't cut flat along the top anymore once the controls dim on a reel. Reported in #450 and #586.
