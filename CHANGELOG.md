@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Ask for VP9 instead of AV1`, new under Downloads, tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264. It helps when AV1 saves won't play in your gallery. Asked for in #546.
+* `Keep online history`, new under Profiles, keeps a list on your phone of when people in your messages came online and went offline, from the active status Instagram already shows. Asked for in #590.
 * `Glass lens under your finger`, under `Keep the pill full size` in Tab bar, makes the `Liquid glass look` bubble act like glass under a fingertip. Hold a finger on it, or slide it across the tabs, and it swells and bends what's behind it harder, then eases back when you let go. The bend needs `Blur behind the tab bar` and Android 13 or newer. It starts off. Asked for in #705.
 * `Cache size limit`, a slider under `Clear the media cache` in Storage, picks how much room Instagram's saved photos and videos can take before they're cleared, from 100 MB to 4,000 MB. It starts at 500 MB like before. `Clear saved copies now` also shows how much they take up right now. Asked for in #713.
 * `Save changed pictures to the gallery`, right under `Keep profile history` in Profiles, puts the old picture and the new one in your gallery when a profile you open has changed its picture. Each picture goes in once. Old usernames and bios keep their dates on the Profile changes page, and nothing leaves your phone. Starts off. Asked for in #715.
