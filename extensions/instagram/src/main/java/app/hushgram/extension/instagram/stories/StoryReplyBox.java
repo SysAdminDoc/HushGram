@@ -152,6 +152,17 @@ public final class StoryReplyBox {
         }
     }
 
+    /**
+     * Injected first thing in the story viewer's onViewCreated, with the viewer. A story opened from
+     * a ring draws for a few frames before its viewer resumes, and with only {@link #resumed} those
+     * frames showed the buttons a switch hides (#618). The viewer's view exists by now and isn't on
+     * a window yet, so its keeper starts listening as it's attached, before the first frame. Never
+     * throws.
+     */
+    public static void viewCreated(Object viewer) {
+        resumed(viewer);
+    }
+
     /** Whether the reply box is kept off stories. Reads off while paused. */
     static boolean switchedOn() {
         return Utils.settingsReady() && Settings.HIDE_STORY_REPLY_BOX.get();

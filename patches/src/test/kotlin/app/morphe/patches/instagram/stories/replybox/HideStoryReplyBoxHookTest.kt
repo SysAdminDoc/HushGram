@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
@@ -32,10 +33,15 @@ class HideStoryReplyBoxHookTest {
         val declared = ExtensionDex.classDef(STORY_REPLY_BOX).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$REPLY_BOX_RESUMED is not in the extension: $declared", REPLY_BOX_RESUMED.substringAfter("->") in declared)
+        for (hook in listOf(REPLY_BOX_RESUMED, REPLY_BOX_VIEW_CREATED)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
     }
 
-    /** On each declared build the patch fills the view stub and tells the extension right after onResume hands on to the superclass. */
+    /**
+     * On each declared build the patch fills the view stub, tells the extension right after onResume
+     * hands on to the superclass, and first thing in onViewCreated.
+     */
     @Test
     fun eachDeclaredBuildHooksTheViewer() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -72,6 +78,8 @@ class HideStoryReplyBoxHookTest {
         val cases = listOf(
             all.filter { it.type != STORY_REPLY_BOX_READER } to "the extension has no $STORY_REPLY_BOX_READER",
             all.filter { it.type != REEL_VIEWER_FRAGMENT } to "this build has no $REEL_VIEWER_FRAGMENT",
+            all.map { if (it.type == REEL_VIEWER_FRAGMENT) it.without("onViewCreated") else it } to
+                "has no onViewCreated(View, Bundle) of its own",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -99,6 +107,19 @@ class HideStoryReplyBoxHookTest {
         assertTrue("$label: the call sits right after the superclass's", before.opcode == Opcode.INVOKE_SUPER || before.opcode == Opcode.INVOKE_SUPER_RANGE)
         assertEquals("$label: the superclass call", "onResume", before.method()?.name)
 
+        val created = classes.single { it.type == REEL_VIEWER_FRAGMENT }.viewCreated().code()
+        val hookedCreated = context.mutableClassDefBy(REEL_VIEWER_FRAGMENT).viewCreated()
+        val createdCode = hookedCreated.code().filter { it.opcode != Opcode.NOP }
+        val first = createdCode.first()
+        assertEquals("$label: onViewCreated tells the extension first thing", REPLY_BOX_VIEW_CREATED, first.method()?.toString())
+        assertEquals("$label: a range call", Opcode.INVOKE_STATIC_RANGE, first.opcode)
+        val self = hookedCreated.implementation!!.registerCount - 3
+        val range = first as RegisterRangeInstruction
+        assertEquals("$label: on this alone", listOf(self, 1), listOf(range.startRegister, range.registerCount))
+        assertEquals("$label: onViewCreated calls it once", 1, createdCode.count { it.method()?.toString() == REPLY_BOX_VIEW_CREATED })
+        fun kinds(code: List<Instruction>) = code.map { it.opcode }.filter { it != Opcode.NOP }
+        assertEquals("$label: Instagram's own onViewCreated is kept", kinds(created), kinds(createdCode.drop(1)))
+
         val stub = context.mutableClassDefBy(STORY_REPLY_BOX_READER).methods.single { it.name == "view" }.code()
         assertEquals("$label: the stub is filled", Opcode.CHECK_CAST, stub.first().opcode)
         assertEquals("$label: the stub reads the viewer's view", "getView", stub.mapNotNull { it.method() }.single().name)
@@ -116,6 +137,16 @@ class HideStoryReplyBoxHookTest {
 
     private fun ClassDef.resume(): Method =
         methods.single { it.name == "onResume" && it.parameterTypes.isEmpty() && it.returnType == "V" }
+
+    private fun ClassDef.viewCreated(): Method = methods.single {
+        it.name == "onViewCreated" && it.returnType == "V" &&
+            it.parameterTypes.map { type -> type.toString() } == listOf("Landroid/view/View;", "Landroid/os/Bundle;")
+    }
+
+    /** This class without its methods called [name]. */
+    private fun ClassDef.without(name: String): ClassDef = ImmutableClassDef(
+        type, accessFlags, superclass, interfaces, sourceFile, annotations, fields, methods.filter { it.name != name },
+    )
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

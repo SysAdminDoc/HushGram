@@ -329,6 +329,23 @@ public class StoryReplyBoxTest {
     }
 
     @Test
+    public void aStoryOpenedFromARingHidesTheHeartFromItsFirstFrame() {
+        activity.setContentView(new FrameLayout(activity));
+        idle();
+        Settings.HIDE_STORY_LIKE_BUTTON.save(true);
+        StoryReplyBox.viewCreated(viewer);
+        assertTrue("the viewer is watched before it's on a window", StoryReplyBox.keptForTests());
+        activity.setContentView(viewerView);
+        assertTrue(viewerView.isAttachedToWindow());
+        assertEquals("nothing changes before a frame", View.VISIBLE, like.getVisibility());
+        assertTrue("the first frame doesn't draw the heart", frame());
+        assertEquals(View.GONE, like.getVisibility());
+        StoryReplyBox.resumed(viewer);
+        assertFalse("resuming later adds no second keeper", frame());
+        assertEquals(View.GONE, like.getVisibility());
+    }
+
+    @Test
     public void hidingLikeTakesTheHeartAwayAndTheRestCloseUp() {
         int boxEnd = box.getRight();
         int likeAt = like.getLeft();

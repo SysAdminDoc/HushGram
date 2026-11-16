@@ -31,9 +31,12 @@ private const val PATCH = "Hide the reply box on stories"
 internal const val STORY_REPLY_BOX = "$EXTENSION_PACKAGE/stories/StoryReplyBox;"
 internal const val STORY_REPLY_BOX_READER = "$EXTENSION_PACKAGE/stories/StoryReplyBoxReader;"
 internal const val REPLY_BOX_RESUMED = "$STORY_REPLY_BOX->resumed(Ljava/lang/Object;)V"
+internal const val REPLY_BOX_VIEW_CREATED = "$STORY_REPLY_BOX->viewCreated(Ljava/lang/Object;)V"
 
 private const val LIFECYCLE = "onResume"
+private const val VIEW_CREATED = "onViewCreated"
 private const val VIEW = "Landroid/view/View;"
+private val VIEW_CREATED_PARAMS = listOf(VIEW, "Landroid/os/Bundle;")
 private const val VIEW_STUB = "(Ljava/lang/Object;)$VIEW"
 
 /**
@@ -43,8 +46,10 @@ private const val VIEW_STUB = "(Ljava/lang/Object;)$VIEW"
  *
  * The patch fills the extension's one stub with the story viewer's (ReelViewerFragment's) own view
  * and, right after the viewer's onResume hands on to its superclass, tells the extension the viewer
- * came back. Everything else happens in the extension, on the viewer's window. Nothing of
- * Instagram's changes besides that one call.
+ * came back. It also tells it first thing in the viewer's onViewCreated, since Instagram draws a
+ * story opened from a ring for a few frames before the viewer resumes, and those frames showed the
+ * hidden buttons (#618). Everything else happens in the extension, on the viewer's window. Nothing
+ * of Instagram's changes besides those two calls.
  */
 @Suppress("unused")
 val hideStoryReplyBoxPatch = bytecodePatch(
@@ -75,6 +80,7 @@ internal fun BytecodePatchContext.findStoryReplyBox(): String {
     val viewer = classDefByOrNull(REEL_VIEWER_FRAGMENT) ?: refuse("this build has no $REEL_VIEWER_FRAGMENT")
     if (!AccessFlags.PUBLIC.isSet(viewer.accessFlags)) refuse("$REEL_VIEWER_FRAGMENT isn't public")
     viewer.resumeSite()
+    viewer.viewCreatedSite()
     val reader = classDefByOrNull(STORY_REPLY_BOX_READER) ?: refuse("the extension has no $STORY_REPLY_BOX_READER")
     reader.methods.singleOrNull { it.name == "view" && AccessFlags.STATIC.isSet(it.accessFlags) && it.shape() == VIEW_STUB }
         ?: refuse("$STORY_REPLY_BOX_READER has no static view$VIEW_STUB")
@@ -109,7 +115,23 @@ private fun ClassDef.resumeSite(): Int {
     return at
 }
 
-/** Fills the stub and puts the call in, finding the site again on the class as it is now. */
+/**
+ * The viewer's own onViewCreated(View, Bundle), whose first instruction the new call goes before,
+ * refused when it already tells the extension or when something jumps back to its start.
+ */
+private fun ClassDef.viewCreatedSite(): Method {
+    val method = methods.singleOrNull {
+        it.name == VIEW_CREATED && it.returnType == "V" && it.params() == VIEW_CREATED_PARAMS &&
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+    } ?: refuse("$REEL_VIEWER_FRAGMENT has no $VIEW_CREATED(View, Bundle) of its own")
+    if (method.code().any { it.method()?.definingClass == STORY_REPLY_BOX }) {
+        refuse("$REEL_VIEWER_FRAGMENT->$VIEW_CREATED already calls $STORY_REPLY_BOX")
+    }
+    if (0 in method.jumpTargets()) refuse("something in $REEL_VIEWER_FRAGMENT->$VIEW_CREATED jumps back to its start")
+    return method
+}
+
+/** Fills the stub and puts the calls in, finding the sites again on the class as it is now. */
 internal fun BytecodePatchContext.hookStoryReplyBox(viewer: String) {
     // The stub's own register is its parameter, so the code below uses that.
     mutableClassDefBy(STORY_REPLY_BOX_READER).methods.single { it.name == "view" && it.shape() == VIEW_STUB }.addInstructions(
@@ -125,9 +147,14 @@ internal fun BytecodePatchContext.hookStoryReplyBox(viewer: String) {
     val at = target.resumeSite()
     target.methods.single { it.name == LIFECYCLE && it.parameterTypes.isEmpty() && it.returnType == "V" }
         .addInstructions(at, "invoke-static { p0 }, $REPLY_BOX_RESUMED")
+    target.viewCreatedSite()
+    target.methods.single { it.name == VIEW_CREATED && it.params() == VIEW_CREATED_PARAMS && it.returnType == "V" }
+        .addInstructions(0, "invoke-static/range { p0 .. p0 }, $REPLY_BOX_VIEW_CREATED")
 }
 
 private fun Method.shape(): String = "(${parameterTypes.joinToString("")})$returnType"
+
+private fun Method.params(): List<String> = parameterTypes.map { it.toString() }
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
