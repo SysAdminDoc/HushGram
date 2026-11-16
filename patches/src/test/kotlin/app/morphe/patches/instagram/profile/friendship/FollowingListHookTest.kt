@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -123,6 +124,45 @@ class FollowingListHookTest {
     @Test
     fun aStatusWrittenOverBeforeAnInlinedLookupFailsTheAnswers() =
         assertAnswersRefused(standIns(inlinedLookup = true, statusAgain = "const/4 v1, 0x0"), "may not hold the status")
+
+    /**
+     * 455 hands the parsed status to the parser's own lookup past the parse, as LX/0MNv;->A00 does on
+     * 386113969 with LX/0MNv;->A01: the session's cache is asked for the account's entry there, and
+     * the account it answers is checked. The hook goes right after that check, with the session from
+     * the call's second register, not its receiver.
+     */
+    @Test
+    fun theAnswerHookFollowsALookupTakingTheStatus() {
+        val context = PatchContexts.of(standIns(statusLookup = true))
+        val found = context.findFollowAnswers()
+        assertEquals("$PARSER->parse", found.parser.toString())
+        assertEquals("$STATUS->followedBy:Ljava/lang/Boolean;", found.followedBy.toString())
+        context.askFollowAnswers(found)
+
+        assertAsked("status lookup stand-in", context, found)
+        val parser = context.mutableClassDefBy(PARSER).methods.single { it.name == "parse" }.implementation!!.instructions.toList()
+        val answered = parser.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == ANSWERED }
+        val lookup = parser.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.name == "lookup" }
+        assertTrue("the hook goes past the lookup", lookup in 0 until answered)
+        // The stand-in keeps the account in v2, the status in v1 and the session in v5; the lookup's receiver is v4.
+        assertEquals("the account, the status and the session", listOf(2, 1, 5), parser[answered].namedRegisters())
+    }
+
+    @Test
+    fun aLookupTakingTheStatusNotCheckingTheAccountFailsTheAnswers() =
+        assertAnswersRefused(standIns(statusLookup = true, checksAccount = false), "doesn't check the account is cached")
+
+    @Test
+    fun aBranchLandingAfterALookupTakingTheStatusFailsTheAnswers() =
+        assertAnswersRefused(standIns(statusLookup = true, jumpsPastCheck = true), "only the check leads to")
+
+    @Test
+    fun aStatusWrittenOverBeforeALookupTakingItFailsTheAnswers() =
+        assertAnswersRefused(standIns(statusLookup = true, statusAgain = "const/4 v1, 0x0"), "may not hold the status")
+
+    @Test
+    fun aLookupTakingTheStatusThatNeverAsksTheCacheFailsTheAnswers() =
+        assertAnswersRefused(standIns(statusLookup = true, lookupAsksCache = false), "doesn't ask the session's cache")
 
     /** #40: the rows are built from the loaded accounts, and the hook puts them in order right before the loop walks them. */
     @Test
@@ -578,6 +618,8 @@ class FollowingListHookTest {
             jumpsPastCheck: Boolean = false,
             statusAgain: String = "",
             inlinedLookup: Boolean = false,
+            statusLookup: Boolean = false,
+            lookupAsksCache: Boolean = true,
             orderTrace: String = FOLLOW_LIST_ADDED,
             orderJump: Boolean = false,
             orderListAgain: String = "",
@@ -681,9 +723,36 @@ class FollowingListHookTest {
                 """,
                 static = false,
             )
-            // Shaped as on 454: the status parsed first, then the session's cache asked for the
-            // account's entry, the entry checked, and the account made from it.
-            val parse = if (inlinedLookup) method(
+            // Shaped as on 455 (LX/0MNv;->A00 on 386113969): the status parsed first, then handed
+            // with the session and the ID to the parser's own lookup, and the account it answers checked.
+            val parse = if (statusLookup) method(
+                PARSER, "parse", listOf(JSON, USER_SESSION, "Z"), OBJECT, 9,
+                """
+                    const-string v0, "$FRIENDSHIP_STATUSES"
+                    move-object v5, p1
+                    :next
+                    invoke-static { p0 }, $JSON->key($JSON)$STRING
+                    move-result-object v0
+                    if-eqz v0, :done
+                    iget-object v1, p0, $JSON->status:$OBJECT
+                    check-cast v1, $STATUS
+                    invoke-static { p0, v1, v0 }, $STATUS_FIELDS->parse($JSON$STATUS$STRING)V
+                    $statusAgain
+                    ${if (jumpsPastCheck) "if-nez v0, :answered" else ""}
+                    sget-object v4, $PARSER->instance:$PARSER
+                    invoke-virtual { v4, v5, v1, v0 }, $PARSER->lookup($USER_SESSION$STATUS$STRING)$USER
+                    move-result-object v2
+                    ${if (checksAccount) "if-eqz v2, :next" else ""}
+                    :answered
+                    invoke-static { v2, v5 }, $USERS->keep($USER$USER_SESSION)V
+                    goto :next
+                    :done
+                    const/4 v0, 0x0
+                    return-object v0
+                """,
+            ) else if (inlinedLookup) method(
+                // Shaped as on 454: the status parsed first, then the session's cache asked for the
+                // account's entry, the entry checked, and the account made from it.
                 PARSER, "parse", listOf(JSON, USER_SESSION, "Z"), OBJECT, 9,
                 """
                     const-string v0, "$FRIENDSHIP_STATUSES"
@@ -753,6 +822,24 @@ class FollowingListHookTest {
                     return-void
                 """,
             )
+            // As LX/0MNv;->A01 on 386113969: the session's cache asked for the account's entry,
+            // null when there's none, otherwise the status applied and the account made from it.
+            val lookup = method(
+                PARSER, "lookup", listOf(USER_SESSION, STATUS, STRING), USER, 5,
+                """
+                    ${if (lookupAsksCache) "invoke-static { p1 }, $CACHE->of($USER_SESSION)$CACHE" else "invoke-static { p1 }, $USERS->cache($USER_SESSION)$CACHE"}
+                    move-result-object v0
+                    invoke-virtual { v0, p3 }, $CACHE->entry($STRING)$OBJECT
+                    move-result-object v0
+                    if-eqz v0, :none
+                    invoke-static { v0, p2 }, $CACHE_ENTRY->apply($OBJECT$STATUS)V
+                    invoke-static { v0 }, $CACHE_ENTRY->user($OBJECT)$USER
+                    move-result-object v0
+                    :none
+                    return-object v0
+                """,
+                static = false,
+            )
             // Shaped as on 450: the state holder's row builder walks the accounts it has loaded, adding a row
             // for each, and names its trace once they are on screen.
             val build = method(
@@ -811,7 +898,11 @@ class FollowingListHookTest {
                 ),
                 classOf(FETCH, listOf(field(FETCH, "list", LIST_STATE)), listOf(fetch)),
                 classOf(LIST_STATE, listOf(field(LIST_STATE, "data", FOLLOW_LIST_DATA), field(LIST_STATE, "session", USER_SESSION)), emptyList()),
-                classOf(PARSER, emptyList(), listOf(parse)),
+                classOf(
+                    PARSER,
+                    listOf(ImmutableField(PARSER, "instance", PARSER, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, null)),
+                    listOf(parse, lookup),
+                ),
                 classOf(STATUS_FIELDS, emptyList(), listOf(parseField)),
                 classOf(STATUS, listOf(field(STATUS, "followedBy", "Ljava/lang/Boolean;"), field(STATUS, "following", "Z")), emptyList()),
                 classOf(BINDER, listOf(field(BINDER, "config", CONFIG), field(BINDER, "session", USER_SESSION), field(BINDER, "position", "I")), listOf(bind)),

@@ -216,7 +216,8 @@ private class AnswerSite(val at: Int, val user: Int, val session: Int)
 
 /**
  * Right after [method] checks, past [parse], that the account a status is about is cached: the
- * `if-eqz` on the result of its one `(UserSession, String)` lookup of a [USER]. The account, the
+ * `if-eqz` on the result of its one `(UserSession, String)` lookup of a [USER], or of the lookup
+ * past the parse that takes the status between the two (455). The account, the
  * status and the session the lookup was handed must each hold the same value there.
  */
 private fun BytecodePatchContext.answerSite(classDef: ClassDef, method: Method, parse: StatusParse): AnswerSite {
@@ -234,6 +235,20 @@ private fun BytecodePatchContext.answerSite(classDef: ClassDef, method: Method, 
         if ((asked + 1 until made).none { code[it].opcode == Opcode.IF_EQZ }) refuse("$where doesn't check the account is cached")
         return answerAt(where, method, code, parse, made + 1, made + 2, asked)
     }
+    if (lookups.isEmpty()) statusLookup(code, parse)?.let { asked ->
+        // 455 hands the parsed status to a lookup past the parse, as LX/0MNv;->A01 does on
+        // 386113969: it asks the session's cache for the account's entry, answers null when there's
+        // none, and otherwise applies the status and answers the account. The hook goes after the check.
+        val called = code[asked].methodReference()!!
+        val lookup = classDefByOrNull(called.definingClass)?.methods?.singleOrNull {
+            it.name == called.name && it.parameterTypes.map(CharSequence::toString) == called.parameterTypes.map(CharSequence::toString)
+        } ?: refuse("$where looks the account up with ${called.definingClass}->${called.name}, which isn't in this build")
+        if (lookup.implementation?.instructions?.none { asksCache(it) } != false) refuse("${called.definingClass}->${called.name} doesn't ask the session's cache")
+        val user = (code[asked + 1] as OneRegisterInstruction).registerA
+        val check = (asked + 2).takeIf { code.getOrNull(it)?.opcode == Opcode.IF_EQZ && (code[it] as OneRegisterInstruction).registerA == user }
+            ?: refuse("$where doesn't check the account is cached")
+        return answerAt(where, method, code, parse, asked + 1, check + 1, asked)
+    }
     val lookup = lookups.singleOrNull() ?: refuse("expected $where to look one cached $USER up by its ID, found ${lookups.size}")
     if (lookup > parse.at) refuse("$where looks the account up after parsing its status")
     val user = (code[lookup + 1] as OneRegisterInstruction).registerA
@@ -249,11 +264,7 @@ private fun BytecodePatchContext.answerSite(classDef: ClassDef, method: Method, 
  * answering a [USER] whose result it keeps, or null when it doesn't.
  */
 private fun cacheAsk(code: List<Instruction>, parse: StatusParse): Pair<Int, Int>? {
-    val asks = (parse.at + 1 until code.size).filter { at ->
-        val called = code[at].methodReference()
-        code[at].opcode == Opcode.INVOKE_STATIC && called?.definingClass == USER_CACHE && called.returnType == USER_CACHE &&
-            called.parameterTypes.map(CharSequence::toString) == listOf(USER_SESSION)
-    }
+    val asks = (parse.at + 1 until code.size).filter { asksCache(code[it]) }
     val asked = asks.singleOrNull() ?: return null
     val made = (asked + 1 until code.size).firstOrNull { at ->
         code[at].methodReference()?.returnType == USER && code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
@@ -261,13 +272,33 @@ private fun cacheAsk(code: List<Instruction>, parse: StatusParse): Pair<Int, Int
     return asked to made
 }
 
+/** Whether [instruction] asks [USER_CACHE] of a session. */
+private fun asksCache(instruction: Instruction): Boolean {
+    val called = instruction.methodReference()
+    return instruction.opcode == Opcode.INVOKE_STATIC && called?.definingClass == USER_CACHE && called.returnType == USER_CACHE &&
+        called.parameterTypes.map(CharSequence::toString) == listOf(USER_SESSION)
+}
+
+/**
+ * Where 455's parser hands the status at [parse] once past it, with the session and the account's
+ * ID, to an instance lookup answering a [USER] it keeps, or null when it doesn't.
+ */
+private fun statusLookup(code: List<Instruction>, parse: StatusParse): Int? = (parse.at + 1 until code.size).filter { at ->
+    val called = code[at].methodReference()
+    (code[at].opcode == Opcode.INVOKE_VIRTUAL || code[at].opcode == Opcode.INVOKE_DIRECT) && called != null && called.returnType == USER &&
+        called.parameterTypes.map(CharSequence::toString) == listOf(USER_SESSION, parse.followedBy.definingClass, STRING) &&
+        code[at].namedRegisters().getOrNull(2) == parse.status && code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
+}.singleOrNull()
+
 /**
  * The hook's place [at] with the account kept at [kept] and the session handed to the call at
  * [asked], once each of them and the status is sure to hold there.
  */
 private fun answerAt(where: String, method: Method, code: List<Instruction>, parse: StatusParse, kept: Int, at: Int, asked: Int): AnswerSite {
     val user = (code[kept] as OneRegisterInstruction).registerA
-    val session = code[asked].namedRegisters()[0]
+    // An instance call's first register is its receiver.
+    val receiver = if (code[asked].opcode == Opcode.INVOKE_STATIC) 0 else 1
+    val session = code[asked].namedRegisters()[receiver + code[asked].methodReference()!!.parameterTypes.map(CharSequence::toString).indexOf(USER_SESSION)]
     if (at >= code.size || at in method.jumpTargets()) refuse("$where has no place right after its check of the account that only the check leads to")
 
     val statusWrite = (parse.at - 1 downTo 0).firstOrNull { code[it].writes(parse.status) }
