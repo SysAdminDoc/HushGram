@@ -51,7 +51,20 @@ internal data class CommentSurface(
     val renderer: MethodReference, val at: Int, val rows: Int, val selected: Int, val context: Int, val spares: List<Int>,
     val rowConstructor: MethodReference, val style: FieldReference, val iconConstructor: MethodReference,
     val labelConstructor: MethodReference, val callback: FieldReference, val copyAction: String,
+    val keeping: RawKeeping? = null,
 )
+
+/** The field the patch adds to a selected comment that keeps no raw comment of its own. */
+internal const val KEPT_RAW = "hushgramRawComment"
+
+/**
+ * How the patch keeps the raw comment on a selected comment that no longer keeps one (455's
+ * `LX/0JrH;` on 386113969, which its conversion `LX/0JHo;->A00` flattens into fields of its own).
+ * The conversion answers the selected comment from the raw comment at [rawAt] among its parameters,
+ * and each copy answers another one from the selected comment at its parameter's index, so the raw
+ * comment goes on what the conversion makes and from each copy's source onto the copy.
+ */
+internal class RawKeeping(val conversion: MethodReference, val rawAt: Int, val copies: List<Pair<MethodReference, Int>>)
 
 /** Copy's own boundaries on top of the shared surface, and Copy username's when they were found. */
 internal data class CommentMenu(val surface: CommentSurface, val text: FieldReference, val icon: Int, val label: Int,
@@ -168,10 +181,12 @@ private fun BytecodePatchContext.findCommentSurface(classes: Map<String, ClassDe
     val selectedType = selectionType(select)
     val model = clazz(selectedType)
     requirePublic(model)
-    val rawField = model.fields.filter { field ->
-        classes[field.type]?.let { AccessFlags.INTERFACE.isSet(it.accessFlags) &&
-            it.methods.any { method -> method.parameterTypes.isEmpty() && method.returnType == GIPHY } } == true
-    }.one("selected comment's raw model")
+    fun rawShaped(type: String) = classes[type]?.let { AccessFlags.INTERFACE.isSet(it.accessFlags) &&
+        it.methods.any { method -> method.parameterTypes.isEmpty() && method.returnType == GIPHY } } == true
+    val keptFields = model.fields.filter { rawShaped(it.type) }
+    val keeping = if (keptFields.isEmpty()) rawKeeping(model, classes, ::rawShaped) else null
+    val rawField = keeping?.let { ImmutableFieldReference(selectedType, KEPT_RAW, it.conversion.parameters()[it.rawAt]) }
+        ?: ImmutableFieldReference.of(keptFields.one("selected comment's raw model"))
     val raw = clazz(rawField.type)
     val pando = classes.values.filter {
         raw.type in it.interfaces && treeBacked(it, classes)
@@ -241,32 +256,84 @@ private fun BytecodePatchContext.findCommentSurface(classes: Map<String, ClassDe
     val selectedRegister = renderer.implementation!!.registerCount - 4
     val code = renderer.code()
     if (code.any { it.call()?.toString() == COMMENT_HOOK }) refuse("renderer already carries the comment hook")
+    // 455 copies the list to a low register first and reads it there: a register whose every write
+    // before the read is a copy of the list holds it.
+    fun holdsList(register: Int, before: Int) = register == listRegister ||
+        code.take(before).filter { it.writes(register) }.let { writes ->
+            writes.isNotEmpty() && writes.all { it.opcode in LIST_COPIES && (it as TwoRegisterInstruction).registerB == listRegister }
+        }
     val at = code.indices.filter { index ->
         code[index].call()?.let { it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Iterable;") &&
-            it.returnType == "I" } == true && code[index].arguments() == listOf(listRegister) &&
+            it.returnType == "I" } == true && code[index].arguments().singleOrNull()?.let { holdsList(it, index) } == true &&
             code.getOrNull(index - 1)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
             code.getOrNull(index - 2)?.call()?.let { it.name == "requireContext" &&
                 it.returnType == "Landroid/content/Context;" } == true
     }.one("guarded renderer's list boundary")
     if (code.take(at).any { it.writes(listRegister) || it.writes(selectedRegister) }) refuse("renderer reuses its input parameters")
     if (code.take(at).count { it.opcode == Opcode.IF_NEZ } < 2) refuse("renderer lacks its duplicate-popup guards")
+    val rows = code[at].arguments().single()
+    if (rows != listRegister && rendererJumpsBack(renderer, at)) refuse("renderer jumps back over the copy of its list")
     val context = (code[at - 1] as OneRegisterInstruction).registerA
+    // A plain call takes three 4-bit registers dead at the boundary. 455 reads every low register
+    // past it, so there the call takes three dead registers in a row through /range.
     val spare = try {
-        renderer.getFreeRegisterProvider(at, 3, listRegister, selectedRegister, context).let {
-            List(3) { _ -> it.getFreeRegister4Bit() }
-        }
-    } catch (failure: IllegalStateException) {
-        refuse("renderer has no safe invocation registers: ${failure.message}")
+        val provider = renderer.getFreeRegisterProvider(at, 3, listRegister, selectedRegister, context, rows)
+        val free = List(provider.availableCount()) { provider.getFreeRegister() }
+        free.filter { it < 16 }.take(3).takeIf { it.size == 3 }
+            ?: free.sorted().firstOrNull { it + 1 in free && it + 2 in free }?.let { listOf(it, it + 1, it + 2) }
+            ?: refuse("renderer has no safe invocation registers: free ${free.sorted()}")
     } catch (failure: IllegalArgumentException) {
         refuse("renderer has no safe invocation registers: ${failure.message}")
     }
     val copy = methodsBesideString("CopyText", classes).filter { it.name == "toString" && it.returnType == STRING && "CopyText" in it.strings() }
         .toList().one("native CopyText label anchor")
-    return CommentSurface(selectedType, ImmutableFieldReference.of(rawField), raw.type, pando.type,
-        ImmutableMethodReference.of(renderer), at, listRegister, selectedRegister, context, spare,
+    return CommentSurface(selectedType, rawField, raw.type, pando.type,
+        ImmutableMethodReference.of(renderer), at, rows, selectedRegister, context, spare,
         ImmutableMethodReference.of(rowConstructor), ImmutableFieldReference.of(style),
         ImmutableMethodReference.of(iconConstructor), ImmutableMethodReference.of(labelConstructor),
-        ImmutableFieldReference.of(callback), copy.definingClass)
+        ImmutableFieldReference.of(callback), copy.definingClass, keeping)
+}
+
+/**
+ * The conversion and copies of a selected comment keeping no raw comment ([RawKeeping]). The
+ * conversion is the one method answering it from exactly one raw comment and making it. Every other
+ * method making one is a copy: a static method of the selected comment answering one from exactly one
+ * other. Each is static, so the patch can call its stock body under another name and keep the raw
+ * comment on its answer.
+ */
+private fun BytecodePatchContext.rawKeeping(model: ClassDef, classes: Map<String, ClassDef>, rawShaped: (String) -> Boolean): RawKeeping {
+    val type = model.type
+    fun makes(method: Method) = method.code().any { it.opcode == Opcode.NEW_INSTANCE && (it.reference() as? TypeReference)?.type == type }
+    val makers = methodsBesideCall(type, "<init>", classes).filter(::makes).toList()
+    val conversion = makers.filter { it.returnType == type && it.parameters().count(rawShaped) == 1 }
+        .one("selected-comment conversion from the raw comment")
+    val copies = makers.filter { it.definingClass == type && it != conversion }
+    for (method in listOf(conversion) + copies) {
+        if (!AccessFlags.STATIC.isSet(method.accessFlags)) refuse("${method.definingClass}->${method.name} makes the selected comment but isn't static")
+        if (classes[method.definingClass]?.methods?.any { it.name == method.name + KEPT_STOCK } == true) {
+            refuse("${method.definingClass} already has ${method.name}$KEPT_STOCK")
+        }
+    }
+    val copied = copies.map { copy ->
+        if (copy.returnType != type || copy.parameters().count { it == type } != 1) {
+            refuse("${copy.name} makes the selected comment from something other than one selected comment")
+        }
+        ImmutableMethodReference.of(copy) to copy.parameters().indexOf(type)
+    }
+    // A method elsewhere taking a selected comment and making another would drop the raw comment.
+    makers.filter { it.definingClass != type && it.parameters().contains(type) }.firstOrNull()?.let {
+        refuse("${it.definingClass}->${it.name} copies the selected comment outside it")
+    }
+    if (model.fields.any { it.name == KEPT_RAW }) refuse("selected comment already has $KEPT_RAW")
+    return RawKeeping(ImmutableMethodReference.of(conversion), conversion.parameters().indexOfFirst(rawShaped), copied)
+}
+
+/** The name suffix a kept-raw conversion's or copy's stock body moves to. */
+internal const val KEPT_STOCK = "\$stock"
+
+/** [surface]'s raw comment field is a public field of the selected comment, or one the patch adds. */
+internal fun requireRawField(surface: CommentSurface, selected: ClassDef) {
+    if (surface.keeping == null) requirePublicField(selected, surface.rawField)
 }
 
 /**
@@ -826,5 +893,18 @@ internal fun Method.constantBefore(at: Int, register: Int): Int? =
 internal fun Instruction.writes(register: Int) = opcode.setsRegister() &&
     (this as? OneRegisterInstruction)?.let { it.registerA == register || opcode.setsWideRegister() && it.registerA + 1 == register } == true
 internal fun <T> Collection<T>.one(what: String): T = singleOrNull() ?: refuse("expected one $what, found $size")
+private val LIST_COPIES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+/**
+ * Whether any path from instruction [at] of [method] or past it, a branch, a switch case or a catch,
+ * comes back to [at] or before it, where a copy made before [at] may no longer hold.
+ */
+private fun rendererJumpsBack(method: Method, at: Int): Boolean {
+    val flow = try { ControlFlow.of(method) } catch (failure: IllegalArgumentException) {
+        refuse("unsupported renderer control flow: ${failure.message}")
+    } catch (failure: ClassCastException) {
+        refuse("unsupported renderer control flow: ${failure.message}")
+    }
+    return (at until flow.instructions.size).any { index -> (flow.normal[index] + flow.exceptional[index]).any { it <= at } }
+}
 /** Stops the comment family being discovered, naming it, before anything has changed. */
 internal fun refuse(detail: String): Nothing = throw PatchException("${discoveringPatch.get()}: $detail")

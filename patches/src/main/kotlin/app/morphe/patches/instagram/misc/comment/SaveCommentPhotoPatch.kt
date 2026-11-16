@@ -14,7 +14,8 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 /**
  * Save in the common comment menu, for a photo, GIF or sticker the comment itself carries.
  *
- * The selected comment keeps the raw comment it was converted from, and that keeps its own
+ * The selected comment keeps the raw comment it was converted from (on a build whose selected
+ * comment keeps none, the patch keeps it there), and that keeps its own
  * media_comment_info, parsed from the server's JSON or read from its tree, with the photo's Media
  * inside. The extension asks a bridge for that Media and lists the sizes Instagram supplied, so the
  * save picks the largest without building an address. The parent post's media_info is never read.

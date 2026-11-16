@@ -21,7 +21,11 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.immutable.*
 import com.android.tools.smali.dexlib2.immutable.instruction.*
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 
 /**
  * What the comment photo's native boundaries look like in [CommentWorld], and the one each refusal
@@ -86,7 +90,8 @@ internal object CommentWorld {
                               constructorFlow: String = "alias", converterFlow: String = "direct",
                               getterFlow: String = "alias", styleTypeFlags: Int = public or AccessFlags.ABSTRACT.value,
                               parserFlow: String = "direct", wideState: Boolean = false,
-                              photo: PhotoWorld? = null): List<ClassDef> {
+                              photo: PhotoWorld? = null, keepsRaw: Boolean = true,
+                              copyFlags: Int = static): List<ClassDef> {
         fun t(name: String) = "Ltest/$salt$name;"
         val raw = t("Raw")
         val value = t("Value")
@@ -312,14 +317,22 @@ internal object CommentWorld {
                     "iput-object p1, p0, $value->plain:$STRING\niput-object p2, p0, $value->translation:$STRING\n" +
                         (if (photo == null) "" else "iput-object p3, p0, $value->attached:$info\n") + "return-void")) +
                 listOfNotNull(photo?.let { method(value, "info", emptyList(), info, 2, public, "iget-object v0, p0, $value->attached:$info\nreturn-object v0") })),
-            clazz(view, fields = listOf(field(view, "raw", raw, photo?.rawFieldFlags ?: public), field(view, "original$salt", STRING, textFlags), field(view, "translated$salt", STRING)),
+            // 455's selected comment keeps no raw comment, and a copy answers another from it (`LX/0JrH;->A00` on 386113969).
+            clazz(view, fields = listOfNotNull(field(view, "raw", raw, photo?.rawFieldFlags ?: public).takeIf { keepsRaw },
+                field(view, "original$salt", STRING, textFlags), field(view, "translated$salt", STRING)),
                 methods = listOf(method(view, "<init>", listOf(raw, STRING, STRING), "V", 6, public, """
-                    iput-object p1, p0, $view->raw:$raw
+                    ${if (keepsRaw) "iput-object p1, p0, $view->raw:$raw" else ""}
                     $originalAlias
                     iput-object v0, p0, $view->original$salt:$STRING
                     iput-object p3, p0, $view->translated$salt:$STRING
                     return-void
-                """))),
+                """)) + listOfNotNull(method(view, "copy", listOf(view, STRING), view, 5, copyFlags, """
+                    new-instance v0, $view
+                    const/4 v1, 0x0
+                    iget-object v2, p0, $view->original$salt:$STRING
+                    invoke-direct { v0, v1, v2, p1 }, $view-><init>($raw$STRING$STRING)V
+                    return-object v0
+                """).takeIf { !keepsRaw })),
             clazz(t("Parser"), methods = listOf(method(t("Parser"), "unsafeParseFromJson", listOf(json), OBJECT, if (photo == null) 5 else 7, static, """
                 $parserRead
                 move-result-object v2
@@ -469,6 +482,66 @@ internal object CommentWorld {
             })
         }.sortedBy { it.first } }
     }
+
+    /**
+     * On a selected comment keeping no raw comment of its own, the patch's field is public on it, and
+     * the conversion and each copy call their stock body, kept as it was in [stock] under a private
+     * name, and put the raw comment on its answer: the one the conversion was handed, or the copy's
+     * source's. Nothing to check on one keeping its own.
+     */
+    fun assertKeptRaw(patch: BytecodePatchContext, surface: CommentSurface, stock: Collection<ClassDef>, label: String) {
+        val keeping = surface.keeping ?: return
+        val model = patch.mutableClassDefBy(surface.selectedType)
+        val kept = model.fields.filter { it.name == KEPT_RAW }
+        assertEquals("$label: the kept raw comment's field", listOf(surface.rawField.type), kept.map { it.type })
+        // The dex is written from the instance fields, a set apart from the fields.
+        assertEquals("$label: the kept raw comment's field is written", listOf(surface.rawField.type),
+            model.instanceFields.filter { it.name == KEPT_RAW }.map { it.type })
+        assertTrue("$label: the kept raw comment's field is public", AccessFlags.PUBLIC.isSet(kept.single().accessFlags))
+        assertFalse("$label: the kept raw comment's field is an instance field", AccessFlags.STATIC.isSet(kept.single().accessFlags))
+        fun check(reference: MethodReference, from: Int, copy: Boolean) {
+            val owner = patch.mutableClassDefBy(reference.definingClass)
+            val original = stock.single { it.type == reference.definingClass }.methods.single { it.matches(reference) }
+            val wrapper = owner.methods.single { it.matches(reference) }
+            val moved = owner.methods.single { it.name == reference.name + KEPT_STOCK && it.parameters() == reference.parameters() &&
+                it.returnType == reference.returnType }
+            assertEquals("$label: ${reference.name} keeps its flags", original.accessFlags, wrapper.accessFlags)
+            assertTrue("$label: ${moved.name} is private", AccessFlags.PRIVATE.isSet(moved.accessFlags) &&
+                !AccessFlags.PUBLIC.isSet(moved.accessFlags) && AccessFlags.STATIC.isSet(moved.accessFlags))
+            assertEquals("$label: ${moved.name} is the stock body", describe(original), describe(moved))
+            val sizes = reference.parameters().map { if (it == "J" || it == "D") 2 else 1 }
+            val code = wrapper.code()
+            assertEquals("$label: ${reference.name}'s registers", 2 + sizes.sum(), wrapper.implementation!!.registerCount)
+            assertEquals("$label: ${reference.name}'s steps", listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT_OBJECT,
+                Opcode.IF_EQZ, Opcode.MOVE_OBJECT_FROM16) + (if (copy) listOf(Opcode.IF_EQZ, Opcode.IGET_OBJECT) else emptyList()) +
+                listOf(Opcode.IPUT_OBJECT, Opcode.RETURN_OBJECT), code.map { it.opcode })
+            assertEquals("$label: ${reference.name} hands its stock body every parameter",
+                (2 until 2 + sizes.sum()).toList(), code[0].arguments())
+            assertTrue("$label: ${reference.name} calls its stock body", code[0].call()!!.let { it.definingClass == owner.type && it.matches(moved) })
+            assertEquals("$label: ${reference.name}'s answer", 0, (code[1] as OneRegisterInstruction).registerA)
+            assertEquals("$label: ${reference.name} carries the parameter at $from", listOf(1, 2 + sizes.take(from).sum()),
+                (code[3] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+            val reads = code.filter { it.opcode == Opcode.IGET_OBJECT || it.opcode == Opcode.IPUT_OBJECT }
+            assertEquals("$label: ${reference.name} reads and writes only the kept raw comment",
+                reads.map { surface.rawField.toString() }, reads.map { it.field().toString() })
+            for (access in reads) {
+                val registers = (access as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) }
+                assertEquals("$label: ${reference.name}'s ${access.opcode}", if (access.opcode == Opcode.IPUT_OBJECT) listOf(1, 0) else listOf(1, 1), registers)
+            }
+        }
+        check(keeping.conversion, keeping.rawAt, false)
+        for ((copy, from) in keeping.copies) {
+            assertEquals("$label: ${copy.name} copies a selected comment", surface.selectedType, copy.parameters()[from])
+            check(copy, from, true)
+        }
+    }
+
+    private fun describe(method: Method) = method.implementation?.registerCount to method.code().map { instruction ->
+        listOf(instruction.opcode, instruction.reference()?.toString(), instruction.arguments(),
+            (instruction as? OneRegisterInstruction)?.registerA, (instruction as? TwoRegisterInstruction)?.registerB,
+            (instruction as? NarrowLiteralInstruction)?.narrowLiteral, (instruction as? OffsetInstruction)?.codeOffset)
+    }
+
     private fun photoParts(photo: PhotoWorld, salt: String, json: String, reader: String): List<ClassDef> {
         fun t(name: String) = "Ltest/$salt$name;"
         val info = t("Info")

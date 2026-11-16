@@ -54,7 +54,7 @@ internal fun BytecodePatchContext.findCopyAuthor(surface: CommentSurface, classe
     for (type in listOf(AUTHOR_NATIVE, AUTHOR_ROW, COMMENT_AUTHOR, INSTAGRAM_MEDIA)) {
         if (type !in classes) refuse("missing extension boundary $type")
     }
-    requirePublicField(clazz(surface.selectedType), surface.rawField)
+    requireRawField(surface, clazz(surface.selectedType))
     val raw = clazz(surface.raw)
     requirePublic(raw)
     val user = commentUserGetter(raw, clazz(surface.pando))
@@ -76,6 +76,7 @@ internal fun BytecodePatchContext.applyCopyAuthor(surface: CommentSurface, plan:
     val site = labelSite(renderer, plan.label)
     // In place, on the call's own registers, so nothing shifts and every branch still reaches it.
     renderer.replaceInstruction(site.at + 2, "invoke-static { v${site.context}, v${site.id}, v${site.row} }, $AUTHOR_LABEL")
+    keepRawComment(surface)
     replace(stub(AUTHOR_NATIVE, "author", listOf(OBJECT), OBJECT), 2, """
         instance-of v0, p0, ${surface.selectedType}
         if-eqz v0, :unsupported

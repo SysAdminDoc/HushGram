@@ -66,6 +66,8 @@ class CopyCommentHookTest {
             // The selected comment's register is counted back from the list, so a wide value between them moves it.
             "wide renderer parameter" to CommentWorld.nativeClasses("First", wideState = true),
             "missing bridge" to valid + extension().filter { it.type != COMMENT_NATIVE },
+            // One keeping no raw comment, whose copy the patch can't wrap.
+            "instance copy" to CommentWorld.nativeClasses("First", keepsRaw = false, copyFlags = public),
         )
         for ((case, native) in cases) {
             val classes = if (native.any { it.type == COPY_ROW }) native else native + extension()
@@ -77,6 +79,17 @@ class CopyCommentHookTest {
             assertTrue("$case: $failure", failure?.message?.startsWith("Copy comment: ") == true)
             assertEquals(case, before, CommentWorld.snapshot(patch, actual.map { it.type }))
         }
+    }
+
+    /** 455's selected comment keeps no raw comment; Copy reads only its text, so it goes in as before. */
+    @Test fun aSelectedCommentKeepingNoRawCommentStillCopiesItsText() {
+        val native = CommentWorld.nativeClasses("Flat", keepsRaw = false)
+        val patch = PatchContexts.of(native + extension())
+        val menu = patch.findCommentMenu()
+        assertNotNull("the patch keeps the raw comment", menu.surface.keeping)
+        assertEquals("originalFlat", menu.text.name)
+        patch.applyCommentMenu(menu)
+        assertWiring(patch, menu)
     }
 
     @Test fun wideWriteToTheOriginalParametersHighHalfRefusesBeforeMutation() {
@@ -208,9 +221,12 @@ class CopyCommentHookTest {
         val selected = selectionType(select)
         val model = FixtureDex.classes(bundle, setOf(selected)).getValue(selected)
         val interfaces = FixtureDex.classes(bundle, model.fields.map { it.type }.toSet()).values
-        val raws = interfaces.filter { type -> type.methods.any {
-            it.parameterTypes.isEmpty() && it.returnType == giphy
-        } && AccessFlags.INTERFACE.isSet(type.accessFlags) }
+        // The raw comment is a field of the selected comment, or on 455 only what its conversion is handed.
+        val makers = FixtureDex.classesCreating(bundle, setOf(selected))
+        val handed = makers.flatMap { it.methods }.filter { it.returnType == selected }.flatMap { it.parameters() }.toSet()
+        val raws = (interfaces + FixtureDex.classes(bundle, handed - interfaces.map { it.type }.toSet()).values).filter { type ->
+            type.methods.any { it.parameterTypes.isEmpty() && it.returnType == giphy } && AccessFlags.INTERFACE.isSet(type.accessFlags)
+        }
         assertEquals("fixture raw interfaces: ${raws.map { it.type }}", 1, raws.size)
         val raw = raws.single().type
         val parts = mutableListOf<ClassDef>()
@@ -232,7 +248,7 @@ class CopyCommentHookTest {
                 }
             }
         }
-        val core = (anchors + model + interfaces + parts).distinctBy { it.type }
+        val core = (anchors + model + interfaces + raws + makers + parts).distinctBy { it.type }
         val dependencies = core.mapNotNull { it.superclass }.toMutableSet()
         for (type in core) for (method in type.methods) for (instruction in method.code()) {
             when (val reference = instruction.reference()) {
@@ -260,8 +276,10 @@ class CopyCommentHookTest {
         assertEquals(USER, author.user.returnType)
         val stockLabel = labelSite(renderer, author.label)
         assertEquals(GET_STRING, renderer.code()[stockLabel.at + 2].call().toString())
+        assertEquals("$label: the patch keeps the raw comment", model.fields.none { it.type == raw }, menu.surface.keeping != null)
         copyCommentPatch.execute(patch)
         assertWiring(patch, menu)
+        CommentWorld.assertKeptRaw(patch, menu.surface, classes, label)
         assertEquals("${label}: Copy's status", 1, status(patch, "commentCopy"))
         assertEquals("${label}: Copy username's status", 1, status(patch, COMMENT_AUTHOR_STATUS))
         val hook = renderer.code().indexOfFirst { it.call()?.toString() == COMMENT_HOOK }

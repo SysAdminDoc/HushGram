@@ -6,10 +6,13 @@ package app.morphe.patches.instagram.misc.comment
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
+import app.morphe.patcher.util.proxy.mutableTypes.MutableField.Companion.toMutable
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 
@@ -40,11 +43,17 @@ internal fun BytecodePatchContext.applyCommentHook(surface: CommentSurface) {
         else -> refuse("renderer carries the comment hook more than once")
     }
     val (rows, selected, context) = surface.spares
+    // Spares past v15 are three in a row (455), which only the /range call can name.
+    val call = when {
+        surface.spares.all { it < 16 } -> "invoke-static { v$rows, v$selected, v$context }"
+        surface.spares == listOf(rows, rows + 1, rows + 2) -> "invoke-static/range { v$rows .. v$context }"
+        else -> refuse("renderer's call registers ${surface.spares} are neither 4-bit nor in a row")
+    }
     renderer.addInstructionsAtControlFlowLabel(surface.at, """
         move-object/from16 v$rows, v${surface.rows}
         move-object/from16 v$selected, v${surface.selected}
         move-object/from16 v$context, v${surface.context}
-        invoke-static { v$rows, v$selected, v$context }, $COMMENT_HOOK
+        $call, $COMMENT_HOOK
         move-result-object v${surface.rows}
     """.trimIndent())
 }
@@ -87,6 +96,54 @@ internal fun BytecodePatchContext.applyActionRow(surface: CommentSurface, rowTyp
         const/4 v0, 0x0
         return-object v0
     """)
+}
+
+/**
+ * Keeps the raw comment on a selected comment that keeps none of its own ([RawKeeping]): the field
+ * [KEPT_RAW] goes on the selected comment, the conversion and each copy move to a private stock body,
+ * and a method under the old name calls that body and puts the raw comment on its answer, from the
+ * conversion's raw parameter or the copy's source. The first family in a patch run puts it in, and
+ * the second finds the field there.
+ */
+internal fun BytecodePatchContext.keepRawComment(surface: CommentSurface) {
+    val keeping = surface.keeping ?: return
+    val model = mutableClassDefBy(surface.selectedType)
+    // The class's fields and its instance fields are separate sets: the dex is written from the
+    // instance fields, and lookups read the fields, so the new one goes in both.
+    if (model.instanceFields.any { it.name == KEPT_RAW }) return
+    val field = surface.rawField
+    val kept = ImmutableField(field.definingClass, field.name, field.type,
+        AccessFlags.PUBLIC.value or AccessFlags.SYNTHETIC.value, null, null, null).toMutable()
+    model.instanceFields.add(kept)
+    model.fields.add(kept)
+    fun wrap(reference: MethodReference, from: Int, carry: List<String>) {
+        val owner = mutableClassDefBy(reference.definingClass)
+        val stock = owner.methods.single { it.matches(reference) }
+        val flags = stock.accessFlags
+        val sizes = stock.parameters().map { if (it == "J" || it == "D") 2 else 1 }
+        val registers = 2 + sizes.sum()
+        owner.methods.remove(stock)
+        stock.setName(reference.name + KEPT_STOCK)
+        stock.setAccessFlags(flags and (AccessFlags.PUBLIC.value or AccessFlags.PROTECTED.value).inv() or AccessFlags.PRIVATE.value)
+        owner.methods.add(stock)
+        val call = "${reference.definingClass}->${stock.name}(${stock.parameters().joinToString("")})${stock.returnType}"
+        val wrapper = ImmutableMethod(reference.definingClass, reference.name, stock.parameters, stock.returnType, flags,
+            null, null, ImmutableMethodImplementation(registers, emptyList(), null, null)).toMutable()
+        val body = listOf(
+            "invoke-static/range { v2 .. v${registers - 1} }, $call",
+            "move-result-object v0",
+            "if-eqz v0, :none",
+            "move-object/from16 v1, v${2 + sizes.take(from).sum()}",
+        ) + carry + listOf(
+            "iput-object v1, v0, $field",
+            ":none",
+            "return-object v0",
+        )
+        wrapper.addInstructionsWithLabels(0, body.joinToString("\n"))
+        owner.methods.add(wrapper)
+    }
+    wrap(keeping.conversion, keeping.rawAt, emptyList())
+    for ((copy, from) in keeping.copies) wrap(copy, from, listOf("if-eqz v1, :none", "iget-object v1, v1, $field"))
 }
 
 internal fun BytecodePatchContext.stub(type: String, name: String, parameters: List<String>, returns: String,

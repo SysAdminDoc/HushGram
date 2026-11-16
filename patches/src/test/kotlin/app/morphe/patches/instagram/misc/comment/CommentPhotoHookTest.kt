@@ -78,6 +78,55 @@ class CommentPhotoHookTest {
         }
     }
 
+    /**
+     * A selected comment keeping no raw comment of its own (455's) gets it from the patch: the
+     * conversion's answer carries the raw comment it was handed, each copy's carries its source's, and
+     * the photo's raw read takes it from there. A second pass finds it in place and adds nothing.
+     */
+    @Test fun aSelectedCommentKeepingNoRawCommentGetsItFromTheConversionAndItsCopies() {
+        for (copyFirst in listOf(true, false)) {
+            val native = CommentWorld.nativeClasses("Flat", photo = PhotoWorld(), keepsRaw = false)
+            val patch = PatchContexts.of(native + extension())
+            if (copyFirst) patch.applyCommentMenu(patch.findCommentMenu())
+            val plan = patch.findCommentPhoto()
+            val keeping = plan.surface.keeping ?: error("the patch doesn't keep the raw comment")
+            assertEquals("Ltest/FlatConverter;->convert(Ltest/FlatRaw;)Ltest/FlatView;" to 0, keeping.conversion.toString() to keeping.rawAt)
+            assertEquals(listOf("Ltest/FlatView;->copy(Ltest/FlatView;Ljava/lang/String;)Ltest/FlatView;" to 0),
+                keeping.copies.map { (copy, from) -> copy.toString() to from })
+            assertEquals(ImmutableFieldReference("Ltest/FlatView;", KEPT_RAW, "Ltest/FlatRaw;").toString(), plan.surface.rawField.toString())
+            patch.applyCommentPhoto(plan)
+            if (!copyFirst) patch.applyCommentMenu(patch.findCommentMenu())
+            patch.keepRawComment(plan.surface)
+            assertPhotoWiring(patch, plan)
+            CommentWorld.assertKeptRaw(patch, plan.surface, native, "copy first $copyFirst")
+        }
+    }
+
+    @Test fun aSelectedCommentThatCantKeepTheRawCommentRefusesBeforeAnyMutation() {
+        val view = "Ltest/RefusedView;"
+        val outside = CommentWorld.clazz("Ltest/RefusedOutside;", methods = listOf(CommentWorld.method("Ltest/RefusedOutside;", "again",
+            listOf(view), view, 3, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, """
+                new-instance v0, $view
+                const/4 v1, 0x0
+                invoke-direct { v0, v1, v1, v1 }, $view-><init>(Ltest/RefusedRaw;$STRING$STRING)V
+                return-object v0
+            """)))
+        val cases = mapOf(
+            "an instance copy" to CommentWorld.nativeClasses("Refused", photo = PhotoWorld(), keepsRaw = false,
+                copyFlags = AccessFlags.PUBLIC.value),
+            "a copy outside it" to CommentWorld.nativeClasses("Refused", photo = PhotoWorld(), keepsRaw = false) + outside,
+        )
+        for ((case, native) in cases) {
+            val classes = native + extension()
+            val patch = PatchContexts.of(classes)
+            val before = CommentWorld.snapshot(patch, classes.map { it.type })
+            val failure = runCatching { patch.applyCommentPhoto(patch.findCommentPhoto()) }.exceptionOrNull()
+            assertTrue("$case: $failure", failure?.message?.startsWith("Save comment photo: ") == true)
+            assertEquals(case, before, CommentWorld.snapshot(patch, classes.map { it.type }))
+            assertTrue(case, patch.mutableClassDefBy(view).fields.none { it.name == KEPT_RAW })
+        }
+    }
+
     @Test fun eitherFamilyRefusingLeavesTheOtherWorking() {
         val copyRefuses = PatchContexts.of(CommentWorld.nativeClasses("NoCopy", textKey = "text_translation",
             photo = PhotoWorld()) + extension())
@@ -210,7 +259,7 @@ class CommentPhotoHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("every 454 build", Fixtures.BUILDS, bundles.size)
+        assertEquals("every 455 build", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val label = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
             val native = (FixtureDex.classesHolding(bundle, COMMENT_SELECT) + FixtureDex.classesLoading(bundle, "comment_image_"))
@@ -328,9 +377,14 @@ class CommentPhotoHookTest {
                     read >= 0 && code.drop(read).firstOrNull { it.opcode == Opcode.IPUT_OBJECT && it.field()?.type == USER }
                         ?.field().toString() == userField.toString()
                 })
+                // 455's selected comment keeps no raw comment of its own, so the patch keeps it there.
+                val model = classes.single { it.type == plan.surface.selectedType }
+                assertEquals("${bundle.name}: the patch keeps the raw comment", model.fields.none { it.type == plan.surface.raw },
+                    plan.surface.keeping != null)
                 patch.applyCommentPhoto(plan)
                 if (families == "photo+copy") patch.applyCommentMenu(patch.findCommentMenu())
                 assertPhotoWiring(patch, plan)
+                CommentWorld.assertKeptRaw(patch, plan.surface, classes, "${bundle.name} $families")
                 val hook = stockRenderer.code().indexOfFirst { it.call()?.toString() == COMMENT_HOOK }
                 original.assertPreserved("${bundle.name} $families", stockRenderer, (hook - 3..hook + 1).toSet())
                 assertEquals("legacy surface must not be reported as patched", unchanged, CommentWorld.snapshot(patch, legacy))
@@ -571,8 +625,13 @@ class CommentPhotoHookTest {
         val selected = selectionType(select)
         load(listOf(selected))
         load(pool.getValue(selected).fields.map { it.type })
+        // The raw comment is a field of the selected comment, or on 455 only what its conversion is handed.
+        val makers = FixtureDex.classesCreating(bundle, setOf(selected))
+        add(makers)
+        val handed = makers.flatMap { it.methods }.filter { it.returnType == selected }.flatMap { it.parameters() }.toSet()
+        load(handed.filter { it.startsWith("L") })
         val raw = pool.values.single { type -> AccessFlags.INTERFACE.isSet(type.accessFlags) &&
-            type.type in pool.getValue(selected).fields.map { it.type } && type.methods.any { it.returnType == GIPHY } }.type
+            type.type in pool.getValue(selected).fields.map { it.type } + handed && type.methods.any { it.returnType == GIPHY } }.type
         scan { type -> raw in type.interfaces || type.methods.any { method -> method.returnType == selected ||
             method.parameters().let { it.size == 5 && it[1] == selected && it[3] == LIST && it[4] == "F" } } }
         val parsed = pool.values.filter { raw in it.interfaces }.map { it.type }.toSet()
@@ -621,6 +680,6 @@ class CommentPhotoHookTest {
 
     private companion object {
         /** Instagram's GIF icon and its GIF label on the quick reply bar, read from the declared build's resources. */
-        val GIF_BUTTONS = mapOf("454.0.0.54.77" to (0x7f082608 to 0x7f136f8c))
+        val GIF_BUTTONS = mapOf("455.0.0.51.72" to (0x7f082632 to 0x7f1370eb))
     }
 }
