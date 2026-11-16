@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Features
 
 * `Double tap to skip` on Reels flashes arrows and the seconds skipped on the side you tapped, like it already does on feed videos. `Show the skip arrows`, right under it, turns them off. Asked for in #691.
+* Quick double taps the same way now add up under the skip arrows on Reels and feed videos, so three skips ahead read 10, 20 and then 30. Asked for in #554.
 * `Hide the pause icon on reels` under Reels keeps a paused reel clear of the big pause icon and its sound button, so the frame you stopped on stays in view. A tap still plays it. Asked for in #686.
 * `Hide the Like button on reels` and `Hide the Comment button on reels` under Reels, and `Hide the Like button` under Feed, take those buttons and their counts away. Double tap still likes. Asked for in #668.
 * `Ask before a refresh` also asks when you tap Home, Reels or Explore while you're already on it, since that tap scrolls back to the top and reloads too. Cancel leaves the list where it was. Asked for in #655.

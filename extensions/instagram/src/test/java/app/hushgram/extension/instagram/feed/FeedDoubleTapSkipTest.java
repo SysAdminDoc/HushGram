@@ -228,6 +228,7 @@ public class FeedDoubleTapSkipTest {
         assertEquals(Arrays.asList("pause", "seek 13000", "play", "pause", "seek " + (23000 + played), "play"), stand.calls);
         assertNotNull("one set of arrows", FeedDoubleTapSkip.flashForTests());
         assertEquals("one set of arrows", 2, video.getChildCount());
+        assertEquals("#554: the seconds under them add up", 20, FeedDoubleTapSkip.flashForTests().seconds);
     }
 
     /** The video went on playing since the player last said where it was. */

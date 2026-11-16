@@ -10,8 +10,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.os.Looper;
 import android.widget.FrameLayout;
 
 import org.junit.After;
@@ -21,6 +23,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+
+import java.time.Duration;
 
 import app.hushgram.extension.instagram.feed.FeedDoubleTapSkip;
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -154,6 +158,42 @@ public class ReelSkipTest {
         assertNull("the last arrows go", back.getParent());
         assertTrue(HookStatus.missing(FamilyNames.REEL_DOUBLE_TAP_SKIP).toString(),
                 HookStatus.missing(FamilyNames.REEL_DOUBLE_TAP_SKIP).isEmpty());
+    }
+
+    /**
+     * #554: quick skips the same way add up under the arrows, 10, 20, 30. A skip the other way, or
+     * one after the arrows went, starts again from Skip length.
+     */
+    @Test
+    public void quickSkipsTheSameWayAddUp() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Utils.setActivity(activity);
+
+        ReelSkip.skipped(Way.FORWARD);
+        ReelSkip.skipped(Way.FORWARD);
+        assertEquals("two skips ahead", 20, FeedDoubleTapSkip.flashForTests().seconds);
+        ReelSkip.skipped(Way.FORWARD);
+        assertEquals("three skips ahead", 30, FeedDoubleTapSkip.flashForTests().seconds);
+        assertEquals("one set of arrows", 1, countFlashes(activity.findViewById(android.R.id.content)));
+
+        ReelSkip.skipped(Way.BACKWARD);
+        FeedDoubleTapSkip.Flash back = FeedDoubleTapSkip.flashForTests();
+        assertEquals("the other way starts again", -1, back.side);
+        assertEquals("the other way starts again", 10, back.seconds);
+
+        // Well past the arrows' flash, whose length is the feed package's own.
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2));
+        assertNull("the arrows go", FeedDoubleTapSkip.flashForTests());
+        ReelSkip.skipped(Way.BACKWARD);
+        assertEquals("after they went it starts again", 10, FeedDoubleTapSkip.flashForTests().seconds);
+    }
+
+    private static int countFlashes(FrameLayout content) {
+        int count = 0;
+        for (int child = 0; child < content.getChildCount(); child++) {
+            if (content.getChildAt(child) instanceof FeedDoubleTapSkip.Flash) count++;
+        }
+        return count;
     }
 
     /** No arrows with them turned off, the switch off, paused, a way it doesn't know or no screen, and never a throw. */

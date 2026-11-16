@@ -163,12 +163,15 @@ public final class FeedDoubleTapSkip {
     /**
      * Shows the arrows on [side] of [video] with the [seconds] moved under them, over what came before
      * them, and takes them away after {@link #FLASH_MS}. Reels flash the same arrows after a double
-     * tap skip (#691). Main thread only.
+     * tap skip (#691). A skip the same way while the last arrows still show on [video] adds its seconds
+     * to theirs, so quick double taps read 10, 20, 30 (#554). Main thread only.
      */
     public static void flash(FrameLayout video, int side, int seconds) {
         Flash old = shown == null ? null : shown.get();
+        int total = seconds;
+        if (old != null && old.getParent() == video && old.side == side) total += old.seconds;
         if (old != null) old.remove();
-        Flash arrows = new Flash(video.getContext(), side, seconds);
+        Flash arrows = new Flash(video.getContext(), side, total);
         int size = dp(video, FLASH_DP);
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size,
                 Gravity.CENTER_VERTICAL | (side < 0 ? Gravity.LEFT : Gravity.RIGHT));
