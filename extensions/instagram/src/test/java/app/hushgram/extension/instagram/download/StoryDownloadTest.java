@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.download;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -16,6 +17,10 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Looper;
 import android.text.SpannableString;
+import android.view.Menu;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.PopupMenu;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +39,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 import org.robolectric.shadows.ShadowAlertDialog;
+import org.robolectric.shadows.ShadowPopupMenu;
 import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -262,6 +268,54 @@ public class StoryDownloadTest {
         List<Object> menu = new ArrayList<>(Arrays.asList("Edit highlight"));
         StoryDownload.labelList(menu);
         assertEquals(Arrays.asList("Edit highlight", "Download as video", "Download as photo"), menu);
+    }
+
+    /**
+     * #726: on a photo story with music, the header's Download button asks under itself whether to
+     * save the video or the photo, as the menu's two rows do, and the row picked starts that save.
+     * A plain photo saves straight away, with no list.
+     */
+    @Test
+    @Config(shadows = Story.class)
+    public void theHeaderButtonAsksVideoOrPhotoOnAPhotoWithMusic() {
+        ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        try {
+            Activity activity = controller.get();
+            FrameLayout root = new FrameLayout(activity);
+            ImageView button = new ImageView(activity);
+            root.addView(button);
+            activity.setContentView(root);
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            Object media = new Object();
+            Story.video = true;
+            Story.posted = StoryDownload.POSTED_PHOTO;
+
+            StoryDownload.saveStory(button, media);
+            PopupMenu asked = ShadowPopupMenu.getLatestPopupMenu();
+            assertNotNull("the button saved without asking", asked);
+            Menu rows = asked.getMenu();
+            assertEquals(2, rows.size());
+            assertEquals("Download as video", String.valueOf(rows.getItem(0).getTitle()));
+            assertEquals("Download as photo", String.valueOf(rows.getItem(1).getTitle()));
+            String report = String.valueOf(HookStatus.report());
+            assertTrue(report, report.contains(StoryDownload.BUTTON_ASKED));
+
+            ShadowToast.reset();
+            assertTrue(Shadows.shadowOf(asked).getOnMenuItemClickListener().onMenuItemClick(rows.getItem(1)));
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            assertEquals("the photo save didn't run", "Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
+            asked.dismiss();
+
+            Story.video = false;
+            Story.posted = null;
+            ShadowToast.reset();
+            StoryDownload.saveStory(button, media);
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            assertTrue("a plain photo asked", asked == ShadowPopupMenu.getLatestPopupMenu());
+            assertEquals("Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        } finally {
+            controller.pause().stop().destroy();
+        }
     }
 
     /** A story's Media as the bridges read it: a video or not, its upload's flag and the type it was posted as. */

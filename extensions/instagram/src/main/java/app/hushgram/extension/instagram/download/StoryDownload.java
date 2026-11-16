@@ -6,6 +6,8 @@ package app.hushgram.extension.instagram.download;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.view.View;
+import android.widget.PopupMenu;
 
 import androidx.annotation.Nullable;
 
@@ -403,11 +405,38 @@ public final class StoryDownload {
 
     /**
      * The story button's tap (#400): the save the menu's Download row runs, for [media], the story's
-     * Media, whatever the Download on stories switch says. A save that can't start says so. Never throws.
+     * Media, whatever the Download on stories switch says. A photo story with music, which the menu
+     * gives Download as video and Download as photo, gets the same two in a list under [button]
+     * first, and the one picked saves that story (#726). A save that can't start says so. Never throws.
      */
-    public static void saveStory(Object media) {
+    public static void saveStory(@Nullable View button, Object media) {
         try {
-            start(Choice.STORY, media);
+            Kind kind = media == null ? Kind.UNREAD : kind(media);
+            if (kind.rows != Rows.VIDEO_AND_PHOTO || button == null || !button.isAttachedToWindow()) {
+                start(Choice.STORY, media);
+                return;
+            }
+            HookStatus.counted(FamilyNames.STORY_DOWNLOAD, BUTTON_ASKED);
+            Choice[] choices = kind.rows.choices;
+            PopupMenu list = new PopupMenu(button.getContext(), button);
+            for (int at = 0; at < choices.length; at++) list.getMenu().add(0, at, at, label(choices[at]));
+            list.setOnMenuItemClickListener(row -> {
+                picked(choices[row.getItemId()], media);
+                return true;
+            });
+            list.show();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story button", t);
+        }
+    }
+
+    /** What's counted when the story button asks whether to save a photo story with music as a video or a photo (#726). */
+    static final String BUTTON_ASKED = "story button asked video or photo";
+
+    /** A row picked in the story button's list: saves [media] as [choice] says. Never throws. */
+    private static void picked(Choice choice, Object media) {
+        try {
+            start(choice, media);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story button", t);
         }

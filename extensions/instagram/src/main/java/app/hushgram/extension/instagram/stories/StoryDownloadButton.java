@@ -23,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -44,7 +45,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * buttons at the top end of the header, before the three-dot menu, or at the bottom right by Like
  * and Share with Story buttons at the bottom on ({@link StoryButtonRows}). A tap runs the save the menu's
  * Download row runs ({@link StoryDownload#saveStory}) on the story's Media, read when the header
- * was bound.
+ * was bound. On a photo story with music it first asks, under the button, whether to save the video
+ * or the photo, as the menu's two rows do (#726).
  *
  * <p>Holders are recycled from story to story, so a button already in a header is shown, hidden or
  * pointed at the new story on each bind. With the switch off, HushGram paused or the settings not
@@ -105,13 +107,13 @@ public final class StoryDownloadButton {
      * (#303) do the same. Never throws.
      */
     public static void bind(Object item, Object holder) {
-        bind(item, holder, PATCHED, StoryDownloadButton::switchedOn, StoryDownload::saveStory);
+        show(item, holder, PATCHED, StoryDownloadButton::switchedOn, StoryButtonRows::byThumb, StoryDownload::saveStory);
         StoryTextButton.bind(item, holder, PATCHED, StoryTextButton::switchedOn);
     }
 
     static void bind(@Nullable Object item, @Nullable Object holder, Reader reader, BooleanSupplier on,
                      Consumer<Object> saver) {
-        bind(item, holder, reader, on, StoryButtonRows::byThumb, saver);
+        show(item, holder, reader, on, StoryButtonRows::byThumb, (button, media) -> saver.accept(media));
     }
 
     /**
@@ -120,6 +122,12 @@ public final class StoryDownloadButton {
      */
     static void bind(@Nullable Object item, @Nullable Object holder, Reader reader, BooleanSupplier on,
                      BooleanSupplier thumb, Consumer<Object> saver) {
+        show(item, holder, reader, on, thumb, (button, media) -> saver.accept(media));
+    }
+
+    /** As above, with [saver] given the tapped button too, so a story can ask under it what to save (#726). */
+    static void show(@Nullable Object item, @Nullable Object holder, Reader reader, BooleanSupplier on,
+                     BooleanSupplier thumb, BiConsumer<View, Object> saver) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
             if (item != null && ViewingHistory.on()) ViewingHistory.story(reader.media(item));
@@ -151,7 +159,7 @@ public final class StoryDownloadButton {
     }
 
     /** A tap on [button]: saves its story, unless the switch went off since. Never throws. */
-    static void tapped(ImageView button, BooleanSupplier on, Consumer<Object> saver) {
+    static void tapped(ImageView button, BooleanSupplier on, BiConsumer<View, Object> saver) {
         try {
             if (!(button.getTag() instanceof Bound)) return;
             if (!on.getAsBoolean()) {
@@ -164,7 +172,7 @@ public final class StoryDownloadButton {
                 return;
             }
             HookStatus.counted(FamilyNames.STORY_DOWNLOAD, "story button tapped");
-            saver.accept(media);
+            saver.accept(button, media);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, HOOK, failure);
         }
@@ -237,7 +245,7 @@ public final class StoryDownloadButton {
         row.addView(button, at, params);
     }
 
-    private static ImageView create(Context context, BooleanSupplier on, Consumer<Object> saver) {
+    private static ImageView create(Context context, BooleanSupplier on, BiConsumer<View, Object> saver) {
         ImageView button = new ImageView(context);
         button.setImageDrawable(new Arrow(context.getResources().getDisplayMetrics().density));
         button.setScaleType(ImageView.ScaleType.CENTER);
