@@ -38,6 +38,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* `Take a scroll break` remembers a running break and the minutes you've already used when Instagram is closed and opened again, or Android ends it in the background. Both used to start over. Reported in #297.
 * A wavy seek bar and its tall handle aren't cut flat along the top anymore once the controls dim on a reel. Reported in #450 and #586.
 * With the tab bar hiding on Reels, a reel shorter than the screen sits where it would with the pill in place, instead of half the pill's height lower with more black above it. Reported in #450.
 * `Show the whole reel` keeps a reel's top and bottom on a screen wider than the reel, like a tablet or an open foldable. Reported in #681.

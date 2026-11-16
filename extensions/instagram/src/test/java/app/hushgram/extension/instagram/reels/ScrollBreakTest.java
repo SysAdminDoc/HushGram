@@ -51,6 +51,7 @@ public class ScrollBreakTest {
     private static final int BAR_HEIGHT = 50;
 
     private long now = 5_000_000L;
+    private long wallNow = 1_800_000_000_000L;
     private int W, H;
     private ActivityController<Activity> controller;
     private Activity activity;
@@ -64,6 +65,7 @@ public class ScrollBreakTest {
         PauseForTests.resume();
         ScrollBreak.forgetForTests();
         ScrollBreak.clock = () -> now;
+        ScrollBreak.wall = () -> wallNow;
         FullScreenBars.idForTests(FullScreenBars.VIEWER, VIEWER);
         FullScreenBars.idForTests(FullScreenBars.TAB_BAR, BAR);
         FullScreenBars.idForTests(FullScreenBars.REELS_TAB, REELS_TAB);
@@ -131,6 +133,89 @@ public class ScrollBreakTest {
 
     private ScrollBreak.Cover cover() {
         return ScrollBreak.coverOn(activity);
+    }
+
+    /** Instagram goes to the background. */
+    private void leave() {
+        ScrollBreak.paused(activity);
+        ScrollBreak.stopped(now);
+    }
+
+    /** Android ends Instagram in the background, and [away] later it starts again on a phone that stayed on. */
+    private void restartAfter(long away) {
+        ScrollBreak.restartForTests();
+        now += away;
+        wallNow += away;
+    }
+
+    /** #297: a running break went on counting down after Android ended Instagram, it didn't vanish. */
+    @Test public void aBreakKeepsRunningAfterInstagramIsEnded() {
+        Settings.SCROLL_BREAK.save(ScrollBreakTime.TEN_MINUTES);
+        open();
+        spend(10 * MINUTE);
+        assertEquals("5:00", cover().countdownText());
+        spend(MINUTE);
+        leave();
+        restartAfter(MINUTE);
+        open();
+        assertNotNull("the break is still on after the restart", cover());
+        assertEquals("3:00", cover().countdownText());
+        spend(3 * MINUTE);
+        assertNull("and it ends on time", cover());
+    }
+
+    /** The clock since the phone started begins again after a reboot; the break's end is kept on the wall clock. */
+    @Test public void aBreakKeepsRunningAfterThePhoneRestarts() {
+        Settings.SCROLL_BREAK.save(ScrollBreakTime.TEN_MINUTES);
+        open();
+        spend(10 * MINUTE);
+        spend(MINUTE);
+        leave();
+        ScrollBreak.restartForTests();
+        now = 20 * SECOND;
+        wallNow += 2 * MINUTE;
+        open();
+        assertEquals("2:00", cover().countdownText());
+    }
+
+    /** #297: the minutes already used still count when Instagram comes back before a whole break went by. */
+    @Test public void theMinutesUsedStayAfterAShortRestart() {
+        Settings.SCROLL_BREAK.save(ScrollBreakTime.TEN_MINUTES);
+        open();
+        spend(9 * MINUTE);
+        leave();
+        restartAfter(MINUTE);
+        open();
+        spend(MINUTE - SECOND);
+        assertNull("not yet", cover());
+        spend(SECOND);
+        assertNotNull("the nine minutes from before still counted", cover());
+    }
+
+    @Test public void aWholeBreakAwayStillStartsTheCountOverAfterARestart() {
+        Settings.SCROLL_BREAK.save(ScrollBreakTime.TEN_MINUTES);
+        open();
+        spend(9 * MINUTE);
+        leave();
+        restartAfter(ScrollBreak.BREAK_MS);
+        open();
+        spend(9 * MINUTE);
+        assertNull("five minutes away was the break", cover());
+    }
+
+    @Test public void aBreakThatEndedWhileInstagramWasGoneStartsTheCountAtZero() {
+        Settings.SCROLL_BREAK.save(ScrollBreakTime.TEN_MINUTES);
+        open();
+        spend(10 * MINUTE);
+        assertNotNull(cover());
+        leave();
+        restartAfter(6 * MINUTE);
+        open();
+        assertNull("the break is over", cover());
+        spend(10 * MINUTE - SECOND);
+        assertNull("the count started at zero", cover());
+        spend(SECOND);
+        assertNotNull(cover());
     }
 
     @Test public void offCountsNothing() {
